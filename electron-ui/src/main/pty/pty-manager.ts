@@ -44,15 +44,8 @@ function getCliPath(): string {
 }
 
 function getNodePath(): string {
-  // Try system node first
-  try {
-    const nodePath = execSync('where node', { encoding: 'utf8' }).trim().split('\n')[0].trim()
-    if (fs.existsSync(nodePath)) return nodePath
-  } catch {}
-  // Fallback: bundled node
-  const bundled = path.join(getResourcesPath(), 'node', 'node.exe')
-  if (fs.existsSync(bundled)) return bundled
-  throw new Error('Node.js not found. Please install Node.js 18+.')
+  if (process.env.CLAUDE_NODE_PATH) return process.env.CLAUDE_NODE_PATH
+  return 'node'
 }
 
 export interface PtyCreateArgs {

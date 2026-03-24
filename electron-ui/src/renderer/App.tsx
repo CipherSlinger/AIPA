@@ -32,9 +32,14 @@ export default function App() {
       setWorkingDir(workingDir)
       setLoaded(true)
 
-      // First-run: show onboarding wizard if no API key and not already completed
-      if (!all.onboardingDone && !all.apiKey && !env.apiKey) {
-        setShowOnboarding(true)
+      // First-run: show onboarding if never completed before.
+      // If an API key already exists (env or store), silently mark done and skip.
+      if (!all.onboardingDone) {
+        if (all.apiKey || env.apiKey) {
+          window.electronAPI.prefsSet('onboardingDone', true)
+        } else {
+          setShowOnboarding(true)
+        }
       }
     }
     init()

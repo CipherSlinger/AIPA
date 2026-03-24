@@ -21,17 +21,6 @@ function getCliPath(): string {
 
 function getNodePath(): string {
   if (process.env.CLAUDE_NODE_PATH) return process.env.CLAUDE_NODE_PATH
-  try {
-    const output = execSync('where node', { encoding: 'utf8' }).trim()
-    for (const line of output.split('\n')) {
-      const p = line.trim()
-      if (!p) continue
-      // Skip Windows App Execution Aliases — they are stubs that fail with ENOENT on spawn
-      if (p.toLowerCase().includes('windowsapps')) continue
-      if (fs.existsSync(p)) return p
-    }
-  } catch {}
-  // Fallback: rely on PATH resolution
   return 'node'
 }
 
