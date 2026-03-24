@@ -1,16 +1,22 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useChatStore, usePrefsStore } from '../store'
+import { PermissionMessage, StandardChatMessage } from '../types/app.types'
 
 export function useStreamJson() {
-  const { appendTextDelta, addToolUse, resolveToolUse, setStreaming, setSessionId } = useChatStore()
+  const {
+    appendTextDelta, addToolUse, resolveToolUse, setStreaming, setSessionId,
+    addPermissionRequest, resolvePermission, denyPendingPermissions,
+  } = useChatStore()
   const { prefs } = usePrefsStore()
+
+  const activeBridgeIdRef = useRef<string | null>(null)
 
   const sendMessage = async (prompt: string) => {
     if (!prompt.trim()) return
 
-    const userMsg = {
+    const userMsg: StandardChatMessage = {
       id: `user-${Date.now()}`,
-      role: 'user' as const,
+      role: 'user',
       content: prompt,
       timestamp: Date.now(),
     }
@@ -23,6 +29,7 @@ export function useStreamJson() {
       prompt,
       cwd: prefs.workingDir || (await window.electronAPI.fsGetHome()),
       sessionId: currentSessionId,
+      activeBridgeId: activeBridgeIdRef.current ?? undefined,
       model: prefs.model,
       env: {
         ...(prefs.apiKey ? { ANTHROPIC_API_KEY: prefs.apiKey } : {}),
@@ -33,17 +40,41 @@ export function useStreamJson() {
       ],
     })
 
+    if (result?.success && result.sessionId) {
+      activeBridgeIdRef.current = result.sessionId
+    }
+
     return result
   }
 
   const abort = () => {
-    const sid = useChatStore.getState().currentSessionId
-    if (sid) window.electronAPI.cliAbort(sid)
+    const sid = activeBridgeIdRef.current
+    if (sid) {
+      window.electronAPI.cliAbort(sid)
+      activeBridgeIdRef.current = null
+    }
+    denyPendingPermissions()
     setStreaming(false)
   }
 
+  const respondPermission = (permissionId: string, allowed: boolean) => {
+    const bridgeId = activeBridgeIdRef.current
+    if (!bridgeId) return
+    window.electronAPI.cliRespondPermission({ sessionId: bridgeId, requestId: permissionId, allowed })
+    resolvePermission(permissionId, allowed ? 'allowed' : 'denied')
+  }
+
+  const newConversation = async () => {
+    const bridgeId = activeBridgeIdRef.current
+    if (bridgeId) {
+      window.electronAPI.cliEndSession(bridgeId)
+      activeBridgeIdRef.current = null
+    }
+    denyPendingPermissions()
+    useChatStore.getState().clearMessages()
+  }
+
   useEffect(() => {
-    // Pass null so onCliEvent accepts events from any sessionId
     const unsub = window.electronAPI.onCliEvent(null as unknown as string, (event, data: any) => {
       switch (event) {
         case 'cli:assistantText':
@@ -75,10 +106,8 @@ export function useStreamJson() {
           break
         }
         case 'cli:result': {
-          // Capture the real Claude session ID for future resume
           const claudeSessionId = data.claudeSessionId as string | undefined
           if (claudeSessionId) setSessionId(claudeSessionId)
-          // Fallback: if no assistant message was added via streaming, show result text
           const resultText = ((data.event as Record<string, unknown>)?.result as string) || ''
           if (resultText.trim()) {
             const msgs = useChatStore.getState().messages
@@ -89,7 +118,7 @@ export function useStreamJson() {
                 role: 'assistant',
                 content: resultText,
                 timestamp: Date.now(),
-              })
+              } as StandardChatMessage)
             }
           }
           break
@@ -101,18 +130,33 @@ export function useStreamJson() {
             role: 'assistant',
             content: `⚠️ ${errText}`,
             timestamp: Date.now(),
-          })
+          } as StandardChatMessage)
           setStreaming(false)
           break
         }
         case 'cli:processExit':
+          denyPendingPermissions()
+          activeBridgeIdRef.current = null
           setStreaming(false)
           break
+        case 'cli:permissionRequest': {
+          const d = data as { sessionId: string; requestId: string; toolName: string; toolInput: Record<string, unknown> }
+          useChatStore.getState().addPermissionRequest({
+            id: `perm-${Date.now()}`,
+            role: 'permission',
+            permissionId: d.requestId,
+            toolName: d.toolName,
+            toolInput: d.toolInput,
+            decision: 'pending',
+            timestamp: Date.now(),
+          } as PermissionMessage)
+          break
+        }
       }
     })
 
     return unsub
   }, [])
 
-  return { sendMessage, abort }
+  return { sendMessage, abort, respondPermission, newConversation }
 }

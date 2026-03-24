@@ -5,8 +5,8 @@ import { useStreamJson } from '../../hooks/useStreamJson'
 import MessageList from './MessageList'
 
 export default function ChatPanel() {
-  const { messages, isStreaming, clearMessages, currentSessionId } = useChatStore()
-  const { sendMessage, abort } = useStreamJson()
+  const { messages, isStreaming, currentSessionId } = useChatStore()
+  const { sendMessage, abort, respondPermission, newConversation } = useStreamJson()
   const [input, setInput] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -62,7 +62,7 @@ export default function ChatPanel() {
             : '新对话'}
         </span>
         <button
-          onClick={clearMessages}
+          onClick={newConversation}
           title="新对话"
           style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
         >
@@ -76,7 +76,7 @@ export default function ChatPanel() {
           {messages.length === 0 ? (
             <WelcomeScreen />
           ) : (
-            <MessageList messages={messages} />
+          <MessageList messages={messages} onPermission={respondPermission} />
           )}
         </div>
         {isStreaming && <ThinkingIndicator />}
