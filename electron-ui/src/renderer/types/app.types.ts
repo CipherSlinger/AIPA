@@ -15,7 +15,7 @@ export interface SessionMessage {
   [key: string]: unknown
 }
 
-export type MessageRole = 'user' | 'assistant' | 'system'
+export type MessageRole = 'user' | 'assistant' | 'system' | 'permission'
 
 export interface ToolUseInfo {
   id: string
@@ -25,15 +25,27 @@ export interface ToolUseInfo {
   status: 'running' | 'done' | 'error'
 }
 
-export interface ChatMessage {
+export interface StandardChatMessage {
   id: string
-  role: MessageRole
+  role: 'user' | 'assistant' | 'system'
   content: string
   thinking?: string
   toolUses?: ToolUseInfo[]
   timestamp: number
   isStreaming?: boolean
 }
+
+export interface PermissionMessage {
+  id: string
+  role: 'permission'
+  permissionId: string         // requestId from CLI
+  toolName: string
+  toolInput: Record<string, unknown>
+  decision: 'pending' | 'allowed' | 'denied'
+  timestamp: number
+}
+
+export type ChatMessage = StandardChatMessage | PermissionMessage
 
 export interface FileEntry {
   name: string
