@@ -4,8 +4,8 @@ import { PermissionMessage, StandardChatMessage } from '../types/app.types'
 
 export function useStreamJson() {
   const {
-    appendTextDelta, addToolUse, resolveToolUse, setStreaming, setSessionId,
-    addPermissionRequest, resolvePermission, denyPendingPermissions,
+    appendTextDelta, appendThinkingDelta, addToolUse, resolveToolUse, setStreaming, setSessionId,
+    addPermissionRequest, resolvePermission, denyPendingPermissions, setLastUsage,
   } = useChatStore()
   const { prefs } = usePrefsStore()
 
@@ -77,6 +77,9 @@ export function useStreamJson() {
         case 'cli:assistantText':
           appendTextDelta(data.sessionId as string, data.text as string)
           break
+        case 'cli:thinkingDelta':
+          appendThinkingDelta(data.sessionId as string, data.thinking as string)
+          break
         case 'cli:messageEnd':
           setStreaming(false)
           break
@@ -105,7 +108,16 @@ export function useStreamJson() {
         case 'cli:result': {
           const claudeSessionId = data.claudeSessionId as string | undefined
           if (claudeSessionId) setSessionId(claudeSessionId)
-          const resultText = ((data.event as Record<string, unknown>)?.result as string) || ''
+          const ev = data.event as Record<string, unknown>
+          const usage = ev?.usage as Record<string, number> | undefined
+          if (usage) {
+            setLastUsage({
+              inputTokens: (usage.input_tokens ?? 0),
+              outputTokens: (usage.output_tokens ?? 0),
+              cacheTokens: (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0),
+            })
+          }
+          const resultText = (ev?.result as string) || ''
           if (resultText.trim()) {
             const msgs = useChatStore.getState().messages
             const last = msgs[msgs.length - 1]

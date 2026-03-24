@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
-import { ChatMessage } from '../../types/app.types'
+import { ChatMessage, StandardChatMessage } from '../../types/app.types'
 import MessageContent from './MessageContent'
 import ToolUseBlock from './ToolUseBlock'
-import { User, Bot, Copy } from 'lucide-react'
+import { User, Bot, Copy, ChevronDown, ChevronRight } from 'lucide-react'
 
 interface Props {
   message: ChatMessage
@@ -13,6 +13,9 @@ export default function Message({ message }: Props) {
   const isAssistant = message.role === 'assistant'
   const [hovered, setHovered] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [thinkingExpanded, setThinkingExpanded] = useState(false)
+
+  const thinking = message.role !== 'permission' ? (message as StandardChatMessage).thinking : undefined
 
   function handleCopy() {
     if (message.role !== 'assistant') return
@@ -55,10 +58,15 @@ export default function Message({ message }: Props) {
 
       {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
           {isUser ? '你' : 'Claude'}
           {message.role !== 'permission' && message.isStreaming && (
-            <span style={{ marginLeft: 8, color: 'var(--success)' }}>● 生成中...</span>
+            <span style={{ color: 'var(--success)' }}>● 生成中...</span>
+          )}
+          {hovered && message.timestamp && (
+            <span style={{ fontSize: 10, opacity: 0.6 }}>
+              {new Date(message.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+            </span>
           )}
         </div>
 
@@ -68,6 +76,34 @@ export default function Message({ message }: Props) {
             {message.toolUses.map((tool) => (
               <ToolUseBlock key={tool.id} tool={tool} />
             ))}
+          </div>
+        )}
+
+        {/* Thinking block */}
+        {thinking && (
+          <div style={{ marginBottom: 8 }}>
+            <button
+              onClick={() => setThinkingExpanded(!thinkingExpanded)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--text-muted)', fontSize: 11, padding: 0, marginBottom: 4,
+              }}
+            >
+              {thinkingExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+              💭 思考过程
+            </button>
+            {thinkingExpanded && (
+              <div style={{
+                background: 'var(--bg-primary)', border: '1px solid var(--border)',
+                borderRadius: 4, padding: '8px 12px',
+                fontSize: 12, color: 'var(--text-muted)',
+                fontStyle: 'italic', lineHeight: 1.6,
+                whiteSpace: 'pre-wrap', maxHeight: 300, overflowY: 'auto',
+              }}>
+                {thinking}
+              </div>
+            )}
           </div>
         )}
 

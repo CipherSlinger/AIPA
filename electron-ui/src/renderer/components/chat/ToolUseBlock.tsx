@@ -31,12 +31,38 @@ const TOOL_LABELS: Record<string, string> = {
   WebSearch: '网络搜索',
 }
 
+const BASH_TOOLS = new Set(['Bash', 'computer'])
+const FILE_EDIT_TOOLS = new Set(['str_replace_editor', 'str_replace_based_edit_tool'])
+
+function DiffView({ input }: { input: Record<string, unknown> }) {
+  const oldStr = String(input.old_str ?? input.old_string ?? '')
+  const newStr = String(input.new_str ?? input.new_string ?? '')
+  if (!oldStr && !newStr) return null
+  return (
+    <div style={{ fontFamily: 'monospace', fontSize: 11 }}>
+      {oldStr && oldStr.split('\n').map((line, i) => (
+        <div key={`old-${i}`} style={{ background: 'rgba(220,38,38,0.15)', color: '#f87171', padding: '1px 6px', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+          - {line}
+        </div>
+      ))}
+      {newStr && newStr.split('\n').map((line, i) => (
+        <div key={`new-${i}`} style={{ background: 'rgba(34,197,94,0.15)', color: '#4ade80', padding: '1px 6px', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+          + {line}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function ToolUseBlock({ tool }: Props) {
   const [expanded, setExpanded] = useState(false)
   const Icon = TOOL_ICONS[tool.name] || Terminal
   const label = TOOL_LABELS[tool.name] || tool.name
+  const isBash = BASH_TOOLS.has(tool.name)
+  const isFileEdit = FILE_EDIT_TOOLS.has(tool.name)
+  const isRunning = tool.status === 'running'
 
-  const statusIcon = tool.status === 'running'
+  const statusIcon = isRunning
     ? <Loader2 size={12} className="animate-spin" style={{ color: 'var(--warning)' }} />
     : tool.status === 'done'
     ? <Check size={12} style={{ color: 'var(--success)' }} />
@@ -49,6 +75,10 @@ export default function ToolUseBlock({ tool }: Props) {
     if (tool.input.url) return String(tool.input.url)
     return JSON.stringify(tool.input).slice(0, 80)
   })()
+
+  const resultText = typeof tool.result === 'string'
+    ? tool.result
+    : tool.result != null ? JSON.stringify(tool.result, null, 2) : ''
 
   return (
     <div
@@ -69,11 +99,12 @@ export default function ToolUseBlock({ tool }: Props) {
           alignItems: 'center',
           gap: 8,
           padding: '6px 10px',
-          background: 'none',
+          background: isRunning ? 'rgba(234,179,8,0.06)' : 'none',
           border: 'none',
           cursor: 'pointer',
           textAlign: 'left',
           color: 'var(--text-primary)',
+          transition: 'background 0.2s',
         }}
       >
         {expanded ? <ChevronDown size={12} style={{ color: 'var(--text-muted)' }} /> : <ChevronRight size={12} style={{ color: 'var(--text-muted)' }} />}
@@ -88,20 +119,47 @@ export default function ToolUseBlock({ tool }: Props) {
       {/* Expanded detail */}
       {expanded && (
         <div style={{ borderTop: '1px solid var(--border)' }}>
+          {/* Input section */}
           <div style={{ padding: '8px 10px' }}>
             <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4 }}>INPUT</div>
-            <pre style={{ fontSize: 11, margin: 0, background: 'transparent', border: 'none', padding: 0, overflow: 'auto', maxHeight: 200 }}>
-              {JSON.stringify(tool.input, null, 2)}
-            </pre>
-          </div>
-          {tool.result !== undefined && (
-            <div style={{ padding: '8px 10px', borderTop: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4 }}>OUTPUT</div>
-              <pre style={{ fontSize: 11, margin: 0, background: 'transparent', border: 'none', padding: 0, overflow: 'auto', maxHeight: 200, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                {typeof tool.result === 'string'
-                  ? tool.result
-                  : JSON.stringify(tool.result, null, 2)}
+            {isFileEdit && (tool.input.old_str || tool.input.new_str || tool.input.old_string || tool.input.new_string) ? (
+              <>
+                {tool.input.path && (
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, fontFamily: 'monospace' }}>{String(tool.input.path)}</div>
+                )}
+                <DiffView input={tool.input} />
+              </>
+            ) : (
+              <pre style={{ fontSize: 11, margin: 0, background: 'transparent', border: 'none', padding: 0, overflow: 'auto', maxHeight: 200 }}>
+                {JSON.stringify(tool.input, null, 2)}
               </pre>
+            )}
+          </div>
+
+          {/* Output section */}
+          {tool.result !== undefined && (
+            <div style={{ borderTop: '1px solid var(--border)' }}>
+              <div style={{ padding: '4px 10px 0', fontSize: 10, color: 'var(--text-muted)' }}>OUTPUT</div>
+              {isBash ? (
+                <pre style={{
+                  margin: 0, padding: '6px 10px 8px',
+                  fontFamily: 'monospace', fontSize: 11,
+                  background: '#0d0d0d', color: '#4ade80',
+                  maxHeight: 300, overflowY: 'auto',
+                  whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                }}>
+                  {resultText || '(no output)'}
+                </pre>
+              ) : (
+                <pre style={{
+                  fontSize: 11, margin: 0, padding: '6px 10px 8px',
+                  background: 'transparent', border: 'none',
+                  overflow: 'auto', maxHeight: 200,
+                  whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                }}>
+                  {resultText}
+                </pre>
+              )}
             </div>
           )}
         </div>

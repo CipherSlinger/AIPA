@@ -18,6 +18,9 @@ interface ChatState {
   resolveToolUse: (toolId: string, result: unknown, isError: boolean) => void
   clearMessages: () => void
   loadHistory: (messages: ChatMessage[]) => void
+  appendThinkingDelta: (sessionId: string, text: string) => void
+  lastUsage: { inputTokens: number; outputTokens: number; cacheTokens: number } | null
+  setLastUsage: (u: { inputTokens: number; outputTokens: number; cacheTokens: number }) => void
   addPermissionRequest: (msg: PermissionMessage) => void
   resolvePermission: (permissionId: string, decision: 'allowed' | 'denied') => void
   denyPendingPermissions: () => void
@@ -29,6 +32,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   currentSessionId: null,
   workingDir: '',
   pendingToolUses: new Map(),
+  lastUsage: null,
 
   addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
 
@@ -102,6 +106,29 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   clearMessages: () => set({ messages: [], currentSessionId: null, isStreaming: false }),
   loadHistory: (messages) => set({ messages, isStreaming: false }),
+
+  appendThinkingDelta: (sessionId, text) => {
+    set((s) => {
+      const msgs = [...s.messages]
+      const last = msgs[msgs.length - 1]
+      if (last && last.role === 'assistant' && (last as StandardChatMessage).isStreaming) {
+        const prev = (last as StandardChatMessage).thinking || ''
+        msgs[msgs.length - 1] = { ...last, thinking: prev + text } as StandardChatMessage
+      } else {
+        msgs.push({
+          id: `msg-${Date.now()}-${Math.random()}`,
+          role: 'assistant',
+          content: '',
+          thinking: text,
+          timestamp: Date.now(),
+          isStreaming: true,
+        } as StandardChatMessage)
+      }
+      return { messages: msgs, currentSessionId: sessionId || s.currentSessionId }
+    })
+  },
+
+  setLastUsage: (u) => set({ lastUsage: u }),
 
   addPermissionRequest: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
 

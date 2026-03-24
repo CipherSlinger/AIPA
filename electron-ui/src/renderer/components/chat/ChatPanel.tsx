@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Send, Square, Plus, Trash2 } from 'lucide-react'
-import { useChatStore } from '../../store'
+import { useChatStore, usePrefsStore } from '../../store'
 import { useStreamJson } from '../../hooks/useStreamJson'
 import MessageList from './MessageList'
 
 export default function ChatPanel() {
   const { messages, isStreaming, currentSessionId } = useChatStore()
+  const { prefs } = usePrefsStore()
   const { sendMessage, abort, respondPermission, newConversation } = useStreamJson()
   const [input, setInput] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -61,11 +62,16 @@ export default function ChatPanel() {
           flexShrink: 0,
         }}
       >
-        <span style={{ color: 'var(--text-muted)', fontSize: 12, flex: 1 }}>
+        <span style={{ color: 'var(--text-muted)', fontSize: 11, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {currentSessionId
             ? `会话: ${currentSessionId.slice(0, 8)}...`
-            : '新对话'}
+            : `⚡ ${prefs.model?.split('-').slice(0, 3).join('-') || 'claude'}`}
         </span>
+        {prefs.workingDir && (
+          <span style={{ color: 'var(--text-muted)', fontSize: 10, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={prefs.workingDir}>
+            📁 {prefs.workingDir.split(/[/\\]/).pop()}
+          </span>
+        )}
         <button
           onClick={newConversation}
           title="新对话"
@@ -178,9 +184,9 @@ function ThinkingIndicator() {
 
 function WelcomeScreen({ onSuggestion }: { onSuggestion: (text: string) => void }) {
   const suggestions = [
-    { emoji: '📧', text: '帮我写一封邮件' },
-    { emoji: '💡', text: '解释这段文字' },
-    { emoji: '📁', text: '帮我整理思路' },
+    { emoji: '📁', text: '分析当前目录的代码结构' },
+    { emoji: '🐛', text: '帮我找到并修复这个 bug' },
+    { emoji: '✨', text: '帮我实现一个新功能' },
   ]
 
   return (

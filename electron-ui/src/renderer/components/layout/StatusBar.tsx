@@ -3,12 +3,14 @@ import { PanelLeft, PanelRight, Terminal } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 
 export default function StatusBar() {
-  const { workingDir } = useChatStore()
+  const { workingDir, lastUsage } = useChatStore()
   const { prefs } = usePrefsStore()
   const { toggleSidebar, toggleTerminal, sidebarOpen, terminalOpen } = useUiStore()
 
   const dirLabel = workingDir || prefs.workingDir || '~'
   const modelLabel = prefs.model || 'claude-sonnet-4-6'
+
+  const fmt = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n)
 
   return (
     <div
@@ -36,6 +38,13 @@ export default function StatusBar() {
       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {dirLabel}
       </span>
+
+      {lastUsage && (
+        <span style={{ opacity: 0.85, whiteSpace: 'nowrap' }}>
+          ↑{fmt(lastUsage.inputTokens)} ↓{fmt(lastUsage.outputTokens)}
+          {lastUsage.cacheTokens > 0 && ` ♻️${fmt(lastUsage.cacheTokens)}`}
+        </span>
+      )}
 
       <span style={{ opacity: 0.9 }}>⚡ {modelLabel}</span>
 
