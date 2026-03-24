@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { ChatMessage, ClaudePrefs, SessionListItem } from '../types/app.types'
+import { ChatMessage, PermissionMessage, StandardChatMessage, ClaudePrefs, SessionListItem } from '../types/app.types'
 
 // ── Chat store ──────────────────────────────────
 interface ChatState {
@@ -18,6 +18,9 @@ interface ChatState {
   resolveToolUse: (toolId: string, result: unknown, isError: boolean) => void
   clearMessages: () => void
   loadHistory: (messages: ChatMessage[]) => void
+  addPermissionRequest: (msg: PermissionMessage) => void
+  resolvePermission: (permissionId: string, decision: 'allowed' | 'denied') => void
+  denyPendingPermissions: () => void
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -33,8 +36,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set((s) => {
       const msgs = [...s.messages]
       const last = msgs[msgs.length - 1]
-      if (last && last.role === 'assistant' && last.isStreaming) {
-        msgs[msgs.length - 1] = { ...last, content: last.content + text }
+      if (last && last.role === 'assistant' && (last as StandardChatMessage).isStreaming) {
+        msgs[msgs.length - 1] = { ...last, content: (last as StandardChatMessage).content + text } as StandardChatMessage
       } else {
         msgs.push({
           id: `msg-${Date.now()}-${Math.random()}`,
@@ -42,7 +45,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           content: text,
           timestamp: Date.now(),
           isStreaming: true,
-        })
+        } as StandardChatMessage)
       }
       return { messages: msgs, currentSessionId: sessionId || s.currentSessionId }
     })
@@ -51,7 +54,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   setStreaming: (v) => {
     set((s) => {
       const msgs = s.messages.map((m) =>
-        m.isStreaming ? { ...m, isStreaming: false } : m
+        m.role !== 'permission' && (m as StandardChatMessage).isStreaming
+          ? { ...m, isStreaming: false }
+          : m
       )
       return { isStreaming: v, messages: msgs }
     })
@@ -65,9 +70,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     pending.set(toolId, { name, input })
     set((s) => {
       const msgs = s.messages.map((m) => {
-        if (m.id === msgId) {
-          const toolUses = [...(m.toolUses || []), { id: toolId, name, input, status: 'running' as const }]
-          return { ...m, toolUses }
+        if (m.id === msgId && m.role !== 'permission') {
+          const std = m as StandardChatMessage
+          const toolUses = [...(std.toolUses || []), { id: toolId, name, input, status: 'running' as const }]
+          return { ...std, toolUses }
         }
         return m
       })
@@ -78,13 +84,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
   resolveToolUse: (toolId, result, isError) => {
     set((s) => {
       const msgs = s.messages.map((m) => {
-        if (!m.toolUses) return m
-        const toolUses = m.toolUses.map((t) =>
+        if (m.role === 'permission') return m
+        const std = m as StandardChatMessage
+        if (!std.toolUses) return m
+        const toolUses = std.toolUses.map((t) =>
           t.id === toolId
             ? { ...t, result, status: (isError ? 'error' : 'done') as 'done' | 'error' }
             : t
         )
-        return { ...m, toolUses }
+        return { ...std, toolUses }
       })
       const pending = new Map(s.pendingToolUses)
       pending.delete(toolId)
@@ -94,6 +102,26 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   clearMessages: () => set({ messages: [], currentSessionId: null, isStreaming: false }),
   loadHistory: (messages) => set({ messages, isStreaming: false }),
+
+  addPermissionRequest: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
+
+  resolvePermission: (permissionId, decision) =>
+    set((s) => ({
+      messages: s.messages.map((m) =>
+        m.role === 'permission' && m.permissionId === permissionId
+          ? { ...m, decision }
+          : m
+      ),
+    })),
+
+  denyPendingPermissions: () =>
+    set((s) => ({
+      messages: s.messages.map((m) =>
+        m.role === 'permission' && m.decision === 'pending'
+          ? { ...m, decision: 'denied' as const }
+          : m
+      ),
+    })),
 }))
 
 // ── Session store ───────────────────────────────
