@@ -54,7 +54,17 @@ function registerPtyHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
 // ────────────────────────────────────────────
 function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknown[]) => void): void {
   ipcMain.handle('cli:sendMessage', async (_e, args) => {
-    // args.sessionId = real Claude session to resume (may be null for new chat)
+    const skipPermissions: boolean = !!(args.flags || []).includes('--dangerously-skip-permissions')
+
+    // Reuse existing bridge if one is active for this conversation
+    const existingBridgeId: string | undefined = args.activeBridgeId
+    if (existingBridgeId && streamBridgeManager.get(existingBridgeId)) {
+      const bridge = streamBridgeManager.get(existingBridgeId)!
+      bridge.sendFollowUp(args.prompt, args.sessionId)
+      return { success: true, sessionId: existingBridgeId }
+    }
+
+    // Spawn new bridge
     const bridgeId = `bridge-${Date.now()}`
     const bridge = streamBridgeManager.create(bridgeId)
 
@@ -65,8 +75,12 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
     bridge.on('toolResult', (d) => send('cli:toolResult', d))
     bridge.on('messageStop', (d) => send('cli:messageEnd', d))
     bridge.on('result', (d) => send('cli:result', d))
-    bridge.on('processExit', (d) => send('cli:processExit', d))
+    bridge.on('processExit', (d) => {
+      send('cli:processExit', d)
+      // StreamBridgeManager cleans itself up via its own processExit listener (already wired in .create())
+    })
     bridge.on('stderr', (d) => send('cli:error', { sessionId: bridgeId, error: d }))
+    bridge.on('permissionRequest', (d) => send('cli:permissionRequest', d))
 
     // Inject API key from prefs if not in env
     if (!args.env?.ANTHROPIC_API_KEY) {
@@ -79,6 +93,7 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
     try {
       await bridge.sendMessage({
         ...args,
+        skipPermissions,
         resumeSessionId: args.sessionId || undefined, // real Claude session ID
         sessionId: bridgeId,                          // internal bridge ID
       })
@@ -92,11 +107,24 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
   ipcMain.handle('cli:abort', (_e, sessionId) => {
     streamBridgeManager.abort(sessionId)
   })
+
+  ipcMain.handle('cli:respondPermission', (_e, { sessionId, requestId, allowed }) => {
+    const bridge = streamBridgeManager.get(sessionId)
+    if (bridge) bridge.respondPermission(requestId, allowed)
+  })
+
+  ipcMain.handle('cli:endSession', (_e, sessionId) => {
+    const bridge = streamBridgeManager.get(sessionId)
+    if (bridge) {
+      bridge.endSession()
+      // don't delete from manager yet — processExit event will fire and clean up
+    }
+  })
 }
 
 // ────────────────────────────────────────────
 // Session handlers
-// ─────────────────────���──────────────────────
+// ────────────────────────────────────────────
 function registerSessionHandlers(): void {
   ipcMain.handle('session:list', () => listSessions())
   ipcMain.handle('session:load', (_e, id) => loadSession(id))
