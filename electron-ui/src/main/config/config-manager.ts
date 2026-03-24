@@ -11,6 +11,7 @@ interface StoreSchema {
   skipPermissions: boolean
   verbose: boolean
   theme: 'vscode' | 'modern' | 'minimal'
+  onboardingDone: boolean
 }
 
 const store = new Store<StoreSchema>({
@@ -23,9 +24,10 @@ const store = new Store<StoreSchema>({
     terminalWidth: 400,
     fontSize: 14,
     fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
-    skipPermissions: false,
+    skipPermissions: true,
     verbose: false,
     theme: 'vscode',
+    onboardingDone: false,
   },
   encryptionKey: 'claude-code-ui-secret-2024',
 })
@@ -48,4 +50,12 @@ export function setPref<K extends keyof StoreSchema>(key: K, value: StoreSchema[
 
 export function getAllPrefs(): StoreSchema {
   return store.store
+}
+
+export function getOnboardingDone(): boolean {
+  return store.get('onboardingDone')
+}
+
+export function setOnboardingDone(value: boolean): void {
+  store.set('onboardingDone', value)
 }

@@ -2,15 +2,15 @@ import React, { useEffect, useState } from 'react'
 import { Save, Eye, EyeOff } from 'lucide-react'
 import { usePrefsStore } from '../../store'
 
-const MODELS = [
-  'claude-opus-4-6',
-  'claude-sonnet-4-6',
-  'claude-haiku-4-5',
-  'claude-opus-4',
-  'claude-sonnet-4-5',
-  'claude-3-7-sonnet-20250219',
-  'claude-3-5-sonnet-20241022',
-  'claude-3-5-haiku-20241022',
+const MODEL_OPTIONS: { id: string; label: string }[] = [
+  { id: 'claude-opus-4-6',            label: 'Claude Opus（最强大）' },
+  { id: 'claude-sonnet-4-6',          label: 'Claude Sonnet（推荐）' },
+  { id: 'claude-haiku-4-5',           label: 'Claude Haiku（最快速）' },
+  { id: 'claude-opus-4',              label: 'Claude Opus 4' },
+  { id: 'claude-sonnet-4-5',          label: 'Claude Sonnet 4.5' },
+  { id: 'claude-3-7-sonnet-20250219', label: 'Claude 3.7 Sonnet' },
+  { id: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet' },
+  { id: 'claude-3-5-haiku-20241022',  label: 'Claude 3.5 Haiku' },
 ]
 
 const THEMES: { id: 'vscode' | 'modern' | 'minimal'; label: string; colors: string[] }[] = [
@@ -59,10 +59,11 @@ export default function SettingsPanel() {
     setTimeout(() => setSaved(false), 2000)
   }
 
-  const field = (label: string, content: React.ReactNode) => (
+  const field = (label: string, content: React.ReactNode, hint?: React.ReactNode) => (
     <div style={{ marginBottom: 16 }}>
       <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600 }}>{label}</div>
       {content}
+      {hint && <div style={{ marginTop: 4 }}>{hint}</div>}
     </div>
   )
 
@@ -78,24 +79,13 @@ export default function SettingsPanel() {
     boxSizing: 'border-box',
   }
 
-  const checkboxField = (label: string, key: 'skipPermissions' | 'verbose') => (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginBottom: 10 }}>
-      <input
-        type="checkbox"
-        checked={local[key]}
-        onChange={(e) => setLocal({ ...local, [key]: e.target.checked })}
-        style={{ accentColor: 'var(--accent)' }}
-      />
-      <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>{label}</span>
-    </label>
-  )
-
   return (
     <div style={{ padding: 14, overflowY: 'auto', height: '100%' }}>
       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 16 }}>设置</div>
 
       {/* API Key */}
-      {field('API Key', (
+      {field(
+        'API 密钥',
         <div style={{ position: 'relative' }}>
           <input
             type={showKey ? 'text' : 'password'}
@@ -110,8 +100,15 @@ export default function SettingsPanel() {
           >
             {showKey ? <EyeOff size={13} /> : <Eye size={13} />}
           </button>
-        </div>
-      ))}
+        </div>,
+        <a
+          href="#"
+          onClick={(e) => { e.preventDefault(); window.open('https://console.anthropic.com', '_blank') }}
+          style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none' }}
+        >
+          如何获取 API 密钥？
+        </a>
+      )}
 
       {/* Model */}
       {field('模型', (
@@ -120,14 +117,15 @@ export default function SettingsPanel() {
           onChange={(e) => setLocal({ ...local, model: e.target.value })}
           style={{ ...inputStyle }}
         >
-          {MODELS.map((m) => (
-            <option key={m} value={m}>{m}</option>
+          {MODEL_OPTIONS.map((m) => (
+            <option key={m.id} value={m.id}>{m.label}</option>
           ))}
         </select>
       ))}
 
       {/* Working dir */}
-      {field('默认工作目录', (
+      {field(
+        'AI 工作文件夹',
         <div style={{ display: 'flex', gap: 6 }}>
           <input
             value={local.workingDir}
@@ -144,27 +142,9 @@ export default function SettingsPanel() {
           >
             浏览
           </button>
-        </div>
-      ))}
-
-      {/* Font size */}
-      {field('终端字体大小', (
-        <input
-          type="number"
-          value={local.fontSize}
-          onChange={(e) => setLocal({ ...local, fontSize: Number(e.target.value) })}
-          min={10} max={24}
-          style={{ ...inputStyle, width: 80 }}
-        />
-      ))}
-
-      {/* Flags */}
-      {field('CLI 选项', (
-        <div>
-          {checkboxField('跳过权限确认 (--dangerously-skip-permissions)', 'skipPermissions')}
-          {checkboxField('详细输出 (--verbose)', 'verbose')}
-        </div>
-      ))}
+        </div>,
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Claude 会在这个文件夹里读写文件</span>
+      )}
 
       {/* Theme */}
       {field('界面主题', (

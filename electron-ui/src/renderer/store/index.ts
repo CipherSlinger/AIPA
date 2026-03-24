@@ -155,7 +155,7 @@ const DEFAULT_PREFS: ClaudePrefs = {
   terminalWidth: 400,
   fontSize: 14,
   fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
-  skipPermissions: false,
+  skipPermissions: true,
   verbose: false,
   theme: 'vscode',
 }
@@ -169,10 +169,10 @@ export const usePrefsStore = create<PrefsState>((set) => ({
 
 // ── UI store ────────────────────────────────────
 interface UiState {
-  sidebarTab: 'files' | 'history' | 'settings'
+  sidebarTab: 'history' | 'settings'
   sidebarOpen: boolean
   terminalOpen: boolean
-  setSidebarTab: (tab: 'files' | 'history' | 'settings') => void
+  setSidebarTab: (tab: 'history' | 'settings') => void
   setSidebarOpen: (v: boolean) => void
   setTerminalOpen: (v: boolean) => void
   toggleSidebar: () => void
@@ -180,7 +180,7 @@ interface UiState {
 }
 
 export const useUiStore = create<UiState>((set) => ({
-  sidebarTab: 'files',
+  sidebarTab: 'history',
   sidebarOpen: true,
   terminalOpen: false,
   setSidebarTab: (tab) => set({ sidebarTab: tab }),

@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import AppShell from './components/layout/AppShell'
+import OnboardingWizard from './components/onboarding/OnboardingWizard'
 import { usePrefsStore, useChatStore, useUiStore } from './store'
 import './styles/globals.css'
 import 'highlight.js/styles/github-dark.css'
@@ -7,7 +8,8 @@ import 'highlight.js/styles/github-dark.css'
 export default function App() {
   const { prefs, setPrefs, setLoaded } = usePrefsStore()
   const { setWorkingDir } = useChatStore()
-  const { toggleSidebar, toggleTerminal, setSidebarTab } = useUiStore()
+  const { toggleSidebar, toggleTerminal } = useUiStore()
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
   // Load preferences on startup
   useEffect(() => {
@@ -30,9 +32,9 @@ export default function App() {
       setWorkingDir(workingDir)
       setLoaded(true)
 
-      // First-run: open settings if no API key
-      if (!all.apiKey && !env.apiKey) {
-        setSidebarTab('settings')
+      // First-run: show onboarding wizard if no API key and not already completed
+      if (!all.onboardingDone && !all.apiKey && !env.apiKey) {
+        setShowOnboarding(true)
       }
     }
     init()
@@ -67,5 +69,12 @@ export default function App() {
     }
   }, [prefs.theme])
 
-  return <AppShell />
+  return (
+    <>
+      {showOnboarding && (
+        <OnboardingWizard onComplete={() => setShowOnboarding(false)} />
+      )}
+      <AppShell />
+    </>
+  )
 }
