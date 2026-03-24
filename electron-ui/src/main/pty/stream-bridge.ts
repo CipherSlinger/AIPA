@@ -35,6 +35,7 @@ export interface CliSendMessageArgs {
   model?: string
   env: Record<string, string>
   flags?: string[]
+  skipPermissions?: boolean
 }
 
 export class StreamBridge extends EventEmitter {
@@ -47,11 +48,13 @@ export class StreamBridge extends EventEmitter {
   }
 
   async sendMessage(args: CliSendMessageArgs): Promise<void> {
+    const isSessionMode = !args.skipPermissions
+
     const cliArgs = [
       getCliPath(),
       '--input-format', 'stream-json',
       '--output-format', 'stream-json',
-      '--print',
+      ...(isSessionMode ? [] : ['--print']),
       ...(args.resumeSessionId ? ['--resume', args.resumeSessionId] : []),
       ...(args.model ? ['--model', args.model] : []),
       ...(args.flags || []),
@@ -70,19 +73,34 @@ export class StreamBridge extends EventEmitter {
       stdio: ['pipe', 'pipe', 'pipe'],
     })
 
-    // Write user message as stream-json to stdin
+    this._attachOutputHandlers()
+    this._writeUserMessage(args.prompt, args.sessionId)
+
+    if (!isSessionMode) {
+      // skip mode: close stdin now, wait for process to exit
+      this.proc.stdin!.end()
+      return new Promise<void>((resolve, reject) => {
+        this.proc!.on('close', (code) => {
+          if (code === 0 || code === null) resolve()
+          else reject(new Error(`CLI exited with code ${code}`))
+        })
+      })
+    }
+    // session mode: return immediately, CLI stays alive
+  }
+
+  private _writeUserMessage(prompt: string, sessionId?: string): void {
     const userMessage = JSON.stringify({
       type: 'user',
-      message: { role: 'user', content: args.prompt },
-      session_id: args.sessionId || '',
+      message: { role: 'user', content: prompt },
+      session_id: sessionId || '',
       parent_tool_use_id: null,
     }) + '\n'
+    this.proc!.stdin!.write(userMessage)
+  }
 
-    this.proc.stdin!.write(userMessage)
-    this.proc.stdin!.end()
-
-    // Parse stdout lines
-    const rl = createInterface({ input: this.proc.stdout! })
+  private _attachOutputHandlers(): void {
+    const rl = createInterface({ input: this.proc!.stdout! })
     rl.on('line', (line) => {
       const trimmed = line.trim()
       if (!trimmed) return
@@ -90,23 +108,41 @@ export class StreamBridge extends EventEmitter {
         const event = JSON.parse(trimmed)
         this.handleStreamEvent(event)
       } catch {
-        // Non-JSON output
         this.emit('rawOutput', trimmed)
       }
     })
 
-    this.proc.stderr!.on('data', (data: Buffer) => {
+    this.proc!.stderr!.on('data', (data: Buffer) => {
       this.emit('stderr', data.toString())
     })
 
-    return new Promise<void>((resolve, reject) => {
-      this.proc!.on('close', (code) => {
-        this.emit('processExit', { sessionId: this.bridgeSessionId, code })
-        this.proc = null
-        if (code === 0 || code === null) resolve()
-        else reject(new Error(`CLI exited with code ${code}`))
-      })
+    this.proc!.on('close', (code) => {
+      this.emit('processExit', { sessionId: this.bridgeSessionId, code })
+      this.proc = null
     })
+  }
+
+  sendFollowUp(prompt: string, sessionId?: string): void {
+    if (!this.proc || !this.proc.stdin) {
+      throw new Error('No active CLI process to send follow-up to')
+    }
+    this._writeUserMessage(prompt, sessionId)
+  }
+
+  endSession(): void {
+    if (this.proc?.stdin) {
+      try { this.proc.stdin.end() } catch {}
+    }
+  }
+
+  respondPermission(requestId: string, allowed: boolean): void {
+    if (!this.proc?.stdin) return
+    const response = JSON.stringify({
+      type: 'permission_response',
+      request_id: requestId,
+      allowed,
+    }) + '\n'
+    this.proc.stdin.write(response)
   }
 
   private handleStreamEvent(event: Record<string, unknown>): void {
@@ -162,6 +198,15 @@ export class StreamBridge extends EventEmitter {
         // result event contains session_id for future --resume
         this.emit('result', { sessionId: sid, claudeSessionId: (event as Record<string, unknown>).session_id, event })
         break
+      case 'permission_request': {
+        this.emit('permissionRequest', {
+          sessionId: this.bridgeSessionId,
+          requestId: (event.request_id as string) || '',
+          toolName: (event.tool_name ?? event.tool_type ?? 'unknown') as string,
+          toolInput: (event.action_data ?? event.input ?? {}) as Record<string, unknown>,
+        })
+        break
+      }
       default:
         this.emit('unknown', { sessionId: sid, event })
     }
@@ -191,7 +236,11 @@ class StreamBridgeManager {
   }
 
   abort(sessionId: string): void {
-    this.bridges.get(sessionId)?.abort()
+    const bridge = this.bridges.get(sessionId)
+    if (bridge) {
+      bridge.endSession()
+      try { bridge.abort() } catch {}
+    }
     this.bridges.delete(sessionId)
   }
 
