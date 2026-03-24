@@ -57,6 +57,20 @@ npm run dist:win
 # 输出目录：electron-ui/release/
 ```
 
+## 更新内置 CLI
+
+`package/` 目录中包含内置的 Claude Code CLI。项目提供了两个辅助脚本，用于检测并更新它：
+
+```bash
+# Bash（Linux / macOS / Windows Git Bash）
+bash update-cli.sh
+
+# Windows 命令提示符
+update-cli.bat
+```
+
+两个脚本均会将 `package/package.json` 中的当前版本与 npm 上的最新版本进行比对，并在下载替换 `package/` 前提示你确认。
+
 ## 项目结构
 
 ```

@@ -57,6 +57,20 @@ npm run dist:win
 # Output: electron-ui/release/
 ```
 
+## Updating the Bundled CLI
+
+The `package/` directory contains the bundled Claude Code CLI. Two helper scripts are included to check and update it:
+
+```bash
+# Bash (Linux / macOS / Git Bash on Windows)
+bash update-cli.sh
+
+# Windows Command Prompt
+update-cli.bat
+```
+
+Both scripts compare the current version in `package/package.json` against the latest release on npm, and prompt you to confirm before downloading and replacing `package/`.
+
 ## Project Structure
 
 ```
