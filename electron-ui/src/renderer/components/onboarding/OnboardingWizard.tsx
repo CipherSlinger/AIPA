@@ -24,6 +24,11 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
     onComplete()
   }
 
+  const handleSkip = async () => {
+    await window.electronAPI.prefsSet('onboardingDone', true)
+    onComplete()
+  }
+
   return (
     <div style={styles.overlay}>
       <div style={styles.card}>
@@ -95,6 +100,12 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                 下一步 →
               </button>
             </div>
+            <button
+              onClick={handleSkip}
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', marginTop: 4 }}
+            >
+              跳过，稍后在设置中配置
+            </button>
           </div>
         )}
 

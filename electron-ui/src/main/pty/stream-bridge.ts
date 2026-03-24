@@ -20,11 +20,19 @@ function getCliPath(): string {
 }
 
 function getNodePath(): string {
+  if (process.env.CLAUDE_NODE_PATH) return process.env.CLAUDE_NODE_PATH
   try {
-    const nodePath = execSync('where node', { encoding: 'utf8' }).trim().split('\n')[0].trim()
-    if (fs.existsSync(nodePath)) return nodePath
+    const output = execSync('where node', { encoding: 'utf8' }).trim()
+    for (const line of output.split('\n')) {
+      const p = line.trim()
+      if (!p) continue
+      // Skip Windows App Execution Aliases — they are stubs that fail with ENOENT on spawn
+      if (p.toLowerCase().includes('windowsapps')) continue
+      if (fs.existsSync(p)) return p
+    }
   } catch {}
-  throw new Error('Node.js not found.')
+  // Fallback: rely on PATH resolution
+  return 'node'
 }
 
 export interface CliSendMessageArgs {
