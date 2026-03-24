@@ -1,0 +1,80 @@
+import { contextBridge, ipcRenderer } from 'electron'
+
+type Unsubscribe = () => void
+
+const electronAPI = {
+  // ── PTY ──────────────────────────────────
+  ptyCreate: (args: unknown) => ipcRenderer.invoke('pty:create', args),
+  ptyWrite: (args: unknown) => ipcRenderer.invoke('pty:write', args),
+  ptyResize: (args: unknown) => ipcRenderer.invoke('pty:resize', args),
+  ptyDestroy: (sessionId: string) => ipcRenderer.invoke('pty:destroy', sessionId),
+
+  // ── CLI stream-json ───────────────────────
+  cliSendMessage: (args: unknown) => ipcRenderer.invoke('cli:sendMessage', args),
+  cliAbort: (sessionId: string) => ipcRenderer.invoke('cli:abort', sessionId),
+
+  // ── Sessions ─────────────────────────────
+  sessionList: () => ipcRenderer.invoke('session:list'),
+  sessionLoad: (id: string) => ipcRenderer.invoke('session:load', id),
+  sessionDelete: (id: string) => ipcRenderer.invoke('session:delete', id),
+
+  // ── Config / prefs ───────────────────────
+  configRead: () => ipcRenderer.invoke('config:read'),
+  configWrite: (patch: unknown) => ipcRenderer.invoke('config:write', patch),
+  configGetEnv: () => ipcRenderer.invoke('config:getEnv'),
+  configSetApiKey: (key: string) => ipcRenderer.invoke('config:setApiKey', key),
+  prefsGet: (key: string) => ipcRenderer.invoke('prefs:get', key),
+  prefsSet: (key: string, value: unknown) => ipcRenderer.invoke('prefs:set', key, value),
+  prefsGetAll: () => ipcRenderer.invoke('prefs:getAll'),
+
+  // ── File system ──────────────────────────
+  fsListDir: (dirPath: string) => ipcRenderer.invoke('fs:listDir', dirPath),
+  fsShowOpenDialog: () => ipcRenderer.invoke('fs:showOpenDialog'),
+  fsGetHome: () => ipcRenderer.invoke('fs:getHome'),
+  fsEnsureDir: (dirPath: string) => ipcRenderer.invoke('fs:ensureDir', dirPath),
+
+  // ── Push event listeners ─────────────────
+  onPtyData: (sessionId: string, cb: (data: string) => void): Unsubscribe => {
+    const handler = (_: unknown, sid: string, data: string) => { if (sid === sessionId) cb(data) }
+    ipcRenderer.on('pty:data', handler)
+    return () => ipcRenderer.removeListener('pty:data', handler)
+  },
+
+  onPtyExit: (sessionId: string, cb: (info: { exitCode: number; signal: string }) => void): Unsubscribe => {
+    const handler = (_: unknown, sid: string, info: { exitCode: number; signal: string }) => {
+      if (sid === sessionId) cb(info)
+    }
+    ipcRenderer.on('pty:exit', handler)
+    return () => ipcRenderer.removeListener('pty:exit', handler)
+  },
+
+  onCliEvent: (
+    sessionId: string,
+    cb: (event: string, data: unknown) => void
+  ): Unsubscribe => {
+    const channels = [
+      'cli:assistantText', 'cli:thinkingDelta', 'cli:toolUse',
+      'cli:toolResult', 'cli:messageEnd', 'cli:result',
+      'cli:error', 'cli:processExit',
+    ]
+    const handlers = channels.map((ch) => {
+      const h = (_: unknown, d: Record<string, unknown>) => {
+        if (!sessionId || d?.sessionId === sessionId) cb(ch, d)
+      }
+      ipcRenderer.on(ch, h)
+      return { ch, h }
+    })
+    return () => handlers.forEach(({ ch, h }) => ipcRenderer.removeListener(ch, h))
+  },
+
+  // ── Menu events ──────────────────────────
+  onMenuEvent: (event: string, cb: () => void): Unsubscribe => {
+    const h = () => cb()
+    ipcRenderer.on(`menu:${event}`, h)
+    return () => ipcRenderer.removeListener(`menu:${event}`, h)
+  },
+}
+
+contextBridge.exposeInMainWorld('electronAPI', electronAPI)
+
+export type ElectronAPI = typeof electronAPI

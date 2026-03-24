@@ -1,0 +1,36 @@
+appId: com.anthropic.claude-code-ui
+productName: Claude Code UI
+copyright: © 2024 Anthropic PBC
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - dist/**/*
+  - node_modules/**/*
+  - "!node_modules/**/*.md"
+  - "!node_modules/**/*.ts"
+  - "!node_modules/**/test/**"
+
+extraResources:
+  - from: "../package"
+    to: "cli"
+    filter:
+      - "**/*"
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icon.ico
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  shortcutName: "Claude Code UI"
+
+asarUnpack:
+  - "**/*.node"
+  - "**/node-pty/**"
