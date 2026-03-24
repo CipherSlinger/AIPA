@@ -18,6 +18,11 @@ export default function ChatPanel() {
     await sendMessage(text)
   }
 
+  const sendText = async (text: string) => {
+    if (!text.trim() || isStreaming) return
+    await sendMessage(text.trim())
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -74,7 +79,7 @@ export default function ChatPanel() {
       <div className="flex-1 overflow-hidden" style={{ display: 'flex', flexDirection: 'column' }}>
         <div style={{ flex: 1, overflow: 'hidden' }}>
           {messages.length === 0 ? (
-            <WelcomeScreen />
+            <WelcomeScreen onSuggestion={sendText} />
           ) : (
           <MessageList messages={messages} onPermission={respondPermission} />
           )}
@@ -171,16 +176,53 @@ function ThinkingIndicator() {
   )
 }
 
-function WelcomeScreen() {
+function WelcomeScreen({ onSuggestion }: { onSuggestion: (text: string) => void }) {
+  const suggestions = [
+    { emoji: '📧', text: '帮我写一封邮件' },
+    { emoji: '💡', text: '解释这段文字' },
+    { emoji: '📁', text: '帮我整理思路' },
+  ]
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', gap: 16 }}>
-      <div style={{ fontSize: 48 }}>🤖</div>
-      <div style={{ fontSize: 20, color: 'var(--text-primary)', fontWeight: 500 }}>Claude Code UI</div>
-      <div style={{ fontSize: 13, textAlign: 'center', maxWidth: 360, lineHeight: 1.6 }}>
-        与 Claude 开始对话。Claude 可以理解你的代码库，编辑文件，执行终端命令，并完成整个工作流程。
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', gap: 20 }}>
+      <div style={{ fontSize: 56 }}>🤖</div>
+      <div style={{ fontSize: 24, color: 'var(--text-primary)', fontWeight: 600 }}>你好！我是 Claude</div>
+      <div style={{ fontSize: 14, color: 'var(--text-muted)', textAlign: 'center' }}>
+        你的 AI 助手，随时准备帮助你
       </div>
-      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
-        在下方输入框中输入你的问题或任务...
+      <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+        {suggestions.map(({ emoji, text }) => (
+          <button
+            key={text}
+            onClick={() => onSuggestion(text)}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 8,
+              padding: '16px 20px',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border)',
+              borderRadius: 10,
+              color: 'var(--text-primary)',
+              cursor: 'pointer',
+              fontSize: 13,
+              minWidth: 110,
+              transition: 'background 0.15s, border-color 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-active)'
+              ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-secondary)'
+              ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)'
+            }}
+          >
+            <span style={{ fontSize: 24 }}>{emoji}</span>
+            <span>{text}</span>
+          </button>
+        ))}
       </div>
     </div>
   )

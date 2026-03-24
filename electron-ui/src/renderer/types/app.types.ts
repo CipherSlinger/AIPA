@@ -65,4 +65,5 @@ export interface ClaudePrefs {
   skipPermissions: boolean
   verbose: boolean
   theme: 'vscode' | 'modern' | 'minimal'
+  onboardingDone?: boolean
 }

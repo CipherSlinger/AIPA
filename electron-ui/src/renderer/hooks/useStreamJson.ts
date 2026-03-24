@@ -34,10 +34,7 @@ export function useStreamJson() {
       env: {
         ...(prefs.apiKey ? { ANTHROPIC_API_KEY: prefs.apiKey } : {}),
       },
-      flags: [
-        ...(prefs.skipPermissions ? ['--dangerously-skip-permissions'] : []),
-        ...(prefs.verbose ? ['--verbose'] : []),
-      ],
+      flags: ['--dangerously-skip-permissions'],
     })
 
     if (result?.success && result.sessionId) {
