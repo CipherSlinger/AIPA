@@ -12,6 +12,10 @@ const electronAPI = {
   // ── CLI stream-json ───────────────────────
   cliSendMessage: (args: unknown) => ipcRenderer.invoke('cli:sendMessage', args),
   cliAbort: (sessionId: string) => ipcRenderer.invoke('cli:abort', sessionId),
+  cliRespondPermission: (args: { sessionId: string; requestId: string; allowed: boolean }) =>
+    ipcRenderer.invoke('cli:respondPermission', args),
+  cliEndSession: (sessionId: string) =>
+    ipcRenderer.invoke('cli:endSession', sessionId),
 
   // ── Sessions ─────────────────────────────
   sessionList: () => ipcRenderer.invoke('session:list'),
@@ -56,6 +60,7 @@ const electronAPI = {
       'cli:assistantText', 'cli:thinkingDelta', 'cli:toolUse',
       'cli:toolResult', 'cli:messageEnd', 'cli:result',
       'cli:error', 'cli:processExit',
+      'cli:permissionRequest',
     ]
     const handlers = channels.map((ch) => {
       const h = (_: unknown, d: Record<string, unknown>) => {
