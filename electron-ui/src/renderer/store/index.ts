@@ -26,6 +26,11 @@ interface ChatState {
   denyPendingPermissions: () => void
   addPlanMessage: (msg: PlanMessage) => void
   resolvePlan: (planId: string, decision: 'accepted' | 'rejected') => void
+  rateMessage: (msgId: string, rating: 'up' | 'down' | null) => void
+  lastCost: number | null
+  lastContextUsage: { used: number; total: number } | null
+  setLastCost: (cost: number | null) => void
+  setLastContextUsage: (usage: { used: number; total: number } | null) => void
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -35,6 +40,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   workingDir: '',
   pendingToolUses: new Map(),
   lastUsage: null,
+  lastCost: null,
+  lastContextUsage: null,
 
   addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
 
@@ -131,6 +138,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   setLastUsage: (u) => set({ lastUsage: u }),
+  setLastCost: (cost) => set({ lastCost: cost }),
+  setLastContextUsage: (usage) => set({ lastContextUsage: usage }),
 
   addPermissionRequest: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
 
@@ -162,6 +171,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
           : m
       ),
     })),
+
+  rateMessage: (msgId, rating) => set((s) => ({
+    messages: s.messages.map(m => m.id === msgId ? { ...m, rating } as StandardChatMessage : m)
+  })),
 }))
 
 // ── Session store ───────────────────────────────
@@ -199,6 +212,7 @@ const DEFAULT_PREFS: ClaudePrefs = {
   verbose: false,
   theme: 'vscode',
   thinkingLevel: 'off',
+  systemPrompt: '',
 }
 
 export const usePrefsStore = create<PrefsState>((set) => ({

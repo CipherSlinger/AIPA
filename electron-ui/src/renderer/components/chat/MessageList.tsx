@@ -13,7 +13,7 @@ interface Props {
 
 export default function MessageList({ messages, onPermission, onGrantPermission }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
-  const { resolvePlan } = useChatStore()
+  const { resolvePlan, rateMessage } = useChatStore()
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -42,7 +42,10 @@ export default function MessageList({ messages, onPermission, onGrantPermission 
             />
           )
         }
-        return <Message key={msg.id} message={msg} />
+        return <Message key={msg.id} message={msg} onRate={(msgId, rating) => {
+          rateMessage(msgId, rating)
+          window.electronAPI.feedbackRate(msgId, rating)
+        }} />
       })}
       <div ref={bottomRef} />
     </div>

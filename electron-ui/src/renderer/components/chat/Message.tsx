@@ -6,9 +6,10 @@ import { User, Bot, Copy, ChevronDown, ChevronRight } from 'lucide-react'
 
 interface Props {
   message: ChatMessage
+  onRate?: (msgId: string, rating: 'up' | 'down' | null) => void
 }
 
-export default function Message({ message }: Props) {
+export default function Message({ message, onRate }: Props) {
   const isUser = message.role === 'user'
   const isAssistant = message.role === 'assistant'
   const [hovered, setHovered] = useState(false)
@@ -141,6 +142,38 @@ export default function Message({ message }: Props) {
             <Copy size={13} />
           )}
         </button>
+      )}
+      {isAssistant && hovered && onRate && (
+        <div style={{ display: 'flex', gap: 4, position: 'absolute', top: 8, right: 80 }}>
+          <button
+            onClick={() => {
+              const cur = (message as StandardChatMessage).rating
+              onRate(message.id, cur === 'up' ? null : 'up')
+            }}
+            title="有用"
+            style={{
+              background: (message as StandardChatMessage).rating === 'up' ? 'var(--success)' : 'none',
+              border: '1px solid var(--border)',
+              borderRadius: 4, padding: '2px 6px',
+              color: (message as StandardChatMessage).rating === 'up' ? '#fff' : 'var(--text-muted)',
+              cursor: 'pointer', fontSize: 12,
+            }}
+          >👍</button>
+          <button
+            onClick={() => {
+              const cur = (message as StandardChatMessage).rating
+              onRate(message.id, cur === 'down' ? null : 'down')
+            }}
+            title="无用"
+            style={{
+              background: (message as StandardChatMessage).rating === 'down' ? 'var(--error)' : 'none',
+              border: '1px solid var(--border)',
+              borderRadius: 4, padding: '2px 6px',
+              color: (message as StandardChatMessage).rating === 'down' ? '#fff' : 'var(--text-muted)',
+              cursor: 'pointer', fontSize: 12,
+            }}
+          >👎</button>
+        </div>
       )}
     </div>
   )

@@ -4,6 +4,8 @@ import { useChatStore, usePrefsStore } from '../../store'
 import { useStreamJson } from '../../hooks/useStreamJson'
 import MessageList from './MessageList'
 import AtMentionPopup from './AtMentionPopup'
+import SlashCommandPopup, { SLASH_COMMANDS, SlashCommand } from './SlashCommandPopup'
+import { useImagePaste } from '../../hooks/useImagePaste'
 
 export default function ChatPanel() {
   const { messages, isStreaming, currentSessionId } = useChatStore()
@@ -16,17 +18,24 @@ export default function ChatPanel() {
   const [atQuery, setAtQuery] = useState<string | null>(null)
   const inputWrapRef = useRef<HTMLDivElement>(null)
 
+  // Slash command state
+  const [slashQuery, setSlashQuery] = useState<string | null>(null)
+  const [slashIndex, setSlashIndex] = useState(0)
+
   // Speech recognition state
   const [listening, setListening] = useState(false)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
 
+  const { attachments, handlePaste, handleDrop, removeAttachment, clearAttachments } = useImagePaste()
+
   const handleSend = async () => {
     const text = input.trim()
-    if (!text || isStreaming) return
+    if (!text && attachments.length === 0 || isStreaming) return
     setInput('')
     setAtQuery(null)
+    clearAttachments()
     resizeTextarea()
-    await sendMessage(text)
+    await sendMessage(text || '请描述这张图片', attachments.length > 0 ? attachments : undefined)
   }
 
   const sendText = async (text: string) => {
@@ -38,6 +47,9 @@ export default function ChatPanel() {
     if (atQuery !== null && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === 'Escape')) {
       // Let AtMentionPopup handle these keys
       return
+    }
+    if (slashQuery !== null && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === 'Escape')) {
+      return // SlashCommandPopup handles these keys via useEffect
     }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -58,6 +70,16 @@ export default function ChatPanel() {
     } else {
       setAtQuery(null)
     }
+
+    // Detect / trigger (at start of input or after whitespace)
+    const slashMatch = textBefore.match(/(?:^|\s)(\/[^\s]*)$/)
+    if (slashMatch) {
+      setSlashQuery(slashMatch[1].slice(1)) // strip leading /
+      setSlashIndex(0)
+      setAtQuery(null)
+    } else if (!atMatch) {
+      setSlashQuery(null)
+    }
   }
 
   const handleAtSelect = (filePath: string) => {
@@ -72,6 +94,26 @@ export default function ChatPanel() {
     }
     setAtQuery(null)
     textareaRef.current?.focus()
+  }
+
+  const handleSlashSelect = async (cmd: SlashCommand) => {
+    setSlashQuery(null)
+    setInput('')
+    if (cmd.clientOnly) {
+      if (cmd.name === '/clear') {
+        newConversation()
+      } else if (cmd.name === '/help') {
+        useChatStore.getState().addMessage({
+          id: `help-${Date.now()}`,
+          role: 'assistant',
+          content: '**可用命令：**\n\n' + SLASH_COMMANDS.map(c => `- \`${c.name}\` — ${c.description}`).join('\n'),
+          timestamp: Date.now(),
+        } as any)
+      }
+      return
+    }
+    // 发给 CLI
+    await sendMessage(cmd.name)
   }
 
   // Speech recognition
@@ -114,6 +156,20 @@ export default function ChatPanel() {
   useEffect(() => {
     textareaRef.current?.focus()
   }, [])
+
+  // Slash command keyboard navigation
+  useEffect(() => {
+    if (slashQuery === null) return
+    const filtered = SLASH_COMMANDS.filter(c => !slashQuery || c.name.toLowerCase().includes(slashQuery.toLowerCase()))
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); setSlashIndex(i => Math.min(i + 1, filtered.length - 1)) }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); setSlashIndex(i => Math.max(i - 1, 0)) }
+      else if (e.key === 'Enter') { e.preventDefault(); if (filtered[slashIndex]) handleSlashSelect(filtered[slashIndex]) }
+      else if (e.key === 'Escape') { setSlashQuery(null) }
+    }
+    window.addEventListener('keydown', handler, true)
+    return () => window.removeEventListener('keydown', handler, true)
+  }, [slashQuery, slashIndex])
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--bg-primary)' }}>
@@ -175,80 +231,120 @@ export default function ChatPanel() {
           style={{
             position: 'relative',
             display: 'flex',
-            gap: 8,
-            alignItems: 'flex-end',
+            flexDirection: 'column',
+            gap: 0,
             background: 'var(--bg-input)',
             borderRadius: 6,
             padding: '8px 12px',
             border: '1px solid var(--border)',
           }}
         >
-          {atQuery !== null && (
-            <AtMentionPopup
-              query={atQuery}
-              onSelect={handleAtSelect}
-              onDismiss={() => setAtQuery(null)}
-              anchorRef={inputWrapRef as React.RefObject<HTMLElement>}
-            />
+          {/* Image attachment preview */}
+          {attachments.length > 0 && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingBottom: 8 }}>
+              {attachments.map(img => (
+                <div key={img.id} style={{ position: 'relative', flexShrink: 0 }}>
+                  <img
+                    src={img.dataUrl}
+                    alt={img.name}
+                    style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border)' }}
+                  />
+                  <button
+                    onClick={() => removeAttachment(img.id)}
+                    style={{
+                      position: 'absolute', top: -4, right: -4,
+                      width: 16, height: 16, borderRadius: '50%',
+                      background: 'var(--error)', border: 'none',
+                      color: '#fff', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 10, lineHeight: '1',
+                    }}
+                  >×</button>
+                </div>
+              ))}
+            </div>
           )}
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder="发送消息... (@ 引用文件，Enter 发送，Shift+Enter 换行)"
-            rows={1}
-            style={{
-              flex: 1,
-              background: 'none',
-              border: 'none',
-              outline: 'none',
-              color: 'var(--text-primary)',
-              resize: 'none',
-              fontFamily: 'inherit',
-              fontSize: 13,
-              lineHeight: 1.5,
-              minHeight: 20,
-              maxHeight: 160,
-              overflow: 'auto',
-            }}
-          />
-          <button
-            onClick={toggleSpeech}
-            title={listening ? '停止录音' : '语音输入'}
-            style={{
-              background: listening ? 'var(--error)' : 'none',
-              border: listening ? 'none' : '1px solid var(--border)',
-              borderRadius: 4,
-              padding: '6px 8px',
-              color: listening ? '#fff' : 'var(--text-muted)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              flexShrink: 0,
-            }}
-          >
-            {listening ? <MicOff size={14} /> : <Mic size={14} />}
-          </button>
-          <button
-            onClick={isStreaming ? abort : handleSend}
-            disabled={!isStreaming && !input.trim()}
-            title={isStreaming ? '停止生成' : '发送 (Ctrl+Enter)'}
-            style={{
-              background: isStreaming ? 'var(--error)' : 'var(--accent)',
-              border: 'none',
-              borderRadius: 4,
-              padding: '6px 10px',
-              color: '#fff',
-              cursor: isStreaming || input.trim() ? 'pointer' : 'not-allowed',
-              display: 'flex',
-              alignItems: 'center',
-              opacity: !isStreaming && !input.trim() ? 0.5 : 1,
-              flexShrink: 0,
-            }}
-          >
-            {isStreaming ? <Square size={14} /> : <Send size={14} />}
-          </button>
+          {/* Input row */}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+            {atQuery !== null && (
+              <AtMentionPopup
+                query={atQuery}
+                onSelect={handleAtSelect}
+                onDismiss={() => setAtQuery(null)}
+                anchorRef={inputWrapRef as React.RefObject<HTMLElement>}
+              />
+            )}
+            {slashQuery !== null && (
+              <SlashCommandPopup
+                query={slashQuery}
+                onSelect={handleSlashSelect}
+                onDismiss={() => setSlashQuery(null)}
+                selectedIndex={slashIndex}
+                onHover={setSlashIndex}
+              />
+            )}
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
+              onDrop={handleDrop}
+              onDragOver={(e) => e.preventDefault()}
+              placeholder="发送消息... (@ 引用文件，/ 命令，粘贴图片，Enter 发送)"
+              rows={1}
+              style={{
+                flex: 1,
+                background: 'none',
+                border: 'none',
+                outline: 'none',
+                color: 'var(--text-primary)',
+                resize: 'none',
+                fontFamily: 'inherit',
+                fontSize: 13,
+                lineHeight: 1.5,
+                minHeight: 20,
+                maxHeight: 160,
+                overflow: 'auto',
+              }}
+            />
+            <button
+              onClick={toggleSpeech}
+              title={listening ? '停止录音' : '语音输入'}
+              style={{
+                background: listening ? 'var(--error)' : 'none',
+                border: listening ? 'none' : '1px solid var(--border)',
+                borderRadius: 4,
+                padding: '6px 8px',
+                color: listening ? '#fff' : 'var(--text-muted)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                flexShrink: 0,
+              }}
+            >
+              {listening ? <MicOff size={14} /> : <Mic size={14} />}
+            </button>
+            <button
+              onClick={isStreaming ? abort : handleSend}
+              disabled={!isStreaming && !input.trim() && attachments.length === 0}
+              title={isStreaming ? '停止生成' : '发送 (Ctrl+Enter)'}
+              style={{
+                background: isStreaming ? 'var(--error)' : 'var(--accent)',
+                border: 'none',
+                borderRadius: 4,
+                padding: '6px 10px',
+                color: '#fff',
+                cursor: isStreaming || input.trim() || attachments.length > 0 ? 'pointer' : 'not-allowed',
+                display: 'flex',
+                alignItems: 'center',
+                opacity: !isStreaming && !input.trim() && attachments.length === 0 ? 0.5 : 1,
+                flexShrink: 0,
+              }}
+            >
+              {isStreaming ? <Square size={14} /> : <Send size={14} />}
+            </button>
+          </div>
         </div>
         <div style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: 10, marginTop: 4 }}>
           @ 引用文件 · Enter 发送 · Shift+Enter 换行

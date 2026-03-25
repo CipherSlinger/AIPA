@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
+import { spawn } from 'child_process'
 
 const CLAUDE_DIR = path.join(os.homedir(), '.claude')
 const SETTINGS_PATH = path.join(CLAUDE_DIR, 'settings.json')
@@ -196,4 +197,59 @@ export function renameSession(sessionId: string, title: string): boolean {
     }
   }
   return false
+}
+
+export interface McpServerEntry {
+  name: string
+  command?: string
+  args?: string[]
+  disabled?: boolean
+  type?: string
+}
+
+export function getMcpServers(): McpServerEntry[] {
+  const settings = readSettings() as Record<string, unknown>
+  const mcpServers = settings.mcpServers as Record<string, Record<string, unknown>> | undefined
+  if (!mcpServers) return []
+  return Object.entries(mcpServers).map(([name, cfg]) => ({
+    name,
+    command: cfg.command as string | undefined,
+    args: cfg.args as string[] | undefined,
+    disabled: cfg.disabled as boolean | undefined,
+    type: cfg.type as string | undefined,
+  }))
+}
+
+export function setMcpServerEnabled(serverName: string, enabled: boolean): void {
+  const settings = readSettings() as Record<string, unknown>
+  const mcpServers = { ...(settings.mcpServers as Record<string, unknown> || {}) }
+  if (mcpServers[serverName]) {
+    mcpServers[serverName] = { ...(mcpServers[serverName] as Record<string, unknown>), disabled: !enabled }
+  }
+  if (!fs.existsSync(CLAUDE_DIR)) fs.mkdirSync(CLAUDE_DIR, { recursive: true })
+  fs.writeFileSync(SETTINGS_PATH, JSON.stringify({ ...settings, mcpServers }, null, 2), 'utf-8')
+}
+
+export function generateSessionTitle(description: string, cliPath: string): Promise<string> {
+  return new Promise((resolve) => {
+    const nodePath = process.env.CLAUDE_NODE_PATH || 'node'
+    const proc = spawn(nodePath, [
+      cliPath,
+      'generate-session-title',
+      '--description', description.slice(0, 200),
+    ], { stdio: ['ignore', 'pipe', 'ignore'] })
+
+    let output = ''
+    proc.stdout.on('data', (d: Buffer) => { output += d.toString() })
+    proc.on('close', () => {
+      try {
+        const parsed = JSON.parse(output.trim())
+        resolve(parsed.title || parsed.result || output.trim().slice(0, 80))
+      } catch {
+        resolve(output.trim().slice(0, 80) || description.slice(0, 40))
+      }
+    })
+    // Timeout after 8 seconds
+    setTimeout(() => { try { proc.kill() } catch {} resolve(description.slice(0, 40)) }, 8000)
+  })
 }

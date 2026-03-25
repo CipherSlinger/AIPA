@@ -88,9 +88,14 @@ export class StreamBridge extends EventEmitter {
   }
 
   private _writeUserMessage(prompt: string, sessionId?: string): void {
+    // If prompt is a JSON array string (image attachments), parse it back to array
+    let content: unknown = prompt
+    if (prompt.startsWith('[')) {
+      try { content = JSON.parse(prompt) } catch { content = prompt }
+    }
     const userMessage = JSON.stringify({
       type: 'user',
-      message: { role: 'user', content: prompt },
+      message: { role: 'user', content },
       session_id: sessionId || '',
       parent_tool_use_id: null,
     }) + '\n'

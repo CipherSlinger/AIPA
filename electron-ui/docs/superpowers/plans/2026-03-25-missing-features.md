@@ -319,6 +319,25 @@ const sendMessage = async (prompt: string) => {
 const sendMessage = async (prompt: string, attachments?: import('./useImagePaste').ImageAttachment[]) => {
 ```
 
+同时修改 `src/main/pty/stream-bridge.ts` 中的 `_writeUserMessage` 方法，使其能处理 JSON 数组格式的内容（图片附件时）：
+
+```typescript
+private _writeUserMessage(prompt: string, sessionId?: string): void {
+  // If prompt is a JSON array string (image attachments), parse it back to array
+  let content: unknown = prompt
+  if (prompt.startsWith('[')) {
+    try { content = JSON.parse(prompt) } catch { content = prompt }
+  }
+  const userMessage = JSON.stringify({
+    type: 'user',
+    message: { role: 'user', content },
+    session_id: sessionId || '',
+    parent_tool_use_id: null,
+  }) + '\n'
+  this.proc!.stdin!.write(userMessage)
+}
+```
+
 将发送给 CLI 的 prompt 构建改为多内容块（当有图片时）：
 
 在 `sendMessage` 函数内，替换 `addMessage` 调用和 `cliSendMessage` 调用部分：
@@ -345,7 +364,7 @@ if (prefs.systemPrompt?.trim()) {
   flags.push('--append-system-prompt', prefs.systemPrompt.trim())
 }
 
-// Build actual prompt — if images attached, use JSON content array format
+// Build actual prompt — if images attached, encode as JSON content array
 let actualPrompt: string
 if (attachments && attachments.length > 0) {
   const contentBlocks: unknown[] = [{ type: 'text', text: prompt }]
@@ -356,7 +375,7 @@ if (attachments && attachments.length > 0) {
       source: { type: 'base64', media_type: img.mimeType, data: base64 },
     })
   }
-  actualPrompt = JSON.stringify(contentBlocks)
+  actualPrompt = JSON.stringify(contentBlocks)  // stream-bridge will parse back to array
 } else {
   actualPrompt = prompt
 }
@@ -922,11 +941,12 @@ cd C:/Users/osr/Desktop/AIPA/electron-ui && npm run build
 
 - [ ] **Step 1: 在 session-reader.ts 添加 generateSessionTitle**
 
-在文件末尾添加：
+**注意：** `session-reader.ts` 顶部现有 `import { execSync } from 'child_process'`，需要将其改为：
+`import { execSync, spawn } from 'child_process'`
+
+然后在文件末尾添加（不要重复 import）：
 
 ```typescript
-import { spawn } from 'child_process'
-
 export function generateSessionTitle(description: string, cliPath: string): Promise<string> {
   return new Promise((resolve) => {
     const nodePath = process.env.CLAUDE_NODE_PATH || 'node'
@@ -1103,16 +1123,43 @@ feedbackRate: (messageId: string, rating: 'up' | 'down' | null) =>
 
 - [ ] **Step 4: �� Message.tsx 添加评分按钮**
 
-在 Message 组件的 hover 控件区（Copy 按钮旁边），对 assistant 消息添加：
+在 Message 组件中添加 `onRate` prop，MessageList 负责调用 store + IPC。
+
+**MessageList.tsx** 中传入 onRate 回调：
 
 ```tsx
-{isAssistant && hovered && (
-  <div style={{ display: 'flex', gap: 4, position: 'absolute', top: 8, right: 8 }}>
+// 在 MessageList 顶部引入 useChatStore：
+const { rateMessage } = useChatStore()
+
+// 渲染 Message 时传入 onRate：
+<Message
+  key={msg.id}
+  message={msg}
+  onPermission={onPermission}
+  onGrantPermission={onGrantPermission}
+  onRate={(msgId, rating) => {
+    rateMessage(msgId, rating)
+    window.electronAPI.feedbackRate(msgId, rating)
+  }}
+/>
+```
+
+**Message.tsx** 中接受 `onRate` prop 并在按钮中调用：
+
+```tsx
+// Props 接口添加：
+onRate?: (msgId: string, rating: 'up' | 'down' | null) => void
+
+// 在组件签名中解构：
+export default function Message({ message, onPermission, onGrantPermission, onRate }) {
+
+// 在 hover 控件区（Copy 按钮旁边），对 assistant 消息添加：
+{isAssistant && hovered && onRate && (
+  <div style={{ display: 'flex', gap: 4 }}>
     <button
       onClick={() => {
-        const newRating = (message as StandardChatMessage).rating === 'up' ? null : 'up'
-        // 需要 store action 更新 rating
-        window.electronAPI.feedbackRate(message.id, newRating)
+        const cur = (message as StandardChatMessage).rating
+        onRate(message.id, cur === 'up' ? null : 'up')
       }}
       title="有用"
       style={{
@@ -1125,8 +1172,8 @@ feedbackRate: (messageId: string, rating: 'up' | 'down' | null) =>
     >👍</button>
     <button
       onClick={() => {
-        const newRating = (message as StandardChatMessage).rating === 'down' ? null : 'down'
-        window.electronAPI.feedbackRate(message.id, newRating)
+        const cur = (message as StandardChatMessage).rating
+        onRate(message.id, cur === 'down' ? null : 'down')
       }}
       title="无用"
       style={{
@@ -1137,13 +1184,11 @@ feedbackRate: (messageId: string, rating: 'up' | 'down' | null) =>
         cursor: 'pointer', fontSize: 12,
       }}
     >👎</button>
-    {/* 现有 Copy 按钮 */}
-    ...
   </div>
 )}
 ```
 
-注意：评分状态需要通过 Zustand store 更新消息 rating 字段，在 store 中添加：
+**store/index.ts** 中 rateMessage（已在 Task 9 Step 1 中添加，确认存在）：
 
 ```typescript
 // 在 ChatState interface:

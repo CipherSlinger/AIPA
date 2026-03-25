@@ -23,6 +23,7 @@ const electronAPI = {
   sessionDelete: (id: string) => ipcRenderer.invoke('session:delete', id),
   sessionFork: (sessionId: string, upToMessageIndex: number) => ipcRenderer.invoke('session:fork', { sessionId, upToMessageIndex }),
   sessionRename: (sessionId: string, title: string) => ipcRenderer.invoke('session:rename', { sessionId, title }),
+  sessionGenerateTitle: (description: string) => ipcRenderer.invoke('session:generateTitle', { description }),
 
   // ── Config / prefs ───────────────────────
   configRead: () => ipcRenderer.invoke('config:read'),
@@ -80,6 +81,14 @@ const electronAPI = {
     ipcRenderer.on(`menu:${event}`, h)
     return () => ipcRenderer.removeListener(`menu:${event}`, h)
   },
+
+  // ── MCP ──────────────────────────────────
+  mcpList: () => ipcRenderer.invoke('mcp:list'),
+  mcpSetEnabled: (serverName: string, enabled: boolean) => ipcRenderer.invoke('mcp:setEnabled', { serverName, enabled }),
+
+  // ── Feedback ─────────────────────────────
+  feedbackRate: (messageId: string, rating: 'up' | 'down' | null) =>
+    ipcRenderer.invoke('feedback:rate', { messageId, rating }),
 }
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI)

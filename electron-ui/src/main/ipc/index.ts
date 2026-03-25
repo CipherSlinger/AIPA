@@ -1,7 +1,7 @@
 import { ipcMain, BrowserWindow, dialog } from 'electron'
 import { ptyManager } from '../pty/pty-manager'
 import { streamBridgeManager } from '../pty/stream-bridge'
-import { readSettings, writeSettings, listSessions, loadSession, deleteSession, forkSession, renameSession } from '../sessions/session-reader'
+import { readSettings, writeSettings, listSessions, loadSession, deleteSession, forkSession, renameSession, getMcpServers, setMcpServerEnabled, generateSessionTitle } from '../sessions/session-reader'
 import { getApiKey, setApiKey, getPref, setPref, getAllPrefs } from '../config/config-manager'
 import fs from 'fs'
 import path from 'path'
@@ -131,6 +131,16 @@ function registerSessionHandlers(): void {
   ipcMain.handle('session:delete', (_e, id) => deleteSession(id))
   ipcMain.handle('session:fork', (_e, { sessionId, upToMessageIndex }) => forkSession(sessionId, upToMessageIndex))
   ipcMain.handle('session:rename', (_e, { sessionId, title }) => renameSession(sessionId, title))
+  ipcMain.handle('session:generateTitle', async (_e: Electron.IpcMainInvokeEvent, { description }: { description: string }) => {
+    // Find CLI path (same logic as stream-bridge)
+    const candidates = [
+      path.resolve(__dirname, '../../../../package/cli.js'),
+      path.resolve(__dirname, '../../../package/cli.js'),
+      path.resolve(process.cwd(), '../package/cli.js'),
+    ]
+    const cliPath = process.env.CLAUDE_CLI_PATH || candidates.find(p => fs.existsSync(p)) || candidates[0]
+    return generateSessionTitle(description, cliPath)
+  })
 }
 
 // ────────────────────────────────────────────
@@ -148,6 +158,15 @@ function registerConfigHandlers(): void {
   ipcMain.handle('prefs:get', (_e, key) => getPref(key))
   ipcMain.handle('prefs:set', (_e, key, value) => setPref(key, value))
   ipcMain.handle('prefs:getAll', () => getAllPrefs())
+
+  ipcMain.handle('mcp:list', () => getMcpServers())
+  ipcMain.handle('mcp:setEnabled', (_e: Electron.IpcMainInvokeEvent, { serverName, enabled }: { serverName: string; enabled: boolean }) => setMcpServerEnabled(serverName, enabled))
+
+  ipcMain.handle('feedback:rate', (_e: Electron.IpcMainInvokeEvent, { messageId, rating }: { messageId: string; rating: 'up' | 'down' | null }) => {
+    const key = `feedback.${messageId}`
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(setPref as any)(key, rating)
+  })
 }
 
 // ────────────────────────────────────────────

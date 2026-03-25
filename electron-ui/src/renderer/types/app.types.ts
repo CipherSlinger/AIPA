@@ -34,6 +34,8 @@ export interface StandardChatMessage {
   toolUses?: ToolUseInfo[]
   timestamp: number
   isStreaming?: boolean
+  attachments?: { name: string; dataUrl: string }[]  // 图片附件
+  rating?: 'up' | 'down' | null
 }
 
 export interface PermissionMessage {
@@ -76,4 +78,5 @@ export interface ClaudePrefs {
   theme: 'vscode' | 'modern' | 'minimal'
   onboardingDone?: boolean
   thinkingLevel?: 'off' | 'adaptive'
+  systemPrompt?: string    // 附加系统提示词（通过 --append-system-prompt 传递）
 }
