@@ -27,6 +27,7 @@ const electronAPI = {
   configWrite: (patch: unknown) => ipcRenderer.invoke('config:write', patch),
   configGetEnv: () => ipcRenderer.invoke('config:getEnv'),
   configSetApiKey: (key: string) => ipcRenderer.invoke('config:setApiKey', key),
+  configAddToolPermission: (toolName: string) => ipcRenderer.invoke('config:addToolPermission', toolName),
   prefsGet: (key: string) => ipcRenderer.invoke('prefs:get', key),
   prefsSet: (key: string, value: unknown) => ipcRenderer.invoke('prefs:set', key, value),
   prefsGetAll: () => ipcRenderer.invoke('prefs:getAll'),
@@ -60,7 +61,7 @@ const electronAPI = {
       'cli:assistantText', 'cli:thinkingDelta', 'cli:toolUse',
       'cli:toolResult', 'cli:messageEnd', 'cli:result',
       'cli:error', 'cli:processExit',
-      'cli:permissionRequest',
+      'cli:permissionRequest', 'cli:permissionError',
     ]
     const handlers = channels.map((ch) => {
       const h = (_: unknown, d: Record<string, unknown>) => {

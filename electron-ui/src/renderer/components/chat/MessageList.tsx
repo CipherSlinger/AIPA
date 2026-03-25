@@ -6,9 +6,10 @@ import PermissionCard from './PermissionCard'
 interface Props {
   messages: ChatMessage[]
   onPermission: (permissionId: string, allowed: boolean) => void
+  onGrantPermission: (permissionId: string, toolName: string) => void
 }
 
-export default function MessageList({ messages, onPermission }: Props) {
+export default function MessageList({ messages, onPermission, onGrantPermission }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -23,7 +24,7 @@ export default function MessageList({ messages, onPermission }: Props) {
             <PermissionCard
               key={msg.id}
               message={msg}
-              onAllow={() => onPermission(msg.permissionId, true)}
+              onAllow={() => onGrantPermission(msg.permissionId, msg.toolName)}
               onDeny={() => onPermission(msg.permissionId, false)}
             />
           )

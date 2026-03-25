@@ -77,7 +77,14 @@ export default function App() {
   return (
     <>
       {showOnboarding && (
-        <OnboardingWizard onComplete={() => setShowOnboarding(false)} />
+        <OnboardingWizard onComplete={async () => {
+          // Reload prefs so prefsStore reflects the workingDir set during onboarding
+          const all = await window.electronAPI.prefsGetAll()
+          const env = await window.electronAPI.configGetEnv()
+          setPrefs({ ...all, apiKey: all.apiKey || env.apiKey || '' })
+          if (all.workingDir) setWorkingDir(all.workingDir)
+          setShowOnboarding(false)
+        }} />
       )}
       <AppShell />
     </>

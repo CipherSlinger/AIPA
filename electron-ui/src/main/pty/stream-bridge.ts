@@ -38,6 +38,7 @@ export interface CliSendMessageArgs {
 export class StreamBridge extends EventEmitter {
   private proc: ChildProcess | null = null
   private bridgeSessionId: string
+  private pendingTools = new Map<string, { name: string; input: Record<string, unknown> }>()
 
   constructor(bridgeSessionId: string) {
     super()
@@ -71,7 +72,7 @@ export class StreamBridge extends EventEmitter {
     })
 
     this._attachOutputHandlers()
-    this._writeUserMessage(args.prompt, args.sessionId)
+    this._writeUserMessage(args.prompt, args.resumeSessionId)
 
     if (!isSessionMode) {
       // skip mode: close stdin now, wait for process to exit
@@ -101,6 +102,7 @@ export class StreamBridge extends EventEmitter {
     rl.on('line', (line) => {
       const trimmed = line.trim()
       if (!trimmed) return
+      console.log('[StreamBridge] stdout:', trimmed.slice(0, 200))
       try {
         const event = JSON.parse(trimmed)
         this.handleStreamEvent(event)
@@ -110,6 +112,7 @@ export class StreamBridge extends EventEmitter {
     })
 
     this.proc!.stderr!.on('data', (data: Buffer) => {
+      console.log('[StreamBridge] stderr:', data.toString().slice(0, 200))
       this.emit('stderr', data.toString())
     })
 
@@ -153,10 +156,47 @@ export class StreamBridge extends EventEmitter {
           for (const block of content) {
             if (block.type === 'text' && block.text) {
               this.emit('textDelta', { sessionId: sid, text: block.text as string })
+            } else if (block.type === 'tool_use' && block.id) {
+              const toolId = block.id as string
+              const toolName = block.name as string
+              const toolInput = (block.input ?? {}) as Record<string, unknown>
+              this.pendingTools.set(toolId, { name: toolName, input: toolInput })
+              this.emit('toolUse', { sessionId: sid, event: { id: toolId, name: toolName, input: toolInput } })
             }
           }
         }
         this.emit('messageStop', { sessionId: sid })
+        break
+      }
+      case 'user': {
+        // Tool results come back wrapped in a user message
+        const message = event.message as Record<string, unknown>
+        const content = message?.content as Array<Record<string, unknown>> | undefined
+        if (Array.isArray(content)) {
+          for (const block of content) {
+            if (block.type === 'tool_result') {
+              const toolUseId = block.tool_use_id as string
+              const isError = Boolean(block.is_error)
+              const blockContent = block.content
+              const contentStr = typeof blockContent === 'string' ? blockContent
+                : Array.isArray(blockContent) ? ((blockContent[0] as Record<string, unknown>)?.text as string ?? '')
+                : ''
+              if (isError && /requested permissions|haven't granted/i.test(contentStr)) {
+                const tool = this.pendingTools.get(toolUseId)
+                this.emit('permissionError', {
+                  sessionId: sid,
+                  toolUseId,
+                  toolName: tool?.name ?? 'unknown',
+                  toolInput: tool?.input ?? {},
+                  message: contentStr,
+                })
+              } else {
+                this.emit('toolResult', { sessionId: sid, event: { tool_use_id: toolUseId, content: blockContent, is_error: isError } })
+                if (!isError) this.pendingTools.delete(toolUseId)
+              }
+            }
+          }
+        }
         break
       }
       case 'message_start':

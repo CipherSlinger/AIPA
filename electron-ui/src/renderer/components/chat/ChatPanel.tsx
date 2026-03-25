@@ -7,7 +7,7 @@ import MessageList from './MessageList'
 export default function ChatPanel() {
   const { messages, isStreaming, currentSessionId } = useChatStore()
   const { prefs } = usePrefsStore()
-  const { sendMessage, abort, respondPermission, newConversation } = useStreamJson()
+  const { sendMessage, abort, respondPermission, grantToolPermission, newConversation } = useStreamJson()
   const [input, setInput] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -87,7 +87,7 @@ export default function ChatPanel() {
           {messages.length === 0 ? (
             <WelcomeScreen onSuggestion={sendText} />
           ) : (
-          <MessageList messages={messages} onPermission={respondPermission} />
+          <MessageList messages={messages} onPermission={respondPermission} onGrantPermission={grantToolPermission} />
           )}
         </div>
         {isStreaming && <ThinkingIndicator />}

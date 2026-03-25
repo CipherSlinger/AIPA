@@ -40,6 +40,19 @@ export function readSettings(): ClaudeSettings {
   }
 }
 
+export function addToolPermission(toolName: string): void {
+  const settings = readSettings() as Record<string, unknown>
+  const perms = (settings.permissions ?? {}) as Record<string, unknown>
+  const allow = Array.isArray(perms.allow) ? [...perms.allow] : []
+  if (!allow.includes(toolName)) {
+    allow.push(toolName)
+  }
+  const merged = { ...settings, permissions: { ...perms, allow } }
+  if (!fs.existsSync(CLAUDE_DIR)) fs.mkdirSync(CLAUDE_DIR, { recursive: true })
+  fs.writeFileSync(SETTINGS_PATH, JSON.stringify(merged, null, 2), 'utf-8')
+}
+
+
 export function writeSettings(patch: Partial<ClaudeSettings>): void {
   const current = readSettings()
   const merged = { ...current, ...patch }

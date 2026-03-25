@@ -10,6 +10,8 @@ export function useStreamJson() {
   const { prefs } = usePrefsStore()
 
   const activeBridgeIdRef = useRef<string | null>(null)
+  // When a permission error is pending, suppress Claude's follow-up explanation
+  const pendingPermissionRef = useRef(false)
 
   const sendMessage = async (prompt: string) => {
     if (!prompt.trim()) return
@@ -50,15 +52,24 @@ export function useStreamJson() {
       window.electronAPI.cliAbort(sid)
       activeBridgeIdRef.current = null
     }
+    pendingPermissionRef.current = false
     denyPendingPermissions()
     setStreaming(false)
   }
 
   const respondPermission = (permissionId: string, allowed: boolean) => {
+    pendingPermissionRef.current = false
     const bridgeId = activeBridgeIdRef.current
     if (!bridgeId) return
     window.electronAPI.cliRespondPermission({ sessionId: bridgeId, requestId: permissionId, allowed })
     resolvePermission(permissionId, allowed ? 'allowed' : 'denied')
+  }
+
+  const grantToolPermission = async (permissionId: string, toolName: string) => {
+    pendingPermissionRef.current = false
+    await window.electronAPI.configAddToolPermission(toolName)
+    resolvePermission(permissionId, 'allowed')
+    await sendMessage(`权限已授予：${toolName}，请继续。`)
   }
 
   const newConversation = async () => {
@@ -75,15 +86,21 @@ export function useStreamJson() {
     const unsub = window.electronAPI.onCliEvent(null as unknown as string, (event, data: any) => {
       switch (event) {
         case 'cli:assistantText':
-          appendTextDelta(data.sessionId as string, data.text as string)
+          if (!pendingPermissionRef.current) {
+            appendTextDelta(data.sessionId as string, data.text as string)
+          }
           break
         case 'cli:thinkingDelta':
-          appendThinkingDelta(data.sessionId as string, data.thinking as string)
+          if (!pendingPermissionRef.current) {
+            appendThinkingDelta(data.sessionId as string, data.thinking as string)
+          }
           break
         case 'cli:messageEnd':
+          // Always stop the streaming indicator, but don't render suppressed content
           setStreaming(false)
           break
         case 'cli:toolUse': {
+          if (pendingPermissionRef.current) break
           const e = data.event as Record<string, unknown>
           const lastMsg = useChatStore.getState().messages.at(-1)
           if (lastMsg && lastMsg.role === 'assistant') {
@@ -117,17 +134,20 @@ export function useStreamJson() {
               cacheTokens: (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0),
             })
           }
-          const resultText = (ev?.result as string) || ''
-          if (resultText.trim()) {
-            const msgs = useChatStore.getState().messages
-            const last = msgs[msgs.length - 1]
-            if (!last || last.role !== 'assistant') {
-              useChatStore.getState().addMessage({
-                id: `asst-${Date.now()}`,
-                role: 'assistant',
-                content: resultText,
-                timestamp: Date.now(),
-              } as StandardChatMessage)
+          // Suppress result text if we're waiting for permission response
+          if (!pendingPermissionRef.current) {
+            const resultText = (ev?.result as string) || ''
+            if (resultText.trim()) {
+              const msgs = useChatStore.getState().messages
+              const last = msgs[msgs.length - 1]
+              if (!last || last.role !== 'assistant') {
+                useChatStore.getState().addMessage({
+                  id: `asst-${Date.now()}`,
+                  role: 'assistant',
+                  content: resultText,
+                  timestamp: Date.now(),
+                } as StandardChatMessage)
+              }
             }
           }
           break
@@ -161,11 +181,25 @@ export function useStreamJson() {
           } as PermissionMessage)
           break
         }
+        case 'cli:permissionError': {
+          pendingPermissionRef.current = true
+          const d = data as { sessionId: string; toolUseId: string; toolName: string; toolInput: Record<string, unknown>; message: string }
+          useChatStore.getState().addPermissionRequest({
+            id: `perm-${Date.now()}`,
+            role: 'permission',
+            permissionId: d.toolUseId,
+            toolName: d.toolName,
+            toolInput: d.toolInput,
+            decision: 'pending',
+            timestamp: Date.now(),
+          } as PermissionMessage)
+          break
+        }
       }
     })
 
     return unsub
   }, [])
 
-  return { sendMessage, abort, respondPermission, newConversation }
+  return { sendMessage, abort, respondPermission, grantToolPermission, newConversation }
 }
