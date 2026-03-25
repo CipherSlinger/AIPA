@@ -4,3 +4,4 @@ electron-ui/.superpowers/
 .claude/
 docs/superpowers/*
 .worktrees/
+electron-ui/docs/superpowers/
