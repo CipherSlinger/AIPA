@@ -1,9 +1,105 @@
 import React, { useEffect, useState } from 'react'
 import { Clock, Trash2, RefreshCw, MessageSquare, GitBranch, Pencil } from 'lucide-react'
-import { SessionListItem } from '../../types/app.types'
+import { SessionListItem, SessionMessage, StandardChatMessage, ToolUseInfo, ChatMessage } from '../../types/app.types'
 import { useSessionStore, useChatStore } from '../../store'
 import { formatDistanceToNow } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
+
+function parseSessionMessages(raw: SessionMessage[]): ChatMessage[] {
+  const result: ChatMessage[] = []
+  // Map tool_use_id → result message index so tool_results can be attached
+  const toolUseIdToMsgIdx = new Map<string, number>()
+
+  for (const entry of raw) {
+    if (entry.type === 'user') {
+      const msg = entry.message as Record<string, unknown> | undefined
+      if (!msg) continue
+      const content = msg.content
+      // Check if this user message is only tool_results (attach to prior assistant messages)
+      if (Array.isArray(content)) {
+        const blocks = content as Record<string, unknown>[]
+        const hasOnlyToolResults = blocks.length > 0 && blocks.every(b => b.type === 'tool_result')
+        if (hasOnlyToolResults) {
+          for (const block of blocks) {
+            const toolUseId = block.tool_use_id as string
+            const msgIdx = toolUseIdToMsgIdx.get(toolUseId)
+            if (msgIdx !== undefined) {
+              const target = result[msgIdx] as StandardChatMessage
+              if (target?.toolUses) {
+                target.toolUses = target.toolUses.map(t =>
+                  t.id === toolUseId
+                    ? { ...t, result: block.content, status: block.is_error ? 'error' as const : 'done' as const }
+                    : t
+                )
+              }
+            }
+          }
+          continue
+        }
+        // Mixed content: extract text
+        const textBlock = blocks.find(b => b.type === 'text')
+        const text = (textBlock?.text as string) || ''
+        if (!text.trim()) continue
+        result.push({
+          id: `hist-user-${entry.timestamp || Date.now()}-${result.length}`,
+          role: 'user',
+          content: text,
+          timestamp: entry.timestamp ? new Date(entry.timestamp as string).getTime() : Date.now(),
+        } as StandardChatMessage)
+      } else if (typeof content === 'string') {
+        if (!content.trim()) continue
+        result.push({
+          id: `hist-user-${entry.timestamp || Date.now()}-${result.length}`,
+          role: 'user',
+          content,
+          timestamp: entry.timestamp ? new Date(entry.timestamp as string).getTime() : Date.now(),
+        } as StandardChatMessage)
+      }
+
+    } else if (entry.type === 'assistant') {
+      const msg = entry.message as Record<string, unknown> | undefined
+      if (!msg) continue
+      const content = msg.content as Array<Record<string, unknown>> | undefined
+      if (!Array.isArray(content)) continue
+
+      let text = ''
+      let thinking = ''
+      const toolUses: ToolUseInfo[] = []
+
+      for (const block of content) {
+        if (block.type === 'text') text += (block.text as string) || ''
+        else if (block.type === 'thinking') thinking += (block.thinking as string) || ''
+        else if (block.type === 'tool_use') {
+          const toolId = block.id as string
+          toolUses.push({
+            id: toolId,
+            name: block.name as string,
+            input: (block.input ?? {}) as Record<string, unknown>,
+            status: 'done',
+          })
+        }
+      }
+
+      if (!text.trim() && toolUses.length === 0 && !thinking) continue
+
+      const msgIdx = result.length
+      for (const tu of toolUses) {
+        toolUseIdToMsgIdx.set(tu.id, msgIdx)
+      }
+
+      result.push({
+        id: `hist-asst-${entry.timestamp || Date.now()}-${result.length}`,
+        role: 'assistant',
+        content: text,
+        thinking: thinking || undefined,
+        toolUses: toolUses.length > 0 ? toolUses : undefined,
+        timestamp: entry.timestamp ? new Date(entry.timestamp as string).getTime() : Date.now(),
+      } as StandardChatMessage)
+    }
+  }
+
+  return result
+}
 
 export default function SessionList() {
   const { sessions, loading, setSessions, setLoading } = useSessionStore()
@@ -23,29 +119,8 @@ export default function SessionList() {
 
   const openSession = async (session: SessionListItem) => {
     if (renamingId === session.sessionId) return
-    const messages = await window.electronAPI.sessionLoad(session.sessionId)
-    const chatMessages = messages
-      .filter((m: Record<string, unknown>) => m.type === 'user' || m.type === 'assistant' || m.role)
-      .map((m: Record<string, unknown>, i: number) => {
-        const role = (m.type === 'user' || m.role === 'user') ? 'user' : 'assistant'
-        let content = ''
-        if (m.message) {
-          const msg = m.message as Record<string, unknown>
-          if (typeof msg.content === 'string') content = msg.content
-          else if (Array.isArray(msg.content)) {
-            const textPart = msg.content.find((c: Record<string, unknown>) => c.type === 'text')
-            content = textPart?.text || ''
-          }
-        }
-        return {
-          id: `hist-${session.sessionId}-${i}`,
-          role: role as 'user' | 'assistant',
-          content: String(content),
-          timestamp: m.timestamp ? new Date(m.timestamp as string).getTime() : Date.now(),
-        }
-      })
-      .filter((m: any) => m.content.trim())
-
+    const raw = await window.electronAPI.sessionLoad(session.sessionId)
+    const chatMessages = parseSessionMessages(raw)
     clearMessages()
     loadHistory(chatMessages)
     setSessionId(session.sessionId)
