@@ -4,10 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Rules
 - Never use co-author-by line while git commit
+- Update `README.md` and `README_CN.md` for every important commit
 
 ## Project Overview
 
-AIPA is an Electron-based desktop GUI wrapper around the `@anthropic-ai/claude-code` CLI. The repo has two top-level concerns:
+> **Read `README.md` for the full product vision and ultimate goal.**
+
+AIPA is a desktop AI personal assistant — not merely a GUI wrapper. The Claude Code CLI is the execution engine; the Electron + React app is the cockpit that makes the agent's power accessible to everyday users. See `README.md` → *Vision* section for the north star this project is built toward.
+
+The repo has two top-level concerns:
 
 - `package/` — the bundled Claude Code CLI (`cli.js`, ESM, Node 18+). Treat as read-only vendored code.
 - `electron-ui/` — the Electron + React app that wraps the CLI. All active development happens here.

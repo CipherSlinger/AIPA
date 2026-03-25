@@ -1,10 +1,25 @@
-# AIPA
+# AIPA — AI 个人助手
 
-[Claude Code](https://claude.ai/code) CLI 的桌面图形界面，基于 Electron + React 构建。
+> 你的桌面智能伙伴。随问随答，随需随做——由 Claude 驱动。
+
+AIPA 是一款基于 Electron + React 构建的桌面 AI 个人助手。它的目标不仅仅是一个聊天窗口，而是一个真正驻留在你桌面上的智能代理：它能理解你的文件与系统环境，编写并执行代码，浏览网页，从头到尾地完成现实世界中的任务。底层通过驱动 [Claude Code](https://claude.ai/code) CLI 作为执行引擎来实现这一切。
 
 ![平台](https://img.shields.io/badge/平台-Windows-blue)
 ![Electron](https://img.shields.io/badge/Electron-39-47848F)
 ![React](https://img.shields.io/badge/React-18-61DAFB)
+
+## 产品愿景
+
+大多数 AI 工具是"回答机器"。AIPA 要做的是一个**行动者**。
+
+- 你描述你要做什么，它负责想清楚怎么做。
+- 它可以读取、创建、修改你本地的任何文件。
+- 它可以运行 Shell 命令和脚本。
+- 它可以访问网页、抓取信息。
+- 它记住你的历史会话，随时继续上次的工作。
+- 它将每一步操作透明呈现，你始终掌握最终决定权。
+
+Claude Code CLI 是引擎，AIPA 是驾驶舱。
 
 ## 功能特性
 

@@ -1,16 +1,31 @@
-# AIPA
+# AIPA — AI Personal Assistant
 
-A desktop GUI wrapper for the [Claude Code](https://claude.ai/code) CLI, built with Electron + React.
+> Your always-on desktop companion. Ask anything, automate anything, get things done — powered by Claude.
+
+AIPA is a desktop AI personal assistant built with Electron + React. The goal is not merely a chat window — it is a capable agent that lives on your desktop, understands your files and environment, writes and runs code, browses the web, and handles real-world tasks end-to-end. Under the hood it drives the [Claude Code](https://claude.ai/code) CLI as its execution engine.
 
 ![Platform](https://img.shields.io/badge/platform-Windows-blue)
 ![Electron](https://img.shields.io/badge/Electron-39-47848F)
 ![React](https://img.shields.io/badge/React-18-61DAFB)
 
+## Vision
+
+Most AI tools are answer machines. AIPA is built to be a *doer*.
+
+- You describe what you need — it figures out how to do it.
+- It can read, write, and edit files on your machine.
+- It can run shell commands and scripts.
+- It can browse the web and fetch information.
+- It remembers your sessions and picks up where you left off.
+- It surfaces every decision it makes, so you stay in control.
+
+The Claude Code CLI is the engine. AIPA is the cockpit.
+
 ## Features
 
 - **Chat panel** — structured conversation with Claude via stream-JSON protocol, with tool-use visualization
 - **Terminal panel** — full interactive PTY terminal running Claude Code directly (xterm.js)
-- **Session history** — browse and resume past Claude sessions from `~/.claude/projects/`
+- **Session history** — browse and resume past sessions from `~/.claude/projects/`
 - **File browser** — navigate the working directory from the sidebar
 - **Settings** — configure API key, model, font, working directory, CLI flags, and MCP servers
 - **Onboarding wizard** — guided setup on first launch
