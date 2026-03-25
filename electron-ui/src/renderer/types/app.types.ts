@@ -79,4 +79,6 @@ export interface ClaudePrefs {
   onboardingDone?: boolean
   thinkingLevel?: 'off' | 'adaptive'
   systemPrompt?: string    // 附加系统提示词（通过 --append-system-prompt 传递）
+  maxTurns?: number        // --max-turns
+  maxBudgetUsd?: number    // --max-budget-usd
 }

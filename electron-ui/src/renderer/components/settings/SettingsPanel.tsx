@@ -201,6 +201,40 @@ export default function SettingsPanel() {
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>自适应模式下 Claude 会在需要时自动进行深度思考</span>
           )}
 
+          {/* Max turns */}
+          {field(
+            '最大对话轮数',
+            <input
+              type="number"
+              min={1}
+              max={200}
+              value={local.maxTurns ?? ''}
+              onChange={(e) => setLocal({ ...local, maxTurns: e.target.value ? Number(e.target.value) : undefined })}
+              placeholder="不限制"
+              style={{ ...inputStyle, width: 120 }}
+            />,
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+              限制 Claude 最多执行几轮工具调用（--max-turns），留空不限制
+            </span>
+          )}
+
+          {/* Max budget */}
+          {field(
+            '对话费用上限 (USD)',
+            <input
+              type="number"
+              min={0.01}
+              step={0.01}
+              value={local.maxBudgetUsd ?? ''}
+              onChange={(e) => setLocal({ ...local, maxBudgetUsd: e.target.value ? Number(e.target.value) : undefined })}
+              placeholder="不限制"
+              style={{ ...inputStyle, width: 120 }}
+            />,
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+              费用超出此金额时 Claude 停止执行（--max-budget-usd），留空不限制
+            </span>
+          )}
+
           {/* Working dir */}
           {field(
             'AI 工作文件夹',

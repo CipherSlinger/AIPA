@@ -48,6 +48,12 @@ export function useStreamJson() {
     if (prefs.systemPrompt?.trim()) {
       flags.push('--append-system-prompt', prefs.systemPrompt.trim())
     }
+    if (prefs.maxTurns && prefs.maxTurns > 0) {
+      flags.push('--max-turns', String(prefs.maxTurns))
+    }
+    if (prefs.maxBudgetUsd && prefs.maxBudgetUsd > 0) {
+      flags.push('--max-budget-usd', String(prefs.maxBudgetUsd))
+    }
 
     // Build actual prompt — if images attached, encode as JSON content array
     let actualPrompt: string

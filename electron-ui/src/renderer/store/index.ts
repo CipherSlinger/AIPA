@@ -213,6 +213,8 @@ const DEFAULT_PREFS: ClaudePrefs = {
   theme: 'vscode',
   thinkingLevel: 'off',
   systemPrompt: '',
+  maxTurns: undefined,
+  maxBudgetUsd: undefined,
 }
 
 export const usePrefsStore = create<PrefsState>((set) => ({
