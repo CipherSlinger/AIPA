@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { ChatMessage, PermissionMessage, StandardChatMessage, ClaudePrefs, SessionListItem } from '../types/app.types'
+import { ChatMessage, PermissionMessage, PlanMessage, StandardChatMessage, ClaudePrefs, SessionListItem } from '../types/app.types'
 
 // ── Chat store ──────────────────────────────────
 interface ChatState {
@@ -24,6 +24,8 @@ interface ChatState {
   addPermissionRequest: (msg: PermissionMessage) => void
   resolvePermission: (permissionId: string, decision: 'allowed' | 'denied') => void
   denyPendingPermissions: () => void
+  addPlanMessage: (msg: PlanMessage) => void
+  resolvePlan: (planId: string, decision: 'accepted' | 'rejected') => void
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -58,7 +60,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   setStreaming: (v) => {
     set((s) => {
       const msgs = s.messages.map((m) =>
-        m.role !== 'permission' && (m as StandardChatMessage).isStreaming
+        m.role !== 'permission' && m.role !== 'plan' && (m as StandardChatMessage).isStreaming
           ? { ...m, isStreaming: false }
           : m
       )
@@ -149,6 +151,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
           : m
       ),
     })),
+
+  addPlanMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
+
+  resolvePlan: (planId, decision) =>
+    set((s) => ({
+      messages: s.messages.map((m) =>
+        m.role === 'plan' && m.id === planId
+          ? { ...m, decision }
+          : m
+      ),
+    })),
 }))
 
 // ── Session store ───────────────────────────────
@@ -185,6 +198,7 @@ const DEFAULT_PREFS: ClaudePrefs = {
   skipPermissions: true,
   verbose: false,
   theme: 'vscode',
+  thinkingLevel: 'off',
 }
 
 export const usePrefsStore = create<PrefsState>((set) => ({

@@ -135,6 +135,20 @@ export default function SettingsPanel() {
         </select>
       ))}
 
+      {/* Thinking level */}
+      {field('思考模式', (
+        <select
+          value={local.thinkingLevel ?? 'off'}
+          onChange={(e) => setLocal({ ...local, thinkingLevel: e.target.value as 'off' | 'adaptive' })}
+          style={{ ...inputStyle }}
+        >
+          <option value="off">关闭（默认）</option>
+          <option value="adaptive">自适应思考（Extended Thinking）</option>
+        </select>
+      ),
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>自适应模式下 Claude 会在需要时自动进行深度思考</span>
+      )}
+
       {/* Working dir */}
       {field(
         'AI 工作文件夹',

@@ -2,6 +2,8 @@ import React, { useEffect, useRef } from 'react'
 import { ChatMessage } from '../../types/app.types'
 import Message from './Message'
 import PermissionCard from './PermissionCard'
+import PlanCard from './PlanCard'
+import { useChatStore } from '../../store'
 
 interface Props {
   messages: ChatMessage[]
@@ -11,6 +13,7 @@ interface Props {
 
 export default function MessageList({ messages, onPermission, onGrantPermission }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
+  const { resolvePlan } = useChatStore()
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -29,9 +32,20 @@ export default function MessageList({ messages, onPermission, onGrantPermission 
             />
           )
         }
+        if (msg.role === 'plan') {
+          return (
+            <PlanCard
+              key={msg.id}
+              message={msg}
+              onAccept={() => resolvePlan(msg.id, 'accepted')}
+              onReject={() => resolvePlan(msg.id, 'rejected')}
+            />
+          )
+        }
         return <Message key={msg.id} message={msg} />
       })}
       <div ref={bottomRef} />
     </div>
   )
 }
+

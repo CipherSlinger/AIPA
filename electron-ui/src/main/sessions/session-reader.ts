@@ -19,6 +19,7 @@ export interface SessionListItem {
   timestamp: number
   project: string
   projectSlug: string
+  title?: string
 }
 
 export interface SessionMessage {
@@ -39,19 +40,6 @@ export function readSettings(): ClaudeSettings {
     return {}
   }
 }
-
-export function addToolPermission(toolName: string): void {
-  const settings = readSettings() as Record<string, unknown>
-  const perms = (settings.permissions ?? {}) as Record<string, unknown>
-  const allow = Array.isArray(perms.allow) ? [...perms.allow] : []
-  if (!allow.includes(toolName)) {
-    allow.push(toolName)
-  }
-  const merged = { ...settings, permissions: { ...perms, allow } }
-  if (!fs.existsSync(CLAUDE_DIR)) fs.mkdirSync(CLAUDE_DIR, { recursive: true })
-  fs.writeFileSync(SETTINGS_PATH, JSON.stringify(merged, null, 2), 'utf-8')
-}
-
 
 export function writeSettings(patch: Partial<ClaudeSettings>): void {
   const current = readSettings()
@@ -89,6 +77,7 @@ export function listSessions(): SessionListItem[] {
             let lastPrompt = ''
             let timestamp = 0
             let project = decodeProjectSlug(projectSlug)
+            let title: string | undefined
 
             for (const line of lines) {
               try {
@@ -108,11 +97,14 @@ export function listSessions(): SessionListItem[] {
                     if (textPart?.text) lastPrompt = String(textPart.text).slice(0, 120)
                   }
                 }
+                if (entry.type === 'session-title' && entry.title) {
+                  title = String(entry.title)
+                }
               } catch {}
             }
 
             if (timestamp > 0) {
-              sessions.push({ sessionId, lastPrompt, timestamp, project, projectSlug })
+              sessions.push({ sessionId, lastPrompt, timestamp, project, projectSlug, title })
             }
           } catch {}
         }
@@ -143,7 +135,6 @@ export function loadSession(sessionId: string): SessionMessage[] {
 }
 
 export function deleteSession(sessionId: string): boolean {
-  if (!fs.existsSync(PROJECTS_DIR)) return false
 
   const projectDirs = fs.readdirSync(PROJECTS_DIR, { withFileTypes: true })
     .filter(d => d.isDirectory())
@@ -166,4 +157,43 @@ function decodeProjectSlug(slug: string): string {
   } catch {
     return slug
   }
+}
+
+export function forkSession(sessionId: string, upToMessageIndex: number): string | null {
+  if (!fs.existsSync(PROJECTS_DIR)) return null
+
+  const projectDirs = fs.readdirSync(PROJECTS_DIR, { withFileTypes: true })
+    .filter(d => d.isDirectory())
+
+  for (const dir of projectDirs) {
+    const filePath = path.join(PROJECTS_DIR, dir.name, `${sessionId}.jsonl`)
+    if (fs.existsSync(filePath)) {
+      const lines = fs.readFileSync(filePath, 'utf-8')
+        .split('\n')
+        .filter(l => l.trim())
+      const truncated = lines.slice(0, upToMessageIndex + 1)
+      const newSessionId = `fork-${Date.now()}`
+      const newFilePath = path.join(PROJECTS_DIR, dir.name, `${newSessionId}.jsonl`)
+      fs.writeFileSync(newFilePath, truncated.join('\n') + '\n', 'utf-8')
+      return newSessionId
+    }
+  }
+  return null
+}
+
+export function renameSession(sessionId: string, title: string): boolean {
+  if (!fs.existsSync(PROJECTS_DIR)) return false
+
+  const projectDirs = fs.readdirSync(PROJECTS_DIR, { withFileTypes: true })
+    .filter(d => d.isDirectory())
+
+  for (const dir of projectDirs) {
+    const filePath = path.join(PROJECTS_DIR, dir.name, `${sessionId}.jsonl`)
+    if (fs.existsSync(filePath)) {
+      const titleEntry = JSON.stringify({ type: 'session-title', title, timestamp: new Date().toISOString() })
+      fs.appendFileSync(filePath, titleEntry + '\n', 'utf-8')
+      return true
+    }
+  }
+  return false
 }

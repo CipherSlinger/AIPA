@@ -1,7 +1,7 @@
 import { ipcMain, BrowserWindow, dialog } from 'electron'
 import { ptyManager } from '../pty/pty-manager'
 import { streamBridgeManager } from '../pty/stream-bridge'
-import { readSettings, writeSettings, listSessions, loadSession, deleteSession, addToolPermission } from '../sessions/session-reader'
+import { readSettings, writeSettings, listSessions, loadSession, deleteSession, forkSession, renameSession } from '../sessions/session-reader'
 import { getApiKey, setApiKey, getPref, setPref, getAllPrefs } from '../config/config-manager'
 import fs from 'fs'
 import path from 'path'
@@ -79,7 +79,6 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
       send('cli:processExit', d)
       // StreamBridgeManager cleans itself up via its own processExit listener (already wired in .create())
     })
-    bridge.on('permissionError', (d) => send('cli:permissionError', d))
     bridge.on('stderr', (d) => send('cli:error', { sessionId: bridgeId, error: d }))
     bridge.on('permissionRequest', (d) => send('cli:permissionRequest', d))
 
@@ -130,6 +129,8 @@ function registerSessionHandlers(): void {
   ipcMain.handle('session:list', () => listSessions())
   ipcMain.handle('session:load', (_e, id) => loadSession(id))
   ipcMain.handle('session:delete', (_e, id) => deleteSession(id))
+  ipcMain.handle('session:fork', (_e, { sessionId, upToMessageIndex }) => forkSession(sessionId, upToMessageIndex))
+  ipcMain.handle('session:rename', (_e, { sessionId, title }) => renameSession(sessionId, title))
 }
 
 // ────────────────────────────────────────────
@@ -138,7 +139,6 @@ function registerSessionHandlers(): void {
 function registerConfigHandlers(): void {
   ipcMain.handle('config:read', () => readSettings())
   ipcMain.handle('config:write', (_e, patch) => writeSettings(patch))
-  ipcMain.handle('config:addToolPermission', (_e, toolName: string) => addToolPermission(toolName))
   ipcMain.handle('config:getEnv', () => ({
     apiKey: getApiKey(),
     hasApiKey: Boolean(getApiKey()),

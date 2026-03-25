@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Square, Plus, Trash2 } from 'lucide-react'
+import { Send, Square, Plus, Mic, MicOff } from 'lucide-react'
 import { useChatStore, usePrefsStore } from '../../store'
 import { useStreamJson } from '../../hooks/useStreamJson'
 import MessageList from './MessageList'
+import AtMentionPopup from './AtMentionPopup'
 
 export default function ChatPanel() {
   const { messages, isStreaming, currentSessionId } = useChatStore()
@@ -11,10 +12,19 @@ export default function ChatPanel() {
   const [input, setInput] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
+  // @ mention state
+  const [atQuery, setAtQuery] = useState<string | null>(null)
+  const inputWrapRef = useRef<HTMLDivElement>(null)
+
+  // Speech recognition state
+  const [listening, setListening] = useState(false)
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
+
   const handleSend = async () => {
     const text = input.trim()
     if (!text || isStreaming) return
     setInput('')
+    setAtQuery(null)
     resizeTextarea()
     await sendMessage(text)
   }
@@ -25,10 +35,68 @@ export default function ChatPanel() {
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (atQuery !== null && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === 'Escape')) {
+      // Let AtMentionPopup handle these keys
+      return
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSend()
     }
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value
+    setInput(val)
+
+    // Detect @ trigger
+    const cursor = e.target.selectionStart
+    const textBefore = val.slice(0, cursor)
+    const atMatch = textBefore.match(/@([^\s]*)$/)
+    if (atMatch) {
+      setAtQuery(atMatch[1])
+    } else {
+      setAtQuery(null)
+    }
+  }
+
+  const handleAtSelect = (filePath: string) => {
+    // Replace @query with the selected path
+    const cursor = textareaRef.current?.selectionStart ?? input.length
+    const textBefore = input.slice(0, cursor)
+    const textAfter = input.slice(cursor)
+    const atMatch = textBefore.match(/@([^\s]*)$/)
+    if (atMatch) {
+      const replaced = textBefore.slice(0, textBefore.length - atMatch[0].length) + `@${filePath}` + textAfter
+      setInput(replaced)
+    }
+    setAtQuery(null)
+    textareaRef.current?.focus()
+  }
+
+  // Speech recognition
+  const toggleSpeech = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) return
+
+    if (listening) {
+      recognitionRef.current?.stop()
+      setListening(false)
+      return
+    }
+
+    const recognition = new SpeechRecognition()
+    recognition.lang = 'zh-CN'
+    recognition.interimResults = false
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const transcript = event.results[0][0].transcript
+      setInput((prev) => prev + transcript)
+    }
+    recognition.onend = () => setListening(false)
+    recognition.onerror = () => setListening(false)
+    recognitionRef.current = recognition
+    recognition.start()
+    setListening(true)
   }
 
   const resizeTextarea = () => {
@@ -103,7 +171,9 @@ export default function ChatPanel() {
         }}
       >
         <div
+          ref={inputWrapRef}
           style={{
+            position: 'relative',
             display: 'flex',
             gap: 8,
             alignItems: 'flex-end',
@@ -113,12 +183,20 @@ export default function ChatPanel() {
             border: '1px solid var(--border)',
           }}
         >
+          {atQuery !== null && (
+            <AtMentionPopup
+              query={atQuery}
+              onSelect={handleAtSelect}
+              onDismiss={() => setAtQuery(null)}
+              anchorRef={inputWrapRef as React.RefObject<HTMLElement>}
+            />
+          )}
           <textarea
             ref={textareaRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            placeholder="发送消息... (Enter 发送，Shift+Enter 换行)"
+            placeholder="发送消息... (@ 引用文件，Enter 发送，Shift+Enter 换行)"
             rows={1}
             style={{
               flex: 1,
@@ -135,6 +213,23 @@ export default function ChatPanel() {
               overflow: 'auto',
             }}
           />
+          <button
+            onClick={toggleSpeech}
+            title={listening ? '停止录音' : '语音输入'}
+            style={{
+              background: listening ? 'var(--error)' : 'none',
+              border: listening ? 'none' : '1px solid var(--border)',
+              borderRadius: 4,
+              padding: '6px 8px',
+              color: listening ? '#fff' : 'var(--text-muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              flexShrink: 0,
+            }}
+          >
+            {listening ? <MicOff size={14} /> : <Mic size={14} />}
+          </button>
           <button
             onClick={isStreaming ? abort : handleSend}
             disabled={!isStreaming && !input.trim()}
@@ -156,7 +251,7 @@ export default function ChatPanel() {
           </button>
         </div>
         <div style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: 10, marginTop: 4 }}>
-          Enter 发送 · Shift+Enter 换行
+          @ 引用文件 · Enter 发送 · Shift+Enter 换行
         </div>
       </div>
     </div>

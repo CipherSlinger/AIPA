@@ -4,6 +4,7 @@ export interface SessionListItem {
   timestamp: number
   project: string
   projectSlug: string
+  title?: string
 }
 
 export interface SessionMessage {
@@ -45,7 +46,15 @@ export interface PermissionMessage {
   timestamp: number
 }
 
-export type ChatMessage = StandardChatMessage | PermissionMessage
+export interface PlanMessage {
+  id: string
+  role: 'plan'
+  planContent: string
+  decision: 'pending' | 'accepted' | 'rejected'
+  timestamp: number
+}
+
+export type ChatMessage = StandardChatMessage | PermissionMessage | PlanMessage
 
 export interface FileEntry {
   name: string
@@ -66,4 +75,5 @@ export interface ClaudePrefs {
   verbose: boolean
   theme: 'vscode' | 'modern' | 'minimal'
   onboardingDone?: boolean
+  thinkingLevel?: 'off' | 'adaptive'
 }

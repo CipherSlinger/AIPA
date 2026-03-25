@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Clock, Trash2, RefreshCw, MessageSquare } from 'lucide-react'
+import { Clock, Trash2, RefreshCw, MessageSquare, GitBranch, Pencil } from 'lucide-react'
 import { SessionListItem } from '../../types/app.types'
 import { useSessionStore, useChatStore } from '../../store'
 import { formatDistanceToNow } from 'date-fns'
@@ -9,6 +9,8 @@ export default function SessionList() {
   const { sessions, loading, setSessions, setLoading } = useSessionStore()
   const { clearMessages, loadHistory, setSessionId } = useChatStore()
   const [filter, setFilter] = useState('')
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
 
   const loadSessions = async () => {
     setLoading(true)
@@ -20,8 +22,8 @@ export default function SessionList() {
   useEffect(() => { loadSessions() }, [])
 
   const openSession = async (session: SessionListItem) => {
+    if (renamingId === session.sessionId) return
     const messages = await window.electronAPI.sessionLoad(session.sessionId)
-    // Convert JSONL entries to ChatMessage format
     const chatMessages = messages
       .filter((m: Record<string, unknown>) => m.type === 'user' || m.type === 'assistant' || m.role)
       .map((m: Record<string, unknown>, i: number) => {
@@ -55,8 +57,32 @@ export default function SessionList() {
     loadSessions()
   }
 
+  const forkSession = async (e: React.MouseEvent, session: SessionListItem) => {
+    e.stopPropagation()
+    // Fork at the last message
+    const messages = await window.electronAPI.sessionLoad(session.sessionId)
+    const newId = await window.electronAPI.sessionFork(session.sessionId, messages.length - 1)
+    if (newId) {
+      await loadSessions()
+    }
+  }
+
+  const startRename = (e: React.MouseEvent, session: SessionListItem) => {
+    e.stopPropagation()
+    setRenamingId(session.sessionId)
+    setRenameValue(session.title || session.lastPrompt || '')
+  }
+
+  const commitRename = async (sessionId: string) => {
+    if (renameValue.trim()) {
+      await window.electronAPI.sessionRename(sessionId, renameValue.trim())
+      await loadSessions()
+    }
+    setRenamingId(null)
+  }
+
   const filtered = sessions.filter((s) =>
-    !filter || s.lastPrompt.toLowerCase().includes(filter.toLowerCase()) ||
+    !filter || (s.title || s.lastPrompt).toLowerCase().includes(filter.toLowerCase()) ||
     s.project.toLowerCase().includes(filter.toLowerCase())
   )
 
@@ -117,6 +143,7 @@ export default function SessionList() {
           <div
             key={session.sessionId}
             onClick={() => openSession(session)}
+            className="session-item"
             style={{
               padding: '10px 12px',
               borderBottom: '1px solid var(--border)',
@@ -125,13 +152,13 @@ export default function SessionList() {
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = 'var(--bg-hover)'
-              const del = e.currentTarget.querySelector('.del-btn') as HTMLElement
-              if (del) del.style.display = 'flex'
+              const btns = e.currentTarget.querySelector('.action-btns') as HTMLElement
+              if (btns) btns.style.display = 'flex'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'transparent'
-              const del = e.currentTarget.querySelector('.del-btn') as HTMLElement
-              if (del) del.style.display = 'none'
+              const btns = e.currentTarget.querySelector('.action-btns') as HTMLElement
+              if (btns) btns.style.display = 'none'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
@@ -143,27 +170,74 @@ export default function SessionList() {
                 {formatDistanceToNow(new Date(session.timestamp), { addSuffix: true, locale: zhCN })}
               </span>
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 20 }}>
-              {session.lastPrompt || '(无内容)'}
-            </div>
-            <button
-              className="del-btn"
-              onClick={(e) => deleteSession(e, session.sessionId)}
-              title="删除"
+
+            {renamingId === session.sessionId ? (
+              <input
+                autoFocus
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                onBlur={() => commitRename(session.sessionId)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') commitRename(session.sessionId)
+                  if (e.key === 'Escape') setRenamingId(null)
+                }}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  width: '100%',
+                  background: 'var(--bg-input)',
+                  border: '1px solid var(--accent)',
+                  borderRadius: 3,
+                  padding: '2px 6px',
+                  color: 'var(--text-primary)',
+                  fontSize: 12,
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+            ) : (
+              <div
+                onDoubleClick={(e) => startRename(e, session)}
+                style={{ fontSize: 12, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 56 }}
+                title="双击重命名"
+              >
+                {session.title || session.lastPrompt || '(无内容)'}
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div
+              className="action-btns"
               style={{
                 display: 'none',
                 position: 'absolute',
                 right: 8,
                 bottom: 8,
-                background: 'none',
-                border: 'none',
-                color: 'var(--error)',
-                cursor: 'pointer',
+                gap: 4,
                 alignItems: 'center',
               }}
             >
-              <Trash2 size={12} />
-            </button>
+              <button
+                onClick={(e) => startRename(e, session)}
+                title="重命名"
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+              >
+                <Pencil size={11} />
+              </button>
+              <button
+                onClick={(e) => forkSession(e, session)}
+                title="分叉会话"
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+              >
+                <GitBranch size={11} />
+              </button>
+              <button
+                onClick={(e) => deleteSession(e, session.sessionId)}
+                title="删除"
+                style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
           </div>
         ))}
       </div>

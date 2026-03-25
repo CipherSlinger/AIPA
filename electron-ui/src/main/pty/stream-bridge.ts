@@ -38,7 +38,6 @@ export interface CliSendMessageArgs {
 export class StreamBridge extends EventEmitter {
   private proc: ChildProcess | null = null
   private bridgeSessionId: string
-  private pendingTools = new Map<string, { name: string; input: Record<string, unknown> }>()
 
   constructor(bridgeSessionId: string) {
     super()
@@ -52,6 +51,7 @@ export class StreamBridge extends EventEmitter {
       getCliPath(),
       '--input-format', 'stream-json',
       '--output-format', 'stream-json',
+      '--permission-prompt-tool', 'stdio',
       ...(isSessionMode ? [] : ['--print']),
       ...(args.resumeSessionId ? ['--resume', args.resumeSessionId] : []),
       ...(args.model ? ['--model', args.model] : []),
@@ -138,9 +138,12 @@ export class StreamBridge extends EventEmitter {
   respondPermission(requestId: string, allowed: boolean): void {
     if (!this.proc?.stdin) return
     const response = JSON.stringify({
-      type: 'permission_response',
-      request_id: requestId,
-      allowed,
+      type: 'control_response',
+      response: {
+        subtype: 'success',
+        request_id: requestId,
+        response: { behavior: allowed ? 'allow' : 'deny' },
+      },
     }) + '\n'
     this.proc.stdin.write(response)
   }
@@ -160,7 +163,6 @@ export class StreamBridge extends EventEmitter {
               const toolId = block.id as string
               const toolName = block.name as string
               const toolInput = (block.input ?? {}) as Record<string, unknown>
-              this.pendingTools.set(toolId, { name: toolName, input: toolInput })
               this.emit('toolUse', { sessionId: sid, event: { id: toolId, name: toolName, input: toolInput } })
             }
           }
@@ -178,22 +180,7 @@ export class StreamBridge extends EventEmitter {
               const toolUseId = block.tool_use_id as string
               const isError = Boolean(block.is_error)
               const blockContent = block.content
-              const contentStr = typeof blockContent === 'string' ? blockContent
-                : Array.isArray(blockContent) ? ((blockContent[0] as Record<string, unknown>)?.text as string ?? '')
-                : ''
-              if (isError && /requested permissions|haven't granted/i.test(contentStr)) {
-                const tool = this.pendingTools.get(toolUseId)
-                this.emit('permissionError', {
-                  sessionId: sid,
-                  toolUseId,
-                  toolName: tool?.name ?? 'unknown',
-                  toolInput: tool?.input ?? {},
-                  message: contentStr,
-                })
-              } else {
-                this.emit('toolResult', { sessionId: sid, event: { tool_use_id: toolUseId, content: blockContent, is_error: isError } })
-                if (!isError) this.pendingTools.delete(toolUseId)
-              }
+              this.emit('toolResult', { sessionId: sid, event: { tool_use_id: toolUseId, content: blockContent, is_error: isError } })
             }
           }
         }
@@ -235,6 +222,21 @@ export class StreamBridge extends EventEmitter {
         // result event contains session_id for future --resume
         this.emit('result', { sessionId: sid, claudeSessionId: (event as Record<string, unknown>).session_id, event })
         break
+      case 'control_request': {
+        const req = (event.request ?? event) as Record<string, unknown>
+        const subtype = req.subtype as string | undefined
+        if (subtype === 'can_use_tool') {
+          this.emit('permissionRequest', {
+            sessionId: this.bridgeSessionId,
+            requestId: (event.request_id as string) || '',
+            toolName: (req.tool_name ?? 'unknown') as string,
+            toolInput: (req.input ?? {}) as Record<string, unknown>,
+            title: (req.title as string) || undefined,
+            description: (req.description as string) || undefined,
+          })
+        }
+        break
+      }
       case 'permission_request': {
         this.emit('permissionRequest', {
           sessionId: this.bridgeSessionId,

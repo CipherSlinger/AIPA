@@ -21,13 +21,14 @@ const electronAPI = {
   sessionList: () => ipcRenderer.invoke('session:list'),
   sessionLoad: (id: string) => ipcRenderer.invoke('session:load', id),
   sessionDelete: (id: string) => ipcRenderer.invoke('session:delete', id),
+  sessionFork: (sessionId: string, upToMessageIndex: number) => ipcRenderer.invoke('session:fork', { sessionId, upToMessageIndex }),
+  sessionRename: (sessionId: string, title: string) => ipcRenderer.invoke('session:rename', { sessionId, title }),
 
   // ── Config / prefs ───────────────────────
   configRead: () => ipcRenderer.invoke('config:read'),
   configWrite: (patch: unknown) => ipcRenderer.invoke('config:write', patch),
   configGetEnv: () => ipcRenderer.invoke('config:getEnv'),
   configSetApiKey: (key: string) => ipcRenderer.invoke('config:setApiKey', key),
-  configAddToolPermission: (toolName: string) => ipcRenderer.invoke('config:addToolPermission', toolName),
   prefsGet: (key: string) => ipcRenderer.invoke('prefs:get', key),
   prefsSet: (key: string, value: unknown) => ipcRenderer.invoke('prefs:set', key, value),
   prefsGetAll: () => ipcRenderer.invoke('prefs:getAll'),
@@ -61,7 +62,7 @@ const electronAPI = {
       'cli:assistantText', 'cli:thinkingDelta', 'cli:toolUse',
       'cli:toolResult', 'cli:messageEnd', 'cli:result',
       'cli:error', 'cli:processExit',
-      'cli:permissionRequest', 'cli:permissionError',
+      'cli:permissionRequest',
     ]
     const handlers = channels.map((ch) => {
       const h = (_: unknown, d: Record<string, unknown>) => {
