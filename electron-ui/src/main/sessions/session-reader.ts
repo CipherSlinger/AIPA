@@ -253,3 +253,40 @@ export function generateSessionTitle(description: string, cliPath: string): Prom
     setTimeout(() => { try { proc.kill() } catch {} resolve(description.slice(0, 40)) }, 8000)
   })
 }
+
+export function rewindSession(sessionId: string, beforeTimestamp: string, cliPath: string): Promise<{ success: boolean; error?: string }> {
+  return new Promise((resolve) => {
+    const nodePath = process.env.CLAUDE_NODE_PATH || 'node'
+    if (!fs.existsSync(PROJECTS_DIR)) {
+      resolve({ success: false, error: 'Projects directory not found' })
+      return
+    }
+    const projectDirs = fs.readdirSync(PROJECTS_DIR, { withFileTypes: true }).filter(d => d.isDirectory())
+    let sessionFound = false
+    for (const dir of projectDirs) {
+      const fp = path.join(PROJECTS_DIR, dir.name, `${sessionId}.jsonl`)
+      if (fs.existsSync(fp)) { sessionFound = true; break }
+    }
+    if (!sessionFound) {
+      resolve({ success: false, error: `Session ${sessionId} not found` })
+      return
+    }
+
+    const proc = spawn(nodePath, [
+      cliPath,
+      '--resume', sessionId,
+      '--resume-session-at', beforeTimestamp,
+      '--rewind-files',
+      '--print',
+      '--output-format', 'stream-json',
+    ], { stdio: ['ignore', 'pipe', 'pipe'] })
+
+    let stderr = ''
+    proc.stderr?.on('data', (d: Buffer) => { stderr += d.toString() })
+    proc.on('close', (code) => {
+      if (code === 0) resolve({ success: true })
+      else resolve({ success: false, error: stderr.slice(0, 500) || `Exit code ${code}` })
+    })
+    setTimeout(() => { try { proc.kill() } catch {} resolve({ success: false, error: 'Timeout after 15s' }) }, 15000)
+  })
+}

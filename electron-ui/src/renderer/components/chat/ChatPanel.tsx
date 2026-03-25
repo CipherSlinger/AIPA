@@ -211,7 +211,7 @@ export default function ChatPanel() {
           {messages.length === 0 ? (
             <WelcomeScreen onSuggestion={sendText} />
           ) : (
-          <MessageList messages={messages} onPermission={respondPermission} onGrantPermission={grantToolPermission} />
+          <MessageList messages={messages} onPermission={respondPermission} onGrantPermission={grantToolPermission} sessionId={currentSessionId} />
           )}
         </div>
         {isStreaming && <ThinkingIndicator />}

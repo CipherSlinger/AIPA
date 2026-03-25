@@ -9,9 +9,10 @@ interface Props {
   messages: ChatMessage[]
   onPermission: (permissionId: string, allowed: boolean) => void
   onGrantPermission: (permissionId: string, toolName: string) => void
+  sessionId?: string | null
 }
 
-export default function MessageList({ messages, onPermission, onGrantPermission }: Props) {
+export default function MessageList({ messages, onPermission, onGrantPermission, sessionId }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const { resolvePlan, rateMessage } = useChatStore()
 
@@ -42,13 +43,25 @@ export default function MessageList({ messages, onPermission, onGrantPermission 
             />
           )
         }
-        return <Message key={msg.id} message={msg} onRate={(msgId, rating) => {
-          rateMessage(msgId, rating)
-          window.electronAPI.feedbackRate(msgId, rating)
-        }} />
+        return <Message
+          key={msg.id}
+          message={msg}
+          onRate={(msgId, rating) => {
+            rateMessage(msgId, rating)
+            window.electronAPI.feedbackRate(msgId, rating)
+          }}
+          onRewind={sessionId ? async (ts) => {
+            const isoTs = new Date(ts).toISOString()
+            const result = await window.electronAPI.sessionRewind(sessionId, isoTs)
+            if (result?.success) {
+              alert('文件已回滚到该消息之前的状态')
+            } else {
+              alert('回滚失败：' + (result?.error || '未知错误'))
+            }
+          } : undefined}
+        />
       })}
       <div ref={bottomRef} />
     </div>
   )
 }
-

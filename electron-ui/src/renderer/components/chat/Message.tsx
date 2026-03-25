@@ -7,9 +7,10 @@ import { User, Bot, Copy, ChevronDown, ChevronRight } from 'lucide-react'
 interface Props {
   message: ChatMessage
   onRate?: (msgId: string, rating: 'up' | 'down' | null) => void
+  onRewind?: (msgTimestamp: number) => void
 }
 
-export default function Message({ message, onRate }: Props) {
+export default function Message({ message, onRate, onRewind }: Props) {
   const isUser = message.role === 'user'
   const isAssistant = message.role === 'assistant'
   const [hovered, setHovered] = useState(false)
@@ -197,6 +198,30 @@ export default function Message({ message, onRate }: Props) {
             }}
           >👎</button>
         </div>
+      )}
+      {isAssistant && hovered && onRewind && (message as StandardChatMessage).timestamp && (
+        <button
+          onClick={() => onRewind((message as StandardChatMessage).timestamp)}
+          title="回滚到此处（恢复 Claude 在此消息后修改的文件）"
+          style={{
+            position: 'absolute',
+            top: 8,
+            right: 148,
+            background: 'var(--bg-primary, #1e1e2e)',
+            border: '1px solid var(--border, #3a3a4a)',
+            borderRadius: 4,
+            padding: '2px 6px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            fontSize: 11,
+            color: 'var(--text-muted)',
+            lineHeight: 1.4,
+          }}
+        >
+          ↩ 回滚
+        </button>
       )}
     </div>
   )

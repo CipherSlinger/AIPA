@@ -1,7 +1,7 @@
 import { ipcMain, BrowserWindow, dialog } from 'electron'
 import { ptyManager } from '../pty/pty-manager'
 import { streamBridgeManager } from '../pty/stream-bridge'
-import { readSettings, writeSettings, listSessions, loadSession, deleteSession, forkSession, renameSession, getMcpServers, setMcpServerEnabled, generateSessionTitle } from '../sessions/session-reader'
+import { readSettings, writeSettings, listSessions, loadSession, deleteSession, forkSession, renameSession, getMcpServers, setMcpServerEnabled, generateSessionTitle, rewindSession } from '../sessions/session-reader'
 import { getApiKey, setApiKey, getPref, setPref, getAllPrefs } from '../config/config-manager'
 import fs from 'fs'
 import path from 'path'
@@ -140,6 +140,16 @@ function registerSessionHandlers(): void {
     ]
     const cliPath = process.env.CLAUDE_CLI_PATH || candidates.find(p => fs.existsSync(p)) || candidates[0]
     return generateSessionTitle(description, cliPath)
+  })
+
+  ipcMain.handle('session:rewind', async (_e: Electron.IpcMainInvokeEvent, { sessionId, beforeTimestamp }: { sessionId: string; beforeTimestamp: string }) => {
+    const candidates = [
+      path.resolve(__dirname, '../../../../package/cli.js'),
+      path.resolve(__dirname, '../../../package/cli.js'),
+      path.resolve(process.cwd(), '../package/cli.js'),
+    ]
+    const cliPath = process.env.CLAUDE_CLI_PATH || candidates.find(p => fs.existsSync(p)) || candidates[0]
+    return rewindSession(sessionId, beforeTimestamp, cliPath)
   })
 }
 
