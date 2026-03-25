@@ -108,6 +108,29 @@ export default function Message({ message, onRate }: Props) {
           </div>
         )}
 
+        {/* Image attachments (user messages) */}
+        {isUser && message.role !== 'permission' && (message as StandardChatMessage).attachments?.length ? (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
+            {(message as StandardChatMessage).attachments!.map((att, i) => (
+              <img
+                key={i}
+                src={att.dataUrl}
+                alt={att.name}
+                title={att.name}
+                style={{
+                  maxWidth: 200,
+                  maxHeight: 150,
+                  borderRadius: 4,
+                  border: '1px solid var(--border)',
+                  objectFit: 'cover',
+                  cursor: 'pointer',
+                }}
+                onClick={() => window.open(att.dataUrl, '_blank')}
+              />
+            ))}
+          </div>
+        ) : null}
+
         {/* Text content */}
         {message.role !== 'permission' && message.content && (
           <MessageContent content={message.content} isUser={isUser} />
