@@ -21,6 +21,7 @@ export default function ChatPanel() {
   // Slash command state
   const [slashQuery, setSlashQuery] = useState<string | null>(null)
   const [slashIndex, setSlashIndex] = useState(0)
+  const [customCommands, setCustomCommands] = useState<{ name: string; description: string }[]>([])
 
   // Speech recognition state
   const [listening, setListening] = useState(false)
@@ -112,9 +113,27 @@ export default function ChatPanel() {
       }
       return
     }
-    // 发给 CLI
-    await sendMessage(cmd.name)
+    // 发给 CLI（内置命令如 /compact）或自定义命令（填入输入框让用户确认）
+    const isBuiltin = SLASH_COMMANDS.some(c => c.name === cmd.name)
+    if (isBuiltin) {
+      await sendMessage(cmd.name)
+    } else {
+      // 自定义命令：填入输入框，用户可补充参数后再发送
+      setInput(cmd.name + ' ')
+      textareaRef.current?.focus()
+    }
   }
+
+  // Load custom slash commands when popup opens
+  useEffect(() => {
+    if (slashQuery === null) return
+    window.electronAPI.fsListCommands(prefs.workingDir || '').then((cmds: { name: string; description: string; source: string }[]) => {
+      setCustomCommands(cmds.map(c => ({
+        name: c.name,
+        description: c.description + (c.source === 'project' ? ' [项目]' : ' [用户]'),
+      })))
+    }).catch(() => {})
+  }, [slashQuery])
 
   // Speech recognition
   const toggleSpeech = () => {
@@ -281,6 +300,7 @@ export default function ChatPanel() {
                 onDismiss={() => setSlashQuery(null)}
                 selectedIndex={slashIndex}
                 onHover={setSlashIndex}
+                extraCommands={customCommands}
               />
             )}
             <textarea

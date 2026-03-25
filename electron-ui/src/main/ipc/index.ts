@@ -215,4 +215,26 @@ function registerFsHandlers(): void {
     fs.mkdirSync(dirPath, { recursive: true })
     return dirPath
   })
+
+  ipcMain.handle('fs:listCommands', (_e, workingDir: string) => {
+    const commandDirs = [
+      path.join(os.homedir(), '.claude', 'commands'),
+      ...(workingDir ? [path.join(workingDir, '.claude', 'commands')] : []),
+    ]
+    const commands: { name: string; description: string; source: 'user' | 'project' }[] = []
+    for (const [i, dir] of commandDirs.entries()) {
+      if (!fs.existsSync(dir)) continue
+      try {
+        const files = fs.readdirSync(dir).filter((f: string) => f.endsWith('.md'))
+        for (const file of files) {
+          const name = '/' + file.replace('.md', '')
+          const content = fs.readFileSync(path.join(dir, file), 'utf-8')
+          const firstLine = content.split('\n').find((l: string) => l.trim()) || ''
+          const description = firstLine.replace(/^#+\s*/, '').slice(0, 80)
+          commands.push({ name, description, source: i === 0 ? 'user' : 'project' })
+        }
+      } catch {}
+    }
+    return commands
+  })
 }

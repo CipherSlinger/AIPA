@@ -40,6 +40,7 @@ const electronAPI = {
   fsShowOpenDialog: () => ipcRenderer.invoke('fs:showOpenDialog'),
   fsGetHome: () => ipcRenderer.invoke('fs:getHome'),
   fsEnsureDir: (dirPath: string) => ipcRenderer.invoke('fs:ensureDir', dirPath),
+  fsListCommands: (workingDir: string) => ipcRenderer.invoke('fs:listCommands', workingDir),
 
   // ── Push event listeners ─────────────────
   onPtyData: (sessionId: string, cb: (data: string) => void): Unsubscribe => {

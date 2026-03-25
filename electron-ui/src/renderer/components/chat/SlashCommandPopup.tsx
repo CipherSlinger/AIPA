@@ -1,5 +1,5 @@
 import React from 'react'
-import { Trash2, Archive, HelpCircle } from 'lucide-react'
+import { Trash2, Archive, HelpCircle, Minus } from 'lucide-react'
 
 export interface SlashCommand {
   name: string
@@ -20,10 +20,17 @@ interface Props {
   onDismiss: () => void
   selectedIndex: number
   onHover: (i: number) => void
+  extraCommands?: { name: string; description: string }[]
 }
 
-export default function SlashCommandPopup({ query, onSelect, selectedIndex, onHover }: Props) {
-  const filtered = SLASH_COMMANDS.filter(c =>
+export default function SlashCommandPopup({ query, onSelect, onDismiss, selectedIndex, onHover, extraCommands }: Props) {
+  const allCommands: SlashCommand[] = [
+    ...SLASH_COMMANDS,
+    ...(extraCommands || [])
+      .filter(ec => !SLASH_COMMANDS.some(bc => bc.name === ec.name))
+      .map(ec => ({ name: ec.name, description: ec.description, icon: Minus })),
+  ]
+  const filtered = allCommands.filter(c =>
     !query || c.name.toLowerCase().includes(query.toLowerCase())
   )
 
