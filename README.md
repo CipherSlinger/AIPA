@@ -12,7 +12,17 @@ A desktop GUI wrapper for the [Claude Code](https://claude.ai/code) CLI, built w
 - **Terminal panel** — full interactive PTY terminal running Claude Code directly (xterm.js)
 - **Session history** — browse and resume past Claude sessions from `~/.claude/projects/`
 - **File browser** — navigate the working directory from the sidebar
-- **Settings** — configure API key, model, font, working directory, and CLI flags
+- **Settings** — configure API key, model, font, working directory, CLI flags, and MCP servers
+- **Onboarding wizard** — guided setup on first launch
+- **Message rating** — thumbs up/down on assistant messages
+- **Thinking blocks** — collapsible extended thinking display
+- **Token usage & cost** — live context usage and cost shown in status bar
+- **Permission prompts** — friendly allow/deny cards for tool permission requests (Bash, Write, Edit, WebFetch, etc.)
+- **Slash commands** — `/` popup with available commands in the input box
+- **@mention popup** — mention files or contexts with `@`
+- **Plan cards** — structured plan visualization in chat
+- **Image paste** — paste images directly into the chat input
+- **System prompt** — inject a custom system prompt per session
 
 ## Requirements
 
