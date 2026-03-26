@@ -44,6 +44,8 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   const [showScrollBtn, setShowScrollBtn] = useState(false)
   const isNearBottomRef = useRef(true)
   const prevSessionIdRef = useRef<string | null | undefined>(sessionId)
+  const lastSeenCountRef = useRef(messages.length)
+  const [unreadCount, setUnreadCount] = useState(0)
 
   // Build flat list of items: date separators + messages
   const items: ListItem[] = useMemo(() => {
@@ -105,7 +107,11 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
     const nearBottom = checkIfNearBottom()
     isNearBottomRef.current = nearBottom
     setShowScrollBtn(!nearBottom)
-  }, [checkIfNearBottom])
+    if (nearBottom) {
+      lastSeenCountRef.current = messages.length
+      setUnreadCount(0)
+    }
+  }, [checkIfNearBottom, messages.length])
 
   const scrollToBottom = useCallback(() => {
     if (items.length > 0) {
@@ -119,8 +125,15 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       requestAnimationFrame(() => {
         virtualizer.scrollToIndex(items.length - 1, { align: 'end', behavior: 'smooth' })
       })
+      lastSeenCountRef.current = messages.length
+      setUnreadCount(0)
     } else if (items.length > 0) {
       setShowScrollBtn(true)
+      // Count new messages since user scrolled away
+      const newMessages = messages.length - lastSeenCountRef.current
+      if (newMessages > 0) {
+        setUnreadCount(newMessages)
+      }
     }
   }, [messages.length, messages[messages.length - 1]])
 
@@ -258,7 +271,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       {showScrollBtn && (
         <button
           onClick={scrollToBottom}
-          title="Scroll to bottom"
+          title={unreadCount > 0 ? `${unreadCount} new message${unreadCount > 1 ? 's' : ''}` : 'Scroll to bottom'}
           style={{
             position: 'sticky',
             bottom: 12,
@@ -267,9 +280,11 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            width: 32,
+            gap: 4,
+            minWidth: 32,
             height: 32,
-            borderRadius: '50%',
+            borderRadius: unreadCount > 0 ? 16 : '50%',
+            padding: unreadCount > 0 ? '0 12px' : 0,
             background: 'var(--accent)',
             border: 'none',
             color: '#fff',
@@ -278,11 +293,14 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
             zIndex: 10,
             opacity: 0.9,
             transition: 'opacity 0.15s',
+            fontSize: 11,
+            fontWeight: 600,
           }}
           onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
           onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.9')}
         >
-          <ArrowDown size={16} />
+          <ArrowDown size={14} />
+          {unreadCount > 0 && <span>{unreadCount}</span>}
         </button>
       )}
     </div>

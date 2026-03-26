@@ -76,6 +76,16 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
     })
   }, [message])
 
+  const handleDoubleClick = useCallback(() => {
+    // Double-click to quickly copy message text
+    const text = (message as StandardChatMessage).content
+    if (!text || message.role === 'permission' || message.role === 'plan') return
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }, [message])
+
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     // Don't show custom menu for permission/plan cards
     if (message.role === 'permission' || message.role === 'plan') return
@@ -88,6 +98,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onContextMenu={handleContextMenu}
+      onDoubleClick={handleDoubleClick}
       style={{
         padding: compact ? '4px 16px' : '8px 20px',
         display: 'flex',
