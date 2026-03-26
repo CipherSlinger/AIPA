@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { Clock, Trash2, RefreshCw, MessageSquare, GitBranch, Pencil } from 'lucide-react'
 import { SessionListItem, SessionMessage, StandardChatMessage, ToolUseInfo, ChatMessage } from '../../types/app.types'
-import { useSessionStore, useChatStore } from '../../store'
+import { useSessionStore, useChatStore, useUiStore } from '../../store'
 import { SkeletonSessionRow } from '../ui/Skeleton'
 import { formatDistanceToNow } from 'date-fns'
-import { zhCN } from 'date-fns/locale'
 
 function parseSessionMessages(raw: SessionMessage[]): ChatMessage[] {
   const result: ChatMessage[] = []
@@ -105,6 +104,7 @@ function parseSessionMessages(raw: SessionMessage[]): ChatMessage[] {
 export default function SessionList() {
   const { sessions, loading, setSessions, setLoading } = useSessionStore()
   const { clearMessages, loadHistory, setSessionId, currentSessionId } = useChatStore()
+  const { addToast } = useUiStore()
   const [filter, setFilter] = useState('')
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
@@ -130,6 +130,7 @@ export default function SessionList() {
   const deleteSession = async (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation()
     await window.electronAPI.sessionDelete(sessionId)
+    addToast('success', 'Session deleted')
     loadSessions()
   }
 
@@ -139,7 +140,10 @@ export default function SessionList() {
     const messages = await window.electronAPI.sessionLoad(session.sessionId)
     const newId = await window.electronAPI.sessionFork(session.sessionId, messages.length - 1)
     if (newId) {
+      addToast('success', 'Session forked')
       await loadSessions()
+    } else {
+      addToast('error', 'Failed to fork session')
     }
   }
 
@@ -249,7 +253,7 @@ export default function SessionList() {
                 {session.project.split(/[/\\]/).pop() || session.project}
               </span>
               <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>
-                {formatDistanceToNow(new Date(session.timestamp), { addSuffix: true, locale: zhCN })}
+                {formatDistanceToNow(new Date(session.timestamp), { addSuffix: true })}
               </span>
             </div>
 

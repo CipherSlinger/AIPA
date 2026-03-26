@@ -295,7 +295,7 @@ export default function ChatPanel() {
     }
 
     const recognition = new SpeechRecognition()
-    recognition.lang = 'zh-CN'
+    recognition.lang = navigator.language || 'en-US'
     recognition.interimResults = false
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       const transcript = event.results[0][0].transcript

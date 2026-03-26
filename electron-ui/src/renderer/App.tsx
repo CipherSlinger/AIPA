@@ -97,6 +97,11 @@ export default function App() {
         e.preventDefault()
         toggleSidebar()
       }
+      // Ctrl+N: New conversation
+      if (e.ctrlKey && !e.shiftKey && e.key === 'n') {
+        e.preventDefault()
+        useChatStore.getState().clearMessages()
+      }
       // Ctrl+`: Toggle terminal
       if (e.ctrlKey && !e.shiftKey && e.key === '`') {
         e.preventDefault()
