@@ -39,6 +39,16 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Image paste** — paste images directly into the chat input
 - **System prompt** — inject a custom system prompt per session
 
+## Security
+
+AIPA follows Electron security best practices:
+
+- **safeStorage encryption** — API keys are encrypted using the OS keychain (DPAPI on Windows, Keychain on macOS) via `electron.safeStorage`; no hardcoded keys
+- **Content Security Policy** — strict CSP headers prevent XSS and unauthorized external resource loading
+- **Sandboxed renderer** — `sandbox: true` enabled; renderer has no direct Node.js access
+- **IPC input validation** — all file system IPC handlers validate paths against an allowlist of permitted directories
+- **Environment sanitization** — CLI child processes only receive an explicit allowlist of environment variables (no secret leakage)
+
 ## Requirements
 
 - Windows 10/11 x64
