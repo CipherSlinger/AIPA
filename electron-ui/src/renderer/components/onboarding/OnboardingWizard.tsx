@@ -49,12 +49,12 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
         {step === 1 && (
           <div style={styles.stepContent}>
             <div style={styles.emoji}>🤖</div>
-            <h1 style={styles.title}>欢迎使用 Claude 助手</h1>
+            <h1 style={styles.title}>Welcome to AIPA</h1>
             <p style={styles.subtitle}>
-              你的智能 AI 伙伴，帮助你写作、分析、解答问题
+              Your AI assistant, ready to help with coding, analysis, and more.
             </p>
             <button style={styles.primaryBtn} onClick={() => setStep(2)}>
-              开始使用 →
+              Get Started
             </button>
           </div>
         )}
@@ -62,9 +62,9 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
         {/* Step 2: API Key */}
         {step === 2 && (
           <div style={styles.stepContent}>
-            <h1 style={styles.title}>输入你的 API 密钥</h1>
+            <h1 style={styles.title}>Enter Your API Key</h1>
             <p style={styles.explanation}>
-              Claude 需要 API 密钥才能工作。密钥仅存储在你的本地电脑上，不会上传到任何地方。
+              Claude needs an API key to work. Your key is stored locally on your machine and never uploaded anywhere.
             </p>
             <input
               type="password"
@@ -82,11 +82,11 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                 window.open('https://console.anthropic.com', '_blank')
               }}
             >
-              还没有密钥？点这里免费获取 →
+              Don't have a key? Get one free at console.anthropic.com
             </a>
             <div style={styles.btnRow}>
               <button style={styles.secondaryBtn} onClick={() => setStep(1)}>
-                ← 返回
+                Back
               </button>
               <button
                 style={{
@@ -97,14 +97,14 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                 onClick={() => apiKey.trim() && setStep(3)}
                 disabled={!apiKey.trim()}
               >
-                下一步 →
+                Next
               </button>
             </div>
             <button
               onClick={handleSkip}
               style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', marginTop: 4 }}
             >
-              跳过，稍后在设置中配置
+              Skip, configure later in Settings
             </button>
           </div>
         )}
@@ -112,23 +112,23 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
         {/* Step 3: Work Folder */}
         {step === 3 && (
           <div style={styles.stepContent}>
-            <h1 style={styles.title}>选择工作文件夹</h1>
+            <h1 style={styles.title}>Choose Working Folder</h1>
             <p style={styles.explanation}>
-              Claude 会在这个文件夹里帮你读写文件。你可以随时在设置中更改。
+              Claude will read and write files in this folder. You can change it anytime in Settings.
             </p>
             <div style={styles.folderDisplay}>
               <span style={styles.folderIcon}>📁</span>
               <span style={styles.folderPath}>{workDir}</span>
             </div>
             <button style={styles.outlineBtn} onClick={handlePickFolder}>
-              选择文件夹
+              Choose Folder
             </button>
             <div style={styles.btnRow}>
               <button style={styles.secondaryBtn} onClick={() => setStep(2)}>
-                ← 返回
+                Back
               </button>
               <button style={styles.primaryBtn} onClick={() => setStep(4)}>
-                完成设置 →
+                Finish Setup
               </button>
             </div>
           </div>
@@ -138,10 +138,10 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
         {step === 4 && (
           <div style={styles.stepContent}>
             <div style={styles.emoji}>✅</div>
-            <h1 style={styles.title}>设置完成！</h1>
-            <p style={styles.subtitle}>现在可以开始和 Claude 对话了</p>
+            <h1 style={styles.title}>All Set!</h1>
+            <p style={styles.subtitle}>You're ready to start chatting with Claude</p>
             <button style={styles.primaryBtn} onClick={handleComplete}>
-              开始对话 →
+              Start Chatting
             </button>
           </div>
         )}

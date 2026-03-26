@@ -104,7 +104,7 @@ function parseSessionMessages(raw: SessionMessage[]): ChatMessage[] {
 
 export default function SessionList() {
   const { sessions, loading, setSessions, setLoading } = useSessionStore()
-  const { clearMessages, loadHistory, setSessionId } = useChatStore()
+  const { clearMessages, loadHistory, setSessionId, currentSessionId } = useChatStore()
   const [filter, setFilter] = useState('')
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
@@ -183,7 +183,7 @@ export default function SessionList() {
         />
         <button
           onClick={loadSessions}
-          title="刷新"
+          title="Refresh"
           style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
         >
           <RefreshCw size={13} />
@@ -198,7 +198,7 @@ export default function SessionList() {
             }
             loadSessions()
           }}
-          title="清空全部会话"
+          title="Delete all sessions"
           style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
         >
           <Trash2 size={13} />
@@ -217,7 +217,9 @@ export default function SessionList() {
             {filter ? 'No matches' : 'No session history'}
           </div>
         )}
-        {filtered.map((session) => (
+        {filtered.map((session) => {
+          const isActive = currentSessionId === session.sessionId
+          return (
           <div
             key={session.sessionId}
             onClick={() => openSession(session)}
@@ -227,14 +229,16 @@ export default function SessionList() {
               borderBottom: '1px solid var(--border)',
               cursor: 'pointer',
               position: 'relative',
+              borderLeft: isActive ? '3px solid var(--accent)' : '3px solid transparent',
+              background: isActive ? 'rgba(0, 122, 204, 0.08)' : 'transparent',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--bg-hover)'
+              e.currentTarget.style.background = isActive ? 'rgba(0, 122, 204, 0.14)' : 'var(--bg-hover)'
               const btns = e.currentTarget.querySelector('.action-btns') as HTMLElement
               if (btns) btns.style.display = 'flex'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.background = isActive ? 'rgba(0, 122, 204, 0.08)' : 'transparent'
               const btns = e.currentTarget.querySelector('.action-btns') as HTMLElement
               if (btns) btns.style.display = 'none'
             }}
@@ -296,28 +300,29 @@ export default function SessionList() {
             >
               <button
                 onClick={(e) => startRename(e, session)}
-                title="重命名"
+                title="Rename"
                 style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
               >
                 <Pencil size={11} />
               </button>
               <button
                 onClick={(e) => forkSession(e, session)}
-                title="分叉会话"
+                title="Fork session"
                 style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
               >
                 <GitBranch size={11} />
               </button>
               <button
                 onClick={(e) => deleteSession(e, session.sessionId)}
-                title="删除"
+                title="Delete"
                 style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
               >
                 <Trash2 size={12} />
               </button>
             </div>
           </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
