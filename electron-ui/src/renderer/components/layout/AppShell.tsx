@@ -12,7 +12,7 @@ const MIN_TERMINAL = 280
 const MAX_TERMINAL = 800
 
 export default function AppShell() {
-  const { sidebarOpen, terminalOpen } = useUiStore()
+  const { sidebarOpen, terminalOpen, setSidebarOpen } = useUiStore()
   const { currentSessionTitle } = useChatStore()
   const [sidebarWidth, setSidebarWidth] = useState(240)
   const [terminalWidth, setTerminalWidth] = useState(420)
@@ -26,6 +26,19 @@ export default function AppShell() {
     }
     loadWidths()
   }, [])
+
+  // Auto-collapse sidebar on narrow windows
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 600 && useUiStore.getState().sidebarOpen) {
+        setSidebarOpen(false)
+      }
+    }
+    window.addEventListener('resize', handleResize)
+    // Check on mount too
+    handleResize()
+    return () => window.removeEventListener('resize', handleResize)
+  }, [setSidebarOpen])
 
   const startDrag = (which: 'sidebar' | 'terminal') => (e: React.MouseEvent) => {
     e.preventDefault()

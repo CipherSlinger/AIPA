@@ -256,20 +256,55 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
           },
           table({ children }) {
             return (
-              <div style={{ overflowX: 'auto', marginBottom: 12 }}>
-                <table style={{ borderCollapse: 'collapse', width: '100%' }}>{children}</table>
+              <div style={{ overflowX: 'auto', marginBottom: 12, borderRadius: 6, border: '1px solid var(--border)' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12 }}>{children}</table>
               </div>
+            )
+          },
+          thead({ children }) {
+            return (
+              <thead style={{ background: 'var(--bg-active, var(--bg-secondary))' }}>{children}</thead>
+            )
+          },
+          tr({ children, ...props }) {
+            const isEven = (props as any)['data-even'] !== undefined
+            return (
+              <tr
+                style={{ transition: 'background 0.1s' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover, rgba(255,255,255,0.04))')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+              >
+                {children}
+              </tr>
             )
           },
           th({ children }) {
             return (
-              <th style={{ border: '1px solid var(--border)', padding: '6px 12px', background: 'var(--bg-secondary)', textAlign: 'left' }}>
+              <th style={{
+                borderBottom: '2px solid var(--accent)',
+                padding: '8px 12px',
+                textAlign: 'left',
+                fontWeight: 600,
+                color: 'var(--text-bright)',
+                fontSize: 11,
+                textTransform: 'uppercase',
+                letterSpacing: 0.3,
+                whiteSpace: 'nowrap',
+              }}>
                 {children}
               </th>
             )
           },
           td({ children }) {
-            return <td style={{ border: '1px solid var(--border)', padding: '6px 12px' }}>{children}</td>
+            return (
+              <td style={{
+                borderBottom: '1px solid var(--border)',
+                padding: '6px 12px',
+                color: 'var(--text-primary)',
+              }}>
+                {children}
+              </td>
+            )
           },
           hr() {
             return <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '16px 0' }} />
