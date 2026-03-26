@@ -9,9 +9,10 @@ interface Props {
   message: ChatMessage
   onRate?: (msgId: string, rating: 'up' | 'down' | null) => void
   onRewind?: (msgTimestamp: number) => void
+  searchQuery?: string
 }
 
-export default React.memo(function Message({ message, onRate, onRewind }: Props) {
+export default React.memo(function Message({ message, onRate, onRewind, searchQuery }: Props) {
   const isUser = message.role === 'user'
   const isAssistant = message.role === 'assistant'
   const [hovered, setHovered] = useState(false)
@@ -144,7 +145,7 @@ export default React.memo(function Message({ message, onRate, onRewind }: Props)
 
         {/* Text content */}
         {message.role !== 'permission' && message.content && (
-          <MessageContent content={message.content} isUser={isUser} />
+          <MessageContent content={message.content} isUser={isUser} searchQuery={searchQuery} />
         )}
       </div>
 
@@ -205,5 +206,6 @@ export default React.memo(function Message({ message, onRate, onRewind }: Props)
   if (pm.rating !== nm.rating) return false
   if (pm.thinking !== nm.thinking) return false
   if ((pm.toolUses?.length ?? 0) !== (nm.toolUses?.length ?? 0)) return false
+  if (prevProps.searchQuery !== nextProps.searchQuery) return false
   return true
 })

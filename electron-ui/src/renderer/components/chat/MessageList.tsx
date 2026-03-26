@@ -12,9 +12,11 @@ interface Props {
   onPermission: (permissionId: string, allowed: boolean) => void
   onGrantPermission: (permissionId: string, toolName: string) => void
   sessionId?: string | null
+  searchQuery?: string
+  highlightedMessageIdx?: number
 }
 
-export default function MessageList({ messages, onPermission, onGrantPermission, sessionId }: Props) {
+export default function MessageList({ messages, onPermission, onGrantPermission, sessionId, searchQuery, highlightedMessageIdx }: Props) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const { resolvePlan, rateMessage } = useChatStore()
   const { addToast } = useUiStore()
@@ -24,7 +26,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   const virtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: () => scrollContainerRef.current,
-    estimateSize: () => 80, // reasonable estimate for average message height
+    estimateSize: () => 80,
     overscan: 5,
   })
 
@@ -50,7 +52,6 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   // Auto-scroll only when user is near the bottom
   useEffect(() => {
     if (isNearBottomRef.current && messages.length > 0) {
-      // Use requestAnimationFrame to ensure the virtualizer has measured
       requestAnimationFrame(() => {
         virtualizer.scrollToIndex(messages.length - 1, { align: 'end', behavior: 'smooth' })
       })
@@ -59,7 +60,14 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
     }
   }, [messages.length, messages[messages.length - 1]])
 
-  const renderMessage = useCallback((msg: ChatMessage) => {
+  // Scroll to highlighted search match
+  useEffect(() => {
+    if (highlightedMessageIdx !== undefined && highlightedMessageIdx >= 0) {
+      virtualizer.scrollToIndex(highlightedMessageIdx, { align: 'center', behavior: 'smooth' })
+    }
+  }, [highlightedMessageIdx, virtualizer])
+
+  const renderMessage = useCallback((msg: ChatMessage, isHighlighted: boolean) => {
     if (msg.role === 'permission') {
       return (
         <PermissionCard
@@ -81,6 +89,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
     return (
       <Message
         message={msg}
+        searchQuery={searchQuery}
         onRate={(msgId, rating) => {
           rateMessage(msgId, rating)
           window.electronAPI.feedbackRate(msgId, rating)
@@ -96,7 +105,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
         } : undefined}
       />
     )
-  }, [onPermission, onGrantPermission, sessionId, resolvePlan, rateMessage, addToast])
+  }, [onPermission, onGrantPermission, sessionId, resolvePlan, rateMessage, addToast, searchQuery])
 
   return (
     <div
@@ -113,6 +122,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       >
         {virtualizer.getVirtualItems().map((virtualRow) => {
           const msg = messages[virtualRow.index]
+          const isHighlighted = virtualRow.index === highlightedMessageIdx
           return (
             <div
               key={msg.id}
@@ -126,7 +136,13 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
                 transform: `translateY(${virtualRow.start}px)`,
               }}
             >
-              {renderMessage(msg)}
+              <div style={{
+                outline: isHighlighted ? '2px solid var(--accent)' : 'none',
+                borderRadius: isHighlighted ? 4 : 0,
+                transition: 'outline 0.2s',
+              }}>
+                {renderMessage(msg, isHighlighted)}
+              </div>
             </div>
           )
         })}

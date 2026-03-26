@@ -3,6 +3,7 @@ import { Send, Square, Plus, Mic, MicOff, Download, Upload } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { useStreamJson } from '../../hooks/useStreamJson'
 import MessageList from './MessageList'
+import SearchBar from './SearchBar'
 import AtMentionPopup from './AtMentionPopup'
 import SlashCommandPopup, { SLASH_COMMANDS, SlashCommand } from './SlashCommandPopup'
 import { useImagePaste } from '../../hooks/useImagePaste'
@@ -68,6 +69,47 @@ export default function ChatPanel() {
 
   const { attachments, handlePaste, addFiles, removeAttachment, clearAttachments } = useImagePaste()
 
+  // Conversation search state
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchMatches, setSearchMatches] = useState<number[]>([])
+  const [currentMatchIdx, setCurrentMatchIdx] = useState(0)
+
+  const handleSearch = useCallback((query: string) => {
+    setSearchQuery(query)
+    if (!query.trim()) {
+      setSearchMatches([])
+      setCurrentMatchIdx(0)
+      return
+    }
+    const lower = query.toLowerCase()
+    const matches: number[] = []
+    messages.forEach((msg, idx) => {
+      if (msg.role === 'permission' || msg.role === 'plan') return
+      const content = (msg as StandardChatMessage).content || ''
+      if (content.toLowerCase().includes(lower)) {
+        matches.push(idx)
+      }
+    })
+    setSearchMatches(matches)
+    setCurrentMatchIdx(0)
+  }, [messages])
+
+  const handleSearchNavigate = useCallback((direction: 'next' | 'prev') => {
+    if (searchMatches.length === 0) return
+    setCurrentMatchIdx(prev => {
+      if (direction === 'next') return (prev + 1) % searchMatches.length
+      return (prev - 1 + searchMatches.length) % searchMatches.length
+    })
+  }, [searchMatches.length])
+
+  const handleSearchClose = useCallback(() => {
+    setSearchOpen(false)
+    setSearchQuery('')
+    setSearchMatches([])
+    setCurrentMatchIdx(0)
+  }, [])
+
   const handleSend = async () => {
     const text = input.trim()
     if (!text && attachments.length === 0 || isStreaming) return
@@ -118,6 +160,11 @@ export default function ChatPanel() {
       if (e.ctrlKey && e.shiftKey && e.key === 'E') {
         e.preventDefault()
         exportConversation()
+      }
+      // Ctrl+F: Open search
+      if (e.ctrlKey && !e.shiftKey && e.key === 'f') {
+        e.preventDefault()
+        setSearchOpen(true)
       }
     }
     window.addEventListener('keydown', handler)
@@ -473,13 +520,31 @@ export default function ChatPanel() {
         </button>
       </div>
 
+      {/* Search bar */}
+      {searchOpen && (
+        <SearchBar
+          onSearch={handleSearch}
+          onNavigate={handleSearchNavigate}
+          onClose={handleSearchClose}
+          matchCount={searchMatches.length}
+          currentMatch={currentMatchIdx}
+        />
+      )}
+
       {/* Messages */}
       <div className="flex-1 overflow-hidden" style={{ display: 'flex', flexDirection: 'column' }}>
         <div style={{ flex: 1, overflow: 'hidden' }}>
           {messages.length === 0 ? (
             <WelcomeScreen onSuggestion={sendText} />
           ) : (
-          <MessageList messages={messages} onPermission={respondPermission} onGrantPermission={grantToolPermission} sessionId={currentSessionId} />
+          <MessageList
+            messages={messages}
+            onPermission={respondPermission}
+            onGrantPermission={grantToolPermission}
+            sessionId={currentSessionId}
+            searchQuery={searchQuery}
+            highlightedMessageIdx={searchMatches.length > 0 ? searchMatches[currentMatchIdx] : undefined}
+          />
           )}
         </div>
         {isStreaming && <ThinkingIndicator />}

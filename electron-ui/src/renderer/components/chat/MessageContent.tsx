@@ -8,6 +8,26 @@ import { useState } from 'react'
 interface Props {
   content: string
   isUser?: boolean
+  searchQuery?: string
+}
+
+function HighlightedText({ text, query }: { text: string; query: string }) {
+  if (!query.trim()) return <>{text}</>
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+  const parts = text.split(regex)
+  return (
+    <>
+      {parts.map((part, i) =>
+        regex.test(part) ? (
+          <mark key={i} style={{ background: 'var(--warning)', color: 'var(--bg-primary)', borderRadius: 2, padding: '0 1px' }}>
+            {part}
+          </mark>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
+  )
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -42,11 +62,11 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-export default React.memo(function MessageContent({ content, isUser }: Props) {
+export default React.memo(function MessageContent({ content, isUser, searchQuery }: Props) {
   if (isUser) {
     return (
       <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, color: 'var(--text-primary)', fontSize: 13 }}>
-        {content}
+        {searchQuery ? <HighlightedText text={content} query={searchQuery} /> : content}
       </div>
     )
   }
@@ -146,4 +166,4 @@ export default React.memo(function MessageContent({ content, isUser }: Props) {
       </ReactMarkdown>
     </div>
   )
-}, (prevProps, nextProps) => prevProps.content === nextProps.content && prevProps.isUser === nextProps.isUser)
+}, (prevProps, nextProps) => prevProps.content === nextProps.content && prevProps.isUser === nextProps.isUser && prevProps.searchQuery === nextProps.searchQuery)
