@@ -65,6 +65,16 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
     })
   }, [message])
 
+  const handleCopyMarkdown = useCallback(() => {
+    const text = (message as StandardChatMessage).content
+    if (!text) return
+    // Copy raw content which is already markdown
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }, [message])
+
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     // Don't show custom menu for permission/plan cards
     if (message.role === 'permission' || message.role === 'plan') return
@@ -228,6 +238,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           y={contextMenu.y}
           message={message}
           onCopy={handleCopy}
+          onCopyMarkdown={isAssistant ? handleCopyMarkdown : undefined}
           onRate={onRate ? (rating) => onRate(message.id, rating) : undefined}
           onBookmark={onBookmark ? () => onBookmark(message.id) : undefined}
           onRewind={onRewind && (message as StandardChatMessage).timestamp

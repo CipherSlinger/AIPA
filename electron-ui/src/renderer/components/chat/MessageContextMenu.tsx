@@ -7,13 +7,14 @@ interface ContextMenuProps {
   y: number
   message: ChatMessage
   onCopy: () => void
+  onCopyMarkdown?: () => void
   onRate?: (rating: 'up' | 'down' | null) => void
   onRewind?: () => void
   onBookmark?: () => void
   onClose: () => void
 }
 
-export default function MessageContextMenu({ x, y, message, onCopy, onRate, onRewind, onBookmark, onClose }: ContextMenuProps) {
+export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdown, onRate, onRewind, onBookmark, onClose }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Clamp position to viewport
@@ -99,6 +100,18 @@ export default function MessageContextMenu({ x, y, message, onCopy, onRate, onRe
         <span>Copy text</span>
         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Ctrl+C</span>
       </button>
+
+      {/* Copy as Markdown (assistant only) */}
+      {isAssistant && onCopyMarkdown && (
+        <button
+          style={itemStyle}
+          onClick={() => { onCopyMarkdown(); onClose() }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover, var(--bg-active))' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+        >
+          <span>Copy as Markdown</span>
+        </button>
+      )}
 
       {/* Bookmark */}
       {onBookmark && message.role !== 'permission' && message.role !== 'plan' && (

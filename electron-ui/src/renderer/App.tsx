@@ -3,6 +3,7 @@ import AppShell from './components/layout/AppShell'
 import OnboardingWizard from './components/onboarding/OnboardingWizard'
 import ErrorBoundary from './components/shared/ErrorBoundary'
 import CommandPalette from './components/shared/CommandPalette'
+import ShortcutCheatsheet from './components/shared/ShortcutCheatsheet'
 import { ToastContainer } from './components/ui/Toast'
 import { usePrefsStore, useChatStore, useUiStore } from './store'
 import './styles/globals.css'
@@ -13,6 +14,7 @@ export default function App() {
   const { setWorkingDir } = useChatStore()
   const { toggleSidebar, toggleTerminal, commandPaletteOpen, setCommandPaletteOpen, toggleCommandPalette, setSidebarOpen, setSidebarTab, toasts, removeToast } = useUiStore()
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [showShortcuts, setShowShortcuts] = useState(false)
 
   // Load preferences on startup
   useEffect(() => {
@@ -112,6 +114,11 @@ export default function App() {
         e.preventDefault()
         toggleCommandPalette()
       }
+      // Ctrl+/: Shortcut cheatsheet
+      if (e.ctrlKey && !e.shiftKey && e.key === '/') {
+        e.preventDefault()
+        setShowShortcuts(prev => !prev)
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
@@ -147,6 +154,9 @@ export default function App() {
               window.dispatchEvent(new CustomEvent('aipa:slashCommand', { detail: cmd }))
             }}
           />
+        )}
+        {showShortcuts && (
+          <ShortcutCheatsheet onClose={() => setShowShortcuts(false)} />
         )}
       </>
     </ErrorBoundary>
