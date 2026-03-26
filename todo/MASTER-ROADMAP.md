@@ -68,6 +68,9 @@
 | Date separators + focus mode | P2 | DONE (Iteration 34) |
 | Bookmarks dropdown panel | P2 | DONE (Iteration 35) |
 | Unread count badge + double-click copy | P2 | DONE (Iteration 36) |
+| Session pinning / starring | P2 | DONE (Iteration 37) |
+| Message collapse / expand | P2 | DONE (Iteration 38) |
+| Conversation statistics panel | P2 | DONE (Iteration 39) |
 
 ### Backlog (Sprint 5+)
 

@@ -72,6 +72,9 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Bookmarks panel** — toolbar dropdown lists all bookmarked messages with jump-to navigation
 - **Unread count badge** — scroll-to-bottom button shows count of new messages when scrolled up
 - **Double-click copy** — double-click any message to copy its text to clipboard
+- **Session pinning** — star/pin sessions in the sidebar for quick access; pinned sessions sort to top
+- **Message collapse** — collapse individual messages to reduce visual clutter, with content preview
+- **Conversation stats** — toolbar popover showing message counts, word totals, tool uses, and session cost
 
 ## Security
 
