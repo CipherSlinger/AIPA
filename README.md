@@ -41,14 +41,14 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **File drag-and-drop** — drag files from the OS file explorer into the chat; images are attached, other files are referenced via `@path`
 - **Conversation export** — export conversations as Markdown or JSON via toolbar button or `Ctrl+Shift+E`
 - **Command palette** — `Ctrl+Shift+P` to access all actions and slash commands in a fuzzy-search modal
-- **Keyboard shortcuts** — `Ctrl+N` new conversation, `Ctrl+B` toggle sidebar, `Ctrl+`` toggle terminal, `Ctrl+L` focus input, `Ctrl+,` settings, `Ctrl+Shift+E` export
+- **Keyboard shortcuts** — `Ctrl+N` new conversation, `Ctrl+B` toggle sidebar, `Ctrl+`` toggle terminal, `Ctrl+L` focus input, `Ctrl+,` settings, `Ctrl+Shift+E` export, `Ctrl+F` search in conversation
 - **Session auto-title** — conversations are automatically titled after the first exchange, with live sidebar refresh
 - **System prompt** — inject a custom system prompt per session
 - **Smart auto-scroll** — auto-scroll respects user intent; scroll-to-bottom button appears when reading earlier messages
 - **Streaming elapsed timer** — real-time timer shows how long Claude has been working
 - **Settings About tab** — version info, external links, keyboard shortcut reference, runtime info, reset to defaults
 - **Virtual message list** — uses `@tanstack/react-virtual` for smooth performance with 100+ messages
-- **RAF-throttled streaming** — text deltas are batched via `requestAnimationFrame` for minimal UI overhead
+- **Conversation search** — `Ctrl+F` to search within current conversation with match highlighting and navigation
 
 ## Security
 
