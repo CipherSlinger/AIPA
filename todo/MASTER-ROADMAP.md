@@ -72,6 +72,9 @@
 | Message collapse / expand | P2 | DONE (Iteration 38) |
 | Conversation statistics panel | P2 | DONE (Iteration 39) |
 | Collapse all/expand all + raw markdown toggle | P2 | DONE (Iteration 40) |
+| Collapse/expand all shortcut + message count | P2 | DONE (Iteration 41) |
+| Scroll progress indicator + session navigation | P2 | DONE (Iteration 42) |
+| Image lightbox + window title notification | P2 | DONE (Iteration 43) |
 
 ### Backlog (Sprint 5+)
 

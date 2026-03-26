@@ -75,8 +75,13 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Session pinning** — star/pin sessions in the sidebar for quick access; pinned sessions sort to top
 - **Message collapse** — collapse individual messages to reduce visual clutter, with content preview
 - **Conversation stats** — toolbar popover showing message counts, word totals, tool uses, and session cost
-- **Collapse all/expand all** — bulk collapse or expand all messages via the stats panel
+- **Collapse all/expand all** — bulk collapse or expand all messages via the stats panel or `Ctrl+Shift+C`
 - **Raw markdown toggle** — view assistant messages as raw markdown source with a toggle button
+- **Message count in toolbar** — toolbar shows total message count for the current conversation
+- **Scroll progress indicator** — thin progress bar at top of message list showing scroll position
+- **Quick session navigation** — `Ctrl+[` / `Ctrl+]` to switch between sessions without using the sidebar
+- **Image lightbox** — click any image attachment to open a full-screen preview with zoom, rotate, and keyboard controls
+- **Window title notification** — window title shows session name and flashes (*) when Claude finishes responding
 
 ## Security
 
