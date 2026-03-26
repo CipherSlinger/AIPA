@@ -36,6 +36,10 @@ export interface StandardChatMessage {
   isStreaming?: boolean
   attachments?: { name: string; dataUrl: string }[]  // image attachments
   rating?: 'up' | 'down' | null
+  /** Internal: accumulated content chunks during streaming (joined into content on stream end) */
+  _contentChunks?: string[]
+  /** Internal: accumulated thinking chunks during streaming */
+  _thinkingChunks?: string[]
 }
 
 export interface PermissionMessage {

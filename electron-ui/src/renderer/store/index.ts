@@ -2,6 +2,69 @@ import { create } from 'zustand'
 import { ChatMessage, PermissionMessage, PlanMessage, StandardChatMessage, ClaudePrefs, SessionListItem } from '../types/app.types'
 import { ToastItem, ToastType } from '../components/ui/Toast'
 
+// ── Streaming buffer for throttled delta accumulation ──
+const streamingBuffer = {
+  contentChunks: [] as string[],
+  thinkingChunks: [] as string[],
+  sessionId: null as string | null,
+  messageId: null as string | null,
+  rafId: 0,
+  dirty: false,
+}
+
+function flushStreamingBuffer() {
+  streamingBuffer.rafId = 0
+  if (!streamingBuffer.dirty) return
+  streamingBuffer.dirty = false
+
+  const { contentChunks, thinkingChunks, sessionId, messageId } = streamingBuffer
+
+  useChatStore.setState((s) => {
+    const msgs = [...s.messages]
+    const lastIdx = msgs.length - 1
+    const last = msgs[lastIdx]
+
+    if (last && last.role === 'assistant' && (last as StandardChatMessage).isStreaming) {
+      const std = last as StandardChatMessage
+      const prevContentChunks = std._contentChunks || []
+      const allContentChunks = [...prevContentChunks, ...contentChunks]
+      const prevThinkingChunks = std._thinkingChunks || []
+      const allThinkingChunks = [...prevThinkingChunks, ...thinkingChunks]
+
+      msgs[lastIdx] = {
+        ...std,
+        _contentChunks: allContentChunks,
+        content: allContentChunks.join(''),
+        _thinkingChunks: allThinkingChunks.length > 0 ? allThinkingChunks : undefined,
+        thinking: allThinkingChunks.length > 0 ? allThinkingChunks.join('') : std.thinking,
+      } as StandardChatMessage
+    } else if (contentChunks.length > 0 || thinkingChunks.length > 0) {
+      msgs.push({
+        id: messageId || `msg-${Date.now()}-${Math.random()}`,
+        role: 'assistant',
+        content: contentChunks.join(''),
+        _contentChunks: contentChunks.slice(),
+        thinking: thinkingChunks.length > 0 ? thinkingChunks.join('') : undefined,
+        _thinkingChunks: thinkingChunks.length > 0 ? thinkingChunks.slice() : undefined,
+        timestamp: Date.now(),
+        isStreaming: true,
+      } as StandardChatMessage)
+    }
+
+    // Clear buffer
+    streamingBuffer.contentChunks = []
+    streamingBuffer.thinkingChunks = []
+
+    return { messages: msgs, currentSessionId: sessionId || s.currentSessionId }
+  })
+}
+
+function scheduleFlush() {
+  if (!streamingBuffer.rafId) {
+    streamingBuffer.rafId = requestAnimationFrame(flushStreamingBuffer) as unknown as number
+  }
+}
+
 // ── Chat store ──────────────────────────────────
 interface ChatState {
   messages: ChatMessage[]
@@ -50,31 +113,33 @@ export const useChatStore = create<ChatState>((set, get) => ({
   addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
 
   appendTextDelta: (sessionId, text) => {
-    set((s) => {
-      const msgs = [...s.messages]
-      const last = msgs[msgs.length - 1]
-      if (last && last.role === 'assistant' && (last as StandardChatMessage).isStreaming) {
-        msgs[msgs.length - 1] = { ...last, content: (last as StandardChatMessage).content + text } as StandardChatMessage
-      } else {
-        msgs.push({
-          id: `msg-${Date.now()}-${Math.random()}`,
-          role: 'assistant',
-          content: text,
-          timestamp: Date.now(),
-          isStreaming: true,
-        } as StandardChatMessage)
-      }
-      return { messages: msgs, currentSessionId: sessionId || s.currentSessionId }
-    })
+    streamingBuffer.contentChunks.push(text)
+    streamingBuffer.sessionId = sessionId
+    streamingBuffer.dirty = true
+    scheduleFlush()
   },
 
   setStreaming: (v) => {
+    // Flush any pending streaming buffer before finalizing
+    if (!v && streamingBuffer.dirty) {
+      if (streamingBuffer.rafId) {
+        cancelAnimationFrame(streamingBuffer.rafId)
+        streamingBuffer.rafId = 0
+      }
+      flushStreamingBuffer()
+    }
     set((s) => {
-      const msgs = s.messages.map((m) =>
-        m.role !== 'permission' && m.role !== 'plan' && (m as StandardChatMessage).isStreaming
-          ? { ...m, isStreaming: false }
-          : m
-      )
+      const msgs = s.messages.map((m) => {
+        if (m.role !== 'permission' && m.role !== 'plan' && (m as StandardChatMessage).isStreaming) {
+          const std = m as StandardChatMessage
+          // Finalize: join chunks into content and clean up internal fields
+          const finalContent = std._contentChunks ? std._contentChunks.join('') : std.content
+          const finalThinking = std._thinkingChunks ? std._thinkingChunks.join('') : std.thinking
+          const { _contentChunks, _thinkingChunks, ...rest } = std
+          return { ...rest, content: finalContent, thinking: finalThinking, isStreaming: false }
+        }
+        return m
+      })
       return { isStreaming: v, messages: msgs }
     })
   },
@@ -117,28 +182,26 @@ export const useChatStore = create<ChatState>((set, get) => ({
     })
   },
 
-  clearMessages: () => set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false }),
+  clearMessages: () => {
+    // Cancel any pending streaming flush
+    if (streamingBuffer.rafId) {
+      cancelAnimationFrame(streamingBuffer.rafId)
+      streamingBuffer.rafId = 0
+    }
+    streamingBuffer.contentChunks = []
+    streamingBuffer.thinkingChunks = []
+    streamingBuffer.sessionId = null
+    streamingBuffer.messageId = null
+    streamingBuffer.dirty = false
+    set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false })
+  },
   loadHistory: (messages) => set({ messages, isStreaming: false }),
 
   appendThinkingDelta: (sessionId, text) => {
-    set((s) => {
-      const msgs = [...s.messages]
-      const last = msgs[msgs.length - 1]
-      if (last && last.role === 'assistant' && (last as StandardChatMessage).isStreaming) {
-        const prev = (last as StandardChatMessage).thinking || ''
-        msgs[msgs.length - 1] = { ...last, thinking: prev + text } as StandardChatMessage
-      } else {
-        msgs.push({
-          id: `msg-${Date.now()}-${Math.random()}`,
-          role: 'assistant',
-          content: '',
-          thinking: text,
-          timestamp: Date.now(),
-          isStreaming: true,
-        } as StandardChatMessage)
-      }
-      return { messages: msgs, currentSessionId: sessionId || s.currentSessionId }
-    })
+    streamingBuffer.thinkingChunks.push(text)
+    streamingBuffer.sessionId = sessionId
+    streamingBuffer.dirty = true
+    scheduleFlush()
   },
 
   setLastUsage: (u) => set({ lastUsage: u }),

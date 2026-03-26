@@ -46,9 +46,9 @@
 
 | Feature | Priority | Notes |
 |---------|----------|-------|
-| Settings About section | P2 | Version info, links, reset to defaults |
+| Settings About section | P2 | DONE (Iteration 16) |
+| Array-based content accumulation | P0-perf | DONE (Iteration 17) - RAF-throttled streaming buffer |
 | Conversation branching UI | P1 | Backend fork/rewind exists; need visual branch tree |
-| Array-based content accumulation | P0-perf | Fix O(n^2) string concat in appendTextDelta |
 | Message virtualization | P1-perf | react-virtuoso for 100+ message conversations |
 
 ### Backlog (Sprint 5+)
