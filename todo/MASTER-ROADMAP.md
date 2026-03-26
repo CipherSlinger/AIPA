@@ -71,6 +71,7 @@
 | Session pinning / starring | P2 | DONE (Iteration 37) |
 | Message collapse / expand | P2 | DONE (Iteration 38) |
 | Conversation statistics panel | P2 | DONE (Iteration 39) |
+| Collapse all/expand all + raw markdown toggle | P2 | DONE (Iteration 40) |
 
 ### Backlog (Sprint 5+)
 
