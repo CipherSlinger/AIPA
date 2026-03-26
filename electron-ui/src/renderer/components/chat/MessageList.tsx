@@ -7,6 +7,9 @@ import PlanCard from './PlanCard'
 import { useChatStore, useUiStore } from '../../store'
 import { ArrowDown } from 'lucide-react'
 
+// Store scroll positions per session so switching back restores position
+const scrollPositionMap = new Map<string, number>()
+
 interface Props {
   messages: ChatMessage[]
   onPermission: (permissionId: string, allowed: boolean) => void
@@ -22,6 +25,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   const { addToast } = useUiStore()
   const [showScrollBtn, setShowScrollBtn] = useState(false)
   const isNearBottomRef = useRef(true)
+  const prevSessionIdRef = useRef<string | null | undefined>(sessionId)
 
   const virtualizer = useVirtualizer({
     count: messages.length,
@@ -29,6 +33,31 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
     estimateSize: () => 80,
     overscan: 5,
   })
+
+  // Save scroll position when session changes, restore for new session
+  useEffect(() => {
+    if (prevSessionIdRef.current && prevSessionIdRef.current !== sessionId) {
+      // Save old position
+      const el = scrollContainerRef.current
+      if (el) {
+        scrollPositionMap.set(prevSessionIdRef.current, el.scrollTop)
+      }
+    }
+    prevSessionIdRef.current = sessionId
+
+    // Restore position for new session
+    if (sessionId && scrollPositionMap.has(sessionId)) {
+      const saved = scrollPositionMap.get(sessionId)!
+      requestAnimationFrame(() => {
+        const el = scrollContainerRef.current
+        if (el) {
+          el.scrollTop = saved
+          isNearBottomRef.current = el.scrollHeight - saved - el.clientHeight < 80
+          setShowScrollBtn(!isNearBottomRef.current)
+        }
+      })
+    }
+  }, [sessionId])
 
   const checkIfNearBottom = useCallback(() => {
     const el = scrollContainerRef.current

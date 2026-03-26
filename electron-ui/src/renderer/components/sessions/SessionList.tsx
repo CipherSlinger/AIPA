@@ -110,6 +110,8 @@ export default function SessionList() {
   const [renameValue, setRenameValue] = useState('')
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'alpha'>('newest')
 
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+
   const loadSessions = async () => {
     setLoading(true)
     const list = await window.electronAPI.sessionList()
@@ -130,9 +132,18 @@ export default function SessionList() {
 
   const deleteSession = async (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation()
-    await window.electronAPI.sessionDelete(sessionId)
-    addToast('success', 'Session deleted')
-    loadSessions()
+    if (confirmDeleteId === sessionId) {
+      // Second click: confirmed, actually delete
+      setConfirmDeleteId(null)
+      await window.electronAPI.sessionDelete(sessionId)
+      addToast('success', 'Session deleted')
+      loadSessions()
+    } else {
+      // First click: show confirmation
+      setConfirmDeleteId(sessionId)
+      // Auto-cancel after 3 seconds
+      setTimeout(() => setConfirmDeleteId(prev => prev === sessionId ? null : prev), 3000)
+    }
   }
 
   const forkSession = async (e: React.MouseEvent, session: SessionListItem) => {
@@ -336,10 +347,22 @@ export default function SessionList() {
               </button>
               <button
                 onClick={(e) => deleteSession(e, session.sessionId)}
-                title="Delete"
-                style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                title={confirmDeleteId === session.sessionId ? 'Click again to confirm' : 'Delete'}
+                style={{
+                  background: confirmDeleteId === session.sessionId ? 'var(--error)' : 'none',
+                  border: 'none',
+                  color: confirmDeleteId === session.sessionId ? '#fff' : 'var(--error)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  borderRadius: 3,
+                  padding: confirmDeleteId === session.sessionId ? '1px 6px' : 0,
+                  fontSize: 10,
+                  gap: 3,
+                }}
               >
                 <Trash2 size={12} />
+                {confirmDeleteId === session.sessionId && <span>Sure?</span>}
               </button>
             </div>
           </div>
