@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Save, Eye, EyeOff } from 'lucide-react'
+import { Save, Eye, EyeOff, ExternalLink } from 'lucide-react'
 import { usePrefsStore } from '../../store'
 
 const MODEL_OPTIONS: { id: string; label: string }[] = [
@@ -54,7 +54,7 @@ export default function SettingsPanel() {
   const [local, setLocal] = useState({ ...prefs })
   const [showKey, setShowKey] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [settingsTab, setSettingsTab] = useState<'general' | 'mcp'>('general')
+  const [settingsTab, setSettingsTab] = useState<'general' | 'mcp' | 'about'>('general')
   const [mcpServers, setMcpServers] = useState<{ name: string; command?: string; disabled?: boolean }[]>([])
 
   useEffect(() => {
@@ -118,7 +118,7 @@ export default function SettingsPanel() {
 
       {/* Tab bar */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 14, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>
-        {(['general', 'mcp'] as const).map(tab => (
+        {(['general', 'mcp', 'about'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setSettingsTab(tab)}
@@ -132,7 +132,7 @@ export default function SettingsPanel() {
               fontSize: 11,
             }}
           >
-            {tab === 'general' ? 'General' : 'MCP Servers'}
+            {tab === 'general' ? 'General' : tab === 'mcp' ? 'MCP Servers' : 'About'}
           </button>
         ))}
       </div>
@@ -338,7 +338,7 @@ export default function SettingsPanel() {
             {saved ? 'Saved' : 'Save Settings'}
           </button>
         </>
-      ) : (
+      ) : settingsTab === 'mcp' ? (
         /* MCP tab */
         <div>
           {mcpServers.length === 0 ? (
@@ -363,6 +363,121 @@ export default function SettingsPanel() {
               </div>
             ))
           )}
+        </div>
+      ) : (
+        /* About tab */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* App identity */}
+          <div style={{ textAlign: 'center', padding: '12px 0' }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-bright)', letterSpacing: 1 }}>AIPA</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>AI Personal Assistant</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>v1.0.0 &middot; Claude Code CLI v2.1.81</div>
+          </div>
+
+          <div style={{ borderTop: '1px solid var(--border)' }} />
+
+          {/* Links */}
+          <div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>Links</div>
+            {[
+              { label: 'GitHub Repository', url: 'https://github.com/anthropics/claude-code' },
+              { label: 'Anthropic Console', url: 'https://console.anthropic.com/' },
+              { label: 'Claude API Docs', url: 'https://docs.anthropic.com/' },
+              { label: 'Get API Key', url: 'https://console.anthropic.com/settings/keys' },
+            ].map(link => (
+              <button
+                key={link.url}
+                onClick={() => window.electronAPI.shellOpenExternal(link.url)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                  padding: '7px 10px', marginBottom: 4, background: 'none',
+                  border: '1px solid var(--border)', borderRadius: 4,
+                  color: 'var(--text-primary)', cursor: 'pointer', fontSize: 12,
+                  textAlign: 'left',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+              >
+                <ExternalLink size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                {link.label}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ borderTop: '1px solid var(--border)' }} />
+
+          {/* Keyboard shortcuts */}
+          <div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>Keyboard Shortcuts</div>
+            {[
+              { keys: 'Ctrl + B', action: 'Toggle sidebar' },
+              { keys: 'Ctrl + `', action: 'Toggle terminal' },
+              { keys: 'Ctrl + N', action: 'New conversation' },
+              { keys: 'Enter', action: 'Send message' },
+              { keys: 'Shift + Enter', action: 'New line in input' },
+              { keys: '@', action: 'Mention file' },
+              { keys: '/', action: 'Slash commands' },
+            ].map(shortcut => (
+              <div
+                key={shortcut.keys}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}
+              >
+                <span style={{ fontSize: 11, color: 'var(--text-primary)' }}>{shortcut.action}</span>
+                <kbd style={{
+                  fontSize: 10, color: 'var(--text-muted)', background: 'var(--bg-input)',
+                  border: '1px solid var(--border)', borderRadius: 3, padding: '1px 6px',
+                  fontFamily: 'inherit',
+                }}>{shortcut.keys}</kbd>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ borderTop: '1px solid var(--border)' }} />
+
+          {/* Runtime info */}
+          <div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>Runtime</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.8 }}>
+              Electron {window.electronAPI.versions?.electron || 'N/A'}<br />
+              Node.js {window.electronAPI.versions?.node || 'N/A'}<br />
+              Chromium {window.electronAPI.versions?.chrome || 'N/A'}
+            </div>
+          </div>
+
+          {/* Reset defaults */}
+          <button
+            onClick={async () => {
+              const defaults = {
+                model: 'claude-sonnet-4-6',
+                fontSize: 14,
+                fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
+                theme: 'vscode' as const,
+                skipPermissions: true,
+                verbose: false,
+                workingDir: '',
+                systemPrompt: '',
+                thinkingLevel: 'off' as const,
+                maxTurns: undefined,
+                maxBudgetUsd: undefined,
+              }
+              setLocal(prev => ({ ...prev, ...defaults }))
+              for (const [k, v] of Object.entries(defaults)) {
+                await window.electronAPI.prefsSet(k, v)
+              }
+              setPrefs(defaults)
+              setSaved(true)
+              setTimeout(() => setSaved(false), 2000)
+            }}
+            style={{
+              background: 'none', border: '1px solid var(--border)', borderRadius: 4,
+              padding: '8px 16px', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 12,
+              width: '100%', textAlign: 'center', marginTop: 4,
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--error)')}
+            onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+          >
+            Reset to Defaults
+          </button>
         </div>
       )}
     </div>

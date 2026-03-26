@@ -95,6 +95,16 @@ const electronAPI = {
   // ── Feedback ─────────────────────────────
   feedbackRate: (messageId: string, rating: 'up' | 'down' | null) =>
     ipcRenderer.invoke('feedback:rate', { messageId, rating }),
+
+  // ── Shell ───────────────────────────────
+  shellOpenExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
+
+  // ── Version info ────────────────────────
+  versions: {
+    electron: process.versions.electron,
+    node: process.versions.node,
+    chrome: process.versions.chrome,
+  },
 }
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI)

@@ -133,10 +133,6 @@ code:not(pre code) {
   cursor: col-resize;
   user-select: none;
 }
-.resizer:hover, .resizer:active {
-  background: var(--accent);
-  opacity: 0.5;
-}
 
 @keyframes pulse {
   0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }

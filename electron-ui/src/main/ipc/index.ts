@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, dialog } from 'electron'
+import { ipcMain, BrowserWindow, dialog, shell } from 'electron'
 import { ptyManager } from '../pty/pty-manager'
 import { streamBridgeManager } from '../pty/stream-bridge'
 import { readSettings, writeSettings, listSessions, loadSession, deleteSession, forkSession, renameSession, getMcpServers, setMcpServerEnabled, generateSessionTitle, rewindSession } from '../sessions/session-reader'
@@ -21,6 +21,7 @@ export function registerAllHandlers(win: BrowserWindow): void {
   registerSessionHandlers()
   registerConfigHandlers()
   registerFsHandlers()
+  registerShellHandlers()
 }
 
 // ────────────────────────────────────────────
@@ -289,5 +290,22 @@ function registerFsHandlers(): void {
       }
     }
     return commands
+  })
+}
+
+// ────────────────────────────────────────────
+// Shell handlers
+// ────────────────────────────────────────────
+function registerShellHandlers(): void {
+  ipcMain.handle('shell:openExternal', (_e, url: string) => {
+    // Only allow http/https URLs to prevent shell command injection
+    try {
+      const parsed = new URL(url)
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+        shell.openExternal(url)
+      }
+    } catch {
+      log.warn('shell:openExternal rejected invalid URL:', url)
+    }
   })
 }
