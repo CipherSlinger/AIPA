@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { Clock, Trash2, RefreshCw, MessageSquare, GitBranch, Pencil, ArrowUpDown, Star } from 'lucide-react'
 import { SessionListItem, SessionMessage, StandardChatMessage, ToolUseInfo, ChatMessage } from '../../types/app.types'
 import { useSessionStore, useChatStore, useUiStore } from '../../store'
@@ -117,6 +117,8 @@ export default function SessionList() {
   })
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [focusedIdx, setFocusedIdx] = useState(-1)
+  const listRef = useRef<HTMLDivElement>(null)
 
   // Pinned sessions (persisted in localStorage)
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(() => {
@@ -290,7 +292,24 @@ export default function SessionList() {
       </div>
 
       {/* List */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div
+        ref={listRef}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (filtered.length === 0) return
+          if (e.key === 'ArrowDown') {
+            e.preventDefault()
+            setFocusedIdx(prev => Math.min(prev + 1, filtered.length - 1))
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault()
+            setFocusedIdx(prev => Math.max(prev - 1, 0))
+          } else if (e.key === 'Enter' && focusedIdx >= 0 && focusedIdx < filtered.length) {
+            e.preventDefault()
+            openSession(filtered[focusedIdx])
+          }
+        }}
+        style={{ flex: 1, overflowY: 'auto', outline: 'none' }}
+      >
         {loading && (
           <div>
             {[0, 1, 2, 3, 4].map(i => <SkeletonSessionRow key={i} />)}
@@ -301,8 +320,9 @@ export default function SessionList() {
             {filter ? 'No matches' : 'No session history'}
           </div>
         )}
-        {filtered.map((session) => {
+        {filtered.map((session, idx) => {
           const isActive = currentSessionId === session.sessionId
+          const isFocused = idx === focusedIdx
           return (
           <div
             key={session.sessionId}
@@ -313,8 +333,8 @@ export default function SessionList() {
               borderBottom: '1px solid var(--border)',
               cursor: 'pointer',
               position: 'relative',
-              borderLeft: isActive ? '3px solid var(--accent)' : '3px solid transparent',
-              background: isActive ? 'rgba(0, 122, 204, 0.08)' : 'transparent',
+              borderLeft: isActive ? '3px solid var(--accent)' : isFocused ? '3px solid var(--text-muted)' : '3px solid transparent',
+              background: isActive ? 'rgba(0, 122, 204, 0.08)' : isFocused ? 'var(--bg-hover, rgba(255,255,255,0.04))' : 'transparent',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = isActive ? 'rgba(0, 122, 204, 0.14)' : 'var(--bg-hover)'

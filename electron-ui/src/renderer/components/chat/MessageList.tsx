@@ -46,6 +46,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   const prevSessionIdRef = useRef<string | null | undefined>(sessionId)
   const lastSeenCountRef = useRef(messages.length)
   const [unreadCount, setUnreadCount] = useState(0)
+  const prevMessageCountRef = useRef(messages.length)
 
   // Build flat list of items: date separators + messages
   const items: ListItem[] = useMemo(() => {
@@ -285,11 +286,13 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
           }
           const msg = item.msg
           const isHighlighted = item.msgIdx === highlightedMessageIdx
+          const isLastMessage = item.msgIdx === messages.length - 1
           return (
             <div
               key={msg.id}
               data-index={virtualRow.index}
               ref={virtualizer.measureElement}
+              className={isLastMessage ? 'message-enter' : undefined}
               style={{
                 position: 'absolute',
                 top: 0,
