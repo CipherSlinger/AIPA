@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Clock, Trash2, RefreshCw, MessageSquare, GitBranch, Pencil } from 'lucide-react'
+import { Clock, Trash2, RefreshCw, MessageSquare, GitBranch, Pencil, ArrowUpDown } from 'lucide-react'
 import { SessionListItem, SessionMessage, StandardChatMessage, ToolUseInfo, ChatMessage } from '../../types/app.types'
 import { useSessionStore, useChatStore, useUiStore } from '../../store'
 import { SkeletonSessionRow } from '../ui/Skeleton'
@@ -108,6 +108,7 @@ export default function SessionList() {
   const [filter, setFilter] = useState('')
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'alpha'>('newest')
 
   const loadSessions = async () => {
     setLoading(true)
@@ -161,10 +162,16 @@ export default function SessionList() {
     setRenamingId(null)
   }
 
-  const filtered = sessions.filter((s) =>
-    !filter || (s.title || s.lastPrompt).toLowerCase().includes(filter.toLowerCase()) ||
-    s.project.toLowerCase().includes(filter.toLowerCase())
-  )
+  const filtered = sessions
+    .filter((s) =>
+      !filter || (s.title || s.lastPrompt).toLowerCase().includes(filter.toLowerCase()) ||
+      s.project.toLowerCase().includes(filter.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (sortBy === 'oldest') return a.timestamp - b.timestamp
+      if (sortBy === 'alpha') return (a.title || a.lastPrompt).localeCompare(b.title || b.lastPrompt)
+      return b.timestamp - a.timestamp // newest first (default)
+    })
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -191,6 +198,17 @@ export default function SessionList() {
           style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
         >
           <RefreshCw size={13} />
+        </button>
+        <button
+          onClick={() => setSortBy(prev => prev === 'newest' ? 'oldest' : prev === 'oldest' ? 'alpha' : 'newest')}
+          title={`Sort: ${sortBy === 'newest' ? 'Newest first' : sortBy === 'oldest' ? 'Oldest first' : 'Alphabetical'}`}
+          style={{
+            background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 2, fontSize: 10,
+          }}
+        >
+          <ArrowUpDown size={11} />
+          <span>{sortBy === 'newest' ? 'New' : sortBy === 'oldest' ? 'Old' : 'A-Z'}</span>
         </button>
         <button
           onClick={async () => {

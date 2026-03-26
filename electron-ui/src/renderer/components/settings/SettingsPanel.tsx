@@ -413,6 +413,7 @@ export default function SettingsPanel() {
               { keys: 'Ctrl + B', action: 'Toggle sidebar' },
               { keys: 'Ctrl + `', action: 'Toggle terminal' },
               { keys: 'Ctrl + N', action: 'New conversation' },
+              { keys: 'Ctrl + F', action: 'Search in conversation' },
               { keys: 'Enter', action: 'Send message' },
               { keys: 'Shift + Enter', action: 'New line in input' },
               { keys: '@', action: 'Mention file' },
