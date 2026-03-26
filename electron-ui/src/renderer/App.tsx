@@ -5,7 +5,7 @@ import ErrorBoundary from './components/shared/ErrorBoundary'
 import CommandPalette from './components/shared/CommandPalette'
 import ShortcutCheatsheet from './components/shared/ShortcutCheatsheet'
 import { ToastContainer } from './components/ui/Toast'
-import { usePrefsStore, useChatStore, useUiStore } from './store'
+import { usePrefsStore, useChatStore, useSessionStore, useUiStore } from './store'
 import './styles/globals.css'
 import 'highlight.js/styles/github-dark.css'
 
@@ -133,6 +133,28 @@ export default function App() {
           store.expandAll()
         } else {
           store.collapseAll()
+        }
+      }
+      // Ctrl+[ / Ctrl+]: Navigate between sessions
+      if (e.ctrlKey && !e.shiftKey && (e.key === '[' || e.key === ']')) {
+        e.preventDefault()
+        const sessions = useSessionStore.getState().sessions
+        if (sessions.length === 0) return
+        const currentId = useChatStore.getState().currentSessionId
+        // Sort sessions by timestamp descending (same as default view)
+        const sorted = [...sessions].sort((a, b) => b.timestamp - a.timestamp)
+        const currentIdx = sorted.findIndex(s => s.sessionId === currentId)
+        let targetIdx: number
+        if (e.key === '[') {
+          // Previous (newer session)
+          targetIdx = currentIdx <= 0 ? sorted.length - 1 : currentIdx - 1
+        } else {
+          // Next (older session)
+          targetIdx = currentIdx >= sorted.length - 1 ? 0 : currentIdx + 1
+        }
+        const target = sorted[targetIdx]
+        if (target) {
+          window.dispatchEvent(new CustomEvent('aipa:openSession', { detail: target.sessionId }))
         }
       }
     }

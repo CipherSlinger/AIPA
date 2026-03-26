@@ -199,11 +199,51 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
     )
   }, [onPermission, onGrantPermission, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery])
 
+  // Scroll progress (0..1)
+  const [scrollProgress, setScrollProgress] = useState(0)
+
+  const handleScrollWithProgress = useCallback(() => {
+    handleScroll()
+    const el = scrollContainerRef.current
+    if (!el) return
+    const scrollable = el.scrollHeight - el.clientHeight
+    if (scrollable <= 0) {
+      setScrollProgress(1)
+    } else {
+      setScrollProgress(el.scrollTop / scrollable)
+    }
+  }, [handleScroll])
+
   return (
+    <div style={{ height: '100%', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+      {/* Scroll progress bar */}
+      {messages.length > 0 && (
+        <div
+          style={{
+            height: 2,
+            background: 'var(--border)',
+            flexShrink: 0,
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              height: '100%',
+              width: `${scrollProgress * 100}%`,
+              background: 'var(--accent)',
+              transition: 'width 0.1s ease-out',
+            }}
+          />
+        </div>
+      )}
     <div
       ref={scrollContainerRef}
-      onScroll={handleScroll}
-      style={{ height: '100%', overflowY: 'auto', padding: '16px 0', position: 'relative' }}
+      onScroll={handleScrollWithProgress}
+      style={{ flex: 1, overflowY: 'auto', padding: '16px 0', position: 'relative' }}
     >
       <div
         style={{
@@ -304,6 +344,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
           {unreadCount > 0 && <span>{unreadCount}</span>}
         </button>
       )}
+    </div>
     </div>
   )
 }

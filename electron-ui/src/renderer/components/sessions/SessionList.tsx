@@ -143,6 +143,21 @@ export default function SessionList() {
 
   useEffect(() => { loadSessions() }, [])
 
+  // Listen for global session navigation (Ctrl+[ / Ctrl+])
+  useEffect(() => {
+    const handler = async (e: Event) => {
+      const sessionId = (e as CustomEvent).detail as string
+      if (!sessionId) return
+      const raw = await window.electronAPI.sessionLoad(sessionId)
+      const chatMessages = parseSessionMessages(raw)
+      clearMessages()
+      loadHistory(chatMessages)
+      setSessionId(sessionId)
+    }
+    window.addEventListener('aipa:openSession', handler)
+    return () => window.removeEventListener('aipa:openSession', handler)
+  }, [])
+
   const openSession = async (session: SessionListItem) => {
     if (renamingId === session.sessionId) return
     const raw = await window.electronAPI.sessionLoad(session.sessionId)
