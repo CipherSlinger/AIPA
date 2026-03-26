@@ -1076,8 +1076,12 @@ export default function ChatPanel() {
         <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', fontSize: 10, marginTop: 4 }}>
           <span>@ files | Enter send | Shift+Enter newline | Ctrl+L focus | Ctrl+Shift+P commands</span>
           {input.length > 0 && (
-            <span style={{ flexShrink: 0 }}>
-              {input.length} chars
+            <span style={{
+              flexShrink: 0,
+              color: input.length > 10000 ? 'var(--error)' : input.length > 5000 ? 'var(--warning)' : 'var(--text-muted)',
+              fontWeight: input.length > 10000 ? 600 : 400,
+            }}>
+              {input.length.toLocaleString()} chars{input.length > 10000 ? ' (very long)' : ''}
             </span>
           )}
         </div>

@@ -143,7 +143,23 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
             const lineCount = codeText.split('\n').length
 
             if (isInline) {
-              return <code className={className as string} {...props}>{children as React.ReactNode}</code>
+              return (
+                <code
+                  className={className as string}
+                  style={{
+                    background: 'var(--bg-active, rgba(255,255,255,0.08))',
+                    border: '1px solid var(--border)',
+                    borderRadius: 3,
+                    padding: '1px 5px',
+                    fontSize: '0.9em',
+                    fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
+                    color: 'var(--accent)',
+                  }}
+                  {...props}
+                >
+                  {children as React.ReactNode}
+                </code>
+              )
             }
 
             return (
