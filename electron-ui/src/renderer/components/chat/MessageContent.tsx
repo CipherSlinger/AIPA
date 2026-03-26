@@ -2,8 +2,8 @@ import React from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
-import { Copy, Check } from 'lucide-react'
-import { useState } from 'react'
+import { Copy, Check, ChevronDown, ChevronUp } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
 
 interface Props {
   content: string
@@ -62,6 +62,65 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
+const CODE_COLLAPSE_THRESHOLD = 300 // px height before showing collapse toggle
+
+function CollapsiblePre({ children, className }: { children: React.ReactNode; className?: string }) {
+  const preRef = useRef<HTMLPreElement>(null)
+  const [isOverflow, setIsOverflow] = useState(false)
+  const [collapsed, setCollapsed] = useState(true)
+
+  useEffect(() => {
+    const el = preRef.current
+    if (el && el.scrollHeight > CODE_COLLAPSE_THRESHOLD) {
+      setIsOverflow(true)
+    }
+  }, [])
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <pre
+        ref={preRef}
+        style={{
+          margin: 0,
+          borderRadius: '0 0 4px 4px',
+          borderTop: 'none',
+          maxHeight: isOverflow && collapsed ? CODE_COLLAPSE_THRESHOLD : undefined,
+          overflow: isOverflow && collapsed ? 'hidden' : undefined,
+        }}
+      >
+        {children}
+      </pre>
+      {isOverflow && (
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 4,
+            padding: '4px 0',
+            background: collapsed ? 'linear-gradient(transparent, #1a1a1a)' : '#1a1a1a',
+            border: 'none',
+            borderTop: collapsed ? 'none' : '1px solid var(--border)',
+            borderRadius: collapsed ? 0 : '0 0 4px 4px',
+            color: 'var(--text-muted)',
+            cursor: 'pointer',
+            fontSize: 11,
+            position: collapsed ? 'absolute' : 'relative',
+            bottom: collapsed ? 0 : undefined,
+            left: 0,
+            paddingTop: collapsed ? 24 : 4,
+          }}
+        >
+          {collapsed ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
+          {collapsed ? 'Show more' : 'Show less'}
+        </button>
+      )}
+    </div>
+  )
+}
+
 export default React.memo(function MessageContent({ content, isUser, searchQuery }: Props) {
   if (isUser) {
     return (
@@ -81,6 +140,7 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
             const isInline = inline as boolean
             const match = /language-(\w+)/.exec((className as string) || '')
             const codeText = String(children).replace(/\n$/, '')
+            const lineCount = codeText.split('\n').length
 
             if (isInline) {
               return <code className={className as string} {...props}>{children as React.ReactNode}</code>
@@ -101,18 +161,13 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
                 >
                   <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                     {match?.[1] || 'code'}
+                    {lineCount > 1 && <span style={{ opacity: 0.6, marginLeft: 6 }}>{lineCount} lines</span>}
                   </span>
                   <CopyButton text={codeText} />
                 </div>
-                <pre
-                  style={{
-                    margin: 0,
-                    borderRadius: '0 0 4px 4px',
-                    borderTop: 'none',
-                  }}
-                >
+                <CollapsiblePre>
                   <code className={className as string} {...props}>{children as React.ReactNode}</code>
-                </pre>
+                </CollapsiblePre>
               </div>
             )
           },
