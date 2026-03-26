@@ -29,7 +29,8 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **File browser** — navigate the working directory from the sidebar
 - **Settings** — configure API key, model, font, working directory, CLI flags, and MCP servers
 - **Onboarding wizard** — guided setup on first launch
-- **Message rating** — thumbs up/down on assistant messages
+- **Message rating** — thumbs up/down on assistant messages via right-click context menu
+- **Message context menu** — right-click any message for quick actions: copy, rate, rewind to checkpoint
 - **Thinking blocks** — collapsible extended thinking display
 - **Token usage & cost** — live context usage and cost shown in status bar
 - **Permission prompts** — friendly allow/deny cards for tool permission requests (Bash, Write, Edit, WebFetch, etc.)
