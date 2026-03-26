@@ -16,6 +16,7 @@ const SHORTCUTS = [
     { keys: 'Ctrl + Shift + P', action: 'Command palette' },
     { keys: 'Ctrl + /', action: 'This cheatsheet' },
     { keys: 'Ctrl + Shift + F', action: 'Focus mode' },
+    { keys: 'Ctrl + Shift + C', action: 'Collapse/expand all' },
   ]},
   { section: 'Chat', items: [
     { keys: 'Enter', action: 'Send message' },

@@ -124,6 +124,17 @@ export default function App() {
         e.preventDefault()
         toggleFocusMode()
       }
+      // Ctrl+Shift+C: Collapse/expand all messages
+      if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+        e.preventDefault()
+        const store = useChatStore.getState()
+        const hasCollapsed = store.messages.some(m => m.role !== 'permission' && m.role !== 'plan' && (m as any).collapsed)
+        if (hasCollapsed) {
+          store.expandAll()
+        } else {
+          store.collapseAll()
+        }
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)

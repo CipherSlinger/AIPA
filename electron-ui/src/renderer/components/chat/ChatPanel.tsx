@@ -599,6 +599,11 @@ export default function ChatPanel() {
             {prefs.workingDir.split(/[/\\]/).pop()}
           </span>
         )}
+        {messages.length > 0 && (
+          <span style={{ color: 'var(--text-muted)', fontSize: 10, flexShrink: 0 }}>
+            {messages.filter(m => m.role !== 'permission' && m.role !== 'plan').length} msgs
+          </span>
+        )}
         <button
           onClick={exportConversation}
           disabled={messages.length === 0}
