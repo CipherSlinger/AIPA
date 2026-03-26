@@ -78,6 +78,8 @@
 | Ctrl+K clear + streaming spinner | P2 | DONE (Iteration 44) |
 | Enhanced tables + responsive sidebar | P2 | DONE (Iteration 45) |
 | Persistent sort + clear confirmation | P2 | DONE (Iteration 46) |
+| Message animation + session keyboard nav | P2 | DONE (Iteration 47) |
+| Status bar enhancements + input actions | P2 | DONE (Iteration 48) |
 
 ### Backlog (Sprint 5+)
 

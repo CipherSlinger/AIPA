@@ -88,6 +88,10 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Responsive sidebar** — sidebar auto-collapses when window width drops below 600px
 - **Persistent sort order** — session sort preference (newest/oldest/alpha) is remembered across restarts
 - **Clear confirmation** — Ctrl+N/K requires double-press within 1.5s when conversation has 3+ messages
+- **Message entrance animation** — new messages slide in with a subtle fade animation
+- **Session keyboard navigation** — Up/Down arrow keys to navigate sessions in the sidebar list
+- **Status bar streaming indicator** — pulsing green dot and "Streaming" label during active responses
+- **Input quick actions** — small "Clear", "@file", "/cmd" buttons above the textarea for quick access
 
 ## Security
 
