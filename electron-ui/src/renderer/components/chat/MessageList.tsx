@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react'
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { ChatMessage } from '../../types/app.types'
 import Message from './Message'
@@ -6,6 +6,23 @@ import PermissionCard from './PermissionCard'
 import PlanCard from './PlanCard'
 import { useChatStore, useUiStore } from '../../store'
 import { ArrowDown } from 'lucide-react'
+
+// ── Date separator logic ──
+function formatDateLabel(ts: number): string {
+  const date = new Date(ts)
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+
+  const isSameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+
+  if (isSameDay(date, today)) return 'Today'
+  if (isSameDay(date, yesterday)) return 'Yesterday'
+  return date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
+}
+
+type ListItem = { type: 'message'; msg: ChatMessage; msgIdx: number } | { type: 'dateSep'; label: string }
 
 // Store scroll positions per session so switching back restores position
 const scrollPositionMap = new Map<string, number>()
@@ -27,10 +44,27 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   const isNearBottomRef = useRef(true)
   const prevSessionIdRef = useRef<string | null | undefined>(sessionId)
 
+  // Build flat list of items: date separators + messages
+  const items: ListItem[] = useMemo(() => {
+    const result: ListItem[] = []
+    let lastDateLabel = ''
+    messages.forEach((msg, idx) => {
+      if (msg.timestamp) {
+        const label = formatDateLabel(msg.timestamp)
+        if (label !== lastDateLabel) {
+          result.push({ type: 'dateSep', label })
+          lastDateLabel = label
+        }
+      }
+      result.push({ type: 'message', msg, msgIdx: idx })
+    })
+    return result
+  }, [messages])
+
   const virtualizer = useVirtualizer({
-    count: messages.length,
+    count: items.length,
     getScrollElement: () => scrollContainerRef.current,
-    estimateSize: () => 80,
+    estimateSize: (idx) => items[idx].type === 'dateSep' ? 32 : 80,
     overscan: 5,
   })
 
@@ -73,28 +107,31 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   }, [checkIfNearBottom])
 
   const scrollToBottom = useCallback(() => {
-    if (messages.length > 0) {
-      virtualizer.scrollToIndex(messages.length - 1, { align: 'end', behavior: 'smooth' })
+    if (items.length > 0) {
+      virtualizer.scrollToIndex(items.length - 1, { align: 'end', behavior: 'smooth' })
     }
-  }, [messages.length, virtualizer])
+  }, [items.length, virtualizer])
 
   // Auto-scroll only when user is near the bottom
   useEffect(() => {
-    if (isNearBottomRef.current && messages.length > 0) {
+    if (isNearBottomRef.current && items.length > 0) {
       requestAnimationFrame(() => {
-        virtualizer.scrollToIndex(messages.length - 1, { align: 'end', behavior: 'smooth' })
+        virtualizer.scrollToIndex(items.length - 1, { align: 'end', behavior: 'smooth' })
       })
-    } else if (messages.length > 0) {
+    } else if (items.length > 0) {
       setShowScrollBtn(true)
     }
   }, [messages.length, messages[messages.length - 1]])
 
-  // Scroll to highlighted search match
+  // Scroll to highlighted search match (map message idx to item idx)
   useEffect(() => {
     if (highlightedMessageIdx !== undefined && highlightedMessageIdx >= 0) {
-      virtualizer.scrollToIndex(highlightedMessageIdx, { align: 'center', behavior: 'smooth' })
+      const itemIdx = items.findIndex(it => it.type === 'message' && it.msgIdx === highlightedMessageIdx)
+      if (itemIdx >= 0) {
+        virtualizer.scrollToIndex(itemIdx, { align: 'center', behavior: 'smooth' })
+      }
     }
-  }, [highlightedMessageIdx, virtualizer])
+  }, [highlightedMessageIdx, virtualizer, items])
 
   const renderMessage = useCallback((msg: ChatMessage, isHighlighted: boolean) => {
     if (msg.role === 'permission') {
@@ -151,8 +188,38 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
         }}
       >
         {virtualizer.getVirtualItems().map((virtualRow) => {
-          const msg = messages[virtualRow.index]
-          const isHighlighted = virtualRow.index === highlightedMessageIdx
+          const item = items[virtualRow.index]
+          if (item.type === 'dateSep') {
+            return (
+              <div
+                key={`sep-${item.label}`}
+                data-index={virtualRow.index}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '6px 20px',
+                }}>
+                  <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                  <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap', fontWeight: 500, letterSpacing: 0.3 }}>
+                    {item.label}
+                  </span>
+                  <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                </div>
+              </div>
+            )
+          }
+          const msg = item.msg
+          const isHighlighted = item.msgIdx === highlightedMessageIdx
           return (
             <div
               key={msg.id}

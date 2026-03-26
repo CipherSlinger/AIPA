@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Send, Square, Plus, Mic, MicOff, Download, Upload } from 'lucide-react'
+import { Send, Square, Plus, Mic, MicOff, Download, Upload, Maximize2, Minimize2 } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { useStreamJson } from '../../hooks/useStreamJson'
 import MessageList from './MessageList'
@@ -18,6 +18,8 @@ export default function ChatPanel() {
   const { messages, isStreaming, currentSessionId, currentSessionTitle } = useChatStore()
   const { prefs } = usePrefsStore()
   const { addToast } = useUiStore()
+  const focusMode = useUiStore(s => s.focusMode)
+  const toggleFocusMode = useUiStore(s => s.toggleFocusMode)
   const { sendMessage, abort, respondPermission, grantToolPermission, newConversation } = useStreamJson()
   const [input, setInput] = useState(() => {
     // Restore draft from sessionStorage
@@ -547,6 +549,22 @@ export default function ChatPanel() {
           }}
         >
           <Download size={14} />
+        </button>
+        <button
+          onClick={toggleFocusMode}
+          title={focusMode ? 'Exit focus mode (Ctrl+Shift+F)' : 'Focus mode (Ctrl+Shift+F)'}
+          style={{
+            background: focusMode ? 'var(--accent)' : 'none',
+            border: 'none',
+            color: focusMode ? '#fff' : 'var(--text-muted)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            borderRadius: 3,
+            padding: '2px 4px',
+          }}
+        >
+          {focusMode ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
         </button>
         {elapsedStr && (
           <span style={{

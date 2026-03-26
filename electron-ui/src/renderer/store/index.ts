@@ -319,6 +319,8 @@ interface UiState {
   toggleSidebar: () => void
   toggleTerminal: () => void
   toggleCommandPalette: () => void
+  focusMode: boolean
+  toggleFocusMode: () => void
   addToast: (type: ToastType, message: string, duration?: number) => void
   removeToast: (id: string) => void
 }
@@ -328,6 +330,7 @@ export const useUiStore = create<UiState>((set) => ({
   sidebarOpen: true,
   terminalOpen: false,
   commandPaletteOpen: false,
+  focusMode: false,
   toasts: [],
   setSidebarTab: (tab) => set({ sidebarTab: tab }),
   setSidebarOpen: (v) => set({ sidebarOpen: v }),
@@ -336,6 +339,14 @@ export const useUiStore = create<UiState>((set) => ({
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
   toggleTerminal: () => set((s) => ({ terminalOpen: !s.terminalOpen })),
   toggleCommandPalette: () => set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
+  toggleFocusMode: () => set((s) => {
+    if (!s.focusMode) {
+      // Entering focus mode: hide sidebar and terminal
+      return { focusMode: true, sidebarOpen: false, terminalOpen: false }
+    }
+    // Exiting focus mode: restore sidebar
+    return { focusMode: false, sidebarOpen: true }
+  }),
   addToast: (type, message, duration) => {
     const id = `toast-${Date.now()}-${Math.random()}`
     set((s) => ({ toasts: [...s.toasts, { id, type, message, duration }] }))

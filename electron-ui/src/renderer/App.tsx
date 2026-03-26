@@ -12,7 +12,7 @@ import 'highlight.js/styles/github-dark.css'
 export default function App() {
   const { prefs, setPrefs, setLoaded } = usePrefsStore()
   const { setWorkingDir } = useChatStore()
-  const { toggleSidebar, toggleTerminal, commandPaletteOpen, setCommandPaletteOpen, toggleCommandPalette, setSidebarOpen, setSidebarTab, toasts, removeToast } = useUiStore()
+  const { toggleSidebar, toggleTerminal, commandPaletteOpen, setCommandPaletteOpen, toggleCommandPalette, toggleFocusMode, focusMode, setSidebarOpen, setSidebarTab, toasts, removeToast } = useUiStore()
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
 
@@ -119,10 +119,15 @@ export default function App() {
         e.preventDefault()
         setShowShortcuts(prev => !prev)
       }
+      // Ctrl+Shift+F: Focus mode (hide sidebar + terminal)
+      if (e.ctrlKey && e.shiftKey && e.key === 'F') {
+        e.preventDefault()
+        toggleFocusMode()
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [setSidebarOpen, setSidebarTab, toggleSidebar, toggleTerminal, toggleCommandPalette])
+  }, [setSidebarOpen, setSidebarTab, toggleSidebar, toggleTerminal, toggleCommandPalette, toggleFocusMode])
 
   return (
     <ErrorBoundary fallbackLabel="application">
