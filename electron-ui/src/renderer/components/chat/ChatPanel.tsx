@@ -603,19 +603,29 @@ function ThinkingIndicator() {
 
 function WelcomeScreen({ onSuggestion }: { onSuggestion: (text: string) => void }) {
   const suggestions = [
-    { emoji: '📁', text: '分析当前目录的代码结构' },
-    { emoji: '🐛', text: '帮我找到并修复这个 bug' },
-    { emoji: '✨', text: '帮我实现一个新功能' },
+    { emoji: '\u{1F4C1}', text: '\u5206\u6790\u5F53\u524D\u76EE\u5F55\u7684\u4EE3\u7801\u7ED3\u6784' },
+    { emoji: '\u{1F41B}', text: '\u5E2E\u6211\u627E\u5230\u5E76\u4FEE\u590D\u8FD9\u4E2A bug' },
+    { emoji: '\u2728', text: '\u5E2E\u6211\u5B9E\u73B0\u4E00\u4E2A\u65B0\u529F\u80FD' },
+    { emoji: '\u{1F4DD}', text: '\u5E2E\u6211\u5199\u4E00\u4E2A\u811A\u672C\u6765\u81EA\u52A8\u5316\u4EFB\u52A1' },
+  ]
+
+  const shortcuts = [
+    { keys: 'Ctrl+Shift+P', desc: 'Command palette' },
+    { keys: 'Ctrl+B', desc: 'Toggle sidebar' },
+    { keys: 'Ctrl+`', desc: 'Toggle terminal' },
+    { keys: 'Ctrl+L', desc: 'Focus input' },
+    { keys: '@file', desc: 'Reference files' },
+    { keys: '/cmd', desc: 'Slash commands' },
   ]
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', gap: 20 }}>
-      <div style={{ fontSize: 56 }}>🤖</div>
-      <div style={{ fontSize: 24, color: 'var(--text-primary)', fontWeight: 600 }}>你好！我是 Claude</div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', gap: 20, padding: '0 20px' }}>
+      <div style={{ fontSize: 56 }}>{'\u{1F916}'}</div>
+      <div style={{ fontSize: 24, color: 'var(--text-primary)', fontWeight: 600 }}>{'\u4F60\u597D\uFF01\u6211\u662F Claude'}</div>
       <div style={{ fontSize: 14, color: 'var(--text-muted)', textAlign: 'center' }}>
-        你的 AI 助手，随时准备帮助你
+        {'\u4F60\u7684 AI \u52A9\u624B\uFF0C\u968F\u65F6\u51C6\u5907\u5E2E\u52A9\u4F60'}
       </div>
-      <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+      <div style={{ display: 'flex', gap: 12, marginTop: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
         {suggestions.map(({ emoji, text }) => (
           <button
             key={text}
@@ -633,6 +643,7 @@ function WelcomeScreen({ onSuggestion }: { onSuggestion: (text: string) => void 
               cursor: 'pointer',
               fontSize: 13,
               minWidth: 110,
+              maxWidth: 140,
               transition: 'background 0.15s, border-color 0.15s',
             }}
             onMouseEnter={(e) => {
@@ -647,6 +658,24 @@ function WelcomeScreen({ onSuggestion }: { onSuggestion: (text: string) => void 
             <span style={{ fontSize: 24 }}>{emoji}</span>
             <span>{text}</span>
           </button>
+        ))}
+      </div>
+
+      {/* Keyboard shortcuts hint */}
+      <div style={{ display: 'flex', gap: 16, marginTop: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+        {shortcuts.map(({ keys, desc }) => (
+          <div key={keys} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+            <kbd style={{
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border)',
+              borderRadius: 3,
+              padding: '1px 5px',
+              fontSize: 10,
+              fontFamily: 'monospace',
+              color: 'var(--text-primary)',
+            }}>{keys}</kbd>
+            <span style={{ color: 'var(--text-muted)' }}>{desc}</span>
+          </div>
         ))}
       </div>
     </div>
