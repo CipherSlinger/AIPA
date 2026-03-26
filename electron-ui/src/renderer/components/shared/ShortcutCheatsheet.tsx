@@ -9,6 +9,7 @@ interface Props {
 const SHORTCUTS = [
   { section: 'General', items: [
     { keys: 'Ctrl + N', action: 'New conversation' },
+    { keys: 'Ctrl + K', action: 'Clear conversation' },
     { keys: 'Ctrl + B', action: 'Toggle sidebar' },
     { keys: 'Ctrl + `', action: 'Toggle terminal' },
     { keys: 'Ctrl + L', action: 'Focus chat input' },

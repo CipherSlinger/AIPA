@@ -135,6 +135,11 @@ export default function App() {
         e.preventDefault()
         useChatStore.getState().clearMessages()
       }
+      // Ctrl+K: Clear conversation (alternative, terminal-style)
+      if (e.ctrlKey && !e.shiftKey && e.key === 'k') {
+        e.preventDefault()
+        useChatStore.getState().clearMessages()
+      }
       // Ctrl+`: Toggle terminal
       if (e.ctrlKey && !e.shiftKey && e.key === '`') {
         e.preventDefault()

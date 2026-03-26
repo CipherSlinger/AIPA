@@ -837,7 +837,22 @@ export default function ChatPanel() {
             flexShrink: 0,
             minWidth: 32,
             textAlign: 'right',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
           }}>
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                border: '2px solid var(--success)',
+                borderTopColor: 'transparent',
+                animation: 'spin 0.8s linear infinite',
+                display: 'inline-block',
+                flexShrink: 0,
+              }}
+            />
             {elapsedStr}
           </span>
         )}
