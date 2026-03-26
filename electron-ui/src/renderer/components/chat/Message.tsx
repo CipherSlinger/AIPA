@@ -3,7 +3,7 @@ import { ChatMessage, StandardChatMessage } from '../../types/app.types'
 import MessageContent from './MessageContent'
 import ToolUseBlock from './ToolUseBlock'
 import MessageContextMenu from './MessageContextMenu'
-import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark } from 'lucide-react'
+import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark, AlertTriangle } from 'lucide-react'
 import { usePrefsStore } from '../../store'
 
 function relativeTime(ts: number): string {
@@ -30,6 +30,7 @@ interface Props {
 export default React.memo(function Message({ message, onRate, onRewind, onBookmark, searchQuery }: Props) {
   const isUser = message.role === 'user'
   const isAssistant = message.role === 'assistant'
+  const isSystem = message.role === 'system' || (isAssistant && (message as StandardChatMessage).content?.startsWith('\u26a0\ufe0f'))
   const compact = usePrefsStore(s => s.prefs.compactMode)
   const [hovered, setHovered] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -92,7 +93,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
         display: 'flex',
         gap: compact ? 8 : 12,
         alignItems: 'flex-start',
-        background: isUser ? 'transparent' : 'var(--bg-secondary)',
+        background: isSystem ? 'rgba(244, 71, 71, 0.06)' : isUser ? 'transparent' : 'var(--bg-secondary)',
         position: 'relative',
       }}
     >
@@ -102,7 +103,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           width: compact ? 22 : 28,
           height: compact ? 22 : 28,
           borderRadius: '50%',
-          background: isUser ? 'var(--user-bubble)' : '#5a3f8a',
+          background: isSystem ? 'var(--error)' : isUser ? 'var(--user-bubble)' : '#5a3f8a',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -110,13 +111,13 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           marginTop: 2,
         }}
       >
-        {isUser ? <User size={compact ? 11 : 14} color="#fff" /> : <Bot size={compact ? 11 : 14} color="#fff" />}
+        {isSystem ? <AlertTriangle size={compact ? 11 : 14} color="#fff" /> : isUser ? <User size={compact ? 11 : 14} color="#fff" /> : <Bot size={compact ? 11 : 14} color="#fff" />}
       </div>
 
       {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-          {isUser ? 'You' : 'Claude'}
+          {isUser ? 'You' : isSystem ? 'System' : 'Claude'}
           {message.role !== 'permission' && message.isStreaming && (
             <span style={{ color: 'var(--success)' }}>Generating...</span>
           )}

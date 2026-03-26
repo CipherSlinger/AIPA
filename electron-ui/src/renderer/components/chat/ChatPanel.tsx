@@ -742,20 +742,50 @@ export default function ChatPanel() {
 }
 
 function ThinkingIndicator() {
+  const { messages, pendingToolUses } = useChatStore()
+
+  // Determine what Claude is currently doing
+  let activityLabel = 'Thinking'
+  if (pendingToolUses.size > 0) {
+    const [, firstTool] = Array.from(pendingToolUses.entries())[0]
+    const toolLabels: Record<string, string> = {
+      Bash: 'Running command',
+      Read: 'Reading file',
+      Write: 'Writing file',
+      Edit: 'Editing file',
+      MultiEdit: 'Editing files',
+      Glob: 'Searching files',
+      Grep: 'Searching content',
+      WebFetch: 'Fetching web page',
+      WebSearch: 'Searching the web',
+      LS: 'Listing directory',
+    }
+    activityLabel = toolLabels[firstTool.name] || `Using ${firstTool.name}`
+  } else {
+    // Check if last message has streaming content
+    const last = messages[messages.length - 1]
+    if (last && last.role === 'assistant' && (last as StandardChatMessage).isStreaming) {
+      activityLabel = 'Writing'
+    }
+  }
+
   return (
-    <div style={{ display: 'flex', gap: 5, padding: '10px 16px', alignItems: 'center' }}>
+    <div style={{ display: 'flex', gap: 6, padding: '10px 16px', alignItems: 'center' }}>
       {[0, 1, 2].map((i) => (
         <div
           key={i}
           style={{
-            width: 7,
-            height: 7,
+            width: 6,
+            height: 6,
             borderRadius: '50%',
-            background: 'var(--text-muted)',
+            background: 'var(--accent)',
             animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
           }}
         />
       ))}
+      <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 4 }}>
+        {activityLabel}...
+      </span>
     </div>
   )
 }
