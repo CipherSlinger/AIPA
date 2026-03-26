@@ -34,9 +34,10 @@ interface Props {
   sessionId?: string | null
   searchQuery?: string
   highlightedMessageIdx?: number
+  scrollToMessageIdx?: number
 }
 
-export default function MessageList({ messages, onPermission, onGrantPermission, sessionId, searchQuery, highlightedMessageIdx }: Props) {
+export default function MessageList({ messages, onPermission, onGrantPermission, sessionId, searchQuery, highlightedMessageIdx, scrollToMessageIdx }: Props) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const { resolvePlan, rateMessage, toggleBookmark } = useChatStore()
   const { addToast } = useUiStore()
@@ -132,6 +133,16 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       }
     }
   }, [highlightedMessageIdx, virtualizer, items])
+
+  // Scroll to specific message index (triggered by bookmark jump)
+  useEffect(() => {
+    if (scrollToMessageIdx !== undefined && scrollToMessageIdx >= 0) {
+      const itemIdx = items.findIndex(it => it.type === 'message' && it.msgIdx === scrollToMessageIdx)
+      if (itemIdx >= 0) {
+        virtualizer.scrollToIndex(itemIdx, { align: 'center', behavior: 'smooth' })
+      }
+    }
+  }, [scrollToMessageIdx, virtualizer, items])
 
   const renderMessage = useCallback((msg: ChatMessage, isHighlighted: boolean) => {
     if (msg.role === 'permission') {

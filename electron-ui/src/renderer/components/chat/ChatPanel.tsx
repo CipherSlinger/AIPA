@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Send, Square, Plus, Mic, MicOff, Download, Upload, Maximize2, Minimize2 } from 'lucide-react'
+import { Send, Square, Plus, Mic, MicOff, Download, Upload, Maximize2, Minimize2, Bookmark } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { useStreamJson } from '../../hooks/useStreamJson'
 import MessageList from './MessageList'
@@ -20,6 +20,13 @@ export default function ChatPanel() {
   const { addToast } = useUiStore()
   const focusMode = useUiStore(s => s.focusMode)
   const toggleFocusMode = useUiStore(s => s.toggleFocusMode)
+
+  // Compute bookmarked messages
+  const bookmarkedMessages = useMemo(() => {
+    return messages
+      .map((msg, idx) => ({ msg, idx }))
+      .filter(({ msg }) => msg.role !== 'permission' && msg.role !== 'plan' && (msg as StandardChatMessage).bookmarked)
+  }, [messages])
   const { sendMessage, abort, respondPermission, grantToolPermission, newConversation } = useStreamJson()
   const [input, setInput] = useState(() => {
     // Restore draft from sessionStorage
@@ -61,6 +68,11 @@ export default function ChatPanel() {
   // Drag-and-drop state
   const [isDragOver, setIsDragOver] = useState(false)
   const dragCounterRef = useRef(0)
+
+  // Bookmarks dropdown state
+  const [showBookmarks, setShowBookmarks] = useState(false)
+  const [scrollToMessageIdx, setScrollToMessageIdx] = useState<number | undefined>(undefined)
+  const bookmarksRef = useRef<HTMLDivElement>(null)
 
   // Streaming elapsed timer
   const [streamStartTime, setStreamStartTime] = useState<number | null>(null)
@@ -206,6 +218,18 @@ export default function ChatPanel() {
     window.addEventListener('aipa:export', handler)
     return () => window.removeEventListener('aipa:export', handler)
   }, [exportConversation])
+
+  // Close bookmarks dropdown on click outside
+  useEffect(() => {
+    if (!showBookmarks) return
+    const handler = (e: MouseEvent) => {
+      if (bookmarksRef.current && !bookmarksRef.current.contains(e.target as Node)) {
+        setShowBookmarks(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showBookmarks])
 
   // Listen for slash command from CommandPalette
   useEffect(() => {
@@ -550,6 +574,113 @@ export default function ChatPanel() {
         >
           <Download size={14} />
         </button>
+        {/* Bookmarks dropdown */}
+        <div style={{ position: 'relative' }} ref={bookmarksRef}>
+          <button
+            onClick={() => setShowBookmarks(!showBookmarks)}
+            title={`Bookmarks (${bookmarkedMessages.length})`}
+            style={{
+              background: showBookmarks ? 'var(--accent)' : 'none',
+              border: 'none',
+              color: showBookmarks ? '#fff' : bookmarkedMessages.length > 0 ? 'var(--warning)' : 'var(--text-muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 3,
+              borderRadius: 3,
+              padding: '2px 4px',
+              opacity: bookmarkedMessages.length === 0 && !showBookmarks ? 0.4 : 1,
+            }}
+          >
+            <Bookmark size={13} />
+            {bookmarkedMessages.length > 0 && (
+              <span style={{ fontSize: 9 }}>{bookmarkedMessages.length}</span>
+            )}
+          </button>
+          {showBookmarks && bookmarkedMessages.length > 0 && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                zIndex: 60,
+                width: 280,
+                maxHeight: 300,
+                overflowY: 'auto',
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                padding: '4px 0',
+                marginTop: 4,
+              }}
+            >
+              <div style={{ padding: '6px 12px', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, borderBottom: '1px solid var(--border)' }}>
+                Bookmarks
+              </div>
+              {bookmarkedMessages.map(({ msg, idx }) => {
+                const std = msg as StandardChatMessage
+                const preview = (std.content || '').slice(0, 80).replace(/\n/g, ' ')
+                return (
+                  <button
+                    key={msg.id}
+                    onClick={() => {
+                      setScrollToMessageIdx(idx)
+                      // Reset after a tick so it can be triggered again for same idx
+                      setTimeout(() => setScrollToMessageIdx(undefined), 100)
+                      setShowBookmarks(false)
+                    }}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      textAlign: 'left',
+                      background: 'none',
+                      border: 'none',
+                      padding: '8px 12px',
+                      cursor: 'pointer',
+                      color: 'var(--text-primary)',
+                      fontSize: 12,
+                      lineHeight: 1.4,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover, var(--bg-active))')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                  >
+                    <span style={{ color: 'var(--text-muted)', fontSize: 10, marginRight: 6 }}>
+                      {std.role === 'user' ? 'You' : 'Claude'}
+                    </span>
+                    {preview || '(empty)'}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+          {showBookmarks && bookmarkedMessages.length === 0 && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                zIndex: 60,
+                width: 200,
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                padding: '16px 12px',
+                marginTop: 4,
+                textAlign: 'center',
+                fontSize: 12,
+                color: 'var(--text-muted)',
+              }}
+            >
+              No bookmarks yet.
+              <div style={{ fontSize: 10, marginTop: 4 }}>Right-click a message to bookmark it.</div>
+            </div>
+          )}
+        </div>
         <button
           onClick={toggleFocusMode}
           title={focusMode ? 'Exit focus mode (Ctrl+Shift+F)' : 'Focus mode (Ctrl+Shift+F)'}
@@ -611,6 +742,7 @@ export default function ChatPanel() {
             sessionId={currentSessionId}
             searchQuery={searchQuery}
             highlightedMessageIdx={searchMatches.length > 0 ? searchMatches[currentMatchIdx] : undefined}
+            scrollToMessageIdx={scrollToMessageIdx}
           />
           )}
         </div>
