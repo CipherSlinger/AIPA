@@ -3,9 +3,14 @@ import { ptyManager } from '../pty/pty-manager'
 import { streamBridgeManager } from '../pty/stream-bridge'
 import { readSettings, writeSettings, listSessions, loadSession, deleteSession, forkSession, renameSession, getMcpServers, setMcpServerEnabled, generateSessionTitle, rewindSession } from '../sessions/session-reader'
 import { getApiKey, setApiKey, getPref, setPref, getAllPrefs } from '../config/config-manager'
+import { getCliPath } from '../utils/cli-path'
+import { safePath, validateApiKey, validateModelName, validateStringLength, validateFlags, validateDirectoryExists, getAllowedFsRoots } from '../utils/validate'
+import { createLogger } from '../utils/logger'
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
+
+const log = createLogger('ipc')
 
 export function registerAllHandlers(win: BrowserWindow): void {
   const send = (channel: string, ...args: unknown[]) => {
@@ -132,23 +137,12 @@ function registerSessionHandlers(): void {
   ipcMain.handle('session:fork', (_e, { sessionId, upToMessageIndex }) => forkSession(sessionId, upToMessageIndex))
   ipcMain.handle('session:rename', (_e, { sessionId, title }) => renameSession(sessionId, title))
   ipcMain.handle('session:generateTitle', async (_e: Electron.IpcMainInvokeEvent, { description }: { description: string }) => {
-    // Find CLI path (same logic as stream-bridge)
-    const candidates = [
-      path.resolve(__dirname, '../../../../package/cli.js'),
-      path.resolve(__dirname, '../../../package/cli.js'),
-      path.resolve(process.cwd(), '../package/cli.js'),
-    ]
-    const cliPath = process.env.CLAUDE_CLI_PATH || candidates.find(p => fs.existsSync(p)) || candidates[0]
+    const cliPath = getCliPath()
     return generateSessionTitle(description, cliPath)
   })
 
   ipcMain.handle('session:rewind', async (_e: Electron.IpcMainInvokeEvent, { sessionId, beforeTimestamp }: { sessionId: string; beforeTimestamp: string }) => {
-    const candidates = [
-      path.resolve(__dirname, '../../../../package/cli.js'),
-      path.resolve(__dirname, '../../../package/cli.js'),
-      path.resolve(process.cwd(), '../package/cli.js'),
-    ]
-    const cliPath = process.env.CLAUDE_CLI_PATH || candidates.find(p => fs.existsSync(p)) || candidates[0]
+    const cliPath = getCliPath()
     return rewindSession(sessionId, beforeTimestamp, cliPath)
   })
 }
@@ -163,7 +157,15 @@ function registerConfigHandlers(): void {
     apiKey: getApiKey(),
     hasApiKey: Boolean(getApiKey()),
   }))
-  ipcMain.handle('config:setApiKey', (_e, key) => setApiKey(key))
+  ipcMain.handle('config:setApiKey', (_e, key) => {
+    try {
+      const validated = validateApiKey(key)
+      setApiKey(validated)
+    } catch (err) {
+      log.warn('Invalid API key format rejected:', String(err))
+      return { error: String(err) }
+    }
+  })
 
   ipcMain.handle('prefs:get', (_e, key) => getPref(key))
   ipcMain.handle('prefs:set', (_e, key, value) => setPref(key, value))
@@ -185,19 +187,43 @@ function registerConfigHandlers(): void {
 function registerFsHandlers(): void {
   ipcMain.handle('fs:listDir', (_e, dirPath: string) => {
     try {
-      const entries = fs.readdirSync(dirPath, { withFileTypes: true })
+      const workingDir = getPref('workingDir')
+      const allowedRoots = getAllowedFsRoots(workingDir)
+      const safe = safePath(dirPath, allowedRoots)
+      const entries = fs.readdirSync(safe, { withFileTypes: true })
       return entries.map((e) => ({
         name: e.name,
         isDirectory: e.isDirectory(),
         isFile: e.isFile(),
-        path: path.join(dirPath, e.name),
+        path: path.join(safe, e.name),
       })).sort((a, b) => {
         if (a.isDirectory && !b.isDirectory) return -1
         if (!a.isDirectory && b.isDirectory) return 1
         return a.name.localeCompare(b.name)
       })
-    } catch {
+    } catch (err) {
+      log.debug('fs:listDir error:', String(err))
       return []
+    }
+  })
+
+  ipcMain.handle('fs:showSaveDialog', async (e, { defaultName, filters }: { defaultName: string; filters: { name: string; extensions: string[] }[] }) => {
+    const win = BrowserWindow.fromWebContents(e.sender)
+    const result = await dialog.showSaveDialog(win!, { defaultPath: defaultName, filters })
+    return result.canceled ? null : result.filePath
+  })
+
+  ipcMain.handle('fs:writeFile', (_e, { filePath, content }: { filePath: string; content: string }) => {
+    try {
+      const workingDir = getPref('workingDir')
+      const allowedRoots = getAllowedFsRoots(workingDir)
+      // For save dialog results, allow anywhere within home dir
+      const safe = safePath(filePath, allowedRoots)
+      fs.writeFileSync(safe, content, 'utf-8')
+      return { success: true }
+    } catch (err) {
+      log.warn('fs:writeFile error:', String(err))
+      return { error: String(err) }
     }
   })
 
@@ -212,8 +238,17 @@ function registerFsHandlers(): void {
 
   ipcMain.handle('fs:getHome', () => os.homedir())
   ipcMain.handle('fs:ensureDir', (_e, dirPath: string) => {
-    fs.mkdirSync(dirPath, { recursive: true })
-    return dirPath
+    try {
+      const workingDir = getPref('workingDir')
+      // ensureDir is limited to workingDir and ~/.claude only
+      const allowedRoots = getAllowedFsRoots(workingDir)
+      const safe = safePath(dirPath, allowedRoots)
+      fs.mkdirSync(safe, { recursive: true })
+      return safe
+    } catch (err) {
+      log.warn('fs:ensureDir error:', String(err))
+      return { error: String(err) }
+    }
   })
 
   ipcMain.handle('fs:listCommands', (_e, workingDir: string) => {
@@ -233,7 +268,9 @@ function registerFsHandlers(): void {
           const description = firstLine.replace(/^#+\s*/, '').slice(0, 80)
           commands.push({ name, description, source: i === 0 ? 'user' : 'project' })
         }
-      } catch {}
+      } catch (err) {
+        log.debug('fs:listCommands could not read directory:', String(err))
+      }
     }
     return commands
   })

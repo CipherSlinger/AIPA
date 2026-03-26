@@ -1,9 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { ToolUseInfo } from '../../types/app.types'
 import { ChevronDown, ChevronRight, Terminal, FileEdit, Search, Globe, Loader2, Check, X } from 'lucide-react'
 
 interface Props {
   tool: ToolUseInfo
+  onAbort?: () => void
 }
 
 const TOOL_ICONS: Record<string, React.ElementType> = {
@@ -34,6 +35,13 @@ const TOOL_LABELS: Record<string, string> = {
 const BASH_TOOLS = new Set(['Bash', 'computer'])
 const FILE_EDIT_TOOLS = new Set(['str_replace_editor', 'str_replace_based_edit_tool'])
 
+function formatElapsed(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}m ${s}s`
+}
+
 function DiffView({ input }: { input: Record<string, unknown> }) {
   const oldStr = String(input.old_str ?? input.old_string ?? '')
   const newStr = String(input.new_str ?? input.new_string ?? '')
@@ -54,13 +62,43 @@ function DiffView({ input }: { input: Record<string, unknown> }) {
   )
 }
 
-export default function ToolUseBlock({ tool }: Props) {
+export default function ToolUseBlock({ tool, onAbort }: Props) {
   const [expanded, setExpanded] = useState(false)
+  const [elapsed, setElapsed] = useState(0)
+  const startTimeRef = useRef<number | null>(null)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const isRunning = tool.status === 'running'
+
+  // Start elapsed timer when tool begins running, clear when done
+  useEffect(() => {
+    if (isRunning) {
+      startTimeRef.current = Date.now()
+      setElapsed(0)
+      intervalRef.current = setInterval(() => {
+        if (startTimeRef.current) {
+          setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000))
+        }
+      }, 1000)
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+  }, [isRunning])
+
   const Icon = TOOL_ICONS[tool.name] || Terminal
   const label = TOOL_LABELS[tool.name] || tool.name
   const isBash = BASH_TOOLS.has(tool.name)
   const isFileEdit = FILE_EDIT_TOOLS.has(tool.name)
-  const isRunning = tool.status === 'running'
+  const showElapsed = isRunning && elapsed >= 2
 
   const statusIcon = isRunning
     ? <Loader2 size={12} className="animate-spin" style={{ color: 'var(--warning)' }} />
@@ -84,10 +122,11 @@ export default function ToolUseBlock({ tool }: Props) {
     <div
       style={{
         background: 'var(--bg-primary)',
-        border: '1px solid var(--border)',
+        border: `1px solid ${isRunning && showElapsed ? 'var(--warning)' : 'var(--border)'}`,
         borderRadius: 4,
         marginBottom: 6,
         overflow: 'hidden',
+        transition: 'border-color 0.3s',
       }}
     >
       {/* Header */}
@@ -113,7 +152,30 @@ export default function ToolUseBlock({ tool }: Props) {
         <span style={{ fontSize: 11, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, fontFamily: 'monospace' }}>
           {primaryInput}
         </span>
+        {showElapsed && (
+          <span style={{ fontSize: 11, color: 'var(--warning)', flexShrink: 0, fontFamily: 'monospace' }}>
+            {formatElapsed(elapsed)}
+          </span>
+        )}
         <span style={{ flexShrink: 0 }}>{statusIcon}</span>
+        {showElapsed && onAbort && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onAbort() }}
+            title="Cancel tool"
+            style={{
+              padding: '1px 6px',
+              background: 'var(--error)',
+              border: 'none',
+              borderRadius: 3,
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: 10,
+              flexShrink: 0,
+            }}
+          >
+            Cancel
+          </button>
+        )}
       </button>
 
       {/* Expanded detail */}

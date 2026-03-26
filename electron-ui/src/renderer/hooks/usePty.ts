@@ -98,19 +98,25 @@ export function usePty(containerRef: React.RefObject<HTMLDivElement>, sessionId:
       }
     })
 
-    // Handle resize
-    const resizeObserver = new ResizeObserver(() => {
-      try {
-        fitAddon.fit()
-        if (ptySessionId.current) {
-          window.electronAPI.ptyResize({
-            sessionId: ptySessionId.current,
-            cols: term.cols,
-            rows: term.rows,
-          })
-        }
-      } catch {}
-    })
+    // Handle resize — throttled to max 10 calls/sec (100ms)
+    let resizeTimer: ReturnType<typeof setTimeout> | null = null
+    const throttledResize = () => {
+      if (resizeTimer) return
+      resizeTimer = setTimeout(() => {
+        try {
+          fitAddon.fit()
+          if (ptySessionId.current) {
+            window.electronAPI.ptyResize({
+              sessionId: ptySessionId.current,
+              cols: term.cols,
+              rows: term.rows,
+            })
+          }
+        } catch {}
+        resizeTimer = null
+      }, 100)
+    }
+    const resizeObserver = new ResizeObserver(throttledResize)
     resizeObserver.observe(containerRef.current)
 
     // Start the PTY process
@@ -119,6 +125,7 @@ export function usePty(containerRef: React.RefObject<HTMLDivElement>, sessionId:
 
     return () => {
       resizeObserver.disconnect()
+      if (resizeTimer) clearTimeout(resizeTimer)
       cleanup?.()
       if (ptySessionId.current) {
         window.electronAPI.ptyDestroy(ptySessionId.current)

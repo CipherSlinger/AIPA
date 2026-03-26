@@ -1,28 +1,11 @@
 import { spawn, ChildProcess } from 'child_process'
 import { createInterface } from 'readline'
 import { EventEmitter } from 'events'
-import path from 'path'
-import fs from 'fs'
-import { execSync } from 'child_process'
+import { getCliPath, getNodePath } from '../utils/cli-path'
+import { sanitizeEnv } from '../utils/cli-env'
+import { createLogger } from '../utils/logger'
 
-function getCliPath(): string {
-  if (process.env.CLAUDE_CLI_PATH) return process.env.CLAUDE_CLI_PATH
-  const candidates = [
-    path.resolve(__dirname, '../../../../package/cli.js'),
-    path.resolve(__dirname, '../../../package/cli.js'),
-    path.resolve(process.cwd(), '../package/cli.js'),
-    path.resolve(process.cwd(), 'package/cli.js'),
-  ]
-  for (const p of candidates) {
-    if (fs.existsSync(p)) return p
-  }
-  throw new Error(`Claude Code CLI not found. Searched:\n${candidates.join('\n')}`)
-}
-
-function getNodePath(): string {
-  if (process.env.CLAUDE_NODE_PATH) return process.env.CLAUDE_NODE_PATH
-  return 'node'
-}
+const log = createLogger('stream-bridge')
 
 export interface CliSendMessageArgs {
   prompt: string
@@ -58,12 +41,11 @@ export class StreamBridge extends EventEmitter {
       ...(args.flags || []),
     ]
 
-    const env: Record<string, string> = {
-      ...process.env as Record<string, string>,
+    const env: Record<string, string> = sanitizeEnv({
       ...args.env,
       TERM: 'dumb',
       NO_COLOR: '1',
-    }
+    })
 
     this.proc = spawn(getNodePath(), cliArgs, {
       cwd: args.cwd,
@@ -112,12 +94,13 @@ export class StreamBridge extends EventEmitter {
         const event = JSON.parse(trimmed)
         this.handleStreamEvent(event)
       } catch {
+        log.debug('Non-JSON stdout line:', trimmed.slice(0, 200))
         this.emit('rawOutput', trimmed)
       }
     })
 
     this.proc!.stderr!.on('data', (data: Buffer) => {
-      console.log('[StreamBridge] stderr:', data.toString().slice(0, 200))
+      log.debug('stderr:', data.toString().slice(0, 200))
       this.emit('stderr', data.toString())
     })
 
@@ -136,7 +119,9 @@ export class StreamBridge extends EventEmitter {
 
   endSession(): void {
     if (this.proc?.stdin) {
-      try { this.proc.stdin.end() } catch {}
+      try { this.proc.stdin.end() } catch (err) {
+        log.warn('Failed to end stdin (process may already be dead):', String(err))
+      }
     }
   }
 
@@ -258,7 +243,9 @@ export class StreamBridge extends EventEmitter {
 
   abort(): void {
     if (this.proc) {
-      try { this.proc.kill('SIGTERM') } catch {}
+      try { this.proc.kill('SIGTERM') } catch (err) {
+        log.debug('Kill failed (process may have already exited):', String(err))
+      }
       this.proc = null
     }
   }

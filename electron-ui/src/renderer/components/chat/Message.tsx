@@ -10,7 +10,7 @@ interface Props {
   onRewind?: (msgTimestamp: number) => void
 }
 
-export default function Message({ message, onRate, onRewind }: Props) {
+export default React.memo(function Message({ message, onRate, onRewind }: Props) {
   const isUser = message.role === 'user'
   const isAssistant = message.role === 'assistant'
   const [hovered, setHovered] = useState(false)
@@ -225,4 +225,15 @@ export default function Message({ message, onRate, onRewind }: Props) {
       )}
     </div>
   )
-}
+}, (prevProps, nextProps) => {
+  const pm = prevProps.message as StandardChatMessage
+  const nm = nextProps.message as StandardChatMessage
+  if (prevProps.message.id !== nextProps.message.id) return false
+  if (prevProps.message.role !== nextProps.message.role) return false
+  if (pm.content !== nm.content) return false
+  if (pm.isStreaming !== nm.isStreaming) return false
+  if (pm.rating !== nm.rating) return false
+  if (pm.thinking !== nm.thinking) return false
+  if ((pm.toolUses?.length ?? 0) !== (nm.toolUses?.length ?? 0)) return false
+  return true
+})

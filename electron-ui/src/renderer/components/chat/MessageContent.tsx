@@ -42,7 +42,7 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-export default function MessageContent({ content, isUser }: Props) {
+export default React.memo(function MessageContent({ content, isUser }: Props) {
   if (isUser) {
     return (
       <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, color: 'var(--text-primary)', fontSize: 13 }}>
@@ -146,4 +146,4 @@ export default function MessageContent({ content, isUser }: Props) {
       </ReactMarkdown>
     </div>
   )
-}
+}, (prevProps, nextProps) => prevProps.content === nextProps.content && prevProps.isUser === nextProps.isUser)

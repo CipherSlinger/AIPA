@@ -4,6 +4,7 @@ import Sidebar from './Sidebar'
 import ChatPanel from '../chat/ChatPanel'
 import TerminalPanel from '../terminal/TerminalPanel'
 import StatusBar from './StatusBar'
+import ErrorBoundary from '../shared/ErrorBoundary'
 
 const MIN_SIDEBAR = 180
 const MAX_SIDEBAR = 480
@@ -81,7 +82,9 @@ export default function AppShell() {
 
         {/* Chat panel — fills remaining space */}
         <div className="flex-1 overflow-hidden">
-          <ChatPanel />
+          <ErrorBoundary fallbackLabel="chat panel">
+            <ChatPanel />
+          </ErrorBoundary>
         </div>
 
         {/* Terminal resize handle + panel */}
@@ -93,7 +96,9 @@ export default function AppShell() {
               onMouseDown={startDrag('terminal')}
             />
             <div style={{ width: terminalWidth, flexShrink: 0, overflow: 'hidden' }}>
-              <TerminalPanel />
+              <ErrorBoundary fallbackLabel="terminal panel">
+                <TerminalPanel />
+              </ErrorBoundary>
             </div>
           </>
         )}

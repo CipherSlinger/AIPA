@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { ChatMessage, PermissionMessage, PlanMessage, StandardChatMessage, ClaudePrefs, SessionListItem } from '../types/app.types'
+import { ToastItem, ToastType } from '../components/ui/Toast'
 
 // ── Chat store ──────────────────────────────────
 interface ChatState {
@@ -181,15 +182,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
 interface SessionState {
   sessions: SessionListItem[]
   loading: boolean
+  searchQuery: string
   setSessions: (sessions: SessionListItem[]) => void
   setLoading: (v: boolean) => void
+  setSearchQuery: (query: string) => void
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
   sessions: [],
   loading: false,
+  searchQuery: '',
   setSessions: (sessions) => set({ sessions }),
   setLoading: (v) => set({ loading: v }),
+  setSearchQuery: (query) => set({ searchQuery: query }),
 }))
 
 // ── Prefs store ─────────────────────────────────
@@ -229,20 +234,29 @@ interface UiState {
   sidebarTab: 'history' | 'settings'
   sidebarOpen: boolean
   terminalOpen: boolean
+  toasts: ToastItem[]
   setSidebarTab: (tab: 'history' | 'settings') => void
   setSidebarOpen: (v: boolean) => void
   setTerminalOpen: (v: boolean) => void
   toggleSidebar: () => void
   toggleTerminal: () => void
+  addToast: (type: ToastType, message: string, duration?: number) => void
+  removeToast: (id: string) => void
 }
 
 export const useUiStore = create<UiState>((set) => ({
   sidebarTab: 'history',
   sidebarOpen: true,
   terminalOpen: false,
+  toasts: [],
   setSidebarTab: (tab) => set({ sidebarTab: tab }),
   setSidebarOpen: (v) => set({ sidebarOpen: v }),
   setTerminalOpen: (v) => set({ terminalOpen: v }),
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
   toggleTerminal: () => set((s) => ({ terminalOpen: !s.terminalOpen })),
+  addToast: (type, message, duration) => {
+    const id = `toast-${Date.now()}-${Math.random()}`
+    set((s) => ({ toasts: [...s.toasts, { id, type, message, duration }] }))
+  },
+  removeToast: (id) => set((s) => ({ toasts: s.toasts.filter(t => t.id !== id) })),
 }))

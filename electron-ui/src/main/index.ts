@@ -1,8 +1,10 @@
-import { app, BrowserWindow, Menu, shell } from 'electron'
+import { app, BrowserWindow, Menu, shell, session } from 'electron'
 import path from 'path'
 import { registerAllHandlers } from './ipc/index'
 import { ptyManager } from './pty/pty-manager'
+import { createLogger } from './utils/logger'
 
+const log = createLogger('main')
 const isDev = process.env.NODE_ENV === 'development'
 
 let mainWindow: BrowserWindow | null = null
@@ -13,6 +15,7 @@ function createWindow(): void {
     height: 900,
     minWidth: 800,
     minHeight: 600,
+    title: 'AIPA',
     backgroundColor: '#1e1e1e',
     titleBarStyle: 'hidden',
     titleBarOverlay: {
@@ -24,7 +27,7 @@ function createWindow(): void {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
     },
   })
 
@@ -45,6 +48,43 @@ function createWindow(): void {
 
   mainWindow.on('closed', () => {
     mainWindow = null
+  })
+}
+
+function setupCSP(): void {
+  // Content Security Policy prevents XSS and unauthorized resource loading
+  const prodCSP = [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:",
+    "connect-src 'self'",
+    "font-src 'self' data:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "frame-src 'none'",
+  ].join('; ')
+
+  const devCSP = [
+    "default-src 'self' http://localhost:5173 ws://localhost:5173",
+    "script-src 'self' 'unsafe-eval' http://localhost:5173",
+    "style-src 'self' 'unsafe-inline' http://localhost:5173",
+    "img-src 'self' data: blob: http://localhost:5173",
+    "connect-src 'self' http://localhost:5173 ws://localhost:5173",
+    "font-src 'self' data:",
+    "object-src 'none'",
+    "base-uri 'self'",
+  ].join('; ')
+
+  const csp = isDev ? devCSP : prodCSP
+
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [csp],
+      },
+    })
   })
 }
 
@@ -76,6 +116,7 @@ function createAppMenu(): void {
       submenu: [
         { label: 'Toggle Sidebar', accelerator: 'CmdOrCtrl+B', click: () => mainWindow?.webContents.send('menu:toggleSidebar') },
         { label: 'Toggle Terminal', accelerator: 'CmdOrCtrl+`', click: () => mainWindow?.webContents.send('menu:toggleTerminal') },
+        { label: 'Command Palette', accelerator: 'CmdOrCtrl+Shift+P', click: () => mainWindow?.webContents.send('menu:commandPalette') },
         { type: 'separator' },
         { role: 'resetZoom' },
         { role: 'zoomIn' },
@@ -88,7 +129,7 @@ function createAppMenu(): void {
     {
       label: 'Help',
       submenu: [
-        { label: 'About Claude Code UI', click: () => mainWindow?.webContents.send('menu:about') },
+        { label: 'About AIPA', click: () => mainWindow?.webContents.send('menu:about') },
         {
           label: 'Open Config Folder',
           click: () => {
@@ -103,8 +144,10 @@ function createAppMenu(): void {
 }
 
 app.whenReady().then(() => {
+  setupCSP()
   createAppMenu()
   createWindow()
+  log.info('AIPA started')
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

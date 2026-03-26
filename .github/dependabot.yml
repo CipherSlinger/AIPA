@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/electron-ui"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+    ignore:
+      # Keep electron-store at v8 (v10+ is ESM-only and breaks main process)
+      - dependency-name: "electron-store"
+        versions: [">=9.0.0"]
+      # Keep electron at a tested version
+      - dependency-name: "electron"
+        update-types: ["version-update:semver-major"]

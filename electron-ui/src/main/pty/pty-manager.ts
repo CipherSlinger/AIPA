@@ -1,52 +1,18 @@
 import * as pty from 'node-pty'
 import { EventEmitter } from 'events'
 import path from 'path'
-import { execSync } from 'child_process'
-import fs from 'fs'
 import os from 'os'
+import { getCliPath, getNodePath } from '../utils/cli-path'
+import { sanitizeEnv } from '../utils/cli-env'
+import { createLogger } from '../utils/logger'
+
+const log = createLogger('pty-manager')
 
 // Lazy import electron.app to avoid circular deps
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _electronApp: any
 try { _electronApp = require('electron').app } catch {}
 
-function isPackaged(): boolean {
-  return _electronApp?.isPackaged ?? false
-}
-
-function getResourcesPath(): string {
-  return (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath ?? ''
-}
-
-// Path to the Claude Code CLI
-function getCliPackageDir(): string {
-  return isPackaged()
-    ? path.join(getResourcesPath(), 'cli')
-    : path.resolve(__dirname, '../../../package')
-}
-
-function getCliPath(): string {
-  if (process.env.CLAUDE_CLI_PATH) return process.env.CLAUDE_CLI_PATH
-  const candidates = [
-    path.join(getCliPackageDir(), 'cli.js'),
-    // dev: electron-ui/dist/main/pty/ → ../../../../package/cli.js = AIPA/package/cli.js
-    path.resolve(__dirname, '../../../../package/cli.js'),
-    path.resolve(__dirname, '../../../package/cli.js'),
-    path.resolve(__dirname, '../../package/cli.js'),
-    // absolute fallback next to electron-ui folder
-    path.resolve(process.cwd(), '../package/cli.js'),
-    path.resolve(process.cwd(), 'package/cli.js'),
-  ]
-  for (const p of candidates) {
-    if (fs.existsSync(p)) return p
-  }
-  throw new Error(`Claude Code CLI not found. Searched:\n${candidates.join('\n')}`)
-}
-
-function getNodePath(): string {
-  if (process.env.CLAUDE_NODE_PATH) return process.env.CLAUDE_NODE_PATH
-  return 'node'
-}
 
 export interface PtyCreateArgs {
   sessionId: string
@@ -73,18 +39,12 @@ class PtyManager extends EventEmitter {
       ...(args.resumeSessionId ? ['--resume', args.resumeSessionId] : []),
     ]
 
-    const env: Record<string, string> = {
-      ...process.env as Record<string, string>,
+    const env: Record<string, string> = sanitizeEnv({
       ...(args.env || {}),
       TERM: 'xterm-256color',
       TERM_PROGRAM: 'claude-code-ui',
       CLAUDE_CONFIG_DIR: path.join(os.homedir(), '.claude'),
-    }
-
-    // Remove env vars that interfere with Claude CLI detection
-    delete env['VSCODE_GIT_ASKPASS_MAIN']
-    delete env['CURSOR_TRACE_ID']
-    delete env['TERM_PROGRAM_VERSION']
+    })
 
     const ptyProcess = pty.spawn(this.getNode(), cliArgs, {
       name: 'xterm-256color',
@@ -119,7 +79,9 @@ class PtyManager extends EventEmitter {
   destroy(sessionId: string): void {
     const p = this.sessions.get(sessionId)
     if (p) {
-      try { p.kill() } catch {}
+      try { p.kill() } catch (err) {
+        log.debug('PTY kill failed (may already have exited):', String(err))
+      }
       this.sessions.delete(sessionId)
     }
   }

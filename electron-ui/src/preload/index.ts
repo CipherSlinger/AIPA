@@ -38,6 +38,10 @@ const electronAPI = {
   // ── File system ──────────────────────────
   fsListDir: (dirPath: string) => ipcRenderer.invoke('fs:listDir', dirPath),
   fsShowOpenDialog: () => ipcRenderer.invoke('fs:showOpenDialog'),
+  fsShowSaveDialog: (defaultName: string, filters: { name: string; extensions: string[] }[]) =>
+    ipcRenderer.invoke('fs:showSaveDialog', { defaultName, filters }),
+  fsWriteFile: (filePath: string, content: string) =>
+    ipcRenderer.invoke('fs:writeFile', { filePath, content }),
   fsGetHome: () => ipcRenderer.invoke('fs:getHome'),
   fsEnsureDir: (dirPath: string) => ipcRenderer.invoke('fs:ensureDir', dirPath),
   fsListCommands: (workingDir: string) => ipcRenderer.invoke('fs:listCommands', workingDir),

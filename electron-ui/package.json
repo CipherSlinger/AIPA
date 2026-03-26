@@ -14,7 +14,8 @@
     "rebuild-pty": "electron-rebuild -f -w node-pty",
     "postinstall": "electron-builder install-app-deps",
     "dist": "npm run build && electron-builder",
-    "dist:win": "npm run build && electron-builder --win --x64"
+    "dist:win": "npm run build && electron-builder --win --x64",
+    "audit": "npm audit --production --audit-level=high"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import AppShell from './components/layout/AppShell'
 import OnboardingWizard from './components/onboarding/OnboardingWizard'
+import ErrorBoundary from './components/shared/ErrorBoundary'
+import { ToastContainer } from './components/ui/Toast'
 import { usePrefsStore, useChatStore, useUiStore } from './store'
 import './styles/globals.css'
 import 'highlight.js/styles/github-dark.css'
@@ -8,7 +10,7 @@ import 'highlight.js/styles/github-dark.css'
 export default function App() {
   const { prefs, setPrefs, setLoaded } = usePrefsStore()
   const { setWorkingDir } = useChatStore()
-  const { toggleSidebar, toggleTerminal } = useUiStore()
+  const { toggleSidebar, toggleTerminal, toasts, removeToast } = useUiStore()
   const [showOnboarding, setShowOnboarding] = useState(false)
 
   // Load preferences on startup
@@ -75,18 +77,21 @@ export default function App() {
   }, [prefs.theme])
 
   return (
-    <>
-      {showOnboarding && (
-        <OnboardingWizard onComplete={async () => {
-          // Reload prefs so prefsStore reflects the workingDir set during onboarding
-          const all = await window.electronAPI.prefsGetAll()
-          const env = await window.electronAPI.configGetEnv()
-          setPrefs({ ...all, apiKey: all.apiKey || env.apiKey || '' })
-          if (all.workingDir) setWorkingDir(all.workingDir)
-          setShowOnboarding(false)
-        }} />
-      )}
-      <AppShell />
-    </>
+    <ErrorBoundary fallbackLabel="application">
+      <>
+        {showOnboarding && (
+          <OnboardingWizard onComplete={async () => {
+            // Reload prefs so prefsStore reflects the workingDir set during onboarding
+            const all = await window.electronAPI.prefsGetAll()
+            const env = await window.electronAPI.configGetEnv()
+            setPrefs({ ...all, apiKey: all.apiKey || env.apiKey || '' })
+            if (all.workingDir) setWorkingDir(all.workingDir)
+            setShowOnboarding(false)
+          }} />
+        )}
+        <AppShell />
+        <ToastContainer toasts={toasts} onDismiss={removeToast} />
+      </>
+    </ErrorBoundary>
   )
 }

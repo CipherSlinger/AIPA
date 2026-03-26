@@ -26,6 +26,38 @@ export function useStreamJson() {
 
   const activeBridgeIdRef = useRef<string | null>(null)
 
+  // RAF batching buffers for text and thinking deltas
+  const textBufferRef = useRef<Map<string, string>>(new Map())
+  const thinkingBufferRef = useRef<Map<string, string>>(new Map())
+  const rafScheduledRef = useRef<boolean>(false)
+
+  // Flush accumulated text/thinking deltas in a single RAF frame
+  const flushBuffers = () => {
+    const textBuffer = textBufferRef.current
+    const thinkingBuffer = thinkingBufferRef.current
+    rafScheduledRef.current = false
+
+    if (textBuffer.size > 0) {
+      textBuffer.forEach((text, sessionId) => {
+        appendTextDelta(sessionId, text)
+      })
+      textBuffer.clear()
+    }
+    if (thinkingBuffer.size > 0) {
+      thinkingBuffer.forEach((thinking, sessionId) => {
+        appendThinkingDelta(sessionId, thinking)
+      })
+      thinkingBuffer.clear()
+    }
+  }
+
+  const scheduleFlush = () => {
+    if (!rafScheduledRef.current) {
+      rafScheduledRef.current = true
+      requestAnimationFrame(flushBuffers)
+    }
+  }
+
   const sendMessage = async (prompt: string, attachments?: import('./useImagePaste').ImageAttachment[]) => {
     if (!prompt.trim() && (!attachments || attachments.length === 0)) return
 
@@ -129,13 +161,23 @@ export function useStreamJson() {
 
     const unsub = window.electronAPI.onCliEvent(null as unknown as string, (event, data: any) => {
       switch (event) {
-        case 'cli:assistantText':
-          appendTextDelta(data.sessionId as string, data.text as string)
+        case 'cli:assistantText': {
+          const sid = data.sessionId as string
+          const existing = textBufferRef.current.get(sid) || ''
+          textBufferRef.current.set(sid, existing + (data.text as string))
+          scheduleFlush()
           break
-        case 'cli:thinkingDelta':
-          appendThinkingDelta(data.sessionId as string, data.thinking as string)
+        }
+        case 'cli:thinkingDelta': {
+          const sid = data.sessionId as string
+          const existing = thinkingBufferRef.current.get(sid) || ''
+          thinkingBufferRef.current.set(sid, existing + (data.thinking as string))
+          scheduleFlush()
           break
+        }
         case 'cli:messageEnd':
+          // Flush any remaining buffered deltas before marking stream as done
+          flushBuffers()
           setStreaming(false)
           break
         case 'cli:toolUse': {
