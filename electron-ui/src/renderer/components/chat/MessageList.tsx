@@ -39,7 +39,7 @@ interface Props {
 
 export default function MessageList({ messages, onPermission, onGrantPermission, sessionId, searchQuery, highlightedMessageIdx, scrollToMessageIdx }: Props) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const { resolvePlan, rateMessage, toggleBookmark } = useChatStore()
+  const { resolvePlan, rateMessage, toggleBookmark, toggleCollapse } = useChatStore()
   const { addToast } = useUiStore()
   const [showScrollBtn, setShowScrollBtn] = useState(false)
   const isNearBottomRef = useRef(true)
@@ -185,6 +185,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
           window.electronAPI.feedbackRate(msgId, rating)
         }}
         onBookmark={(msgId) => toggleBookmark(msgId)}
+        onCollapse={(msgId) => toggleCollapse(msgId)}
         onRewind={sessionId ? async (ts) => {
           const isoTs = new Date(ts).toISOString()
           const result = await window.electronAPI.sessionRewind(sessionId, isoTs)
@@ -196,7 +197,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
         } : undefined}
       />
     )
-  }, [onPermission, onGrantPermission, sessionId, resolvePlan, rateMessage, toggleBookmark, addToast, searchQuery])
+  }, [onPermission, onGrantPermission, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery])
 
   return (
     <div

@@ -3,7 +3,7 @@ import { ChatMessage, StandardChatMessage } from '../../types/app.types'
 import MessageContent from './MessageContent'
 import ToolUseBlock from './ToolUseBlock'
 import MessageContextMenu from './MessageContextMenu'
-import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark, AlertTriangle } from 'lucide-react'
+import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark, AlertTriangle, Minus } from 'lucide-react'
 import { usePrefsStore } from '../../store'
 
 function relativeTime(ts: number): string {
@@ -24,13 +24,15 @@ interface Props {
   onRate?: (msgId: string, rating: 'up' | 'down' | null) => void
   onRewind?: (msgTimestamp: number) => void
   onBookmark?: (msgId: string) => void
+  onCollapse?: (msgId: string) => void
   searchQuery?: string
 }
 
-export default React.memo(function Message({ message, onRate, onRewind, onBookmark, searchQuery }: Props) {
+export default React.memo(function Message({ message, onRate, onRewind, onBookmark, onCollapse, searchQuery }: Props) {
   const isUser = message.role === 'user'
   const isAssistant = message.role === 'assistant'
   const isSystem = message.role === 'system' || (isAssistant && (message as StandardChatMessage).content?.startsWith('\u26a0\ufe0f'))
+  const isCollapsed = message.role !== 'permission' && message.role !== 'plan' && (message as StandardChatMessage).collapsed
   const compact = usePrefsStore(s => s.prefs.compactMode)
   const [hovered, setHovered] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -127,7 +129,21 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
 
       {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: isCollapsed ? 0 : 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* Collapse toggle */}
+          {onCollapse && message.role !== 'permission' && message.role !== 'plan' && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onCollapse(message.id) }}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
+                padding: 0, marginLeft: -2,
+              }}
+              title={isCollapsed ? 'Expand message' : 'Collapse message'}
+            >
+              {isCollapsed ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
+            </button>
+          )}
           {isUser ? 'You' : isSystem ? 'System' : 'Claude'}
           {message.role !== 'permission' && message.isStreaming && (
             <span style={{ color: 'var(--success)' }}>Generating...</span>
@@ -143,8 +159,15 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           {message.role !== 'permission' && message.role !== 'plan' && (message as StandardChatMessage).bookmarked && (
             <Bookmark size={11} style={{ color: 'var(--warning)', fill: 'var(--warning)' }} />
           )}
+          {isCollapsed && (
+            <span style={{ fontSize: 11, opacity: 0.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+              {((message as StandardChatMessage).content || '').slice(0, 100).replace(/\n/g, ' ')}
+            </span>
+          )}
         </div>
 
+        {!isCollapsed && (
+          <>
         {/* Tool uses */}
         {message.role !== 'permission' && message.toolUses && message.toolUses.length > 0 && (
           <div style={{ marginBottom: 8 }}>
@@ -211,6 +234,8 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             <MessageContent content={message.content} isUser={isUser} searchQuery={searchQuery} />
           </div>
         )}
+          </>
+        )}
       </div>
 
       {/* Copy button for assistant messages */}
@@ -253,6 +278,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           onCopyMarkdown={isAssistant ? handleCopyMarkdown : undefined}
           onRate={onRate ? (rating) => onRate(message.id, rating) : undefined}
           onBookmark={onBookmark ? () => onBookmark(message.id) : undefined}
+          onCollapse={onCollapse ? () => onCollapse(message.id) : undefined}
           onRewind={onRewind && (message as StandardChatMessage).timestamp
             ? () => onRewind((message as StandardChatMessage).timestamp)
             : undefined
@@ -271,6 +297,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   if (pm.isStreaming !== nm.isStreaming) return false
   if (pm.rating !== nm.rating) return false
   if (pm.bookmarked !== nm.bookmarked) return false
+  if (pm.collapsed !== nm.collapsed) return false
   if (pm.thinking !== nm.thinking) return false
   if ((pm.toolUses?.length ?? 0) !== (nm.toolUses?.length ?? 0)) return false
   if (prevProps.searchQuery !== nextProps.searchQuery) return false

@@ -11,10 +11,11 @@ interface ContextMenuProps {
   onRate?: (rating: 'up' | 'down' | null) => void
   onRewind?: () => void
   onBookmark?: () => void
+  onCollapse?: () => void
   onClose: () => void
 }
 
-export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdown, onRate, onRewind, onBookmark, onClose }: ContextMenuProps) {
+export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdown, onRate, onRewind, onBookmark, onCollapse, onClose }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Clamp position to viewport
@@ -55,6 +56,7 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
   const isAssistant = message.role === 'assistant'
   const rating = isAssistant ? (message as StandardChatMessage).rating : undefined
   const isBookmarked = message.role !== 'permission' && message.role !== 'plan' ? (message as StandardChatMessage).bookmarked : false
+  const isCollapsed = message.role !== 'permission' && message.role !== 'plan' ? (message as StandardChatMessage).collapsed : false
 
   const itemStyle: React.CSSProperties = {
     display: 'flex',
@@ -123,6 +125,18 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
         >
           <span>{isBookmarked ? 'Remove bookmark' : 'Bookmark'}</span>
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{isBookmarked ? '\u2605' : '\u2606'}</span>
+        </button>
+      )}
+
+      {/* Collapse / Expand */}
+      {onCollapse && message.role !== 'permission' && message.role !== 'plan' && (
+        <button
+          style={itemStyle}
+          onClick={() => { onCollapse(); onClose() }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover, var(--bg-active))' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+        >
+          <span>{isCollapsed ? 'Expand message' : 'Collapse message'}</span>
         </button>
       )}
 
