@@ -4,6 +4,7 @@ import MessageContent from './MessageContent'
 import ToolUseBlock from './ToolUseBlock'
 import MessageContextMenu from './MessageContextMenu'
 import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark } from 'lucide-react'
+import { usePrefsStore } from '../../store'
 
 function relativeTime(ts: number): string {
   const diff = Math.floor((Date.now() - ts) / 1000)
@@ -29,6 +30,7 @@ interface Props {
 export default React.memo(function Message({ message, onRate, onRewind, onBookmark, searchQuery }: Props) {
   const isUser = message.role === 'user'
   const isAssistant = message.role === 'assistant'
+  const compact = usePrefsStore(s => s.prefs.compactMode)
   const [hovered, setHovered] = useState(false)
   const [copied, setCopied] = useState(false)
   const [thinkingExpanded, setThinkingExpanded] = useState(false)
@@ -36,6 +38,17 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   const [, setTick] = useState(0)
 
   const thinking = message.role !== 'permission' ? (message as StandardChatMessage).thinking : undefined
+
+  // Compute word and approx token count for assistant messages
+  const wordInfo = isAssistant && message.role !== 'permission' && (message as StandardChatMessage).content
+    ? (() => {
+        const text = (message as StandardChatMessage).content
+        const words = text.split(/\s+/).filter(w => w.length > 0).length
+        // Rough token estimate: ~0.75 words per token for English
+        const tokens = Math.round(words / 0.75)
+        return `${words} words (~${tokens} tokens)`
+      })()
+    : null
 
   // Live-update relative timestamp every 30 seconds
   useEffect(() => {
@@ -65,9 +78,9 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
       onMouseLeave={() => setHovered(false)}
       onContextMenu={handleContextMenu}
       style={{
-        padding: '8px 20px',
+        padding: compact ? '4px 16px' : '8px 20px',
         display: 'flex',
-        gap: 12,
+        gap: compact ? 8 : 12,
         alignItems: 'flex-start',
         background: isUser ? 'transparent' : 'var(--bg-secondary)',
         position: 'relative',
@@ -76,8 +89,8 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
       {/* Avatar */}
       <div
         style={{
-          width: 28,
-          height: 28,
+          width: compact ? 22 : 28,
+          height: compact ? 22 : 28,
           borderRadius: '50%',
           background: isUser ? 'var(--user-bubble)' : '#5a3f8a',
           display: 'flex',
@@ -87,7 +100,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           marginTop: 2,
         }}
       >
-        {isUser ? <User size={14} color="#fff" /> : <Bot size={14} color="#fff" />}
+        {isUser ? <User size={compact ? 11 : 14} color="#fff" /> : <Bot size={compact ? 11 : 14} color="#fff" />}
       </div>
 
       {/* Content */}
@@ -172,7 +185,9 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
 
         {/* Text content */}
         {message.role !== 'permission' && message.content && (
-          <MessageContent content={message.content} isUser={isUser} searchQuery={searchQuery} />
+          <div title={wordInfo || undefined}>
+            <MessageContent content={message.content} isUser={isUser} searchQuery={searchQuery} />
+          </div>
         )}
       </div>
 

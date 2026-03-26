@@ -330,6 +330,13 @@ export default function SettingsPanel() {
             'Play a chime when Claude finishes responding'
           )}
 
+          {/* compactMode */}
+          {row(
+            'Compact Mode',
+            <Toggle value={local.compactMode ?? false} onChange={(v) => setLocal({ ...local, compactMode: v })} />,
+            'Reduce spacing between messages for a denser view'
+          )}
+
           {/* Save button */}
           <button
             onClick={save}
@@ -468,6 +475,7 @@ export default function SettingsPanel() {
                 maxTurns: undefined,
                 maxBudgetUsd: undefined,
                 notifySound: true,
+                compactMode: false,
               }
               setLocal(prev => ({ ...prev, ...defaults }))
               for (const [k, v] of Object.entries(defaults)) {

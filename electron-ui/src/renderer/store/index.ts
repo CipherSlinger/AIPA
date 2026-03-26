@@ -295,6 +295,7 @@ const DEFAULT_PREFS: ClaudePrefs = {
   maxTurns: undefined,
   maxBudgetUsd: undefined,
   notifySound: true,
+  compactMode: false,
 }
 
 export const usePrefsStore = create<PrefsState>((set) => ({

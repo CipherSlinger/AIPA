@@ -87,4 +87,5 @@ export interface ClaudePrefs {
   maxTurns?: number        // --max-turns
   maxBudgetUsd?: number    // --max-budget-usd
   notifySound?: boolean     // play sound when response completes (default true)
+  compactMode?: boolean     // reduce spacing for power users (default false)
 }
