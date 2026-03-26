@@ -19,8 +19,24 @@ export default function ChatPanel() {
   const { prefs } = usePrefsStore()
   const { addToast } = useUiStore()
   const { sendMessage, abort, respondPermission, grantToolPermission, newConversation } = useStreamJson()
-  const [input, setInput] = useState('')
+  const [input, setInput] = useState(() => {
+    // Restore draft from sessionStorage
+    try {
+      return sessionStorage.getItem('aipa:draft-input') || ''
+    } catch { return '' }
+  })
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Auto-save draft input to sessionStorage
+  useEffect(() => {
+    try {
+      if (input) {
+        sessionStorage.setItem('aipa:draft-input', input)
+      } else {
+        sessionStorage.removeItem('aipa:draft-input')
+      }
+    } catch { /* sessionStorage may not be available */ }
+  }, [input])
 
   // @ mention state
   const [atQuery, setAtQuery] = useState<string | null>(null)
@@ -117,6 +133,7 @@ export default function ChatPanel() {
     setAtQuery(null)
     clearAttachments()
     resizeTextarea()
+    try { sessionStorage.removeItem('aipa:draft-input') } catch { /* ignore */ }
     await sendMessage(text || 'Describe this image', attachments.length > 0 ? attachments : undefined)
   }
 
@@ -679,8 +696,13 @@ export default function ChatPanel() {
             </button>
           </div>
         </div>
-        <div style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: 10, marginTop: 4 }}>
-          @ files | Enter send | Shift+Enter newline | Ctrl+L focus | Ctrl+Shift+P commands
+        <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', fontSize: 10, marginTop: 4 }}>
+          <span>@ files | Enter send | Shift+Enter newline | Ctrl+L focus | Ctrl+Shift+P commands</span>
+          {input.length > 0 && (
+            <span style={{ flexShrink: 0 }}>
+              {input.length} chars
+            </span>
+          )}
         </div>
       </div>
     </div>
