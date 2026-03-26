@@ -3,9 +3,9 @@ import { Save, Eye, EyeOff } from 'lucide-react'
 import { usePrefsStore } from '../../store'
 
 const MODEL_OPTIONS: { id: string; label: string }[] = [
-  { id: 'claude-opus-4-6',            label: 'Claude Opus（最强大）' },
-  { id: 'claude-sonnet-4-6',          label: 'Claude Sonnet（推荐）' },
-  { id: 'claude-haiku-4-5',           label: 'Claude Haiku（最快速）' },
+  { id: 'claude-opus-4-6',            label: 'Claude Opus (Most Powerful)' },
+  { id: 'claude-sonnet-4-6',          label: 'Claude Sonnet (Recommended)' },
+  { id: 'claude-haiku-4-5',           label: 'Claude Haiku (Fastest)' },
   { id: 'claude-opus-4',              label: 'Claude Opus 4' },
   { id: 'claude-sonnet-4-5',          label: 'Claude Sonnet 4.5' },
   { id: 'claude-3-7-sonnet-20250219', label: 'Claude 3.7 Sonnet' },
@@ -18,13 +18,13 @@ const FONT_FAMILIES: { id: string; label: string }[] = [
   { id: "'Fira Code', Consolas, monospace",                  label: 'Fira Code' },
   { id: "'JetBrains Mono', Consolas, monospace",             label: 'JetBrains Mono' },
   { id: "Consolas, 'Courier New', monospace",                label: 'Consolas' },
-  { id: 'system-ui, sans-serif',                             label: '系统默认' },
+  { id: 'system-ui, sans-serif',                             label: 'System Default' },
 ]
 
 const THEMES: { id: 'vscode' | 'modern' | 'minimal'; label: string; colors: string[] }[] = [
   { id: 'vscode',   label: 'VS Code',   colors: ['#1e1e1e', '#007acc', '#264f78', '#2d2d2d'] },
-  { id: 'modern',   label: '现代深色',  colors: ['#0d1117', '#2f81f7', '#1f3a5f', '#161b22'] },
-  { id: 'minimal',  label: '极简暗色',  colors: ['#111111', '#a855f7', '#1e1033', '#1a1a1a'] },
+  { id: 'modern',   label: 'Modern Dark',  colors: ['#0d1117', '#2f81f7', '#1f3a5f', '#161b22'] },
+  { id: 'minimal',  label: 'Minimal Dark',  colors: ['#111111', '#a855f7', '#1e1033', '#1a1a1a'] },
 ]
 
 function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
@@ -114,7 +114,7 @@ export default function SettingsPanel() {
 
   return (
     <div style={{ padding: 14, overflowY: 'auto', height: '100%' }}>
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>设置</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>Settings</div>
 
       {/* Tab bar */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 14, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>
@@ -132,7 +132,7 @@ export default function SettingsPanel() {
               fontSize: 11,
             }}
           >
-            {tab === 'general' ? '通用' : 'MCP 服务器'}
+            {tab === 'general' ? 'General' : 'MCP Servers'}
           </button>
         ))}
       </div>
@@ -141,7 +141,7 @@ export default function SettingsPanel() {
         <>
           {/* API Key */}
           {field(
-            'API 密钥',
+            'API Key',
             <div style={{ position: 'relative' }}>
               <input
                 type={showKey ? 'text' : 'password'}
@@ -160,7 +160,7 @@ export default function SettingsPanel() {
           )}
 
           {/* Model */}
-          {field('模型', (
+          {field('Model', (
             <select value={local.model} onChange={(e) => setLocal({ ...local, model: e.target.value })} style={{ ...inputStyle }}>
               {MODEL_OPTIONS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
@@ -168,11 +168,11 @@ export default function SettingsPanel() {
 
           {/* System prompt */}
           {field(
-            '附加系统提示词',
+            'Custom System Prompt',
             <textarea
               value={local.systemPrompt ?? ''}
               onChange={(e) => setLocal({ ...local, systemPrompt: e.target.value })}
-              placeholder="在此输入自定义指令，每次对话都会附加到系统提示词末尾..."
+              placeholder="Enter custom instructions appended to every conversation..."
               rows={4}
               style={{
                 ...inputStyle,
@@ -183,66 +183,66 @@ export default function SettingsPanel() {
               }}
             />,
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-              通过 --append-system-prompt 传入 CLI，新对话生效
+              Passed via --append-system-prompt. Takes effect on new conversations.
             </span>
           )}
 
           {/* Thinking level */}
-          {field('思考模式', (
+          {field('Thinking Mode', (
             <select
               value={local.thinkingLevel ?? 'off'}
               onChange={(e) => setLocal({ ...local, thinkingLevel: e.target.value as 'off' | 'adaptive' })}
               style={{ ...inputStyle }}
             >
-              <option value="off">关闭（默认）</option>
-              <option value="adaptive">自适应思考（Extended Thinking）</option>
+              <option value="off">Off (Default)</option>
+              <option value="adaptive">Adaptive (Extended Thinking)</option>
             </select>
           ),
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>自适应模式下 Claude 会在需要时自动进行深度思考</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>In adaptive mode, Claude automatically engages deep thinking when needed</span>
           )}
 
           {/* Max turns */}
           {field(
-            '最大对话轮数',
+            'Max Turns',
             <input
               type="number"
               min={1}
               max={200}
               value={local.maxTurns ?? ''}
               onChange={(e) => setLocal({ ...local, maxTurns: e.target.value ? Number(e.target.value) : undefined })}
-              placeholder="不限制"
+              placeholder="Unlimited"
               style={{ ...inputStyle, width: 120 }}
             />,
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-              限制 Claude 最多执行几轮工具调用（--max-turns），留空不限制
+              Limit how many tool-use turns Claude can execute (--max-turns). Leave empty for unlimited.
             </span>
           )}
 
           {/* Max budget */}
           {field(
-            '对话费用上限 (USD)',
+            'Budget Limit (USD)',
             <input
               type="number"
               min={0.01}
               step={0.01}
               value={local.maxBudgetUsd ?? ''}
               onChange={(e) => setLocal({ ...local, maxBudgetUsd: e.target.value ? Number(e.target.value) : undefined })}
-              placeholder="不限制"
+              placeholder="Unlimited"
               style={{ ...inputStyle, width: 120 }}
             />,
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-              费用超出此金额时 Claude 停止执行（--max-budget-usd），留空不限制
+              Stop execution when cost exceeds this amount (--max-budget-usd). Leave empty for unlimited.
             </span>
           )}
 
           {/* Working dir */}
           {field(
-            'AI 工作文件夹',
+            'Working Folder',
             <div style={{ display: 'flex', gap: 6 }}>
               <input
                 value={local.workingDir}
                 onChange={(e) => setLocal({ ...local, workingDir: e.target.value })}
-                placeholder="留空使用主目录"
+                placeholder="Leave empty for home directory"
                 style={{ ...inputStyle, flex: 1 }}
               />
               <button
@@ -252,15 +252,15 @@ export default function SettingsPanel() {
                 }}
                 style={{ background: 'var(--bg-active)', border: '1px solid var(--border)', borderRadius: 4, padding: '0 10px', color: 'var(--text-primary)', cursor: 'pointer', fontSize: 12 }}
               >
-                浏览
+                Browse
               </button>
             </div>,
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Claude 会在这个文件夹里读写文件</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Claude will read and write files in this folder</span>
           )}
 
           {/* Font size */}
           {field(
-            `字体大小：${local.fontSize ?? 14}px`,
+            `Font Size: ${local.fontSize ?? 14}px`,
             <input
               type="range" min={12} max={20} step={1}
               value={local.fontSize ?? 14}
@@ -270,14 +270,14 @@ export default function SettingsPanel() {
           )}
 
           {/* Font family */}
-          {field('字体族', (
+          {field('Font Family', (
             <select value={local.fontFamily} onChange={(e) => setLocal({ ...local, fontFamily: e.target.value })} style={{ ...inputStyle }}>
               {FONT_FAMILIES.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
             </select>
           ))}
 
           {/* Theme */}
-          {field('界面主题', (
+          {field('Theme', (
             <div style={{ display: 'flex', gap: 8 }}>
               {THEMES.map((t) => {
                 const isActive = (local.theme || 'vscode') === t.id
@@ -311,16 +311,16 @@ export default function SettingsPanel() {
 
           {/* skipPermissions */}
           {row(
-            '跳过工具权限确认',
+            'Skip Tool Permissions',
             <Toggle value={local.skipPermissions ?? true} onChange={(v) => setLocal({ ...local, skipPermissions: v })} />,
-            '开启后 Claude 无需逐工具请求授权'
+            'When enabled, Claude does not ask for per-tool authorization'
           )}
 
           {/* verbose */}
           {row(
-            '详细输出模式',
+            'Verbose Output',
             <Toggle value={local.verbose ?? false} onChange={(v) => setLocal({ ...local, verbose: v })} />,
-            '开启后 CLI 输出更多调试信息'
+            'When enabled, CLI outputs more debug information'
           )}
 
           {/* Save button */}
@@ -335,7 +335,7 @@ export default function SettingsPanel() {
             }}
           >
             <Save size={13} />
-            {saved ? '已保存 ✓' : '保存设置'}
+            {saved ? 'Saved' : 'Save Settings'}
           </button>
         </>
       ) : (
@@ -343,8 +343,8 @@ export default function SettingsPanel() {
         <div>
           {mcpServers.length === 0 ? (
             <div style={{ color: 'var(--text-muted)', fontSize: 12, textAlign: 'center', padding: 24 }}>
-              未配置 MCP 服务器<br />
-              <span style={{ fontSize: 11, marginTop: 4, display: 'block' }}>在 ~/.claude/settings.json 中添加 mcpServers 配置</span>
+              No MCP servers configured<br />
+              <span style={{ fontSize: 11, marginTop: 4, display: 'block' }}>Add mcpServers to ~/.claude/settings.json</span>
             </div>
           ) : (
             mcpServers.map(srv => (

@@ -5,17 +5,17 @@ export interface SlashCommand {
   name: string
   description: string
   icon: React.ElementType
-  clientOnly?: boolean  // true = 前端处理，不发给 CLI
+  clientOnly?: boolean  // true = handled client-side, not sent to CLI
 }
 
 export const SLASH_COMMANDS: SlashCommand[] = [
-  { name: '/compact', description: '压缩对话历史，减少 token 占用', icon: Archive },
-  { name: '/clear', description: '清空当前对话（不发给 Claude）', icon: Trash2, clientOnly: true },
-  { name: '/help', description: '显示可用命令', icon: HelpCircle, clientOnly: true },
+  { name: '/compact', description: 'Compact conversation history to reduce tokens', icon: Archive },
+  { name: '/clear', description: 'Clear current conversation (client-only)', icon: Trash2, clientOnly: true },
+  { name: '/help', description: 'Show available commands', icon: HelpCircle, clientOnly: true },
 ]
 
 interface Props {
-  query: string   // 用户输入的 / 之后的内容
+  query: string   // text after the / that the user typed
   onSelect: (cmd: SlashCommand) => void
   onDismiss: () => void
   selectedIndex: number

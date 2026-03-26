@@ -34,7 +34,7 @@ function TreeNode({ entry, depth, onSetCwd }: TreeNodeProps) {
       <div
         onClick={toggle}
         onDoubleClick={handleDoubleClick}
-        title={entry.isDirectory ? '双击设为工作目录' : entry.name}
+        title={entry.isDirectory ? 'Double-click to set as working directory' : entry.name}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -136,11 +136,11 @@ export default function FileBrowser() {
           }}
           title={currentDir}
         >
-          {shortDir || '选择目录'}
+          {shortDir || 'Select directory'}
         </span>
         <button
           onClick={openDialog}
-          title="选择工作目录"
+          title="Choose working directory"
           style={{
             background: 'none',
             border: 'none',
@@ -161,7 +161,7 @@ export default function FileBrowser() {
         ))}
         {rootEntries.length === 0 && (
           <div style={{ padding: '20px 12px', color: 'var(--text-muted)', fontSize: 12, textAlign: 'center' }}>
-            点击右上角选择工作目录
+            Click the icon above to choose a working directory
           </div>
         )}
       </div>

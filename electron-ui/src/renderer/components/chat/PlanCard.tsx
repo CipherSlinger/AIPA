@@ -33,7 +33,7 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
         }}
       >
         <ClipboardList size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>执行计划</span>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>Execution Plan</span>
         {!isPending && (
           <span
             style={{
@@ -43,7 +43,7 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
               fontWeight: 600,
             }}
           >
-            {message.decision === 'accepted' ? '已批准' : '已拒绝'}
+            {message.decision === 'accepted' ? 'Approved' : 'Rejected'}
           </span>
         )}
       </div>
@@ -92,7 +92,7 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
             }}
           >
             <CheckCircle size={13} />
-            批准并继续
+            Approve & Continue
           </button>
           <button
             onClick={onReject}
@@ -112,7 +112,7 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
             }}
           >
             <XCircle size={13} />
-            拒绝
+            Reject
           </button>
         </div>
       )}

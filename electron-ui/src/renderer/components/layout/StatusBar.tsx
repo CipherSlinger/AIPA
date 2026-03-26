@@ -37,7 +37,7 @@ export default function StatusBar() {
     >
       <button
         onClick={toggleSidebar}
-        title="切换侧边栏 (Ctrl+B)"
+        title="Toggle sidebar (Ctrl+B)"
         style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', opacity: sidebarOpen ? 1 : 0.6 }}
       >
         <PanelLeft size={12} />
@@ -50,7 +50,7 @@ export default function StatusBar() {
 
       {/* Context window usage bar */}
       {contextPct !== null && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, opacity: 0.9 }} title={`上下文已用 ${contextPct}%（${fmt(lastContextUsage!.used)} / ${fmt(lastContextUsage!.total)} tokens）`}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, opacity: 0.9 }} title={`Context used: ${contextPct}% (${fmt(lastContextUsage!.used)} / ${fmt(lastContextUsage!.total)} tokens)`}>
           <div style={{ width: 48, height: 5, background: 'rgba(255,255,255,0.3)', borderRadius: 3, overflow: 'hidden' }}>
             <div style={{ width: `${contextPct}%`, height: '100%', background: ctxColor, transition: 'width 0.3s' }} />
           </div>
@@ -78,7 +78,7 @@ export default function StatusBar() {
 
       <button
         onClick={toggleTerminal}
-        title="切换终端 (Ctrl+`)"
+        title="Toggle terminal (Ctrl+`)"
         style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', opacity: terminalOpen ? 1 : 0.6 }}
       >
         <Terminal size={12} />

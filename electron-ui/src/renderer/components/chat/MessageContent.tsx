@@ -37,7 +37,7 @@ function CopyButton({ text }: { text: string }) {
       }}
     >
       {copied ? <Check size={11} /> : <Copy size={11} />}
-      {copied ? '已复制' : '复制'}
+      {copied ? 'Copied' : 'Copy'}
     </button>
   )
 }

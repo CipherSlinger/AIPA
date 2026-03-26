@@ -47,7 +47,7 @@ export default function ChatPanel() {
     setAtQuery(null)
     clearAttachments()
     resizeTextarea()
-    await sendMessage(text || '请描述这张图片', attachments.length > 0 ? attachments : undefined)
+    await sendMessage(text || 'Describe this image', attachments.length > 0 ? attachments : undefined)
   }
 
   const sendText = async (text: string) => {
@@ -255,18 +255,18 @@ export default function ChatPanel() {
         useChatStore.getState().addMessage({
           id: `help-${Date.now()}`,
           role: 'assistant',
-          content: '**可用命令：**\n\n' + SLASH_COMMANDS.map(c => `- \`${c.name}\` — ${c.description}`).join('\n'),
+          content: '**Available Commands:**\n\n' + SLASH_COMMANDS.map(c => `- \`${c.name}\` — ${c.description}`).join('\n'),
           timestamp: Date.now(),
         } as any)
       }
       return
     }
-    // 发给 CLI（内置命令如 /compact）或自定义命令（填入输入框让用户确认）
+    // Send to CLI (built-in commands like /compact) or custom commands (fill input for user to confirm)
     const isBuiltin = SLASH_COMMANDS.some(c => c.name === cmd.name)
     if (isBuiltin) {
       await sendMessage(cmd.name)
     } else {
-      // 自定义命令：填入输入框，用户可补充参数后再发送
+      // Custom command: fill input, user can add parameters before sending
       setInput(cmd.name + ' ')
       textareaRef.current?.focus()
     }
@@ -278,7 +278,7 @@ export default function ChatPanel() {
     window.electronAPI.fsListCommands(prefs.workingDir || '').then((cmds: { name: string; description: string; source: string }[]) => {
       setCustomCommands(cmds.map(c => ({
         name: c.name,
-        description: c.description + (c.source === 'project' ? ' [项目]' : ' [用户]'),
+        description: c.description + (c.source === 'project' ? ' [Project]' : ' [User]'),
       })))
     }).catch(() => {})
   }, [slashQuery])
@@ -519,7 +519,7 @@ export default function ChatPanel() {
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
               onDragOver={(e) => e.preventDefault()}
-              placeholder="发送消息... (@ 引用文件，/ 命令，粘贴图片，Enter 发送)"
+              placeholder="Send a message... (@ files, / commands, paste images, Enter to send)"
               rows={1}
               style={{
                 flex: 1,
@@ -538,7 +538,7 @@ export default function ChatPanel() {
             />
             <button
               onClick={toggleSpeech}
-              title={listening ? '停止录音' : '语音输入'}
+              title={listening ? 'Stop recording' : 'Voice input'}
               style={{
                 background: listening ? 'var(--error)' : 'none',
                 border: listening ? 'none' : '1px solid var(--border)',
@@ -556,7 +556,7 @@ export default function ChatPanel() {
             <button
               onClick={isStreaming ? abort : handleSend}
               disabled={!isStreaming && !input.trim() && attachments.length === 0}
-              title={isStreaming ? '停止生成' : '发送 (Ctrl+Enter)'}
+              title={isStreaming ? 'Stop generating' : 'Send (Ctrl+Enter)'}
               style={{
                 background: isStreaming ? 'var(--error)' : 'var(--accent)',
                 border: 'none',
@@ -603,10 +603,10 @@ function ThinkingIndicator() {
 
 function WelcomeScreen({ onSuggestion }: { onSuggestion: (text: string) => void }) {
   const suggestions = [
-    { emoji: '\u{1F4C1}', text: '\u5206\u6790\u5F53\u524D\u76EE\u5F55\u7684\u4EE3\u7801\u7ED3\u6784' },
-    { emoji: '\u{1F41B}', text: '\u5E2E\u6211\u627E\u5230\u5E76\u4FEE\u590D\u8FD9\u4E2A bug' },
-    { emoji: '\u2728', text: '\u5E2E\u6211\u5B9E\u73B0\u4E00\u4E2A\u65B0\u529F\u80FD' },
-    { emoji: '\u{1F4DD}', text: '\u5E2E\u6211\u5199\u4E00\u4E2A\u811A\u672C\u6765\u81EA\u52A8\u5316\u4EFB\u52A1' },
+    { emoji: '\u{1F4C1}', text: 'Analyze the code structure of this project' },
+    { emoji: '\u{1F41B}', text: 'Help me find and fix this bug' },
+    { emoji: '\u2728', text: 'Help me implement a new feature' },
+    { emoji: '\u{1F4DD}', text: 'Write a script to automate a task' },
   ]
 
   const shortcuts = [
@@ -621,9 +621,9 @@ function WelcomeScreen({ onSuggestion }: { onSuggestion: (text: string) => void 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', gap: 20, padding: '0 20px' }}>
       <div style={{ fontSize: 56 }}>{'\u{1F916}'}</div>
-      <div style={{ fontSize: 24, color: 'var(--text-primary)', fontWeight: 600 }}>{'\u4F60\u597D\uFF01\u6211\u662F Claude'}</div>
+      <div style={{ fontSize: 24, color: 'var(--text-primary)', fontWeight: 600 }}>Hello! I'm Claude</div>
       <div style={{ fontSize: 14, color: 'var(--text-muted)', textAlign: 'center' }}>
-        {'\u4F60\u7684 AI \u52A9\u624B\uFF0C\u968F\u65F6\u51C6\u5907\u5E2E\u52A9\u4F60'}
+        Your AI assistant, ready to help
       </div>
       <div style={{ display: 'flex', gap: 12, marginTop: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
         {suggestions.map(({ emoji, text }) => (

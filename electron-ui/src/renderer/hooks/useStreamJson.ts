@@ -3,14 +3,14 @@ import { useChatStore, usePrefsStore, useSessionStore } from '../store'
 import { PermissionMessage, PlanMessage, StandardChatMessage } from '../types/app.types'
 
 function sendCompletionNotification(summary: string) {
-  if (document.hasFocus()) return  // 窗口在前台不通知
+  if (document.hasFocus()) return  // Don't notify when window is focused
   if (!('Notification' in window)) return
   if (Notification.permission === 'granted') {
-    new Notification('Claude 已完成', { body: summary.slice(0, 100), icon: '' })
+    new Notification('Claude Finished', { body: summary.slice(0, 100), icon: '' })
   } else if (Notification.permission === 'default') {
     Notification.requestPermission().then(perm => {
       if (perm === 'granted') {
-        new Notification('Claude 已完成', { body: summary.slice(0, 100) })
+        new Notification('Claude Finished', { body: summary.slice(0, 100) })
       }
     })
   }
@@ -249,7 +249,7 @@ export function useStreamJson() {
             }
           }
           // Completion notification
-          sendCompletionNotification(resultText || '对话已完成')
+          sendCompletionNotification(resultText || 'Conversation complete')
           // Auto-generate session title after first assistant response
           const msgs = useChatStore.getState().messages
           const userMsgs = msgs.filter(m => m.role === 'user')
@@ -272,7 +272,7 @@ export function useStreamJson() {
           break
         }
         case 'cli:error': {
-          const errText = (data.error as string) || 'CLI 发生未知错误'
+          const errText = (data.error as string) || 'CLI encountered an unknown error'
           useChatStore.getState().addMessage({
             id: `err-${Date.now()}`,
             role: 'assistant',

@@ -34,7 +34,7 @@ export interface StandardChatMessage {
   toolUses?: ToolUseInfo[]
   timestamp: number
   isStreaming?: boolean
-  attachments?: { name: string; dataUrl: string }[]  // 图片附件
+  attachments?: { name: string; dataUrl: string }[]  // image attachments
   rating?: 'up' | 'down' | null
 }
 
@@ -78,7 +78,7 @@ export interface ClaudePrefs {
   theme: 'vscode' | 'modern' | 'minimal'
   onboardingDone?: boolean
   thinkingLevel?: 'off' | 'adaptive'
-  systemPrompt?: string    // 附加系统提示词（通过 --append-system-prompt 传递）
+  systemPrompt?: string    // custom system prompt (passed via --append-system-prompt)
   maxTurns?: number        // --max-turns
   maxBudgetUsd?: number    // --max-budget-usd
 }

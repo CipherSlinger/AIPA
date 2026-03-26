@@ -28,10 +28,10 @@ export default function TerminalPanel() {
         }}
       >
         <Terminal size={13} style={{ color: 'var(--text-muted)' }} />
-        <span style={{ fontSize: 12, color: 'var(--text-muted)', flex: 1 }}>Claude Code 终端</span>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)', flex: 1 }}>Terminal</span>
         <button
           onClick={refitTerminal}
-          title="刷新终端大小"
+          title="Resize terminal"
           style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
         >
           <RefreshCw size={12} />

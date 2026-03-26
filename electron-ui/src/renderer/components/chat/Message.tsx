@@ -71,13 +71,13 @@ export default React.memo(function Message({ message, onRate, onRewind }: Props)
       {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-          {isUser ? '你' : 'Claude'}
+          {isUser ? 'You' : 'Claude'}
           {message.role !== 'permission' && message.isStreaming && (
-            <span style={{ color: 'var(--success)' }}>● 生成中...</span>
+            <span style={{ color: 'var(--success)' }}>Generating...</span>
           )}
           {hovered && message.timestamp && (
             <span style={{ fontSize: 10, opacity: 0.6 }}>
-              {new Date(message.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+              {new Date(message.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
             </span>
           )}
         </div>
@@ -103,7 +103,7 @@ export default React.memo(function Message({ message, onRate, onRewind }: Props)
               }}
             >
               {thinkingExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-              💭 思考过程
+              Thinking
             </button>
             {thinkingExpanded && (
               <div style={{
