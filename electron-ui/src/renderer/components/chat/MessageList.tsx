@@ -1,9 +1,10 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { ChatMessage } from '../../types/app.types'
 import Message from './Message'
 import PermissionCard from './PermissionCard'
 import PlanCard from './PlanCard'
 import { useChatStore, useUiStore } from '../../store'
+import { ArrowDown } from 'lucide-react'
 
 interface Props {
   messages: ChatMessage[]
@@ -14,15 +15,44 @@ interface Props {
 
 export default function MessageList({ messages, onPermission, onGrantPermission, sessionId }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
   const { resolvePlan, rateMessage } = useChatStore()
   const { addToast } = useUiStore()
+  const [showScrollBtn, setShowScrollBtn] = useState(false)
+  const isNearBottomRef = useRef(true)
 
-  useEffect(() => {
+  const checkIfNearBottom = useCallback(() => {
+    const el = scrollContainerRef.current
+    if (!el) return true
+    const threshold = 80
+    return el.scrollHeight - el.scrollTop - el.clientHeight < threshold
+  }, [])
+
+  const handleScroll = useCallback(() => {
+    const nearBottom = checkIfNearBottom()
+    isNearBottomRef.current = nearBottom
+    setShowScrollBtn(!nearBottom)
+  }, [checkIfNearBottom])
+
+  const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [])
+
+  // Auto-scroll only when user is near the bottom
+  useEffect(() => {
+    if (isNearBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    } else {
+      setShowScrollBtn(true)
+    }
   }, [messages.length, messages[messages.length - 1]])
 
   return (
-    <div style={{ height: '100%', overflowY: 'auto', padding: '16px 0' }}>
+    <div
+      ref={scrollContainerRef}
+      onScroll={handleScroll}
+      style={{ height: '100%', overflowY: 'auto', padding: '16px 0', position: 'relative' }}
+    >
       {messages.map((msg) => {
         if (msg.role === 'permission') {
           return (
@@ -63,6 +93,36 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
         />
       })}
       <div ref={bottomRef} />
+      {showScrollBtn && (
+        <button
+          onClick={scrollToBottom}
+          title="Scroll to bottom"
+          style={{
+            position: 'sticky',
+            bottom: 12,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            background: 'var(--accent)',
+            border: 'none',
+            color: '#fff',
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            zIndex: 10,
+            opacity: 0.9,
+            transition: 'opacity 0.15s',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.9')}
+        >
+          <ArrowDown size={16} />
+        </button>
+      )}
     </div>
   )
 }
