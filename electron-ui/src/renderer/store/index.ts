@@ -235,12 +235,12 @@ export const usePrefsStore = create<PrefsState>((set) => ({
 
 // ── UI store ────────────────────────────────────
 interface UiState {
-  sidebarTab: 'history' | 'settings'
+  sidebarTab: 'history' | 'files' | 'settings'
   sidebarOpen: boolean
   terminalOpen: boolean
   commandPaletteOpen: boolean
   toasts: ToastItem[]
-  setSidebarTab: (tab: 'history' | 'settings') => void
+  setSidebarTab: (tab: 'history' | 'files' | 'settings') => void
   setSidebarOpen: (v: boolean) => void
   setTerminalOpen: (v: boolean) => void
   setCommandPaletteOpen: (v: boolean) => void

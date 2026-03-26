@@ -3,7 +3,7 @@ import { ChatMessage } from '../../types/app.types'
 import Message from './Message'
 import PermissionCard from './PermissionCard'
 import PlanCard from './PlanCard'
-import { useChatStore } from '../../store'
+import { useChatStore, useUiStore } from '../../store'
 
 interface Props {
   messages: ChatMessage[]
@@ -15,6 +15,7 @@ interface Props {
 export default function MessageList({ messages, onPermission, onGrantPermission, sessionId }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const { resolvePlan, rateMessage } = useChatStore()
+  const { addToast } = useUiStore()
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -54,9 +55,9 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
             const isoTs = new Date(ts).toISOString()
             const result = await window.electronAPI.sessionRewind(sessionId, isoTs)
             if (result?.success) {
-              alert('文件已回滚到该消息之前的状态')
+              addToast('success', 'Files reverted to state before this message')
             } else {
-              alert('回滚失败：' + (result?.error || '未知错误'))
+              addToast('error', 'Rewind failed: ' + (result?.error || 'Unknown error'))
             }
           } : undefined}
         />

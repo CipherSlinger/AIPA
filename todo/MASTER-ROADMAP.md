@@ -30,20 +30,23 @@
 | Command Palette | `prd-command-palette-v1.md` | P1 | DONE (Iteration 2) |
 | Session Title Auto-Refresh | `prd-session-title-refresh-v1.md` | P1 | DONE (Iteration 2) |
 
-### Queued for Sprint 3
+### Sprint 3 (2026-03-26)
 
-| Feature | Priority | Notes |
-|---------|----------|-------|
-| Session Auto-Title | P1 | Backend `session:generateTitle` exists; need UI trigger on conversation end |
-| Command Palette | P1 | Menu entry + Ctrl+Shift+P wired; need `CommandPalette.tsx` component |
-| Wire Skeleton loaders | P1 | Components exist; need integration into SessionList/MessageList |
-| Session search polish | P1 | Store state exists; need search highlighting |
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Session Auto-Title | P1 | DONE (Sprint 2 Iteration 2) |
+| Command Palette | P1 | DONE (Sprint 2 Iteration 2) |
+| Wire Skeleton loaders | P1 | DONE (Sprint 2 Iteration 1 - SessionList) |
+| Session search polish | P1 | DONE (Sprint 2 Iteration 1 - highlighting) |
+| Global Keyboard Shortcuts | P2 | DONE (Sprint 2 Iteration 4) |
+| Message Context Menu | P1 | DONE (Iteration 5) |
+| File Browser in Sidebar | P1 | DONE (Iteration 7) |
 
 ### Queued for Sprint 4
 
 | Feature | Priority | Notes |
 |---------|----------|-------|
-| Keyboard shortcuts system | P2 | Global shortcut manager + configurable bindings |
+| Settings About section | P2 | Version info, links, reset to defaults |
 | Conversation branching UI | P1 | Backend fork/rewind exists; need visual branch tree |
 | Array-based content accumulation | P0-perf | Fix O(n^2) string concat in appendTextDelta |
 | Message virtualization | P1-perf | react-virtuoso for 100+ message conversations |

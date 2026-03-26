@@ -1,15 +1,17 @@
 import React from 'react'
-import { History, Settings } from 'lucide-react'
+import { History, FolderOpen, Settings } from 'lucide-react'
 import { useUiStore } from '../../store'
 import SessionList from '../sessions/SessionList'
+import FileBrowser from '../filebrowser/FileBrowser'
 import SettingsPanel from '../settings/SettingsPanel'
 
 export default function Sidebar() {
   const { sidebarTab, setSidebarTab } = useUiStore()
 
   const tabs = [
-    { id: 'history' as const, icon: History, label: '历史' },
-    { id: 'settings' as const, icon: Settings, label: '设置' },
+    { id: 'history' as const, icon: History, label: 'History' },
+    { id: 'files' as const, icon: FolderOpen, label: 'Files' },
+    { id: 'settings' as const, icon: Settings, label: 'Settings' },
   ]
 
   return (
@@ -43,6 +45,7 @@ export default function Sidebar() {
       {/* Tab content */}
       <div className="flex-1 overflow-auto">
         {sidebarTab === 'history' && <SessionList />}
+        {sidebarTab === 'files' && <FileBrowser />}
         {sidebarTab === 'settings' && <SettingsPanel />}
       </div>
     </div>

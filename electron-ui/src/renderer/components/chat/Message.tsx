@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { ChatMessage, StandardChatMessage } from '../../types/app.types'
 import MessageContent from './MessageContent'
 import ToolUseBlock from './ToolUseBlock'
+import MessageContextMenu from './MessageContextMenu'
 import { User, Bot, Copy, ChevronDown, ChevronRight } from 'lucide-react'
 
 interface Props {
@@ -16,22 +17,31 @@ export default React.memo(function Message({ message, onRate, onRewind }: Props)
   const [hovered, setHovered] = useState(false)
   const [copied, setCopied] = useState(false)
   const [thinkingExpanded, setThinkingExpanded] = useState(false)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
 
   const thinking = message.role !== 'permission' ? (message as StandardChatMessage).thinking : undefined
 
-  function handleCopy() {
-    if (message.role !== 'assistant') return
-    const text = message.content
+  const handleCopy = useCallback(() => {
+    const text = (message as StandardChatMessage).content
+    if (!text) return
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })
-  }
+  }, [message])
+
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    // Don't show custom menu for permission/plan cards
+    if (message.role === 'permission' || message.role === 'plan') return
+    e.preventDefault()
+    setContextMenu({ x: e.clientX, y: e.clientY })
+  }, [message.role])
 
   return (
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onContextMenu={handleContextMenu}
       style={{
         padding: '8px 20px',
         display: 'flex',
@@ -142,7 +152,7 @@ export default React.memo(function Message({ message, onRate, onRewind }: Props)
       {isAssistant && hovered && (
         <button
           onClick={handleCopy}
-          title="复制"
+          title="Copy"
           style={{
             position: 'absolute',
             top: 8,
@@ -161,67 +171,27 @@ export default React.memo(function Message({ message, onRate, onRewind }: Props)
           }}
         >
           {copied ? (
-            '已复制 ✓'
+            'Copied'
           ) : (
             <Copy size={13} />
           )}
         </button>
       )}
-      {isAssistant && hovered && onRate && (
-        <div style={{ display: 'flex', gap: 4, position: 'absolute', top: 8, right: 80 }}>
-          <button
-            onClick={() => {
-              const cur = (message as StandardChatMessage).rating
-              onRate(message.id, cur === 'up' ? null : 'up')
-            }}
-            title="有用"
-            style={{
-              background: (message as StandardChatMessage).rating === 'up' ? 'var(--success)' : 'none',
-              border: '1px solid var(--border)',
-              borderRadius: 4, padding: '2px 6px',
-              color: (message as StandardChatMessage).rating === 'up' ? '#fff' : 'var(--text-muted)',
-              cursor: 'pointer', fontSize: 12,
-            }}
-          >👍</button>
-          <button
-            onClick={() => {
-              const cur = (message as StandardChatMessage).rating
-              onRate(message.id, cur === 'down' ? null : 'down')
-            }}
-            title="无用"
-            style={{
-              background: (message as StandardChatMessage).rating === 'down' ? 'var(--error)' : 'none',
-              border: '1px solid var(--border)',
-              borderRadius: 4, padding: '2px 6px',
-              color: (message as StandardChatMessage).rating === 'down' ? '#fff' : 'var(--text-muted)',
-              cursor: 'pointer', fontSize: 12,
-            }}
-          >👎</button>
-        </div>
-      )}
-      {isAssistant && hovered && onRewind && (message as StandardChatMessage).timestamp && (
-        <button
-          onClick={() => onRewind((message as StandardChatMessage).timestamp)}
-          title="回滚到此处（恢复 Claude 在此消息后修改的文件）"
-          style={{
-            position: 'absolute',
-            top: 8,
-            right: 148,
-            background: 'var(--bg-primary, #1e1e2e)',
-            border: '1px solid var(--border, #3a3a4a)',
-            borderRadius: 4,
-            padding: '2px 6px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            fontSize: 11,
-            color: 'var(--text-muted)',
-            lineHeight: 1.4,
-          }}
-        >
-          ↩ 回滚
-        </button>
+
+      {/* Context menu */}
+      {contextMenu && (
+        <MessageContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          message={message}
+          onCopy={handleCopy}
+          onRate={onRate ? (rating) => onRate(message.id, rating) : undefined}
+          onRewind={onRewind && (message as StandardChatMessage).timestamp
+            ? () => onRewind((message as StandardChatMessage).timestamp)
+            : undefined
+          }
+          onClose={() => setContextMenu(null)}
+        />
       )}
     </div>
   )

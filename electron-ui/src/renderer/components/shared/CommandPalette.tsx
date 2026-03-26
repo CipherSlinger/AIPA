@@ -90,6 +90,14 @@ export default function CommandPalette({
         category: 'action',
       },
       {
+        id: 'open-files',
+        name: 'Open File Browser',
+        description: 'Browse working directory files in sidebar',
+        icon: <FolderOpen size={14} />,
+        action: () => { setSidebarOpen(true); setSidebarTab('files'); onClose() },
+        category: 'action',
+      },
+      {
         id: 'change-working-dir',
         name: 'Change Working Directory',
         description: 'Open folder dialog to change working directory',
