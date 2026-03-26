@@ -3,7 +3,7 @@ import { ChatMessage, StandardChatMessage } from '../../types/app.types'
 import MessageContent from './MessageContent'
 import ToolUseBlock from './ToolUseBlock'
 import MessageContextMenu from './MessageContextMenu'
-import { User, Bot, Copy, ChevronDown, ChevronRight } from 'lucide-react'
+import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark } from 'lucide-react'
 
 function relativeTime(ts: number): string {
   const diff = Math.floor((Date.now() - ts) / 1000)
@@ -22,10 +22,11 @@ interface Props {
   message: ChatMessage
   onRate?: (msgId: string, rating: 'up' | 'down' | null) => void
   onRewind?: (msgTimestamp: number) => void
+  onBookmark?: (msgId: string) => void
   searchQuery?: string
 }
 
-export default React.memo(function Message({ message, onRate, onRewind, searchQuery }: Props) {
+export default React.memo(function Message({ message, onRate, onRewind, onBookmark, searchQuery }: Props) {
   const isUser = message.role === 'user'
   const isAssistant = message.role === 'assistant'
   const [hovered, setHovered] = useState(false)
@@ -103,6 +104,9 @@ export default React.memo(function Message({ message, onRate, onRewind, searchQu
             >
               {relativeTime(message.timestamp)}
             </span>
+          )}
+          {message.role !== 'permission' && message.role !== 'plan' && (message as StandardChatMessage).bookmarked && (
+            <Bookmark size={11} style={{ color: 'var(--warning)', fill: 'var(--warning)' }} />
           )}
         </div>
 
@@ -210,6 +214,7 @@ export default React.memo(function Message({ message, onRate, onRewind, searchQu
           message={message}
           onCopy={handleCopy}
           onRate={onRate ? (rating) => onRate(message.id, rating) : undefined}
+          onBookmark={onBookmark ? () => onBookmark(message.id) : undefined}
           onRewind={onRewind && (message as StandardChatMessage).timestamp
             ? () => onRewind((message as StandardChatMessage).timestamp)
             : undefined
@@ -227,6 +232,7 @@ export default React.memo(function Message({ message, onRate, onRewind, searchQu
   if (pm.content !== nm.content) return false
   if (pm.isStreaming !== nm.isStreaming) return false
   if (pm.rating !== nm.rating) return false
+  if (pm.bookmarked !== nm.bookmarked) return false
   if (pm.thinking !== nm.thinking) return false
   if ((pm.toolUses?.length ?? 0) !== (nm.toolUses?.length ?? 0)) return false
   if (prevProps.searchQuery !== nextProps.searchQuery) return false

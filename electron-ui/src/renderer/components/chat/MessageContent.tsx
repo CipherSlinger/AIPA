@@ -146,8 +146,43 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
           ol({ children }) {
             return <ol style={{ paddingLeft: 20, marginBottom: 10 }}>{children}</ol>
           },
-          li({ children }) {
+          li({ children, ...props }) {
+            // Detect task list items (GFM checkboxes)
+            const className = (props as any).className as string | undefined
+            if (className && className.includes('task-list-item')) {
+              return (
+                <li style={{ marginBottom: 4, listStyle: 'none', marginLeft: -20, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                  {children}
+                </li>
+              )
+            }
             return <li style={{ marginBottom: 4 }}>{children}</li>
+          },
+          input({ type, checked, ...props }) {
+            if (type === 'checkbox') {
+              return (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 14,
+                    height: 14,
+                    borderRadius: 3,
+                    border: checked ? 'none' : '1.5px solid var(--text-muted)',
+                    background: checked ? 'var(--accent)' : 'transparent',
+                    color: '#fff',
+                    fontSize: 10,
+                    flexShrink: 0,
+                    marginTop: 3,
+                    cursor: 'default',
+                  }}
+                >
+                  {checked && '\u2713'}
+                </span>
+              )
+            }
+            return <input type={type} checked={checked} readOnly {...props} />
           },
           blockquote({ children }) {
             return (

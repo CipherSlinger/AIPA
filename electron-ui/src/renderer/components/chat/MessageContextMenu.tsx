@@ -9,10 +9,11 @@ interface ContextMenuProps {
   onCopy: () => void
   onRate?: (rating: 'up' | 'down' | null) => void
   onRewind?: () => void
+  onBookmark?: () => void
   onClose: () => void
 }
 
-export default function MessageContextMenu({ x, y, message, onCopy, onRate, onRewind, onClose }: ContextMenuProps) {
+export default function MessageContextMenu({ x, y, message, onCopy, onRate, onRewind, onBookmark, onClose }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Clamp position to viewport
@@ -52,6 +53,7 @@ export default function MessageContextMenu({ x, y, message, onCopy, onRate, onRe
 
   const isAssistant = message.role === 'assistant'
   const rating = isAssistant ? (message as StandardChatMessage).rating : undefined
+  const isBookmarked = message.role !== 'permission' && message.role !== 'plan' ? (message as StandardChatMessage).bookmarked : false
 
   const itemStyle: React.CSSProperties = {
     display: 'flex',
@@ -97,6 +99,19 @@ export default function MessageContextMenu({ x, y, message, onCopy, onRate, onRe
         <span>Copy text</span>
         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Ctrl+C</span>
       </button>
+
+      {/* Bookmark */}
+      {onBookmark && message.role !== 'permission' && message.role !== 'plan' && (
+        <button
+          style={itemStyle}
+          onClick={() => { onBookmark(); onClose() }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover, var(--bg-active))' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+        >
+          <span>{isBookmarked ? 'Remove bookmark' : 'Bookmark'}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{isBookmarked ? '\u2605' : '\u2606'}</span>
+        </button>
+      )}
 
       {/* Assistant-only: rating */}
       {isAssistant && onRate && (

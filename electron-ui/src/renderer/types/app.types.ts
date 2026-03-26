@@ -36,6 +36,7 @@ export interface StandardChatMessage {
   isStreaming?: boolean
   attachments?: { name: string; dataUrl: string }[]  // image attachments
   rating?: 'up' | 'down' | null
+  bookmarked?: boolean
   /** Internal: accumulated content chunks during streaming (joined into content on stream end) */
   _contentChunks?: string[]
   /** Internal: accumulated thinking chunks during streaming */
