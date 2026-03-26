@@ -30,11 +30,12 @@ export default function Sidebar() {
               alignItems: 'center',
               justifyContent: 'center',
               background: sidebarTab === id ? 'var(--bg-active)' : 'transparent',
-              borderBottom: sidebarTab === id ? '2px solid var(--accent)' : '2px solid transparent',
               color: sidebarTab === id ? 'var(--text-bright)' : 'var(--text-muted)',
               cursor: 'pointer',
               border: 'none',
+              borderBottom: sidebarTab === id ? '2px solid var(--accent)' : '2px solid transparent',
               outline: 'none',
+              transition: 'color 0.15s, background 0.15s',
             }}
           >
             <Icon size={16} />

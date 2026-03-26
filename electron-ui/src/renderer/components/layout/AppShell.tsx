@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { useUiStore } from '../../store'
+import { useChatStore, useUiStore } from '../../store'
 import Sidebar from './Sidebar'
 import ChatPanel from '../chat/ChatPanel'
 import TerminalPanel from '../terminal/TerminalPanel'
@@ -13,6 +13,7 @@ const MAX_TERMINAL = 800
 
 export default function AppShell() {
   const { sidebarOpen, terminalOpen } = useUiStore()
+  const { currentSessionTitle } = useChatStore()
   const [sidebarWidth, setSidebarWidth] = useState(240)
   const [terminalWidth, setTerminalWidth] = useState(420)
   const draggingRef = useRef<'sidebar' | 'terminal' | null>(null)
@@ -64,8 +65,30 @@ export default function AppShell() {
       {/* Title bar drag region */}
       <div
         className="drag-region"
-        style={{ height: 32, background: 'var(--bg-sidebar)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}
-      />
+        style={{
+          height: 32,
+          background: 'var(--bg-sidebar)',
+          borderBottom: '1px solid var(--border)',
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          userSelect: 'none',
+        }}
+      >
+        <span style={{
+          fontSize: 11,
+          color: 'var(--text-muted)',
+          opacity: 0.7,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          maxWidth: '60%',
+          pointerEvents: 'none',
+        }}>
+          {currentSessionTitle ? `AIPA — ${currentSessionTitle}` : 'AIPA'}
+        </span>
+      </div>
 
       {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
