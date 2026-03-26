@@ -3,11 +3,12 @@ import { PanelLeft, Terminal, DollarSign } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 
 export default function StatusBar() {
-  const { workingDir, lastUsage, lastCost, totalSessionCost, lastContextUsage } = useChatStore()
+  const { workingDir, lastUsage, lastCost, totalSessionCost, lastContextUsage, isStreaming, messages } = useChatStore()
   const { prefs } = usePrefsStore()
   const { toggleSidebar, toggleTerminal, sidebarOpen, terminalOpen } = useUiStore()
 
   const dirLabel = workingDir || prefs.workingDir || '~'
+  const dirShort = dirLabel.split(/[/\\]/).pop() || dirLabel
   const modelLabel = prefs.model || 'claude-sonnet-4-6'
   const shortModel = modelLabel
     .replace('claude-', '')
@@ -49,10 +50,36 @@ export default function StatusBar() {
         <PanelLeft size={12} />
       </button>
 
-      <span style={{ opacity: 0.8 }}>📁</span>
-      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', opacity: 0.85 }}>
-        {dirLabel}
+      <span style={{ opacity: 0.8 }}>{'\uD83D\uDCC1'}</span>
+      <span
+        style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', opacity: 0.85 }}
+        title={dirLabel}
+      >
+        {dirShort}
       </span>
+
+      {/* Streaming indicator */}
+      {isStreaming && (
+        <span style={{ display: 'flex', alignItems: 'center', gap: 3, opacity: 0.9 }}>
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: '#4ade80',
+              animation: 'pulse 1.2s ease-in-out infinite',
+            }}
+          />
+          <span style={{ fontSize: 10 }}>Streaming</span>
+        </span>
+      )}
+
+      {/* Message count */}
+      {messages.length > 0 && !isStreaming && (
+        <span style={{ opacity: 0.7, fontSize: 10 }}>
+          {messages.filter(m => m.role !== 'permission' && m.role !== 'plan').length} msgs
+        </span>
+      )}
 
       {/* Context window usage bar */}
       {contextPct !== null && (

@@ -943,6 +943,54 @@ export default function ChatPanel() {
               ))}
             </div>
           )}
+          {/* Quick action bar above input */}
+          <div style={{ display: 'flex', gap: 4, marginBottom: 4, opacity: 0.6 }}>
+            <button
+              onClick={() => { setInput(''); textareaRef.current?.focus() }}
+              title="Clear input"
+              style={{
+                background: 'none', border: 'none', color: 'var(--text-muted)',
+                cursor: 'pointer', fontSize: 10, padding: '1px 4px', borderRadius: 3,
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
+            >
+              Clear
+            </button>
+            <button
+              onClick={() => {
+                setInput(prev => prev + '@')
+                setAtQuery('')
+                textareaRef.current?.focus()
+              }}
+              title="Insert @mention"
+              style={{
+                background: 'none', border: 'none', color: 'var(--text-muted)',
+                cursor: 'pointer', fontSize: 10, padding: '1px 4px', borderRadius: 3,
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
+            >
+              @file
+            </button>
+            <button
+              onClick={() => {
+                setInput('/')
+                setSlashQuery('')
+                setSlashIndex(0)
+                textareaRef.current?.focus()
+              }}
+              title="Insert slash command"
+              style={{
+                background: 'none', border: 'none', color: 'var(--text-muted)',
+                cursor: 'pointer', fontSize: 10, padding: '1px 4px', borderRadius: 3,
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
+            >
+              /cmd
+            </button>
+          </div>
           {/* Input row */}
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
             {atQuery !== null && (
