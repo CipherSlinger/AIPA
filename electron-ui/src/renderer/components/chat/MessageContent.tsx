@@ -119,6 +119,27 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
           p({ children }) {
             return <p style={{ marginBottom: 10 }}>{children}</p>
           },
+          a({ href, children }) {
+            return (
+              <a
+                href={href}
+                onClick={(e) => {
+                  e.preventDefault()
+                  if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
+                    window.electronAPI.shellOpenExternal(href)
+                  }
+                }}
+                style={{
+                  color: 'var(--accent)',
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                }}
+                title={href}
+              >
+                {children}
+              </a>
+            )
+          },
           ul({ children }) {
             return <ul style={{ paddingLeft: 20, marginBottom: 10 }}>{children}</ul>
           },
@@ -159,6 +180,18 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
           },
           td({ children }) {
             return <td style={{ border: '1px solid var(--border)', padding: '6px 12px' }}>{children}</td>
+          },
+          hr() {
+            return <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '16px 0' }} />
+          },
+          h1({ children }) {
+            return <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12, marginTop: 16, color: 'var(--text-bright)' }}>{children}</h1>
+          },
+          h2({ children }) {
+            return <h2 style={{ fontSize: 17, fontWeight: 600, marginBottom: 10, marginTop: 14, color: 'var(--text-bright)' }}>{children}</h2>
+          },
+          h3({ children }) {
+            return <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 8, marginTop: 12, color: 'var(--text-bright)' }}>{children}</h3>
           },
         }}
       >
