@@ -10,30 +10,40 @@ interface Props {
 const TOOL_ICONS: Record<string, React.ElementType> = {
   Bash: Terminal,
   computer: Terminal,
+  Write: FileEdit,
+  Edit: FileEdit,
+  MultiEdit: FileEdit,
+  Read: FileEdit,
   str_replace_editor: FileEdit,
   str_replace_based_edit_tool: FileEdit,
   create_file: FileEdit,
   read_file: FileEdit,
   Glob: Search,
+  LS: Search,
   Grep: Search,
   WebFetch: Globe,
   WebSearch: Globe,
 }
 
 const TOOL_LABELS: Record<string, string> = {
-  Bash: 'Bash 命令',
-  str_replace_editor: '编辑文件',
-  str_replace_based_edit_tool: '编辑文件',
-  create_file: '创建文件',
-  read_file: '读取文件',
-  Glob: '文件搜索',
-  Grep: '内容搜索',
-  WebFetch: '获取网页',
-  WebSearch: '网络搜索',
+  Bash: 'Bash',
+  Write: 'Write File',
+  Edit: 'Edit File',
+  MultiEdit: 'Multi-Edit',
+  Read: 'Read File',
+  str_replace_editor: 'Edit File',
+  str_replace_based_edit_tool: 'Edit File',
+  create_file: 'Create File',
+  read_file: 'Read File',
+  Glob: 'File Search',
+  LS: 'List Files',
+  Grep: 'Content Search',
+  WebFetch: 'Web Fetch',
+  WebSearch: 'Web Search',
 }
 
 const BASH_TOOLS = new Set(['Bash', 'computer'])
-const FILE_EDIT_TOOLS = new Set(['str_replace_editor', 'str_replace_based_edit_tool'])
+const FILE_EDIT_TOOLS = new Set(['Edit', 'MultiEdit', 'str_replace_editor', 'str_replace_based_edit_tool'])
 
 function formatElapsed(seconds: number): string {
   if (seconds < 60) return `${seconds}s`

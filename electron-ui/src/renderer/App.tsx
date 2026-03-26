@@ -92,10 +92,25 @@ export default function App() {
         setSidebarOpen(true)
         setSidebarTab('settings')
       }
+      // Ctrl+B: Toggle sidebar
+      if (e.ctrlKey && !e.shiftKey && e.key === 'b') {
+        e.preventDefault()
+        toggleSidebar()
+      }
+      // Ctrl+`: Toggle terminal
+      if (e.ctrlKey && !e.shiftKey && e.key === '`') {
+        e.preventDefault()
+        toggleTerminal()
+      }
+      // Ctrl+Shift+P: Command palette
+      if (e.ctrlKey && e.shiftKey && e.key === 'P') {
+        e.preventDefault()
+        toggleCommandPalette()
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [setSidebarOpen, setSidebarTab])
+  }, [setSidebarOpen, setSidebarTab, toggleSidebar, toggleTerminal, toggleCommandPalette])
 
   return (
     <ErrorBoundary fallbackLabel="application">
