@@ -324,6 +324,13 @@ export default function ChatPanel() {
     textareaRef.current?.focus()
   }, [])
 
+  // Listen for focus request from global shortcut (Ctrl+L)
+  useEffect(() => {
+    const handler = () => textareaRef.current?.focus()
+    window.addEventListener('aipa:focusInput', handler)
+    return () => window.removeEventListener('aipa:focusInput', handler)
+  }, [])
+
   // Slash command keyboard navigation
   useEffect(() => {
     if (slashQuery === null) return
@@ -568,7 +575,7 @@ export default function ChatPanel() {
           </div>
         </div>
         <div style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: 10, marginTop: 4 }}>
-          @ 引用文件 · Enter 发送 · Shift+Enter 换行
+          @ files | Enter send | Shift+Enter newline | Ctrl+L focus | Ctrl+Shift+P commands
         </div>
       </div>
     </div>

@@ -11,7 +11,7 @@ import 'highlight.js/styles/github-dark.css'
 export default function App() {
   const { prefs, setPrefs, setLoaded } = usePrefsStore()
   const { setWorkingDir } = useChatStore()
-  const { toggleSidebar, toggleTerminal, commandPaletteOpen, setCommandPaletteOpen, toggleCommandPalette, toasts, removeToast } = useUiStore()
+  const { toggleSidebar, toggleTerminal, commandPaletteOpen, setCommandPaletteOpen, toggleCommandPalette, setSidebarOpen, setSidebarTab, toasts, removeToast } = useUiStore()
   const [showOnboarding, setShowOnboarding] = useState(false)
 
   // Load preferences on startup
@@ -77,6 +77,25 @@ export default function App() {
       document.documentElement.setAttribute('data-theme', theme)
     }
   }, [prefs.theme])
+
+  // Global keyboard shortcuts (renderer-side, supplements menu accelerators)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // Ctrl+L: Focus chat input
+      if (e.ctrlKey && !e.shiftKey && e.key === 'l') {
+        e.preventDefault()
+        window.dispatchEvent(new CustomEvent('aipa:focusInput'))
+      }
+      // Ctrl+,: Open settings
+      if (e.ctrlKey && !e.shiftKey && e.key === ',') {
+        e.preventDefault()
+        setSidebarOpen(true)
+        setSidebarTab('settings')
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [setSidebarOpen, setSidebarTab])
 
   return (
     <ErrorBoundary fallbackLabel="application">
