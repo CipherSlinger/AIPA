@@ -1,8 +1,9 @@
 import React from 'react'
+import ReactDOM from 'react-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
-import { Copy, Check, ChevronDown, ChevronUp } from 'lucide-react'
+import { Copy, Check, ChevronDown, ChevronUp, ZoomIn } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 
 interface Props {
@@ -118,6 +119,107 @@ function CollapsiblePre({ children, className }: { children: React.ReactNode; cl
         </button>
       )}
     </div>
+  )
+}
+
+function MarkdownImage({ src, alt }: { src?: string; alt?: string }) {
+  const [showLightbox, setShowLightbox] = useState(false)
+
+  if (!src) return null
+
+  return (
+    <>
+      <span
+        onClick={() => setShowLightbox(true)}
+        style={{
+          display: 'inline-block',
+          position: 'relative',
+          cursor: 'zoom-in',
+          borderRadius: 6,
+          overflow: 'hidden',
+          border: '1px solid var(--border)',
+          maxWidth: '100%',
+          marginBottom: 8,
+        }}
+      >
+        <img
+          src={src}
+          alt={alt || ''}
+          style={{ maxWidth: '100%', maxHeight: 400, display: 'block', borderRadius: 6 }}
+        />
+        <span
+          style={{
+            position: 'absolute',
+            bottom: 6,
+            right: 6,
+            background: 'rgba(0,0,0,0.6)',
+            borderRadius: 4,
+            padding: '2px 6px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 3,
+            color: '#ccc',
+            fontSize: 10,
+            opacity: 0.7,
+          }}
+        >
+          <ZoomIn size={10} />
+          Click to zoom
+        </span>
+      </span>
+      {showLightbox && (
+        <ImageLightboxInline src={src} alt={alt || 'Image'} onClose={() => setShowLightbox(false)} />
+      )}
+    </>
+  )
+}
+
+function ImageLightboxInline({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
+
+  return ReactDOM.createPortal(
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 300,
+        background: 'rgba(0,0,0,0.85)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'zoom-out',
+      }}
+    >
+      <img
+        src={src}
+        alt={alt}
+        onClick={(e) => e.stopPropagation()}
+        style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8, cursor: 'default' }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 20,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          color: 'var(--text-muted)',
+          fontSize: 12,
+          background: 'rgba(0,0,0,0.6)',
+          padding: '4px 12px',
+          borderRadius: 4,
+        }}
+      >
+        {alt} &middot; Esc to close
+      </div>
+    </div>,
+    document.body
   )
 }
 
@@ -367,6 +469,9 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
           },
           hr() {
             return <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '16px 0' }} />
+          },
+          img({ src, alt }) {
+            return <MarkdownImage src={src} alt={alt} />
           },
           h1({ children }) {
             return <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12, marginTop: 16, color: 'var(--text-bright)' }}>{children}</h1>

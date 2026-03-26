@@ -10,6 +10,7 @@ interface PaletteCommand {
   name: string
   description: string
   icon?: React.ReactNode
+  shortcut?: string
   action: () => void
   category: 'action' | 'slash' | 'session'
 }
@@ -48,6 +49,7 @@ export default function CommandPalette({
         name: 'New Conversation',
         description: 'Clear current chat and start fresh',
         icon: <Plus size={14} />,
+        shortcut: 'Ctrl+N',
         action: () => { onNewConversation(); onClose() },
         category: 'action',
       },
@@ -56,6 +58,7 @@ export default function CommandPalette({
         name: 'Export Conversation',
         description: 'Save conversation as Markdown or JSON',
         icon: <Download size={14} />,
+        shortcut: 'Ctrl+Shift+E',
         action: () => { onExport(); onClose() },
         category: 'action',
       },
@@ -64,6 +67,7 @@ export default function CommandPalette({
         name: 'Toggle Sidebar',
         description: 'Show or hide the sidebar panel',
         icon: <PanelLeft size={14} />,
+        shortcut: 'Ctrl+B',
         action: () => { toggleSidebar(); onClose() },
         category: 'action',
       },
@@ -72,6 +76,7 @@ export default function CommandPalette({
         name: 'Toggle Terminal',
         description: 'Show or hide the terminal panel',
         icon: <Terminal size={14} />,
+        shortcut: 'Ctrl+`',
         action: () => { toggleTerminal(); onClose() },
         category: 'action',
       },
@@ -80,6 +85,7 @@ export default function CommandPalette({
         name: 'Open Settings',
         description: 'Open the settings panel in sidebar',
         icon: <Settings size={14} />,
+        shortcut: 'Ctrl+,',
         action: () => { setSidebarOpen(true); setSidebarTab('settings'); onClose() },
         category: 'action',
       },
@@ -364,6 +370,22 @@ export default function CommandPalette({
                   {cmd.description}
                 </div>
               </div>
+              {cmd.shortcut && (
+                <kbd
+                  style={{
+                    fontSize: 9,
+                    color: 'var(--text-muted)',
+                    background: 'var(--bg-primary)',
+                    border: '1px solid var(--border)',
+                    padding: '1px 5px',
+                    borderRadius: 3,
+                    fontFamily: 'monospace',
+                    flexShrink: 0,
+                  }}
+                >
+                  {cmd.shortcut}
+                </kbd>
+              )}
               {(cmd.category === 'slash' || cmd.category === 'session') && (
                 <span
                   style={{
