@@ -51,6 +51,11 @@ export default function ChatPanel() {
   const [listening, setListening] = useState(false)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
 
+  // Input history (sent messages)
+  const inputHistoryRef = useRef<string[]>([])
+  const historyIdxRef = useRef(-1)
+  const tempInputRef = useRef('')
+
   // Drag-and-drop state
   const [isDragOver, setIsDragOver] = useState(false)
   const dragCounterRef = useRef(0)
@@ -129,6 +134,11 @@ export default function ChatPanel() {
   const handleSend = async () => {
     const text = input.trim()
     if (!text && attachments.length === 0 || isStreaming) return
+    // Save to input history
+    if (text) {
+      inputHistoryRef.current = [text, ...inputHistoryRef.current.filter(h => h !== text)].slice(0, 50)
+      historyIdxRef.current = -1
+    }
     setInput('')
     setAtQuery(null)
     clearAttachments()
@@ -291,6 +301,28 @@ export default function ChatPanel() {
     }
     if (slashQuery !== null && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === 'Escape')) {
       return // SlashCommandPopup handles these keys via useEffect
+    }
+    // Input history navigation (only when cursor is at line boundaries)
+    if (e.key === 'ArrowUp' && !e.shiftKey && atQuery === null && slashQuery === null) {
+      const ta = textareaRef.current
+      if (ta && ta.selectionStart === 0 && ta.selectionEnd === 0 && inputHistoryRef.current.length > 0) {
+        e.preventDefault()
+        if (historyIdxRef.current === -1) {
+          tempInputRef.current = input
+        }
+        const nextIdx = Math.min(historyIdxRef.current + 1, inputHistoryRef.current.length - 1)
+        historyIdxRef.current = nextIdx
+        setInput(inputHistoryRef.current[nextIdx])
+      }
+    }
+    if (e.key === 'ArrowDown' && !e.shiftKey && atQuery === null && slashQuery === null) {
+      const ta = textareaRef.current
+      if (ta && ta.selectionStart === input.length && historyIdxRef.current >= 0) {
+        e.preventDefault()
+        const nextIdx = historyIdxRef.current - 1
+        historyIdxRef.current = nextIdx
+        setInput(nextIdx >= 0 ? inputHistoryRef.current[nextIdx] : tempInputRef.current)
+      }
     }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
