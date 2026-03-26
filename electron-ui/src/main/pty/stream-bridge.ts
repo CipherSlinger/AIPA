@@ -89,7 +89,7 @@ export class StreamBridge extends EventEmitter {
     rl.on('line', (line) => {
       const trimmed = line.trim()
       if (!trimmed) return
-      console.log('[StreamBridge] stdout:', trimmed.slice(0, 200))
+      log.debug('stdout:', trimmed.slice(0, 200))
       try {
         const event = JSON.parse(trimmed)
         this.handleStreamEvent(event)
@@ -270,7 +270,7 @@ class StreamBridgeManager {
     const bridge = this.bridges.get(sessionId)
     if (bridge) {
       bridge.endSession()
-      try { bridge.abort() } catch {}
+      try { bridge.abort() } catch (err) { log.debug('abort failed:', String(err)) }
     }
     this.bridges.delete(sessionId)
   }

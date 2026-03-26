@@ -60,9 +60,15 @@ export function sanitizeEnv(overrides: Record<string, string> = {}): Record<stri
     }
   }
 
-  // Always merge the caller-provided overrides (these come from the renderer, e.g. ANTHROPIC_API_KEY)
+  // Merge caller-provided overrides — only allowlisted keys pass through
+  // to prevent the renderer from injecting arbitrary env vars (e.g. LD_PRELOAD).
   for (const [key, value] of Object.entries(overrides)) {
-    result[key] = value
+    const upperKey = key.toUpperCase()
+    const allowed = ALWAYS_PASS.has(key) || ALWAYS_PASS.has(upperKey)
+      || CONDITIONAL_PASS.has(key) || CONDITIONAL_PASS.has(upperKey)
+    if (allowed) {
+      result[key] = value
+    }
   }
 
   return result

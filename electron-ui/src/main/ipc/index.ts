@@ -59,6 +59,10 @@ function registerPtyHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
 // ────────────────────────────────────────────
 function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknown[]) => void): void {
   ipcMain.handle('cli:sendMessage', async (_e, args) => {
+    // Validate and sanitize renderer-supplied flags and model (defence-in-depth)
+    if (args.flags) args.flags = validateFlags(args.flags)
+    if (args.model) validateModelName(args.model)
+
     const skipPermissions: boolean = !!(args.flags || []).includes('--dangerously-skip-permissions')
 
     // Reuse existing bridge if one is active for this conversation
@@ -209,7 +213,8 @@ function registerFsHandlers(): void {
 
   ipcMain.handle('fs:showSaveDialog', async (e, { defaultName, filters }: { defaultName: string; filters: { name: string; extensions: string[] }[] }) => {
     const win = BrowserWindow.fromWebContents(e.sender)
-    const result = await dialog.showSaveDialog(win!, { defaultPath: defaultName, filters })
+    if (!win) return null
+    const result = await dialog.showSaveDialog(win, { defaultPath: defaultName, filters })
     return result.canceled ? null : result.filePath
   })
 
@@ -252,6 +257,17 @@ function registerFsHandlers(): void {
   })
 
   ipcMain.handle('fs:listCommands', (_e, workingDir: string) => {
+    // Validate workingDir is within allowed roots before using it to build paths
+    if (workingDir) {
+      try {
+        const allowedRoots = getAllowedFsRoots(getPref('workingDir'))
+        safePath(workingDir, allowedRoots)
+      } catch (err) {
+        log.warn('fs:listCommands rejected unsafe workingDir:', String(err))
+        // Ignore project-level commands from untrusted workingDir; fall through with empty list
+        workingDir = ''
+      }
+    }
     const commandDirs = [
       path.join(os.homedir(), '.claude', 'commands'),
       ...(workingDir ? [path.join(workingDir, '.claude', 'commands')] : []),
