@@ -42,13 +42,17 @@ export default function AppShell() {
       else setTerminalWidth(newWidth)
     }
 
-    const onUp = () => {
+    const onUp = (ev: MouseEvent) => {
       draggingRef.current = null
       document.removeEventListener('mousemove', onMove)
       document.removeEventListener('mouseup', onUp)
-      // Persist widths
-      window.electronAPI.prefsSet(which === 'sidebar' ? 'sidebarWidth' : 'terminalWidth',
-        which === 'sidebar' ? sidebarWidth : terminalWidth)
+      // Compute final width from the last mouse position to avoid stale closure
+      const delta = which === 'sidebar' ? ev.clientX - startX : startX - ev.clientX
+      const finalWidth = Math.min(
+        Math.max(startWidth + delta, which === 'sidebar' ? MIN_SIDEBAR : MIN_TERMINAL),
+        which === 'sidebar' ? MAX_SIDEBAR : MAX_TERMINAL
+      )
+      window.electronAPI.prefsSet(which === 'sidebar' ? 'sidebarWidth' : 'terminalWidth', finalWidth)
     }
 
     document.addEventListener('mousemove', onMove)
@@ -74,8 +78,10 @@ export default function AppShell() {
             {/* Sidebar resize handle */}
             <div
               className="resizer"
-              style={{ width: 4, flexShrink: 0, background: 'var(--border)', cursor: 'col-resize' }}
+              style={{ width: 4, flexShrink: 0, background: 'var(--border)', cursor: 'col-resize', transition: 'background 0.15s' }}
               onMouseDown={startDrag('sidebar')}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--accent)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--border)')}
             />
           </>
         )}
@@ -92,8 +98,10 @@ export default function AppShell() {
           <>
             <div
               className="resizer"
-              style={{ width: 4, flexShrink: 0, background: 'var(--border)', cursor: 'col-resize' }}
+              style={{ width: 4, flexShrink: 0, background: 'var(--border)', cursor: 'col-resize', transition: 'background 0.15s' }}
               onMouseDown={startDrag('terminal')}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--accent)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--border)')}
             />
             <div style={{ width: terminalWidth, flexShrink: 0, overflow: 'hidden' }}>
               <ErrorBoundary fallbackLabel="terminal panel">
