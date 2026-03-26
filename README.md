@@ -32,7 +32,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Message rating** — thumbs up/down on assistant messages via right-click context menu
 - **Message context menu** — right-click any message for quick actions: copy, rate, rewind to checkpoint
 - **Thinking blocks** — collapsible extended thinking display
-- **Token usage & cost** — live context usage and cost shown in status bar
+- **Token usage & cost** — live context usage bar, per-turn token counts, and cumulative session cost in status bar
 - **Permission prompts** — friendly allow/deny cards for tool permission requests (Bash, Write, Edit, WebFetch, etc.)
 - **Slash commands** — `/` popup with available commands in the input box
 - **@mention popup** — mention files or contexts with `@`
@@ -44,6 +44,11 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Keyboard shortcuts** — `Ctrl+N` new conversation, `Ctrl+B` toggle sidebar, `Ctrl+`` toggle terminal, `Ctrl+L` focus input, `Ctrl+,` settings, `Ctrl+Shift+E` export
 - **Session auto-title** — conversations are automatically titled after the first exchange, with live sidebar refresh
 - **System prompt** — inject a custom system prompt per session
+- **Smart auto-scroll** — auto-scroll respects user intent; scroll-to-bottom button appears when reading earlier messages
+- **Streaming elapsed timer** — real-time timer shows how long Claude has been working
+- **Settings About tab** — version info, external links, keyboard shortcut reference, runtime info, reset to defaults
+- **Virtual message list** — uses `@tanstack/react-virtual` for smooth performance with 100+ messages
+- **RAF-throttled streaming** — text deltas are batched via `requestAnimationFrame` for minimal UI overhead
 
 ## Security
 
