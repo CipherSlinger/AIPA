@@ -92,6 +92,7 @@ interface ChatState {
   resolvePlan: (planId: string, decision: 'accepted' | 'rejected') => void
   rateMessage: (msgId: string, rating: 'up' | 'down' | null) => void
   lastCost: number | null
+  totalSessionCost: number
   lastContextUsage: { used: number; total: number } | null
   setLastCost: (cost: number | null) => void
   setLastContextUsage: (usage: { used: number; total: number } | null) => void
@@ -107,6 +108,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   pendingToolUses: new Map(),
   lastUsage: null,
   lastCost: null,
+  totalSessionCost: 0,
   lastContextUsage: null,
   currentSessionTitle: null,
 
@@ -193,7 +195,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     streamingBuffer.sessionId = null
     streamingBuffer.messageId = null
     streamingBuffer.dirty = false
-    set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false })
+    set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false, totalSessionCost: 0, lastCost: null, lastUsage: null, lastContextUsage: null })
   },
   loadHistory: (messages) => set({ messages, isStreaming: false }),
 
@@ -205,7 +207,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   setLastUsage: (u) => set({ lastUsage: u }),
-  setLastCost: (cost) => set({ lastCost: cost }),
+  setLastCost: (cost) => set((s) => ({ lastCost: cost, totalSessionCost: s.totalSessionCost + (cost ?? 0) })),
   setLastContextUsage: (usage) => set({ lastContextUsage: usage }),
   setSessionTitle: (title) => set({ currentSessionTitle: title }),
 

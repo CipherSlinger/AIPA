@@ -3,12 +3,18 @@ import { PanelLeft, Terminal, DollarSign } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 
 export default function StatusBar() {
-  const { workingDir, lastUsage, lastCost, lastContextUsage } = useChatStore()
+  const { workingDir, lastUsage, lastCost, totalSessionCost, lastContextUsage } = useChatStore()
   const { prefs } = usePrefsStore()
   const { toggleSidebar, toggleTerminal, sidebarOpen, terminalOpen } = useUiStore()
 
   const dirLabel = workingDir || prefs.workingDir || '~'
   const modelLabel = prefs.model || 'claude-sonnet-4-6'
+  const shortModel = modelLabel
+    .replace('claude-', '')
+    .replace(/-\d{8}$/, '')  // remove date suffixes like -20250219
+    .split('-')
+    .map((s: string) => s.charAt(0).toUpperCase() + s.slice(1))
+    .join(' ')
   const fmt = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n)
 
   const contextPct = lastContextUsage && lastContextUsage.total > 0
@@ -67,14 +73,17 @@ export default function StatusBar() {
       )}
 
       {/* Cost */}
-      {lastCost != null && lastCost > 0 && (
-        <span style={{ opacity: 0.85, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 2 }}>
+      {totalSessionCost > 0 && (
+        <span
+          style={{ opacity: 0.85, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 2 }}
+          title={lastCost != null ? `Last turn: $${lastCost.toFixed(4)} | Session total: $${totalSessionCost.toFixed(4)}` : `Session total: $${totalSessionCost.toFixed(4)}`}
+        >
           <DollarSign size={10} />
-          {lastCost < 0.001 ? '<$0.001' : `$${lastCost.toFixed(3)}`}
+          {totalSessionCost < 0.001 ? '<$0.001' : `$${totalSessionCost.toFixed(3)}`}
         </span>
       )}
 
-      <span style={{ opacity: 0.9, whiteSpace: 'nowrap' }}>⚡ {modelLabel}</span>
+      <span style={{ opacity: 0.9, whiteSpace: 'nowrap' }}>⚡ {shortModel}</span>
 
       <button
         onClick={toggleTerminal}
