@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Send, Square, Plus, Mic, MicOff, Download, Upload } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { useStreamJson } from '../../hooks/useStreamJson'
@@ -37,6 +37,34 @@ export default function ChatPanel() {
   // Drag-and-drop state
   const [isDragOver, setIsDragOver] = useState(false)
   const dragCounterRef = useRef(0)
+
+  // Streaming elapsed timer
+  const [streamStartTime, setStreamStartTime] = useState<number | null>(null)
+  const [elapsed, setElapsed] = useState(0)
+
+  useEffect(() => {
+    if (isStreaming && !streamStartTime) {
+      setStreamStartTime(Date.now())
+    } else if (!isStreaming && streamStartTime) {
+      setStreamStartTime(null)
+      setElapsed(0)
+    }
+  }, [isStreaming])
+
+  useEffect(() => {
+    if (!streamStartTime) return
+    const tick = () => setElapsed(Math.floor((Date.now() - streamStartTime) / 1000))
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [streamStartTime])
+
+  const elapsedStr = useMemo(() => {
+    if (!isStreaming || elapsed < 1) return null
+    const m = Math.floor(elapsed / 60)
+    const s = elapsed % 60
+    return m > 0 ? `${m}m ${s}s` : `${s}s`
+  }, [isStreaming, elapsed])
 
   const { attachments, handlePaste, addFiles, removeAttachment, clearAttachments } = useImagePaste()
 
@@ -424,6 +452,18 @@ export default function ChatPanel() {
         >
           <Download size={14} />
         </button>
+        {elapsedStr && (
+          <span style={{
+            fontSize: 10,
+            color: 'var(--success)',
+            fontFamily: 'monospace',
+            flexShrink: 0,
+            minWidth: 32,
+            textAlign: 'right',
+          }}>
+            {elapsedStr}
+          </span>
+        )}
         <button
           onClick={newConversation}
           title="New conversation"
