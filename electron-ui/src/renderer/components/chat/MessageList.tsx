@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { ChatMessage } from '../../types/app.types'
 import Message from './Message'
 import PermissionCard from './PermissionCard'
@@ -14,12 +15,18 @@ interface Props {
 }
 
 export default function MessageList({ messages, onPermission, onGrantPermission, sessionId }: Props) {
-  const bottomRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const { resolvePlan, rateMessage } = useChatStore()
   const { addToast } = useUiStore()
   const [showScrollBtn, setShowScrollBtn] = useState(false)
   const isNearBottomRef = useRef(true)
+
+  const virtualizer = useVirtualizer({
+    count: messages.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => 80, // reasonable estimate for average message height
+    overscan: 5,
+  })
 
   const checkIfNearBottom = useCallback(() => {
     const el = scrollContainerRef.current
@@ -35,17 +42,61 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   }, [checkIfNearBottom])
 
   const scrollToBottom = useCallback(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [])
+    if (messages.length > 0) {
+      virtualizer.scrollToIndex(messages.length - 1, { align: 'end', behavior: 'smooth' })
+    }
+  }, [messages.length, virtualizer])
 
   // Auto-scroll only when user is near the bottom
   useEffect(() => {
-    if (isNearBottomRef.current) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-    } else {
+    if (isNearBottomRef.current && messages.length > 0) {
+      // Use requestAnimationFrame to ensure the virtualizer has measured
+      requestAnimationFrame(() => {
+        virtualizer.scrollToIndex(messages.length - 1, { align: 'end', behavior: 'smooth' })
+      })
+    } else if (messages.length > 0) {
       setShowScrollBtn(true)
     }
   }, [messages.length, messages[messages.length - 1]])
+
+  const renderMessage = useCallback((msg: ChatMessage) => {
+    if (msg.role === 'permission') {
+      return (
+        <PermissionCard
+          message={msg}
+          onAllow={() => onGrantPermission(msg.permissionId, msg.toolName)}
+          onDeny={() => onPermission(msg.permissionId, false)}
+        />
+      )
+    }
+    if (msg.role === 'plan') {
+      return (
+        <PlanCard
+          message={msg}
+          onAccept={() => resolvePlan(msg.id, 'accepted')}
+          onReject={() => resolvePlan(msg.id, 'rejected')}
+        />
+      )
+    }
+    return (
+      <Message
+        message={msg}
+        onRate={(msgId, rating) => {
+          rateMessage(msgId, rating)
+          window.electronAPI.feedbackRate(msgId, rating)
+        }}
+        onRewind={sessionId ? async (ts) => {
+          const isoTs = new Date(ts).toISOString()
+          const result = await window.electronAPI.sessionRewind(sessionId, isoTs)
+          if (result?.success) {
+            addToast('success', 'Files reverted to state before this message')
+          } else {
+            addToast('error', 'Rewind failed: ' + (result?.error || 'Unknown error'))
+          }
+        } : undefined}
+      />
+    )
+  }, [onPermission, onGrantPermission, sessionId, resolvePlan, rateMessage, addToast])
 
   return (
     <div
@@ -53,46 +104,33 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       onScroll={handleScroll}
       style={{ height: '100%', overflowY: 'auto', padding: '16px 0', position: 'relative' }}
     >
-      {messages.map((msg) => {
-        if (msg.role === 'permission') {
+      <div
+        style={{
+          height: virtualizer.getTotalSize(),
+          width: '100%',
+          position: 'relative',
+        }}
+      >
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const msg = messages[virtualRow.index]
           return (
-            <PermissionCard
+            <div
               key={msg.id}
-              message={msg}
-              onAllow={() => onGrantPermission(msg.permissionId, msg.toolName)}
-              onDeny={() => onPermission(msg.permissionId, false)}
-            />
+              data-index={virtualRow.index}
+              ref={virtualizer.measureElement}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+            >
+              {renderMessage(msg)}
+            </div>
           )
-        }
-        if (msg.role === 'plan') {
-          return (
-            <PlanCard
-              key={msg.id}
-              message={msg}
-              onAccept={() => resolvePlan(msg.id, 'accepted')}
-              onReject={() => resolvePlan(msg.id, 'rejected')}
-            />
-          )
-        }
-        return <Message
-          key={msg.id}
-          message={msg}
-          onRate={(msgId, rating) => {
-            rateMessage(msgId, rating)
-            window.electronAPI.feedbackRate(msgId, rating)
-          }}
-          onRewind={sessionId ? async (ts) => {
-            const isoTs = new Date(ts).toISOString()
-            const result = await window.electronAPI.sessionRewind(sessionId, isoTs)
-            if (result?.success) {
-              addToast('success', 'Files reverted to state before this message')
-            } else {
-              addToast('error', 'Rewind failed: ' + (result?.error || 'Unknown error'))
-            }
-          } : undefined}
-        />
-      })}
-      <div ref={bottomRef} />
+        })}
+      </div>
       {showScrollBtn && (
         <button
           onClick={scrollToBottom}

@@ -49,7 +49,7 @@
 | Settings About section | P2 | DONE (Iteration 16) |
 | Array-based content accumulation | P0-perf | DONE (Iteration 17) - RAF-throttled streaming buffer |
 | Conversation branching UI | P1 | Backend fork/rewind exists; need visual branch tree |
-| Message virtualization | P1-perf | react-virtuoso for 100+ message conversations |
+| Message virtualization | P1-perf | DONE (Iteration 18) - @tanstack/react-virtual |
 
 ### Backlog (Sprint 5+)
 
