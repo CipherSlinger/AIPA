@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Send, Square, Plus, Mic, MicOff, Download, Upload, Maximize2, Minimize2, Bookmark } from 'lucide-react'
+import { Send, Square, Plus, Mic, MicOff, Download, Upload, Maximize2, Minimize2, Bookmark, BarChart3 } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { useStreamJson } from '../../hooks/useStreamJson'
 import MessageList from './MessageList'
@@ -26,6 +26,33 @@ export default function ChatPanel() {
     return messages
       .map((msg, idx) => ({ msg, idx }))
       .filter(({ msg }) => msg.role !== 'permission' && msg.role !== 'plan' && (msg as StandardChatMessage).bookmarked)
+  }, [messages])
+
+  // Compute conversation statistics
+  const conversationStats = useMemo(() => {
+    const userMsgs = messages.filter(m => m.role === 'user')
+    const assistantMsgs = messages.filter(m => m.role === 'assistant')
+    const totalWords = messages.reduce((sum, m) => {
+      if (m.role === 'permission' || m.role === 'plan') return sum
+      const content = (m as StandardChatMessage).content || ''
+      return sum + content.split(/\s+/).filter(w => w.length > 0).length
+    }, 0)
+    const toolUseCount = messages.reduce((sum, m) => {
+      if (m.role === 'permission' || m.role === 'plan') return sum
+      return sum + ((m as StandardChatMessage).toolUses?.length || 0)
+    }, 0)
+    const firstTs = messages.length > 0 ? messages[0].timestamp : 0
+    const lastTs = messages.length > 0 ? messages[messages.length - 1].timestamp : 0
+    const durationMs = lastTs - firstTs
+    const durationMin = Math.max(1, Math.round(durationMs / 60000))
+    return {
+      total: messages.filter(m => m.role !== 'permission' && m.role !== 'plan').length,
+      user: userMsgs.length,
+      assistant: assistantMsgs.length,
+      totalWords,
+      toolUseCount,
+      durationMin,
+    }
   }, [messages])
   const { sendMessage, abort, respondPermission, grantToolPermission, newConversation } = useStreamJson()
   const [input, setInput] = useState(() => {
@@ -73,6 +100,8 @@ export default function ChatPanel() {
   const [showBookmarks, setShowBookmarks] = useState(false)
   const [scrollToMessageIdx, setScrollToMessageIdx] = useState<number | undefined>(undefined)
   const bookmarksRef = useRef<HTMLDivElement>(null)
+  const [showStats, setShowStats] = useState(false)
+  const statsRef = useRef<HTMLDivElement>(null)
 
   // Streaming elapsed timer
   const [streamStartTime, setStreamStartTime] = useState<number | null>(null)
@@ -230,6 +259,18 @@ export default function ChatPanel() {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [showBookmarks])
+
+  // Close stats dropdown on click outside
+  useEffect(() => {
+    if (!showStats) return
+    const handler = (e: MouseEvent) => {
+      if (statsRef.current && !statsRef.current.contains(e.target as Node)) {
+        setShowStats(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showStats])
 
   // Listen for slash command from CommandPalette
   useEffect(() => {
@@ -697,6 +738,67 @@ export default function ChatPanel() {
         >
           {focusMode ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
         </button>
+        {/* Stats popover */}
+        <div style={{ position: 'relative' }} ref={statsRef}>
+          <button
+            onClick={() => setShowStats(!showStats)}
+            title="Conversation stats"
+            disabled={messages.length === 0}
+            style={{
+              background: showStats ? 'var(--accent)' : 'none',
+              border: 'none',
+              color: showStats ? '#fff' : 'var(--text-muted)',
+              cursor: messages.length === 0 ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              borderRadius: 3,
+              padding: '2px 4px',
+              opacity: messages.length === 0 ? 0.3 : 1,
+            }}
+          >
+            <BarChart3 size={13} />
+          </button>
+          {showStats && messages.length > 0 && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                zIndex: 60,
+                width: 220,
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                padding: '12px 14px',
+                marginTop: 4,
+              }}
+            >
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-bright)', marginBottom: 10 }}>
+                Conversation Stats
+              </div>
+              {[
+                { label: 'Messages', value: conversationStats.total },
+                { label: 'Your messages', value: conversationStats.user },
+                { label: 'Claude messages', value: conversationStats.assistant },
+                { label: 'Total words', value: conversationStats.totalWords.toLocaleString() },
+                { label: 'Tool uses', value: conversationStats.toolUseCount },
+                { label: 'Duration', value: `~${conversationStats.durationMin} min` },
+              ].map(({ label, value }) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 11 }}>
+                  <span style={{ color: 'var(--text-muted)' }}>{label}</span>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{value}</span>
+                </div>
+              ))}
+              {useChatStore.getState().totalSessionCost > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 11, borderTop: '1px solid var(--border)', marginTop: 4, paddingTop: 6 }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Session cost</span>
+                  <span style={{ color: 'var(--success)', fontWeight: 500 }}>${useChatStore.getState().totalSessionCost.toFixed(4)}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
         {elapsedStr && (
           <span style={{
             fontSize: 10,
