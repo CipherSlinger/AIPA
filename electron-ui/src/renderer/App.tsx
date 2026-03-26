@@ -70,6 +70,37 @@ export default function App() {
     return () => cleanups.forEach((fn) => fn?.())
   }, [])
 
+  // Update window title with session name and unread indicator
+  useEffect(() => {
+    const chatTitle = useChatStore.getState().currentSessionTitle
+    const baseTitle = chatTitle ? `AIPA — ${chatTitle}` : 'AIPA'
+    document.title = baseTitle
+  }, [prefs])
+
+  // Listen for streaming end to flash title if user is scrolled away
+  useEffect(() => {
+    let prevStreaming = false
+    const unsubscribe = useChatStore.subscribe((state) => {
+      const wasStreaming = prevStreaming
+      prevStreaming = state.isStreaming
+
+      // Update title with session name
+      const chatTitle = state.currentSessionTitle
+      const baseTitle = chatTitle ? `AIPA — ${chatTitle}` : 'AIPA'
+
+      if (wasStreaming && !state.isStreaming && state.messages.length > 0) {
+        // Streaming just finished — flash title briefly
+        document.title = `(*) ${baseTitle}`
+        setTimeout(() => {
+          document.title = baseTitle
+        }, 3000)
+      } else if (!state.isStreaming) {
+        document.title = baseTitle
+      }
+    })
+    return unsubscribe
+  }, [])
+
   // Apply theme
   useEffect(() => {
     const theme = prefs.theme || 'vscode'

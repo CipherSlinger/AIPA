@@ -3,6 +3,7 @@ import { ChatMessage, StandardChatMessage } from '../../types/app.types'
 import MessageContent from './MessageContent'
 import ToolUseBlock from './ToolUseBlock'
 import MessageContextMenu from './MessageContextMenu'
+import ImageLightbox from '../shared/ImageLightbox'
 import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark, AlertTriangle, Minus, Code2 } from 'lucide-react'
 import { usePrefsStore } from '../../store'
 
@@ -40,6 +41,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
   const [, setTick] = useState(0)
   const [showRawMarkdown, setShowRawMarkdown] = useState(false)
+  const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string } | null>(null)
 
   const thinking = message.role !== 'permission' ? (message as StandardChatMessage).thinking : undefined
 
@@ -223,7 +225,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
                   objectFit: 'cover',
                   cursor: 'pointer',
                 }}
-                onClick={() => window.open(att.dataUrl, '_blank')}
+                onClick={() => setLightboxImage({ src: att.dataUrl, alt: att.name })}
               />
             ))}
           </div>
@@ -323,6 +325,15 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             : undefined
           }
           onClose={() => setContextMenu(null)}
+        />
+      )}
+
+      {/* Image lightbox */}
+      {lightboxImage && (
+        <ImageLightbox
+          src={lightboxImage.src}
+          alt={lightboxImage.alt}
+          onClose={() => setLightboxImage(null)}
         />
       )}
     </div>
