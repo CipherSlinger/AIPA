@@ -93,6 +93,8 @@ interface ChatState {
   rateMessage: (msgId: string, rating: 'up' | 'down' | null) => void
   toggleBookmark: (msgId: string) => void
   toggleCollapse: (msgId: string) => void
+  collapseAll: () => void
+  expandAll: () => void
   lastCost: number | null
   totalSessionCost: number
   lastContextUsage: { used: number; total: number } | null
@@ -254,6 +256,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   toggleCollapse: (msgId) => set((s) => ({
     messages: s.messages.map(m => m.id === msgId ? { ...m, collapsed: !(m as StandardChatMessage).collapsed } as StandardChatMessage : m)
+  })),
+
+  collapseAll: () => set((s) => ({
+    messages: s.messages.map(m => m.role !== 'permission' && m.role !== 'plan' ? { ...m, collapsed: true } as StandardChatMessage : m)
+  })),
+
+  expandAll: () => set((s) => ({
+    messages: s.messages.map(m => m.role !== 'permission' && m.role !== 'plan' ? { ...m, collapsed: false } as StandardChatMessage : m)
   })),
 }))
 

@@ -3,7 +3,7 @@ import { ChatMessage, StandardChatMessage } from '../../types/app.types'
 import MessageContent from './MessageContent'
 import ToolUseBlock from './ToolUseBlock'
 import MessageContextMenu from './MessageContextMenu'
-import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark, AlertTriangle, Minus } from 'lucide-react'
+import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark, AlertTriangle, Minus, Code2 } from 'lucide-react'
 import { usePrefsStore } from '../../store'
 
 function relativeTime(ts: number): string {
@@ -39,6 +39,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   const [thinkingExpanded, setThinkingExpanded] = useState(false)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
   const [, setTick] = useState(0)
+  const [showRawMarkdown, setShowRawMarkdown] = useState(false)
 
   const thinking = message.role !== 'permission' ? (message as StandardChatMessage).thinking : undefined
 
@@ -231,41 +232,79 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
         {/* Text content */}
         {message.role !== 'permission' && message.content && (
           <div title={wordInfo || undefined}>
-            <MessageContent content={message.content} isUser={isUser} searchQuery={searchQuery} />
+            {isAssistant && showRawMarkdown ? (
+              <pre style={{
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                fontSize: 12,
+                lineHeight: 1.6,
+                color: 'var(--text-muted)',
+                background: 'var(--bg-primary)',
+                border: '1px solid var(--border)',
+                borderRadius: 4,
+                padding: '8px 12px',
+                margin: 0,
+                fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
+              }}>
+                {message.content}
+              </pre>
+            ) : (
+              <MessageContent content={message.content} isUser={isUser} searchQuery={searchQuery} />
+            )}
           </div>
         )}
           </>
         )}
       </div>
 
-      {/* Copy button for assistant messages */}
+      {/* Copy button + raw toggle for assistant messages */}
       {isAssistant && hovered && (
-        <button
-          onClick={handleCopy}
-          title="Copy"
-          style={{
-            position: 'absolute',
-            top: 8,
-            right: 20,
-            background: 'var(--bg-primary, #1e1e2e)',
-            border: '1px solid var(--border, #3a3a4a)',
-            borderRadius: 4,
-            padding: '2px 6px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            fontSize: 11,
-            color: 'var(--text-muted)',
-            lineHeight: 1.4,
-          }}
-        >
-          {copied ? (
-            'Copied'
-          ) : (
-            <Copy size={13} />
-          )}
-        </button>
+        <div style={{
+          position: 'absolute',
+          top: 8,
+          right: 20,
+          display: 'flex',
+          gap: 4,
+        }}>
+          <button
+            onClick={() => setShowRawMarkdown(!showRawMarkdown)}
+            title={showRawMarkdown ? 'Show rendered' : 'Show raw markdown'}
+            style={{
+              background: showRawMarkdown ? 'var(--accent)' : 'var(--bg-primary, #1e1e2e)',
+              border: '1px solid var(--border, #3a3a4a)',
+              borderRadius: 4,
+              padding: '2px 6px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 11,
+              color: showRawMarkdown ? '#fff' : 'var(--text-muted)',
+              lineHeight: 1.4,
+            }}
+          >
+            <Code2 size={12} />
+          </button>
+          <button
+            onClick={handleCopy}
+            title="Copy"
+            style={{
+              background: 'var(--bg-primary, #1e1e2e)',
+              border: '1px solid var(--border, #3a3a4a)',
+              borderRadius: 4,
+              padding: '2px 6px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 11,
+              color: 'var(--text-muted)',
+              lineHeight: 1.4,
+            }}
+          >
+            {copied ? 'Copied' : <Copy size={13} />}
+          </button>
+        </div>
       )}
 
       {/* Context menu */}

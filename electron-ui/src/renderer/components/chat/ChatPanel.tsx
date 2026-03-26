@@ -796,6 +796,31 @@ export default function ChatPanel() {
                   <span style={{ color: 'var(--success)', fontWeight: 500 }}>${useChatStore.getState().totalSessionCost.toFixed(4)}</span>
                 </div>
               )}
+              {/* Collapse/Expand all actions */}
+              <div style={{ display: 'flex', gap: 6, marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+                <button
+                  onClick={() => { useChatStore.getState().collapseAll(); setShowStats(false) }}
+                  style={{
+                    flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border)',
+                    borderRadius: 4, padding: '4px 0', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 10,
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+                >
+                  Collapse all
+                </button>
+                <button
+                  onClick={() => { useChatStore.getState().expandAll(); setShowStats(false) }}
+                  style={{
+                    flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border)',
+                    borderRadius: 4, padding: '4px 0', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 10,
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+                >
+                  Expand all
+                </button>
+              </div>
             </div>
           )}
         </div>
