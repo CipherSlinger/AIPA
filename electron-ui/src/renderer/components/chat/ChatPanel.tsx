@@ -867,6 +867,41 @@ function WelcomeScreen({ onSuggestion }: { onSuggestion: (text: string) => void 
           </div>
         ))}
       </div>
+
+      {/* Quick actions */}
+      <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+        {[
+          { label: 'Settings', action: () => { useUiStore.getState().setSidebarOpen(true); useUiStore.getState().setSidebarTab('settings') } },
+          { label: 'Terminal', action: () => useUiStore.getState().toggleTerminal() },
+          { label: 'Files', action: () => { useUiStore.getState().setSidebarOpen(true); useUiStore.getState().setSidebarTab('files') } },
+          { label: 'Shortcuts', action: () => window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, key: '/' })) },
+        ].map(({ label, action }) => (
+          <button
+            key={label}
+            onClick={action}
+            style={{
+              background: 'none',
+              border: '1px solid var(--border)',
+              borderRadius: 4,
+              padding: '4px 12px',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              fontSize: 11,
+              transition: 'border-color 0.15s, color 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'
+              ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)'
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)'
+              ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
