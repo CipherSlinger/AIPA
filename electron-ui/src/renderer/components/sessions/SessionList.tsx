@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Clock, Trash2, RefreshCw, MessageSquare, GitBranch, Pencil, ArrowUpDown } from 'lucide-react'
+import { Clock, Trash2, RefreshCw, MessageSquare, GitBranch, Pencil, ArrowUpDown, Star } from 'lucide-react'
 import { SessionListItem, SessionMessage, StandardChatMessage, ToolUseInfo, ChatMessage } from '../../types/app.types'
 import { useSessionStore, useChatStore, useUiStore } from '../../store'
 import { SkeletonSessionRow } from '../ui/Skeleton'
@@ -112,6 +112,28 @@ export default function SessionList() {
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
+  // Pinned sessions (persisted in localStorage)
+  const [pinnedIds, setPinnedIds] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem('aipa:pinned-sessions')
+      return stored ? new Set(JSON.parse(stored)) : new Set()
+    } catch { return new Set() }
+  })
+
+  const togglePin = (e: React.MouseEvent, sessionId: string) => {
+    e.stopPropagation()
+    setPinnedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(sessionId)) {
+        next.delete(sessionId)
+      } else {
+        next.add(sessionId)
+      }
+      try { localStorage.setItem('aipa:pinned-sessions', JSON.stringify([...next])) } catch { /* ignore */ }
+      return next
+    })
+  }
+
   const loadSessions = async () => {
     setLoading(true)
     const list = await window.electronAPI.sessionList()
@@ -179,6 +201,10 @@ export default function SessionList() {
       s.project.toLowerCase().includes(filter.toLowerCase())
     )
     .sort((a, b) => {
+      // Pinned sessions always come first
+      const aPinned = pinnedIds.has(a.sessionId) ? 1 : 0
+      const bPinned = pinnedIds.has(b.sessionId) ? 1 : 0
+      if (aPinned !== bPinned) return bPinned - aPinned
       if (sortBy === 'oldest') return a.timestamp - b.timestamp
       if (sortBy === 'alpha') return (a.title || a.lastPrompt).localeCompare(b.title || b.lastPrompt)
       return b.timestamp - a.timestamp // newest first (default)
@@ -277,7 +303,11 @@ export default function SessionList() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-              <MessageSquare size={11} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+              {pinnedIds.has(session.sessionId) ? (
+                <Star size={11} style={{ color: 'var(--warning)', fill: 'var(--warning)', flexShrink: 0 }} />
+              ) : (
+                <MessageSquare size={11} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+              )}
               <span style={{ fontSize: 10, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                 {session.project.split(/[/\\]/).pop() || session.project}
               </span>
@@ -331,6 +361,20 @@ export default function SessionList() {
                 alignItems: 'center',
               }}
             >
+              <button
+                onClick={(e) => togglePin(e, session.sessionId)}
+                title={pinnedIds.has(session.sessionId) ? 'Unpin' : 'Pin to top'}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: pinnedIds.has(session.sessionId) ? 'var(--warning)' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <Star size={11} style={{ fill: pinnedIds.has(session.sessionId) ? 'var(--warning)' : 'none' }} />
+              </button>
               <button
                 onClick={(e) => startRename(e, session)}
                 title="Rename"
