@@ -16,6 +16,30 @@ function sendCompletionNotification(summary: string) {
   }
 }
 
+/** Play a subtle completion chime using Web Audio API */
+function playCompletionSound() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+
+    // Two-tone chime: C5 then E5
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(523.25, ctx.currentTime)       // C5
+    osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.12) // E5
+    gain.gain.setValueAtTime(0.08, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35)
+
+    osc.start(ctx.currentTime)
+    osc.stop(ctx.currentTime + 0.35)
+    osc.onended = () => ctx.close()
+  } catch {
+    // Audio not available (e.g., no audio output device)
+  }
+}
+
 export function useStreamJson() {
   const {
     appendTextDelta, appendThinkingDelta, addToolUse, resolveToolUse, setStreaming, setSessionId,
@@ -210,6 +234,10 @@ export function useStreamJson() {
           }
           // Completion notification
           sendCompletionNotification(resultText || 'Conversation complete')
+          // Sound notification
+          if (usePrefsStore.getState().prefs.notifySound !== false) {
+            playCompletionSound()
+          }
           // Auto-generate session title after first assistant response
           const msgs = useChatStore.getState().messages
           const userMsgs = msgs.filter(m => m.role === 'user')

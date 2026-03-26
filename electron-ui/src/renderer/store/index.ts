@@ -289,6 +289,7 @@ const DEFAULT_PREFS: ClaudePrefs = {
   systemPrompt: '',
   maxTurns: undefined,
   maxBudgetUsd: undefined,
+  notifySound: true,
 }
 
 export const usePrefsStore = create<PrefsState>((set) => ({

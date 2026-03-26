@@ -85,4 +85,5 @@ export interface ClaudePrefs {
   systemPrompt?: string    // custom system prompt (passed via --append-system-prompt)
   maxTurns?: number        // --max-turns
   maxBudgetUsd?: number    // --max-budget-usd
+  notifySound?: boolean     // play sound when response completes (default true)
 }

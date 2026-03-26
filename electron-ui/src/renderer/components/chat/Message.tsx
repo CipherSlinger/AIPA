@@ -1,9 +1,22 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { ChatMessage, StandardChatMessage } from '../../types/app.types'
 import MessageContent from './MessageContent'
 import ToolUseBlock from './ToolUseBlock'
 import MessageContextMenu from './MessageContextMenu'
 import { User, Bot, Copy, ChevronDown, ChevronRight } from 'lucide-react'
+
+function relativeTime(ts: number): string {
+  const diff = Math.floor((Date.now() - ts) / 1000)
+  if (diff < 5) return 'just now'
+  if (diff < 60) return `${diff}s ago`
+  const mins = Math.floor(diff / 60)
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  if (days === 1) return 'yesterday'
+  return `${days}d ago`
+}
 
 interface Props {
   message: ChatMessage
@@ -19,8 +32,15 @@ export default React.memo(function Message({ message, onRate, onRewind, searchQu
   const [copied, setCopied] = useState(false)
   const [thinkingExpanded, setThinkingExpanded] = useState(false)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+  const [, setTick] = useState(0)
 
   const thinking = message.role !== 'permission' ? (message as StandardChatMessage).thinking : undefined
+
+  // Live-update relative timestamp every 30 seconds
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 30000)
+    return () => clearInterval(id)
+  }, [])
 
   const handleCopy = useCallback(() => {
     const text = (message as StandardChatMessage).content
@@ -76,9 +96,12 @@ export default React.memo(function Message({ message, onRate, onRewind, searchQu
           {message.role !== 'permission' && message.isStreaming && (
             <span style={{ color: 'var(--success)' }}>Generating...</span>
           )}
-          {hovered && message.timestamp && (
-            <span style={{ fontSize: 10, opacity: 0.6 }}>
-              {new Date(message.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+          {message.timestamp && (
+            <span
+              style={{ fontSize: 10, opacity: 0.5 }}
+              title={new Date(message.timestamp).toLocaleString()}
+            >
+              {relativeTime(message.timestamp)}
             </span>
           )}
         </div>

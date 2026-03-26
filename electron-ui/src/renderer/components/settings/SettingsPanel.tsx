@@ -323,6 +323,13 @@ export default function SettingsPanel() {
             'When enabled, CLI outputs more debug information'
           )}
 
+          {/* notifySound */}
+          {row(
+            'Completion Sound',
+            <Toggle value={local.notifySound !== false} onChange={(v) => setLocal({ ...local, notifySound: v })} />,
+            'Play a chime when Claude finishes responding'
+          )}
+
           {/* Save button */}
           <button
             onClick={save}
@@ -460,6 +467,7 @@ export default function SettingsPanel() {
                 thinkingLevel: 'off' as const,
                 maxTurns: undefined,
                 maxBudgetUsd: undefined,
+                notifySound: true,
               }
               setLocal(prev => ({ ...prev, ...defaults }))
               for (const [k, v] of Object.entries(defaults)) {
