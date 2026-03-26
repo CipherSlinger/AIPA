@@ -62,6 +62,9 @@
 | Word count tooltip + compact mode | P2 | DONE (Iteration 28) |
 | Delete confirmation + scroll memory | P2 | DONE (Iteration 29) |
 | Copy as Markdown + shortcut cheatsheet | P2 | DONE (Iteration 30) |
+| System message styling + typing indicator | P2 | DONE (Iteration 31) |
+| Session count badge + welcome quick actions | P2 | DONE (Iteration 32) |
+| Collapsible code blocks + line count | P2 | DONE (Iteration 33) |
 
 ### Backlog (Sprint 5+)
 

@@ -62,6 +62,11 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Scroll position memory** — scroll positions are remembered when switching between sessions
 - **Copy as Markdown** — right-click assistant messages to copy raw Markdown source
 - **Shortcut cheatsheet** — `Ctrl+/` opens a floating overlay showing all keyboard shortcuts
+- **System message styling** — error and system messages have distinct red-tinted appearance
+- **Contextual typing indicator** — shows what Claude is doing: "Thinking...", "Running command...", "Reading file...", etc.
+- **Session count badge** — sidebar History tab shows total number of sessions
+- **Collapsible code blocks** — long code blocks auto-collapse with "Show more/less" toggle
+- **Code block line count** — code blocks display line count in the header
 
 ## Security
 
