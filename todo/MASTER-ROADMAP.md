@@ -50,6 +50,18 @@
 | Array-based content accumulation | P0-perf | DONE (Iteration 17) - RAF-throttled streaming buffer |
 | Conversation branching UI | P1 | Backend fork/rewind exists; need visual branch tree |
 | Message virtualization | P1-perf | DONE (Iteration 18) - @tanstack/react-virtual |
+| Double RAF fix + elapsed timer | P1-fix | DONE (Iteration 19) |
+| Cumulative session cost | P1 | DONE (Iteration 20) |
+| Conversation search (Ctrl+F) | P1 | DONE (Iteration 21) |
+| Session sort options | P2 | DONE (Iteration 22) |
+| Draft auto-save + char count | P2 | DONE (Iteration 23) |
+| Input history navigation | P2 | DONE (Iteration 24) |
+| External links + Markdown headings | P1 | DONE (Iteration 25) |
+| Completion sound + relative timestamps | P2 | DONE (Iteration 26) |
+| GFM checkboxes + message bookmarks | P2 | DONE (Iteration 27) |
+| Word count tooltip + compact mode | P2 | DONE (Iteration 28) |
+| Delete confirmation + scroll memory | P2 | DONE (Iteration 29) |
+| Copy as Markdown + shortcut cheatsheet | P2 | DONE (Iteration 30) |
 
 ### Backlog (Sprint 5+)
 

@@ -41,7 +41,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **File drag-and-drop** — drag files from the OS file explorer into the chat; images are attached, other files are referenced via `@path`
 - **Conversation export** — export conversations as Markdown or JSON via toolbar button or `Ctrl+Shift+E`
 - **Command palette** — `Ctrl+Shift+P` to access all actions and slash commands in a fuzzy-search modal
-- **Keyboard shortcuts** — `Ctrl+N` new conversation, `Ctrl+B` toggle sidebar, `Ctrl+`` toggle terminal, `Ctrl+L` focus input, `Ctrl+,` settings, `Ctrl+Shift+E` export, `Ctrl+F` search in conversation
+- **Keyboard shortcuts** — `Ctrl+N` new conversation, `Ctrl+B` toggle sidebar, `Ctrl+`` toggle terminal, `Ctrl+L` focus input, `Ctrl+,` settings, `Ctrl+Shift+E` export, `Ctrl+F` search in conversation, `Ctrl+/` shortcut cheatsheet
 - **Session auto-title** — conversations are automatically titled after the first exchange, with live sidebar refresh
 - **System prompt** — inject a custom system prompt per session
 - **Smart auto-scroll** — auto-scroll respects user intent; scroll-to-bottom button appears when reading earlier messages
@@ -58,6 +58,10 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Message bookmarks** — right-click to bookmark important messages for quick visual reference
 - **Word/token count** — hover over assistant messages to see word count and approximate token estimate
 - **Compact mode** — reduce spacing for a denser view (Settings > Compact Mode)
+- **Session delete confirmation** — two-click confirmation prevents accidental session deletion
+- **Scroll position memory** — scroll positions are remembered when switching between sessions
+- **Copy as Markdown** — right-click assistant messages to copy raw Markdown source
+- **Shortcut cheatsheet** — `Ctrl+/` opens a floating overlay showing all keyboard shortcuts
 
 ## Security
 
