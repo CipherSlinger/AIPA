@@ -3,7 +3,7 @@ import {
   Plus, Download, PanelLeft, Terminal, Settings, History,
   FolderOpen, Zap, Trash2, HelpCircle, Search,
 } from 'lucide-react'
-import { useChatStore, useUiStore } from '../../store'
+import { useChatStore, useSessionStore, useUiStore } from '../../store'
 
 interface PaletteCommand {
   id: string
@@ -11,7 +11,7 @@ interface PaletteCommand {
   description: string
   icon?: React.ReactNode
   action: () => void
-  category: 'action' | 'slash'
+  category: 'action' | 'slash' | 'session'
 }
 
 interface CommandPaletteProps {
@@ -37,6 +37,8 @@ export default function CommandPalette({
     toggleSidebar, toggleTerminal, setSidebarTab,
     setSidebarOpen,
   } = useUiStore()
+
+  const { sessions } = useSessionStore()
 
   // Build command list
   const commands = useMemo<PaletteCommand[]>(() => {
@@ -138,8 +140,30 @@ export default function CommandPalette({
         category: 'slash',
       },
     ]
+
+    // Add session items for quick session switching
+    const recentSessions = [...sessions]
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 20) // show up to 20 most recent sessions
+
+    for (const session of recentSessions) {
+      const title = session.title || `Session ${session.sessionId.slice(0, 8)}...`
+      const dateStr = new Date(session.timestamp).toLocaleDateString()
+      cmds.push({
+        id: `session-${session.sessionId}`,
+        name: title,
+        description: `Open session from ${dateStr}`,
+        icon: <History size={14} />,
+        action: () => {
+          window.dispatchEvent(new CustomEvent('aipa:openSession', { detail: session.sessionId }))
+          onClose()
+        },
+        category: 'session',
+      })
+    }
+
     return cmds
-  }, [onClose, onExport, onNewConversation, onSendSlashCommand, toggleSidebar, toggleTerminal, setSidebarTab, setSidebarOpen])
+  }, [onClose, onExport, onNewConversation, onSendSlashCommand, toggleSidebar, toggleTerminal, setSidebarTab, setSidebarOpen, sessions])
 
   // Filter commands by query
   const filtered = useMemo(() => {
@@ -305,7 +329,7 @@ export default function CommandPalette({
             >
               <span
                 style={{
-                  color: cmd.category === 'slash' ? 'var(--warning)' : 'var(--accent)',
+                  color: cmd.category === 'slash' ? 'var(--warning)' : cmd.category === 'session' ? 'var(--success)' : 'var(--accent)',
                   display: 'flex',
                   alignItems: 'center',
                   flexShrink: 0,
@@ -340,7 +364,7 @@ export default function CommandPalette({
                   {cmd.description}
                 </div>
               </div>
-              {cmd.category === 'slash' && (
+              {(cmd.category === 'slash' || cmd.category === 'session') && (
                 <span
                   style={{
                     fontSize: 9,
@@ -351,7 +375,7 @@ export default function CommandPalette({
                     flexShrink: 0,
                   }}
                 >
-                  slash
+                  {cmd.category === 'slash' ? 'slash' : 'session'}
                 </span>
               )}
             </div>

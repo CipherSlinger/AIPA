@@ -121,6 +121,17 @@ function CollapsiblePre({ children, className }: { children: React.ReactNode; cl
   )
 }
 
+// Extract plain text from React children tree (used for callout detection)
+function extractText(children: React.ReactNode): string {
+  if (typeof children === 'string') return children
+  if (typeof children === 'number') return String(children)
+  if (Array.isArray(children)) return children.map(extractText).join('')
+  if (React.isValidElement(children) && (children.props as any)?.children) {
+    return extractText((children.props as any).children)
+  }
+  return ''
+}
+
 export default React.memo(function MessageContent({ content, isUser, searchQuery }: Props) {
   if (isUser) {
     return (
@@ -256,6 +267,38 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
             return <input type={type} checked={checked} readOnly {...props} />
           },
           blockquote({ children }) {
+            // Detect GitHub-style callout blocks: > [!NOTE], > [!WARNING], etc.
+            const childText = extractText(children)
+            const calloutMatch = childText.match(/^\[!(NOTE|WARNING|TIP|IMPORTANT|CAUTION)\]/)
+            if (calloutMatch) {
+              const type = calloutMatch[1]
+              const colors: Record<string, { bg: string; border: string; label: string }> = {
+                NOTE:      { bg: 'rgba(56, 139, 253, 0.08)', border: '#388bfd', label: 'Note' },
+                TIP:       { bg: 'rgba(63, 185, 80, 0.08)', border: '#3fb950', label: 'Tip' },
+                IMPORTANT: { bg: 'rgba(168, 133, 255, 0.08)', border: '#a885ff', label: 'Important' },
+                WARNING:   { bg: 'rgba(210, 153, 34, 0.08)', border: '#d29922', label: 'Warning' },
+                CAUTION:   { bg: 'rgba(248, 81, 73, 0.08)', border: '#f85149', label: 'Caution' },
+              }
+              const style = colors[type] || colors.NOTE
+              return (
+                <div
+                  style={{
+                    background: style.bg,
+                    borderLeft: `3px solid ${style.border}`,
+                    borderRadius: '0 6px 6px 0',
+                    padding: '10px 14px',
+                    marginBottom: 10,
+                  }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 700, color: style.border, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    {style.label}
+                  </div>
+                  <div style={{ color: 'var(--text-primary)', fontSize: 13 }}>
+                    {children}
+                  </div>
+                </div>
+              )
+            }
             return (
               <blockquote
                 style={{
