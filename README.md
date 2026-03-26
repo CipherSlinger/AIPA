@@ -67,6 +67,11 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Session count badge** — sidebar History tab shows total number of sessions
 - **Collapsible code blocks** — long code blocks auto-collapse with "Show more/less" toggle
 - **Code block line count** — code blocks display line count in the header
+- **Date separators** — messages grouped by day with "Today", "Yesterday", or date headers
+- **Focus mode** — `Ctrl+Shift+F` hides sidebar and terminal for distraction-free work
+- **Bookmarks panel** — toolbar dropdown lists all bookmarked messages with jump-to navigation
+- **Unread count badge** — scroll-to-bottom button shows count of new messages when scrolled up
+- **Double-click copy** — double-click any message to copy its text to clipboard
 
 ## Security
 

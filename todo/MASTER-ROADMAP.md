@@ -65,6 +65,9 @@
 | System message styling + typing indicator | P2 | DONE (Iteration 31) |
 | Session count badge + welcome quick actions | P2 | DONE (Iteration 32) |
 | Collapsible code blocks + line count | P2 | DONE (Iteration 33) |
+| Date separators + focus mode | P2 | DONE (Iteration 34) |
+| Bookmarks dropdown panel | P2 | DONE (Iteration 35) |
+| Unread count badge + double-click copy | P2 | DONE (Iteration 36) |
 
 ### Backlog (Sprint 5+)
 
