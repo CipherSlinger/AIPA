@@ -49,6 +49,15 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Settings About tab** — version info, external links, keyboard shortcut reference, runtime info, reset to defaults
 - **Virtual message list** — uses `@tanstack/react-virtual` for smooth performance with 100+ messages
 - **Conversation search** — `Ctrl+F` to search within current conversation with match highlighting and navigation
+- **Input history** — press Up/Down arrows to cycle through previously sent messages, like a terminal shell
+- **Draft auto-save** — unsent input is preserved across page refreshes within the session
+- **External links** — markdown links open in the system browser, not inside the Electron window
+- **Completion sound** — configurable audio chime when Claude finishes responding (Settings > Completion Sound)
+- **Relative timestamps** — messages show "2m ago", "1h ago" etc., live-updating, with absolute time on hover
+- **GFM task list checkboxes** — `- [x]` and `- [ ]` render as styled visual checkboxes
+- **Message bookmarks** — right-click to bookmark important messages for quick visual reference
+- **Word/token count** — hover over assistant messages to see word count and approximate token estimate
+- **Compact mode** — reduce spacing for a denser view (Settings > Compact Mode)
 
 ## Security
 
