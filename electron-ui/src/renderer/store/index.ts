@@ -32,6 +32,8 @@ interface ChatState {
   lastContextUsage: { used: number; total: number } | null
   setLastCost: (cost: number | null) => void
   setLastContextUsage: (usage: { used: number; total: number } | null) => void
+  currentSessionTitle: string | null
+  setSessionTitle: (title: string | null) => void
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -43,6 +45,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   lastUsage: null,
   lastCost: null,
   lastContextUsage: null,
+  currentSessionTitle: null,
 
   addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
 
@@ -114,7 +117,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     })
   },
 
-  clearMessages: () => set({ messages: [], currentSessionId: null, isStreaming: false }),
+  clearMessages: () => set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false }),
   loadHistory: (messages) => set({ messages, isStreaming: false }),
 
   appendThinkingDelta: (sessionId, text) => {
@@ -141,6 +144,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   setLastUsage: (u) => set({ lastUsage: u }),
   setLastCost: (cost) => set({ lastCost: cost }),
   setLastContextUsage: (usage) => set({ lastContextUsage: usage }),
+  setSessionTitle: (title) => set({ currentSessionTitle: title }),
 
   addPermissionRequest: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
 
@@ -234,12 +238,15 @@ interface UiState {
   sidebarTab: 'history' | 'settings'
   sidebarOpen: boolean
   terminalOpen: boolean
+  commandPaletteOpen: boolean
   toasts: ToastItem[]
   setSidebarTab: (tab: 'history' | 'settings') => void
   setSidebarOpen: (v: boolean) => void
   setTerminalOpen: (v: boolean) => void
+  setCommandPaletteOpen: (v: boolean) => void
   toggleSidebar: () => void
   toggleTerminal: () => void
+  toggleCommandPalette: () => void
   addToast: (type: ToastType, message: string, duration?: number) => void
   removeToast: (id: string) => void
 }
@@ -248,12 +255,15 @@ export const useUiStore = create<UiState>((set) => ({
   sidebarTab: 'history',
   sidebarOpen: true,
   terminalOpen: false,
+  commandPaletteOpen: false,
   toasts: [],
   setSidebarTab: (tab) => set({ sidebarTab: tab }),
   setSidebarOpen: (v) => set({ sidebarOpen: v }),
   setTerminalOpen: (v) => set({ terminalOpen: v }),
+  setCommandPaletteOpen: (v) => set({ commandPaletteOpen: v }),
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
   toggleTerminal: () => set((s) => ({ terminalOpen: !s.terminalOpen })),
+  toggleCommandPalette: () => set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
   addToast: (type, message, duration) => {
     const id = `toast-${Date.now()}-${Math.random()}`
     set((s) => ({ toasts: [...s.toasts, { id, type, message, duration }] }))

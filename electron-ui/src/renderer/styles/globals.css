@@ -161,6 +161,12 @@ code:not(pre code) {
   to { transform: translateX(0); opacity: 1; }
 }
 
+/* Drop zone overlay animation */
+@keyframes drop-zone-pulse {
+  0%, 100% { border-color: var(--accent); }
+  50% { border-color: var(--accent-hover); }
+}
+
 /* Focus rings for accessibility */
 :focus-visible {
   outline: 2px solid var(--accent, #007acc);

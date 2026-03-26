@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Clock, Trash2, RefreshCw, MessageSquare, GitBranch, Pencil } from 'lucide-react'
 import { SessionListItem, SessionMessage, StandardChatMessage, ToolUseInfo, ChatMessage } from '../../types/app.types'
 import { useSessionStore, useChatStore } from '../../store'
+import { SkeletonSessionRow } from '../ui/Skeleton'
 import { formatDistanceToNow } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 
@@ -168,7 +169,7 @@ export default function SessionList() {
         <input
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          placeholder="搜索历史..."
+          placeholder="Search sessions..."
           style={{
             flex: 1,
             background: 'var(--bg-input)',
@@ -190,7 +191,7 @@ export default function SessionList() {
         <button
           onClick={async () => {
             if (!sessions.length) return
-            const ok = window.confirm(`确定要删除全部 ${sessions.length} 条会话记录吗？此操作不可撤销。`)
+            const ok = window.confirm(`Delete all ${sessions.length} sessions? This cannot be undone.`)
             if (!ok) return
             for (const s of sessions) {
               await window.electronAPI.sessionDelete(s.sessionId)
@@ -207,11 +208,13 @@ export default function SessionList() {
       {/* List */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {loading && (
-          <div style={{ padding: 16, color: 'var(--text-muted)', fontSize: 12, textAlign: 'center' }}>加载中...</div>
+          <div>
+            {[0, 1, 2, 3, 4].map(i => <SkeletonSessionRow key={i} />)}
+          </div>
         )}
         {!loading && filtered.length === 0 && (
           <div style={{ padding: 16, color: 'var(--text-muted)', fontSize: 12, textAlign: 'center' }}>
-            {filter ? '无匹配结果' : '暂无会话历史'}
+            {filter ? 'No matches' : 'No session history'}
           </div>
         )}
         {filtered.map((session) => (
@@ -273,9 +276,9 @@ export default function SessionList() {
               <div
                 onDoubleClick={(e) => startRename(e, session)}
                 style={{ fontSize: 12, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 56 }}
-                title="双击重命名"
+                title="Double-click to rename"
               >
-                {session.title || session.lastPrompt || '(无内容)'}
+                <HighlightText text={session.title || session.lastPrompt || '(no content)'} highlight={filter} />
               </div>
             )}
 
@@ -317,5 +320,26 @@ export default function SessionList() {
         ))}
       </div>
     </div>
+  )
+}
+
+function HighlightText({ text, highlight }: { text: string; highlight: string }) {
+  if (!highlight.trim()) return <>{text}</>
+
+  const regex = new RegExp(`(${highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+  const parts = text.split(regex)
+
+  return (
+    <>
+      {parts.map((part, i) =>
+        regex.test(part) ? (
+          <span key={i} style={{ background: 'var(--warning)', color: 'var(--bg-primary)', borderRadius: 2, padding: '0 1px' }}>
+            {part}
+          </span>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
   )
 }

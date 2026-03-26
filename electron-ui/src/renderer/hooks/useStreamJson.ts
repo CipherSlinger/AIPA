@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { useChatStore, usePrefsStore } from '../store'
+import { useChatStore, usePrefsStore, useSessionStore } from '../store'
 import { PermissionMessage, PlanMessage, StandardChatMessage } from '../types/app.types'
 
 function sendCompletionNotification(summary: string) {
@@ -20,7 +20,7 @@ export function useStreamJson() {
   const {
     appendTextDelta, appendThinkingDelta, addToolUse, resolveToolUse, setStreaming, setSessionId,
     addPermissionRequest, resolvePermission, denyPendingPermissions, setLastUsage, addPlanMessage,
-    setLastCost, setLastContextUsage,
+    setLastCost, setLastContextUsage, setSessionTitle,
   } = useChatStore()
   const { prefs } = usePrefsStore()
 
@@ -258,6 +258,14 @@ export function useStreamJson() {
             window.electronAPI.sessionGenerateTitle(firstUserPrompt).then((title: string) => {
               if (title) {
                 window.electronAPI.sessionRename(claudeSessionId, title)
+                // Update the session title in the store for toolbar display
+                setSessionTitle(title)
+                // Refresh session list in sidebar to show the new title
+                window.electronAPI.sessionList().then((list: any) => {
+                  if (list) {
+                    useSessionStore.getState().setSessions(list)
+                  }
+                }).catch(() => {})
               }
             }).catch(() => {})
           }

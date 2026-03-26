@@ -25,7 +25,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 
 - **Chat panel** — structured conversation with Claude via stream-JSON protocol, with tool-use visualization
 - **Terminal panel** — full interactive PTY terminal running Claude Code directly (xterm.js)
-- **Session history** — browse and resume past sessions from `~/.claude/projects/`
+- **Session history** — browse and resume past sessions from `~/.claude/projects/`, with search highlighting and skeleton loaders
 - **File browser** — navigate the working directory from the sidebar
 - **Settings** — configure API key, model, font, working directory, CLI flags, and MCP servers
 - **Onboarding wizard** — guided setup on first launch
@@ -37,6 +37,10 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **@mention popup** — mention files or contexts with `@`
 - **Plan cards** — structured plan visualization in chat
 - **Image paste** — paste images directly into the chat input
+- **File drag-and-drop** — drag files from the OS file explorer into the chat; images are attached, other files are referenced via `@path`
+- **Conversation export** — export conversations as Markdown or JSON via toolbar button or `Ctrl+Shift+E`
+- **Command palette** — `Ctrl+Shift+P` to access all actions and slash commands in a fuzzy-search modal
+- **Session auto-title** — conversations are automatically titled after the first exchange, with live sidebar refresh
 - **System prompt** — inject a custom system prompt per session
 
 ## Security

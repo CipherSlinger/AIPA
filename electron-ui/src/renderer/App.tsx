@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import AppShell from './components/layout/AppShell'
 import OnboardingWizard from './components/onboarding/OnboardingWizard'
 import ErrorBoundary from './components/shared/ErrorBoundary'
+import CommandPalette from './components/shared/CommandPalette'
 import { ToastContainer } from './components/ui/Toast'
 import { usePrefsStore, useChatStore, useUiStore } from './store'
 import './styles/globals.css'
@@ -10,7 +11,7 @@ import 'highlight.js/styles/github-dark.css'
 export default function App() {
   const { prefs, setPrefs, setLoaded } = usePrefsStore()
   const { setWorkingDir } = useChatStore()
-  const { toggleSidebar, toggleTerminal, toasts, removeToast } = useUiStore()
+  const { toggleSidebar, toggleTerminal, commandPaletteOpen, setCommandPaletteOpen, toggleCommandPalette, toasts, removeToast } = useUiStore()
   const [showOnboarding, setShowOnboarding] = useState(false)
 
   // Load preferences on startup
@@ -62,6 +63,7 @@ export default function App() {
       }),
       window.electronAPI.onMenuEvent('toggleSidebar', toggleSidebar),
       window.electronAPI.onMenuEvent('toggleTerminal', toggleTerminal),
+      window.electronAPI.onMenuEvent('commandPalette', toggleCommandPalette),
     ]
     return () => cleanups.forEach((fn) => fn?.())
   }, [])
@@ -91,6 +93,22 @@ export default function App() {
         )}
         <AppShell />
         <ToastContainer toasts={toasts} onDismiss={removeToast} />
+        {commandPaletteOpen && (
+          <CommandPalette
+            onClose={() => setCommandPaletteOpen(false)}
+            onExport={async () => {
+              // Trigger export via a custom event that ChatPanel listens for
+              window.dispatchEvent(new CustomEvent('aipa:export'))
+            }}
+            onNewConversation={() => {
+              useChatStore.getState().clearMessages()
+            }}
+            onSendSlashCommand={(cmd: string) => {
+              // Dispatch a custom event that ChatPanel can handle
+              window.dispatchEvent(new CustomEvent('aipa:slashCommand', { detail: cmd }))
+            }}
+          />
+        )}
       </>
     </ErrorBoundary>
   )

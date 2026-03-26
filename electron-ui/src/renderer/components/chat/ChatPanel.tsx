@@ -1,15 +1,22 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Square, Plus, Mic, MicOff } from 'lucide-react'
-import { useChatStore, usePrefsStore } from '../../store'
+import { Send, Square, Plus, Mic, MicOff, Download, Upload } from 'lucide-react'
+import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { useStreamJson } from '../../hooks/useStreamJson'
 import MessageList from './MessageList'
 import AtMentionPopup from './AtMentionPopup'
 import SlashCommandPopup, { SLASH_COMMANDS, SlashCommand } from './SlashCommandPopup'
 import { useImagePaste } from '../../hooks/useImagePaste'
+import { ChatMessage, StandardChatMessage } from '../../types/app.types'
+
+// Constants for drag-and-drop file handling
+const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg']
+const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+const MAX_FILE_COUNT = 10
 
 export default function ChatPanel() {
-  const { messages, isStreaming, currentSessionId } = useChatStore()
+  const { messages, isStreaming, currentSessionId, currentSessionTitle } = useChatStore()
   const { prefs } = usePrefsStore()
+  const { addToast } = useUiStore()
   const { sendMessage, abort, respondPermission, grantToolPermission, newConversation } = useStreamJson()
   const [input, setInput] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -27,7 +34,11 @@ export default function ChatPanel() {
   const [listening, setListening] = useState(false)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
 
-  const { attachments, handlePaste, handleDrop, removeAttachment, clearAttachments } = useImagePaste()
+  // Drag-and-drop state
+  const [isDragOver, setIsDragOver] = useState(false)
+  const dragCounterRef = useRef(0)
+
+  const { attachments, handlePaste, addFiles, removeAttachment, clearAttachments } = useImagePaste()
 
   const handleSend = async () => {
     const text = input.trim()
@@ -43,6 +54,143 @@ export default function ChatPanel() {
     if (!text.trim() || isStreaming) return
     await sendMessage(text.trim())
   }
+
+  // ── Export conversation ──────────────────────────
+  const exportConversation = useCallback(async () => {
+    if (messages.length === 0) return
+    const now = new Date()
+    const ts = now.toISOString().replace(/[:.]/g, '-').slice(0, 19)
+    const defaultName = `aipa-export-${ts}`
+    const filePath = await window.electronAPI.fsShowSaveDialog(defaultName, [
+      { name: 'Markdown', extensions: ['md'] },
+      { name: 'JSON', extensions: ['json'] },
+    ])
+    if (!filePath) return // user cancelled
+
+    const isJson = filePath.toLowerCase().endsWith('.json')
+    let content: string
+
+    if (isJson) {
+      content = JSON.stringify(messages, null, 2)
+    } else {
+      content = formatMarkdown(messages, currentSessionId, now)
+    }
+
+    const result = await window.electronAPI.fsWriteFile(filePath, content)
+    if (result?.error) {
+      addToast('error', `Export failed: ${result.error}`)
+    } else {
+      addToast('success', 'Conversation exported successfully')
+    }
+  }, [messages, currentSessionId, addToast])
+
+  // Keyboard shortcut: Ctrl+Shift+E for export
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'E') {
+        e.preventDefault()
+        exportConversation()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [exportConversation])
+
+  // Listen for export trigger from CommandPalette
+  useEffect(() => {
+    const handler = () => exportConversation()
+    window.addEventListener('aipa:export', handler)
+    return () => window.removeEventListener('aipa:export', handler)
+  }, [exportConversation])
+
+  // Listen for slash command from CommandPalette
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const cmd = (e as CustomEvent).detail as string
+      if (cmd) sendMessage(cmd)
+    }
+    window.addEventListener('aipa:slashCommand', handler)
+    return () => window.removeEventListener('aipa:slashCommand', handler)
+  }, [])
+
+  // ── File drag-and-drop ──────────────────────────
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounterRef.current++
+    if (e.dataTransfer.types.includes('Files')) {
+      setIsDragOver(true)
+    }
+  }, [])
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounterRef.current--
+    if (dragCounterRef.current <= 0) {
+      dragCounterRef.current = 0
+      setIsDragOver(false)
+    }
+  }, [])
+
+  const handleFileDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounterRef.current = 0
+    setIsDragOver(false)
+
+    const files = Array.from(e.dataTransfer.files)
+    if (files.length === 0) return
+
+    if (files.length > MAX_FILE_COUNT) {
+      addToast('warning', `Too many files (max ${MAX_FILE_COUNT}). First ${MAX_FILE_COUNT} processed.`)
+    }
+
+    const processFiles = files.slice(0, MAX_FILE_COUNT)
+    const imageFiles: File[] = []
+    const pathFiles: string[] = []
+
+    for (const file of processFiles) {
+      const ext = '.' + file.name.split('.').pop()?.toLowerCase()
+      const isImage = IMAGE_EXTENSIONS.includes(ext)
+
+      if (isImage) {
+        if (file.size > MAX_FILE_SIZE) {
+          addToast('error', `${file.name} is too large (max 10MB)`)
+          continue
+        }
+        imageFiles.push(file)
+      } else {
+        // Electron File objects have a .path property with the full absolute path
+        const filePath = (file as any).path as string
+        if (filePath) {
+          pathFiles.push(filePath)
+        }
+      }
+    }
+
+    // Attach images via the existing image paste mechanism
+    if (imageFiles.length > 0) {
+      addFiles(imageFiles)
+    }
+
+    // Insert @paths for non-image files
+    if (pathFiles.length > 0) {
+      const atPaths = pathFiles.map(p => `@${p}`).join(' ')
+      setInput(prev => {
+        const sep = prev.length > 0 && !prev.endsWith(' ') ? ' ' : ''
+        return prev + sep + atPaths
+      })
+      // Focus textarea after inserting paths
+      setTimeout(() => textareaRef.current?.focus(), 0)
+    }
+  }, [addFiles, addToast])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (atQuery !== null && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === 'Escape')) {
@@ -191,7 +339,43 @@ export default function ChatPanel() {
   }, [slashQuery, slashIndex])
 
   return (
-    <div className="flex flex-col h-full" style={{ background: 'var(--bg-primary)' }}>
+    <div
+      className="flex flex-col h-full"
+      style={{ background: 'var(--bg-primary)', position: 'relative' }}
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleFileDrop}
+    >
+      {/* Drop overlay */}
+      {isDragOver && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 8,
+            zIndex: 50,
+            background: 'rgba(0, 122, 204, 0.15)',
+            border: '3px dashed var(--accent)',
+            borderRadius: 8,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
+            animation: 'drop-zone-pulse 1.5s ease-in-out infinite',
+            pointerEvents: 'none',
+          }}
+        >
+          <Upload size={48} style={{ color: 'var(--accent)' }} />
+          <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-bright)' }}>
+            Drop files here
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+            Images attached, other files referenced via @path
+          </div>
+        </div>
+      )}
+
       {/* Toolbar */}
       <div
         style={{
@@ -206,18 +390,36 @@ export default function ChatPanel() {
         }}
       >
         <span style={{ color: 'var(--text-muted)', fontSize: 11, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {currentSessionId
-            ? `会话: ${currentSessionId.slice(0, 8)}...`
-            : `⚡ ${prefs.model?.split('-').slice(0, 3).join('-') || 'claude'}`}
+          {currentSessionTitle
+            ? currentSessionTitle
+            : currentSessionId
+            ? `Session: ${currentSessionId.slice(0, 8)}...`
+            : `${prefs.model?.split('-').slice(0, 3).join('-') || 'claude'}`}
         </span>
         {prefs.workingDir && (
           <span style={{ color: 'var(--text-muted)', fontSize: 10, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={prefs.workingDir}>
-            📁 {prefs.workingDir.split(/[/\\]/).pop()}
+            {prefs.workingDir.split(/[/\\]/).pop()}
           </span>
         )}
         <button
+          onClick={exportConversation}
+          disabled={messages.length === 0}
+          title="Export conversation (Ctrl+Shift+E)"
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--text-muted)',
+            cursor: messages.length === 0 ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            opacity: messages.length === 0 ? 0.3 : 1,
+          }}
+        >
+          <Download size={14} />
+        </button>
+        <button
           onClick={newConversation}
-          title="新对话"
+          title="New conversation"
           style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
         >
           <Plus size={14} />
@@ -309,7 +511,6 @@ export default function ChatPanel() {
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
-              onDrop={handleDrop}
               onDragOver={(e) => e.preventDefault()}
               placeholder="发送消息... (@ 引用文件，/ 命令，粘贴图片，Enter 发送)"
               rows={1}
@@ -443,4 +644,75 @@ function WelcomeScreen({ onSuggestion }: { onSuggestion: (text: string) => void 
       </div>
     </div>
   )
+}
+
+// ── Markdown export formatter ──────────────────────
+function formatMarkdown(messages: ChatMessage[], sessionId: string | null, exportDate: Date): string {
+  const dateStr = exportDate.toISOString().replace('T', ' ').slice(0, 19)
+  const lines: string[] = [
+    '# AIPA Conversation',
+    `_Exported: ${dateStr}_`,
+    `_Session: ${sessionId || 'New conversation'}_`,
+    '',
+    '---',
+    '',
+  ]
+
+  for (const msg of messages) {
+    if (msg.role === 'permission') continue // skip permission cards
+    if (msg.role === 'plan') {
+      lines.push('**Plan**', '', (msg as any).planContent || '', '', '---', '')
+      continue
+    }
+
+    const std = msg as StandardChatMessage
+    const ts = new Date(std.timestamp).toLocaleTimeString()
+    const role = std.role === 'user' ? 'User' : std.role === 'assistant' ? 'Assistant' : 'System'
+
+    lines.push(`**${role}** (${ts})`, '')
+    lines.push(std.content || '', '')
+
+    // Tool uses
+    if (std.toolUses && std.toolUses.length > 0) {
+      for (const tool of std.toolUses) {
+        const toolLabel = tool.name || 'Unknown tool'
+        lines.push(`<details>`)
+        lines.push(`<summary>Tool: ${toolLabel}</summary>`)
+        lines.push('')
+        lines.push('**Input:**')
+        lines.push('```json')
+        lines.push(JSON.stringify(tool.input, null, 2))
+        lines.push('```')
+        if (tool.result !== undefined) {
+          const resultStr = typeof tool.result === 'string'
+            ? tool.result
+            : JSON.stringify(tool.result, null, 2)
+          const truncated = resultStr.length > 500
+            ? resultStr.slice(0, 500) + '\n... (truncated)'
+            : resultStr
+          lines.push('')
+          lines.push(`**Result** (${tool.status}):`)
+          lines.push('```')
+          lines.push(truncated)
+          lines.push('```')
+        }
+        lines.push('</details>')
+        lines.push('')
+      }
+    }
+
+    // Thinking blocks
+    if (std.thinking) {
+      lines.push('<details>')
+      lines.push('<summary>Thinking</summary>')
+      lines.push('')
+      lines.push(std.thinking)
+      lines.push('</details>')
+      lines.push('')
+    }
+
+    lines.push('---', '')
+  }
+
+  return lines.join('\n')
 }
