@@ -75,6 +75,9 @@
 | Collapse/expand all shortcut + message count | P2 | DONE (Iteration 41) |
 | Scroll progress indicator + session navigation | P2 | DONE (Iteration 42) |
 | Image lightbox + window title notification | P2 | DONE (Iteration 43) |
+| Ctrl+K clear + streaming spinner | P2 | DONE (Iteration 44) |
+| Enhanced tables + responsive sidebar | P2 | DONE (Iteration 45) |
+| Persistent sort + clear confirmation | P2 | DONE (Iteration 46) |
 
 ### Backlog (Sprint 5+)
 
