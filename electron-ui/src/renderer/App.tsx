@@ -133,12 +133,39 @@ export default function App() {
       // Ctrl+N: New conversation
       if (e.ctrlKey && !e.shiftKey && e.key === 'n') {
         e.preventDefault()
-        useChatStore.getState().clearMessages()
+        const store = useChatStore.getState()
+        if (store.messages.length > 0 && store.isStreaming) return // don't clear during streaming
+        if (store.messages.length > 2) {
+          // Show brief toast warning — use double-press pattern
+          const now = Date.now()
+          if ((window as any).__lastClearPress && now - (window as any).__lastClearPress < 1500) {
+            store.clearMessages()
+            ;(window as any).__lastClearPress = 0
+          } else {
+            (window as any).__lastClearPress = now
+            useUiStore.getState().addToast('warning', 'Press Ctrl+N again to clear conversation', 1500)
+          }
+        } else {
+          store.clearMessages()
+        }
       }
       // Ctrl+K: Clear conversation (alternative, terminal-style)
       if (e.ctrlKey && !e.shiftKey && e.key === 'k') {
         e.preventDefault()
-        useChatStore.getState().clearMessages()
+        const store = useChatStore.getState()
+        if (store.messages.length > 0 && store.isStreaming) return
+        if (store.messages.length > 2) {
+          const now = Date.now()
+          if ((window as any).__lastClearPress && now - (window as any).__lastClearPress < 1500) {
+            store.clearMessages()
+            ;(window as any).__lastClearPress = 0
+          } else {
+            (window as any).__lastClearPress = now
+            useUiStore.getState().addToast('warning', 'Press Ctrl+K again to clear conversation', 1500)
+          }
+        } else {
+          store.clearMessages()
+        }
       }
       // Ctrl+`: Toggle terminal
       if (e.ctrlKey && !e.shiftKey && e.key === '`') {

@@ -108,7 +108,13 @@ export default function SessionList() {
   const [filter, setFilter] = useState('')
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
-  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'alpha'>('newest')
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'alpha'>(() => {
+    try {
+      const stored = localStorage.getItem('aipa:session-sort')
+      if (stored === 'newest' || stored === 'oldest' || stored === 'alpha') return stored
+    } catch {}
+    return 'newest'
+  })
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
@@ -252,7 +258,11 @@ export default function SessionList() {
           <RefreshCw size={13} />
         </button>
         <button
-          onClick={() => setSortBy(prev => prev === 'newest' ? 'oldest' : prev === 'oldest' ? 'alpha' : 'newest')}
+          onClick={() => setSortBy(prev => {
+            const next = prev === 'newest' ? 'oldest' : prev === 'oldest' ? 'alpha' : 'newest'
+            try { localStorage.setItem('aipa:session-sort', next) } catch {}
+            return next
+          })}
           title={`Sort: ${sortBy === 'newest' ? 'Newest first' : sortBy === 'oldest' ? 'Oldest first' : 'Alphabetical'}`}
           style={{
             background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
