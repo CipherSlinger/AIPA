@@ -779,3 +779,36 @@ built in 9.99s
 - [x] Live elapsed timer still shows during execution (warning color, >= 2s)
 - [x] Duration hidden for tools that complete in < 1s
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 77 -- Code Block Word Wrap Toggle
+
+_Date: 2026-03-27 | Sprint UI Enhancement_
+
+### Summary
+Added a word wrap toggle button to code block headers. Each multi-line code block now shows a WrapText icon button next to the Copy button in the header bar. Clicking it toggles between horizontal scrolling (default) and word-wrapped display. The toggle state is per code block instance. When word wrap is enabled, the button appears brighter (highlighted state). The feature works with both single-line and multi-line code blocks, and is compatible with the existing line numbers, collapsible pre, and language badge features. Extracted the code block rendering from the inline `code()` render function into a proper `CodeBlockWithHeader` React component to support `useState` for the wrap state.
+
+### Files Changed
+- `src/renderer/components/chat/MessageContent.tsx` -- Added `WrapText` import from lucide-react; added `WrapToggleButton` component (toggle button with highlighted/muted states); added `CodeBlockWithHeader` component (proper React component with `wordWrap` useState, renders full code block header with language badge + wrap toggle + copy button, and body with conditional `whiteSpace: pre-wrap` / `wordBreak: break-word` / `overflowX: visible` when wrapped); replaced old inline code block rendering in ReactMarkdown's `code()` function with `<CodeBlockWithHeader>` call
+
+### Build
+Status: SUCCESS
+
+```
+2385 modules transformed.
+built in 8.27s
+```
+
+### Acceptance Criteria
+- [x] Wrap toggle button (WrapText icon) appears in code block header
+- [x] Clicking toggle switches between horizontal scroll and word wrap
+- [x] Wrapped mode uses pre-wrap whitespace and break-word
+- [x] Toggle state is per code block (independent)
+- [x] Button appears highlighted (brighter) when wrap is active
+- [x] Works with line numbers (multi-line blocks)
+- [x] Works with single-line code blocks
+- [x] Compatible with CollapsiblePre collapse/expand
+- [x] Compatible with language badge colors
+- [x] Extracted to proper React component (CodeBlockWithHeader) for useState support
+- [x] Build passes with zero errors
