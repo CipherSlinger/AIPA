@@ -217,6 +217,14 @@
 | TerminalPanel i18n (title, reconnect) | P1 | DONE (Iteration 96) |
 | FileBrowser i18n (tooltips, empty state) | P1 | DONE (Iteration 96) |
 
+### Iteration 97 -- Final i18n Sweep: SlashCommandPopup, PlanCard, ImageLightbox
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| SlashCommandPopup descriptionKey i18n | P1 | DONE (Iteration 97) |
+| PlanCard i18n (all 5 strings) | P1 | DONE (Iteration 97) |
+| ImageLightbox i18n (tooltips + alt text) | P1 | DONE (Iteration 97) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

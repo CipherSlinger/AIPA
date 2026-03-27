@@ -1282,3 +1282,39 @@ built in 9.12s
 - [x] 9 new keys added to en.json
 - [x] All 9 keys have Chinese translations in zh-CN.json
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 97 -- Final i18n Sweep: SlashCommandPopup, PlanCard, ImageLightbox
+
+_Date: 2026-03-27 | Sprint i18n Completion_
+
+### Summary
+Completed the final i18n sweep for the three remaining components with hardcoded English strings. SlashCommandPopup.tsx now uses `t()` for slash command descriptions via an optional `descriptionKey` field on the `SlashCommand` interface. PlanCard.tsx now uses `t()` for "Execution Plan", "Approved"/"Rejected" status badges, and "Approve & Continue"/"Reject" action buttons. ImageLightbox.tsx now uses `t()` for all toolbar button tooltips ("Zoom in (+)", "Zoom out (-)", "Rotate (R)", "Close (Esc)") and the default "Preview" alt text. Added 10 new i18n keys across `plan` and `lightbox` namespaces to both en.json and zh-CN.json.
+
+### Files Changed
+- `src/renderer/components/chat/SlashCommandPopup.tsx` -- Added `useT` import and hook; added optional `descriptionKey` field to `SlashCommand` interface; added `descriptionKey` to all 3 SLASH_COMMANDS entries; updated render to use `t(cmd.descriptionKey)` when available, falling back to `cmd.description`
+- `src/renderer/components/chat/PlanCard.tsx` -- Added `useT` import and hook; replaced "Execution Plan" with `t('plan.executionPlan')`, "Approved"/"Rejected" with `t('plan.approved')`/`t('plan.rejected')`, "Approve & Continue" with `t('plan.approve')`, "Reject" with `t('plan.reject')`
+- `src/renderer/components/shared/ImageLightbox.tsx` -- Added `useT` import and `t` hook; replaced "Zoom in (+)" with `t('lightbox.zoomIn')`, "Zoom out (-)" with `t('lightbox.zoomOut')`, "Rotate (R)" with `t('lightbox.rotate')`, "Close (Esc)" with `t('lightbox.close')`, "Preview" with `t('lightbox.preview')`
+- `src/renderer/i18n/locales/en.json` -- Added 10 new keys: plan.executionPlan, plan.approved, plan.rejected, plan.approve, plan.reject, lightbox.zoomIn, lightbox.zoomOut, lightbox.rotate, lightbox.close, lightbox.preview
+- `src/renderer/i18n/locales/zh-CN.json` -- Added Chinese translations for all 10 new keys
+
+### Build
+Status: SUCCESS
+
+```
+2388 modules transformed.
+built in 7.93s
+```
+
+### Acceptance Criteria
+- [x] SlashCommandPopup descriptions use i18n via descriptionKey
+- [x] PlanCard "Execution Plan" uses t('plan.executionPlan')
+- [x] PlanCard "Approved"/"Rejected" badges use t() calls
+- [x] PlanCard "Approve & Continue"/"Reject" buttons use t() calls
+- [x] ImageLightbox zoom in/out tooltips use t() calls
+- [x] ImageLightbox rotate/close tooltips use t() calls
+- [x] ImageLightbox default alt text "Preview" uses t('lightbox.preview')
+- [x] 10 new keys added to en.json across plan and lightbox namespaces
+- [x] All 10 keys have Chinese translations in zh-CN.json
+- [x] Build passes with zero errors

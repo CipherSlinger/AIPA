@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { X, ZoomIn, ZoomOut, RotateCw } from 'lucide-react'
+import { useT } from '../../i18n'
 
 interface Props {
   src: string
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export default function ImageLightbox({ src, alt, onClose }: Props) {
+  const t = useT()
   const overlayRef = useRef<HTMLDivElement>(null)
   const [zoom, setZoom] = React.useState(1)
   const [rotation, setRotation] = React.useState(0)
@@ -53,28 +55,28 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
       >
         <button
           onClick={() => setZoom(z => Math.min(z + 0.25, 5))}
-          title="Zoom in (+)"
+          title={t('lightbox.zoomIn')}
           style={btnStyle}
         >
           <ZoomIn size={16} />
         </button>
         <button
           onClick={() => setZoom(z => Math.max(z - 0.25, 0.25))}
-          title="Zoom out (-)"
+          title={t('lightbox.zoomOut')}
           style={btnStyle}
         >
           <ZoomOut size={16} />
         </button>
         <button
           onClick={() => setRotation(r => (r + 90) % 360)}
-          title="Rotate (R)"
+          title={t('lightbox.rotate')}
           style={btnStyle}
         >
           <RotateCw size={16} />
         </button>
         <button
           onClick={onClose}
-          title="Close (Esc)"
+          title={t('lightbox.close')}
           style={btnStyle}
         >
           <X size={16} />
@@ -103,7 +105,7 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
       {/* Image */}
       <img
         src={src}
-        alt={alt || 'Preview'}
+        alt={alt || t('lightbox.preview')}
         style={{
           maxWidth: '90vw',
           maxHeight: '85vh',

@@ -1,17 +1,19 @@
 import React from 'react'
 import { Trash2, Archive, HelpCircle, Minus } from 'lucide-react'
+import { useT } from '../../i18n'
 
 export interface SlashCommand {
   name: string
   description: string
+  descriptionKey?: string  // i18n key for translatable description
   icon: React.ElementType
   clientOnly?: boolean  // true = handled client-side, not sent to CLI
 }
 
 export const SLASH_COMMANDS: SlashCommand[] = [
-  { name: '/compact', description: 'Compact conversation history to reduce tokens', icon: Archive },
-  { name: '/clear', description: 'Clear current conversation (client-only)', icon: Trash2, clientOnly: true },
-  { name: '/help', description: 'Show available commands', icon: HelpCircle, clientOnly: true },
+  { name: '/compact', description: 'Compact conversation history to reduce tokens', descriptionKey: 'command.compactDesc', icon: Archive },
+  { name: '/clear', description: 'Clear current conversation (client-only)', descriptionKey: 'command.clearConversationDesc', icon: Trash2, clientOnly: true },
+  { name: '/help', description: 'Show available commands', descriptionKey: 'command.showHelpDesc', icon: HelpCircle, clientOnly: true },
 ]
 
 interface Props {
@@ -24,6 +26,7 @@ interface Props {
 }
 
 export default function SlashCommandPopup({ query, onSelect, onDismiss, selectedIndex, onHover, extraCommands }: Props) {
+  const t = useT()
   const allCommands: SlashCommand[] = [
     ...SLASH_COMMANDS,
     ...(extraCommands || [])
@@ -70,7 +73,7 @@ export default function SlashCommandPopup({ query, onSelect, onDismiss, selected
           >
             <Icon size={13} style={{ color: 'var(--accent)', flexShrink: 0 }} />
             <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', minWidth: 80 }}>{cmd.name}</span>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{cmd.description}</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{cmd.descriptionKey ? t(cmd.descriptionKey) : cmd.description}</span>
           </div>
         )
       })}

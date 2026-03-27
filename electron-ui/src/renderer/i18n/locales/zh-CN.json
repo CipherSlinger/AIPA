@@ -402,5 +402,19 @@
     "copyConversation": "\u590d\u5236\u5bf9\u8bdd",
     "messageContextMenu": "\u6d88\u606f\u53f3\u952e\u83dc\u5355",
     "pressEscToClose": "\u6309 Esc \u5173\u95ed"
+  },
+  "plan": {
+    "executionPlan": "\u6267\u884c\u8ba1\u5212",
+    "approved": "\u5df2\u6279\u51c6",
+    "rejected": "\u5df2\u62d2\u7edd",
+    "approve": "\u6279\u51c6\u5e76\u7ee7\u7eed",
+    "reject": "\u62d2\u7edd"
+  },
+  "lightbox": {
+    "zoomIn": "\u653e\u5927 (+)",
+    "zoomOut": "\u7f29\u5c0f (-)",
+    "rotate": "\u65cb\u8f6c (R)",
+    "close": "\u5173\u95ed (Esc)",
+    "preview": "\u9884\u89c8"
   }
 }

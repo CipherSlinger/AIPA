@@ -1,6 +1,7 @@
 import React from 'react'
 import { CheckCircle, XCircle, ClipboardList } from 'lucide-react'
 import { PlanMessage } from '../../types/app.types'
+import { useT } from '../../i18n'
 
 interface Props {
   message: PlanMessage
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export default function PlanCard({ message, onAccept, onReject }: Props) {
+  const t = useT()
   const isPending = message.decision === 'pending'
 
   return (
@@ -33,7 +35,7 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
         }}
       >
         <ClipboardList size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>Execution Plan</span>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>{t('plan.executionPlan')}</span>
         {!isPending && (
           <span
             style={{
@@ -43,7 +45,7 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
               fontWeight: 600,
             }}
           >
-            {message.decision === 'accepted' ? 'Approved' : 'Rejected'}
+            {message.decision === 'accepted' ? t('plan.approved') : t('plan.rejected')}
           </span>
         )}
       </div>
@@ -92,7 +94,7 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
             }}
           >
             <CheckCircle size={13} />
-            Approve & Continue
+            {t('plan.approve')}
           </button>
           <button
             onClick={onReject}
@@ -112,7 +114,7 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
             }}
           >
             <XCircle size={13} />
-            Reject
+            {t('plan.reject')}
           </button>
         </div>
       )}

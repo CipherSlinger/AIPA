@@ -402,5 +402,19 @@
     "copyConversation": "Copy conversation",
     "messageContextMenu": "Message context menu",
     "pressEscToClose": "Press Esc to close"
+  },
+  "plan": {
+    "executionPlan": "Execution Plan",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "approve": "Approve & Continue",
+    "reject": "Reject"
+  },
+  "lightbox": {
+    "zoomIn": "Zoom in (+)",
+    "zoomOut": "Zoom out (-)",
+    "rotate": "Rotate (R)",
+    "close": "Close (Esc)",
+    "preview": "Preview"
   }
 }
