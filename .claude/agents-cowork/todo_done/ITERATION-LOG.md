@@ -562,3 +562,30 @@ built in 8.48s
 - [x] Quick action buttons larger (12px font, 6px border-radius, icon+label)
 - [x] Onboard-icon animation reused for hero Bot entrance
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 70 — Permission Card Visual Upgrade
+
+_Date: 2026-03-27 | Sprint UI Enhancement_
+
+### Summary
+Fixed animation conflict in PermissionCard where `style.animation` (popup-in) was overriding the CSS class `permission-card-pending` (permission-glow). Refactored animation control entirely to CSS classes: non-pending cards get `permission-card-enter` (popup-in entry), pending cards get `permission-card-pending` (popup-in entry + permission-glow continuous via CSS animation list). Also added `permission-card-enter` to the prefers-reduced-motion disable list.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/PermissionCard.tsx` — Removed `animation` from inline style, switched className to `permission-card-enter` (resolved) or `permission-card-pending` (pending)
+- `electron-ui/src/renderer/styles/globals.css` — Added `.permission-card-enter` class; updated `.permission-card-pending` to use comma-separated dual animation (popup-in + permission-glow with 0.2s delay); added `permission-card-enter` to prefers-reduced-motion block
+
+### Build
+Status: SUCCESS — all three targets (main, preload, renderer via Vite) compiled with zero errors
+
+### Acceptance Criteria
+- [x] Tool-specific icon in 44px circle with rgba tint
+- [x] Card max-width 420px, centered, border-radius 12px
+- [x] Pending state has animated glow (permission-glow keyframe, 2s infinite)
+- [x] Allow button: filled accent, 36px height, hover scale(1.02) + brightness(1.1)
+- [x] Deny button: transparent with border, 36px height, hover popup-item-hover
+- [x] Resolved state shows pill badge (Check/green or X/red)
+- [x] Card uses popup-in entrance animation (via CSS class, no style conflict)
+- [x] permission-glow in prefers-reduced-motion disable list
+- [x] Build passes with zero errors
