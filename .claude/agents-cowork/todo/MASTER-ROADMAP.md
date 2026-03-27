@@ -155,6 +155,13 @@
 | Chat zoom controls (Ctrl+=/-/0, 70%-150%) | P2 | DONE (Iteration 87) |
 | i18n for edit UI (en + zh-CN) | P1 | DONE (Iteration 87) |
 
+### Iteration 89 -- System Prompt Templates
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| System prompt template selector (6 roles) | P1 | DONE (Iteration 89) |
+| i18n for templates (en + zh-CN) | P1 | DONE (Iteration 89) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

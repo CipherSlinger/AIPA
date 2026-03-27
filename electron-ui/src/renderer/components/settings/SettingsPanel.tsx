@@ -29,6 +29,16 @@ const THEMES: { id: 'vscode' | 'modern' | 'minimal' | 'light'; label: string; co
   { id: 'light',    label: 'Light',      colors: ['#ffffff', '#2563eb', '#f3f4f6', '#f5f5f5'] },
 ]
 
+const SYSTEM_PROMPT_TEMPLATES: { id: string; labelKey: string; prompt: string }[] = [
+  { id: 'none', labelKey: 'settings.promptTemplateNone', prompt: '' },
+  { id: 'code-reviewer', labelKey: 'settings.promptTemplateCodeReviewer', prompt: 'You are an expert code reviewer. Focus on code quality, potential bugs, security issues, performance problems, and adherence to best practices. Be specific and actionable in your feedback. Suggest concrete improvements with code examples.' },
+  { id: 'technical-writer', labelKey: 'settings.promptTemplateTechWriter', prompt: 'You are a technical documentation specialist. Write clear, concise, and well-structured documentation. Use proper markdown formatting, include code examples where relevant, and organize content with logical headings. Target a developer audience.' },
+  { id: 'bug-hunter', labelKey: 'settings.promptTemplateBugHunter', prompt: 'You are a debugging specialist. When analyzing code, systematically identify potential bugs, race conditions, edge cases, null pointer risks, and error handling gaps. Explain the root cause clearly and provide the minimal fix.' },
+  { id: 'refactoring', labelKey: 'settings.promptTemplateRefactoring', prompt: 'You are a refactoring expert. Focus on improving code structure, reducing complexity, extracting reusable functions, improving naming, and applying SOLID principles. Make changes incrementally and explain the reasoning behind each refactor.' },
+  { id: 'tutor', labelKey: 'settings.promptTemplateTutor', prompt: 'You are a patient and thorough programming tutor. Explain concepts step by step, use analogies to clarify complex ideas, and provide exercises to reinforce learning. Adapt your explanations to the learner\'s level.' },
+  { id: 'architect', labelKey: 'settings.promptTemplateArchitect', prompt: 'You are a software architect. Focus on system design, scalability, maintainability, and architectural patterns. Consider trade-offs between different approaches and explain your recommendations with diagrams when helpful.' },
+]
+
 function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
@@ -182,6 +192,31 @@ export default function SettingsPanel() {
               {MODEL_OPTIONS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
           ))}
+
+          {/* System prompt template selector */}
+          {field(
+            t('settings.promptTemplate'),
+            <select
+              value={SYSTEM_PROMPT_TEMPLATES.find(tpl => tpl.prompt === (local.systemPrompt ?? ''))?.id || 'custom'}
+              onChange={(e) => {
+                const tpl = SYSTEM_PROMPT_TEMPLATES.find(t => t.id === e.target.value)
+                if (tpl) {
+                  setLocal({ ...local, systemPrompt: tpl.prompt })
+                }
+              }}
+              style={{ ...inputStyle }}
+            >
+              {SYSTEM_PROMPT_TEMPLATES.map((tpl) => (
+                <option key={tpl.id} value={tpl.id}>{t(tpl.labelKey)}</option>
+              ))}
+              {!SYSTEM_PROMPT_TEMPLATES.find(tpl => tpl.prompt === (local.systemPrompt ?? '')) && local.systemPrompt?.trim() && (
+                <option value="custom">{t('settings.promptTemplateCustom')}</option>
+              )}
+            </select>,
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+              {t('settings.promptTemplateHint')}
+            </span>
+          )}
 
           {/* System prompt */}
           {field(

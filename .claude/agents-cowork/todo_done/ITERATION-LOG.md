@@ -992,3 +992,35 @@ built in 8.04s
 - [x] Chat zoom in (Ctrl+=), zoom out (Ctrl+-), reset (Ctrl+0)
 - [x] i18n: Edit UI strings translated to English and Chinese
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 89 -- System Prompt Templates
+
+_Date: 2026-03-27 | Sprint UI Enhancement_
+
+### Summary
+Added a system prompt template selector dropdown in the Settings panel, positioned above the existing custom system prompt textarea. Users can now choose from 6 pre-configured role templates (Code Reviewer, Technical Writer, Bug Hunter, Refactoring Expert, Programming Tutor, Software Architect) or keep the textarea empty ("None"). Selecting a template automatically populates the system prompt textarea with the corresponding prompt text. If the user has manually edited the prompt to a value not matching any template, the dropdown shows "Custom (edited)". All template names and UI labels are fully internationalized (English + Chinese).
+
+### Files Changed
+- `src/renderer/components/settings/SettingsPanel.tsx` -- Added `SYSTEM_PROMPT_TEMPLATES` constant array with 7 entries (including "None"); added template selector dropdown using `<select>` with auto-detection of current template match; dropdown renders above the existing system prompt textarea with hint text
+- `src/renderer/i18n/locales/en.json` -- Added 10 new i18n keys: `settings.promptTemplate`, `settings.promptTemplateNone`, `settings.promptTemplateCodeReviewer`, `settings.promptTemplateTechWriter`, `settings.promptTemplateBugHunter`, `settings.promptTemplateRefactoring`, `settings.promptTemplateTutor`, `settings.promptTemplateArchitect`, `settings.promptTemplateCustom`, `settings.promptTemplateHint`
+- `src/renderer/i18n/locales/zh-CN.json` -- Added Chinese translations for all 10 template keys
+
+### Build
+Status: SUCCESS
+
+```
+2388 modules transformed.
+built in 7.86s
+```
+
+### Acceptance Criteria
+- [x] Template selector dropdown appears above the system prompt textarea in Settings
+- [x] 6 pre-configured role templates available (Code Reviewer, Technical Writer, Bug Hunter, Refactoring Expert, Programming Tutor, Software Architect)
+- [x] "None" option clears the system prompt
+- [x] Selecting a template populates the textarea with the template's prompt text
+- [x] Custom-edited prompts show "Custom (edited)" in the dropdown
+- [x] Template names internationalized (English + Chinese)
+- [x] Hint text explains the feature purpose
+- [x] Build passes with zero errors
