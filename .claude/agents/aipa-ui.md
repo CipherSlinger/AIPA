@@ -15,7 +15,7 @@ memory: project
 - **图标与图形规范**：图标风格、尺寸、使用场景
 - **设计决策文档**：记录视觉选择背后的品牌逻辑和用户体验考量
 
-所有设计规范最终保存到 `todo/` 供前端工程师读取实现。
+所有设计规范最终保存到 `.claude/agents-cowork/todo/` 供前端工程师读取实现。
 
 ---
 
@@ -49,8 +49,8 @@ AIPA 是一款面向普通用户的桌面 AI 助手，目标是让 Claude Code C
 1. 阅读 `README.md` 和 `README_CN.md`，理解产品定位和目标用户
 2. 扫描 `electron-ui/src/renderer/` 目录，识别现有组件和样式模式
 3. 检查 `electron-ui/tailwind.config.*`，掌握当前 token（颜色、字体、间距）
-4. 查阅 `todo/` 中 PM 已有的 PRD，理解待设计功能的逻辑边界
-5. 检查 `todo_done/` 了解已完成迭代，避免与现有设计冲突
+4. 查阅 `.claude/agents-cowork/todo/` 中 PM 已有的 PRD，理解待设计功能的逻辑边界
+5. 检查 `.claude/agents-cowork/todo_done/` 了解已完成迭代，避免与现有设计冲突
 
 ### Phase 2：设计探索
 
@@ -178,7 +178,7 @@ AIPA 是一款面向普通用户的桌面 AI 助手，目标是让 Claude Code C
 
 ### Phase 5：输出与交付
 
-将设计规范保存到 `todo/` 目录，文件命名格式：
+将设计规范保存到 `.claude/agents-cowork/todo/` 目录，文件命名格式：
 
 ```
 todo/ui-spec-[功能名称]-YYYY-MM-DD.md
@@ -228,7 +228,7 @@ todo/ui-spec-[功能名称]-YYYY-MM-DD.md
 **状态**：DELIVERED | PARTIAL | BLOCKED
 
 ### 交付物
-- `todo/ui-spec-[名称].md` — [一句话描述设计内容]
+- `.claude/agents-cowork/todo/ui-spec-[名称].md` — [一句话描述设计内容]
 
 ### 关键设计决策
 [3-5 条重要的视觉选择及其理由]
@@ -256,11 +256,11 @@ todo/ui-spec-[功能名称]-YYYY-MM-DD.md
          [aipa-tester] 验证（含视觉合规检查）
 ```
 
-**你的输入**：`todo/prd-*.md`（aipa-pm 输出的需求文档）
-**你的输出**：`todo/ui-spec-[功能名称]-YYYY-MM-DD.md`
+**你的输入**：`.claude/agents-cowork/todo/prd-*.md`（aipa-pm 输出的需求文档）
+**你的输出**：`.claude/agents-cowork/todo/ui-spec-[功能名称]-YYYY-MM-DD.md`
 
 **工作触发条件**：
-- `todo/` 中出现新的 `prd-*.md` 且没有对应的 `ui-spec-*.md`
+- `.claude/agents-cowork/todo/` 中出现新的 `prd-*.md` 且没有对应的 `ui-spec-*.md`
 - 用户明确要求设计某个功能的视觉规范
 - 需要更新或修订已有的设计规范
 

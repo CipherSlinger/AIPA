@@ -84,10 +84,10 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
         top: y,
         zIndex: 100,
         width: 210,
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border)',
+        background: 'var(--popup-bg)',
+        border: '1px solid var(--popup-border)',
         borderRadius: 6,
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+        boxShadow: 'var(--popup-shadow)',
         padding: '4px 0',
         overflow: 'hidden',
       }}
@@ -96,7 +96,7 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
       <button
         style={itemStyle}
         onClick={() => { onCopy(); onClose() }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover, var(--bg-active))' }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
         onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
       >
         <span>Copy text</span>
@@ -108,7 +108,7 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
         <button
           style={itemStyle}
           onClick={() => { onCopyMarkdown(); onClose() }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover, var(--bg-active))' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
         >
           <span>Copy as Markdown</span>
@@ -120,7 +120,7 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
         <button
           style={itemStyle}
           onClick={() => { onBookmark(); onClose() }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover, var(--bg-active))' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
         >
           <span>{isBookmarked ? 'Remove bookmark' : 'Bookmark'}</span>
@@ -133,7 +133,7 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
         <button
           style={itemStyle}
           onClick={() => { onCollapse(); onClose() }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover, var(--bg-active))' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
         >
           <span>{isCollapsed ? 'Expand message' : 'Collapse message'}</span>
@@ -147,7 +147,7 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
           <button
             style={itemStyle}
             onClick={() => { onRate(rating === 'up' ? null : 'up'); onClose() }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover, var(--bg-active))' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -158,7 +158,7 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
           <button
             style={itemStyle}
             onClick={() => { onRate(rating === 'down' ? null : 'down'); onClose() }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover, var(--bg-active))' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -176,7 +176,7 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
           <button
             style={itemStyle}
             onClick={() => { onRewind(); onClose() }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover, var(--bg-active))' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
           >
             <span>Rewind to here</span>

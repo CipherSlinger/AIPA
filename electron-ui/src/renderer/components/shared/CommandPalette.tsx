@@ -258,10 +258,10 @@ export default function CommandPalette({
           width: '100%',
           maxWidth: 500,
           maxHeight: 400,
-          background: 'var(--bg-secondary)',
-          border: '1px solid var(--border)',
+          background: 'var(--popup-bg)',
+          border: '1px solid var(--popup-border)',
           borderRadius: 8,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          boxShadow: 'var(--popup-shadow)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -329,7 +329,7 @@ export default function CommandPalette({
                 alignItems: 'center',
                 gap: 10,
                 cursor: 'pointer',
-                background: index === selectedIndex ? 'var(--bg-active)' : 'transparent',
+                background: index === selectedIndex ? 'var(--popup-item-hover)' : 'transparent',
                 transition: 'background 0.1s',
               }}
             >
@@ -375,7 +375,7 @@ export default function CommandPalette({
                   style={{
                     fontSize: 9,
                     color: 'var(--text-muted)',
-                    background: 'var(--bg-primary)',
+                    background: 'var(--action-btn-bg)',
                     border: '1px solid var(--border)',
                     padding: '1px 5px',
                     borderRadius: 3,

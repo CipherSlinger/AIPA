@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Send, Square, Plus, Mic, MicOff, Download, Upload, Maximize2, Minimize2, Bookmark, BarChart3, ListPlus, AtSign, TerminalSquare, Search } from 'lucide-react'
+import { Send, Square, Plus, Mic, MicOff, Download, Upload, Maximize2, Minimize2, Bookmark, BarChart3, ListPlus, AtSign, TerminalSquare, Search, Bot } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { useStreamJson } from '../../hooks/useStreamJson'
 import MessageList from './MessageList'
@@ -9,6 +9,7 @@ import SlashCommandPopup, { SLASH_COMMANDS, SlashCommand } from './SlashCommandP
 import { useImagePaste } from '../../hooks/useImagePaste'
 import { ChatMessage, StandardChatMessage } from '../../types/app.types'
 import TaskQueuePanel from './TaskQueuePanel'
+import QuickReplyChips from './QuickReplyChips'
 
 // Constants for drag-and-drop file handling
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg']
@@ -1157,6 +1158,22 @@ export default function ChatPanel() {
             )}
           </div>
         </div>
+        {/* Quick reply chips */}
+        <QuickReplyChips onInsert={(prompt) => {
+          setInput(prev => {
+            const sep = prev.trim() ? '\n' : ''
+            return prev + sep + prompt
+          })
+          setTimeout(() => {
+            textareaRef.current?.focus()
+            // Position cursor at end
+            const ta = textareaRef.current
+            if (ta) {
+              ta.selectionStart = ta.value.length
+              ta.selectionEnd = ta.value.length
+            }
+          }, 0)
+        }} />
         {/* Input row */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
           <div
@@ -1279,6 +1296,14 @@ export default function ChatPanel() {
 
 function ThinkingIndicator() {
   const { messages, pendingToolUses } = useChatStore()
+  const [elapsed, setElapsed] = useState(0)
+
+  // Elapsed timer
+  useEffect(() => {
+    setElapsed(0)
+    const id = setInterval(() => setElapsed(t => t + 1), 1000)
+    return () => clearInterval(id)
+  }, [])
 
   // Determine what Claude is currently doing
   let activityLabel = 'Thinking'
@@ -1306,22 +1331,72 @@ function ThinkingIndicator() {
   }
 
   return (
-    <div style={{ display: 'flex', gap: 6, padding: '10px 16px', alignItems: 'center' }}>
-      {[0, 1, 2].map((i) => (
-        <div
-          key={i}
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: '50%',
-            background: 'var(--accent)',
-            animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
-          }}
-        />
-      ))}
-      <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 4 }}>
-        {activityLabel}...
-      </span>
+    <div
+      style={{
+        display: 'flex',
+        gap: 8,
+        padding: '8px 16px',
+        alignItems: 'flex-start',
+      }}
+      aria-live="polite"
+      aria-label={`${activityLabel}...`}
+      className="message-enter-left"
+    >
+      {/* Mini AI avatar */}
+      <div
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: '50%',
+          background: 'var(--bubble-ai)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <Bot size={16} color="var(--bubble-ai-text)" />
+      </div>
+
+      {/* Mini bubble */}
+      <div
+        style={{
+          background: 'var(--bubble-ai)',
+          borderRadius: '2px 12px 12px 12px',
+          padding: '8px 14px',
+          minWidth: 80,
+          maxWidth: 200,
+        }}
+      >
+        {/* Dots + activity label row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              style={{
+                width: 5,
+                height: 5,
+                borderRadius: '50%',
+                background: 'var(--accent)',
+                animation: `dot-wave 1.2s ease-in-out ${i * 0.15}s infinite`,
+              }}
+            />
+          ))}
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 2, whiteSpace: 'nowrap' }}>
+            {activityLabel}...
+          </span>
+        </div>
+
+        {/* Elapsed timer */}
+        <div style={{
+          fontSize: 10,
+          color: 'var(--text-muted)',
+          opacity: 0.7,
+          marginTop: 3,
+        }}>
+          {elapsed}s
+        </div>
+      </div>
     </div>
   )
 }

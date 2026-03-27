@@ -186,8 +186,10 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
         )}
       </button>
 
-      {/* Expanded detail */}
-      {expanded && (
+      {/* Expanded detail with animated height */}
+      <div className={`tool-output-wrapper${expanded ? ' expanded' : ''}`}>
+        <div>
+        {expanded && (
         <div style={{ borderTop: '1px solid var(--border)' }}>
           {/* Input section */}
           <div style={{ padding: '6px 8px' }}>
@@ -234,7 +236,9 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
             </div>
           )}
         </div>
-      )}
+        )}
+        </div>
+      </div>
     </div>
   )
 }

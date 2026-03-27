@@ -161,7 +161,7 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'center',
   },
   card: {
-    background: 'var(--bg-secondary)',
+    background: 'var(--popup-bg)',
     border: '1px solid var(--border)',
     borderRadius: '12px',
     width: '100%',

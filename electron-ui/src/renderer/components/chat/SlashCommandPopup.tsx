@@ -43,10 +43,10 @@ export default function SlashCommandPopup({ query, onSelect, onDismiss, selected
         bottom: '100%',
         left: 0,
         right: 0,
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border)',
+        background: 'var(--popup-bg)',
+        border: '1px solid var(--popup-border)',
         borderRadius: 6,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+        boxShadow: 'var(--popup-shadow)',
         zIndex: 1001,
         marginBottom: 4,
         overflow: 'hidden',
@@ -65,7 +65,7 @@ export default function SlashCommandPopup({ query, onSelect, onDismiss, selected
               gap: 10,
               padding: '8px 12px',
               cursor: 'pointer',
-              background: i === selectedIndex ? 'var(--bg-active)' : 'transparent',
+              background: i === selectedIndex ? 'var(--popup-item-hover)' : 'transparent',
             }}
           >
             <Icon size={13} style={{ color: 'var(--accent)', flexShrink: 0 }} />

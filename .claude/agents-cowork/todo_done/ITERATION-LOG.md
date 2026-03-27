@@ -1,0 +1,492 @@
+# AIPA Iteration Log
+
+All iterations appended chronologically.
+
+---
+
+## Iteration 53 — WeChat 风格 UI 重构 P0
+
+_Date: 2026-03-26 | Sprint UI Redesign_
+
+### Summary
+将 AIPA 从二栏开发者风格 UI 重构为三列式 WeChat 风格布局，引入独立图标导航栏（NavRail）、气泡式消息系统（AI 左灰 / User 右蓝）、会话列表彩色头像图标，以及完整的深色分层背景体系。所有 52 次迭代的现有功能（工具调用、书签、折叠、搜索高亮等）在新布局中保持正常工作。
+
+### Files Changed
+- `src/renderer/styles/globals.css` — 添加三列布局、气泡、NavRail、会话列表等全套新 CSS 变量，覆盖三个主题（default/modern/minimal）
+- `src/renderer/store/index.ts` — `useUiStore` 添加 `activeNavItem` 状态和 `setActiveNavItem` action
+- `src/renderer/components/layout/NavRail.tsx` — 新增：56px 宽左侧图标导航栏，含 6 个导航项、左侧选中指示条、History badge、底部头像
+- `src/renderer/components/layout/AppShell.tsx` — 重构为三列布局（NavRail + SessionPanel + ChatPanel），title bar 改用 `--bg-nav`，侧边栏宽度上限调整为 400px，focus mode 同时隐藏 NavRail
+- `src/renderer/components/layout/Sidebar.tsx` — 移除顶部 tab 栏（已由 NavRail 接管），保留纯内容容器
+- `src/renderer/components/chat/Message.tsx` — 完整重构为气泡式布局：AI 左对齐灰色气泡（`2px 12px 12px 12px`）、User 右对齐蓝色气泡（`12px 2px 12px 12px`），头像 36px，时间戳内嵌气泡底部，工具调用内嵌气泡中，支持 `showAvatar` prop 实现连续消息头像合并
+- `src/renderer/components/chat/MessageList.tsx` — 计算 `showAvatarMap`（连续同角色消息后续隐藏头像），将 `msgIdx` 传入 `renderMessage`
+- `src/renderer/components/sessions/SessionList.tsx` — 会话 item 添加 36px 彩色圆角方形头像、标题行（标题+时间戳）、预览行（lastPrompt 前 50 字符），搜索框改为带 icon 的圆角现代样式，添加会话 ID 哈希颜色算法
+- `src/renderer/components/ui/Skeleton.tsx` — `SkeletonSessionRow` 更新为方形头像 36px + 标题行 + 预览行结构
+
+### Build
+Status: SUCCESS
+
+```
+✓ 2384 modules transformed.
+✓ built in 8.07s
+```
+
+### Acceptance Criteria
+- [x] 三列骨架布局实现（NavRail 56px + SessionPanel 240px + ChatPanel flex）
+- [x] 左侧图标导航栏（6 个图标 + 选中态 + hover + 历史 badge + 底部头像）
+- [x] 消息气泡重构（AI `2px 12px 12px 12px` 灰色 / User `12px 2px 12px 12px` 品牌蓝）
+- [x] 会话列表彩色圆角方形头像 + 预览行 + 现代搜索框
+
+---
+
+## Iteration 54 -- WeChat 风格 UI 重构 P1
+
+_Date: 2026-03-26 | Sprint UI Redesign Phase 2_
+
+### Summary
+完成 WeChat 风格重构的 P1 范围：重新设计聊天区顶部标题栏（44px 高度、深色背景 `--chat-header-bg`、会话名突出显示、图标化操作按钮）；重新设计底部输入区（无边框线与聊天区融为一体、图标工具栏取代文字按钮、圆角输入框带蓝色聚焦环、36px 圆形发送按钮）；简化 Tool Use 卡片视觉（rgba 叠加背景代替实色、缩小字号、去除运行态边框高亮）；全面色彩统一审计（消除硬编码十六进制色值、popup 背景统一、聊天区背景改用 `--bg-chat`）。
+
+### Files Changed
+- `src/renderer/styles/globals.css` -- 新增 Iteration 54 CSS 变量：`--input-bar-bg`、`--input-field-bg`、`--input-field-border`、`--input-field-focus`、`--input-toolbar-icon`、`--input-toolbar-hover`、`--chat-header-bg`、`--chat-header-title`、`--chat-header-icon`、`--chat-header-icon-hover`、`--tool-card-bg`、`--tool-card-border`、`--tool-card-header-bg`，三个主题均有对应覆盖
+- `src/renderer/components/chat/ChatPanel.tsx` -- 标题栏重构为 44px 高度 + 会话名左侧突出 + 右侧图标化操作按钮（Search/Export/Bookmarks/Stats/Focus/New）；输入区重构为无边框 + 图标工具栏 + 圆角10px输入框 + 蓝色聚焦环 + 36x36 圆形发送按钮；移除底部提示文字行；字符数仅在 >5000 时显示；所有 `var(--bg-primary)` 改为 `var(--bg-chat)`；popup 背景统一用 `var(--input-field-bg)`
+- `src/renderer/components/chat/ToolUseBlock.tsx` -- 容器背景改为 `var(--tool-card-bg)` rgba 叠加、边框改为 `var(--tool-card-border)` 半透明、圆角 6px；标题栏 padding 缩小、图标/字号缩小（12px/11px/10px）；运行态使用微妙 header 背景而非边框变色；Bash 输出背景改为 `rgba(0,0,0,0.2)` 并限高 200px + 底部圆角
+
+### Build
+Status: SUCCESS
+
+```
+✓ 2384 modules transformed.
+✓ built in 7.75s
+```
+
+### Acceptance Criteria
+- [x] 标题栏背景 `--chat-header-bg` (#1a1a1a)，高度 44px
+- [x] 会话标题 13px semi-bold 左对齐显示
+- [x] 操作按钮图标化（Search/Export/Bookmarks/Stats/Focus/New）右对齐
+- [x] 书签按钮有数量 badge
+- [x] 输入区背景与聊天区融为一体（无 borderTop）
+- [x] 图标工具栏取代文字按钮（@、/cmd、Mic）
+- [x] 输入框圆角 10px + 蓝色聚焦环
+- [x] 发送按钮 36x36 圆形蓝色
+- [x] Tool use 卡片 rgba 叠加背景（无实色边框）
+- [x] 色彩统一：聊天区用 `var(--bg-chat)`，popup 背景统一
+- [x] 三个主题（default/modern/minimal）均有对应 CSS 变量覆盖
+
+---
+
+## Iteration 55 -- Color Unification Completion + Animation System
+
+_Date: 2026-03-26 | Sprint UI Redesign Phase 3_
+
+### Summary
+Complete elimination of legacy CSS variable debt (`var(--bg-primary)` and `var(--bg-secondary)`) from all chat-related components. Introduced a unified popup/overlay surface variable system (`--popup-bg`, `--popup-border`, `--popup-shadow`, `--popup-item-hover`), inline action button variables (`--action-btn-bg`, `--action-btn-border`), and card surface variables (`--card-bg`, `--card-border`) across all 3 themes. Added a direction-aware message entrance animation system (AI bubbles slide from left, user bubbles slide from right), sidebar panel slide transition, NavRail icon hover/active scale micro-interactions, tool use card expand/collapse height animation, and popup entrance animations. All animations respect `prefers-reduced-motion`.
+
+### Files Changed
+- `src/renderer/styles/globals.css` -- Added 15 new CSS variables (popup, action-btn, card, input-focus-shadow) for all 3 themes; added `@keyframes bubble-in-left`, `bubble-in-right`, `popup-in`; added `.nav-icon-btn` hover/active scale; added `.tool-output-wrapper` grid height animation; added `prefers-reduced-motion` media query; updated `.skeleton` to use `--popup-bg`
+- `src/renderer/components/chat/Message.tsx` -- Hover action buttons (raw markdown toggle, copy for assistant, copy for user) changed from `var(--bg-primary)` to `var(--action-btn-bg)`, border from `var(--border)` to `var(--action-btn-border)`
+- `src/renderer/components/chat/PlanCard.tsx` -- Container background changed from `var(--bg-secondary)` to `var(--card-bg)`, border from `var(--accent)` to `var(--card-border)`
+- `src/renderer/components/chat/PermissionCard.tsx` -- Container background changed from `var(--bg-secondary)` to `var(--card-bg)`, non-pending border to `var(--card-border)`, detail block background to `var(--action-btn-bg)`
+- `src/renderer/components/chat/SearchBar.tsx` -- Background changed from `var(--bg-secondary)` to `var(--popup-bg)`
+- `src/renderer/components/chat/SlashCommandPopup.tsx` -- Background/border/shadow unified to popup variables, item hover to `var(--popup-item-hover)`
+- `src/renderer/components/chat/AtMentionPopup.tsx` -- Background/border/shadow unified to popup variables, item hover to `var(--popup-item-hover)`
+- `src/renderer/components/chat/MessageContextMenu.tsx` -- Background/border/shadow unified to popup variables, all 7 hover handlers changed to `var(--popup-item-hover)`
+- `src/renderer/components/chat/MessageContent.tsx` -- Search highlight text color changed from `var(--bg-primary)` to `#1a1a1a`; table header changed from `var(--bg-active, var(--bg-secondary))` to `var(--action-btn-bg)`
+- `src/renderer/components/chat/MessageList.tsx` -- Direction-aware entrance classes: user messages get `message-enter-right`, assistant messages get `message-enter-left`
+- `src/renderer/components/chat/ToolUseBlock.tsx` -- Expanded detail section wrapped in `.tool-output-wrapper` grid animation container
+- `src/renderer/components/shared/CommandPalette.tsx` -- Modal background/border/shadow unified to popup variables; selected item background to `var(--popup-item-hover)`; kbd background to `var(--action-btn-bg)`
+- `src/renderer/components/shared/ShortcutCheatsheet.tsx` -- Background/border/shadow unified to popup variables
+- `src/renderer/components/onboarding/OnboardingWizard.tsx` -- Card background changed from `var(--bg-secondary)` to `var(--popup-bg)`
+- `src/renderer/components/terminal/TerminalPanel.tsx` -- Toolbar background changed from `var(--bg-secondary)` to `var(--popup-bg)`
+- `src/renderer/components/sessions/SessionList.tsx` -- Search highlight text color changed from `var(--bg-primary)` to `#1a1a1a`
+- `src/renderer/components/layout/AppShell.tsx` -- Sidebar panel changed from conditional render to always-render with animated width/opacity transition (0.25s cubic-bezier)
+- `src/renderer/components/layout/NavRail.tsx` -- NavItem buttons receive `nav-icon-btn` class for scale hover/active micro-interaction
+
+### Build
+Status: SUCCESS
+
+```
+2384 modules transformed.
+built in 7.55s
+```
+
+### Acceptance Criteria
+- [x] Zero remaining `var(--bg-secondary)` in renderer source
+- [x] Only 2 remaining `var(--bg-primary)` (AppShell outer + globals.css body -- both correct)
+- [x] All popup/overlay components use `var(--popup-bg/border/shadow)`
+- [x] Message hover buttons use `var(--action-btn-bg/border)`
+- [x] PlanCard and PermissionCard use `var(--card-bg/border)`
+- [x] 15 new CSS variables defined across all 3 themes
+- [x] AI messages slide in from left (bubble-in-left, 250ms spring)
+- [x] User messages slide in from right (bubble-in-right, 250ms spring)
+- [x] SessionPanel show/hide transitions smoothly (width + opacity, 250ms)
+- [x] NavRail icons scale on hover (1.1x) and click (0.95x)
+- [x] Tool use card output uses grid height animation
+- [x] Popup entrance animation (popup-in, 150ms)
+- [x] `prefers-reduced-motion` disables all animations
+- [x] Build passes with zero errors
+
+---
+
+## Iteration 56 -- Quick Reply Templates
+
+_Date: 2026-03-26 | Sprint UI Enhancement_
+
+### Summary
+Added a horizontal row of configurable quick-reply chip buttons between the toolbar and input field. Each chip is a pill-shaped button that inserts its associated prompt text into the textarea on click. Ships with 4 default templates ("Explain this", "Review code", "Summarize", "Fix bug"). Users can add new chips via an inline form (+ button), edit chips (double-click or right-click > Edit), and delete chips (right-click > Remove). Chips persist across app restarts via electron-store. The row scrolls horizontally when chips overflow.
+
+### Files Changed
+- `src/renderer/types/app.types.ts` -- Added `quickReplies?: { label: string; prompt: string }[]` to `ClaudePrefs` interface
+- `src/renderer/store/index.ts` -- Added default `quickReplies` array (4 templates) to `DEFAULT_PREFS`
+- `src/renderer/components/chat/QuickReplyChips.tsx` -- New component: chip row with add/edit/delete inline forms, right-click context menu, persistence via `prefsSet`, tooltip on hover, truncation at 20 chars
+- `src/renderer/components/chat/ChatPanel.tsx` -- Imported `QuickReplyChips`, integrated between toolbar row and input row with `onInsert` callback that appends prompt text and focuses textarea
+
+### Build
+Status: SUCCESS
+
+```
+2385 modules transformed.
+built in 7.69s
+```
+
+### Acceptance Criteria
+- [x] Quick reply chip row visible between toolbar and input field
+- [x] Default 4 chips shipped on first launch
+- [x] Clicking a chip inserts its prompt text into the textarea
+- [x] Focus moves to textarea after chip click
+- [x] "+" button to add new chip with inline label/prompt form
+- [x] Chips persist across app restarts (electron-store)
+- [x] Chips show full prompt as tooltip on hover
+- [x] Chip text truncated at 20 characters with ellipsis
+- [x] Horizontal scroll when chips overflow
+- [x] Right-click chip shows edit/delete options
+- [x] Build passes with zero errors
+
+---
+
+## Iteration 57 -- Message Status Indicators
+
+_Date: 2026-03-26 | Sprint UI Enhancement_
+
+### Summary
+Added WeChat-style message status indicators to user message bubbles. Each user message now shows a small check icon after the timestamp to indicate "sent" status. While the assistant is actively streaming a response, the last user message shows a clock icon instead, transitioning to a check once streaming completes. Non-user messages (assistant, system, permission, plan) show no indicator. Icons inherit the subtle rgba color of the timestamp text for visual consistency.
+
+### Files Changed
+- `src/renderer/components/chat/Message.tsx` -- Added `Check` and `Clock` imports from lucide-react; imported `useChatStore`; computed `msgStatus` ('sending' | 'sent' | null) using `isStreaming` and last-user-message detection; modified timestamp div from `textAlign: 'right'` to flex layout with inline status icon after timestamp text
+
+### Build
+Status: SUCCESS
+
+```
+2385 modules transformed.
+built in 7.72s
+```
+
+### Acceptance Criteria
+- [x] User messages show a check icon after the timestamp when processed
+- [x] The last user message shows a clock icon while assistant is streaming
+- [x] Clock icon transitions to check icon when streaming completes
+- [x] No indicators on assistant/system/permission/plan messages
+- [x] Icons match the subtle rgba coloring of user bubble timestamps
+- [x] Build passes with zero errors
+
+---
+
+## Iteration 58 -- Thinking Indicator Bubble
+
+_Date: 2026-03-26 | Sprint UI Enhancement_
+
+### Summary
+Redesigned the thinking/typing indicator from a flat dot+label layout to a WeChat-style mini bubble with AI avatar. The indicator now renders as a left-aligned mini bubble (matching assistant message bubble styling) with a 28px circular avatar, wave-bouncing dots, contextual activity label (Thinking/Writing/Running command/etc.), and a seconds elapsed timer. Uses `bubble-in-left` entrance animation and `aria-live="polite"` for accessibility.
+
+### Files Changed
+- `src/renderer/styles/globals.css` -- Added `@keyframes dot-wave` (wave bounce animation for dots: translateY(0) -> translateY(-4px))
+- `src/renderer/components/chat/ChatPanel.tsx` -- Added `Bot` import from lucide-react; rewrote `ThinkingIndicator` component: 28px circular avatar with Bot icon, mini bubble with `--bubble-ai` background and `2px 12px 12px 12px` border-radius, 3 wave-bouncing dots (5px, dot-wave animation with 0.15s stagger), activity label, elapsed seconds timer, `message-enter-left` entrance animation, `aria-live="polite"`
+
+### Build
+Status: SUCCESS
+
+```
+2385 modules transformed.
+built in 7.55s
+```
+
+### Acceptance Criteria
+- [x] Thinking indicator renders as a left-aligned mini bubble with AI avatar
+- [x] Bubble uses same background and border-radius as assistant message bubbles
+- [x] 3 dots animate with wave bounce pattern
+- [x] Activity label shows contextual text (Thinking/Writing/Running command/etc.)
+- [x] Elapsed timer counts seconds while indicator is visible
+- [x] Entrance animation uses existing bubble-in-left
+- [x] `aria-live="polite"` for accessibility
+- [x] Build passes with zero errors
+
+---
+
+## Iteration 59 -- Session List Date Group Headers
+
+_Date: 2026-03-26 | Sprint UI Enhancement_
+
+### Summary
+Added date-based grouping headers to the session list. Sessions are now organized under sticky group headers ("Today", "Yesterday", "This Week", "Earlier") when sorted by newest or oldest timestamp. Group headers are not shown when using alphabetical sort or when a search filter is active. Pinned sessions retain their top position and are excluded from date grouping logic. Headers use a subtle uppercase style with sticky positioning.
+
+### Files Changed
+- `src/renderer/components/sessions/SessionList.tsx` -- Added `getDateGroup()` helper function (computes Today/Yesterday/This Week/Earlier from timestamp); added `showDateGroups` flag (disabled for alpha sort and search); modified `filtered.map()` to compute and render date group headers as sticky divs before the first session of each group; wrapped session items in `React.Fragment` to allow sibling header elements
+
+### Build
+Status: SUCCESS
+
+```
+2385 modules transformed.
+built in 7.86s
+```
+
+### Acceptance Criteria
+- [x] Sessions grouped under "Today", "Yesterday", "This Week", "Earlier" headers
+- [x] Group headers have sticky positioning
+- [x] Headers only shown when sorting by newest/oldest (not alphabetical)
+- [x] Headers hidden when search filter is active
+- [x] Pinned sessions excluded from date grouping
+- [x] Build passes with zero errors
+
+---
+
+## Iteration 60 -- Session Active Streaming Indicator
+
+_Date: 2026-03-26 | Sprint UI Enhancement_
+
+### Summary
+Added a small green pulsing dot on the session list avatar when the active session is streaming. The dot appears at the bottom-right corner of the 36px avatar with a 2px border matching the session panel background, providing a WeChat-style "online" indicator that shows at a glance which session is currently generating a response.
+
+### Files Changed
+- `src/renderer/components/sessions/SessionList.tsx` -- Added `isStreaming` selector from `useChatStore`; wrapped session avatar in `position: relative` container; added conditional 10px green pulsing dot (using existing `pulse` keyframe) at bottom-right of avatar when `isActive && isStreaming`
+
+### Build
+Status: SUCCESS
+
+```
+2385 modules transformed.
+built in 8.11s
+```
+
+### Acceptance Criteria
+- [x] Green pulsing dot on active session avatar during streaming
+- [x] Dot positioned at bottom-right with 2px panel-colored border
+- [x] Uses existing pulse animation
+- [x] Only shows on active session during streaming
+- [x] Build passes with zero errors
+
+---
+
+## Iteration 61 -- NavRail Custom Tooltips
+
+_Date: 2026-03-26 | Sprint UI Enhancement_
+
+### Summary
+Replaced native `title` attribute tooltips on NavRail navigation items with custom-styled tooltips that appear to the right of the icon with a 400ms delay. Tooltips use the established popup styling system (`--popup-bg`, `--popup-border`, `--popup-shadow`) with the `popup-in` entrance animation, providing a polished and consistent tooltip experience. The timer-based approach prevents tooltip flicker during fast mouse movement across the nav rail.
+
+### Files Changed
+- `src/renderer/components/layout/NavRail.tsx` -- Removed `title={label}` from NavItem button; added `showTooltip` state with 400ms `setTimeout` on hover; added styled tooltip div positioned to the right of the button with popup variables and popup-in animation; cleanup timer on mouse leave to prevent stale tooltips
+
+### Build
+Status: SUCCESS
+
+```
+2385 modules transformed.
+built in 7.64s
+```
+
+### Acceptance Criteria
+- [x] Custom styled tooltips appear to the right of NavRail icons on hover
+- [x] Tooltips use popup-bg/border/shadow variables for consistency
+- [x] 400ms delay before tooltip appears (prevents flicker)
+- [x] Tooltip disappears immediately on mouse leave
+- [x] Tooltip uses popup-in entrance animation
+- [x] Build passes with zero errors
+
+---
+
+## Iteration 62 -- New Message Highlight Glow
+
+_Date: 2026-03-26 | Sprint UI Enhancement_
+
+### Summary
+Added a subtle blue glow animation on new messages when they first appear in the chat. When the last message enters (both user and assistant bubbles), a `box-shadow` glow briefly highlights the message for 1.5 seconds before fading out. This draws the user's eye to new content without being distracting. The animation is combined with the existing entrance slide animations. Respects `prefers-reduced-motion`.
+
+### Files Changed
+- `src/renderer/styles/globals.css` -- Added `@keyframes message-glow` (box-shadow pulse from accent color at 30% to transparent at 100%); added `.message-new-glow` class; added `.message-new-glow` to `prefers-reduced-motion` disabled list
+- `src/renderer/components/chat/MessageList.tsx` -- Added `message-new-glow` class alongside existing entrance classes for the last message
+
+### Build
+Status: SUCCESS
+
+```
+2385 modules transformed.
+built in 7.68s
+```
+
+### Acceptance Criteria
+- [x] New messages show a subtle blue glow on first appearance
+- [x] Glow fades out after 1.5 seconds
+- [x] Applied to both user and assistant messages
+- [x] Combined with existing entrance animations
+- [x] Respects prefers-reduced-motion
+- [x] Build passes with zero errors
+
+---
+
+## Iteration 63 -- Message Reactions (Emoji Quick-React)
+
+_Date: 2026-03-26 | Sprint UI Enhancement_
+
+### Summary
+Added WeChat/Slack-style hover-triggered emoji quick-reaction buttons to message bubbles. When hovering over any message for 200ms, a floating pill-shaped reaction toolbar appears above the bubble with 5 emoji buttons (thumbs up, heart, laughing, surprised, thinking). Clicking an emoji toggles a reaction badge below the bubble. Badges show the emoji with a count and can be clicked to remove the reaction. Reactions are stored in Zustand (in-memory per session). The toolbar uses popup-in animation and existing CSS variable system. All 3 themes supported.
+
+### Files Changed
+- `src/renderer/styles/globals.css` -- Added 7 new CSS variables for reaction system (`--reaction-bar-bg`, `--reaction-bar-border`, `--reaction-bar-shadow`, `--reaction-badge-bg`, `--reaction-badge-border`, `--reaction-badge-active`, `--reaction-badge-active-border`) across all 3 themes (default/modern/minimal)
+- `src/renderer/store/index.ts` -- Added `reactions: Record<string, string[]>` state and `toggleReaction(msgId, emoji)` action to `ChatState` interface and implementation
+- `src/renderer/components/chat/Message.tsx` -- Added `REACTION_EMOJIS` constant (5 emojis), 200ms delayed reaction toolbar (positioned above bubble, opposite side from avatar), reaction badge row (below bubble, persistent once reactions exist), hover/press scale animations on emoji buttons, accessibility attributes (role="toolbar", aria-labels), compact mode support
+
+### Build
+Status: SUCCESS
+
+```
+2385 modules transformed.
+built in 7.39s
+```
+
+### Acceptance Criteria
+- [x] Reaction toolbar appears on message hover after 200ms delay
+- [x] 5 emoji buttons: thumbs up, heart, laughing, surprised, thinking
+- [x] Toolbar uses popup-in animation and popup styling variables
+- [x] Toolbar positioned above bubble (top-right for AI, top-left for user)
+- [x] Clicking emoji toggles reaction badge below bubble
+- [x] Badge shows emoji + count in pill shape
+- [x] Badge click removes reaction (toggle)
+- [x] Reactions stored in Zustand (in-memory, per session)
+- [x] CSS variables defined across all 3 themes
+- [x] Compact mode uses smaller sizes (24px buttons, 20px badges)
+- [x] Accessibility: role="toolbar", aria-labels on all buttons
+- [x] REACTION_EMOJIS constant outside component (performance)
+- [x] Build passes with zero errors
+
+---
+
+## Iteration 64 -- Sidebar Search Enhancement
+
+_Date: 2026-03-26 | Sprint UI Enhancement_
+
+### Summary
+Enhanced the session list search with richer visual feedback. When a search filter is active, a result count badge appears on the right side of the search input ("N results" or "No results" in red). Additionally, each matching session now shows a match context line below the preview, indicating where the match was found ("in title", "in content", or "in project") with the matched keyword highlighted in context. The context snippet shows up to 30 characters before and after the match with ellipsis for truncation.
+
+### Files Changed
+- `src/renderer/components/sessions/SessionList.tsx` -- Added `getMatchContext()` helper function to determine match source and extract contextual snippet; added result count badge (positioned absolute right inside search input wrapper); added match context line below preview with source label in accent color and `HighlightText` highlighting
+- `todo/ui-spec-search-preview-2026-03-26.md` -- UI specification for the feature
+
+### Build
+Status: SUCCESS
+
+```
+2385 modules transformed.
+built in 7.42s
+```
+
+### Acceptance Criteria
+- [x] Result count badge shows "N results" when filter is active
+- [x] "No results" text displays in error color
+- [x] Match context line shows below preview with source indicator
+- [x] Source label ("in title"/"in content"/"in project") in accent color
+- [x] Context snippet shows surrounding text with match highlighted
+- [x] Ellipsis added when context is truncated
+- [x] Match priority: title > content > project
+- [x] No context line when filter is empty
+- [x] Reuses existing HighlightText component
+- [x] Build passes with zero errors
+
+---
+
+## Iteration 65 -- Status Bar Enhancement
+
+_Date: 2026-03-26 | Sprint UI Enhancement_
+
+### Summary
+Redesigned the bottom status bar from a flat, cramped information row into a segmented three-zone layout with better visual hierarchy. The bar is now divided into Left (sidebar toggle + working directory), Center (streaming status, context window bar, session duration), and Right (token usage with lucide icons, cost, model badge pill, terminal toggle) zones separated by subtle vertical dividers. Added session duration indicator showing elapsed time since first message. Model name now displays as a pill-shaped badge. Context bar widened to 60px with "Ctx" label. Token arrows replaced with proper lucide ArrowUp/ArrowDown/Recycle icons.
+
+### Files Changed
+- `src/renderer/components/layout/StatusBar.tsx` -- Full rewrite: added `Separator` component (1px vertical divider), `formatDuration()` helper (seconds/minutes/hours formatting), three-zone segmented layout, session duration with Clock icon, model badge pill styling, lucide icons for token metrics (ArrowUp/ArrowDown/Recycle replacing text arrows and emoji), wider 60px context bar with "Ctx" label
+- `todo/ui-spec-statusbar-enhancement-2026-03-26.md` -- UI specification
+
+### Build
+Status: SUCCESS
+
+```
+2385 modules transformed.
+built in 7.70s
+```
+
+### Acceptance Criteria
+- [x] Three-zone segmented layout with vertical separators
+- [x] Left zone: sidebar toggle + working directory (max 120px, truncated)
+- [x] Center zone: streaming indicator, message count, context bar, session duration
+- [x] Right zone: token usage, cost, model badge, terminal toggle
+- [x] Session duration shows elapsed time (s/m/h format)
+- [x] Model badge styled as pill (rounded, semi-transparent background)
+- [x] Token usage uses lucide icons instead of text arrows/emoji
+- [x] Context bar widened to 60px with "Ctx" label
+- [x] Vertical separators: 1px rgba(255,255,255,0.15), 14px tall
+- [x] Build passes with zero errors
+
+---
+
+## Iteration 66 -- Session List Hover Polish
+
+_Date: 2026-03-26 | Sprint UI Enhancement_
+
+### Summary
+Polished session list item hover interactions with smoother micro-animations. Non-active session items now subtly shift right (2px translateX) on hover for visual feedback. Action buttons (pin, rename, fork, delete) now use opacity+transform transitions (fade in + slide from right) instead of abrupt display toggling. All transitions use consistent 150ms ease timing. The border-left-color also transitions smoothly when items change state.
+
+### Files Changed
+- `src/renderer/components/sessions/SessionList.tsx` -- Updated session item hover handlers to add `translateX(2px)` on non-active items; replaced action button `display: none/flex` toggle with `opacity: 0/1` + `transform: translateX(4px/0)` transitions; added `transition: background 0.15s ease, transform 0.15s ease, border-left-color 0.15s ease` to item container; action buttons container changed from `display: none` initial to `display: flex; opacity: 0; transform: translateX(4px)` with `transition: opacity 0.15s ease, transform 0.15s ease`
+
+### Build
+Status: SUCCESS
+
+```
+2385 modules transformed.
+built in 8.13s
+```
+
+### Acceptance Criteria
+- [x] Non-active session items shift right 2px on hover
+- [x] Action buttons fade in with slide-from-right animation
+- [x] All transitions use 0.15s ease timing
+- [x] Active items don't shift (only background intensifies)
+- [x] Border-left-color transitions smoothly
+- [x] Action buttons always rendered (opacity 0) instead of display toggled
+- [x] Build passes with zero errors
+
+---
+
+## Iteration 67 -- NavRail Shortcut Hints
+
+_Date: 2026-03-26 | Sprint UI Enhancement_
+
+### Summary
+Added keyboard shortcut hints to NavRail tooltip popups. When hovering over a navigation item, the tooltip now shows both the label and the associated keyboard shortcut in a styled badge (e.g., "New Chat `Ctrl+N`"). Shortcuts are displayed in a small pill-shaped badge with a subtle background, positioned to the right of the label text. Added shortcuts for New Chat (Ctrl+N), History (Ctrl+B), Terminal (Ctrl+`), and Settings (Ctrl+,). Files has no shortcut assigned.
+
+### Files Changed
+- `src/renderer/components/layout/NavRail.tsx` -- Added `shortcut?: string` prop to `NavItemProps` interface; destructured `shortcut` in `NavItem` component; extended tooltip render to include a styled shortcut badge (rgba background, 10px font, muted color) after the label; added `shortcut` prop to New Chat ("Ctrl+N"), History ("Ctrl+B"), Terminal ("Ctrl+\`"), and Settings ("Ctrl+,") NavItem instances
+
+### Build
+Status: SUCCESS
+
+```
+2385 modules transformed.
+built in 8.14s
+```
+
+### Acceptance Criteria
+- [x] NavItem tooltips show keyboard shortcut in styled badge
+- [x] Badge uses subtle rgba background with muted text color
+- [x] New Chat: Ctrl+N, History: Ctrl+B, Terminal: Ctrl+`, Settings: Ctrl+,
+- [x] Files: no shortcut (prop omitted)
+- [x] Shortcut prop is optional (no breaking changes)
+- [x] Build passes with zero errors

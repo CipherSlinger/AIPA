@@ -16,8 +16,8 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
       style={{
         margin: '8px 16px',
         borderRadius: 8,
-        border: '1px solid var(--accent)',
-        background: 'var(--bg-secondary)',
+        border: '1px solid var(--card-border)',
+        background: 'var(--card-bg)',
         overflow: 'hidden',
       }}
     >

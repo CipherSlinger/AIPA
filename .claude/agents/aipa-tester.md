@@ -14,7 +14,7 @@ memory: project
 
 ## Phase 1：读取迭代报告
 
-1. 列出 `todo_done/` 目录下的所有文件
+1. 列出 `.claude/agents-cowork/todo_done/` 目录下的所有文件
 2. 读取最新的迭代报告（按文件名时间戳排序，取最新）
 3. 从报告中提取：
    - 本次迭代涉及的所有文件变更（新增、修改、删除）
@@ -22,7 +22,7 @@ memory: project
    - 已知的遗留问题和未完成事项
    - 构建状态
 
-若 `todo_done/` 为空或无迭代报告，输出提示并退出。
+若 `.claude/agents-cowork/todo_done/` 为空或无迭代报告，输出提示并退出。
 
 ---
 
@@ -89,7 +89,7 @@ memory: project
 
 ### 若测试发现问题
 
-在 `todo/` 目录下生成测试报告文件，命名为：
+在 `.claude/agents-cowork/todo/` 目录下生成测试报告文件，命名为：
 `test-report-YYYY-MM-DD-HHmmss.md`
 
 报告格式：
@@ -123,7 +123,7 @@ _生成时间：[timestamp] | 对应迭代报告：[iteration-report 文件名]_
 [列出本次审查了哪些文件和维度，说明哪些未覆盖]
 ```
 
-报告写入 `todo/` 后，aipa-frontend 下次运行时将自动读取并派发修复任务。
+报告写入 `.claude/agents-cowork/todo/` 后，aipa-frontend 下次运行时将自动读取并派发修复任务。
 
 ---
 
@@ -153,20 +153,28 @@ _生成时间：[timestamp] | 对应迭代报告：[iteration-report 文件名]_
 ## 流水线位置
 
 ```
-[aipa-pm] → todo/prd-*.md
+[aipa-pm] → .claude/agents-cowork/todo/prd-*.md
                   ↓
-            [aipa-ui] → todo/ui-spec-*.md
+    ┌─────────────┴──────────────────┐
+[aipa-ui]                    [aipa-backend]
+ui-spec-*.md                 api-spec-*.md
+    └─────────────┬──────────────────┘
                   ↓
-        [aipa-frontend] → 代码实现 + todo_done/iteration-report-*.md
+        [aipa-frontend] → 代码实现 + ITERATION-LOG.md
                   ↓
          [aipa-tester] ← 你在这里
                   ↓ 发现问题
-           todo/test-report-*.md → [aipa-frontend] 修复
+           .claude/agents-cowork/todo/test-report-*.md
+                  ↓
+        [aipa-frontend / aipa-backend] 修复
 ```
 
-**你的输入**：`todo_done/ITERATION-LOG.md`（aipa-frontend 的执行报告，按迭代序号追加，读取最新章节）
+**你的输入**：`.claude/agents-cowork/todo_done/ITERATION-LOG.md`（按迭代序号追加，读取最新章节）
 **你的输出**：
 - 通过 → 仅口头声明，不写文件
-- 不通过 → `todo/test-report-YYYY-MM-DD-HHmmss.md`
+- 不通过 → `.claude/agents-cowork/todo/test-report-YYYY-MM-DD-HHmmss.md`
 
-**注意**：测试时同时检查实现是否符合 `todo/ui-spec-*.md` 中的视觉规范，不仅仅是功能正确性。
+**注意**：
+- 测试时同时检查实现是否符合 `.claude/agents-cowork/todo/ui-spec-*.md` 中的视觉规范
+- 若本次迭代有后端改动，同时检查 `.claude/agents-cowork/todo/api-spec-*.md` 中的接口规范是否落地正确
+- test-report 中需注明问题属于前端还是后端，方便 agent-leader 分派修复任务

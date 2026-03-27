@@ -110,6 +110,10 @@ interface ChatState {
   currentSessionTitle: string | null
   setSessionTitle: (title: string | null) => void
 
+  // Message Reactions (in-memory, per session)
+  reactions: Record<string, string[]>
+  toggleReaction: (msgId: string, emoji: string) => void
+
   // Task Queue
   taskQueue: TaskQueueItem[]
   queuePaused: boolean
@@ -132,6 +136,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   totalSessionCost: 0,
   lastContextUsage: null,
   currentSessionTitle: null,
+  reactions: {},
   taskQueue: [],
   queuePaused: false,
 
@@ -290,6 +295,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
     taskQueue: [...s.taskQueue, { id: `queue-${Date.now()}-${Math.random()}`, content, status: 'pending' as const }]
   })),
 
+  toggleReaction: (msgId, emoji) => set((s) => {
+    const current = s.reactions[msgId] || []
+    const hasReaction = current.includes(emoji)
+    const updated = hasReaction
+      ? current.filter(e => e !== emoji)
+      : [...current, emoji]
+    const newReactions = { ...s.reactions }
+    if (updated.length === 0) {
+      delete newReactions[msgId]
+    } else {
+      newReactions[msgId] = updated
+    }
+    return { reactions: newReactions }
+  }),
+
   removeFromQueue: (id) => set((s) => ({
     taskQueue: s.taskQueue.filter(item => item.id !== id)
   })),
@@ -363,6 +383,12 @@ const DEFAULT_PREFS: ClaudePrefs = {
   maxBudgetUsd: undefined,
   notifySound: true,
   compactMode: false,
+  quickReplies: [
+    { label: 'Explain this', prompt: 'Please explain this in detail:' },
+    { label: 'Review code', prompt: 'Please review this code for bugs, performance issues, and best practices:' },
+    { label: 'Summarize', prompt: 'Please summarize the above concisely:' },
+    { label: 'Fix bug', prompt: 'Please identify and fix the bug in:' },
+  ],
 }
 
 export const usePrefsStore = create<PrefsState>((set) => ({

@@ -129,6 +129,7 @@ function parseSessionMessages(raw: SessionMessage[]): ChatMessage[] {
 export default function SessionList() {
   const { sessions, loading, setSessions, setLoading } = useSessionStore()
   const { clearMessages, loadHistory, setSessionId, currentSessionId } = useChatStore()
+  const isStreaming = useChatStore(s => s.isStreaming)
   const { addToast } = useUiStore()
   const [filter, setFilter] = useState('')
   const [renamingId, setRenamingId] = useState<string | null>(null)
@@ -258,6 +259,55 @@ export default function SessionList() {
       return b.timestamp - a.timestamp // newest first (default)
     })
 
+  // Compute date group labels for sessions (only when sorted by newest/oldest)
+  const getDateGroup = (ts: number): string => {
+    const now = new Date()
+    const date = new Date(ts)
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const yesterday = new Date(today.getTime() - 86400000)
+    const weekAgo = new Date(today.getTime() - 7 * 86400000)
+
+    if (date >= today) return 'Today'
+    if (date >= yesterday) return 'Yesterday'
+    if (date >= weekAgo) return 'This Week'
+    return 'Earlier'
+  }
+
+  const showDateGroups = sortBy !== 'alpha' && !filter
+
+  // Compute match source and context snippet for search results
+  const getMatchContext = (session: SessionListItem, query: string): { source: string; snippet: string } | null => {
+    if (!query.trim()) return null
+    const q = query.toLowerCase()
+    const title = session.title || ''
+    const content = session.lastPrompt || ''
+    const project = session.project || ''
+
+    let source = ''
+    let text = ''
+    if (title.toLowerCase().includes(q)) {
+      source = 'in title'
+      text = title
+    } else if (content.toLowerCase().includes(q)) {
+      source = 'in content'
+      text = content
+    } else if (project.toLowerCase().includes(q)) {
+      source = 'in project'
+      text = project
+    } else {
+      return null
+    }
+
+    // Extract context around the match
+    const idx = text.toLowerCase().indexOf(q)
+    const start = Math.max(0, idx - 30)
+    const end = Math.min(text.length, idx + query.length + 30)
+    let snippet = text.slice(start, end)
+    if (start > 0) snippet = '...' + snippet
+    if (end < text.length) snippet = snippet + '...'
+    return { source, snippet }
+  }
+
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Search bar */}
@@ -283,6 +333,18 @@ export default function SessionList() {
             onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
             onBlur={(e) => (e.currentTarget.style.borderColor = 'transparent')}
           />
+          {filter && (
+            <span style={{
+              position: 'absolute',
+              right: 8,
+              fontSize: 10,
+              color: filtered.length === 0 ? 'var(--error)' : 'var(--text-muted)',
+              pointerEvents: 'none',
+              whiteSpace: 'nowrap',
+            }}>
+              {filtered.length === 0 ? 'No results' : `${filtered.length} result${filtered.length !== 1 ? 's' : ''}`}
+            </span>
+          )}
         </div>
         <button
           onClick={loadSessions}
@@ -359,9 +421,41 @@ export default function SessionList() {
           const avatarColor = getSessionAvatarColor(session.sessionId)
           const previewText = (session.lastPrompt || '').slice(0, 50) || undefined
 
+          // Date group header: show when group changes (skip for pinned section)
+          let dateHeader: React.ReactNode = null
+          if (showDateGroups && !isPinned) {
+            const group = getDateGroup(session.timestamp)
+            const prevSession = filtered[idx - 1]
+            const prevGroup = prevSession ? (pinnedIds.has(prevSession.sessionId) ? null : getDateGroup(prevSession.timestamp)) : null
+            if (group !== prevGroup) {
+              dateHeader = (
+                <div
+                  key={`date-${group}`}
+                  style={{
+                    padding: '6px 14px 4px',
+                    fontSize: 10,
+                    fontWeight: 600,
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    opacity: 0.7,
+                    borderBottom: '1px solid var(--border)',
+                    background: 'var(--bg-sessionpanel)',
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 1,
+                  }}
+                >
+                  {group}
+                </div>
+              )
+            }
+          }
+
           return (
+          <React.Fragment key={session.sessionId}>
+          {dateHeader}
           <div
-            key={session.sessionId}
             onClick={() => openSession(session)}
             className="session-item"
             style={{
@@ -374,36 +468,55 @@ export default function SessionList() {
               borderLeft: isActive ? '3px solid var(--accent)' : isFocused ? '3px solid var(--text-muted)' : '3px solid transparent',
               background: isActive ? 'var(--session-active-bg)' : isFocused ? 'var(--session-hover-bg)' : 'transparent',
               position: 'relative',
-              transition: 'background 0.12s ease',
+              transition: 'background 0.15s ease, transform 0.15s ease, border-left-color 0.15s ease',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = isActive ? 'rgba(0, 122, 204, 0.18)' : 'var(--session-hover-bg)'
+              if (!isActive) e.currentTarget.style.transform = 'translateX(2px)'
               const btns = e.currentTarget.querySelector('.action-btns') as HTMLElement
-              if (btns) btns.style.display = 'flex'
+              if (btns) { btns.style.opacity = '1'; btns.style.transform = 'translateX(0)' }
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = isActive ? 'var(--session-active-bg)' : 'transparent'
+              e.currentTarget.style.transform = 'translateX(0)'
               const btns = e.currentTarget.querySelector('.action-btns') as HTMLElement
-              if (btns) btns.style.display = 'none'
+              if (btns) { btns.style.opacity = '0'; btns.style.transform = 'translateX(4px)' }
             }}
           >
             {/* Session Avatar (36px rounded square) */}
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 8,
-                background: avatarColor,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              {isPinned
-                ? <Star size={18} color="#ffffff" />
-                : <MessageSquare size={18} color="#ffffff" />
-              }
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  background: avatarColor,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {isPinned
+                  ? <Star size={18} color="#ffffff" />
+                  : <MessageSquare size={18} color="#ffffff" />
+                }
+              </div>
+              {/* Streaming indicator dot */}
+              {isActive && isStreaming && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: -1,
+                    right: -1,
+                    width: 10,
+                    height: 10,
+                    borderRadius: '50%',
+                    background: '#4ade80',
+                    border: '2px solid var(--bg-sessionpanel)',
+                    animation: 'pulse 1.2s ease-in-out infinite',
+                  }}
+                />
+              )}
             </div>
 
             {/* Text content */}
@@ -482,18 +595,43 @@ export default function SessionList() {
                   <em style={{ opacity: 0.6 }}>(no content)</em>
                 )}
               </div>
+
+              {/* Search match context line */}
+              {filter && (() => {
+                const ctx = getMatchContext(session, filter)
+                if (!ctx) return null
+                return (
+                  <div style={{
+                    fontSize: 10,
+                    color: 'var(--text-muted)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    lineHeight: 1.3,
+                    marginTop: 2,
+                    opacity: 0.8,
+                  }}>
+                    <span style={{ color: 'var(--accent)', fontWeight: 500 }}>{ctx.source}</span>
+                    <span style={{ opacity: 0.5 }}>: </span>
+                    <HighlightText text={ctx.snippet} highlight={filter} />
+                  </div>
+                )
+              })()}
             </div>
 
             {/* Action buttons */}
             <div
               className="action-btns"
               style={{
-                display: 'none',
+                display: 'flex',
                 position: 'absolute',
                 right: 8,
                 bottom: 8,
                 gap: 4,
                 alignItems: 'center',
+                opacity: 0,
+                transform: 'translateX(4px)',
+                transition: 'opacity 0.15s ease, transform 0.15s ease',
               }}
             >
               <button
@@ -545,6 +683,7 @@ export default function SessionList() {
               </button>
             </div>
           </div>
+          </React.Fragment>
           )
         })}
       </div>
@@ -562,7 +701,7 @@ function HighlightText({ text, highlight }: { text: string; highlight: string })
     <>
       {parts.map((part, i) =>
         regex.test(part) ? (
-          <span key={i} style={{ background: 'var(--warning)', color: 'var(--bg-primary)', borderRadius: 2, padding: '0 1px' }}>
+          <span key={i} style={{ background: 'var(--warning)', color: '#1a1a1a', borderRadius: 2, padding: '0 1px' }}>
             {part}
           </span>
         ) : (

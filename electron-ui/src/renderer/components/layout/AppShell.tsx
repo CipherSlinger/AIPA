@@ -120,13 +120,23 @@ export default function AppShell() {
           </ErrorBoundary>
         )}
 
-        {/* SessionPanel (Sidebar) — toggleable via Ctrl+B */}
-        {sidebarOpen && !focusMode && (
+        {/* SessionPanel (Sidebar) — toggleable via Ctrl+B, animated slide */}
+        {!focusMode && (
           <>
-            <div style={{ width: sidebarWidth, flexShrink: 0, overflow: 'hidden', background: 'var(--bg-sessionpanel)' }}>
+            <div
+              style={{
+                width: sidebarOpen ? sidebarWidth : 0,
+                flexShrink: 0,
+                overflow: 'hidden',
+                background: 'var(--bg-sessionpanel)',
+                transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease',
+                opacity: sidebarOpen ? 1 : 0,
+              }}
+            >
               <Sidebar />
             </div>
             {/* Sidebar resize handle */}
+            {sidebarOpen && (
             <div
               className="resizer"
               style={{ width: 4, flexShrink: 0, background: 'var(--border)', cursor: 'col-resize', transition: 'background 0.15s' }}
@@ -134,6 +144,7 @@ export default function AppShell() {
               onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--accent)')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--border)')}
             />
+            )}
           </>
         )}
 

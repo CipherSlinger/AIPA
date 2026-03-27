@@ -23,7 +23,7 @@ export default function TerminalPanel() {
           padding: '0 12px',
           gap: 8,
           borderBottom: '1px solid var(--border)',
-          background: 'var(--bg-secondary)',
+          background: 'var(--popup-bg)',
           flexShrink: 0,
         }}
       >

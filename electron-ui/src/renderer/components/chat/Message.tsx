@@ -4,8 +4,16 @@ import MessageContent from './MessageContent'
 import ToolUseBlock from './ToolUseBlock'
 import MessageContextMenu from './MessageContextMenu'
 import ImageLightbox from '../shared/ImageLightbox'
-import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark, AlertTriangle, Code2 } from 'lucide-react'
-import { usePrefsStore } from '../../store'
+import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark, AlertTriangle, Code2, Check, Clock } from 'lucide-react'
+import { usePrefsStore, useChatStore } from '../../store'
+
+const REACTION_EMOJIS = [
+  { key: 'thumbsup', emoji: '\uD83D\uDC4D', label: 'thumbs up' },
+  { key: 'heart', emoji: '\u2764\uFE0F', label: 'heart' },
+  { key: 'laugh', emoji: '\uD83D\uDE02', label: 'laughing' },
+  { key: 'surprised', emoji: '\uD83D\uDE2E', label: 'surprised' },
+  { key: 'thinking', emoji: '\uD83E\uDD14', label: 'thinking' },
+]
 
 function relativeTime(ts: number): string {
   const diff = Math.floor((Date.now() - ts) / 1000)
@@ -38,6 +46,19 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   const isPlan = message.role === 'plan'
   const isCollapsed = !isPermission && !isPlan && (message as StandardChatMessage).collapsed
   const compact = usePrefsStore(s => s.prefs.compactMode)
+  // Message status indicator: "sending" (clock) or "sent" (check) for user messages
+  const globalIsStreaming = useChatStore(s => s.isStreaming)
+  const isLastUserMsg = useChatStore(s => {
+    if (!isUser) return false
+    const msgs = s.messages
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      if (msgs[i].role === 'user') return msgs[i].id === message.id
+    }
+    return false
+  })
+  const msgStatus: 'sending' | 'sent' | null = isUser
+    ? (globalIsStreaming && isLastUserMsg ? 'sending' : 'sent')
+    : null
   const [hovered, setHovered] = useState(false)
   const [copied, setCopied] = useState(false)
   const [thinkingExpanded, setThinkingExpanded] = useState(false)
@@ -45,6 +66,12 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   const [, setTick] = useState(0)
   const [showRawMarkdown, setShowRawMarkdown] = useState(false)
   const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string } | null>(null)
+  const [reactionBarVisible, setReactionBarVisible] = useState(false)
+  const reactionTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Reaction state
+  const reactions = useChatStore(s => s.reactions[message.id] || [])
+  const toggleReaction = useChatStore(s => s.toggleReaction)
 
   const thinking = message.role !== 'permission' ? (message as StandardChatMessage).thinking : undefined
 
@@ -146,8 +173,20 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
 
   return (
     <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={() => {
+        setHovered(true)
+        if (!isSystem && !isPermission && !isPlan) {
+          reactionTimerRef.current = setTimeout(() => setReactionBarVisible(true), 200)
+        }
+      }}
+      onMouseLeave={() => {
+        setHovered(false)
+        setReactionBarVisible(false)
+        if (reactionTimerRef.current) {
+          clearTimeout(reactionTimerRef.current)
+          reactionTimerRef.current = null
+        }
+      }}
       onContextMenu={handleContextMenu}
       onDoubleClick={handleDoubleClick}
       style={{
@@ -187,7 +226,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
       )}
 
       {/* Bubble wrapper + hover actions */}
-      <div style={{ display: 'flex', flexDirection: 'column', maxWidth: 'min(85%, 720px)', minWidth: 60 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', maxWidth: 'min(85%, 720px)', minWidth: 60, position: 'relative' }}>
         {/* Bubble */}
         <div
           style={{
@@ -343,13 +382,22 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
                   style={{
                     fontSize: compact ? 10 : 11,
                     color: isUser ? 'rgba(255,255,255,0.5)' : 'var(--text-muted)',
-                    textAlign: 'right',
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    alignItems: 'center',
+                    gap: 4,
                     marginTop: 6,
                     lineHeight: 1,
                   }}
                   title={new Date((message as StandardChatMessage).timestamp).toLocaleString()}
                 >
                   {relativeTime((message as StandardChatMessage).timestamp)}
+                  {msgStatus === 'sending' && (
+                    <Clock size={10} style={{ opacity: 0.8 }} />
+                  )}
+                  {msgStatus === 'sent' && (
+                    <Check size={12} style={{ opacity: 0.9 }} />
+                  )}
                 </div>
               )}
 
@@ -374,6 +422,102 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           )}
         </div>
 
+        {/* Reaction toolbar — floating above bubble on hover */}
+        {reactionBarVisible && !isCollapsed && (
+          <div
+            role="toolbar"
+            aria-label="Message reactions"
+            style={{
+              position: 'absolute',
+              top: -36,
+              ...(isUser ? { left: 0 } : { right: 0 }),
+              display: 'flex',
+              gap: 2,
+              padding: '4px 6px',
+              background: 'var(--reaction-bar-bg)',
+              border: '1px solid var(--reaction-bar-border)',
+              boxShadow: 'var(--reaction-bar-shadow)',
+              borderRadius: 16,
+              zIndex: 10,
+              animation: 'popup-in 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+          >
+            {REACTION_EMOJIS.map(({ key, emoji, label }) => (
+              <button
+                key={key}
+                onClick={(e) => { e.stopPropagation(); toggleReaction(message.id, key) }}
+                aria-label={`React with ${label}`}
+                style={{
+                  width: compact ? 24 : 26,
+                  height: compact ? 24 : 26,
+                  borderRadius: '50%',
+                  border: 'none',
+                  background: reactions.includes(key) ? 'rgba(255,255,255,0.2)' : 'transparent',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: compact ? 13 : 15,
+                  transition: 'transform 120ms ease, background 120ms ease',
+                  padding: 0,
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.15)'; (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.15)' }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; (e.currentTarget as HTMLElement).style.background = reactions.includes(key) ? 'rgba(255,255,255,0.2)' : 'transparent' }}
+                onMouseDown={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(0.95)' }}
+                onMouseUp={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.15)' }}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Reaction badges — persistent row below bubble */}
+        {reactions.length > 0 && (
+          <div
+            aria-label="Reactions"
+            style={{
+              display: 'flex',
+              gap: 4,
+              marginTop: 4,
+              justifyContent: isUser ? 'flex-end' : 'flex-start',
+              flexWrap: 'wrap',
+            }}
+          >
+            {reactions.map(key => {
+              const info = REACTION_EMOJIS.find(e => e.key === key)
+              if (!info) return null
+              return (
+                <button
+                  key={key}
+                  onClick={(e) => { e.stopPropagation(); toggleReaction(message.id, key) }}
+                  aria-label={`${info.label} reaction`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    height: compact ? 20 : 22,
+                    padding: '2px 8px',
+                    borderRadius: 11,
+                    background: 'var(--reaction-badge-active)',
+                    border: '1px solid var(--reaction-badge-active-border)',
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    color: 'var(--text-primary)',
+                    animation: 'popup-in 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
+                    transition: 'background 120ms ease',
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--reaction-badge-bg)' }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--reaction-badge-active)' }}
+                >
+                  <span style={{ fontSize: 13 }}>{info.emoji}</span>
+                  <span style={{ fontSize: 11 }}>1</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
         {/* Hover action buttons — below bubble, outside */}
         {hovered && isAssistant && (
           <div style={{
@@ -386,8 +530,8 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
               onClick={() => setShowRawMarkdown(!showRawMarkdown)}
               title={showRawMarkdown ? 'Show rendered' : 'Show raw markdown'}
               style={{
-                background: showRawMarkdown ? 'var(--accent)' : 'var(--bg-primary)',
-                border: '1px solid var(--border)',
+                background: showRawMarkdown ? 'var(--accent)' : 'var(--action-btn-bg)',
+                border: '1px solid var(--action-btn-border)',
                 borderRadius: 4,
                 padding: '2px 6px',
                 cursor: 'pointer',
@@ -406,8 +550,8 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
               onClick={handleCopy}
               title="Copy"
               style={{
-                background: 'var(--bg-primary)',
-                border: '1px solid var(--border)',
+                background: 'var(--action-btn-bg)',
+                border: '1px solid var(--action-btn-border)',
                 borderRadius: 4,
                 padding: '2px 6px',
                 cursor: 'pointer',
@@ -437,8 +581,8 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
               onClick={handleCopy}
               title="Copy"
               style={{
-                background: 'var(--bg-primary)',
-                border: '1px solid var(--border)',
+                background: 'var(--action-btn-bg)',
+                border: '1px solid var(--action-btn-border)',
                 borderRadius: 4,
                 padding: '2px 6px',
                 cursor: 'pointer',

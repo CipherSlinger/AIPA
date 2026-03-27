@@ -97,9 +97,9 @@ export default function PermissionCard({ message, onAllow, onDeny }: Props) {
     <div
       style={{
         margin: '8px 16px',
-        border: `1px solid ${isPending ? 'var(--accent)' : 'var(--border)'}`,
+        border: `1px solid ${isPending ? 'var(--accent)' : 'var(--card-border)'}`,
         borderRadius: 10,
-        background: 'var(--bg-secondary)',
+        background: 'var(--card-bg)',
         padding: '14px 16px',
         display: 'flex',
         flexDirection: 'column',
@@ -120,7 +120,7 @@ export default function PermissionCard({ message, onAllow, onDeny }: Props) {
           style={{
             fontSize: 12,
             color: 'var(--text-muted)',
-            background: 'var(--bg-active)',
+            background: 'var(--action-btn-bg)',
             borderRadius: 5,
             padding: '6px 10px',
             fontFamily: 'monospace',

@@ -197,25 +197,29 @@ const messages = useChatStore(s => s.messages)
 ## 流水线位置
 
 ```
-[aipa-pm] → todo/prd-*.md
+[aipa-pm] → .claude/agents-cowork/todo/prd-*.md
                   ↓
-          [aipa-ui] → todo/ui-spec-*.md
+    ┌─────────────┴──────────────────┐
+[aipa-ui]                    [aipa-backend]
+ui-spec-*.md                 api-spec-*.md
+    └─────────────┬──────────────────┘
                   ↓
        [aipa-frontend] ← 你在这里
                   ↓
-     todo_done/iteration-report-*.md
+     .claude/agents-cowork/todo_done/ITERATION-LOG.md
                   ↓
           [aipa-tester] 验证
                   ↓ 发现问题
-     todo/test-report-*.md → 你再次读取修复
+     .claude/agents-cowork/todo/test-report-*.md → 你再次读取修复
 ```
 
 **你的输入**（按优先级读取）：
-1. `todo/ui-spec-*.md` — 视觉规范（**主要设计依据**，实现前必须读取）
-2. `todo/prd-*.md` — 功能需求（了解业务逻辑和验收标准）
-3. `todo/test-report-*.md` — 测试报告（修复阶段读取）
+1. `.claude/agents-cowork/todo/ui-spec-*.md` — 视觉规范（**主要设计依据**，实现前必须读取）
+2. `.claude/agents-cowork/todo/prd-*.md` — 功能需求（了解业务逻辑和验收标准）
+3. `.claude/agents-cowork/todo/api-spec-*.md` — 后端接口规范（aipa-backend 输出，有后端联动时必读）
+4. `.claude/agents-cowork/todo/test-report-*.md` — 测试报告（修复阶段读取）
 
-**你的输出**：代码实现 + `todo_done/iteration-report-YYYY-MM-DD-HHmmss.md`
+**你的输出**：代码实现 + `.claude/agents-cowork/todo_done/iteration-report-YYYY-MM-DD-HHmmss.md`
 
 **关于 ui-spec 的使用**：
 - ui-spec 中的色值、间距、动效参数是**规范**，不是建议——直接照用
@@ -224,7 +228,7 @@ const messages = useChatStore(s => s.messages)
 
 **关于 iteration-report**：
 <!-- improved by agent-leader 2026-03-27: 迭代报告改为按迭代序号合并为单一文件，不再按时间戳分散 -->
-所有迭代报告合并写入**同一个文件** `todo_done/ITERATION-LOG.md`，每次追加新迭代的章节到文件末尾（用 Edit 工具追加，而不是新建文件）。格式：
+所有迭代报告合并写入**同一个文件** `.claude/agents-cowork/todo_done/ITERATION-LOG.md`，每次追加新迭代的章节到文件末尾（用 Edit 工具追加，而不是新建文件）。格式：
 
 ```markdown
 ## Iteration [N] — [功能名]

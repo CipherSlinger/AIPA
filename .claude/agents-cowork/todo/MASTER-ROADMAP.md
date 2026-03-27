@@ -103,10 +103,32 @@
 
 | Feature | Priority | Notes |
 |---------|----------|-------|
-| 其余组件色彩统一 | P1 | Message.tsx, PlanCard, PermissionCard, SearchBar, popup 组件 |
+| 其余组件色彩统一 | P1 | DONE (Iteration 55) -- All popup/card/action components unified |
+| 动效系统 | P2 | DONE (Iteration 55) -- Direction-aware bubbles, sidebar slide, NavRail scale, tool card grid |
 | 浅色主题方案 | P2 | 双主题 CSS 变量系统 |
-| 动效系统 | P2 | 气泡入场、面板切换 |
-| 消息状态指示 | P2 | 发送中/已发送 勾号 |
+| 消息状态指示 | P2 | DONE (Iteration 57) -- Clock icon while streaming, check icon when sent |
+
+### Iteration 56 -- Quick Reply Templates
+
+| Feature | PRD | Priority | Status |
+|---------|-----|----------|--------|
+| Quick Reply Chips | `ui-spec-quick-reply-templates-2026-03-26.md` | P2 | DONE (Iteration 56) |
+
+### Iteration 57-58 -- UI Polish
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Message Status Indicators | P2 | DONE (Iteration 57) -- Clock/check icons on user bubbles |
+| Thinking Indicator Bubble | P2 | DONE (Iteration 58) -- WeChat-style mini bubble with avatar, wave dots, elapsed timer |
+
+### Iteration 59 -- Session List Enhancement
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Session List Date Group Headers | P2 | DONE (Iteration 59) -- Today/Yesterday/This Week/Earlier sticky headers |
+| Session Active Streaming Indicator | P2 | DONE (Iteration 60) -- Green pulsing dot on avatar during streaming |
+| NavRail Custom Tooltips | P2 | DONE (Iteration 61) -- Styled tooltips with popup variables and delay |
+| New Message Highlight Glow | P2 | DONE (Iteration 62) -- Subtle blue glow on new messages |
 
 ### Backlog (Sprint 5+)
 

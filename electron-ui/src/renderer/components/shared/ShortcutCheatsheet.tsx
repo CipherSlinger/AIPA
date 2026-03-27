@@ -61,15 +61,15 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
     >
       <div
         style={{
-          background: 'var(--bg-secondary)',
-          border: '1px solid var(--border)',
+          background: 'var(--popup-bg)',
+          border: '1px solid var(--popup-border)',
           borderRadius: 10,
           padding: '20px 24px',
           maxWidth: 480,
           width: '90%',
           maxHeight: '80vh',
           overflowY: 'auto',
-          boxShadow: '0 12px 40px rgba(0, 0, 0, 0.5)',
+          boxShadow: 'var(--popup-shadow)',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>

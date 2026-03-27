@@ -303,12 +303,15 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
           const msg = item.msg
           const isHighlighted = item.msgIdx === highlightedMessageIdx
           const isLastMessage = item.msgIdx === messages.length - 1
+          const entranceClass = isLastMessage
+            ? (msg.role === 'user' ? 'message-enter-right message-new-glow' : msg.role === 'assistant' ? 'message-enter-left message-new-glow' : 'message-enter message-new-glow')
+            : undefined
           return (
             <div
               key={msg.id}
               data-index={virtualRow.index}
               ref={virtualizer.measureElement}
-              className={isLastMessage ? 'message-enter' : undefined}
+              className={entranceClass}
               style={{
                 position: 'absolute',
                 top: 0,

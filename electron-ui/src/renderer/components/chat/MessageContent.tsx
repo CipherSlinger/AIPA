@@ -20,7 +20,7 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
     <>
       {parts.map((part, i) =>
         regex.test(part) ? (
-          <mark key={i} style={{ background: 'var(--warning)', color: 'var(--bg-primary)', borderRadius: 2, padding: '0 1px' }}>
+          <mark key={i} style={{ background: 'var(--warning)', color: '#1a1a1a', borderRadius: 2, padding: '0 1px' }}>
             {part}
           </mark>
         ) : (
@@ -424,7 +424,7 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
           },
           thead({ children }) {
             return (
-              <thead style={{ background: 'var(--bg-active, var(--bg-secondary))' }}>{children}</thead>
+              <thead style={{ background: 'var(--action-btn-bg)' }}>{children}</thead>
             )
           },
           tr({ children, ...props }) {

@@ -45,7 +45,7 @@ export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, c
         alignItems: 'center',
         gap: 6,
         padding: '6px 12px',
-        background: 'var(--bg-secondary)',
+        background: 'var(--popup-bg)',
         borderBottom: '1px solid var(--border)',
         flexShrink: 0,
       }}

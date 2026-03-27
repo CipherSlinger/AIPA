@@ -66,6 +66,33 @@
   --tool-card-bg:         rgba(0, 0, 0, 0.15);
   --tool-card-border:     rgba(255, 255, 255, 0.06);
   --tool-card-header-bg:  rgba(0, 0, 0, 0.08);
+
+  /* === NEW (Iteration 55): Popup / overlay surface === */
+  --popup-bg:             #2a2a2a;
+  --popup-border:         #404040;
+  --popup-shadow:         0 8px 24px rgba(0,0,0,0.5);
+  --popup-item-hover:     rgba(255,255,255,0.06);
+
+  /* === NEW (Iteration 55): Inline action buttons === */
+  --action-btn-bg:        rgba(0,0,0,0.3);
+  --action-btn-border:    rgba(255,255,255,0.08);
+  --action-btn-hover:     rgba(255,255,255,0.1);
+
+  /* === NEW (Iteration 55): Card surface (PlanCard, PermissionCard) === */
+  --card-bg:              #2a2a2a;
+  --card-border:          rgba(255,255,255,0.08);
+
+  /* === NEW (Iteration 55): Input focus shadow === */
+  --input-focus-shadow:   0 0 0 2px rgba(0,122,204,0.15);
+
+  /* === NEW (Iteration 63): Message reactions === */
+  --reaction-bar-bg:        rgba(0,0,0,0.75);
+  --reaction-bar-border:    rgba(255,255,255,0.08);
+  --reaction-bar-shadow:    0 2px 8px rgba(0,0,0,0.3);
+  --reaction-badge-bg:      rgba(255,255,255,0.08);
+  --reaction-badge-border:  rgba(255,255,255,0.12);
+  --reaction-badge-active:  rgba(0,122,204,0.2);
+  --reaction-badge-active-border: rgba(0,122,204,0.4);
 }
 
 /* Theme: Modern Dark (GitHub/Linear style) */
@@ -119,6 +146,26 @@
   --tool-card-bg:         rgba(0, 0, 0, 0.20);
   --tool-card-border:     rgba(255, 255, 255, 0.04);
   --tool-card-header-bg:  rgba(0, 0, 0, 0.10);
+
+  --popup-bg:             #1c2128;
+  --popup-border:         #30363d;
+  --popup-shadow:         0 8px 24px rgba(0,0,0,0.6);
+  --popup-item-hover:     rgba(255,255,255,0.06);
+  --action-btn-bg:        rgba(0,0,0,0.35);
+  --action-btn-border:    rgba(255,255,255,0.06);
+  --action-btn-hover:     rgba(255,255,255,0.1);
+  --card-bg:              #1c2128;
+  --card-border:          rgba(255,255,255,0.06);
+  --input-focus-shadow:   0 0 0 2px rgba(47,129,247,0.15);
+
+  /* === NEW (Iteration 63): Message reactions === */
+  --reaction-bar-bg:        rgba(0,0,0,0.8);
+  --reaction-bar-border:    rgba(255,255,255,0.06);
+  --reaction-bar-shadow:    0 2px 8px rgba(0,0,0,0.4);
+  --reaction-badge-bg:      rgba(255,255,255,0.06);
+  --reaction-badge-border:  rgba(255,255,255,0.1);
+  --reaction-badge-active:  rgba(47,129,247,0.2);
+  --reaction-badge-active-border: rgba(47,129,247,0.4);
 }
 
 /* Theme: Minimal Dark (Claude.ai/Raycast style) */
@@ -172,6 +219,26 @@
   --tool-card-bg:         rgba(0, 0, 0, 0.25);
   --tool-card-border:     rgba(255, 255, 255, 0.03);
   --tool-card-header-bg:  rgba(0, 0, 0, 0.12);
+
+  --popup-bg:             #1e1e1e;
+  --popup-border:         #2a2a2a;
+  --popup-shadow:         0 8px 24px rgba(0,0,0,0.7);
+  --popup-item-hover:     rgba(255,255,255,0.06);
+  --action-btn-bg:        rgba(0,0,0,0.4);
+  --action-btn-border:    rgba(255,255,255,0.05);
+  --action-btn-hover:     rgba(255,255,255,0.1);
+  --card-bg:              #1e1e1e;
+  --card-border:          rgba(255,255,255,0.05);
+  --input-focus-shadow:   0 0 0 2px rgba(168,85,247,0.15);
+
+  /* === NEW (Iteration 63): Message reactions === */
+  --reaction-bar-bg:        rgba(0,0,0,0.85);
+  --reaction-bar-border:    rgba(255,255,255,0.05);
+  --reaction-bar-shadow:    0 2px 8px rgba(0,0,0,0.5);
+  --reaction-badge-bg:      rgba(255,255,255,0.06);
+  --reaction-badge-border:  rgba(255,255,255,0.08);
+  --reaction-badge-active:  rgba(168,85,247,0.2);
+  --reaction-badge-active-border: rgba(168,85,247,0.4);
 }
 
 * {
@@ -249,6 +316,11 @@ code:not(pre code) {
   40% { opacity: 1; transform: scale(1); }
 }
 
+@keyframes dot-wave {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-4px); }
+}
+
 /* Skeleton loading animation */
 @keyframes skeleton-pulse {
   0% { opacity: 1; }
@@ -258,7 +330,7 @@ code:not(pre code) {
 
 .skeleton {
   animation: skeleton-pulse 1.5s ease-in-out infinite;
-  background: var(--bg-secondary, #252526);
+  background: var(--popup-bg, #2a2a2a);
 }
 
 /* Toast entrance animation */
@@ -279,13 +351,86 @@ code:not(pre code) {
   to { transform: rotate(360deg); }
 }
 
-/* Message entrance animation */
+/* Message entrance animations (Iteration 55: direction-aware) */
+@keyframes bubble-in-left {
+  from { opacity: 0; transform: translateX(-12px) translateY(6px); }
+  to   { opacity: 1; transform: translateX(0) translateY(0); }
+}
+@keyframes bubble-in-right {
+  from { opacity: 0; transform: translateX(12px) translateY(6px); }
+  to   { opacity: 1; transform: translateX(0) translateY(0); }
+}
 @keyframes message-in {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .message-enter {
   animation: message-in 0.2s ease-out;
+}
+.message-enter-left {
+  animation: bubble-in-left 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.message-enter-right {
+  animation: bubble-in-right 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* New message highlight glow */
+@keyframes message-glow {
+  0% { box-shadow: 0 0 0 0 rgba(0, 122, 204, 0.3); }
+  30% { box-shadow: 0 0 8px 2px rgba(0, 122, 204, 0.2); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 122, 204, 0); }
+}
+.message-new-glow {
+  animation: message-glow 1.5s ease-out;
+  border-radius: 12px;
+}
+
+/* Popup entrance animation (Iteration 55) */
+@keyframes popup-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.popup-enter {
+  animation: popup-in 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* NavRail icon hover micro-interaction (Iteration 55) */
+.nav-icon-btn {
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+.nav-icon-btn:hover {
+  transform: scale(1.1);
+}
+.nav-icon-btn:active {
+  transform: scale(0.95);
+}
+
+/* Tool output expand/collapse animation (Iteration 55) */
+.tool-output-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.2s ease;
+  overflow: hidden;
+}
+.tool-output-wrapper.expanded {
+  grid-template-rows: 1fr;
+}
+.tool-output-wrapper > div {
+  min-height: 0;
+}
+
+/* Reduced motion (Iteration 55) */
+@media (prefers-reduced-motion: reduce) {
+  .message-enter,
+  .message-enter-left,
+  .message-enter-right,
+  .message-new-glow,
+  .popup-enter,
+  .nav-icon-btn,
+  .tool-output-wrapper {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 /* Focus rings for accessibility */

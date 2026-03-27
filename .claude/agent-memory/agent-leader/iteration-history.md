@@ -33,3 +33,52 @@ type: project
 - **Key decisions**: Input area bg = --bg-chat for seamless feel; borderTop removed; input field focus ring uses accent color; tool cards use rgba overlays instead of solid colors to be subordinate to bubbles
 - **Remaining color debt**: Other chat components (Message.tsx hover buttons, PlanCard, PermissionCard, SearchBar, SlashCommandPopup, AtMentionPopup, MessageContextMenu) still use var(--bg-primary) and var(--bg-secondary) -- acceptable for now, can unify in future pass
 - **Tester result**: All criteria passed, build success
+
+### Iteration 55 (2026-03-26)
+- **Features**: Color Unification Completion + Animation System -- eliminated all var(--bg-secondary) from renderer, introduced popup/action-btn/card variable families, direction-aware bubble entrance animations, sidebar slide transition, NavRail hover scale, tool card grid animation, popup entrance animation
+- **Files**: globals.css (15 new vars, 6 new keyframes/classes, reduced-motion query), Message.tsx, PlanCard.tsx, PermissionCard.tsx, SearchBar.tsx, SlashCommandPopup.tsx, AtMentionPopup.tsx, MessageContextMenu.tsx, MessageContent.tsx, MessageList.tsx, ToolUseBlock.tsx, CommandPalette.tsx, ShortcutCheatsheet.tsx, OnboardingWizard.tsx, TerminalPanel.tsx, SessionList.tsx, AppShell.tsx, NavRail.tsx
+- **Key decisions**: Popup surfaces use dedicated var(--popup-bg/border/shadow) instead of --bg-secondary; action buttons use rgba overlays for theme adaptability; sidebar slide uses always-render + width:0 animation instead of conditional render; grid-template-rows trick for smooth tool card height animation
+- **Color debt**: FULLY RESOLVED. Zero var(--bg-secondary) remaining. Only 2 var(--bg-primary) left (AppShell outer + body -- correct)
+- **Tester result**: All 14 acceptance criteria passed, build success
+
+### Iteration 56 (2026-03-26)
+- **Features**: Quick Reply Templates -- horizontal chip row above input area with 4 default templates, inline add/edit/delete, right-click context menu, electron-store persistence
+- **Files**: QuickReplyChips.tsx (new), ChatPanel.tsx (import + integration), app.types.ts (quickReplies field), store/index.ts (default prefs)
+- **Key decisions**: Chips read from prefs.quickReplies with fallback to DEFAULT_QUICK_REPLIES constant; persist via both Zustand setPrefs and window.electronAPI.prefsSet; context menu uses fixed position with popup-in animation; inline form replaces chip in-place during edit
+- **Tester result**: All 11 acceptance criteria passed, build success (2385 modules)
+
+### Iteration 57 (2026-03-26)
+- **Features**: Message Status Indicators -- WeChat-style check/clock icons on user message bubbles
+- **Files**: Message.tsx (added Check/Clock icons, useChatStore import, msgStatus logic, flex timestamp layout)
+- **Key decisions**: Status computed via Zustand selector (isStreaming + last-user-message detection); icons inherit parent div rgba color; no new CSS variables needed; used inline flex layout instead of separate row
+- **Tester result**: All 6 acceptance criteria passed, build success
+
+### Iteration 58 (2026-03-26)
+- **Features**: Thinking Indicator Bubble -- WeChat-style mini bubble with AI avatar, wave-bouncing dots, contextual activity label, elapsed timer
+- **Files**: globals.css (dot-wave keyframe), ChatPanel.tsx (Bot import, rewritten ThinkingIndicator with avatar, bubble, wave dots, timer, aria-live)
+- **Key decisions**: Used var(--bubble-ai) and matching border-radius for visual consistency with assistant bubbles; wave bounce animation (translateY) chosen over pulse for more distinctive feel; elapsed timer resets when indicator mounts
+- **Tester result**: All 8 acceptance criteria passed, build success
+
+### Iteration 59 (2026-03-26)
+- **Features**: Session List Date Group Headers -- Today/Yesterday/This Week/Earlier sticky headers in session list
+- **Files**: SessionList.tsx (getDateGroup helper, showDateGroups flag, React.Fragment wrapper with date headers)
+- **Key decisions**: Headers only shown for timestamp-based sorts (not alpha); disabled during search; pinned sessions excluded from grouping; sticky positioning for headers
+- **Tester result**: All 6 acceptance criteria passed, build success
+
+### Iteration 60 (2026-03-26)
+- **Features**: Session Active Streaming Indicator -- green pulsing dot on session avatar during streaming
+- **Files**: SessionList.tsx (isStreaming selector, relative wrapper on avatar, conditional green dot)
+- **Key decisions**: Uses existing pulse animation; 10px dot with 2px border matching panel bg; only on active+streaming session
+- **Tester result**: All 5 acceptance criteria passed, build success
+
+### Iteration 61 (2026-03-26)
+- **Features**: NavRail Custom Tooltips -- styled tooltips positioned to the right of icons with 400ms delay
+- **Files**: NavRail.tsx (removed title attr, added showTooltip state with timer, styled tooltip div with popup vars and popup-in animation)
+- **Key decisions**: 400ms delay to prevent flicker; positioned absolutely to right of button; timer cleanup on mouse leave to prevent stale tooltips
+- **Tester result**: All 6 acceptance criteria passed, build success
+
+### Iteration 62 (2026-03-26)
+- **Features**: New Message Highlight Glow -- subtle box-shadow glow animation on new messages
+- **Files**: globals.css (message-glow keyframe, message-new-glow class, reduced-motion), MessageList.tsx (added glow class to entrance animations)
+- **Key decisions**: Glow uses accent color rgba; 1.5s duration for subtle effect; applied only to last message; added to reduced-motion disabled list
+- **Tester result**: All 6 acceptance criteria passed, build success

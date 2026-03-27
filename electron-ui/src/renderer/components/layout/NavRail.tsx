@@ -8,19 +8,36 @@ interface NavItemProps {
   isActive?: boolean
   onClick: () => void
   badge?: number
+  shortcut?: string
 }
 
-function NavItem({ icon, label, isActive, onClick, badge }: NavItemProps) {
+function NavItem({ icon, label, isActive, onClick, badge, shortcut }: NavItemProps) {
   const [hovered, setHovered] = React.useState(false)
+  const [showTooltip, setShowTooltip] = React.useState(false)
+  const tooltipTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleMouseEnter = () => {
+    setHovered(true)
+    tooltipTimerRef.current = setTimeout(() => setShowTooltip(true), 400)
+  }
+
+  const handleMouseLeave = () => {
+    setHovered(false)
+    setShowTooltip(false)
+    if (tooltipTimerRef.current) {
+      clearTimeout(tooltipTimerRef.current)
+      tooltipTimerRef.current = null
+    }
+  }
 
   return (
     <button
       onClick={onClick}
-      title={label}
       aria-label={label}
       aria-current={isActive ? 'page' : undefined}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className="nav-icon-btn"
       style={{
         width: 40,
         height: 40,
@@ -91,6 +108,47 @@ function NavItem({ icon, label, isActive, onClick, badge }: NavItemProps) {
           {badge > 99 ? '99+' : badge}
         </div>
       )}
+
+      {/* Custom tooltip */}
+      {showTooltip && (
+        <div
+          style={{
+            position: 'absolute',
+            left: '100%',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            marginLeft: 8,
+            background: 'var(--popup-bg)',
+            border: '1px solid var(--popup-border)',
+            borderRadius: 6,
+            padding: '4px 10px',
+            fontSize: 11,
+            fontWeight: 500,
+            color: 'var(--text-primary)',
+            whiteSpace: 'nowrap',
+            boxShadow: 'var(--popup-shadow)',
+            pointerEvents: 'none',
+            zIndex: 100,
+            animation: 'popup-in 0.12s ease',
+          }}
+        >
+          {label}
+          {shortcut && (
+            <span style={{
+              marginLeft: 6,
+              padding: '1px 4px',
+              borderRadius: 3,
+              background: 'rgba(255,255,255,0.1)',
+              fontSize: 10,
+              fontWeight: 400,
+              color: 'var(--text-muted)',
+              letterSpacing: '0.02em',
+            }}>
+              {shortcut}
+            </span>
+          )}
+        </div>
+      )}
     </button>
   )
 }
@@ -144,6 +202,7 @@ export default function NavRail() {
       <NavItem
         icon={<MessageSquarePlus size={20} />}
         label="New Chat"
+        shortcut="Ctrl+N"
         onClick={handleNewChat}
       />
 
@@ -151,6 +210,7 @@ export default function NavRail() {
       <NavItem
         icon={<History size={20} />}
         label="History"
+        shortcut="Ctrl+B"
         isActive={isHistoryActive}
         onClick={() => setActiveNavItem('history')}
         badge={sessionCount}
@@ -168,6 +228,7 @@ export default function NavRail() {
       <NavItem
         icon={<TerminalSquare size={20} />}
         label="Terminal"
+        shortcut="Ctrl+`"
         onClick={handleTerminal}
       />
 
@@ -178,6 +239,7 @@ export default function NavRail() {
       <NavItem
         icon={<Settings size={20} />}
         label="Settings"
+        shortcut="Ctrl+,"
         isActive={isSettingsActive}
         onClick={() => setActiveNavItem('settings')}
       />
