@@ -1024,3 +1024,39 @@ built in 7.86s
 - [x] Template names internationalized (English + Chinese)
 - [x] Hint text explains the feature purpose
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 90 -- Session Preview Tooltip
+
+_Date: 2026-03-27 | Sprint UI Enhancement_
+
+### Summary
+Added a hover preview tooltip to session list items. When hovering over a session for 500ms, a styled tooltip appears to the right showing the session title, project path, last active timestamp, and a preview of the last user prompt (up to 200 characters, 3 lines max). The tooltip uses the established popup styling system (popup-bg, popup-border, popup-shadow) with popup-in entrance animation. The tooltip disappears immediately on mouse leave. All labels are internationalized (English + Chinese).
+
+### Files Changed
+- `src/renderer/components/sessions/SessionList.tsx` -- Added `useCallback` import; added `tooltipSession`, `tooltipPos`, and `tooltipTimerRef` state; added `showSessionTooltip` (500ms delay) and `hideSessionTooltip` callbacks; integrated tooltip show/hide into session item onMouseEnter/onMouseLeave handlers; added tooltip render element with title, project path, last active timestamp, and prompt preview with -webkit-line-clamp truncation
+- `src/renderer/i18n/locales/en.json` -- Added `session.noContent`, `session.tooltipProject`, `session.tooltipLastActive` keys
+- `src/renderer/i18n/locales/zh-CN.json` -- Added Chinese translations for tooltip keys
+
+### Build
+Status: SUCCESS
+
+```
+2388 modules transformed.
+built in 7.87s
+```
+
+### Acceptance Criteria
+- [x] Hover tooltip appears after 500ms delay on session items
+- [x] Tooltip positioned to the right of the session item
+- [x] Shows session title prominently
+- [x] Shows project path with label
+- [x] Shows last active timestamp (full date/time)
+- [x] Shows last prompt preview (up to 200 chars, 3 lines)
+- [x] Tooltip uses popup styling system (popup-bg, popup-border, popup-shadow)
+- [x] Tooltip uses popup-in entrance animation
+- [x] Tooltip disappears immediately on mouse leave
+- [x] Timer cleanup prevents stale tooltips
+- [x] i18n: Labels translated to English and Chinese
+- [x] Build passes with zero errors

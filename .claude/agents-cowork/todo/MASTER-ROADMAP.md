@@ -162,6 +162,13 @@
 | System prompt template selector (6 roles) | P1 | DONE (Iteration 89) |
 | i18n for templates (en + zh-CN) | P1 | DONE (Iteration 89) |
 
+### Iteration 90 -- Session Preview Tooltip
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Session hover preview tooltip (title, project, time, prompt) | P2 | DONE (Iteration 90) |
+| i18n for tooltip labels (en + zh-CN) | P1 | DONE (Iteration 90) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

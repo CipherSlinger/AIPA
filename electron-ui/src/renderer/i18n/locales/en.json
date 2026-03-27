@@ -136,7 +136,10 @@
     "rename": "Rename",
     "fork": "Fork",
     "delete": "Delete",
-    "confirmDelete": "Click again to confirm"
+    "confirmDelete": "Click again to confirm",
+    "noContent": "(no content)",
+    "tooltipProject": "Project",
+    "tooltipLastActive": "Last active"
   },
   "settings": {
     "title": "Settings",

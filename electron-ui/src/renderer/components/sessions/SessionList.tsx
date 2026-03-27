@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { Trash2, RefreshCw, MessageSquare, GitBranch, Pencil, ArrowUpDown, Star, Search } from 'lucide-react'
 import { SessionListItem, SessionMessage, StandardChatMessage, ToolUseInfo, ChatMessage } from '../../types/app.types'
 import { useSessionStore, useChatStore, useUiStore } from '../../store'
@@ -147,6 +147,28 @@ export default function SessionList() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [focusedIdx, setFocusedIdx] = useState(-1)
   const listRef = useRef<HTMLDivElement>(null)
+
+  // Session preview tooltip state
+  const [tooltipSession, setTooltipSession] = useState<SessionListItem | null>(null)
+  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
+  const tooltipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const showSessionTooltip = useCallback((session: SessionListItem, e: React.MouseEvent) => {
+    if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current)
+    const rect = e.currentTarget.getBoundingClientRect()
+    tooltipTimerRef.current = setTimeout(() => {
+      setTooltipSession(session)
+      setTooltipPos({ top: rect.top, left: rect.right + 8 })
+    }, 500)
+  }, [])
+
+  const hideSessionTooltip = useCallback(() => {
+    if (tooltipTimerRef.current) {
+      clearTimeout(tooltipTimerRef.current)
+      tooltipTimerRef.current = null
+    }
+    setTooltipSession(null)
+  }, [])
 
   // Pinned sessions (persisted in localStorage)
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(() => {
@@ -477,12 +499,14 @@ export default function SessionList() {
               if (!isActive) e.currentTarget.style.transform = 'translateX(2px)'
               const btns = e.currentTarget.querySelector('.action-btns') as HTMLElement
               if (btns) { btns.style.opacity = '1'; btns.style.transform = 'translateX(0)' }
+              showSessionTooltip(session, e)
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = isActive ? 'var(--session-active-bg)' : 'transparent'
               e.currentTarget.style.transform = 'translateX(0)'
               const btns = e.currentTarget.querySelector('.action-btns') as HTMLElement
               if (btns) { btns.style.opacity = '0'; btns.style.transform = 'translateX(4px)' }
+              hideSessionTooltip()
             }}
           >
             {/* Session Avatar (36px rounded square) */}
@@ -689,6 +713,90 @@ export default function SessionList() {
           )
         })}
       </div>
+
+      {/* Session preview tooltip */}
+      {tooltipSession && (
+        <div
+          style={{
+            position: 'fixed',
+            top: Math.min(tooltipPos.top, window.innerHeight - 200),
+            left: tooltipPos.left,
+            zIndex: 9999,
+            background: 'var(--popup-bg)',
+            border: '1px solid var(--popup-border)',
+            borderRadius: 8,
+            padding: '10px 14px',
+            boxShadow: 'var(--popup-shadow)',
+            maxWidth: 320,
+            minWidth: 200,
+            animation: 'popup-in 0.15s ease',
+            pointerEvents: 'none',
+          }}
+        >
+          {/* Title */}
+          <div style={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: 'var(--text-primary)',
+            marginBottom: 6,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}>
+            {tooltipSession.title || tooltipSession.lastPrompt || t('session.noContent')}
+          </div>
+
+          {/* Project path */}
+          {tooltipSession.project && (
+            <div style={{
+              fontSize: 11,
+              color: 'var(--text-muted)',
+              marginBottom: 4,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+            }}>
+              <span style={{ opacity: 0.7 }}>{t('session.tooltipProject')}:</span>
+              <span>{tooltipSession.project}</span>
+            </div>
+          )}
+
+          {/* Last activity */}
+          <div style={{
+            fontSize: 11,
+            color: 'var(--text-muted)',
+            marginBottom: 6,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+          }}>
+            <span style={{ opacity: 0.7 }}>{t('session.tooltipLastActive')}:</span>
+            <span>{new Date(tooltipSession.timestamp).toLocaleString()}</span>
+          </div>
+
+          {/* Last prompt preview */}
+          {tooltipSession.lastPrompt && (
+            <div style={{
+              fontSize: 11,
+              color: 'var(--text-muted)',
+              lineHeight: 1.5,
+              borderTop: '1px solid var(--border)',
+              paddingTop: 6,
+              display: '-webkit-box',
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              wordBreak: 'break-word',
+            }}>
+              {tooltipSession.lastPrompt.slice(0, 200)}
+              {tooltipSession.lastPrompt.length > 200 ? '...' : ''}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
