@@ -1369,6 +1369,28 @@ CSS: 21.50 kB (down from ~25 kB, removed ~165 lines of theme CSS)
 
 ## Iteration 109 -- Session Tags
 
+## Iteration 110 — Bug Fixes: PTY ConPTY, React #185, Light Theme Title Bar
+_Date: 2026-03-27 | Sprint Bugfix_
+
+### Summary
+Fixed three bugs: disabled ConPTY on Windows to avoid node-pty "Usage: pty.connect" crash, corrected the React useEffect dependency array for the placeholder rotation interval to prevent potential update-depth errors, and added a `window:setTitleBarOverlay` IPC channel so theme changes update the native title bar button colors (fixing black buttons in light theme).
+
+### Files Changed
+- `src/main/pty/pty-manager.ts` — `useConpty: true` → `useConpty: false`
+- `src/renderer/components/chat/ChatPanel.tsx` — dep array `[input.length > 0]` → `[input]`
+- `src/main/ipc/index.ts` — added `registerWindowHandlers` with `window:setTitleBarOverlay` handler
+- `src/preload/index.ts` — exposed `windowSetTitleBarOverlay` via contextBridge
+- `src/renderer/App.tsx` — theme `useEffect` now calls `windowSetTitleBarOverlay` with correct colors per theme
+
+### Build
+Status: SUCCESS
+
+### Acceptance Criteria
+- [x] PTY no longer crashes on Windows with ConPTY error
+- [x] React error #185 dep array corrected
+- [x] Light theme title bar buttons use dark-on-light colors (#f8f8f8 / #1a1a1a)
+- [x] All three build targets (main, preload, renderer) pass TypeScript and Vite
+
 _Date: 2026-03-27 | Sprint UI Enhancement_
 
 ### Summary
