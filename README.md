@@ -92,6 +92,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Session keyboard navigation** — Up/Down arrow keys to navigate sessions in the sidebar list
 - **Status bar streaming indicator** — pulsing green dot and "Streaming" label during active responses
 - **Input quick actions** — small "Clear", "@file", "/cmd" buttons above the textarea for quick access
+- **Task queue** — queue multiple prompts for sequential auto-execution; pause, resume, or clear the queue at any time
 
 ## Security
 

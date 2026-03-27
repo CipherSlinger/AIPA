@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useChatStore, usePrefsStore, useSessionStore } from '../store'
 import { PermissionMessage, PlanMessage, StandardChatMessage } from '../types/app.types'
+import { useUiStore } from '../store'
 
 function sendCompletionNotification(summary: string) {
   if (document.hasFocus()) return  // Don't notify when window is focused
@@ -49,6 +50,8 @@ export function useStreamJson() {
   const { prefs } = usePrefsStore()
 
   const activeBridgeIdRef = useRef<string | null>(null)
+  // Keep a ref to sendMessage so it can be called from the IPC event handler without stale closure
+  const sendMessageRef = useRef<((prompt: string) => Promise<unknown>) | null>(null)
 
   const sendMessage = async (prompt: string, attachments?: import('./useImagePaste').ImageAttachment[]) => {
     if (!prompt.trim() && (!attachments || attachments.length === 0)) return
@@ -113,6 +116,9 @@ export function useStreamJson() {
 
     return result
   }
+
+  // Keep ref in sync so IPC handler can call sendMessage without stale closure
+  sendMessageRef.current = sendMessage
 
   const abort = () => {
     const sid = activeBridgeIdRef.current
@@ -256,6 +262,32 @@ export function useStreamJson() {
                 }).catch(() => {})
               }
             }).catch(() => {})
+          }
+
+          // ── Task Queue: auto-execute next task ──────────
+          {
+            const queueState = useChatStore.getState()
+            // Mark any running item as done
+            const runningItem = queueState.taskQueue.find(item => item.status === 'running')
+            if (runningItem) {
+              queueState.markQueueItemDone(runningItem.id)
+            }
+            // Check if all items are now done → fire completion toast
+            const updatedQueue = useChatStore.getState().taskQueue
+            const pendingCount = updatedQueue.filter(item => item.status === 'pending').length
+            const doneCount = updatedQueue.filter(item => item.status === 'done').length
+            if (pendingCount === 0 && doneCount > 0) {
+              useUiStore.getState().addToast('success', `Queue complete: ${doneCount} task${doneCount > 1 ? 's' : ''} finished`)
+            }
+            // Auto-send next if not paused
+            if (!queueState.queuePaused) {
+              const nextItem = useChatStore.getState().shiftQueue()
+              if (nextItem) {
+                setTimeout(() => {
+                  sendMessageRef.current?.(nextItem.content)
+                }, 600)
+              }
+            }
           }
           break
         }

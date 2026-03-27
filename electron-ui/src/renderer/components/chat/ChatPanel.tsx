@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Send, Square, Plus, Mic, MicOff, Download, Upload, Maximize2, Minimize2, Bookmark, BarChart3 } from 'lucide-react'
+import { Send, Square, Plus, Mic, MicOff, Download, Upload, Maximize2, Minimize2, Bookmark, BarChart3, ListPlus } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { useStreamJson } from '../../hooks/useStreamJson'
 import MessageList from './MessageList'
@@ -8,6 +8,7 @@ import AtMentionPopup from './AtMentionPopup'
 import SlashCommandPopup, { SLASH_COMMANDS, SlashCommand } from './SlashCommandPopup'
 import { useImagePaste } from '../../hooks/useImagePaste'
 import { ChatMessage, StandardChatMessage } from '../../types/app.types'
+import TaskQueuePanel from './TaskQueuePanel'
 
 // Constants for drag-and-drop file handling
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg']
@@ -20,6 +21,8 @@ export default function ChatPanel() {
   const { addToast } = useUiStore()
   const focusMode = useUiStore(s => s.focusMode)
   const toggleFocusMode = useUiStore(s => s.toggleFocusMode)
+  const taskQueue = useChatStore(s => s.taskQueue)
+  const addToQueue = useChatStore(s => s.addToQueue)
 
   // Compute bookmarked messages
   const bookmarkedMessages = useMemo(() => {
@@ -236,10 +239,22 @@ export default function ChatPanel() {
         e.preventDefault()
         setSearchOpen(true)
       }
+      // Ctrl+Shift+Q: Add current input to queue
+      if (e.ctrlKey && e.shiftKey && e.key === 'Q') {
+        e.preventDefault()
+        const currentInput = input.trim()
+        if (currentInput) {
+          addToQueue(currentInput)
+          setInput('')
+          resizeTextarea()
+          try { sessionStorage.removeItem('aipa:draft-input') } catch { /* ignore */ }
+          textareaRef.current?.focus()
+        }
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [exportConversation])
+  }, [exportConversation, input, addToQueue])
 
   // Listen for export trigger from CommandPalette
   useEffect(() => {
@@ -896,6 +911,9 @@ export default function ChatPanel() {
         {isStreaming && <ThinkingIndicator />}
       </div>
 
+      {/* Task Queue Panel — between messages and input */}
+      <TaskQueuePanel />
+
       {/* Input bar */}
       <div
         style={{
@@ -990,6 +1008,78 @@ export default function ChatPanel() {
             >
               /cmd
             </button>
+            {/* Spacer */}
+            <span style={{ flex: 1 }} />
+            {/* Queue button */}
+            <div style={{ position: 'relative', display: 'inline-flex' }}>
+              <button
+                onClick={() => {
+                  const text = input.trim()
+                  if (!text) return
+                  addToQueue(text)
+                  setInput('')
+                  resizeTextarea()
+                  try { sessionStorage.removeItem('aipa:draft-input') } catch { /* ignore */ }
+                  textareaRef.current?.focus()
+                }}
+                disabled={!input.trim()}
+                aria-label="Add to task queue"
+                title="Add to queue (Ctrl+Shift+Q)"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: input.trim() ? 'pointer' : 'not-allowed',
+                  fontSize: 10,
+                  padding: '1px 6px',
+                  borderRadius: 3,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  color: taskQueue.length > 0
+                    ? '#a78bfa'
+                    : input.trim()
+                    ? 'var(--text-muted)'
+                    : '#4a4a4a',
+                  opacity: input.trim() ? 1 : 0.4,
+                  transition: 'color 150ms ease, background 150ms ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (input.trim()) {
+                    (e.currentTarget as HTMLButtonElement).style.color = '#a78bfa';
+                    (e.currentTarget as HTMLButtonElement).style.background = 'rgba(139, 92, 246, 0.10)'
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.color = taskQueue.length > 0 ? '#a78bfa' : input.trim() ? 'var(--text-muted)' : '#4a4a4a';
+                  (e.currentTarget as HTMLButtonElement).style.background = 'none'
+                }}
+              >
+                <ListPlus size={14} />
+                <span>Queue</span>
+              </button>
+              {/* Badge */}
+              {taskQueue.length > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: -6,
+                  right: -6,
+                  width: 16,
+                  height: 16,
+                  background: '#8b5cf6',
+                  color: '#ffffff',
+                  fontSize: 10,
+                  fontWeight: 600,
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  animation: 'queue-badge-in 200ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+                  pointerEvents: 'none',
+                }}>
+                  {taskQueue.length > 9 ? '9+' : taskQueue.length}
+                </span>
+              )}
+            </div>
           </div>
           {/* Input row */}
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>

@@ -2,6 +2,13 @@ import { create } from 'zustand'
 import { ChatMessage, PermissionMessage, PlanMessage, StandardChatMessage, ClaudePrefs, SessionListItem } from '../types/app.types'
 import { ToastItem, ToastType } from '../components/ui/Toast'
 
+// ── Task Queue types ─────────────────────────────
+export interface TaskQueueItem {
+  id: string
+  content: string
+  status: 'pending' | 'running' | 'done'
+}
+
 // ── Streaming buffer for throttled delta accumulation ──
 const streamingBuffer = {
   contentChunks: [] as string[],
@@ -102,6 +109,16 @@ interface ChatState {
   setLastContextUsage: (usage: { used: number; total: number } | null) => void
   currentSessionTitle: string | null
   setSessionTitle: (title: string | null) => void
+
+  // Task Queue
+  taskQueue: TaskQueueItem[]
+  queuePaused: boolean
+  addToQueue: (content: string) => void
+  removeFromQueue: (id: string) => void
+  clearQueue: () => void
+  toggleQueuePause: () => void
+  shiftQueue: () => TaskQueueItem | null
+  markQueueItemDone: (id: string) => void
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -115,6 +132,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   totalSessionCost: 0,
   lastContextUsage: null,
   currentSessionTitle: null,
+  taskQueue: [],
+  queuePaused: false,
 
   addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
 
@@ -264,6 +283,39 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   expandAll: () => set((s) => ({
     messages: s.messages.map(m => m.role !== 'permission' && m.role !== 'plan' ? { ...m, collapsed: false } as StandardChatMessage : m)
+  })),
+
+  // ── Task Queue actions ──────────────────────────
+  addToQueue: (content) => set((s) => ({
+    taskQueue: [...s.taskQueue, { id: `queue-${Date.now()}-${Math.random()}`, content, status: 'pending' as const }]
+  })),
+
+  removeFromQueue: (id) => set((s) => ({
+    taskQueue: s.taskQueue.filter(item => item.id !== id)
+  })),
+
+  clearQueue: () => set((s) => ({
+    taskQueue: s.taskQueue.filter(item => item.status !== 'pending')
+  })),
+
+  toggleQueuePause: () => set((s) => ({ queuePaused: !s.queuePaused })),
+
+  shiftQueue: () => {
+    const state = get()
+    const nextItem = state.taskQueue.find(item => item.status === 'pending')
+    if (!nextItem) return null
+    set((s) => ({
+      taskQueue: s.taskQueue.map(item =>
+        item.id === nextItem.id ? { ...item, status: 'running' as const } : item
+      )
+    }))
+    return nextItem
+  },
+
+  markQueueItemDone: (id) => set((s) => ({
+    taskQueue: s.taskQueue.map(item =>
+      item.id === id ? { ...item, status: 'done' as const } : item
+    )
   })),
 }))
 
