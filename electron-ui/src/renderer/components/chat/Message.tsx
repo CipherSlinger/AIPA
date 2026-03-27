@@ -6,6 +6,7 @@ import MessageContextMenu from './MessageContextMenu'
 import ImageLightbox from '../shared/ImageLightbox'
 import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark, AlertTriangle, Code2, Check, CheckCheck, Clock, MessageSquareQuote, Pencil } from 'lucide-react'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
+import { useT } from '../../i18n'
 
 const REACTION_EMOJIS = [
   { key: 'thumbsup', emoji: '\uD83D\uDC4D', label: 'thumbs up' },
@@ -40,6 +41,7 @@ interface Props {
 }
 
 export default React.memo(function Message({ message, onRate, onRewind, onBookmark, onCollapse, onEdit, searchQuery, showAvatar = true }: Props) {
+  const t = useT()
   const isUser = message.role === 'user'
   const isAssistant = message.role === 'assistant'
   const isSystem = message.role === 'system' || (isAssistant && (message as StandardChatMessage).content?.startsWith('\u26a0\ufe0f'))
@@ -449,7 +451,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
                       onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                     >
-                      Cancel
+                      {t('message.editCancel')}
                     </button>
                     <button
                       onClick={() => {
@@ -472,7 +474,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
                         transition: 'opacity 150ms ease',
                       }}
                     >
-                      Save & Send
+                      {t('message.editSave')}
                     </button>
                   </div>
                 </div>
@@ -698,7 +700,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
                   setIsEditing(true)
                   setTimeout(() => editTextareaRef.current?.focus(), 50)
                 }}
-                title="Edit message"
+                title={t('message.editMessage')}
                 style={{
                   background: 'transparent',
                   border: 'none',

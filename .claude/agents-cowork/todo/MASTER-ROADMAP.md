@@ -147,6 +147,14 @@
 | Light theme selector in Settings | P1 | DONE (Iteration 81) |
 | Light scrollbar + code block overrides | P1 | DONE (Iteration 81) |
 
+### Iteration 87 -- Message Edit & Resend + Chat Zoom
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Message edit & resend (inline textarea + truncate + re-send) | P1 | DONE (Iteration 87) |
+| Chat zoom controls (Ctrl+=/-/0, 70%-150%) | P2 | DONE (Iteration 87) |
+| i18n for edit UI (en + zh-CN) | P1 | DONE (Iteration 87) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

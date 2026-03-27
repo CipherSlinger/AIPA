@@ -954,3 +954,41 @@ built in 7.38s
 - [x] Theme type updated in ClaudePrefs interface
 - [x] data-theme="light" attribute applied via existing App.tsx logic
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 87 -- Message Edit & Resend + Chat Zoom
+
+_Date: 2026-03-27 | Sprint UI Enhancement_
+
+### Summary
+Completed the message edit & resend feature and chat zoom controls. Users can now click the Pencil icon on any user message bubble to edit it in-place via an inline textarea. Submitting the edit (via Enter or "Save & Send" button) truncates the conversation after the edited message and re-sends the edited content to the CLI for a fresh assistant response. Also includes chat zoom controls (Ctrl+=/Ctrl+-/Ctrl+0) for adjustable chat panel scaling between 70%-150%. All edit UI strings are fully internationalized (English + Chinese).
+
+### Files Changed
+- `src/renderer/components/chat/Message.tsx` -- Added `useT` import and `t()` hook; internationalized edit button tooltip ("Edit message"), Cancel button label, and "Save & Send" button label using `message.editMessage`, `message.editCancel`, `message.editSave` i18n keys. Pre-existing WIP code: Pencil icon edit button in hover toolbar (user messages only, disabled during streaming), inline textarea with autofocus, Enter-to-submit / Escape-to-cancel keyboard shortcuts, Cancel and Save & Send buttons with popup-item-hover styling.
+- `src/renderer/components/chat/ChatPanel.tsx` -- Pre-existing: `onEdit` handler wired to MessageList that calls `editMessageAndTruncate(msgId, newContent)` then `sendMessage(newContent)`. New: Chat zoom state (`chatZoom` useState at 100%), Ctrl+= to zoom in (max 150%), Ctrl+- to zoom out (min 70%), Ctrl+0 to reset, applied via CSS `zoom` property on messages container.
+- `src/renderer/store/index.ts` -- `editMessageAndTruncate(msgId, newContent)` method: finds message by ID, truncates messages array at that index (removes edited message and everything after), allowing `sendMessage` to re-add a fresh user message with edited content.
+- `src/renderer/i18n/locales/en.json` -- Added `message.editMessage`, `message.editCancel`, `message.editSave` keys; added `chat.resetZoom` key; cleaned up duplicate edit keys from `chat` namespace
+- `src/renderer/i18n/locales/zh-CN.json` -- Added Chinese translations for message edit keys and resetZoom
+
+### Build
+Status: SUCCESS
+
+```
+2388 modules transformed.
+built in 8.04s
+```
+
+### Acceptance Criteria
+- [x] Pencil icon appears in user message hover toolbar (not during streaming)
+- [x] Clicking edit replaces message content with editable textarea
+- [x] Textarea pre-populated with current message content
+- [x] Cancel button dismisses edit mode without changes
+- [x] "Save & Send" updates message content, truncates conversation, and sends to CLI
+- [x] Enter (without Shift) submits the edit
+- [x] Escape cancels the edit
+- [x] Conversation after the edited message is removed
+- [x] New assistant response streams in after edited message is sent
+- [x] Chat zoom in (Ctrl+=), zoom out (Ctrl+-), reset (Ctrl+0)
+- [x] i18n: Edit UI strings translated to English and Chinese
+- [x] Build passes with zero errors
