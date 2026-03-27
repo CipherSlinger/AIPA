@@ -1060,3 +1060,36 @@ built in 7.87s
 - [x] Timer cleanup prevents stale tooltips
 - [x] i18n: Labels translated to English and Chinese
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 91 -- Copy Conversation + Shortcut Cheatsheet i18n
+
+_Date: 2026-03-27 | Sprint UI Enhancement_
+
+### Summary
+Added a "Copy Conversation" button to the chat header toolbar that copies the entire conversation to clipboard as formatted Markdown. Uses the existing `formatMarkdown` function (shared with export). Accessible via button click or Ctrl+Shift+X keyboard shortcut. Also completed i18n migration of the Shortcut Cheatsheet panel, translating all 20+ shortcut labels to English and Chinese. Added the zoom shortcuts (Ctrl+=/-/0) and copy conversation shortcut to the cheatsheet.
+
+### Files Changed
+- `src/renderer/components/chat/ChatPanel.tsx` -- Added `ClipboardCopy` import; added `copyConversation` callback using `formatMarkdown` + `navigator.clipboard.writeText`; added Ctrl+Shift+X keyboard shortcut handler; added ClipboardCopy icon button in header toolbar (between Export and Bookmarks); button disabled when no messages
+- `src/renderer/components/shared/ShortcutCheatsheet.tsx` -- Full i18n migration: all shortcut labels, section headers, and footer text now use `t()` translation function; added zoom in/out and reset zoom shortcuts; added copy conversation shortcut
+- `src/renderer/i18n/locales/en.json` -- Added `chat.copyConversation`, `chat.copiedToClipboard`, `chat.resetZoom`; added 20+ shortcut cheatsheet keys under `shortcutCheatsheet` namespace
+- `src/renderer/i18n/locales/zh-CN.json` -- Added Chinese translations for all new keys
+
+### Build
+Status: SUCCESS
+
+```
+2388 modules transformed.
+built in 8.17s
+```
+
+### Acceptance Criteria
+- [x] ClipboardCopy button appears in chat header toolbar
+- [x] Clicking copies conversation as Markdown to clipboard
+- [x] Success toast shown after copy
+- [x] Ctrl+Shift+X keyboard shortcut works
+- [x] Button disabled when no messages
+- [x] Shortcut cheatsheet fully internationalized
+- [x] Zoom shortcuts added to cheatsheet
+- [x] Build passes with zero errors

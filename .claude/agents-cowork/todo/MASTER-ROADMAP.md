@@ -169,6 +169,13 @@
 | Session hover preview tooltip (title, project, time, prompt) | P2 | DONE (Iteration 90) |
 | i18n for tooltip labels (en + zh-CN) | P1 | DONE (Iteration 90) |
 
+### Iteration 91 -- Copy Conversation + Shortcut Cheatsheet i18n
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Copy conversation to clipboard (Ctrl+Shift+X) | P1 | DONE (Iteration 91) |
+| Shortcut cheatsheet full i18n migration | P1 | DONE (Iteration 91) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |
