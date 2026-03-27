@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Search, X, ChevronUp, ChevronDown } from 'lucide-react'
+import { useT } from '../../i18n'
 
 interface Props {
   onSearch: (query: string) => void
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, currentMatch }: Props) {
+  const t = useT()
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -55,7 +57,7 @@ export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, c
         ref={inputRef}
         value={query}
         onChange={handleChange}
-        placeholder="Search in conversation..."
+        placeholder={t('chat.searchPlaceholder')}
         style={{
           flex: 1,
           background: 'var(--bg-input)',
@@ -69,13 +71,13 @@ export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, c
       />
       {query && (
         <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-          {matchCount > 0 ? `${currentMatch + 1} / ${matchCount}` : 'No matches'}
+          {matchCount > 0 ? `${currentMatch + 1} / ${matchCount}` : t('chat.noMatches')}
         </span>
       )}
       <button
         onClick={() => onNavigate('prev')}
         disabled={matchCount === 0}
-        title="Previous match (Shift+Enter)"
+        title={t('chat.previousMatch')}
         style={{
           background: 'none', border: 'none', color: 'var(--text-muted)',
           cursor: matchCount > 0 ? 'pointer' : 'not-allowed',
@@ -88,7 +90,7 @@ export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, c
       <button
         onClick={() => onNavigate('next')}
         disabled={matchCount === 0}
-        title="Next match (Enter)"
+        title={t('chat.nextMatch')}
         style={{
           background: 'none', border: 'none', color: 'var(--text-muted)',
           cursor: matchCount > 0 ? 'pointer' : 'not-allowed',
@@ -100,7 +102,7 @@ export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, c
       </button>
       <button
         onClick={onClose}
-        title="Close (Escape)"
+        title={t('chat.closeSearch')}
         style={{
           background: 'none', border: 'none', color: 'var(--text-muted)',
           cursor: 'pointer', display: 'flex', alignItems: 'center',

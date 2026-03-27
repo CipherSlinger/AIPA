@@ -184,6 +184,14 @@
 | Task Queue CSS variable system (7 vars, 4 themes) | P1 | DONE (Iteration 92) |
 | Queue entry button i18n | P1 | DONE (Iteration 92) |
 
+### Iteration 93 -- Complete i18n for SearchBar, QuickReplyChips, ToolUseBlock
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| SearchBar i18n (placeholder, match labels, button titles) | P1 | DONE (Iteration 93) |
+| QuickReplyChips i18n (form labels, actions, context menu) | P1 | DONE (Iteration 93) |
+| ToolUseBlock Cancel button i18n | P1 | DONE (Iteration 93) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

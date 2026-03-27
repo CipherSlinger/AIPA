@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Plus, Check, X, Trash2 } from 'lucide-react'
 import { usePrefsStore } from '../../store'
+import { useT } from '../../i18n'
 
 interface QuickReply {
   label: string
@@ -19,6 +20,7 @@ const DEFAULT_QUICK_REPLIES: QuickReply[] = [
 ]
 
 export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
+  const t = useT()
   const { prefs, setPrefs } = usePrefsStore()
   const chips: QuickReply[] = prefs.quickReplies ?? DEFAULT_QUICK_REPLIES
 
@@ -127,7 +129,7 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
         value={formLabel}
         onChange={e => setFormLabel(e.target.value.slice(0, 20))}
         onKeyDown={handleKeyDown}
-        placeholder="Label"
+        placeholder={t('quickReply.labelPlaceholder')}
         style={{
           fontSize: 11,
           background: 'var(--input-field-bg)',
@@ -143,7 +145,7 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
         value={formPrompt}
         onChange={e => setFormPrompt(e.target.value.slice(0, 500))}
         onKeyDown={handleKeyDown}
-        placeholder="Prompt text"
+        placeholder={t('quickReply.promptPlaceholder')}
         style={{
           fontSize: 11,
           background: 'var(--input-field-bg)',
@@ -157,8 +159,8 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
       />
       <button
         onClick={handleSave}
-        title="Save"
-        aria-label="Save quick reply"
+        title={t('common.save')}
+        aria-label={t('quickReply.saveReply')}
         style={{
           background: 'none',
           border: 'none',
@@ -173,8 +175,8 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
       </button>
       <button
         onClick={handleCancel}
-        title="Cancel"
-        aria-label="Cancel"
+        title={t('common.cancel')}
+        aria-label={t('common.cancel')}
         style={{
           background: 'none',
           border: 'none',
@@ -193,8 +195,8 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
             handleDelete(editingIndex)
             handleCancel()
           }}
-          title="Delete"
-          aria-label="Delete quick reply"
+          title={t('common.delete')}
+          aria-label={t('quickReply.deleteReply')}
           style={{
             background: 'none',
             border: 'none',
@@ -274,8 +276,8 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
         ) : editingIndex === null ? (
           <button
             onClick={handleAdd}
-            title="Add quick reply template"
-            aria-label="Add quick reply template"
+            title={t('quickReply.addTemplate')}
+            aria-label={t('quickReply.addTemplate')}
             style={{
               background: 'transparent',
               border: '1px dashed var(--action-btn-border)',
@@ -337,7 +339,7 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
             onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--popup-item-hover)' }}
             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
           >
-            Edit
+            {t('common.edit')}
           </button>
           <button
             onClick={() => handleDelete(contextMenu.index)}
@@ -355,7 +357,7 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
             onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--popup-item-hover)' }}
             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
           >
-            Remove
+            {t('common.remove')}
           </button>
         </div>
       )}

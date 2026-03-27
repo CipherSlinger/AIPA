@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { ToolUseInfo } from '../../types/app.types'
 import { ChevronDown, ChevronRight, Terminal, FileEdit, Search, Globe, Loader2, Check, X, Timer } from 'lucide-react'
+import { useT } from '../../i18n'
 
 interface Props {
   tool: ToolUseInfo
@@ -73,6 +74,7 @@ function DiffView({ input }: { input: Record<string, unknown> }) {
 }
 
 export default function ToolUseBlock({ tool, onAbort }: Props) {
+  const t = useT()
   const [expanded, setExpanded] = useState(false)
   const [elapsed, setElapsed] = useState(0)
   const [finalDuration, setFinalDuration] = useState<number | null>(null)
@@ -191,7 +193,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
         {showElapsed && onAbort && (
           <button
             onClick={(e) => { e.stopPropagation(); onAbort() }}
-            title="Cancel tool"
+            title={t('toolbar.cancelTool')}
             style={{
               padding: '1px 6px',
               background: 'var(--error)',
@@ -203,7 +205,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
               flexShrink: 0,
             }}
           >
-            Cancel
+            {t('common.cancel')}
           </button>
         )}
       </button>

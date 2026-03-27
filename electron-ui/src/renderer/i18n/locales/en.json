@@ -64,7 +64,12 @@
     "regenerate": "Regenerate response",
     "resetZoom": "Reset zoom (Ctrl+0)",
     "copyConversation": "Copy conversation",
-    "copiedToClipboard": "Conversation copied to clipboard"
+    "copiedToClipboard": "Conversation copied to clipboard",
+    "searchPlaceholder": "Search in conversation...",
+    "noMatches": "No matches",
+    "previousMatch": "Previous match (Shift+Enter)",
+    "nextMatch": "Next match (Enter)",
+    "closeSearch": "Close (Escape)"
   },
   "welcome": {
     "title": "Hello! I'm AIPA",
@@ -245,7 +250,15 @@
     "contextUsed": "Context used: {{percent}}% ({{used}} / {{total}} tokens)",
     "msgs": "{{count}} msgs",
     "lastTurn": "Last turn: ${{cost}} | Session total: ${{total}}",
-    "sessionTotal": "Session total: ${{total}}"
+    "sessionTotal": "Session total: ${{total}}",
+    "cancelTool": "Cancel tool"
+  },
+  "quickReply": {
+    "labelPlaceholder": "Label",
+    "promptPlaceholder": "Prompt text",
+    "saveReply": "Save quick reply",
+    "deleteReply": "Delete quick reply",
+    "addTemplate": "Add quick reply template"
   },
   "command": {
     "paletteTitle": "Command Palette",

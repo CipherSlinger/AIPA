@@ -1134,3 +1134,40 @@ built in 7.83s
 - [x] en.json has 5 new taskQueue keys (clearAll, totalLabel, addToQueue, addToQueueShortcut, queueComplete)
 - [x] zh-CN.json has all corresponding Chinese translations
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 93 -- Complete i18n for SearchBar, QuickReplyChips, ToolUseBlock
+
+_Date: 2026-03-27 | Sprint i18n Completion_
+
+### Summary
+Completed i18n migration for three remaining components that had hardcoded English strings. SearchBar.tsx now uses `t()` for the search placeholder, no-matches text, and navigation button titles. QuickReplyChips.tsx now uses `t()` for form placeholders (Label/Prompt text), action buttons (Save/Cancel/Delete), context menu items (Edit/Remove), and the add template button. ToolUseBlock.tsx now uses `t()` for the Cancel button text and title. Added 12 new i18n keys across 3 namespaces (chat, quickReply, toolbar) to both en.json and zh-CN.json.
+
+### Files Changed
+- `src/renderer/components/chat/SearchBar.tsx` -- Added `useT` import and hook; replaced 5 hardcoded strings: placeholder ("Search in conversation..."), no matches text, previous/next match titles, close button title
+- `src/renderer/components/chat/QuickReplyChips.tsx` -- Added `useT` import and hook; replaced 10 hardcoded strings: form placeholders (Label, Prompt text), Save/Cancel/Delete button titles and aria-labels, Add template button title, Edit/Remove context menu labels
+- `src/renderer/components/chat/ToolUseBlock.tsx` -- Added `useT` import and hook; replaced Cancel tool button title and Cancel button text with t() calls
+- `src/renderer/i18n/locales/en.json` -- Added 12 new keys: chat.searchPlaceholder, chat.noMatches, chat.previousMatch, chat.nextMatch, chat.closeSearch, quickReply.labelPlaceholder, quickReply.promptPlaceholder, quickReply.saveReply, quickReply.deleteReply, quickReply.addTemplate, toolbar.cancelTool
+- `src/renderer/i18n/locales/zh-CN.json` -- Added Chinese translations for all 12 new keys
+
+### Build
+Status: SUCCESS
+
+```
+2388 modules transformed.
+built in 7.57s
+```
+
+### Acceptance Criteria
+- [x] SearchBar placeholder uses t('chat.searchPlaceholder')
+- [x] SearchBar "No matches" uses t('chat.noMatches')
+- [x] SearchBar prev/next/close titles use t() calls
+- [x] QuickReplyChips form placeholders use t() (Label, Prompt text)
+- [x] QuickReplyChips Save/Cancel/Delete buttons use t() for title and aria-label
+- [x] QuickReplyChips context menu Edit/Remove use t() calls
+- [x] QuickReplyChips Add template button uses t()
+- [x] ToolUseBlock Cancel button text and title use t() calls
+- [x] 12 new keys added to en.json across chat, quickReply, toolbar namespaces
+- [x] All 12 keys have Chinese translations in zh-CN.json
+- [x] Build passes with zero errors
