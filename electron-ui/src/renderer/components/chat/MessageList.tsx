@@ -82,6 +82,29 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
     return map
   }, [messages])
 
+  // Pre-compute isLastUserMsg and hasAssistantReply for all messages
+  // (avoids per-message Zustand linear scans that caused React error #185)
+  const lastUserMsgId = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') return messages[i].id
+    }
+    return null
+  }, [messages])
+
+  const assistantReplyMap = useMemo(() => {
+    const map = new Map<string, boolean>()
+    for (let i = 0; i < messages.length; i++) {
+      if (messages[i].role === 'user') {
+        let found = false
+        for (let j = i + 1; j < messages.length; j++) {
+          if (messages[j].role === 'assistant') { found = true; break }
+        }
+        map.set(messages[i].id, found)
+      }
+    }
+    return map
+  }, [messages])
+
   const virtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => scrollContainerRef.current,
@@ -200,6 +223,8 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
         message={msg}
         searchQuery={searchQuery}
         showAvatar={showAvatar}
+        isLastUserMsg={msg.role === 'user' && msg.id === lastUserMsgId}
+        hasAssistantReply={msg.role === 'user' && (assistantReplyMap.get(msg.id) ?? false)}
         onRate={(msgId, rating) => {
           rateMessage(msgId, rating)
           window.electronAPI.feedbackRate(msgId, rating)
@@ -218,7 +243,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
         } : undefined}
       />
     )
-  }, [onPermission, onGrantPermission, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery, showAvatarMap, onEdit, t])
+  }, [onPermission, onGrantPermission, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery, showAvatarMap, onEdit, t, lastUserMsgId, assistantReplyMap])
 
   // Scroll progress (0..1)
   const [scrollProgress, setScrollProgress] = useState(0)

@@ -1318,3 +1318,49 @@ built in 7.93s
 - [x] 10 new keys added to en.json across plan and lightbox namespaces
 - [x] All 10 keys have Chinese translations in zh-CN.json
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 108 -- PTY Fix + React Crash Fix + Theme Cleanup
+
+_Date: 2026-03-27 | Bugfix + Cleanup_
+
+### Summary
+Three-part iteration addressing critical user feedback: (1) Fixed PTY terminal crash caused by node-pty/conpty.node API signature mismatch -- the native binary expected 7 arguments to `startProcess()` but the JS wrapper only passed 6; (2) Fixed React error #185 (Maximum update depth exceeded) by moving expensive per-message Zustand linear scans (`isLastUserMsg`, `hasAssistantReply`) from Message.tsx component-level selectors to pre-computed maps in MessageList.tsx, and debounced the slash command popup API calls; (3) Removed Modern Dark and Minimal Dark themes per user request, keeping only Dark and Light themes with i18n labels, theme migration for existing users, and ~165 lines of CSS removed.
+
+### Files Changed
+- `node_modules/node-pty/lib/windowsPtyAgent.js` -- Patched `startProcess()` call to pass 7th argument `useConptyDll=false` for conpty.node compatibility
+- `scripts/patch-node-pty.js` -- New postinstall patch script to re-apply the fix after `npm install`
+- `package.json` -- Updated `postinstall` script to chain the node-pty patch
+- `src/renderer/components/chat/Message.tsx` -- Removed heavy Zustand selectors `isLastUserMsg` and `hasAssistantReply`, replaced with props passed from MessageList
+- `src/renderer/components/chat/MessageList.tsx` -- Added `lastUserMsgId` and `assistantReplyMap` pre-computed useMemo maps, passed as props to Message component
+- `src/renderer/components/chat/ChatPanel.tsx` -- Fixed slash command API call to only trigger when popup opens (not on every keystroke)
+- `src/renderer/styles/globals.css` -- Removed `[data-theme="modern"]` and `[data-theme="minimal"]` CSS blocks (~165 lines)
+- `src/renderer/components/settings/SettingsPanel.tsx` -- Reduced THEMES array from 4 to 2 entries (Dark, Light), added i18n labelKey
+- `src/renderer/types/app.types.ts` -- Changed theme type from `'vscode' | 'modern' | 'minimal' | 'light'` to `'vscode' | 'light'`
+- `src/renderer/App.tsx` -- Added theme migration: `modern`/`minimal` saved prefs automatically migrate to `vscode`
+- `src/renderer/i18n/locales/en.json` -- Added `settings.themeDark` and `settings.themeLight` keys
+- `src/renderer/i18n/locales/zh-CN.json` -- Added Chinese translations for theme labels
+
+### Build
+Status: SUCCESS
+
+```
+main: tsc clean
+preload: tsc clean
+renderer: 2390 modules transformed, built in 9.95s
+CSS: 21.50 kB (down from ~25 kB, removed ~165 lines of theme CSS)
+```
+
+### Acceptance Criteria
+- [x] PTY terminal `startProcess` call passes correct 7 arguments
+- [x] Patch script created for reproducibility after npm install
+- [x] Heavy per-message Zustand selectors moved to MessageList-level pre-computation
+- [x] Slash command API calls debounced to popup open/close transitions only
+- [x] Modern Dark and Minimal Dark themes removed from settings UI
+- [x] CSS theme blocks removed (~165 lines saved)
+- [x] Theme type updated in TypeScript types
+- [x] Existing users with `modern`/`minimal` theme migrated to `vscode` on startup
+- [x] i18n keys added for theme labels (en + zh-CN)
+- [x] README.md and README_CN.md updated
+- [x] Build passes with zero errors

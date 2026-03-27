@@ -245,6 +245,8 @@
     "fontSize": "Font Size",
     "fontFamily": "Font Family",
     "theme": "Theme",
+    "themeDark": "Dark",
+    "themeLight": "Light",
     "skipPermissions": "Skip Tool Permissions",
     "skipPermissionsHint": "When enabled, Claude does not ask for per-tool authorization",
     "verbose": "Verbose Output",

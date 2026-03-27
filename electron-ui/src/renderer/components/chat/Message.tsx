@@ -38,9 +38,13 @@ interface Props {
   onEdit?: (msgId: string, newContent: string) => void
   searchQuery?: string
   showAvatar?: boolean
+  /** Pre-computed: is this the last user message in the list? (passed from MessageList to avoid per-message Zustand scans) */
+  isLastUserMsg?: boolean
+  /** Pre-computed: does an assistant reply exist after this message? (passed from MessageList to avoid per-message Zustand scans) */
+  hasAssistantReply?: boolean
 }
 
-export default React.memo(function Message({ message, onRate, onRewind, onBookmark, onCollapse, onEdit, searchQuery, showAvatar = true }: Props) {
+export default React.memo(function Message({ message, onRate, onRewind, onBookmark, onCollapse, onEdit, searchQuery, showAvatar = true, isLastUserMsg = false, hasAssistantReply = false }: Props) {
   const t = useT()
   const isUser = message.role === 'user'
   const isAssistant = message.role === 'assistant'
@@ -53,25 +57,6 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   const globalIsStreaming = useChatStore(s => s.isStreaming)
   const toggleBookmarkStore = useChatStore(s => s.toggleBookmark)
   const setQuotedText = useUiStore(s => s.setQuotedText)
-  const isLastUserMsg = useChatStore(s => {
-    if (!isUser) return false
-    const msgs = s.messages
-    for (let i = msgs.length - 1; i >= 0; i--) {
-      if (msgs[i].role === 'user') return msgs[i].id === message.id
-    }
-    return false
-  })
-  // Check if an assistant message exists after this user message (= "read")
-  const hasAssistantReply = useChatStore(s => {
-    if (!isUser) return false
-    const msgs = s.messages
-    const myIdx = msgs.findIndex(m => m.id === message.id)
-    if (myIdx < 0) return false
-    for (let i = myIdx + 1; i < msgs.length; i++) {
-      if (msgs[i].role === 'assistant') return true
-    }
-    return false
-  })
   const msgStatus: 'sending' | 'sent' | 'read' | null = isUser
     ? (globalIsStreaming && isLastUserMsg ? 'sending' : hasAssistantReply ? 'read' : 'sent')
     : null

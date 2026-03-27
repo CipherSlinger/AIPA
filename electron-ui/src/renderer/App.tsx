@@ -25,6 +25,12 @@ export default function App() {
       const env = await window.electronAPI.configGetEnv()
       const home = await window.electronAPI.fsGetHome()
 
+      // Migrate removed themes (modern, minimal) to 'vscode' (Dark)
+      if (all.theme === 'modern' || all.theme === 'minimal') {
+        all.theme = 'vscode'
+        window.electronAPI.prefsSet('theme', 'vscode')
+      }
+
       setPrefs({
         ...all,
         apiKey: all.apiKey || env.apiKey || '',

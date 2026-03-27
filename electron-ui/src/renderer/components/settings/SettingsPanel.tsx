@@ -22,11 +22,9 @@ const FONT_FAMILIES: { id: string; label: string }[] = [
   { id: 'system-ui, sans-serif',                             label: 'System Default' },
 ]
 
-const THEMES: { id: 'vscode' | 'modern' | 'minimal' | 'light'; label: string; colors: string[] }[] = [
-  { id: 'vscode',   label: 'VS Code',   colors: ['#1e1e1e', '#007acc', '#264f78', '#2d2d2d'] },
-  { id: 'modern',   label: 'Modern Dark',  colors: ['#0d1117', '#2f81f7', '#1f3a5f', '#161b22'] },
-  { id: 'minimal',  label: 'Minimal Dark',  colors: ['#111111', '#a855f7', '#1e1033', '#1a1a1a'] },
-  { id: 'light',    label: 'Light',      colors: ['#ffffff', '#2563eb', '#f3f4f6', '#f5f5f5'] },
+const THEMES: { id: 'vscode' | 'light'; label: string; labelKey: string; colors: string[] }[] = [
+  { id: 'vscode',   label: 'Dark',   labelKey: 'settings.themeDark',  colors: ['#1e1e1e', '#007acc', '#264f78', '#2d2d2d'] },
+  { id: 'light',    label: 'Light',  labelKey: 'settings.themeLight', colors: ['#ffffff', '#2563eb', '#f3f4f6', '#f5f5f5'] },
 ]
 
 const SYSTEM_PROMPT_TEMPLATES: { id: string; labelKey: string; prompt: string }[] = [

@@ -583,16 +583,17 @@ export default function ChatPanel() {
     }
   }
 
-  // Load custom slash commands when popup opens
+  // Load custom slash commands once when popup opens (not on every keystroke)
+  const slashPopupOpen = slashQuery !== null
   useEffect(() => {
-    if (slashQuery === null) return
+    if (!slashPopupOpen) return
     window.electronAPI.fsListCommands(prefs.workingDir || '').then((cmds: { name: string; description: string; source: string }[]) => {
       setCustomCommands(cmds.map(c => ({
         name: c.name,
         description: c.description + (c.source === 'project' ? ' [Project]' : ' [User]'),
       })))
     }).catch(() => {})
-  }, [slashQuery])
+  }, [slashPopupOpen])
 
   // Speech recognition
   const toggleSpeech = () => {
