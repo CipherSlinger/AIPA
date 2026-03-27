@@ -31,6 +31,19 @@ memory: project
 - `electron-ui/src/renderer/components/` — 已有 UI 组件
 - `electron-ui/src/main/ipc/index.ts` — 已有功能的 IPC 接口清单
 
+### 用户真实反馈收集（必做）
+
+读取 `.claude/agents-cowork/issues/` 目录下的所有文档，这些是用户提交的真实使用反馈和问题报告：
+
+- 逐一阅读每份 issue 文件，提取：
+  - 用户痛点和具体场景
+  - 功能缺失或体验缺陷
+  - 用户的优先级信号（抱怨频度、情绪强度）
+- 将这些反馈整合进本轮需求定义，确保本次迭代的 PRD **优先覆盖用户真实反馈**
+- **处理完成后，删除已读取的 issue 文件**（使用 Bash `rm` 命令），避免重复处理
+
+> 如果 `issues/` 目录为空或不存在，跳过此步骤，继续后续阶段。
+
 ---
 
 ## PHASE 2：市场调研与竞品分析
