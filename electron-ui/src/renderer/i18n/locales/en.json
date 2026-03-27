@@ -60,7 +60,8 @@
     "wordCount": "{{words}} words",
     "charCountLabel": "{{chars}} chars",
     "longInput": "(long)",
-    "veryLongInput": "(very long)"
+    "veryLongInput": "(very long)",
+    "regenerate": "Regenerate response"
   },
   "welcome": {
     "title": "Hello! I'm AIPA",

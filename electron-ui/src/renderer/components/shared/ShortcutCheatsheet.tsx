@@ -26,6 +26,8 @@ const SHORTCUTS = [
     { keys: 'Up / Down', action: 'Browse input history' },
     { keys: '@', action: 'Mention file' },
     { keys: '/', action: 'Slash commands' },
+    { keys: 'Ctrl + Shift + Q', action: 'Add to task queue' },
+    { keys: 'Ctrl + Shift + R', action: 'Regenerate response' },
   ]},
   { section: 'Conversation', items: [
     { keys: 'Ctrl + F', action: 'Search in conversation' },

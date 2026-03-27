@@ -123,6 +123,9 @@ interface ChatState {
   toggleQueuePause: () => void
   shiftQueue: () => TaskQueueItem | null
   markQueueItemDone: (id: string) => void
+
+  // Regeneration
+  prepareRegeneration: () => string | null
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -337,6 +340,24 @@ export const useChatStore = create<ChatState>((set, get) => ({
       item.id === id ? { ...item, status: 'done' as const } : item
     )
   })),
+
+  prepareRegeneration: () => {
+    const state = get()
+    const msgs = state.messages
+    // Find the last user message
+    let lastUserIdx = -1
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      if (msgs[i].role === 'user') {
+        lastUserIdx = i
+        break
+      }
+    }
+    if (lastUserIdx < 0) return null
+    const lastUserContent = (msgs[lastUserIdx] as StandardChatMessage).content
+    // Remove messages from the last user message onward (the user prompt + assistant response)
+    set({ messages: msgs.slice(0, lastUserIdx) })
+    return lastUserContent || null
+  },
 }))
 
 // ── Session store ───────────────────────────────

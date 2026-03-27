@@ -95,6 +95,8 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Task queue** — queue multiple prompts for sequential auto-execution; pause, resume, or clear the queue at any time
 - **Multi-language (i18n)** — supports English and Simplified Chinese; defaults to system locale, switchable in Settings
 - **Light theme** — clean light mode alongside three dark themes (VS Code, Modern, Minimal); switchable in Settings
+- **System tray** — minimize to system tray; global hotkey `Ctrl+Shift+Space` to summon the window from anywhere
+- **Response regeneration** — regenerate the last AI response with a single click or `Ctrl+Shift+R`; removes the previous response and re-sends your prompt
 
 ## Security
 

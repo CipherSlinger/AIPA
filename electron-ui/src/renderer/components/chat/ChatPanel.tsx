@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Send, Square, Plus, Mic, MicOff, Download, Upload, Maximize2, Minimize2, Bookmark, BarChart3, ListPlus, AtSign, TerminalSquare, Search, Bot, FolderSearch, Bug, Sparkles, FileCode2, Settings, Terminal, FolderOpen, Keyboard } from 'lucide-react'
+import { Send, Square, Plus, Mic, MicOff, Download, Upload, Maximize2, Minimize2, Bookmark, BarChart3, ListPlus, AtSign, TerminalSquare, Search, Bot, FolderSearch, Bug, Sparkles, FileCode2, Settings, Terminal, FolderOpen, Keyboard, RefreshCw } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { useStreamJson } from '../../hooks/useStreamJson'
 import MessageList from './MessageList'
@@ -40,6 +40,7 @@ export default function ChatPanel() {
   const setQuotedText = useUiStore(s => s.setQuotedText)
   const taskQueue = useChatStore(s => s.taskQueue)
   const addToQueue = useChatStore(s => s.addToQueue)
+  const prepareRegeneration = useChatStore(s => s.prepareRegeneration)
 
   // Compute bookmarked messages
   const bookmarkedMessages = useMemo(() => {
@@ -240,6 +241,18 @@ export default function ChatPanel() {
     await sendMessage(text.trim())
   }
 
+  // ── Regenerate last response ────────────────────
+  const handleRegenerate = async () => {
+    if (isStreaming) return
+    const prompt = prepareRegeneration()
+    if (prompt) {
+      await sendMessage(prompt)
+    }
+  }
+
+  // Compute whether regeneration is available
+  const canRegenerate = !isStreaming && messages.length >= 2 && messages[messages.length - 1]?.role === 'assistant'
+
   // ── Export conversation ──────────────────────────
   const exportConversation = useCallback(async () => {
     if (messages.length === 0) return
@@ -291,6 +304,15 @@ export default function ChatPanel() {
           resizeTextarea()
           try { sessionStorage.removeItem('aipa:draft-input') } catch { /* ignore */ }
           textareaRef.current?.focus()
+        }
+      }
+      // Ctrl+Shift+R: Regenerate last response
+      if (e.ctrlKey && e.shiftKey && e.key === 'R') {
+        e.preventDefault()
+        const state = useChatStore.getState()
+        if (!state.isStreaming && state.messages.length >= 2 && state.messages[state.messages.length - 1]?.role === 'assistant') {
+          const prompt = state.prepareRegeneration()
+          if (prompt) sendMessage(prompt)
         }
       }
     }
@@ -1027,7 +1049,46 @@ export default function ChatPanel() {
         {isStreaming && <ThinkingIndicator />}
       </div>
 
-      {/* Task Queue Panel — between messages and input */}
+      {/* Regenerate button — shown below last assistant message when not streaming */}
+      {canRegenerate && (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 16px 8px' }}>
+          <button
+            onClick={handleRegenerate}
+            title={t('chat.regenerate')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '6px 16px',
+              background: 'var(--action-btn-bg)',
+              border: '1px solid var(--action-btn-border)',
+              borderRadius: 20,
+              cursor: 'pointer',
+              color: 'var(--text-muted)',
+              fontSize: 12,
+              fontWeight: 500,
+              transition: 'color 150ms ease, border-color 150ms ease, background 150ms ease',
+            }}
+            onMouseEnter={(e) => {
+              const el = e.currentTarget
+              el.style.color = 'var(--accent)'
+              el.style.borderColor = 'var(--accent)'
+              el.style.background = 'var(--popup-item-hover)'
+            }}
+            onMouseLeave={(e) => {
+              const el = e.currentTarget
+              el.style.color = 'var(--text-muted)'
+              el.style.borderColor = 'var(--action-btn-border)'
+              el.style.background = 'var(--action-btn-bg)'
+            }}
+          >
+            <RefreshCw size={14} />
+            <span>{t('chat.regenerate')}</span>
+          </button>
+        </div>
+      )}
+
+      {/* Task Queue Panel -- between messages and input */}
       <TaskQueuePanel />
 
       {/* Input bar */}
