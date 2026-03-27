@@ -102,6 +102,8 @@ Claude Code CLI 是引擎，AIPA 是驾驶舱。
 - **聊天缩放** — `Ctrl+=` 放大、`Ctrl+-` 缩小、`Ctrl+0` 重置；缩放级别指示器可点击重置
 - **提示词模板** — 预配置的系统提示词角色（代码审查员、技术写作专家、Bug 猎手、重构专家、编程导师、软件架构师），可在设置中下拉选择
 - **复制对话** — 使用 `Ctrl+Shift+X` 或工具栏按钮将整个对话以 Markdown 格式复制到剪贴板；无需文件对话框，即时复制
+- **ARIA 无障碍访问** — 地标角色（`application`、`banner`、`main`、`complementary`、`navigation`、`status`、`log`），`aria-live` 动态区域，所有交互元素均有 `aria-label`，支持屏幕阅读器
+- **TypeScript 零错误** — `tsc --noEmit` 严格模式下零编译错误；包含 SpeechRecognition Web API 类型声明
 
 ## 安全
 
