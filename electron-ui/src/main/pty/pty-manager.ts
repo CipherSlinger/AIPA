@@ -46,26 +46,41 @@ class PtyManager extends EventEmitter {
       CLAUDE_CONFIG_DIR: path.join(os.homedir(), '.claude'),
     })
 
-    const ptyProcess = pty.spawn(this.getNode(), cliArgs, {
-      name: 'xterm-256color',
-      cols: args.cols,
-      rows: args.rows,
-      cwd: args.cwd,
-      env,
-      useConpty: true,
-    })
+    const nodePath = this.getNode()
+    log.debug(`PTY spawning: node=${nodePath}, cli=${cliPath}, cwd=${args.cwd}`)
 
-    ptyProcess.onData((data: string) => {
-      this.emit(`data:${args.sessionId}`, data)
-    })
+    try {
+      const ptyProcess = pty.spawn(nodePath, cliArgs, {
+        name: 'xterm-256color',
+        cols: args.cols,
+        rows: args.rows,
+        cwd: args.cwd,
+        env,
+        useConpty: true,
+      })
 
-    ptyProcess.onExit(({ exitCode, signal }: { exitCode: number; signal?: number }) => {
-      this.emit(`exit:${args.sessionId}`, { exitCode, signal })
-      this.sessions.delete(args.sessionId)
-    })
+      ptyProcess.onData((data: string) => {
+        this.emit(`data:${args.sessionId}`, data)
+      })
 
-    this.sessions.set(args.sessionId, ptyProcess)
-    return args.sessionId
+      ptyProcess.onExit(({ exitCode, signal }: { exitCode: number; signal?: number }) => {
+        this.emit(`exit:${args.sessionId}`, { exitCode, signal })
+        this.sessions.delete(args.sessionId)
+      })
+
+      this.sessions.set(args.sessionId, ptyProcess)
+      return args.sessionId
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      if (msg.includes('File not found') || msg.includes('ENOENT')) {
+        throw new Error(
+          `Node.js executable not found at "${nodePath}". ` +
+          `Please ensure Node.js is installed and available on your system PATH, ` +
+          `or set the CLAUDE_NODE_PATH environment variable to the full path of node.exe.`
+        )
+      }
+      throw err
+    }
   }
 
   write(sessionId: string, data: string): void {

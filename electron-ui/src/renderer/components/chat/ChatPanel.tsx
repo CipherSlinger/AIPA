@@ -155,7 +155,7 @@ export default function ChatPanel() {
       setStreamStartTime(null)
       setElapsed(0)
     }
-  }, [isStreaming])
+  }, [isStreaming, streamStartTime])
 
   useEffect(() => {
     if (!streamStartTime) return
