@@ -748,3 +748,34 @@ built in 8.32s
 - [x] Status computed from message array (no new state needed)
 - [x] Only applies to user messages (assistant messages unchanged)
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 76 -- Tool Use Duration Display
+
+_Date: 2026-03-27 | Sprint UI Enhancement_
+
+### Summary
+Enhanced ToolUseBlock to show the final execution duration after a tool completes. Previously, the elapsed timer was only visible while the tool was actively running (and only after 2 seconds). Now, when a tool finishes (status transitions from "running" to "done" or "error"), the final duration is captured and displayed permanently in the tool header using a Timer icon with monospace font. The duration shows for any tool that took 1 second or more. Running tools still show the live elapsed timer in warning color, while completed tools show the final duration in muted color (or error color for failed tools).
+
+### Files Changed
+- `src/renderer/components/chat/ToolUseBlock.tsx` -- Added `Timer` import from lucide-react; added `finalDuration` state variable to capture elapsed time on completion; updated `useEffect` to set `finalDuration` when tool transitions from running to done; added `showFinalDuration` flag (shows when not running and duration >= 1s); added Timer icon + formatted duration display after status icon with muted opacity styling
+
+### Build
+Status: SUCCESS
+
+```
+2385 modules transformed.
+built in 9.99s
+```
+
+### Acceptance Criteria
+- [x] Final duration displayed after tool completion (>= 1s)
+- [x] Timer icon (size 9) next to duration text
+- [x] Monospace font for duration display
+- [x] Muted color for successful tools
+- [x] Error color for failed tools
+- [x] Duration captured from live elapsed timer on state transition
+- [x] Live elapsed timer still shows during execution (warning color, >= 2s)
+- [x] Duration hidden for tools that complete in < 1s
+- [x] Build passes with zero errors

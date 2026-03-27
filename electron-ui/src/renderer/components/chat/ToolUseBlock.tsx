@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { ToolUseInfo } from '../../types/app.types'
-import { ChevronDown, ChevronRight, Terminal, FileEdit, Search, Globe, Loader2, Check, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, Terminal, FileEdit, Search, Globe, Loader2, Check, X, Timer } from 'lucide-react'
 
 interface Props {
   tool: ToolUseInfo
@@ -75,16 +75,18 @@ function DiffView({ input }: { input: Record<string, unknown> }) {
 export default function ToolUseBlock({ tool, onAbort }: Props) {
   const [expanded, setExpanded] = useState(false)
   const [elapsed, setElapsed] = useState(0)
+  const [finalDuration, setFinalDuration] = useState<number | null>(null)
   const startTimeRef = useRef<number | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const isRunning = tool.status === 'running'
 
-  // Start elapsed timer when tool begins running, clear when done
+  // Start elapsed timer when tool begins running, capture final duration when done
   useEffect(() => {
     if (isRunning) {
       startTimeRef.current = Date.now()
       setElapsed(0)
+      setFinalDuration(null)
       intervalRef.current = setInterval(() => {
         if (startTimeRef.current) {
           setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000))
@@ -94,6 +96,10 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
         intervalRef.current = null
+      }
+      // Capture final duration when transitioning from running to done/error
+      if (startTimeRef.current && elapsed > 0) {
+        setFinalDuration(elapsed)
       }
     }
     return () => {
@@ -109,6 +115,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
   const isBash = BASH_TOOLS.has(tool.name)
   const isFileEdit = FILE_EDIT_TOOLS.has(tool.name)
   const showElapsed = isRunning && elapsed >= 2
+  const showFinalDuration = !isRunning && finalDuration !== null && finalDuration >= 1
 
   const statusIcon = isRunning
     ? <Loader2 size={11} className="animate-spin" style={{ color: 'var(--warning)' }} />
@@ -166,6 +173,21 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
           </span>
         )}
         <span style={{ flexShrink: 0 }}>{statusIcon}</span>
+        {showFinalDuration && (
+          <span style={{
+            fontSize: 10,
+            color: tool.status === 'error' ? 'var(--error)' : 'var(--text-muted)',
+            flexShrink: 0,
+            fontFamily: 'monospace',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 3,
+            opacity: 0.8,
+          }}>
+            <Timer size={9} />
+            {formatElapsed(finalDuration)}
+          </span>
+        )}
         {showElapsed && onAbort && (
           <button
             onClick={(e) => { e.stopPropagation(); onAbort() }}
