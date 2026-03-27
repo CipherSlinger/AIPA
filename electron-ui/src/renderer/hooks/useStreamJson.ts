@@ -3,15 +3,16 @@ import { useChatStore, usePrefsStore, useSessionStore } from '../store'
 import { PermissionMessage, PlanMessage, StandardChatMessage } from '../types/app.types'
 import { useUiStore } from '../store'
 
-function sendCompletionNotification(summary: string) {
+function sendCompletionNotification(title: string, summary: string) {
   if (document.hasFocus()) return  // Don't notify when window is focused
+  if (usePrefsStore.getState().prefs.desktopNotifications === false) return
   if (!('Notification' in window)) return
   if (Notification.permission === 'granted') {
-    new Notification('Claude Finished', { body: summary.slice(0, 100), icon: '' })
+    new Notification(title, { body: summary.slice(0, 100) })
   } else if (Notification.permission === 'default') {
     Notification.requestPermission().then(perm => {
       if (perm === 'granted') {
-        new Notification('Claude Finished', { body: summary.slice(0, 100) })
+        new Notification(title, { body: summary.slice(0, 100) })
       }
     })
   }
@@ -239,7 +240,7 @@ export function useStreamJson() {
             }
           }
           // Completion notification
-          sendCompletionNotification(resultText || 'Conversation complete')
+          sendCompletionNotification('AIPA', resultText || 'Response complete')
           // Sound notification
           if (usePrefsStore.getState().prefs.notifySound !== false) {
             playCompletionSound()
@@ -278,6 +279,7 @@ export function useStreamJson() {
             const doneCount = updatedQueue.filter(item => item.status === 'done').length
             if (pendingCount === 0 && doneCount > 0) {
               useUiStore.getState().addToast('success', `Queue complete: ${doneCount} task${doneCount > 1 ? 's' : ''} finished`)
+              sendCompletionNotification('AIPA', `Queue complete: ${doneCount} task${doneCount > 1 ? 's' : ''} finished`)
             }
             // Auto-send next if not paused
             if (!queueState.queuePaused) {

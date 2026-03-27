@@ -91,4 +91,5 @@ export interface ClaudePrefs {
   compactMode?: boolean     // reduce spacing for power users (default false)
   quickReplies?: { label: string; prompt: string }[]  // quick reply template chips
   language?: 'en' | 'zh-CN' | 'system'  // UI language preference (default: system)
+  desktopNotifications?: boolean  // OS notifications when response completes while window unfocused (default true)
 }

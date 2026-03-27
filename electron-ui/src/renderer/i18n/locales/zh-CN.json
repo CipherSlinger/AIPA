@@ -197,6 +197,8 @@
     "completionSoundHint": "\u5f53 Claude \u56de\u590d\u5b8c\u6210\u65f6\u64ad\u653e\u63d0\u793a\u97f3",
     "compactMode": "\u7d27\u51d1\u6a21\u5f0f",
     "compactModeHint": "\u51cf\u5c11\u6d88\u606f\u95f4\u8ddd\uff0c\u663e\u793a\u66f4\u591a\u5185\u5bb9",
+    "desktopNotifications": "\u684c\u9762\u901a\u77e5",
+    "desktopNotificationsHint": "\u5f53 AIPA \u5728\u7a97\u53e3\u672a\u805a\u7126\u65f6\u5b8c\u6210\u56de\u590d\uff0c\u663e\u793a\u7cfb\u7edf\u901a\u77e5",
     "save": "\u4fdd\u5b58\u8bbe\u7f6e",
     "saved": "\u5df2\u4fdd\u5b58",
     "unlimited": "\u65e0\u9650\u5236",

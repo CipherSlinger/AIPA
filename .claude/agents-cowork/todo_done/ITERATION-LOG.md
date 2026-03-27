@@ -1171,3 +1171,39 @@ built in 7.57s
 - [x] 12 new keys added to en.json across chat, quickReply, toolbar namespaces
 - [x] All 12 keys have Chinese translations in zh-CN.json
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 94 -- Desktop Notifications Polish + Settings Toggle
+
+_Date: 2026-03-27 | Sprint UI Enhancement_
+
+### Summary
+Polished the existing desktop notification system and added a user-configurable toggle. Previously, OS notifications fired unconditionally when the window was unfocused; now they respect a `desktopNotifications` preference (default: true) that can be toggled in Settings. The notification title was changed from "Claude Finished" to "AIPA" for brand consistency. Added a desktop notification for task queue completion (fires when all queued tasks finish while window is unfocused). Added the toggle to the Settings panel between Compact Mode and the Save button, with full i18n support (English + Chinese).
+
+### Files Changed
+- `src/renderer/types/app.types.ts` -- Added `desktopNotifications?: boolean` to `ClaudePrefs` interface
+- `src/renderer/store/index.ts` -- Added `desktopNotifications: true` to `DEFAULT_PREFS`
+- `src/renderer/hooks/useStreamJson.ts` -- Refactored `sendCompletionNotification()` to accept title parameter; added `desktopNotifications` pref check; changed notification title from "Claude Finished" to "AIPA"; added queue completion notification call
+- `src/renderer/components/settings/SettingsPanel.tsx` -- Added Desktop Notifications toggle row after Compact Mode; added to reset defaults
+- `src/renderer/i18n/locales/en.json` -- Added `settings.desktopNotifications` and `settings.desktopNotificationsHint` keys
+- `src/renderer/i18n/locales/zh-CN.json` -- Added Chinese translations for both notification keys
+
+### Build
+Status: SUCCESS
+
+```
+2388 modules transformed.
+built in 8.04s
+```
+
+### Acceptance Criteria
+- [x] Desktop notifications respect `desktopNotifications` preference toggle
+- [x] Notification title changed from "Claude Finished" to "AIPA"
+- [x] Notifications only fire when window is not focused (document.hasFocus() check)
+- [x] Task queue completion also fires desktop notification when unfocused
+- [x] Settings panel has Desktop Notifications toggle with hint text
+- [x] Toggle defaults to enabled (true)
+- [x] Reset to Defaults includes desktopNotifications: true
+- [x] i18n: Settings labels translated to English and Chinese
+- [x] Build passes with zero errors

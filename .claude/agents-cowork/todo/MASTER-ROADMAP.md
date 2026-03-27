@@ -192,6 +192,15 @@
 | QuickReplyChips i18n (form labels, actions, context menu) | P1 | DONE (Iteration 93) |
 | ToolUseBlock Cancel button i18n | P1 | DONE (Iteration 93) |
 
+### Iteration 94 -- Desktop Notifications Polish
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Desktop notifications preference toggle | P2 | DONE (Iteration 94) |
+| Notification branding (AIPA title) | P2 | DONE (Iteration 94) |
+| Queue completion desktop notification | P2 | DONE (Iteration 94) |
+| i18n for notification settings (en + zh-CN) | P1 | DONE (Iteration 94) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

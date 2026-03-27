@@ -197,6 +197,8 @@
     "completionSoundHint": "Play a chime when Claude finishes responding",
     "compactMode": "Compact Mode",
     "compactModeHint": "Reduce spacing between messages for a denser view",
+    "desktopNotifications": "Desktop Notifications",
+    "desktopNotificationsHint": "Show OS notifications when AIPA finishes responding while the window is not focused",
     "save": "Save Settings",
     "saved": "Saved",
     "unlimited": "Unlimited",

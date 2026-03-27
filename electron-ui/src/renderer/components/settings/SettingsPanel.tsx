@@ -389,6 +389,13 @@ export default function SettingsPanel() {
             t('settings.compactModeHint')
           )}
 
+          {/* desktopNotifications */}
+          {row(
+            t('settings.desktopNotifications'),
+            <Toggle value={local.desktopNotifications !== false} onChange={(v) => setLocal({ ...local, desktopNotifications: v })} />,
+            t('settings.desktopNotificationsHint')
+          )}
+
           {/* Save button */}
           <button
             onClick={save}
@@ -528,6 +535,7 @@ export default function SettingsPanel() {
                 maxBudgetUsd: undefined,
                 notifySound: true,
                 compactMode: false,
+                desktopNotifications: true,
               }
               setLocal(prev => ({ ...prev, ...defaults }))
               for (const [k, v] of Object.entries(defaults)) {

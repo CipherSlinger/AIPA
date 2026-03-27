@@ -416,6 +416,7 @@ const DEFAULT_PREFS: ClaudePrefs = {
   maxBudgetUsd: undefined,
   notifySound: true,
   compactMode: false,
+  desktopNotifications: true,
   quickReplies: [
     { label: 'Explain this', prompt: 'Please explain this in detail:' },
     { label: 'Review code', prompt: 'Please review this code for bugs, performance issues, and best practices:' },
