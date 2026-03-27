@@ -420,6 +420,10 @@ interface UiState {
   // NavRail active item tracking
   activeNavItem: 'chat' | 'history' | 'files' | 'terminal' | 'settings'
   setActiveNavItem: (item: UiState['activeNavItem']) => void
+
+  // Quote reply: text to prefill into the input bar
+  quotedText: string | null
+  setQuotedText: (text: string | null) => void
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -430,6 +434,7 @@ export const useUiStore = create<UiState>((set) => ({
   focusMode: false,
   toasts: [],
   activeNavItem: 'history',
+  quotedText: null,
   setSidebarTab: (tab) => set({ sidebarTab: tab }),
   setSidebarOpen: (v) => set({ sidebarOpen: v }),
   setTerminalOpen: (v) => set({ terminalOpen: v }),
@@ -456,4 +461,5 @@ export const useUiStore = create<UiState>((set) => ({
     }
     return { activeNavItem: item }
   }),
+  setQuotedText: (text) => set({ quotedText: text }),
 }))

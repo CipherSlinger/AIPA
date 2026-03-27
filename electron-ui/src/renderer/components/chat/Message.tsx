@@ -4,8 +4,8 @@ import MessageContent from './MessageContent'
 import ToolUseBlock from './ToolUseBlock'
 import MessageContextMenu from './MessageContextMenu'
 import ImageLightbox from '../shared/ImageLightbox'
-import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark, AlertTriangle, Code2, Check, Clock } from 'lucide-react'
-import { usePrefsStore, useChatStore } from '../../store'
+import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark, AlertTriangle, Code2, Check, Clock, MessageSquareQuote } from 'lucide-react'
+import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 
 const REACTION_EMOJIS = [
   { key: 'thumbsup', emoji: '\uD83D\uDC4D', label: 'thumbs up' },
@@ -48,6 +48,8 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   const compact = usePrefsStore(s => s.prefs.compactMode)
   // Message status indicator: "sending" (clock) or "sent" (check) for user messages
   const globalIsStreaming = useChatStore(s => s.isStreaming)
+  const toggleBookmarkStore = useChatStore(s => s.toggleBookmark)
+  const setQuotedText = useUiStore(s => s.setQuotedText)
   const isLastUserMsg = useChatStore(s => {
     if (!isUser) return false
     const msgs = s.messages
@@ -99,6 +101,20 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
       setTimeout(() => setCopied(false), 2000)
     })
   }, [message])
+
+  const handleQuote = useCallback(() => {
+    const text = (message as StandardChatMessage).content
+    if (!text) return
+    setQuotedText(text)
+  }, [message, setQuotedText])
+
+  const handleBookmarkAction = useCallback(() => {
+    if (onBookmark) {
+      onBookmark(message.id)
+    } else {
+      toggleBookmarkStore(message.id)
+    }
+  }, [message.id, onBookmark, toggleBookmarkStore])
 
   const handleCopyMarkdown = useCallback(() => {
     const text = (message as StandardChatMessage).content
@@ -518,84 +534,128 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           </div>
         )}
 
-        {/* Hover action buttons — below bubble, outside */}
-        {hovered && isAssistant && (
-          <div style={{
-            display: 'flex',
-            gap: 4,
-            marginTop: 4,
-            justifyContent: isUser ? 'flex-end' : 'flex-start',
-          }}>
-            <button
-              onClick={() => setShowRawMarkdown(!showRawMarkdown)}
-              title={showRawMarkdown ? 'Show rendered' : 'Show raw markdown'}
-              style={{
-                background: showRawMarkdown ? 'var(--accent)' : 'var(--action-btn-bg)',
-                border: '1px solid var(--action-btn-border)',
-                borderRadius: 4,
-                padding: '2px 6px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                fontSize: 11,
-                color: showRawMarkdown ? '#fff' : 'var(--text-muted)',
-                lineHeight: 1.4,
-                transition: 'background 0.15s ease',
-              }}
-            >
-              <Code2 size={12} />
-            </button>
-            <button
-              onClick={handleCopy}
-              title="Copy"
-              style={{
-                background: 'var(--action-btn-bg)',
-                border: '1px solid var(--action-btn-border)',
-                borderRadius: 4,
-                padding: '2px 6px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                fontSize: 11,
-                color: 'var(--text-muted)',
-                lineHeight: 1.4,
-                transition: 'background 0.15s ease',
-              }}
-            >
-              {copied ? 'Copied' : <Copy size={13} />}
-            </button>
-          </div>
-        )}
+        {/* Floating action toolbar — top-right corner of bubble, shown on hover */}
+        {hovered && !isCollapsed && (
+          <div
+            role="toolbar"
+            aria-label="Message actions"
+            className="popup-enter"
+            style={{
+              position: 'absolute',
+              top: -14,
+              ...(isUser ? { left: 0 } : { right: 0 }),
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              padding: '3px 5px',
+              background: 'var(--popup-bg)',
+              border: '1px solid var(--popup-border)',
+              boxShadow: 'var(--popup-shadow)',
+              borderRadius: 8,
+              zIndex: 20,
+            }}
+          >
+            {/* Raw markdown toggle (assistant only) */}
+            {isAssistant && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowRawMarkdown(!showRawMarkdown) }}
+                title={showRawMarkdown ? 'Show rendered' : 'Show raw markdown'}
+                style={{
+                  background: showRawMarkdown ? 'var(--accent)' : 'transparent',
+                  border: 'none',
+                  borderRadius: 5,
+                  padding: '3px 5px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  color: showRawMarkdown ? '#fff' : 'var(--text-muted)',
+                  transition: 'background 0.12s ease, color 0.12s ease',
+                }}
+                onMouseEnter={(e) => { if (!showRawMarkdown) (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
+                onMouseLeave={(e) => { if (!showRawMarkdown) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+              >
+                <Code2 size={13} />
+              </button>
+            )}
 
-        {/* Hover Copy button for user messages */}
-        {hovered && isUser && (
-          <div style={{
-            display: 'flex',
-            gap: 4,
-            marginTop: 4,
-            justifyContent: 'flex-end',
-          }}>
+            {/* Copy */}
             <button
-              onClick={handleCopy}
-              title="Copy"
+              onClick={(e) => { e.stopPropagation(); handleCopy() }}
+              title={copied ? 'Copied!' : 'Copy text'}
               style={{
-                background: 'var(--action-btn-bg)',
-                border: '1px solid var(--action-btn-border)',
-                borderRadius: 4,
-                padding: '2px 6px',
+                background: 'transparent',
+                border: 'none',
+                borderRadius: 5,
+                padding: '3px 5px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 4,
+                gap: 3,
+                color: copied ? 'var(--success)' : 'var(--text-muted)',
                 fontSize: 11,
-                color: 'var(--text-muted)',
-                lineHeight: 1.4,
+                transition: 'background 0.12s ease, color 0.12s ease',
               }}
+              onMouseEnter={(e) => { if (!copied) (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
             >
-              {copied ? 'Copied' : <Copy size={13} />}
+              {copied ? (
+                <>
+                  <Check size={13} />
+                  <span style={{ fontSize: 11, lineHeight: 1 }}>Copied!</span>
+                </>
+              ) : (
+                <Copy size={13} />
+              )}
             </button>
+
+            {/* Bookmark */}
+            {!isPermission && !isPlan && (
+              <button
+                onClick={(e) => { e.stopPropagation(); handleBookmarkAction() }}
+                title={(message as StandardChatMessage).bookmarked ? 'Remove bookmark' : 'Bookmark'}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  borderRadius: 5,
+                  padding: '3px 5px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  color: (message as StandardChatMessage).bookmarked ? 'var(--warning)' : 'var(--text-muted)',
+                  transition: 'background 0.12s ease, color 0.12s ease',
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+              >
+                <Bookmark
+                  size={13}
+                  style={(message as StandardChatMessage).bookmarked ? { fill: 'var(--warning)' } : {}}
+                />
+              </button>
+            )}
+
+            {/* Quote reply */}
+            {!isPermission && !isPlan && (message as StandardChatMessage).content && (
+              <button
+                onClick={(e) => { e.stopPropagation(); handleQuote() }}
+                title="Quote reply"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  borderRadius: 5,
+                  padding: '3px 5px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  color: 'var(--text-muted)',
+                  transition: 'background 0.12s ease, color 0.12s ease',
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+              >
+                <MessageSquareQuote size={13} />
+              </button>
+            )}
           </div>
         )}
       </div>

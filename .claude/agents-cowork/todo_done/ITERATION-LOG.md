@@ -589,3 +589,36 @@ Status: SUCCESS — all three targets (main, preload, renderer via Vite) compile
 - [x] Card uses popup-in entrance animation (via CSS class, no style conflict)
 - [x] permission-glow in prefers-reduced-motion disable list
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 71 — Message Context Menu Visual Upgrade
+
+_Date: 2026-03-27 | Sprint UI Redesign_
+
+### Summary
+
+Replaced the separate per-role hover copy buttons with a unified floating action toolbar that appears at the top-right corner of any message bubble on hover. The toolbar contains Copy (with "Copied!" feedback), Bookmark (with active fill state), and Quote Reply (inserts markdown blockquote into the input bar) buttons. The Raw Markdown toggle for assistant messages is also consolidated into this toolbar. The existing right-click context menu (MessageContextMenu.tsx) is preserved unchanged.
+
+### Files Changed
+
+- `src/renderer/store/index.ts` — Added `quotedText: string | null` and `setQuotedText` action to `useUiStore` for cross-component quote communication
+- `src/renderer/components/chat/Message.tsx` — Replaced two separate hover button blocks (assistant + user) with a single unified floating toolbar using `popup-enter` animation; added `handleQuote` and `handleBookmarkAction` callbacks; imported `MessageSquareQuote` and `useUiStore`
+- `src/renderer/components/chat/ChatPanel.tsx` — Added `quotedText`/`setQuotedText` selectors and a `useEffect` that converts quoted text to markdown blockquote format (`> line`) and prepends it to the input, then focuses the textarea
+
+### Build
+
+Status: SUCCESS (all three steps: tsc main, tsc preload, vite build)
+
+### Acceptance Criteria
+
+- [x] Hover any message shows floating action toolbar at top-right corner (top-left for user messages)
+- [x] Toolbar uses `var(--popup-bg)`, `var(--popup-border)`, `var(--popup-shadow)` variable system
+- [x] Toolbar appears with `popup-enter` (popup-in) fade-in animation
+- [x] Copy button shows Check icon + "Copied!" text for 2s after click
+- [x] Bookmark button shows filled warning-color icon when message is bookmarked
+- [x] Quote button inserts `> content` markdown blockquote into input bar and focuses textarea
+- [x] Raw markdown toggle preserved for assistant messages inside the same toolbar
+- [x] Existing right-click context menu (MessageContextMenu) unchanged
+- [x] Existing `onBookmark` prop wiring preserved; fallback to store `toggleBookmark`
+- [x] Build passes with zero errors

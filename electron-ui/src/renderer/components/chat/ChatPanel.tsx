@@ -22,6 +22,8 @@ export default function ChatPanel() {
   const { addToast } = useUiStore()
   const focusMode = useUiStore(s => s.focusMode)
   const toggleFocusMode = useUiStore(s => s.toggleFocusMode)
+  const quotedText = useUiStore(s => s.quotedText)
+  const setQuotedText = useUiStore(s => s.setQuotedText)
   const taskQueue = useChatStore(s => s.taskQueue)
   const addToQueue = useChatStore(s => s.addToQueue)
 
@@ -77,6 +79,19 @@ export default function ChatPanel() {
       }
     } catch { /* sessionStorage may not be available */ }
   }, [input])
+
+  // Handle quote reply: prepend quoted text to input
+  useEffect(() => {
+    if (!quotedText) return
+    const lines = quotedText.split('\n').map((l: string) => `> ${l}`).join('\n')
+    setInput((prev: string) => {
+      const separator = prev.trim() ? '\n\n' : ''
+      return `${lines}${separator}${prev}`
+    })
+    setQuotedText(null)
+    // Focus the textarea
+    setTimeout(() => textareaRef.current?.focus(), 50)
+  }, [quotedText, setQuotedText])
 
   // @ mention state
   const [atQuery, setAtQuery] = useState<string | null>(null)
