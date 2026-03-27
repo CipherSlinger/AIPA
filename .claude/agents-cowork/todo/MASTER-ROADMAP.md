@@ -225,6 +225,17 @@
 | PlanCard i18n (all 5 strings) | P1 | DONE (Iteration 97) |
 | ImageLightbox i18n (tooltips + alt text) | P1 | DONE (Iteration 97) |
 
+### Iteration 109 -- Session Tags
+
+| Feature | PRD | Priority | Status |
+|---------|-----|----------|--------|
+| Tag data model + persistence (6 preset tags) | `prd-session-tags-v1.md` | P0 | DONE (Iteration 109) |
+| Right-click tag assignment (toggle tags on sessions) | `prd-session-tags-v1.md` | P0 | DONE (Iteration 109) |
+| Tag color dot indicators on session items | `prd-session-tags-v1.md` | P0 | DONE (Iteration 109) |
+| Tag filter bar (pill buttons below search) | `prd-session-tags-v1.md` | P1 | DONE (Iteration 109) |
+| Tag name editing in Settings | `prd-session-tags-v1.md` | P1 | DONE (Iteration 109) |
+| i18n for tag UI (en + zh-CN) | `prd-session-tags-v1.md` | P2 | DONE (Iteration 109) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |
@@ -248,3 +259,4 @@
 | 2026-03-26 | Sprint 2 focuses on Export + Drag-and-Drop | Both complete the "doer" loop (files in, output out). Both have backend support ready. Highest user-facing value per effort. |
 | 2026-03-26 | electron-store stays at v8 | v10+ is ESM-only, breaks main process CJS require chain |
 | 2026-03-26 | No new npm dependencies in Sprint 2 | Both features can be built with existing APIs |
+| 2026-03-27 | Iteration 109: Session Tags | Power users need session organization beyond search and pinning. Tags are more flexible than folders (multi-label per session) and can leverage existing electron-store prefs system with zero new dependencies. |

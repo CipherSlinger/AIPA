@@ -475,5 +475,16 @@
     "rotate": "Rotate (R)",
     "close": "Close (Esc)",
     "preview": "Preview"
+  },
+  "tags": {
+    "sectionTitle": "Tags",
+    "tagNamePlaceholder": "Tag name...",
+    "assign": "Tags",
+    "work": "Work",
+    "personal": "Personal",
+    "research": "Research",
+    "debug": "Debug",
+    "docs": "Docs",
+    "archive": "Archive"
   }
 }

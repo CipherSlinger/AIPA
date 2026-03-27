@@ -475,5 +475,16 @@
     "rotate": "\u65cb\u8f6c (R)",
     "close": "\u5173\u95ed (Esc)",
     "preview": "\u9884\u89c8"
+  },
+  "tags": {
+    "sectionTitle": "\u6807\u7b7e",
+    "tagNamePlaceholder": "\u6807\u7b7e\u540d\u79f0...",
+    "assign": "\u6807\u7b7e",
+    "work": "\u5de5\u4f5c",
+    "personal": "\u4e2a\u4eba",
+    "research": "\u7814\u7a76",
+    "debug": "\u8c03\u8bd5",
+    "docs": "\u6587\u6863",
+    "archive": "\u5f52\u6863"
   }
 }

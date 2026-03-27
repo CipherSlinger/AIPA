@@ -1,10 +1,20 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react'
-import { Trash2, RefreshCw, MessageSquare, GitBranch, Pencil, ArrowUpDown, Star, Search } from 'lucide-react'
+import { Trash2, RefreshCw, MessageSquare, GitBranch, Pencil, ArrowUpDown, Star, Search, Tag, Check } from 'lucide-react'
 import { SessionListItem, SessionMessage, StandardChatMessage, ToolUseInfo, ChatMessage } from '../../types/app.types'
-import { useSessionStore, useChatStore, useUiStore } from '../../store'
+import { useSessionStore, useChatStore, useUiStore, usePrefsStore } from '../../store'
 import { SkeletonSessionRow } from '../ui/Skeleton'
 import { formatDistanceToNow } from 'date-fns'
 import { useT } from '../../i18n'
+
+// ── Tag preset colors ──
+const TAG_PRESETS = [
+  { id: 'tag-1', color: '#3b82f6', defaultKey: 'tags.work' },
+  { id: 'tag-2', color: '#22c55e', defaultKey: 'tags.personal' },
+  { id: 'tag-3', color: '#f59e0b', defaultKey: 'tags.research' },
+  { id: 'tag-4', color: '#ef4444', defaultKey: 'tags.debug' },
+  { id: 'tag-5', color: '#8b5cf6', defaultKey: 'tags.docs' },
+  { id: 'tag-6', color: '#6b7280', defaultKey: 'tags.archive' },
+]
 
 // ── Session avatar color palette ──
 const SESSION_AVATAR_COLORS = [
@@ -132,6 +142,7 @@ export default function SessionList() {
   const { clearMessages, loadHistory, setSessionId, currentSessionId } = useChatStore()
   const isStreaming = useChatStore(s => s.isStreaming)
   const { addToast } = useUiStore()
+  const { prefs, setPrefs } = usePrefsStore()
   const t = useT()
   const [filter, setFilter] = useState('')
   const [renamingId, setRenamingId] = useState<string | null>(null)
@@ -169,6 +180,60 @@ export default function SessionList() {
     }
     setTooltipSession(null)
   }, [])
+
+  // ── Session Tags ──
+  const sessionTags: Record<string, string[]> = prefs.sessionTags || {}
+  const tagNames: string[] = prefs.tagNames || TAG_PRESETS.map(tp => t(tp.defaultKey))
+  const [tagPickerSessionId, setTagPickerSessionId] = useState<string | null>(null)
+  const [tagPickerPos, setTagPickerPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
+  const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null)
+
+  const getTagName = (idx: number) => tagNames[idx] || t(TAG_PRESETS[idx]?.defaultKey || 'tags.work')
+
+  const toggleSessionTag = (sessionId: string, tagId: string) => {
+    const current = sessionTags[sessionId] || []
+    const updated = current.includes(tagId)
+      ? current.filter(id => id !== tagId)
+      : [...current, tagId]
+    const newSessionTags = { ...sessionTags, [sessionId]: updated }
+    // Clean up empty arrays
+    if (updated.length === 0) delete newSessionTags[sessionId]
+    setPrefs({ sessionTags: newSessionTags })
+    window.electronAPI.prefsSet('sessionTags', newSessionTags)
+  }
+
+  const openTagPicker = (e: React.MouseEvent, sessionId: string) => {
+    e.stopPropagation()
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    setTagPickerSessionId(sessionId)
+    setTagPickerPos({ top: rect.bottom + 4, left: rect.left })
+  }
+
+  const closeTagPicker = useCallback(() => {
+    setTagPickerSessionId(null)
+  }, [])
+
+  // Close tag picker on Escape or click outside
+  useEffect(() => {
+    if (!tagPickerSessionId) return
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeTagPicker() }
+    const handleClick = () => closeTagPicker()
+    window.addEventListener('keydown', handleKey)
+    // Delay to avoid closing immediately from the same click
+    const timer = setTimeout(() => window.addEventListener('click', handleClick), 50)
+    return () => {
+      window.removeEventListener('keydown', handleKey)
+      window.removeEventListener('click', handleClick)
+      clearTimeout(timer)
+    }
+  }, [tagPickerSessionId, closeTagPicker])
+
+  // Count sessions per tag (for filter bar)
+  const tagCounts = TAG_PRESETS.reduce<Record<string, number>>((acc, tag) => {
+    acc[tag.id] = Object.values(sessionTags).filter(tags => tags.includes(tag.id)).length
+    return acc
+  }, {})
+  const hasAnyTags = Object.keys(sessionTags).length > 0
 
   // Pinned sessions (persisted in localStorage)
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(() => {
@@ -269,10 +334,14 @@ export default function SessionList() {
   }
 
   const filtered = sessions
-    .filter((s) =>
-      !filter || (s.title || s.lastPrompt).toLowerCase().includes(filter.toLowerCase()) ||
-      s.project.toLowerCase().includes(filter.toLowerCase())
-    )
+    .filter((s) => {
+      // Text filter
+      const matchesText = !filter || (s.title || s.lastPrompt).toLowerCase().includes(filter.toLowerCase()) ||
+        s.project.toLowerCase().includes(filter.toLowerCase())
+      // Tag filter
+      const matchesTag = !activeTagFilter || (sessionTags[s.sessionId] || []).includes(activeTagFilter)
+      return matchesText && matchesTag
+    })
     .sort((a, b) => {
       // Pinned sessions always come first
       const aPinned = pinnedIds.has(a.sessionId) ? 1 : 0
@@ -408,6 +477,57 @@ export default function SessionList() {
           <Trash2 size={13} />
         </button>
       </div>
+
+      {/* Tag filter bar */}
+      {hasAnyTags && (
+        <div
+          role="radiogroup"
+          aria-label={t('tags.assign')}
+          style={{
+            display: 'flex',
+            gap: 6,
+            padding: '4px 10px',
+            overflowX: 'auto',
+            flexShrink: 0,
+            scrollbarWidth: 'none',
+          }}
+        >
+          {TAG_PRESETS.map((tag, idx) => {
+            const count = tagCounts[tag.id] || 0
+            if (count === 0) return null
+            const isActive = activeTagFilter === tag.id
+            return (
+              <button
+                key={tag.id}
+                role="radio"
+                aria-checked={isActive}
+                onClick={() => setActiveTagFilter(isActive ? null : tag.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  height: 20,
+                  borderRadius: 10,
+                  padding: '0 8px',
+                  background: isActive ? `${tag.color}30` : `${tag.color}1a`,
+                  border: `1px solid ${isActive ? `${tag.color}80` : `${tag.color}40`}`,
+                  cursor: 'pointer',
+                  fontSize: 10,
+                  color: isActive ? tag.color : 'var(--text-secondary)',
+                  fontWeight: isActive ? 600 : 400,
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  transition: 'background 0.15s ease, border-color 0.15s ease, color 0.15s ease',
+                }}
+              >
+                <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: '50%', background: tag.color, flexShrink: 0 }} />
+                {getTagName(idx)}
+                <span style={{ opacity: 0.6, fontSize: 9 }}>({count})</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {/* List */}
       <div
@@ -605,21 +725,62 @@ export default function SessionList() {
                 </span>
               </div>
 
-              {/* Preview line */}
+              {/* Preview line + tag dots */}
               <div style={{
-                fontSize: 11,
-                color: 'var(--text-muted)',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
                 lineHeight: 1.4,
-                paddingRight: 16,
               }}>
-                {previewText ? (
-                  <HighlightText text={previewText} highlight={filter} />
-                ) : (
-                  <em style={{ opacity: 0.6 }}>(no content)</em>
-                )}
+                <div style={{
+                  fontSize: 11,
+                  color: 'var(--text-muted)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  flex: 1,
+                  minWidth: 0,
+                }}>
+                  {previewText ? (
+                    <HighlightText text={previewText} highlight={filter} />
+                  ) : (
+                    <em style={{ opacity: 0.6 }}>(no content)</em>
+                  )}
+                </div>
+                {/* Tag color dots */}
+                {(() => {
+                  const tags = sessionTags[session.sessionId] || []
+                  if (tags.length === 0) return null
+                  const visibleTags = tags.slice(0, 3)
+                  const overflow = tags.length - 3
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
+                      {visibleTags.map(tagId => {
+                        const preset = TAG_PRESETS.find(p => p.id === tagId)
+                        if (!preset) return null
+                        const idx = TAG_PRESETS.indexOf(preset)
+                        return (
+                          <span
+                            key={tagId}
+                            title={getTagName(idx)}
+                            aria-hidden="true"
+                            style={{
+                              width: 6,
+                              height: 6,
+                              borderRadius: '50%',
+                              background: preset.color,
+                              opacity: 0.85,
+                              flexShrink: 0,
+                            }}
+                          />
+                        )
+                      })}
+                      {overflow > 0 && (
+                        <span style={{ fontSize: 9, color: 'var(--text-muted)', opacity: 0.6 }}>+{overflow}</span>
+                      )}
+                    </div>
+                  )
+                })()}
               </div>
 
               {/* Search match context line */}
@@ -675,6 +836,20 @@ export default function SessionList() {
                 <Star size={11} style={{ fill: isPinned ? 'var(--warning)' : 'none' }} />
               </button>
               <button
+                onClick={(e) => openTagPicker(e, session.sessionId)}
+                title={t('tags.assign')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: (sessionTags[session.sessionId] || []).length > 0 ? 'var(--accent)' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <Tag size={11} />
+              </button>
+              <button
                 onClick={(e) => startRename(e, session)}
                 title={t('session.rename')}
                 style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
@@ -713,6 +888,60 @@ export default function SessionList() {
           )
         })}
       </div>
+
+      {/* Tag picker popup */}
+      {tagPickerSessionId && (
+        <div
+          role="menu"
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'fixed',
+            top: Math.min(tagPickerPos.top, window.innerHeight - 200),
+            left: tagPickerPos.left,
+            zIndex: 10000,
+            background: 'var(--popup-bg)',
+            border: '1px solid var(--popup-border)',
+            borderRadius: 8,
+            padding: 4,
+            boxShadow: 'var(--popup-shadow)',
+            width: 160,
+            animation: 'popup-in 0.15s ease',
+          }}
+        >
+          {TAG_PRESETS.map((tag, idx) => {
+            const assigned = (sessionTags[tagPickerSessionId] || []).includes(tag.id)
+            return (
+              <button
+                key={tag.id}
+                role="menuitem"
+                aria-checked={assigned}
+                onClick={() => toggleSessionTag(tagPickerSessionId, tag.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  width: '100%',
+                  padding: '6px 8px',
+                  background: 'none',
+                  border: 'none',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  color: 'var(--text-primary)',
+                  fontSize: 12,
+                  textAlign: 'left',
+                  transition: 'background 0.1s ease',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--popup-item-hover)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+              >
+                <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', background: tag.color, flexShrink: 0 }} />
+                <span style={{ flex: 1 }}>{getTagName(idx)}</span>
+                {assigned && <Check size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />}
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {/* Session preview tooltip */}
       {tooltipSession && (

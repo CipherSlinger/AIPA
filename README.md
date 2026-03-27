@@ -103,6 +103,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Copy conversation** — copy the entire conversation as Markdown to clipboard with `Ctrl+Shift+X` or toolbar button; instant clipboard access without file dialogs
 - **ARIA accessibility** — landmark roles (`application`, `banner`, `main`, `complementary`, `navigation`, `status`, `log`), `aria-live` regions, `aria-label` on all interactive elements for screen reader support
 - **Zero TypeScript errors** — clean `tsc --noEmit` with full strict mode; SpeechRecognition Web API type declarations included
+- **Session tags** — color-coded tag system (Work, Personal, Research, Debug, Docs, Archive) for organizing sessions; assign via hover menu, filter by tag in sidebar, customize tag names in Settings
 
 ## Security
 

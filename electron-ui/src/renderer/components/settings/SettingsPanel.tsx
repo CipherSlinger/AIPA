@@ -3,6 +3,17 @@ import { Save, Eye, EyeOff, ExternalLink } from 'lucide-react'
 import { usePrefsStore } from '../../store'
 import { useI18n } from '../../i18n'
 
+const TAG_PRESETS_SETTINGS = [
+  { id: 'tag-1', color: '#3b82f6' },
+  { id: 'tag-2', color: '#22c55e' },
+  { id: 'tag-3', color: '#f59e0b' },
+  { id: 'tag-4', color: '#ef4444' },
+  { id: 'tag-5', color: '#8b5cf6' },
+  { id: 'tag-6', color: '#6b7280' },
+]
+
+const DEFAULT_TAG_NAMES = ['Work', 'Personal', 'Research', 'Debug', 'Docs', 'Archive']
+
 const MODEL_OPTIONS: { id: string; label: string }[] = [
   { id: 'claude-opus-4-6',            label: 'Claude Opus (Most Powerful)' },
   { id: 'claude-sonnet-4-6',          label: 'Claude Sonnet (Recommended)' },
@@ -67,6 +78,7 @@ export default function SettingsPanel() {
   const [saved, setSaved] = useState(false)
   const [settingsTab, setSettingsTab] = useState<'general' | 'mcp' | 'about'>('general')
   const [mcpServers, setMcpServers] = useState<{ name: string; command?: string; disabled?: boolean }[]>([])
+  const [localTagNames, setLocalTagNames] = useState<string[]>(prefs.tagNames || DEFAULT_TAG_NAMES)
 
   useEffect(() => {
     const load = async () => {
@@ -353,6 +365,30 @@ export default function SettingsPanel() {
                   </button>
                 )
               })}
+            </div>
+          ))}
+
+          {/* Tags */}
+          {field(t('tags.sectionTitle'), (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {TAG_PRESETS_SETTINGS.map((tag, idx) => (
+                <div key={tag.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: tag.color, flexShrink: 0 }} />
+                  <input
+                    value={localTagNames[idx]}
+                    onChange={(e) => {
+                      const updated = [...localTagNames]
+                      updated[idx] = e.target.value
+                      setLocalTagNames(updated)
+                      // Auto-save tag names
+                      setPrefs({ tagNames: updated })
+                      window.electronAPI.prefsSet('tagNames', updated)
+                    }}
+                    placeholder={t('tags.tagNamePlaceholder')}
+                    style={{ ...inputStyle, flex: 1 }}
+                  />
+                </div>
+              ))}
             </div>
           ))}
 

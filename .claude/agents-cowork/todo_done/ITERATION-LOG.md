@@ -1364,3 +1364,50 @@ CSS: 21.50 kB (down from ~25 kB, removed ~165 lines of theme CSS)
 - [x] i18n keys added for theme labels (en + zh-CN)
 - [x] README.md and README_CN.md updated
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 109 -- Session Tags
+
+_Date: 2026-03-27 | Sprint UI Enhancement_
+
+### Summary
+Added a color-coded session tagging system for organizing sessions by project, purpose, or topic. Features 6 preset colored tags (Work/Personal/Research/Debug/Docs/Archive) with customizable names. Users can assign tags via a hover Tag button that opens a popup picker, see tag color dots on session items, and filter sessions by tag using a pill-shaped filter bar below the search box. Tag names are editable in Settings. All data persists via electron-store. Full i18n support (English + Chinese). Accessibility: tag picker uses `role="menu"` with `aria-checked`, filter bar uses `role="radiogroup"`.
+
+### Files Changed
+- `src/renderer/types/app.types.ts` -- Added `tagNames?: string[]` and `sessionTags?: Record<string, string[]>` to ClaudePrefs interface
+- `src/renderer/components/sessions/SessionList.tsx` -- Added TAG_PRESETS constant (6 preset tags), tag state management (sessionTags from prefs, tagPickerSessionId, activeTagFilter, tagCounts), toggleSessionTag function (toggle tag assignment with persistence), openTagPicker/closeTagPicker popup controls (with Escape/click-outside dismiss), tag filter bar (pill buttons below search with color dot + name + count), tag color dots on session items (max 3 visible + overflow indicator), Tag icon button in hover action row
+- `src/renderer/components/settings/SettingsPanel.tsx` -- Added TAG_PRESETS_SETTINGS constant, DEFAULT_TAG_NAMES, localTagNames state, Tags section with 6 editable name inputs (auto-save on change)
+- `src/renderer/i18n/locales/en.json` -- Added `tags` namespace with 9 keys (sectionTitle, tagNamePlaceholder, assign, work, personal, research, debug, docs, archive)
+- `src/renderer/i18n/locales/zh-CN.json` -- Added Chinese translations for all 9 tag keys
+
+### Build
+Status: SUCCESS
+
+```
+main: tsc clean
+preload: tsc clean
+renderer: 2390 modules transformed, built in 8.09s
+```
+
+### Acceptance Criteria
+- [x] 6 preset tags with default names and colors (blue, green, amber, red, purple, gray)
+- [x] Tag names editable in Settings panel
+- [x] Tag assignment persists across app restarts (electron-store via prefsSet)
+- [x] Tag button (lucide Tag icon) in session hover action buttons
+- [x] Tag picker popup with 6 options, checkmark on assigned tags
+- [x] Toggle assignment (click to add, click again to remove)
+- [x] Multiple tags per session supported
+- [x] Tag picker closes on Escape or click outside
+- [x] Tag color dots (6px, max 3 visible + "+N" overflow) on session items
+- [x] Tag dot hover shows tag name tooltip
+- [x] Tag filter bar (pill buttons below search, only when tags exist)
+- [x] Filter pills show color dot + name + count
+- [x] Click pill to filter, click again to deselect
+- [x] Filter bar hidden when no sessions have tags
+- [x] Horizontal scroll on filter bar overflow
+- [x] Accessibility: role="menu"/menuitem on picker, role="radiogroup"/radio on filter
+- [x] i18n: 9 tag keys in en.json and zh-CN.json
+- [x] Build passes with zero errors
+- [x] README.md and README_CN.md updated
+- [x] Build passes with zero errors
