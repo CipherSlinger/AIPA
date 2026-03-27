@@ -5,10 +5,11 @@ import Message from './Message'
 import PermissionCard from './PermissionCard'
 import PlanCard from './PlanCard'
 import { useChatStore, useUiStore } from '../../store'
+import { useT } from '../../i18n'
 import { ArrowDown } from 'lucide-react'
 
 // ── Date separator logic ──
-function formatDateLabel(ts: number): string {
+function formatDateLabel(ts: number, t: (key: string) => string): string {
   const date = new Date(ts)
   const today = new Date()
   const yesterday = new Date(today)
@@ -17,8 +18,8 @@ function formatDateLabel(ts: number): string {
   const isSameDay = (a: Date, b: Date) =>
     a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 
-  if (isSameDay(date, today)) return 'Today'
-  if (isSameDay(date, yesterday)) return 'Yesterday'
+  if (isSameDay(date, today)) return t('session.today')
+  if (isSameDay(date, yesterday)) return t('session.yesterday')
   return date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
 }
 
@@ -42,6 +43,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const { resolvePlan, rateMessage, toggleBookmark, toggleCollapse } = useChatStore()
   const { addToast } = useUiStore()
+  const t = useT()
   const [showScrollBtn, setShowScrollBtn] = useState(false)
   const isNearBottomRef = useRef(true)
   const prevSessionIdRef = useRef<string | null | undefined>(sessionId)
@@ -55,7 +57,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
     let lastDateLabel = ''
     messages.forEach((msg, idx) => {
       if (msg.timestamp) {
-        const label = formatDateLabel(msg.timestamp)
+        const label = formatDateLabel(msg.timestamp, t)
         if (label !== lastDateLabel) {
           result.push({ type: 'dateSep', label })
           lastDateLabel = label
@@ -64,7 +66,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       result.push({ type: 'message', msg, msgIdx: idx })
     })
     return result
-  }, [messages])
+  }, [messages, t])
 
   // Compute showAvatar for each message index (consecutive same-role → hide avatar)
   const showAvatarMap = useMemo(() => {
@@ -209,14 +211,14 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
           const isoTs = new Date(ts).toISOString()
           const result = await window.electronAPI.sessionRewind(sessionId, isoTs)
           if (result?.success) {
-            addToast('success', 'Files reverted to state before this message')
+            addToast('success', t('message.rewindSuccess'))
           } else {
-            addToast('error', 'Rewind failed: ' + (result?.error || 'Unknown error'))
+            addToast('error', t('message.rewindFailed', { error: result?.error || 'Unknown error' }))
           }
         } : undefined}
       />
     )
-  }, [onPermission, onGrantPermission, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery, showAvatarMap, onEdit])
+  }, [onPermission, onGrantPermission, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery, showAvatarMap, onEdit, t])
 
   // Scroll progress (0..1)
   const [scrollProgress, setScrollProgress] = useState(0)

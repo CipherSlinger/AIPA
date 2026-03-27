@@ -6,6 +6,7 @@ import CommandPalette from './components/shared/CommandPalette'
 import ShortcutCheatsheet from './components/shared/ShortcutCheatsheet'
 import { ToastContainer } from './components/ui/Toast'
 import { usePrefsStore, useChatStore, useSessionStore, useUiStore } from './store'
+import { useT } from './i18n'
 import './styles/globals.css'
 import 'highlight.js/styles/github-dark.css'
 
@@ -15,6 +16,7 @@ export default function App() {
   const { toggleSidebar, toggleTerminal, commandPaletteOpen, setCommandPaletteOpen, toggleCommandPalette, toggleFocusMode, focusMode, setSidebarOpen, setSidebarTab, toasts, removeToast } = useUiStore()
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
+  const t = useT()
 
   // Load preferences on startup
   useEffect(() => {
@@ -143,7 +145,7 @@ export default function App() {
             ;(window as any).__lastClearPress = 0
           } else {
             (window as any).__lastClearPress = now
-            useUiStore.getState().addToast('warning', 'Press Ctrl+N again to clear conversation', 1500)
+            useUiStore.getState().addToast('warning', t('chat.pressAgainToClear', { key: 'Ctrl+N' }), 1500)
           }
         } else {
           store.clearMessages()
@@ -161,7 +163,7 @@ export default function App() {
             ;(window as any).__lastClearPress = 0
           } else {
             (window as any).__lastClearPress = now
-            useUiStore.getState().addToast('warning', 'Press Ctrl+K again to clear conversation', 1500)
+            useUiStore.getState().addToast('warning', t('chat.pressAgainToClear', { key: 'Ctrl+K' }), 1500)
           }
         } else {
           store.clearMessages()

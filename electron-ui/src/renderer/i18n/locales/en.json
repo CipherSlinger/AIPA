@@ -76,7 +76,8 @@
     "words": "words",
     "chars": "chars",
     "long": "long",
-    "veryLong": "very long"
+    "veryLong": "very long",
+    "pressAgainToClear": "Press {{key}} again to clear conversation"
   },
   "welcome": {
     "title": "Hello! I'm AIPA",
@@ -142,7 +143,9 @@
     "disableWordWrap": "Disable word wrap",
     "editMessage": "Edit message",
     "editCancel": "Cancel",
-    "editSave": "Save & Send"
+    "editSave": "Save & Send",
+    "rewindSuccess": "Files reverted to state before this message",
+    "rewindFailed": "Rewind failed: {{error}}"
   },
   "session": {
     "search": "Search sessions...",
@@ -174,7 +177,10 @@
     "sortAlpha": "Alphabetical",
     "sortNew": "New",
     "sortOld": "Old",
-    "sort": "Sort"
+    "sort": "Sort",
+    "deleted": "Session deleted",
+    "forked": "Session forked",
+    "forkFailed": "Failed to fork session"
   },
   "settings": {
     "title": "Settings",

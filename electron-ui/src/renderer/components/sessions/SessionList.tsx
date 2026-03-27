@@ -231,7 +231,7 @@ export default function SessionList() {
       // Second click: confirmed, actually delete
       setConfirmDeleteId(null)
       await window.electronAPI.sessionDelete(sessionId)
-      addToast('success', 'Session deleted')
+      addToast('success', t('session.deleted'))
       loadSessions()
     } else {
       // First click: show confirmation
@@ -247,10 +247,10 @@ export default function SessionList() {
     const messages = await window.electronAPI.sessionLoad(session.sessionId)
     const newId = await window.electronAPI.sessionFork(session.sessionId, messages.length - 1)
     if (newId) {
-      addToast('success', 'Session forked')
+      addToast('success', t('session.forked'))
       await loadSessions()
     } else {
-      addToast('error', 'Failed to fork session')
+      addToast('error', t('session.forkFailed'))
     }
   }
 

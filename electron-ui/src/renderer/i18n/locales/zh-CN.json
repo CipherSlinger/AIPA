@@ -76,7 +76,8 @@
     "words": "\u8bcd",
     "chars": "\u5b57\u7b26",
     "long": "\u8f83\u957f",
-    "veryLong": "\u8fc7\u957f"
+    "veryLong": "\u8fc7\u957f",
+    "pressAgainToClear": "\u518d\u6b21\u6309 {{key}} \u6e05\u9664\u5bf9\u8bdd"
   },
   "welcome": {
     "title": "\u4f60\u597d\uff01\u6211\u662f AIPA",
@@ -142,7 +143,9 @@
     "disableWordWrap": "\u7981\u7528\u81ea\u52a8\u6362\u884c",
     "editMessage": "\u7f16\u8f91\u6d88\u606f",
     "editCancel": "\u53d6\u6d88",
-    "editSave": "\u4fdd\u5b58\u5e76\u53d1\u9001"
+    "editSave": "\u4fdd\u5b58\u5e76\u53d1\u9001",
+    "rewindSuccess": "\u6587\u4ef6\u5df2\u6062\u590d\u5230\u6b64\u6d88\u606f\u4e4b\u524d\u7684\u72b6\u6001",
+    "rewindFailed": "\u56de\u9000\u5931\u8d25: {{error}}"
   },
   "session": {
     "search": "\u641c\u7d22\u4f1a\u8bdd...",
@@ -174,7 +177,10 @@
     "sortAlpha": "\u5b57\u6bcd\u6392\u5e8f",
     "sortNew": "\u65b0",
     "sortOld": "\u65e7",
-    "sort": "\u6392\u5e8f"
+    "sort": "\u6392\u5e8f",
+    "deleted": "\u4f1a\u8bdd\u5df2\u5220\u9664",
+    "forked": "\u4f1a\u8bdd\u5df2\u5206\u53c9",
+    "forkFailed": "\u5206\u53c9\u4f1a\u8bdd\u5931\u8d25"
   },
   "settings": {
     "title": "\u8bbe\u7f6e",
