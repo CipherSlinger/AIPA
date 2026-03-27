@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, shell, session } from 'electron'
+import { app, BrowserWindow, Menu, Tray, globalShortcut, nativeImage, shell, session } from 'electron'
 import path from 'path'
 import { registerAllHandlers } from './ipc/index'
 import { ptyManager } from './pty/pty-manager'
@@ -8,6 +8,8 @@ const log = createLogger('main')
 const isDev = process.env.NODE_ENV === 'development'
 
 let mainWindow: BrowserWindow | null = null
+let tray: Tray | null = null
+let isQuitting = false
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -48,6 +50,14 @@ function createWindow(): void {
 
   mainWindow.on('closed', () => {
     mainWindow = null
+  })
+
+  // Minimize to tray instead of closing
+  mainWindow.on('close', (e) => {
+    if (!isQuitting) {
+      e.preventDefault()
+      mainWindow?.hide()
+    }
   })
 }
 
@@ -143,10 +153,81 @@ function createAppMenu(): void {
   Menu.setApplicationMenu(template)
 }
 
+function createTray(): void {
+  // Create a 16x16 tray icon using nativeImage
+  // Simple blue circle icon generated programmatically
+  const iconSize = 16
+  const icon = nativeImage.createEmpty()
+  // Use a built-in icon approach: create from data URL
+  const canvas = `<svg xmlns="http://www.w3.org/2000/svg" width="${iconSize}" height="${iconSize}" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#2563eb"/><text x="8" y="12" text-anchor="middle" font-size="10" font-weight="bold" fill="white" font-family="sans-serif">A</text></svg>`
+  const dataUrl = `data:image/svg+xml;base64,${Buffer.from(canvas).toString('base64')}`
+  const trayIcon = nativeImage.createFromDataURL(dataUrl)
+
+  tray = new Tray(trayIcon.resize({ width: 16, height: 16 }))
+  tray.setToolTip('AIPA - AI Personal Assistant')
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Show AIPA',
+      click: () => {
+        mainWindow?.show()
+        mainWindow?.focus()
+      },
+    },
+    { type: 'separator' },
+    {
+      label: 'New Chat',
+      click: () => {
+        mainWindow?.show()
+        mainWindow?.focus()
+        mainWindow?.webContents.send('menu:newSession')
+      },
+    },
+    { type: 'separator' },
+    {
+      label: 'Quit',
+      click: () => {
+        isQuitting = true
+        app.quit()
+      },
+    },
+  ])
+  tray.setContextMenu(contextMenu)
+
+  // Single click on tray icon toggles window visibility
+  tray.on('click', () => {
+    if (mainWindow?.isVisible()) {
+      mainWindow.hide()
+    } else {
+      mainWindow?.show()
+      mainWindow?.focus()
+    }
+  })
+}
+
+function registerGlobalHotkey(): void {
+  // Ctrl+Shift+Space to toggle AIPA window from anywhere
+  const registered = globalShortcut.register('Ctrl+Shift+Space', () => {
+    if (mainWindow?.isVisible() && mainWindow.isFocused()) {
+      mainWindow.hide()
+    } else {
+      mainWindow?.show()
+      mainWindow?.focus()
+    }
+  })
+  if (registered) {
+    log.info('Global hotkey registered: Ctrl+Shift+Space')
+  } else {
+    log.warn('Failed to register global hotkey: Ctrl+Shift+Space')
+  }
+}
+
 app.whenReady().then(() => {
   setupCSP()
   createAppMenu()
   createWindow()
+  createTray()
+  registerGlobalHotkey()
   log.info('AIPA started')
 
   app.on('activate', () => {
@@ -161,5 +242,7 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', () => {
+  isQuitting = true
   ptyManager.destroyAll()
+  globalShortcut.unregisterAll()
 })
