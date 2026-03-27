@@ -66,6 +66,8 @@ export default function StatusBar() {
 
   return (
     <div
+      role="status"
+      aria-label="Status bar"
       style={{
         height: 24,
         background: 'var(--accent)',

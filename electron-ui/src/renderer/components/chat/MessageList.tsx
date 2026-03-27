@@ -264,6 +264,9 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
     <div
       ref={scrollContainerRef}
       onScroll={handleScrollWithProgress}
+      role="log"
+      aria-label="Conversation messages"
+      aria-live="polite"
       style={{ flex: 1, overflowY: 'auto', padding: '16px 0', position: 'relative' }}
     >
       <div

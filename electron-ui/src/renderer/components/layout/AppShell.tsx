@@ -75,10 +75,11 @@ export default function AppShell() {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
-      {/* Title bar drag region — spans all three columns */}
+    <div className="flex flex-col h-full overflow-hidden" style={{ background: 'var(--bg-primary)' }} role="application" aria-label="AIPA">
+      {/* Title bar drag region -- spans all three columns */}
       <div
         className="drag-region"
+        role="banner"
         style={{
           height: 32,
           background: 'var(--bg-nav)',
@@ -124,6 +125,8 @@ export default function AppShell() {
         {!focusMode && (
           <>
             <div
+              role="complementary"
+              aria-label="Session list"
               style={{
                 width: sidebarOpen ? sidebarWidth : 0,
                 flexShrink: 0,
@@ -148,8 +151,10 @@ export default function AppShell() {
           </>
         )}
 
-        {/* Chat panel — fills remaining space */}
+        {/* Chat panel -- fills remaining space */}
         <div
+          role="main"
+          aria-label="Chat"
           style={{
             flex: 1,
             overflow: 'hidden',

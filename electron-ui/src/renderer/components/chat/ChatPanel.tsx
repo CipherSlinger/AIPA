@@ -1439,6 +1439,7 @@ export default function ChatPanel() {
                 if (inputWrapRef.current) inputWrapRef.current.style.borderColor = 'var(--input-field-border)'
               }}
               placeholder={t(PLACEHOLDER_KEYS[placeholderIdx])}
+              aria-label={t('chat.placeholder')}
               rows={1}
               style={{
                 flex: 1,
