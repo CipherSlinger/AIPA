@@ -70,7 +70,8 @@
       "Bash(done)",
       "Bash(mkdir -p /home/osr/AIPA/.claude/agent-memory/agent-leader)",
       "Bash(echo \"# agent-leader Memory:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Skill(update-config)"
     ]
   }
 }
