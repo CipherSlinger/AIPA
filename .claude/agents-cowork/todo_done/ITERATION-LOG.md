@@ -688,3 +688,34 @@ built in 8.37s
 - [x] Old >5000 char warning removed (replaced by compose status)
 - [x] Status bar positioned below input row, right-aligned
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 74 -- Code Block Language Badge Colors
+
+_Date: 2026-03-27 | Sprint UI Enhancement_
+
+### Summary
+Added color-coded language indicators to code block headers. Each programming language now shows a colored dot next to the language name, and the language text itself is tinted with the same color. Covers 50+ languages including JavaScript (yellow), TypeScript (blue), Python (blue-gray), Rust (orange), Go (cyan), Java (orange), Ruby (red), PHP (purple), C/C++ (blue), and many more. Languages without a defined color fall back to the existing muted style. The colored dot is 8px with full border-radius, providing a quick visual cue for scanning code blocks.
+
+### Files Changed
+- `src/renderer/components/chat/MessageContent.tsx` -- Added `LANG_COLORS` constant mapping 50+ language identifiers to hex colors; added `getLangColor()` helper function; updated the code block header to use flex layout with colored dot indicator (8px circle) and color-tinted language name with fontWeight 500; line count label repositioned within flex gap
+
+### Build
+Status: SUCCESS
+
+```
+2385 modules transformed.
+built in 8.72s
+```
+
+### Acceptance Criteria
+- [x] Language dot indicator (8px colored circle) appears in code block header
+- [x] Language name text colored with language-specific color
+- [x] Language name uses fontWeight 500 when colored
+- [x] 50+ languages covered (JS, TS, Python, Rust, Go, Java, Ruby, etc.)
+- [x] Unknown languages fall back to muted style (no dot, normal weight)
+- [x] Dot and text use same color for consistency
+- [x] Line count label preserved after language badge
+- [x] Flex layout with gap:6 for proper spacing
+- [x] Build passes with zero errors

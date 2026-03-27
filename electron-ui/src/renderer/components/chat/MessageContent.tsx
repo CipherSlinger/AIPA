@@ -65,6 +65,69 @@ function CopyButton({ text }: { text: string }) {
 
 const CODE_COLLAPSE_THRESHOLD = 300 // px height before showing collapse toggle
 
+// Language badge colors for code blocks
+const LANG_COLORS: Record<string, string> = {
+  javascript: '#f7df1e',
+  js: '#f7df1e',
+  typescript: '#3178c6',
+  ts: '#3178c6',
+  tsx: '#3178c6',
+  jsx: '#f7df1e',
+  python: '#3776ab',
+  py: '#3776ab',
+  rust: '#dea584',
+  go: '#00add8',
+  java: '#ed8b00',
+  kotlin: '#7f52ff',
+  swift: '#f05138',
+  ruby: '#cc342d',
+  rb: '#cc342d',
+  php: '#777bb4',
+  c: '#a8b9cc',
+  cpp: '#00599c',
+  'c++': '#00599c',
+  csharp: '#239120',
+  'c#': '#239120',
+  cs: '#239120',
+  html: '#e34f26',
+  css: '#1572b6',
+  scss: '#cc6699',
+  sass: '#cc6699',
+  less: '#1d365d',
+  json: '#292929',
+  yaml: '#cb171e',
+  yml: '#cb171e',
+  toml: '#9c4121',
+  xml: '#f16529',
+  markdown: '#083fa1',
+  md: '#083fa1',
+  sql: '#e38c00',
+  bash: '#4eaa25',
+  sh: '#4eaa25',
+  shell: '#4eaa25',
+  zsh: '#4eaa25',
+  powershell: '#012456',
+  dockerfile: '#2496ed',
+  docker: '#2496ed',
+  lua: '#000080',
+  r: '#276dc3',
+  scala: '#dc322f',
+  perl: '#39457e',
+  elixir: '#6e4a7e',
+  haskell: '#5e5086',
+  dart: '#0175c2',
+  vue: '#42b883',
+  svelte: '#ff3e00',
+  graphql: '#e10098',
+  prisma: '#2d3748',
+  terraform: '#7b42bc',
+  nginx: '#009639',
+}
+
+function getLangColor(lang: string): string | undefined {
+  return LANG_COLORS[lang.toLowerCase()]
+}
+
 function CollapsiblePre({ children, className }: { children: React.ReactNode; className?: string }) {
   const preRef = useRef<HTMLPreElement>(null)
   const [isOverflow, setIsOverflow] = useState(false)
@@ -276,6 +339,8 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
             }
 
             const showLineNumbers = lineCount > 1
+            const langName = match?.[1] || 'code'
+            const langColor = getLangColor(langName)
 
             return (
               <div style={{ position: 'relative', marginBottom: 12 }}>
@@ -290,9 +355,21 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
                     borderBottom: '1px solid var(--border)',
                   }}
                 >
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                    {match?.[1] || 'code'}
-                    {lineCount > 1 && <span style={{ opacity: 0.6, marginLeft: 6 }}>{lineCount} lines</span>}
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {langColor && (
+                      <span style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        background: langColor,
+                        flexShrink: 0,
+                        display: 'inline-block',
+                      }} />
+                    )}
+                    <span style={{ color: langColor || 'var(--text-muted)', fontWeight: langColor ? 500 : 400 }}>
+                      {langName}
+                    </span>
+                    {lineCount > 1 && <span style={{ opacity: 0.6 }}>{lineCount} lines</span>}
                   </span>
                   <CopyButton text={codeText} />
                 </div>
