@@ -4,6 +4,7 @@ import {
   FolderOpen, Zap, Trash2, HelpCircle, Search,
 } from 'lucide-react'
 import { useChatStore, useSessionStore, useUiStore } from '../../store'
+import { useT } from '../../i18n'
 
 interface PaletteCommand {
   id: string
@@ -33,6 +34,7 @@ export default function CommandPalette({
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const backdropRef = useRef<HTMLDivElement>(null)
+  const t = useT()
 
   const {
     toggleSidebar, toggleTerminal, setSidebarTab,
@@ -46,8 +48,8 @@ export default function CommandPalette({
     const cmds: PaletteCommand[] = [
       {
         id: 'new-conversation',
-        name: 'New Conversation',
-        description: 'Clear current chat and start fresh',
+        name: t('command.newConversation'),
+        description: t('command.newConversationDesc'),
         icon: <Plus size={14} />,
         shortcut: 'Ctrl+N',
         action: () => { onNewConversation(); onClose() },
@@ -55,8 +57,8 @@ export default function CommandPalette({
       },
       {
         id: 'export-conversation',
-        name: 'Export Conversation',
-        description: 'Save conversation as Markdown or JSON',
+        name: t('command.exportConversation'),
+        description: t('command.exportConversationDesc'),
         icon: <Download size={14} />,
         shortcut: 'Ctrl+Shift+E',
         action: () => { onExport(); onClose() },
@@ -64,8 +66,8 @@ export default function CommandPalette({
       },
       {
         id: 'toggle-sidebar',
-        name: 'Toggle Sidebar',
-        description: 'Show or hide the sidebar panel',
+        name: t('command.toggleSidebar'),
+        description: t('command.toggleSidebarDesc'),
         icon: <PanelLeft size={14} />,
         shortcut: 'Ctrl+B',
         action: () => { toggleSidebar(); onClose() },
@@ -73,8 +75,8 @@ export default function CommandPalette({
       },
       {
         id: 'toggle-terminal',
-        name: 'Toggle Terminal',
-        description: 'Show or hide the terminal panel',
+        name: t('command.toggleTerminal'),
+        description: t('command.toggleTerminalDesc'),
         icon: <Terminal size={14} />,
         shortcut: 'Ctrl+`',
         action: () => { toggleTerminal(); onClose() },
@@ -82,8 +84,8 @@ export default function CommandPalette({
       },
       {
         id: 'open-settings',
-        name: 'Open Settings',
-        description: 'Open the settings panel in sidebar',
+        name: t('command.openSettings'),
+        description: t('command.openSettingsDesc'),
         icon: <Settings size={14} />,
         shortcut: 'Ctrl+,',
         action: () => { setSidebarOpen(true); setSidebarTab('settings'); onClose() },
@@ -91,24 +93,24 @@ export default function CommandPalette({
       },
       {
         id: 'open-history',
-        name: 'Open Session History',
-        description: 'Open session history in sidebar',
+        name: t('command.openHistory'),
+        description: t('command.openHistoryDesc'),
         icon: <History size={14} />,
         action: () => { setSidebarOpen(true); setSidebarTab('history'); onClose() },
         category: 'action',
       },
       {
         id: 'open-files',
-        name: 'Open File Browser',
-        description: 'Browse working directory files in sidebar',
+        name: t('command.openFiles'),
+        description: t('command.openFilesDesc'),
         icon: <FolderOpen size={14} />,
         action: () => { setSidebarOpen(true); setSidebarTab('files'); onClose() },
         category: 'action',
       },
       {
         id: 'change-working-dir',
-        name: 'Change Working Directory',
-        description: 'Open folder dialog to change working directory',
+        name: t('command.changeWorkingDir'),
+        description: t('command.changeWorkingDirDesc'),
         icon: <FolderOpen size={14} />,
         action: async () => {
           onClose()
@@ -124,7 +126,7 @@ export default function CommandPalette({
       {
         id: 'slash-compact',
         name: '/compact',
-        description: 'Compact conversation context',
+        description: t('command.compactDesc'),
         icon: <Zap size={14} />,
         action: () => { onSendSlashCommand('/compact'); onClose() },
         category: 'slash',
@@ -132,7 +134,7 @@ export default function CommandPalette({
       {
         id: 'slash-clear',
         name: '/clear',
-        description: 'Clear current conversation',
+        description: t('command.clearConversationDesc'),
         icon: <Trash2 size={14} />,
         action: () => { onNewConversation(); onClose() },
         category: 'slash',
@@ -140,7 +142,7 @@ export default function CommandPalette({
       {
         id: 'slash-help',
         name: '/help',
-        description: 'Show available commands',
+        description: t('command.showHelpDesc'),
         icon: <HelpCircle size={14} />,
         action: () => { onSendSlashCommand('/help'); onClose() },
         category: 'slash',
@@ -158,7 +160,7 @@ export default function CommandPalette({
       cmds.push({
         id: `session-${session.sessionId}`,
         name: title,
-        description: `Open session from ${dateStr}`,
+        description: t('command.openSessionFrom', { date: dateStr }),
         icon: <History size={14} />,
         action: () => {
           window.dispatchEvent(new CustomEvent('aipa:openSession', { detail: session.sessionId }))
@@ -169,7 +171,7 @@ export default function CommandPalette({
     }
 
     return cmds
-  }, [onClose, onExport, onNewConversation, onSendSlashCommand, toggleSidebar, toggleTerminal, setSidebarTab, setSidebarOpen, sessions])
+  }, [onClose, onExport, onNewConversation, onSendSlashCommand, toggleSidebar, toggleTerminal, setSidebarTab, setSidebarOpen, sessions, t])
 
   // Filter commands by query
   const filtered = useMemo(() => {
@@ -283,7 +285,7 @@ export default function CommandPalette({
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Type a command..."
+            placeholder={t('command.searchPlaceholder')}
             style={{
               flex: 1,
               background: 'none',
@@ -314,7 +316,7 @@ export default function CommandPalette({
                 fontSize: 13,
               }}
             >
-              No matching commands
+              {t('command.noResults')}
             </div>
           )}
           {filtered.map((cmd, index) => (

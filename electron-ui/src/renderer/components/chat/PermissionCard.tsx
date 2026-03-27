@@ -5,6 +5,7 @@ import {
   Terminal, FilePlus, FileEdit, FileSearch,
   FolderSearch, Search, Globe
 } from 'lucide-react'
+import { useT } from '../../i18n'
 
 interface Props {
   message: PermissionMessage
@@ -44,80 +45,80 @@ function getToolVisual(toolName: string): { icon: React.ReactNode; tint: string 
 }
 
 // Convert technical tool names and inputs into user-friendly descriptions
-function describeAction(toolName: string, toolInput: Record<string, unknown>): { title: string; detail: string } {
+function describeAction(toolName: string, toolInput: Record<string, unknown>, t: (key: string, params?: Record<string, string>) => string): { title: string; detail: string } {
   switch (toolName) {
     case 'Bash':
     case 'computer': {
       const cmd = (toolInput.command as string) || (toolInput.cmd as string) || ''
       return {
-        title: 'Run Command',
-        detail: cmd ? `\`${cmd.slice(0, 120)}${cmd.length > 120 ? '...' : ''}\`` : 'Execute a terminal command',
+        title: t('permission.toolRunCommand'),
+        detail: cmd ? `\`${cmd.slice(0, 120)}${cmd.length > 120 ? '...' : ''}\`` : t('permission.toolRunCommandDetail'),
       }
     }
     case 'Write':
     case 'create_file': {
       const path = (toolInput.path as string) || (toolInput.file_path as string) || ''
       return {
-        title: 'Write File',
-        detail: path || 'Create or overwrite a file',
+        title: t('permission.toolWriteFile'),
+        detail: path || t('permission.toolWriteFileDetail'),
       }
     }
     case 'Edit':
     case 'str_replace_editor': {
       const path = (toolInput.path as string) || (toolInput.file_path as string) || ''
       return {
-        title: 'Edit File',
-        detail: path || 'Modify file contents',
+        title: t('permission.toolEditFile'),
+        detail: path || t('permission.toolEditFileDetail'),
       }
     }
     case 'MultiEdit': {
       const path = (toolInput.path as string) || ''
       return {
-        title: 'Multi-Edit File',
-        detail: path || 'Make multiple edits to a file',
+        title: t('permission.toolMultiEdit'),
+        detail: path || t('permission.toolMultiEditDetail'),
       }
     }
     case 'Read':
     case 'read_file': {
       const path = (toolInput.path as string) || (toolInput.file_path as string) || ''
       return {
-        title: 'Read File',
-        detail: path || 'Read file contents',
+        title: t('permission.toolReadFile'),
+        detail: path || t('permission.toolReadFileDetail'),
       }
     }
     case 'Glob':
     case 'LS': {
       const pattern = (toolInput.pattern as string) || (toolInput.path as string) || ''
       return {
-        title: 'Search Files',
-        detail: pattern || 'Find files in the working directory',
+        title: t('permission.toolSearchFiles'),
+        detail: pattern || t('permission.toolSearchFilesDetail'),
       }
     }
     case 'Grep': {
       const q = (toolInput.pattern as string) || ''
       return {
-        title: 'Search Content',
-        detail: q ? `Search "${q.slice(0, 80)}"` : 'Search file contents',
+        title: t('permission.toolSearchContent'),
+        detail: q ? `${t('common.search')} "${q.slice(0, 80)}"` : t('permission.toolSearchContentDetail'),
       }
     }
     case 'WebFetch':
     case 'web_fetch': {
       const url = (toolInput.url as string) || ''
       return {
-        title: 'Fetch Web Page',
-        detail: url || 'Retrieve information from the internet',
+        title: t('permission.toolWebFetch'),
+        detail: url || t('permission.toolWebFetchDetail'),
       }
     }
     case 'WebSearch': {
       const q = (toolInput.query as string) || ''
       return {
-        title: 'Web Search',
-        detail: q ? `Search "${q.slice(0, 80)}"` : 'Search the web',
+        title: t('permission.toolWebSearch'),
+        detail: q ? `${t('common.search')} "${q.slice(0, 80)}"` : t('permission.toolWebSearchDetail'),
       }
     }
     default: {
       return {
-        title: 'Perform an action',
+        title: t('permission.toolPerformAction'),
         detail: toolName,
       }
     }
@@ -125,8 +126,9 @@ function describeAction(toolName: string, toolInput: Record<string, unknown>): {
 }
 
 export default function PermissionCard({ message, onAllow, onDeny }: Props) {
+  const t = useT()
   const isPending = message.decision === 'pending'
-  const { title, detail } = describeAction(message.toolName, message.toolInput)
+  const { title, detail } = describeAction(message.toolName, message.toolInput, t)
   const { icon, tint } = getToolVisual(message.toolName)
 
   return (
@@ -168,7 +170,7 @@ export default function PermissionCard({ message, onAllow, onDeny }: Props) {
             {title}
           </span>
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-            Requires your permission
+            {t('permission.requiresPermission')}
           </span>
         </div>
       </div>
@@ -223,7 +225,7 @@ export default function PermissionCard({ message, onAllow, onDeny }: Props) {
               transition: 'transform 0.15s ease, filter 0.15s ease',
             }}
           >
-            <Check size={14} /> Allow
+            <Check size={14} /> {t('permission.allow')}
           </button>
           <button
             onClick={onDeny}
@@ -251,7 +253,7 @@ export default function PermissionCard({ message, onAllow, onDeny }: Props) {
               transition: 'background 0.15s ease',
             }}
           >
-            <X size={14} /> Deny
+            <X size={14} /> {t('permission.deny')}
           </button>
         </div>
       ) : (
@@ -276,7 +278,7 @@ export default function PermissionCard({ message, onAllow, onDeny }: Props) {
                 fontWeight: 500,
               }}
             >
-              <Check size={12} /> Allowed
+              <Check size={12} /> {t('permission.allowed')}
             </span>
           ) : (
             <span
@@ -291,7 +293,7 @@ export default function PermissionCard({ message, onAllow, onDeny }: Props) {
                 fontWeight: 500,
               }}
             >
-              <X size={12} /> Denied
+              <X size={12} /> {t('permission.denied')}
             </span>
           )}
         </div>

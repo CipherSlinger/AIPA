@@ -201,6 +201,13 @@
 | Queue completion desktop notification | P2 | DONE (Iteration 94) |
 | i18n for notification settings (en + zh-CN) | P1 | DONE (Iteration 94) |
 
+### Iteration 95 -- Complete i18n for PermissionCard + CommandPalette
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| PermissionCard i18n (buttons, subtitle, tool descriptions) | P1 | DONE (Iteration 95) |
+| CommandPalette i18n (commands, descriptions, placeholder) | P1 | DONE (Iteration 95) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

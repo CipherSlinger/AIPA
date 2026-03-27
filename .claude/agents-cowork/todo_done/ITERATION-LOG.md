@@ -1207,3 +1207,42 @@ built in 8.04s
 - [x] Reset to Defaults includes desktopNotifications: true
 - [x] i18n: Settings labels translated to English and Chinese
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 95 -- Complete i18n for PermissionCard + CommandPalette
+
+_Date: 2026-03-27 | Sprint i18n Completion_
+
+### Summary
+Completed i18n migration for PermissionCard.tsx and CommandPalette.tsx -- the two largest remaining components with hardcoded English strings. PermissionCard now uses `t()` for all button labels (Allow/Deny/Allowed/Denied), the "Requires your permission" subtitle, and all 11 tool action descriptions (Run Command, Write File, Edit File, etc.) with their fallback detail texts. CommandPalette now uses `t()` for all 10 command names and descriptions, slash command descriptions, the search placeholder, the "No matching commands" empty state, and session open descriptions with date interpolation. Added 25 new i18n keys across `permission` and `command` namespaces to both en.json and zh-CN.json.
+
+### Files Changed
+- `src/renderer/components/chat/PermissionCard.tsx` -- Added `useT` import and hook; refactored `describeAction()` to accept `t` parameter; replaced "Requires your permission", "Allow", "Deny", "Allowed", "Denied" with `t()` calls; replaced all 11 tool title/detail strings with i18n keys
+- `src/renderer/components/shared/CommandPalette.tsx` -- Added `useT` import and hook; replaced all 10 command names and descriptions with `t()` calls; replaced 3 slash command descriptions; replaced search placeholder and "No matching commands" text; added session date interpolation; added `t` to useMemo dependency array
+- `src/renderer/i18n/locales/en.json` -- Added 15 permission keys (requiresPermission, toolRunCommand, toolRunCommandDetail, etc.) and 4 command keys (changeWorkingDir, changeWorkingDirDesc, compactDesc, openSessionFrom)
+- `src/renderer/i18n/locales/zh-CN.json` -- Added Chinese translations for all 19 new keys
+
+### Build
+Status: SUCCESS
+
+```
+2388 modules transformed.
+built in 8.03s
+```
+
+### Acceptance Criteria
+- [x] PermissionCard "Allow" button uses t('permission.allow')
+- [x] PermissionCard "Deny" button uses t('permission.deny')
+- [x] PermissionCard "Allowed" badge uses t('permission.allowed')
+- [x] PermissionCard "Denied" badge uses t('permission.denied')
+- [x] PermissionCard "Requires your permission" uses t('permission.requiresPermission')
+- [x] All 11 tool descriptions use i18n keys (toolRunCommand, toolWriteFile, etc.)
+- [x] CommandPalette all command names use t() (newConversation, exportConversation, etc.)
+- [x] CommandPalette all descriptions use t()
+- [x] CommandPalette search placeholder uses t('command.searchPlaceholder')
+- [x] CommandPalette "No matching commands" uses t('command.noResults')
+- [x] Session descriptions use t('command.openSessionFrom', { date })
+- [x] 19 new keys added to en.json
+- [x] All 19 keys have Chinese translations in zh-CN.json
+- [x] Build passes with zero errors
