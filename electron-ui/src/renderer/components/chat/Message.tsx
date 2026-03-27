@@ -4,7 +4,7 @@ import MessageContent from './MessageContent'
 import ToolUseBlock from './ToolUseBlock'
 import MessageContextMenu from './MessageContextMenu'
 import ImageLightbox from '../shared/ImageLightbox'
-import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark, AlertTriangle, Code2, Check, Clock, MessageSquareQuote } from 'lucide-react'
+import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark, AlertTriangle, Code2, Check, CheckCheck, Clock, MessageSquareQuote } from 'lucide-react'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 
 const REACTION_EMOJIS = [
@@ -46,7 +46,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   const isPlan = message.role === 'plan'
   const isCollapsed = !isPermission && !isPlan && (message as StandardChatMessage).collapsed
   const compact = usePrefsStore(s => s.prefs.compactMode)
-  // Message status indicator: "sending" (clock) or "sent" (check) for user messages
+  // Message status indicator: "sending" (clock), "sent" (check), or "read" (double check) for user messages
   const globalIsStreaming = useChatStore(s => s.isStreaming)
   const toggleBookmarkStore = useChatStore(s => s.toggleBookmark)
   const setQuotedText = useUiStore(s => s.setQuotedText)
@@ -58,8 +58,19 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
     }
     return false
   })
-  const msgStatus: 'sending' | 'sent' | null = isUser
-    ? (globalIsStreaming && isLastUserMsg ? 'sending' : 'sent')
+  // Check if an assistant message exists after this user message (= "read")
+  const hasAssistantReply = useChatStore(s => {
+    if (!isUser) return false
+    const msgs = s.messages
+    const myIdx = msgs.findIndex(m => m.id === message.id)
+    if (myIdx < 0) return false
+    for (let i = myIdx + 1; i < msgs.length; i++) {
+      if (msgs[i].role === 'assistant') return true
+    }
+    return false
+  })
+  const msgStatus: 'sending' | 'sent' | 'read' | null = isUser
+    ? (globalIsStreaming && isLastUserMsg ? 'sending' : hasAssistantReply ? 'read' : 'sent')
     : null
   const [hovered, setHovered] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -413,6 +424,9 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
                   )}
                   {msgStatus === 'sent' && (
                     <Check size={12} style={{ opacity: 0.9 }} />
+                  )}
+                  {msgStatus === 'read' && (
+                    <CheckCheck size={12} style={{ color: 'var(--accent)', opacity: 1 }} />
                   )}
                 </div>
               )}

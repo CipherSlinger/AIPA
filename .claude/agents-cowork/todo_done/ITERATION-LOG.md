@@ -719,3 +719,32 @@ built in 8.72s
 - [x] Line count label preserved after language badge
 - [x] Flex layout with gap:6 for proper spacing
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 75 -- Enhanced Message Status Indicators (Read Receipts)
+
+_Date: 2026-03-27 | Sprint UI Enhancement_
+
+### Summary
+Enhanced user message status indicators with a WhatsApp/WeChat-style three-state system. Previously, user messages showed either a Clock (sending) or single Check (sent) icon. Now the system distinguishes between "sent" (single check, message delivered but no reply yet) and "read" (double check marks in accent color, assistant has responded). The `CheckCheck` icon from lucide-react is used for the "read" state. The status is computed by checking if an assistant message exists after the current user message in the message array.
+
+### Files Changed
+- `src/renderer/components/chat/Message.tsx` -- Added `CheckCheck` import from lucide-react; added `hasAssistantReply` selector (searches for assistant message after current user message); updated `msgStatus` type to include `'read'` state; added read receipt rendering (CheckCheck icon, size 12, accent color) in timestamp section
+
+### Build
+Status: SUCCESS
+
+```
+2385 modules transformed.
+built in 8.32s
+```
+
+### Acceptance Criteria
+- [x] User messages show Clock icon when streaming (sending state)
+- [x] User messages show single Check when sent but no reply yet
+- [x] User messages show double CheckCheck when assistant has replied (read state)
+- [x] Read receipt uses accent color for visual distinction
+- [x] Status computed from message array (no new state needed)
+- [x] Only applies to user messages (assistant messages unchanged)
+- [x] Build passes with zero errors
