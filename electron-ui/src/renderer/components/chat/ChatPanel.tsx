@@ -144,26 +144,28 @@ export default function ChatPanel() {
   const [showStats, setShowStats] = useState(false)
   const statsRef = useRef<HTMLDivElement>(null)
 
-  // Streaming elapsed timer
-  const [streamStartTime, setStreamStartTime] = useState<number | null>(null)
+  // Streaming elapsed timer — uses ref for start time to avoid re-render loops
+  const streamStartRef = useRef<number | null>(null)
   const [elapsed, setElapsed] = useState(0)
 
   useEffect(() => {
-    if (isStreaming && !streamStartTime) {
-      setStreamStartTime(Date.now())
-    } else if (!isStreaming && streamStartTime) {
-      setStreamStartTime(null)
+    if (isStreaming) {
+      if (!streamStartRef.current) {
+        streamStartRef.current = Date.now()
+      }
+      const tick = () => {
+        if (streamStartRef.current) {
+          setElapsed(Math.floor((Date.now() - streamStartRef.current) / 1000))
+        }
+      }
+      tick()
+      const id = setInterval(tick, 1000)
+      return () => clearInterval(id)
+    } else {
+      streamStartRef.current = null
       setElapsed(0)
     }
-  }, [isStreaming, streamStartTime])
-
-  useEffect(() => {
-    if (!streamStartTime) return
-    const tick = () => setElapsed(Math.floor((Date.now() - streamStartTime) / 1000))
-    tick()
-    const id = setInterval(tick, 1000)
-    return () => clearInterval(id)
-  }, [streamStartTime])
+  }, [isStreaming])
 
   const elapsedStr = useMemo(() => {
     if (!isStreaming || elapsed < 1) return null
