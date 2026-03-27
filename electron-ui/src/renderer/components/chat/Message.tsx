@@ -779,7 +779,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             {!isPermission && !isPlan && (message as StandardChatMessage).content && (
               <button
                 onClick={(e) => { e.stopPropagation(); handleQuote() }}
-                title="Quote reply"
+                title={t('message.quoteReply')}
                 style={{
                   background: 'transparent',
                   border: 'none',

@@ -372,7 +372,7 @@ export default function SessionList() {
         </div>
         <button
           onClick={loadSessions}
-          title="Refresh"
+          title={t('session.refresh')}
           style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
         >
           <RefreshCw size={13} />
@@ -383,26 +383,26 @@ export default function SessionList() {
             try { localStorage.setItem('aipa:session-sort', next) } catch {}
             return next
           })}
-          title={`Sort: ${sortBy === 'newest' ? 'Newest first' : sortBy === 'oldest' ? 'Oldest first' : 'Alphabetical'}`}
+          title={`${t('session.sort')}: ${sortBy === 'newest' ? t('session.sortNewest') : sortBy === 'oldest' ? t('session.sortOldest') : t('session.sortAlpha')}`}
           style={{
             background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
             display: 'flex', alignItems: 'center', gap: 2, fontSize: 10,
           }}
         >
           <ArrowUpDown size={11} />
-          <span>{sortBy === 'newest' ? 'New' : sortBy === 'oldest' ? 'Old' : 'A-Z'}</span>
+          <span>{sortBy === 'newest' ? t('session.sortNew') : sortBy === 'oldest' ? t('session.sortOld') : 'A-Z'}</span>
         </button>
         <button
           onClick={async () => {
             if (!sessions.length) return
-            const ok = window.confirm(`Delete all ${sessions.length} sessions? This cannot be undone.`)
+            const ok = window.confirm(t('session.deleteAllConfirm', { count: String(sessions.length) }))
             if (!ok) return
             for (const s of sessions) {
               await window.electronAPI.sessionDelete(s.sessionId)
             }
             loadSessions()
           }}
-          title="Delete all sessions"
+          title={t('session.deleteAll')}
           style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
         >
           <Trash2 size={13} />
@@ -662,7 +662,7 @@ export default function SessionList() {
             >
               <button
                 onClick={(e) => togglePin(e, session.sessionId)}
-                title={isPinned ? 'Unpin' : 'Pin to top'}
+                title={isPinned ? t('session.unpinSession') : t('session.pinSession')}
                 style={{
                   background: 'none',
                   border: 'none',
@@ -676,21 +676,21 @@ export default function SessionList() {
               </button>
               <button
                 onClick={(e) => startRename(e, session)}
-                title="Rename"
+                title={t('session.rename')}
                 style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
               >
                 <Pencil size={11} />
               </button>
               <button
                 onClick={(e) => forkSession(e, session)}
-                title="Fork session"
+                title={t('session.fork')}
                 style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
               >
                 <GitBranch size={11} />
               </button>
               <button
                 onClick={(e) => deleteSession(e, session.sessionId)}
-                title={confirmDeleteId === session.sessionId ? 'Click again to confirm' : 'Delete'}
+                title={confirmDeleteId === session.sessionId ? t('session.confirmDelete') : t('session.delete')}
                 style={{
                   background: confirmDeleteId === session.sessionId ? 'var(--error)' : 'none',
                   border: 'none',

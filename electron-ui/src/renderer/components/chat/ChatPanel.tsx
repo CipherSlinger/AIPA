@@ -1520,27 +1520,27 @@ function ThinkingIndicator() {
   }, [])
 
   // Determine what Claude is currently doing
-  let activityLabel = 'Thinking'
+  let activityLabel = t('message.thinking')
   if (pendingToolUses.size > 0) {
     const [, firstTool] = Array.from(pendingToolUses.entries())[0]
     const toolLabels: Record<string, string> = {
-      Bash: 'Running command',
-      Read: 'Reading file',
-      Write: 'Writing file',
-      Edit: 'Editing file',
-      MultiEdit: 'Editing files',
-      Glob: 'Searching files',
-      Grep: 'Searching content',
-      WebFetch: 'Fetching web page',
-      WebSearch: 'Searching the web',
-      LS: 'Listing directory',
+      Bash: t('message.runningCommand'),
+      Read: t('message.readingFile'),
+      Write: t('message.writingFile'),
+      Edit: t('message.editingFile'),
+      MultiEdit: t('message.editingFiles'),
+      Glob: t('message.searchingFiles'),
+      Grep: t('message.searchingContent'),
+      WebFetch: t('message.fetchingWebPage'),
+      WebSearch: t('message.searchingWeb'),
+      LS: t('message.listingDirectory'),
     }
-    activityLabel = toolLabels[firstTool.name] || `Using ${firstTool.name}`
+    activityLabel = toolLabels[firstTool.name] || t('message.usingTool', { tool: firstTool.name })
   } else {
     // Check if last message has streaming content
     const last = messages[messages.length - 1]
     if (last && last.role === 'assistant' && (last as StandardChatMessage).isStreaming) {
-      activityLabel = 'Writing'
+      activityLabel = t('message.writing')
     }
   }
 
