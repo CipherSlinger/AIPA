@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Send, Square, Plus, Mic, MicOff, Download, Upload, Maximize2, Minimize2, Bookmark, BarChart3, ListPlus, AtSign, TerminalSquare, Search, Bot, FolderSearch, Bug, Sparkles, FileCode2, Settings, Terminal, FolderOpen, Keyboard, RefreshCw } from 'lucide-react'
+import { Send, Square, Plus, Mic, MicOff, Download, Upload, Maximize2, Minimize2, Bookmark, BarChart3, ListPlus, AtSign, TerminalSquare, Search, Bot, FolderSearch, Bug, Sparkles, FileCode2, Settings, Terminal, FolderOpen, Keyboard, RefreshCw, ClipboardCopy } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { useStreamJson } from '../../hooks/useStreamJson'
 import MessageList from './MessageList'
@@ -285,12 +285,29 @@ export default function ChatPanel() {
     }
   }, [messages, currentSessionId, addToast])
 
+  // ── Copy conversation to clipboard ──────────────────────────
+  const copyConversation = useCallback(async () => {
+    if (messages.length === 0) return
+    const md = formatMarkdown(messages, currentSessionId, new Date())
+    try {
+      await navigator.clipboard.writeText(md)
+      addToast('success', t('chat.copiedToClipboard'))
+    } catch {
+      addToast('error', 'Failed to copy')
+    }
+  }, [messages, currentSessionId, addToast, t])
+
   // Keyboard shortcut: Ctrl+Shift+E for export
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === 'E') {
         e.preventDefault()
         exportConversation()
+      }
+      // Ctrl+Shift+X: Copy conversation to clipboard
+      if (e.ctrlKey && e.shiftKey && e.key === 'X') {
+        e.preventDefault()
+        copyConversation()
       }
       // Ctrl+F: Open search
       if (e.ctrlKey && !e.shiftKey && e.key === 'f') {
@@ -340,7 +357,7 @@ export default function ChatPanel() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [exportConversation, input, addToQueue])
+  }, [exportConversation, copyConversation, input, addToQueue])
 
   // Listen for export trigger from CommandPalette
   useEffect(() => {
@@ -749,6 +766,30 @@ export default function ChatPanel() {
           onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon)'; (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
         >
           <Download size={15} />
+        </button>
+        <button
+          onClick={copyConversation}
+          disabled={messages.length === 0}
+          title={`${t('chat.copyConversation')} (Ctrl+Shift+X)`}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--chat-header-icon)',
+            cursor: messages.length === 0 ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            flexShrink: 0,
+            opacity: messages.length === 0 ? 0.3 : 1,
+            transition: 'background 150ms, color 150ms',
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon-hover)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)' }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon)'; (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
+        >
+          <ClipboardCopy size={15} />
         </button>
         {/* Bookmarks dropdown */}
         <div style={{ position: 'relative' }} ref={bookmarksRef}>

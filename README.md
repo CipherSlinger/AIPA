@@ -100,6 +100,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Message editing** — edit any previously sent message; the conversation is truncated at that point and the edited message is re-sent for a fresh response
 - **Chat zoom** — `Ctrl+=` to zoom in, `Ctrl+-` to zoom out, `Ctrl+0` to reset; zoom level indicator appears and can be clicked to reset
 - **Prompt templates** — pre-configured system prompt roles (Code Reviewer, Technical Writer, Bug Hunter, Refactoring Expert, Programming Tutor, Software Architect) selectable from Settings dropdown
+- **Copy conversation** — copy the entire conversation as Markdown to clipboard with `Ctrl+Shift+X` or toolbar button; instant clipboard access without file dialogs
 
 ## Security
 

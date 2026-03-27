@@ -62,7 +62,9 @@
     "longInput": "(long)",
     "veryLongInput": "(very long)",
     "regenerate": "Regenerate response",
-    "resetZoom": "Reset zoom (Ctrl+0)"
+    "resetZoom": "Reset zoom (Ctrl+0)",
+    "copyConversation": "Copy conversation",
+    "copiedToClipboard": "Conversation copied to clipboard"
   },
   "welcome": {
     "title": "Hello! I'm AIPA",
@@ -321,6 +323,32 @@
     "title": "Keyboard Shortcuts",
     "general": "General",
     "chat": "Chat",
-    "navigation": "Navigation"
+    "conversation": "Conversation",
+    "navigation": "Navigation",
+    "newConversation": "New conversation",
+    "clearConversation": "Clear conversation",
+    "toggleSidebar": "Toggle sidebar",
+    "toggleTerminal": "Toggle terminal",
+    "focusChatInput": "Focus chat input",
+    "openSettings": "Open settings",
+    "commandPalette": "Command palette",
+    "thisCheatsheet": "This cheatsheet",
+    "focusMode": "Focus mode",
+    "collapseExpandAll": "Collapse/expand all",
+    "prevNextSession": "Previous/next session",
+    "sendMessage": "Send message",
+    "newLine": "New line",
+    "browseInputHistory": "Browse input history",
+    "mentionFile": "Mention file",
+    "slashCommands": "Slash commands",
+    "addToTaskQueue": "Add to task queue",
+    "regenerateResponse": "Regenerate response",
+    "zoomInOut": "Zoom in / out",
+    "resetZoom": "Reset zoom",
+    "searchInConversation": "Search in conversation",
+    "exportConversation": "Export conversation",
+    "copyConversation": "Copy conversation",
+    "messageContextMenu": "Message context menu",
+    "pressEscToClose": "Press Esc to close"
   }
 }

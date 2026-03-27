@@ -1,44 +1,48 @@
 import React, { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
+import { useT } from '../../i18n'
 
 interface Props {
   onClose: () => void
 }
 
+// Keys reference i18n path under shortcutCheatsheet.*
 const SHORTCUTS = [
-  { section: 'General', items: [
-    { keys: 'Ctrl + N', action: 'New conversation' },
-    { keys: 'Ctrl + K', action: 'Clear conversation' },
-    { keys: 'Ctrl + B', action: 'Toggle sidebar' },
-    { keys: 'Ctrl + `', action: 'Toggle terminal' },
-    { keys: 'Ctrl + L', action: 'Focus chat input' },
-    { keys: 'Ctrl + ,', action: 'Open settings' },
-    { keys: 'Ctrl + Shift + P', action: 'Command palette' },
-    { keys: 'Ctrl + /', action: 'This cheatsheet' },
-    { keys: 'Ctrl + Shift + F', action: 'Focus mode' },
-    { keys: 'Ctrl + Shift + C', action: 'Collapse/expand all' },
-    { keys: 'Ctrl + [ / ]', action: 'Previous/next session' },
+  { sectionKey: 'general', items: [
+    { keys: 'Ctrl + N', actionKey: 'newConversation' },
+    { keys: 'Ctrl + K', actionKey: 'clearConversation' },
+    { keys: 'Ctrl + B', actionKey: 'toggleSidebar' },
+    { keys: 'Ctrl + `', actionKey: 'toggleTerminal' },
+    { keys: 'Ctrl + L', actionKey: 'focusChatInput' },
+    { keys: 'Ctrl + ,', actionKey: 'openSettings' },
+    { keys: 'Ctrl + Shift + P', actionKey: 'commandPalette' },
+    { keys: 'Ctrl + /', actionKey: 'thisCheatsheet' },
+    { keys: 'Ctrl + Shift + F', actionKey: 'focusMode' },
+    { keys: 'Ctrl + Shift + C', actionKey: 'collapseExpandAll' },
+    { keys: 'Ctrl + [ / ]', actionKey: 'prevNextSession' },
   ]},
-  { section: 'Chat', items: [
-    { keys: 'Enter', action: 'Send message' },
-    { keys: 'Shift + Enter', action: 'New line' },
-    { keys: 'Up / Down', action: 'Browse input history' },
-    { keys: '@', action: 'Mention file' },
-    { keys: '/', action: 'Slash commands' },
-    { keys: 'Ctrl + Shift + Q', action: 'Add to task queue' },
-    { keys: 'Ctrl + Shift + R', action: 'Regenerate response' },
-    { keys: 'Ctrl + = / -', action: 'Zoom in / out' },
-    { keys: 'Ctrl + 0', action: 'Reset zoom' },
+  { sectionKey: 'chat', items: [
+    { keys: 'Enter', actionKey: 'sendMessage' },
+    { keys: 'Shift + Enter', actionKey: 'newLine' },
+    { keys: 'Up / Down', actionKey: 'browseInputHistory' },
+    { keys: '@', actionKey: 'mentionFile' },
+    { keys: '/', actionKey: 'slashCommands' },
+    { keys: 'Ctrl + Shift + Q', actionKey: 'addToTaskQueue' },
+    { keys: 'Ctrl + Shift + R', actionKey: 'regenerateResponse' },
+    { keys: 'Ctrl + = / -', actionKey: 'zoomInOut' },
+    { keys: 'Ctrl + 0', actionKey: 'resetZoom' },
   ]},
-  { section: 'Conversation', items: [
-    { keys: 'Ctrl + F', action: 'Search in conversation' },
-    { keys: 'Ctrl + Shift + E', action: 'Export conversation' },
-    { keys: 'Right-click', action: 'Message context menu' },
+  { sectionKey: 'conversation', items: [
+    { keys: 'Ctrl + F', actionKey: 'searchInConversation' },
+    { keys: 'Ctrl + Shift + E', actionKey: 'exportConversation' },
+    { keys: 'Ctrl + Shift + X', actionKey: 'copyConversation' },
+    { keys: 'Right-click', actionKey: 'messageContextMenu' },
   ]},
 ]
 
 export default function ShortcutCheatsheet({ onClose }: Props) {
+  const t = useT()
   const overlayRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -78,7 +82,7 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-bright)', margin: 0 }}>
-            Keyboard Shortcuts
+            {t('shortcutCheatsheet.title')}
           </h2>
           <button
             onClick={onClose}
@@ -96,9 +100,9 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
         </div>
 
         {SHORTCUTS.map(section => (
-          <div key={section.section} style={{ marginBottom: 16 }}>
+          <div key={section.sectionKey} style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              {section.section}
+              {t(`shortcutCheatsheet.${section.sectionKey}`)}
             </div>
             {section.items.map(item => (
               <div
@@ -110,7 +114,7 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
                   padding: '5px 0',
                 }}
               >
-                <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>{item.action}</span>
+                <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>{t(`shortcutCheatsheet.${item.actionKey}`)}</span>
                 <kbd
                   style={{
                     fontSize: 11,
@@ -131,7 +135,7 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
         ))}
 
         <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
-          Press <kbd style={{ fontSize: 10, background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 3, padding: '1px 4px', fontFamily: 'inherit' }}>Esc</kbd> to close
+          {t('shortcutCheatsheet.pressEscToClose')}
         </div>
       </div>
     </div>
