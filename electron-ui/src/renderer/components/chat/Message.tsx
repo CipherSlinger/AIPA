@@ -1,4 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react'
+
+const EMPTY_REACTIONS: string[] = []
 import { ChatMessage, StandardChatMessage } from '../../types/app.types'
 import MessageContent from './MessageContent'
 import ToolUseBlock from './ToolUseBlock'
@@ -76,7 +78,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   const editTextareaRef = React.useRef<HTMLTextAreaElement>(null)
 
   // Reaction state
-  const reactions = useChatStore(s => s.reactions[message.id] || [])
+  const reactions = useChatStore(s => s.reactions[message.id] ?? EMPTY_REACTIONS)
   const toggleReaction = useChatStore(s => s.toggleReaction)
 
   const thinking = message.role !== 'permission' ? (message as StandardChatMessage).thinking : undefined
