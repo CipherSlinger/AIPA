@@ -99,6 +99,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Response regeneration** — regenerate the last AI response with a single click or `Ctrl+Shift+R`; removes the previous response and re-sends your prompt
 - **Message editing** — edit any previously sent message; the conversation is truncated at that point and the edited message is re-sent for a fresh response
 - **Chat zoom** — `Ctrl+=` to zoom in, `Ctrl+-` to zoom out, `Ctrl+0` to reset; zoom level indicator appears and can be clicked to reset
+- **Prompt templates** — pre-configured system prompt roles (Code Reviewer, Technical Writer, Bug Hunter, Refactoring Expert, Programming Tutor, Software Architect) selectable from Settings dropdown
 
 ## Security
 
