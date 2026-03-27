@@ -69,7 +69,14 @@
     "noMatches": "No matches",
     "previousMatch": "Previous match (Shift+Enter)",
     "nextMatch": "Next match (Enter)",
-    "closeSearch": "Close (Escape)"
+    "closeSearch": "Close (Escape)",
+    "copyFailed": "Failed to copy",
+    "conversationStats": "Conversation Stats",
+    "statsSessionCost": "Session cost",
+    "words": "words",
+    "chars": "chars",
+    "long": "long",
+    "veryLong": "very long"
   },
   "welcome": {
     "title": "Hello! I'm AIPA",
@@ -257,7 +264,11 @@
     "msgs": "{{count}} msgs",
     "lastTurn": "Last turn: ${{cost}} | Session total: ${{total}}",
     "sessionTotal": "Session total: ${{total}}",
-    "cancelTool": "Cancel tool"
+    "cancelTool": "Cancel tool",
+    "insertMention": "Insert @mention",
+    "insertSlashCommand": "Insert slash command",
+    "stopRecording": "Stop recording",
+    "voiceInput": "Voice input"
   },
   "quickReply": {
     "labelPlaceholder": "Label",

@@ -281,7 +281,7 @@ export default function ChatPanel() {
     if (result?.error) {
       addToast('error', `Export failed: ${result.error}`)
     } else {
-      addToast('success', 'Conversation exported successfully')
+      addToast('success', t('chat.exportSuccess'))
     }
   }, [messages, currentSessionId, addToast])
 
@@ -293,7 +293,7 @@ export default function ChatPanel() {
       await navigator.clipboard.writeText(md)
       addToast('success', t('chat.copiedToClipboard'))
     } catch {
-      addToast('error', 'Failed to copy')
+      addToast('error', t('chat.copyFailed'))
     }
   }, [messages, currentSessionId, addToast, t])
 
@@ -723,7 +723,7 @@ export default function ChatPanel() {
         {/* Action icons — right side */}
         <button
           onClick={() => setSearchOpen(!searchOpen)}
-          title="Search messages (Ctrl+F)"
+          title={`${t('chat.searchConversation')} (Ctrl+F)`}
           style={{
             background: searchOpen ? 'var(--accent)' : 'none',
             border: 'none',
@@ -746,7 +746,7 @@ export default function ChatPanel() {
         <button
           onClick={exportConversation}
           disabled={messages.length === 0}
-          title="Export conversation (Ctrl+Shift+E)"
+          title={`${t('chat.export')} (Ctrl+Shift+E)`}
           style={{
             background: 'none',
             border: 'none',
@@ -795,7 +795,7 @@ export default function ChatPanel() {
         <div style={{ position: 'relative' }} ref={bookmarksRef}>
           <button
             onClick={() => setShowBookmarks(!showBookmarks)}
-            title={`Bookmarks (${bookmarkedMessages.length})`}
+            title={`${t('chat.bookmarks')} (${bookmarkedMessages.length})`}
             style={{
               background: showBookmarks ? 'var(--accent)' : 'none',
               border: 'none',
@@ -913,7 +913,7 @@ export default function ChatPanel() {
                 color: 'var(--text-muted)',
               }}
             >
-              No bookmarks yet.
+              {t('chat.noBookmarks')}
               <div style={{ fontSize: 10, marginTop: 4 }}>{t('chat.bookmarkHint')}</div>
             </div>
           )}
@@ -922,7 +922,7 @@ export default function ChatPanel() {
         <div style={{ position: 'relative' }} ref={statsRef}>
           <button
             onClick={() => setShowStats(!showStats)}
-            title="Conversation stats"
+            title={t('chat.stats')}
             disabled={messages.length === 0}
             style={{
               background: showStats ? 'var(--accent)' : 'none',
@@ -961,15 +961,15 @@ export default function ChatPanel() {
               }}
             >
               <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-bright)', marginBottom: 10 }}>
-                Conversation Stats
+                {t('chat.conversationStats')}
               </div>
               {[
-                { label: 'Messages', value: conversationStats.total },
-                { label: 'Your messages', value: conversationStats.user },
-                { label: 'Claude messages', value: conversationStats.assistant },
-                { label: 'Total words', value: conversationStats.totalWords.toLocaleString() },
-                { label: 'Tool uses', value: conversationStats.toolUseCount },
-                { label: 'Duration', value: `~${conversationStats.durationMin} min` },
+                { label: t('chat.statsMessages'), value: conversationStats.total },
+                { label: t('chat.statsYourMessages'), value: conversationStats.user },
+                { label: t('chat.statsClaudeMessages'), value: conversationStats.assistant },
+                { label: t('chat.statsTotalWords'), value: conversationStats.totalWords.toLocaleString() },
+                { label: t('chat.statsToolUses'), value: conversationStats.toolUseCount },
+                { label: t('chat.statsDuration'), value: `~${conversationStats.durationMin} min` },
               ].map(({ label, value }) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 11 }}>
                   <span style={{ color: 'var(--text-muted)' }}>{label}</span>
@@ -978,7 +978,7 @@ export default function ChatPanel() {
               ))}
               {useChatStore.getState().totalSessionCost > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 11, borderTop: '1px solid var(--border)', marginTop: 4, paddingTop: 6 }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Session cost</span>
+                  <span style={{ color: 'var(--text-muted)' }}>{t('chat.statsSessionCost')}</span>
                   <span style={{ color: 'var(--success)', fontWeight: 500 }}>${useChatStore.getState().totalSessionCost.toFixed(4)}</span>
                 </div>
               )}
@@ -993,7 +993,7 @@ export default function ChatPanel() {
                   onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
                   onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
                 >
-                  Collapse all
+                  {t('chat.collapseAll')}
                 </button>
                 <button
                   onClick={() => { useChatStore.getState().expandAll(); setShowStats(false) }}
@@ -1004,7 +1004,7 @@ export default function ChatPanel() {
                   onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
                   onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
                 >
-                  Expand all
+                  {t('chat.expandAll')}
                 </button>
               </div>
             </div>
@@ -1012,7 +1012,7 @@ export default function ChatPanel() {
         </div>
         <button
           onClick={toggleFocusMode}
-          title={focusMode ? 'Exit focus mode (Ctrl+Shift+F)' : 'Focus mode (Ctrl+Shift+F)'}
+          title={focusMode ? `${t('chat.exitFocusMode')} (Ctrl+Shift+F)` : `${t('chat.focusMode')} (Ctrl+Shift+F)`}
           style={{
             background: focusMode ? 'var(--accent)' : 'none',
             border: 'none',
@@ -1059,7 +1059,7 @@ export default function ChatPanel() {
         )}
         <button
           onClick={newConversation}
-          title="New conversation"
+          title={t('chat.newConversation')}
           style={{
             background: 'none',
             border: 'none',
@@ -1208,7 +1208,7 @@ export default function ChatPanel() {
               setAtQuery('')
               textareaRef.current?.focus()
             }}
-            title="Insert @mention"
+            title={t('toolbar.insertMention')}
             style={{
               background: 'none',
               border: 'none',
@@ -1235,7 +1235,7 @@ export default function ChatPanel() {
               setSlashIndex(0)
               textareaRef.current?.focus()
             }}
-            title="Insert slash command"
+            title={t('toolbar.insertSlashCommand')}
             style={{
               background: 'none',
               border: 'none',
@@ -1257,7 +1257,7 @@ export default function ChatPanel() {
           </button>
           <button
             onClick={toggleSpeech}
-            title={listening ? 'Stop recording' : 'Voice input'}
+            title={listening ? t('toolbar.stopRecording') : t('toolbar.voiceInput')}
             style={{
               background: listening ? 'var(--error)' : 'none',
               border: 'none',
@@ -1498,9 +1498,9 @@ export default function ChatPanel() {
             opacity: 0.7,
             transition: 'color 200ms, opacity 200ms',
           }}>
-            <span>{input.trim().split(/\s+/).filter(w => w.length > 0).length} words</span>
+            <span>{input.trim().split(/\s+/).filter(w => w.length > 0).length} {t('chat.words')}</span>
             <span style={{ opacity: 0.4 }}>|</span>
-            <span>{input.length.toLocaleString()} chars{input.length > 10000 ? ' (very long)' : input.length > 5000 ? ' (long)' : ''}</span>
+            <span>{input.length.toLocaleString()} {t('chat.chars')}{input.length > 10000 ? ` (${t('chat.veryLong')})` : input.length > 5000 ? ` (${t('chat.long')})` : ''}</span>
           </div>
         )}
       </div>
