@@ -1,3 +1,4 @@
 # aipa-ui Agent Memory
 
-当前为空。发现值得跨会话保留的设计决策时，在此记录。
+- [Violet Theme for Task Queue](design_task-queue-violet-theme.md) -- violet #a78bfa chosen for queue UI, distinct from zinc/blue palette
+- [Inline Styles Not Tailwind](feedback_inline-styles-not-tailwind.md) -- codebase uses style={{}} + CSS vars, specs must map to that pattern
