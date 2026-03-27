@@ -526,3 +526,39 @@ built in 8.32s
 - [x] Skip link styled as 11px text with underline on hover
 - [x] Respects prefers-reduced-motion
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 69 -- Welcome Screen Visual Redesign
+
+_Date: 2026-03-26 | Sprint UI Enhancement_
+
+### Summary
+Redesigned the WelcomeScreen (empty-state hero shown before first message in every session) from a plain emoji-based layout into a polished, modern hero matching the WeChat-style UI. Replaced the raw robot emoji with a Bot lucide icon inside an 80px accent-tinted circle (same style as the redesigned onboarding). Suggestion cards now use lucide icons (FolderSearch, Bug, Sparkles, FileCode2) inside 44px circular containers instead of raw emoji, with card-bg/card-border CSS variables, 12px border-radius, and hover effects (accent border + scale 1.03). Keyboard shortcuts section redesigned as a 2x3 grid inside a rounded card container with popup-bg/popup-border styled kbd elements. Quick action buttons upgraded with lucide icons (Settings, Terminal, FolderOpen, Keyboard) and larger sizing. Title updated to "Hello! I'm AIPA" with 28px/700 weight typography.
+
+### Files Changed
+- `src/renderer/components/chat/ChatPanel.tsx` -- Added 8 new lucide-react icon imports (FolderSearch, Bug, Sparkles, FileCode2, Settings, Terminal, FolderOpen, Keyboard); rewrote WelcomeScreen function: replaced robot emoji with Bot icon in 80px circle, suggestion cards use lucide icons in 44px circular containers with card-bg/card-border styling and hover scale(1.03) + accent border, keyboard shortcuts in 2x3 grid with card container and popup-styled kbd elements, quick action buttons with lucide icons and larger sizing
+
+### Build
+Status: SUCCESS
+
+```
+2385 modules transformed.
+built in 8.48s
+```
+
+### Acceptance Criteria
+- [x] Robot emoji replaced with Bot icon in 80px accent-tinted circle
+- [x] Title updated to "Hello! I'm AIPA" with 28px/700 weight
+- [x] Subtitle refined with 360px max-width and 1.7 line-height
+- [x] Suggestion cards use lucide icons (FolderSearch, Bug, Sparkles, FileCode2)
+- [x] Icons inside 44px circular containers with rgba accent background
+- [x] Cards use card-bg/card-border CSS variable system
+- [x] Card hover shows accent border + scale(1.03) transform
+- [x] Cards have 12px border-radius matching modern design language
+- [x] Keyboard shortcuts in 2x3 grid inside card container
+- [x] kbd elements use popup-bg/popup-border styling
+- [x] Quick action buttons have lucide icons (Settings, Terminal, FolderOpen, Keyboard)
+- [x] Quick action buttons larger (12px font, 6px border-radius, icon+label)
+- [x] Onboard-icon animation reused for hero Bot entrance
+- [x] Build passes with zero errors

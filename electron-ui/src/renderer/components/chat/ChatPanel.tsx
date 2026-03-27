@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Send, Square, Plus, Mic, MicOff, Download, Upload, Maximize2, Minimize2, Bookmark, BarChart3, ListPlus, AtSign, TerminalSquare, Search, Bot } from 'lucide-react'
+import { Send, Square, Plus, Mic, MicOff, Download, Upload, Maximize2, Minimize2, Bookmark, BarChart3, ListPlus, AtSign, TerminalSquare, Search, Bot, FolderSearch, Bug, Sparkles, FileCode2, Settings, Terminal, FolderOpen, Keyboard } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { useStreamJson } from '../../hooks/useStreamJson'
 import MessageList from './MessageList'
@@ -1403,10 +1403,10 @@ function ThinkingIndicator() {
 
 function WelcomeScreen({ onSuggestion }: { onSuggestion: (text: string) => void }) {
   const suggestions = [
-    { emoji: '\u{1F4C1}', text: 'Analyze the code structure of this project' },
-    { emoji: '\u{1F41B}', text: 'Help me find and fix this bug' },
-    { emoji: '\u2728', text: 'Help me implement a new feature' },
-    { emoji: '\u{1F4DD}', text: 'Write a script to automate a task' },
+    { icon: FolderSearch, text: 'Analyze code structure' },
+    { icon: Bug, text: 'Find and fix a bug' },
+    { icon: Sparkles, text: 'Implement a new feature' },
+    { icon: FileCode2, text: 'Write an automation script' },
   ]
 
   const shortcuts = [
@@ -1418,15 +1418,37 @@ function WelcomeScreen({ onSuggestion }: { onSuggestion: (text: string) => void 
     { keys: '/cmd', desc: 'Slash commands' },
   ]
 
+  const quickActions = [
+    { label: 'Settings', icon: Settings, action: () => { useUiStore.getState().setSidebarOpen(true); useUiStore.getState().setSidebarTab('settings') } },
+    { label: 'Terminal', icon: Terminal, action: () => useUiStore.getState().toggleTerminal() },
+    { label: 'Files', icon: FolderOpen, action: () => { useUiStore.getState().setSidebarOpen(true); useUiStore.getState().setSidebarTab('files') } },
+    { label: 'Shortcuts', icon: Keyboard, action: () => window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, key: '/' })) },
+  ]
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', gap: 20, padding: '0 20px' }}>
-      <div style={{ fontSize: 56 }}>{'\u{1F916}'}</div>
-      <div style={{ fontSize: 24, color: 'var(--text-primary)', fontWeight: 600 }}>Hello! I'm Claude</div>
-      <div style={{ fontSize: 14, color: 'var(--text-muted)', textAlign: 'center' }}>
-        Your AI assistant, ready to help
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', gap: 24, padding: '0 20px' }}>
+      {/* Hero icon */}
+      <div className="onboard-icon" style={{
+        width: 80,
+        height: 80,
+        borderRadius: '50%',
+        background: 'rgba(0,122,204,0.1)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <Bot size={48} color="var(--accent)" strokeWidth={1.5} />
       </div>
-      <div style={{ display: 'flex', gap: 12, marginTop: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-        {suggestions.map(({ emoji, text }) => (
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 28, color: 'var(--text-bright)', fontWeight: 700, letterSpacing: '-0.02em' }}>Hello! I'm AIPA</div>
+        <div style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 8, maxWidth: 360, lineHeight: 1.7 }}>
+          Your AI-powered assistant for coding, analysis, and creative work.
+        </div>
+      </div>
+
+      {/* Suggestion cards */}
+      <div style={{ display: 'flex', gap: 12, marginTop: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
+        {suggestions.map(({ icon: Icon, text }) => (
           <button
             key={text}
             onClick={() => onSuggestion(text)}
@@ -1434,81 +1456,101 @@ function WelcomeScreen({ onSuggestion }: { onSuggestion: (text: string) => void 
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: 8,
-              padding: '16px 20px',
-              background: 'var(--input-field-bg)',
-              border: '1px solid var(--border)',
-              borderRadius: 10,
+              gap: 10,
+              padding: '20px 16px',
+              background: 'var(--card-bg)',
+              border: '1px solid var(--card-border)',
+              borderRadius: 12,
               color: 'var(--text-primary)',
               cursor: 'pointer',
               fontSize: 13,
-              minWidth: 110,
-              maxWidth: 140,
-              transition: 'background 0.15s, border-color 0.15s',
+              minWidth: 130,
+              maxWidth: 150,
+              transition: 'background 0.15s, border-color 0.15s, transform 0.15s',
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-active)'
-              ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'
+              (e.currentTarget as HTMLButtonElement).style.background = 'var(--action-btn-hover)';
+              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)';
+              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.03)'
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'var(--input-field-bg)'
-              ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)'
+              (e.currentTarget as HTMLButtonElement).style.background = 'var(--card-bg)';
+              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--card-border)';
+              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'
             }}
           >
-            <span style={{ fontSize: 24 }}>{emoji}</span>
-            <span>{text}</span>
+            <div style={{
+              width: 44,
+              height: 44,
+              borderRadius: '50%',
+              background: 'rgba(0,122,204,0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <Icon size={24} color="var(--accent)" />
+            </div>
+            <span style={{ textAlign: 'center', lineHeight: 1.4 }}>{text}</span>
           </button>
         ))}
       </div>
 
-      {/* Keyboard shortcuts hint */}
-      <div style={{ display: 'flex', gap: 16, marginTop: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+      {/* Keyboard shortcuts */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, auto)',
+        gap: '8px 20px',
+        padding: '14px 20px',
+        background: 'var(--card-bg)',
+        border: '1px solid var(--card-border)',
+        borderRadius: 10,
+      }}>
         {shortcuts.map(({ keys, desc }) => (
           <div key={keys} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
             <kbd style={{
-              background: 'var(--input-field-bg)',
-              border: '1px solid var(--border)',
-              borderRadius: 3,
-              padding: '1px 5px',
+              background: 'var(--popup-bg)',
+              border: '1px solid var(--popup-border)',
+              borderRadius: 4,
+              padding: '2px 8px',
               fontSize: 10,
               fontFamily: 'monospace',
               color: 'var(--text-primary)',
+              whiteSpace: 'nowrap',
             }}>{keys}</kbd>
             <span style={{ color: 'var(--text-muted)' }}>{desc}</span>
           </div>
         ))}
       </div>
 
-      {/* Quick actions */}
-      <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-        {[
-          { label: 'Settings', action: () => { useUiStore.getState().setSidebarOpen(true); useUiStore.getState().setSidebarTab('settings') } },
-          { label: 'Terminal', action: () => useUiStore.getState().toggleTerminal() },
-          { label: 'Files', action: () => { useUiStore.getState().setSidebarOpen(true); useUiStore.getState().setSidebarTab('files') } },
-          { label: 'Shortcuts', action: () => window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, key: '/' })) },
-        ].map(({ label, action }) => (
+      {/* Quick action buttons */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+        {quickActions.map(({ label, icon: QIcon, action }) => (
           <button
             key={label}
             onClick={action}
             style={{
               background: 'none',
-              border: '1px solid var(--border)',
-              borderRadius: 4,
-              padding: '4px 12px',
+              border: '1px solid var(--card-border)',
+              borderRadius: 6,
+              padding: '5px 14px',
               color: 'var(--text-muted)',
               cursor: 'pointer',
-              fontSize: 11,
+              fontSize: 12,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
               transition: 'border-color 0.15s, color 0.15s',
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'
-              ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)'
+              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)';
+              (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)'
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)'
-              ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'
+              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--card-border)';
+              (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'
             }}
           >
+            <QIcon size={12} />
             {label}
           </button>
         ))}
