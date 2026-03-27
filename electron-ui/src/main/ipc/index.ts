@@ -22,6 +22,7 @@ export function registerAllHandlers(win: BrowserWindow): void {
   registerConfigHandlers()
   registerFsHandlers()
   registerShellHandlers()
+  registerWindowHandlers(win)
 }
 
 // ────────────────────────────────────────────
@@ -293,6 +294,15 @@ function registerFsHandlers(): void {
       }
     }
     return commands
+  })
+}
+
+// ────────────────────────────────────────────
+// Window handlers
+// ────────────────────────────────────────────
+function registerWindowHandlers(win: BrowserWindow): void {
+  ipcMain.handle('window:setTitleBarOverlay', (_e, opts: { color: string; symbolColor: string }) => {
+    win.setTitleBarOverlay(opts)
   })
 }
 

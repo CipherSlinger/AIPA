@@ -100,6 +100,10 @@ const electronAPI = {
   // ── Shell ───────────────────────────────
   shellOpenExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
 
+  // ── Window ──────────────────────────────
+  windowSetTitleBarOverlay: (opts: { color: string; symbolColor: string }) =>
+    ipcRenderer.invoke('window:setTitleBarOverlay', opts),
+
   // ── Version info ────────────────────────
   versions: {
     electron: process.versions.electron,

@@ -114,8 +114,13 @@ export default function App() {
     const theme = prefs.theme || 'vscode'
     if (theme === 'vscode') {
       document.documentElement.removeAttribute('data-theme')
+      window.electronAPI.windowSetTitleBarOverlay({ color: '#2c2c2c', symbolColor: '#cccccc' })
+    } else if (theme === 'light') {
+      document.documentElement.setAttribute('data-theme', theme)
+      window.electronAPI.windowSetTitleBarOverlay({ color: '#f8f8f8', symbolColor: '#1a1a1a' })
     } else {
       document.documentElement.setAttribute('data-theme', theme)
+      window.electronAPI.windowSetTitleBarOverlay({ color: '#2c2c2c', symbolColor: '#cccccc' })
     }
   }, [prefs.theme])
 

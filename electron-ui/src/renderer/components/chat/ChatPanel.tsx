@@ -139,7 +139,7 @@ export default function ChatPanel() {
       setPlaceholderIdx(i => (i + 1) % PLACEHOLDER_KEYS.length)
     }, 4000)
     return () => clearInterval(id)
-  }, [input.length > 0])
+  }, [input])
 
   // Drag-and-drop state
   const [isDragOver, setIsDragOver] = useState(false)

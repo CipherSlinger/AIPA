@@ -56,7 +56,7 @@ class PtyManager extends EventEmitter {
         rows: args.rows,
         cwd: args.cwd,
         env,
-        useConpty: true,
+        useConpty: false,
       })
 
       ptyProcess.onData((data: string) => {
