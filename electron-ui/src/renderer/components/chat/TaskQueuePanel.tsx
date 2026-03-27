@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { AlignJustify, Pause, Play, Trash2, X } from 'lucide-react'
 import { useChatStore } from '../../store'
 import type { TaskQueueItem } from '../../store'
+import { useT } from '../../i18n'
 
 // ── Animation keyframes injected once ──────────────
 const KEYFRAMES_ID = 'task-queue-keyframes'
@@ -31,12 +32,12 @@ function ensureKeyframes() {
 }
 
 // ── Status badge ────────────────────────────────────
-function StatusBadge({ status }: { status: TaskQueueItem['status'] }) {
+function StatusBadge({ status, t }: { status: TaskQueueItem['status']; t: (key: string) => string }) {
   if (status === 'running') {
     return (
       <span style={{
-        background: 'rgba(139, 92, 246, 0.20)',
-        color: '#c4b5fd',
+        background: 'var(--queue-bg-running)',
+        color: 'var(--queue-accent-soft)',
         fontSize: 10,
         padding: '2px 6px',
         borderRadius: 3,
@@ -44,7 +45,7 @@ function StatusBadge({ status }: { status: TaskQueueItem['status'] }) {
         animation: 'queue-running-pulse 1.5s ease-in-out infinite',
         display: 'inline-block',
       }}>
-        Running
+        {t('taskQueue.running')}
       </span>
     )
   }
@@ -52,26 +53,26 @@ function StatusBadge({ status }: { status: TaskQueueItem['status'] }) {
     return (
       <span style={{
         background: 'rgba(78, 201, 176, 0.15)',
-        color: '#4ec9b0',
+        color: 'var(--success)',
         fontSize: 10,
         padding: '2px 6px',
         borderRadius: 3,
         flexShrink: 0,
       }}>
-        Done
+        {t('taskQueue.done')}
       </span>
     )
   }
   return (
     <span style={{
       background: 'rgba(64, 64, 64, 0.6)',
-      color: '#858585',
+      color: 'var(--text-muted)',
       fontSize: 10,
       padding: '2px 6px',
       borderRadius: 3,
       flexShrink: 0,
     }}>
-      Pending
+      {t('taskQueue.pending')}
     </span>
   )
 }
@@ -81,10 +82,12 @@ function TaskRow({
   item,
   index,
   onRemove,
+  t,
 }: {
   item: TaskQueueItem
   index: number
   onRemove: (id: string) => void
+  t: (key: string) => string
 }) {
   const [hovered, setHovered] = useState(false)
 
@@ -115,7 +118,7 @@ function TaskRow({
       </span>
 
       {/* Status badge */}
-      <StatusBadge status={item.status} />
+      <StatusBadge status={item.status} t={t} />
 
       {/* Content */}
       <span style={{
@@ -130,11 +133,11 @@ function TaskRow({
         {item.content}
       </span>
 
-      {/* Delete button — pending only */}
+      {/* Delete button -- pending only */}
       {item.status === 'pending' && (
         <button
           onClick={() => onRemove(item.id)}
-          aria-label={`Remove task: ${item.content.slice(0, 40)}`}
+          aria-label={`${t('taskQueue.remove')}: ${item.content.slice(0, 40)}`}
           style={{
             background: 'none',
             border: 'none',
@@ -143,11 +146,11 @@ function TaskRow({
             display: 'flex',
             alignItems: 'center',
             flexShrink: 0,
-            color: hovered ? '#4a4a4a' : '#4a4a4a',
+            color: '#4a4a4a',
             opacity: hovered ? 1 : 0,
             transition: 'opacity 150ms ease, color 150ms ease',
           }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#f44747' }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--error)' }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#4a4a4a' }}
         >
           <X size={14} />
@@ -163,6 +166,7 @@ function TaskRow({
 
 // ── Main panel ──────────────────────────────────────
 export default function TaskQueuePanel() {
+  const t = useT()
   const taskQueue = useChatStore(s => s.taskQueue)
   const queuePaused = useChatStore(s => s.queuePaused)
   const removeFromQueue = useChatStore(s => s.removeFromQueue)
@@ -209,11 +213,11 @@ export default function TaskQueuePanel() {
     <div
       style={{
         margin: '0 16px 8px 16px',
-        background: 'rgba(30, 30, 30, 0.97)',
+        background: 'var(--queue-panel-bg)',
         backdropFilter: 'blur(8px)',
-        border: '1px solid rgba(64, 64, 64, 0.6)',
+        border: '1px solid var(--queue-panel-border)',
         borderRadius: 10,
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
+        boxShadow: 'var(--queue-panel-shadow)',
         maxHeight: 208,
         overflowY: 'auto',
         flexShrink: 0,
@@ -233,12 +237,12 @@ export default function TaskQueuePanel() {
       }}>
         {/* Left: title */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <AlignJustify size={14} style={{ color: '#a78bfa', flexShrink: 0 }} />
+          <AlignJustify size={14} style={{ color: 'var(--queue-accent)', flexShrink: 0 }} />
           <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
-            Task Queue
+            {t('taskQueue.title')}
           </span>
           <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 2 }}>
-            ({pendingCount} pending / {totalCount} total)
+            ({pendingCount} {t('taskQueue.pending')} / {totalCount} {t('taskQueue.totalLabel')})
           </span>
         </div>
 
@@ -248,7 +252,7 @@ export default function TaskQueuePanel() {
           <button
             onClick={toggleQueuePause}
             aria-pressed={queuePaused}
-            title={queuePaused ? 'Resume queue' : 'Pause queue'}
+            title={queuePaused ? t('taskQueue.resume') : t('taskQueue.pause')}
             style={{
               background: 'none',
               border: 'none',
@@ -268,13 +272,13 @@ export default function TaskQueuePanel() {
             }}
           >
             {queuePaused ? <Play size={12} /> : <Pause size={12} />}
-            <span>{queuePaused ? 'Resume' : 'Pause'}</span>
+            <span>{queuePaused ? t('taskQueue.resume') : t('taskQueue.pause')}</span>
           </button>
 
           {/* Clear pending */}
           <button
             onClick={clearQueue}
-            title="Clear all pending tasks"
+            title={t('taskQueue.clearAll')}
             style={{
               background: 'none',
               border: 'none',
@@ -289,11 +293,11 @@ export default function TaskQueuePanel() {
               marginLeft: 6,
               transition: 'color 150ms ease',
             }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#f44747' }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--error)' }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)' }}
           >
             <Trash2 size={12} />
-            <span>Clear</span>
+            <span>{t('taskQueue.clear')}</span>
           </button>
         </div>
       </div>
@@ -306,6 +310,7 @@ export default function TaskQueuePanel() {
             item={item}
             index={idx}
             onRemove={removeFromQueue}
+            t={t}
           />
         ))}
       </div>

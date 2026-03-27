@@ -176,6 +176,14 @@
 | Copy conversation to clipboard (Ctrl+Shift+X) | P1 | DONE (Iteration 91) |
 | Shortcut cheatsheet full i18n migration | P1 | DONE (Iteration 91) |
 
+### Iteration 92 -- Task Queue i18n + CSS Variables
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Task Queue Panel i18n (all strings translated) | P1 | DONE (Iteration 92) |
+| Task Queue CSS variable system (7 vars, 4 themes) | P1 | DONE (Iteration 92) |
+| Queue entry button i18n | P1 | DONE (Iteration 92) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

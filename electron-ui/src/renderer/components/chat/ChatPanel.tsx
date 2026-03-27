@@ -1292,8 +1292,8 @@ export default function ChatPanel() {
                 textareaRef.current?.focus()
               }}
               disabled={!input.trim()}
-              aria-label="Add to task queue"
-              title="Add to queue (Ctrl+Shift+Q)"
+              aria-label={t('taskQueue.addToQueue')}
+              title={t('taskQueue.addToQueueShortcut')}
               style={{
                 background: 'none',
                 border: 'none',

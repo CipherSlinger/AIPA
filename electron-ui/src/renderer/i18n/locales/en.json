@@ -285,10 +285,15 @@
     "pause": "Pause",
     "resume": "Resume",
     "clear": "Clear",
+    "clearAll": "Clear all pending tasks",
     "pending": "pending",
     "running": "running",
     "done": "done",
-    "remove": "Remove"
+    "remove": "Remove",
+    "totalLabel": "total",
+    "addToQueue": "Add to queue",
+    "addToQueueShortcut": "Add to queue (Ctrl+Shift+Q)",
+    "queueComplete": "Queue complete: {{count}} tasks finished"
   },
   "terminal": {
     "title": "Terminal",

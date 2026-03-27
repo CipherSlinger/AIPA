@@ -93,6 +93,16 @@
   --reaction-badge-border:  rgba(255,255,255,0.12);
   --reaction-badge-active:  rgba(0,122,204,0.2);
   --reaction-badge-active-border: rgba(0,122,204,0.4);
+
+  /* === NEW (Iteration 92): Task Queue === */
+  --queue-accent:       #a78bfa;
+  --queue-accent-deep:  #8b5cf6;
+  --queue-accent-soft:  #c4b5fd;
+  --queue-bg-tint:      rgba(139, 92, 246, 0.10);
+  --queue-bg-running:   rgba(139, 92, 246, 0.20);
+  --queue-panel-bg:     rgba(30, 30, 30, 0.97);
+  --queue-panel-border: rgba(64, 64, 64, 0.6);
+  --queue-panel-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 /* Theme: Modern Dark (GitHub/Linear style) */
@@ -166,6 +176,16 @@
   --reaction-badge-border:  rgba(255,255,255,0.1);
   --reaction-badge-active:  rgba(47,129,247,0.2);
   --reaction-badge-active-border: rgba(47,129,247,0.4);
+
+  /* === NEW (Iteration 92): Task Queue === */
+  --queue-accent:       #a78bfa;
+  --queue-accent-deep:  #8b5cf6;
+  --queue-accent-soft:  #c4b5fd;
+  --queue-bg-tint:      rgba(139, 92, 246, 0.10);
+  --queue-bg-running:   rgba(139, 92, 246, 0.20);
+  --queue-panel-bg:     rgba(22, 27, 34, 0.97);
+  --queue-panel-border: rgba(255, 255, 255, 0.08);
+  --queue-panel-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
 /* Theme: Minimal Dark (Claude.ai/Raycast style) */
@@ -239,6 +259,16 @@
   --reaction-badge-border:  rgba(255,255,255,0.08);
   --reaction-badge-active:  rgba(168,85,247,0.2);
   --reaction-badge-active-border: rgba(168,85,247,0.4);
+
+  /* === NEW (Iteration 92): Task Queue === */
+  --queue-accent:       #a78bfa;
+  --queue-accent-deep:  #8b5cf6;
+  --queue-accent-soft:  #c4b5fd;
+  --queue-bg-tint:      rgba(139, 92, 246, 0.10);
+  --queue-bg-running:   rgba(139, 92, 246, 0.20);
+  --queue-panel-bg:     rgba(28, 28, 28, 0.97);
+  --queue-panel-border: rgba(255, 255, 255, 0.06);
+  --queue-panel-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
 }
 
 /* Theme: Light (clean light mode) */
@@ -311,6 +341,16 @@
   --reaction-badge-border:  rgba(0,0,0,0.1);
   --reaction-badge-active:  rgba(37,99,235,0.1);
   --reaction-badge-active-border: rgba(37,99,235,0.3);
+
+  /* === NEW (Iteration 92): Task Queue === */
+  --queue-accent:       #7c3aed;
+  --queue-accent-deep:  #6d28d9;
+  --queue-accent-soft:  #8b5cf6;
+  --queue-bg-tint:      rgba(124, 58, 237, 0.08);
+  --queue-bg-running:   rgba(124, 58, 237, 0.12);
+  --queue-panel-bg:     rgba(255, 255, 255, 0.97);
+  --queue-panel-border: rgba(0, 0, 0, 0.1);
+  --queue-panel-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 * {

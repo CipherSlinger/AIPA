@@ -1093,3 +1093,44 @@ built in 8.17s
 - [x] Shortcut cheatsheet fully internationalized
 - [x] Zoom shortcuts added to cheatsheet
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 92 -- Task Queue i18n + CSS Variables
+
+_Date: 2026-03-27 | Sprint UI Polish_
+
+### Summary
+Completed i18n migration and CSS variable integration for the Task Queue Panel. All hardcoded English strings in TaskQueuePanel.tsx replaced with `t()` translation function calls. Added 5 new i18n keys (clearAll, totalLabel, addToQueue, addToQueueShortcut, queueComplete) to both en.json and zh-CN.json. Replaced hardcoded color values in the panel with CSS variables (--queue-accent, --queue-panel-bg, --queue-panel-border, --queue-panel-shadow, --queue-bg-running, --queue-accent-soft). Added 7 queue-specific CSS variables across all 4 themes (default, modern, minimal, light). Light theme uses deeper violet (#7c3aed) for proper contrast on white backgrounds.
+
+### Files Changed
+- `src/renderer/components/chat/TaskQueuePanel.tsx` -- Added `useT` import; replaced all hardcoded English strings (Task Queue, Pending, Running, Done, Pause, Resume, Clear, Remove) with `t()` calls; replaced hardcoded colors with CSS variables (--queue-accent, --queue-panel-bg, --queue-panel-border, --queue-panel-shadow, --queue-bg-running, --queue-accent-soft, --success, --error, --text-muted)
+- `src/renderer/components/chat/ChatPanel.tsx` -- Queue button aria-label and title now use i18n keys (taskQueue.addToQueue, taskQueue.addToQueueShortcut)
+- `src/renderer/styles/globals.css` -- Added 7 queue CSS variables (--queue-accent, --queue-accent-deep, --queue-accent-soft, --queue-bg-tint, --queue-bg-running, --queue-panel-bg, --queue-panel-border, --queue-panel-shadow) to all 4 theme blocks (default, modern, minimal, light)
+- `src/renderer/i18n/locales/en.json` -- Added 5 new taskQueue keys: clearAll, totalLabel, addToQueue, addToQueueShortcut, queueComplete
+- `src/renderer/i18n/locales/zh-CN.json` -- Added corresponding Chinese translations for all 5 new keys
+
+### Build
+Status: SUCCESS
+
+```
+2388 modules transformed.
+built in 7.83s
+```
+
+### Acceptance Criteria
+- [x] All TaskQueuePanel strings use t() translation function
+- [x] StatusBadge labels (Pending/Running/Done) internationalized
+- [x] Pause/Resume button labels internationalized
+- [x] Clear button label and title internationalized
+- [x] Delete button aria-label internationalized
+- [x] Header title and count labels internationalized
+- [x] Queue button in ChatPanel uses i18n for aria-label and title
+- [x] 7 queue CSS variables defined in all 4 themes
+- [x] Panel bg/border/shadow use CSS variables instead of hardcoded values
+- [x] Running badge uses var(--queue-bg-running) and var(--queue-accent-soft)
+- [x] Header icon uses var(--queue-accent)
+- [x] Light theme uses deeper violet (#7c3aed) for proper contrast
+- [x] en.json has 5 new taskQueue keys (clearAll, totalLabel, addToQueue, addToQueueShortcut, queueComplete)
+- [x] zh-CN.json has all corresponding Chinese translations
+- [x] Build passes with zero errors
