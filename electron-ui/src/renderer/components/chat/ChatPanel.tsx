@@ -1511,12 +1511,13 @@ export default function ChatPanel() {
 
 function ThinkingIndicator() {
   const { messages, pendingToolUses } = useChatStore()
+  const t = useT()
   const [elapsed, setElapsed] = useState(0)
 
   // Elapsed timer
   useEffect(() => {
     setElapsed(0)
-    const id = setInterval(() => setElapsed(t => t + 1), 1000)
+    const id = setInterval(() => setElapsed(prev => prev + 1), 1000)
     return () => clearInterval(id)
   }, [])
 

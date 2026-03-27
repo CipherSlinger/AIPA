@@ -70,7 +70,7 @@ function parseSessionMessages(raw: SessionMessage[]): ChatMessage[] {
           id: `hist-user-${entry.timestamp || Date.now()}-${result.length}`,
           role: 'user',
           content: text,
-          timestamp: entry.timestamp ? new Date(entry.timestamp as string).getTime() : Date.now(),
+          timestamp: entry.timestamp ? new Date(String(entry.timestamp)).getTime() : Date.now(),
         } as StandardChatMessage)
       } else if (typeof content === 'string') {
         if (!content.trim()) continue
@@ -78,7 +78,7 @@ function parseSessionMessages(raw: SessionMessage[]): ChatMessage[] {
           id: `hist-user-${entry.timestamp || Date.now()}-${result.length}`,
           role: 'user',
           content,
-          timestamp: entry.timestamp ? new Date(entry.timestamp as string).getTime() : Date.now(),
+          timestamp: entry.timestamp ? new Date(String(entry.timestamp)).getTime() : Date.now(),
         } as StandardChatMessage)
       }
 
@@ -119,7 +119,7 @@ function parseSessionMessages(raw: SessionMessage[]): ChatMessage[] {
         content: text,
         thinking: thinking || undefined,
         toolUses: toolUses.length > 0 ? toolUses : undefined,
-        timestamp: entry.timestamp ? new Date(entry.timestamp as string).getTime() : Date.now(),
+        timestamp: entry.timestamp ? new Date(String(entry.timestamp)).getTime() : Date.now(),
       } as StandardChatMessage)
     }
   }

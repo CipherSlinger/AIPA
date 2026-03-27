@@ -111,7 +111,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   }, [isMessageStreaming, thinking])
 
   // Compute word and approx token count for assistant messages
-  const wordInfo = isAssistant && message.role !== 'permission' && (message as StandardChatMessage).content
+  const wordInfo = isAssistant && (message as StandardChatMessage).content
     ? (() => {
         const text = (message as StandardChatMessage).content
         const words = text.split(/\s+/).filter(w => w.length > 0).length

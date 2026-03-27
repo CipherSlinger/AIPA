@@ -452,7 +452,7 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight]}
         components={{
-          code({ node, inline, className, children, ...props }: Record<string, unknown>) {
+          code({ node, inline, className, children, ...props }: any) {
             const isInline = inline as boolean
             const match = /language-(\w+)/.exec((className as string) || '')
             const codeText = String(children).replace(/\n$/, '')
