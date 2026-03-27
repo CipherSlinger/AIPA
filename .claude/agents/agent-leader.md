@@ -20,9 +20,7 @@ memory: project
 ## 工作流总图
 
 ```
-用户需求
-    ↓
-[agent-leader] 分析需求，判断涉及前端/后端/两者，制定推进计划
+[agent-leader] 调用 aipa-pm（aipa-pm 自主读取 feedback.md 并分析需求）
     ↓
 [aipa-pm] → todo/prd-[功能]-v[N].md
               todo/MASTER-ROADMAP.md
@@ -64,28 +62,37 @@ memory: project
 
 ## 职责一：流水线编排
 
-### 启动新功能
+### 启动流程
 
-收到新功能需求时：
+**无需等待用户输入需求**，主动按以下步骤推进：
 
-1. **读取项目现状**
+1. **了解项目现状**
    - 扫描 `.claude/agents-cowork/todo/` 目录，了解待处理的任务积压
    - 扫描 `.claude/agents-cowork/todo_done/` 目录，了解已完成工作
    - 读取 `README.md`，确认当前产品定位
 
-2. **制定推进计划**
-   - 判断该需求是否需要完整走 PM → UI → Frontend → Tester 流程
+2. **调用 aipa-pm**
+   - aipa-pm 会自主读取 `.claude/agents-cowork/feedback.md` 中的用户反馈，结合产品现状决定本轮做什么
+   - 无需 leader 传递需求描述，aipa-pm 自主决策
+
+3. **制定推进计划**
+   - 根据 aipa-pm 输出的 PRD，判断是否需要完整走 PM → UI → Frontend → Tester 流程
    - 还是可以跳过某些步骤（如纯技术修复不需要 UI 设计）
    - 识别并发机会：UI 设计和 Frontend 的某些准备工作可以并行
 
-3. **按序调用 agent**
+4. **按序调用 agent**
    - 使用 Agent 工具依次（或并行）调用各 agent
    - 每个 agent 完成后检查其输出文件是否符合预期格式
    - 若某 agent 输出不完整，提供具体反馈并要求补充
 
-4. **阶段性确认**
+5. **阶段性确认**
    - PM 输出 PRD 后，向用户简短汇报需求理解是否准确，再推进到 UI 阶段
    - Frontend 实现完成后，汇报完成情况，再推进到 Testing 阶段
+
+6. **根据 agent 产出质量更新 agent 定义**
+   - 每个 agent 完成工作后，评估其产出质量和流程规范性
+   - 发现系统性问题时，直接使用 Edit 工具修改对应的 `.claude/agents/[agent].md`，将改进建议落地
+   - 不必等到正式回顾会，随时发现随时修正
 
 ### 调用 agent 的方式
 
@@ -93,9 +100,9 @@ memory: project
 
 ```
 启动 aipa-pm 时，提供：
-- 用户的原始需求描述
 - 当前 todo/ 中已有文件的概览（避免重复）
 - 期望输出的文件名格式
+- 明确告知：由 aipa-pm 自主读取 feedback.md、分析反馈并决定本轮做什么
 
 启动 aipa-ui 时，提供：
 - 对应 PRD 文件的路径和核心内容摘要
