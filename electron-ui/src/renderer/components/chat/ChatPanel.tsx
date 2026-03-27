@@ -10,17 +10,18 @@ import { useImagePaste } from '../../hooks/useImagePaste'
 import { ChatMessage, StandardChatMessage } from '../../types/app.types'
 import TaskQueuePanel from './TaskQueuePanel'
 import QuickReplyChips from './QuickReplyChips'
+import { useT } from '../../i18n'
 
-// Rotating placeholder suggestions
-const PLACEHOLDER_SUGGESTIONS = [
-  'Message AIPA...',
-  'Ask me to analyze your code...',
-  'Describe a bug to investigate...',
-  'Try: "Explain this function"',
-  'Ask me to write a test...',
-  'Try: "Refactor this file"',
-  'Describe a feature to build...',
-  'Ask me to review a PR...',
+// Placeholder suggestion i18n keys
+const PLACEHOLDER_KEYS = [
+  'chat.placeholders.default',
+  'chat.placeholders.analyzeCode',
+  'chat.placeholders.describeBug',
+  'chat.placeholders.explainFunction',
+  'chat.placeholders.writeTest',
+  'chat.placeholders.refactorFile',
+  'chat.placeholders.buildFeature',
+  'chat.placeholders.reviewPR',
 ]
 
 // Constants for drag-and-drop file handling
@@ -29,6 +30,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const MAX_FILE_COUNT = 10
 
 export default function ChatPanel() {
+  const t = useT()
   const { messages, isStreaming, currentSessionId, currentSessionTitle } = useChatStore()
   const { prefs } = usePrefsStore()
   const { addToast } = useUiStore()
@@ -128,7 +130,7 @@ export default function ChatPanel() {
   useEffect(() => {
     if (input.length > 0) return // Don't rotate when user has typed something
     const id = setInterval(() => {
-      setPlaceholderIdx(i => (i + 1) % PLACEHOLDER_SUGGESTIONS.length)
+      setPlaceholderIdx(i => (i + 1) % PLACEHOLDER_KEYS.length)
     }, 4000)
     return () => clearInterval(id)
   }, [input.length > 0])
@@ -799,7 +801,7 @@ export default function ChatPanel() {
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
                   >
                     <span style={{ color: 'var(--text-muted)', fontSize: 10, marginRight: 6 }}>
-                      {std.role === 'user' ? 'You' : 'Claude'}
+                      {std.role === 'user' ? t('chat.you') : t('chat.claude')}
                     </span>
                     {preview || '(empty)'}
                   </button>
@@ -827,7 +829,7 @@ export default function ChatPanel() {
               }}
             >
               No bookmarks yet.
-              <div style={{ fontSize: 10, marginTop: 4 }}>Right-click a message to bookmark it.</div>
+              <div style={{ fontSize: 10, marginTop: 4 }}>{t('chat.bookmarkHint')}</div>
             </div>
           )}
         </div>
@@ -1274,7 +1276,7 @@ export default function ChatPanel() {
               onBlur={() => {
                 if (inputWrapRef.current) inputWrapRef.current.style.borderColor = 'var(--input-field-border)'
               }}
-              placeholder={PLACEHOLDER_SUGGESTIONS[placeholderIdx]}
+              placeholder={t(PLACEHOLDER_KEYS[placeholderIdx])}
               rows={1}
               style={{
                 flex: 1,
