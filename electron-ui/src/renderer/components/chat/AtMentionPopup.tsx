@@ -16,7 +16,7 @@ interface Props {
 }
 
 export default function AtMentionPopup({ query, onSelect, onDismiss, anchorRef }: Props) {
-  const { prefs } = usePrefsStore()
+  const prefs = usePrefsStore(s => s.prefs)
   const [entries, setEntries] = useState<FileEntry[]>([])
   const [selectedIndex, setSelectedIndex] = useState(0)
   const listRef = useRef<HTMLDivElement>(null)

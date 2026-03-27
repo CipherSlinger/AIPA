@@ -41,8 +41,11 @@ interface Props {
 
 export default function MessageList({ messages, onPermission, onGrantPermission, sessionId, searchQuery, highlightedMessageIdx, scrollToMessageIdx, onEdit }: Props) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const { resolvePlan, rateMessage, toggleBookmark, toggleCollapse } = useChatStore()
-  const { addToast } = useUiStore()
+  const resolvePlan = useChatStore(s => s.resolvePlan)
+  const rateMessage = useChatStore(s => s.rateMessage)
+  const toggleBookmark = useChatStore(s => s.toggleBookmark)
+  const toggleCollapse = useChatStore(s => s.toggleCollapse)
+  const addToast = useUiStore(s => s.addToast)
   const t = useT()
   const [showScrollBtn, setShowScrollBtn] = useState(false)
   const isNearBottomRef = useRef(true)

@@ -5,7 +5,8 @@ import { StandardChatMessage } from '../../types/app.types'
 import { useT } from '../../i18n'
 
 export default function ThinkingIndicator() {
-  const { messages, pendingToolUses } = useChatStore()
+  const messages = useChatStore(s => s.messages)
+  const pendingToolUses = useChatStore(s => s.pendingToolUses)
   const t = useT()
   const [elapsed, setElapsed] = useState(0)
 

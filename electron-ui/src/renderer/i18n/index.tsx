@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import en from './locales/en.json'
 import zhCN from './locales/zh-CN.json'
 
@@ -108,8 +108,13 @@ export function I18nProvider({ children }: I18nProviderProps) {
     return value
   }, [resolvedLocale])
 
+  const contextValue = useMemo(
+    () => ({ locale, resolvedLocale, setLocale, t }),
+    [locale, resolvedLocale, setLocale, t]
+  )
+
   return (
-    <I18nContext.Provider value={{ locale, resolvedLocale, setLocale, t }}>
+    <I18nContext.Provider value={contextValue}>
       {children}
     </I18nContext.Provider>
   )

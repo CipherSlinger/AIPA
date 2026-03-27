@@ -13,8 +13,11 @@ const MIN_TERMINAL = 280
 const MAX_TERMINAL = 800
 
 export default function AppShell() {
-  const { sidebarOpen, terminalOpen, setSidebarOpen, focusMode } = useUiStore()
-  const { currentSessionTitle } = useChatStore()
+  const sidebarOpen = useUiStore(s => s.sidebarOpen)
+  const terminalOpen = useUiStore(s => s.terminalOpen)
+  const setSidebarOpen = useUiStore(s => s.setSidebarOpen)
+  const focusMode = useUiStore(s => s.focusMode)
+  const currentSessionTitle = useChatStore(s => s.currentSessionTitle)
   const [sidebarWidth, setSidebarWidth] = useState(240)
   const [terminalWidth, setTerminalWidth] = useState(420)
   const draggingRef = useRef<'sidebar' | 'terminal' | null>(null)

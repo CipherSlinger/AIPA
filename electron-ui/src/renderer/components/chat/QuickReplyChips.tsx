@@ -21,7 +21,8 @@ const DEFAULT_QUICK_REPLIES: QuickReply[] = [
 
 export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
   const t = useT()
-  const { prefs, setPrefs } = usePrefsStore()
+  const prefs = usePrefsStore(s => s.prefs)
+  const setPrefs = usePrefsStore(s => s.setPrefs)
   const chips: QuickReply[] = prefs.quickReplies ?? DEFAULT_QUICK_REPLIES
 
   const [addingNew, setAddingNew] = useState(false)

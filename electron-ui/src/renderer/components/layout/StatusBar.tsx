@@ -32,9 +32,18 @@ function formatDuration(ms: number): string {
 }
 
 export default function StatusBar() {
-  const { workingDir, lastUsage, lastCost, totalSessionCost, lastContextUsage, isStreaming, messages } = useChatStore()
-  const { prefs } = usePrefsStore()
-  const { toggleSidebar, toggleTerminal, sidebarOpen, terminalOpen } = useUiStore()
+  const workingDir = useChatStore(s => s.workingDir)
+  const lastUsage = useChatStore(s => s.lastUsage)
+  const lastCost = useChatStore(s => s.lastCost)
+  const totalSessionCost = useChatStore(s => s.totalSessionCost)
+  const lastContextUsage = useChatStore(s => s.lastContextUsage)
+  const isStreaming = useChatStore(s => s.isStreaming)
+  const messages = useChatStore(s => s.messages)
+  const prefs = usePrefsStore(s => s.prefs)
+  const toggleSidebar = useUiStore(s => s.toggleSidebar)
+  const toggleTerminal = useUiStore(s => s.toggleTerminal)
+  const sidebarOpen = useUiStore(s => s.sidebarOpen)
+  const terminalOpen = useUiStore(s => s.terminalOpen)
   const t = useT()
 
   const dirLabel = workingDir || prefs.workingDir || '~'
