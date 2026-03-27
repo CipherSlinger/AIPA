@@ -94,6 +94,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Input quick actions** — small "Clear", "@file", "/cmd" buttons above the textarea for quick access
 - **Task queue** — queue multiple prompts for sequential auto-execution; pause, resume, or clear the queue at any time
 - **Multi-language (i18n)** — supports English and Simplified Chinese; defaults to system locale, switchable in Settings
+- **Light theme** — clean light mode alongside three dark themes (VS Code, Modern, Minimal); switchable in Settings
 
 ## Security
 

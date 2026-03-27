@@ -139,6 +139,14 @@
 | System locale detection | `prd-i18n-v1.md` | P1 | DONE (Iteration 80) |
 | Language selector in Settings | `prd-i18n-v1.md` | P1 | DONE (Iteration 80) |
 
+### Iteration 81 -- Light Theme Support
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Light theme CSS variables (~70 props) | P1 | DONE (Iteration 81) |
+| Light theme selector in Settings | P1 | DONE (Iteration 81) |
+| Light scrollbar + code block overrides | P1 | DONE (Iteration 81) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

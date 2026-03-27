@@ -81,7 +81,7 @@ export interface ClaudePrefs {
   fontFamily: string
   skipPermissions: boolean
   verbose: boolean
-  theme: 'vscode' | 'modern' | 'minimal'
+  theme: 'vscode' | 'modern' | 'minimal' | 'light'
   onboardingDone?: boolean
   thinkingLevel?: 'off' | 'adaptive'
   systemPrompt?: string    // custom system prompt (passed via --append-system-prompt)

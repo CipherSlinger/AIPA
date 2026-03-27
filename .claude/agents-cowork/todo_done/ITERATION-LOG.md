@@ -916,3 +916,41 @@ built in 7.35s
 - [x] Missing translation keys fall back to English
 - [x] No new npm dependencies added
 - [x] Build passes with zero TypeScript errors
+
+---
+
+## Iteration 81 -- Light Theme Support
+
+_Date: 2026-03-27 | Sprint UI Enhancement_
+
+### Summary
+Added a clean light theme as the fourth theme option alongside the three existing dark themes (VS Code, Modern Dark, Minimal Dark). The light theme features white/light-gray backgrounds, dark text (#1a1a1a), blue accent (#2563eb), and properly inverted surfaces for all ~70 CSS custom properties including popups, cards, bubbles, reactions, tool cards, and input fields. Added light-mode scrollbar styling (light gray instead of dark gray) and light-mode code block backgrounds (#f6f8fa for `pre`, #eff1f3 for inline `code`). The theme is selectable from Settings with a white preview swatch with blue accent dots.
+
+### Files Changed
+- `src/renderer/styles/globals.css` -- Added `[data-theme="light"]` block with ~70 CSS variable overrides for light mode; added light theme scrollbar overrides (`#c0c0c0`/`#a0a0a0`); added light theme code block background overrides (`#f6f8fa` for pre, `#eff1f3` for inline code)
+- `src/renderer/types/app.types.ts` -- Updated `ClaudePrefs.theme` union type to include `'light'`
+- `src/renderer/components/settings/SettingsPanel.tsx` -- Added Light theme entry to `THEMES` array with white/blue preview colors; adaptive label color (dark text on light swatch)
+
+### Build
+Status: SUCCESS
+
+```
+2388 modules transformed.
+built in 7.38s
+```
+
+### Acceptance Criteria
+- [x] Light theme selectable in Settings panel
+- [x] White preview swatch with blue accent dots in theme picker
+- [x] ~70 CSS variables defined for light mode (backgrounds, text, borders, accents)
+- [x] Light backgrounds: #ffffff primary, #f5f5f5 secondary, #f0f0f0 sidebar
+- [x] Dark text: #1a1a1a primary, #6b7280 muted, #000000 bright
+- [x] Blue accent: #2563eb with #3b82f6 hover
+- [x] User bubbles: blue (#2563eb) with white text
+- [x] AI bubbles: light gray (#f3f4f6) with dark text
+- [x] Light scrollbar colors (#c0c0c0 thumb, #a0a0a0 hover)
+- [x] Light code block backgrounds (#f6f8fa pre, #eff1f3 inline code)
+- [x] All popup/card/reaction variables inverted for light mode
+- [x] Theme type updated in ClaudePrefs interface
+- [x] data-theme="light" attribute applied via existing App.tsx logic
+- [x] Build passes with zero errors

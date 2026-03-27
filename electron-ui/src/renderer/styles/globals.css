@@ -241,6 +241,78 @@
   --reaction-badge-active-border: rgba(168,85,247,0.4);
 }
 
+/* Theme: Light (clean light mode) */
+[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --bg-sidebar: #f0f0f0;
+  --bg-input: #ffffff;
+  --bg-hover: #e8e8e8;
+  --bg-active: #e0e0e0;
+  --text-primary: #1a1a1a;
+  --text-muted: #6b7280;
+  --text-bright: #000000;
+  --accent: #2563eb;
+  --accent-hover: #3b82f6;
+  --border: #e0e0e0;
+  --success: #16a34a;
+  --warning: #d97706;
+  --error: #dc2626;
+  --user-bubble: #2563eb;
+  --assistant-bubble: #f3f4f6;
+
+  --bg-nav:             #f8f8f8;
+  --bg-sessionpanel:    #f0f0f0;
+  --bg-chat:            #ffffff;
+  --bubble-ai:          #f3f4f6;
+  --bubble-ai-text:     #1a1a1a;
+  --bubble-ai-border:   #e5e7eb;
+  --bubble-user:        #2563eb;
+  --bubble-user-text:   #ffffff;
+  --bubble-user-border: #1d4ed8;
+  --nav-icon-default:   #9ca3af;
+  --nav-icon-hover:     #4b5563;
+  --nav-icon-active:    #1a1a1a;
+  --nav-indicator:      #2563eb;
+  --session-active-bg:  rgba(37, 99, 235, 0.08);
+  --session-hover-bg:   rgba(0, 0, 0, 0.04);
+  --avatar-ai:          #7c3aed;
+  --avatar-user:        #2563eb;
+
+  --input-bar-bg:         #ffffff;
+  --input-field-bg:       #f9fafb;
+  --input-field-border:   #d1d5db;
+  --input-field-focus:    #2563eb;
+  --input-toolbar-icon:   #9ca3af;
+  --input-toolbar-hover:  #4b5563;
+  --chat-header-bg:       #f8f8f8;
+  --chat-header-title:    #1a1a1a;
+  --chat-header-icon:     #9ca3af;
+  --chat-header-icon-hover: #4b5563;
+  --tool-card-bg:         rgba(0, 0, 0, 0.03);
+  --tool-card-border:     rgba(0, 0, 0, 0.08);
+  --tool-card-header-bg:  rgba(0, 0, 0, 0.04);
+
+  --popup-bg:             #ffffff;
+  --popup-border:         #e0e0e0;
+  --popup-shadow:         0 8px 24px rgba(0,0,0,0.12);
+  --popup-item-hover:     rgba(0,0,0,0.05);
+  --action-btn-bg:        rgba(0,0,0,0.05);
+  --action-btn-border:    rgba(0,0,0,0.1);
+  --action-btn-hover:     rgba(0,0,0,0.08);
+  --card-bg:              #ffffff;
+  --card-border:          rgba(0,0,0,0.1);
+  --input-focus-shadow:   0 0 0 2px rgba(37,99,235,0.2);
+
+  --reaction-bar-bg:        rgba(255,255,255,0.95);
+  --reaction-bar-border:    rgba(0,0,0,0.1);
+  --reaction-bar-shadow:    0 2px 8px rgba(0,0,0,0.1);
+  --reaction-badge-bg:      rgba(0,0,0,0.05);
+  --reaction-badge-border:  rgba(0,0,0,0.1);
+  --reaction-badge-active:  rgba(37,99,235,0.1);
+  --reaction-badge-active-border: rgba(37,99,235,0.3);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -270,6 +342,22 @@ html, body, #root {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #777;
+}
+
+/* Light theme scrollbar overrides */
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
+}
+
+/* Light theme code block overrides */
+[data-theme="light"] pre {
+  background: #f6f8fa;
+}
+[data-theme="light"] code:not(pre code) {
+  background: #eff1f3;
 }
 
 /* xterm overrides */

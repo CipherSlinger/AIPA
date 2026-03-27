@@ -22,10 +22,11 @@ const FONT_FAMILIES: { id: string; label: string }[] = [
   { id: 'system-ui, sans-serif',                             label: 'System Default' },
 ]
 
-const THEMES: { id: 'vscode' | 'modern' | 'minimal'; label: string; colors: string[] }[] = [
+const THEMES: { id: 'vscode' | 'modern' | 'minimal' | 'light'; label: string; colors: string[] }[] = [
   { id: 'vscode',   label: 'VS Code',   colors: ['#1e1e1e', '#007acc', '#264f78', '#2d2d2d'] },
   { id: 'modern',   label: 'Modern Dark',  colors: ['#0d1117', '#2f81f7', '#1f3a5f', '#161b22'] },
   { id: 'minimal',  label: 'Minimal Dark',  colors: ['#111111', '#a855f7', '#1e1033', '#1a1a1a'] },
+  { id: 'light',    label: 'Light',      colors: ['#ffffff', '#2563eb', '#f3f4f6', '#f5f5f5'] },
 ]
 
 function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
@@ -315,7 +316,7 @@ export default function SettingsPanel() {
                     <div style={{ display: 'flex', gap: 2 }}>
                       {t.colors.map((c, i) => <div key={i} style={{ width: 10, height: 10, borderRadius: 2, background: c }} />)}
                     </div>
-                    <span style={{ fontSize: 9, color: '#aaa', whiteSpace: 'nowrap' }}>{t.label}</span>
+                    <span style={{ fontSize: 9, color: t.id === 'light' ? '#666' : '#aaa', whiteSpace: 'nowrap' }}>{t.label}</span>
                   </button>
                 )
               })}
