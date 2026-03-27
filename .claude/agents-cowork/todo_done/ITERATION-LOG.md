@@ -812,3 +812,33 @@ built in 8.27s
 - [x] Compatible with language badge colors
 - [x] Extracted to proper React component (CodeBlockWithHeader) for useState support
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 78 -- Rotating Input Placeholder Suggestions
+
+_Date: 2026-03-27 | Sprint UI Enhancement_
+
+### Summary
+Added rotating placeholder text to the input textarea that cycles through helpful prompt suggestions every 4 seconds. Instead of the static "Message AIPA..." placeholder, the textarea now rotates through 8 different suggestions including "Ask me to analyze your code...", "Describe a bug to investigate...", "Try: \"Explain this function\"", and more. The rotation pauses when the user has typed any text (placeholder is not visible anyway), and resumes when the input is cleared. Provides subtle guidance to new users about what they can ask.
+
+### Files Changed
+- `src/renderer/components/chat/ChatPanel.tsx` -- Added `PLACEHOLDER_SUGGESTIONS` constant array (8 suggestions); added `placeholderIdx` state with `setInterval` rotation (4s cycle); timer pauses when `input.length > 0`; textarea `placeholder` prop changed from static string to `PLACEHOLDER_SUGGESTIONS[placeholderIdx]`
+
+### Build
+Status: SUCCESS
+
+```
+2385 modules transformed.
+built in 9.32s
+```
+
+### Acceptance Criteria
+- [x] Placeholder text rotates through 8 different suggestions
+- [x] Rotation cycle is 4 seconds per suggestion
+- [x] Rotation pauses when user has typed text
+- [x] Rotation resumes when input is cleared
+- [x] Default first suggestion is "Message AIPA..." (familiar)
+- [x] Suggestions include actionable prompts (analyze, fix, explain, refactor, review)
+- [x] No visual flicker during rotation (smooth text change)
+- [x] Build passes with zero errors

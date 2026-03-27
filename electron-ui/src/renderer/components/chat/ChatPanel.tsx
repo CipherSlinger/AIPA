@@ -11,6 +11,18 @@ import { ChatMessage, StandardChatMessage } from '../../types/app.types'
 import TaskQueuePanel from './TaskQueuePanel'
 import QuickReplyChips from './QuickReplyChips'
 
+// Rotating placeholder suggestions
+const PLACEHOLDER_SUGGESTIONS = [
+  'Message AIPA...',
+  'Ask me to analyze your code...',
+  'Describe a bug to investigate...',
+  'Try: "Explain this function"',
+  'Ask me to write a test...',
+  'Try: "Refactor this file"',
+  'Describe a feature to build...',
+  'Ask me to review a PR...',
+]
+
 // Constants for drag-and-drop file handling
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg']
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
@@ -110,6 +122,16 @@ export default function ChatPanel() {
   const inputHistoryRef = useRef<string[]>([])
   const historyIdxRef = useRef(-1)
   const tempInputRef = useRef('')
+
+  // Rotating placeholder
+  const [placeholderIdx, setPlaceholderIdx] = useState(0)
+  useEffect(() => {
+    if (input.length > 0) return // Don't rotate when user has typed something
+    const id = setInterval(() => {
+      setPlaceholderIdx(i => (i + 1) % PLACEHOLDER_SUGGESTIONS.length)
+    }, 4000)
+    return () => clearInterval(id)
+  }, [input.length > 0])
 
   // Drag-and-drop state
   const [isDragOver, setIsDragOver] = useState(false)
@@ -1250,7 +1272,7 @@ export default function ChatPanel() {
               onBlur={() => {
                 if (inputWrapRef.current) inputWrapRef.current.style.borderColor = 'var(--input-field-border)'
               }}
-              placeholder="Message AIPA..."
+              placeholder={PLACEHOLDER_SUGGESTIONS[placeholderIdx]}
               rows={1}
               style={{
                 flex: 1,
