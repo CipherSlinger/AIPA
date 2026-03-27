@@ -161,7 +161,12 @@
     "editCancel": "\u53d6\u6d88",
     "editSave": "\u4fdd\u5b58\u5e76\u53d1\u9001",
     "rewindSuccess": "\u6587\u4ef6\u5df2\u6062\u590d\u5230\u6b64\u6d88\u606f\u4e4b\u524d\u7684\u72b6\u6001",
-    "rewindFailed": "\u56de\u9000\u5931\u8d25: {{error}}"
+    "rewindFailed": "\u56de\u9000\u5931\u8d25: {{error}}",
+    "justNow": "\u521a\u521a",
+    "secsAgo": "{{count}}\u79d2\u524d",
+    "minsAgo": "{{count}}\u5206\u949f\u524d",
+    "hoursAgo": "{{count}}\u5c0f\u65f6\u524d",
+    "daysAgo": "{{count}}\u5929\u524d"
   },
   "session": {
     "search": "\u641c\u7d22\u4f1a\u8bdd...",
@@ -341,6 +346,7 @@
     "compactDesc": "\u538b\u7f29\u5bf9\u8bdd\u4e0a\u4e0b\u6587",
     "showHelp": "\u663e\u793a\u5e2e\u52a9",
     "showHelpDesc": "\u663e\u793a\u53ef\u7528\u7684\u659c\u6760\u547d\u4ee4",
+    "availableCommands": "\u53ef\u7528\u547d\u4ee4",
     "openSessionFrom": "\u6253\u5f00 {{date}} \u7684\u4f1a\u8bdd",
     "noResults": "\u6ca1\u6709\u5339\u914d\u7684\u547d\u4ee4"
   },

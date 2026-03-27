@@ -161,7 +161,12 @@
     "editCancel": "Cancel",
     "editSave": "Save & Send",
     "rewindSuccess": "Files reverted to state before this message",
-    "rewindFailed": "Rewind failed: {{error}}"
+    "rewindFailed": "Rewind failed: {{error}}",
+    "justNow": "just now",
+    "secsAgo": "{{count}}s ago",
+    "minsAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "daysAgo": "{{count}}d ago"
   },
   "session": {
     "search": "Search sessions...",
@@ -341,6 +346,7 @@
     "compactDesc": "Compact conversation context",
     "showHelp": "Show Help",
     "showHelpDesc": "Display available slash commands",
+    "availableCommands": "Available Commands",
     "openSessionFrom": "Open session from {{date}}",
     "noResults": "No matching commands"
   },

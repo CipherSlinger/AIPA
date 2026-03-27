@@ -564,7 +564,7 @@ export default function ChatPanel() {
         useChatStore.getState().addMessage({
           id: `help-${Date.now()}`,
           role: 'assistant',
-          content: '**Available Commands:**\n\n' + SLASH_COMMANDS.map(c => `- \`${c.name}\` — ${c.description}`).join('\n'),
+          content: `**${t('command.availableCommands')}:**\n\n` + SLASH_COMMANDS.map(c => `- \`${c.name}\` — ${c.description}`).join('\n'),
           timestamp: Date.now(),
         } as any)
       }
@@ -854,7 +854,7 @@ export default function ChatPanel() {
               }}
             >
               <div style={{ padding: '6px 12px', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, borderBottom: '1px solid var(--border)' }}>
-                Bookmarks
+                {t('chat.bookmarks')}
               </div>
               {bookmarkedMessages.map(({ msg, idx }) => {
                 const std = msg as StandardChatMessage

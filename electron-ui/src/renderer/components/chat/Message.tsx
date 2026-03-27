@@ -16,17 +16,17 @@ const REACTION_EMOJIS = [
   { key: 'thinking', emoji: '\uD83E\uDD14', label: 'thinking' },
 ]
 
-function relativeTime(ts: number): string {
+function relativeTime(ts: number, t: (key: string, params?: Record<string, string>) => string): string {
   const diff = Math.floor((Date.now() - ts) / 1000)
-  if (diff < 5) return 'just now'
-  if (diff < 60) return `${diff}s ago`
+  if (diff < 5) return t('message.justNow')
+  if (diff < 60) return t('message.secsAgo', { count: String(diff) })
   const mins = Math.floor(diff / 60)
-  if (mins < 60) return `${mins}m ago`
+  if (mins < 60) return t('message.minsAgo', { count: String(mins) })
   const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
+  if (hrs < 24) return t('message.hoursAgo', { count: String(hrs) })
   const days = Math.floor(hrs / 24)
-  if (days === 1) return 'yesterday'
-  return `${days}d ago`
+  if (days === 1) return t('session.yesterday')
+  return t('message.daysAgo', { count: String(days) })
 }
 
 interface Props {
@@ -517,7 +517,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
                   }}
                   title={new Date((message as StandardChatMessage).timestamp).toLocaleString()}
                 >
-                  {relativeTime((message as StandardChatMessage).timestamp)}
+                  {relativeTime((message as StandardChatMessage).timestamp, t)}
                   {msgStatus === 'sending' && (
                     <Clock size={10} style={{ opacity: 0.8 }} />
                   )}
