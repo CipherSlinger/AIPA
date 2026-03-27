@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Sparkles, Key, FolderOpen, CheckCircle2, Folder, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react'
+import { useT } from '../../i18n'
 
 interface OnboardingWizardProps {
   onComplete: () => void
@@ -12,6 +13,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
   const [apiKey, setApiKey] = useState('')
   const [workDir, setWorkDir] = useState(() => '~/claude')
   const [inputFocused, setInputFocused] = useState(false)
+  const t = useT()
 
   const handlePickFolder = async () => {
     const p = await window.electronAPI.fsShowOpenDialog()
@@ -42,7 +44,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
           <div style={styles.progressTrack}>
             <div style={{ ...styles.progressFill, width: progressWidth }} />
           </div>
-          <div style={styles.progressLabel}>Step {step} of 4</div>
+          <div style={styles.progressLabel}>{t('onboarding.step', { current: step, total: 4 })}</div>
         </div>
 
         {/* Step icon */}
@@ -53,9 +55,9 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
         {/* Step 1: Welcome */}
         {step === 1 && (
           <div className="onboard-step-content" key="step1" style={styles.stepContent}>
-            <h1 style={styles.title}>Welcome to AIPA</h1>
+            <h1 style={styles.title}>{t('onboarding.welcome')}</h1>
             <p style={styles.subtitle}>
-              Your AI-powered personal assistant for coding, analysis, and creative work.
+              {t('onboarding.welcomeSubtitle')}
             </p>
             <button
               style={styles.primaryBtn}
@@ -63,7 +65,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
               onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.filter = 'brightness(1.1)' }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.filter = 'none' }}
             >
-              Get Started <ArrowRight size={16} style={{ marginLeft: 6, verticalAlign: 'middle' }} />
+              {t('onboarding.getStarted')} <ArrowRight size={16} style={{ marginLeft: 6, verticalAlign: 'middle' }} />
             </button>
           </div>
         )}
@@ -71,9 +73,9 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
         {/* Step 2: API Key */}
         {step === 2 && (
           <div className="onboard-step-content" key="step2" style={styles.stepContent}>
-            <h1 style={styles.title}>Enter Your API Key</h1>
+            <h1 style={styles.title}>{t('onboarding.enterApiKey')}</h1>
             <p style={styles.explanation}>
-              Your key is stored locally and never uploaded anywhere.
+              {t('onboarding.apiKeyStored')}
             </p>
             <input
               type="password"
@@ -99,7 +101,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
               onMouseEnter={e => { e.currentTarget.style.textDecoration = 'underline' }}
               onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none' }}
             >
-              Get a free API key at console.anthropic.com
+              {t('onboarding.getApiKey')}
             </a>
             <div style={styles.btnRow}>
               <button
@@ -108,7 +110,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                 onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
                 onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
               >
-                <ChevronLeft size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} /> Back
+                <ChevronLeft size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} /> {t('onboarding.back')}
               </button>
               <button
                 style={{
@@ -121,7 +123,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                 onMouseEnter={e => { if (apiKey.trim()) { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.filter = 'brightness(1.1)' } }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.filter = 'none' }}
               >
-                Next <ChevronRight size={14} style={{ marginLeft: 4, verticalAlign: 'middle' }} />
+                {t('onboarding.next')} <ChevronRight size={14} style={{ marginLeft: 4, verticalAlign: 'middle' }} />
               </button>
             </div>
             <button
@@ -130,7 +132,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
               onMouseEnter={e => { e.currentTarget.style.textDecoration = 'underline' }}
               onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none' }}
             >
-              Skip, configure later in Settings
+              {t('onboarding.skipConfig')}
             </button>
           </div>
         )}
@@ -138,9 +140,9 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
         {/* Step 3: Work Folder */}
         {step === 3 && (
           <div className="onboard-step-content" key="step3" style={styles.stepContent}>
-            <h1 style={styles.title}>Choose Working Folder</h1>
+            <h1 style={styles.title}>{t('onboarding.chooseFolder')}</h1>
             <p style={styles.explanation}>
-              Claude will read and write files here. Change it anytime in Settings.
+              {t('onboarding.folderExplanation')}
             </p>
             <div style={styles.folderDisplay}>
               <Folder size={18} color="var(--accent)" style={{ flexShrink: 0 }} />
@@ -152,7 +154,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
               onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,122,204,0.08)' }}
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
             >
-              Choose Folder
+              {t('onboarding.chooseButton')}
             </button>
             <div style={styles.btnRow}>
               <button
@@ -161,7 +163,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                 onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
                 onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
               >
-                <ChevronLeft size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} /> Back
+                <ChevronLeft size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} /> {t('onboarding.back')}
               </button>
               <button
                 style={styles.primaryBtn}
@@ -169,7 +171,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                 onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.filter = 'brightness(1.1)' }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.filter = 'none' }}
               >
-                Finish Setup <ChevronRight size={14} style={{ marginLeft: 4, verticalAlign: 'middle' }} />
+                {t('onboarding.finishSetup')} <ChevronRight size={14} style={{ marginLeft: 4, verticalAlign: 'middle' }} />
               </button>
             </div>
           </div>
@@ -178,15 +180,15 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
         {/* Step 4: Done */}
         {step === 4 && (
           <div className="onboard-step-content" key="step4" style={styles.stepContent}>
-            <h1 style={styles.title}>All Set!</h1>
-            <p style={styles.subtitle}>You're ready to start chatting with Claude.</p>
+            <h1 style={styles.title}>{t('onboarding.allSet')}</h1>
+            <p style={styles.subtitle}>{t('onboarding.readyToChat')}</p>
             <button
               style={styles.primaryBtn}
               onClick={handleComplete}
               onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.filter = 'brightness(1.1)' }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.filter = 'none' }}
             >
-              Start Chatting <ArrowRight size={16} style={{ marginLeft: 6, verticalAlign: 'middle' }} />
+              {t('onboarding.startChatting')} <ArrowRight size={16} style={{ marginLeft: 6, verticalAlign: 'middle' }} />
             </button>
           </div>
         )}

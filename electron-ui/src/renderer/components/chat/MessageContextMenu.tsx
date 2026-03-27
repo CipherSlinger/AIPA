@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { ChatMessage, StandardChatMessage } from '../../types/app.types'
+import { useT } from '../../i18n'
 
 interface ContextMenuProps {
   x: number
@@ -57,6 +58,7 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
   const rating = isAssistant ? (message as StandardChatMessage).rating : undefined
   const isBookmarked = message.role !== 'permission' && message.role !== 'plan' ? (message as StandardChatMessage).bookmarked : false
   const isCollapsed = message.role !== 'permission' && message.role !== 'plan' ? (message as StandardChatMessage).collapsed : false
+  const t = useT()
 
   const itemStyle: React.CSSProperties = {
     display: 'flex',
@@ -99,7 +101,7 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
         onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
         onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
       >
-        <span>Copy text</span>
+        <span>{t('message.copy')}</span>
         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Ctrl+C</span>
       </button>
 
@@ -111,7 +113,7 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
           onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
         >
-          <span>Copy as Markdown</span>
+          <span>{t('message.copyMarkdown')}</span>
         </button>
       )}
 
@@ -123,7 +125,7 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
           onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
         >
-          <span>{isBookmarked ? 'Remove bookmark' : 'Bookmark'}</span>
+          <span>{isBookmarked ? t('message.removeBookmark') : t('message.bookmark')}</span>
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{isBookmarked ? '\u2605' : '\u2606'}</span>
         </button>
       )}
@@ -136,7 +138,7 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
           onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
         >
-          <span>{isCollapsed ? 'Expand message' : 'Collapse message'}</span>
+          <span>{isCollapsed ? t('message.expand') : t('message.collapse')}</span>
         </button>
       )}
 
@@ -151,8 +153,8 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
             onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span>Thumbs up</span>
-              {rating === 'up' && <span style={{ color: 'var(--success)', fontSize: 11 }}>active</span>}
+              <span>{t('message.thumbsUp')}</span>
+              {rating === 'up' && <span style={{ color: 'var(--success)', fontSize: 11 }}>{t('message.active')}</span>}
             </span>
           </button>
           <button
@@ -162,8 +164,8 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
             onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span>Thumbs down</span>
-              {rating === 'down' && <span style={{ color: 'var(--error)', fontSize: 11 }}>active</span>}
+              <span>{t('message.thumbsDown')}</span>
+              {rating === 'down' && <span style={{ color: 'var(--error)', fontSize: 11 }}>{t('message.active')}</span>}
             </span>
           </button>
         </>
@@ -179,7 +181,7 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
             onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
           >
-            <span>Rewind to here</span>
+            <span>{t('message.rewind')}</span>
           </button>
         </>
       )}

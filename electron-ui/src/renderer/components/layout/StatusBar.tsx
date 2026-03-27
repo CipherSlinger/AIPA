@@ -2,6 +2,7 @@ import React from 'react'
 import { PanelLeft, Terminal, DollarSign, Clock, ArrowUp, ArrowDown, Recycle } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { StandardChatMessage } from '../../types/app.types'
+import { useT } from '../../i18n'
 
 function Separator() {
   return (
@@ -34,6 +35,7 @@ export default function StatusBar() {
   const { workingDir, lastUsage, lastCost, totalSessionCost, lastContextUsage, isStreaming, messages } = useChatStore()
   const { prefs } = usePrefsStore()
   const { toggleSidebar, toggleTerminal, sidebarOpen, terminalOpen } = useUiStore()
+  const t = useT()
 
   const dirLabel = workingDir || prefs.workingDir || '~'
   const dirShort = dirLabel.split(/[/\\]/).pop() || dirLabel
@@ -79,7 +81,7 @@ export default function StatusBar() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
         <button
           onClick={toggleSidebar}
-          title="Toggle sidebar (Ctrl+B)"
+          title={t('toolbar.toggleSidebar')}
           style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0, opacity: sidebarOpen ? 1 : 0.6 }}
         >
           <PanelLeft size={12} />
@@ -108,14 +110,14 @@ export default function StatusBar() {
                 animation: 'pulse 1.2s ease-in-out infinite',
               }}
             />
-            <span style={{ fontSize: 10 }}>Streaming</span>
+            <span style={{ fontSize: 10 }}>{t('toolbar.streaming')}</span>
           </span>
         )}
 
         {/* Message count */}
         {chatMessages.length > 0 && !isStreaming && (
           <span style={{ opacity: 0.7, fontSize: 10 }}>
-            {chatMessages.length} msgs
+            {t('toolbar.msgs', { count: chatMessages.length })}
           </span>
         )}
 
@@ -190,7 +192,7 @@ export default function StatusBar() {
 
         <button
           onClick={toggleTerminal}
-          title="Toggle terminal (Ctrl+`)"
+          title={t('toolbar.toggleTerminal')}
           style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0, opacity: terminalOpen ? 1 : 0.6 }}
         >
           <Terminal size={12} />

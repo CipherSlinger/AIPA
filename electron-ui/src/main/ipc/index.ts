@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, dialog, shell } from 'electron'
+import { ipcMain, BrowserWindow, dialog, shell, app } from 'electron'
 import { ptyManager } from '../pty/pty-manager'
 import { streamBridgeManager } from '../pty/stream-bridge'
 import { readSettings, writeSettings, listSessions, loadSession, deleteSession, forkSession, renameSession, getMcpServers, setMcpServerEnabled, generateSessionTitle, rewindSession } from '../sessions/session-reader'
@@ -175,6 +175,9 @@ function registerConfigHandlers(): void {
   ipcMain.handle('prefs:get', (_e, key) => getPref(key))
   ipcMain.handle('prefs:set', (_e, key, value) => setPref(key, value))
   ipcMain.handle('prefs:getAll', () => getAllPrefs())
+
+  // Locale detection for i18n
+  ipcMain.handle('config:getLocale', () => app.getLocale())
 
   ipcMain.handle('mcp:list', () => getMcpServers())
   ipcMain.handle('mcp:setEnabled', (_e: Electron.IpcMainInvokeEvent, { serverName, enabled }: { serverName: string; enabled: boolean }) => setMcpServerEnabled(serverName, enabled))

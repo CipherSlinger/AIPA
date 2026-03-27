@@ -130,6 +130,15 @@
 | NavRail Custom Tooltips | P2 | DONE (Iteration 61) -- Styled tooltips with popup variables and delay |
 | New Message Highlight Glow | P2 | DONE (Iteration 62) -- Subtle blue glow on new messages |
 
+### Iteration 80 -- i18n Multi-Language Support
+
+| Feature | PRD | Priority | Status |
+|---------|-----|----------|--------|
+| i18n framework (custom I18nProvider) | `prd-i18n-v1.md` | P1 | DONE (Iteration 80) |
+| English + Chinese translation files | `prd-i18n-v1.md` | P1 | DONE (Iteration 80) |
+| System locale detection | `prd-i18n-v1.md` | P1 | DONE (Iteration 80) |
+| Language selector in Settings | `prd-i18n-v1.md` | P1 | DONE (Iteration 80) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

@@ -30,6 +30,7 @@ const electronAPI = {
   configRead: () => ipcRenderer.invoke('config:read'),
   configWrite: (patch: unknown) => ipcRenderer.invoke('config:write', patch),
   configGetEnv: () => ipcRenderer.invoke('config:getEnv'),
+  configGetLocale: () => ipcRenderer.invoke('config:getLocale'),
   configSetApiKey: (key: string) => ipcRenderer.invoke('config:setApiKey', key),
   prefsGet: (key: string) => ipcRenderer.invoke('prefs:get', key),
   prefsSet: (key: string, value: unknown) => ipcRenderer.invoke('prefs:set', key, value),

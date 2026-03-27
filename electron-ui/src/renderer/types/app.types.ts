@@ -90,4 +90,5 @@ export interface ClaudePrefs {
   notifySound?: boolean     // play sound when response completes (default true)
   compactMode?: boolean     // reduce spacing for power users (default false)
   quickReplies?: { label: string; prompt: string }[]  // quick reply template chips
+  language?: 'en' | 'zh-CN' | 'system'  // UI language preference (default: system)
 }

@@ -1,6 +1,7 @@
 import React from 'react'
 import { MessageSquarePlus, History, FolderOpen, TerminalSquare, Settings, User } from 'lucide-react'
 import { useUiStore, useSessionStore, useChatStore } from '../../store'
+import { useT } from '../../i18n'
 
 interface NavItemProps {
   icon: React.ReactNode
@@ -162,6 +163,7 @@ export default function NavRail() {
   } = useUiStore()
 
   const sessionCount = useSessionStore(s => s.sessions.length)
+  const t = useT()
 
   // The active panel item (history/files/settings) matches activeNavItem
   const isHistoryActive = activeNavItem === 'history' && sidebarTab === 'history'
@@ -201,7 +203,7 @@ export default function NavRail() {
       {/* New Chat */}
       <NavItem
         icon={<MessageSquarePlus size={20} />}
-        label="New Chat"
+        label={t('nav.newChat')}
         shortcut="Ctrl+N"
         onClick={handleNewChat}
       />
@@ -209,7 +211,7 @@ export default function NavRail() {
       {/* History */}
       <NavItem
         icon={<History size={20} />}
-        label="History"
+        label={t('nav.history')}
         shortcut="Ctrl+B"
         isActive={isHistoryActive}
         onClick={() => setActiveNavItem('history')}
@@ -219,7 +221,7 @@ export default function NavRail() {
       {/* Files */}
       <NavItem
         icon={<FolderOpen size={20} />}
-        label="Files"
+        label={t('nav.files')}
         isActive={isFilesActive}
         onClick={() => setActiveNavItem('files')}
       />
@@ -227,7 +229,7 @@ export default function NavRail() {
       {/* Terminal */}
       <NavItem
         icon={<TerminalSquare size={20} />}
-        label="Terminal"
+        label={t('nav.terminal')}
         shortcut="Ctrl+`"
         onClick={handleTerminal}
       />
@@ -238,7 +240,7 @@ export default function NavRail() {
       {/* Settings */}
       <NavItem
         icon={<Settings size={20} />}
-        label="Settings"
+        label={t('nav.settings')}
         shortcut="Ctrl+,"
         isActive={isSettingsActive}
         onClick={() => setActiveNavItem('settings')}
@@ -258,7 +260,7 @@ export default function NavRail() {
           marginTop: 8,
           flexShrink: 0,
         }}
-        aria-label="User profile"
+        aria-label={t('nav.userProfile')}
       >
         <User size={18} color="#ffffff" />
       </div>

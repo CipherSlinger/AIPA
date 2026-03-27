@@ -4,6 +4,7 @@ import { SessionListItem, SessionMessage, StandardChatMessage, ToolUseInfo, Chat
 import { useSessionStore, useChatStore, useUiStore } from '../../store'
 import { SkeletonSessionRow } from '../ui/Skeleton'
 import { formatDistanceToNow } from 'date-fns'
+import { useT } from '../../i18n'
 
 // ── Session avatar color palette ──
 const SESSION_AVATAR_COLORS = [
@@ -131,6 +132,7 @@ export default function SessionList() {
   const { clearMessages, loadHistory, setSessionId, currentSessionId } = useChatStore()
   const isStreaming = useChatStore(s => s.isStreaming)
   const { addToast } = useUiStore()
+  const t = useT()
   const [filter, setFilter] = useState('')
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
@@ -267,10 +269,10 @@ export default function SessionList() {
     const yesterday = new Date(today.getTime() - 86400000)
     const weekAgo = new Date(today.getTime() - 7 * 86400000)
 
-    if (date >= today) return 'Today'
-    if (date >= yesterday) return 'Yesterday'
-    if (date >= weekAgo) return 'This Week'
-    return 'Earlier'
+    if (date >= today) return t('session.today')
+    if (date >= yesterday) return t('session.yesterday')
+    if (date >= weekAgo) return t('session.thisWeek')
+    return t('session.earlier')
   }
 
   const showDateGroups = sortBy !== 'alpha' && !filter
@@ -286,13 +288,13 @@ export default function SessionList() {
     let source = ''
     let text = ''
     if (title.toLowerCase().includes(q)) {
-      source = 'in title'
+      source = t('session.inTitle')
       text = title
     } else if (content.toLowerCase().includes(q)) {
-      source = 'in content'
+      source = t('session.inContent')
       text = content
     } else if (project.toLowerCase().includes(q)) {
-      source = 'in project'
+      source = t('session.inProject')
       text = project
     } else {
       return null
@@ -317,7 +319,7 @@ export default function SessionList() {
           <input
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            placeholder="Search sessions..."
+            placeholder={t('session.search')}
             style={{
               flex: 1,
               width: '100%',
@@ -342,7 +344,7 @@ export default function SessionList() {
               pointerEvents: 'none',
               whiteSpace: 'nowrap',
             }}>
-              {filtered.length === 0 ? 'No results' : `${filtered.length} result${filtered.length !== 1 ? 's' : ''}`}
+              {filtered.length === 0 ? t('session.noResults') : t('session.results', { count: filtered.length })}
             </span>
           )}
         </div>

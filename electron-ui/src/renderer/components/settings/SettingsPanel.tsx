@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Save, Eye, EyeOff, ExternalLink } from 'lucide-react'
 import { usePrefsStore } from '../../store'
+import { useI18n } from '../../i18n'
 
 const MODEL_OPTIONS: { id: string; label: string }[] = [
   { id: 'claude-opus-4-6',            label: 'Claude Opus (Most Powerful)' },
@@ -51,6 +52,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
 
 export default function SettingsPanel() {
   const { prefs, setPrefs } = usePrefsStore()
+  const { t, locale, setLocale } = useI18n()
   const [local, setLocal] = useState({ ...prefs })
   const [showKey, setShowKey] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -114,7 +116,7 @@ export default function SettingsPanel() {
 
   return (
     <div style={{ padding: 14, overflowY: 'auto', height: '100%' }}>
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>Settings</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>{t('settings.title')}</div>
 
       {/* Tab bar */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 14, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>
@@ -132,16 +134,30 @@ export default function SettingsPanel() {
               fontSize: 11,
             }}
           >
-            {tab === 'general' ? 'General' : tab === 'mcp' ? 'MCP Servers' : 'About'}
+            {t(`settings.tabs.${tab}`)}
           </button>
         ))}
       </div>
 
       {settingsTab === 'general' ? (
         <>
+          {/* Language selector */}
+          {field(
+            t('settings.language'),
+            <select
+              value={locale}
+              onChange={(e) => setLocale(e.target.value as 'en' | 'zh-CN' | 'system')}
+              style={{ ...inputStyle }}
+            >
+              <option value="system">{t('settings.languageSystem')}</option>
+              <option value="en">{t('settings.languageEn')}</option>
+              <option value="zh-CN">{t('settings.languageZhCN')}</option>
+            </select>
+          )}
+
           {/* API Key */}
           {field(
-            'API Key',
+            t('settings.apiKey'),
             <div style={{ position: 'relative' }}>
               <input
                 type={showKey ? 'text' : 'password'}
@@ -160,7 +176,7 @@ export default function SettingsPanel() {
           )}
 
           {/* Model */}
-          {field('Model', (
+          {field(t('settings.model'), (
             <select value={local.model} onChange={(e) => setLocal({ ...local, model: e.target.value })} style={{ ...inputStyle }}>
               {MODEL_OPTIONS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
@@ -168,11 +184,11 @@ export default function SettingsPanel() {
 
           {/* System prompt */}
           {field(
-            'Custom System Prompt',
+            t('settings.systemPrompt'),
             <textarea
               value={local.systemPrompt ?? ''}
               onChange={(e) => setLocal({ ...local, systemPrompt: e.target.value })}
-              placeholder="Enter custom instructions appended to every conversation..."
+              placeholder={t('settings.systemPromptPlaceholder')}
               rows={4}
               style={{
                 ...inputStyle,
@@ -183,66 +199,66 @@ export default function SettingsPanel() {
               }}
             />,
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-              Passed via --append-system-prompt. Takes effect on new conversations.
+              {t('settings.systemPromptHint')}
             </span>
           )}
 
           {/* Thinking level */}
-          {field('Thinking Mode', (
+          {field(t('settings.thinkingMode'), (
             <select
               value={local.thinkingLevel ?? 'off'}
               onChange={(e) => setLocal({ ...local, thinkingLevel: e.target.value as 'off' | 'adaptive' })}
               style={{ ...inputStyle }}
             >
-              <option value="off">Off (Default)</option>
-              <option value="adaptive">Adaptive (Extended Thinking)</option>
+              <option value="off">{t('settings.thinkingOff')}</option>
+              <option value="adaptive">{t('settings.thinkingAdaptive')}</option>
             </select>
           ),
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>In adaptive mode, Claude automatically engages deep thinking when needed</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('settings.thinkingHint')}</span>
           )}
 
           {/* Max turns */}
           {field(
-            'Max Turns',
+            t('settings.maxTurns'),
             <input
               type="number"
               min={1}
               max={200}
               value={local.maxTurns ?? ''}
               onChange={(e) => setLocal({ ...local, maxTurns: e.target.value ? Number(e.target.value) : undefined })}
-              placeholder="Unlimited"
+              placeholder={t('settings.unlimited')}
               style={{ ...inputStyle, width: 120 }}
             />,
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-              Limit how many tool-use turns Claude can execute (--max-turns). Leave empty for unlimited.
+              {t('settings.maxTurnsHint')}
             </span>
           )}
 
           {/* Max budget */}
           {field(
-            'Budget Limit (USD)',
+            t('settings.budgetLimit'),
             <input
               type="number"
               min={0.01}
               step={0.01}
               value={local.maxBudgetUsd ?? ''}
               onChange={(e) => setLocal({ ...local, maxBudgetUsd: e.target.value ? Number(e.target.value) : undefined })}
-              placeholder="Unlimited"
+              placeholder={t('settings.unlimited')}
               style={{ ...inputStyle, width: 120 }}
             />,
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-              Stop execution when cost exceeds this amount (--max-budget-usd). Leave empty for unlimited.
+              {t('settings.budgetHint')}
             </span>
           )}
 
           {/* Working dir */}
           {field(
-            'Working Folder',
+            t('settings.workingFolder'),
             <div style={{ display: 'flex', gap: 6 }}>
               <input
                 value={local.workingDir}
                 onChange={(e) => setLocal({ ...local, workingDir: e.target.value })}
-                placeholder="Leave empty for home directory"
+                placeholder={t('settings.workingFolderPlaceholder')}
                 style={{ ...inputStyle, flex: 1 }}
               />
               <button
@@ -252,15 +268,15 @@ export default function SettingsPanel() {
                 }}
                 style={{ background: 'var(--bg-active)', border: '1px solid var(--border)', borderRadius: 4, padding: '0 10px', color: 'var(--text-primary)', cursor: 'pointer', fontSize: 12 }}
               >
-                Browse
+                {t('settings.browse')}
               </button>
             </div>,
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Claude will read and write files in this folder</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('settings.workingFolderHint')}</span>
           )}
 
           {/* Font size */}
           {field(
-            `Font Size: ${local.fontSize ?? 14}px`,
+            `${t('settings.fontSize')}: ${local.fontSize ?? 14}px`,
             <input
               type="range" min={12} max={20} step={1}
               value={local.fontSize ?? 14}
@@ -270,14 +286,14 @@ export default function SettingsPanel() {
           )}
 
           {/* Font family */}
-          {field('Font Family', (
+          {field(t('settings.fontFamily'), (
             <select value={local.fontFamily} onChange={(e) => setLocal({ ...local, fontFamily: e.target.value })} style={{ ...inputStyle }}>
               {FONT_FAMILIES.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
             </select>
           ))}
 
           {/* Theme */}
-          {field('Theme', (
+          {field(t('settings.theme'), (
             <div style={{ display: 'flex', gap: 8 }}>
               {THEMES.map((t) => {
                 const isActive = (local.theme || 'vscode') === t.id
@@ -311,30 +327,30 @@ export default function SettingsPanel() {
 
           {/* skipPermissions */}
           {row(
-            'Skip Tool Permissions',
+            t('settings.skipPermissions'),
             <Toggle value={local.skipPermissions ?? true} onChange={(v) => setLocal({ ...local, skipPermissions: v })} />,
-            'When enabled, Claude does not ask for per-tool authorization'
+            t('settings.skipPermissionsHint')
           )}
 
           {/* verbose */}
           {row(
-            'Verbose Output',
+            t('settings.verbose'),
             <Toggle value={local.verbose ?? false} onChange={(v) => setLocal({ ...local, verbose: v })} />,
-            'When enabled, CLI outputs more debug information'
+            t('settings.verboseHint')
           )}
 
           {/* notifySound */}
           {row(
-            'Completion Sound',
+            t('settings.completionSound'),
             <Toggle value={local.notifySound !== false} onChange={(v) => setLocal({ ...local, notifySound: v })} />,
-            'Play a chime when Claude finishes responding'
+            t('settings.completionSoundHint')
           )}
 
           {/* compactMode */}
           {row(
-            'Compact Mode',
+            t('settings.compactMode'),
             <Toggle value={local.compactMode ?? false} onChange={(v) => setLocal({ ...local, compactMode: v })} />,
-            'Reduce spacing between messages for a denser view'
+            t('settings.compactModeHint')
           )}
 
           {/* Save button */}
@@ -349,7 +365,7 @@ export default function SettingsPanel() {
             }}
           >
             <Save size={13} />
-            {saved ? 'Saved' : 'Save Settings'}
+            {saved ? t('settings.saved') : t('settings.save')}
           </button>
         </>
       ) : settingsTab === 'mcp' ? (
@@ -357,8 +373,8 @@ export default function SettingsPanel() {
         <div>
           {mcpServers.length === 0 ? (
             <div style={{ color: 'var(--text-muted)', fontSize: 12, textAlign: 'center', padding: 24 }}>
-              No MCP servers configured<br />
-              <span style={{ fontSize: 11, marginTop: 4, display: 'block' }}>Add mcpServers to ~/.claude/settings.json</span>
+              {t('settings.noMcpServers')}<br />
+              <span style={{ fontSize: 11, marginTop: 4, display: 'block' }}>{t('settings.mcpHint')}</span>
             </div>
           ) : (
             mcpServers.map(srv => (
@@ -384,20 +400,20 @@ export default function SettingsPanel() {
           {/* App identity */}
           <div style={{ textAlign: 'center', padding: '12px 0' }}>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-bright)', letterSpacing: 1 }}>AIPA</div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>AI Personal Assistant</div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>v1.0.0 &middot; Claude Code CLI v2.1.81</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{t('settings.about.aiPersonalAssistant')}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{t('settings.about.version')}</div>
           </div>
 
           <div style={{ borderTop: '1px solid var(--border)' }} />
 
           {/* Links */}
           <div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>Links</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>{t('settings.about.links')}</div>
             {[
-              { label: 'GitHub Repository', url: 'https://github.com/anthropics/claude-code' },
-              { label: 'Anthropic Console', url: 'https://console.anthropic.com/' },
-              { label: 'Claude API Docs', url: 'https://docs.anthropic.com/' },
-              { label: 'Get API Key', url: 'https://console.anthropic.com/settings/keys' },
+              { label: t('settings.about.githubRepo'), url: 'https://github.com/anthropics/claude-code' },
+              { label: t('settings.about.anthropicConsole'), url: 'https://console.anthropic.com/' },
+              { label: t('settings.about.apiDocs'), url: 'https://docs.anthropic.com/' },
+              { label: t('settings.about.getApiKey'), url: 'https://console.anthropic.com/settings/keys' },
             ].map(link => (
               <button
                 key={link.url}
@@ -422,16 +438,16 @@ export default function SettingsPanel() {
 
           {/* Keyboard shortcuts */}
           <div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>Keyboard Shortcuts</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>{t('settings.about.keyboardShortcuts')}</div>
             {[
-              { keys: 'Ctrl + B', action: 'Toggle sidebar' },
-              { keys: 'Ctrl + `', action: 'Toggle terminal' },
-              { keys: 'Ctrl + N', action: 'New conversation' },
-              { keys: 'Ctrl + F', action: 'Search in conversation' },
-              { keys: 'Enter', action: 'Send message' },
-              { keys: 'Shift + Enter', action: 'New line in input' },
-              { keys: '@', action: 'Mention file' },
-              { keys: '/', action: 'Slash commands' },
+              { keys: 'Ctrl + B', action: t('settings.about.toggleSidebar') },
+              { keys: 'Ctrl + `', action: t('settings.about.toggleTerminal') },
+              { keys: 'Ctrl + N', action: t('settings.about.newConversation') },
+              { keys: 'Ctrl + F', action: t('settings.about.searchInConversation') },
+              { keys: 'Enter', action: t('settings.about.sendMessage') },
+              { keys: 'Shift + Enter', action: t('settings.about.newLine') },
+              { keys: '@', action: t('settings.about.mentionFile') },
+              { keys: '/', action: t('settings.about.slashCommands') },
             ].map(shortcut => (
               <div
                 key={shortcut.keys}
@@ -451,7 +467,7 @@ export default function SettingsPanel() {
 
           {/* Runtime info */}
           <div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>Runtime</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>{t('settings.about.runtime')}</div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.8 }}>
               Electron {window.electronAPI.versions?.electron || 'N/A'}<br />
               Node.js {window.electronAPI.versions?.node || 'N/A'}<br />
@@ -493,7 +509,7 @@ export default function SettingsPanel() {
             onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--error)')}
             onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
           >
-            Reset to Defaults
+            {t('settings.about.resetDefaults')}
           </button>
         </div>
       )}
