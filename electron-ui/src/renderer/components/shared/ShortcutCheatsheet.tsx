@@ -28,6 +28,8 @@ const SHORTCUTS = [
     { keys: '/', action: 'Slash commands' },
     { keys: 'Ctrl + Shift + Q', action: 'Add to task queue' },
     { keys: 'Ctrl + Shift + R', action: 'Regenerate response' },
+    { keys: 'Ctrl + = / -', action: 'Zoom in / out' },
+    { keys: 'Ctrl + 0', action: 'Reset zoom' },
   ]},
   { section: 'Conversation', items: [
     { keys: 'Ctrl + F', action: 'Search in conversation' },

@@ -62,9 +62,7 @@
     "longInput": "(\u8f83\u957f)",
     "veryLongInput": "(\u975e\u5e38\u957f)",
     "regenerate": "\u91cd\u65b0\u751f\u6210\u56de\u590d",
-    "editMessage": "\u7f16\u8f91\u6d88\u606f",
-    "editSave": "\u4fdd\u5b58\u5e76\u53d1\u9001",
-    "editCancel": "\u53d6\u6d88"
+    "resetZoom": "\u91cd\u7f6e\u7f29\u653e (Ctrl+0)"
   },
   "welcome": {
     "title": "\u4f60\u597d\uff01\u6211\u662f AIPA",
@@ -115,7 +113,10 @@
     "showLess": "\u6536\u8d77",
     "rawMarkdown": "\u539f\u59cb Markdown",
     "formattedView": "\u683c\u5f0f\u5316\u89c6\u56fe",
-    "copied": "\u5df2\u590d\u5236\uff01"
+    "copied": "\u5df2\u590d\u5236\uff01",
+    "editMessage": "\u7f16\u8f91\u6d88\u606f",
+    "editCancel": "\u53d6\u6d88",
+    "editSave": "\u4fdd\u5b58\u5e76\u53d1\u9001"
   },
   "session": {
     "search": "\u641c\u7d22\u4f1a\u8bdd...",

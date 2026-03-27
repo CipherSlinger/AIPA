@@ -42,6 +42,9 @@ export default function ChatPanel() {
   const addToQueue = useChatStore(s => s.addToQueue)
   const prepareRegeneration = useChatStore(s => s.prepareRegeneration)
 
+  // Chat zoom (Ctrl+= / Ctrl+- / Ctrl+0)
+  const [chatZoom, setChatZoom] = useState(100) // percentage
+
   // Compute bookmarked messages
   const bookmarkedMessages = useMemo(() => {
     return messages
@@ -314,6 +317,25 @@ export default function ChatPanel() {
           const prompt = state.prepareRegeneration()
           if (prompt) sendMessage(prompt)
         }
+      }
+      // Ctrl+= / Ctrl+-: Chat zoom
+      if (e.ctrlKey && !e.shiftKey && (e.key === '=' || e.key === '+')) {
+        e.preventDefault()
+        setChatZoom(z => {
+          const next = Math.min(z + 10, 150)
+          return next
+        })
+      }
+      if (e.ctrlKey && !e.shiftKey && e.key === '-') {
+        e.preventDefault()
+        setChatZoom(z => {
+          const next = Math.max(z - 10, 70)
+          return next
+        })
+      }
+      if (e.ctrlKey && !e.shiftKey && e.key === '0') {
+        e.preventDefault()
+        setChatZoom(100)
       }
     }
     window.addEventListener('keydown', handler)
@@ -1031,7 +1053,7 @@ export default function ChatPanel() {
 
       {/* Messages */}
       <div className="flex-1 overflow-hidden" style={{ display: 'flex', flexDirection: 'column' }}>
-        <div style={{ flex: 1, overflow: 'hidden' }}>
+        <div style={{ flex: 1, overflow: 'hidden', zoom: chatZoom !== 100 ? `${chatZoom}%` : undefined }}>
           {messages.length === 0 ? (
             <WelcomeScreen onSuggestion={sendText} />
           ) : (
@@ -1089,6 +1111,39 @@ export default function ChatPanel() {
           >
             <RefreshCw size={14} />
             <span>{t('chat.regenerate')}</span>
+          </button>
+        </div>
+      )}
+
+      {/* Zoom indicator -- shown when zoom is not 100% */}
+      {chatZoom !== 100 && (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '2px 16px 4px' }}>
+          <button
+            onClick={() => setChatZoom(100)}
+            title={t('chat.resetZoom')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '2px 10px',
+              background: 'transparent',
+              border: '1px solid var(--border)',
+              borderRadius: 12,
+              cursor: 'pointer',
+              color: 'var(--text-muted)',
+              fontSize: 11,
+              transition: 'color 150ms ease, border-color 150ms ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'var(--accent)'
+              e.currentTarget.style.borderColor = 'var(--accent)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'var(--text-muted)'
+              e.currentTarget.style.borderColor = 'var(--border)'
+            }}
+          >
+            {chatZoom}%
           </button>
         </div>
       )}

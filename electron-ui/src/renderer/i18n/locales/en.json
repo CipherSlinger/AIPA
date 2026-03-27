@@ -62,9 +62,7 @@
     "longInput": "(long)",
     "veryLongInput": "(very long)",
     "regenerate": "Regenerate response",
-    "editMessage": "Edit message",
-    "editSave": "Save & Send",
-    "editCancel": "Cancel"
+    "resetZoom": "Reset zoom (Ctrl+0)"
   },
   "welcome": {
     "title": "Hello! I'm AIPA",
