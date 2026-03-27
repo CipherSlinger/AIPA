@@ -20,6 +20,52 @@
   --error: #f44747;
   --user-bubble: #264f78;
   --assistant-bubble: #2d2d2d;
+
+  /* === NEW: Three-column layout backgrounds === */
+  --bg-nav:               #1a1a1a;
+  --bg-sessionpanel:      #212121;
+  --bg-chat:              #2a2a2a;
+
+  /* === NEW: Bubble system === */
+  --bubble-ai:            #333333;
+  --bubble-ai-text:       #e0e0e0;
+  --bubble-ai-border:     #3d3d3d;
+  --bubble-user:          #264f78;
+  --bubble-user-text:     #e8e8e8;
+  --bubble-user-border:   #2e5f8f;
+
+  /* === NEW: NavRail === */
+  --nav-icon-default:     #6b6b6b;
+  --nav-icon-hover:       #a0a0a0;
+  --nav-icon-active:      #ffffff;
+  --nav-indicator:        #007acc;
+
+  /* === NEW: Session item === */
+  --session-active-bg:    rgba(0, 122, 204, 0.12);
+  --session-hover-bg:     rgba(255, 255, 255, 0.04);
+
+  /* === NEW: Avatar === */
+  --avatar-ai:            #5a3f8a;
+  --avatar-user:          #007acc;
+
+  /* === NEW (Iteration 54): Input area === */
+  --input-bar-bg:         #2a2a2a;
+  --input-field-bg:       #333333;
+  --input-field-border:   #444444;
+  --input-field-focus:    #007acc;
+  --input-toolbar-icon:   #6b6b6b;
+  --input-toolbar-hover:  #a0a0a0;
+
+  /* === NEW (Iteration 54): Chat header === */
+  --chat-header-bg:       #1a1a1a;
+  --chat-header-title:    #e0e0e0;
+  --chat-header-icon:     #6b6b6b;
+  --chat-header-icon-hover: #a0a0a0;
+
+  /* === NEW (Iteration 54): Tool use cards (in-bubble) === */
+  --tool-card-bg:         rgba(0, 0, 0, 0.15);
+  --tool-card-border:     rgba(255, 255, 255, 0.06);
+  --tool-card-header-bg:  rgba(0, 0, 0, 0.08);
 }
 
 /* Theme: Modern Dark (GitHub/Linear style) */
@@ -41,6 +87,38 @@
   --error: #f85149;
   --user-bubble: #1f3a5f;
   --assistant-bubble: #161b22;
+
+  --bg-nav:             #0d1117;
+  --bg-sessionpanel:    #131920;
+  --bg-chat:            #161b22;
+  --bubble-ai:          #1c2128;
+  --bubble-ai-text:     #e6edf3;
+  --bubble-ai-border:   #21262d;
+  --bubble-user:        #1f3a5f;
+  --bubble-user-text:   #e6edf3;
+  --bubble-user-border: #264f78;
+  --nav-icon-default:   #484f58;
+  --nav-icon-hover:     #7d8590;
+  --nav-icon-active:    #ffffff;
+  --nav-indicator:      #2f81f7;
+  --session-active-bg:  rgba(47, 129, 247, 0.12);
+  --session-hover-bg:   rgba(255, 255, 255, 0.04);
+  --avatar-ai:          #553098;
+  --avatar-user:        #2f81f7;
+
+  --input-bar-bg:         #161b22;
+  --input-field-bg:       #1c2128;
+  --input-field-border:   #30363d;
+  --input-field-focus:    #2f81f7;
+  --input-toolbar-icon:   #484f58;
+  --input-toolbar-hover:  #7d8590;
+  --chat-header-bg:       #0d1117;
+  --chat-header-title:    #e6edf3;
+  --chat-header-icon:     #484f58;
+  --chat-header-icon-hover: #7d8590;
+  --tool-card-bg:         rgba(0, 0, 0, 0.20);
+  --tool-card-border:     rgba(255, 255, 255, 0.04);
+  --tool-card-header-bg:  rgba(0, 0, 0, 0.10);
 }
 
 /* Theme: Minimal Dark (Claude.ai/Raycast style) */
@@ -62,6 +140,38 @@
   --error: #ef4444;
   --user-bubble: #1e1033;
   --assistant-bubble: #1a1a1a;
+
+  --bg-nav:             #0a0a0a;
+  --bg-sessionpanel:    #111111;
+  --bg-chat:            #181818;
+  --bubble-ai:          #1e1e1e;
+  --bubble-ai-text:     #eeeeee;
+  --bubble-ai-border:   #262626;
+  --bubble-user:        #1e1033;
+  --bubble-user-text:   #eeeeee;
+  --bubble-user-border: #2a1745;
+  --nav-icon-default:   #444444;
+  --nav-icon-hover:     #777777;
+  --nav-icon-active:    #ffffff;
+  --nav-indicator:      #a855f7;
+  --session-active-bg:  rgba(168, 85, 247, 0.12);
+  --session-hover-bg:   rgba(255, 255, 255, 0.04);
+  --avatar-ai:          #6b21a8;
+  --avatar-user:        #a855f7;
+
+  --input-bar-bg:         #181818;
+  --input-field-bg:       #1e1e1e;
+  --input-field-border:   #2a2a2a;
+  --input-field-focus:    #a855f7;
+  --input-toolbar-icon:   #444444;
+  --input-toolbar-hover:  #777777;
+  --chat-header-bg:       #0a0a0a;
+  --chat-header-title:    #eeeeee;
+  --chat-header-icon:     #444444;
+  --chat-header-icon-hover: #777777;
+  --tool-card-bg:         rgba(0, 0, 0, 0.25);
+  --tool-card-border:     rgba(255, 255, 255, 0.03);
+  --tool-card-header-bg:  rgba(0, 0, 0, 0.12);
 }
 
 * {

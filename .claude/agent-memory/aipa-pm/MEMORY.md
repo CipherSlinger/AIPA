@@ -1,3 +1,3 @@
 # aipa-pm Agent Memory
 
-当前为空。发现值得跨会话保留的产品洞察时，在此记录。
+- [Iteration 53 UI Redesign](project_iteration53_ui_redesign.md) -- WeChat-style 3-column layout + bubble messages, P0 scope locked, brand blue user bubbles

@@ -111,10 +111,10 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
   const showElapsed = isRunning && elapsed >= 2
 
   const statusIcon = isRunning
-    ? <Loader2 size={12} className="animate-spin" style={{ color: 'var(--warning)' }} />
+    ? <Loader2 size={11} className="animate-spin" style={{ color: 'var(--warning)' }} />
     : tool.status === 'done'
-    ? <Check size={12} style={{ color: 'var(--success)' }} />
-    : <X size={12} style={{ color: 'var(--error)' }} />
+    ? <Check size={11} style={{ color: 'var(--success)' }} />
+    : <X size={11} style={{ color: 'var(--error)' }} />
 
   const primaryInput = (() => {
     if (tool.input.command) return String(tool.input.command).slice(0, 80)
@@ -131,12 +131,11 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
   return (
     <div
       style={{
-        background: 'var(--bg-primary)',
-        border: `1px solid ${isRunning && showElapsed ? 'var(--warning)' : 'var(--border)'}`,
-        borderRadius: 4,
-        marginBottom: 6,
+        background: 'var(--tool-card-bg)',
+        border: '1px solid var(--tool-card-border)',
+        borderRadius: 6,
+        marginBottom: 4,
         overflow: 'hidden',
-        transition: 'border-color 0.3s',
       }}
     >
       {/* Header */}
@@ -146,20 +145,19 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
           width: '100%',
           display: 'flex',
           alignItems: 'center',
-          gap: 8,
-          padding: '6px 10px',
-          background: isRunning ? 'rgba(234,179,8,0.06)' : 'none',
+          gap: 6,
+          padding: '5px 8px',
+          background: isRunning ? 'var(--tool-card-header-bg)' : 'none',
           border: 'none',
           cursor: 'pointer',
           textAlign: 'left',
           color: 'var(--text-primary)',
-          transition: 'background 0.2s',
         }}
       >
-        {expanded ? <ChevronDown size={12} style={{ color: 'var(--text-muted)' }} /> : <ChevronRight size={12} style={{ color: 'var(--text-muted)' }} />}
-        <Icon size={13} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)', flexShrink: 0 }}>{label}</span>
-        <span style={{ fontSize: 11, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, fontFamily: 'monospace' }}>
+        {expanded ? <ChevronDown size={11} style={{ color: 'var(--text-muted)' }} /> : <ChevronRight size={11} style={{ color: 'var(--text-muted)' }} />}
+        <Icon size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+        <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--accent)', flexShrink: 0 }}>{label}</span>
+        <span style={{ fontSize: 10, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, fontFamily: 'monospace' }}>
           {primaryInput}
         </span>
         {showElapsed && (
@@ -192,17 +190,17 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
       {expanded && (
         <div style={{ borderTop: '1px solid var(--border)' }}>
           {/* Input section */}
-          <div style={{ padding: '8px 10px' }}>
+          <div style={{ padding: '6px 8px' }}>
             <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4 }}>INPUT</div>
             {isFileEdit && (tool.input.old_str || tool.input.new_str || tool.input.old_string || tool.input.new_string) ? (
               <>
                 {tool.input.path && (
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, fontFamily: 'monospace' }}>{String(tool.input.path)}</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4, fontFamily: 'monospace' }}>{String(tool.input.path)}</div>
                 )}
                 <DiffView input={tool.input} />
               </>
             ) : (
-              <pre style={{ fontSize: 11, margin: 0, background: 'transparent', border: 'none', padding: 0, overflow: 'auto', maxHeight: 200 }}>
+              <pre style={{ fontSize: 10, margin: 0, background: 'transparent', border: 'none', padding: 0, overflow: 'auto', maxHeight: 200 }}>
                 {JSON.stringify(tool.input, null, 2)}
               </pre>
             )}
@@ -211,20 +209,21 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
           {/* Output section */}
           {tool.result !== undefined && (
             <div style={{ borderTop: '1px solid var(--border)' }}>
-              <div style={{ padding: '4px 10px 0', fontSize: 10, color: 'var(--text-muted)' }}>OUTPUT</div>
+              <div style={{ padding: '4px 8px 0', fontSize: 10, color: 'var(--text-muted)' }}>OUTPUT</div>
               {isBash ? (
                 <pre style={{
-                  margin: 0, padding: '6px 10px 8px',
-                  fontFamily: 'monospace', fontSize: 11,
-                  background: '#0d0d0d', color: '#4ade80',
-                  maxHeight: 300, overflowY: 'auto',
+                  margin: 0, padding: '4px 8px 6px',
+                  fontFamily: 'monospace', fontSize: 10,
+                  background: 'rgba(0, 0, 0, 0.2)', color: '#4ade80',
+                  maxHeight: 200, overflowY: 'auto',
                   whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                  borderRadius: '0 0 6px 6px',
                 }}>
                   {resultText || '(no output)'}
                 </pre>
               ) : (
                 <pre style={{
-                  fontSize: 11, margin: 0, padding: '6px 10px 8px',
+                  fontSize: 10, margin: 0, padding: '4px 8px 6px',
                   background: 'transparent', border: 'none',
                   overflow: 'auto', maxHeight: 200,
                   whiteSpace: 'pre-wrap', wordBreak: 'break-word',

@@ -1,18 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useChatStore, useUiStore } from '../../store'
 import Sidebar from './Sidebar'
+import NavRail from './NavRail'
 import ChatPanel from '../chat/ChatPanel'
 import TerminalPanel from '../terminal/TerminalPanel'
 import StatusBar from './StatusBar'
 import ErrorBoundary from '../shared/ErrorBoundary'
 
 const MIN_SIDEBAR = 180
-const MAX_SIDEBAR = 480
+const MAX_SIDEBAR = 400
 const MIN_TERMINAL = 280
 const MAX_TERMINAL = 800
 
 export default function AppShell() {
-  const { sidebarOpen, terminalOpen, setSidebarOpen } = useUiStore()
+  const { sidebarOpen, terminalOpen, setSidebarOpen, focusMode } = useUiStore()
   const { currentSessionTitle } = useChatStore()
   const [sidebarWidth, setSidebarWidth] = useState(240)
   const [terminalWidth, setTerminalWidth] = useState(420)
@@ -21,13 +22,13 @@ export default function AppShell() {
   useEffect(() => {
     const loadWidths = async () => {
       const prefs = await window.electronAPI.prefsGetAll()
-      if (prefs?.sidebarWidth) setSidebarWidth(prefs.sidebarWidth)
+      if (prefs?.sidebarWidth) setSidebarWidth(Math.min(Math.max(prefs.sidebarWidth, MIN_SIDEBAR), MAX_SIDEBAR))
       if (prefs?.terminalWidth) setTerminalWidth(prefs.terminalWidth)
     }
     loadWidths()
   }, [])
 
-  // Auto-collapse sidebar on narrow windows
+  // Auto-collapse sidebar (SessionPanel) on narrow windows
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 600 && useUiStore.getState().sidebarOpen) {
@@ -75,12 +76,12 @@ export default function AppShell() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
-      {/* Title bar drag region */}
+      {/* Title bar drag region — spans all three columns */}
       <div
         className="drag-region"
         style={{
           height: 32,
-          background: 'var(--bg-sidebar)',
+          background: 'var(--bg-nav)',
           borderBottom: '1px solid var(--border)',
           flexShrink: 0,
           display: 'flex',
@@ -103,12 +104,26 @@ export default function AppShell() {
         </span>
       </div>
 
-      {/* Main content */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        {sidebarOpen && (
+      {/* Main content: NavRail + SessionPanel + ChatPanel [+ TerminalPanel] */}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'row',
+          flex: 1,
+          overflow: 'hidden',
+        }}
+      >
+        {/* NavRail — always visible unless in focus mode */}
+        {!focusMode && (
+          <ErrorBoundary fallbackLabel="nav rail">
+            <NavRail />
+          </ErrorBoundary>
+        )}
+
+        {/* SessionPanel (Sidebar) — toggleable via Ctrl+B */}
+        {sidebarOpen && !focusMode && (
           <>
-            <div style={{ width: sidebarWidth, flexShrink: 0, overflow: 'hidden' }}>
+            <div style={{ width: sidebarWidth, flexShrink: 0, overflow: 'hidden', background: 'var(--bg-sessionpanel)' }}>
               <Sidebar />
             </div>
             {/* Sidebar resize handle */}
@@ -123,7 +138,15 @@ export default function AppShell() {
         )}
 
         {/* Chat panel — fills remaining space */}
-        <div className="flex-1 overflow-hidden">
+        <div
+          style={{
+            flex: 1,
+            overflow: 'hidden',
+            background: 'var(--bg-chat)',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
           <ErrorBoundary fallbackLabel="chat panel">
             <ChatPanel />
           </ErrorBoundary>

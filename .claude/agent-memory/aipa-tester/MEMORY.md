@@ -2,8 +2,9 @@
 
 ## Build Status
 - All three targets (main, preload, renderer) compile clean as of 2026-03-26
-- Vite bundle: ~880 kB (gzip ~253 kB) -- single chunk warning is expected
+- Vite bundle: ~977 kB (gzip ~276 kB) after Iteration 53 -- single chunk warning is expected
 - Node warning: postcss.config.js needs `"type": "module"` in package.json (cosmetic)
+- 2384 modules transformed, build time ~7.4s
 
 ## High-Frequency Issues
 1. **Residual console.log**: Even after structured logging migration, stray console.log statements survive (found in stream-bridge.ts:92). Always grep for `console.log` in `src/main/` after logging changes.
@@ -20,6 +21,12 @@
 
 ## Build Command
 ```
-cd C:/Users/osr/Desktop/AIPA/electron-ui && npm run build
+cd /home/osr/AIPA/electron-ui && npm run build
 ```
 Build includes `clear-prefs` step that deletes the prefs JSON file before building.
+
+## Iteration 53 Notes (WeChat UI Redesign)
+- Three-column layout introduced: NavRail.tsx (new), AppShell.tsx, Sidebar.tsx restructured
+- Message.tsx has dead code: `bubblePadding` variable (line ~145) computed but unused
+- Sidebar.tsx has redundant `borderRight` that overlaps with AppShell's resize handle
+- No new npm dependencies -- all icons come from existing lucide-react

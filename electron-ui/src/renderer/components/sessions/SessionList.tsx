@@ -1,9 +1,34 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { Clock, Trash2, RefreshCw, MessageSquare, GitBranch, Pencil, ArrowUpDown, Star } from 'lucide-react'
+import { Trash2, RefreshCw, MessageSquare, GitBranch, Pencil, ArrowUpDown, Star, Search } from 'lucide-react'
 import { SessionListItem, SessionMessage, StandardChatMessage, ToolUseInfo, ChatMessage } from '../../types/app.types'
 import { useSessionStore, useChatStore, useUiStore } from '../../store'
 import { SkeletonSessionRow } from '../ui/Skeleton'
 import { formatDistanceToNow } from 'date-fns'
+
+// ── Session avatar color palette ──
+const SESSION_AVATAR_COLORS = [
+  '#4a90d9',  // blue
+  '#50b86e',  // green
+  '#e67e22',  // orange
+  '#9b59b6',  // purple
+  '#e74c3c',  // red
+  '#1abc9c',  // teal
+  '#f39c12',  // amber
+  '#34495e',  // slate
+]
+
+function hashSessionId(id: string): number {
+  let hash = 0
+  for (let i = 0; i < id.length; i++) {
+    hash = ((hash << 5) - hash) + id.charCodeAt(i)
+    hash |= 0
+  }
+  return Math.abs(hash)
+}
+
+function getSessionAvatarColor(sessionId: string): string {
+  return SESSION_AVATAR_COLORS[hashSessionId(sessionId) % SESSION_AVATAR_COLORS.length]
+}
 
 function parseSessionMessages(raw: SessionMessage[]): ChatMessage[] {
   const result: ChatMessage[] = []
@@ -236,22 +261,29 @@ export default function SessionList() {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Search bar */}
-      <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 6, flexShrink: 0 }}>
-        <input
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          placeholder="Search sessions..."
-          style={{
-            flex: 1,
-            background: 'var(--bg-input)',
-            border: '1px solid var(--border)',
-            borderRadius: 3,
-            padding: '4px 8px',
-            color: 'var(--text-primary)',
-            fontSize: 12,
-            outline: 'none',
-          }}
-        />
+      <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
+        <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <Search size={14} style={{ position: 'absolute', left: 8, color: 'var(--text-muted)', pointerEvents: 'none' }} />
+          <input
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder="Search sessions..."
+            style={{
+              flex: 1,
+              width: '100%',
+              background: 'var(--bg-input)',
+              border: '1px solid transparent',
+              borderRadius: 6,
+              padding: '6px 10px 6px 28px',
+              color: 'var(--text-primary)',
+              fontSize: 12,
+              outline: 'none',
+              transition: 'border-color 0.15s ease',
+            }}
+            onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+            onBlur={(e) => (e.currentTarget.style.borderColor = 'transparent')}
+          />
+        </div>
         <button
           onClick={loadSessions}
           title="Refresh"
@@ -323,6 +355,10 @@ export default function SessionList() {
         {filtered.map((session, idx) => {
           const isActive = currentSessionId === session.sessionId
           const isFocused = idx === focusedIdx
+          const isPinned = pinnedIds.has(session.sessionId)
+          const avatarColor = getSessionAvatarColor(session.sessionId)
+          const previewText = (session.lastPrompt || '').slice(0, 50) || undefined
+
           return (
           <div
             key={session.sessionId}
@@ -330,69 +366,123 @@ export default function SessionList() {
             className="session-item"
             style={{
               padding: '10px 12px',
-              borderBottom: '1px solid var(--border)',
+              display: 'flex',
+              gap: 10,
+              alignItems: 'center',
               cursor: 'pointer',
-              position: 'relative',
+              borderBottom: '1px solid var(--border)',
               borderLeft: isActive ? '3px solid var(--accent)' : isFocused ? '3px solid var(--text-muted)' : '3px solid transparent',
-              background: isActive ? 'rgba(0, 122, 204, 0.08)' : isFocused ? 'var(--bg-hover, rgba(255,255,255,0.04))' : 'transparent',
+              background: isActive ? 'var(--session-active-bg)' : isFocused ? 'var(--session-hover-bg)' : 'transparent',
+              position: 'relative',
+              transition: 'background 0.12s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = isActive ? 'rgba(0, 122, 204, 0.14)' : 'var(--bg-hover)'
+              e.currentTarget.style.background = isActive ? 'rgba(0, 122, 204, 0.18)' : 'var(--session-hover-bg)'
               const btns = e.currentTarget.querySelector('.action-btns') as HTMLElement
               if (btns) btns.style.display = 'flex'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = isActive ? 'rgba(0, 122, 204, 0.08)' : 'transparent'
+              e.currentTarget.style.background = isActive ? 'var(--session-active-bg)' : 'transparent'
               const btns = e.currentTarget.querySelector('.action-btns') as HTMLElement
               if (btns) btns.style.display = 'none'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-              {pinnedIds.has(session.sessionId) ? (
-                <Star size={11} style={{ color: 'var(--warning)', fill: 'var(--warning)', flexShrink: 0 }} />
-              ) : (
-                <MessageSquare size={11} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-              )}
-              <span style={{ fontSize: 10, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                {session.project.split(/[/\\]/).pop() || session.project}
-              </span>
-              <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>
-                {formatDistanceToNow(new Date(session.timestamp), { addSuffix: true })}
-              </span>
+            {/* Session Avatar (36px rounded square) */}
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 8,
+                background: avatarColor,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              {isPinned
+                ? <Star size={18} color="#ffffff" />
+                : <MessageSquare size={18} color="#ffffff" />
+              }
             </div>
 
-            {renamingId === session.sessionId ? (
-              <input
-                autoFocus
-                value={renameValue}
-                onChange={(e) => setRenameValue(e.target.value)}
-                onBlur={() => commitRename(session.sessionId)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') commitRename(session.sessionId)
-                  if (e.key === 'Escape') setRenamingId(null)
-                }}
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  width: '100%',
-                  background: 'var(--bg-input)',
-                  border: '1px solid var(--accent)',
-                  borderRadius: 3,
-                  padding: '2px 6px',
-                  color: 'var(--text-primary)',
-                  fontSize: 12,
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                }}
-              />
-            ) : (
-              <div
-                onDoubleClick={(e) => startRename(e, session)}
-                style={{ fontSize: 12, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 56 }}
-                title="Double-click to rename"
-              >
-                <HighlightText text={session.title || session.lastPrompt || '(no content)'} highlight={filter} />
+            {/* Text content */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {/* Title row: title + timestamp */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8,
+                marginBottom: 4,
+              }}>
+                {renamingId === session.sessionId ? (
+                  <input
+                    autoFocus
+                    value={renameValue}
+                    onChange={(e) => setRenameValue(e.target.value)}
+                    onBlur={() => commitRename(session.sessionId)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') commitRename(session.sessionId)
+                      if (e.key === 'Escape') setRenamingId(null)
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      flex: 1,
+                      background: 'var(--bg-input)',
+                      border: '1px solid var(--accent)',
+                      borderRadius: 3,
+                      padding: '2px 6px',
+                      color: 'var(--text-primary)',
+                      fontSize: 12,
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                ) : (
+                  <span
+                    onDoubleClick={(e) => startRename(e, session)}
+                    title="Double-click to rename"
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 500,
+                      color: 'var(--text-primary)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      flex: 1,
+                    }}
+                  >
+                    <HighlightText text={session.title || session.lastPrompt || '(no content)'} highlight={filter} />
+                  </span>
+                )}
+                <span style={{
+                  fontSize: 10,
+                  color: 'var(--text-muted)',
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
+                }}>
+                  {formatDistanceToNow(new Date(session.timestamp), { addSuffix: true })}
+                </span>
               </div>
-            )}
+
+              {/* Preview line */}
+              <div style={{
+                fontSize: 11,
+                color: 'var(--text-muted)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                lineHeight: 1.4,
+                paddingRight: 16,
+              }}>
+                {previewText ? (
+                  <HighlightText text={previewText} highlight={filter} />
+                ) : (
+                  <em style={{ opacity: 0.6 }}>(no content)</em>
+                )}
+              </div>
+            </div>
 
             {/* Action buttons */}
             <div
@@ -408,17 +498,17 @@ export default function SessionList() {
             >
               <button
                 onClick={(e) => togglePin(e, session.sessionId)}
-                title={pinnedIds.has(session.sessionId) ? 'Unpin' : 'Pin to top'}
+                title={isPinned ? 'Unpin' : 'Pin to top'}
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: pinnedIds.has(session.sessionId) ? 'var(--warning)' : 'var(--text-muted)',
+                  color: isPinned ? 'var(--warning)' : 'var(--text-muted)',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                 }}
               >
-                <Star size={11} style={{ fill: pinnedIds.has(session.sessionId) ? 'var(--warning)' : 'none' }} />
+                <Star size={11} style={{ fill: isPinned ? 'var(--warning)' : 'none' }} />
               </button>
               <button
                 onClick={(e) => startRename(e, session)}

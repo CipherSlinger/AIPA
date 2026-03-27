@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Send, Square, Plus, Mic, MicOff, Download, Upload, Maximize2, Minimize2, Bookmark, BarChart3, ListPlus } from 'lucide-react'
+import { Send, Square, Plus, Mic, MicOff, Download, Upload, Maximize2, Minimize2, Bookmark, BarChart3, ListPlus, AtSign, TerminalSquare, Search } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { useStreamJson } from '../../hooks/useStreamJson'
 import MessageList from './MessageList'
@@ -554,7 +554,7 @@ export default function ChatPanel() {
   return (
     <div
       className="flex flex-col h-full"
-      style={{ background: 'var(--bg-primary)', position: 'relative' }}
+      style={{ background: 'var(--bg-chat)', position: 'relative' }}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -589,36 +589,57 @@ export default function ChatPanel() {
         </div>
       )}
 
-      {/* Toolbar */}
+      {/* Chat Header */}
       <div
         style={{
-          height: 36,
+          height: 44,
           display: 'flex',
           alignItems: 'center',
-          padding: '0 12px',
+          padding: '0 16px',
           gap: 8,
           borderBottom: '1px solid var(--border)',
-          background: 'var(--bg-secondary)',
+          background: 'var(--chat-header-bg)',
           flexShrink: 0,
         }}
       >
-        <span style={{ color: 'var(--text-muted)', fontSize: 11, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{
+          fontSize: 13,
+          fontWeight: 600,
+          color: 'var(--chat-header-title)',
+          flex: 1,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}>
           {currentSessionTitle
             ? currentSessionTitle
             : currentSessionId
             ? `Session: ${currentSessionId.slice(0, 8)}...`
             : `${prefs.model?.split('-').slice(0, 3).join('-') || 'claude'}`}
         </span>
-        {prefs.workingDir && (
-          <span style={{ color: 'var(--text-muted)', fontSize: 10, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={prefs.workingDir}>
-            {prefs.workingDir.split(/[/\\]/).pop()}
-          </span>
-        )}
-        {messages.length > 0 && (
-          <span style={{ color: 'var(--text-muted)', fontSize: 10, flexShrink: 0 }}>
-            {messages.filter(m => m.role !== 'permission' && m.role !== 'plan').length} msgs
-          </span>
-        )}
+        {/* Action icons — right side */}
+        <button
+          onClick={() => setSearchOpen(!searchOpen)}
+          title="Search messages (Ctrl+F)"
+          style={{
+            background: searchOpen ? 'var(--accent)' : 'none',
+            border: 'none',
+            color: searchOpen ? '#fff' : 'var(--chat-header-icon)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            flexShrink: 0,
+            transition: 'background 150ms, color 150ms',
+          }}
+          onMouseEnter={(e) => { if (!searchOpen) { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon-hover)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)' } }}
+          onMouseLeave={(e) => { if (!searchOpen) { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon)'; (e.currentTarget as HTMLButtonElement).style.background = 'none' } }}
+        >
+          <Search size={15} />
+        </button>
         <button
           onClick={exportConversation}
           disabled={messages.length === 0}
@@ -626,14 +647,22 @@ export default function ChatPanel() {
           style={{
             background: 'none',
             border: 'none',
-            color: 'var(--text-muted)',
+            color: 'var(--chat-header-icon)',
             cursor: messages.length === 0 ? 'not-allowed' : 'pointer',
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'center',
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            flexShrink: 0,
             opacity: messages.length === 0 ? 0.3 : 1,
+            transition: 'background 150ms, color 150ms',
           }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon-hover)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)' }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon)'; (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
         >
-          <Download size={14} />
+          <Download size={15} />
         </button>
         {/* Bookmarks dropdown */}
         <div style={{ position: 'relative' }} ref={bookmarksRef}>
@@ -643,19 +672,40 @@ export default function ChatPanel() {
             style={{
               background: showBookmarks ? 'var(--accent)' : 'none',
               border: 'none',
-              color: showBookmarks ? '#fff' : bookmarkedMessages.length > 0 ? 'var(--warning)' : 'var(--text-muted)',
+              color: showBookmarks ? '#fff' : bookmarkedMessages.length > 0 ? 'var(--warning)' : 'var(--chat-header-icon)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: 3,
-              borderRadius: 3,
-              padding: '2px 4px',
-              opacity: bookmarkedMessages.length === 0 && !showBookmarks ? 0.4 : 1,
+              justifyContent: 'center',
+              width: 28,
+              height: 28,
+              borderRadius: 6,
+              flexShrink: 0,
+              opacity: bookmarkedMessages.length === 0 && !showBookmarks ? 0.5 : 1,
+              transition: 'background 150ms, color 150ms',
+              position: 'relative',
             }}
+            onMouseEnter={(e) => { if (!showBookmarks) { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon-hover)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)' } }}
+            onMouseLeave={(e) => { if (!showBookmarks) { (e.currentTarget as HTMLButtonElement).style.color = bookmarkedMessages.length > 0 ? 'var(--warning)' : 'var(--chat-header-icon)'; (e.currentTarget as HTMLButtonElement).style.background = 'none' } }}
           >
-            <Bookmark size={13} />
+            <Bookmark size={15} />
             {bookmarkedMessages.length > 0 && (
-              <span style={{ fontSize: 9 }}>{bookmarkedMessages.length}</span>
+              <span style={{
+                position: 'absolute',
+                top: 2,
+                right: 2,
+                fontSize: 9,
+                fontWeight: 600,
+                color: '#fff',
+                background: 'var(--warning)',
+                borderRadius: '50%',
+                width: 14,
+                height: 14,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                lineHeight: 1,
+              }}>{bookmarkedMessages.length > 9 ? '9+' : bookmarkedMessages.length}</span>
             )}
           </button>
           {showBookmarks && bookmarkedMessages.length > 0 && (
@@ -668,9 +718,9 @@ export default function ChatPanel() {
                 width: 280,
                 maxHeight: 300,
                 overflowY: 'auto',
-                background: 'var(--bg-secondary)',
+                background: 'var(--input-field-bg)',
                 border: '1px solid var(--border)',
-                borderRadius: 6,
+                borderRadius: 8,
                 boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
                 padding: '4px 0',
                 marginTop: 4,
@@ -687,7 +737,6 @@ export default function ChatPanel() {
                     key={msg.id}
                     onClick={() => {
                       setScrollToMessageIdx(idx)
-                      // Reset after a tick so it can be triggered again for same idx
                       setTimeout(() => setScrollToMessageIdx(undefined), 100)
                       setShowBookmarks(false)
                     }}
@@ -706,7 +755,7 @@ export default function ChatPanel() {
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover, var(--bg-active))')}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
                   >
                     <span style={{ color: 'var(--text-muted)', fontSize: 10, marginRight: 6 }}>
@@ -726,9 +775,9 @@ export default function ChatPanel() {
                 right: 0,
                 zIndex: 60,
                 width: 200,
-                background: 'var(--bg-secondary)',
+                background: 'var(--input-field-bg)',
                 border: '1px solid var(--border)',
-                borderRadius: 6,
+                borderRadius: 8,
                 boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
                 padding: '16px 12px',
                 marginTop: 4,
@@ -742,22 +791,6 @@ export default function ChatPanel() {
             </div>
           )}
         </div>
-        <button
-          onClick={toggleFocusMode}
-          title={focusMode ? 'Exit focus mode (Ctrl+Shift+F)' : 'Focus mode (Ctrl+Shift+F)'}
-          style={{
-            background: focusMode ? 'var(--accent)' : 'none',
-            border: 'none',
-            color: focusMode ? '#fff' : 'var(--text-muted)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            borderRadius: 3,
-            padding: '2px 4px',
-          }}
-        >
-          {focusMode ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
-        </button>
         {/* Stats popover */}
         <div style={{ position: 'relative' }} ref={statsRef}>
           <button
@@ -767,16 +800,22 @@ export default function ChatPanel() {
             style={{
               background: showStats ? 'var(--accent)' : 'none',
               border: 'none',
-              color: showStats ? '#fff' : 'var(--text-muted)',
+              color: showStats ? '#fff' : 'var(--chat-header-icon)',
               cursor: messages.length === 0 ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
-              borderRadius: 3,
-              padding: '2px 4px',
+              justifyContent: 'center',
+              width: 28,
+              height: 28,
+              borderRadius: 6,
+              flexShrink: 0,
               opacity: messages.length === 0 ? 0.3 : 1,
+              transition: 'background 150ms, color 150ms',
             }}
+            onMouseEnter={(e) => { if (!showStats) { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon-hover)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)' } }}
+            onMouseLeave={(e) => { if (!showStats) { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon)'; (e.currentTarget as HTMLButtonElement).style.background = 'none' } }}
           >
-            <BarChart3 size={13} />
+            <BarChart3 size={15} />
           </button>
           {showStats && messages.length > 0 && (
             <div
@@ -786,9 +825,9 @@ export default function ChatPanel() {
                 right: 0,
                 zIndex: 60,
                 width: 220,
-                background: 'var(--bg-secondary)',
+                background: 'var(--input-field-bg)',
                 border: '1px solid var(--border)',
-                borderRadius: 6,
+                borderRadius: 8,
                 boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
                 padding: '12px 14px',
                 marginTop: 4,
@@ -844,14 +883,34 @@ export default function ChatPanel() {
             </div>
           )}
         </div>
+        <button
+          onClick={toggleFocusMode}
+          title={focusMode ? 'Exit focus mode (Ctrl+Shift+F)' : 'Focus mode (Ctrl+Shift+F)'}
+          style={{
+            background: focusMode ? 'var(--accent)' : 'none',
+            border: 'none',
+            color: focusMode ? '#fff' : 'var(--chat-header-icon)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            flexShrink: 0,
+            transition: 'background 150ms, color 150ms',
+          }}
+          onMouseEnter={(e) => { if (!focusMode) { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon-hover)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)' } }}
+          onMouseLeave={(e) => { if (!focusMode) { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon)'; (e.currentTarget as HTMLButtonElement).style.background = 'none' } }}
+        >
+          {focusMode ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+        </button>
         {elapsedStr && (
           <span style={{
             fontSize: 10,
             color: 'var(--success)',
             fontFamily: 'monospace',
             flexShrink: 0,
-            minWidth: 32,
-            textAlign: 'right',
             display: 'flex',
             alignItems: 'center',
             gap: 4,
@@ -874,9 +933,24 @@ export default function ChatPanel() {
         <button
           onClick={newConversation}
           title="New conversation"
-          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--chat-header-icon)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            flexShrink: 0,
+            transition: 'background 150ms, color 150ms',
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon-hover)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)' }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon)'; (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
         >
-          <Plus size={14} />
+          <Plus size={15} />
         </button>
       </div>
 
@@ -917,172 +991,214 @@ export default function ChatPanel() {
       {/* Input bar */}
       <div
         style={{
-          padding: '12px',
-          borderTop: '1px solid var(--border)',
-          background: 'var(--bg-secondary)',
+          padding: '8px 16px 12px',
+          background: 'var(--input-bar-bg)',
           flexShrink: 0,
         }}
       >
-        <div
-          ref={inputWrapRef}
-          style={{
-            position: 'relative',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 0,
-            background: 'var(--bg-input)',
-            borderRadius: 6,
-            padding: '8px 12px',
-            border: '1px solid var(--border)',
-          }}
-        >
-          {/* Image attachment preview */}
-          {attachments.length > 0 && (
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingBottom: 8 }}>
-              {attachments.map(img => (
-                <div key={img.id} style={{ position: 'relative', flexShrink: 0 }}>
-                  <img
-                    src={img.dataUrl}
-                    alt={img.name}
-                    style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border)' }}
-                  />
-                  <button
-                    onClick={() => removeAttachment(img.id)}
-                    style={{
-                      position: 'absolute', top: -4, right: -4,
-                      width: 16, height: 16, borderRadius: '50%',
-                      background: 'var(--error)', border: 'none',
-                      color: '#fff', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 10, lineHeight: '1',
-                    }}
-                  >×</button>
-                </div>
-              ))}
-            </div>
-          )}
-          {/* Quick action bar above input */}
-          <div style={{ display: 'flex', gap: 4, marginBottom: 4, opacity: 0.6 }}>
-            <button
-              onClick={() => { setInput(''); textareaRef.current?.focus() }}
-              title="Clear input"
-              style={{
-                background: 'none', border: 'none', color: 'var(--text-muted)',
-                cursor: 'pointer', fontSize: 10, padding: '1px 4px', borderRadius: 3,
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
-            >
-              Clear
-            </button>
-            <button
-              onClick={() => {
-                setInput(prev => prev + '@')
-                setAtQuery('')
-                textareaRef.current?.focus()
-              }}
-              title="Insert @mention"
-              style={{
-                background: 'none', border: 'none', color: 'var(--text-muted)',
-                cursor: 'pointer', fontSize: 10, padding: '1px 4px', borderRadius: 3,
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
-            >
-              @file
-            </button>
-            <button
-              onClick={() => {
-                setInput('/')
-                setSlashQuery('')
-                setSlashIndex(0)
-                textareaRef.current?.focus()
-              }}
-              title="Insert slash command"
-              style={{
-                background: 'none', border: 'none', color: 'var(--text-muted)',
-                cursor: 'pointer', fontSize: 10, padding: '1px 4px', borderRadius: 3,
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
-            >
-              /cmd
-            </button>
-            {/* Spacer */}
-            <span style={{ flex: 1 }} />
-            {/* Queue button */}
-            <div style={{ position: 'relative', display: 'inline-flex' }}>
-              <button
-                onClick={() => {
-                  const text = input.trim()
-                  if (!text) return
-                  addToQueue(text)
-                  setInput('')
-                  resizeTextarea()
-                  try { sessionStorage.removeItem('aipa:draft-input') } catch { /* ignore */ }
-                  textareaRef.current?.focus()
-                }}
-                disabled={!input.trim()}
-                aria-label="Add to task queue"
-                title="Add to queue (Ctrl+Shift+Q)"
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: input.trim() ? 'pointer' : 'not-allowed',
-                  fontSize: 10,
-                  padding: '1px 6px',
-                  borderRadius: 3,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 3,
-                  color: taskQueue.length > 0
-                    ? '#a78bfa'
-                    : input.trim()
-                    ? 'var(--text-muted)'
-                    : '#4a4a4a',
-                  opacity: input.trim() ? 1 : 0.4,
-                  transition: 'color 150ms ease, background 150ms ease',
-                }}
-                onMouseEnter={(e) => {
-                  if (input.trim()) {
-                    (e.currentTarget as HTMLButtonElement).style.color = '#a78bfa';
-                    (e.currentTarget as HTMLButtonElement).style.background = 'rgba(139, 92, 246, 0.10)'
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.color = taskQueue.length > 0 ? '#a78bfa' : input.trim() ? 'var(--text-muted)' : '#4a4a4a';
-                  (e.currentTarget as HTMLButtonElement).style.background = 'none'
-                }}
-              >
-                <ListPlus size={14} />
-                <span>Queue</span>
-              </button>
-              {/* Badge */}
-              {taskQueue.length > 0 && (
-                <span style={{
-                  position: 'absolute',
-                  top: -6,
-                  right: -6,
-                  width: 16,
-                  height: 16,
-                  background: '#8b5cf6',
-                  color: '#ffffff',
-                  fontSize: 10,
-                  fontWeight: 600,
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  animation: 'queue-badge-in 200ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
-                  pointerEvents: 'none',
-                }}>
-                  {taskQueue.length > 9 ? '9+' : taskQueue.length}
-                </span>
-              )}
-            </div>
+        {/* Character count warning (only when > 5000) */}
+        {input.length > 5000 && (
+          <div style={{
+            fontSize: 10,
+            color: input.length > 10000 ? 'var(--error)' : 'var(--warning)',
+            fontWeight: input.length > 10000 ? 600 : 400,
+            textAlign: 'right',
+            padding: '0 4px 2px',
+          }}>
+            {input.length.toLocaleString()} chars{input.length > 10000 ? ' (very long)' : ''}
           </div>
-          {/* Input row */}
-          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+        )}
+        {/* Toolbar row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginBottom: 6, paddingLeft: 4 }}>
+          <button
+            onClick={() => {
+              setInput(prev => prev + '@')
+              setAtQuery('')
+              textareaRef.current?.focus()
+            }}
+            title="Insert @mention"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--input-toolbar-icon)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 28,
+              height: 28,
+              borderRadius: 6,
+              flexShrink: 0,
+              transition: 'color 150ms, background 150ms',
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--input-toolbar-hover)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)' }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--input-toolbar-icon)'; (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
+          >
+            <AtSign size={16} />
+          </button>
+          <button
+            onClick={() => {
+              setInput('/')
+              setSlashQuery('')
+              setSlashIndex(0)
+              textareaRef.current?.focus()
+            }}
+            title="Insert slash command"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--input-toolbar-icon)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 28,
+              height: 28,
+              borderRadius: 6,
+              flexShrink: 0,
+              transition: 'color 150ms, background 150ms',
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--input-toolbar-hover)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)' }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--input-toolbar-icon)'; (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
+          >
+            <TerminalSquare size={16} />
+          </button>
+          <button
+            onClick={toggleSpeech}
+            title={listening ? 'Stop recording' : 'Voice input'}
+            style={{
+              background: listening ? 'var(--error)' : 'none',
+              border: 'none',
+              color: listening ? '#fff' : 'var(--input-toolbar-icon)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 28,
+              height: 28,
+              borderRadius: 6,
+              flexShrink: 0,
+              transition: 'color 150ms, background 150ms',
+            }}
+            onMouseEnter={(e) => { if (!listening) { (e.currentTarget as HTMLButtonElement).style.color = 'var(--input-toolbar-hover)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)' } }}
+            onMouseLeave={(e) => { if (!listening) { (e.currentTarget as HTMLButtonElement).style.color = 'var(--input-toolbar-icon)'; (e.currentTarget as HTMLButtonElement).style.background = 'none' } }}
+          >
+            {listening ? <MicOff size={16} /> : <Mic size={16} />}
+          </button>
+          {/* Spacer */}
+          <span style={{ flex: 1 }} />
+          {/* Queue button */}
+          <div style={{ position: 'relative', display: 'inline-flex' }}>
+            <button
+              onClick={() => {
+                const text = input.trim()
+                if (!text) return
+                addToQueue(text)
+                setInput('')
+                resizeTextarea()
+                try { sessionStorage.removeItem('aipa:draft-input') } catch { /* ignore */ }
+                textareaRef.current?.focus()
+              }}
+              disabled={!input.trim()}
+              aria-label="Add to task queue"
+              title="Add to queue (Ctrl+Shift+Q)"
+              style={{
+                background: 'none',
+                border: 'none',
+                color: taskQueue.length > 0
+                  ? '#a78bfa'
+                  : input.trim()
+                  ? 'var(--input-toolbar-icon)'
+                  : 'var(--input-toolbar-icon)',
+                cursor: input.trim() ? 'pointer' : 'not-allowed',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 28,
+                height: 28,
+                borderRadius: 6,
+                flexShrink: 0,
+                opacity: input.trim() ? 1 : 0.4,
+                transition: 'color 150ms, background 150ms',
+              }}
+              onMouseEnter={(e) => {
+                if (input.trim()) {
+                  (e.currentTarget as HTMLButtonElement).style.color = '#a78bfa';
+                  (e.currentTarget as HTMLButtonElement).style.background = 'rgba(139, 92, 246, 0.10)'
+                }
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.color = taskQueue.length > 0 ? '#a78bfa' : 'var(--input-toolbar-icon)';
+                (e.currentTarget as HTMLButtonElement).style.background = 'none'
+              }}
+            >
+              <ListPlus size={16} />
+            </button>
+            {/* Badge */}
+            {taskQueue.length > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                width: 14,
+                height: 14,
+                background: '#8b5cf6',
+                color: '#ffffff',
+                fontSize: 9,
+                fontWeight: 600,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                pointerEvents: 'none',
+              }}>
+                {taskQueue.length > 9 ? '9+' : taskQueue.length}
+              </span>
+            )}
+          </div>
+        </div>
+        {/* Input row */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+          <div
+            ref={inputWrapRef}
+            style={{
+              flex: 1,
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 0,
+              background: 'var(--input-field-bg)',
+              borderRadius: 10,
+              padding: '8px 14px',
+              border: '1px solid var(--input-field-border)',
+              transition: 'border-color 200ms',
+            }}
+          >
+            {/* Image attachment preview */}
+            {attachments.length > 0 && (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingBottom: 8 }}>
+                {attachments.map(img => (
+                  <div key={img.id} style={{ position: 'relative', flexShrink: 0 }}>
+                    <img
+                      src={img.dataUrl}
+                      alt={img.name}
+                      style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--input-field-border)' }}
+                    />
+                    <button
+                      onClick={() => removeAttachment(img.id)}
+                      style={{
+                        position: 'absolute', top: -4, right: -4,
+                        width: 16, height: 16, borderRadius: '50%',
+                        background: 'var(--error)', border: 'none',
+                        color: '#fff', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 10, lineHeight: '1',
+                      }}
+                    >{'\u00d7'}</button>
+                  </div>
+                ))}
+              </div>
+            )}
             {atQuery !== null && (
               <AtMentionPopup
                 query={atQuery}
@@ -1108,7 +1224,13 @@ export default function ChatPanel() {
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
               onDragOver={(e) => e.preventDefault()}
-              placeholder="Send a message... (@ files, / commands, paste images, Enter to send)"
+              onFocus={() => {
+                if (inputWrapRef.current) inputWrapRef.current.style.borderColor = 'var(--input-field-focus)'
+              }}
+              onBlur={() => {
+                if (inputWrapRef.current) inputWrapRef.current.style.borderColor = 'var(--input-field-border)'
+              }}
+              placeholder="Message AIPA..."
               rows={1}
               style={{
                 flex: 1,
@@ -1125,55 +1247,30 @@ export default function ChatPanel() {
                 overflow: 'auto',
               }}
             />
-            <button
-              onClick={toggleSpeech}
-              title={listening ? 'Stop recording' : 'Voice input'}
-              style={{
-                background: listening ? 'var(--error)' : 'none',
-                border: listening ? 'none' : '1px solid var(--border)',
-                borderRadius: 4,
-                padding: '6px 8px',
-                color: listening ? '#fff' : 'var(--text-muted)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                flexShrink: 0,
-              }}
-            >
-              {listening ? <MicOff size={14} /> : <Mic size={14} />}
-            </button>
-            <button
-              onClick={isStreaming ? abort : handleSend}
-              disabled={!isStreaming && !input.trim() && attachments.length === 0}
-              title={isStreaming ? 'Stop generating' : 'Send (Ctrl+Enter)'}
-              style={{
-                background: isStreaming ? 'var(--error)' : 'var(--accent)',
-                border: 'none',
-                borderRadius: 4,
-                padding: '6px 10px',
-                color: '#fff',
-                cursor: isStreaming || input.trim() || attachments.length > 0 ? 'pointer' : 'not-allowed',
-                display: 'flex',
-                alignItems: 'center',
-                opacity: !isStreaming && !input.trim() && attachments.length === 0 ? 0.5 : 1,
-                flexShrink: 0,
-              }}
-            >
-              {isStreaming ? <Square size={14} /> : <Send size={14} />}
-            </button>
           </div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', fontSize: 10, marginTop: 4 }}>
-          <span>@ files | Enter send | Shift+Enter newline | Ctrl+L focus | Ctrl+Shift+P commands</span>
-          {input.length > 0 && (
-            <span style={{
+          <button
+            onClick={isStreaming ? abort : handleSend}
+            disabled={!isStreaming && !input.trim() && attachments.length === 0}
+            title={isStreaming ? 'Stop generating' : 'Send (Enter)'}
+            style={{
+              background: isStreaming ? 'var(--error)' : 'var(--accent)',
+              border: 'none',
+              borderRadius: 10,
+              width: 36,
+              height: 36,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              cursor: isStreaming || input.trim() || attachments.length > 0 ? 'pointer' : 'not-allowed',
+              opacity: !isStreaming && !input.trim() && attachments.length === 0 ? 0.4 : 1,
               flexShrink: 0,
-              color: input.length > 10000 ? 'var(--error)' : input.length > 5000 ? 'var(--warning)' : 'var(--text-muted)',
-              fontWeight: input.length > 10000 ? 600 : 400,
-            }}>
-              {input.length.toLocaleString()} chars{input.length > 10000 ? ' (very long)' : ''}
-            </span>
-          )}
+              transition: 'background 150ms, opacity 150ms',
+              alignSelf: 'flex-end',
+            }}
+          >
+            {isStreaming ? <Square size={14} /> : <Send size={14} />}
+          </button>
         </div>
       </div>
     </div>
@@ -1264,7 +1361,7 @@ function WelcomeScreen({ onSuggestion }: { onSuggestion: (text: string) => void 
               alignItems: 'center',
               gap: 8,
               padding: '16px 20px',
-              background: 'var(--bg-secondary)',
+              background: 'var(--input-field-bg)',
               border: '1px solid var(--border)',
               borderRadius: 10,
               color: 'var(--text-primary)',
@@ -1279,7 +1376,7 @@ function WelcomeScreen({ onSuggestion }: { onSuggestion: (text: string) => void 
               ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-secondary)'
+              (e.currentTarget as HTMLButtonElement).style.background = 'var(--input-field-bg)'
               ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)'
             }}
           >
@@ -1294,7 +1391,7 @@ function WelcomeScreen({ onSuggestion }: { onSuggestion: (text: string) => void 
         {shortcuts.map(({ keys, desc }) => (
           <div key={keys} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
             <kbd style={{
-              background: 'var(--bg-secondary)',
+              background: 'var(--input-field-bg)',
               border: '1px solid var(--border)',
               borderRadius: 3,
               padding: '1px 5px',

@@ -32,17 +32,25 @@ hooks/useImagePaste.ts     - 剪贴板图片处理
 
 ## 组件树
 ```
-AppShell
-  ├── Sidebar (tabs: history | settings)
-  │     ├── SessionList
+AppShell (Iteration 53: 三列布局)
+  ├── NavRail (56px, --bg-nav #1a1a1a) [新增 v53]
+  │     ├── NavItem × 4 (chat/history/files/terminal)
+  │     ├── [spacer flex:1]
+  │     ├── NavItem settings
+  │     └── Avatar (36px 圆形)
+  ├── Sidebar / SessionPanel (240px default, --bg-sessionpanel #212121)
+  │     ├── SessionList (会话列表，含彩色头像图标)
+  │     ├── FileBrowser
   │     └── SettingsPanel (tabs: general | mcp)
-  ├── ChatPanel
+  ├── ChatPanel (flex:1, --bg-chat #2a2a2a)
   │     ├── Toolbar (session ID, model, working dir, new button)
   │     ├── MessageList / WelcomeScreen
-  │     │     └── Message (avatar, content, tools, thinking, rating, rewind)
+  │     │     └── Message (气泡式, showAvatar prop) [重构 v53]
+  │     │           ├── AI 气泡: borderRadius 2px 12px 12px 12px, bg --bubble-ai
+  │     │           ├── User 气泡: borderRadius 12px 2px 12px 12px, bg --bubble-user
   │     │           ├── MessageContent (react-markdown)
-  │     │           ├── ToolUseBlock
-  │     │           └── PermissionCard / PlanCard
+  │     │           ├── ToolUseBlock (内嵌气泡)
+  │     │           └── PermissionCard / PlanCard (居中，无气泡)
   │     ├── ThinkingIndicator
   │     └── Input (textarea, @mention, /slash, speech, image preview, send/abort)
   ├── TerminalPanel (xterm.js)

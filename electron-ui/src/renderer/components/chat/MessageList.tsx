@@ -65,6 +65,20 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
     return result
   }, [messages])
 
+  // Compute showAvatar for each message index (consecutive same-role → hide avatar)
+  const showAvatarMap = useMemo(() => {
+    const map = new Map<number, boolean>()
+    messages.forEach((msg, idx) => {
+      if (idx === 0) {
+        map.set(idx, true)
+        return
+      }
+      const prev = messages[idx - 1]
+      map.set(idx, prev.role !== msg.role)
+    })
+    return map
+  }, [messages])
+
   const virtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => scrollContainerRef.current,
@@ -158,7 +172,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
     }
   }, [scrollToMessageIdx, virtualizer, items])
 
-  const renderMessage = useCallback((msg: ChatMessage, isHighlighted: boolean) => {
+  const renderMessage = useCallback((msg: ChatMessage, isHighlighted: boolean, msgIdx: number) => {
     if (msg.role === 'permission') {
       return (
         <PermissionCard
@@ -177,10 +191,12 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
         />
       )
     }
+    const showAvatar = showAvatarMap.get(msgIdx) ?? true
     return (
       <Message
         message={msg}
         searchQuery={searchQuery}
+        showAvatar={showAvatar}
         onRate={(msgId, rating) => {
           rateMessage(msgId, rating)
           window.electronAPI.feedbackRate(msgId, rating)
@@ -198,7 +214,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
         } : undefined}
       />
     )
-  }, [onPermission, onGrantPermission, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery])
+  }, [onPermission, onGrantPermission, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery, showAvatarMap])
 
   // Scroll progress (0..1)
   const [scrollProgress, setScrollProgress] = useState(0)
@@ -306,7 +322,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
                 borderRadius: isHighlighted ? 4 : 0,
                 transition: 'outline 0.2s',
               }}>
-                {renderMessage(msg, isHighlighted)}
+                {renderMessage(msg, isHighlighted, item.msgIdx)}
               </div>
             </div>
           )

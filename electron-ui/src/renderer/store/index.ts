@@ -390,6 +390,10 @@ interface UiState {
   toggleFocusMode: () => void
   addToast: (type: ToastType, message: string, duration?: number) => void
   removeToast: (id: string) => void
+
+  // NavRail active item tracking
+  activeNavItem: 'chat' | 'history' | 'files' | 'terminal' | 'settings'
+  setActiveNavItem: (item: UiState['activeNavItem']) => void
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -399,6 +403,7 @@ export const useUiStore = create<UiState>((set) => ({
   commandPaletteOpen: false,
   focusMode: false,
   toasts: [],
+  activeNavItem: 'history',
   setSidebarTab: (tab) => set({ sidebarTab: tab }),
   setSidebarOpen: (v) => set({ sidebarOpen: v }),
   setTerminalOpen: (v) => set({ terminalOpen: v }),
@@ -419,4 +424,10 @@ export const useUiStore = create<UiState>((set) => ({
     set((s) => ({ toasts: [...s.toasts, { id, type, message, duration }] }))
   },
   removeToast: (id) => set((s) => ({ toasts: s.toasts.filter(t => t.id !== id) })),
+  setActiveNavItem: (item) => set((s) => {
+    if (item === 'history' || item === 'files' || item === 'settings') {
+      return { activeNavItem: item, sidebarTab: item, sidebarOpen: true }
+    }
+    return { activeNavItem: item }
+  }),
 }))

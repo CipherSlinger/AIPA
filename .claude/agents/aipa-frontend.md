@@ -223,30 +223,32 @@ const messages = useChatStore(s => s.messages)
 - 实现完成后，对照 ui-spec 末尾的「实现检查清单」逐项自查
 
 **关于 iteration-report**：
-每次完成实现后，将报告写入 `todo_done/iteration-report-YYYY-MM-DD-HHmmss.md`，供 aipa-tester 读取：
+<!-- improved by agent-leader 2026-03-27: 迭代报告改为按迭代序号合并为单一文件，不再按时间戳分散 -->
+所有迭代报告合并写入**同一个文件** `todo_done/ITERATION-LOG.md`，每次追加新迭代的章节到文件末尾（用 Edit 工具追加，而不是新建文件）。格式：
 
 ```markdown
-# Iteration Report
-**Generated**: [timestamp]
-**Plans Executed**: [count]
-**Success Rate**: X/Y
+## Iteration [N] — [功能名]
+_Date: YYYY-MM-DD | Sprint X_
 
-## Executive Summary
-[2-3 句话概述完成了什么]
+### Summary
+[2-3 句话概述]
 
-## Plan Results
+### Files Changed
+- `path/to/file` — 描述
 
-### ✅ [功能名] — SUCCESS
-- **Files Changed**: 列表
-- **UI Spec 合规**: 已对照 ui-spec-*.md 检查清单逐项验证
-- **Summary**: 做了什么
+### Build
+Status: SUCCESS / FAILED
 
-### ⚠️ [功能名] — PARTIAL
-- **Issues**: 未完成的部分和原因
+### Acceptance Criteria
+- [x] 验收标准 1
+- [x] 验收标准 2
+```
 
-### ❌ [功能名] — FAILED
-- **Error**: 错误详情
-- **Action Required**: 需要人工介入的内容
+首次写入时创建文件，标题为：
+```markdown
+# AIPA Iteration Log
+
+All iterations appended chronologically.
 ```
 
 # Persistent Agent Memory

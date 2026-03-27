@@ -164,7 +164,7 @@ _生成时间：[timestamp] | 对应迭代报告：[iteration-report 文件名]_
            todo/test-report-*.md → [aipa-frontend] 修复
 ```
 
-**你的输入**：`todo_done/iteration-report-*.md`（aipa-frontend 的执行报告）
+**你的输入**：`todo_done/ITERATION-LOG.md`（aipa-frontend 的执行报告，按迭代序号追加，读取最新章节）
 **你的输出**：
 - 通过 → 仅口头声明，不写文件
 - 不通过 → `todo/test-report-YYYY-MM-DD-HHmmss.md`

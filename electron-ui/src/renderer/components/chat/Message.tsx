@@ -4,7 +4,7 @@ import MessageContent from './MessageContent'
 import ToolUseBlock from './ToolUseBlock'
 import MessageContextMenu from './MessageContextMenu'
 import ImageLightbox from '../shared/ImageLightbox'
-import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark, AlertTriangle, Minus, Code2 } from 'lucide-react'
+import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark, AlertTriangle, Code2 } from 'lucide-react'
 import { usePrefsStore } from '../../store'
 
 function relativeTime(ts: number): string {
@@ -27,13 +27,16 @@ interface Props {
   onBookmark?: (msgId: string) => void
   onCollapse?: (msgId: string) => void
   searchQuery?: string
+  showAvatar?: boolean
 }
 
-export default React.memo(function Message({ message, onRate, onRewind, onBookmark, onCollapse, searchQuery }: Props) {
+export default React.memo(function Message({ message, onRate, onRewind, onBookmark, onCollapse, searchQuery, showAvatar = true }: Props) {
   const isUser = message.role === 'user'
   const isAssistant = message.role === 'assistant'
   const isSystem = message.role === 'system' || (isAssistant && (message as StandardChatMessage).content?.startsWith('\u26a0\ufe0f'))
-  const isCollapsed = message.role !== 'permission' && message.role !== 'plan' && (message as StandardChatMessage).collapsed
+  const isPermission = message.role === 'permission'
+  const isPlan = message.role === 'plan'
+  const isCollapsed = !isPermission && !isPlan && (message as StandardChatMessage).collapsed
   const compact = usePrefsStore(s => s.prefs.compactMode)
   const [hovered, setHovered] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -50,7 +53,6 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
     ? (() => {
         const text = (message as StandardChatMessage).content
         const words = text.split(/\s+/).filter(w => w.length > 0).length
-        // Rough token estimate: ~0.75 words per token for English
         const tokens = Math.round(words / 0.75)
         return `${words} words (~${tokens} tokens)`
       })()
@@ -74,7 +76,6 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   const handleCopyMarkdown = useCallback(() => {
     const text = (message as StandardChatMessage).content
     if (!text) return
-    // Copy raw content which is already markdown
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
@@ -82,21 +83,66 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   }, [message])
 
   const handleDoubleClick = useCallback(() => {
-    // Double-click to quickly copy message text
     const text = (message as StandardChatMessage).content
-    if (!text || message.role === 'permission' || message.role === 'plan') return
+    if (!text || isPermission || isPlan) return
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })
-  }, [message])
+  }, [message, isPermission, isPlan])
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    // Don't show custom menu for permission/plan cards
-    if (message.role === 'permission' || message.role === 'plan') return
+    if (isPermission || isPlan) return
     e.preventDefault()
     setContextMenu({ x: e.clientX, y: e.clientY })
-  }, [message.role])
+  }, [isPermission, isPlan])
+
+  // --- System message ---
+  if (isSystem) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          padding: '4px 20px',
+        }}
+      >
+        <span
+          style={{
+            background: 'rgba(244, 71, 71, 0.08)',
+            borderRadius: 4,
+            padding: '4px 12px',
+            fontSize: 12,
+            color: 'var(--text-muted)',
+          }}
+        >
+          {(message as StandardChatMessage).content}
+        </span>
+      </div>
+    )
+  }
+
+  // --- Permission / Plan cards: centered, no bubble wrap ---
+  if (isPermission || isPlan) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          padding: '8px 20px',
+        }}
+      >
+        {/* Children will be rendered by MessageList via PermissionCard/PlanCard */}
+      </div>
+    )
+  }
+
+  // --- Avatar sizes ---
+  const avatarSize = compact ? 28 : 36
+  const iconSize = compact ? 14 : 18
+
+  // --- Bubble layout (user or assistant) ---
+  const bubblePadding = compact ? '8px 20px' : '8px 20px'
 
   return (
     <div
@@ -105,209 +151,310 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
       onContextMenu={handleContextMenu}
       onDoubleClick={handleDoubleClick}
       style={{
-        padding: compact ? '4px 16px' : '8px 20px',
         display: 'flex',
-        gap: compact ? 8 : 12,
+        flexDirection: isUser ? 'row-reverse' : 'row',
         alignItems: 'flex-start',
-        background: isSystem ? 'rgba(244, 71, 71, 0.06)' : isUser ? 'transparent' : 'var(--bg-secondary)',
+        gap: 12,
+        padding: compact ? `6px 20px` : `8px 20px`,
+        maxWidth: '100%',
         position: 'relative',
       }}
+      aria-label={isUser ? `You said: ${((message as StandardChatMessage).content || '').slice(0, 100)}` : `Claude said: ${((message as StandardChatMessage).content || '').slice(0, 100)}`}
     >
-      {/* Avatar */}
-      <div
-        style={{
-          width: compact ? 22 : 28,
-          height: compact ? 22 : 28,
-          borderRadius: '50%',
-          background: isSystem ? 'var(--error)' : isUser ? 'var(--user-bubble)' : '#5a3f8a',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-          marginTop: 2,
-        }}
-      >
-        {isSystem ? <AlertTriangle size={compact ? 11 : 14} color="#fff" /> : isUser ? <User size={compact ? 11 : 14} color="#fff" /> : <Bot size={compact ? 11 : 14} color="#fff" />}
-      </div>
+      {/* Avatar or spacer */}
+      {showAvatar ? (
+        <div
+          style={{
+            width: avatarSize,
+            height: avatarSize,
+            borderRadius: '50%',
+            background: isUser ? 'var(--avatar-user)' : 'var(--avatar-ai)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            marginTop: 2,
+          }}
+        >
+          {isUser
+            ? <User size={iconSize} color="#ffffff" />
+            : <Bot size={iconSize} color="#ffffff" />
+          }
+        </div>
+      ) : (
+        // Spacer preserves alignment for consecutive same-role messages
+        <div style={{ width: avatarSize, flexShrink: 0 }} />
+      )}
 
-      {/* Content */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: isCollapsed ? 0 : 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-          {/* Collapse toggle */}
-          {onCollapse && message.role !== 'permission' && message.role !== 'plan' && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onCollapse(message.id) }}
+      {/* Bubble wrapper + hover actions */}
+      <div style={{ display: 'flex', flexDirection: 'column', maxWidth: 'min(85%, 720px)', minWidth: 60 }}>
+        {/* Bubble */}
+        <div
+          style={{
+            background: isUser ? 'var(--bubble-user)' : 'var(--bubble-ai)',
+            borderRadius: isUser ? '12px 2px 12px 12px' : '2px 12px 12px 12px',
+            padding: compact ? '8px 12px' : '10px 14px',
+            color: isUser ? 'var(--bubble-user-text)' : 'var(--bubble-ai-text)',
+            border: isUser ? '1px solid var(--bubble-user-border)' : '1px solid var(--bubble-ai-border)',
+            wordBreak: 'break-word',
+            position: 'relative',
+            boxShadow: hovered ? '0 2px 6px rgba(0,0,0,0.18)' : '0 1px 3px rgba(0,0,0,0.12)',
+            transition: 'box-shadow 0.15s ease',
+          }}
+          title={wordInfo || undefined}
+        >
+          {/* Bookmark indicator (top-right outside corner) */}
+          {!isPermission && !isPlan && (message as StandardChatMessage).bookmarked && (
+            <div
               style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
-                padding: 0, marginLeft: -2,
+                position: 'absolute',
+                top: -6,
+                right: isUser ? undefined : -6,
+                left: isUser ? -6 : undefined,
               }}
-              title={isCollapsed ? 'Expand message' : 'Collapse message'}
             >
-              {isCollapsed ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
-            </button>
+              <Bookmark size={14} style={{ color: 'var(--warning)', fill: 'var(--warning)' }} />
+            </div>
           )}
-          {isUser ? 'You' : isSystem ? 'System' : 'Claude'}
-          {message.role !== 'permission' && message.isStreaming && (
-            <span style={{ color: 'var(--success)' }}>Generating...</span>
+
+          {/* Collapse toggle row */}
+          {onCollapse && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: isCollapsed ? 0 : 4 }}>
+              <button
+                onClick={(e) => { e.stopPropagation(); onCollapse(message.id) }}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: isUser ? 'rgba(255,255,255,0.5)' : 'var(--text-muted)',
+                  display: 'flex', alignItems: 'center',
+                  padding: 0,
+                }}
+                title={isCollapsed ? 'Expand message' : 'Collapse message'}
+              >
+                {isCollapsed ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
+              </button>
+              {isCollapsed && (
+                <span style={{ fontSize: 11, opacity: 0.6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                  {((message as StandardChatMessage).content || '').slice(0, 100).replace(/\n/g, ' ')}
+                </span>
+              )}
+              {(message as StandardChatMessage).isStreaming && (
+                <span style={{ color: 'var(--success)', fontSize: 11 }}>Generating...</span>
+              )}
+            </div>
           )}
-          {message.timestamp && (
-            <span
-              style={{ fontSize: 10, opacity: 0.5 }}
-              title={new Date(message.timestamp).toLocaleString()}
-            >
-              {relativeTime(message.timestamp)}
-            </span>
-          )}
-          {message.role !== 'permission' && message.role !== 'plan' && (message as StandardChatMessage).bookmarked && (
-            <Bookmark size={11} style={{ color: 'var(--warning)', fill: 'var(--warning)' }} />
-          )}
-          {isCollapsed && (
-            <span style={{ fontSize: 11, opacity: 0.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-              {((message as StandardChatMessage).content || '').slice(0, 100).replace(/\n/g, ' ')}
-            </span>
+
+          {!isCollapsed && (
+            <>
+              {/* Thinking block */}
+              {thinking && (
+                <div style={{ marginBottom: 8 }}>
+                  <button
+                    onClick={() => setThinkingExpanded(!thinkingExpanded)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 4,
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      color: isUser ? 'rgba(255,255,255,0.5)' : 'var(--text-muted)',
+                      fontSize: 11, padding: 0, marginBottom: 4,
+                    }}
+                  >
+                    {thinkingExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+                    Thinking
+                  </button>
+                  {thinkingExpanded && (
+                    <div style={{
+                      background: 'rgba(0, 0, 0, 0.2)',
+                      border: '1px solid var(--bubble-ai-border)',
+                      borderRadius: 4, padding: '8px 12px',
+                      fontSize: 12, color: 'var(--text-muted)',
+                      fontStyle: 'italic', lineHeight: 1.6,
+                      whiteSpace: 'pre-wrap', maxHeight: 300, overflowY: 'auto',
+                    }}>
+                      {thinking}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Image attachments (user messages) */}
+              {isUser && (message as StandardChatMessage).attachments?.length ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
+                  {(message as StandardChatMessage).attachments!.map((att, i) => (
+                    <img
+                      key={i}
+                      src={att.dataUrl}
+                      alt={att.name}
+                      title={att.name}
+                      style={{
+                        maxWidth: 200,
+                        maxHeight: 150,
+                        borderRadius: 6,
+                        border: 'none',
+                        objectFit: 'cover',
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => setLightboxImage({ src: att.dataUrl, alt: att.name })}
+                    />
+                  ))}
+                </div>
+              ) : null}
+
+              {/* Tool uses (inside AI bubble) */}
+              {!isPermission && (message as StandardChatMessage).toolUses && (message as StandardChatMessage).toolUses!.length > 0 && (
+                <div style={{ borderTop: '1px solid var(--bubble-ai-border)', marginTop: 8, paddingTop: 8 }}>
+                  {(message as StandardChatMessage).toolUses!.map((tool) => (
+                    <div
+                      key={tool.id}
+                      style={{ background: 'rgba(0, 0, 0, 0.15)', borderRadius: 6, marginBottom: 4 }}
+                    >
+                      <ToolUseBlock tool={tool} />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Text content */}
+              {message.content && (
+                <div>
+                  {isAssistant && showRawMarkdown ? (
+                    <pre style={{
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      fontSize: 12,
+                      lineHeight: 1.6,
+                      color: 'var(--bubble-ai-text)',
+                      background: 'rgba(0,0,0,0.1)',
+                      border: '1px solid var(--bubble-ai-border)',
+                      borderRadius: 4,
+                      padding: '8px 12px',
+                      margin: 0,
+                      fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
+                    }}>
+                      {message.content}
+                    </pre>
+                  ) : (
+                    <MessageContent content={message.content} isUser={isUser} searchQuery={searchQuery} />
+                  )}
+                </div>
+              )}
+
+              {/* Timestamp inside bubble */}
+              {(message as StandardChatMessage).timestamp && (
+                <div
+                  style={{
+                    fontSize: compact ? 10 : 11,
+                    color: isUser ? 'rgba(255,255,255,0.5)' : 'var(--text-muted)',
+                    textAlign: 'right',
+                    marginTop: 6,
+                    lineHeight: 1,
+                  }}
+                  title={new Date((message as StandardChatMessage).timestamp).toLocaleString()}
+                >
+                  {relativeTime((message as StandardChatMessage).timestamp)}
+                </div>
+              )}
+
+              {/* Streaming indicator */}
+              {(message as StandardChatMessage).isStreaming && (
+                <div style={{ display: 'flex', gap: 4, marginTop: 4, alignItems: 'center' }}>
+                  {[0, 1, 2].map(i => (
+                    <div
+                      key={i}
+                      style={{
+                        width: 6, height: 6, borderRadius: '50%',
+                        background: 'var(--success)',
+                        animation: 'pulse 1.4s ease-in-out infinite',
+                        animationDelay: `${i * 0.2}s`,
+                      }}
+                    />
+                  ))}
+                  <span style={{ fontSize: 11, color: 'var(--success)', marginLeft: 4 }}>Generating...</span>
+                </div>
+              )}
+            </>
           )}
         </div>
 
-        {!isCollapsed && (
-          <>
-        {/* Tool uses */}
-        {message.role !== 'permission' && message.toolUses && message.toolUses.length > 0 && (
-          <div style={{ marginBottom: 8 }}>
-            {message.toolUses.map((tool) => (
-              <ToolUseBlock key={tool.id} tool={tool} />
-            ))}
-          </div>
-        )}
-
-        {/* Thinking block */}
-        {thinking && (
-          <div style={{ marginBottom: 8 }}>
+        {/* Hover action buttons — below bubble, outside */}
+        {hovered && isAssistant && (
+          <div style={{
+            display: 'flex',
+            gap: 4,
+            marginTop: 4,
+            justifyContent: isUser ? 'flex-end' : 'flex-start',
+          }}>
             <button
-              onClick={() => setThinkingExpanded(!thinkingExpanded)}
+              onClick={() => setShowRawMarkdown(!showRawMarkdown)}
+              title={showRawMarkdown ? 'Show rendered' : 'Show raw markdown'}
               style={{
-                display: 'flex', alignItems: 'center', gap: 4,
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--text-muted)', fontSize: 11, padding: 0, marginBottom: 4,
+                background: showRawMarkdown ? 'var(--accent)' : 'var(--bg-primary)',
+                border: '1px solid var(--border)',
+                borderRadius: 4,
+                padding: '2px 6px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                fontSize: 11,
+                color: showRawMarkdown ? '#fff' : 'var(--text-muted)',
+                lineHeight: 1.4,
+                transition: 'background 0.15s ease',
               }}
             >
-              {thinkingExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-              Thinking
+              <Code2 size={12} />
             </button>
-            {thinkingExpanded && (
-              <div style={{
-                background: 'var(--bg-primary)', border: '1px solid var(--border)',
-                borderRadius: 4, padding: '8px 12px',
-                fontSize: 12, color: 'var(--text-muted)',
-                fontStyle: 'italic', lineHeight: 1.6,
-                whiteSpace: 'pre-wrap', maxHeight: 300, overflowY: 'auto',
-              }}>
-                {thinking}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Image attachments (user messages) */}
-        {isUser && message.role !== 'permission' && (message as StandardChatMessage).attachments?.length ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
-            {(message as StandardChatMessage).attachments!.map((att, i) => (
-              <img
-                key={i}
-                src={att.dataUrl}
-                alt={att.name}
-                title={att.name}
-                style={{
-                  maxWidth: 200,
-                  maxHeight: 150,
-                  borderRadius: 4,
-                  border: '1px solid var(--border)',
-                  objectFit: 'cover',
-                  cursor: 'pointer',
-                }}
-                onClick={() => setLightboxImage({ src: att.dataUrl, alt: att.name })}
-              />
-            ))}
-          </div>
-        ) : null}
-
-        {/* Text content */}
-        {message.role !== 'permission' && message.content && (
-          <div title={wordInfo || undefined}>
-            {isAssistant && showRawMarkdown ? (
-              <pre style={{
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                fontSize: 12,
-                lineHeight: 1.6,
-                color: 'var(--text-muted)',
+            <button
+              onClick={handleCopy}
+              title="Copy"
+              style={{
                 background: 'var(--bg-primary)',
                 border: '1px solid var(--border)',
                 borderRadius: 4,
-                padding: '8px 12px',
-                margin: 0,
-                fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
-              }}>
-                {message.content}
-              </pre>
-            ) : (
-              <MessageContent content={message.content} isUser={isUser} searchQuery={searchQuery} />
-            )}
+                padding: '2px 6px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                fontSize: 11,
+                color: 'var(--text-muted)',
+                lineHeight: 1.4,
+                transition: 'background 0.15s ease',
+              }}
+            >
+              {copied ? 'Copied' : <Copy size={13} />}
+            </button>
           </div>
         )}
-          </>
+
+        {/* Hover Copy button for user messages */}
+        {hovered && isUser && (
+          <div style={{
+            display: 'flex',
+            gap: 4,
+            marginTop: 4,
+            justifyContent: 'flex-end',
+          }}>
+            <button
+              onClick={handleCopy}
+              title="Copy"
+              style={{
+                background: 'var(--bg-primary)',
+                border: '1px solid var(--border)',
+                borderRadius: 4,
+                padding: '2px 6px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                fontSize: 11,
+                color: 'var(--text-muted)',
+                lineHeight: 1.4,
+              }}
+            >
+              {copied ? 'Copied' : <Copy size={13} />}
+            </button>
+          </div>
         )}
       </div>
-
-      {/* Copy button + raw toggle for assistant messages */}
-      {isAssistant && hovered && (
-        <div style={{
-          position: 'absolute',
-          top: 8,
-          right: 20,
-          display: 'flex',
-          gap: 4,
-        }}>
-          <button
-            onClick={() => setShowRawMarkdown(!showRawMarkdown)}
-            title={showRawMarkdown ? 'Show rendered' : 'Show raw markdown'}
-            style={{
-              background: showRawMarkdown ? 'var(--accent)' : 'var(--bg-primary, #1e1e2e)',
-              border: '1px solid var(--border, #3a3a4a)',
-              borderRadius: 4,
-              padding: '2px 6px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              fontSize: 11,
-              color: showRawMarkdown ? '#fff' : 'var(--text-muted)',
-              lineHeight: 1.4,
-            }}
-          >
-            <Code2 size={12} />
-          </button>
-          <button
-            onClick={handleCopy}
-            title="Copy"
-            style={{
-              background: 'var(--bg-primary, #1e1e2e)',
-              border: '1px solid var(--border, #3a3a4a)',
-              borderRadius: 4,
-              padding: '2px 6px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              fontSize: 11,
-              color: 'var(--text-muted)',
-              lineHeight: 1.4,
-            }}
-          >
-            {copied ? 'Copied' : <Copy size={13} />}
-          </button>
-        </div>
-      )}
 
       {/* Context menu */}
       {contextMenu && (
@@ -351,5 +498,6 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   if (pm.thinking !== nm.thinking) return false
   if ((pm.toolUses?.length ?? 0) !== (nm.toolUses?.length ?? 0)) return false
   if (prevProps.searchQuery !== nextProps.searchQuery) return false
+  if (prevProps.showAvatar !== nextProps.showAvatar) return false
   return true
 })

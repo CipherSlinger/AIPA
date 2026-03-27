@@ -81,6 +81,33 @@
 | Message animation + session keyboard nav | P2 | DONE (Iteration 47) |
 | Status bar enhancements + input actions | P2 | DONE (Iteration 48) |
 
+### Iteration 53 -- UI Redesign (WeChat-style)
+
+| Feature | PRD | Priority | Status |
+|---------|-----|----------|--------|
+| 三栏布局骨架 (AppShell + NavRail) | `prd-ui-redesign-wechat-v1.md` | P0 | DONE (Iteration 53) |
+| 左侧图标导航栏 NavRail | `prd-ui-redesign-wechat-v1.md` | P0 | DONE (Iteration 53) |
+| 消息气泡样式重构 | `prd-ui-redesign-wechat-v1.md` | P0 | DONE (Iteration 53) |
+| 会话列表头像图标增强 | `prd-ui-redesign-wechat-v1.md` | P0 | DONE (Iteration 53) |
+
+### Iteration 54 -- UI Redesign Phase 2
+
+| Feature | PRD | Priority | Status |
+|---------|-----|----------|--------|
+| 输入区工具栏重设计 | `prd-ui-redesign-wechat-v1.md` | P1 | DONE (Iteration 54) |
+| 标题栏重设计 | `prd-ui-redesign-wechat-v1.md` | P1 | DONE (Iteration 54) |
+| Tool use 卡片视觉简化 | `prd-ui-redesign-wechat-v1.md` | P1 | DONE (Iteration 54) |
+| 色彩统一修缮 | `prd-ui-redesign-wechat-v1.md` | P1 | DONE (Iteration 54) |
+
+### Iteration 55+ -- UI Redesign Phase 3 (Planned)
+
+| Feature | Priority | Notes |
+|---------|----------|-------|
+| 其余组件色彩统一 | P1 | Message.tsx, PlanCard, PermissionCard, SearchBar, popup 组件 |
+| 浅色主题方案 | P2 | 双主题 CSS 变量系统 |
+| 动效系统 | P2 | 气泡入场、面板切换 |
+| 消息状态指示 | P2 | 发送中/已发送 勾号 |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |
