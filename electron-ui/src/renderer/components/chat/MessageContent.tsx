@@ -275,6 +275,8 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
               )
             }
 
+            const showLineNumbers = lineCount > 1
+
             return (
               <div style={{ position: 'relative', marginBottom: 12 }}>
                 <div
@@ -295,7 +297,37 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
                   <CopyButton text={codeText} />
                 </div>
                 <CollapsiblePre>
-                  <code className={className as string} {...props}>{children as React.ReactNode}</code>
+                  {showLineNumbers ? (
+                    <div style={{ display: 'flex' }}>
+                      <div
+                        aria-hidden="true"
+                        style={{
+                          userSelect: 'none',
+                          MozUserSelect: 'none' as any,
+                          WebkitUserSelect: 'none' as any,
+                          textAlign: 'right',
+                          paddingRight: 12,
+                          paddingLeft: 8,
+                          paddingTop: 14,
+                          paddingBottom: 14,
+                          borderRight: '1px solid rgba(255,255,255,0.08)',
+                          color: 'rgba(255,255,255,0.25)',
+                          fontSize: 11,
+                          lineHeight: '1.45em',
+                          fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
+                          flexShrink: 0,
+                          minWidth: lineCount >= 100 ? 40 : lineCount >= 10 ? 32 : 24,
+                        }}
+                      >
+                        {Array.from({ length: lineCount }, (_, i) => (
+                          <div key={i}>{i + 1}</div>
+                        ))}
+                      </div>
+                      <code className={className as string} style={{ flex: 1, display: 'block', overflowX: 'auto' }} {...props}>{children as React.ReactNode}</code>
+                    </div>
+                  ) : (
+                    <code className={className as string} {...props}>{children as React.ReactNode}</code>
+                  )}
                 </CollapsiblePre>
               </div>
             )

@@ -622,3 +622,36 @@ Status: SUCCESS (all three steps: tsc main, tsc preload, vite build)
 - [x] Existing right-click context menu (MessageContextMenu) unchanged
 - [x] Existing `onBookmark` prop wiring preserved; fallback to store `toggleBookmark`
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 72 -- Code Block Line Numbers
+
+_Date: 2026-03-27 | Sprint UI Enhancement_
+
+### Summary
+Added line numbers to multi-line code blocks in assistant message markdown rendering. When a code block has more than 1 line, a line number gutter appears on the left side with muted styling (rgba(255,255,255,0.25)), right-aligned, separated from code by a subtle 1px border. Line numbers are marked `aria-hidden` and use `user-select: none` so they are excluded from clipboard when users copy code. The gutter width adapts automatically: 24px for <10 lines, 32px for 10-99, 40px for 100+. Single-line code blocks render without line numbers (unchanged behavior).
+
+### Files Changed
+- `src/renderer/components/chat/MessageContent.tsx` -- Modified the `code()` component renderer inside ReactMarkdown: added `showLineNumbers` flag for multi-line blocks; when active, wraps content in a flex container with a left-side line number gutter div (aria-hidden, user-select:none, monospace font at 11px, right-aligned with padding, adaptive min-width based on line count) and the code element set to `flex:1, display:block, overflowX:auto`; single-line blocks remain unchanged
+
+### Build
+Status: SUCCESS
+
+```
+2385 modules transformed.
+built in 8.11s
+```
+
+### Acceptance Criteria
+- [x] Multi-line code blocks show line numbers in left gutter
+- [x] Line numbers use muted color (rgba(255,255,255,0.25))
+- [x] Line numbers right-aligned with 12px right padding
+- [x] Gutter separated by 1px rgba(255,255,255,0.08) border
+- [x] Line numbers excluded from text selection (user-select: none)
+- [x] Line numbers marked aria-hidden for accessibility
+- [x] Gutter width adapts: 24px (<10 lines), 32px (10-99), 40px (100+)
+- [x] Single-line code blocks unchanged (no line numbers)
+- [x] Line number font matches code font (Cascadia Code/Fira Code/Consolas)
+- [x] Compatible with existing CollapsiblePre collapse/expand
+- [x] Build passes with zero errors
