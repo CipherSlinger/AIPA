@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react'
 import { Terminal, RefreshCw } from 'lucide-react'
 import { usePty } from '../../hooks/usePty'
+import { useT } from '../../i18n'
 import '@xterm/xterm/css/xterm.css'
 
 const SESSION_ID = `terminal-main-${Date.now()}`
@@ -8,6 +9,7 @@ const SESSION_ID = `terminal-main-${Date.now()}`
 export default function TerminalPanel() {
   const containerRef = useRef<HTMLDivElement>(null)
   const { refitTerminal } = usePty(containerRef as React.RefObject<HTMLDivElement>, SESSION_ID)
+  const t = useT()
 
   return (
     <div
@@ -28,10 +30,10 @@ export default function TerminalPanel() {
         }}
       >
         <Terminal size={13} style={{ color: 'var(--text-muted)' }} />
-        <span style={{ fontSize: 12, color: 'var(--text-muted)', flex: 1 }}>Terminal</span>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)', flex: 1 }}>{t('terminal.title')}</span>
         <button
           onClick={refitTerminal}
-          title="Resize terminal"
+          title={t('terminal.reconnect')}
           style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
         >
           <RefreshCw size={12} />

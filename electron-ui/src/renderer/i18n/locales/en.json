@@ -121,6 +121,10 @@
     "rawMarkdown": "Raw markdown",
     "formattedView": "Formatted view",
     "copied": "Copied!",
+    "copyCode": "Copy",
+    "codeCopied": "Copied",
+    "enableWordWrap": "Enable word wrap",
+    "disableWordWrap": "Disable word wrap",
     "editMessage": "Edit message",
     "editCancel": "Cancel",
     "editSave": "Save & Send"
@@ -341,7 +345,11 @@
   "fileBrowser": {
     "title": "Files",
     "parentDir": "Parent directory",
-    "empty": "Empty directory"
+    "empty": "Empty directory",
+    "doubleClickSetDir": "Double-click to set as working directory",
+    "selectDir": "Select directory",
+    "chooseDir": "Choose working directory",
+    "chooseHint": "Click the icon above to choose a working directory"
   },
   "error": {
     "title": "Something went wrong",

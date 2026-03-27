@@ -28,19 +28,19 @@ const TOOL_ICONS: Record<string, React.ElementType> = {
 
 const TOOL_LABELS: Record<string, string> = {
   Bash: 'Bash',
-  Write: 'Write File',
-  Edit: 'Edit File',
-  MultiEdit: 'Multi-Edit',
-  Read: 'Read File',
-  str_replace_editor: 'Edit File',
-  str_replace_based_edit_tool: 'Edit File',
-  create_file: 'Create File',
-  read_file: 'Read File',
-  Glob: 'File Search',
-  LS: 'List Files',
-  Grep: 'Content Search',
-  WebFetch: 'Web Fetch',
-  WebSearch: 'Web Search',
+  Write: 'permission.toolWriteFile',
+  Edit: 'permission.toolEditFile',
+  MultiEdit: 'permission.toolMultiEdit',
+  Read: 'permission.toolReadFile',
+  str_replace_editor: 'permission.toolEditFile',
+  str_replace_based_edit_tool: 'permission.toolEditFile',
+  create_file: 'permission.toolWriteFile',
+  read_file: 'permission.toolReadFile',
+  Glob: 'permission.toolSearchFiles',
+  LS: 'permission.toolSearchFiles',
+  Grep: 'permission.toolSearchContent',
+  WebFetch: 'permission.toolWebFetch',
+  WebSearch: 'permission.toolWebSearch',
 }
 
 const BASH_TOOLS = new Set(['Bash', 'computer'])
@@ -113,7 +113,8 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
   }, [isRunning])
 
   const Icon = TOOL_ICONS[tool.name] || Terminal
-  const label = TOOL_LABELS[tool.name] || tool.name
+  const labelKey = TOOL_LABELS[tool.name]
+  const label = labelKey ? (labelKey === 'Bash' ? 'Bash' : t(labelKey)) : tool.name
   const isBash = BASH_TOOLS.has(tool.name)
   const isFileEdit = FILE_EDIT_TOOLS.has(tool.name)
   const showElapsed = isRunning && elapsed >= 2

@@ -1246,3 +1246,39 @@ built in 8.03s
 - [x] 19 new keys added to en.json
 - [x] All 19 keys have Chinese translations in zh-CN.json
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 96 -- Complete i18n for MessageContent, ToolUseBlock, TerminalPanel, FileBrowser
+
+_Date: 2026-03-27 | Sprint i18n Completion_
+
+### Summary
+Completed i18n migration for the four remaining components with hardcoded English strings. MessageContent.tsx now uses `t()` for code block Copy/Copied buttons, word wrap toggle tooltips, and Show more/Show less labels. ToolUseBlock.tsx tool labels now resolve through the i18n system, reusing the `permission.tool*` keys added in Iteration 95. TerminalPanel.tsx uses `t()` for the title and reconnect button tooltip. FileBrowser.tsx uses `t()` for the directory tooltip, select directory placeholder, choose button tooltip, and empty state hint. Added 9 new i18n keys across `message` and `fileBrowser` namespaces.
+
+### Files Changed
+- `src/renderer/components/chat/MessageContent.tsx` -- Added `useT` import; added `t` hook to CopyButton, WrapToggleButton, and CollapsiblePre components; replaced "Copy"/"Copied" with `t('message.copyCode')`/`t('message.codeCopied')`; replaced word wrap tooltips with `t('message.enableWordWrap')`/`t('message.disableWordWrap')`; replaced "Show more"/"Show less" with `t('message.showMore')`/`t('message.showLess')`
+- `src/renderer/components/chat/ToolUseBlock.tsx` -- Changed TOOL_LABELS values to i18n key references (permission.tool*); updated label resolution to use `t()` for translation lookup
+- `src/renderer/components/terminal/TerminalPanel.tsx` -- Added `useT` import and hook; replaced "Terminal" with `t('terminal.title')` and "Resize terminal" with `t('terminal.reconnect')`
+- `src/renderer/components/filebrowser/FileBrowser.tsx` -- Added `useT` import and hook; added `t` prop to TreeNode; replaced 4 hardcoded strings with `t()` calls (doubleClickSetDir, selectDir, chooseDir, chooseHint)
+- `src/renderer/i18n/locales/en.json` -- Added 9 keys: message.copyCode, message.codeCopied, message.enableWordWrap, message.disableWordWrap, fileBrowser.doubleClickSetDir, fileBrowser.selectDir, fileBrowser.chooseDir, fileBrowser.chooseHint
+- `src/renderer/i18n/locales/zh-CN.json` -- Added Chinese translations for all 9 new keys
+
+### Build
+Status: SUCCESS
+
+```
+2388 modules transformed.
+built in 9.12s
+```
+
+### Acceptance Criteria
+- [x] Code block Copy button uses t('message.copyCode') / t('message.codeCopied')
+- [x] Word wrap toggle uses t('message.enableWordWrap') / t('message.disableWordWrap')
+- [x] CollapsiblePre uses t('message.showMore') / t('message.showLess')
+- [x] ToolUseBlock labels resolve through i18n (reuses permission.tool* keys)
+- [x] TerminalPanel title and button use t() calls
+- [x] FileBrowser TreeNode tooltip, placeholder, button, and empty state use t()
+- [x] 9 new keys added to en.json
+- [x] All 9 keys have Chinese translations in zh-CN.json
+- [x] Build passes with zero errors

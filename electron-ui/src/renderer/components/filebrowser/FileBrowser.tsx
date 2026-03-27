@@ -2,14 +2,16 @@ import React, { useState, useEffect } from 'react'
 import { Folder, FolderOpen, File, ChevronRight, ChevronDown, FolderPlus } from 'lucide-react'
 import { FileEntry } from '../../types/app.types'
 import { useChatStore } from '../../store'
+import { useT } from '../../i18n'
 
 interface TreeNodeProps {
   entry: FileEntry
   depth: number
   onSetCwd: (path: string) => void
+  t: (key: string, params?: Record<string, string>) => string
 }
 
-function TreeNode({ entry, depth, onSetCwd }: TreeNodeProps) {
+function TreeNode({ entry, depth, onSetCwd, t }: TreeNodeProps) {
   const [expanded, setExpanded] = useState(false)
   const [children, setChildren] = useState<FileEntry[]>([])
   const [loading, setLoading] = useState(false)
@@ -34,7 +36,7 @@ function TreeNode({ entry, depth, onSetCwd }: TreeNodeProps) {
       <div
         onClick={toggle}
         onDoubleClick={handleDoubleClick}
-        title={entry.isDirectory ? 'Double-click to set as working directory' : entry.name}
+        title={entry.isDirectory ? t('fileBrowser.doubleClickSetDir') : entry.name}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -66,7 +68,7 @@ function TreeNode({ entry, depth, onSetCwd }: TreeNodeProps) {
         </span>
       </div>
       {expanded && children.map((child) => (
-        <TreeNode key={child.path} entry={child} depth={depth + 1} onSetCwd={onSetCwd} />
+        <TreeNode key={child.path} entry={child} depth={depth + 1} onSetCwd={onSetCwd} t={t} />
       ))}
     </>
   )
@@ -76,6 +78,7 @@ export default function FileBrowser() {
   const { workingDir, setWorkingDir } = useChatStore()
   const [rootEntries, setRootEntries] = useState<FileEntry[]>([])
   const [currentDir, setCurrentDir] = useState(workingDir || '')
+  const t = useT()
 
   useEffect(() => {
     const init = async () => {
@@ -136,11 +139,11 @@ export default function FileBrowser() {
           }}
           title={currentDir}
         >
-          {shortDir || 'Select directory'}
+          {shortDir || t('fileBrowser.selectDir')}
         </span>
         <button
           onClick={openDialog}
-          title="Choose working directory"
+          title={t('fileBrowser.chooseDir')}
           style={{
             background: 'none',
             border: 'none',
@@ -157,11 +160,11 @@ export default function FileBrowser() {
       {/* Tree */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {rootEntries.map((entry) => (
-          <TreeNode key={entry.path} entry={entry} depth={0} onSetCwd={setCwd} />
+          <TreeNode key={entry.path} entry={entry} depth={0} onSetCwd={setCwd} t={t} />
         ))}
         {rootEntries.length === 0 && (
           <div style={{ padding: '20px 12px', color: 'var(--text-muted)', fontSize: 12, textAlign: 'center' }}>
-            Click the icon above to choose a working directory
+            {t('fileBrowser.chooseHint')}
           </div>
         )}
       </div>

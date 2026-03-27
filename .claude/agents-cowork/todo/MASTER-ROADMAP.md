@@ -208,6 +208,15 @@
 | PermissionCard i18n (buttons, subtitle, tool descriptions) | P1 | DONE (Iteration 95) |
 | CommandPalette i18n (commands, descriptions, placeholder) | P1 | DONE (Iteration 95) |
 
+### Iteration 96 -- Complete i18n for MessageContent, ToolUseBlock, TerminalPanel, FileBrowser
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| MessageContent i18n (copy, word wrap, show more/less) | P1 | DONE (Iteration 96) |
+| ToolUseBlock tool labels i18n (reuses permission keys) | P1 | DONE (Iteration 96) |
+| TerminalPanel i18n (title, reconnect) | P1 | DONE (Iteration 96) |
+| FileBrowser i18n (tooltips, empty state) | P1 | DONE (Iteration 96) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

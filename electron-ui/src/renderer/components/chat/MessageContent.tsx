@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import { Copy, Check, ChevronDown, ChevronUp, ZoomIn, WrapText } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
+import { useT } from '../../i18n'
 
 interface Props {
   content: string
@@ -33,6 +34,7 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
+  const t = useT()
 
   const copy = () => {
     navigator.clipboard.writeText(text).then(() => {
@@ -58,16 +60,17 @@ function CopyButton({ text }: { text: string }) {
       }}
     >
       {copied ? <Check size={11} /> : <Copy size={11} />}
-      {copied ? 'Copied' : 'Copy'}
+      {copied ? t('message.codeCopied') : t('message.copyCode')}
     </button>
   )
 }
 
 function WrapToggleButton({ wrapped, onToggle }: { wrapped: boolean; onToggle: () => void }) {
+  const t = useT()
   return (
     <button
       onClick={onToggle}
-      title={wrapped ? 'Disable word wrap' : 'Enable word wrap'}
+      title={wrapped ? t('message.disableWordWrap') : t('message.enableWordWrap')}
       style={{
         background: wrapped ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.1)',
         border: '1px solid rgba(255,255,255,0.2)',
@@ -268,6 +271,7 @@ function CollapsiblePre({ children, className }: { children: React.ReactNode; cl
   const preRef = useRef<HTMLPreElement>(null)
   const [isOverflow, setIsOverflow] = useState(false)
   const [collapsed, setCollapsed] = useState(true)
+  const t = useT()
 
   useEffect(() => {
     const el = preRef.current
@@ -314,7 +318,7 @@ function CollapsiblePre({ children, className }: { children: React.ReactNode; cl
           }}
         >
           {collapsed ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
-          {collapsed ? 'Show more' : 'Show less'}
+          {collapsed ? t('message.showMore') : t('message.showLess')}
         </button>
       )}
     </div>
