@@ -655,3 +655,36 @@ built in 8.11s
 - [x] Line number font matches code font (Cascadia Code/Fira Code/Consolas)
 - [x] Compatible with existing CollapsiblePre collapse/expand
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 73 -- Compose Status Bar (Word/Char Counter)
+
+_Date: 2026-03-27 | Sprint UI Enhancement_
+
+### Summary
+Added a compose status bar below the input textarea that shows word count and character count whenever the user is typing. Replaces the old >5000 char warning with an always-visible status indicator that uses muted color for normal input, warning color for >5000 chars, and error color for >10000 chars. The bar displays "N words | N chars" format with smooth color transitions. The old separate character count warning above the toolbar has been removed since the compose status provides the same information in a more integrated position.
+
+### Files Changed
+- `src/renderer/components/chat/ChatPanel.tsx` -- Removed the old >5000 char warning div that appeared above the toolbar; added compose status bar below the input row (after send button, before input bar closing div) showing word count and character count; status bar visible only when input is non-empty; color transitions from `var(--text-muted)` (normal) to `var(--warning)` (>5000) to `var(--error)` with bold weight (>10000); uses right-aligned flex layout matching existing input bar styling
+
+### Build
+Status: SUCCESS
+
+```
+2385 modules transformed.
+built in 8.37s
+```
+
+### Acceptance Criteria
+- [x] Word count displayed when user has typed text
+- [x] Character count displayed alongside word count
+- [x] Separator "|" between word and char counts
+- [x] Muted color for normal input (<5000 chars)
+- [x] Warning color for >5000 chars with "(long)" label
+- [x] Error color with bold weight for >10000 chars with "(very long)" label
+- [x] Status bar hidden when input is empty
+- [x] Smooth color transition (200ms)
+- [x] Old >5000 char warning removed (replaced by compose status)
+- [x] Status bar positioned below input row, right-aligned
+- [x] Build passes with zero errors

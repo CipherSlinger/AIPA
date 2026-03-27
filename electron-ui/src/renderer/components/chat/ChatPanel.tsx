@@ -1012,18 +1012,6 @@ export default function ChatPanel() {
           flexShrink: 0,
         }}
       >
-        {/* Character count warning (only when > 5000) */}
-        {input.length > 5000 && (
-          <div style={{
-            fontSize: 10,
-            color: input.length > 10000 ? 'var(--error)' : 'var(--warning)',
-            fontWeight: input.length > 10000 ? 600 : 400,
-            textAlign: 'right',
-            padding: '0 4px 2px',
-          }}>
-            {input.length.toLocaleString()} chars{input.length > 10000 ? ' (very long)' : ''}
-          </div>
-        )}
         {/* Toolbar row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginBottom: 6, paddingLeft: 4 }}>
           <button
@@ -1304,6 +1292,29 @@ export default function ChatPanel() {
             {isStreaming ? <Square size={14} /> : <Send size={14} />}
           </button>
         </div>
+        {/* Compose status: word/char count */}
+        {input.trim().length > 0 && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            gap: 8,
+            padding: '3px 4px 0',
+            fontSize: 10,
+            color: input.length > 10000
+              ? 'var(--error)'
+              : input.length > 5000
+              ? 'var(--warning)'
+              : 'var(--text-muted)',
+            fontWeight: input.length > 10000 ? 600 : 400,
+            opacity: 0.7,
+            transition: 'color 200ms, opacity 200ms',
+          }}>
+            <span>{input.trim().split(/\s+/).filter(w => w.length > 0).length} words</span>
+            <span style={{ opacity: 0.4 }}>|</span>
+            <span>{input.length.toLocaleString()} chars{input.length > 10000 ? ' (very long)' : input.length > 5000 ? ' (long)' : ''}</span>
+          </div>
+        )}
       </div>
     </div>
   )
