@@ -1043,6 +1043,11 @@ export default function ChatPanel() {
             searchQuery={searchQuery}
             highlightedMessageIdx={searchMatches.length > 0 ? searchMatches[currentMatchIdx] : undefined}
             scrollToMessageIdx={scrollToMessageIdx}
+            onEdit={async (msgId, newContent) => {
+              if (isStreaming) return
+              useChatStore.getState().editMessageAndTruncate(msgId, newContent)
+              await sendMessage(newContent)
+            }}
           />
           )}
         </div>

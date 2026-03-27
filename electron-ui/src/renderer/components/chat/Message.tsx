@@ -4,7 +4,7 @@ import MessageContent from './MessageContent'
 import ToolUseBlock from './ToolUseBlock'
 import MessageContextMenu from './MessageContextMenu'
 import ImageLightbox from '../shared/ImageLightbox'
-import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark, AlertTriangle, Code2, Check, CheckCheck, Clock, MessageSquareQuote } from 'lucide-react'
+import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark, AlertTriangle, Code2, Check, CheckCheck, Clock, MessageSquareQuote, Pencil } from 'lucide-react'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 
 const REACTION_EMOJIS = [
@@ -34,11 +34,12 @@ interface Props {
   onRewind?: (msgTimestamp: number) => void
   onBookmark?: (msgId: string) => void
   onCollapse?: (msgId: string) => void
+  onEdit?: (msgId: string, newContent: string) => void
   searchQuery?: string
   showAvatar?: boolean
 }
 
-export default React.memo(function Message({ message, onRate, onRewind, onBookmark, onCollapse, searchQuery, showAvatar = true }: Props) {
+export default React.memo(function Message({ message, onRate, onRewind, onBookmark, onCollapse, onEdit, searchQuery, showAvatar = true }: Props) {
   const isUser = message.role === 'user'
   const isAssistant = message.role === 'assistant'
   const isSystem = message.role === 'system' || (isAssistant && (message as StandardChatMessage).content?.startsWith('\u26a0\ufe0f'))
@@ -81,6 +82,11 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string } | null>(null)
   const [reactionBarVisible, setReactionBarVisible] = useState(false)
   const reactionTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Editing state (user messages only)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editContent, setEditContent] = useState('')
+  const editTextareaRef = React.useRef<HTMLTextAreaElement>(null)
 
   // Reaction state
   const reactions = useChatStore(s => s.reactions[message.id] || [])
@@ -393,7 +399,84 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
               )}
 
               {/* Text content */}
-              {message.content && (
+              {isEditing && isUser ? (
+                <div style={{ width: '100%' }}>
+                  <textarea
+                    ref={editTextareaRef}
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        if (editContent.trim() && onEdit) {
+                          onEdit(message.id, editContent.trim())
+                          setIsEditing(false)
+                        }
+                      }
+                      if (e.key === 'Escape') {
+                        setIsEditing(false)
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      minHeight: 60,
+                      padding: '8px 10px',
+                      background: 'rgba(0,0,0,0.15)',
+                      border: '1px solid var(--accent)',
+                      borderRadius: 6,
+                      color: 'inherit',
+                      fontSize: 14,
+                      lineHeight: 1.6,
+                      fontFamily: 'inherit',
+                      resize: 'vertical',
+                      outline: 'none',
+                    }}
+                    autoFocus
+                  />
+                  <div style={{ display: 'flex', gap: 6, marginTop: 6, justifyContent: 'flex-end' }}>
+                    <button
+                      onClick={() => setIsEditing(false)}
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid var(--border)',
+                        borderRadius: 6,
+                        padding: '4px 12px',
+                        color: 'var(--text-muted)',
+                        fontSize: 12,
+                        cursor: 'pointer',
+                        transition: 'background 150ms ease',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (editContent.trim() && onEdit) {
+                          onEdit(message.id, editContent.trim())
+                          setIsEditing(false)
+                        }
+                      }}
+                      disabled={!editContent.trim()}
+                      style={{
+                        background: 'var(--accent)',
+                        border: 'none',
+                        borderRadius: 6,
+                        padding: '4px 12px',
+                        color: '#fff',
+                        fontSize: 12,
+                        fontWeight: 500,
+                        cursor: editContent.trim() ? 'pointer' : 'not-allowed',
+                        opacity: editContent.trim() ? 1 : 0.5,
+                        transition: 'opacity 150ms ease',
+                      }}
+                    >
+                      Save & Send
+                    </button>
+                  </div>
+                </div>
+              ) : message.content && (
                 <div>
                   {isAssistant && showRawMarkdown ? (
                     <pre style={{
@@ -603,6 +686,34 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
                 onMouseLeave={(e) => { if (!showRawMarkdown) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
               >
                 <Code2 size={13} />
+              </button>
+            )}
+
+            {/* Edit (user messages only) */}
+            {isUser && onEdit && !globalIsStreaming && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setEditContent((message as StandardChatMessage).content || '')
+                  setIsEditing(true)
+                  setTimeout(() => editTextareaRef.current?.focus(), 50)
+                }}
+                title="Edit message"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  borderRadius: 5,
+                  padding: '3px 5px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  color: 'var(--text-muted)',
+                  transition: 'background 0.12s ease, color 0.12s ease',
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+              >
+                <Pencil size={13} />
               </button>
             )}
 

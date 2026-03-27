@@ -35,9 +35,10 @@ interface Props {
   searchQuery?: string
   highlightedMessageIdx?: number
   scrollToMessageIdx?: number
+  onEdit?: (msgId: string, newContent: string) => void
 }
 
-export default function MessageList({ messages, onPermission, onGrantPermission, sessionId, searchQuery, highlightedMessageIdx, scrollToMessageIdx }: Props) {
+export default function MessageList({ messages, onPermission, onGrantPermission, sessionId, searchQuery, highlightedMessageIdx, scrollToMessageIdx, onEdit }: Props) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const { resolvePlan, rateMessage, toggleBookmark, toggleCollapse } = useChatStore()
   const { addToast } = useUiStore()
@@ -203,6 +204,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
         }}
         onBookmark={(msgId) => toggleBookmark(msgId)}
         onCollapse={(msgId) => toggleCollapse(msgId)}
+        onEdit={onEdit}
         onRewind={sessionId ? async (ts) => {
           const isoTs = new Date(ts).toISOString()
           const result = await window.electronAPI.sessionRewind(sessionId, isoTs)
@@ -214,7 +216,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
         } : undefined}
       />
     )
-  }, [onPermission, onGrantPermission, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery, showAvatarMap])
+  }, [onPermission, onGrantPermission, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery, showAvatarMap, onEdit])
 
   // Scroll progress (0..1)
   const [scrollProgress, setScrollProgress] = useState(0)

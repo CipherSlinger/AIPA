@@ -61,7 +61,10 @@
     "charCountLabel": "{{chars}} chars",
     "longInput": "(long)",
     "veryLongInput": "(very long)",
-    "regenerate": "Regenerate response"
+    "regenerate": "Regenerate response",
+    "editMessage": "Edit message",
+    "editSave": "Save & Send",
+    "editCancel": "Cancel"
   },
   "welcome": {
     "title": "Hello! I'm AIPA",
@@ -112,7 +115,10 @@
     "showLess": "Show less",
     "rawMarkdown": "Raw markdown",
     "formattedView": "Formatted view",
-    "copied": "Copied!"
+    "copied": "Copied!",
+    "editMessage": "Edit message",
+    "editCancel": "Cancel",
+    "editSave": "Save & Send"
   },
   "session": {
     "search": "Search sessions...",

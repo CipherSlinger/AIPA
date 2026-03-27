@@ -61,7 +61,10 @@
     "charCountLabel": "{{chars}} \u5b57\u7b26",
     "longInput": "(\u8f83\u957f)",
     "veryLongInput": "(\u975e\u5e38\u957f)",
-    "regenerate": "\u91cd\u65b0\u751f\u6210\u56de\u590d"
+    "regenerate": "\u91cd\u65b0\u751f\u6210\u56de\u590d",
+    "editMessage": "\u7f16\u8f91\u6d88\u606f",
+    "editSave": "\u4fdd\u5b58\u5e76\u53d1\u9001",
+    "editCancel": "\u53d6\u6d88"
   },
   "welcome": {
     "title": "\u4f60\u597d\uff01\u6211\u662f AIPA",

@@ -126,6 +126,9 @@ interface ChatState {
 
   // Regeneration
   prepareRegeneration: () => string | null
+
+  // Message editing
+  editMessageAndTruncate: (msgId: string, newContent: string) => void
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -357,6 +360,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
     // Remove messages from the last user message onward (the user prompt + assistant response)
     set({ messages: msgs.slice(0, lastUserIdx) })
     return lastUserContent || null
+  },
+
+  editMessageAndTruncate: (msgId, newContent) => {
+    const state = get()
+    const msgs = state.messages
+    const idx = msgs.findIndex(m => m.id === msgId)
+    if (idx < 0) return
+    // Remove the edited message and everything after it; sendMessage will re-add the user message
+    set({ messages: msgs.slice(0, idx) })
   },
 }))
 

@@ -97,6 +97,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Light theme** — clean light mode alongside three dark themes (VS Code, Modern, Minimal); switchable in Settings
 - **System tray** — minimize to system tray; global hotkey `Ctrl+Shift+Space` to summon the window from anywhere
 - **Response regeneration** — regenerate the last AI response with a single click or `Ctrl+Shift+R`; removes the previous response and re-sends your prompt
+- **Message editing** — edit any previously sent message; the conversation is truncated at that point and the edited message is re-sent for a fresh response
 
 ## Security
 
