@@ -71,7 +71,9 @@
       "Bash(mkdir -p /home/osr/AIPA/.claude/agent-memory/agent-leader)",
       "Bash(echo \"# agent-leader Memory:*)",
       "Bash(git push:*)",
-      "Skill(update-config)"
+      "Skill(update-config)",
+      "WebFetch(domain:reactjs.org)",
+      "WebFetch(domain:legacy.reactjs.org)"
     ]
   }
 }

@@ -74,6 +74,9 @@ memory: project
 2. **调用 aipa-pm**
    - aipa-pm 会自主读取 `.claude/agents-cowork/feedback.md` 中的用户反馈，结合产品现状决定本轮做什么
    - 无需 leader 传递需求描述，aipa-pm 自主决策
+   - **aipa-pm 完成后，leader 必须检查**：
+     - `.claude/agents-cowork/feedback.md` 内容是否已清空（若 pm 忘记清空，leader 直接用 Write 工具补做）
+     - PRD 文件是否已写入 `todo/` 目录
 
 3. **制定推进计划**
    - 根据 aipa-pm 输出的 PRD，判断是否需要完整走 PM → UI → Frontend → Tester 流程
