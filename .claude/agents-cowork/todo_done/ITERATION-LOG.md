@@ -842,3 +842,33 @@ built in 9.32s
 - [x] Suggestions include actionable prompts (analyze, fix, explain, refactor, review)
 - [x] No visual flicker during rotation (smooth text change)
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 79 -- Auto-Expand Thinking During Stream
+
+_Date: 2026-03-27 | Sprint UI Enhancement_
+
+### Summary
+Added automatic expand/collapse behavior for thinking blocks in assistant messages. When a message is actively streaming and contains thinking content, the thinking block automatically expands so users can watch the AI's thought process in real-time. When streaming completes, the thinking block auto-collapses to keep the final response clean. The label changes from "Thinking" to "Thinking..." while streaming is active. Users can still manually toggle the thinking block at any time, and the auto behavior only triggers on streaming state transitions.
+
+### Files Changed
+- `src/renderer/components/chat/Message.tsx` -- Added `isMessageStreaming` variable from `StandardChatMessage.isStreaming`; added `prevStreamingRef` useRef to track streaming state transitions; added useEffect that auto-expands thinkingExpanded when streaming starts with thinking content, and auto-collapses when streaming ends; updated thinking button label to show "Thinking..." during active streaming
+
+### Build
+Status: SUCCESS
+
+```
+2385 modules transformed.
+built in 8.20s
+```
+
+### Acceptance Criteria
+- [x] Thinking block auto-expands when streaming starts with thinking content
+- [x] Thinking block auto-collapses when streaming ends
+- [x] Label shows "Thinking..." during active streaming
+- [x] Label shows "Thinking" after streaming completes
+- [x] Manual toggle still works (user can collapse during stream)
+- [x] No effect on messages without thinking content
+- [x] Uses ref-based prev state tracking to detect transitions
+- [x] Build passes with zero errors

@@ -87,6 +87,20 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   const toggleReaction = useChatStore(s => s.toggleReaction)
 
   const thinking = message.role !== 'permission' ? (message as StandardChatMessage).thinking : undefined
+  const isMessageStreaming = (message as StandardChatMessage).isStreaming
+
+  // Auto-expand thinking block while streaming, auto-collapse when done
+  const prevStreamingRef = React.useRef(false)
+  useEffect(() => {
+    if (isMessageStreaming && thinking && !prevStreamingRef.current) {
+      // Started streaming with thinking content — auto-expand
+      setThinkingExpanded(true)
+    } else if (!isMessageStreaming && prevStreamingRef.current && thinking) {
+      // Streaming just ended — auto-collapse thinking
+      setThinkingExpanded(false)
+    }
+    prevStreamingRef.current = !!isMessageStreaming
+  }, [isMessageStreaming, thinking])
 
   // Compute word and approx token count for assistant messages
   const wordInfo = isAssistant && message.role !== 'permission' && (message as StandardChatMessage).content
@@ -324,7 +338,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
                     }}
                   >
                     {thinkingExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-                    Thinking
+                    {isMessageStreaming && thinking ? 'Thinking...' : 'Thinking'}
                   </button>
                   {thinkingExpanded && (
                     <div style={{
