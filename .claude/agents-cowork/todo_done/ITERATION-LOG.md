@@ -490,3 +490,39 @@ built in 8.14s
 - [x] Files: no shortcut (prop omitted)
 - [x] Shortcut prop is optional (no breaking changes)
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 68 -- Onboarding Wizard Visual Redesign
+
+_Date: 2026-03-26 | Sprint UI Enhancement_
+
+### Summary
+Redesigned the OnboardingWizard from a plain emoji-based card into a polished, modern first-run experience matching the WeChat-style UI. Replaced raw emoji icons (robot, folder, checkmark) with lucide-react icons (Sparkles, Key, FolderOpen, CheckCircle2) inside 80px circular containers with accent-tinted backgrounds. Replaced step dots with an animated segmented progress bar with "Step N of 4" label. Added step transition animations (fade-in + translateY), icon entrance animations (scale 0.8->1.0), and card popup-in entrance animation. Upgraded card styling to use popup variables (border, shadow, radius 16px). API key input now uses the input-field CSS variable system with focus ring. Buttons upgraded to 42px height with hover scale effects and chevron/arrow icons. Overlay features a subtle radial gradient accent glow. Skip link refined to 11px with underline-on-hover. All animations respect prefers-reduced-motion.
+
+### Files Changed
+- `src/renderer/styles/globals.css` -- Added `@keyframes onboard-fade-in` (opacity + translateY transition) and `@keyframes onboard-icon-in` (opacity + scale transition); added `.onboard-step-content` and `.onboard-icon` classes; added both to `prefers-reduced-motion` disable list
+- `src/renderer/components/onboarding/OnboardingWizard.tsx` -- Full visual overhaul: replaced emoji imports with lucide-react icons (Sparkles, Key, FolderOpen, CheckCircle2, Folder, ChevronLeft, ChevronRight, ArrowRight); replaced step dots with animated progress bar (200px track, accent fill with cubic-bezier transition, "Step N of 4" label); added 80px circular icon container with accent tint; upgraded card to popup-bg/border/shadow with 16px radius, 520px max-width; upgraded overlay with radial-gradient accent glow; input field uses input-field-bg/border/focus CSS variables with focus ring state; buttons upgraded to 42px height, 8px radius, font-weight 600, with hover scale/brightness effects; added chevron/arrow icons to navigation buttons; skip link refined to 11px with underline-on-hover
+
+### Build
+Status: SUCCESS
+
+```
+2385 modules transformed.
+built in 8.32s
+```
+
+### Acceptance Criteria
+- [x] Emoji icons replaced with lucide-react icons in 80px circular containers
+- [x] Step dots replaced with animated progress bar + "Step N of 4" label
+- [x] Step transitions use onboard-fade-in animation
+- [x] Icon entrance uses onboard-icon-in animation (scale 0.8->1.0)
+- [x] Card uses popup styling system (popup-border, popup-shadow, 16px radius)
+- [x] Card entrance uses popup-in animation
+- [x] API key input uses input-field CSS variable system with focus ring
+- [x] Primary buttons 42px height with hover scale(1.02) + brightness(1.1) effect
+- [x] Navigation buttons include chevron/arrow icons
+- [x] Overlay has subtle radial gradient accent glow
+- [x] Skip link styled as 11px text with underline on hover
+- [x] Respects prefers-reduced-motion
+- [x] Build passes with zero errors

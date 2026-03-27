@@ -1,16 +1,17 @@
 import React, { useState } from 'react'
+import { Sparkles, Key, FolderOpen, CheckCircle2, Folder, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react'
 
 interface OnboardingWizardProps {
   onComplete: () => void
 }
 
+const STEP_ICONS = [Sparkles, Key, FolderOpen, CheckCircle2] as const
+
 export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
   const [apiKey, setApiKey] = useState('')
-  const [workDir, setWorkDir] = useState(() => {
-    // Will be overridden after mount if needed, default placeholder
-    return '~/claude'
-  })
+  const [workDir, setWorkDir] = useState(() => '~/claude')
+  const [inputFocused, setInputFocused] = useState(false)
 
   const handlePickFolder = async () => {
     const p = await window.electronAPI.fsShowOpenDialog()
@@ -29,49 +30,63 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
     onComplete()
   }
 
+  const StepIcon = STEP_ICONS[step - 1]
+  const iconColor = step === 4 ? 'var(--success)' : 'var(--accent)'
+  const progressWidth = `${((step) / 4) * 100}%`
+
   return (
     <div style={styles.overlay}>
-      <div style={styles.card}>
-        {/* Step indicators */}
-        <div style={styles.stepDots}>
-          {([1, 2, 3, 4] as const).map((s) => (
-            <div
-              key={s}
-              style={{
-                ...styles.dot,
-                background: s === step ? 'var(--accent)' : 'var(--border)',
-              }}
-            />
-          ))}
+      <div style={styles.card} className="popup-enter">
+        {/* Progress bar */}
+        <div style={styles.progressContainer}>
+          <div style={styles.progressTrack}>
+            <div style={{ ...styles.progressFill, width: progressWidth }} />
+          </div>
+          <div style={styles.progressLabel}>Step {step} of 4</div>
+        </div>
+
+        {/* Step icon */}
+        <div className="onboard-icon" key={`icon-${step}`} style={styles.iconCircle}>
+          <StepIcon size={48} color={iconColor} strokeWidth={1.5} />
         </div>
 
         {/* Step 1: Welcome */}
         {step === 1 && (
-          <div style={styles.stepContent}>
-            <div style={styles.emoji}>🤖</div>
+          <div className="onboard-step-content" key="step1" style={styles.stepContent}>
             <h1 style={styles.title}>Welcome to AIPA</h1>
             <p style={styles.subtitle}>
-              Your AI assistant, ready to help with coding, analysis, and more.
+              Your AI-powered personal assistant for coding, analysis, and creative work.
             </p>
-            <button style={styles.primaryBtn} onClick={() => setStep(2)}>
-              Get Started
+            <button
+              style={styles.primaryBtn}
+              onClick={() => setStep(2)}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.filter = 'brightness(1.1)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.filter = 'none' }}
+            >
+              Get Started <ArrowRight size={16} style={{ marginLeft: 6, verticalAlign: 'middle' }} />
             </button>
           </div>
         )}
 
         {/* Step 2: API Key */}
         {step === 2 && (
-          <div style={styles.stepContent}>
+          <div className="onboard-step-content" key="step2" style={styles.stepContent}>
             <h1 style={styles.title}>Enter Your API Key</h1>
             <p style={styles.explanation}>
-              Claude needs an API key to work. Your key is stored locally on your machine and never uploaded anywhere.
+              Your key is stored locally and never uploaded anywhere.
             </p>
             <input
               type="password"
               placeholder="sk-ant-..."
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              style={styles.input}
+              style={{
+                ...styles.input,
+                borderColor: inputFocused ? 'var(--input-field-focus)' : 'var(--input-field-border)',
+                boxShadow: inputFocused ? 'var(--input-focus-shadow)' : 'none',
+              }}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setInputFocused(false)}
               autoFocus
             />
             <a
@@ -81,12 +96,19 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                 e.preventDefault()
                 window.open('https://console.anthropic.com', '_blank')
               }}
+              onMouseEnter={e => { e.currentTarget.style.textDecoration = 'underline' }}
+              onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none' }}
             >
-              Don't have a key? Get one free at console.anthropic.com
+              Get a free API key at console.anthropic.com
             </a>
             <div style={styles.btnRow}>
-              <button style={styles.secondaryBtn} onClick={() => setStep(1)}>
-                Back
+              <button
+                style={styles.secondaryBtn}
+                onClick={() => setStep(1)}
+                onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
+              >
+                <ChevronLeft size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} /> Back
               </button>
               <button
                 style={{
@@ -96,13 +118,17 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                 }}
                 onClick={() => apiKey.trim() && setStep(3)}
                 disabled={!apiKey.trim()}
+                onMouseEnter={e => { if (apiKey.trim()) { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.filter = 'brightness(1.1)' } }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.filter = 'none' }}
               >
-                Next
+                Next <ChevronRight size={14} style={{ marginLeft: 4, verticalAlign: 'middle' }} />
               </button>
             </div>
             <button
               onClick={handleSkip}
-              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', marginTop: 4 }}
+              style={styles.skipBtn}
+              onMouseEnter={e => { e.currentTarget.style.textDecoration = 'underline' }}
+              onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none' }}
             >
               Skip, configure later in Settings
             </button>
@@ -111,24 +137,39 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
 
         {/* Step 3: Work Folder */}
         {step === 3 && (
-          <div style={styles.stepContent}>
+          <div className="onboard-step-content" key="step3" style={styles.stepContent}>
             <h1 style={styles.title}>Choose Working Folder</h1>
             <p style={styles.explanation}>
-              Claude will read and write files in this folder. You can change it anytime in Settings.
+              Claude will read and write files here. Change it anytime in Settings.
             </p>
             <div style={styles.folderDisplay}>
-              <span style={styles.folderIcon}>📁</span>
+              <Folder size={18} color="var(--accent)" style={{ flexShrink: 0 }} />
               <span style={styles.folderPath}>{workDir}</span>
             </div>
-            <button style={styles.outlineBtn} onClick={handlePickFolder}>
+            <button
+              style={styles.outlineBtn}
+              onClick={handlePickFolder}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,122,204,0.08)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+            >
               Choose Folder
             </button>
             <div style={styles.btnRow}>
-              <button style={styles.secondaryBtn} onClick={() => setStep(2)}>
-                Back
+              <button
+                style={styles.secondaryBtn}
+                onClick={() => setStep(2)}
+                onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
+              >
+                <ChevronLeft size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} /> Back
               </button>
-              <button style={styles.primaryBtn} onClick={() => setStep(4)}>
-                Finish Setup
+              <button
+                style={styles.primaryBtn}
+                onClick={() => setStep(4)}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.filter = 'brightness(1.1)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.filter = 'none' }}
+              >
+                Finish Setup <ChevronRight size={14} style={{ marginLeft: 4, verticalAlign: 'middle' }} />
               </button>
             </div>
           </div>
@@ -136,12 +177,16 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
 
         {/* Step 4: Done */}
         {step === 4 && (
-          <div style={styles.stepContent}>
-            <div style={styles.emoji}>✅</div>
+          <div className="onboard-step-content" key="step4" style={styles.stepContent}>
             <h1 style={styles.title}>All Set!</h1>
-            <p style={styles.subtitle}>You're ready to start chatting with Claude</p>
-            <button style={styles.primaryBtn} onClick={handleComplete}>
-              Start Chatting
+            <p style={styles.subtitle}>You're ready to start chatting with Claude.</p>
+            <button
+              style={styles.primaryBtn}
+              onClick={handleComplete}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.filter = 'brightness(1.1)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.filter = 'none' }}
+            >
+              Start Chatting <ArrowRight size={16} style={{ marginLeft: 6, verticalAlign: 'middle' }} />
             </button>
           </div>
         )}
@@ -156,33 +201,59 @@ const styles: Record<string, React.CSSProperties> = {
     inset: 0,
     zIndex: 9999,
     background: 'rgba(0, 0, 0, 0.85)',
+    backgroundImage: 'radial-gradient(ellipse at center, rgba(0,122,204,0.05) 0%, transparent 70%)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
   },
   card: {
     background: 'var(--popup-bg)',
-    border: '1px solid var(--border)',
-    borderRadius: '12px',
+    border: '1px solid var(--popup-border)',
+    borderRadius: '16px',
     width: '100%',
-    maxWidth: '480px',
-    padding: '40px 36px 32px',
+    maxWidth: '520px',
+    padding: '48px 40px 36px',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     gap: '0',
-    boxShadow: '0 24px 64px rgba(0, 0, 0, 0.6)',
+    boxShadow: 'var(--popup-shadow), 0 0 80px rgba(0,122,204,0.08)',
   },
-  stepDots: {
+  progressContainer: {
     display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
     gap: '8px',
     marginBottom: '32px',
+    width: '200px',
   },
-  dot: {
-    width: '8px',
-    height: '8px',
+  progressTrack: {
+    width: '100%',
+    height: '4px',
+    borderRadius: '2px',
+    background: 'var(--border)',
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    background: 'var(--accent)',
+    borderRadius: '2px',
+    transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+  },
+  progressLabel: {
+    fontSize: '11px',
+    color: 'var(--text-muted)',
+    letterSpacing: '0.03em',
+  },
+  iconCircle: {
+    width: '80px',
+    height: '80px',
     borderRadius: '50%',
-    transition: 'background 0.2s',
+    background: 'rgba(0,122,204,0.1)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: '20px',
   },
   stepContent: {
     width: '100%',
@@ -191,62 +262,59 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     gap: '16px',
   },
-  emoji: {
-    fontSize: '56px',
-    lineHeight: '1',
-    marginBottom: '4px',
-  },
   title: {
-    fontSize: '22px',
-    fontWeight: '600',
+    fontSize: '24px',
+    fontWeight: '700',
     color: 'var(--text-bright)',
     textAlign: 'center',
     margin: 0,
+    letterSpacing: '-0.02em',
   },
   subtitle: {
     fontSize: '14px',
     color: 'var(--text-muted)',
     textAlign: 'center',
-    lineHeight: '1.6',
+    lineHeight: '1.7',
     margin: 0,
+    maxWidth: '360px',
   },
   explanation: {
-    fontSize: '13px',
+    fontSize: '14px',
     color: 'var(--text-muted)',
     textAlign: 'center',
-    lineHeight: '1.6',
+    lineHeight: '1.7',
     margin: 0,
+    maxWidth: '360px',
   },
   input: {
     width: '100%',
-    padding: '10px 14px',
-    background: 'var(--bg-input)',
-    border: '1px solid var(--border)',
-    borderRadius: '6px',
+    height: '42px',
+    padding: '0 14px',
+    background: 'var(--input-field-bg)',
+    border: '1px solid var(--input-field-border)',
+    borderRadius: '8px',
     color: 'var(--text-primary)',
     fontSize: '13px',
     outline: 'none',
     fontFamily: 'monospace',
+    transition: 'border-color 0.15s, box-shadow 0.15s',
   },
   link: {
     fontSize: '12px',
     color: 'var(--accent)',
     textDecoration: 'none',
     cursor: 'pointer',
+    transition: 'text-decoration 0.15s',
   },
   folderDisplay: {
     width: '100%',
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
+    gap: '10px',
     padding: '10px 14px',
-    background: 'var(--bg-input)',
-    border: '1px solid var(--border)',
-    borderRadius: '6px',
-  },
-  folderIcon: {
-    fontSize: '16px',
-    flexShrink: 0,
+    background: 'var(--input-field-bg)',
+    border: '1px solid var(--input-field-border)',
+    borderRadius: '8px',
   },
   folderPath: {
     fontSize: '12px',
@@ -255,37 +323,51 @@ const styles: Record<string, React.CSSProperties> = {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
+    flex: 1,
   },
   primaryBtn: {
-    padding: '10px 28px',
+    padding: '0 28px',
+    height: '42px',
     background: 'var(--accent)',
     color: '#ffffff',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: '8px',
     fontSize: '14px',
-    fontWeight: '500',
+    fontWeight: '600',
     cursor: 'pointer',
-    transition: 'background 0.15s',
-    minWidth: '120px',
+    transition: 'transform 0.15s, filter 0.15s, background 0.15s',
+    minWidth: '140px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   secondaryBtn: {
-    padding: '10px 20px',
+    padding: '0 20px',
+    height: '42px',
     background: 'transparent',
     color: 'var(--text-muted)',
-    border: '1px solid var(--border)',
-    borderRadius: '6px',
+    border: '1px solid var(--popup-border)',
+    borderRadius: '8px',
     fontSize: '14px',
     cursor: 'pointer',
     transition: 'color 0.15s',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   outlineBtn: {
-    padding: '8px 20px',
+    padding: '0 20px',
+    height: '38px',
     background: 'transparent',
     color: 'var(--accent)',
     border: '1px solid var(--accent)',
-    borderRadius: '6px',
+    borderRadius: '8px',
     fontSize: '13px',
     cursor: 'pointer',
+    transition: 'background 0.15s',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   btnRow: {
     display: 'flex',
@@ -293,5 +375,14 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'space-between',
     width: '100%',
     marginTop: '4px',
+  },
+  skipBtn: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--text-muted)',
+    fontSize: '11px',
+    cursor: 'pointer',
+    marginTop: '4px',
+    transition: 'text-decoration 0.15s',
   },
 }

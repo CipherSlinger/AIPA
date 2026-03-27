@@ -419,6 +419,22 @@ code:not(pre code) {
   min-height: 0;
 }
 
+/* Onboarding step transition (Iteration 68) */
+@keyframes onboard-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.onboard-step-content {
+  animation: onboard-fade-in 0.3s ease-out;
+}
+@keyframes onboard-icon-in {
+  from { opacity: 0; transform: scale(0.8); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.onboard-icon {
+  animation: onboard-icon-in 0.3s ease-out;
+}
+
 /* Reduced motion (Iteration 55) */
 @media (prefers-reduced-motion: reduce) {
   .message-enter,
@@ -427,7 +443,9 @@ code:not(pre code) {
   .message-new-glow,
   .popup-enter,
   .nav-icon-btn,
-  .tool-output-wrapper {
+  .tool-output-wrapper,
+  .onboard-step-content,
+  .onboard-icon {
     animation: none !important;
     transition: none !important;
   }
