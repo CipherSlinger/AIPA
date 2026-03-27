@@ -33,9 +33,12 @@ const MAX_FILE_COUNT = 10
 
 export default function ChatPanel() {
   const t = useT()
-  const { messages, isStreaming, currentSessionId, currentSessionTitle } = useChatStore()
-  const { prefs } = usePrefsStore()
-  const { addToast } = useUiStore()
+  const messages = useChatStore(s => s.messages)
+  const isStreaming = useChatStore(s => s.isStreaming)
+  const currentSessionId = useChatStore(s => s.currentSessionId)
+  const currentSessionTitle = useChatStore(s => s.currentSessionTitle)
+  const prefs = usePrefsStore(s => s.prefs)
+  const addToast = useUiStore(s => s.addToast)
   const focusMode = useUiStore(s => s.focusMode)
   const toggleFocusMode = useUiStore(s => s.toggleFocusMode)
   const quotedText = useUiStore(s => s.quotedText)

@@ -44,12 +44,23 @@ function playCompletionSound() {
 }
 
 export function useStreamJson() {
-  const {
-    appendTextDelta, appendThinkingDelta, addToolUse, resolveToolUse, setStreaming, setSessionId,
-    addPermissionRequest, resolvePermission, denyPendingPermissions, setLastUsage, addPlanMessage,
-    setLastCost, setLastContextUsage, setSessionTitle,
-  } = useChatStore()
-  const { prefs } = usePrefsStore()
+  // Use individual selectors so this hook only re-renders when the specific
+  // action references change (they never do in Zustand), not on every state update.
+  const appendTextDelta = useChatStore(s => s.appendTextDelta)
+  const appendThinkingDelta = useChatStore(s => s.appendThinkingDelta)
+  const addToolUse = useChatStore(s => s.addToolUse)
+  const resolveToolUse = useChatStore(s => s.resolveToolUse)
+  const setStreaming = useChatStore(s => s.setStreaming)
+  const setSessionId = useChatStore(s => s.setSessionId)
+  const addPermissionRequest = useChatStore(s => s.addPermissionRequest)
+  const resolvePermission = useChatStore(s => s.resolvePermission)
+  const denyPendingPermissions = useChatStore(s => s.denyPendingPermissions)
+  const setLastUsage = useChatStore(s => s.setLastUsage)
+  const addPlanMessage = useChatStore(s => s.addPlanMessage)
+  const setLastCost = useChatStore(s => s.setLastCost)
+  const setLastContextUsage = useChatStore(s => s.setLastContextUsage)
+  const setSessionTitle = useChatStore(s => s.setSessionTitle)
+  const prefs = usePrefsStore(s => s.prefs)
   const t = useT()
 
   const activeBridgeIdRef = useRef<string | null>(null)
