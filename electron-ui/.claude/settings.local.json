@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(tasklist)",
+      "Bash(powershell -Command \"\n\\\\$filePath = 'C:\\\\\\\\Users\\\\\\\\osr\\\\\\\\Desktop\\\\\\\\AIPA\\\\\\\\electron-ui\\\\\\\\node_modules\\\\\\\\electron\\\\\\\\dist\\\\\\\\resources\\\\\\\\default_app.asar'\n\\\\$processes = Get-Process | Where-Object { \\\\$_.Modules | Where-Object { \\\\$_.FileName -eq \\\\$filePath } }\nif \\(\\\\$processes\\) { \\\\$processes | Select-Object Name, Id } else { Write-Output 'No process found with direct module lock' }\n\" 2>&1)",
+      "Bash(powershell -Command \"Remove-Item -Recurse -Force 'node_modules/electron/dist' -ErrorAction SilentlyContinue; Write-Output 'Done'\" 2>&1)",
+      "Bash(powershell -Command \"Remove-Item -Recurse -Force 'node_modules/electron' -ErrorAction SilentlyContinue; Write-Output 'Done'\" 2>&1)",
+      "Bash(python -c \"import sys,json; p=json.load\\(sys.stdin\\); print\\(p.get\\(''''devDependencies'''',{}\\).get\\(''''electron'''',''''not found''''\\)\\)\")",
+      "Bash(node:*)",
+      "Bash(ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm install)",
+      "Bash(powershell -Command \"\nAdd-Type @'\nusing System;\nusing System.Runtime.InteropServices;\nusing System.Collections.Generic;\n\npublic class RstrtMgr {\n    [DllImport\\(\\\\\"rstrtmgr.dll\\\\\", CharSet=CharSet.Unicode\\)]\n    public static extern int RmStartSession\\(out uint pSessionHandle, int dwSessionFlags, string strSessionKey\\);\n    [DllImport\\(\\\\\"rstrtmgr.dll\\\\\"\\)]\n    public static extern int RmEndSession\\(uint pSessionHandle\\);\n    [DllImport\\(\\\\\"rstrtmgr.dll\\\\\", CharSet=CharSet.Unicode\\)]\n    public static extern int RmRegisterResources\\(uint pSessionHandle, uint nFiles, string[] rgsFilenames, uint nApplications, [In] RM_UNIQUE_PROCESS[] rgApplications, uint nServices, string[] rgsServiceNames\\);\n    [DllImport\\(\\\\\"rstrtmgr.dll\\\\\"\\)]\n    public static extern int RmGetList\\(uint dwSessionHandle, out uint pnProcInfoNeeded, ref uint pnProcInfo, [In, Out] RM_PROCESS_INFO[] rgAffectedApps, ref uint lpdwRebootReasons\\);\n    \n    [StructLayout\\(LayoutKind.Sequential\\)]\n    public struct RM_UNIQUE_PROCESS { public int dwProcessId; public System.Runtime.InteropServices.ComTypes.FILETIME ProcessStartTime; }\n    [StructLayout\\(LayoutKind.Sequential, CharSet=CharSet.Unicode\\)]\n    public struct RM_PROCESS_INFO { public RM_UNIQUE_PROCESS Process; [MarshalAs\\(UnmanagedType.ByValTStr, SizeConst=256\\)] public string strAppName; [MarshalAs\\(UnmanagedType.ByValTStr, SizeConst=64\\)] public string strServiceShortName; public int ApplicationType; public uint AppStatus; public int TSSessionId; [MarshalAs\\(UnmanagedType.Bool\\)] public bool bRestartable; }\n}\n'@\n\n\\\\$filePath = 'C:\\\\\\\\Users\\\\\\\\osr\\\\\\\\Desktop\\\\\\\\AIPA\\\\\\\\electron-ui\\\\\\\\node_modules\\\\\\\\electron\\\\\\\\dist\\\\\\\\resources\\\\\\\\default_app.asar'\n\\\\$sessionHandle = 0\n\\\\$key = [Guid]::NewGuid\\(\\).ToString\\(\\).Substring\\(0,25\\)\n[RstrtMgr]::RmStartSession\\([ref]\\\\$sessionHandle, 0, \\\\$key\\) | Out-Null\n[RstrtMgr]::RmRegisterResources\\(\\\\$sessionHandle, 1, @\\(\\\\$filePath\\), 0, [RstrtMgr+RM_UNIQUE_PROCESS[]]@\\(\\), 0, [string[]]@\\(\\)\\) | Out-Null\n\\\\$pnProcInfoNeeded = 0; \\\\$pnProcInfo = 10; \\\\$lpdwRebootReasons = 0\n\\\\$procs = New-Object RstrtMgr+RM_PROCESS_INFO[] 10\n[RstrtMgr]::RmGetList\\(\\\\$sessionHandle, [ref]\\\\$pnProcInfoNeeded, [ref]\\\\$pnProcInfo, \\\\$procs, [ref]\\\\$lpdwRebootReasons\\) | Out-Null\nfor \\(\\\\$i=0; \\\\$i -lt \\\\$pnProcInfo; \\\\$i++\\) { Write-Output \\('PID: ' + \\\\$procs[\\\\$i].Process.dwProcessId + ' App: ' + \\\\$procs[\\\\$i].strAppName\\) }\n[RstrtMgr]::RmEndSession\\(\\\\$sessionHandle\\) | Out-Null\n\" 2>&1)",
+      "Bash(powershell -Command \"Get-Process -Id 19060 | Select-Object Name, Id, StartTime\" 2>&1)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\(''''dependencies'''',{}\\), indent=2\\)\\); print\\(json.dumps\\(d.get\\(''''devDependencies'''',{}\\), indent=2\\)\\)\")",
+      "Bash(VSCODE_PTY=\"/c/Users/osr/AppData/Local/Programs/Microsoft VS Code/cfbea10c5f/resources/app/node_modules/node-pty\")",
+      "Bash(TARGET=\"node_modules/node-pty\")",
+      "Bash(__NEW_LINE_22e4a46d65579fda__ mkdir:*)",
+      "Bash(cp \"$VSCODE_PTY/build/Release/\"*.node \"$TARGET/build/Release/\")",
+      "Read(//c/Users/osr/Desktop/AIPA/electron-ui/$TARGET/build/**)",
+      "Bash(npm run:*)",
+      "Bash(__NEW_LINE_385b9b1c549ed2a7__ mkdir:*)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(node_modules/.bin/electron --version)"
+    ]
+  }
+}
