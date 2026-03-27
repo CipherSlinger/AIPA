@@ -82,3 +82,40 @@ type: project
 - **Files**: globals.css (message-glow keyframe, message-new-glow class, reduced-motion), MessageList.tsx (added glow class to entrance animations)
 - **Key decisions**: Glow uses accent color rgba; 1.5s duration for subtle effect; applied only to last message; added to reduced-motion disabled list
 - **Tester result**: All 6 acceptance criteria passed, build success
+
+### Iteration 63 (2026-03-26)
+- **Features**: Message Reactions (Emoji Quick-React) -- hover-triggered emoji toolbar with 5 reactions, toggle badges below bubble
+- **Files**: globals.css (7 new reaction vars), store/index.ts (reactions state + toggleReaction), Message.tsx (REACTION_EMOJIS, toolbar, badges)
+- **Tester result**: All 13 acceptance criteria passed, build success
+
+### Iteration 64 (2026-03-26)
+- **Features**: Sidebar Search Enhancement -- result count badge, match context line with source indicator
+- **Files**: SessionList.tsx (getMatchContext helper, result count badge, context line)
+- **Tester result**: All 9 acceptance criteria passed, build success
+
+### Iteration 65 (2026-03-26)
+- **Features**: Status Bar Enhancement -- three-zone segmented layout, session duration, model badge pill, lucide token icons
+- **Files**: StatusBar.tsx (full rewrite: Separator component, formatDuration, three-zone layout)
+- **Tester result**: All 10 acceptance criteria passed, build success
+
+### Iteration 66 (2026-03-26)
+- **Features**: Session List Hover Polish -- translateX(2px) hover shift, action button opacity/transform transitions
+- **Files**: SessionList.tsx (hover transforms, opacity transitions for action buttons)
+- **Tester result**: All 7 acceptance criteria passed, build success
+
+### Iteration 67 (2026-03-26)
+- **Features**: NavRail Shortcut Hints -- keyboard shortcut badges in tooltip popups
+- **Files**: NavRail.tsx (shortcut prop, styled badge in tooltip)
+- **Tester result**: All 6 acceptance criteria passed, build success
+
+### Iteration 68 (2026-03-26)
+- **Features**: Onboarding Wizard Visual Redesign -- lucide icons (Sparkles/Key/FolderOpen/CheckCircle2) in 80px circles, animated progress bar replacing dots, step transition animations, popup-styled card, input field focus ring, hover scale buttons
+- **Files**: OnboardingWizard.tsx (full rewrite), globals.css (onboard-fade-in + onboard-icon-in keyframes, reduced-motion update)
+- **Key decisions**: Reuse popup variable system for card styling; onboard-fade-in and onboard-icon-in animations complement existing animation system; progress bar uses cubic-bezier width transition
+- **Tester result**: All 13 acceptance criteria passed, build success
+
+### Iteration 69 (2026-03-26)
+- **Features**: Welcome Screen Visual Redesign -- Bot icon in 80px circle, lucide icons for suggestion cards (FolderSearch/Bug/Sparkles/FileCode2) in 44px circles, card-bg/card-border styled suggestion cards with scale hover, keyboard shortcuts in 2x3 grid card, quick action buttons with icons
+- **Files**: ChatPanel.tsx (8 new lucide imports, WelcomeScreen function rewrite)
+- **Key decisions**: Reuse onboard-icon animation for hero entrance; card-bg/card-border variables for suggestion cards; popup-bg/popup-border for kbd elements; title changed to "AIPA" branding
+- **Tester result**: All 14 acceptance criteria passed, build success
