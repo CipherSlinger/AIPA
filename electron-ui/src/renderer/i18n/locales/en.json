@@ -77,7 +77,8 @@
     "chars": "chars",
     "long": "long",
     "veryLong": "very long",
-    "pressAgainToClear": "Press {{key}} again to clear conversation"
+    "pressAgainToClear": "Press {{key}} again to clear conversation",
+    "responseComplete": "Response complete"
   },
   "welcome": {
     "title": "Hello! I'm AIPA",

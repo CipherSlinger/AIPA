@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useChatStore, usePrefsStore, useSessionStore } from '../store'
 import { PermissionMessage, PlanMessage, StandardChatMessage } from '../types/app.types'
 import { useUiStore } from '../store'
+import { useT } from '../i18n'
 
 function sendCompletionNotification(title: string, summary: string) {
   if (document.hasFocus()) return  // Don't notify when window is focused
@@ -49,6 +50,7 @@ export function useStreamJson() {
     setLastCost, setLastContextUsage, setSessionTitle,
   } = useChatStore()
   const { prefs } = usePrefsStore()
+  const t = useT()
 
   const activeBridgeIdRef = useRef<string | null>(null)
   // Keep a ref to sendMessage so it can be called from the IPC event handler without stale closure
@@ -240,7 +242,7 @@ export function useStreamJson() {
             }
           }
           // Completion notification
-          sendCompletionNotification('AIPA', resultText || 'Response complete')
+          sendCompletionNotification('AIPA', resultText || t('chat.responseComplete'))
           // Sound notification
           if (usePrefsStore.getState().prefs.notifySound !== false) {
             playCompletionSound()
@@ -278,8 +280,8 @@ export function useStreamJson() {
             const pendingCount = updatedQueue.filter(item => item.status === 'pending').length
             const doneCount = updatedQueue.filter(item => item.status === 'done').length
             if (pendingCount === 0 && doneCount > 0) {
-              useUiStore.getState().addToast('success', `Queue complete: ${doneCount} task${doneCount > 1 ? 's' : ''} finished`)
-              sendCompletionNotification('AIPA', `Queue complete: ${doneCount} task${doneCount > 1 ? 's' : ''} finished`)
+              useUiStore.getState().addToast('success', t('taskQueue.queueComplete', { count: String(doneCount) }))
+              sendCompletionNotification('AIPA', t('taskQueue.queueComplete', { count: String(doneCount) }))
             }
             // Auto-send next if not paused
             if (!queueState.queuePaused) {

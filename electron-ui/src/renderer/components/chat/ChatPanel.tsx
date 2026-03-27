@@ -279,7 +279,7 @@ export default function ChatPanel() {
 
     const result = await window.electronAPI.fsWriteFile(filePath, content)
     if (result?.error) {
-      addToast('error', `Export failed: ${result.error}`)
+      addToast('error', t('chat.exportFailed', { error: result.error }))
     } else {
       addToast('success', t('chat.exportSuccess'))
     }
@@ -436,7 +436,7 @@ export default function ChatPanel() {
     if (files.length === 0) return
 
     if (files.length > MAX_FILE_COUNT) {
-      addToast('warning', `Too many files (max ${MAX_FILE_COUNT}). First ${MAX_FILE_COUNT} processed.`)
+      addToast('warning', t('chat.tooManyFiles', { max: String(MAX_FILE_COUNT) }))
     }
 
     const processFiles = files.slice(0, MAX_FILE_COUNT)
@@ -449,7 +449,7 @@ export default function ChatPanel() {
 
       if (isImage) {
         if (file.size > MAX_FILE_SIZE) {
-          addToast('error', `${file.name} is too large (max 10MB)`)
+          addToast('error', t('chat.fileTooLarge', { name: file.name }))
           continue
         }
         imageFiles.push(file)
