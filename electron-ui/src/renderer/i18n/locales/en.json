@@ -34,6 +34,7 @@
     "collapseAll": "Collapse all",
     "expandAll": "Expand all",
     "dragDropHint": "Drop files here",
+    "dragDropSubHint": "Images attached, other files referenced via @path",
     "tooManyFiles": "Too many files (max {{max}}). First {{max}} processed.",
     "fileTooLarge": "{{name}} is too large (max 10MB)",
     "exportFailed": "Export failed: {{error}}",
@@ -78,15 +79,21 @@
     "long": "long",
     "veryLong": "very long",
     "pressAgainToClear": "Press {{key}} again to clear conversation",
-    "responseComplete": "Response complete"
+    "responseComplete": "Response complete",
+    "scrollToBottom": "Scroll to bottom",
+    "newMessages": "{{count}} new message",
+    "newMessagesPlural": "{{count}} new messages"
   },
   "welcome": {
     "title": "Hello! I'm AIPA",
-    "subtitle": "Your AI-powered personal assistant for coding, analysis, and creative work.",
+    "subtitle": "Your AI-powered assistant for coding, analysis, and creative work.",
     "suggestion": {
+      "analyzeCode": "Analyze code structure",
+      "findBug": "Find and fix a bug",
+      "newFeature": "Implement a new feature",
+      "writeScript": "Write an automation script",
       "exploreProject": "Explore a project",
       "exploreDesc": "Browse and understand any codebase",
-      "findBug": "Find a bug",
       "findBugDesc": "Describe an issue and I'll investigate",
       "generateCode": "Generate code",
       "generateDesc": "Describe what you need built",
@@ -94,6 +101,14 @@
       "reviewDesc": "Get feedback on your code"
     },
     "shortcuts": "Keyboard Shortcuts",
+    "shortcut": {
+      "commandPalette": "Command palette",
+      "toggleSidebar": "Toggle sidebar",
+      "toggleTerminal": "Toggle terminal",
+      "focusInput": "Focus input",
+      "referenceFiles": "Reference files",
+      "slashCommands": "Slash commands"
+    },
     "quickActions": "Quick Actions",
     "openSettings": "Settings",
     "openTerminal": "Terminal",
@@ -181,7 +196,8 @@
     "sort": "Sort",
     "deleted": "Session deleted",
     "forked": "Session forked",
-    "forkFailed": "Failed to fork session"
+    "forkFailed": "Failed to fork session",
+    "doubleClickRename": "Double-click to rename"
   },
   "settings": {
     "title": "Settings",

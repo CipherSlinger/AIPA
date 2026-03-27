@@ -581,7 +581,7 @@ export default function SessionList() {
                 ) : (
                   <span
                     onDoubleClick={(e) => startRename(e, session)}
-                    title="Double-click to rename"
+                    title={t('session.doubleClickRename')}
                     style={{
                       fontSize: 13,
                       fontWeight: 500,

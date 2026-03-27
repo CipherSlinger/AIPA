@@ -341,7 +341,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       {showScrollBtn && (
         <button
           onClick={scrollToBottom}
-          title={unreadCount > 0 ? `${unreadCount} new message${unreadCount > 1 ? 's' : ''}` : 'Scroll to bottom'}
+          title={unreadCount > 0 ? t(unreadCount > 1 ? 'chat.newMessagesPlural' : 'chat.newMessages', { count: String(unreadCount) }) : t('chat.scrollToBottom')}
           style={{
             position: 'sticky',
             bottom: 12,

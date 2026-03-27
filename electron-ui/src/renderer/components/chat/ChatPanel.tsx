@@ -684,10 +684,10 @@ export default function ChatPanel() {
         >
           <Upload size={48} style={{ color: 'var(--accent)' }} />
           <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-bright)' }}>
-            Drop files here
+            {t('chat.dragDropHint')}
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-            Images attached, other files referenced via @path
+            {t('chat.dragDropSubHint')}
           </div>
         </div>
       )}
@@ -1460,7 +1460,7 @@ export default function ChatPanel() {
           <button
             onClick={isStreaming ? abort : handleSend}
             disabled={!isStreaming && !input.trim() && attachments.length === 0}
-            title={isStreaming ? 'Stop generating' : 'Send (Enter)'}
+            title={isStreaming ? t('chat.stopGenerating') : t('chat.sendEnter')}
             style={{
               background: isStreaming ? 'var(--error)' : 'var(--accent)',
               border: 'none',
@@ -1618,27 +1618,28 @@ function ThinkingIndicator() {
 }
 
 function WelcomeScreen({ onSuggestion }: { onSuggestion: (text: string) => void }) {
+  const t = useT()
   const suggestions = [
-    { icon: FolderSearch, text: 'Analyze code structure' },
-    { icon: Bug, text: 'Find and fix a bug' },
-    { icon: Sparkles, text: 'Implement a new feature' },
-    { icon: FileCode2, text: 'Write an automation script' },
+    { icon: FolderSearch, text: t('welcome.suggestion.analyzeCode') },
+    { icon: Bug, text: t('welcome.suggestion.findBug') },
+    { icon: Sparkles, text: t('welcome.suggestion.newFeature') },
+    { icon: FileCode2, text: t('welcome.suggestion.writeScript') },
   ]
 
   const shortcuts = [
-    { keys: 'Ctrl+Shift+P', desc: 'Command palette' },
-    { keys: 'Ctrl+B', desc: 'Toggle sidebar' },
-    { keys: 'Ctrl+`', desc: 'Toggle terminal' },
-    { keys: 'Ctrl+L', desc: 'Focus input' },
-    { keys: '@file', desc: 'Reference files' },
-    { keys: '/cmd', desc: 'Slash commands' },
+    { keys: 'Ctrl+Shift+P', desc: t('welcome.shortcut.commandPalette') },
+    { keys: 'Ctrl+B', desc: t('welcome.shortcut.toggleSidebar') },
+    { keys: 'Ctrl+`', desc: t('welcome.shortcut.toggleTerminal') },
+    { keys: 'Ctrl+L', desc: t('welcome.shortcut.focusInput') },
+    { keys: '@file', desc: t('welcome.shortcut.referenceFiles') },
+    { keys: '/cmd', desc: t('welcome.shortcut.slashCommands') },
   ]
 
   const quickActions = [
-    { label: 'Settings', icon: Settings, action: () => { useUiStore.getState().setSidebarOpen(true); useUiStore.getState().setSidebarTab('settings') } },
-    { label: 'Terminal', icon: Terminal, action: () => useUiStore.getState().toggleTerminal() },
-    { label: 'Files', icon: FolderOpen, action: () => { useUiStore.getState().setSidebarOpen(true); useUiStore.getState().setSidebarTab('files') } },
-    { label: 'Shortcuts', icon: Keyboard, action: () => window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, key: '/' })) },
+    { label: t('welcome.openSettings'), icon: Settings, action: () => { useUiStore.getState().setSidebarOpen(true); useUiStore.getState().setSidebarTab('settings') } },
+    { label: t('welcome.openTerminal'), icon: Terminal, action: () => useUiStore.getState().toggleTerminal() },
+    { label: t('welcome.openFiles'), icon: FolderOpen, action: () => { useUiStore.getState().setSidebarOpen(true); useUiStore.getState().setSidebarTab('files') } },
+    { label: t('welcome.showShortcuts'), icon: Keyboard, action: () => window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, key: '/' })) },
   ]
 
   return (
@@ -1656,9 +1657,9 @@ function WelcomeScreen({ onSuggestion }: { onSuggestion: (text: string) => void 
         <Bot size={48} color="var(--accent)" strokeWidth={1.5} />
       </div>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 28, color: 'var(--text-bright)', fontWeight: 700, letterSpacing: '-0.02em' }}>Hello! I'm AIPA</div>
+        <div style={{ fontSize: 28, color: 'var(--text-bright)', fontWeight: 700, letterSpacing: '-0.02em' }}>{t('welcome.title')}</div>
         <div style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 8, maxWidth: 360, lineHeight: 1.7 }}>
-          Your AI-powered assistant for coding, analysis, and creative work.
+          {t('welcome.subtitle')}
         </div>
       </div>
 

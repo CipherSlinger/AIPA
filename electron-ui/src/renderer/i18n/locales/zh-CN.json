@@ -34,6 +34,7 @@
     "collapseAll": "\u5168\u90e8\u6298\u53e0",
     "expandAll": "\u5168\u90e8\u5c55\u5f00",
     "dragDropHint": "\u62d6\u653e\u6587\u4ef6\u5230\u6b64\u5904",
+    "dragDropSubHint": "\u56fe\u7247\u5c06\u4f5c\u4e3a\u9644\u4ef6\uff0c\u5176\u4ed6\u6587\u4ef6\u901a\u8fc7 @\u8def\u5f84 \u5f15\u7528",
     "tooManyFiles": "\u6587\u4ef6\u8fc7\u591a\uff08\u6700\u591a {{max}} \u4e2a\uff09\u3002\u5df2\u5904\u7406\u524d {{max}} \u4e2a\u3002",
     "fileTooLarge": "{{name}} \u6587\u4ef6\u8fc7\u5927\uff08\u6700\u5927 10MB\uff09",
     "exportFailed": "\u5bfc\u51fa\u5931\u8d25: {{error}}",
@@ -78,15 +79,21 @@
     "long": "\u8f83\u957f",
     "veryLong": "\u8fc7\u957f",
     "pressAgainToClear": "\u518d\u6b21\u6309 {{key}} \u6e05\u9664\u5bf9\u8bdd",
-    "responseComplete": "\u56de\u590d\u5b8c\u6210"
+    "responseComplete": "\u56de\u590d\u5b8c\u6210",
+    "scrollToBottom": "\u6eda\u52a8\u5230\u5e95\u90e8",
+    "newMessages": "{{count}} \u6761\u65b0\u6d88\u606f",
+    "newMessagesPlural": "{{count}} \u6761\u65b0\u6d88\u606f"
   },
   "welcome": {
     "title": "\u4f60\u597d\uff01\u6211\u662f AIPA",
     "subtitle": "\u4f60\u7684 AI \u667a\u80fd\u52a9\u624b\uff0c\u64c5\u957f\u7f16\u7a0b\u3001\u5206\u6790\u548c\u521b\u610f\u5de5\u4f5c\u3002",
     "suggestion": {
+      "analyzeCode": "\u5206\u6790\u4ee3\u7801\u7ed3\u6784",
+      "findBug": "\u67e5\u627e\u5e76\u4fee\u590d Bug",
+      "newFeature": "\u5b9e\u73b0\u65b0\u529f\u80fd",
+      "writeScript": "\u7f16\u5199\u81ea\u52a8\u5316\u811a\u672c",
       "exploreProject": "\u63a2\u7d22\u9879\u76ee",
       "exploreDesc": "\u6d4f\u89c8\u548c\u7406\u89e3\u4efb\u610f\u4ee3\u7801\u5e93",
-      "findBug": "\u67e5\u627e Bug",
       "findBugDesc": "\u63cf\u8ff0\u95ee\u9898\uff0c\u6211\u6765\u8c03\u67e5",
       "generateCode": "\u751f\u6210\u4ee3\u7801",
       "generateDesc": "\u63cf\u8ff0\u4f60\u9700\u8981\u6784\u5efa\u7684\u5185\u5bb9",
@@ -94,6 +101,14 @@
       "reviewDesc": "\u83b7\u53d6\u4ee3\u7801\u53cd\u9988"
     },
     "shortcuts": "\u952e\u76d8\u5feb\u6377\u952e",
+    "shortcut": {
+      "commandPalette": "\u547d\u4ee4\u9762\u677f",
+      "toggleSidebar": "\u5207\u6362\u4fa7\u8fb9\u680f",
+      "toggleTerminal": "\u5207\u6362\u7ec8\u7aef",
+      "focusInput": "\u805a\u7126\u8f93\u5165\u6846",
+      "referenceFiles": "\u5f15\u7528\u6587\u4ef6",
+      "slashCommands": "\u659c\u6760\u547d\u4ee4"
+    },
     "quickActions": "\u5feb\u6377\u64cd\u4f5c",
     "openSettings": "\u8bbe\u7f6e",
     "openTerminal": "\u7ec8\u7aef",
@@ -181,7 +196,8 @@
     "sort": "\u6392\u5e8f",
     "deleted": "\u4f1a\u8bdd\u5df2\u5220\u9664",
     "forked": "\u4f1a\u8bdd\u5df2\u5206\u53c9",
-    "forkFailed": "\u5206\u53c9\u4f1a\u8bdd\u5931\u8d25"
+    "forkFailed": "\u5206\u53c9\u4f1a\u8bdd\u5931\u8d25",
+    "doubleClickRename": "\u53cc\u51fb\u91cd\u547d\u540d"
   },
   "settings": {
     "title": "\u8bbe\u7f6e",
