@@ -594,6 +594,11 @@
 - **What**: Add word count display next to character count in note editor header
 - **Why**: Word count is a standard writing metric; personal assistant users drafting text need it at a glance
 
+### Iteration 160 -- Reading time estimate in note editor + i18n fix
+- **Status**: Done
+- **What**: Add estimated reading time (based on 200 WPM) next to word count in note editor; fix hardcoded 'Untitled Note' in export filename
+- **Why**: Reading time is a standard writing tool feature (Medium, Notion); helps users gauge content length
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

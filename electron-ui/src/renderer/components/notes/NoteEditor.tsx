@@ -54,7 +54,7 @@ export default function NoteEditor({
   const handleExportNote = useCallback(async () => {
     try {
       const api = (window as unknown as { electronAPI: { fsShowSaveDialog: (defaultName: string, filters: { name: string; extensions: string[] }[]) => Promise<string | null>; fsWriteFile: (filePath: string, content: string) => Promise<{ success?: boolean; error?: string }> } }).electronAPI
-      const sanitizedTitle = (title || 'Untitled Note').replace(/[<>:"/\\|?*]/g, '_').slice(0, 50)
+      const sanitizedTitle = (title || t('notes.untitled')).replace(/[<>:"/\\|?*]/g, '_').slice(0, 50)
       const filePath = await api.fsShowSaveDialog(`${sanitizedTitle}.md`, [
         { name: 'Markdown', extensions: ['md'] },
         { name: 'Text', extensions: ['txt'] },
@@ -189,6 +189,11 @@ export default function NoteEditor({
         <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', gap: 8 }}>
           <span>{content.length} {t('notes.characters')}</span>
           <span>{content.trim() ? content.trim().split(/\s+/).length : 0} {t('notes.words')}</span>
+          {content.trim() && (() => {
+            const wordCount = content.trim().split(/\s+/).length
+            const mins = Math.max(1, Math.ceil(wordCount / 200))
+            return <span>{t('notes.readingTime', { min: String(mins) })}</span>
+          })()}
         </span>
       </div>
 

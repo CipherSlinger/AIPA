@@ -564,6 +564,7 @@
     "delete": "Delete note",
     "characters": "chars",
     "words": "words",
+    "readingTime": "~{{min}} min read",
     "created": "Created",
     "modified": "Modified",
     "back": "Back",
