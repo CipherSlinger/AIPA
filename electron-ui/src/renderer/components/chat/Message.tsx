@@ -28,6 +28,20 @@ function formatResponseDuration(ms: number): string {
   return remainSecs > 0 ? `${mins}m ${remainSecs}s` : `${mins}m`
 }
 
+function formatAbsoluteTime(ts: number, t: (key: string, params?: Record<string, string>) => string): string {
+  const date = new Date(ts)
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const msgDay = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const diffDays = Math.round((today.getTime() - msgDay.getTime()) / 86400000)
+  const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+  if (diffDays === 0) return `${t('session.today')} ${time}`
+  if (diffDays === 1) return `${t('session.yesterday')} ${time}`
+  const monthDay = date.toLocaleDateString([], { month: 'short', day: 'numeric' })
+  return `${monthDay} ${time}`
+}
+
 function relativeTime(ts: number, t: (key: string, params?: Record<string, string>) => string): string {
   const diff = Math.floor((Date.now() - ts) / 1000)
   if (diff < 5) return t('message.justNow')
@@ -588,7 +602,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
                   onClick={handleTimestampClick}
                 >
                   {getShowAbsoluteTime()
-                    ? new Date((message as StandardChatMessage).timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                    ? formatAbsoluteTime((message as StandardChatMessage).timestamp, t)
                     : relativeTime((message as StandardChatMessage).timestamp, t)}
                   {!isUser && (message as StandardChatMessage).responseDuration != null && (message as StandardChatMessage).responseDuration! > 0 && (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, opacity: 0.7 }} title={t('message.responseDuration', { time: formatResponseDuration((message as StandardChatMessage).responseDuration!) })}>

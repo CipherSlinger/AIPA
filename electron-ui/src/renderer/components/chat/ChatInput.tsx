@@ -798,9 +798,21 @@ export default function ChatInput({
             flexShrink: 0,
             transition: 'background 150ms, opacity 150ms',
             alignSelf: 'flex-end',
+            position: 'relative',
           }}
         >
           {isStreaming ? <Square size={14} /> : <Send size={14} />}
+          {!isStreaming && (
+            <span style={{
+              position: 'absolute',
+              bottom: -14,
+              fontSize: 9,
+              color: 'var(--text-muted)',
+              opacity: 0.5,
+              whiteSpace: 'nowrap',
+              fontFamily: 'inherit',
+            }}>Enter</span>
+          )}
         </button>
       </div>
       {/* Compose status: word/char/token count */}
@@ -826,6 +838,19 @@ export default function ChatInput({
           <span>{input.length.toLocaleString()} {t('chat.chars')}{input.length > 10000 ? ` (${t('chat.veryLong')})` : input.length > 5000 ? ` (${t('chat.long')})` : ''}</span>
           <span style={{ opacity: 0.4 }}>|</span>
           <span>{t('message.approxTokens', { count: String(Math.ceil(input.length / 4)) })}</span>
+        </div>
+      )}
+      {/* Input history hint */}
+      {input.length === 0 && inputHistoryRef.current.length > 0 && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          padding: '2px 0 0',
+          fontSize: 10,
+          color: 'var(--text-muted)',
+          opacity: 0.4,
+        }}>
+          <span>{t('chat.inputHistoryHint')}</span>
         </div>
       )}
     </div>

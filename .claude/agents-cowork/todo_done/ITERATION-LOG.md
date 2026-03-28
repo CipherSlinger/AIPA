@@ -1991,3 +1991,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 196 (2026-03-28)
 - Timestamp toggle + theme shortcut + clear input shortcut -- (1) Click any message timestamp to toggle all messages between relative ("2m ago") and absolute ("2:30:45 PM") display; preference persists via localStorage; tooltip shows the opposite format; all messages re-render together via custom event; (2) Ctrl+Shift+D toggles between dark and light themes instantly, persists to electron-store; (3) Ctrl+U clears input text in the chat textarea (terminal-style); (4) Both new shortcuts added to ShortcutCheatsheet; (5) i18n: 2 new keys in en.json and zh-CN.json (toggleTheme, clearInput)
+
+### Iteration 197 (2026-03-28)
+- Smart absolute timestamp + send button hint + input history hint -- (1) Absolute timestamp mode now shows contextual date prefix: "Today 2:30 PM", "Yesterday 5:15 PM", "Mar 27 3:45 PM" instead of bare time; uses i18n "Today"/"Yesterday" labels for localization; (2) Send button shows subtle "Enter" keyboard hint below it; (3) When input is empty and history exists, a subtle "Press Up/Down to browse input history" hint appears below the compose area; (4) i18n: 1 new key in en.json and zh-CN.json (inputHistoryHint)

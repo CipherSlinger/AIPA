@@ -82,6 +82,7 @@
     "chars": "chars",
     "long": "long",
     "veryLong": "very long",
+    "inputHistoryHint": "Press Up/Down to browse input history",
     "pressAgainToClear": "Press {{key}} again to clear conversation",
     "responseComplete": "Response complete",
     "scrollToBottom": "Scroll to bottom",
