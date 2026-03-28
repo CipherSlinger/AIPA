@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react'
-import { ArrowLeft, Trash2, ChevronDown, Check, Download, Pin, Loader2 } from 'lucide-react'
+import { ArrowLeft, Trash2, ChevronDown, Check, Download, Pin, Loader2, Copy, Bold, Italic, Heading, List, ListOrdered, Code, Link } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
@@ -25,9 +25,29 @@ interface NoteEditorProps {
   onSetPreviewMode: (preview: boolean) => void
   onSave: (noteId: string, title: string, content: string) => void
   onTogglePin: (noteId: string, e?: React.MouseEvent) => void
+  onDuplicate?: (noteId: string) => void
   getCategoryById: (id?: string) => NoteCategory | undefined
   saveStatus?: 'idle' | 'saving' | 'saved'
 }
+
+// Markdown formatting toolbar actions
+interface FormatAction {
+  icon: React.ElementType
+  labelKey: string
+  prefix: string
+  suffix: string
+  blockMode?: boolean // true = applies to whole lines (heading, list)
+}
+
+const FORMAT_ACTIONS: FormatAction[] = [
+  { icon: Bold, labelKey: 'notes.formatBold', prefix: '**', suffix: '**' },
+  { icon: Italic, labelKey: 'notes.formatItalic', prefix: '_', suffix: '_' },
+  { icon: Heading, labelKey: 'notes.formatHeading', prefix: '## ', suffix: '', blockMode: true },
+  { icon: List, labelKey: 'notes.formatBulletList', prefix: '- ', suffix: '', blockMode: true },
+  { icon: ListOrdered, labelKey: 'notes.formatNumberedList', prefix: '1. ', suffix: '', blockMode: true },
+  { icon: Code, labelKey: 'notes.formatCode', prefix: '`', suffix: '`' },
+  { icon: Link, labelKey: 'notes.formatLink', prefix: '[', suffix: '](url)' },
+]
 
 export default function NoteEditor({
   note,
@@ -46,13 +66,69 @@ export default function NoteEditor({
   onSetPreviewMode,
   onSave,
   onTogglePin,
+  onDuplicate,
   getCategoryById,
   saveStatus = 'idle',
 }: NoteEditorProps) {
   const t = useT()
   const addToast = useUiStore(s => s.addToast)
   const categoryDropdownRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const noteCategory = getCategoryById(note.categoryId)
+
+  // Apply markdown formatting to selected text in the textarea
+  const applyFormat = useCallback((action: FormatAction) => {
+    const ta = textareaRef.current
+    if (!ta) return
+    const start = ta.selectionStart
+    const end = ta.selectionEnd
+    const selected = content.slice(start, end)
+
+    let newContent: string
+    let newCursorPos: number
+
+    if (action.blockMode) {
+      // Block mode: prepend prefix to each selected line, or to the current line
+      if (selected) {
+        const formatted = selected.split('\n').map(line => `${action.prefix}${line}`).join('\n')
+        newContent = content.slice(0, start) + formatted + content.slice(end)
+        newCursorPos = start + formatted.length
+      } else {
+        // No selection: insert prefix at cursor on a new line if not at line start
+        const beforeCursor = content.slice(0, start)
+        const atLineStart = start === 0 || beforeCursor.endsWith('\n')
+        const insert = atLineStart ? action.prefix : `\n${action.prefix}`
+        newContent = content.slice(0, start) + insert + content.slice(end)
+        newCursorPos = start + insert.length
+      }
+    } else {
+      // Inline mode: wrap selection with prefix/suffix
+      if (selected) {
+        newContent = content.slice(0, start) + action.prefix + selected + action.suffix + content.slice(end)
+        newCursorPos = start + action.prefix.length + selected.length + action.suffix.length
+      } else {
+        newContent = content.slice(0, start) + action.prefix + action.suffix + content.slice(end)
+        newCursorPos = start + action.prefix.length // cursor between prefix and suffix
+      }
+    }
+
+    // Create a synthetic change event to go through onContentChange
+    const syntheticEvent = {
+      target: { value: newContent.slice(0, MAX_CONTENT_LENGTH) },
+    } as React.ChangeEvent<HTMLTextAreaElement>
+    onContentChange(syntheticEvent)
+
+    // Restore focus and cursor position after React re-render
+    requestAnimationFrame(() => {
+      ta.focus()
+      ta.setSelectionRange(newCursorPos, newCursorPos)
+    })
+  }, [content, onContentChange])
+
+  // Character limit progress
+  const charRatio = content.length / MAX_CONTENT_LENGTH
+  const charWarning = charRatio >= 0.9
+  const charCritical = charRatio >= 0.95
 
   // Export single note as .md file
   const handleExportNote = useCallback(async () => {
@@ -190,6 +266,30 @@ export default function NoteEditor({
           <Download size={14} />
         </button>
 
+        {/* Duplicate button */}
+        {onDuplicate && (
+          <button
+            onClick={() => onDuplicate(note.id)}
+            aria-label={t('notes.duplicate')}
+            title={t('notes.duplicate')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              padding: 4,
+              borderRadius: 4,
+              transition: 'color 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+          >
+            <Copy size={14} />
+          </button>
+        )}
+
         {/* Pin toggle */}
         <button
           onClick={(e) => onTogglePin(note.id, e)}
@@ -214,7 +314,7 @@ export default function NoteEditor({
         </button>
 
         <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', gap: 8, alignItems: 'center' }}>
-          <span>{content.length} {t('notes.characters')}</span>
+          <span>{content.length} / {MAX_CONTENT_LENGTH.toLocaleString()} {t('notes.characters')}</span>
           <span>{content.trim() ? content.trim().split(/\s+/).length : 0} {t('notes.words')}</span>
           {content.trim() && (() => {
             const wordCount = content.trim().split(/\s+/).length
@@ -405,26 +505,109 @@ export default function NoteEditor({
           )}
         </div>
       ) : (
-        <textarea
-          value={content}
-          onChange={onContentChange}
-          placeholder={t('notes.startTyping')}
-          maxLength={MAX_CONTENT_LENGTH}
-          style={{
-            flex: 1,
-            width: '100%',
-            padding: '10px 14px',
-            border: 'none',
-            background: 'transparent',
-            color: 'var(--text-primary)',
-            fontSize: 13,
-            lineHeight: 1.6,
-            outline: 'none',
-            resize: 'none',
-            fontFamily: 'inherit',
-            boxSizing: 'border-box',
-          }}
-        />
+        <>
+          {/* Markdown formatting toolbar */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            padding: '4px 10px',
+            borderBottom: '1px solid var(--border)',
+            flexShrink: 0,
+          }}>
+            {FORMAT_ACTIONS.map((action) => {
+              const Icon = action.icon
+              return (
+                <button
+                  key={action.labelKey}
+                  onClick={() => applyFormat(action)}
+                  title={t(action.labelKey)}
+                  aria-label={t(action.labelKey)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 28,
+                    height: 28,
+                    borderRadius: 4,
+                    transition: 'background 0.1s, color 0.1s',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = 'var(--action-btn-bg)'
+                    e.currentTarget.style.color = 'var(--text-primary)'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = 'none'
+                    e.currentTarget.style.color = 'var(--text-muted)'
+                  }}
+                >
+                  <Icon size={14} />
+                </button>
+              )
+            })}
+          </div>
+
+          <textarea
+            ref={textareaRef}
+            value={content}
+            onChange={onContentChange}
+            placeholder={t('notes.startTyping')}
+            maxLength={MAX_CONTENT_LENGTH}
+            style={{
+              flex: 1,
+              width: '100%',
+              padding: '10px 14px',
+              border: 'none',
+              background: 'transparent',
+              color: 'var(--text-primary)',
+              fontSize: 13,
+              lineHeight: 1.6,
+              outline: 'none',
+              resize: 'none',
+              fontFamily: 'inherit',
+              boxSizing: 'border-box',
+            }}
+          />
+        </>
+      )}
+
+      {/* Character limit progress bar */}
+      {charRatio > 0.7 && (
+        <div style={{
+          padding: '0 14px 4px',
+          flexShrink: 0,
+        }}>
+          <div style={{
+            height: 3,
+            borderRadius: 2,
+            background: 'var(--border)',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              height: '100%',
+              width: `${Math.min(charRatio * 100, 100)}%`,
+              borderRadius: 2,
+              background: charCritical ? 'var(--error)' : charWarning ? 'var(--warning)' : 'var(--accent)',
+              transition: 'width 0.2s ease, background 0.2s ease',
+            }} />
+          </div>
+          {charWarning && (
+            <div style={{
+              fontSize: 10,
+              color: charCritical ? 'var(--error)' : 'var(--warning)',
+              marginTop: 2,
+              textAlign: 'right',
+            }}>
+              {t('notes.charLimitWarning', {
+                remaining: String(MAX_CONTENT_LENGTH - content.length),
+              })}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Timestamps footer */}

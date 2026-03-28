@@ -673,7 +673,18 @@
     "templateIdea": "\u7075\u611f\u8bb0\u5f55",
     "templateIdeaContent": "# \u7075\u611f\uff1a\n\n## \u95ee\u9898\n\n\n## \u89e3\u51b3\u65b9\u6848\n\n\n## \u4f18\u52bf\n\n\n## \u98ce\u9669 / \u987e\u8651\n\n\n## \u4e0b\u4e00\u6b65\n- [ ]\n",
     "saving": "\u4fdd\u5b58\u4e2d...",
-    "saved": "\u5df2\u4fdd\u5b58"
+    "saved": "\u5df2\u4fdd\u5b58",
+    "duplicate": "\u590d\u5236\u7b14\u8bb0",
+    "duplicated": "\u7b14\u8bb0\u5df2\u590d\u5236",
+    "copy": "\u526f\u672c",
+    "charLimitWarning": "\u8fd8\u5269 {{remaining}} \u4e2a\u5b57\u7b26",
+    "formatBold": "\u52a0\u7c97",
+    "formatItalic": "\u659c\u4f53",
+    "formatHeading": "\u6807\u9898",
+    "formatBulletList": "\u65e0\u5e8f\u5217\u8868",
+    "formatNumberedList": "\u6709\u5e8f\u5217\u8868",
+    "formatCode": "\u4ee3\u7801",
+    "formatLink": "\u94fe\u63a5"
   },
   "clipboard": {
     "pasteAndAsk": "\u7c98\u8d34\u5e76\u63d0\u95ee",

@@ -146,6 +146,9 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Note sorting** — sort notes by last modified, date created, or alphabetically; sort preference persists across restarts; pinned notes always stay at the top regardless of sort order
 - **Note templates** — create notes from templates (Meeting Notes, To-Do List, Journal Entry, Idea) via dropdown next to the New Note button; each template provides structured Markdown content
 - **Note auto-save indicator** — note editor shows "Saving..." with spinner during debounce and "Saved" with checkmark after save completes, providing visual confirmation that changes are persisted
+- **Note markdown toolbar** — formatting toolbar with Bold, Italic, Heading, Bullet List, Numbered List, Code, and Link buttons; wraps selected text with markdown syntax or inserts at cursor position
+- **Note duplicate** — duplicate any note with one click from the editor toolbar; creates a copy with the same content and category
+- **Note character limit indicator** — visual progress bar appears when approaching the 10,000 character limit; turns yellow at 90% and red at 95% with remaining character count
 - **Session project filter** — filter sessions by project path with pill-style buttons; auto-detects unique projects and shows session counts; only appears when sessions span multiple projects
 - **Settings grouped sections** — General settings organized into 5 collapsible groups (AI Engine, Prompts, Appearance, Workspace, Behavior) with icons; collapse/expand state persisted across visits
 - **Settings search** — search bar at the top of General settings tab to quickly filter settings by keyword; non-matching groups are hidden

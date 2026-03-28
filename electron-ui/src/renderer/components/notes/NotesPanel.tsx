@@ -203,6 +203,7 @@ export default function NotesPanel() {
         onSetPreviewMode={crud.setPreviewMode}
         onSave={crud.saveNote}
         onTogglePin={crud.handleTogglePin}
+        onDuplicate={crud.handleDuplicateNote}
         getCategoryById={crud.getCategoryById}
         saveStatus={crud.saveStatus}
       />

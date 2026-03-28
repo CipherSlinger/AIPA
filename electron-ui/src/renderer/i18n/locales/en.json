@@ -673,7 +673,18 @@
     "templateIdea": "Idea",
     "templateIdeaContent": "# Idea:\n\n## Problem\n\n\n## Proposed Solution\n\n\n## Benefits\n\n\n## Risks / Concerns\n\n\n## Next Steps\n- [ ]\n",
     "saving": "Saving...",
-    "saved": "Saved"
+    "saved": "Saved",
+    "duplicate": "Duplicate note",
+    "duplicated": "Note duplicated",
+    "copy": "copy",
+    "charLimitWarning": "{{remaining}} characters remaining",
+    "formatBold": "Bold",
+    "formatItalic": "Italic",
+    "formatHeading": "Heading",
+    "formatBulletList": "Bullet list",
+    "formatNumberedList": "Numbered list",
+    "formatCode": "Code",
+    "formatLink": "Link"
   },
   "clipboard": {
     "pasteAndAsk": "Paste & Ask",

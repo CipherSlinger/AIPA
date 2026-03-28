@@ -235,6 +235,32 @@ export function useNotesCRUD() {
     persistNotes(updated)
   }, [persistNotes])
 
+  const handleDuplicateNote = useCallback((noteId: string) => {
+    const currentNotes: Note[] = usePrefsStore.getState().prefs.notes || []
+    if (currentNotes.length >= MAX_NOTES) {
+      addToast('warning', t('notes.maxNotesReached'))
+      return
+    }
+    const original = currentNotes.find(n => n.id === noteId)
+    if (!original) return
+    const now = Date.now()
+    const duplicateTitle = `${original.title || t('notes.untitled')} (${t('notes.copy')})`
+    const newNote: Note = {
+      id: generateId('note'),
+      title: duplicateTitle,
+      content: original.content,
+      createdAt: now,
+      updatedAt: now,
+      categoryId: original.categoryId,
+    }
+    const updated = [newNote, ...currentNotes]
+    persistNotes(updated)
+    setEditingNoteId(newNote.id)
+    setTitle(duplicateTitle)
+    setContent(newNote.content)
+    addToast('success', t('notes.duplicated'))
+  }, [persistNotes, addToast, t])
+
   const getCategoryById = useCallback((id?: string): NoteCategory | undefined => {
     if (!id) return undefined
     return categories.find(c => c.id === id)
@@ -288,6 +314,7 @@ export function useNotesCRUD() {
     handleRenameCategorySave,
     handleSetNoteCategory,
     handleTogglePin,
+    handleDuplicateNote,
     getCategoryById,
     saveNote,
   }
