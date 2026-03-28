@@ -109,10 +109,31 @@ memory: project
 
 ## PHASE 4：PRD 输出
 
-为每个主要功能方向输出一份 PRD，保存到 `.claude/agents-cowork/todo/` 目录，命名格式：
-`prd-[功能名称]-[版本].md`
+<!-- improved by agent-leader 2026-03-28: 增加 PRD 粒度要求和功能聚合原则，解决 Iteration 119-178 期间单功能微型 PRD 导致流水线开销过大的问题 -->
 
-例如：`prd-file-dragdrop-v1.md`、`prd-mcp-integration-v1.md`
+### PRD 粒度要求（必须遵守）
+
+**核心原则**：每份 PRD 应包含 **2-4 个关联功能点**，形成一个有意义的功能模块。禁止为单个微型功能（如"加个角标"、"加个快捷键"）单独出 PRD。
+
+**功能聚合原则**：
+1. **按区域聚合**：同一 UI 区域/面板的多个增强合并为一个 PRD（例如："Notes 完整体验"涵盖搜索、分类、排序、导入导出，而非每项单独出 PRD）
+2. **按主题聚合**：同一技术主题的改动合并（例如："i18n 完善"涵盖所有剩余组件的国际化，而非每个组件一个 PRD）
+3. **按用户旅程聚合**：从用户完成某个任务的角度定义功能边界（例如："会话管理增强"涵盖标签、筛选、批量操作、导出）
+
+**粒度自检**：
+- 如果一个 PRD 的 In Scope 只有 1 个功能点 → 太细，必须合并到相关模块
+- 如果一个 PRD 的 In Scope 超过 6 个功能点 → 太粗，拆分为 2 个 PRD
+- 如果实现预估不超过 50 行代码变更 → 太细，不值得走完整流水线
+
+**反面案例**（Iteration 119-178 中的典型问题）：
+- 14 次迭代做 Notes 相关功能（面板、集成、搜索、分类、分解、导出、导入、字数统计、阅读时间、置顶、排序、角标、快捷键、模板）→ 应合并为 2-3 个 PRD
+- 14 次迭代做 i18n 剩余字符串（每次修复 1-2 个组件）→ 应合并为 1 个 PRD
+- "scroll-to-top button"、"notes count badge"、"notes keyboard shortcut" 各自独立迭代 → 应合并为 1 个"导航与快捷操作增强"PRD
+
+为每个主要功能方向输出一份 PRD，保存到 `.claude/agents-cowork/todo/` 目录，命名格式：
+`prd-[功能名称]-v[N].md`
+
+例如：`prd-notes-complete-experience-v1.md`、`prd-session-management-enhancement-v1.md`
 
 ### PRD 模板
 

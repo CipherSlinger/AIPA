@@ -128,3 +128,20 @@ type: project
 
 **Why:** NotesPanel.tsx at 1151 lines had the same bloat pattern that triggered the ChatPanel decomposition in Iteration 111. Notes is the active development area (4 features in iterations 120-124), so decomposing now prevents maintainability cliff.
 **How to apply:** Future note features should add to the appropriate sub-component (NoteEditor for editor features, NoteList for list features, CategoryManager for category features). New state/logic goes in useNotesCRUD. New computed data goes in useNotesSearch. Constants go in notesConstants.ts.
+
+## Retrospective: Iteration 119-178 (2026-03-28)
+
+**60 iterations analyzed. Core finding: PRD granularity crisis.**
+
+Key stats:
+- Notes system: 14 iterations for what should have been 2-3 PRDs
+- i18n cleanup: 14 iterations for what should have been 1 PRD
+- 0 retrospectives held during this span (should have been 6)
+- ITERATION-LOG format degraded to one-liners from Iteration 165 onward
+
+Improvements landed:
+1. aipa-pm.md: PRD granularity rules (2-4 features per PRD, aggregation principles, anti-patterns)
+2. agent-leader.md: Batch feature requirement when calling PM, single-iteration scope constraints
+3. aipa-frontend.md: ITERATION-LOG format enforcement (no one-liner regression)
+
+Next forced retro: after Iteration 188.

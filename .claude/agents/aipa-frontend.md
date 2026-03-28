@@ -240,6 +240,7 @@ ui-spec-*.md                 api-spec-*.md
 
 **关于 iteration-report**：
 <!-- improved by agent-leader 2026-03-27: 迭代报告改为按迭代序号合并为单一文件，不再按时间戳分散 -->
+<!-- improved by agent-leader 2026-03-28: 强调完整格式要求，禁止退化为一行摘要。Iteration 165-178 出现了格式退化，必须杜绝 -->
 所有迭代报告合并写入**同一个文件** `.claude/agents-cowork/todo_done/ITERATION-LOG.md`，每次追加新迭代的章节到文件末尾（用 Edit 工具追加，而不是新建文件）。格式：
 
 ```markdown
@@ -259,6 +260,8 @@ Status: SUCCESS / FAILED
 - [x] 验收标准 1
 - [x] 验收标准 2
 ```
+
+**格式要求（不得简化）**：每次迭代必须包含上述完整结构（Summary、Files Changed、Build、Acceptance Criteria 四个章节）。禁止退化为一行摘要格式（如 `### Iteration N (date)\n- 描述`）。一行摘要无法为 tester 和 leader 提供足够的审查信息。
 
 首次写入时创建文件，标题为：
 ```markdown

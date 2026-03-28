@@ -1936,3 +1936,5 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 179 (2026-03-28)
 - Working directory in chat header -- clickable working directory path shown below session title in ChatHeader; click to open folder picker and change directory; path truncated to last 2 segments with ellipsis; updates both prefs store and electron-store; FolderOpen icon indicator; i18n for en + zh-CN
+
+[RETRO] retro-2026-03-28-iterations-119-178.md 完成，已覆盖 Iteration 119–178，下次强制回顾在 Iteration 188 后
