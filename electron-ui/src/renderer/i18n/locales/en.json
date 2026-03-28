@@ -168,6 +168,14 @@
     "daysAgo": "{{count}}d ago",
     "responseDuration": "took {{time}}"
   },
+  "selection": {
+    "copySelection": "Copy selected text",
+    "copy": "Copy",
+    "quoteSelection": "Quote selected text",
+    "quote": "Quote",
+    "saveToNotes": "Save selection to Notes",
+    "note": "Note"
+  },
   "session": {
     "search": "Search sessions...",
     "noSessions": "No sessions yet",

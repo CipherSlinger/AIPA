@@ -1,8 +1,9 @@
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { ChatMessage, StandardChatMessage } from '../../types/app.types'
 import MessageContent from './MessageContent'
 import ToolUseBlock from './ToolUseBlock'
 import MessageContextMenu from './MessageContextMenu'
+import SelectionToolbar from './SelectionToolbar'
 import ImageLightbox from '../shared/ImageLightbox'
 import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark, AlertTriangle, Code2, Check, CheckCheck, Clock, MessageSquareQuote, Pencil, Timer } from 'lucide-react'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
@@ -73,6 +74,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState('')
   const editTextareaRef = React.useRef<HTMLTextAreaElement>(null)
+  const bubbleRef = useRef<HTMLDivElement>(null)
 
   const thinking = message.role !== 'permission' ? (message as StandardChatMessage).thinking : undefined
   const isMessageStreaming = (message as StandardChatMessage).isStreaming
@@ -271,6 +273,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
       <div style={{ display: 'flex', flexDirection: 'column', maxWidth: 'min(85%, 720px)', minWidth: 60, position: 'relative' }}>
         {/* Bubble */}
         <div
+          ref={bubbleRef}
           style={{
             background: isUser ? 'var(--bubble-user)' : 'var(--bubble-ai)',
             borderRadius: isUser ? '12px 2px 12px 12px' : '2px 12px 12px 12px',
@@ -703,6 +706,11 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           </div>
         )}
       </div>
+
+      {/* Text selection toolbar */}
+      {!isPermission && !isPlan && !isCollapsed && !isEditing && (
+        <SelectionToolbar containerRef={bubbleRef as React.RefObject<HTMLElement>} isUser={isUser} />
+      )}
 
       {/* Context menu */}
       {contextMenu && (

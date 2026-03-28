@@ -426,6 +426,13 @@
 |---------|----------|--------|
 | Auto-focus input textarea when Claude finishes responding | P2 | DONE (Iteration 132) |
 
+### Iteration 133 -- Text Selection Toolbar
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Floating toolbar on text selection (Copy, Quote, Save to Notes) | P2 | DONE (Iteration 133) |
+| i18n for selection toolbar (en + zh-CN) | P2 | DONE (Iteration 133) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |
