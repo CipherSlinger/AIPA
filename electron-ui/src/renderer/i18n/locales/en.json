@@ -240,6 +240,13 @@
       "mcp": "MCP Servers",
       "about": "About"
     },
+    "groups": {
+      "aiEngine": "AI Engine",
+      "prompts": "Prompts",
+      "appearance": "Appearance",
+      "workspace": "Workspace",
+      "behavior": "Behavior"
+    },
     "language": "Language / \u8bed\u8a00",
     "languageSystem": "System Default",
     "languageEn": "English",

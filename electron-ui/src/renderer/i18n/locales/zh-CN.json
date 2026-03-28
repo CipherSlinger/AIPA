@@ -240,6 +240,13 @@
       "mcp": "MCP \u670d\u52a1\u5668",
       "about": "\u5173\u4e8e"
     },
+    "groups": {
+      "aiEngine": "AI \u5f15\u64ce",
+      "prompts": "\u63d0\u793a\u8bcd",
+      "appearance": "\u5916\u89c2",
+      "workspace": "\u5de5\u4f5c\u533a",
+      "behavior": "\u884c\u4e3a"
+    },
     "language": "Language / \u8bed\u8a00",
     "languageSystem": "\u8ddf\u968f\u7cfb\u7edf",
     "languageEn": "English",

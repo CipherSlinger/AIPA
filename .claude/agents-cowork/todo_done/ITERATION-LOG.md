@@ -1903,3 +1903,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 168 (2026-03-28)
 - Session project filter -- pill-style filter bar showing unique project paths; filter sessions by project; auto-hides when only one project exists; shows session count per project
+
+### Iteration 169 (2026-03-28)
+- Settings panel grouped sections -- reorganized General settings tab into 5 collapsible groups (AI Engine, Prompts, Appearance, Workspace, Behavior) with icons and chevron indicators; expansion state persisted via localStorage; reduces visual complexity per user feedback
