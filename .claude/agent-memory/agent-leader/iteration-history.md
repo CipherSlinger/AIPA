@@ -87,3 +87,13 @@ type: project
 
 **Why:** Notes and Chat existed in isolation. Users had to copy-paste between them. Integration makes AIPA feel like a cohesive assistant.
 **How to apply:** Future note integrations (drag-and-drop, @note mentions, note search from chat) should use the same `setQuotedText` pattern for injecting text into chat input.
+
+### Iteration 122 (2026-03-28)
+- **Features**: Notes Markdown Preview & Search -- preview toggle, full-text search, title auto-generation
+- **Changes**: NotesPanel.tsx (+231/-26 lines), en.json (+7 keys), zh-CN.json (+7 keys), README.md, README_CN.md
+- **Pattern used**: Reused existing ReactMarkdown + remarkGfm + rehypeHighlight from MessageContent.tsx. Search uses useMemo with simple String.includes(). Title auto-gen uses regex on first line.
+- **No bugs found**: Build clean, all 20 acceptance criteria met on first pass.
+- **Pipeline note**: Sub-agent invocation via Skill tool still fails. Leader executed all agent roles directly (same as iterations 120-121).
+
+**Why:** Plain-text notes are insufficient for meeting notes, reports, and structured content. Markdown preview is table-stakes for any note-taking tool. Search is essential as notes accumulate.
+**How to apply:** Future note enhancements (note export, note categories, note sharing) should extend the same NotesPanel.tsx component. The Markdown rendering uses `className="markdown-body"` which inherits all chat message styling from globals.css.
