@@ -612,7 +612,13 @@
     "importFailed": "Import failed: {{error}}",
     "maxNotesReached": "Maximum 100 notes reached",
     "pin": "Pin to top",
-    "unpin": "Unpin"
+    "unpin": "Unpin",
+    "sort": "Sort",
+    "sortModified": "Last modified",
+    "sortCreated": "Date created",
+    "sortAlpha": "Alphabetical",
+    "sortMod": "Modified",
+    "sortNew": "Created"
   },
   "clipboard": {
     "pasteAndAsk": "Paste & Ask",

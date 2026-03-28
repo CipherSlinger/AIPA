@@ -137,6 +137,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Session export** — export any session as a Markdown file directly from the sidebar action buttons (Download icon)
 - **Multi-session select & bulk delete** — enter selection mode to check multiple sessions and delete them all at once; select all/deselect all, floating action bar with confirmation, active session protected from deletion
 - **Note pinning** — pin important notes to the top of the list; pinned notes display a pin icon and persist across restarts; pin/unpin from note list or editor toolbar
+- **Note sorting** — sort notes by last modified, date created, or alphabetically; sort preference persists across restarts; pinned notes always stay at the top regardless of sort order
 
 ## Security
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Plus, Search, X, FolderDown, FolderUp } from 'lucide-react'
+import { Plus, Search, X, FolderDown, FolderUp, ArrowUpDown } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useUiStore, usePrefsStore } from '../../store'
 import { useNotesCRUD } from './useNotesCRUD'
@@ -15,6 +15,13 @@ export default function NotesPanel() {
   const addToast = useUiStore(s => s.addToast)
   const crud = useNotesCRUD()
   const [searchQuery, setSearchQuery] = useState('')
+  const [noteSortBy, setNoteSortBy] = useState<'modified' | 'created' | 'alpha'>(() => {
+    try {
+      const stored = localStorage.getItem('aipa:note-sort')
+      if (stored === 'modified' || stored === 'created' || stored === 'alpha') return stored
+    } catch {}
+    return 'modified'
+  })
   const [, setTick] = useState(0)
 
   const { filteredNotes, categoryCounts } = useNotesSearch(
@@ -22,6 +29,7 @@ export default function NotesPanel() {
     crud.categories,
     searchQuery,
     crud.activeCategoryFilter,
+    noteSortBy,
   )
 
   // Refresh relative timestamps every 30s
@@ -164,6 +172,31 @@ export default function NotesPanel() {
           {t('notes.title')}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {/* Sort button */}
+          {crud.notes.length > 0 && (
+            <button
+              onClick={() => setNoteSortBy(prev => {
+                const next = prev === 'modified' ? 'created' : prev === 'created' ? 'alpha' : 'modified'
+                try { localStorage.setItem('aipa:note-sort', next) } catch {}
+                return next
+              })}
+              title={`${t('notes.sort')}: ${noteSortBy === 'modified' ? t('notes.sortModified') : noteSortBy === 'created' ? t('notes.sortCreated') : t('notes.sortAlpha')}`}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                fontSize: 10,
+                padding: '4px',
+              }}
+            >
+              <ArrowUpDown size={11} />
+              <span>{noteSortBy === 'modified' ? t('notes.sortMod') : noteSortBy === 'created' ? t('notes.sortNew') : 'A-Z'}</span>
+            </button>
+          )}
           {/* Export All button */}
           {crud.notes.length > 0 && (
             <button

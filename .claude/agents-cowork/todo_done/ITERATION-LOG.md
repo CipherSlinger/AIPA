@@ -1897,3 +1897,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 166 (2026-03-28)
 - Note pinning -- pin important notes to the top of the list via pin button in note list and editor toolbar; pinned notes sort to top with pin icon indicator; persists via electron-store
+
+### Iteration 167 (2026-03-28)
+- Note sorting options -- sort notes by last modified, date created, or alphabetically; sort preference persists via localStorage; pinned notes always stay at top regardless of sort

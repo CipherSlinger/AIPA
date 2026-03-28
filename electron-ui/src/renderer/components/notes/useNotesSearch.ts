@@ -6,6 +6,7 @@ export function useNotesSearch(
   categories: NoteCategory[],
   searchQuery: string,
   activeCategoryFilter: string | null,
+  sortBy: 'modified' | 'created' | 'alpha' = 'modified',
 ) {
   const filteredNotes = useMemo(() => {
     let result = notes
@@ -21,15 +22,17 @@ export function useNotesSearch(
         (n.content || '').toLowerCase().includes(q)
       )
     }
-    // Sort: pinned notes first, then by updatedAt descending
+    // Sort: pinned notes first, then by selected sort option
     result = [...result].sort((a, b) => {
       const aPinned = a.pinned ? 1 : 0
       const bPinned = b.pinned ? 1 : 0
       if (aPinned !== bPinned) return bPinned - aPinned
-      return b.updatedAt - a.updatedAt
+      if (sortBy === 'created') return b.createdAt - a.createdAt
+      if (sortBy === 'alpha') return (a.title || a.content.slice(0, 30)).localeCompare(b.title || b.content.slice(0, 30))
+      return b.updatedAt - a.updatedAt // 'modified' default
     })
     return result
-  }, [notes, searchQuery, activeCategoryFilter])
+  }, [notes, searchQuery, activeCategoryFilter, sortBy])
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = { '': 0 }
