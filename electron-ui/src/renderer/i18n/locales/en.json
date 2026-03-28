@@ -84,6 +84,7 @@
     "pressAgainToClear": "Press {{key}} again to clear conversation",
     "responseComplete": "Response complete",
     "scrollToBottom": "Scroll to bottom",
+    "scrollToTop": "Scroll to top",
     "newMessages": "{{count}} new message",
     "newMessagesPlural": "{{count}} new messages",
     "contextWarning": "Context window {{percent}}% full. Consider starting a new conversation for best results.",

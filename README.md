@@ -141,6 +141,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Session project filter** — filter sessions by project path with pill-style buttons; auto-detects unique projects and shows session counts; only appears when sessions span multiple projects
 - **Settings grouped sections** — General settings organized into 5 collapsible groups (AI Engine, Prompts, Appearance, Workspace, Behavior) with icons; collapse/expand state persisted across visits
 - **Settings search** — search bar at the top of General settings tab to quickly filter settings by keyword; non-matching groups are hidden
+- **Scroll-to-top button** — ArrowUp button appears when scrolled down in a conversation, enabling quick jump to the beginning; complements the existing scroll-to-bottom button
 
 ## Security
 

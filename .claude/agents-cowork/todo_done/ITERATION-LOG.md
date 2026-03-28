@@ -1909,3 +1909,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 170 (2026-03-28)
 - Settings search filter -- search bar at top of General settings tab filters visible groups by keyword matching against setting labels and hints; clear button and instant filtering; non-matching groups hidden entirely
+
+### Iteration 171 (2026-03-28)
+- Scroll-to-top button -- ArrowUp button appears when scrolled past 400px from top in conversation; positioned at center-bottom like the scroll-to-bottom button; hides when scroll-to-bottom button is visible; smooth scroll animation

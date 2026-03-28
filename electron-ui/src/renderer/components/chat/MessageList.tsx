@@ -6,7 +6,7 @@ import PermissionCard from './PermissionCard'
 import PlanCard from './PlanCard'
 import { useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
-import { ArrowDown } from 'lucide-react'
+import { ArrowDown, ArrowUp } from 'lucide-react'
 
 // ── Date separator logic ──
 function formatDateLabel(ts: number, t: (key: string) => string): string {
@@ -48,6 +48,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   const addToast = useUiStore(s => s.addToast)
   const t = useT()
   const [showScrollBtn, setShowScrollBtn] = useState(false)
+  const [showScrollTopBtn, setShowScrollTopBtn] = useState(false)
   const isNearBottomRef = useRef(true)
   const prevSessionIdRef = useRef<string | null | undefined>(sessionId)
   const lastSeenCountRef = useRef(messages.length)
@@ -155,6 +156,9 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       lastSeenCountRef.current = messages.length
       setUnreadCount(0)
     }
+    // Show scroll-to-top button when scrolled down past 400px from top
+    const el = scrollContainerRef.current
+    setShowScrollTopBtn(el ? el.scrollTop > 400 : false)
   }, [checkIfNearBottom, messages.length])
 
   const scrollToBottom = useCallback(() => {
@@ -162,6 +166,10 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       virtualizer.scrollToIndex(items.length - 1, { align: 'end', behavior: 'smooth' })
     }
   }, [items.length, virtualizer])
+
+  const scrollToTop = useCallback(() => {
+    virtualizer.scrollToIndex(0, { align: 'start', behavior: 'smooth' })
+  }, [virtualizer])
 
   // Auto-scroll only when user is near the bottom
   useEffect(() => {
@@ -366,6 +374,37 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
           )
         })}
       </div>
+      {showScrollTopBtn && !showScrollBtn && (
+        <button
+          onClick={scrollToTop}
+          title={t('chat.scrollToTop')}
+          style={{
+            position: 'sticky',
+            bottom: 12,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            background: 'var(--bg-hover)',
+            border: '1px solid var(--border)',
+            color: 'var(--text-muted)',
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+            zIndex: 10,
+            opacity: 0.8,
+            transition: 'opacity 0.15s',
+            fontSize: 11,
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = 'var(--text-primary)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.8'; e.currentTarget.style.color = 'var(--text-muted)' }}
+        >
+          <ArrowUp size={14} />
+        </button>
+      )}
       {showScrollBtn && (
         <button
           onClick={scrollToBottom}
