@@ -353,12 +353,23 @@
 
 | Feature | PRD | Priority | Status |
 |---------|-----|----------|--------|
-| Category data model + persistence | `prd-note-categories-v1.md` | P1 | IN PROGRESS |
-| Category filter bar in Notes panel | `prd-note-categories-v1.md` | P1 | IN PROGRESS |
-| Category management (create/rename/delete) | `prd-note-categories-v1.md` | P1 | IN PROGRESS |
-| Note category assignment dropdown | `prd-note-categories-v1.md` | P1 | IN PROGRESS |
-| Category color dots on note list items | `prd-note-categories-v1.md` | P1 | IN PROGRESS |
-| i18n for all category UI (en + zh-CN) | `prd-note-categories-v1.md` | P1 | IN PROGRESS |
+| Category data model + persistence | `prd-note-categories-v1.md` | P1 | DONE (Iteration 124) |
+| Category filter bar in Notes panel | `prd-note-categories-v1.md` | P1 | DONE (Iteration 124) |
+| Category management (create/rename/delete) | `prd-note-categories-v1.md` | P1 | DONE (Iteration 124) |
+| Note category assignment dropdown | `prd-note-categories-v1.md` | P1 | DONE (Iteration 124) |
+| Category color dots on note list items | `prd-note-categories-v1.md` | P1 | DONE (Iteration 124) |
+| i18n for all category UI (en + zh-CN) | `prd-note-categories-v1.md` | P1 | DONE (Iteration 124) |
+
+### Iteration 125 -- NotesPanel Decomposition Refactor
+
+| Feature | PRD | Priority | Status |
+|---------|-----|----------|--------|
+| Extract NoteEditor component | `prd-notes-decomposition-v1.md` | P1-eng | DONE (Iteration 125) |
+| Extract NoteList component | `prd-notes-decomposition-v1.md` | P1-eng | DONE (Iteration 125) |
+| Extract CategoryFilterBar component | `prd-notes-decomposition-v1.md` | P1-eng | DONE (Iteration 125) |
+| Extract CategoryManager component | `prd-notes-decomposition-v1.md` | P1-eng | DONE (Iteration 125) |
+| Extract useNotesCRUD + useNotesSearch hooks | `prd-notes-decomposition-v1.md` | P1-eng | DONE (Iteration 125) |
+| Extract notesConstants utilities | `prd-notes-decomposition-v1.md` | P1-eng | DONE (Iteration 125) |
 
 ### Backlog (Sprint 5+)
 

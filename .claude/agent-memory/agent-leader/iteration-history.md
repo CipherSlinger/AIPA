@@ -107,3 +107,24 @@ type: project
 
 **Why:** Core personal assistant workflow. Users copy text from other apps and want one-click AI processing (summarize, translate, rewrite, explain, grammar check). Reduces a multi-step paste-and-type workflow to two clicks.
 **How to apply:** Future clipboard enhancements (custom actions, clipboard history, global hotkey) should extend the `CLIPBOARD_ACTIONS` array in ChatInput.tsx. The dropdown pattern can be reused for other toolbar buttons.
+
+### Iteration 124 (2026-03-28)
+- **Features**: Note Categories -- color-coded category system for notes
+- **Changes**: NotesPanel.tsx (+575 lines, from 576 to 1151), app.types.ts (+9), en.json (+10 keys), zh-CN.json (+10 keys), README.md, README_CN.md
+- **Pattern used**: Category filter bar reuses session tag pill button pattern (same colors, same border-radius, same hover transitions). Category management panel uses inline edit + two-click delete pattern. Category dropdown in editor uses popup-in animation and --popup-* CSS variables.
+- **Bug found during testing**: `addToast` called with object argument instead of positional args. Fixed both the new call and the pre-existing one in the same file.
+- **Pipeline note**: Sub-agent invocation via Skill tool still fails. Leader executed all agent roles directly (same as iterations 120-123).
+- **Tech debt noted**: Main-process `StoreSchema` in config-manager.ts doesn't include newer prefs keys (notes, noteCategories, customPromptTemplates, sessionTags, tagNames, quickReplies). Works at runtime because IPC handler passes `any` typed args, but is not type-safe. Pre-existing issue, not introduced by this iteration.
+
+**Why:** Notes (120-122) were in a flat list. As notes accumulate (up to 100), organization becomes essential. Categories extend the notes system to match the "personal assistant" product direction.
+**How to apply:** Future note enhancements (note export by category, category-based search) should use the `NoteCategory` interface in app.types.ts and the `noteCategories` prefs key. The filter bar pattern can be reused in other list-based panels.
+
+### Iteration 125 (2026-03-28)
+- **Features**: NotesPanel Decomposition Refactor -- structural refactor, zero behavior changes
+- **Changes**: NotesPanel.tsx reduced from 1151 to 205 lines (82% reduction). Extracted 7 files: NoteEditor.tsx (355), NoteList.tsx (160), CategoryFilterBar.tsx (165), CategoryManager.tsx (221), useNotesCRUD.ts (274), useNotesSearch.ts (39), notesConstants.ts (29).
+- **Pattern used**: Same decomposition pattern as ChatPanel (Iteration 111). Orchestrator component + sub-components + hooks.
+- **No bugs found**: Build clean, all 13 acceptance criteria verified.
+- **Pipeline note**: Sub-agent invocation via Skill tool still fails. Leader executed all agent roles directly (same as iterations 120-124).
+
+**Why:** NotesPanel.tsx at 1151 lines had the same bloat pattern that triggered the ChatPanel decomposition in Iteration 111. Notes is the active development area (4 features in iterations 120-124), so decomposing now prevents maintainability cliff.
+**How to apply:** Future note features should add to the appropriate sub-component (NoteEditor for editor features, NoteList for list features, CategoryManager for category features). New state/logic goes in useNotesCRUD. New computed data goes in useNotesSearch. Constants go in notesConstants.ts.
