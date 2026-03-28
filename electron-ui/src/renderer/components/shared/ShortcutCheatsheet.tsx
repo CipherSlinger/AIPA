@@ -19,6 +19,7 @@ const SHORTCUTS = [
     { keys: 'Ctrl + Shift + P', actionKey: 'commandPalette' },
     { keys: 'Ctrl + /', actionKey: 'thisCheatsheet' },
     { keys: 'Ctrl + Shift + F', actionKey: 'focusMode' },
+    { keys: 'Ctrl + Shift + N', actionKey: 'toggleNotes' },
     { keys: 'Ctrl + Shift + C', actionKey: 'collapseExpandAll' },
     { keys: 'Ctrl + [ / ]', actionKey: 'prevNextSession' },
   ]},

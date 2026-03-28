@@ -1915,3 +1915,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 172 (2026-03-28)
 - Notes count badge on NavRail -- Notes navigation icon now displays a count badge showing the total number of notes; matches the existing History badge pattern; uses usePrefsStore to read notes array length; badge hidden when count is zero
+
+### Iteration 173 (2026-03-28)
+- Notes keyboard shortcut -- Ctrl+Shift+N toggles the Notes sidebar panel; if notes is open it closes sidebar, otherwise opens sidebar with notes tab; shortcut hint shown in NavRail tooltip and shortcut cheatsheet; i18n for en + zh-CN

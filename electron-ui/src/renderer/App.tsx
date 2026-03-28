@@ -212,6 +212,18 @@ export default function App() {
         e.preventDefault()
         toggleFocusMode()
       }
+      // Ctrl+Shift+N: Toggle Notes panel
+      if (e.ctrlKey && e.shiftKey && e.key === 'N') {
+        e.preventDefault()
+        const ui = useUiStore.getState()
+        if (ui.sidebarOpen && ui.sidebarTab === 'notes') {
+          ui.setSidebarOpen(false)
+        } else {
+          ui.setSidebarOpen(true)
+          ui.setSidebarTab('notes')
+          ui.setActiveNavItem('notes')
+        }
+      }
       // Ctrl+Shift+C: Collapse/expand all messages
       if (e.ctrlKey && e.shiftKey && e.key === 'C') {
         e.preventDefault()

@@ -232,6 +232,7 @@ export default function NavRail() {
       <NavItem
         icon={<NotebookPen size={20} />}
         label={t('nav.notes')}
+        shortcut="Ctrl+Shift+N"
         isActive={isNotesActive}
         onClick={() => setActiveNavItem('notes')}
         badge={noteCount}

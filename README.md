@@ -41,7 +41,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **File drag-and-drop** — drag files from the OS file explorer into the chat; images are attached, other files are referenced via `@path`
 - **Conversation export** — export conversations as Markdown or JSON via toolbar button or `Ctrl+Shift+E`
 - **Command palette** — `Ctrl+Shift+P` to access all actions and slash commands in a fuzzy-search modal
-- **Keyboard shortcuts** — `Ctrl+N` new conversation, `Ctrl+B` toggle sidebar, `Ctrl+`` toggle terminal, `Ctrl+L` focus input, `Ctrl+,` settings, `Ctrl+Shift+E` export, `Ctrl+F` search in conversation, `Ctrl+/` shortcut cheatsheet
+- **Keyboard shortcuts** — `Ctrl+N` new conversation, `Ctrl+B` toggle sidebar, `Ctrl+`` toggle terminal, `Ctrl+L` focus input, `Ctrl+,` settings, `Ctrl+Shift+E` export, `Ctrl+F` search in conversation, `Ctrl+/` shortcut cheatsheet, `Ctrl+Shift+N` toggle notes panel
 - **Session auto-title** — conversations are automatically titled after the first exchange, with live sidebar refresh
 - **System prompt** — inject a custom system prompt per session
 - **Smart auto-scroll** — auto-scroll respects user intent; scroll-to-bottom button appears when reading earlier messages
