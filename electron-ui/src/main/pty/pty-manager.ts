@@ -1,4 +1,3 @@
-import * as pty from 'node-pty'
 import { EventEmitter } from 'events'
 import path from 'path'
 import os from 'os'
@@ -7,6 +6,20 @@ import { sanitizeEnv } from '../utils/cli-env'
 import { createLogger } from '../utils/logger'
 
 const log = createLogger('pty-manager')
+
+// Lazy-load node-pty: the native .node binary may not exist on all platforms
+// (requires electron-rebuild or platform-specific compilation)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let pty: any = null
+let ptyLoadError: string | null = null
+
+try {
+  pty = require('node-pty')
+} catch (err) {
+  const msg = err instanceof Error ? err.message : String(err)
+  ptyLoadError = msg
+  log.debug(`node-pty native module unavailable: ${msg}`)
+}
 
 // Lazy import electron.app to avoid circular deps
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,9 +36,20 @@ export interface PtyCreateArgs {
   resumeSessionId?: string
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 class PtyManager extends EventEmitter {
-  private sessions = new Map<string, pty.IPty>()
+  private sessions = new Map<string, any>()
   private nodePath: string | null = null
+
+  /** Check if the native PTY module loaded successfully */
+  isAvailable(): boolean {
+    return pty !== null
+  }
+
+  /** Get the error message if PTY failed to load */
+  getLoadError(): string | null {
+    return ptyLoadError
+  }
 
   private getNode(): string {
     if (!this.nodePath) this.nodePath = getNodePath()
@@ -33,6 +57,19 @@ class PtyManager extends EventEmitter {
   }
 
   create(args: PtyCreateArgs): string {
+    // Guard: if node-pty failed to load, throw a descriptive error
+    if (!pty) {
+      const hint = process.platform === 'win32'
+        ? 'Run "npm run rebuild-pty" in the electron-ui folder (requires Visual Studio C++ Build Tools). ' +
+          'Or run "npm install" which triggers electron-builder install-app-deps automatically.'
+        : 'Run "npm run rebuild-pty" in the electron-ui folder to compile node-pty for your Electron version.'
+      throw new Error(
+        `PTY_NATIVE_UNAVAILABLE: The node-pty native module could not be loaded. ` +
+        `This is required for the terminal panel. ${hint} ` +
+        `Original error: ${ptyLoadError || 'unknown'}`
+      )
+    }
+
     const cliPath = getCliPath()
     const cliArgs = [
       cliPath,

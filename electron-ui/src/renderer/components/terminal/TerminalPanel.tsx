@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react'
-import { Terminal, RefreshCw } from 'lucide-react'
+import { Terminal, RefreshCw, AlertTriangle } from 'lucide-react'
 import { usePty } from '../../hooks/usePty'
 import { useT } from '../../i18n'
 import '@xterm/xterm/css/xterm.css'
@@ -8,7 +8,7 @@ const SESSION_ID = `terminal-main-${Date.now()}`
 
 export default function TerminalPanel() {
   const containerRef = useRef<HTMLDivElement>(null)
-  const { refitTerminal } = usePty(containerRef as React.RefObject<HTMLDivElement>, SESSION_ID)
+  const { refitTerminal, ptyError } = usePty(containerRef as React.RefObject<HTMLDivElement>, SESSION_ID)
   const t = useT()
 
   return (
@@ -29,15 +29,19 @@ export default function TerminalPanel() {
           flexShrink: 0,
         }}
       >
-        <Terminal size={13} style={{ color: 'var(--text-muted)' }} />
-        <span style={{ fontSize: 12, color: 'var(--text-muted)', flex: 1 }}>{t('terminal.title')}</span>
-        <button
-          onClick={refitTerminal}
-          title={t('terminal.reconnect')}
-          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-        >
-          <RefreshCw size={12} />
-        </button>
+        <Terminal size={13} style={{ color: ptyError ? 'var(--error)' : 'var(--text-muted)' }} />
+        <span style={{ fontSize: 12, color: ptyError ? 'var(--error)' : 'var(--text-muted)', flex: 1 }}>
+          {ptyError ? t('terminal.error') : t('terminal.title')}
+        </span>
+        {!ptyError && (
+          <button
+            onClick={refitTerminal}
+            title={t('terminal.reconnect')}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+          >
+            <RefreshCw size={12} />
+          </button>
+        )}
       </div>
 
       {/* xterm.js container */}

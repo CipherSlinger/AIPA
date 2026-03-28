@@ -1668,3 +1668,39 @@ renderer: 2398 modules transformed, built in 7.63s
 - [x] Template definitions shared between SettingsPanel and ChatPanel (no duplication)
 - [x] All i18n strings have en + zh-CN translations
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 118 -- Fix node-pty Native Module Crash (P0 Bug)
+
+_Date: 2026-03-28 | Sprint Bugfix_
+
+### Summary
+Fixed the recurring terminal panel crash where clicking the Terminal button showed a blank panel with `Cannot find module '../build/Release/pty.node'` error in the console. The root cause was that `node-pty` was imported at module load time via `import * as pty from 'node-pty'`, so if the native binary was missing (not compiled for the current platform/Electron version), the entire main process module failed to load. Fixed by lazy-loading `node-pty` with try-catch, adding graceful error handling at three levels: main process (descriptive `PTY_NATIVE_UNAVAILABLE` error), IPC handler (catch and forward error), renderer hook (display error in xterm.js with ANSI-colored rebuild instructions), and terminal panel toolbar (error state styling). Added i18n keys for terminal error messages. The app no longer crashes when node-pty native module is unavailable -- users see clear instructions on how to rebuild.
+
+### Files Changed
+- `src/main/pty/pty-manager.ts` -- Changed from `import * as pty from 'node-pty'` (hard crash on missing native) to lazy `require('node-pty')` with try-catch; added `isAvailable()` and `getLoadError()` methods; `create()` now throws descriptive `PTY_NATIVE_UNAVAILABLE` error with platform-specific rebuild instructions when native module unavailable
+- `src/main/ipc/index.ts` -- Wrapped `pty:create` handler in try-catch to properly forward errors to renderer instead of crashing as unhandled rejection
+- `src/renderer/hooks/usePty.ts` -- Added `ptyError` state; wrapped `ptyCreate` call in try-catch; on error, writes ANSI-colored diagnostic output directly to xterm.js (red error header, yellow instructions, gray platform-specific notes)
+- `src/renderer/components/terminal/TerminalPanel.tsx` -- Added `AlertTriangle` import; terminal toolbar shows red icon and "Terminal Error" label when `ptyError` is set; reconnect button hidden during error state
+- `src/renderer/i18n/locales/en.json` -- Added 4 terminal error keys: `terminal.error`, `terminal.nativeModuleError`, `terminal.rebuildInstructions`, `terminal.windowsBuildTools`
+- `src/renderer/i18n/locales/zh-CN.json` -- Added Chinese translations for all 4 terminal error keys
+
+### Build
+Status: SUCCESS
+
+```
+main: tsc clean
+preload: tsc clean
+renderer: 2398 modules transformed, built in 7.66s
+```
+
+### Acceptance Criteria
+- [x] Terminal panel shows clear error message when node-pty native module unavailable
+- [x] Error message includes platform-specific rebuild instructions (npm run rebuild-pty)
+- [x] App does not crash -- error contained to terminal panel only
+- [x] Toolbar shows error state (red Terminal icon, "Terminal Error" label)
+- [x] Reconnect button hidden during error state
+- [x] Error output uses ANSI colors in xterm.js (red/yellow/gray)
+- [x] i18n: 4 new terminal error keys in en.json and zh-CN.json
+- [x] Build passes with zero errors on all three targets

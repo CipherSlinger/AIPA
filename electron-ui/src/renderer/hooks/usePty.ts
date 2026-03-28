@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useState } from 'react'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
@@ -32,6 +32,7 @@ export function usePty(containerRef: React.RefObject<HTMLDivElement>, sessionId:
   const termRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
   const ptySessionId = useRef<string | null>(null)
+  const [ptyError, setPtyError] = useState<string | null>(null)
   const { prefs } = usePrefsStore()
 
   const initPty = useCallback(async () => {
@@ -43,14 +44,39 @@ export function usePty(containerRef: React.RefObject<HTMLDivElement>, sessionId:
     const cols = termRef.current?.cols || 80
     const rows = termRef.current?.rows || 24
 
-    await window.electronAPI.ptyCreate({
-      sessionId,
-      cwd,
-      cols,
-      rows,
-      env: prefs.apiKey ? { ANTHROPIC_API_KEY: prefs.apiKey } : {},
-    })
-    ptySessionId.current = sessionId
+    try {
+      await window.electronAPI.ptyCreate({
+        sessionId,
+        cwd,
+        cols,
+        rows,
+        env: prefs.apiKey ? { ANTHROPIC_API_KEY: prefs.apiKey } : {},
+      })
+      ptySessionId.current = sessionId
+      setPtyError(null)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setPtyError(msg)
+      // Write error to terminal for inline visibility
+      if (termRef.current) {
+        termRef.current.write(
+          '\x1b[31m' +  // red
+          'Terminal Error: Failed to initialize PTY\r\n\r\n' +
+          '\x1b[33m' +  // yellow
+          (msg.includes('PTY_NATIVE_UNAVAILABLE')
+            ? 'The node-pty native module is not compiled for your platform.\r\n\r\n' +
+              '\x1b[37mTo fix this:\r\n' +
+              '  1. Open a terminal in the electron-ui/ folder\r\n' +
+              '  2. Run: npm run rebuild-pty\r\n' +
+              '  3. Restart the app\r\n\r\n' +
+              '\x1b[90mNote: On Windows, this requires Visual Studio C++ Build Tools.\r\n' +
+              'Install from: https://visualstudio.microsoft.com/visual-cpp-build-tools/\r\n'
+            : `Error: ${msg}\r\n`) +
+          '\x1b[0m'  // reset
+        )
+      }
+      return
+    }
 
     // Listen for PTY output
     const unsubData = window.electronAPI.onPtyData(sessionId, (data) => {
@@ -141,5 +167,5 @@ export function usePty(containerRef: React.RefObject<HTMLDivElement>, sessionId:
     fitAddonRef.current?.fit()
   }, [])
 
-  return { term: termRef, refitTerminal }
+  return { term: termRef, refitTerminal, ptyError }
 }

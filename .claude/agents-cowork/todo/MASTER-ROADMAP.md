@@ -292,6 +292,14 @@
 |---------|-----|----------|--------|
 | Auto-activate prompt template on welcome suggestions | `prd-smart-welcome-suggestions-v1.md` | P1 | DONE (Iteration 117) |
 
+### Iteration 118 -- Fix node-pty Native Module Crash
+
+| Feature | PRD | Priority | Status |
+|---------|-----|----------|--------|
+| Lazy-load node-pty with graceful error handling | `prd-bugfix-pty-native-module-v1.md` | P0-fix | DONE (Iteration 118) |
+| Terminal panel error state UI + rebuild instructions | `prd-bugfix-pty-native-module-v1.md` | P0-fix | DONE (Iteration 118) |
+| i18n for terminal error messages (en + zh-CN) | `prd-bugfix-pty-native-module-v1.md` | P1 | DONE (Iteration 118) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |
@@ -321,3 +329,4 @@
 | 2026-03-27 | Iteration 111: ChatPanel Decomposition | ChatPanel.tsx at 1587 lines is a maintainability bottleneck. Decomposing into ChatHeader + ChatInput + 4 hooks reduces bug surface, improves render performance, and makes future feature development faster. Prioritized over new features because all 100+ existing features depend on this file. |
 | 2026-03-27 | Iteration 112: Remove Emoji Reactions | Direct user feedback: emoji reactions on AI messages provide no value in an AI assistant context. Removing reduces UI clutter and simplifies the message component. |
 | 2026-03-27 | Backlog: Daily office skills + Multi-model | User feedback requests Doubao-style skills (PPT, weekly reports) and OpenClaw/Claude Code agent patterns. Added to backlog as strategic direction for future sprints. |
+| 2026-03-28 | Iteration 118: Lazy-load node-pty | Critical recurring bug: hard `import` of node-pty crashed entire main process when native binary missing. Changed to lazy `require()` with try-catch so terminal gracefully shows error with rebuild instructions instead of blank panel. |

@@ -30,17 +30,23 @@ export function registerAllHandlers(win: BrowserWindow): void {
 // ────────────────────────────────────────────
 function registerPtyHandlers(win: BrowserWindow, send: (ch: string, ...a: unknown[]) => void): void {
   ipcMain.handle('pty:create', (_e, args) => {
-    const sessionId = ptyManager.create(args)
+    try {
+      const sessionId = ptyManager.create(args)
 
-    ptyManager.on(`data:${sessionId}`, (data: string) => {
-      send('pty:data', sessionId, data)
-    })
+      ptyManager.on(`data:${sessionId}`, (data: string) => {
+        send('pty:data', sessionId, data)
+      })
 
-    ptyManager.on(`exit:${sessionId}`, (info: { exitCode: number; signal: string }) => {
-      send('pty:exit', sessionId, info)
-    })
+      ptyManager.on(`exit:${sessionId}`, (info: { exitCode: number; signal: string }) => {
+        send('pty:exit', sessionId, info)
+      })
 
-    return sessionId
+      return sessionId
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      log.debug(`pty:create failed: ${msg}`)
+      throw err
+    }
   })
 
   ipcMain.handle('pty:write', (_e, { sessionId, data }) => {
