@@ -584,6 +584,11 @@
 - **What**: Replace hardcoded 'Click to rename' tooltip in note CategoryManager with i18n key
 - **Why**: Final hardcoded English string found in component tree; completes i18n coverage
 
+### Iteration 158 -- Enhanced session list empty state
+- **Status**: Done
+- **What**: Improve session list empty state with icon, better layout, and 'start a new conversation' hint
+- **Why**: Empty states are first-touch UX; a helpful empty state guides new users instead of showing a bare text line
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

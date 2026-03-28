@@ -554,8 +554,25 @@ export default function SessionList() {
           </div>
         )}
         {!loading && filtered.length === 0 && (
-          <div style={{ padding: 16, color: 'var(--text-muted)', fontSize: 12, textAlign: 'center' }}>
-            {filter ? t('session.noResults') : t('session.noSessions')}
+          <div style={{
+            padding: '32px 16px',
+            color: 'var(--text-muted)',
+            fontSize: 12,
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 8,
+          }}>
+            <MessageSquare size={28} style={{ opacity: 0.3 }} />
+            <div style={{ fontWeight: 500 }}>
+              {filter ? t('session.noResults') : t('session.noSessions')}
+            </div>
+            {!filter && (
+              <div style={{ fontSize: 11, opacity: 0.6 }}>
+                {t('session.startNew')}
+              </div>
+            )}
           </div>
         )}
         {filtered.map((session, idx) => {
