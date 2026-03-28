@@ -25,6 +25,7 @@ const SHORTCUTS = [
     { keys: 'Ctrl + Shift + F', actionKey: 'focusMode' },
     { keys: 'Ctrl + Shift + N', actionKey: 'toggleNotes' },
     { keys: 'Ctrl + Shift + C', actionKey: 'collapseExpandAll' },
+    { keys: 'Ctrl + Shift + D', actionKey: 'toggleTheme' },
     { keys: 'Ctrl + [ / ]', actionKey: 'prevNextSession' },
   ]},
   { sectionKey: 'chat', items: [
@@ -36,6 +37,7 @@ const SHORTCUTS = [
     { keys: '/', actionKey: 'slashCommands' },
     { keys: 'Ctrl + Shift + Q', actionKey: 'addToTaskQueue' },
     { keys: 'Ctrl + Shift + R', actionKey: 'regenerateResponse' },
+    { keys: 'Ctrl + U', actionKey: 'clearInput' },
     { keys: 'Ctrl + = / -', actionKey: 'zoomInOut' },
     { keys: 'Ctrl + 0', actionKey: 'resetZoom' },
   ]},

@@ -228,6 +228,11 @@ export default function ChatInput({
       e.preventDefault()
       handleSend()
     }
+    // Ctrl+U: Clear input text (terminal-style)
+    if (e.ctrlKey && !e.shiftKey && e.key === 'u') {
+      e.preventDefault()
+      setInput('')
+    }
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {

@@ -10,6 +10,16 @@ import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import { Note } from '../../types/app.types'
 
+// Session-level timestamp display mode (shared across all messages)
+let _showAbsoluteTime = (() => {
+  try { return localStorage.getItem('aipa:absoluteTime') === 'true' } catch { return false }
+})()
+function getShowAbsoluteTime() { return _showAbsoluteTime }
+function toggleShowAbsoluteTime() {
+  _showAbsoluteTime = !_showAbsoluteTime
+  try { localStorage.setItem('aipa:absoluteTime', String(_showAbsoluteTime)) } catch {}
+}
+
 function formatResponseDuration(ms: number): string {
   const secs = Math.round(ms / 1000)
   if (secs < 60) return `${secs}s`
@@ -69,6 +79,18 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   const [, setTick] = useState(0)
   const [showRawMarkdown, setShowRawMarkdown] = useState(false)
   const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string } | null>(null)
+
+  // Listen for timestamp mode toggle from any message (re-render all messages when toggled)
+  useEffect(() => {
+    const handler = () => setTick(n => n + 1)
+    window.addEventListener('aipa:timestampToggle', handler)
+    return () => window.removeEventListener('aipa:timestampToggle', handler)
+  }, [])
+
+  const handleTimestampClick = useCallback(() => {
+    toggleShowAbsoluteTime()
+    window.dispatchEvent(new CustomEvent('aipa:timestampToggle'))
+  }, [])
 
   // Editing state (user messages only)
   const [isEditing, setIsEditing] = useState(false)
@@ -557,10 +579,17 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
                     gap: 4,
                     marginTop: 6,
                     lineHeight: 1,
+                    cursor: 'pointer',
+                    userSelect: 'none',
                   }}
-                  title={new Date((message as StandardChatMessage).timestamp).toLocaleString()}
+                  title={getShowAbsoluteTime()
+                    ? relativeTime((message as StandardChatMessage).timestamp, t)
+                    : new Date((message as StandardChatMessage).timestamp).toLocaleString()}
+                  onClick={handleTimestampClick}
                 >
-                  {relativeTime((message as StandardChatMessage).timestamp, t)}
+                  {getShowAbsoluteTime()
+                    ? new Date((message as StandardChatMessage).timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                    : relativeTime((message as StandardChatMessage).timestamp, t)}
                   {!isUser && (message as StandardChatMessage).responseDuration != null && (message as StandardChatMessage).responseDuration! > 0 && (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, opacity: 0.7 }} title={t('message.responseDuration', { time: formatResponseDuration((message as StandardChatMessage).responseDuration!) })}>
                       <Timer size={9} />

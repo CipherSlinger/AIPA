@@ -266,6 +266,14 @@ export default function App() {
           store.collapseAll()
         }
       }
+      // Ctrl+Shift+D: Toggle dark/light theme
+      if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+        e.preventDefault()
+        const currentTheme = usePrefsStore.getState().prefs.theme || 'vscode'
+        const newTheme = currentTheme === 'light' ? 'vscode' : 'light'
+        setPrefs({ theme: newTheme })
+        window.electronAPI.prefsSet('theme', newTheme)
+      }
       // Ctrl+[ / Ctrl+]: Navigate between sessions
       if (e.ctrlKey && !e.shiftKey && (e.key === '[' || e.key === ']')) {
         e.preventDefault()
