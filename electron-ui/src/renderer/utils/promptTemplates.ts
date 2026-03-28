@@ -1,6 +1,8 @@
 // Shared prompt template definitions
 // Used by SettingsPanel (template selector) and ChatPanel (smart suggestions)
 
+import type { CustomPromptTemplate } from '../types/app.types'
+
 export interface PromptTemplate {
   id: string
   labelKey: string
@@ -19,4 +21,25 @@ export const PROMPT_TEMPLATES: PromptTemplate[] = [
 
 export function getTemplateById(id: string): PromptTemplate | undefined {
   return PROMPT_TEMPLATES.find(t => t.id === id)
+}
+
+/** Convert a CustomPromptTemplate to a PromptTemplate-compatible object for the selector */
+export function customToPromptTemplate(custom: CustomPromptTemplate): PromptTemplate {
+  return {
+    id: `custom-${custom.id}`,
+    labelKey: custom.name, // Custom templates use the name directly, not an i18n key
+    prompt: custom.prompt,
+  }
+}
+
+/** Find a template by its prompt text across both built-in and custom templates */
+export function findTemplateByPrompt(
+  prompt: string,
+  customTemplates: CustomPromptTemplate[] = []
+): PromptTemplate | undefined {
+  const builtIn = PROMPT_TEMPLATES.find(t => t.prompt === prompt)
+  if (builtIn) return builtIn
+  const custom = customTemplates.find(t => t.prompt === prompt)
+  if (custom) return customToPromptTemplate(custom)
+  return undefined
 }

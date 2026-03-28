@@ -94,4 +94,13 @@ export interface ClaudePrefs {
   desktopNotifications?: boolean  // OS notifications when response completes while window unfocused (default true)
   tagNames?: string[]  // custom names for the 6 preset tags (indexed 0-5)
   sessionTags?: Record<string, string[]>  // sessionId -> array of tag IDs ('tag-1'..'tag-6')
+  customPromptTemplates?: CustomPromptTemplate[]  // user-defined prompt templates
+}
+
+export interface CustomPromptTemplate {
+  id: string           // uuid
+  name: string         // display name
+  prompt: string       // system prompt text
+  createdAt: number    // timestamp
+  updatedAt: number    // timestamp
 }

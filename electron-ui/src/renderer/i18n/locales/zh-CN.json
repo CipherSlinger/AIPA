@@ -202,6 +202,7 @@
     "title": "\u8bbe\u7f6e",
     "tabs": {
       "general": "\u5e38\u89c4",
+      "templates": "\u6a21\u677f",
       "mcp": "MCP \u670d\u52a1\u5668",
       "about": "\u5173\u4e8e"
     },
@@ -275,6 +276,24 @@
       "slashCommands": "\u659c\u6760\u547d\u4ee4",
       "runtime": "\u8fd0\u884c\u73af\u5883",
       "resetDefaults": "\u6062\u590d\u9ed8\u8ba4\u8bbe\u7f6e"
+    },
+    "templates": {
+      "builtIn": "\u5185\u7f6e\u6a21\u677f",
+      "builtInBadge": "\u5185\u7f6e",
+      "myTemplates": "\u6211\u7684\u6a21\u677f",
+      "addTemplate": "\u6dfb\u52a0\u6a21\u677f",
+      "editTemplate": "\u7f16\u8f91",
+      "deleteTemplate": "\u5220\u9664",
+      "confirmDelete": "\u786e\u8ba4\u5220\u9664?",
+      "templateName": "\u6a21\u677f\u540d\u79f0",
+      "templatePrompt": "\u7cfb\u7edf\u63d0\u793a\u8bcd",
+      "templateNamePlaceholder": "\u4f8b\u5982\uff1a\u4f1a\u8bae\u8bb0\u5f55",
+      "templatePromptPlaceholder": "\u8f93\u5165\u6b64\u6a21\u677f\u7684\u7cfb\u7edf\u63d0\u793a\u8bcd...",
+      "save": "\u4fdd\u5b58",
+      "cancel": "\u53d6\u6d88",
+      "emptyState": "\u6682\u65e0\u81ea\u5b9a\u4e49\u6a21\u677f\u3002\u521b\u5efa\u4e00\u4e2a\u6765\u6784\u5efa\u60a8\u7684\u4e2a\u4eba\u5de5\u4f5c\u6d41\u5e93\u3002",
+      "limitReached": "\u5df2\u8fbe\u5230 20 \u4e2a\u81ea\u5b9a\u4e49\u6a21\u677f\u4e0a\u9650\u3002",
+      "customSuffix": "\uff08\u81ea\u5b9a\u4e49\uff09"
     }
   },
   "onboarding": {

@@ -300,6 +300,16 @@
 | Terminal panel error state UI + rebuild instructions | `prd-bugfix-pty-native-module-v1.md` | P0-fix | DONE (Iteration 118) |
 | i18n for terminal error messages (en + zh-CN) | `prd-bugfix-pty-native-module-v1.md` | P1 | DONE (Iteration 118) |
 
+### Iteration 119 -- Custom Prompt Templates
+
+| Feature | PRD | Priority | Status |
+|---------|-----|----------|--------|
+| Custom template CRUD (create/edit/delete) | `prd-custom-prompt-templates-v1.md` | P1 | DONE (Iteration 119) |
+| Templates tab in Settings panel | `prd-custom-prompt-templates-v1.md` | P1 | DONE (Iteration 119) |
+| Unified template selector (built-in + custom) | `prd-custom-prompt-templates-v1.md` | P1 | DONE (Iteration 119) |
+| Persistence via electron-store prefs | `prd-custom-prompt-templates-v1.md` | P1 | DONE (Iteration 119) |
+| i18n for all template UI (en + zh-CN) | `prd-custom-prompt-templates-v1.md` | P1 | DONE (Iteration 119) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |
@@ -330,3 +340,4 @@
 | 2026-03-27 | Iteration 112: Remove Emoji Reactions | Direct user feedback: emoji reactions on AI messages provide no value in an AI assistant context. Removing reduces UI clutter and simplifies the message component. |
 | 2026-03-27 | Backlog: Daily office skills + Multi-model | User feedback requests Doubao-style skills (PPT, weekly reports) and OpenClaw/Claude Code agent patterns. Added to backlog as strategic direction for future sprints. |
 | 2026-03-28 | Iteration 118: Lazy-load node-pty | Critical recurring bug: hard `import` of node-pty crashed entire main process when native binary missing. Changed to lazy `require()` with try-catch so terminal gracefully shows error with rebuild instructions instead of blank panel. |
+| 2026-03-28 | Iteration 119: Custom Prompt Templates | Users need reusable workflows beyond the 6 built-in templates. Custom templates support the "personal assistant" direction by letting users build a library of prompts (meeting notes, email drafts, weekly reports). Uses existing electron-store prefs system, no new dependencies. |

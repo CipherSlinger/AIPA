@@ -202,6 +202,7 @@
     "title": "Settings",
     "tabs": {
       "general": "General",
+      "templates": "Templates",
       "mcp": "MCP Servers",
       "about": "About"
     },
@@ -275,6 +276,24 @@
       "slashCommands": "Slash commands",
       "runtime": "Runtime",
       "resetDefaults": "Reset to Defaults"
+    },
+    "templates": {
+      "builtIn": "Built-in Templates",
+      "builtInBadge": "built-in",
+      "myTemplates": "My Templates",
+      "addTemplate": "Add Template",
+      "editTemplate": "Edit",
+      "deleteTemplate": "Delete",
+      "confirmDelete": "Confirm?",
+      "templateName": "Template Name",
+      "templatePrompt": "System Prompt",
+      "templateNamePlaceholder": "e.g., Meeting Notes",
+      "templatePromptPlaceholder": "Enter the system prompt for this template...",
+      "save": "Save",
+      "cancel": "Cancel",
+      "emptyState": "No custom templates yet. Create one to build your personal workflow library.",
+      "limitReached": "Maximum 20 custom templates reached.",
+      "customSuffix": "(Custom)"
     }
   },
   "onboarding": {

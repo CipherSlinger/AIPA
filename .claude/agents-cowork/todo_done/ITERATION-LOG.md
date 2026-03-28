@@ -1704,3 +1704,56 @@ renderer: 2398 modules transformed, built in 7.66s
 - [x] Error output uses ANSI colors in xterm.js (red/yellow/gray)
 - [x] i18n: 4 new terminal error keys in en.json and zh-CN.json
 - [x] Build passes with zero errors on all three targets
+
+---
+
+## Iteration 119 -- Custom Prompt Templates (User-Defined Workflows)
+
+_Date: 2026-03-28 | Feature: Custom Prompt Templates_
+
+### Summary
+
+Added user-defined prompt template system to complement the 6 built-in templates. Users can now create, edit, and delete custom prompt templates (up to 20) that persist across app restarts. Templates are accessible from a new "Templates" tab in Settings and appear alongside built-in templates in the General tab's template selector dropdown.
+
+### Changes
+
+#### Modified Files
+1. **`SettingsPanel.tsx`** (+283 lines) -- Added "Templates" tab with full CRUD UI:
+   - Built-in templates section (read-only, with badge)
+   - Custom templates list with inline edit/delete
+   - Add template form with name + prompt textarea
+   - Two-click delete confirmation (matches session delete pattern)
+   - Max 20 templates enforced
+   - Extended template selector dropdown in General tab to show custom templates after divider
+
+2. **`app.types.ts`** (+9 lines) -- Added `CustomPromptTemplate` interface and `customPromptTemplates` field to `ClaudePrefs`
+
+3. **`promptTemplates.ts`** (+23 lines) -- Added utility functions: `customToPromptTemplate()`, `findTemplateByPrompt()`
+
+4. **`en.json`** (+19 lines) -- Added `settings.tabs.templates` + 16 `settings.templates.*` i18n keys
+
+5. **`zh-CN.json`** (+19 lines) -- Chinese translations for all new keys
+
+6. **`README.md`** / **`README_CN.md`** -- Updated prompt templates feature description
+
+### Build
+
+Status: SUCCESS
+
+```
+main: tsc clean
+preload: tsc clean
+renderer: 2398 modules transformed, built in 8.27s
+tsc --noEmit: zero errors
+```
+
+### Acceptance Criteria
+- [x] User can create a custom prompt template with name and prompt text
+- [x] User can edit an existing custom template (inline edit mode)
+- [x] User can delete a custom template (two-click confirmation)
+- [x] Custom templates persist across app restarts (electron-store via prefs)
+- [x] Template selector shows both built-in and custom templates with divider
+- [x] Selecting a custom template applies it as the session system prompt
+- [x] i18n strings provided for en and zh-CN (17 new keys each)
+- [x] Build succeeds with no TypeScript errors
+- [x] Maximum 20 custom templates enforced in UI
