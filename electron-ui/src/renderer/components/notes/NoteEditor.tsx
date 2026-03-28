@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react'
-import { ArrowLeft, Trash2, ChevronDown, Check, Download } from 'lucide-react'
+import { ArrowLeft, Trash2, ChevronDown, Check, Download, Pin } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
@@ -24,6 +24,7 @@ interface NoteEditorProps {
   onToggleCategoryDropdown: () => void
   onSetPreviewMode: (preview: boolean) => void
   onSave: (noteId: string, title: string, content: string) => void
+  onTogglePin: (noteId: string, e?: React.MouseEvent) => void
   getCategoryById: (id?: string) => NoteCategory | undefined
 }
 
@@ -43,6 +44,7 @@ export default function NoteEditor({
   onToggleCategoryDropdown,
   onSetPreviewMode,
   onSave,
+  onTogglePin,
   getCategoryById,
 }: NoteEditorProps) {
   const t = useT()
@@ -184,6 +186,29 @@ export default function NoteEditor({
           onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
         >
           <Download size={14} />
+        </button>
+
+        {/* Pin toggle */}
+        <button
+          onClick={(e) => onTogglePin(note.id, e)}
+          aria-label={note.pinned ? t('notes.unpin') : t('notes.pin')}
+          title={note.pinned ? t('notes.unpin') : t('notes.pin')}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: note.pinned ? 'var(--accent)' : 'var(--text-muted)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            padding: 4,
+            borderRadius: 4,
+            transition: 'color 0.15s',
+            transform: 'rotate(45deg)',
+          }}
+          onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
+          onMouseLeave={e => e.currentTarget.style.color = note.pinned ? 'var(--accent)' : 'var(--text-muted)'}
+        >
+          <Pin size={14} style={{ fill: note.pinned ? 'var(--accent)' : 'none' }} />
         </button>
 
         <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', gap: 8 }}>

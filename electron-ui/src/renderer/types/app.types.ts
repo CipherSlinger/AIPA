@@ -109,6 +109,7 @@ export interface Note {
   createdAt: number    // epoch ms
   updatedAt: number    // epoch ms
   categoryId?: string  // references NoteCategory.id; undefined = uncategorized
+  pinned?: boolean     // pinned notes sort to top of the list
 }
 
 export interface NoteCategory {

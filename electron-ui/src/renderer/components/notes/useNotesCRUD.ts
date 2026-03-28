@@ -217,6 +217,15 @@ export function useNotesCRUD() {
     setShowCategoryDropdown(false)
   }, [editingNoteId, persistNotes])
 
+  const handleTogglePin = useCallback((noteId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    const currentNotes: Note[] = usePrefsStore.getState().prefs.notes || []
+    const updated = currentNotes.map(n =>
+      n.id === noteId ? { ...n, pinned: !n.pinned } : n
+    )
+    persistNotes(updated)
+  }, [persistNotes])
+
   const getCategoryById = useCallback((id?: string): NoteCategory | undefined => {
     if (!id) return undefined
     return categories.find(c => c.id === id)
@@ -268,6 +277,7 @@ export function useNotesCRUD() {
     handleRenameCategoryStart,
     handleRenameCategorySave,
     handleSetNoteCategory,
+    handleTogglePin,
     getCategoryById,
     saveNote,
   }

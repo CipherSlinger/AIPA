@@ -21,6 +21,13 @@ export function useNotesSearch(
         (n.content || '').toLowerCase().includes(q)
       )
     }
+    // Sort: pinned notes first, then by updatedAt descending
+    result = [...result].sort((a, b) => {
+      const aPinned = a.pinned ? 1 : 0
+      const bPinned = b.pinned ? 1 : 0
+      if (aPinned !== bPinned) return bPinned - aPinned
+      return b.updatedAt - a.updatedAt
+    })
     return result
   }, [notes, searchQuery, activeCategoryFilter])
 

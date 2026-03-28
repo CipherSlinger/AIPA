@@ -1,5 +1,5 @@
 import React from 'react'
-import { Trash2, NotebookPen, MessageSquareShare, Search } from 'lucide-react'
+import { Trash2, NotebookPen, MessageSquareShare, Search, Pin } from 'lucide-react'
 import { useT } from '../../i18n'
 import { Note, NoteCategory } from '../../types/app.types'
 import { formatRelativeTime } from './notesConstants'
@@ -12,6 +12,7 @@ interface NoteListProps {
   onOpen: (note: Note) => void
   onDelete: (noteId: string, e: React.MouseEvent) => void
   onSendToChat: (note: Note, e: React.MouseEvent) => void
+  onTogglePin: (noteId: string, e: React.MouseEvent) => void
   getCategoryById: (id?: string) => NoteCategory | undefined
 }
 
@@ -23,6 +24,7 @@ export default function NoteList({
   onOpen,
   onDelete,
   onSendToChat,
+  onTogglePin,
   getCategoryById,
 }: NoteListProps) {
   const t = useT()
@@ -89,7 +91,13 @@ export default function NoteList({
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
               }}>
+                {note.pinned && (
+                  <Pin size={11} style={{ flexShrink: 0, color: 'var(--accent)', transform: 'rotate(45deg)' }} />
+                )}
                 {note.title || note.content.slice(0, 30) || t('notes.untitled')}
               </div>
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -106,6 +114,29 @@ export default function NoteList({
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+              <button
+                onClick={(e) => onTogglePin(note.id, e)}
+                aria-label={note.pinned ? t('notes.unpin') : t('notes.pin')}
+                title={note.pinned ? t('notes.unpin') : t('notes.pin')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: note.pinned ? 'var(--accent)' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: 4,
+                  borderRadius: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  opacity: note.pinned ? 0.8 : 0.4,
+                  transition: 'opacity 0.15s, color 0.15s',
+                  flexShrink: 0,
+                  transform: 'rotate(45deg)',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = note.pinned ? '0.8' : '0.4' }}
+              >
+                <Pin size={14} style={{ fill: note.pinned ? 'var(--accent)' : 'none' }} />
+              </button>
               <button
                 onClick={(e) => onSendToChat(note, e)}
                 aria-label={t('notes.sendToChat')}

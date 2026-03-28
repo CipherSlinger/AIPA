@@ -142,6 +142,7 @@ export default function NotesPanel() {
         onToggleCategoryDropdown={() => crud.setShowCategoryDropdown(!crud.showCategoryDropdown)}
         onSetPreviewMode={crud.setPreviewMode}
         onSave={crud.saveNote}
+        onTogglePin={crud.handleTogglePin}
         getCategoryById={crud.getCategoryById}
       />
     )
@@ -343,6 +344,7 @@ export default function NotesPanel() {
           onOpen={crud.handleOpenNote}
           onDelete={crud.handleDeleteNote}
           onSendToChat={crud.handleSendToChat}
+          onTogglePin={crud.handleTogglePin}
           getCategoryById={crud.getCategoryById}
         />
       </div>

@@ -1894,3 +1894,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 165 (2026-03-28)
 - Multi-session select & bulk delete -- enter selection mode to check multiple sessions and delete them all at once; select all, floating action bar, bulk delete with confirmation, active session protected from deletion
+
+### Iteration 166 (2026-03-28)
+- Note pinning -- pin important notes to the top of the list via pin button in note list and editor toolbar; pinned notes sort to top with pin icon indicator; persists via electron-store

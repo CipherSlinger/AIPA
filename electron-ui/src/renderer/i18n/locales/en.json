@@ -610,7 +610,9 @@
     "importNotes": "Import Notes",
     "importSuccess": "{{count}} notes imported successfully",
     "importFailed": "Import failed: {{error}}",
-    "maxNotesReached": "Maximum 100 notes reached"
+    "maxNotesReached": "Maximum 100 notes reached",
+    "pin": "Pin to top",
+    "unpin": "Unpin"
   },
   "clipboard": {
     "pasteAndAsk": "Paste & Ask",

@@ -136,6 +136,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **File click-to-mention** — clicking a file in the file browser inserts `@filepath` into the chat input for quick file referencing
 - **Session export** — export any session as a Markdown file directly from the sidebar action buttons (Download icon)
 - **Multi-session select & bulk delete** — enter selection mode to check multiple sessions and delete them all at once; select all/deselect all, floating action bar with confirmation, active session protected from deletion
+- **Note pinning** — pin important notes to the top of the list; pinned notes display a pin icon and persist across restarts; pin/unpin from note list or editor toolbar
 
 ## Security
 
