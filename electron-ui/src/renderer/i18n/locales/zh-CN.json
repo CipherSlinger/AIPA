@@ -216,6 +216,8 @@
     "delete": "\u5220\u9664",
     "confirmDelete": "\u518d\u6b21\u70b9\u51fb\u786e\u8ba4\u5220\u9664",
     "noContent": "(\u65e0\u5185\u5bb9)",
+    "untitled": "\u65e0\u6807\u9898",
+    "untitledSession": "\u65e0\u6807\u9898\u4f1a\u8bdd",
     "tooltipProject": "\u9879\u76ee",
     "tooltipLastActive": "\u6700\u540e\u6d3b\u8dc3",
     "tooltipMessages": "\u6d88\u606f\u6570",
@@ -520,7 +522,8 @@
     "title": "\u51fa\u4e86\u70b9\u95ee\u9898",
     "dismiss": "\u5173\u95ed",
     "reload": "\u91cd\u65b0\u52a0\u8f7d",
-    "copyError": "\u590d\u5236\u9519\u8bef"
+    "copyError": "\u590d\u5236\u9519\u8bef",
+    "unknownError": "\u672a\u77e5\u9519\u8bef"
   },
   "common": {
     "ok": "\u786e\u5b9a",
@@ -702,6 +705,8 @@
     "install": "\u5b89\u88c5",
     "installing": "\u5b89\u88c5\u4e2d...",
     "installSuccess": "\u6280\u80fd\u5b89\u88c5\u6210\u529f",
+    "installFailed": "\u5b89\u88c5\u5931\u8d25",
+    "deleteFailed": "\u5220\u9664\u5931\u8d25",
     "useNow": "\u5df2\u5b89\u88c5",
     "by": "\u4f5c\u8005",
     "source": "\u6765\u6e90",

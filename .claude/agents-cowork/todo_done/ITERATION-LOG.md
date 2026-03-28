@@ -1976,3 +1976,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 191 (2026-03-28)
 - Global search keyboard shortcut (Ctrl+Shift+F) -- added Ctrl+Shift+F shortcut in ChatPanel.tsx that opens sidebar to history tab and dispatches aipa:globalSearchFocus custom event; SessionList.tsx listens for the event and focuses/selects the search input; added entry to ShortcutCheatsheet.tsx conversation section; added globalSearch i18n key to en.json and zh-CN.json in both settings.about and shortcutCheatsheet namespaces
+
+### Iteration 192 (2026-03-28)
+- Final hardcoded English strings i18n sweep -- replaced remaining hardcoded English fallback strings with i18n calls: 'Untitled' in WelcomeScreen.tsx and SessionList.tsx global search results (session.untitled), 'Untitled Session' in SessionList.tsx export title (session.untitledSession), 'Delete failed' and 'Install failed' in SkillsPanel.tsx (skills.deleteFailed, skills.installFailed); added error.unknownError key for future use; ErrorBoundary.tsx kept as hardcoded English since it's a crash fallback and can't use hooks; 5 new i18n keys in both en.json and zh-CN.json

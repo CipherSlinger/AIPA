@@ -436,7 +436,7 @@ export default function SessionList() {
       const raw = await window.electronAPI.sessionLoad(session.sessionId)
       const chatMessages = parseSessionMessages(raw)
       // Format as Markdown
-      const title = session.title || session.lastPrompt || 'Untitled Session'
+      const title = session.title || session.lastPrompt || t('session.untitledSession')
       const lines: string[] = [`# ${title}\n`]
       lines.push(`_Exported: ${new Date().toLocaleString()} | Messages: ${chatMessages.length}_\n`)
       lines.push('---\n')
@@ -920,7 +920,7 @@ export default function SessionList() {
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                   }}>
-                    {result.title || result.project.split(/[/\\]/).pop() || 'Untitled'}
+                    {result.title || result.project.split(/[/\\]/).pop() || t('session.untitled')}
                   </div>
                   <div style={{
                     fontSize: 10,

@@ -104,7 +104,7 @@ export default function SkillsPanel() {
           setDeletingSkillPath(null)
           loadSkills()
         } else {
-          addToast('error', result?.error || 'Delete failed')
+          addToast('error', result?.error || t('skills.deleteFailed'))
         }
       } catch (err) {
         addToast('error', String(err))
@@ -129,7 +129,7 @@ export default function SkillsPanel() {
         setInstalledSkillNames(prev => new Set([...prev, skill.name.toLowerCase()]))
         loadSkills()
       } else {
-        addToast('error', result?.error || 'Install failed')
+        addToast('error', result?.error || t('skills.installFailed'))
       }
     } catch (err) {
       addToast('error', String(err))

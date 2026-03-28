@@ -216,6 +216,8 @@
     "delete": "Delete",
     "confirmDelete": "Click again to confirm",
     "noContent": "(no content)",
+    "untitled": "Untitled",
+    "untitledSession": "Untitled Session",
     "tooltipProject": "Project",
     "tooltipLastActive": "Last active",
     "tooltipMessages": "Messages",
@@ -520,7 +522,8 @@
     "title": "Something went wrong",
     "dismiss": "Dismiss",
     "reload": "Reload App",
-    "copyError": "Copy Error"
+    "copyError": "Copy Error",
+    "unknownError": "Unknown error"
   },
   "common": {
     "ok": "OK",
@@ -702,6 +705,8 @@
     "install": "Install",
     "installing": "Installing...",
     "installSuccess": "Skill installed successfully",
+    "installFailed": "Install failed",
+    "deleteFailed": "Delete failed",
     "useNow": "Installed",
     "by": "by",
     "source": "Source",

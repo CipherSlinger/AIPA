@@ -192,7 +192,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
               {t('welcome.continueLastChat')}
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {lastSession.title || lastSession.lastPrompt || 'Untitled'}
+              {lastSession.title || lastSession.lastPrompt || t('session.untitled')}
             </div>
           </div>
           <ArrowRight size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
