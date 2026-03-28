@@ -228,7 +228,9 @@
     "deleteSelected": "\u5220\u9664\u6240\u9009",
     "confirmBulkDelete": "\u5220\u9664 {{count}} \u4e2a\uff1f",
     "bulkDeleted": "\u5df2\u5220\u9664 {{count}} \u4e2a\u4f1a\u8bdd",
-    "cannotDeleteActive": "\u65e0\u6cd5\u5220\u9664\u5f53\u524d\u6d3b\u52a8\u4f1a\u8bdd"
+    "cannotDeleteActive": "\u65e0\u6cd5\u5220\u9664\u5f53\u524d\u6d3b\u52a8\u4f1a\u8bdd",
+    "projectFilter": "\u6309\u9879\u76ee\u7b5b\u9009",
+    "allProjects": "\u5168\u90e8"
   },
   "settings": {
     "title": "\u8bbe\u7f6e",

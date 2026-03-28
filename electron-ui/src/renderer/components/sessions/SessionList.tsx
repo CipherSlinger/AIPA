@@ -220,6 +220,7 @@ export default function SessionList() {
   const [tagPickerSessionId, setTagPickerSessionId] = useState<string | null>(null)
   const [tagPickerPos, setTagPickerPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
   const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null)
+  const [activeProjectFilter, setActiveProjectFilter] = useState<string | null>(null)
 
   const getTagName = (idx: number) => tagNames[idx] || t(TAG_PRESETS[idx]?.defaultKey || 'tags.work')
 
@@ -267,6 +268,20 @@ export default function SessionList() {
     return acc
   }, {})
   const hasAnyTags = Object.keys(sessionTags).length > 0
+
+  // Compute unique project paths for project filter
+  const uniqueProjects = React.useMemo(() => {
+    const projects = new Map<string, number>()
+    for (const s of sessions) {
+      if (s.project) {
+        projects.set(s.project, (projects.get(s.project) || 0) + 1)
+      }
+    }
+    return [...projects.entries()]
+      .sort((a, b) => b[1] - a[1]) // Sort by count descending
+      .map(([name, count]) => ({ name, count }))
+  }, [sessions])
+  const hasMultipleProjects = uniqueProjects.length > 1
 
   // Pinned sessions (persisted in localStorage)
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(() => {
@@ -410,7 +425,9 @@ export default function SessionList() {
         s.project.toLowerCase().includes(filter.toLowerCase())
       // Tag filter
       const matchesTag = !activeTagFilter || (sessionTags[s.sessionId] || []).includes(activeTagFilter)
-      return matchesText && matchesTag
+      // Project filter
+      const matchesProject = !activeProjectFilter || s.project === activeProjectFilter
+      return matchesText && matchesTag && matchesProject
     })
     .sort((a, b) => {
       // Pinned sessions always come first
@@ -616,6 +633,84 @@ export default function SessionList() {
                 <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: '50%', background: tag.color, flexShrink: 0 }} />
                 {getTagName(idx)}
                 <span style={{ opacity: 0.6, fontSize: 9 }}>({count})</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Project filter bar */}
+      {hasMultipleProjects && (
+        <div
+          role="radiogroup"
+          aria-label={t('session.projectFilter')}
+          style={{
+            display: 'flex',
+            gap: 6,
+            padding: '4px 10px',
+            overflowX: 'auto',
+            flexShrink: 0,
+            scrollbarWidth: 'none',
+          }}
+        >
+          <button
+            role="radio"
+            aria-checked={!activeProjectFilter}
+            onClick={() => setActiveProjectFilter(null)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              height: 20,
+              borderRadius: 10,
+              padding: '0 8px',
+              background: !activeProjectFilter ? 'rgba(100,100,100,0.3)' : 'rgba(100,100,100,0.1)',
+              border: `1px solid ${!activeProjectFilter ? 'rgba(100,100,100,0.6)' : 'rgba(100,100,100,0.3)'}`,
+              cursor: 'pointer',
+              fontSize: 10,
+              color: !activeProjectFilter ? 'var(--text-primary)' : 'var(--text-secondary)',
+              fontWeight: !activeProjectFilter ? 600 : 400,
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+              transition: 'background 0.15s ease, border-color 0.15s ease',
+            }}
+          >
+            {t('session.allProjects')}
+          </button>
+          {uniqueProjects.map(proj => {
+            const isActive = activeProjectFilter === proj.name
+            // Extract short name from project path (last segment)
+            const shortName = proj.name.split(/[/\\]/).pop() || proj.name
+            return (
+              <button
+                key={proj.name}
+                role="radio"
+                aria-checked={isActive}
+                onClick={() => setActiveProjectFilter(isActive ? null : proj.name)}
+                title={proj.name}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  height: 20,
+                  borderRadius: 10,
+                  padding: '0 8px',
+                  background: isActive ? 'rgba(59,130,246,0.2)' : 'rgba(59,130,246,0.08)',
+                  border: `1px solid ${isActive ? 'rgba(59,130,246,0.5)' : 'rgba(59,130,246,0.25)'}`,
+                  cursor: 'pointer',
+                  fontSize: 10,
+                  color: isActive ? '#3b82f6' : 'var(--text-secondary)',
+                  fontWeight: isActive ? 600 : 400,
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  transition: 'background 0.15s ease, border-color 0.15s ease, color 0.15s ease',
+                  maxWidth: 120,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {shortName}
+                <span style={{ opacity: 0.6, fontSize: 9 }}>({proj.count})</span>
               </button>
             )
           })}

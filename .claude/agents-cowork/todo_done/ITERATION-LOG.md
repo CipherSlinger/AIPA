@@ -1900,3 +1900,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 167 (2026-03-28)
 - Note sorting options -- sort notes by last modified, date created, or alphabetically; sort preference persists via localStorage; pinned notes always stay at top regardless of sort
+
+### Iteration 168 (2026-03-28)
+- Session project filter -- pill-style filter bar showing unique project paths; filter sessions by project; auto-hides when only one project exists; shows session count per project

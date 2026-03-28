@@ -228,7 +228,9 @@
     "deleteSelected": "Delete selected",
     "confirmBulkDelete": "Delete {{count}}?",
     "bulkDeleted": "{{count}} sessions deleted",
-    "cannotDeleteActive": "Cannot delete the active session"
+    "cannotDeleteActive": "Cannot delete the active session",
+    "projectFilter": "Filter by project",
+    "allProjects": "All"
   },
   "settings": {
     "title": "Settings",
