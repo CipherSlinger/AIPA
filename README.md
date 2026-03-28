@@ -117,6 +117,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Response time on messages** — each AI response shows how long it took to generate (e.g., "took 12s", "took 1m 5s") with a Timer icon next to the timestamp
 - **Context window warning** — dismissible warning banner appears when context usage exceeds 80%, with "New Conversation" quick action; turns red at 90%
 - **Input token estimate** — input bar shows estimated token count (~chars/4) alongside word and character counts, helping users gauge context usage before sending
+- **Auto-focus input after response** — input textarea automatically receives focus when Claude finishes responding, so you can immediately type your next message without clicking
 
 ## Security
 

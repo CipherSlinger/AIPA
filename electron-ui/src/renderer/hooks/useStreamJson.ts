@@ -271,6 +271,10 @@ export function useStreamJson() {
           if (usePrefsStore.getState().prefs.notifySound !== false) {
             playCompletionSound()
           }
+          // Auto-focus input after response completes
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('aipa:focusInput'))
+          }, 100)
           // Auto-generate session title after first assistant response
           const msgs = useChatStore.getState().messages
           const userMsgs = msgs.filter(m => m.role === 'user')

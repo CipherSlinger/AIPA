@@ -420,6 +420,12 @@
 |---------|----------|--------|
 | Estimated token count (~chars/4) in input compose bar | P2 | DONE (Iteration 131) |
 
+### Iteration 132 -- Auto-Focus Input After Response
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Auto-focus input textarea when Claude finishes responding | P2 | DONE (Iteration 132) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |
