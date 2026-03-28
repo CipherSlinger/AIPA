@@ -95,6 +95,15 @@ export interface ClaudePrefs {
   tagNames?: string[]  // custom names for the 6 preset tags (indexed 0-5)
   sessionTags?: Record<string, string[]>  // sessionId -> array of tag IDs ('tag-1'..'tag-6')
   customPromptTemplates?: CustomPromptTemplate[]  // user-defined prompt templates
+  notes?: Note[]  // user quick notes (persisted via electron-store)
+}
+
+export interface Note {
+  id: string           // unique id (timestamp-based)
+  title: string        // note title
+  content: string      // note content (plain text, max 10000 chars)
+  createdAt: number    // epoch ms
+  updatedAt: number    // epoch ms
 }
 
 export interface CustomPromptTemplate {

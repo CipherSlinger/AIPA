@@ -3,6 +3,7 @@ import { useUiStore } from '../../store'
 import SessionList from '../sessions/SessionList'
 import FileBrowser from '../filebrowser/FileBrowser'
 import SettingsPanel from '../settings/SettingsPanel'
+import NotesPanel from '../notes/NotesPanel'
 
 export default function Sidebar() {
   const { sidebarTab } = useUiStore()
@@ -20,6 +21,7 @@ export default function Sidebar() {
       <div className="flex-1 overflow-auto">
         {sidebarTab === 'history' && <SessionList />}
         {sidebarTab === 'files' && <FileBrowser />}
+        {sidebarTab === 'notes' && <NotesPanel />}
         {sidebarTab === 'settings' && <SettingsPanel />}
       </div>
     </div>

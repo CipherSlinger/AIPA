@@ -414,12 +414,12 @@ export const usePrefsStore = create<PrefsState>((set) => ({
 
 // ── UI store ────────────────────────────────────
 interface UiState {
-  sidebarTab: 'history' | 'files' | 'settings'
+  sidebarTab: 'history' | 'files' | 'settings' | 'notes'
   sidebarOpen: boolean
   terminalOpen: boolean
   commandPaletteOpen: boolean
   toasts: ToastItem[]
-  setSidebarTab: (tab: 'history' | 'files' | 'settings') => void
+  setSidebarTab: (tab: 'history' | 'files' | 'settings' | 'notes') => void
   setSidebarOpen: (v: boolean) => void
   setTerminalOpen: (v: boolean) => void
   setCommandPaletteOpen: (v: boolean) => void
@@ -432,7 +432,7 @@ interface UiState {
   removeToast: (id: string) => void
 
   // NavRail active item tracking
-  activeNavItem: 'chat' | 'history' | 'files' | 'terminal' | 'settings'
+  activeNavItem: 'chat' | 'history' | 'files' | 'terminal' | 'settings' | 'notes'
   setActiveNavItem: (item: UiState['activeNavItem']) => void
 
   // Quote reply: text to prefill into the input bar
@@ -470,7 +470,7 @@ export const useUiStore = create<UiState>((set) => ({
   },
   removeToast: (id) => set((s) => ({ toasts: s.toasts.filter(t => t.id !== id) })),
   setActiveNavItem: (item) => set((s) => {
-    if (item === 'history' || item === 'files' || item === 'settings') {
+    if (item === 'history' || item === 'files' || item === 'settings' || item === 'notes') {
       return { activeNavItem: item, sidebarTab: item, sidebarOpen: true }
     }
     return { activeNavItem: item }

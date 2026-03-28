@@ -5,7 +5,8 @@
     "files": "\u6587\u4ef6",
     "terminal": "\u7ec8\u7aef",
     "settings": "\u8bbe\u7f6e",
-    "userProfile": "\u7528\u6237\u5934\u50cf"
+    "userProfile": "\u7528\u6237\u5934\u50cf",
+    "notes": "\u7b14\u8bb0"
   },
   "chat": {
     "placeholder": "\u7ed9 AIPA \u53d1\u6d88\u606f...",
@@ -503,5 +504,23 @@
     "debug": "\u8c03\u8bd5",
     "docs": "\u6587\u6863",
     "archive": "\u5f52\u6863"
+  },
+  "notes": {
+    "title": "\u7b14\u8bb0",
+    "newNote": "\u65b0\u5efa\u7b14\u8bb0",
+    "untitled": "\u65e0\u6807\u9898\u7b14\u8bb0",
+    "emptyState": "\u6682\u65e0\u7b14\u8bb0",
+    "startTyping": "\u5f00\u59cb\u8f93\u5165...",
+    "deleteConfirm": "\u518d\u6b21\u70b9\u51fb\u5220\u9664",
+    "delete": "\u5220\u9664\u7b14\u8bb0",
+    "characters": "\u5b57\u7b26",
+    "created": "\u521b\u5efa",
+    "modified": "\u4fee\u6539",
+    "back": "\u8fd4\u56de",
+    "justNow": "\u521a\u521a",
+    "minsAgo": "{{count}}\u5206\u949f\u524d",
+    "hoursAgo": "{{count}}\u5c0f\u65f6\u524d",
+    "yesterday": "\u6628\u5929",
+    "daysAgo": "{{count}}\u5929\u524d"
   }
 }

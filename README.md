@@ -104,6 +104,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **ARIA accessibility** — landmark roles (`application`, `banner`, `main`, `complementary`, `navigation`, `status`, `log`), `aria-live` regions, `aria-label` on all interactive elements for screen reader support
 - **Zero TypeScript errors** — clean `tsc --noEmit` with full strict mode; SpeechRecognition Web API type declarations included
 - **Session tags** — color-coded tag system (Work, Personal, Research, Debug, Docs, Archive) for organizing sessions; assign via hover menu, filter by tag in sidebar, customize tag names in Settings
+- **Quick notes** — built-in notepad in the sidebar for jotting down ideas, to-dos, or key points alongside conversations; notes auto-save, persist across restarts, and support up to 100 entries
 
 ## Security
 

@@ -5,7 +5,8 @@
     "files": "Files",
     "terminal": "Terminal",
     "settings": "Settings",
-    "userProfile": "User profile"
+    "userProfile": "User profile",
+    "notes": "Notes"
   },
   "chat": {
     "placeholder": "Message AIPA...",
@@ -503,5 +504,23 @@
     "debug": "Debug",
     "docs": "Docs",
     "archive": "Archive"
+  },
+  "notes": {
+    "title": "Notes",
+    "newNote": "New Note",
+    "untitled": "Untitled Note",
+    "emptyState": "No notes yet",
+    "startTyping": "Start typing...",
+    "deleteConfirm": "Click again to delete",
+    "delete": "Delete note",
+    "characters": "chars",
+    "created": "Created",
+    "modified": "Modified",
+    "back": "Back",
+    "justNow": "just now",
+    "minsAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "yesterday": "Yesterday",
+    "daysAgo": "{{count}}d ago"
   }
 }

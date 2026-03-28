@@ -1757,3 +1757,61 @@ tsc --noEmit: zero errors
 - [x] i18n strings provided for en and zh-CN (17 new keys each)
 - [x] Build succeeds with no TypeScript errors
 - [x] Maximum 20 custom templates enforced in UI
+
+---
+
+## Iteration 120 -- Quick Notes Sidebar Panel
+
+_Date: 2026-03-28 | Feature: Personal Assistant Enhancement_
+
+### Summary
+Added a built-in notepad panel to the sidebar, enabling users to take and organize notes alongside their AI conversations. Notes auto-save, persist across restarts via electron-store, and support create/edit/delete with two-click confirmation. This reinforces AIPA's role as a personal desktop assistant -- note-taking is a fundamental capability expected in any assistant tool.
+
+### Files Changed
+
+1. **`src/renderer/types/app.types.ts`** (+8 lines) -- Added `Note` interface and `notes?: Note[]` to `ClaudePrefs`
+
+2. **`src/renderer/store/index.ts`** (~6 lines changed) -- Extended `sidebarTab` and `activeNavItem` union types to include `'notes'`; updated `setActiveNavItem` to treat `'notes'` as a sidebar panel
+
+3. **`src/renderer/components/notes/NotesPanel.tsx`** (NEW, ~230 lines) -- Full notes panel with list view (title, relative timestamps, hover-delete) and editor view (title input, auto-save textarea, character count, timestamps footer)
+
+4. **`src/renderer/components/layout/NavRail.tsx`** (~8 lines changed) -- Added NotebookPen icon between Files and Terminal; added `isNotesActive` state tracking
+
+5. **`src/renderer/components/layout/Sidebar.tsx`** (~3 lines changed) -- Import NotesPanel, render when `sidebarTab === 'notes'`
+
+6. **`src/renderer/i18n/locales/en.json`** (+18 lines) -- Added `nav.notes` + 15 `notes.*` i18n keys
+
+7. **`src/renderer/i18n/locales/zh-CN.json`** (+18 lines) -- Chinese translations for all new keys
+
+8. **`README.md`** / **`README_CN.md`** -- Added Quick Notes to feature list
+
+### Build
+
+Status: SUCCESS
+
+```
+main: tsc clean
+preload: tsc clean
+renderer: 2399 modules transformed, built in 8.07s
+```
+
+### Acceptance Criteria
+- [x] NavRail shows Notes icon (NotebookPen) below Files icon
+- [x] Clicking the icon switches sidebar to show Notes panel
+- [x] Icon uses same NavItem styling pattern with tooltip
+- [x] Notes listed with title preview and relative timestamp
+- [x] Clicking a note opens it in editor view
+- [x] "New Note" button creates a fresh note and opens editor
+- [x] Empty state shows NotebookPen icon + "No notes yet" message
+- [x] Two-click delete confirmation with 3s auto-reset
+- [x] Title input with "Untitled Note" placeholder
+- [x] Content textarea fills remaining space with auto-resize
+- [x] Auto-save after 1 second debounce
+- [x] Back button returns to note list (saves before leaving)
+- [x] Created/modified timestamps shown at bottom
+- [x] Character count shown in editor header
+- [x] Notes persist via electron-store `notes` prefs key
+- [x] Maximum 100 notes enforced (button disabled at limit)
+- [x] Per-note content limit of 10,000 characters
+- [x] i18n strings for en and zh-CN (18 new keys each)
+- [x] Build succeeds with no errors

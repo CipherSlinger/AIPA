@@ -105,6 +105,7 @@ Claude Code CLI 是引擎，AIPA 是驾驶舱。
 - **ARIA 无障碍访问** — 地标角色（`application`、`banner`、`main`、`complementary`、`navigation`、`status`、`log`），`aria-live` 动态区域，所有交互元素均有 `aria-label`，支持屏幕阅读器
 - **TypeScript 零错误** — `tsc --noEmit` 严格模式下零编译错误；包含 SpeechRecognition Web API 类型声明
 - **会话标签** — 彩色标签分类系统（工作、个人、研究、调试、文档、归档），通过悬停菜单分配标签，侧边栏按标签过滤，标签名称可在设置中自定义
+- **快捷笔记** — 侧边栏内置笔记本，可随时记录想法、待办或对话要点；自动保存、重启后保留、最多支持 100 条笔记
 
 ## 安全
 

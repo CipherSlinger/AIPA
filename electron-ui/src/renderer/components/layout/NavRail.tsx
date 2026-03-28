@@ -1,5 +1,5 @@
 import React from 'react'
-import { MessageSquarePlus, History, FolderOpen, TerminalSquare, Settings, User } from 'lucide-react'
+import { MessageSquarePlus, History, FolderOpen, NotebookPen, TerminalSquare, Settings, User } from 'lucide-react'
 import { useUiStore, useSessionStore, useChatStore } from '../../store'
 import { useT } from '../../i18n'
 
@@ -168,6 +168,7 @@ export default function NavRail() {
   // The active panel item (history/files/settings) matches activeNavItem
   const isHistoryActive = activeNavItem === 'history' && sidebarTab === 'history'
   const isFilesActive = activeNavItem === 'files' && sidebarTab === 'files'
+  const isNotesActive = activeNavItem === 'notes' && sidebarTab === 'notes'
   const isSettingsActive = activeNavItem === 'settings' && sidebarTab === 'settings'
 
   const handleNewChat = () => {
@@ -224,6 +225,14 @@ export default function NavRail() {
         label={t('nav.files')}
         isActive={isFilesActive}
         onClick={() => setActiveNavItem('files')}
+      />
+
+      {/* Notes */}
+      <NavItem
+        icon={<NotebookPen size={20} />}
+        label={t('nav.notes')}
+        isActive={isNotesActive}
+        onClick={() => setActiveNavItem('notes')}
       />
 
       {/* Terminal */}

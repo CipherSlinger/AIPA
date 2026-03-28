@@ -310,6 +310,19 @@
 | Persistence via electron-store prefs | `prd-custom-prompt-templates-v1.md` | P1 | DONE (Iteration 119) |
 | i18n for all template UI (en + zh-CN) | `prd-custom-prompt-templates-v1.md` | P1 | DONE (Iteration 119) |
 
+### Iteration 120 -- Quick Notes Sidebar Panel
+
+| Feature | PRD | Priority | Status |
+|---------|-----|----------|--------|
+| Notes tab in NavRail (NotebookPen icon) | `prd-quick-notes-v1.md` | P0 | DONE (Iteration 120) |
+| Note CRUD (create/edit/delete) | `prd-quick-notes-v1.md` | P0 | DONE (Iteration 120) |
+| Note list view with relative timestamps | `prd-quick-notes-v1.md` | P0 | DONE (Iteration 120) |
+| Note editor with auto-save (1s debounce) | `prd-quick-notes-v1.md` | P1 | DONE (Iteration 120) |
+| Persistence via electron-store prefs | `prd-quick-notes-v1.md` | P0 | DONE (Iteration 120) |
+| Two-click delete confirmation | `prd-quick-notes-v1.md` | P1 | DONE (Iteration 120) |
+| Character count + timestamps | `prd-quick-notes-v1.md` | P1 | DONE (Iteration 120) |
+| i18n for all notes UI (en + zh-CN) | `prd-quick-notes-v1.md` | P1 | DONE (Iteration 120) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |
@@ -341,3 +354,4 @@
 | 2026-03-27 | Backlog: Daily office skills + Multi-model | User feedback requests Doubao-style skills (PPT, weekly reports) and OpenClaw/Claude Code agent patterns. Added to backlog as strategic direction for future sprints. |
 | 2026-03-28 | Iteration 118: Lazy-load node-pty | Critical recurring bug: hard `import` of node-pty crashed entire main process when native binary missing. Changed to lazy `require()` with try-catch so terminal gracefully shows error with rebuild instructions instead of blank panel. |
 | 2026-03-28 | Iteration 119: Custom Prompt Templates | Users need reusable workflows beyond the 6 built-in templates. Custom templates support the "personal assistant" direction by letting users build a library of prompts (meeting notes, email drafts, weekly reports). Uses existing electron-store prefs system, no new dependencies. |
+| 2026-03-28 | Iteration 120: Quick Notes | Core personal assistant capability: users need to jot down notes alongside conversations. Every major assistant app (Notion AI, Doubao, macOS Notes) has integrated note-taking. Uses proven electron-store prefs pattern, zero new dependencies. |
