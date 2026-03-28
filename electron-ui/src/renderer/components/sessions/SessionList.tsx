@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react'
-import { Trash2, RefreshCw, MessageSquare, GitBranch, Pencil, ArrowUpDown, Star, Search, Tag, Check, Download, CheckSquare, Square, X, Clock } from 'lucide-react'
+import { Trash2, RefreshCw, MessageSquare, GitBranch, Pencil, ArrowUpDown, Star, Search, Tag, Check, Download, CheckSquare, Square, X, Clock, Globe } from 'lucide-react'
 import { SessionListItem, SessionMessage, StandardChatMessage, ToolUseInfo, ChatMessage } from '../../types/app.types'
 import { useSessionStore, useChatStore, useUiStore, usePrefsStore } from '../../store'
 import { SkeletonSessionRow } from '../ui/Skeleton'
@@ -211,6 +211,41 @@ export default function SessionList() {
   const [tooltipSession, setTooltipSession] = useState<SessionListItem | null>(null)
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
   const tooltipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // ── Global search state ──
+  const [globalSearchResults, setGlobalSearchResults] = useState<{ sessionId: string; title?: string; project: string; matchType: 'title' | 'content'; snippet: string; timestamp: number }[]>([])
+  const [isGlobalSearching, setIsGlobalSearching] = useState(false)
+  const [showGlobalResults, setShowGlobalResults] = useState(false)
+  const [lastGlobalQuery, setLastGlobalQuery] = useState('')
+
+  const handleGlobalSearch = useCallback(async (query: string) => {
+    if (!query || query.length < 2) {
+      setGlobalSearchResults([])
+      setShowGlobalResults(false)
+      return
+    }
+    setIsGlobalSearching(true)
+    setShowGlobalResults(true)
+    setLastGlobalQuery(query)
+    try {
+      const results = await window.electronAPI.sessionSearch(query, 20)
+      setGlobalSearchResults(results)
+    } catch {
+      setGlobalSearchResults([])
+    }
+    setIsGlobalSearching(false)
+  }, [])
+
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && filter.trim().length >= 2) {
+      e.preventDefault()
+      handleGlobalSearch(filter.trim())
+    }
+    if (e.key === 'Escape' && showGlobalResults) {
+      e.preventDefault()
+      setShowGlobalResults(false)
+    }
+  }, [filter, handleGlobalSearch, showGlobalResults])
 
   const showSessionTooltip = useCallback((session: SessionListItem, e: React.MouseEvent) => {
     if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current)
@@ -511,7 +546,8 @@ export default function SessionList() {
           <Search size={14} style={{ position: 'absolute', left: 8, color: 'var(--text-muted)', pointerEvents: 'none' }} />
           <input
             value={filter}
-            onChange={(e) => setFilter(e.target.value)}
+            onChange={(e) => { setFilter(e.target.value); if (!e.target.value) setShowGlobalResults(false) }}
+            onKeyDown={handleSearchKeyDown}
             placeholder={t('session.search')}
             style={{
               flex: 1,
@@ -782,6 +818,152 @@ export default function SessionList() {
               {t('session.selectedCount', { count: String(selectedIds.size) })}
             </span>
           )}
+        </div>
+      )}
+
+      {/* Global search results */}
+      {showGlobalResults && (
+        <div style={{
+          borderBottom: '1px solid var(--border)',
+          maxHeight: '50%',
+          overflowY: 'auto',
+          flexShrink: 0,
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '6px 12px',
+            fontSize: 10,
+            fontWeight: 600,
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase' as const,
+            letterSpacing: '0.5px',
+            borderBottom: '1px solid var(--border)',
+            background: 'var(--popup-bg)',
+          }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Globe size={10} />
+              {isGlobalSearching
+                ? t('session.globalSearching')
+                : globalSearchResults.length === 0
+                  ? t('session.globalSearchNoResults')
+                  : t('session.globalSearchResults', { count: String(globalSearchResults.length) })}
+            </span>
+            <button
+              onClick={() => setShowGlobalResults(false)}
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}
+            >
+              <X size={12} />
+            </button>
+          </div>
+          {globalSearchResults.map(result => {
+            const isActive = result.sessionId === currentSessionId
+            return (
+              <div
+                key={result.sessionId}
+                onClick={async () => {
+                  // Load session from IPC (works for sessions from any project)
+                  const raw = await window.electronAPI.sessionLoad(result.sessionId)
+                  const chatMessages = parseSessionMessages(raw)
+                  clearMessages()
+                  loadHistory(chatMessages)
+                  setSessionId(result.sessionId)
+                  setShowGlobalResults(false)
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 8,
+                  padding: '8px 12px',
+                  cursor: 'pointer',
+                  borderBottom: '1px solid rgba(255,255,255,0.04)',
+                  background: isActive ? 'var(--bg-active)' : 'transparent',
+                  transition: 'background 0.15s ease',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = isActive ? 'var(--bg-active)' : 'var(--popup-item-hover)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = isActive ? 'var(--bg-active)' : 'transparent' }}
+              >
+                <div style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 6,
+                  background: getSessionAvatarColor(result.sessionId),
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  marginTop: 1,
+                }}>
+                  <MessageSquare size={13} color="#fff" />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: 'var(--text-primary)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}>
+                    {result.title || result.project.split(/[/\\]/).pop() || 'Untitled'}
+                  </div>
+                  <div style={{
+                    fontSize: 10,
+                    color: 'var(--text-muted)',
+                    marginTop: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}>
+                    <span style={{
+                      display: 'inline-block',
+                      padding: '0 4px',
+                      borderRadius: 3,
+                      background: result.matchType === 'title' ? 'rgba(59,130,246,0.15)' : 'rgba(34,197,94,0.15)',
+                      color: result.matchType === 'title' ? '#60a5fa' : '#4ade80',
+                      fontWeight: 500,
+                      fontSize: 9,
+                    }}>
+                      {result.matchType === 'title' ? t('session.matchInTitle') : t('session.matchInContent')}
+                    </span>
+                    <span>{formatDistanceToNow(result.timestamp, { addSuffix: true })}</span>
+                  </div>
+                  {result.matchType === 'content' && result.snippet && (
+                    <div style={{
+                      fontSize: 10,
+                      color: 'var(--text-secondary)',
+                      marginTop: 2,
+                      lineHeight: 1.3,
+                      overflow: 'hidden',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical' as const,
+                    }}>
+                      <HighlightText text={result.snippet} highlight={lastGlobalQuery} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Global search hint */}
+      {filter.trim().length >= 2 && !showGlobalResults && (
+        <div style={{
+          padding: '4px 12px',
+          fontSize: 10,
+          color: 'var(--text-muted)',
+          borderBottom: '1px solid var(--border)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+          flexShrink: 0,
+        }}>
+          <Globe size={10} />
+          <span>{t('session.globalSearchHint')}</span>
         </div>
       )}
 

@@ -243,7 +243,14 @@
     "bulkDeleted": "\u5df2\u5220\u9664 {{count}} \u4e2a\u4f1a\u8bdd",
     "cannotDeleteActive": "\u65e0\u6cd5\u5220\u9664\u5f53\u524d\u6d3b\u52a8\u4f1a\u8bdd",
     "projectFilter": "\u6309\u9879\u76ee\u7b5b\u9009",
-    "allProjects": "\u5168\u90e8"
+    "allProjects": "\u5168\u90e8",
+    "globalSearch": "\u641c\u7d22\u6240\u6709\u5bf9\u8bdd...",
+    "globalSearchResults": "\u5728\u4f1a\u8bdd\u4e2d\u627e\u5230 {{count}} \u4e2a\u5339\u914d",
+    "globalSearchNoResults": "\u672a\u5728\u4efb\u4f55\u4f1a\u8bdd\u4e2d\u627e\u5230\u5339\u914d",
+    "globalSearching": "\u641c\u7d22\u4e2d...",
+    "matchInTitle": "\u6807\u9898\u5339\u914d",
+    "matchInContent": "\u5185\u5bb9\u5339\u914d",
+    "globalSearchHint": "\u6309 Enter \u641c\u7d22\u6240\u6709\u4f1a\u8bdd"
   },
   "settings": {
     "title": "\u8bbe\u7f6e",

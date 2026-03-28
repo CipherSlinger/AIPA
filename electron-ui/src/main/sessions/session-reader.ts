@@ -263,6 +263,115 @@ export function generateSessionTitle(description: string, cliPath: string): Prom
   })
 }
 
+export interface SearchResult {
+  sessionId: string
+  title?: string
+  project: string
+  matchType: 'title' | 'content'
+  snippet: string
+  timestamp: number
+}
+
+export function searchSessions(query: string, limit = 30): SearchResult[] {
+  if (!query || query.length < 2 || !fs.existsSync(PROJECTS_DIR)) return []
+
+  const results: SearchResult[] = []
+  const lowerQuery = query.toLowerCase()
+
+  try {
+    const projectDirs = fs.readdirSync(PROJECTS_DIR, { withFileTypes: true })
+      .filter(d => d.isDirectory())
+
+    for (const dir of projectDirs) {
+      if (results.length >= limit) break
+      const projectSlug = dir.name
+      const dirPath = path.join(PROJECTS_DIR, projectSlug)
+
+      try {
+        const files = fs.readdirSync(dirPath).filter(f => f.endsWith('.jsonl'))
+
+        for (const file of files) {
+          if (results.length >= limit) break
+          const sessionId = file.replace('.jsonl', '')
+          const filePath = path.join(dirPath, file)
+
+          try {
+            const content = fs.readFileSync(filePath, 'utf-8')
+            const lines = content.split('\n').filter(l => l.trim())
+
+            let title: string | undefined
+            let timestamp = 0
+            let titleMatched = false
+            let bestSnippet = ''
+
+            for (const line of lines) {
+              try {
+                const entry = JSON.parse(line)
+
+                if (entry.timestamp) {
+                  const t = new Date(entry.timestamp).getTime()
+                  if (t > timestamp) timestamp = t
+                }
+
+                if (entry.type === 'session-title' && entry.title) {
+                  title = String(entry.title)
+                  if (title.toLowerCase().includes(lowerQuery)) {
+                    titleMatched = true
+                  }
+                }
+
+                // Search in message content
+                if (!bestSnippet && (entry.type === 'user' || entry.type === 'assistant')) {
+                  let text = ''
+                  if (entry.message?.content) {
+                    const c = entry.message.content
+                    if (typeof c === 'string') text = c
+                    else if (Array.isArray(c)) {
+                      const textPart = c.find((p: Record<string, unknown>) => p.type === 'text')
+                      if (textPart?.text) text = String(textPart.text)
+                    }
+                  }
+                  const lowerText = text.toLowerCase()
+                  const idx = lowerText.indexOf(lowerQuery)
+                  if (idx !== -1) {
+                    const start = Math.max(0, idx - 40)
+                    const end = Math.min(text.length, idx + query.length + 40)
+                    bestSnippet = (start > 0 ? '...' : '') +
+                      text.slice(start, end).replace(/\n/g, ' ') +
+                      (end < text.length ? '...' : '')
+                  }
+                }
+              } catch {}
+            }
+
+            if (titleMatched) {
+              results.push({
+                sessionId,
+                title,
+                project: decodeProjectSlug(projectSlug),
+                matchType: 'title',
+                snippet: title || '',
+                timestamp,
+              })
+            } else if (bestSnippet) {
+              results.push({
+                sessionId,
+                title,
+                project: decodeProjectSlug(projectSlug),
+                matchType: 'content',
+                snippet: bestSnippet,
+                timestamp,
+              })
+            }
+          } catch {}
+        }
+      } catch {}
+    }
+  } catch {}
+
+  return results.sort((a, b) => b.timestamp - a.timestamp).slice(0, limit)
+}
+
 export function rewindSession(sessionId: string, beforeTimestamp: string, cliPath: string): Promise<{ success: boolean; error?: string }> {
   return new Promise((resolve) => {
     const nodePath = process.env.CLAUDE_NODE_PATH || 'node'

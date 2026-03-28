@@ -243,7 +243,14 @@
     "bulkDeleted": "{{count}} sessions deleted",
     "cannotDeleteActive": "Cannot delete the active session",
     "projectFilter": "Filter by project",
-    "allProjects": "All"
+    "allProjects": "All",
+    "globalSearch": "Search all conversations...",
+    "globalSearchResults": "{{count}} matches across sessions",
+    "globalSearchNoResults": "No matches found across sessions",
+    "globalSearching": "Searching...",
+    "matchInTitle": "Title match",
+    "matchInContent": "Content match",
+    "globalSearchHint": "Press Enter to search across all sessions"
   },
   "settings": {
     "title": "Settings",
