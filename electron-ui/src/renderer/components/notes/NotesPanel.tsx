@@ -45,7 +45,7 @@ export default function NotesPanel() {
       let exported = 0
       const usedNames = new Set<string>()
       for (const note of notesToExport) {
-        let baseName = (note.title || 'Untitled Note').replace(/[<>:"/\\|?*]/g, '_').slice(0, 50)
+        let baseName = (note.title || t('notes.untitled')).replace(/[<>:"/\\|?*]/g, '_').slice(0, 50)
         // Deduplicate filenames
         let fileName = baseName
         let counter = 1
@@ -93,7 +93,7 @@ export default function NotesPanel() {
         const result = await api.fsReadFile(fp)
         if (result?.error || !result?.content) continue
         // Extract title from filename (without extension)
-        const fileName = fp.split(/[\\/]/).pop() || 'Imported Note'
+        const fileName = fp.split(/[/\\]/).pop() || t('notes.untitled')
         const titleFromFile = fileName.replace(/\.(md|txt|markdown)$/i, '')
         // Auto-extract title from first heading if present
         const headingMatch = result.content.match(/^#{1,3}\s+(.+)/m)

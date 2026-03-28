@@ -544,6 +544,11 @@
 - **Files changed**: `ChatInput.tsx`, `en.json`, `zh-CN.json`
 - **Status**: Done
 
+### Iteration 150 — i18n notes export/import fallback strings
+- **Feature**: Replace hardcoded 'Untitled Note' and 'Imported Note' fallbacks with i18n calls in NotesPanel
+- **Files changed**: `NotesPanel.tsx`
+- **Status**: Done
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |
