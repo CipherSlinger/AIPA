@@ -712,7 +712,7 @@ export default function SessionList() {
                       flex: 1,
                     }}
                   >
-                    <HighlightText text={session.title || session.lastPrompt || '(no content)'} highlight={filter} />
+                    <HighlightText text={session.title || session.lastPrompt || t('session.noContent')} highlight={filter} />
                   </span>
                 )}
                 <span style={{
@@ -744,7 +744,7 @@ export default function SessionList() {
                   {previewText ? (
                     <HighlightText text={previewText} highlight={filter} />
                   ) : (
-                    <em style={{ opacity: 0.6 }}>(no content)</em>
+                    <em style={{ opacity: 0.6 }}>{t('session.noContent')}</em>
                   )}
                 </div>
                 {/* Tag color dots */}
@@ -880,7 +880,7 @@ export default function SessionList() {
                 }}
               >
                 <Trash2 size={12} />
-                {confirmDeleteId === session.sessionId && <span>Sure?</span>}
+                {confirmDeleteId === session.sessionId && <span>{t('common.confirm')}</span>}
               </button>
             </div>
           </div>

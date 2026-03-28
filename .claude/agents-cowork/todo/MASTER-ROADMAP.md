@@ -503,6 +503,12 @@
 | Replace 8 hardcoded English strings with i18n calls | P2-fix | DONE (Iteration 142) |
 | Collapse/Expand, Copy, Bookmark, Thinking, Generating, Raw Markdown titles | P2-fix | DONE (Iteration 142) |
 
+### Iteration 143 -- SessionList i18n Completeness
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Replace hardcoded 'Sure?', '(no content)', 'No matches', 'No session history' with i18n | P2-fix | DONE (Iteration 143) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |
