@@ -34,13 +34,18 @@ function registerPtyHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
     try {
       const sessionId = ptyManager.create(args)
 
-      ptyManager.on(`data:${sessionId}`, (data: string) => {
+      const dataHandler = (data: string) => {
         send('pty:data', sessionId, data)
-      })
-
-      ptyManager.on(`exit:${sessionId}`, (info: { exitCode: number; signal: string }) => {
+      }
+      const exitHandler = (info: { exitCode: number; signal: string }) => {
         send('pty:exit', sessionId, info)
-      })
+        // Clean up listeners after exit to prevent leaks on reconnect
+        ptyManager.removeListener(`data:${sessionId}`, dataHandler)
+        ptyManager.removeListener(`exit:${sessionId}`, exitHandler)
+      }
+
+      ptyManager.on(`data:${sessionId}`, dataHandler)
+      ptyManager.on(`exit:${sessionId}`, exitHandler)
 
       return sessionId
     } catch (err) {
@@ -59,6 +64,8 @@ function registerPtyHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
   })
 
   ipcMain.handle('pty:destroy', (_e, sessionId) => {
+    ptyManager.removeAllListeners(`data:${sessionId}`)
+    ptyManager.removeAllListeners(`exit:${sessionId}`)
     ptyManager.destroy(sessionId)
   })
 }

@@ -488,6 +488,8 @@
   "terminal": {
     "title": "\u7ec8\u7aef",
     "reconnect": "\u91cd\u65b0\u8fde\u63a5",
+    "refit": "\u8c03\u6574\u7ec8\u7aef\u5927\u5c0f",
+    "exited": "\u8fdb\u7a0b\u5df2\u9000\u51fa",
     "error": "\u7ec8\u7aef\u9519\u8bef",
     "nativeModuleError": "\u7ec8\u7aef\u9700\u8981 node-pty \u539f\u751f\u6a21\u5757\uff0c\u4f46\u8be5\u6a21\u5757\u4e0d\u53ef\u7528\u3002",
     "rebuildInstructions": "\u8bf7\u5728 electron-ui \u6587\u4ef6\u5939\u4e2d\u8fd0\u884c 'npm run rebuild-pty'\uff0c\u7136\u540e\u91cd\u542f\u5e94\u7528\u3002",

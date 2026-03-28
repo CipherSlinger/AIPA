@@ -28,41 +28,62 @@ const VS_CODE_THEME = {
   selectionBackground: '#264f78',
 }
 
-export function usePty(containerRef: React.RefObject<HTMLDivElement>, sessionId: string) {
+let sessionCounter = 0
+
+export function usePty(containerRef: React.RefObject<HTMLDivElement>) {
   const termRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
   const ptySessionId = useRef<string | null>(null)
+  const cleanupRef = useRef<(() => void) | null>(null)
   const [ptyError, setPtyError] = useState<string | null>(null)
+  const [ptyExited, setPtyExited] = useState(false)
+  const [exitCode, setExitCode] = useState<number | null>(null)
   const { prefs } = usePrefsStore()
 
-  const initPty = useCallback(async () => {
-    if (!containerRef.current || ptySessionId.current) return
+  const startPty = useCallback(async () => {
+    if (!termRef.current) return
+
+    // Clean up previous PTY session if any
+    if (ptySessionId.current) {
+      try {
+        window.electronAPI.ptyDestroy(ptySessionId.current)
+      } catch { /* ignore */ }
+    }
+    if (cleanupRef.current) {
+      cleanupRef.current()
+      cleanupRef.current = null
+    }
+
+    setPtyError(null)
+    setPtyExited(false)
+    setExitCode(null)
 
     const home = await window.electronAPI.fsGetHome()
     const cwd = prefs.workingDir || home
+    const cols = termRef.current.cols || 80
+    const rows = termRef.current.rows || 24
 
-    const cols = termRef.current?.cols || 80
-    const rows = termRef.current?.rows || 24
+    // Generate a unique session ID for each PTY spawn
+    sessionCounter++
+    const newSessionId = `terminal-${Date.now()}-${sessionCounter}`
 
     try {
       await window.electronAPI.ptyCreate({
-        sessionId,
+        sessionId: newSessionId,
         cwd,
         cols,
         rows,
         env: prefs.apiKey ? { ANTHROPIC_API_KEY: prefs.apiKey } : {},
       })
-      ptySessionId.current = sessionId
-      setPtyError(null)
+      ptySessionId.current = newSessionId
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       setPtyError(msg)
-      // Write error to terminal for inline visibility
       if (termRef.current) {
         termRef.current.write(
-          '\x1b[31m' +  // red
+          '\x1b[31m' +
           'Terminal Error: Failed to initialize PTY\r\n\r\n' +
-          '\x1b[33m' +  // yellow
+          '\x1b[33m' +
           (msg.includes('PTY_NATIVE_UNAVAILABLE')
             ? 'The node-pty native module is not compiled for your platform.\r\n\r\n' +
               '\x1b[37mTo fix this:\r\n' +
@@ -72,28 +93,32 @@ export function usePty(containerRef: React.RefObject<HTMLDivElement>, sessionId:
               '\x1b[90mNote: On Windows, this requires Visual Studio C++ Build Tools.\r\n' +
               'Install from: https://visualstudio.microsoft.com/visual-cpp-build-tools/\r\n'
             : `Error: ${msg}\r\n`) +
-          '\x1b[0m'  // reset
+          '\x1b[0m'
         )
       }
       return
     }
 
     // Listen for PTY output
-    const unsubData = window.electronAPI.onPtyData(sessionId, (data) => {
+    const unsubData = window.electronAPI.onPtyData(newSessionId, (data) => {
       termRef.current?.write(data)
     })
 
-    const unsubExit = window.electronAPI.onPtyExit(sessionId, ({ exitCode }) => {
-      termRef.current?.write(`\r\n\x1b[33m[Process exited with code ${exitCode}]\x1b[0m\r\n`)
+    const unsubExit = window.electronAPI.onPtyExit(newSessionId, ({ exitCode: code }) => {
+      termRef.current?.write(`\r\n\x1b[33m[Process exited with code ${code}]\x1b[0m\r\n`)
+      termRef.current?.write('\x1b[90mPress the Reconnect button to start a new session.\x1b[0m\r\n')
       ptySessionId.current = null
+      setPtyExited(true)
+      setExitCode(code)
     })
 
-    return () => {
+    cleanupRef.current = () => {
       unsubData()
       unsubExit()
     }
-  }, [sessionId, prefs.workingDir, prefs.apiKey])
+  }, [prefs.workingDir, prefs.apiKey])
 
+  // Initialize xterm.js terminal and start PTY
   useEffect(() => {
     if (!containerRef.current) return
 
@@ -124,7 +149,7 @@ export function usePty(containerRef: React.RefObject<HTMLDivElement>, sessionId:
       }
     })
 
-    // Handle resize — throttled to max 10 calls/sec (100ms)
+    // Handle resize -- throttled to max 10 calls/sec (100ms)
     let resizeTimer: ReturnType<typeof setTimeout> | null = null
     const throttledResize = () => {
       if (resizeTimer) return
@@ -146,13 +171,15 @@ export function usePty(containerRef: React.RefObject<HTMLDivElement>, sessionId:
     resizeObserver.observe(containerRef.current)
 
     // Start the PTY process
-    let cleanup: (() => void) | undefined
-    initPty().then((c) => { cleanup = c })
+    startPty()
 
     return () => {
       resizeObserver.disconnect()
       if (resizeTimer) clearTimeout(resizeTimer)
-      cleanup?.()
+      if (cleanupRef.current) {
+        cleanupRef.current()
+        cleanupRef.current = null
+      }
       if (ptySessionId.current) {
         window.electronAPI.ptyDestroy(ptySessionId.current)
       }
@@ -161,11 +188,20 @@ export function usePty(containerRef: React.RefObject<HTMLDivElement>, sessionId:
       fitAddonRef.current = null
       ptySessionId.current = null
     }
-  }, [sessionId])
+  }, []) // Only initialize once on mount
+
+  // Reconnect: clear terminal and start a fresh PTY
+  const reconnect = useCallback(() => {
+    if (termRef.current) {
+      termRef.current.clear()
+      termRef.current.write('\x1b[2J\x1b[H') // clear screen + home
+    }
+    startPty()
+  }, [startPty])
 
   const refitTerminal = useCallback(() => {
     fitAddonRef.current?.fit()
   }, [])
 
-  return { term: termRef, refitTerminal, ptyError }
+  return { term: termRef, refitTerminal, reconnect, ptyError, ptyExited, exitCode }
 }

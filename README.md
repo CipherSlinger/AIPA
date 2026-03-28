@@ -24,7 +24,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 ## Features
 
 - **Chat panel** — structured conversation with Claude via stream-JSON protocol, with tool-use visualization
-- **Terminal panel** — full interactive PTY terminal running Claude Code directly (xterm.js)
+- **Terminal panel** — full interactive PTY terminal running Claude Code directly (xterm.js), with reconnect button to restart after process exit and clear error recovery
 - **Session history** — browse and resume past sessions from `~/.claude/projects/`, with search highlighting, skeleton loaders, and active session indicator
 - **File browser** — navigate the working directory from the sidebar
 - **Settings** — configure API key, model, font, working directory, CLI flags, and MCP servers

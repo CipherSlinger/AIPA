@@ -488,6 +488,8 @@
   "terminal": {
     "title": "Terminal",
     "reconnect": "Reconnect",
+    "refit": "Resize terminal",
+    "exited": "Process exited",
     "error": "Terminal Error",
     "nativeModuleError": "The terminal requires the node-pty native module, which is not available.",
     "rebuildInstructions": "Run 'npm run rebuild-pty' in the electron-ui folder and restart the app.",
