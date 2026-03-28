@@ -60,10 +60,10 @@ export default function WelcomeScreen({ onSuggestion }: Props) {
   ]
 
   const quickActions = [
-    { label: t('welcome.openSettings'), icon: Settings, action: () => { useUiStore.getState().setSidebarOpen(true); useUiStore.getState().setSidebarTab('settings') } },
-    { label: t('welcome.openTerminal'), icon: Terminal, action: () => useUiStore.getState().toggleTerminal() },
-    { label: t('welcome.openFiles'), icon: FolderOpen, action: () => { useUiStore.getState().setSidebarOpen(true); useUiStore.getState().setSidebarTab('files') } },
-    { label: t('welcome.showShortcuts'), icon: Keyboard, action: () => window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, key: '/' })) },
+    { label: t('welcome.openSettings'), icon: Settings, shortcut: 'Ctrl+,', action: () => { useUiStore.getState().setSidebarOpen(true); useUiStore.getState().setSidebarTab('settings') } },
+    { label: t('welcome.openTerminal'), icon: Terminal, shortcut: 'Ctrl+`', action: () => useUiStore.getState().toggleTerminal() },
+    { label: t('welcome.openFiles'), icon: FolderOpen, shortcut: 'Ctrl+B', action: () => { useUiStore.getState().setSidebarOpen(true); useUiStore.getState().setSidebarTab('files') } },
+    { label: t('welcome.showShortcuts'), icon: Keyboard, shortcut: 'Ctrl+/', action: () => window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, key: '/' })) },
   ]
 
   return (
@@ -234,10 +234,11 @@ export default function WelcomeScreen({ onSuggestion }: Props) {
 
       {/* Quick action buttons */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-        {quickActions.map(({ label, icon: QIcon, action }) => (
+        {quickActions.map(({ label, icon: QIcon, shortcut, action }) => (
           <button
             key={label}
             onClick={action}
+            title={`${label} (${shortcut})`}
             style={{
               background: 'none',
               border: '1px solid var(--card-border)',
@@ -262,6 +263,15 @@ export default function WelcomeScreen({ onSuggestion }: Props) {
           >
             <QIcon size={12} />
             {label}
+            <kbd style={{
+              fontSize: 9,
+              opacity: 0.5,
+              fontFamily: 'monospace',
+              background: 'rgba(255,255,255,0.06)',
+              padding: '1px 4px',
+              borderRadius: 3,
+              border: '1px solid rgba(255,255,255,0.1)',
+            }}>{shortcut}</kbd>
           </button>
         ))}
       </div>

@@ -569,6 +569,11 @@
 - **What**: Display message count as a small badge (with MessageSquare icon) next to the relative timestamp in each session list row
 - **Why**: Users can quickly gauge session length/depth without opening or hovering over sessions
 
+### Iteration 155 -- Welcome screen quick action shortcut hints
+- **Status**: Done
+- **What**: Add keyboard shortcut badges (kbd elements) to Welcome Screen quick action buttons (Settings, Terminal, Files, Shortcuts)
+- **Why**: Helps new users discover keyboard shortcuts organically while browsing the welcome screen
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |
