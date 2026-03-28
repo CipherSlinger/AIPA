@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { useChatStore, useSessionStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 
 interface PaletteCommand {
   id: string
@@ -34,6 +35,7 @@ export default function CommandPalette({
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const backdropRef = useRef<HTMLDivElement>(null)
+  const focusTrapRef = useFocusTrap(true)
   const t = useT()
 
   const {
@@ -255,6 +257,10 @@ export default function CommandPalette({
       }}
     >
       <div
+        ref={focusTrapRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('command.searchPlaceholder')}
         onKeyDown={handleKeyDown}
         style={{
           width: '100%',

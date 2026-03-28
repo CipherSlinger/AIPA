@@ -1,0 +1,111 @@
+import React from 'react'
+import { ExternalLink } from 'lucide-react'
+import { usePrefsStore } from '../../store'
+import { useI18n } from '../../i18n'
+
+interface SettingsAboutProps {
+  onResetDefaults: () => void
+  saved: boolean
+}
+
+export default function SettingsAbout({ onResetDefaults, saved }: SettingsAboutProps) {
+  const { t } = useI18n()
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* App identity */}
+      <div style={{ textAlign: 'center', padding: '12px 0' }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-bright)', letterSpacing: 1 }}>AIPA</div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{t('settings.about.aiPersonalAssistant')}</div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{t('settings.about.version')}</div>
+      </div>
+
+      <div style={{ borderTop: '1px solid var(--border)' }} />
+
+      {/* Links */}
+      <div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>{t('settings.about.links')}</div>
+        {[
+          { label: t('settings.about.githubRepo'), url: 'https://github.com/anthropics/claude-code' },
+          { label: t('settings.about.anthropicConsole'), url: 'https://console.anthropic.com/' },
+          { label: t('settings.about.apiDocs'), url: 'https://docs.anthropic.com/' },
+          { label: t('settings.about.getApiKey'), url: 'https://console.anthropic.com/settings/keys' },
+        ].map(link => (
+          <button
+            key={link.url}
+            onClick={() => window.electronAPI.shellOpenExternal(link.url)}
+            aria-label={link.label}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+              padding: '7px 10px', marginBottom: 4, background: 'none',
+              border: '1px solid var(--border)', borderRadius: 4,
+              color: 'var(--text-primary)', cursor: 'pointer', fontSize: 12,
+              textAlign: 'left',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+          >
+            <ExternalLink size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+            {link.label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ borderTop: '1px solid var(--border)' }} />
+
+      {/* Keyboard shortcuts */}
+      <div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>{t('settings.about.keyboardShortcuts')}</div>
+        {[
+          { keys: 'Ctrl + B', action: t('settings.about.toggleSidebar') },
+          { keys: 'Ctrl + `', action: t('settings.about.toggleTerminal') },
+          { keys: 'Ctrl + N', action: t('settings.about.newConversation') },
+          { keys: 'Ctrl + F', action: t('settings.about.searchInConversation') },
+          { keys: 'Enter', action: t('settings.about.sendMessage') },
+          { keys: 'Shift + Enter', action: t('settings.about.newLine') },
+          { keys: '@', action: t('settings.about.mentionFile') },
+          { keys: '/', action: t('settings.about.slashCommands') },
+        ].map(shortcut => (
+          <div
+            key={shortcut.keys}
+            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}
+          >
+            <span style={{ fontSize: 11, color: 'var(--text-primary)' }}>{shortcut.action}</span>
+            <kbd style={{
+              fontSize: 10, color: 'var(--text-muted)', background: 'var(--bg-input)',
+              border: '1px solid var(--border)', borderRadius: 3, padding: '1px 6px',
+              fontFamily: 'inherit',
+            }}>{shortcut.keys}</kbd>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ borderTop: '1px solid var(--border)' }} />
+
+      {/* Runtime info */}
+      <div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>{t('settings.about.runtime')}</div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.8 }}>
+          Electron {window.electronAPI.versions?.electron || 'N/A'}<br />
+          Node.js {window.electronAPI.versions?.node || 'N/A'}<br />
+          Chromium {window.electronAPI.versions?.chrome || 'N/A'}
+        </div>
+      </div>
+
+      {/* Reset defaults */}
+      <button
+        onClick={onResetDefaults}
+        aria-label={t('settings.about.resetDefaults')}
+        style={{
+          background: 'none', border: '1px solid var(--border)', borderRadius: 4,
+          padding: '8px 16px', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 12,
+          width: '100%', textAlign: 'center', marginTop: 4,
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--error)')}
+        onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+      >
+        {t('settings.about.resetDefaults')}
+      </button>
+    </div>
+  )
+}

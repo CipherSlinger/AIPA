@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { useT } from '../../i18n'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 
 interface Props {
   onClose: () => void
@@ -53,6 +54,7 @@ const SHORTCUTS = [
 export default function ShortcutCheatsheet({ onClose }: Props) {
   const t = useT()
   const overlayRef = useRef<HTMLDivElement>(null)
+  const focusTrapRef = useFocusTrap(true)
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -77,6 +79,10 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
       }}
     >
       <div
+        ref={focusTrapRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('shortcutCheatsheet.title')}
         style={{
           background: 'var(--popup-bg)',
           border: '1px solid var(--popup-border)',
@@ -95,6 +101,7 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
           </h2>
           <button
             onClick={onClose}
+            aria-label="Close"
             style={{
               background: 'none',
               border: 'none',
