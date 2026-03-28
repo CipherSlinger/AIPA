@@ -574,6 +574,11 @@
 - **What**: Add keyboard shortcut badges (kbd elements) to Welcome Screen quick action buttons (Settings, Terminal, Files, Shortcuts)
 - **Why**: Helps new users discover keyboard shortcuts organically while browsing the welcome screen
 
+### Iteration 156 -- i18n font family System Default label
+- **Status**: Done
+- **What**: Replace hardcoded 'System Default' font family label with i18n key in SettingsPanel
+- **Why**: Chinese users see English 'System Default' in font selector; now correctly shows the translated label
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

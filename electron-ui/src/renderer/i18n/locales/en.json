@@ -272,6 +272,7 @@
     "browse": "Browse",
     "fontSize": "Font Size",
     "fontFamily": "Font Family",
+    "fontSystemDefault": "System Default",
     "theme": "Theme",
     "themeDark": "Dark",
     "themeLight": "Light",

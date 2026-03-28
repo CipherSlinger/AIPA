@@ -25,12 +25,12 @@ const MODEL_OPTIONS: { id: string; labelKey: string }[] = [
   { id: 'claude-3-5-haiku-20241022',  labelKey: 'settings.models.haiku35' },
 ]
 
-const FONT_FAMILIES: { id: string; label: string }[] = [
+const FONT_FAMILIES: { id: string; label: string; labelKey?: string }[] = [
   { id: "'Cascadia Code', 'Fira Code', Consolas, monospace", label: 'Cascadia Code' },
   { id: "'Fira Code', Consolas, monospace",                  label: 'Fira Code' },
   { id: "'JetBrains Mono', Consolas, monospace",             label: 'JetBrains Mono' },
   { id: "Consolas, 'Courier New', monospace",                label: 'Consolas' },
-  { id: 'system-ui, sans-serif',                             label: 'System Default' },
+  { id: 'system-ui, sans-serif',                             label: 'System Default', labelKey: 'settings.fontSystemDefault' },
 ]
 
 const THEMES: { id: 'vscode' | 'light'; label: string; labelKey: string; colors: string[] }[] = [
@@ -353,7 +353,7 @@ export default function SettingsPanel() {
           {/* Font family */}
           {field(t('settings.fontFamily'), (
             <select value={local.fontFamily} onChange={(e) => setLocal({ ...local, fontFamily: e.target.value })} style={{ ...inputStyle }}>
-              {FONT_FAMILIES.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+              {FONT_FAMILIES.map((f) => <option key={f.id} value={f.id}>{f.labelKey ? t(f.labelKey) : f.label}</option>)}
             </select>
           ))}
 
