@@ -441,6 +441,14 @@
 | Shortcut cheatsheet entry for Escape | P2 | DONE (Iteration 134) |
 | i18n for stop streaming label (en + zh-CN) | P2 | DONE (Iteration 134) |
 
+### Iteration 135 -- Time-of-Day Greeting on Welcome Screen
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Dynamic greeting (Good morning/afternoon/evening) | P2 | DONE (Iteration 135) |
+| Date display on welcome screen | P2 | DONE (Iteration 135) |
+| i18n for greetings (en + zh-CN) | P2 | DONE (Iteration 135) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

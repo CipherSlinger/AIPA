@@ -89,6 +89,9 @@
   },
   "welcome": {
     "title": "\u4f60\u597d\uff01\u6211\u662f AIPA",
+    "greetingMorning": "\u65e9\u4e0a\u597d\uff01",
+    "greetingAfternoon": "\u4e0b\u5348\u597d\uff01",
+    "greetingEvening": "\u665a\u4e0a\u597d\uff01",
     "subtitle": "\u4f60\u7684 AI \u4e2a\u4eba\u52a9\u624b\u2014\u2014\u5199\u4f5c\u3001\u5206\u6790\u3001\u7f16\u7a0b\uff0c\u65e0\u6240\u4e0d\u80fd\u3002",
     "suggestion": {
       "draftEmail": "\u5e2e\u6211\u8d77\u8349\u90ae\u4ef6",

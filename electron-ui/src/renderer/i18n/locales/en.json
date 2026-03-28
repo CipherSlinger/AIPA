@@ -89,6 +89,9 @@
   },
   "welcome": {
     "title": "Hello! I'm AIPA",
+    "greetingMorning": "Good morning!",
+    "greetingAfternoon": "Good afternoon!",
+    "greetingEvening": "Good evening!",
     "subtitle": "Your AI-powered personal assistant -- writing, analysis, coding, and more.",
     "suggestion": {
       "draftEmail": "Help me draft an email",

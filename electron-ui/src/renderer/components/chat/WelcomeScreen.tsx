@@ -1,7 +1,15 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Bot, Mail, FileText, ClipboardList, Lightbulb, Settings, Terminal, FolderOpen, Keyboard } from 'lucide-react'
 import { useUiStore } from '../../store'
 import { useT } from '../../i18n'
+
+/** Returns a time-of-day greeting key */
+function getGreetingKey(): string {
+  const hour = new Date().getHours()
+  if (hour >= 5 && hour < 12) return 'welcome.greetingMorning'
+  if (hour >= 12 && hour < 18) return 'welcome.greetingAfternoon'
+  return 'welcome.greetingEvening'
+}
 
 interface Props {
   onSuggestion: (text: string, templateId?: string) => void
@@ -9,6 +17,16 @@ interface Props {
 
 export default function WelcomeScreen({ onSuggestion }: Props) {
   const t = useT()
+  const [greeting, setGreeting] = useState(getGreetingKey())
+
+  // Update greeting every minute in case the user leaves the app open across time boundaries
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setGreeting(getGreetingKey())
+    }, 60000)
+    return () => clearInterval(interval)
+  }, [])
+
   const suggestions = [
     { icon: Mail, text: t('welcome.suggestion.draftEmail'), templateId: 'writing-assistant' },
     { icon: FileText, text: t('welcome.suggestion.summarizeDoc'), templateId: 'research-analyst' },
@@ -47,7 +65,10 @@ export default function WelcomeScreen({ onSuggestion }: Props) {
         <Bot size={48} color="var(--accent)" strokeWidth={1.5} />
       </div>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 28, color: 'var(--text-bright)', fontWeight: 700, letterSpacing: '-0.02em' }}>{t('welcome.title')}</div>
+        <div style={{ fontSize: 28, color: 'var(--text-bright)', fontWeight: 700, letterSpacing: '-0.02em' }}>{t(greeting)}</div>
+        <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4, opacity: 0.7 }}>
+          {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+        </div>
         <div style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 8, maxWidth: 360, lineHeight: 1.7 }}>
           {t('welcome.subtitle')}
         </div>
