@@ -44,3 +44,14 @@ type: project
 - **Features**: System prompt templates updated to personal assistant roles
 - **Changes**: Replaced 5/6 developer-only templates with general-purpose roles (Writing Assistant, Research Analyst, Tutor, Creative Writer, Productivity Coach). Kept Code Reviewer.
 - **Trigger**: Continuation of product repositioning effort
+
+### Iteration 116-117 (2026-03-28)
+- **Features**: Final product positioning sweep + smart welcome suggestions with auto prompt template activation
+- **Changes**: Updated onboarding subtitle, quick reply defaults, extracted promptTemplates.ts shared utility
+
+### Iteration 118 (2026-03-28) -- CRITICAL BUG FIX
+- **Features**: Fix node-pty native module crash (P0)
+- **Changes**: Lazy-load node-pty with try-catch instead of hard import. Three-layer error handling: main process, IPC, renderer. Terminal panel shows ANSI-colored error with rebuild instructions.
+- **Trigger**: User feedback (reported multiple times). Previous fixes in 108/110 addressed wrong symptoms.
+- **Lesson learned**: Native module imports MUST be lazy-loaded with try-catch in Electron apps because the native binary may not be compiled for the target platform. Hard `import * as pty from 'node-pty'` crashes the entire main process module if the .node binary is missing. This class of issue is NOT detectable by `tsc` or `vite build` -- it only manifests at runtime on specific platforms.
+- **Process failure**: Frontend dev and tester could not catch this because: (1) builds always succeed on Linux where the binary exists, (2) there are no automated tests, (3) the tester does not have a Windows test environment. The fix is to make the code resilient to missing native modules rather than relying on testing.

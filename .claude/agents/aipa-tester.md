@@ -56,6 +56,23 @@ memory: project
 | IPC 规范 | handler 注册/注销是否配对，参数是否校验 |
 | 性能 | 有无明显的内存泄漏风险或不必要的重渲染 |
 
+<!-- improved by agent-leader 2026-03-28: 添加原生模块韧性检查，防止 node-pty 类崩溃再次漏测 -->
+### 原生模块韧性检查
+
+本项目依赖 `node-pty` 原生模块（`.node` 二进制）。每次涉及 `pty-manager.ts`、`usePty.ts`、`TerminalPanel.tsx` 或任何导入原生模块的文件时，必须检查：
+
+1. **导入方式**：原生模块是否使用 `try { require('...') } catch` 懒加载？禁止使用顶层 `import * as xxx from 'native-module'`，因为原生二进制可能在目标平台不存在，硬导入会导致整个模块加载失败。
+2. **错误状态**：依赖原生模块的 UI 组件（如 TerminalPanel）是否有对应的错误展示状态？用户看到的不应是空白面板。
+3. **IPC 错误传递**：主进程 IPC handler 是否用 try-catch 包裹原生模块调用，并将错误正确传递给渲染进程？
+
+**检查方法**：
+```bash
+# 搜索可能的脆弱导入模式
+grep -rn "import.*from 'node-pty'" electron-ui/src/
+grep -rn "require('node-pty')" electron-ui/src/
+# 确认都有 try-catch 包裹
+```
+
 ### 构建验证
 运行完整构建并记录：
 - 构建时间

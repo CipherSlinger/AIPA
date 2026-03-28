@@ -34,6 +34,18 @@ memory: project
 - CLI 本身（`package/cli.js`）——视为只读的后端服务
 - 原生模块（node-pty、electron-store）的配置变更
 
+<!-- improved by agent-leader 2026-03-28: 添加原生模块防御性编码要求，防止 node-pty 类崩溃 -->
+### 原生模块防御性编码（必须遵守）
+
+当修改涉及原生模块（如 `node-pty`）的代码时，即使该代码在 `src/main/` 目录中：
+
+1. **禁止硬导入**：不要使用 `import * as pty from 'node-pty'`。原生 `.node` 二进制可能在目标平台不存在（需要 `electron-rebuild` 或 C++ 编译工具链）。硬导入会导致整个模块加载失败。
+2. **必须懒加载**：使用 `let pty; try { pty = require('node-pty') } catch (err) { ... }` 模式。
+3. **必须有错误状态 UI**：依赖原生模块的渲染组件（如 TerminalPanel）必须处理模块不可用的情况，向用户显示有用的错误信息和修复步骤。
+4. **IPC 必须 try-catch**：主进程中调用原生模块的 IPC handler 必须用 try-catch 包裹，将错误传递给渲染进程而不是让 handler 崩溃。
+
+**参考实现**：`src/main/pty/pty-manager.ts`（Iteration 118 修复后的版本）。
+
 ---
 
 ## 技术栈 & 架构
