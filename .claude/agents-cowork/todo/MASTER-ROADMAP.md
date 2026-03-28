@@ -465,6 +465,14 @@
 | Input history persisted via localStorage (50 entries) | P2 | DONE (Iteration 137) |
 | Lazy initialization via useState initializer | P2 | DONE (Iteration 137) |
 
+### Iteration 138 -- Recent Prompts on Welcome Screen
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Recent prompts section on welcome screen (up to 3) | P2 | DONE (Iteration 138) |
+| Click to re-send recent prompt | P2 | DONE (Iteration 138) |
+| i18n for Recent label (en + zh-CN) | P2 | DONE (Iteration 138) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

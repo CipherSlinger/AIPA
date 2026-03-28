@@ -110,6 +110,7 @@
       "slashCommands": "Slash commands"
     },
     "quickActions": "Quick Actions",
+    "recentPrompts": "Recent",
     "openSettings": "Settings",
     "openTerminal": "Terminal",
     "openFiles": "Files",

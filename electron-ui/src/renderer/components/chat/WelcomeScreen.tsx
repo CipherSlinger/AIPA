@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { Bot, Mail, FileText, ClipboardList, Lightbulb, Settings, Terminal, FolderOpen, Keyboard } from 'lucide-react'
+import React, { useState, useEffect, useMemo } from 'react'
+import { Bot, Mail, FileText, ClipboardList, Lightbulb, Settings, Terminal, FolderOpen, Keyboard, History } from 'lucide-react'
 import { useUiStore } from '../../store'
 import { useT } from '../../i18n'
 
@@ -25,6 +25,17 @@ export default function WelcomeScreen({ onSuggestion }: Props) {
       setGreeting(getGreetingKey())
     }, 60000)
     return () => clearInterval(interval)
+  }, [])
+
+  // Load recent prompts from persistent input history
+  const recentPrompts = useMemo<string[]>(() => {
+    try {
+      const stored = localStorage.getItem('aipa:input-history')
+      if (!stored) return []
+      const history: string[] = JSON.parse(stored)
+      // Show up to 3 recent prompts, each truncated to 60 chars
+      return history.slice(0, 3).filter(h => h.length > 0)
+    } catch { return [] }
   }, [])
 
   const suggestions = [
@@ -149,6 +160,49 @@ export default function WelcomeScreen({ onSuggestion }: Props) {
           </div>
         ))}
       </div>
+
+      {/* Recent prompts */}
+      {recentPrompts.length > 0 && (
+        <div style={{ width: '100%', maxWidth: 420 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <History size={11} />
+            {t('welcome.recentPrompts')}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {recentPrompts.map((prompt, i) => (
+              <button
+                key={i}
+                onClick={() => onSuggestion(prompt)}
+                style={{
+                  background: 'var(--card-bg)',
+                  border: '1px solid var(--card-border)',
+                  borderRadius: 8,
+                  padding: '8px 12px',
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  textAlign: 'left',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  transition: 'background 0.15s, border-color 0.15s',
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background = 'var(--action-btn-hover)';
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background = 'var(--card-bg)';
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--card-border)'
+                }}
+                title={prompt}
+              >
+                {prompt.length > 80 ? prompt.slice(0, 80) + '...' : prompt}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Quick action buttons */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
