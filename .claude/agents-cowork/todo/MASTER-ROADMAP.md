@@ -539,6 +539,11 @@
 - **Files changed**: `CommandPalette.tsx`, `en.json`, `zh-CN.json`
 - **Status**: Done
 
+### Iteration 149 — i18n ChatInput hardcoded strings
+- **Feature**: Replace hardcoded 'Describe this image' fallback and slash command source labels with i18n calls
+- **Files changed**: `ChatInput.tsx`, `en.json`, `zh-CN.json`
+- **Status**: Done
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

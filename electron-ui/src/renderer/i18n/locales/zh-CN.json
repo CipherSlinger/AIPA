@@ -403,7 +403,9 @@
     "noResults": "\u6ca1\u6709\u5339\u914d\u7684\u547d\u4ee4",
     "arrowKeysHint": "\u65b9\u5411\u952e\u5bfc\u822a",
     "enterHint": "Enter \u9009\u62e9",
-    "escHint": "Esc \u5173\u95ed"
+    "escHint": "Esc \u5173\u95ed",
+    "sourceProject": "[\u9879\u76ee]",
+    "sourceUser": "[\u7528\u6237]"
   },
   "permission": {
     "allow": "\u5141\u8bb8",

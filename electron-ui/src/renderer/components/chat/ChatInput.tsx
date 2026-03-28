@@ -164,7 +164,7 @@ export default function ChatInput({
     const text = input.trim()
     if (!text && attachments.length === 0 || isStreaming) return
     // Build final message with pending quote prepended
-    let finalText = text || 'Describe this image'
+    let finalText = text || t('chat.describeImage')
     if (pendingQuote) {
       const quotedLines = pendingQuote.split('\n').map((l: string) => `> ${l}`).join('\n')
       finalText = quotedLines + '\n\n' + finalText
@@ -285,7 +285,7 @@ export default function ChatInput({
     window.electronAPI.fsListCommands(prefs.workingDir || '').then((cmds: { name: string; description: string; source: string }[]) => {
       setCustomCommands(cmds.map(c => ({
         name: c.name,
-        description: c.description + (c.source === 'project' ? ' [Project]' : ' [User]'),
+        description: c.description + (c.source === 'project' ? ` ${t('command.sourceProject')}` : ` ${t('command.sourceUser')}`),
       })))
     }).catch(() => {})
   }, [slashPopupOpen, prefs.workingDir])
