@@ -1,30 +1,20 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Send, Square, Plus, Mic, MicOff, Download, Upload, Maximize2, Minimize2, Bookmark, BarChart3, ListPlus, AtSign, TerminalSquare, Search, RefreshCw, ClipboardCopy } from 'lucide-react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { Upload, RefreshCw } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { useStreamJson } from '../../hooks/useStreamJson'
+import { useStreamingTimer } from '../../hooks/useStreamingTimer'
+import { useChatZoom } from '../../hooks/useChatZoom'
+import { useConversationSearch } from '../../hooks/useConversationSearch'
+import { useConversationStats } from '../../hooks/useConversationStats'
+import ChatHeader from './ChatHeader'
+import ChatInput from './ChatInput'
 import MessageList from './MessageList'
 import SearchBar from './SearchBar'
-import AtMentionPopup from './AtMentionPopup'
-import SlashCommandPopup, { SLASH_COMMANDS, SlashCommand } from './SlashCommandPopup'
-import { useImagePaste } from '../../hooks/useImagePaste'
-import { ChatMessage, StandardChatMessage } from '../../types/app.types'
 import TaskQueuePanel from './TaskQueuePanel'
-import QuickReplyChips from './QuickReplyChips'
 import ThinkingIndicator from './ThinkingIndicator'
 import WelcomeScreen from './WelcomeScreen'
+import { formatMarkdown } from '../../utils/formatMarkdown'
 import { useT } from '../../i18n'
-
-// Placeholder suggestion i18n keys
-const PLACEHOLDER_KEYS = [
-  'chat.placeholders.default',
-  'chat.placeholders.analyzeCode',
-  'chat.placeholders.describeBug',
-  'chat.placeholders.explainFunction',
-  'chat.placeholders.writeTest',
-  'chat.placeholders.refactorFile',
-  'chat.placeholders.buildFeature',
-  'chat.placeholders.reviewPR',
-]
 
 // Constants for drag-and-drop file handling
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg']
@@ -41,215 +31,29 @@ export default function ChatPanel() {
   const addToast = useUiStore(s => s.addToast)
   const focusMode = useUiStore(s => s.focusMode)
   const toggleFocusMode = useUiStore(s => s.toggleFocusMode)
-  const quotedText = useUiStore(s => s.quotedText)
-  const setQuotedText = useUiStore(s => s.setQuotedText)
-  const taskQueue = useChatStore(s => s.taskQueue)
-  const addToQueue = useChatStore(s => s.addToQueue)
   const prepareRegeneration = useChatStore(s => s.prepareRegeneration)
 
-  // Chat zoom (Ctrl+= / Ctrl+- / Ctrl+0)
-  const [chatZoom, setChatZoom] = useState(100) // percentage
-
-  // Compute bookmarked messages
-  const bookmarkedMessages = useMemo(() => {
-    return messages
-      .map((msg, idx) => ({ msg, idx }))
-      .filter(({ msg }) => msg.role !== 'permission' && msg.role !== 'plan' && (msg as StandardChatMessage).bookmarked)
-  }, [messages])
-
-  // Compute conversation statistics
-  const conversationStats = useMemo(() => {
-    const userMsgs = messages.filter(m => m.role === 'user')
-    const assistantMsgs = messages.filter(m => m.role === 'assistant')
-    const totalWords = messages.reduce((sum, m) => {
-      if (m.role === 'permission' || m.role === 'plan') return sum
-      const content = (m as StandardChatMessage).content || ''
-      return sum + content.split(/\s+/).filter(w => w.length > 0).length
-    }, 0)
-    const toolUseCount = messages.reduce((sum, m) => {
-      if (m.role === 'permission' || m.role === 'plan') return sum
-      return sum + ((m as StandardChatMessage).toolUses?.length || 0)
-    }, 0)
-    const firstTs = messages.length > 0 ? messages[0].timestamp : 0
-    const lastTs = messages.length > 0 ? messages[messages.length - 1].timestamp : 0
-    const durationMs = lastTs - firstTs
-    const durationMin = Math.max(1, Math.round(durationMs / 60000))
-    return {
-      total: messages.filter(m => m.role !== 'permission' && m.role !== 'plan').length,
-      user: userMsgs.length,
-      assistant: assistantMsgs.length,
-      totalWords,
-      toolUseCount,
-      durationMin,
-    }
-  }, [messages])
   const { sendMessage, abort, respondPermission, grantToolPermission, newConversation } = useStreamJson()
-  const [input, setInput] = useState(() => {
-    // Restore draft from sessionStorage
-    try {
-      return sessionStorage.getItem('aipa:draft-input') || ''
-    } catch { return '' }
-  })
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Auto-save draft input to sessionStorage
-  useEffect(() => {
-    try {
-      if (input) {
-        sessionStorage.setItem('aipa:draft-input', input)
-      } else {
-        sessionStorage.removeItem('aipa:draft-input')
-      }
-    } catch { /* sessionStorage may not be available */ }
-  }, [input])
+  // Extracted hooks
+  const { elapsedStr } = useStreamingTimer(isStreaming)
+  const { chatZoom, resetZoom } = useChatZoom()
+  const { bookmarkedMessages, conversationStats } = useConversationStats(messages)
+  const {
+    searchOpen, searchQuery, searchMatches, currentMatchIdx,
+    handleSearch, handleSearchNavigate, handleSearchClose, setSearchOpen,
+  } = useConversationSearch(messages)
 
-  // Handle quote reply: prepend quoted text to input
-  useEffect(() => {
-    if (!quotedText) return
-    const lines = quotedText.split('\n').map((l: string) => `> ${l}`).join('\n')
-    setInput((prev: string) => {
-      const separator = prev.trim() ? '\n\n' : ''
-      return `${lines}${separator}${prev}`
-    })
-    setQuotedText(null)
-    // Focus the textarea
-    setTimeout(() => textareaRef.current?.focus(), 50)
-  }, [quotedText, setQuotedText])
-
-  // @ mention state
-  const [atQuery, setAtQuery] = useState<string | null>(null)
-  const inputWrapRef = useRef<HTMLDivElement>(null)
-
-  // Slash command state
-  const [slashQuery, setSlashQuery] = useState<string | null>(null)
-  const [slashIndex, setSlashIndex] = useState(0)
-  const [customCommands, setCustomCommands] = useState<{ name: string; description: string }[]>([])
-
-  // Speech recognition state
-  const [listening, setListening] = useState(false)
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
-
-  // Input history (sent messages)
-  const inputHistoryRef = useRef<string[]>([])
-  const historyIdxRef = useRef(-1)
-  const tempInputRef = useRef('')
-
-  // Rotating placeholder
-  const [placeholderIdx, setPlaceholderIdx] = useState(0)
-  useEffect(() => {
-    if (input.length > 0) return // Don't rotate when user has typed something
-    const id = setInterval(() => {
-      setPlaceholderIdx(i => (i + 1) % PLACEHOLDER_KEYS.length)
-    }, 4000)
-    return () => clearInterval(id)
-  }, [input])
+  // Scroll-to-message state (for bookmarks panel)
+  const [scrollToMessageIdx, setScrollToMessageIdx] = useState<number | undefined>(undefined)
 
   // Drag-and-drop state
   const [isDragOver, setIsDragOver] = useState(false)
   const dragCounterRef = useRef(0)
 
-  // Bookmarks dropdown state
-  const [showBookmarks, setShowBookmarks] = useState(false)
-  const [scrollToMessageIdx, setScrollToMessageIdx] = useState<number | undefined>(undefined)
-  const bookmarksRef = useRef<HTMLDivElement>(null)
-  const [showStats, setShowStats] = useState(false)
-  const statsRef = useRef<HTMLDivElement>(null)
+  // Regeneration
+  const canRegenerate = !isStreaming && messages.length >= 2 && messages[messages.length - 1]?.role === 'assistant'
 
-  // Streaming elapsed timer — uses ref for start time to avoid re-render loops
-  const streamStartRef = useRef<number | null>(null)
-  const [elapsed, setElapsed] = useState(0)
-
-  useEffect(() => {
-    if (isStreaming) {
-      if (!streamStartRef.current) {
-        streamStartRef.current = Date.now()
-      }
-      const tick = () => {
-        if (streamStartRef.current) {
-          setElapsed(Math.floor((Date.now() - streamStartRef.current) / 1000))
-        }
-      }
-      tick()
-      const id = setInterval(tick, 1000)
-      return () => clearInterval(id)
-    } else {
-      streamStartRef.current = null
-      setElapsed(0)
-    }
-  }, [isStreaming])
-
-  const elapsedStr = useMemo(() => {
-    if (!isStreaming || elapsed < 1) return null
-    const m = Math.floor(elapsed / 60)
-    const s = elapsed % 60
-    return m > 0 ? `${m}m ${s}s` : `${s}s`
-  }, [isStreaming, elapsed])
-
-  const { attachments, handlePaste, addFiles, removeAttachment, clearAttachments } = useImagePaste()
-
-  // Conversation search state
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchMatches, setSearchMatches] = useState<number[]>([])
-  const [currentMatchIdx, setCurrentMatchIdx] = useState(0)
-
-  const handleSearch = useCallback((query: string) => {
-    setSearchQuery(query)
-    if (!query.trim()) {
-      setSearchMatches([])
-      setCurrentMatchIdx(0)
-      return
-    }
-    const lower = query.toLowerCase()
-    const matches: number[] = []
-    messages.forEach((msg, idx) => {
-      if (msg.role === 'permission' || msg.role === 'plan') return
-      const content = (msg as StandardChatMessage).content || ''
-      if (content.toLowerCase().includes(lower)) {
-        matches.push(idx)
-      }
-    })
-    setSearchMatches(matches)
-    setCurrentMatchIdx(0)
-  }, [messages])
-
-  const handleSearchNavigate = useCallback((direction: 'next' | 'prev') => {
-    if (searchMatches.length === 0) return
-    setCurrentMatchIdx(prev => {
-      if (direction === 'next') return (prev + 1) % searchMatches.length
-      return (prev - 1 + searchMatches.length) % searchMatches.length
-    })
-  }, [searchMatches.length])
-
-  const handleSearchClose = useCallback(() => {
-    setSearchOpen(false)
-    setSearchQuery('')
-    setSearchMatches([])
-    setCurrentMatchIdx(0)
-  }, [])
-
-  const handleSend = async () => {
-    const text = input.trim()
-    if (!text && attachments.length === 0 || isStreaming) return
-    // Save to input history
-    if (text) {
-      inputHistoryRef.current = [text, ...inputHistoryRef.current.filter(h => h !== text)].slice(0, 50)
-      historyIdxRef.current = -1
-    }
-    setInput('')
-    setAtQuery(null)
-    clearAttachments()
-    resizeTextarea()
-    try { sessionStorage.removeItem('aipa:draft-input') } catch { /* ignore */ }
-    await sendMessage(text || 'Describe this image', attachments.length > 0 ? attachments : undefined)
-  }
-
-  const sendText = async (text: string) => {
-    if (!text.trim() || isStreaming) return
-    await sendMessage(text.trim())
-  }
-
-  // ── Regenerate last response ────────────────────
   const handleRegenerate = async () => {
     if (isStreaming) return
     const prompt = prepareRegeneration()
@@ -257,9 +61,6 @@ export default function ChatPanel() {
       await sendMessage(prompt)
     }
   }
-
-  // Compute whether regeneration is available
-  const canRegenerate = !isStreaming && messages.length >= 2 && messages[messages.length - 1]?.role === 'assistant'
 
   // ── Export conversation ──────────────────────────
   const exportConversation = useCallback(async () => {
@@ -271,7 +72,7 @@ export default function ChatPanel() {
       { name: 'Markdown', extensions: ['md'] },
       { name: 'JSON', extensions: ['json'] },
     ])
-    if (!filePath) return // user cancelled
+    if (!filePath) return
 
     const isJson = filePath.toLowerCase().endsWith('.json')
     let content: string
@@ -288,7 +89,7 @@ export default function ChatPanel() {
     } else {
       addToast('success', t('chat.exportSuccess'))
     }
-  }, [messages, currentSessionId, addToast])
+  }, [messages, currentSessionId, addToast, t])
 
   // ── Copy conversation to clipboard ──────────────────────────
   const copyConversation = useCallback(async () => {
@@ -302,36 +103,21 @@ export default function ChatPanel() {
     }
   }, [messages, currentSessionId, addToast, t])
 
-  // Keyboard shortcut: Ctrl+Shift+E for export
+  // ── Global keyboard shortcuts ──────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === 'E') {
         e.preventDefault()
         exportConversation()
       }
-      // Ctrl+Shift+X: Copy conversation to clipboard
       if (e.ctrlKey && e.shiftKey && e.key === 'X') {
         e.preventDefault()
         copyConversation()
       }
-      // Ctrl+F: Open search
       if (e.ctrlKey && !e.shiftKey && e.key === 'f') {
         e.preventDefault()
         setSearchOpen(true)
       }
-      // Ctrl+Shift+Q: Add current input to queue
-      if (e.ctrlKey && e.shiftKey && e.key === 'Q') {
-        e.preventDefault()
-        const currentInput = input.trim()
-        if (currentInput) {
-          addToQueue(currentInput)
-          setInput('')
-          resizeTextarea()
-          try { sessionStorage.removeItem('aipa:draft-input') } catch { /* ignore */ }
-          textareaRef.current?.focus()
-        }
-      }
-      // Ctrl+Shift+R: Regenerate last response
       if (e.ctrlKey && e.shiftKey && e.key === 'R') {
         e.preventDefault()
         const state = useChatStore.getState()
@@ -340,29 +126,10 @@ export default function ChatPanel() {
           if (prompt) sendMessage(prompt)
         }
       }
-      // Ctrl+= / Ctrl+-: Chat zoom
-      if (e.ctrlKey && !e.shiftKey && (e.key === '=' || e.key === '+')) {
-        e.preventDefault()
-        setChatZoom(z => {
-          const next = Math.min(z + 10, 150)
-          return next
-        })
-      }
-      if (e.ctrlKey && !e.shiftKey && e.key === '-') {
-        e.preventDefault()
-        setChatZoom(z => {
-          const next = Math.max(z - 10, 70)
-          return next
-        })
-      }
-      if (e.ctrlKey && !e.shiftKey && e.key === '0') {
-        e.preventDefault()
-        setChatZoom(100)
-      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [exportConversation, copyConversation, input, addToQueue])
+  }, [exportConversation, copyConversation, setSearchOpen, sendMessage])
 
   // Listen for export trigger from CommandPalette
   useEffect(() => {
@@ -370,30 +137,6 @@ export default function ChatPanel() {
     window.addEventListener('aipa:export', handler)
     return () => window.removeEventListener('aipa:export', handler)
   }, [exportConversation])
-
-  // Close bookmarks dropdown on click outside
-  useEffect(() => {
-    if (!showBookmarks) return
-    const handler = (e: MouseEvent) => {
-      if (bookmarksRef.current && !bookmarksRef.current.contains(e.target as Node)) {
-        setShowBookmarks(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [showBookmarks])
-
-  // Close stats dropdown on click outside
-  useEffect(() => {
-    if (!showStats) return
-    const handler = (e: MouseEvent) => {
-      if (statsRef.current && !statsRef.current.contains(e.target as Node)) {
-        setShowStats(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [showStats])
 
   // Listen for slash command from CommandPalette
   useEffect(() => {
@@ -403,10 +146,9 @@ export default function ChatPanel() {
     }
     window.addEventListener('aipa:slashCommand', handler)
     return () => window.removeEventListener('aipa:slashCommand', handler)
-  }, [])
+  }, [sendMessage])
 
   // ── File drag-and-drop ──────────────────────────
-
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -459,7 +201,6 @@ export default function ChatPanel() {
         }
         imageFiles.push(file)
       } else {
-        // Electron File objects have a .path property with the full absolute path
         const filePath = (file as any).path as string
         if (filePath) {
           pathFiles.push(filePath)
@@ -467,198 +208,23 @@ export default function ChatPanel() {
       }
     }
 
-    // Attach images via the existing image paste mechanism
-    if (imageFiles.length > 0) {
-      addFiles(imageFiles)
-    }
+    // Dispatch to ChatInput via CustomEvent
+    const atPaths = pathFiles.length > 0 ? pathFiles.map(p => `@${p}`).join(' ') : undefined
+    window.dispatchEvent(new CustomEvent('aipa:dropFiles', {
+      detail: { imageFiles, atPaths }
+    }))
+  }, [addToast, t])
 
-    // Insert @paths for non-image files
-    if (pathFiles.length > 0) {
-      const atPaths = pathFiles.map(p => `@${p}`).join(' ')
-      setInput(prev => {
-        const sep = prev.length > 0 && !prev.endsWith(' ') ? ' ' : ''
-        return prev + sep + atPaths
-      })
-      // Focus textarea after inserting paths
-      setTimeout(() => textareaRef.current?.focus(), 0)
-    }
-  }, [addFiles, addToast])
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (atQuery !== null && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === 'Escape')) {
-      // Let AtMentionPopup handle these keys
-      return
-    }
-    if (slashQuery !== null && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === 'Escape')) {
-      return // SlashCommandPopup handles these keys via useEffect
-    }
-    // Input history navigation (only when cursor is at line boundaries)
-    if (e.key === 'ArrowUp' && !e.shiftKey && atQuery === null && slashQuery === null) {
-      const ta = textareaRef.current
-      if (ta && ta.selectionStart === 0 && ta.selectionEnd === 0 && inputHistoryRef.current.length > 0) {
-        e.preventDefault()
-        if (historyIdxRef.current === -1) {
-          tempInputRef.current = input
-        }
-        const nextIdx = Math.min(historyIdxRef.current + 1, inputHistoryRef.current.length - 1)
-        historyIdxRef.current = nextIdx
-        setInput(inputHistoryRef.current[nextIdx])
-      }
-    }
-    if (e.key === 'ArrowDown' && !e.shiftKey && atQuery === null && slashQuery === null) {
-      const ta = textareaRef.current
-      if (ta && ta.selectionStart === input.length && historyIdxRef.current >= 0) {
-        e.preventDefault()
-        const nextIdx = historyIdxRef.current - 1
-        historyIdxRef.current = nextIdx
-        setInput(nextIdx >= 0 ? inputHistoryRef.current[nextIdx] : tempInputRef.current)
-      }
-    }
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
-    }
-  }
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const val = e.target.value
-    setInput(val)
-
-    // Detect @ trigger
-    const cursor = e.target.selectionStart
-    const textBefore = val.slice(0, cursor)
-    const atMatch = textBefore.match(/@([^\s]*)$/)
-    if (atMatch) {
-      setAtQuery(atMatch[1])
-    } else {
-      setAtQuery(null)
-    }
-
-    // Detect / trigger (at start of input or after whitespace)
-    const slashMatch = textBefore.match(/(?:^|\s)(\/[^\s]*)$/)
-    if (slashMatch) {
-      setSlashQuery(slashMatch[1].slice(1)) // strip leading /
-      setSlashIndex(0)
-      setAtQuery(null)
-    } else if (!atMatch) {
-      setSlashQuery(null)
-    }
-  }
-
-  const handleAtSelect = (filePath: string) => {
-    // Replace @query with the selected path
-    const cursor = textareaRef.current?.selectionStart ?? input.length
-    const textBefore = input.slice(0, cursor)
-    const textAfter = input.slice(cursor)
-    const atMatch = textBefore.match(/@([^\s]*)$/)
-    if (atMatch) {
-      const replaced = textBefore.slice(0, textBefore.length - atMatch[0].length) + `@${filePath}` + textAfter
-      setInput(replaced)
-    }
-    setAtQuery(null)
-    textareaRef.current?.focus()
-  }
-
-  const handleSlashSelect = async (cmd: SlashCommand) => {
-    setSlashQuery(null)
-    setInput('')
-    if (cmd.clientOnly) {
-      if (cmd.name === '/clear') {
-        newConversation()
-      } else if (cmd.name === '/help') {
-        useChatStore.getState().addMessage({
-          id: `help-${Date.now()}`,
-          role: 'assistant',
-          content: `**${t('command.availableCommands')}:**\n\n` + SLASH_COMMANDS.map(c => `- \`${c.name}\` — ${c.description}`).join('\n'),
-          timestamp: Date.now(),
-        } as any)
-      }
-      return
-    }
-    // Send to CLI (built-in commands like /compact) or custom commands (fill input for user to confirm)
-    const isBuiltin = SLASH_COMMANDS.some(c => c.name === cmd.name)
-    if (isBuiltin) {
-      await sendMessage(cmd.name)
-    } else {
-      // Custom command: fill input, user can add parameters before sending
-      setInput(cmd.name + ' ')
-      textareaRef.current?.focus()
-    }
-  }
-
-  // Load custom slash commands once when popup opens (not on every keystroke)
-  const slashPopupOpen = slashQuery !== null
-  useEffect(() => {
-    if (!slashPopupOpen) return
-    window.electronAPI.fsListCommands(prefs.workingDir || '').then((cmds: { name: string; description: string; source: string }[]) => {
-      setCustomCommands(cmds.map(c => ({
-        name: c.name,
-        description: c.description + (c.source === 'project' ? ' [Project]' : ' [User]'),
-      })))
-    }).catch(() => {})
-  }, [slashPopupOpen])
-
-  // Speech recognition
-  const toggleSpeech = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SpeechRecognition) return
-
-    if (listening) {
-      recognitionRef.current?.stop()
-      setListening(false)
-      return
-    }
-
-    const recognition = new SpeechRecognition()
-    recognition.lang = navigator.language || 'en-US'
-    recognition.interimResults = false
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
-      const transcript = event.results[0][0].transcript
-      setInput((prev) => prev + transcript)
-    }
-    recognition.onend = () => setListening(false)
-    recognition.onerror = () => setListening(false)
-    recognitionRef.current = recognition
-    recognition.start()
-    setListening(true)
-  }
-
-  const resizeTextarea = () => {
-    const ta = textareaRef.current
-    if (!ta) return
-    ta.style.height = 'auto'
-    ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'
-  }
-
-  useEffect(() => {
-    resizeTextarea()
-  }, [input])
-
-  // Focus input on mount
-  useEffect(() => {
-    textareaRef.current?.focus()
+  // Scroll-to-message handler for bookmarks
+  const handleScrollToMessage = useCallback((idx: number) => {
+    setScrollToMessageIdx(idx)
+    setTimeout(() => setScrollToMessageIdx(undefined), 100)
   }, [])
 
-  // Listen for focus request from global shortcut (Ctrl+L)
-  useEffect(() => {
-    const handler = () => textareaRef.current?.focus()
-    window.addEventListener('aipa:focusInput', handler)
-    return () => window.removeEventListener('aipa:focusInput', handler)
-  }, [])
-
-  // Slash command keyboard navigation
-  useEffect(() => {
-    if (slashQuery === null) return
-    const filtered = SLASH_COMMANDS.filter(c => !slashQuery || c.name.toLowerCase().includes(slashQuery.toLowerCase()))
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowDown') { e.preventDefault(); setSlashIndex(i => Math.min(i + 1, filtered.length - 1)) }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); setSlashIndex(i => Math.max(i - 1, 0)) }
-      else if (e.key === 'Enter') { e.preventDefault(); if (filtered[slashIndex]) handleSlashSelect(filtered[slashIndex]) }
-      else if (e.key === 'Escape') { setSlashQuery(null) }
-    }
-    window.addEventListener('keydown', handler, true)
-    return () => window.removeEventListener('keydown', handler, true)
-  }, [slashQuery, slashIndex])
+  const sendText = async (text: string) => {
+    if (!text.trim() || isStreaming) return
+    await sendMessage(text.trim())
+  }
 
   return (
     <div
@@ -699,393 +265,26 @@ export default function ChatPanel() {
       )}
 
       {/* Chat Header */}
-      <div
-        style={{
-          height: 44,
-          display: 'flex',
-          alignItems: 'center',
-          padding: '0 16px',
-          gap: 8,
-          borderBottom: '1px solid var(--border)',
-          background: 'var(--chat-header-bg)',
-          flexShrink: 0,
-        }}
-      >
-        <span style={{
-          fontSize: 13,
-          fontWeight: 600,
-          color: 'var(--chat-header-title)',
-          flex: 1,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}>
-          {currentSessionTitle
-            ? currentSessionTitle
-            : currentSessionId
-            ? `Session: ${currentSessionId.slice(0, 8)}...`
-            : `${prefs.model?.split('-').slice(0, 3).join('-') || 'claude'}`}
-        </span>
-        {/* Action icons — right side */}
-        <button
-          onClick={() => setSearchOpen(!searchOpen)}
-          title={`${t('chat.searchConversation')} (Ctrl+F)`}
-          style={{
-            background: searchOpen ? 'var(--accent)' : 'none',
-            border: 'none',
-            color: searchOpen ? '#fff' : 'var(--chat-header-icon)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 28,
-            height: 28,
-            borderRadius: 6,
-            flexShrink: 0,
-            transition: 'background 150ms, color 150ms',
-          }}
-          onMouseEnter={(e) => { if (!searchOpen) { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon-hover)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)' } }}
-          onMouseLeave={(e) => { if (!searchOpen) { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon)'; (e.currentTarget as HTMLButtonElement).style.background = 'none' } }}
-        >
-          <Search size={15} />
-        </button>
-        <button
-          onClick={exportConversation}
-          disabled={messages.length === 0}
-          title={`${t('chat.export')} (Ctrl+Shift+E)`}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--chat-header-icon)',
-            cursor: messages.length === 0 ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 28,
-            height: 28,
-            borderRadius: 6,
-            flexShrink: 0,
-            opacity: messages.length === 0 ? 0.3 : 1,
-            transition: 'background 150ms, color 150ms',
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon-hover)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)' }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon)'; (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
-        >
-          <Download size={15} />
-        </button>
-        <button
-          onClick={copyConversation}
-          disabled={messages.length === 0}
-          title={`${t('chat.copyConversation')} (Ctrl+Shift+X)`}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--chat-header-icon)',
-            cursor: messages.length === 0 ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 28,
-            height: 28,
-            borderRadius: 6,
-            flexShrink: 0,
-            opacity: messages.length === 0 ? 0.3 : 1,
-            transition: 'background 150ms, color 150ms',
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon-hover)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)' }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon)'; (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
-        >
-          <ClipboardCopy size={15} />
-        </button>
-        {/* Bookmarks dropdown */}
-        <div style={{ position: 'relative' }} ref={bookmarksRef}>
-          <button
-            onClick={() => setShowBookmarks(!showBookmarks)}
-            title={`${t('chat.bookmarks')} (${bookmarkedMessages.length})`}
-            style={{
-              background: showBookmarks ? 'var(--accent)' : 'none',
-              border: 'none',
-              color: showBookmarks ? '#fff' : bookmarkedMessages.length > 0 ? 'var(--warning)' : 'var(--chat-header-icon)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 28,
-              height: 28,
-              borderRadius: 6,
-              flexShrink: 0,
-              opacity: bookmarkedMessages.length === 0 && !showBookmarks ? 0.5 : 1,
-              transition: 'background 150ms, color 150ms',
-              position: 'relative',
-            }}
-            onMouseEnter={(e) => { if (!showBookmarks) { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon-hover)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)' } }}
-            onMouseLeave={(e) => { if (!showBookmarks) { (e.currentTarget as HTMLButtonElement).style.color = bookmarkedMessages.length > 0 ? 'var(--warning)' : 'var(--chat-header-icon)'; (e.currentTarget as HTMLButtonElement).style.background = 'none' } }}
-          >
-            <Bookmark size={15} />
-            {bookmarkedMessages.length > 0 && (
-              <span style={{
-                position: 'absolute',
-                top: 2,
-                right: 2,
-                fontSize: 9,
-                fontWeight: 600,
-                color: '#fff',
-                background: 'var(--warning)',
-                borderRadius: '50%',
-                width: 14,
-                height: 14,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                lineHeight: 1,
-              }}>{bookmarkedMessages.length > 9 ? '9+' : bookmarkedMessages.length}</span>
-            )}
-          </button>
-          {showBookmarks && bookmarkedMessages.length > 0 && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '100%',
-                right: 0,
-                zIndex: 60,
-                width: 280,
-                maxHeight: 300,
-                overflowY: 'auto',
-                background: 'var(--input-field-bg)',
-                border: '1px solid var(--border)',
-                borderRadius: 8,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-                padding: '4px 0',
-                marginTop: 4,
-              }}
-            >
-              <div style={{ padding: '6px 12px', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, borderBottom: '1px solid var(--border)' }}>
-                {t('chat.bookmarks')}
-              </div>
-              {bookmarkedMessages.map(({ msg, idx }) => {
-                const std = msg as StandardChatMessage
-                const preview = (std.content || '').slice(0, 80).replace(/\n/g, ' ')
-                return (
-                  <button
-                    key={msg.id}
-                    onClick={() => {
-                      setScrollToMessageIdx(idx)
-                      setTimeout(() => setScrollToMessageIdx(undefined), 100)
-                      setShowBookmarks(false)
-                    }}
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      textAlign: 'left',
-                      background: 'none',
-                      border: 'none',
-                      padding: '8px 12px',
-                      cursor: 'pointer',
-                      color: 'var(--text-primary)',
-                      fontSize: 12,
-                      lineHeight: 1.4,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-                  >
-                    <span style={{ color: 'var(--text-muted)', fontSize: 10, marginRight: 6 }}>
-                      {std.role === 'user' ? t('chat.you') : t('chat.claude')}
-                    </span>
-                    {preview || '(empty)'}
-                  </button>
-                )
-              })}
-            </div>
-          )}
-          {showBookmarks && bookmarkedMessages.length === 0 && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '100%',
-                right: 0,
-                zIndex: 60,
-                width: 200,
-                background: 'var(--input-field-bg)',
-                border: '1px solid var(--border)',
-                borderRadius: 8,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-                padding: '16px 12px',
-                marginTop: 4,
-                textAlign: 'center',
-                fontSize: 12,
-                color: 'var(--text-muted)',
-              }}
-            >
-              {t('chat.noBookmarks')}
-              <div style={{ fontSize: 10, marginTop: 4 }}>{t('chat.bookmarkHint')}</div>
-            </div>
-          )}
-        </div>
-        {/* Stats popover */}
-        <div style={{ position: 'relative' }} ref={statsRef}>
-          <button
-            onClick={() => setShowStats(!showStats)}
-            title={t('chat.stats')}
-            disabled={messages.length === 0}
-            style={{
-              background: showStats ? 'var(--accent)' : 'none',
-              border: 'none',
-              color: showStats ? '#fff' : 'var(--chat-header-icon)',
-              cursor: messages.length === 0 ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 28,
-              height: 28,
-              borderRadius: 6,
-              flexShrink: 0,
-              opacity: messages.length === 0 ? 0.3 : 1,
-              transition: 'background 150ms, color 150ms',
-            }}
-            onMouseEnter={(e) => { if (!showStats) { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon-hover)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)' } }}
-            onMouseLeave={(e) => { if (!showStats) { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon)'; (e.currentTarget as HTMLButtonElement).style.background = 'none' } }}
-          >
-            <BarChart3 size={15} />
-          </button>
-          {showStats && messages.length > 0 && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '100%',
-                right: 0,
-                zIndex: 60,
-                width: 220,
-                background: 'var(--input-field-bg)',
-                border: '1px solid var(--border)',
-                borderRadius: 8,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-                padding: '12px 14px',
-                marginTop: 4,
-              }}
-            >
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-bright)', marginBottom: 10 }}>
-                {t('chat.conversationStats')}
-              </div>
-              {[
-                { label: t('chat.statsMessages'), value: conversationStats.total },
-                { label: t('chat.statsYourMessages'), value: conversationStats.user },
-                { label: t('chat.statsClaudeMessages'), value: conversationStats.assistant },
-                { label: t('chat.statsTotalWords'), value: conversationStats.totalWords.toLocaleString() },
-                { label: t('chat.statsToolUses'), value: conversationStats.toolUseCount },
-                { label: t('chat.statsDuration'), value: `~${conversationStats.durationMin} min` },
-              ].map(({ label, value }) => (
-                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 11 }}>
-                  <span style={{ color: 'var(--text-muted)' }}>{label}</span>
-                  <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{value}</span>
-                </div>
-              ))}
-              {useChatStore.getState().totalSessionCost > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 11, borderTop: '1px solid var(--border)', marginTop: 4, paddingTop: 6 }}>
-                  <span style={{ color: 'var(--text-muted)' }}>{t('chat.statsSessionCost')}</span>
-                  <span style={{ color: 'var(--success)', fontWeight: 500 }}>${useChatStore.getState().totalSessionCost.toFixed(4)}</span>
-                </div>
-              )}
-              {/* Collapse/Expand all actions */}
-              <div style={{ display: 'flex', gap: 6, marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 8 }}>
-                <button
-                  onClick={() => { useChatStore.getState().collapseAll(); setShowStats(false) }}
-                  style={{
-                    flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border)',
-                    borderRadius: 4, padding: '4px 0', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 10,
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
-                >
-                  {t('chat.collapseAll')}
-                </button>
-                <button
-                  onClick={() => { useChatStore.getState().expandAll(); setShowStats(false) }}
-                  style={{
-                    flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border)',
-                    borderRadius: 4, padding: '4px 0', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 10,
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
-                >
-                  {t('chat.expandAll')}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-        <button
-          onClick={toggleFocusMode}
-          title={focusMode ? `${t('chat.exitFocusMode')} (Ctrl+Shift+F)` : `${t('chat.focusMode')} (Ctrl+Shift+F)`}
-          style={{
-            background: focusMode ? 'var(--accent)' : 'none',
-            border: 'none',
-            color: focusMode ? '#fff' : 'var(--chat-header-icon)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 28,
-            height: 28,
-            borderRadius: 6,
-            flexShrink: 0,
-            transition: 'background 150ms, color 150ms',
-          }}
-          onMouseEnter={(e) => { if (!focusMode) { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon-hover)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)' } }}
-          onMouseLeave={(e) => { if (!focusMode) { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon)'; (e.currentTarget as HTMLButtonElement).style.background = 'none' } }}
-        >
-          {focusMode ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-        </button>
-        {elapsedStr && (
-          <span style={{
-            fontSize: 10,
-            color: 'var(--success)',
-            fontFamily: 'monospace',
-            flexShrink: 0,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-          }}>
-            <span
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                border: '2px solid var(--success)',
-                borderTopColor: 'transparent',
-                animation: 'spin 0.8s linear infinite',
-                display: 'inline-block',
-                flexShrink: 0,
-              }}
-            />
-            {elapsedStr}
-          </span>
-        )}
-        <button
-          onClick={newConversation}
-          title={t('chat.newConversation')}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--chat-header-icon)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 28,
-            height: 28,
-            borderRadius: 6,
-            flexShrink: 0,
-            transition: 'background 150ms, color 150ms',
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon-hover)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)' }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon)'; (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
-        >
-          <Plus size={15} />
-        </button>
-      </div>
+      <ChatHeader
+        sessionTitle={currentSessionTitle}
+        sessionId={currentSessionId}
+        model={prefs.model}
+        isStreaming={isStreaming}
+        elapsedStr={elapsedStr}
+        messageCount={messages.length}
+        searchOpen={searchOpen}
+        focusMode={focusMode}
+        bookmarkedMessages={bookmarkedMessages}
+        conversationStats={conversationStats}
+        canRegenerate={canRegenerate}
+        onToggleSearch={() => setSearchOpen(!searchOpen)}
+        onExport={exportConversation}
+        onCopyConversation={copyConversation}
+        onToggleFocus={toggleFocusMode}
+        onNewConversation={newConversation}
+        onRegenerate={handleRegenerate}
+        onScrollToMessage={handleScrollToMessage}
+      />
 
       {/* Search bar */}
       {searchOpen && (
@@ -1123,7 +322,7 @@ export default function ChatPanel() {
         {isStreaming && <ThinkingIndicator />}
       </div>
 
-      {/* Regenerate button — shown below last assistant message when not streaming */}
+      {/* Regenerate button */}
       {canRegenerate && (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 16px 8px' }}>
           <button
@@ -1162,11 +361,11 @@ export default function ChatPanel() {
         </div>
       )}
 
-      {/* Zoom indicator -- shown when zoom is not 100% */}
+      {/* Zoom indicator */}
       {chatZoom !== 100 && (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '2px 16px 4px' }}>
           <button
-            onClick={() => setChatZoom(100)}
+            onClick={resetZoom}
             title={t('chat.resetZoom')}
             style={{
               display: 'flex',
@@ -1195,393 +394,16 @@ export default function ChatPanel() {
         </div>
       )}
 
-      {/* Task Queue Panel -- between messages and input */}
+      {/* Task Queue Panel */}
       <TaskQueuePanel />
 
       {/* Input bar */}
-      <div
-        style={{
-          padding: '8px 16px 12px',
-          background: 'var(--input-bar-bg)',
-          flexShrink: 0,
-        }}
-      >
-        {/* Toolbar row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginBottom: 6, paddingLeft: 4 }}>
-          <button
-            onClick={() => {
-              setInput(prev => prev + '@')
-              setAtQuery('')
-              textareaRef.current?.focus()
-            }}
-            title={t('toolbar.insertMention')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--input-toolbar-icon)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 28,
-              height: 28,
-              borderRadius: 6,
-              flexShrink: 0,
-              transition: 'color 150ms, background 150ms',
-            }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--input-toolbar-hover)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)' }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--input-toolbar-icon)'; (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
-          >
-            <AtSign size={16} />
-          </button>
-          <button
-            onClick={() => {
-              setInput('/')
-              setSlashQuery('')
-              setSlashIndex(0)
-              textareaRef.current?.focus()
-            }}
-            title={t('toolbar.insertSlashCommand')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--input-toolbar-icon)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 28,
-              height: 28,
-              borderRadius: 6,
-              flexShrink: 0,
-              transition: 'color 150ms, background 150ms',
-            }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--input-toolbar-hover)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)' }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--input-toolbar-icon)'; (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
-          >
-            <TerminalSquare size={16} />
-          </button>
-          <button
-            onClick={toggleSpeech}
-            title={listening ? t('toolbar.stopRecording') : t('toolbar.voiceInput')}
-            style={{
-              background: listening ? 'var(--error)' : 'none',
-              border: 'none',
-              color: listening ? '#fff' : 'var(--input-toolbar-icon)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 28,
-              height: 28,
-              borderRadius: 6,
-              flexShrink: 0,
-              transition: 'color 150ms, background 150ms',
-            }}
-            onMouseEnter={(e) => { if (!listening) { (e.currentTarget as HTMLButtonElement).style.color = 'var(--input-toolbar-hover)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)' } }}
-            onMouseLeave={(e) => { if (!listening) { (e.currentTarget as HTMLButtonElement).style.color = 'var(--input-toolbar-icon)'; (e.currentTarget as HTMLButtonElement).style.background = 'none' } }}
-          >
-            {listening ? <MicOff size={16} /> : <Mic size={16} />}
-          </button>
-          {/* Spacer */}
-          <span style={{ flex: 1 }} />
-          {/* Queue button */}
-          <div style={{ position: 'relative', display: 'inline-flex' }}>
-            <button
-              onClick={() => {
-                const text = input.trim()
-                if (!text) return
-                addToQueue(text)
-                setInput('')
-                resizeTextarea()
-                try { sessionStorage.removeItem('aipa:draft-input') } catch { /* ignore */ }
-                textareaRef.current?.focus()
-              }}
-              disabled={!input.trim()}
-              aria-label={t('taskQueue.addToQueue')}
-              title={t('taskQueue.addToQueueShortcut')}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: taskQueue.length > 0
-                  ? '#a78bfa'
-                  : input.trim()
-                  ? 'var(--input-toolbar-icon)'
-                  : 'var(--input-toolbar-icon)',
-                cursor: input.trim() ? 'pointer' : 'not-allowed',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 28,
-                height: 28,
-                borderRadius: 6,
-                flexShrink: 0,
-                opacity: input.trim() ? 1 : 0.4,
-                transition: 'color 150ms, background 150ms',
-              }}
-              onMouseEnter={(e) => {
-                if (input.trim()) {
-                  (e.currentTarget as HTMLButtonElement).style.color = '#a78bfa';
-                  (e.currentTarget as HTMLButtonElement).style.background = 'rgba(139, 92, 246, 0.10)'
-                }
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = taskQueue.length > 0 ? '#a78bfa' : 'var(--input-toolbar-icon)';
-                (e.currentTarget as HTMLButtonElement).style.background = 'none'
-              }}
-            >
-              <ListPlus size={16} />
-            </button>
-            {/* Badge */}
-            {taskQueue.length > 0 && (
-              <span style={{
-                position: 'absolute',
-                top: 0,
-                right: 0,
-                width: 14,
-                height: 14,
-                background: '#8b5cf6',
-                color: '#ffffff',
-                fontSize: 9,
-                fontWeight: 600,
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                pointerEvents: 'none',
-              }}>
-                {taskQueue.length > 9 ? '9+' : taskQueue.length}
-              </span>
-            )}
-          </div>
-        </div>
-        {/* Quick reply chips */}
-        <QuickReplyChips onInsert={(prompt) => {
-          setInput(prev => {
-            const sep = prev.trim() ? '\n' : ''
-            return prev + sep + prompt
-          })
-          setTimeout(() => {
-            textareaRef.current?.focus()
-            // Position cursor at end
-            const ta = textareaRef.current
-            if (ta) {
-              ta.selectionStart = ta.value.length
-              ta.selectionEnd = ta.value.length
-            }
-          }, 0)
-        }} />
-        {/* Input row */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-          <div
-            ref={inputWrapRef}
-            style={{
-              flex: 1,
-              position: 'relative',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 0,
-              background: 'var(--input-field-bg)',
-              borderRadius: 10,
-              padding: '8px 14px',
-              border: '1px solid var(--input-field-border)',
-              transition: 'border-color 200ms',
-            }}
-          >
-            {/* Image attachment preview */}
-            {attachments.length > 0 && (
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingBottom: 8 }}>
-                {attachments.map(img => (
-                  <div key={img.id} style={{ position: 'relative', flexShrink: 0 }}>
-                    <img
-                      src={img.dataUrl}
-                      alt={img.name}
-                      style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--input-field-border)' }}
-                    />
-                    <button
-                      onClick={() => removeAttachment(img.id)}
-                      style={{
-                        position: 'absolute', top: -4, right: -4,
-                        width: 16, height: 16, borderRadius: '50%',
-                        background: 'var(--error)', border: 'none',
-                        color: '#fff', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 10, lineHeight: '1',
-                      }}
-                    >{'\u00d7'}</button>
-                  </div>
-                ))}
-              </div>
-            )}
-            {atQuery !== null && (
-              <AtMentionPopup
-                query={atQuery}
-                onSelect={handleAtSelect}
-                onDismiss={() => setAtQuery(null)}
-                anchorRef={inputWrapRef as React.RefObject<HTMLElement>}
-              />
-            )}
-            {slashQuery !== null && (
-              <SlashCommandPopup
-                query={slashQuery}
-                onSelect={handleSlashSelect}
-                onDismiss={() => setSlashQuery(null)}
-                selectedIndex={slashIndex}
-                onHover={setSlashIndex}
-                extraCommands={customCommands}
-              />
-            )}
-            <textarea
-              ref={textareaRef}
-              value={input}
-              onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
-              onPaste={handlePaste}
-              onDragOver={(e) => e.preventDefault()}
-              onFocus={() => {
-                if (inputWrapRef.current) inputWrapRef.current.style.borderColor = 'var(--input-field-focus)'
-              }}
-              onBlur={() => {
-                if (inputWrapRef.current) inputWrapRef.current.style.borderColor = 'var(--input-field-border)'
-              }}
-              placeholder={t(PLACEHOLDER_KEYS[placeholderIdx])}
-              aria-label={t('chat.placeholder')}
-              rows={1}
-              style={{
-                flex: 1,
-                background: 'none',
-                border: 'none',
-                outline: 'none',
-                color: 'var(--text-primary)',
-                resize: 'none',
-                fontFamily: 'inherit',
-                fontSize: 13,
-                lineHeight: 1.5,
-                minHeight: 20,
-                maxHeight: 160,
-                overflow: 'auto',
-              }}
-            />
-          </div>
-          <button
-            onClick={isStreaming ? abort : handleSend}
-            disabled={!isStreaming && !input.trim() && attachments.length === 0}
-            title={isStreaming ? t('chat.stopGenerating') : t('chat.sendEnter')}
-            style={{
-              background: isStreaming ? 'var(--error)' : 'var(--accent)',
-              border: 'none',
-              borderRadius: 10,
-              width: 36,
-              height: 36,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
-              cursor: isStreaming || input.trim() || attachments.length > 0 ? 'pointer' : 'not-allowed',
-              opacity: !isStreaming && !input.trim() && attachments.length === 0 ? 0.4 : 1,
-              flexShrink: 0,
-              transition: 'background 150ms, opacity 150ms',
-              alignSelf: 'flex-end',
-            }}
-          >
-            {isStreaming ? <Square size={14} /> : <Send size={14} />}
-          </button>
-        </div>
-        {/* Compose status: word/char count */}
-        {input.trim().length > 0 && (
-          <div style={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            alignItems: 'center',
-            gap: 8,
-            padding: '3px 4px 0',
-            fontSize: 10,
-            color: input.length > 10000
-              ? 'var(--error)'
-              : input.length > 5000
-              ? 'var(--warning)'
-              : 'var(--text-muted)',
-            fontWeight: input.length > 10000 ? 600 : 400,
-            opacity: 0.7,
-            transition: 'color 200ms, opacity 200ms',
-          }}>
-            <span>{input.trim().split(/\s+/).filter(w => w.length > 0).length} {t('chat.words')}</span>
-            <span style={{ opacity: 0.4 }}>|</span>
-            <span>{input.length.toLocaleString()} {t('chat.chars')}{input.length > 10000 ? ` (${t('chat.veryLong')})` : input.length > 5000 ? ` (${t('chat.long')})` : ''}</span>
-          </div>
-        )}
-      </div>
+      <ChatInput
+        isStreaming={isStreaming}
+        onSend={sendMessage}
+        onAbort={abort}
+        onNewConversation={newConversation}
+      />
     </div>
   )
-}
-
-// ── Markdown export formatter ──────────────────────
-function formatMarkdown(messages: ChatMessage[], sessionId: string | null, exportDate: Date): string {
-  const dateStr = exportDate.toISOString().replace('T', ' ').slice(0, 19)
-  const lines: string[] = [
-    '# AIPA Conversation',
-    `_Exported: ${dateStr}_`,
-    `_Session: ${sessionId || 'New conversation'}_`,
-    '',
-    '---',
-    '',
-  ]
-
-  for (const msg of messages) {
-    if (msg.role === 'permission') continue // skip permission cards
-    if (msg.role === 'plan') {
-      lines.push('**Plan**', '', (msg as any).planContent || '', '', '---', '')
-      continue
-    }
-
-    const std = msg as StandardChatMessage
-    const ts = new Date(std.timestamp).toLocaleTimeString()
-    const role = std.role === 'user' ? 'User' : std.role === 'assistant' ? 'Assistant' : 'System'
-
-    lines.push(`**${role}** (${ts})`, '')
-    lines.push(std.content || '', '')
-
-    // Tool uses
-    if (std.toolUses && std.toolUses.length > 0) {
-      for (const tool of std.toolUses) {
-        const toolLabel = tool.name || 'Unknown tool'
-        lines.push(`<details>`)
-        lines.push(`<summary>Tool: ${toolLabel}</summary>`)
-        lines.push('')
-        lines.push('**Input:**')
-        lines.push('```json')
-        lines.push(JSON.stringify(tool.input, null, 2))
-        lines.push('```')
-        if (tool.result !== undefined) {
-          const resultStr = typeof tool.result === 'string'
-            ? tool.result
-            : JSON.stringify(tool.result, null, 2)
-          const truncated = resultStr.length > 500
-            ? resultStr.slice(0, 500) + '\n... (truncated)'
-            : resultStr
-          lines.push('')
-          lines.push(`**Result** (${tool.status}):`)
-          lines.push('```')
-          lines.push(truncated)
-          lines.push('```')
-        }
-        lines.push('</details>')
-        lines.push('')
-      }
-    }
-
-    // Thinking blocks
-    if (std.thinking) {
-      lines.push('<details>')
-      lines.push('<summary>Thinking</summary>')
-      lines.push('')
-      lines.push(std.thinking)
-      lines.push('</details>')
-      lines.push('')
-    }
-
-    lines.push('---', '')
-  }
-
-  return lines.join('\n')
 }

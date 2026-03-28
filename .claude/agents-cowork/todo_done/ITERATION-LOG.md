@@ -1433,3 +1433,45 @@ renderer: 2390 modules transformed, built in 8.09s
 - [x] Build passes with zero errors
 - [x] README.md and README_CN.md updated
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 111 -- ChatPanel Decomposition Refactor
+
+_Date: 2026-03-27 | Sprint Engineering Quality_
+
+### Summary
+Decomposed ChatPanel.tsx from 1587 lines into 409 lines by extracting 7 new files: ChatHeader.tsx (toolbar with session title, action buttons, bookmarks panel, stats panel, focus mode, streaming timer), ChatInput.tsx (input area with textarea, at-mentions, slash commands, speech recognition, input history, quick reply chips, task queue button), and 4 custom hooks (useStreamingTimer, useChatZoom, useConversationSearch, useConversationStats) plus a formatMarkdown utility. Pure refactor with zero visual or behavioral changes. All 100+ features continue to work.
+
+### Files Changed
+- `src/renderer/components/chat/ChatPanel.tsx` -- Reduced from 1587 to 409 lines. Now a thin orchestrator composing ChatHeader, ChatInput, MessageList, SearchBar, TaskQueuePanel, ThinkingIndicator, WelcomeScreen. Retains drag-and-drop handlers (outer container), export/copy logic, global keyboard shortcuts, and regeneration logic.
+- `src/renderer/components/chat/ChatHeader.tsx` -- NEW (441 lines). Extracted toolbar: session title, search toggle, export button, copy button, bookmarks dropdown with panel, stats popover with collapse/expand all, focus mode toggle, streaming spinner + elapsed timer, new conversation button.
+- `src/renderer/components/chat/ChatInput.tsx` -- NEW (631 lines). Extracted input area: textarea with auto-resize, at-mention popup, slash command popup + keyboard navigation, speech recognition toggle, input history (Up/Down arrow), quick reply chips, task queue button with badge, image attachment preview, draft auto-save, quote reply, word/char count display.
+- `src/renderer/hooks/useStreamingTimer.ts` -- NEW (38 lines). Manages streaming elapsed time display using ref for start time (prevents React #185 re-render loops).
+- `src/renderer/hooks/useChatZoom.ts` -- NEW (42 lines). Manages chat zoom level (Ctrl+=/Ctrl+-/Ctrl+0, range 70%-150%).
+- `src/renderer/hooks/useConversationSearch.ts` -- NEW (63 lines). Manages conversation search state: open/close, query, matches array, match navigation.
+- `src/renderer/hooks/useConversationStats.ts` -- NEW (55 lines). Computes bookmarked messages and conversation statistics (message counts, word totals, tool uses, duration).
+- `src/renderer/utils/formatMarkdown.ts` -- NEW (72 lines). Markdown export formatter (previously inline in ChatPanel).
+
+### Build
+Status: SUCCESS
+
+```
+main: tsc clean
+preload: tsc clean
+renderer: 2397 modules transformed, built in 7.88s
+```
+
+### Acceptance Criteria
+- [x] ChatPanel.tsx reduced from 1587 to 409 lines
+- [x] ChatHeader.tsx extracted with all toolbar functionality
+- [x] ChatInput.tsx extracted with all input area functionality
+- [x] useStreamingTimer.ts hook extracted
+- [x] useChatZoom.ts hook extracted
+- [x] useConversationSearch.ts hook extracted
+- [x] useConversationStats.ts hook extracted
+- [x] formatMarkdown.ts utility extracted
+- [x] All keyboard shortcuts continue to work (Ctrl+F, Ctrl+Shift+E/X/R/F/Q/C, Ctrl+=/-/0, Ctrl+N/K)
+- [x] Zero visual or behavioral changes (pure refactor)
+- [x] Build passes with zero TypeScript errors on all three targets
+- [x] tsc --noEmit clean

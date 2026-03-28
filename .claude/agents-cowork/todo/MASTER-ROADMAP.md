@@ -236,6 +236,25 @@
 | Tag name editing in Settings | `prd-session-tags-v1.md` | P1 | DONE (Iteration 109) |
 | i18n for tag UI (en + zh-CN) | `prd-session-tags-v1.md` | P2 | DONE (Iteration 109) |
 
+### Iteration 110 -- Bug Fixes: PTY ConPTY, React #185, Light Theme Title Bar
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| PTY ConPTY crash fix (useConpty: false) | P0-fix | DONE (Iteration 110) |
+| React error #185 Zustand selector fix | P0-fix | DONE (Iteration 110) |
+| Light theme title bar overlay colors | P1-fix | DONE (Iteration 110) |
+
+### Iteration 111 -- ChatPanel Decomposition Refactor
+
+| Feature | PRD | Priority | Status |
+|---------|-----|----------|--------|
+| Extract ChatHeader component | `prd-chatpanel-refactor-v1.md` | P1-eng | DONE (Iteration 111) |
+| Extract ChatInput component | `prd-chatpanel-refactor-v1.md` | P1-eng | DONE (Iteration 111) |
+| Extract useConversationSearch hook | `prd-chatpanel-refactor-v1.md` | P1-eng | DONE (Iteration 111) |
+| Extract useStreamingTimer hook | `prd-chatpanel-refactor-v1.md` | P1-eng | DONE (Iteration 111) |
+| Extract useChatZoom hook | `prd-chatpanel-refactor-v1.md` | P1-eng | DONE (Iteration 111) |
+| Extract useConversationStats hook | `prd-chatpanel-refactor-v1.md` | P1-eng | DONE (Iteration 111) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |
@@ -260,3 +279,4 @@
 | 2026-03-26 | electron-store stays at v8 | v10+ is ESM-only, breaks main process CJS require chain |
 | 2026-03-26 | No new npm dependencies in Sprint 2 | Both features can be built with existing APIs |
 | 2026-03-27 | Iteration 109: Session Tags | Power users need session organization beyond search and pinning. Tags are more flexible than folders (multi-label per session) and can leverage existing electron-store prefs system with zero new dependencies. |
+| 2026-03-27 | Iteration 111: ChatPanel Decomposition | ChatPanel.tsx at 1587 lines is a maintainability bottleneck. Decomposing into ChatHeader + ChatInput + 4 hooks reduces bug surface, improves render performance, and makes future feature development faster. Prioritized over new features because all 100+ existing features depend on this file. |
