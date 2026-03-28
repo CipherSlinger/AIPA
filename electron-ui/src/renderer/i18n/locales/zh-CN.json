@@ -533,5 +533,15 @@
     "edit": "\u7f16\u8f91",
     "preview": "\u9884\u89c8",
     "nothingToPreview": "\u6682\u65e0\u5185\u5bb9\u53ef\u9884\u89c8"
+  },
+  "clipboard": {
+    "pasteAndAsk": "\u7c98\u8d34\u5e76\u63d0\u95ee",
+    "summarize": "\u6458\u8981\u603b\u7ed3",
+    "translate": "\u7ffb\u8bd1",
+    "rewrite": "\u6539\u5199\u6da6\u8272",
+    "explain": "\u89e3\u91ca\u8bf4\u660e",
+    "grammar": "\u8bed\u6cd5\u68c0\u67e5",
+    "emptyClipboard": "\u526a\u8d34\u677f\u4e3a\u7a7a",
+    "clipboardError": "\u65e0\u6cd5\u8bfb\u53d6\u526a\u8d34\u677f"
   }
 }

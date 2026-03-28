@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Square, Mic, MicOff, AtSign, TerminalSquare, ListPlus } from 'lucide-react'
+import { Send, Square, Mic, MicOff, AtSign, TerminalSquare, ListPlus, ClipboardPaste, FileText, Languages, PenLine, CircleHelp, SpellCheck } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import AtMentionPopup from './AtMentionPopup'
 import SlashCommandPopup, { SLASH_COMMANDS, SlashCommand } from './SlashCommandPopup'
@@ -18,6 +18,15 @@ const PLACEHOLDER_KEYS = [
   'chat.placeholders.translate',
   'chat.placeholders.helpCode',
 ]
+
+// Clipboard quick-action definitions
+const CLIPBOARD_ACTIONS = [
+  { id: 'summarize', icon: FileText, labelKey: 'clipboard.summarize', template: 'Please summarize the following text concisely:\n\n{text}' },
+  { id: 'translate', icon: Languages, labelKey: 'clipboard.translate', templateEn: 'Please translate the following text to Chinese:\n\n{text}', templateZh: 'Please translate the following text to English:\n\n{text}' },
+  { id: 'rewrite', icon: PenLine, labelKey: 'clipboard.rewrite', template: 'Please rewrite the following text to be more clear and professional:\n\n{text}' },
+  { id: 'explain', icon: CircleHelp, labelKey: 'clipboard.explain', template: 'Please explain the following text in simple terms:\n\n{text}' },
+  { id: 'grammar', icon: SpellCheck, labelKey: 'clipboard.grammar', template: 'Please check the following text for grammar and spelling errors, and provide corrections:\n\n{text}' },
+] as const
 
 interface ChatInputProps {
   isStreaming: boolean
@@ -59,6 +68,10 @@ export default function ChatInput({
   // Speech recognition state
   const [listening, setListening] = useState(false)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
+
+  // Clipboard actions dropdown state
+  const [showClipboardMenu, setShowClipboardMenu] = useState(false)
+  const clipboardMenuRef = useRef<HTMLDivElement>(null)
 
   // Input history (sent messages)
   const inputHistoryRef = useRef<string[]>([])
@@ -289,6 +302,44 @@ export default function ChatInput({
     setListening(true)
   }
 
+  // Clipboard action handler
+  const handleClipboardAction = async (actionId: string) => {
+    setShowClipboardMenu(false)
+    try {
+      const text = await navigator.clipboard.readText()
+      if (!text || !text.trim()) {
+        addToast({ type: 'info' as any, message: t('clipboard.emptyClipboard') })
+        return
+      }
+      const action = CLIPBOARD_ACTIONS.find(a => a.id === actionId)
+      if (!action) return
+      let prompt: string
+      if (actionId === 'translate') {
+        const lang = prefs.language === 'zh-CN' ? 'templateZh' : 'templateEn'
+        prompt = ((action as any)[lang] || action.template || '').replace('{text}', text.trim())
+      } else {
+        prompt = (action as any).template.replace('{text}', text.trim())
+      }
+      if (prompt) {
+        await onSend(prompt)
+      }
+    } catch {
+      addToast({ type: 'error' as any, message: t('clipboard.clipboardError') })
+    }
+  }
+
+  // Close clipboard menu on click outside
+  useEffect(() => {
+    if (!showClipboardMenu) return
+    const handler = (e: MouseEvent) => {
+      if (clipboardMenuRef.current && !clipboardMenuRef.current.contains(e.target as Node)) {
+        setShowClipboardMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showClipboardMenu])
+
   // Slash command keyboard navigation
   useEffect(() => {
     if (slashQuery === null) return
@@ -407,6 +458,76 @@ export default function ChatInput({
         >
           {listening ? <MicOff size={16} /> : <Mic size={16} />}
         </button>
+        {/* Clipboard actions dropdown */}
+        <div ref={clipboardMenuRef} style={{ position: 'relative', display: 'inline-flex' }}>
+          <button
+            onClick={() => setShowClipboardMenu(v => !v)}
+            title={t('clipboard.pasteAndAsk')}
+            style={{
+              background: showClipboardMenu ? 'rgba(255,255,255,0.06)' : 'none',
+              border: 'none',
+              color: showClipboardMenu ? 'var(--input-toolbar-hover)' : 'var(--input-toolbar-icon)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 28,
+              height: 28,
+              borderRadius: 6,
+              flexShrink: 0,
+              transition: 'color 150ms, background 150ms',
+            }}
+            onMouseEnter={(e) => { if (!showClipboardMenu) { (e.currentTarget as HTMLButtonElement).style.color = 'var(--input-toolbar-hover)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)' } }}
+            onMouseLeave={(e) => { if (!showClipboardMenu) { (e.currentTarget as HTMLButtonElement).style.color = 'var(--input-toolbar-icon)'; (e.currentTarget as HTMLButtonElement).style.background = 'none' } }}
+          >
+            <ClipboardPaste size={16} />
+          </button>
+          {showClipboardMenu && (
+            <div style={{
+              position: 'absolute',
+              bottom: '100%',
+              left: 0,
+              marginBottom: 6,
+              background: 'var(--popup-bg)',
+              border: '1px solid var(--popup-border)',
+              borderRadius: 10,
+              boxShadow: 'var(--popup-shadow)',
+              padding: '4px 0',
+              minWidth: 180,
+              zIndex: 100,
+              animation: 'popup-in 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}>
+              <div style={{ padding: '6px 12px 4px', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.02em' }}>
+                {t('clipboard.pasteAndAsk')}
+              </div>
+              {CLIPBOARD_ACTIONS.map(({ id, icon: Icon, labelKey }) => (
+                <button
+                  key={id}
+                  onClick={() => handleClipboardAction(id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    width: '100%',
+                    padding: '8px 12px',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-primary)',
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    textAlign: 'left',
+                    transition: 'background 0.12s',
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--action-btn-hover)' }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
+                >
+                  <Icon size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                  <span>{t(labelKey)}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <span style={{ flex: 1 }} />
         {/* Queue button */}
         <div style={{ position: 'relative', display: 'inline-flex' }}>

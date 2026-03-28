@@ -1815,3 +1815,45 @@ renderer: 2399 modules transformed, built in 8.07s
 - [x] Per-note content limit of 10,000 characters
 - [x] i18n strings for en and zh-CN (18 new keys each)
 - [x] Build succeeds with no errors
+
+---
+
+## Iteration 123 -- Quick Clipboard Actions
+
+_Date: 2026-03-28 | Feature: Personal Assistant Enhancement_
+
+### Summary
+Added a "Paste & Ask" button to the ChatInput toolbar that enables one-click clipboard text processing. Users can copy text from any application, click the button, and choose from 5 preset actions: Summarize, Translate, Rewrite, Explain, or Grammar Check. The clipboard text is automatically wrapped in an action-specific prompt template and sent to Claude. The Translate action auto-detects the target language based on the current UI language setting (Chinese UI -> translate to English, English UI -> translate to Chinese).
+
+### Files Changed
+
+1. **`src/renderer/components/chat/ChatInput.tsx`** (~80 lines added) -- Added ClipboardPaste button to toolbar with dropdown menu containing 5 action items. Added `CLIPBOARD_ACTIONS` constant array with action definitions (id, icon, labelKey, template). Added `handleClipboardAction` async handler that reads clipboard via `navigator.clipboard.readText()`, constructs prompt from template, and calls `onSend`. Added click-outside handler to close the dropdown.
+
+2. **`src/renderer/i18n/locales/en.json`** (+10 lines) -- Added `clipboard.*` i18n section with 8 keys: pasteAndAsk, summarize, translate, rewrite, explain, grammar, emptyClipboard, clipboardError.
+
+3. **`src/renderer/i18n/locales/zh-CN.json`** (+10 lines) -- Chinese translations for all clipboard i18n keys.
+
+4. **`README.md`** / **`README_CN.md`** -- Added clipboard quick actions to feature list.
+
+### Build
+
+Status: SUCCESS
+
+```
+main: tsc clean
+preload: tsc clean
+renderer: 2399 modules transformed, built in 8.16s
+```
+
+### Acceptance Criteria
+- [x] "Paste & Ask" button visible in ChatInput toolbar (between voice input and spacer)
+- [x] Clicking the button shows a dropdown with 5 actions (Summarize, Translate, Rewrite, Explain, Grammar Check)
+- [x] Each action has an icon and localized label
+- [x] Clicking an action reads clipboard text and sends it with the action template
+- [x] If clipboard is empty, a toast notification is shown
+- [x] If clipboard API fails, an error toast is shown
+- [x] Dropdown closes after action selection or click outside
+- [x] Translate action uses opposite language of current UI language
+- [x] All strings are in both en.json and zh-CN.json (8 new keys each)
+- [x] Build succeeds with no TypeScript errors
+- [x] No new npm dependencies required

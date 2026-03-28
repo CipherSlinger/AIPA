@@ -109,6 +109,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Notes Markdown preview** — toggle between raw editing and rendered Markdown preview; supports headings, bold, italic, lists, code blocks, tables, and GFM checkboxes
 - **Notes search** — instant full-text search across all notes by title and content, with match count and clear button
 - **Note title auto-generation** — notes automatically pick up their title from the first Markdown heading (`#`, `##`, `###`)
+- **Clipboard quick actions** — "Paste & Ask" button in the chat toolbar reads clipboard text and offers one-click actions: Summarize, Translate, Rewrite, Explain, Grammar Check; auto-detects target language for translation
 
 ## Security
 

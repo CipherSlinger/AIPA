@@ -533,5 +533,15 @@
     "edit": "Edit",
     "preview": "Preview",
     "nothingToPreview": "Nothing to preview"
+  },
+  "clipboard": {
+    "pasteAndAsk": "Paste & Ask",
+    "summarize": "Summarize",
+    "translate": "Translate",
+    "rewrite": "Rewrite",
+    "explain": "Explain",
+    "grammar": "Grammar Check",
+    "emptyClipboard": "Clipboard is empty",
+    "clipboardError": "Could not read clipboard"
   }
 }

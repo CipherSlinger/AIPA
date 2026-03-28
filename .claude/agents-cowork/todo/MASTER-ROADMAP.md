@@ -340,6 +340,15 @@
 | Note title auto-generation from headings | `prd-notes-markdown-search-v1.md` | P1 | DONE (Iteration 122) |
 | i18n for search + preview (en + zh-CN) | `prd-notes-markdown-search-v1.md` | P1 | DONE (Iteration 122) |
 
+### Iteration 123 -- Quick Clipboard Actions
+
+| Feature | PRD | Priority | Status |
+|---------|-----|----------|--------|
+| "Paste & Ask" button in ChatInput toolbar | `prd-clipboard-actions-v1.md` | P1 | IN PROGRESS |
+| Dropdown with 5 preset actions (Summarize, Translate, Rewrite, Explain, Grammar) | `prd-clipboard-actions-v1.md` | P1 | IN PROGRESS |
+| Auto-detect target language for Translate action | `prd-clipboard-actions-v1.md` | P1 | IN PROGRESS |
+| i18n for all clipboard UI (en + zh-CN) | `prd-clipboard-actions-v1.md` | P1 | IN PROGRESS |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |
@@ -374,3 +383,4 @@
 | 2026-03-28 | Iteration 120: Quick Notes | Core personal assistant capability: users need to jot down notes alongside conversations. Every major assistant app (Notion AI, Doubao, macOS Notes) has integrated note-taking. Uses proven electron-store prefs pattern, zero new dependencies. |
 | 2026-03-28 | Iteration 121: Note-Chat Integration | Notes and Chat exist in isolation. Users must copy-paste between them. Bridging these two features with "Send to Chat" and "Save as Note" makes AIPA feel like a cohesive assistant rather than separate tools. Zero new dependencies, renderer-side only. |
 | 2026-03-28 | Iteration 122: Notes Markdown Preview & Search | Plain-text notes are insufficient for structured content (meeting notes, reports). Markdown preview reuses existing react-markdown stack (zero new deps). Search is essential with 100-note limit. Title auto-generation reduces friction. All renderer-side, continuing the notes enhancement arc (120 -> 121 -> 122). |
+| 2026-03-28 | Iteration 123: Quick Clipboard Actions | Core personal assistant workflow: users copy text from other apps and want to quickly ask the AI to summarize/translate/rewrite/explain it. Reducing this from a multi-step paste-and-type workflow to two clicks. Reference Doubao's clipboard integration. Zero new dependencies, renderer-side only. |
