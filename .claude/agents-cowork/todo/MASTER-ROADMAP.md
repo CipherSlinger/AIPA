@@ -458,6 +458,13 @@
 | Auto-refresh sidebar session list after rename | P2 | DONE (Iteration 136) |
 | i18n for rename tooltip (en + zh-CN) | P2 | DONE (Iteration 136) |
 
+### Iteration 137 -- Persistent Input History
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Input history persisted via localStorage (50 entries) | P2 | DONE (Iteration 137) |
+| Lazy initialization via useState initializer | P2 | DONE (Iteration 137) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

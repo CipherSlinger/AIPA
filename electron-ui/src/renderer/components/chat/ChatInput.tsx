@@ -73,8 +73,14 @@ export default function ChatInput({
   const [showClipboardMenu, setShowClipboardMenu] = useState(false)
   const clipboardMenuRef = useRef<HTMLDivElement>(null)
 
-  // Input history (sent messages)
-  const inputHistoryRef = useRef<string[]>([])
+  // Input history (sent messages) -- persisted via localStorage
+  const [initialHistory] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem('aipa:input-history')
+      return stored ? JSON.parse(stored) : []
+    } catch { return [] }
+  })
+  const inputHistoryRef = useRef<string[]>(initialHistory)
   const historyIdxRef = useRef(-1)
   const tempInputRef = useRef('')
 
@@ -161,6 +167,7 @@ export default function ChatInput({
     if (text) {
       inputHistoryRef.current = [text, ...inputHistoryRef.current.filter(h => h !== text)].slice(0, 50)
       historyIdxRef.current = -1
+      try { localStorage.setItem('aipa:input-history', JSON.stringify(inputHistoryRef.current)) } catch { /* ignore */ }
     }
     setInput('')
     setAtQuery(null)

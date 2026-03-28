@@ -122,6 +122,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Escape to stop** — press `Escape` to immediately stop Claude's response generation; listed in the shortcut cheatsheet
 - **Time-of-day greeting** — welcome screen shows "Good morning/afternoon/evening" based on current time, with today's date displayed below
 - **Inline title rename** — click the session title in the chat header to rename it inline; press Enter to save or Escape to cancel
+- **Persistent input history** — previously sent messages are remembered across page refreshes and app restarts via localStorage (up to 50 entries)
 
 ## Security
 
