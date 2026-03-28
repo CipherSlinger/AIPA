@@ -125,6 +125,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Persistent input history** — previously sent messages are remembered across page refreshes and app restarts via localStorage (up to 50 entries)
 - **Recent prompts on welcome screen** — welcome screen shows up to 3 most recently sent prompts for quick re-use, with a "Clear" button to reset history
 - **Context menu completeness** — right-click any message for full actions: Copy, Quote Reply, Edit (user messages), Save as Note (AI messages), Bookmark, Collapse, Rate, and Rewind
+- **Quote preview banner** — quoting a message shows a visual preview above the input with dismiss button, instead of raw markdown; quoted text is automatically prepended when sending
 
 ## Security
 

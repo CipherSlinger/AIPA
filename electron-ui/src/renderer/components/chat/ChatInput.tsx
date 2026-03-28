@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Square, Mic, MicOff, AtSign, TerminalSquare, ListPlus, ClipboardPaste, FileText, Languages, PenLine, CircleHelp, SpellCheck } from 'lucide-react'
+import { Send, Square, Mic, MicOff, AtSign, TerminalSquare, ListPlus, ClipboardPaste, FileText, Languages, PenLine, CircleHelp, SpellCheck, X, MessageSquareQuote } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import AtMentionPopup from './AtMentionPopup'
 import SlashCommandPopup, { SLASH_COMMANDS, SlashCommand } from './SlashCommandPopup'
@@ -126,14 +126,13 @@ export default function ChatInput({
     } catch { /* sessionStorage may not be available */ }
   }, [input])
 
-  // Handle quote reply: prepend quoted text to input
+  // Pending quote (shown as a visual banner above input)
+  const [pendingQuote, setPendingQuote] = useState<string | null>(null)
+
+  // Handle quote reply: store as pending quote instead of raw markdown injection
   useEffect(() => {
     if (!quotedText) return
-    const lines = quotedText.split('\n').map((l: string) => `> ${l}`).join('\n')
-    setInput((prev: string) => {
-      const separator = prev.trim() ? '\n\n' : ''
-      return `${lines}${separator}${prev}`
-    })
+    setPendingQuote(quotedText)
     setQuotedText(null)
     setTimeout(() => textareaRef.current?.focus(), 50)
   }, [quotedText, setQuotedText])
@@ -164,6 +163,13 @@ export default function ChatInput({
   const handleSend = async () => {
     const text = input.trim()
     if (!text && attachments.length === 0 || isStreaming) return
+    // Build final message with pending quote prepended
+    let finalText = text || 'Describe this image'
+    if (pendingQuote) {
+      const quotedLines = pendingQuote.split('\n').map((l: string) => `> ${l}`).join('\n')
+      finalText = quotedLines + '\n\n' + finalText
+      setPendingQuote(null)
+    }
     if (text) {
       inputHistoryRef.current = [text, ...inputHistoryRef.current.filter(h => h !== text)].slice(0, 50)
       historyIdxRef.current = -1
@@ -174,7 +180,7 @@ export default function ChatInput({
     clearAttachments()
     resizeTextarea()
     try { sessionStorage.removeItem('aipa:draft-input') } catch { /* ignore */ }
-    await onSend(text || 'Describe this image', attachments.length > 0 ? attachments : undefined)
+    await onSend(finalText, attachments.length > 0 ? attachments : undefined)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -655,6 +661,54 @@ export default function ChatInput({
                   >{'\u00d7'}</button>
                 </div>
               ))}
+            </div>
+          )}
+          {/* Pending quote preview banner */}
+          {pendingQuote && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 8,
+              padding: '6px 10px',
+              marginBottom: 6,
+              background: 'rgba(0, 122, 204, 0.08)',
+              borderLeft: '3px solid var(--accent)',
+              borderRadius: 4,
+              fontSize: 12,
+              color: 'var(--text-secondary)',
+              lineHeight: 1.5,
+            }}>
+              <MessageSquareQuote size={14} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2 }} />
+              <div style={{
+                flex: 1,
+                overflow: 'hidden',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                wordBreak: 'break-word',
+              }}>
+                {pendingQuote.length > 150 ? pendingQuote.slice(0, 150) + '...' : pendingQuote}
+              </div>
+              <button
+                onClick={() => setPendingQuote(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: 2,
+                  borderRadius: 4,
+                  flexShrink: 0,
+                  transition: 'color 150ms',
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--error)' }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)' }}
+                title={t('common.close')}
+              >
+                <X size={14} />
+              </button>
             </div>
           )}
           {atQuery !== null && (

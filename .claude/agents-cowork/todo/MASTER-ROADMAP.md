@@ -488,6 +488,14 @@
 | Edit Message action in context menu (user messages) | P2 | DONE (Iteration 140) |
 | Fix hardcoded English strings in SessionList empty state | P2-fix | DONE (Iteration 140) |
 
+### Iteration 141 -- Quote Preview Banner
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Visual quote preview above input (replaces raw markdown injection) | P2 | DONE (Iteration 141) |
+| Dismiss button to cancel pending quote | P2 | DONE (Iteration 141) |
+| Auto-prepend quoted text as markdown when sending | P2 | DONE (Iteration 141) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |
