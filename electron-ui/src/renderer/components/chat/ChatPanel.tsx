@@ -140,10 +140,24 @@ export default function ChatPanel() {
           if (prompt) sendMessage(prompt)
         }
       }
+      // Escape to stop streaming (only when no popup/modal is active)
+      if (e.key === 'Escape' && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+        const state = useChatStore.getState()
+        if (state.isStreaming) {
+          // Don't intercept if user is in an input/textarea or a modal is open
+          const activeEl = document.activeElement
+          const inInput = activeEl instanceof HTMLTextAreaElement || activeEl instanceof HTMLInputElement
+          const hasModal = document.querySelector('[role="dialog"]') || document.querySelector('.lightbox-overlay')
+          if (!inInput && !hasModal) {
+            e.preventDefault()
+            abort()
+          }
+        }
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [exportConversation, copyConversation, setSearchOpen, sendMessage])
+  }, [exportConversation, copyConversation, setSearchOpen, sendMessage, abort])
 
   // Listen for export trigger from CommandPalette
   useEffect(() => {

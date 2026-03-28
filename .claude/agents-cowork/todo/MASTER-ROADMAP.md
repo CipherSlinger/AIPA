@@ -433,6 +433,14 @@
 | Floating toolbar on text selection (Copy, Quote, Save to Notes) | P2 | DONE (Iteration 133) |
 | i18n for selection toolbar (en + zh-CN) | P2 | DONE (Iteration 133) |
 
+### Iteration 134 -- Escape to Stop Streaming
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Escape key stops streaming generation (with popup/modal guard) | P2 | DONE (Iteration 134) |
+| Shortcut cheatsheet entry for Escape | P2 | DONE (Iteration 134) |
+| i18n for stop streaming label (en + zh-CN) | P2 | DONE (Iteration 134) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

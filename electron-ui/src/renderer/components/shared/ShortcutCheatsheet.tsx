@@ -25,6 +25,7 @@ const SHORTCUTS = [
   { sectionKey: 'chat', items: [
     { keys: 'Enter', actionKey: 'sendMessage' },
     { keys: 'Shift + Enter', actionKey: 'newLine' },
+    { keys: 'Escape', actionKey: 'stopStreaming' },
     { keys: 'Up / Down', actionKey: 'browseInputHistory' },
     { keys: '@', actionKey: 'mentionFile' },
     { keys: '/', actionKey: 'slashCommands' },

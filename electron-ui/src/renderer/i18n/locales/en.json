@@ -481,6 +481,7 @@
     "prevNextSession": "Previous/next session",
     "sendMessage": "Send message",
     "newLine": "New line",
+    "stopStreaming": "Stop streaming",
     "browseInputHistory": "Browse input history",
     "mentionFile": "Mention file",
     "slashCommands": "Slash commands",

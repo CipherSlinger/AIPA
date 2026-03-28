@@ -119,6 +119,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Input token estimate** — input bar shows estimated token count (~chars/4) alongside word and character counts, helping users gauge context usage before sending
 - **Auto-focus input after response** — input textarea automatically receives focus when Claude finishes responding, so you can immediately type your next message without clicking
 - **Text selection toolbar** — select any text in a message to reveal a floating toolbar with Copy, Quote, and Save to Notes actions for the selected text
+- **Escape to stop** — press `Escape` to immediately stop Claude's response generation; listed in the shortcut cheatsheet
 
 ## Security
 
