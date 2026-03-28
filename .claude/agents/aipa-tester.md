@@ -96,13 +96,20 @@ grep -rn "require('node-pty')" electron-ui/src/
 
 ### 若测试通过
 
-输出简短的通过声明：
+1. **清理中间文件**（必须在声明通过前完成）：
+   - 删除本次迭代对应的 `todo/prd-*.md`（按 PRD 文件名匹配）
+   - 删除本次迭代对应的 `todo/ui-spec-*.md`（按 ui-spec 文件名匹配）
+   - 删除本次迭代对应的 `todo/api-spec-*.md`（若存在）
+   - 使用 Bash 工具执行：`rm -f .claude/agents-cowork/todo/prd-xxx.md .claude/agents-cowork/todo/ui-spec-xxx.md`
+   - **不要删除** `test-report-*.md`（失败报告需保留供 leader 审计）、`ITERATION-LOG.md`、`retro-*.md`
+
+2. **输出通过声明**：
 ```
 ✅ 测试通过
 本次迭代变更经审查和构建验证，质量符合预期。
 [列出验证过的关键改动]
+已清理：[列出删除的文件名]
 ```
-流程结束，不写入任何文件。
 
 ### 若测试发现问题
 

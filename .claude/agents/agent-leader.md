@@ -48,15 +48,15 @@ memory: project
 
 **文件契约**（各 agent 通过文件交接工作）：
 
-| 文件模式 | 生产者 | 消费者 |
-|----------|--------|--------|
-| `.claude/agents-cowork/todo/prd-*.md` | aipa-pm | aipa-ui、aipa-backend、aipa-frontend |
-| `.claude/agents-cowork/todo/MASTER-ROADMAP.md` | aipa-pm | agent-leader、aipa-frontend |
-| `.claude/agents-cowork/todo/ui-spec-*.md` | aipa-ui | aipa-frontend、aipa-tester |
-| `.claude/agents-cowork/todo/api-spec-*.md` | aipa-backend | aipa-frontend、aipa-tester |
-| `.claude/agents-cowork/todo_done/ITERATION-LOG.md` | aipa-frontend | aipa-tester、agent-leader |
-| `.claude/agents-cowork/todo/test-report-*.md` | aipa-tester | aipa-frontend、aipa-backend、agent-leader |
-| `.claude/agents-cowork/todo_done/retro-*.md` | agent-leader | 存档备查 |
+| 文件模式 | 生产者 | 消费者 | 生命周期 |
+|----------|--------|--------|----------|
+| `.claude/agents-cowork/todo/prd-*.md` | aipa-pm | aipa-ui、aipa-backend、aipa-frontend | **测试通过后由 aipa-tester 删除** |
+| `.claude/agents-cowork/todo/MASTER-ROADMAP.md` | aipa-pm | agent-leader、aipa-frontend | 持续更新，不删除 |
+| `.claude/agents-cowork/todo/ui-spec-*.md` | aipa-ui | aipa-frontend、aipa-tester | **测试通过后由 aipa-tester 删除** |
+| `.claude/agents-cowork/todo/api-spec-*.md` | aipa-backend | aipa-frontend、aipa-tester | **测试通过后由 aipa-tester 删除** |
+| `.claude/agents-cowork/todo_done/ITERATION-LOG.md` | aipa-frontend | aipa-tester、agent-leader | 永久保留，持续追加 |
+| `.claude/agents-cowork/todo/test-report-*.md` | aipa-tester | aipa-frontend、aipa-backend、agent-leader | 修复完成后由 agent-leader 删除 |
+| `.claude/agents-cowork/todo_done/retro-*.md` | agent-leader | 存档备查 | 永久保留 |
 
 ---
 
@@ -429,9 +429,13 @@ git status
 git diff --stat
 
 # 2. 暂存所有变更（排除敏感文件）
-git add electron-ui/src/ electron-ui/package.json todo/ todo_done/ README.md README_CN.md .claude/agents-cowork/
+# 注意：todo/ 中的 prd/ui-spec/api-spec 应已由 aipa-tester 删除，git 会自动追踪删除操作
+git add electron-ui/src/ electron-ui/package.json README.md README_CN.md .claude/agents-cowork/
 
-# 3. 提交（不加 co-author-by 行）
+# 3. 若 todo/ 还有遗留的已完成中间文件（aipa-tester 漏删），leader 负责补删
+# git rm --cached .claude/agents-cowork/todo/prd-xxx.md 2>/dev/null; rm -f .claude/agents-cowork/todo/prd-xxx.md
+
+# 4. 提交（不加 co-author-by 行）
 git commit -m "feat: [迭代功能名称] (Iteration [N])"
 
 # 4. 推送
