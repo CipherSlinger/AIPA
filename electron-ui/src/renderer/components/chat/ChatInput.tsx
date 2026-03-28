@@ -160,6 +160,19 @@ export default function ChatInput({
     return () => window.removeEventListener('aipa:focusInput', handler)
   }, [])
 
+  // Listen for text insertion requests (e.g., from file browser @mention)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const text = (e as CustomEvent).detail as string
+      if (text) {
+        setInput(prev => prev + text)
+        textareaRef.current?.focus()
+      }
+    }
+    window.addEventListener('aipa:insertText', handler)
+    return () => window.removeEventListener('aipa:insertText', handler)
+  }, [])
+
   const handleSend = async () => {
     const text = input.trim()
     if (!text && attachments.length === 0 || isStreaming) return

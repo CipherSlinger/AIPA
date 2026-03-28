@@ -606,6 +606,9 @@
 ### Iteration 162 (2026-03-28)
 - File browser file type icons -- color-coded icons for code, text, image, video, audio, archive, data, and config files
 
+### Iteration 163 (2026-03-28)
+- File browser click-to-mention -- clicking a file inserts @filepath into chat input for quick file referencing
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

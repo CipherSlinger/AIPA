@@ -102,7 +102,11 @@ function TreeNode({ entry, depth, onSetCwd, t }: TreeNodeProps) {
   const [loading, setLoading] = useState(false)
 
   const toggle = async () => {
-    if (!entry.isDirectory) return
+    if (!entry.isDirectory) {
+      // Click on a file: insert @path into chat input
+      window.dispatchEvent(new CustomEvent('aipa:insertText', { detail: `@${entry.path} ` }))
+      return
+    }
     if (!expanded && children.length === 0) {
       setLoading(true)
       const entries = await window.electronAPI.fsListDir(entry.path)
@@ -121,7 +125,7 @@ function TreeNode({ entry, depth, onSetCwd, t }: TreeNodeProps) {
       <div
         onClick={toggle}
         onDoubleClick={handleDoubleClick}
-        title={entry.isDirectory ? t('fileBrowser.doubleClickSetDir') : entry.name}
+        title={entry.isDirectory ? t('fileBrowser.doubleClickSetDir') : t('fileBrowser.clickToMention')}
         style={{
           display: 'flex',
           alignItems: 'center',

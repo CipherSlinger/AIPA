@@ -469,7 +469,8 @@
     "doubleClickSetDir": "Double-click to set as working directory",
     "selectDir": "Select directory",
     "chooseDir": "Choose working directory",
-    "chooseHint": "Click the icon above to choose a working directory"
+    "chooseHint": "Click the icon above to choose a working directory",
+    "clickToMention": "Click to mention in chat"
   },
   "error": {
     "title": "Something went wrong",
