@@ -64,12 +64,12 @@ export default function WelcomeScreen({ onSuggestion }: Props) {
   ]
 
   const shortcuts = [
+    { keys: 'Ctrl+Shift+Space', desc: t('welcome.shortcut.toggleWindow') },
+    { keys: 'Ctrl+Shift+G', desc: t('welcome.shortcut.clipboardAction') },
     { keys: 'Ctrl+Shift+P', desc: t('welcome.shortcut.commandPalette') },
     { keys: 'Ctrl+B', desc: t('welcome.shortcut.toggleSidebar') },
-    { keys: 'Ctrl+`', desc: t('welcome.shortcut.toggleTerminal') },
     { keys: 'Ctrl+L', desc: t('welcome.shortcut.focusInput') },
     { keys: '@file', desc: t('welcome.shortcut.referenceFiles') },
-    { keys: '/cmd', desc: t('welcome.shortcut.slashCommands') },
   ]
 
   const quickActions = [

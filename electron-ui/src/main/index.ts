@@ -1,7 +1,9 @@
-import { app, BrowserWindow, Menu, Tray, globalShortcut, nativeImage, shell, session } from 'electron'
+import { app, BrowserWindow, Menu, Tray, globalShortcut, nativeImage, shell, session, clipboard, Notification } from 'electron'
 import path from 'path'
 import { registerAllHandlers } from './ipc/index'
 import { ptyManager } from './pty/pty-manager'
+import { listSessions } from './sessions/session-reader'
+import { getPref, setPref } from './config/config-manager'
 import { createLogger } from './utils/logger'
 
 const log = createLogger('main')
@@ -157,14 +159,58 @@ function createTray(): void {
   // Create a 16x16 tray icon using nativeImage
   // Simple blue circle icon generated programmatically
   const iconSize = 16
-  const icon = nativeImage.createEmpty()
-  // Use a built-in icon approach: create from data URL
   const canvas = `<svg xmlns="http://www.w3.org/2000/svg" width="${iconSize}" height="${iconSize}" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#2563eb"/><text x="8" y="12" text-anchor="middle" font-size="10" font-weight="bold" fill="white" font-family="sans-serif">A</text></svg>`
   const dataUrl = `data:image/svg+xml;base64,${Buffer.from(canvas).toString('base64')}`
   const trayIcon = nativeImage.createFromDataURL(dataUrl)
 
   tray = new Tray(trayIcon.resize({ width: 16, height: 16 }))
   tray.setToolTip('AIPA - AI Personal Assistant')
+
+  // Build enhanced tray menu
+  rebuildTrayMenu()
+
+  // Single click on tray icon toggles window visibility
+  tray.on('click', () => {
+    if (mainWindow?.isVisible()) {
+      mainWindow.hide()
+    } else {
+      mainWindow?.show()
+      mainWindow?.focus()
+    }
+  })
+}
+
+/** Rebuild the tray context menu with current state (recent sessions, theme) */
+function rebuildTrayMenu(): void {
+  if (!tray) return
+
+  // Fetch recent sessions (last 5, sorted by timestamp desc)
+  let recentSessionItems: Electron.MenuItemConstructorOptions[] = []
+  try {
+    const sessions = listSessions()
+    const sorted = sessions.sort((a, b) => b.timestamp - a.timestamp).slice(0, 5)
+    if (sorted.length > 0) {
+      recentSessionItems = sorted.map(s => ({
+        label: (s.title || s.lastPrompt || 'Untitled').slice(0, 50),
+        click: () => {
+          mainWindow?.show()
+          mainWindow?.focus()
+          mainWindow?.webContents.send('menu:openSession', s.sessionId)
+        },
+      }))
+    } else {
+      recentSessionItems = [{ label: 'No recent sessions', enabled: false }]
+    }
+  } catch {
+    recentSessionItems = [{ label: 'No recent sessions', enabled: false }]
+  }
+
+  // Detect current theme
+  const currentTheme = (getPref as any)('theme') || 'vscode'
+  const themeLabel = currentTheme === 'light' ? 'Switch to Dark Theme' : 'Switch to Light Theme'
+
+  // Get working directory
+  const workingDir = (getPref as any)('workingDir') || require('os').homedir()
 
   const contextMenu = Menu.buildFromTemplate([
     {
@@ -183,6 +229,27 @@ function createTray(): void {
         mainWindow?.webContents.send('menu:newSession')
       },
     },
+    {
+      label: 'Recent Sessions',
+      submenu: recentSessionItems,
+    },
+    { type: 'separator' },
+    {
+      label: themeLabel,
+      click: () => {
+        const newTheme = currentTheme === 'light' ? 'vscode' : 'light'
+        ;(setPref as any)('theme', newTheme)
+        mainWindow?.webContents.send('menu:themeChanged', newTheme)
+        // Rebuild tray menu to update the theme label
+        rebuildTrayMenu()
+      },
+    },
+    {
+      label: 'Open Working Directory',
+      click: () => {
+        shell.openPath(workingDir)
+      },
+    },
     { type: 'separator' },
     {
       label: 'Quit',
@@ -193,16 +260,6 @@ function createTray(): void {
     },
   ])
   tray.setContextMenu(contextMenu)
-
-  // Single click on tray icon toggles window visibility
-  tray.on('click', () => {
-    if (mainWindow?.isVisible()) {
-      mainWindow.hide()
-    } else {
-      mainWindow?.show()
-      mainWindow?.focus()
-    }
-  })
 }
 
 function registerGlobalHotkey(): void {
@@ -219,6 +276,21 @@ function registerGlobalHotkey(): void {
     log.info('Global hotkey registered: Ctrl+Shift+Space')
   } else {
     log.warn('Failed to register global hotkey: Ctrl+Shift+Space')
+  }
+
+  // Ctrl+Shift+G: Quick clipboard action — reads clipboard, opens AIPA, sends to chat
+  const clipboardRegistered = globalShortcut.register('Ctrl+Shift+G', () => {
+    const clipboardText = clipboard.readText().trim()
+    mainWindow?.show()
+    mainWindow?.focus()
+    if (clipboardText) {
+      mainWindow?.webContents.send('menu:clipboardQuickAction', clipboardText)
+    }
+  })
+  if (clipboardRegistered) {
+    log.info('Global hotkey registered: Ctrl+Shift+G (clipboard quick action)')
+  } else {
+    log.warn('Failed to register global hotkey: Ctrl+Shift+G')
   }
 }
 

@@ -87,8 +87,8 @@ const electronAPI = {
   },
 
   // ── Menu events ──────────────────────────
-  onMenuEvent: (event: string, cb: () => void): Unsubscribe => {
-    const h = () => cb()
+  onMenuEvent: (event: string, cb: (...args: unknown[]) => void): Unsubscribe => {
+    const h = (_: unknown, ...args: unknown[]) => cb(...args)
     ipcRenderer.on(`menu:${event}`, h)
     return () => ipcRenderer.removeListener(`menu:${event}`, h)
   },

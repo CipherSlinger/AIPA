@@ -9,6 +9,10 @@ interface Props {
 
 // Keys reference i18n path under shortcutCheatsheet.*
 const SHORTCUTS = [
+  { sectionKey: 'global', items: [
+    { keys: 'Ctrl + Shift + Space', actionKey: 'toggleWindow' },
+    { keys: 'Ctrl + Shift + G', actionKey: 'clipboardQuickAction' },
+  ]},
   { sectionKey: 'general', items: [
     { keys: 'Ctrl + N', actionKey: 'newConversation' },
     { keys: 'Ctrl + K', actionKey: 'clearConversation' },

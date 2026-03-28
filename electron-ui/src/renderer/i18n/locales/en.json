@@ -109,6 +109,8 @@
     },
     "shortcuts": "Keyboard Shortcuts",
     "shortcut": {
+      "toggleWindow": "Show/hide AIPA (global)",
+      "clipboardAction": "Clipboard quick action (global)",
       "commandPalette": "Command palette",
       "toggleSidebar": "Toggle sidebar",
       "toggleTerminal": "Toggle terminal",
@@ -522,10 +524,13 @@
   },
   "shortcutCheatsheet": {
     "title": "Keyboard Shortcuts",
+    "global": "Global (works from any app)",
     "general": "General",
     "chat": "Chat",
     "conversation": "Conversation",
     "navigation": "Navigation",
+    "toggleWindow": "Show/hide AIPA",
+    "clipboardQuickAction": "Grab clipboard & ask AIPA",
     "newConversation": "New conversation",
     "clearConversation": "Clear conversation",
     "toggleSidebar": "Toggle sidebar",

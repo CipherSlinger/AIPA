@@ -86,6 +86,28 @@ export default function App() {
       window.electronAPI.onMenuEvent('toggleSidebar', toggleSidebar),
       window.electronAPI.onMenuEvent('toggleTerminal', toggleTerminal),
       window.electronAPI.onMenuEvent('commandPalette', toggleCommandPalette),
+      // Tray: open a specific session by ID
+      window.electronAPI.onMenuEvent('openSession', (sessionId) => {
+        if (typeof sessionId === 'string') {
+          window.dispatchEvent(new CustomEvent('aipa:openSession', { detail: sessionId }))
+        }
+      }),
+      // Tray: theme changed from tray menu
+      window.electronAPI.onMenuEvent('themeChanged', (newTheme) => {
+        if (typeof newTheme === 'string') {
+          setPrefs({ theme: newTheme as 'vscode' | 'light' })
+        }
+      }),
+      // Tray: clipboard quick action — populate chat input with clipboard text
+      window.electronAPI.onMenuEvent('clipboardQuickAction', (clipboardText) => {
+        if (typeof clipboardText === 'string' && clipboardText) {
+          const ui = useUiStore.getState()
+          // Set the clipboard text as quoted text so it shows in the chat input
+          ui.setQuotedText(clipboardText)
+          // Focus the chat input
+          window.dispatchEvent(new CustomEvent('aipa:focusInput'))
+        }
+      }),
     ]
     return () => cleanups.forEach((fn) => fn?.())
   }, [])

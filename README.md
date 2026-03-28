@@ -97,7 +97,8 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Multi-language (i18n)** — supports English and Simplified Chinese; defaults to system locale, switchable in Settings
 - **Dark & Light themes** -- clean Dark and soft-toned Light themes; switchable in Settings (Light theme uses gentle off-white backgrounds to reduce eye strain)
 - **Working directory in chat header** -- current working directory shown below session title; click to change directory for the current session
-- **System tray** — minimize to system tray; global hotkey `Ctrl+Shift+Space` to summon the window from anywhere
+- **System tray** -- minimize to system tray; global hotkey `Ctrl+Shift+Space` to summon the window from anywhere; right-click tray for recent sessions, toggle theme, and open working directory
+- **Clipboard quick action** -- `Ctrl+Shift+G` from any app reads clipboard text and opens AIPA with it ready to process; great for quick translations, summaries, and rewrites without manually switching windows
 - **Response regeneration** — regenerate the last AI response with a single click or `Ctrl+Shift+R`; removes the previous response and re-sends your prompt
 - **Message editing** — edit any previously sent message; the conversation is truncated at that point and the edited message is re-sent for a fresh response
 - **Chat zoom** — `Ctrl+=` to zoom in, `Ctrl+-` to zoom out, `Ctrl+0` to reset; zoom level indicator appears and can be clicked to reset
