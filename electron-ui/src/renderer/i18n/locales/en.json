@@ -630,7 +630,13 @@
     "sortCreated": "Date created",
     "sortAlpha": "Alphabetical",
     "sortMod": "Modified",
-    "sortNew": "Created"
+    "sortNew": "Created",
+    "templates": "Templates",
+    "fromTemplate": "New from template",
+    "templateMeeting": "Meeting Notes",
+    "templateTodo": "To-Do List",
+    "templateJournal": "Journal Entry",
+    "templateIdea": "Idea"
   },
   "clipboard": {
     "pasteAndAsk": "Paste & Ask",

@@ -63,13 +63,15 @@ export function useNotesCRUD() {
     }
   }, [])
 
-  const handleCreateNote = useCallback(() => {
+  const handleCreateNote = useCallback((initialTitle?: string, initialContent?: string) => {
     if (notes.length >= MAX_NOTES) return
     const now = Date.now()
+    const noteTitle = initialTitle || ''
+    const noteContent = initialContent || ''
     const newNote: Note = {
       id: generateId('note'),
-      title: '',
-      content: '',
+      title: noteTitle,
+      content: noteContent,
       createdAt: now,
       updatedAt: now,
       categoryId: activeCategoryFilter || undefined,
@@ -77,8 +79,8 @@ export function useNotesCRUD() {
     const updated = [newNote, ...notes]
     persistNotes(updated)
     setEditingNoteId(newNote.id)
-    setTitle('')
-    setContent('')
+    setTitle(noteTitle)
+    setContent(noteContent)
   }, [notes, activeCategoryFilter, persistNotes])
 
   const handleOpenNote = useCallback((note: Note) => {

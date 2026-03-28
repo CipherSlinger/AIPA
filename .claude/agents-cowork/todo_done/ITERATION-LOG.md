@@ -1918,3 +1918,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 173 (2026-03-28)
 - Notes keyboard shortcut -- Ctrl+Shift+N toggles the Notes sidebar panel; if notes is open it closes sidebar, otherwise opens sidebar with notes tab; shortcut hint shown in NavRail tooltip and shortcut cheatsheet; i18n for en + zh-CN
+
+### Iteration 174 (2026-03-28)
+- Note templates -- split "New Note" button into main + dropdown chevron; dropdown offers 4 templates (Meeting Notes, To-Do List, Journal Entry, Idea) each with structured Markdown content; templates populate title and content on creation; useNotesCRUD handleCreateNote now accepts optional initialTitle and initialContent; i18n for en + zh-CN

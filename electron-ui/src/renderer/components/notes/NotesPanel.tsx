@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Plus, Search, X, FolderDown, FolderUp, ArrowUpDown } from 'lucide-react'
+import { Plus, Search, X, FolderDown, FolderUp, ArrowUpDown, ChevronDown } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useUiStore, usePrefsStore } from '../../store'
 import { useNotesCRUD } from './useNotesCRUD'
@@ -9,6 +9,97 @@ import NoteEditor from './NoteEditor'
 import NoteList from './NoteList'
 import CategoryFilterBar from './CategoryFilterBar'
 import CategoryManager from './CategoryManager'
+
+interface NoteTemplate {
+  labelKey: string
+  title: string
+  content: string
+}
+
+const NOTE_TEMPLATES: NoteTemplate[] = [
+  {
+    labelKey: 'notes.templateMeeting',
+    title: 'Meeting Notes',
+    content: `# Meeting Notes
+
+**Date:** ${new Date().toLocaleDateString()}
+**Attendees:**
+-
+
+## Agenda
+1.
+
+## Discussion
+
+
+## Action Items
+- [ ]
+- [ ]
+
+## Next Steps
+
+`,
+  },
+  {
+    labelKey: 'notes.templateTodo',
+    title: 'To-Do List',
+    content: `# To-Do List
+
+## High Priority
+- [ ]
+- [ ]
+
+## Medium Priority
+- [ ]
+- [ ]
+
+## Low Priority
+- [ ]
+
+## Completed
+- [x]
+`,
+  },
+  {
+    labelKey: 'notes.templateJournal',
+    title: 'Journal Entry',
+    content: `# Journal — ${new Date().toLocaleDateString()}
+
+## What I accomplished today
+
+
+## What I learned
+
+
+## What I want to do tomorrow
+
+
+## Notes & Thoughts
+
+`,
+  },
+  {
+    labelKey: 'notes.templateIdea',
+    title: 'Idea',
+    content: `# Idea:
+
+## Problem
+
+
+## Proposed Solution
+
+
+## Benefits
+
+
+## Risks / Concerns
+
+
+## Next Steps
+- [ ]
+`,
+  },
+]
 
 export default function NotesPanel() {
   const t = useT()
@@ -23,6 +114,8 @@ export default function NotesPanel() {
     return 'modified'
   })
   const [, setTick] = useState(0)
+  const [showTemplateMenu, setShowTemplateMenu] = useState(false)
+  const templateMenuRef = React.useRef<HTMLDivElement>(null)
 
   const { filteredNotes, categoryCounts } = useNotesSearch(
     crud.notes,
@@ -37,6 +130,23 @@ export default function NotesPanel() {
     const interval = setInterval(() => setTick(t => t + 1), 30000)
     return () => clearInterval(interval)
   }, [])
+
+  // Close template menu on click outside
+  useEffect(() => {
+    if (!showTemplateMenu) return
+    const handler = (e: MouseEvent) => {
+      if (templateMenuRef.current && !templateMenuRef.current.contains(e.target as Node)) {
+        setShowTemplateMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showTemplateMenu])
+
+  const handleCreateFromTemplate = useCallback((template: NoteTemplate) => {
+    crud.handleCreateNote(template.title, template.content)
+    setShowTemplateMenu(false)
+  }, [crud])
 
   // Bulk export notes as individual .md files to a selected folder
   const handleExportAll = useCallback(async () => {
@@ -245,31 +355,101 @@ export default function NotesPanel() {
           >
             <FolderUp size={14} />
           </button>
-          {/* New Note button */}
-          <button
-            onClick={crud.handleCreateNote}
-            aria-label={t('notes.newNote')}
-            disabled={crud.notes.length >= MAX_NOTES}
-            style={{
-              background: 'none',
-              border: '1px solid var(--card-border)',
-              borderRadius: 6,
-              color: 'var(--accent)',
-              cursor: crud.notes.length >= MAX_NOTES ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              padding: '4px 10px',
-              fontSize: 12,
-              opacity: crud.notes.length >= MAX_NOTES ? 0.5 : 1,
-              transition: 'border-color 0.15s',
-            }}
-            onMouseEnter={e => { if (crud.notes.length < MAX_NOTES) e.currentTarget.style.borderColor = 'var(--accent)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--card-border)' }}
-          >
-            <Plus size={14} />
-            {t('notes.newNote')}
-          </button>
+          {/* New Note button with template dropdown */}
+          <div style={{ position: 'relative' }} ref={templateMenuRef}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <button
+                onClick={() => crud.handleCreateNote()}
+                aria-label={t('notes.newNote')}
+                disabled={crud.notes.length >= MAX_NOTES}
+                style={{
+                  background: 'none',
+                  border: '1px solid var(--card-border)',
+                  borderRight: 'none',
+                  borderRadius: '6px 0 0 6px',
+                  color: 'var(--accent)',
+                  cursor: crud.notes.length >= MAX_NOTES ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '4px 8px 4px 10px',
+                  fontSize: 12,
+                  opacity: crud.notes.length >= MAX_NOTES ? 0.5 : 1,
+                  transition: 'border-color 0.15s',
+                }}
+                onMouseEnter={e => { if (crud.notes.length < MAX_NOTES) e.currentTarget.style.borderColor = 'var(--accent)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--card-border)' }}
+              >
+                <Plus size={14} />
+                {t('notes.newNote')}
+              </button>
+              <button
+                onClick={() => setShowTemplateMenu(!showTemplateMenu)}
+                disabled={crud.notes.length >= MAX_NOTES}
+                aria-label={t('notes.fromTemplate')}
+                title={t('notes.fromTemplate')}
+                style={{
+                  background: 'none',
+                  border: '1px solid var(--card-border)',
+                  borderRadius: '0 6px 6px 0',
+                  color: 'var(--accent)',
+                  cursor: crud.notes.length >= MAX_NOTES ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '4px 4px',
+                  opacity: crud.notes.length >= MAX_NOTES ? 0.5 : 1,
+                  transition: 'border-color 0.15s',
+                }}
+                onMouseEnter={e => { if (crud.notes.length < MAX_NOTES) e.currentTarget.style.borderColor = 'var(--accent)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--card-border)' }}
+              >
+                <ChevronDown size={12} />
+              </button>
+            </div>
+            {/* Template dropdown menu */}
+            {showTemplateMenu && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                marginTop: 4,
+                background: 'var(--popup-bg)',
+                border: '1px solid var(--popup-border)',
+                borderRadius: 8,
+                boxShadow: 'var(--popup-shadow)',
+                padding: '4px 0',
+                zIndex: 50,
+                minWidth: 160,
+                animation: 'popup-in 0.12s ease',
+              }}>
+                <div style={{ padding: '4px 12px 6px', fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  {t('notes.templates')}
+                </div>
+                {NOTE_TEMPLATES.map((tmpl) => (
+                  <button
+                    key={tmpl.labelKey}
+                    onClick={() => handleCreateFromTemplate(tmpl)}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      textAlign: 'left',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-primary)',
+                      fontSize: 12,
+                      padding: '6px 12px',
+                      cursor: 'pointer',
+                      transition: 'background 0.1s',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--popup-item-hover)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                  >
+                    {t(tmpl.labelKey)}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
