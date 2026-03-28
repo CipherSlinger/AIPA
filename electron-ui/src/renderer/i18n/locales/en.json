@@ -84,7 +84,8 @@
     "responseComplete": "Response complete",
     "scrollToBottom": "Scroll to bottom",
     "newMessages": "{{count}} new message",
-    "newMessagesPlural": "{{count}} new messages"
+    "newMessagesPlural": "{{count}} new messages",
+    "contextWarning": "Context window {{percent}}% full. Consider starting a new conversation for best results."
   },
   "welcome": {
     "title": "Hello! I'm AIPA",

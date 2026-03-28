@@ -404,6 +404,16 @@
 | Timer icon + formatted duration (Xs, Xm Ys) on assistant messages | P2 | DONE (Iteration 129) |
 | i18n for response duration label (en + zh-CN) | P2 | DONE (Iteration 129) |
 
+### Iteration 130 -- Context Window Warning Banner
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Warning banner at 80%+ context usage | P1 | DONE (Iteration 130) |
+| Red variant at 90%+ usage | P1 | DONE (Iteration 130) |
+| Dismissible with session reset | P1 | DONE (Iteration 130) |
+| New Conversation quick action button | P1 | DONE (Iteration 130) |
+| i18n for warning text (en + zh-CN) | P1 | DONE (Iteration 130) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

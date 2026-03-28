@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Upload, RefreshCw } from 'lucide-react'
+import { Upload, RefreshCw, AlertTriangle } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { useStreamJson } from '../../hooks/useStreamJson'
 import { useStreamingTimer } from '../../hooks/useStreamingTimer'
@@ -33,6 +33,7 @@ export default function ChatPanel() {
   const focusMode = useUiStore(s => s.focusMode)
   const toggleFocusMode = useUiStore(s => s.toggleFocusMode)
   const prepareRegeneration = useChatStore(s => s.prepareRegeneration)
+  const lastContextUsage = useChatStore(s => s.lastContextUsage)
 
   const { sendMessage, abort, respondPermission, grantToolPermission, newConversation } = useStreamJson()
 
@@ -51,6 +52,18 @@ export default function ChatPanel() {
   // Drag-and-drop state
   const [isDragOver, setIsDragOver] = useState(false)
   const dragCounterRef = useRef(0)
+  const [contextWarningDismissed, setContextWarningDismissed] = useState(false)
+
+  // Context window usage warning
+  const contextPct = lastContextUsage && lastContextUsage.total > 0
+    ? Math.min(100, Math.round(lastContextUsage.used / lastContextUsage.total * 100))
+    : null
+  const showContextWarning = contextPct !== null && contextPct >= 80 && !contextWarningDismissed
+
+  // Reset context warning when session changes
+  useEffect(() => {
+    setContextWarningDismissed(false)
+  }, [currentSessionId])
 
   // Regeneration
   const canRegenerate = !isStreaming && messages.length >= 2 && messages[messages.length - 1]?.role === 'assistant'
@@ -305,6 +318,61 @@ export default function ChatPanel() {
           matchCount={searchMatches.length}
           currentMatch={currentMatchIdx}
         />
+      )}
+
+      {/* Context window warning banner */}
+      {showContextWarning && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '8px 16px',
+            background: contextPct! >= 90 ? 'rgba(248, 113, 113, 0.15)' : 'rgba(251, 191, 36, 0.15)',
+            borderBottom: `1px solid ${contextPct! >= 90 ? 'rgba(248, 113, 113, 0.3)' : 'rgba(251, 191, 36, 0.3)'}`,
+            fontSize: 12,
+            color: contextPct! >= 90 ? '#f87171' : '#fbbf24',
+            flexShrink: 0,
+          }}
+        >
+          <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+          <span style={{ flex: 1 }}>
+            {t('chat.contextWarning', { percent: String(contextPct) })}
+          </span>
+          <button
+            onClick={() => newConversation()}
+            style={{
+              background: contextPct! >= 90 ? 'rgba(248, 113, 113, 0.2)' : 'rgba(251, 191, 36, 0.2)',
+              border: `1px solid ${contextPct! >= 90 ? 'rgba(248, 113, 113, 0.4)' : 'rgba(251, 191, 36, 0.4)'}`,
+              borderRadius: 4,
+              padding: '3px 10px',
+              cursor: 'pointer',
+              color: 'inherit',
+              fontSize: 11,
+              fontWeight: 500,
+              flexShrink: 0,
+            }}
+          >
+            {t('chat.newConversation')}
+          </button>
+          <button
+            onClick={() => setContextWarningDismissed(true)}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'inherit',
+              opacity: 0.6,
+              padding: '2px 4px',
+              fontSize: 14,
+              lineHeight: 1,
+              flexShrink: 0,
+            }}
+            title={t('error.dismiss')}
+          >
+            x
+          </button>
+        </div>
       )}
 
       {/* Messages */}
