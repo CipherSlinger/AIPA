@@ -111,6 +111,7 @@
     },
     "quickActions": "\u5feb\u6377\u64cd\u4f5c",
     "recentPrompts": "\u6700\u8fd1",
+    "clearHistory": "\u6e05\u9664",
     "openSettings": "\u8bbe\u7f6e",
     "openTerminal": "\u7ec8\u7aef",
     "openFiles": "\u6587\u4ef6",

@@ -111,6 +111,7 @@
     },
     "quickActions": "Quick Actions",
     "recentPrompts": "Recent",
+    "clearHistory": "Clear",
     "openSettings": "Settings",
     "openTerminal": "Terminal",
     "openFiles": "Files",

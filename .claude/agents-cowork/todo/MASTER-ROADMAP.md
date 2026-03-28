@@ -473,6 +473,13 @@
 | Click to re-send recent prompt | P2 | DONE (Iteration 138) |
 | i18n for Recent label (en + zh-CN) | P2 | DONE (Iteration 138) |
 
+### Iteration 139 -- Clear Recent Prompts on Welcome Screen
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Clear button for recent prompts section | P2 | DONE (Iteration 139) |
+| i18n for Clear label (en + zh-CN) | P2 | DONE (Iteration 139) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

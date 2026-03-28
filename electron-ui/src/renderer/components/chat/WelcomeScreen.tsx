@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { Bot, Mail, FileText, ClipboardList, Lightbulb, Settings, Terminal, FolderOpen, Keyboard, History } from 'lucide-react'
+import { Bot, Mail, FileText, ClipboardList, Lightbulb, Settings, Terminal, FolderOpen, Keyboard, History, X } from 'lucide-react'
 import { useUiStore } from '../../store'
 import { useT } from '../../i18n'
 
@@ -28,15 +28,20 @@ export default function WelcomeScreen({ onSuggestion }: Props) {
   }, [])
 
   // Load recent prompts from persistent input history
-  const recentPrompts = useMemo<string[]>(() => {
+  const initialRecentPrompts = useMemo<string[]>(() => {
     try {
       const stored = localStorage.getItem('aipa:input-history')
       if (!stored) return []
       const history: string[] = JSON.parse(stored)
-      // Show up to 3 recent prompts, each truncated to 60 chars
       return history.slice(0, 3).filter(h => h.length > 0)
     } catch { return [] }
   }, [])
+  const [recentPrompts, setRecentPrompts] = useState(initialRecentPrompts)
+
+  const clearRecentPrompts = () => {
+    try { localStorage.removeItem('aipa:input-history') } catch { /* ignore */ }
+    setRecentPrompts([])
+  }
 
   const suggestions = [
     { icon: Mail, text: t('welcome.suggestion.draftEmail'), templateId: 'writing-assistant' },
@@ -166,7 +171,30 @@ export default function WelcomeScreen({ onSuggestion }: Props) {
         <div style={{ width: '100%', maxWidth: 420 }}>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
             <History size={11} />
-            {t('welcome.recentPrompts')}
+            <span style={{ flex: 1 }}>{t('welcome.recentPrompts')}</span>
+            <button
+              onClick={clearRecentPrompts}
+              title={t('welcome.clearHistory')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '1px 3px',
+                borderRadius: 3,
+                fontSize: 10,
+                gap: 2,
+                opacity: 0.7,
+                transition: 'color 150ms, opacity 150ms',
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--error)'; (e.currentTarget as HTMLElement).style.opacity = '1' }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'; (e.currentTarget as HTMLElement).style.opacity = '0.7' }}
+            >
+              <X size={10} />
+              {t('welcome.clearHistory')}
+            </button>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {recentPrompts.map((prompt, i) => (
