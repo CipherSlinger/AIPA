@@ -14,6 +14,7 @@ import TaskQueuePanel from './TaskQueuePanel'
 import ThinkingIndicator from './ThinkingIndicator'
 import WelcomeScreen from './WelcomeScreen'
 import { formatMarkdown } from '../../utils/formatMarkdown'
+import { getTemplateById } from '../../utils/promptTemplates'
 import { useT } from '../../i18n'
 
 // Constants for drag-and-drop file handling
@@ -221,8 +222,17 @@ export default function ChatPanel() {
     setTimeout(() => setScrollToMessageIdx(undefined), 100)
   }, [])
 
-  const sendText = async (text: string) => {
+  const sendText = async (text: string, templateId?: string) => {
     if (!text.trim() || isStreaming) return
+    // Auto-activate prompt template if suggestion card provides one
+    if (templateId) {
+      const template = getTemplateById(templateId)
+      if (template && template.prompt) {
+        usePrefsStore.getState().setPrefs({ systemPrompt: template.prompt })
+        window.electronAPI.prefsSet('systemPrompt', template.prompt)
+        addToast('info', t('chat.templateActivated', { name: t(template.labelKey) }))
+      }
+    }
     await sendMessage(text.trim())
   }
 

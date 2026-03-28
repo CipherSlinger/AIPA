@@ -66,6 +66,7 @@
     "resetZoom": "Reset zoom (Ctrl+0)",
     "copyConversation": "Copy conversation",
     "copiedToClipboard": "Conversation copied to clipboard",
+    "templateActivated": "Activated: {{name}}",
     "searchPlaceholder": "Search in conversation...",
     "noMatches": "No matches",
     "previousMatch": "Previous match (Shift+Enter)",

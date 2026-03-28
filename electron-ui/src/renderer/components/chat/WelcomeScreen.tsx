@@ -4,16 +4,16 @@ import { useUiStore } from '../../store'
 import { useT } from '../../i18n'
 
 interface Props {
-  onSuggestion: (text: string) => void
+  onSuggestion: (text: string, templateId?: string) => void
 }
 
 export default function WelcomeScreen({ onSuggestion }: Props) {
   const t = useT()
   const suggestions = [
-    { icon: Mail, text: t('welcome.suggestion.draftEmail') },
-    { icon: FileText, text: t('welcome.suggestion.summarizeDoc') },
-    { icon: ClipboardList, text: t('welcome.suggestion.weeklyReport') },
-    { icon: Lightbulb, text: t('welcome.suggestion.explainConcept') },
+    { icon: Mail, text: t('welcome.suggestion.draftEmail'), templateId: 'writing-assistant' },
+    { icon: FileText, text: t('welcome.suggestion.summarizeDoc'), templateId: 'research-analyst' },
+    { icon: ClipboardList, text: t('welcome.suggestion.weeklyReport'), templateId: 'writing-assistant' },
+    { icon: Lightbulb, text: t('welcome.suggestion.explainConcept'), templateId: 'language-tutor' },
   ]
 
   const shortcuts = [
@@ -55,10 +55,10 @@ export default function WelcomeScreen({ onSuggestion }: Props) {
 
       {/* Suggestion cards */}
       <div style={{ display: 'flex', gap: 12, marginTop: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
-        {suggestions.map(({ icon: Icon, text }) => (
+        {suggestions.map(({ icon: Icon, text, templateId }) => (
           <button
             key={text}
-            onClick={() => onSuggestion(text)}
+            onClick={() => onSuggestion(text, templateId)}
             style={{
               display: 'flex',
               flexDirection: 'column',

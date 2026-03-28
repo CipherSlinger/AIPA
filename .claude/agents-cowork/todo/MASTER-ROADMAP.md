@@ -286,6 +286,12 @@
 | Onboarding subtitle alignment | P1 | DONE (Iteration 116) |
 | Quick reply defaults alignment | P1 | DONE (Iteration 116) |
 
+### Iteration 117 -- Smart Welcome Suggestions
+
+| Feature | PRD | Priority | Status |
+|---------|-----|----------|--------|
+| Auto-activate prompt template on welcome suggestions | `prd-smart-welcome-suggestions-v1.md` | P1 | DONE (Iteration 117) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

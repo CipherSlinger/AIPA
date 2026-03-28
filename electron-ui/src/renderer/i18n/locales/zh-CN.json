@@ -66,6 +66,7 @@
     "resetZoom": "\u91cd\u7f6e\u7f29\u653e (Ctrl+0)",
     "copyConversation": "\u590d\u5236\u5bf9\u8bdd",
     "copiedToClipboard": "\u5bf9\u8bdd\u5df2\u590d\u5236\u5230\u526a\u8d34\u677f",
+    "templateActivated": "\u5df2\u6fc0\u6d3b\uff1a{{name}}",
     "searchPlaceholder": "\u5728\u5bf9\u8bdd\u4e2d\u641c\u7d22...",
     "noMatches": "\u65e0\u5339\u914d\u7ed3\u679c",
     "previousMatch": "\u4e0a\u4e00\u4e2a\u5339\u914d (Shift+Enter)",

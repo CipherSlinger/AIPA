@@ -1632,3 +1632,39 @@ renderer: 2397 modules transformed, built in 7.75s
 - [x] Quick reply defaults now balanced (Explain, Summarize, Draft email, Translate)
 - [x] No remaining developer-only defaults in first-run experience
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 117 -- Smart Welcome Suggestions with Auto Prompt Template
+
+_Date: 2026-03-28 | Sprint Personal Assistant Enhancement_
+
+### Summary
+Enhanced Welcome Screen suggestion cards to automatically activate the matching prompt template when clicked. Each suggestion now maps to a system prompt role: "Draft email" and "Weekly report" activate Writing Assistant, "Summarize document" activates Research Analyst, "Explain concept" activates Tutor. When clicked, the system prompt is persisted to prefs, a toast notification shows which role was activated, and the suggestion text is sent as the first message. Also extracted prompt template definitions from SettingsPanel into a shared utility (`promptTemplates.ts`) to avoid duplication.
+
+### Files Changed
+- `src/renderer/utils/promptTemplates.ts` -- NEW: Shared prompt template definitions (PROMPT_TEMPLATES array, getTemplateById helper)
+- `src/renderer/components/chat/WelcomeScreen.tsx` -- Added templateId field to suggestions (draftEmail -> writing-assistant, summarizeDoc -> research-analyst, weeklyReport -> writing-assistant, explainConcept -> language-tutor); updated Props to pass templateId in callback
+- `src/renderer/components/chat/ChatPanel.tsx` -- Imported getTemplateById; updated sendText to accept optional templateId, auto-set systemPrompt and show toast when template provided
+- `src/renderer/components/settings/SettingsPanel.tsx` -- Replaced local SYSTEM_PROMPT_TEMPLATES constant with imported PROMPT_TEMPLATES from shared utility
+- `src/renderer/i18n/locales/en.json` -- Added `chat.templateActivated` key
+- `src/renderer/i18n/locales/zh-CN.json` -- Added Chinese translation for templateActivated
+
+### Build
+Status: SUCCESS
+
+```
+main: tsc clean
+preload: tsc clean
+renderer: 2398 modules transformed, built in 7.63s
+```
+
+### Acceptance Criteria
+- [x] Clicking "Draft email" activates Writing Assistant template
+- [x] Clicking "Summarize document" activates Research Analyst template
+- [x] Clicking "Explain concept" activates Tutor template
+- [x] System prompt set in both Zustand store and electron-store
+- [x] Toast notification shows "Activated: [Template Name]"
+- [x] Template definitions shared between SettingsPanel and ChatPanel (no duplication)
+- [x] All i18n strings have en + zh-CN translations
+- [x] Build passes with zero errors
