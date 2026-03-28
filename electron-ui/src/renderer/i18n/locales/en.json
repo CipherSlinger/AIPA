@@ -164,7 +164,8 @@
     "secsAgo": "{{count}}s ago",
     "minsAgo": "{{count}}m ago",
     "hoursAgo": "{{count}}h ago",
-    "daysAgo": "{{count}}d ago"
+    "daysAgo": "{{count}}d ago",
+    "responseDuration": "took {{time}}"
   },
   "session": {
     "search": "Search sessions...",

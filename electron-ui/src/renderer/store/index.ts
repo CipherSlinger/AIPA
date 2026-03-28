@@ -125,6 +125,9 @@ interface ChatState {
 
   // Message editing
   editMessageAndTruncate: (msgId: string, newContent: string) => void
+
+  // Response duration tracking
+  setResponseDuration: (msgId: string, duration: number) => void
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -350,6 +353,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
     // Remove the edited message and everything after it; sendMessage will re-add the user message
     set({ messages: msgs.slice(0, idx) })
   },
+
+  setResponseDuration: (msgId, duration) => set((s) => ({
+    messages: s.messages.map(m =>
+      m.id === msgId && m.role === 'assistant'
+        ? { ...(m as StandardChatMessage), responseDuration: duration }
+        : m
+    ),
+  })),
 }))
 
 // ── Session store ───────────────────────────────

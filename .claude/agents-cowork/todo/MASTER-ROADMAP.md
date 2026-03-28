@@ -396,6 +396,14 @@
 | Auto-format large values (1.2k c/s) | P2 | DONE (Iteration 128) |
 | i18n for speed label (en + zh-CN) | P2 | DONE (Iteration 128) |
 
+### Iteration 129 -- Response Time on Assistant Messages
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Track and display response generation time per message | P2 | DONE (Iteration 129) |
+| Timer icon + formatted duration (Xs, Xm Ys) on assistant messages | P2 | DONE (Iteration 129) |
+| i18n for response duration label (en + zh-CN) | P2 | DONE (Iteration 129) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

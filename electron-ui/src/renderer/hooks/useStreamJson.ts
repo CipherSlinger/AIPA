@@ -66,6 +66,8 @@ export function useStreamJson() {
   const activeBridgeIdRef = useRef<string | null>(null)
   // Keep a ref to sendMessage so it can be called from the IPC event handler without stale closure
   const sendMessageRef = useRef<((prompt: string) => Promise<unknown>) | null>(null)
+  // Track when the user sends a message to calculate response duration
+  const sendTimestampRef = useRef<number>(0)
 
   const sendMessage = async (prompt: string, attachments?: import('./useImagePaste').ImageAttachment[]) => {
     if (!prompt.trim() && (!attachments || attachments.length === 0)) return
@@ -79,6 +81,7 @@ export function useStreamJson() {
     }
     useChatStore.getState().addMessage(userMsg)
     setStreaming(true)
+    sendTimestampRef.current = Date.now()
 
     const currentSessionId = useChatStore.getState().currentSessionId
 
@@ -238,6 +241,16 @@ export function useStreamJson() {
           // context window usage
           if (usage?.context_window && usage.context_window > 0) {
             setLastContextUsage({ used: usage.input_tokens ?? 0, total: usage.context_window })
+          }
+          // Set response duration on the last assistant message
+          if (sendTimestampRef.current > 0) {
+            const duration = Date.now() - sendTimestampRef.current
+            sendTimestampRef.current = 0
+            const msgs = useChatStore.getState().messages
+            const lastAssistant = [...msgs].reverse().find(m => m.role === 'assistant')
+            if (lastAssistant) {
+              useChatStore.getState().setResponseDuration(lastAssistant.id, duration)
+            }
           }
           const resultText = (ev?.result as string) || ''
           if (resultText.trim()) {

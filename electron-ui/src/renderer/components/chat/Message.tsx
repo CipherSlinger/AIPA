@@ -4,10 +4,18 @@ import MessageContent from './MessageContent'
 import ToolUseBlock from './ToolUseBlock'
 import MessageContextMenu from './MessageContextMenu'
 import ImageLightbox from '../shared/ImageLightbox'
-import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark, AlertTriangle, Code2, Check, CheckCheck, Clock, MessageSquareQuote, Pencil } from 'lucide-react'
+import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark, AlertTriangle, Code2, Check, CheckCheck, Clock, MessageSquareQuote, Pencil, Timer } from 'lucide-react'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import { Note } from '../../types/app.types'
+
+function formatResponseDuration(ms: number): string {
+  const secs = Math.round(ms / 1000)
+  if (secs < 60) return `${secs}s`
+  const mins = Math.floor(secs / 60)
+  const remainSecs = secs % 60
+  return remainSecs > 0 ? `${mins}m ${remainSecs}s` : `${mins}m`
+}
 
 function relativeTime(ts: number, t: (key: string, params?: Record<string, string>) => string): string {
   const diff = Math.floor((Date.now() - ts) / 1000)
@@ -503,6 +511,12 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
                   title={new Date((message as StandardChatMessage).timestamp).toLocaleString()}
                 >
                   {relativeTime((message as StandardChatMessage).timestamp, t)}
+                  {!isUser && (message as StandardChatMessage).responseDuration != null && (message as StandardChatMessage).responseDuration! > 0 && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, opacity: 0.7 }} title={t('message.responseDuration', { time: formatResponseDuration((message as StandardChatMessage).responseDuration!) })}>
+                      <Timer size={9} />
+                      {formatResponseDuration((message as StandardChatMessage).responseDuration!)}
+                    </span>
+                  )}
                   {msgStatus === 'sending' && (
                     <Clock size={10} style={{ opacity: 0.8 }} />
                   )}
