@@ -96,66 +96,66 @@
   --queue-panel-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
-/* Theme: Light (clean light mode) */
+/* Theme: Light (soft light mode -- Iteration 165: toned down from pure white) */
 [data-theme="light"] {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f5f5f5;
-  --bg-sidebar: #f0f0f0;
+  --bg-primary: #f5f5f7;
+  --bg-secondary: #eff0f2;
+  --bg-sidebar: #eaebee;
   --bg-input: #ffffff;
-  --bg-hover: #e8e8e8;
-  --bg-active: #e0e0e0;
-  --text-primary: #1a1a1a;
-  --text-muted: #6b7280;
+  --bg-hover: #e2e3e6;
+  --bg-active: #d8d9dd;
+  --text-primary: #1d1d1f;
+  --text-muted: #6e6e73;
   --text-bright: #000000;
   --accent: #2563eb;
   --accent-hover: #3b82f6;
-  --border: #e0e0e0;
+  --border: #d5d5da;
   --success: #16a34a;
   --warning: #d97706;
   --error: #dc2626;
   --user-bubble: #2563eb;
-  --assistant-bubble: #f3f4f6;
+  --assistant-bubble: #eaebef;
 
-  --bg-nav:             #f8f8f8;
-  --bg-sessionpanel:    #f0f0f0;
-  --bg-chat:            #ffffff;
-  --bubble-ai:          #f3f4f6;
-  --bubble-ai-text:     #1a1a1a;
-  --bubble-ai-border:   #e5e7eb;
+  --bg-nav:             #e8e8ed;
+  --bg-sessionpanel:    #ecedf0;
+  --bg-chat:            #f5f5f7;
+  --bubble-ai:          #e8e9ee;
+  --bubble-ai-text:     #1d1d1f;
+  --bubble-ai-border:   #d5d6dc;
   --bubble-user:        #2563eb;
   --bubble-user-text:   #ffffff;
   --bubble-user-border: #1d4ed8;
-  --nav-icon-default:   #9ca3af;
-  --nav-icon-hover:     #4b5563;
-  --nav-icon-active:    #1a1a1a;
+  --nav-icon-default:   #8e8e93;
+  --nav-icon-hover:     #48484a;
+  --nav-icon-active:    #1d1d1f;
   --nav-indicator:      #2563eb;
-  --session-active-bg:  rgba(37, 99, 235, 0.08);
+  --session-active-bg:  rgba(37, 99, 235, 0.10);
   --session-hover-bg:   rgba(0, 0, 0, 0.04);
   --avatar-ai:          #7c3aed;
   --avatar-user:        #2563eb;
 
-  --input-bar-bg:         #ffffff;
-  --input-field-bg:       #f9fafb;
-  --input-field-border:   #d1d5db;
+  --input-bar-bg:         #f5f5f7;
+  --input-field-bg:       #ffffff;
+  --input-field-border:   #c7c7cc;
   --input-field-focus:    #2563eb;
-  --input-toolbar-icon:   #9ca3af;
-  --input-toolbar-hover:  #4b5563;
-  --chat-header-bg:       #f8f8f8;
-  --chat-header-title:    #1a1a1a;
-  --chat-header-icon:     #9ca3af;
-  --chat-header-icon-hover: #4b5563;
-  --tool-card-bg:         rgba(0, 0, 0, 0.03);
+  --input-toolbar-icon:   #8e8e93;
+  --input-toolbar-hover:  #48484a;
+  --chat-header-bg:       #ededf0;
+  --chat-header-title:    #1d1d1f;
+  --chat-header-icon:     #8e8e93;
+  --chat-header-icon-hover: #48484a;
+  --tool-card-bg:         rgba(0, 0, 0, 0.04);
   --tool-card-border:     rgba(0, 0, 0, 0.08);
-  --tool-card-header-bg:  rgba(0, 0, 0, 0.04);
+  --tool-card-header-bg:  rgba(0, 0, 0, 0.05);
 
-  --popup-bg:             #ffffff;
-  --popup-border:         #e0e0e0;
-  --popup-shadow:         0 8px 24px rgba(0,0,0,0.12);
+  --popup-bg:             #f5f5f7;
+  --popup-border:         #d5d5da;
+  --popup-shadow:         0 8px 24px rgba(0,0,0,0.10);
   --popup-item-hover:     rgba(0,0,0,0.05);
   --action-btn-bg:        rgba(0,0,0,0.05);
   --action-btn-border:    rgba(0,0,0,0.1);
   --action-btn-hover:     rgba(0,0,0,0.08);
-  --card-bg:              #ffffff;
+  --card-bg:              #f0f0f3;
   --card-border:          rgba(0,0,0,0.1);
   --input-focus-shadow:   0 0 0 2px rgba(37,99,235,0.2);
 
@@ -165,7 +165,7 @@
   --queue-accent-soft:  #8b5cf6;
   --queue-bg-tint:      rgba(124, 58, 237, 0.08);
   --queue-bg-running:   rgba(124, 58, 237, 0.12);
-  --queue-panel-bg:     rgba(255, 255, 255, 0.97);
+  --queue-panel-bg:     rgba(245, 245, 247, 0.97);
   --queue-panel-border: rgba(0, 0, 0, 0.1);
   --queue-panel-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
@@ -203,18 +203,18 @@ html, body, #root {
 
 /* Light theme scrollbar overrides */
 [data-theme="light"] ::-webkit-scrollbar-thumb {
-  background: #c0c0c0;
+  background: #b8b8be;
 }
 [data-theme="light"] ::-webkit-scrollbar-thumb:hover {
-  background: #a0a0a0;
+  background: #98989e;
 }
 
 /* Light theme code block overrides */
 [data-theme="light"] pre {
-  background: #f6f8fa;
+  background: #ebedf2;
 }
 [data-theme="light"] code:not(pre code) {
-  background: #eff1f3;
+  background: #e4e6eb;
 }
 
 /* xterm overrides */

@@ -35,7 +35,7 @@ const FONT_FAMILIES: { id: string; label: string; labelKey?: string }[] = [
 
 const THEMES: { id: 'vscode' | 'light'; label: string; labelKey: string; colors: string[] }[] = [
   { id: 'vscode',   label: 'Dark',   labelKey: 'settings.themeDark',  colors: ['#1e1e1e', '#007acc', '#264f78', '#2d2d2d'] },
-  { id: 'light',    label: 'Light',  labelKey: 'settings.themeLight', colors: ['#ffffff', '#2563eb', '#f3f4f6', '#f5f5f5'] },
+  { id: 'light',    label: 'Light',  labelKey: 'settings.themeLight', colors: ['#f5f5f7', '#2563eb', '#eaebee', '#ededf0'] },
 ]
 
 // PROMPT_TEMPLATES is imported from ../../utils/promptTemplates as PROMPT_TEMPLATES

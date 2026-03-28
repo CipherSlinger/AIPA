@@ -1927,3 +1927,9 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 176 (2026-03-28)
 - Session duration display -- session list items show conversation duration (e.g., "12m", "1h 30m") next to the relative timestamp with a Clock icon; hover tooltip also shows duration; session-reader.ts tracks firstTimestamp (min timestamp across all JSONL entries) alongside existing max timestamp; formatSessionDuration helper formats durations from seconds up to days; i18n for en + zh-CN
+
+### Iteration 177 (2026-03-28)
+- Welcome screen usage stats bar -- shows total sessions, total messages, and today's session count in a pill-shaped stats bar below the greeting; uses Layers/MessageSquare/Clock icons; computed from session store data; only visible when user has at least 1 session; i18n for en + zh-CN
+
+### Iteration 178 (2026-03-28)
+- Soft light theme -- toned down light theme from pure white (#ffffff) backgrounds to gentle off-white/warm gray (#f5f5f7, #eff0f2, #eaebee, #e8e8ed) to reduce eye strain per user feedback; updated ~40 CSS variables including backgrounds, borders, scrollbars, code blocks; input fields remain white for contrast; settings theme preview updated to match new palette
