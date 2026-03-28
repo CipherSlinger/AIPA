@@ -1941,3 +1941,12 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 180 (2026-03-28)
 - Skill System (Browse, Install & Manage) -- new Skills sidebar panel; Installed + Marketplace tabs; 10 curated skills; one-click install; i18n en+zh-CN
+
+### Iteration 181 (2026-03-28)
+- Enhanced system tray and global clipboard hotkey -- expanded tray context menu with recent sessions, toggle theme, open working directory; Ctrl+Shift+Q global hotkey to read clipboard and populate chat input; tray notification for completed responses
+
+### Iteration 182 (2026-03-28)
+- Continue last conversation card on welcome screen -- card showing last session title, last message preview, and timestamp; click to resume previous conversation; only visible when sessions exist
+
+### Iteration 183 (2026-03-28)
+- Fix node-pty native module crash (P0 bug) -- recompiled node-pty for Electron v39 ABI; hardened postinstall script with explicit electron-rebuild step + verify-pty.js verification; addressed recurring user feedback about broken terminal

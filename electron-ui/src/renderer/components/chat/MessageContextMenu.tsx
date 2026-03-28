@@ -9,6 +9,7 @@ interface ContextMenuProps {
   message: ChatMessage
   onCopy: () => void
   onCopyMarkdown?: () => void
+  onCopyRichText?: () => void
   onSaveAsNote?: () => void
   onQuoteReply?: () => void
   onEditMessage?: () => void
@@ -19,7 +20,7 @@ interface ContextMenuProps {
   onClose: () => void
 }
 
-export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdown, onSaveAsNote, onQuoteReply, onEditMessage, onRate, onRewind, onBookmark, onCollapse, onClose }: ContextMenuProps) {
+export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdown, onCopyRichText, onSaveAsNote, onQuoteReply, onEditMessage, onRate, onRewind, onBookmark, onCollapse, onClose }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Clamp position to viewport
@@ -117,6 +118,18 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
           onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
         >
           <span>{t('message.copyMarkdown')}</span>
+        </button>
+      )}
+
+      {/* Copy as Rich Text (assistant only) */}
+      {isAssistant && onCopyRichText && (
+        <button
+          style={itemStyle}
+          onClick={() => { onCopyRichText(); onClose() }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+        >
+          <span>{t('message.copyRichText')}</span>
         </button>
       )}
 

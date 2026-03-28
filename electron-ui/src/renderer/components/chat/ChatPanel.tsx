@@ -14,6 +14,7 @@ import TaskQueuePanel from './TaskQueuePanel'
 import ThinkingIndicator from './ThinkingIndicator'
 import WelcomeScreen from './WelcomeScreen'
 import { formatMarkdown } from '../../utils/formatMarkdown'
+import { formatHtml } from '../../utils/formatHtml'
 import { getTemplateById } from '../../utils/promptTemplates'
 import { useT } from '../../i18n'
 
@@ -84,15 +85,19 @@ export default function ChatPanel() {
     const defaultName = `aipa-export-${ts}`
     const filePath = await window.electronAPI.fsShowSaveDialog(defaultName, [
       { name: 'Markdown', extensions: ['md'] },
+      { name: 'HTML', extensions: ['html'] },
       { name: 'JSON', extensions: ['json'] },
     ])
     if (!filePath) return
 
     const isJson = filePath.toLowerCase().endsWith('.json')
+    const isHtml = filePath.toLowerCase().endsWith('.html') || filePath.toLowerCase().endsWith('.htm')
     let content: string
 
     if (isJson) {
       content = JSON.stringify(messages, null, 2)
+    } else if (isHtml) {
+      content = formatHtml(messages, currentSessionId, now, currentSessionTitle, prefs.model)
     } else {
       content = formatMarkdown(messages, currentSessionId, now, currentSessionTitle, prefs.model)
     }

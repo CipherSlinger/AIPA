@@ -39,7 +39,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Plan cards** — structured plan visualization in chat
 - **Image paste** — paste images directly into the chat input
 - **File drag-and-drop** — drag files from the OS file explorer into the chat; images are attached, other files are referenced via `@path`
-- **Conversation export** — export conversations as Markdown or JSON via toolbar button or `Ctrl+Shift+E`
+- **Conversation export** — export conversations as Markdown, HTML, or JSON via toolbar button or `Ctrl+Shift+E`; HTML export produces a self-contained styled file for sharing
 - **Command palette** — `Ctrl+Shift+P` to access all actions and slash commands in a fuzzy-search modal
 - **Keyboard shortcuts** — `Ctrl+N` new conversation, `Ctrl+B` toggle sidebar, `Ctrl+`` toggle terminal, `Ctrl+L` focus input, `Ctrl+,` settings, `Ctrl+Shift+E` export, `Ctrl+F` search in conversation, `Ctrl+/` shortcut cheatsheet, `Ctrl+Shift+N` toggle notes panel
 - **Session auto-title** — conversations are automatically titled after the first exchange, with live sidebar refresh
@@ -61,6 +61,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Session delete confirmation** — two-click confirmation prevents accidental session deletion
 - **Scroll position memory** — scroll positions are remembered when switching between sessions
 - **Copy as Markdown** — right-click assistant messages to copy raw Markdown source
+- **Copy as Rich Text** — right-click assistant messages to copy formatted content that pastes with styling into emails and documents
 - **Shortcut cheatsheet** — `Ctrl+/` opens a floating overlay showing all keyboard shortcuts
 - **System message styling** — error and system messages have distinct red-tinted appearance
 - **Contextual typing indicator** — shows what Claude is doing: "Thinking...", "Running command...", "Reading file...", etc.

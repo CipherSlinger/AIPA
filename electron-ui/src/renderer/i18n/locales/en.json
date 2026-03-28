@@ -133,6 +133,7 @@
   "message": {
     "copy": "Copy text",
     "copyMarkdown": "Copy as Markdown",
+    "copyRichText": "Copy as Rich Text",
     "bookmark": "Bookmark",
     "removeBookmark": "Remove bookmark",
     "collapse": "Collapse message",

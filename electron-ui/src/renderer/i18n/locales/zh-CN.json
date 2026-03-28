@@ -133,6 +133,7 @@
   "message": {
     "copy": "\u590d\u5236\u6587\u672c",
     "copyMarkdown": "\u590d\u5236\u4e3a Markdown",
+    "copyRichText": "\u590d\u5236\u4e3a\u5bcc\u6587\u672c",
     "bookmark": "\u6dfb\u52a0\u4e66\u7b7e",
     "removeBookmark": "\u79fb\u9664\u4e66\u7b7e",
     "collapse": "\u6298\u53e0\u6d88\u606f",
