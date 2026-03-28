@@ -127,7 +127,8 @@
     "showShortcuts": "Shortcuts",
     "statsSessions": "sessions",
     "statsMessages": "messages",
-    "statsToday": "today"
+    "statsToday": "today",
+    "continueLastChat": "Continue last conversation"
   },
   "message": {
     "copy": "Copy text",

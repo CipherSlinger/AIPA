@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { Bot, Mail, FileText, ClipboardList, Lightbulb, Settings, Terminal, FolderOpen, Keyboard, History, X, MessageSquare, Layers, Clock } from 'lucide-react'
+import { Bot, Mail, FileText, ClipboardList, Lightbulb, Settings, Terminal, FolderOpen, Keyboard, History, X, MessageSquare, Layers, Clock, ArrowRight } from 'lucide-react'
 import { useUiStore, useSessionStore } from '../../store'
 import { useT } from '../../i18n'
 
@@ -13,9 +13,10 @@ function getGreetingKey(): string {
 
 interface Props {
   onSuggestion: (text: string, templateId?: string) => void
+  onOpenSession?: (sessionId: string) => void
 }
 
-export default function WelcomeScreen({ onSuggestion }: Props) {
+export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
   const t = useT()
   const [greeting, setGreeting] = useState(getGreetingKey())
   const sessions = useSessionStore(s => s.sessions)
@@ -54,6 +55,13 @@ export default function WelcomeScreen({ onSuggestion }: Props) {
     const todayTs = todayStart.getTime()
     const sessionsToday = sessions.filter(s => s.timestamp >= todayTs).length
     return { totalSessions, totalMessages, sessionsToday }
+  }, [sessions])
+
+  // Most recent session for "Continue Last Conversation" card
+  const lastSession = useMemo(() => {
+    if (sessions.length === 0) return null
+    const sorted = [...sessions].sort((a, b) => b.timestamp - a.timestamp)
+    return sorted[0]
   }, [sessions])
 
   const suggestions = [
@@ -136,6 +144,59 @@ export default function WelcomeScreen({ onSuggestion }: Props) {
             </>
           )}
         </div>
+      )}
+
+      {/* Continue Last Conversation card */}
+      {lastSession && onOpenSession && (
+        <button
+          onClick={() => onOpenSession(lastSession.sessionId)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            padding: '12px 20px',
+            background: 'var(--card-bg)',
+            border: '1px solid var(--card-border)',
+            borderRadius: 12,
+            color: 'var(--text-primary)',
+            cursor: 'pointer',
+            fontSize: 13,
+            width: '100%',
+            maxWidth: 420,
+            transition: 'background 0.15s, border-color 0.15s',
+            textAlign: 'left',
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background = 'var(--action-btn-hover)';
+            (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background = 'var(--card-bg)';
+            (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--card-border)'
+          }}
+        >
+          <div style={{
+            width: 36,
+            height: 36,
+            borderRadius: '50%',
+            background: 'rgba(0,122,204,0.08)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <History size={18} color="var(--accent)" />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {t('welcome.continueLastChat')}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {lastSession.title || lastSession.lastPrompt || 'Untitled'}
+            </div>
+          </div>
+          <ArrowRight size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+        </button>
       )}
 
       {/* Suggestion cards */}

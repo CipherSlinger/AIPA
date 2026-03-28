@@ -393,7 +393,12 @@ export default function ChatPanel() {
       <div className="flex-1 overflow-hidden" style={{ display: 'flex', flexDirection: 'column' }}>
         <div style={{ flex: 1, overflow: 'hidden', zoom: chatZoom !== 100 ? `${chatZoom}%` : undefined }}>
           {messages.length === 0 ? (
-            <WelcomeScreen onSuggestion={sendText} />
+            <WelcomeScreen
+              onSuggestion={sendText}
+              onOpenSession={(sessionId) => {
+                window.dispatchEvent(new CustomEvent('aipa:openSession', { detail: sessionId }))
+              }}
+            />
           ) : (
           <MessageList
             messages={messages}
