@@ -721,6 +721,12 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           onCopy={handleCopy}
           onCopyMarkdown={isAssistant ? handleCopyMarkdown : undefined}
           onSaveAsNote={isAssistant && (message as StandardChatMessage).content ? handleSaveAsNote : undefined}
+          onQuoteReply={!isPermission && !isPlan && (message as StandardChatMessage).content ? handleQuote : undefined}
+          onEditMessage={isUser && onEdit && !globalIsStreaming ? () => {
+            setEditContent((message as StandardChatMessage).content || '')
+            setIsEditing(true)
+            setTimeout(() => editTextareaRef.current?.focus(), 50)
+          } : undefined}
           onRate={onRate ? (rating) => onRate(message.id, rating) : undefined}
           onBookmark={onBookmark ? () => onBookmark(message.id) : undefined}
           onCollapse={onCollapse ? () => onCollapse(message.id) : undefined}

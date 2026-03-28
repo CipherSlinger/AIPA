@@ -10,6 +10,8 @@ interface ContextMenuProps {
   onCopy: () => void
   onCopyMarkdown?: () => void
   onSaveAsNote?: () => void
+  onQuoteReply?: () => void
+  onEditMessage?: () => void
   onRate?: (rating: 'up' | 'down' | null) => void
   onRewind?: () => void
   onBookmark?: () => void
@@ -17,7 +19,7 @@ interface ContextMenuProps {
   onClose: () => void
 }
 
-export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdown, onSaveAsNote, onRate, onRewind, onBookmark, onCollapse, onClose }: ContextMenuProps) {
+export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdown, onSaveAsNote, onQuoteReply, onEditMessage, onRate, onRewind, onBookmark, onCollapse, onClose }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Clamp position to viewport
@@ -127,6 +129,30 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
           onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
         >
           <span>{t('message.saveAsNote')}</span>
+        </button>
+      )}
+
+      {/* Quote Reply */}
+      {onQuoteReply && (
+        <button
+          style={itemStyle}
+          onClick={() => { onQuoteReply(); onClose() }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+        >
+          <span>{t('message.quoteReply')}</span>
+        </button>
+      )}
+
+      {/* Edit Message (user only) */}
+      {onEditMessage && (
+        <button
+          style={itemStyle}
+          onClick={() => { onEditMessage(); onClose() }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+        >
+          <span>{t('message.editMessage')}</span>
         </button>
       )}
 

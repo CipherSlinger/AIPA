@@ -555,7 +555,7 @@ export default function SessionList() {
         )}
         {!loading && filtered.length === 0 && (
           <div style={{ padding: 16, color: 'var(--text-muted)', fontSize: 12, textAlign: 'center' }}>
-            {filter ? 'No matches' : 'No session history'}
+            {filter ? t('session.noResults') : t('session.noSessions')}
           </div>
         )}
         {filtered.map((session, idx) => {

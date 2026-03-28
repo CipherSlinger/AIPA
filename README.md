@@ -124,6 +124,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Inline title rename** — click the session title in the chat header to rename it inline; press Enter to save or Escape to cancel
 - **Persistent input history** — previously sent messages are remembered across page refreshes and app restarts via localStorage (up to 50 entries)
 - **Recent prompts on welcome screen** — welcome screen shows up to 3 most recently sent prompts for quick re-use, with a "Clear" button to reset history
+- **Context menu completeness** — right-click any message for full actions: Copy, Quote Reply, Edit (user messages), Save as Note (AI messages), Bookmark, Collapse, Rate, and Rewind
 
 ## Security
 

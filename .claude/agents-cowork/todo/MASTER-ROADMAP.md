@@ -480,6 +480,14 @@
 | Clear button for recent prompts section | P2 | DONE (Iteration 139) |
 | i18n for Clear label (en + zh-CN) | P2 | DONE (Iteration 139) |
 
+### Iteration 140 -- Context Menu Completeness
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Quote Reply action in message context menu | P2 | DONE (Iteration 140) |
+| Edit Message action in context menu (user messages) | P2 | DONE (Iteration 140) |
+| Fix hardcoded English strings in SessionList empty state | P2-fix | DONE (Iteration 140) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |
