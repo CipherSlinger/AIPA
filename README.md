@@ -116,6 +116,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Streaming speed indicator** — real-time characters-per-second (c/s) display in the status bar during active streaming, with Zap icon; auto-formats large values (e.g., "1.2k c/s")
 - **Response time on messages** — each AI response shows how long it took to generate (e.g., "took 12s", "took 1m 5s") with a Timer icon next to the timestamp
 - **Context window warning** — dismissible warning banner appears when context usage exceeds 80%, with "New Conversation" quick action; turns red at 90%
+- **Input token estimate** — input bar shows estimated token count (~chars/4) alongside word and character counts, helping users gauge context usage before sending
 
 ## Security
 

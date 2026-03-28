@@ -414,6 +414,12 @@
 | New Conversation quick action button | P1 | DONE (Iteration 130) |
 | i18n for warning text (en + zh-CN) | P1 | DONE (Iteration 130) |
 
+### Iteration 131 -- Input Token Estimate
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Estimated token count (~chars/4) in input compose bar | P2 | DONE (Iteration 131) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

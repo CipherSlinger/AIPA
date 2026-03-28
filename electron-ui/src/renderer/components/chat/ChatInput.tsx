@@ -724,7 +724,7 @@ export default function ChatInput({
           {isStreaming ? <Square size={14} /> : <Send size={14} />}
         </button>
       </div>
-      {/* Compose status: word/char count */}
+      {/* Compose status: word/char/token count */}
       {input.trim().length > 0 && (
         <div style={{
           display: 'flex',
@@ -745,6 +745,8 @@ export default function ChatInput({
           <span>{input.trim().split(/\s+/).filter(w => w.length > 0).length} {t('chat.words')}</span>
           <span style={{ opacity: 0.4 }}>|</span>
           <span>{input.length.toLocaleString()} {t('chat.chars')}{input.length > 10000 ? ` (${t('chat.veryLong')})` : input.length > 5000 ? ` (${t('chat.long')})` : ''}</span>
+          <span style={{ opacity: 0.4 }}>|</span>
+          <span>~{Math.ceil(input.length / 4)} tokens</span>
         </div>
       )}
     </div>
