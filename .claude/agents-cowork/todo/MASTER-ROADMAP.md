@@ -379,6 +379,15 @@
 | Bulk export all notes (or filtered) to folder | `prd-note-export-v1.md` | P1 | DONE (Iteration 126) |
 | i18n for export UI (en + zh-CN) | `prd-note-export-v1.md` | P1 | DONE (Iteration 126) |
 
+### Iteration 127 -- Note Import
+
+| Feature | PRD | Priority | Status |
+|---------|-----|----------|--------|
+| Import .md/.txt files as notes (multi-select) | - | P1 | DONE (Iteration 127) |
+| Auto-extract title from Markdown heading or filename | - | P1 | DONE (Iteration 127) |
+| New IPC: fs:showOpenFileDialog + fs:readFile | - | P1 | DONE (Iteration 127) |
+| i18n for import UI (en + zh-CN) | - | P1 | DONE (Iteration 127) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

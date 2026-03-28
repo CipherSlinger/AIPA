@@ -252,6 +252,32 @@ function registerFsHandlers(): void {
     return result.canceled ? null : result.filePaths[0]
   })
 
+  ipcMain.handle('fs:showOpenFileDialog', async (e, { filters, multiSelections }: { filters?: { name: string; extensions: string[] }[]; multiSelections?: boolean }) => {
+    const win = BrowserWindow.fromWebContents(e.sender)
+    if (!win) return null
+    const properties: ('openFile' | 'multiSelections')[] = ['openFile']
+    if (multiSelections) properties.push('multiSelections')
+    const result = await dialog.showOpenDialog(win, {
+      properties,
+      filters: filters || [{ name: 'All Files', extensions: ['*'] }],
+      title: 'Select Files',
+    })
+    return result.canceled ? null : result.filePaths
+  })
+
+  ipcMain.handle('fs:readFile', (_e, filePath: string) => {
+    try {
+      const workingDir = getPref('workingDir')
+      const allowedRoots = getAllowedFsRoots(workingDir)
+      const safe = safePath(filePath, allowedRoots)
+      const content = fs.readFileSync(safe, 'utf-8')
+      return { content }
+    } catch (err) {
+      log.warn('fs:readFile error:', String(err))
+      return { error: String(err) }
+    }
+  })
+
   ipcMain.handle('fs:getHome', () => os.homedir())
   ipcMain.handle('fs:ensureDir', (_e, dirPath: string) => {
     try {

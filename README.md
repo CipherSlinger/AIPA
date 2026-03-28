@@ -112,6 +112,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Note categories** — organize notes into up to 10 color-coded categories; filter notes by category with a pill-style filter bar; assign categories from the note editor; manage (create, rename, delete) categories inline
 - **Clipboard quick actions** — "Paste & Ask" button in the chat toolbar reads clipboard text and offers one-click actions: Summarize, Translate, Rewrite, Explain, Grammar Check; auto-detects target language for translation
 - **Note export** — export individual notes as Markdown files via the editor toolbar (Download button + system Save dialog); bulk export all notes (or filtered by category) to a folder via the "Export All" button in the Notes panel header
+- **Note import** — import `.md` and `.txt` files as notes via the "Import" button in the Notes panel header; supports multi-file selection, auto-extracts titles from Markdown headings or filenames, respects 100-note limit
 
 ## Security
 

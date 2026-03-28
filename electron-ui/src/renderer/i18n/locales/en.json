@@ -547,7 +547,11 @@
     "exportSuccess": "Note exported successfully",
     "exportAllSuccess": "{{count}} notes exported successfully",
     "exportFailed": "Export failed: {{error}}",
-    "exportNoNotes": "No notes to export"
+    "exportNoNotes": "No notes to export",
+    "importNotes": "Import Notes",
+    "importSuccess": "{{count}} notes imported successfully",
+    "importFailed": "Import failed: {{error}}",
+    "maxNotesReached": "Maximum 100 notes reached"
   },
   "clipboard": {
     "pasteAndAsk": "Paste & Ask",

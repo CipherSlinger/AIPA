@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Plus, Search, X, FolderDown } from 'lucide-react'
+import { Plus, Search, X, FolderDown, FolderUp } from 'lucide-react'
 import { useT } from '../../i18n'
-import { useUiStore } from '../../store'
+import { useUiStore, usePrefsStore } from '../../store'
 import { useNotesCRUD } from './useNotesCRUD'
 import { useNotesSearch } from './useNotesSearch'
-import { MAX_NOTES } from './notesConstants'
+import { MAX_NOTES, MAX_CONTENT_LENGTH } from './notesConstants'
 import NoteEditor from './NoteEditor'
 import NoteList from './NoteList'
 import CategoryFilterBar from './CategoryFilterBar'
@@ -67,6 +67,61 @@ export default function NotesPanel() {
       addToast(t('notes.exportFailed', { error: String(err) }), 'error')
     }
   }, [filteredNotes, addToast, t])
+
+  // Import notes from .md/.txt files
+  const handleImportNotes = useCallback(async () => {
+    const available = MAX_NOTES - crud.notes.length
+    if (available <= 0) {
+      addToast(t('notes.maxNotesReached'), 'warning')
+      return
+    }
+    try {
+      const api = (window as unknown as { electronAPI: { fsShowOpenFileDialog: (filters?: { name: string; extensions: string[] }[], multiSelections?: boolean) => Promise<string[] | null>; fsReadFile: (filePath: string) => Promise<{ content?: string; error?: string }> } }).electronAPI
+      const filePaths = await api.fsShowOpenFileDialog(
+        [
+          { name: 'Markdown', extensions: ['md'] },
+          { name: 'Text', extensions: ['txt'] },
+          { name: 'All Files', extensions: ['*'] },
+        ],
+        true,
+      )
+      if (!filePaths || filePaths.length === 0) return // user cancelled
+
+      const toImport = filePaths.slice(0, available)
+      const newNotes = []
+      for (const fp of toImport) {
+        const result = await api.fsReadFile(fp)
+        if (result?.error || !result?.content) continue
+        // Extract title from filename (without extension)
+        const fileName = fp.split(/[\\/]/).pop() || 'Imported Note'
+        const titleFromFile = fileName.replace(/\.(md|txt|markdown)$/i, '')
+        // Auto-extract title from first heading if present
+        const headingMatch = result.content.match(/^#{1,3}\s+(.+)/m)
+        const noteTitle = headingMatch ? headingMatch[1].trim() : titleFromFile
+
+        const now = Date.now() + newNotes.length // offset to ensure unique timestamps
+        newNotes.push({
+          id: `note-${now}-${Math.random().toString(36).slice(2, 8)}`,
+          title: noteTitle.slice(0, 100),
+          content: result.content.slice(0, MAX_CONTENT_LENGTH),
+          createdAt: now,
+          updatedAt: now,
+          categoryId: crud.activeCategoryFilter || undefined,
+        })
+      }
+      if (newNotes.length > 0) {
+        const updated = [...newNotes, ...crud.notes]
+        const setPrefs = usePrefsStore.getState().setPrefs
+        setPrefs({ notes: updated })
+        window.electronAPI.prefsSet('notes', updated)
+        addToast(t('notes.importSuccess', { count: String(newNotes.length) }), 'success')
+      } else {
+        addToast(t('notes.importFailed', { error: 'No files could be read' }), 'error')
+      }
+    } catch (err) {
+      addToast(t('notes.importFailed', { error: String(err) }), 'error')
+    }
+  }, [crud.notes, crud.activeCategoryFilter, addToast, t])
 
   // ── Editor View ──
   if (crud.editingNoteId && crud.editingNote) {
@@ -132,6 +187,30 @@ export default function NotesPanel() {
               <FolderDown size={14} />
             </button>
           )}
+          {/* Import button */}
+          <button
+            onClick={handleImportNotes}
+            aria-label={t('notes.importNotes')}
+            title={t('notes.importNotes')}
+            disabled={crud.notes.length >= MAX_NOTES}
+            style={{
+              background: 'none',
+              border: '1px solid var(--card-border)',
+              borderRadius: 6,
+              color: 'var(--text-muted)',
+              cursor: crud.notes.length >= MAX_NOTES ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              padding: '4px 8px',
+              fontSize: 12,
+              opacity: crud.notes.length >= MAX_NOTES ? 0.5 : 1,
+              transition: 'border-color 0.15s, color 0.15s',
+            }}
+            onMouseEnter={e => { if (crud.notes.length < MAX_NOTES) { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' } }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--card-border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+          >
+            <FolderUp size={14} />
+          </button>
           {/* New Note button */}
           <button
             onClick={crud.handleCreateNote}
