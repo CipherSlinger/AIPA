@@ -147,6 +147,9 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Settings search** — search bar at the top of General settings tab to quickly filter settings by keyword; non-matching groups are hidden
 - **Scroll-to-top button** — ArrowUp button appears when scrolled down in a conversation, enabling quick jump to the beginning; complements the existing scroll-to-bottom button
 - **Session duration** — session list items and hover tooltips show conversation duration (e.g., "12m", "1h 30m") calculated from first to last message timestamp
+- **Skill browser** — browse all installed Claude Code skills (personal and project-level) in a dedicated sidebar panel with search, detail view, and one-click invocation via slash command
+- **Skill marketplace** — curated collection of 10 ready-to-install skills (Email Drafter, Meeting Summarizer, Weekly Report, Document Reviewer, Code Reviewer, Research Assistant, Brainstorm Facilitator, Data Analyst, Translator Pro, Project Planner) with category filtering and one-click install
+- **Skill management** — view skill details (SKILL.md content), delete personal skills with two-click confirmation, and install marketplace skills to `~/.claude/skills/`
 
 ## Security
 

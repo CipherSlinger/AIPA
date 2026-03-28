@@ -104,6 +104,12 @@ const electronAPI = {
   // ── Shell ───────────────────────────────
   shellOpenExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
 
+  // ── Skills ─────────────────────────────
+  skillsList: (workingDir?: string) => ipcRenderer.invoke('skills:list', workingDir),
+  skillsRead: (dirPath: string) => ipcRenderer.invoke('skills:read', dirPath),
+  skillsInstall: (args: { name: string; content: string }) => ipcRenderer.invoke('skills:install', args),
+  skillsDelete: (dirPath: string) => ipcRenderer.invoke('skills:delete', dirPath),
+
   // ── Window ──────────────────────────────
   windowSetTitleBarOverlay: (opts: { color: string; symbolColor: string }) =>
     ipcRenderer.invoke('window:setTitleBarOverlay', opts),

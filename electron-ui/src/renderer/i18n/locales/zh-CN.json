@@ -6,7 +6,8 @@
     "terminal": "\u7ec8\u7aef",
     "settings": "\u8bbe\u7f6e",
     "userProfile": "\u7528\u6237\u5934\u50cf",
-    "notes": "\u7b14\u8bb0"
+    "notes": "\u7b14\u8bb0",
+    "skills": "\u6280\u80fd"
   },
   "chat": {
     "placeholder": "\u7ed9 AIPA \u53d1\u6d88\u606f...",
@@ -656,5 +657,32 @@
     "grammar": "\u8bed\u6cd5\u68c0\u67e5",
     "emptyClipboard": "\u526a\u8d34\u677f\u4e3a\u7a7a",
     "clipboardError": "\u65e0\u6cd5\u8bfb\u53d6\u526a\u8d34\u677f"
+  },
+  "skills": {
+    "title": "\u6280\u80fd",
+    "installed": "\u5df2\u5b89\u88c5",
+    "marketplace": "\u6280\u80fd\u5e02\u573a",
+    "searchPlaceholder": "\u641c\u7d22\u6280\u80fd...",
+    "refresh": "\u5237\u65b0",
+    "personalSkills": "\u4e2a\u4eba\u6280\u80fd",
+    "projectSkills": "\u9879\u76ee\u6280\u80fd",
+    "personal": "\u4e2a\u4eba",
+    "project": "\u9879\u76ee",
+    "noSkills": "\u672a\u5b89\u88c5\u6280\u80fd",
+    "noSkillsHint": "\u6280\u80fd\u662f\u53ef\u91cd\u590d\u4f7f\u7528\u7684 AI \u5de5\u4f5c\u6d41\uff0c\u53ef\u4ee5\u589e\u5f3a\u52a9\u624b\u7684\u80fd\u529b\u3002\u6d4f\u89c8\u6280\u80fd\u5e02\u573a\u5f00\u59cb\u4f7f\u7528\u3002",
+    "browseMarketplace": "\u6d4f\u89c8\u6280\u80fd\u5e02\u573a",
+    "noResults": "\u6ca1\u6709\u5339\u914d\u7684\u6280\u80fd",
+    "useSkill": "\u4f7f\u7528\u6280\u80fd",
+    "deleteSkill": "\u5220\u9664",
+    "confirmDelete": "\u70b9\u51fb\u786e\u8ba4",
+    "skillActivated": "\u6280\u80fd\u547d\u4ee4\u5df2\u63d2\u5165\u804a\u5929",
+    "skillDeleted": "\u6280\u80fd\u5df2\u5220\u9664",
+    "back": "\u8fd4\u56de",
+    "allCategories": "\u5168\u90e8",
+    "install": "\u5b89\u88c5",
+    "installing": "\u5b89\u88c5\u4e2d...",
+    "installSuccess": "\u6280\u80fd\u5b89\u88c5\u6210\u529f",
+    "useNow": "\u5df2\u5b89\u88c5",
+    "by": "\u4f5c\u8005"
   }
 }

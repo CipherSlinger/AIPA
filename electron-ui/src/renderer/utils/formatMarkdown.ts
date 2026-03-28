@@ -3,12 +3,27 @@ import { ChatMessage, StandardChatMessage } from '../types/app.types'
 /**
  * Formats a list of chat messages as a Markdown document for export.
  */
-export function formatMarkdown(messages: ChatMessage[], sessionId: string | null, exportDate: Date): string {
+export function formatMarkdown(
+  messages: ChatMessage[],
+  sessionId: string | null,
+  exportDate: Date,
+  sessionTitle?: string | null,
+  model?: string,
+): string {
   const dateStr = exportDate.toISOString().replace('T', ' ').slice(0, 19)
+  const contentMessages = messages.filter(m => m.role !== 'permission' && m.role !== 'plan')
+  const userCount = contentMessages.filter(m => m.role === 'user').length
+  const assistantCount = contentMessages.filter(m => m.role === 'assistant').length
+
   const lines: string[] = [
-    '# AIPA Conversation',
-    `_Exported: ${dateStr}_`,
-    `_Session: ${sessionId || 'New conversation'}_`,
+    `# ${sessionTitle || 'AIPA Conversation'}`,
+    '',
+    `| | |`,
+    `|---|---|`,
+    `| **Exported** | ${dateStr} |`,
+    `| **Session** | ${sessionId || 'New conversation'} |`,
+    ...(model ? [`| **Model** | ${model} |`] : []),
+    `| **Messages** | ${userCount} user, ${assistantCount} assistant |`,
     '',
     '---',
     '',

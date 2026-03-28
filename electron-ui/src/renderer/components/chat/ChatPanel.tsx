@@ -94,7 +94,7 @@ export default function ChatPanel() {
     if (isJson) {
       content = JSON.stringify(messages, null, 2)
     } else {
-      content = formatMarkdown(messages, currentSessionId, now)
+      content = formatMarkdown(messages, currentSessionId, now, currentSessionTitle, prefs.model)
     }
 
     const result = await window.electronAPI.fsWriteFile(filePath, content)
@@ -108,7 +108,7 @@ export default function ChatPanel() {
   // ── Copy conversation to clipboard ──────────────────────────
   const copyConversation = useCallback(async () => {
     if (messages.length === 0) return
-    const md = formatMarkdown(messages, currentSessionId, new Date())
+    const md = formatMarkdown(messages, currentSessionId, new Date(), currentSessionTitle, prefs.model)
     try {
       await navigator.clipboard.writeText(md)
       addToast('success', t('chat.copiedToClipboard'))

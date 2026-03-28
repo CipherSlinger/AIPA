@@ -1,5 +1,5 @@
 import React from 'react'
-import { MessageSquarePlus, History, FolderOpen, NotebookPen, TerminalSquare, Settings, User } from 'lucide-react'
+import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, TerminalSquare, Settings, User } from 'lucide-react'
 import { useUiStore, useSessionStore, useChatStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 
@@ -170,6 +170,7 @@ export default function NavRail() {
   const isHistoryActive = activeNavItem === 'history' && sidebarTab === 'history'
   const isFilesActive = activeNavItem === 'files' && sidebarTab === 'files'
   const isNotesActive = activeNavItem === 'notes' && sidebarTab === 'notes'
+  const isSkillsActive = activeNavItem === 'skills' && sidebarTab === 'skills'
   const isSettingsActive = activeNavItem === 'settings' && sidebarTab === 'settings'
 
   const handleNewChat = () => {
@@ -236,6 +237,14 @@ export default function NavRail() {
         isActive={isNotesActive}
         onClick={() => setActiveNavItem('notes')}
         badge={noteCount}
+      />
+
+      {/* Skills */}
+      <NavItem
+        icon={<Puzzle size={20} />}
+        label={t('nav.skills')}
+        isActive={isSkillsActive}
+        onClick={() => setActiveNavItem('skills')}
       />
 
       {/* Terminal */}

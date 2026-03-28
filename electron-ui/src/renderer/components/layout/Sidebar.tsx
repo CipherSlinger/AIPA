@@ -4,6 +4,7 @@ import SessionList from '../sessions/SessionList'
 import FileBrowser from '../filebrowser/FileBrowser'
 import SettingsPanel from '../settings/SettingsPanel'
 import NotesPanel from '../notes/NotesPanel'
+import SkillsPanel from '../skills/SkillsPanel'
 
 export default function Sidebar() {
   const { sidebarTab } = useUiStore()
@@ -22,6 +23,7 @@ export default function Sidebar() {
         {sidebarTab === 'history' && <SessionList />}
         {sidebarTab === 'files' && <FileBrowser />}
         {sidebarTab === 'notes' && <NotesPanel />}
+        {sidebarTab === 'skills' && <SkillsPanel />}
         {sidebarTab === 'settings' && <SettingsPanel />}
       </div>
     </div>

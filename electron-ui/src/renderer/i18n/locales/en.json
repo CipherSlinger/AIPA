@@ -6,7 +6,8 @@
     "terminal": "Terminal",
     "settings": "Settings",
     "userProfile": "User profile",
-    "notes": "Notes"
+    "notes": "Notes",
+    "skills": "Skills"
   },
   "chat": {
     "placeholder": "Message AIPA...",
@@ -656,5 +657,32 @@
     "grammar": "Grammar Check",
     "emptyClipboard": "Clipboard is empty",
     "clipboardError": "Could not read clipboard"
+  },
+  "skills": {
+    "title": "Skills",
+    "installed": "Installed",
+    "marketplace": "Marketplace",
+    "searchPlaceholder": "Search skills...",
+    "refresh": "Refresh",
+    "personalSkills": "Personal Skills",
+    "projectSkills": "Project Skills",
+    "personal": "Personal",
+    "project": "Project",
+    "noSkills": "No skills installed",
+    "noSkillsHint": "Skills are reusable AI workflows that enhance your assistant. Browse the Marketplace to get started.",
+    "browseMarketplace": "Browse Marketplace",
+    "noResults": "No matching skills",
+    "useSkill": "Use Skill",
+    "deleteSkill": "Delete",
+    "confirmDelete": "Click to confirm",
+    "skillActivated": "Skill command inserted into chat",
+    "skillDeleted": "Skill deleted",
+    "back": "Back",
+    "allCategories": "All",
+    "install": "Install",
+    "installing": "Installing...",
+    "installSuccess": "Skill installed successfully",
+    "useNow": "Installed",
+    "by": "by"
   }
 }
