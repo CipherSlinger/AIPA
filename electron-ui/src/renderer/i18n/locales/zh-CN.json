@@ -526,6 +526,12 @@
     "yesterday": "\u6628\u5929",
     "daysAgo": "{{count}}\u5929\u524d",
     "sendToChat": "\u53d1\u9001\u5230\u804a\u5929",
-    "sentToChat": "\u5df2\u53d1\u9001\u5230\u804a\u5929"
+    "sentToChat": "\u5df2\u53d1\u9001\u5230\u804a\u5929",
+    "searchPlaceholder": "\u641c\u7d22\u7b14\u8bb0...",
+    "searchResults": "\u627e\u5230 {{count}} \u6761\u7b14\u8bb0",
+    "noResults": "\u6ca1\u6709\u5339\u914d\u7684\u7b14\u8bb0",
+    "edit": "\u7f16\u8f91",
+    "preview": "\u9884\u89c8",
+    "nothingToPreview": "\u6682\u65e0\u5185\u5bb9\u53ef\u9884\u89c8"
   }
 }

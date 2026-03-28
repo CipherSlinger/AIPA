@@ -106,6 +106,9 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Session tags** — color-coded tag system (Work, Personal, Research, Debug, Docs, Archive) for organizing sessions; assign via hover menu, filter by tag in sidebar, customize tag names in Settings
 - **Quick notes** — built-in notepad in the sidebar for jotting down ideas, to-dos, or key points alongside conversations; notes auto-save, persist across restarts, and support up to 100 entries
 - **Note-chat integration** — send any note to the chat input with one click ("Send to Chat"); save any assistant response as a note via right-click menu ("Save as Note"); seamlessly bridge note-taking and AI conversation
+- **Notes Markdown preview** — toggle between raw editing and rendered Markdown preview; supports headings, bold, italic, lists, code blocks, tables, and GFM checkboxes
+- **Notes search** — instant full-text search across all notes by title and content, with match count and clear button
+- **Note title auto-generation** — notes automatically pick up their title from the first Markdown heading (`#`, `##`, `###`)
 
 ## Security
 

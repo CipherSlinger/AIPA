@@ -526,6 +526,12 @@
     "yesterday": "Yesterday",
     "daysAgo": "{{count}}d ago",
     "sendToChat": "Send to Chat",
-    "sentToChat": "Sent to chat"
+    "sentToChat": "Sent to chat",
+    "searchPlaceholder": "Search notes...",
+    "searchResults": "{{count}} notes found",
+    "noResults": "No matching notes",
+    "edit": "Edit",
+    "preview": "Preview",
+    "nothingToPreview": "Nothing to preview"
   }
 }

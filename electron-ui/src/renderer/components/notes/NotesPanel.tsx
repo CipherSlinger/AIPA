@@ -1,5 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Plus, ArrowLeft, Trash2, NotebookPen, MessageSquareShare } from 'lucide-react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { Plus, ArrowLeft, Trash2, NotebookPen, MessageSquareShare, Search, X } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeHighlight from 'rehype-highlight'
 import { usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import { Note } from '../../types/app.types'
@@ -33,6 +36,8 @@ export default function NotesPanel() {
   const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [previewMode, setPreviewMode] = useState(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [, setTick] = useState(0)
 
@@ -41,6 +46,16 @@ export default function NotesPanel() {
     const interval = setInterval(() => setTick(t => t + 1), 30000)
     return () => clearInterval(interval)
   }, [])
+
+  // Filter notes by search query
+  const filteredNotes = useMemo(() => {
+    if (!searchQuery.trim()) return notes
+    const q = searchQuery.toLowerCase()
+    return notes.filter(n =>
+      (n.title || '').toLowerCase().includes(q) ||
+      (n.content || '').toLowerCase().includes(q)
+    )
+  }, [notes, searchQuery])
 
   const persistNotes = useCallback((updated: Note[]) => {
     setPrefs({ notes: updated })
@@ -69,6 +84,7 @@ export default function NotesPanel() {
     setTitle(note.title)
     setContent(note.content)
     setDeletingNoteId(null)
+    setPreviewMode(false)
   }
 
   const handleBack = () => {
@@ -78,6 +94,7 @@ export default function NotesPanel() {
     }
     setEditingNoteId(null)
     setDeletingNoteId(null)
+    setPreviewMode(false)
   }
 
   const saveNote = useCallback((noteId: string, newTitle: string, newContent: string) => {
@@ -113,6 +130,16 @@ export default function NotesPanel() {
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value.slice(0, MAX_CONTENT_LENGTH)
     setContent(val)
+    // Auto-generate title from first Markdown heading if title is empty
+    if (!title) {
+      const firstLine = val.split('\n')[0] || ''
+      const headingMatch = firstLine.match(/^#{1,3}\s+(.+)/)
+      if (headingMatch) {
+        setTitle(headingMatch[1].trim())
+        if (editingNoteId) scheduleAutoSave(editingNoteId, headingMatch[1].trim(), val)
+        return
+      }
+    }
     if (editingNoteId) scheduleAutoSave(editingNoteId, title, val)
   }
 
@@ -184,6 +211,56 @@ export default function NotesPanel() {
             <ArrowLeft size={14} />
             {t('notes.back')}
           </button>
+
+          {/* Edit / Preview toggle */}
+          <div style={{
+            display: 'flex',
+            border: '1px solid var(--border)',
+            borderRadius: 6,
+            background: 'var(--card-bg)',
+            overflow: 'hidden',
+          }}>
+            <button
+              onClick={() => { if (previewMode) { setPreviewMode(false) } }}
+              style={{
+                background: !previewMode ? 'var(--accent)' : 'transparent',
+                color: !previewMode ? 'white' : 'var(--text-muted)',
+                border: 'none',
+                padding: '4px 10px',
+                fontSize: 11,
+                cursor: 'pointer',
+                transition: 'background 0.15s, color 0.15s',
+              }}
+              onMouseEnter={e => { if (previewMode) e.currentTarget.style.color = 'var(--text-primary)' }}
+              onMouseLeave={e => { if (previewMode) e.currentTarget.style.color = 'var(--text-muted)' }}
+            >
+              {t('notes.edit')}
+            </button>
+            <button
+              onClick={() => {
+                if (!previewMode) {
+                  // Save before switching to preview
+                  if (editingNoteId) saveNote(editingNoteId, title, content)
+                  setPreviewMode(true)
+                }
+              }}
+              style={{
+                background: previewMode ? 'var(--accent)' : 'transparent',
+                color: previewMode ? 'white' : 'var(--text-muted)',
+                border: 'none',
+                borderLeft: '1px solid var(--border)',
+                padding: '4px 10px',
+                fontSize: 11,
+                cursor: 'pointer',
+                transition: 'background 0.15s, color 0.15s',
+              }}
+              onMouseEnter={e => { if (!previewMode) e.currentTarget.style.color = 'var(--text-primary)' }}
+              onMouseLeave={e => { if (!previewMode) e.currentTarget.style.color = 'var(--text-muted)' }}
+            >
+              {t('notes.preview')}
+            </button>
+          </div>
+
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
             {content.length} {t('notes.characters')}
           </span>
@@ -210,27 +287,60 @@ export default function NotesPanel() {
           }}
         />
 
-        {/* Content textarea */}
-        <textarea
-          value={content}
-          onChange={handleContentChange}
-          placeholder={t('notes.startTyping')}
-          maxLength={MAX_CONTENT_LENGTH}
-          style={{
-            flex: 1,
-            width: '100%',
-            padding: '10px 14px',
-            border: 'none',
-            background: 'transparent',
-            color: 'var(--text-primary)',
-            fontSize: 13,
-            lineHeight: 1.6,
-            outline: 'none',
-            resize: 'none',
-            fontFamily: 'inherit',
-            boxSizing: 'border-box',
-          }}
-        />
+        {/* Content: textarea (edit) or Markdown preview */}
+        {previewMode ? (
+          <div
+            style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '10px 14px',
+              boxSizing: 'border-box',
+            }}
+          >
+            {content.trim() ? (
+              <div className="markdown-body" style={{ color: 'var(--text-primary)', fontSize: 13, lineHeight: 1.7 }}>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeHighlight]}
+                >
+                  {content}
+                </ReactMarkdown>
+              </div>
+            ) : (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                color: 'var(--text-muted)',
+                fontSize: 13,
+              }}>
+                {t('notes.nothingToPreview')}
+              </div>
+            )}
+          </div>
+        ) : (
+          <textarea
+            value={content}
+            onChange={handleContentChange}
+            placeholder={t('notes.startTyping')}
+            maxLength={MAX_CONTENT_LENGTH}
+            style={{
+              flex: 1,
+              width: '100%',
+              padding: '10px 14px',
+              border: 'none',
+              background: 'transparent',
+              color: 'var(--text-primary)',
+              fontSize: 13,
+              lineHeight: 1.6,
+              outline: 'none',
+              resize: 'none',
+              fontFamily: 'inherit',
+              boxSizing: 'border-box',
+            }}
+          />
+        )}
 
         {/* Timestamps footer */}
         <div style={{
@@ -290,6 +400,66 @@ export default function NotesPanel() {
         </button>
       </div>
 
+      {/* Search bar */}
+      {notes.length > 0 && (
+        <div style={{ padding: '8px 14px 0', flexShrink: 0 }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            height: 32,
+            padding: '0 8px',
+            background: 'var(--sidebar-bg)',
+            border: '1px solid var(--border)',
+            borderRadius: 6,
+          }}>
+            <Search size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder={t('notes.searchPlaceholder')}
+              style={{
+                flex: 1,
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                color: 'var(--text-primary)',
+                fontSize: 12,
+                fontFamily: 'inherit',
+              }}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  flexShrink: 0,
+                }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+          {searchQuery.trim() && (
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '4px 0 0' }}>
+              {filteredNotes.length > 0
+                ? t('notes.searchResults', { count: String(filteredNotes.length) })
+                : t('notes.noResults')
+              }
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Note list */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {notes.length === 0 ? (
@@ -305,8 +475,21 @@ export default function NotesPanel() {
             <NotebookPen size={32} strokeWidth={1} style={{ opacity: 0.3 }} />
             <span style={{ fontSize: 13 }}>{t('notes.emptyState')}</span>
           </div>
+        ) : filteredNotes.length === 0 && searchQuery.trim() ? (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%',
+            gap: 12,
+            color: 'var(--text-muted)',
+          }}>
+            <Search size={32} strokeWidth={1} style={{ opacity: 0.3 }} />
+            <span style={{ fontSize: 13 }}>{t('notes.noResults')}</span>
+          </div>
         ) : (
-          notes.map(note => (
+          filteredNotes.map(note => (
             <div
               key={note.id}
               onClick={() => handleOpenNote(note)}
