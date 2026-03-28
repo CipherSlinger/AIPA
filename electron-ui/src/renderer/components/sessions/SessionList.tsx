@@ -1006,6 +1006,47 @@ export default function SessionList() {
             <span>{new Date(tooltipSession.timestamp).toLocaleString()}</span>
           </div>
 
+          {/* Tags */}
+          {(() => {
+            const tags = sessionTags[tooltipSession.sessionId] || []
+            if (tags.length === 0) return null
+            return (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                flexWrap: 'wrap',
+                marginBottom: 4,
+              }}>
+                {tags.map(tagId => {
+                  const preset = TAG_PRESETS.find(p => p.id === tagId)
+                  if (!preset) return null
+                  const idx = TAG_PRESETS.indexOf(preset)
+                  return (
+                    <span
+                      key={tagId}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        fontSize: 10,
+                        color: preset.color,
+                        background: `${preset.color}1a`,
+                        border: `1px solid ${preset.color}40`,
+                        borderRadius: 8,
+                        padding: '1px 6px',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: preset.color, flexShrink: 0 }} />
+                      {getTagName(idx)}
+                    </span>
+                  )
+                })}
+              </div>
+            )
+          })()}
+
           {/* Last prompt preview */}
           {tooltipSession.lastPrompt && (
             <div style={{

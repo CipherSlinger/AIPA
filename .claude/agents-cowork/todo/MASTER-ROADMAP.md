@@ -524,6 +524,11 @@
 | Replace hardcoded English default QuickReply labels with i18n keys | P2-fix | DONE (Iteration 145) |
 | Add quickReply.explainThis/reviewCode/summarize/fixBug keys to en.json and zh-CN.json | P2-fix | DONE (Iteration 145) |
 
+### Iteration 146 — Session tooltip tag display
+- **Feature**: Show assigned tags as colored pills in session preview tooltip
+- **Files changed**: `SessionList.tsx`
+- **Status**: Done
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |
