@@ -21,6 +21,7 @@ export interface SessionListItem {
   project: string
   projectSlug: string
   title?: string
+  messageCount?: number
 }
 
 export interface SessionMessage {
@@ -79,6 +80,7 @@ export function listSessions(): SessionListItem[] {
             let timestamp = 0
             let project = decodeProjectSlug(projectSlug)
             let title: string | undefined
+            let messageCount = 0
 
             for (const line of lines) {
               try {
@@ -101,11 +103,14 @@ export function listSessions(): SessionListItem[] {
                 if (entry.type === 'session-title' && entry.title) {
                   title = String(entry.title)
                 }
+                if (entry.type === 'user' || entry.type === 'assistant') {
+                  messageCount++
+                }
               } catch {}
             }
 
             if (timestamp > 0) {
-              sessions.push({ sessionId, lastPrompt, timestamp, project, projectSlug, title })
+              sessions.push({ sessionId, lastPrompt, timestamp, project, projectSlug, title, messageCount })
             }
           } catch {}
         }

@@ -559,6 +559,11 @@
 - **Files changed**: `ChatInput.tsx`
 - **Status**: Done
 
+### Iteration 153 — Session message count in preview tooltip
+- **Feature**: Count user+assistant messages per session in session-reader; display message count in session preview tooltip
+- **Files changed**: `session-reader.ts`, `app.types.ts`, `SessionList.tsx`, `en.json`, `zh-CN.json`
+- **Status**: Done
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

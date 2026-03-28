@@ -206,6 +206,7 @@
     "noContent": "(no content)",
     "tooltipProject": "Project",
     "tooltipLastActive": "Last active",
+    "tooltipMessages": "Messages",
     "refresh": "Refresh",
     "deleteAll": "Delete all sessions",
     "deleteAllConfirm": "Delete all {{count}} sessions? This cannot be undone.",

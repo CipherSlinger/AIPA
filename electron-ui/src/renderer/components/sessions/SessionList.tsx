@@ -997,7 +997,7 @@ export default function SessionList() {
           <div style={{
             fontSize: 11,
             color: 'var(--text-muted)',
-            marginBottom: 6,
+            marginBottom: tooltipSession.messageCount ? 4 : 6,
             display: 'flex',
             alignItems: 'center',
             gap: 4,
@@ -1005,6 +1005,21 @@ export default function SessionList() {
             <span style={{ opacity: 0.7 }}>{t('session.tooltipLastActive')}:</span>
             <span>{new Date(tooltipSession.timestamp).toLocaleString()}</span>
           </div>
+
+          {/* Message count */}
+          {tooltipSession.messageCount != null && tooltipSession.messageCount > 0 && (
+            <div style={{
+              fontSize: 11,
+              color: 'var(--text-muted)',
+              marginBottom: 6,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+            }}>
+              <span style={{ opacity: 0.7 }}>{t('session.tooltipMessages')}:</span>
+              <span>{tooltipSession.messageCount}</span>
+            </div>
+          )}
 
           {/* Tags */}
           {(() => {

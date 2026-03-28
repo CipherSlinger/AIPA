@@ -5,6 +5,7 @@ export interface SessionListItem {
   project: string
   projectSlug: string
   title?: string
+  messageCount?: number
 }
 
 export interface SessionMessage {
