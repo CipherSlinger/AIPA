@@ -158,6 +158,15 @@ export default function App() {
     }
   }, [prefs.theme])
 
+  // Stop taskbar flash when window gets focused
+  useEffect(() => {
+    const handleFocus = () => {
+      try { window.electronAPI.windowFlashFrame(false) } catch {}
+    }
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [])
+
   // Global keyboard shortcuts (renderer-side, supplements menu accelerators)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {

@@ -7,15 +7,27 @@ import { useT } from '../i18n'
 function sendCompletionNotification(title: string, summary: string) {
   if (document.hasFocus()) return  // Don't notify when window is focused
   if (usePrefsStore.getState().prefs.desktopNotifications === false) return
-  if (!('Notification' in window)) return
-  if (Notification.permission === 'granted') {
-    new Notification(title, { body: summary.slice(0, 100) })
-  } else if (Notification.permission === 'default') {
-    Notification.requestPermission().then(perm => {
-      if (perm === 'granted') {
-        new Notification(title, { body: summary.slice(0, 100) })
-      }
+
+  // Use Electron native notification (click-to-focus) instead of Web Notification API
+  try {
+    window.electronAPI.windowShowNotification({
+      title,
+      body: summary.slice(0, 100),
     })
+    // Also flash the taskbar icon to attract attention
+    window.electronAPI.windowFlashFrame(true)
+  } catch {
+    // Fallback to Web Notification API if IPC fails
+    if (!('Notification' in window)) return
+    if (Notification.permission === 'granted') {
+      new Notification(title, { body: summary.slice(0, 100) })
+    } else if (Notification.permission === 'default') {
+      Notification.requestPermission().then(perm => {
+        if (perm === 'granted') {
+          new Notification(title, { body: summary.slice(0, 100) })
+        }
+      })
+    }
   }
 }
 

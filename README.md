@@ -82,7 +82,8 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Scroll progress indicator** — thin progress bar at top of message list showing scroll position
 - **Quick session navigation** — `Ctrl+[` / `Ctrl+]` to switch between sessions without using the sidebar
 - **Image lightbox** — click any image attachment to open a full-screen preview with zoom, rotate, and keyboard controls
-- **Window title notification** — window title shows session name and flashes (*) when Claude finishes responding
+- **Window title notification** — window title shows session name and flashes (*) when Claude finishes responding; taskbar icon flashes to attract attention when window is not focused
+- **Native desktop notifications** -- OS-level notifications when Claude finishes responding while the window is not focused; click the notification to focus the window and see the response
 - **Ctrl+K clear** — alternative shortcut to clear conversation, matching terminal conventions
 - **Streaming spinner** — animated spinner in toolbar next to elapsed timer during active streaming
 - **Enhanced table styling** — markdown tables with rounded borders, accent header, hover highlights

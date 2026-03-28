@@ -113,6 +113,10 @@ const electronAPI = {
   // ── Window ──────────────────────────────
   windowSetTitleBarOverlay: (opts: { color: string; symbolColor: string }) =>
     ipcRenderer.invoke('window:setTitleBarOverlay', opts),
+  windowFlashFrame: (flash: boolean) =>
+    ipcRenderer.invoke('window:flashFrame', flash),
+  windowShowNotification: (opts: { title: string; body: string }) =>
+    ipcRenderer.invoke('window:showNotification', opts),
 
   // ── Version info ────────────────────────
   versions: {

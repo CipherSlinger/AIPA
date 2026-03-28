@@ -344,6 +344,31 @@ function registerWindowHandlers(win: BrowserWindow): void {
   ipcMain.handle('window:setTitleBarOverlay', (_e, opts: { color: string; symbolColor: string }) => {
     win.setTitleBarOverlay(opts)
   })
+
+  // Flash the taskbar icon to attract attention (when window is not focused)
+  ipcMain.handle('window:flashFrame', (_e, flash: boolean) => {
+    if (!win.isDestroyed()) {
+      win.flashFrame(flash)
+    }
+  })
+
+  // Show a native OS notification with click-to-focus behavior
+  ipcMain.handle('window:showNotification', (_e, opts: { title: string; body: string }) => {
+    const { Notification } = require('electron')
+    if (!Notification.isSupported()) return
+    const notif = new Notification({
+      title: opts.title,
+      body: opts.body,
+      silent: true, // We handle our own completion sound
+    })
+    notif.on('click', () => {
+      if (!win.isDestroyed()) {
+        win.show()
+        win.focus()
+      }
+    })
+    notif.show()
+  })
 }
 
 // ────────────────────────────────────────────
