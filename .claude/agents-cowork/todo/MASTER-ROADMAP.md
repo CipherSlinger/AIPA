@@ -554,6 +554,11 @@
 - **Files changed**: `StatusBar.tsx`
 - **Status**: Done
 
+### Iteration 152 — i18n token count in ChatInput compose status
+- **Feature**: Replace hardcoded 'tokens' string in compose status bar with i18n approxTokens key
+- **Files changed**: `ChatInput.tsx`
+- **Status**: Done
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

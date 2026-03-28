@@ -807,7 +807,7 @@ export default function ChatInput({
           <span style={{ opacity: 0.4 }}>|</span>
           <span>{input.length.toLocaleString()} {t('chat.chars')}{input.length > 10000 ? ` (${t('chat.veryLong')})` : input.length > 5000 ? ` (${t('chat.long')})` : ''}</span>
           <span style={{ opacity: 0.4 }}>|</span>
-          <span>~{Math.ceil(input.length / 4)} tokens</span>
+          <span>{t('message.approxTokens', { count: String(Math.ceil(input.length / 4)) })}</span>
         </div>
       )}
     </div>
