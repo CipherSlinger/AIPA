@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react'
-import { Trash2, RefreshCw, MessageSquare, GitBranch, Pencil, ArrowUpDown, Star, Search, Tag, Check, Download } from 'lucide-react'
+import { Trash2, RefreshCw, MessageSquare, GitBranch, Pencil, ArrowUpDown, Star, Search, Tag, Check, Download, CheckSquare, Square, X } from 'lucide-react'
 import { SessionListItem, SessionMessage, StandardChatMessage, ToolUseInfo, ChatMessage } from '../../types/app.types'
 import { useSessionStore, useChatStore, useUiStore, usePrefsStore } from '../../store'
 import { SkeletonSessionRow } from '../ui/Skeleton'
@@ -158,6 +158,39 @@ export default function SessionList() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [focusedIdx, setFocusedIdx] = useState(-1)
   const listRef = useRef<HTMLDivElement>(null)
+
+  // ── Multi-select mode ──
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
+
+  const exitSelectMode = useCallback(() => {
+    setSelectMode(false)
+    setSelectedIds(new Set())
+    setConfirmBulkDelete(false)
+  }, [])
+
+  const toggleSelectId = (sessionId: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(sessionId)) {
+        next.delete(sessionId)
+      } else {
+        next.add(sessionId)
+      }
+      return next
+    })
+  }
+
+  // Exit select mode on Escape
+  useEffect(() => {
+    if (!selectMode) return
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') exitSelectMode()
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [selectMode, exitSelectMode])
 
   // Session preview tooltip state
   const [tooltipSession, setTooltipSession] = useState<SessionListItem | null>(null)
@@ -499,6 +532,29 @@ export default function SessionList() {
           <span>{sortBy === 'newest' ? t('session.sortNew') : sortBy === 'oldest' ? t('session.sortOld') : 'A-Z'}</span>
         </button>
         <button
+          onClick={() => {
+            if (selectMode) {
+              exitSelectMode()
+            } else {
+              setSelectMode(true)
+              setSelectedIds(new Set())
+            }
+          }}
+          title={selectMode ? t('session.exitSelect') : t('session.selectMode')}
+          style={{
+            background: selectMode ? 'var(--accent)' : 'none',
+            border: 'none',
+            color: selectMode ? '#fff' : 'var(--text-muted)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            borderRadius: 3,
+            padding: selectMode ? '1px 4px' : 0,
+          }}
+        >
+          <CheckSquare size={13} />
+        </button>
+        <button
           onClick={async () => {
             if (!sessions.length) return
             const ok = window.confirm(t('session.deleteAllConfirm', { count: String(sessions.length) }))
@@ -566,6 +622,59 @@ export default function SessionList() {
         </div>
       )}
 
+      {/* Select All bar (shown in select mode) */}
+      {selectMode && filtered.length > 0 && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '4px 12px',
+          borderBottom: '1px solid var(--border)',
+          flexShrink: 0,
+          fontSize: 11,
+          color: 'var(--text-muted)',
+        }}>
+          <button
+            onClick={() => {
+              const selectableIds = filtered
+                .filter(s => s.sessionId !== currentSessionId)
+                .map(s => s.sessionId)
+              const allSelected = selectableIds.every(id => selectedIds.has(id))
+              if (allSelected) {
+                setSelectedIds(new Set())
+              } else {
+                setSelectedIds(new Set(selectableIds))
+              }
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: 0,
+              fontSize: 11,
+            }}
+          >
+            {(() => {
+              const selectableIds = filtered.filter(s => s.sessionId !== currentSessionId).map(s => s.sessionId)
+              const allSelected = selectableIds.length > 0 && selectableIds.every(id => selectedIds.has(id))
+              return allSelected
+                ? <CheckSquare size={13} style={{ color: 'var(--accent)' }} />
+                : <Square size={13} />
+            })()}
+            <span>{t('session.selectAll')}</span>
+          </button>
+          {selectedIds.size > 0 && (
+            <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--accent)', fontWeight: 500 }}>
+              {t('session.selectedCount', { count: String(selectedIds.size) })}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* List */}
       <div
         ref={listRef}
@@ -618,6 +727,8 @@ export default function SessionList() {
           const isPinned = pinnedIds.has(session.sessionId)
           const avatarColor = getSessionAvatarColor(session.sessionId)
           const previewText = (session.lastPrompt || '').slice(0, 50) || undefined
+          const isSelected = selectedIds.has(session.sessionId)
+          const isSelectDisabled = selectMode && isActive // Can't select the active session
 
           // Date group header: show when group changes (skip for pinned section)
           let dateHeader: React.ReactNode = null
@@ -654,7 +765,13 @@ export default function SessionList() {
           <React.Fragment key={session.sessionId}>
           {dateHeader}
           <div
-            onClick={() => openSession(session)}
+            onClick={() => {
+              if (selectMode) {
+                if (!isSelectDisabled) toggleSelectId(session.sessionId)
+              } else {
+                openSession(session)
+              }
+            }}
             className="session-item"
             style={{
               padding: '10px 12px',
@@ -683,6 +800,23 @@ export default function SessionList() {
               hideSessionTooltip()
             }}
           >
+            {/* Selection checkbox (shown in select mode) */}
+            {selectMode && (
+              <div
+                style={{
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  color: isSelectDisabled ? 'var(--text-muted)' : isSelected ? 'var(--accent)' : 'var(--text-muted)',
+                  opacity: isSelectDisabled ? 0.3 : 1,
+                  cursor: isSelectDisabled ? 'not-allowed' : 'pointer',
+                }}
+                title={isSelectDisabled ? t('session.cannotDeleteActive') : ''}
+              >
+                {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+              </div>
+            )}
+
             {/* Session Avatar (36px rounded square) */}
             <div style={{ position: 'relative', flexShrink: 0 }}>
               <div
@@ -869,7 +1003,8 @@ export default function SessionList() {
               })()}
             </div>
 
-            {/* Action buttons */}
+            {/* Action buttons (hidden in select mode) */}
+            {!selectMode && (
             <div
               className="action-btns"
               style={{
@@ -953,6 +1088,7 @@ export default function SessionList() {
                 {confirmDeleteId === session.sessionId && <span>{t('common.confirm')}</span>}
               </button>
             </div>
+            )}
           </div>
           </React.Fragment>
           )
@@ -1149,6 +1285,93 @@ export default function SessionList() {
               {tooltipSession.lastPrompt.slice(0, 200)}
               {tooltipSession.lastPrompt.length > 200 ? '...' : ''}
             </div>
+          )}
+        </div>
+      )}
+
+      {/* Bulk delete floating action bar */}
+      {selectMode && selectedIds.size > 0 && (
+        <div style={{
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '8px 12px',
+          borderTop: '1px solid var(--border)',
+          background: 'var(--popup-bg)',
+        }}>
+          <span style={{
+            fontSize: 11,
+            color: 'var(--text-muted)',
+            flex: 1,
+          }}>
+            {t('session.selectedCount', { count: String(selectedIds.size) })}
+          </span>
+          <button
+            onClick={exitSelectMode}
+            style={{
+              background: 'none',
+              border: '1px solid var(--border)',
+              borderRadius: 4,
+              padding: '4px 10px',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              fontSize: 11,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+            }}
+          >
+            <X size={11} />
+            {t('common.cancel')}
+          </button>
+          {confirmBulkDelete ? (
+            <button
+              onClick={async () => {
+                const toDelete = [...selectedIds]
+                for (const id of toDelete) {
+                  await window.electronAPI.sessionDelete(id)
+                }
+                addToast('success', t('session.bulkDeleted', { count: String(toDelete.length) }))
+                exitSelectMode()
+                loadSessions()
+              }}
+              style={{
+                background: 'var(--error)',
+                border: 'none',
+                borderRadius: 4,
+                padding: '4px 10px',
+                color: '#fff',
+                cursor: 'pointer',
+                fontSize: 11,
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <Trash2 size={11} />
+              {t('session.confirmBulkDelete', { count: String(selectedIds.size) })}
+            </button>
+          ) : (
+            <button
+              onClick={() => setConfirmBulkDelete(true)}
+              style={{
+                background: 'none',
+                border: '1px solid var(--error)',
+                borderRadius: 4,
+                padding: '4px 10px',
+                color: 'var(--error)',
+                cursor: 'pointer',
+                fontSize: 11,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <Trash2 size={11} />
+              {t('session.deleteSelected')}
+            </button>
           )}
         </div>
       )}

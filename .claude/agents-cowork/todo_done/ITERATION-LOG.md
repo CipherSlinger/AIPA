@@ -1891,3 +1891,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 - [x] Build succeeds with no TypeScript errors
 - [x] Deleting a category with assigned notes reassigns them to Uncategorized
 - [x] No new npm dependencies required
+
+### Iteration 165 (2026-03-28)
+- Multi-session select & bulk delete -- enter selection mode to check multiple sessions and delete them all at once; select all, floating action bar, bulk delete with confirmation, active session protected from deletion

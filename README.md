@@ -131,6 +131,11 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Enhanced session list empty state** — empty session list shows a friendly icon and hint text instead of a blank panel
 - **Note editor word count** — note editor header shows live word count alongside character count
 - **Note reading time estimate** — note editor header displays estimated reading time (e.g., "~2 min read") based on word count
+- **File browser parent navigation** — ArrowUp button in file browser header navigates to the parent directory without using the folder picker dialog
+- **File type icons** — file browser shows color-coded icons for 60+ file types: code files (TypeScript, Python, Rust, etc.), documents, images, video, audio, archives, databases, and config files
+- **File click-to-mention** — clicking a file in the file browser inserts `@filepath` into the chat input for quick file referencing
+- **Session export** — export any session as a Markdown file directly from the sidebar action buttons (Download icon)
+- **Multi-session select & bulk delete** — enter selection mode to check multiple sessions and delete them all at once; select all/deselect all, floating action bar with confirmation, active session protected from deletion
 
 ## Security
 

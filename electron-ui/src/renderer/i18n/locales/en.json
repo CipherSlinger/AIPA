@@ -220,7 +220,15 @@
     "forked": "Session forked",
     "forkFailed": "Failed to fork session",
     "export": "Export session",
-    "doubleClickRename": "Double-click to rename"
+    "doubleClickRename": "Double-click to rename",
+    "selectMode": "Select sessions",
+    "exitSelect": "Exit selection",
+    "selectAll": "Select all",
+    "selectedCount": "{{count}} selected",
+    "deleteSelected": "Delete selected",
+    "confirmBulkDelete": "Delete {{count}}?",
+    "bulkDeleted": "{{count}} sessions deleted",
+    "cannotDeleteActive": "Cannot delete the active session"
   },
   "settings": {
     "title": "Settings",
