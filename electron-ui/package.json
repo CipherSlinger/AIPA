@@ -12,7 +12,7 @@
     "build:renderer": "vite build",
     "clear-prefs": "node -e \"const p=require('path').join(require('os').homedir(),'AppData/Roaming/Electron/claude-code-ui-prefs.json');try{require('fs').unlinkSync(p);console.log('cleared prefs')}catch{}\"",
     "rebuild-pty": "electron-rebuild -f -w node-pty",
-    "postinstall": "electron-builder install-app-deps && node scripts/patch-node-pty.js",
+    "postinstall": "electron-builder install-app-deps && electron-rebuild -f -w node-pty && node scripts/patch-node-pty.js && node scripts/verify-pty.js",
     "dist": "npm run build && electron-builder",
     "dist:win": "npm run build && electron-builder --win --x64",
     "audit": "npm audit --production --audit-level=high"
