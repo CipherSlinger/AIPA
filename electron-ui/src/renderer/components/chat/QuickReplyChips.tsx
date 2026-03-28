@@ -12,18 +12,23 @@ interface QuickReplyChipsProps {
   onInsert: (prompt: string) => void
 }
 
-const DEFAULT_QUICK_REPLIES: QuickReply[] = [
-  { label: 'Explain this', prompt: 'Please explain this in detail:' },
-  { label: 'Review code', prompt: 'Please review this code for bugs, performance issues, and best practices:' },
-  { label: 'Summarize', prompt: 'Please summarize the above concisely:' },
-  { label: 'Fix bug', prompt: 'Please identify and fix the bug in:' },
+// Default quick reply definitions -- labels use i18n keys, prompts stay in English for Claude
+const DEFAULT_QUICK_REPLY_DEFS = [
+  { labelKey: 'quickReply.explainThis', prompt: 'Please explain this in detail:' },
+  { labelKey: 'quickReply.reviewCode', prompt: 'Please review this code for bugs, performance issues, and best practices:' },
+  { labelKey: 'quickReply.summarize', prompt: 'Please summarize the above concisely:' },
+  { labelKey: 'quickReply.fixBug', prompt: 'Please identify and fix the bug in:' },
 ]
 
 export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
   const t = useT()
   const prefs = usePrefsStore(s => s.prefs)
   const setPrefs = usePrefsStore(s => s.setPrefs)
-  const chips: QuickReply[] = prefs.quickReplies ?? DEFAULT_QUICK_REPLIES
+  const defaultChips: QuickReply[] = DEFAULT_QUICK_REPLY_DEFS.map(d => ({
+    label: t(d.labelKey),
+    prompt: d.prompt,
+  }))
+  const chips: QuickReply[] = prefs.quickReplies ?? defaultChips
 
   const [addingNew, setAddingNew] = useState(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)

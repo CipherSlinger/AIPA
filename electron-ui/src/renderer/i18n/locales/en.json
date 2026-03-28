@@ -358,7 +358,11 @@
     "promptPlaceholder": "Prompt text",
     "saveReply": "Save quick reply",
     "deleteReply": "Delete quick reply",
-    "addTemplate": "Add quick reply template"
+    "addTemplate": "Add quick reply template",
+    "explainThis": "Explain this",
+    "reviewCode": "Review code",
+    "summarize": "Summarize",
+    "fixBug": "Fix bug"
   },
   "command": {
     "paletteTitle": "Command Palette",

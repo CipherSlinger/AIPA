@@ -517,6 +517,13 @@
 | Replace hardcoded Session:/\(empty\)/min in ChatHeader with i18n | P2-fix | DONE (Iteration 144) |
 | Add tool.input, tool.output, tool.noOutput, chat.sessionPrefix, chat.emptyPreview keys | P2-fix | DONE (Iteration 144) |
 
+### Iteration 145 -- QuickReply Default Labels i18n
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Replace hardcoded English default QuickReply labels with i18n keys | P2-fix | DONE (Iteration 145) |
+| Add quickReply.explainThis/reviewCode/summarize/fixBug keys to en.json and zh-CN.json | P2-fix | DONE (Iteration 145) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

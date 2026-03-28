@@ -358,7 +358,11 @@
     "promptPlaceholder": "\u63d0\u793a\u8bcd\u6587\u672c",
     "saveReply": "\u4fdd\u5b58\u5feb\u6377\u56de\u590d",
     "deleteReply": "\u5220\u9664\u5feb\u6377\u56de\u590d",
-    "addTemplate": "\u6dfb\u52a0\u5feb\u6377\u56de\u590d\u6a21\u677f"
+    "addTemplate": "\u6dfb\u52a0\u5feb\u6377\u56de\u590d\u6a21\u677f",
+    "explainThis": "\u89e3\u91ca\u8bf4\u660e",
+    "reviewCode": "\u5ba1\u67e5\u4ee3\u7801",
+    "summarize": "\u6458\u8981\u603b\u7ed3",
+    "fixBug": "\u4fee\u590d\u9519\u8bef"
   },
   "command": {
     "paletteTitle": "\u547d\u4ee4\u9762\u677f",
