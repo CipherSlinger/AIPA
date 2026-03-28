@@ -702,6 +702,7 @@
     "allSources": "All",
     "source_anthropic": "Anthropic",
     "source_openclaw": "OpenClaw",
+    "source_clawhub": "ClawhHub",
     "source_community": "Community",
     "category_productivity": "Productivity",
     "category_writing": "Writing",
@@ -709,7 +710,8 @@
     "category_research": "Research",
     "category_creative": "Creative",
     "category_devops": "DevOps",
-    "category_design": "Design"
+    "category_design": "Design",
+    "browseOnClawhub": "Browse more on ClawhHub.ai"
   },
   "followUp": {
     "explainCode": "Explain this code",

@@ -43,6 +43,8 @@ memory: project
 
 ### 静态检查
 - **TypeScript 编译**：在 `electron-ui/` 目录运行 `npm run build`，确认三个构建目标（main、preload、renderer）均无错误
+<!-- improved by agent-leader 2026-03-28: 增加 tsc --noEmit 必检项，防止 TypeScript 错误积压多轮才被发现（Iteration 184-187 教训） -->
+- **TypeScript 严格模式检查（必须执行）**：在 `electron-ui/` 目录运行 `cd /home/osr/AIPA/electron-ui && npx tsc --noEmit`，确认零错误。此项与 `npm run build` 独立——Vite 构建可能通过但 tsc 仍有类型错误。两者都必须通过才算静态检查通过。若 tsc --noEmit 发现错误，在测试报告中逐条列出并标记为 P1。
 - **类型覆盖**：检查新增文件的导出类型是否被正确使用
 
 ### 逻辑审查（代码走读）

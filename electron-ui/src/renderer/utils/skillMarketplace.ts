@@ -6,7 +6,7 @@
  */
 
 export type SkillCategory = 'Productivity' | 'Writing' | 'Code' | 'Research' | 'Creative' | 'DevOps' | 'Design'
-export type SkillSource = 'Anthropic' | 'OpenClaw' | 'Community'
+export type SkillSource = 'Anthropic' | 'OpenClaw' | 'ClawhHub' | 'Community'
 
 export interface MarketplaceSkill {
   id: string
@@ -21,7 +21,7 @@ export interface MarketplaceSkill {
 }
 
 export const SKILL_CATEGORIES: SkillCategory[] = ['Productivity', 'Writing', 'Code', 'Research', 'Creative', 'DevOps', 'Design']
-export const SKILL_SOURCES: SkillSource[] = ['Anthropic', 'OpenClaw', 'Community']
+export const SKILL_SOURCES: SkillSource[] = ['Anthropic', 'OpenClaw', 'ClawhHub', 'Community']
 
 export const CATEGORY_COLORS: Record<SkillCategory, string> = {
   Productivity: '#10b981',
@@ -36,6 +36,7 @@ export const CATEGORY_COLORS: Record<SkillCategory, string> = {
 export const SOURCE_COLORS: Record<SkillSource, string> = {
   Anthropic: '#d97706',
   OpenClaw: '#8b5cf6',
+  ClawhHub: '#e11d48',
   Community: '#06b6d4',
 }
 
@@ -1108,4 +1109,215 @@ When debugging an issue:
 - Add a test to prevent recurrence
 `,
   },
+
+  // ── ClawhHub Skills (from clawhub.ai registry) ──
+  {
+    id: 'clawhub-daily-planner',
+    name: 'Daily Planner',
+    description: 'Structured daily planning and execution tracking system — plan your day, set priorities, and review progress.',
+    descriptionZh: '\u7ed3\u6784\u5316\u7684\u6bcf\u65e5\u8ba1\u5212\u548c\u6267\u884c\u8ffd\u8e2a\u7cfb\u7edf\u2014\u2014\u89c4\u5212\u65e5\u7a0b\u3001\u8bbe\u5b9a\u4f18\u5148\u7ea7\u5e76\u56de\u987e\u8fdb\u5ea6\u3002',
+    author: 'gpunter',
+    sourceUrl: 'https://clawhub.ai/skills',
+    category: 'Productivity',
+    source: 'ClawhHub',
+    skillContent: `---
+name: daily-planner
+description: Structured daily planning and execution tracking
+---
+
+# Daily Planner
+
+Help the user plan and track their day effectively.
+
+## Morning Planning
+1. **Review Calendar**: What meetings and appointments are today?
+2. **Top 3 Priorities**: Identify the 3 most important tasks
+3. **Time Blocks**: Allocate time blocks for deep work vs admin tasks
+4. **Energy Mapping**: Schedule demanding tasks during peak energy hours
+
+## During the Day
+- Track task completion status
+- Adjust priorities as new items come in
+- Flag blockers early
+
+## Evening Review
+1. What was accomplished? (vs what was planned)
+2. What rolled over to tomorrow?
+3. Any insights or patterns noticed?
+
+## Output Format
+Use a clean checklist with time estimates:
+- [ ] 09:00-10:30 — Deep work: [task] (90 min)
+- [ ] 10:30-11:00 — Respond to emails (30 min)
+- [x] 11:00-12:00 — Meeting: [topic] (60 min)
+`,
+  },
+  {
+    id: 'clawhub-2nd-brain',
+    name: 'Second Brain',
+    description: 'Personal knowledge base for capturing and retrieving information about people, places, tech, and ideas.',
+    descriptionZh: '\u4e2a\u4eba\u77e5\u8bc6\u5e93\uff0c\u7528\u4e8e\u6355\u6349\u548c\u68c0\u7d22\u5173\u4e8e\u4eba\u7269\u3001\u5730\u70b9\u3001\u6280\u672f\u548c\u60f3\u6cd5\u7684\u4fe1\u606f\u3002',
+    author: 'coderaven',
+    sourceUrl: 'https://clawhub.ai/skills',
+    category: 'Productivity',
+    source: 'ClawhHub',
+    skillContent: `---
+name: 2nd-brain
+description: Personal knowledge base for capturing and retrieving information
+---
+
+# Second Brain
+
+Act as the user's external memory and knowledge management system.
+
+## Capture
+When the user shares information worth remembering:
+- Categorize it (People, Places, Tech, Ideas, Projects, Resources)
+- Extract key facts and relationships
+- Note the date and context
+
+## Retrieve
+When asked to recall information:
+- Search across all categories
+- Present findings with context
+- Note when information might be outdated
+
+## Organize
+- Use tags for cross-referencing
+- Create summaries of related information
+- Suggest connections between disparate pieces
+
+## Knowledge Types
+- **People**: Names, roles, preferences, last interactions
+- **Tech**: Tools, frameworks, configurations, gotchas
+- **Ideas**: Concepts, inspirations, half-formed thoughts
+- **Resources**: Links, books, articles, tutorials
+`,
+  },
+  {
+    id: 'clawhub-academic-research',
+    name: 'Academic Research',
+    description: 'Search academic papers and conduct literature reviews using OpenAlex API for scholarly research.',
+    descriptionZh: '\u641c\u7d22\u5b66\u672f\u8bba\u6587\u5e76\u4f7f\u7528 OpenAlex API \u8fdb\u884c\u6587\u732e\u7efc\u8ff0\uff0c\u652f\u6301\u5b66\u672f\u7814\u7a76\u3002',
+    author: 'rogersuperbuilderalpha',
+    sourceUrl: 'https://clawhub.ai/skills',
+    category: 'Research',
+    source: 'ClawhHub',
+    skillContent: `---
+name: academic-research
+description: Search academic papers and conduct literature reviews
+---
+
+# Academic Research
+
+Assist with scholarly research and literature reviews.
+
+## Paper Search
+- Search by topic, author, or keyword
+- Filter by date range, citation count, or field
+- Prioritize peer-reviewed sources
+
+## Literature Review
+1. **Scope Definition**: Define research questions and inclusion criteria
+2. **Search Strategy**: Systematic search across multiple databases
+3. **Screening**: Apply inclusion/exclusion criteria
+4. **Extraction**: Extract key findings, methods, and conclusions
+5. **Synthesis**: Identify themes, gaps, and consensus
+
+## Citation Management
+- Format citations in APA, MLA, Chicago, or IEEE style
+- Track which papers have been reviewed
+- Flag seminal papers vs supporting evidence
+
+## Output Format
+- Structured summaries with key findings
+- Comparison tables across papers
+- Research gap identification
+`,
+  },
+  {
+    id: 'clawhub-biz-reporter',
+    name: 'Business Intelligence Reporter',
+    description: 'Generate automated business reports pulling data from analytics, marketing, and financial sources.',
+    descriptionZh: '\u751f\u6210\u81ea\u52a8\u5316\u5546\u4e1a\u62a5\u544a\uff0c\u4ece\u5206\u6790\u3001\u8425\u9500\u548c\u8d22\u52a1\u6570\u636e\u6e90\u63d0\u53d6\u6570\u636e\u3002',
+    author: 'ariktulcha',
+    sourceUrl: 'https://clawhub.ai/skills',
+    category: 'Productivity',
+    source: 'ClawhHub',
+    skillContent: `---
+name: biz-reporter
+description: Automated business intelligence reports
+---
+
+# Business Intelligence Reporter
+
+Generate structured business reports from raw data.
+
+## Report Types
+1. **Weekly Performance**: KPIs, trends, highlights, alerts
+2. **Monthly Summary**: Revenue, growth, user metrics, competitive landscape
+3. **Quarterly Review**: Strategic progress, OKR tracking, forecasts
+
+## Data Analysis
+- Calculate period-over-period changes (WoW, MoM, YoY)
+- Identify anomalies and significant deviations
+- Correlate metrics across different data sources
+- Forecast trends based on historical patterns
+
+## Visualization Suggestions
+- Revenue trends: line chart with moving average
+- User segments: stacked bar chart
+- Conversion funnel: funnel visualization
+- Geographic data: heat map or choropleth
+
+## Output Format
+- Executive summary (3-5 bullet points)
+- Key metrics table with trend indicators
+- Detailed analysis by section
+- Action items and recommendations
+`,
+  },
+  {
+    id: 'clawhub-accessibility',
+    name: 'Accessibility Toolkit',
+    description: 'Friction-reduction patterns for agents helping users with accessibility needs and inclusive design.',
+    descriptionZh: '\u65e0\u969c\u788d\u8bbe\u8ba1\u5de5\u5177\u5305\uff0c\u63d0\u4f9b\u5305\u5bb9\u6027\u8bbe\u8ba1\u6a21\u5f0f\u548c\u53ef\u8bbf\u95ee\u6027\u4f18\u5316\u5efa\u8bae\u3002',
+    author: 'cgtreadw',
+    sourceUrl: 'https://clawhub.ai/skills',
+    category: 'Design',
+    source: 'ClawhHub',
+    skillContent: `---
+name: accessibility-toolkit
+description: Inclusive design patterns and accessibility optimization
+---
+
+# Accessibility Toolkit
+
+Ensure digital products are accessible to all users.
+
+## WCAG 2.1 Checklist
+1. **Perceivable**: Alt text, captions, sufficient contrast
+2. **Operable**: Keyboard navigation, no time limits, skip navigation
+3. **Understandable**: Clear labels, error prevention, consistent navigation
+4. **Robust**: Valid HTML, ARIA roles, screen reader compatibility
+
+## Common Fixes
+- Add aria-label to icon-only buttons
+- Ensure color is not the only way to convey information
+- Provide focus indicators for all interactive elements
+- Use semantic HTML (nav, main, article, aside)
+
+## Testing
+- Tab through the entire page
+- Test with screen reader (NVDA, VoiceOver)
+- Check contrast ratios (4.5:1 for normal text)
+- Verify zoom to 200% doesn't break layout
+
+## Audit Output
+Rate each area: Pass / Warning / Fail
+Provide specific remediation steps with code examples.
+`,
+  },
 ]
+
+export const CLAWHUB_URL = 'https://clawhub.ai/skills'

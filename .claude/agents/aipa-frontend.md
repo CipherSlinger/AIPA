@@ -116,11 +116,15 @@ Renderer (React/Vite)  ←→  Preload (contextBridge)  ←→  Main (Node.js)
 # 在 electron-ui/ 目录下构建验证
 npm run build
 
+# TypeScript 严格模式检查（必须执行，不得跳过）
+cd /home/osr/AIPA/electron-ui && npx tsc --noEmit
+
 # 启动应用检查视觉效果
 node_modules/.bin/electron dist/main/index.js
 ```
 
-构建通过后再提交。如果构建失败，排查 TypeScript 错误并修复。
+<!-- improved by agent-leader 2026-03-28: 增加 tsc --noEmit 自检要求，Iteration 184-187 因跳过此检查导致 19 个 TypeScript 错误积压 -->
+**两步验证缺一不可**：`npm run build`（Vite 构建）和 `tsc --noEmit`（TypeScript 严格检查）都必须通过。Vite 构建可能掩盖类型错误（它不做完整类型检查），因此 `tsc --noEmit` 是发现类型问题的唯一可靠方式。若 `tsc --noEmit` 报错，必须在本次迭代中修复，不要将错误留给后续迭代。
 
 ---
 

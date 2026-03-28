@@ -11,6 +11,7 @@ import {
   SKILL_SOURCES,
   CATEGORY_COLORS,
   SOURCE_COLORS,
+  CLAWHUB_URL,
   type MarketplaceSkill,
   type SkillCategory,
   type SkillSource,
@@ -579,6 +580,36 @@ export default function SkillsPanel() {
                 {t('skills.noResults')}
               </div>
             )}
+            {/* Browse on ClawhHub link */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              padding: '16px 14px',
+              borderTop: '1px solid var(--border)',
+            }}>
+              <button
+                onClick={() => window.electronAPI.shellOpenExternal(CLAWHUB_URL)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '8px 16px',
+                  borderRadius: 8,
+                  border: '1px solid var(--card-border)',
+                  background: 'transparent',
+                  color: 'var(--text-secondary)',
+                  fontSize: 12,
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'color 0.15s, border-color 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#e11d48'; e.currentTarget.style.borderColor = '#e11d48' }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.borderColor = 'var(--card-border)' }}
+              >
+                <ExternalLink size={14} />
+                {t('skills.browseOnClawhub')}
+              </button>
+            </div>
           </div>
         )}
       </div>

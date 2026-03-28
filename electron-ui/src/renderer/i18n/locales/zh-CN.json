@@ -702,6 +702,7 @@
     "allSources": "\u5168\u90e8",
     "source_anthropic": "Anthropic",
     "source_openclaw": "OpenClaw",
+    "source_clawhub": "ClawhHub",
     "source_community": "\u793e\u533a",
     "category_productivity": "\u6548\u7387",
     "category_writing": "\u5199\u4f5c",
@@ -709,7 +710,8 @@
     "category_research": "\u7814\u7a76",
     "category_creative": "\u521b\u610f",
     "category_devops": "\u8fd0\u7ef4",
-    "category_design": "\u8bbe\u8ba1"
+    "category_design": "\u8bbe\u8ba1",
+    "browseOnClawhub": "\u5728 ClawhHub.ai \u6d4f\u89c8\u66f4\u591a\u6280\u80fd"
   },
   "followUp": {
     "explainCode": "\u89e3\u91ca\u8fd9\u6bb5\u4ee3\u7801",

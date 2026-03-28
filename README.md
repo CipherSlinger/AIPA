@@ -152,7 +152,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Scroll-to-top button** — ArrowUp button appears when scrolled down in a conversation, enabling quick jump to the beginning; complements the existing scroll-to-bottom button
 - **Session duration** — session list items and hover tooltips show conversation duration (e.g., "12m", "1h 30m") calculated from first to last message timestamp
 - **Skill browser** — browse all installed Claude Code skills (personal and project-level) in a dedicated sidebar panel with search, detail view, and one-click invocation via slash command
-- **Skill marketplace** — curated collection of 29 community-sourced skills from Anthropic, OpenClaw, and community contributors across 7 categories; source-based filtering (Anthropic/OpenClaw/Community) and category filtering; i18n-translated descriptions and labels; one-click install with proper attribution and GitHub source links
+- **Skill marketplace** — curated collection of 34 community-sourced skills from Anthropic, OpenClaw, ClawhHub, and community contributors across 7 categories; source-based filtering (Anthropic/OpenClaw/ClawhHub/Community) and category filtering; i18n-translated descriptions and labels; one-click install with proper attribution and source links; "Browse on ClawhHub.ai" link for discovering more skills
 - **Skill management** — view skill details (SKILL.md content), delete personal skills with two-click confirmation, and install marketplace skills to `~/.claude/skills/`
 - **Follow-up suggestions** — after Claude finishes responding, 2-3 contextual follow-up chips appear (e.g., "Explain this code", "Key takeaways", "Give an example") based on content analysis of the response; click to instantly send
 

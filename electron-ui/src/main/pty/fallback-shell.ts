@@ -51,12 +51,13 @@ class FallbackShellManager extends EventEmitter {
 
     proc.stdout?.on('data', (data: Buffer) => {
       // Convert Buffer to string and normalize line endings for xterm.js
-      const text = data.toString().replace(/\n/g, '\r\n')
+      // First strip any existing \r to avoid double \r\r\n, then convert \n -> \r\n
+      const text = data.toString().replace(/\r\n/g, '\n').replace(/\n/g, '\r\n')
       this.emit(`data:${args.sessionId}`, text)
     })
 
     proc.stderr?.on('data', (data: Buffer) => {
-      const text = data.toString().replace(/\n/g, '\r\n')
+      const text = data.toString().replace(/\r\n/g, '\n').replace(/\n/g, '\r\n')
       this.emit(`data:${args.sessionId}`, text)
     })
 
@@ -82,6 +83,33 @@ class FallbackShellManager extends EventEmitter {
   write(sessionId: string, data: string): void {
     const proc = this.sessions.get(sessionId)
     if (!proc || !proc.stdin) return
+
+    // Local echo: since we're not using a real PTY, the terminal driver
+    // won't echo typed characters back. We need to do it manually.
+    let echo = ''
+    for (const ch of data) {
+      if (ch === '\r') {
+        // Enter key: echo newline
+        echo += '\r\n'
+      } else if (ch === '\x7f' || ch === '\b') {
+        // Backspace: move cursor back, overwrite with space, move back again
+        echo += '\b \b'
+      } else if (ch === '\x03') {
+        // Ctrl+C: show ^C and newline
+        echo += '^C\r\n'
+      } else if (ch === '\x04') {
+        // Ctrl+D: show ^D
+        echo += '^D'
+      } else if (ch.charCodeAt(0) >= 32) {
+        // Printable characters: echo as-is
+        echo += ch
+      }
+      // Other control characters (arrows, etc.) are not echoed
+    }
+    if (echo) {
+      this.emit(`data:${sessionId}`, echo)
+    }
+
     // Convert \r from xterm.js Enter key to \n for the child process
     const normalized = data.replace(/\r/g, os.EOL)
     try {

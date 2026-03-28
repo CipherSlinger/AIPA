@@ -38,61 +38,63 @@ function registerPtyHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
     // If node-pty is available, use real PTY; otherwise fall back to child_process shell
     const useFallback = !ptyManager.isAvailable()
 
-    if (useFallback) {
-      log.debug(`pty:create using fallback shell (node-pty unavailable: ${ptyManager.getLoadError()})`)
+    if (!useFallback) {
+      // Normal PTY path -- try real PTY first, fall back to shell on failure
       try {
-        const sessionId = fallbackShellManager.create(args)
-        fallbackSessions.add(sessionId)
+        const sessionId = ptyManager.create(args)
 
         const dataHandler = (data: string) => {
           send('pty:data', sessionId, data)
         }
-        const exitHandler = (info: { exitCode: number; signal?: string }) => {
+        const exitHandler = (info: { exitCode: number; signal: string }) => {
           send('pty:exit', sessionId, info)
-          fallbackShellManager.removeListener(`data:${sessionId}`, dataHandler)
-          fallbackShellManager.removeListener(`exit:${sessionId}`, exitHandler)
-          fallbackSessions.delete(sessionId)
+          ptyManager.removeListener(`data:${sessionId}`, dataHandler)
+          ptyManager.removeListener(`exit:${sessionId}`, exitHandler)
         }
 
-        fallbackShellManager.on(`data:${sessionId}`, dataHandler)
-        fallbackShellManager.on(`exit:${sessionId}`, exitHandler)
+        ptyManager.on(`data:${sessionId}`, dataHandler)
+        ptyManager.on(`exit:${sessionId}`, exitHandler)
 
-        // Send a notice to the renderer that this is fallback mode
-        send('pty:data', sessionId,
-          '\x1b[33m[Basic Mode] ' +
-          'Terminal is running in basic mode (node-pty native module not available).\x1b[0m\r\n' +
-          '\x1b[90mInteractive programs (vim, htop) may not work correctly. ' +
-          'Run "npm run rebuild-pty" to enable full terminal support.\x1b[0m\r\n\r\n'
-        )
-
-        return { sessionId, fallback: true }
+        return { sessionId, fallback: false }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
-        log.debug(`pty:create fallback failed: ${msg}`)
-        throw err
+        log.debug(`pty:create failed, falling back to basic shell: ${msg}`)
+        // Fall through to fallback shell below
       }
+    } else {
+      log.debug(`pty:create using fallback shell (node-pty unavailable: ${ptyManager.getLoadError()})`)
     }
 
-    // Normal PTY path
+    // Fallback shell path (either node-pty unavailable or pty.spawn failed)
     try {
-      const sessionId = ptyManager.create(args)
+      const sessionId = fallbackShellManager.create(args)
+      fallbackSessions.add(sessionId)
 
       const dataHandler = (data: string) => {
         send('pty:data', sessionId, data)
       }
-      const exitHandler = (info: { exitCode: number; signal: string }) => {
+      const exitHandler = (info: { exitCode: number; signal?: string }) => {
         send('pty:exit', sessionId, info)
-        ptyManager.removeListener(`data:${sessionId}`, dataHandler)
-        ptyManager.removeListener(`exit:${sessionId}`, exitHandler)
+        fallbackShellManager.removeListener(`data:${sessionId}`, dataHandler)
+        fallbackShellManager.removeListener(`exit:${sessionId}`, exitHandler)
+        fallbackSessions.delete(sessionId)
       }
 
-      ptyManager.on(`data:${sessionId}`, dataHandler)
-      ptyManager.on(`exit:${sessionId}`, exitHandler)
+      fallbackShellManager.on(`data:${sessionId}`, dataHandler)
+      fallbackShellManager.on(`exit:${sessionId}`, exitHandler)
 
-      return { sessionId, fallback: false }
+      // Send a notice to the renderer that this is fallback mode
+      send('pty:data', sessionId,
+        '\x1b[33m[Basic Mode] ' +
+        'Terminal is running in basic mode (node-pty native module not available).\x1b[0m\r\n' +
+        '\x1b[90mInteractive programs (vim, htop) may not work correctly. ' +
+        'Run "npm run rebuild-pty" to enable full terminal support.\x1b[0m\r\n\r\n'
+      )
+
+      return { sessionId, fallback: true }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      log.debug(`pty:create failed: ${msg}`)
+      log.debug(`pty:create fallback failed: ${msg}`)
       throw err
     }
   })
