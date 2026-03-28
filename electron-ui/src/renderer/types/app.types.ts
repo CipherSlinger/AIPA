@@ -6,6 +6,7 @@ export interface SessionListItem {
   projectSlug: string
   title?: string
   messageCount?: number
+  firstTimestamp?: number
 }
 
 export interface SessionMessage {

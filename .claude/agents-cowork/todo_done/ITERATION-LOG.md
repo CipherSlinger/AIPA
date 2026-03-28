@@ -1924,3 +1924,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 175 (2026-03-28)
 - Note auto-save indicator -- shows "Saving..." with spinning loader icon during the 1-second debounce, then "Saved" with check icon for 2 seconds after save completes; displayed in the note editor header alongside word/character count; uses saveStatus state in useNotesCRUD hook; i18n for en + zh-CN
+
+### Iteration 176 (2026-03-28)
+- Session duration display -- session list items show conversation duration (e.g., "12m", "1h 30m") next to the relative timestamp with a Clock icon; hover tooltip also shows duration; session-reader.ts tracks firstTimestamp (min timestamp across all JSONL entries) alongside existing max timestamp; formatSessionDuration helper formats durations from seconds up to days; i18n for en + zh-CN

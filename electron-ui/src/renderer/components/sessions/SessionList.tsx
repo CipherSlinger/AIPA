@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react'
-import { Trash2, RefreshCw, MessageSquare, GitBranch, Pencil, ArrowUpDown, Star, Search, Tag, Check, Download, CheckSquare, Square, X } from 'lucide-react'
+import { Trash2, RefreshCw, MessageSquare, GitBranch, Pencil, ArrowUpDown, Star, Search, Tag, Check, Download, CheckSquare, Square, X, Clock } from 'lucide-react'
 import { SessionListItem, SessionMessage, StandardChatMessage, ToolUseInfo, ChatMessage } from '../../types/app.types'
 import { useSessionStore, useChatStore, useUiStore, usePrefsStore } from '../../store'
 import { SkeletonSessionRow } from '../ui/Skeleton'
@@ -39,6 +39,21 @@ function hashSessionId(id: string): number {
 
 function getSessionAvatarColor(sessionId: string): string {
   return SESSION_AVATAR_COLORS[hashSessionId(sessionId) % SESSION_AVATAR_COLORS.length]
+}
+
+function formatSessionDuration(firstTs: number | undefined, lastTs: number): string | null {
+  if (!firstTs || firstTs >= lastTs) return null
+  const diffMs = lastTs - firstTs
+  const diffSec = Math.floor(diffMs / 1000)
+  if (diffSec < 60) return `${diffSec}s`
+  const diffMin = Math.floor(diffSec / 60)
+  if (diffMin < 60) return `${diffMin}m`
+  const hours = Math.floor(diffMin / 60)
+  const mins = diffMin % 60
+  if (hours < 24) return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`
+  const days = Math.floor(hours / 24)
+  const remainHours = hours % 24
+  return remainHours > 0 ? `${days}d ${remainHours}h` : `${days}d`
 }
 
 function parseSessionMessages(raw: SessionMessage[]): ChatMessage[] {
@@ -1013,6 +1028,16 @@ export default function SessionList() {
                       <MessageSquare size={8} style={{ marginLeft: 1, verticalAlign: 'middle' }} />
                     </span>
                   )}
+                  {(() => {
+                    const dur = formatSessionDuration(session.firstTimestamp, session.timestamp)
+                    if (!dur) return null
+                    return (
+                      <span style={{ opacity: 0.5, display: 'inline-flex', alignItems: 'center', gap: 2 }} title={t('session.tooltipDuration')}>
+                        <Clock size={8} />
+                        {dur}
+                      </span>
+                    )
+                  })()}
                   {formatDistanceToNow(new Date(session.timestamp), { addSuffix: true })}
                 </span>
               </div>
@@ -1298,7 +1323,7 @@ export default function SessionList() {
           <div style={{
             fontSize: 11,
             color: 'var(--text-muted)',
-            marginBottom: tooltipSession.messageCount ? 4 : 6,
+            marginBottom: 4,
             display: 'flex',
             alignItems: 'center',
             gap: 4,
@@ -1306,6 +1331,25 @@ export default function SessionList() {
             <span style={{ opacity: 0.7 }}>{t('session.tooltipLastActive')}:</span>
             <span>{new Date(tooltipSession.timestamp).toLocaleString()}</span>
           </div>
+
+          {/* Duration */}
+          {(() => {
+            const dur = formatSessionDuration(tooltipSession.firstTimestamp, tooltipSession.timestamp)
+            if (!dur) return null
+            return (
+              <div style={{
+                fontSize: 11,
+                color: 'var(--text-muted)',
+                marginBottom: 4,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}>
+                <span style={{ opacity: 0.7 }}>{t('session.tooltipDuration')}:</span>
+                <span>{dur}</span>
+              </div>
+            )
+          })()}
 
           {/* Message count */}
           {tooltipSession.messageCount != null && tooltipSession.messageCount > 0 && (

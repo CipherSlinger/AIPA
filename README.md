@@ -145,6 +145,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Settings grouped sections** — General settings organized into 5 collapsible groups (AI Engine, Prompts, Appearance, Workspace, Behavior) with icons; collapse/expand state persisted across visits
 - **Settings search** — search bar at the top of General settings tab to quickly filter settings by keyword; non-matching groups are hidden
 - **Scroll-to-top button** — ArrowUp button appears when scrolled down in a conversation, enabling quick jump to the beginning; complements the existing scroll-to-bottom button
+- **Session duration** — session list items and hover tooltips show conversation duration (e.g., "12m", "1h 30m") calculated from first to last message timestamp
 
 ## Security
 

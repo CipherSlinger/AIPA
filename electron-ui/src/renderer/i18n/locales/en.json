@@ -208,6 +208,7 @@
     "tooltipProject": "Project",
     "tooltipLastActive": "Last active",
     "tooltipMessages": "Messages",
+    "tooltipDuration": "Duration",
     "refresh": "Refresh",
     "deleteAll": "Delete all sessions",
     "deleteAllConfirm": "Delete all {{count}} sessions? This cannot be undone.",

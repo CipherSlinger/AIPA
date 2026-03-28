@@ -22,6 +22,7 @@ export interface SessionListItem {
   projectSlug: string
   title?: string
   messageCount?: number
+  firstTimestamp?: number
 }
 
 export interface SessionMessage {
@@ -78,6 +79,7 @@ export function listSessions(): SessionListItem[] {
 
             let lastPrompt = ''
             let timestamp = 0
+            let firstTimestamp = Infinity
             let project = decodeProjectSlug(projectSlug)
             let title: string | undefined
             let messageCount = 0
@@ -88,6 +90,7 @@ export function listSessions(): SessionListItem[] {
                 if (entry.timestamp) {
                   const t = new Date(entry.timestamp).getTime()
                   if (t > timestamp) timestamp = t
+                  if (t < firstTimestamp) firstTimestamp = t
                 }
                 if (entry.type === 'last-prompt' && entry.prompt) {
                   lastPrompt = String(entry.prompt).slice(0, 120)
@@ -110,7 +113,8 @@ export function listSessions(): SessionListItem[] {
             }
 
             if (timestamp > 0) {
-              sessions.push({ sessionId, lastPrompt, timestamp, project, projectSlug, title, messageCount })
+              const ft = firstTimestamp < Infinity ? firstTimestamp : undefined
+              sessions.push({ sessionId, lastPrompt, timestamp, project, projectSlug, title, messageCount, firstTimestamp: ft })
             }
           } catch {}
         }
