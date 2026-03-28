@@ -1906,3 +1906,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 169 (2026-03-28)
 - Settings panel grouped sections -- reorganized General settings tab into 5 collapsible groups (AI Engine, Prompts, Appearance, Workspace, Behavior) with icons and chevron indicators; expansion state persisted via localStorage; reduces visual complexity per user feedback
+
+### Iteration 170 (2026-03-28)
+- Settings search filter -- search bar at top of General settings tab filters visible groups by keyword matching against setting labels and hints; clear button and instant filtering; non-matching groups hidden entirely

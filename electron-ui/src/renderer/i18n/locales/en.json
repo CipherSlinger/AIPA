@@ -247,6 +247,7 @@
       "workspace": "Workspace",
       "behavior": "Behavior"
     },
+    "searchPlaceholder": "Search settings...",
     "language": "Language / \u8bed\u8a00",
     "languageSystem": "System Default",
     "languageEn": "English",

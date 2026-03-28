@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { Save, Eye, EyeOff, ExternalLink, Plus, Pencil, Trash2, ChevronRight, ChevronDown, Brain, MessageSquare, Palette, FolderOpen, Settings2 } from 'lucide-react'
+import { Save, Eye, EyeOff, ExternalLink, Plus, Pencil, Trash2, ChevronRight, ChevronDown, Brain, MessageSquare, Palette, FolderOpen, Settings2, Search, X } from 'lucide-react'
 import { usePrefsStore } from '../../store'
 import { useI18n } from '../../i18n'
 import { PROMPT_TEMPLATES } from '../../utils/promptTemplates'
@@ -144,6 +144,22 @@ export default function SettingsPanel() {
   const [templateFormName, setTemplateFormName] = useState('')
   const [templateFormPrompt, setTemplateFormPrompt] = useState('')
   const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null)
+  const [settingsFilter, setSettingsFilter] = useState('')
+
+  // Settings search: keywords for each group (matched against filter)
+  const groupKeywords = React.useMemo(() => ({
+    aiEngine: [t('settings.apiKey'), t('settings.model'), t('settings.thinkingMode'), t('settings.maxTurns'), t('settings.budgetLimit'), 'API', 'Claude', 'Opus', 'Sonnet', 'Haiku', t('settings.groups.aiEngine')].join(' ').toLowerCase(),
+    prompts: [t('settings.promptTemplate'), t('settings.systemPrompt'), t('settings.groups.prompts')].join(' ').toLowerCase(),
+    appearance: [t('settings.language'), t('settings.theme'), t('settings.fontSize'), t('settings.fontFamily'), t('settings.compactMode'), t('settings.groups.appearance')].join(' ').toLowerCase(),
+    workspace: [t('settings.workingFolder'), t('tags.sectionTitle'), t('settings.groups.workspace')].join(' ').toLowerCase(),
+    behavior: [t('settings.skipPermissions'), t('settings.verbose'), t('settings.completionSound'), t('settings.desktopNotifications'), t('settings.groups.behavior')].join(' ').toLowerCase(),
+  }), [t])
+
+  const isGroupVisible = (groupKey: string): boolean => {
+    if (!settingsFilter.trim()) return true
+    const kw = groupKeywords[groupKey as keyof typeof groupKeywords]
+    return kw ? kw.includes(settingsFilter.toLowerCase()) : true
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -230,7 +246,31 @@ export default function SettingsPanel() {
 
       {settingsTab === 'general' ? (
         <>
+          {/* Settings search */}
+          <div style={{ marginBottom: 8, position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <Search size={14} style={{ position: 'absolute', left: 10, color: 'var(--text-muted)', pointerEvents: 'none' }} />
+            <input
+              value={settingsFilter}
+              onChange={(e) => setSettingsFilter(e.target.value)}
+              placeholder={t('settings.searchPlaceholder')}
+              style={{
+                ...inputStyle,
+                paddingLeft: 30,
+                paddingRight: settingsFilter ? 28 : 10,
+              }}
+            />
+            {settingsFilter && (
+              <button
+                onClick={() => setSettingsFilter('')}
+                style={{ position: 'absolute', right: 8, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 2 }}
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
           {/* Group 1: AI Engine */}
+          {isGroupVisible('aiEngine') && (
           <SettingsGroup title={t('settings.groups.aiEngine')} icon={<Brain size={14} />} groupKey="aiEngine">
             {/* API Key */}
             {field(
@@ -307,8 +347,10 @@ export default function SettingsPanel() {
               </span>
             )}
           </SettingsGroup>
+          )}
 
           {/* Group 2: Prompts */}
+          {isGroupVisible('prompts') && (
           <SettingsGroup title={t('settings.groups.prompts')} icon={<MessageSquare size={14} />} groupKey="prompts">
             {/* System prompt template selector */}
             {field(
@@ -371,8 +413,10 @@ export default function SettingsPanel() {
               </span>
             )}
           </SettingsGroup>
+          )}
 
           {/* Group 3: Appearance */}
+          {isGroupVisible('appearance') && (
           <SettingsGroup title={t('settings.groups.appearance')} icon={<Palette size={14} />} groupKey="appearance">
             {/* Language selector */}
             {field(
@@ -443,8 +487,10 @@ export default function SettingsPanel() {
               t('settings.compactModeHint')
             )}
           </SettingsGroup>
+          )}
 
           {/* Group 4: Workspace */}
+          {isGroupVisible('workspace') && (
           <SettingsGroup title={t('settings.groups.workspace')} icon={<FolderOpen size={14} />} groupKey="workspace">
             {/* Working dir */}
             {field(
@@ -493,8 +539,10 @@ export default function SettingsPanel() {
               </div>
             ))}
           </SettingsGroup>
+          )}
 
           {/* Group 5: Behavior */}
+          {isGroupVisible('behavior') && (
           <SettingsGroup title={t('settings.groups.behavior')} icon={<Settings2 size={14} />} groupKey="behavior">
             {/* skipPermissions */}
             {row(
@@ -524,6 +572,7 @@ export default function SettingsPanel() {
               t('settings.desktopNotificationsHint')
             )}
           </SettingsGroup>
+          )}
 
           {/* Save button */}
           <button
