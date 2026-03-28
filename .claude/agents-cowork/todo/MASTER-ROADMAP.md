@@ -344,10 +344,10 @@
 
 | Feature | PRD | Priority | Status |
 |---------|-----|----------|--------|
-| "Paste & Ask" button in ChatInput toolbar | `prd-clipboard-actions-v1.md` | P1 | IN PROGRESS |
-| Dropdown with 5 preset actions (Summarize, Translate, Rewrite, Explain, Grammar) | `prd-clipboard-actions-v1.md` | P1 | IN PROGRESS |
-| Auto-detect target language for Translate action | `prd-clipboard-actions-v1.md` | P1 | IN PROGRESS |
-| i18n for all clipboard UI (en + zh-CN) | `prd-clipboard-actions-v1.md` | P1 | IN PROGRESS |
+| "Paste & Ask" button in ChatInput toolbar | `prd-clipboard-actions-v1.md` | P1 | DONE (Iteration 123) |
+| Dropdown with 5 preset actions (Summarize, Translate, Rewrite, Explain, Grammar) | `prd-clipboard-actions-v1.md` | P1 | DONE (Iteration 123) |
+| Auto-detect target language for Translate action | `prd-clipboard-actions-v1.md` | P1 | DONE (Iteration 123) |
+| i18n for all clipboard UI (en + zh-CN) | `prd-clipboard-actions-v1.md` | P1 | DONE (Iteration 123) |
 
 ### Backlog (Sprint 5+)
 

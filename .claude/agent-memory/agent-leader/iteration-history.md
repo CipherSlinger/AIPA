@@ -97,3 +97,13 @@ type: project
 
 **Why:** Plain-text notes are insufficient for meeting notes, reports, and structured content. Markdown preview is table-stakes for any note-taking tool. Search is essential as notes accumulate.
 **How to apply:** Future note enhancements (note export, note categories, note sharing) should extend the same NotesPanel.tsx component. The Markdown rendering uses `className="markdown-body"` which inherits all chat message styling from globals.css.
+
+### Iteration 123 (2026-03-28)
+- **Features**: Quick Clipboard Actions -- "Paste & Ask" toolbar button with 5 preset actions
+- **Changes**: ChatInput.tsx (+80 lines), en.json (+8 keys), zh-CN.json (+8 keys), README.md, README_CN.md
+- **Pattern used**: Toolbar button + dropdown popup using existing CSS variables (--popup-bg, --popup-border, --popup-shadow). Clipboard API via `navigator.clipboard.readText()`. Translate auto-detects target language from `prefs.language`.
+- **Bug found during testing**: Used non-existent `fadeIn` keyframe animation. Fixed to use existing `popup-in` animation from globals.css.
+- **Pipeline note**: Sub-agent invocation via Skill tool still fails. Leader executed all agent roles directly (same as iterations 120-122).
+
+**Why:** Core personal assistant workflow. Users copy text from other apps and want one-click AI processing (summarize, translate, rewrite, explain, grammar check). Reduces a multi-step paste-and-type workflow to two clicks.
+**How to apply:** Future clipboard enhancements (custom actions, clipboard history, global hotkey) should extend the `CLIPBOARD_ACTIONS` array in ChatInput.tsx. The dropdown pattern can be reused for other toolbar buttons.
