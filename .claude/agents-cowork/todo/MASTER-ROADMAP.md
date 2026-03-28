@@ -579,6 +579,11 @@
 - **What**: Replace hardcoded 'System Default' font family label with i18n key in SettingsPanel
 - **Why**: Chinese users see English 'System Default' in font selector; now correctly shows the translated label
 
+### Iteration 157 -- i18n last hardcoded string in CategoryManager
+- **Status**: Done
+- **What**: Replace hardcoded 'Click to rename' tooltip in note CategoryManager with i18n key
+- **Why**: Final hardcoded English string found in component tree; completes i18n coverage
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

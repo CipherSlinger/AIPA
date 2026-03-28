@@ -588,6 +588,7 @@
     "maxCategories": "Maximum 10 categories",
     "categoryLabel": "Category",
     "closeManage": "Close",
+    "clickToRename": "Click to rename",
     "exportNote": "Export as Markdown",
     "exportAll": "Export All",
     "exportSuccess": "Note exported successfully",

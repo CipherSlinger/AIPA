@@ -186,7 +186,7 @@ export default function CategoryManager({
                 color: 'var(--text-primary)',
                 cursor: 'pointer',
               }}
-              title="Click to rename"
+              title={t('notes.clickToRename')}
             >
               {cat.name}
             </span>
