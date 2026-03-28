@@ -665,9 +665,13 @@
     "templates": "\u6a21\u677f",
     "fromTemplate": "\u4ece\u6a21\u677f\u65b0\u5efa",
     "templateMeeting": "\u4f1a\u8bae\u8bb0\u5f55",
+    "templateMeetingContent": "# \u4f1a\u8bae\u8bb0\u5f55\n\n**\u65e5\u671f\uff1a** {{date}}\n**\u4e0e\u4f1a\u4eba\u5458\uff1a**\n-\n\n## \u8bae\u7a0b\n1.\n\n## \u8ba8\u8bba\u5185\u5bb9\n\n\n## \u884c\u52a8\u4e8b\u9879\n- [ ]\n- [ ]\n\n## \u4e0b\u4e00\u6b65\n",
     "templateTodo": "\u5f85\u529e\u4e8b\u9879",
+    "templateTodoContent": "# \u5f85\u529e\u4e8b\u9879\n\n## \u9ad8\u4f18\u5148\u7ea7\n- [ ]\n- [ ]\n\n## \u4e2d\u4f18\u5148\u7ea7\n- [ ]\n- [ ]\n\n## \u4f4e\u4f18\u5148\u7ea7\n- [ ]\n\n## \u5df2\u5b8c\u6210\n- [x]\n",
     "templateJournal": "\u65e5\u8bb0",
+    "templateJournalContent": "# \u65e5\u8bb0 \u2014 {{date}}\n\n## \u4eca\u5929\u5b8c\u6210\u4e86\u4ec0\u4e48\n\n\n## \u4eca\u5929\u5b66\u5230\u4e86\u4ec0\u4e48\n\n\n## \u660e\u5929\u8981\u505a\u4ec0\u4e48\n\n\n## \u7b14\u8bb0\u4e0e\u601d\u8003\n",
     "templateIdea": "\u7075\u611f\u8bb0\u5f55",
+    "templateIdeaContent": "# \u7075\u611f\uff1a\n\n## \u95ee\u9898\n\n\n## \u89e3\u51b3\u65b9\u6848\n\n\n## \u4f18\u52bf\n\n\n## \u98ce\u9669 / \u987e\u8651\n\n\n## \u4e0b\u4e00\u6b65\n- [ ]\n",
     "saving": "\u4fdd\u5b58\u4e2d...",
     "saved": "\u5df2\u4fdd\u5b58"
   },

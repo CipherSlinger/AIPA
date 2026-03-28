@@ -1979,3 +1979,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 192 (2026-03-28)
 - Final hardcoded English strings i18n sweep -- replaced remaining hardcoded English fallback strings with i18n calls: 'Untitled' in WelcomeScreen.tsx and SessionList.tsx global search results (session.untitled), 'Untitled Session' in SessionList.tsx export title (session.untitledSession), 'Delete failed' and 'Install failed' in SkillsPanel.tsx (skills.deleteFailed, skills.installFailed); added error.unknownError key for future use; ErrorBoundary.tsx kept as hardcoded English since it's a crash fallback and can't use hooks; 5 new i18n keys in both en.json and zh-CN.json
+
+### Iteration 193 (2026-03-28)
+- Note templates i18n -- refactored 4 note templates (Meeting Notes, To-Do List, Journal Entry, Idea) to use i18n keys for both title and content; Chinese users now get fully translated template content when creating notes from templates; template content uses {{date}} parameter interpolation for dynamic date insertion; NoteTemplate interface changed from title/content strings to titleKey/contentKey i18n references resolved at creation time; 4 new content keys (templateMeetingContent, templateTodoContent, templateJournalContent, templateIdeaContent) in both en.json and zh-CN.json

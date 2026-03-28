@@ -13,92 +13,30 @@ import CategoryManager from './CategoryManager'
 
 interface NoteTemplate {
   labelKey: string
-  title: string
-  content: string
+  titleKey: string
+  contentKey: string
 }
 
 const NOTE_TEMPLATES: NoteTemplate[] = [
   {
     labelKey: 'notes.templateMeeting',
-    title: 'Meeting Notes',
-    content: `# Meeting Notes
-
-**Date:** ${new Date().toLocaleDateString()}
-**Attendees:**
--
-
-## Agenda
-1.
-
-## Discussion
-
-
-## Action Items
-- [ ]
-- [ ]
-
-## Next Steps
-
-`,
+    titleKey: 'notes.templateMeeting',
+    contentKey: 'notes.templateMeetingContent',
   },
   {
     labelKey: 'notes.templateTodo',
-    title: 'To-Do List',
-    content: `# To-Do List
-
-## High Priority
-- [ ]
-- [ ]
-
-## Medium Priority
-- [ ]
-- [ ]
-
-## Low Priority
-- [ ]
-
-## Completed
-- [x]
-`,
+    titleKey: 'notes.templateTodo',
+    contentKey: 'notes.templateTodoContent',
   },
   {
     labelKey: 'notes.templateJournal',
-    title: 'Journal Entry',
-    content: `# Journal — ${new Date().toLocaleDateString()}
-
-## What I accomplished today
-
-
-## What I learned
-
-
-## What I want to do tomorrow
-
-
-## Notes & Thoughts
-
-`,
+    titleKey: 'notes.templateJournal',
+    contentKey: 'notes.templateJournalContent',
   },
   {
     labelKey: 'notes.templateIdea',
-    title: 'Idea',
-    content: `# Idea:
-
-## Problem
-
-
-## Proposed Solution
-
-
-## Benefits
-
-
-## Risks / Concerns
-
-
-## Next Steps
-- [ ]
-`,
+    titleKey: 'notes.templateIdea',
+    contentKey: 'notes.templateIdeaContent',
   },
 ]
 
@@ -145,9 +83,12 @@ export default function NotesPanel() {
   }, [showTemplateMenu])
 
   const handleCreateFromTemplate = useCallback((template: NoteTemplate) => {
-    crud.handleCreateNote(template.title, template.content)
+    const title = t(template.titleKey)
+    const dateStr = new Date().toLocaleDateString()
+    const content = t(template.contentKey, { date: dateStr })
+    crud.handleCreateNote(title, content)
     setShowTemplateMenu(false)
-  }, [crud])
+  }, [crud, t])
 
   // Bulk export notes as individual .md files to a selected folder
   const handleExportAll = useCallback(async () => {

@@ -665,9 +665,13 @@
     "templates": "Templates",
     "fromTemplate": "New from template",
     "templateMeeting": "Meeting Notes",
+    "templateMeetingContent": "# Meeting Notes\n\n**Date:** {{date}}\n**Attendees:**\n-\n\n## Agenda\n1.\n\n## Discussion\n\n\n## Action Items\n- [ ]\n- [ ]\n\n## Next Steps\n",
     "templateTodo": "To-Do List",
+    "templateTodoContent": "# To-Do List\n\n## High Priority\n- [ ]\n- [ ]\n\n## Medium Priority\n- [ ]\n- [ ]\n\n## Low Priority\n- [ ]\n\n## Completed\n- [x]\n",
     "templateJournal": "Journal Entry",
+    "templateJournalContent": "# Journal -- {{date}}\n\n## What I accomplished today\n\n\n## What I learned\n\n\n## What I want to do tomorrow\n\n\n## Notes & Thoughts\n",
     "templateIdea": "Idea",
+    "templateIdeaContent": "# Idea:\n\n## Problem\n\n\n## Proposed Solution\n\n\n## Benefits\n\n\n## Risks / Concerns\n\n\n## Next Steps\n- [ ]\n",
     "saving": "Saving...",
     "saved": "Saved"
   },
