@@ -1,5 +1,5 @@
-import React from 'react'
-import { PanelLeft, Terminal, DollarSign, Clock, ArrowUp, ArrowDown, Recycle } from 'lucide-react'
+import React, { useRef, useEffect, useState } from 'react'
+import { PanelLeft, Terminal, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { StandardChatMessage } from '../../types/app.types'
 import { useT } from '../../i18n'
@@ -45,6 +45,38 @@ export default function StatusBar() {
   const sidebarOpen = useUiStore(s => s.sidebarOpen)
   const terminalOpen = useUiStore(s => s.terminalOpen)
   const t = useT()
+
+  // Streaming speed tracking (chars/sec)
+  const streamingStartRef = useRef<number>(0)
+  const lastContentLenRef = useRef<number>(0)
+  const [streamingSpeed, setStreamingSpeed] = useState<number | null>(null)
+
+  // Track streaming start/stop and compute speed
+  useEffect(() => {
+    if (isStreaming) {
+      // Start tracking
+      streamingStartRef.current = Date.now()
+      lastContentLenRef.current = 0
+      setStreamingSpeed(null)
+
+      const interval = setInterval(() => {
+        // Get the last assistant message content length
+        const msgs = useChatStore.getState().messages
+        const lastMsg = msgs[msgs.length - 1]
+        if (lastMsg && lastMsg.role === 'assistant' && (lastMsg as StandardChatMessage).content) {
+          const contentLen = (lastMsg as StandardChatMessage).content.length
+          const elapsed = (Date.now() - streamingStartRef.current) / 1000
+          if (elapsed > 0.5 && contentLen > 0) {
+            setStreamingSpeed(Math.round(contentLen / elapsed))
+          }
+        }
+      }, 500)
+
+      return () => clearInterval(interval)
+    } else {
+      setStreamingSpeed(null)
+    }
+  }, [isStreaming])
 
   const dirLabel = workingDir || prefs.workingDir || '~'
   const dirShort = dirLabel.split(/[/\\]/).pop() || dirLabel
@@ -122,6 +154,15 @@ export default function StatusBar() {
               }}
             />
             <span style={{ fontSize: 10 }}>{t('toolbar.streaming')}</span>
+            {streamingSpeed !== null && streamingSpeed > 0 && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 2, opacity: 0.8, fontSize: 10 }}>
+                <Zap size={9} />
+                {streamingSpeed > 1000
+                  ? `${(streamingSpeed / 1000).toFixed(1)}k`
+                  : streamingSpeed
+                } {t('toolbar.charsPerSec')}
+              </span>
+            )}
           </span>
         )}
 

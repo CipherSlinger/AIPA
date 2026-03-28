@@ -388,6 +388,14 @@
 | New IPC: fs:showOpenFileDialog + fs:readFile | - | P1 | DONE (Iteration 127) |
 | i18n for import UI (en + zh-CN) | - | P1 | DONE (Iteration 127) |
 
+### Iteration 128 -- Streaming Speed Indicator
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Real-time chars/sec display in StatusBar during streaming | P2 | DONE (Iteration 128) |
+| Auto-format large values (1.2k c/s) | P2 | DONE (Iteration 128) |
+| i18n for speed label (en + zh-CN) | P2 | DONE (Iteration 128) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

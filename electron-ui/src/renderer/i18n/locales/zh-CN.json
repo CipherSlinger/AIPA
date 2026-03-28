@@ -323,6 +323,7 @@
     "toggleSidebar": "\u5207\u6362\u4fa7\u8fb9\u680f (Ctrl+B)",
     "toggleTerminal": "\u5207\u6362\u7ec8\u7aef (Ctrl+`)",
     "streaming": "\u8f93\u51fa\u4e2d",
+    "charsPerSec": "\u5b57/\u79d2",
     "context": "Ctx",
     "contextUsed": "\u4e0a\u4e0b\u6587\u5df2\u7528: {{percent}}% ({{used}} / {{total}} tokens)",
     "msgs": "{{count}} \u6761\u6d88\u606f",

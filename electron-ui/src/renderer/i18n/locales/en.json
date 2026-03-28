@@ -323,6 +323,7 @@
     "toggleSidebar": "Toggle sidebar (Ctrl+B)",
     "toggleTerminal": "Toggle terminal (Ctrl+`)",
     "streaming": "Streaming",
+    "charsPerSec": "c/s",
     "context": "Ctx",
     "contextUsed": "Context used: {{percent}}% ({{used}} / {{total}} tokens)",
     "msgs": "{{count}} msgs",

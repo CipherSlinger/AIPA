@@ -113,6 +113,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Clipboard quick actions** — "Paste & Ask" button in the chat toolbar reads clipboard text and offers one-click actions: Summarize, Translate, Rewrite, Explain, Grammar Check; auto-detects target language for translation
 - **Note export** — export individual notes as Markdown files via the editor toolbar (Download button + system Save dialog); bulk export all notes (or filtered by category) to a folder via the "Export All" button in the Notes panel header
 - **Note import** — import `.md` and `.txt` files as notes via the "Import" button in the Notes panel header; supports multi-file selection, auto-extracts titles from Markdown headings or filenames, respects 100-note limit
+- **Streaming speed indicator** — real-time characters-per-second (c/s) display in the status bar during active streaming, with Zap icon; auto-formats large values (e.g., "1.2k c/s")
 
 ## Security
 
