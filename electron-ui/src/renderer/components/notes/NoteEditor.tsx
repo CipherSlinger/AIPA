@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react'
-import { ArrowLeft, Trash2, ChevronDown, Check, Download, Pin } from 'lucide-react'
+import { ArrowLeft, Trash2, ChevronDown, Check, Download, Pin, Loader2 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
@@ -26,6 +26,7 @@ interface NoteEditorProps {
   onSave: (noteId: string, title: string, content: string) => void
   onTogglePin: (noteId: string, e?: React.MouseEvent) => void
   getCategoryById: (id?: string) => NoteCategory | undefined
+  saveStatus?: 'idle' | 'saving' | 'saved'
 }
 
 export default function NoteEditor({
@@ -46,6 +47,7 @@ export default function NoteEditor({
   onSave,
   onTogglePin,
   getCategoryById,
+  saveStatus = 'idle',
 }: NoteEditorProps) {
   const t = useT()
   const addToast = useUiStore(s => s.addToast)
@@ -211,7 +213,7 @@ export default function NoteEditor({
           <Pin size={14} style={{ fill: note.pinned ? 'var(--accent)' : 'none' }} />
         </button>
 
-        <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', gap: 8 }}>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', gap: 8, alignItems: 'center' }}>
           <span>{content.length} {t('notes.characters')}</span>
           <span>{content.trim() ? content.trim().split(/\s+/).length : 0} {t('notes.words')}</span>
           {content.trim() && (() => {
@@ -219,6 +221,18 @@ export default function NoteEditor({
             const mins = Math.max(1, Math.ceil(wordCount / 200))
             return <span>{t('notes.readingTime', { min: String(mins) })}</span>
           })()}
+          {saveStatus === 'saving' && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 3, color: 'var(--warning)' }}>
+              <Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} />
+              {t('notes.saving')}
+            </span>
+          )}
+          {saveStatus === 'saved' && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 3, color: 'var(--success)' }}>
+              <Check size={10} />
+              {t('notes.saved')}
+            </span>
+          )}
         </span>
       </div>
 

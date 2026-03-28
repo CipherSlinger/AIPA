@@ -1921,3 +1921,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 174 (2026-03-28)
 - Note templates -- split "New Note" button into main + dropdown chevron; dropdown offers 4 templates (Meeting Notes, To-Do List, Journal Entry, Idea) each with structured Markdown content; templates populate title and content on creation; useNotesCRUD handleCreateNote now accepts optional initialTitle and initialContent; i18n for en + zh-CN
+
+### Iteration 175 (2026-03-28)
+- Note auto-save indicator -- shows "Saving..." with spinning loader icon during the 1-second debounce, then "Saved" with check icon for 2 seconds after save completes; displayed in the note editor header alongside word/character count; uses saveStatus state in useNotesCRUD hook; i18n for en + zh-CN

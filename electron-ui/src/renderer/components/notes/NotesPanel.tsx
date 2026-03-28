@@ -262,6 +262,7 @@ export default function NotesPanel() {
         onSave={crud.saveNote}
         onTogglePin={crud.handleTogglePin}
         getCategoryById={crud.getCategoryById}
+        saveStatus={crud.saveStatus}
       />
     )
   }

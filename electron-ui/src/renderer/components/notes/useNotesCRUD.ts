@@ -28,6 +28,8 @@ export function useNotesCRUD() {
   const [editingCategoryName, setEditingCategoryName] = useState('')
   const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null)
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const persistNotes = useCallback((updated: Note[]) => {
     setPrefs({ notes: updated })
@@ -47,10 +49,14 @@ export function useNotesCRUD() {
         : n
     )
     persistNotes(updated)
+    setSaveStatus('saved')
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
+    savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), 2000)
   }, [persistNotes])
 
   const scheduleAutoSave = useCallback((noteId: string, newTitle: string, newContent: string) => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    setSaveStatus('saving')
     saveTimerRef.current = setTimeout(() => {
       saveNote(noteId, newTitle, newContent)
     }, 1000)
@@ -60,6 +66,7 @@ export function useNotesCRUD() {
   useEffect(() => {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
     }
   }, [])
 
@@ -253,6 +260,7 @@ export function useNotesCRUD() {
     editingCategoryName,
     deletingCategoryId,
     showCategoryDropdown,
+    saveStatus,
 
     // Setters
     setTitle,

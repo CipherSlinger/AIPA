@@ -636,7 +636,9 @@
     "templateMeeting": "Meeting Notes",
     "templateTodo": "To-Do List",
     "templateJournal": "Journal Entry",
-    "templateIdea": "Idea"
+    "templateIdea": "Idea",
+    "saving": "Saving...",
+    "saved": "Saved"
   },
   "clipboard": {
     "pasteAndAsk": "Paste & Ask",
