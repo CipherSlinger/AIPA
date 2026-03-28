@@ -89,7 +89,10 @@
     "newMessagesPlural": "{{count}} new messages",
     "contextWarning": "Context window {{percent}}% full. Consider starting a new conversation for best results.",
     "sessionPrefix": "Session: {{id}}...",
-    "emptyPreview": "(empty)"
+    "emptyPreview": "(empty)",
+    "workingDir": "Working directory",
+    "workingDirDefault": "Home directory",
+    "clickToChangeDir": "Click to change working directory"
   },
   "welcome": {
     "title": "Hello! I'm AIPA",

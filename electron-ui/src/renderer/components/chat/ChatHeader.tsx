@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Search, Download, ClipboardCopy, Bookmark, BarChart3, Maximize2, Minimize2, Plus, RefreshCw, Pencil } from 'lucide-react'
-import { useChatStore, useSessionStore } from '../../store'
+import { Search, Download, ClipboardCopy, Bookmark, BarChart3, Maximize2, Minimize2, Plus, RefreshCw, Pencil, FolderOpen } from 'lucide-react'
+import { useChatStore, useSessionStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 import type { ConversationStats, BookmarkedMessage } from '../../hooks/useConversationStats'
 import type { StandardChatMessage } from '../../types/app.types'
@@ -142,6 +142,26 @@ export default function ChatHeader({
     }
   }
 
+  const workingDir = usePrefsStore(s => s.prefs.workingDir)
+
+  /** Truncate a path to show only the last N segments */
+  const truncatePath = useCallback((p: string, maxSegments = 2): string => {
+    if (!p) return ''
+    const sep = p.includes('\\') ? '\\' : '/'
+    const segments = p.split(sep).filter(Boolean)
+    if (segments.length <= maxSegments) return p
+    return '...' + sep + segments.slice(-maxSegments).join(sep)
+  }, [])
+
+  const handleChangeDir = useCallback(async () => {
+    const p = await window.electronAPI.fsShowOpenDialog()
+    if (p) {
+      usePrefsStore.getState().setPrefs({ workingDir: p })
+      useChatStore.getState().setWorkingDir(p)
+      window.electronAPI.prefsSet('workingDir', p)
+    }
+  }, [])
+
   return (
     <div
       style={{
@@ -155,6 +175,8 @@ export default function ChatHeader({
         flexShrink: 0,
       }}
     >
+      {/* Title + working dir column */}
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 1 }}>
       {/* Session title -- editable on click */}
       {isEditingTitle ? (
         <input
@@ -168,7 +190,6 @@ export default function ChatHeader({
           onBlur={commitTitleEdit}
           maxLength={100}
           style={{
-            flex: 1,
             fontSize: 13,
             fontWeight: 600,
             color: 'var(--text-bright)',
@@ -179,6 +200,7 @@ export default function ChatHeader({
             outline: 'none',
             fontFamily: 'inherit',
             minWidth: 0,
+            width: '100%',
           }}
         />
       ) : (
@@ -189,7 +211,6 @@ export default function ChatHeader({
             fontSize: 13,
             fontWeight: 600,
             color: 'var(--chat-header-title)',
-            flex: 1,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -206,6 +227,30 @@ export default function ChatHeader({
             : `${model?.split('-').slice(0, 3).join('-') || 'claude'}`}
         </span>
       )}
+
+      {/* Working directory indicator */}
+      <span
+        onClick={handleChangeDir}
+        title={`${t('chat.workingDir')}: ${workingDir || t('chat.workingDirDefault')}\n${t('chat.clickToChangeDir')}`}
+        style={{
+          fontSize: 10,
+          color: 'var(--text-muted)',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 3,
+          transition: 'color 150ms',
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent)')}
+        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
+      >
+        <FolderOpen size={10} style={{ flexShrink: 0, opacity: 0.7 }} />
+        {workingDir ? truncatePath(workingDir) : t('chat.workingDirDefault')}
+      </span>
+      </div>
 
       {/* Search toggle */}
       <button

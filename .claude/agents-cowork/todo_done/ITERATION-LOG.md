@@ -1933,3 +1933,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 178 (2026-03-28)
 - Soft light theme -- toned down light theme from pure white (#ffffff) backgrounds to gentle off-white/warm gray (#f5f5f7, #eff0f2, #eaebee, #e8e8ed) to reduce eye strain per user feedback; updated ~40 CSS variables including backgrounds, borders, scrollbars, code blocks; input fields remain white for contrast; settings theme preview updated to match new palette
+
+### Iteration 179 (2026-03-28)
+- Working directory in chat header -- clickable working directory path shown below session title in ChatHeader; click to open folder picker and change directory; path truncated to last 2 segments with ellipsis; updates both prefs store and electron-store; FolderOpen icon indicator; i18n for en + zh-CN
