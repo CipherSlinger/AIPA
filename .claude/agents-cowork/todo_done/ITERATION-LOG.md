@@ -1973,3 +1973,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 190 (2026-03-28)
 - Cross-session global search -- press Enter in session search bar to search across all ~/.claude/projects/ JSONL session files; searchSessions() function in session-reader.ts performs full-text search of message content and session titles; results displayed in a collapsible panel above the session list with match type badges (Title match / Content match), context snippets with keyword highlighting, avatar colors, and timestamps; click a result to load that session; IPC handler (session:search) + preload bridge (sessionSearch); "Press Enter to search all sessions" hint when filter has 2+ chars; Escape dismisses results; i18n for en + zh-CN (7 new keys)
+
+### Iteration 191 (2026-03-28)
+- Global search keyboard shortcut (Ctrl+Shift+F) -- added Ctrl+Shift+F shortcut in ChatPanel.tsx that opens sidebar to history tab and dispatches aipa:globalSearchFocus custom event; SessionList.tsx listens for the event and focuses/selects the search input; added entry to ShortcutCheatsheet.tsx conversation section; added globalSearch i18n key to en.json and zh-CN.json in both settings.about and shortcutCheatsheet namespaces

@@ -149,6 +149,17 @@ export default function ChatPanel() {
         e.preventDefault()
         setSearchOpen(true)
       }
+      // Ctrl+Shift+F: Global cross-session search
+      if (e.ctrlKey && e.shiftKey && e.key === 'F') {
+        e.preventDefault()
+        // Open sidebar to history tab and trigger global search focus
+        const uiState = useUiStore.getState()
+        if (!uiState.sidebarOpen || uiState.sidebarTab !== 'history') {
+          uiState.setActiveNavItem('history')
+        }
+        // Dispatch custom event so SessionList can focus search input
+        window.dispatchEvent(new CustomEvent('aipa:globalSearchFocus'))
+      }
       if (e.ctrlKey && e.shiftKey && e.key === 'R') {
         e.preventDefault()
         const state = useChatStore.getState()

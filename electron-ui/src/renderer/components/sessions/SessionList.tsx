@@ -173,6 +173,7 @@ export default function SessionList() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [focusedIdx, setFocusedIdx] = useState(-1)
   const listRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   // ── Multi-select mode ──
   const [selectMode, setSelectMode] = useState(false)
@@ -364,6 +365,18 @@ export default function SessionList() {
 
   useEffect(() => { loadSessions() }, [])
 
+  // Listen for global search focus (Ctrl+Shift+F from ChatPanel)
+  useEffect(() => {
+    const handler = () => {
+      if (searchInputRef.current) {
+        searchInputRef.current.focus()
+        searchInputRef.current.select()
+      }
+    }
+    window.addEventListener('aipa:globalSearchFocus', handler)
+    return () => window.removeEventListener('aipa:globalSearchFocus', handler)
+  }, [])
+
   // Listen for global session navigation (Ctrl+[ / Ctrl+])
   useEffect(() => {
     const handler = async (e: Event) => {
@@ -545,6 +558,7 @@ export default function SessionList() {
         <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
           <Search size={14} style={{ position: 'absolute', left: 8, color: 'var(--text-muted)', pointerEvents: 'none' }} />
           <input
+            ref={searchInputRef}
             value={filter}
             onChange={(e) => { setFilter(e.target.value); if (!e.target.value) setShowGlobalResults(false) }}
             onKeyDown={handleSearchKeyDown}

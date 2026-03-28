@@ -41,6 +41,7 @@ const SHORTCUTS = [
   ]},
   { sectionKey: 'conversation', items: [
     { keys: 'Ctrl + F', actionKey: 'searchInConversation' },
+    { keys: 'Ctrl + Shift + F', actionKey: 'globalSearch' },
     { keys: 'Ctrl + Shift + E', actionKey: 'exportConversation' },
     { keys: 'Ctrl + Shift + X', actionKey: 'copyConversation' },
     { keys: 'Right-click', actionKey: 'messageContextMenu' },
