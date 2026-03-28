@@ -564,6 +564,11 @@
 - **Files changed**: `session-reader.ts`, `app.types.ts`, `SessionList.tsx`, `en.json`, `zh-CN.json`
 - **Status**: Done
 
+### Iteration 154 -- Session message count badge in list rows
+- **Status**: Done
+- **What**: Display message count as a small badge (with MessageSquare icon) next to the relative timestamp in each session list row
+- **Why**: Users can quickly gauge session length/depth without opening or hovering over sessions
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

@@ -720,7 +720,16 @@ export default function SessionList() {
                   color: 'var(--text-muted)',
                   flexShrink: 0,
                   whiteSpace: 'nowrap',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
                 }}>
+                  {session.messageCount != null && session.messageCount > 0 && (
+                    <span style={{ opacity: 0.6 }} title={t('session.tooltipMessages')}>
+                      {session.messageCount}
+                      <MessageSquare size={8} style={{ marginLeft: 1, verticalAlign: 'middle' }} />
+                    </span>
+                  )}
                   {formatDistanceToNow(new Date(session.timestamp), { addSuffix: true })}
                 </span>
               </div>
