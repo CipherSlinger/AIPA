@@ -1571,3 +1571,35 @@ JS: 1,062.26 kB (slightly reduced from 1,062.82 kB)
 - [x] 6 of 8 placeholder suggestions are non-coding tasks
 - [x] All new strings have both en and zh-CN translations
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 115 -- System Prompt Templates Personal Assistant Update
+
+_Date: 2026-03-28 | Sprint Product Positioning_
+
+### Summary
+Updated system prompt templates from all-developer roles to a balanced personal assistant mix. Replaced 5 of 6 developer-only templates (Technical Writer, Bug Hunter, Refactoring Expert, Programming Tutor, Software Architect) with personal assistant roles (Writing Assistant, Research Analyst, Tutor, Creative Writer, Productivity Coach). Kept Code Reviewer as the one technical option. Updated all i18n labels in en.json and zh-CN.json. Updated README.md and README_CN.md to reflect new template names.
+
+### Files Changed
+- `src/renderer/components/settings/SettingsPanel.tsx` -- Replaced 5 template entries with personal assistant roles; updated labelKey references; updated prompt text for each role
+- `src/renderer/i18n/locales/en.json` -- Replaced 5 template label keys (TechWriter, BugHunter, Refactoring, Tutor, Architect) with new keys (WritingAssistant, ResearchAnalyst, LanguageTutor, CreativeWriter, ProductivityCoach)
+- `src/renderer/i18n/locales/zh-CN.json` -- Added Chinese translations for all new template labels
+- `README.md` -- Updated prompt template feature description with new role names
+- `README_CN.md` -- Updated Chinese prompt template description with new role names
+
+### Build
+Status: SUCCESS
+
+```
+main: tsc clean
+preload: tsc clean
+renderer: 2397 modules transformed, built in 7.71s
+```
+
+### Acceptance Criteria
+- [x] 6 templates: 5 general-purpose + 1 technical (Code Reviewer)
+- [x] All template names and prompts updated in en.json and zh-CN.json
+- [x] README.md updated with new template names
+- [x] README_CN.md updated with new template names
+- [x] Build passes with zero errors

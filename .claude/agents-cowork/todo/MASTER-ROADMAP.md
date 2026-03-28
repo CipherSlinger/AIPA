@@ -273,6 +273,12 @@
 |---------|-----|----------|--------|
 | Welcome Screen & placeholder personal assistant alignment | `prd-welcome-personal-assistant-v1.md` | P1 | DONE (Iteration 114) |
 
+### Iteration 115 -- System Prompt Templates Personal Assistant Update
+
+| Feature | PRD | Priority | Status |
+|---------|-----|----------|--------|
+| Personal assistant prompt templates | `prd-prompt-templates-update-v1.md` | P1 | DONE (Iteration 115) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |
