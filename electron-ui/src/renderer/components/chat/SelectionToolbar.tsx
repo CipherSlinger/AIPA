@@ -113,7 +113,7 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
     const MAX_NOTES = 100
     const currentNotes: Note[] = usePrefsStore.getState().prefs.notes || []
     if (currentNotes.length >= MAX_NOTES) {
-      addToast({ type: 'error', message: t('message.notesLimitReached'), duration: 3000 })
+      addToast('error', t('message.notesLimitReached'))
       return
     }
     const now = Date.now()
@@ -128,7 +128,7 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
     const updated = [newNote, ...currentNotes]
     usePrefsStore.getState().setPrefs({ notes: updated })
     window.electronAPI.prefsSet('notes', updated)
-    addToast({ type: 'success', message: t('message.savedToNotes'), duration: 2000 })
+    addToast('success', t('message.savedToNotes'))
     setVisible(false)
     window.getSelection()?.removeAllRanges()
   }, [selectedText, addToast, t])

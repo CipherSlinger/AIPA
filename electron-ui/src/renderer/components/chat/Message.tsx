@@ -194,7 +194,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
     const MAX_NOTES = 100
     const currentNotes: Note[] = usePrefsStore.getState().prefs.notes || []
     if (currentNotes.length >= MAX_NOTES) {
-      addToast({ type: 'error', message: t('message.notesLimitReached'), duration: 3000 })
+      addToast('error', t('message.notesLimitReached'))
       return
     }
     const now = Date.now()
@@ -209,7 +209,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
     const updated = [newNote, ...currentNotes]
     usePrefsStore.getState().setPrefs({ notes: updated })
     window.electronAPI.prefsSet('notes', updated)
-    addToast({ type: 'success', message: t('message.savedToNotes'), duration: 2000 })
+    addToast('success', t('message.savedToNotes'))
   }, [message, addToast, t])
 
   const handleDoubleClick = useCallback(() => {

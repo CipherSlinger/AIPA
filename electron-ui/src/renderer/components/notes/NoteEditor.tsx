@@ -66,12 +66,12 @@ export default function NoteEditor({
       if (!filePath) return // user cancelled
       const result = await api.fsWriteFile(filePath, content)
       if (result?.error) {
-        addToast(t('notes.exportFailed', { error: result.error }), 'error')
+        addToast('error', t('notes.exportFailed', { error: result.error }))
       } else {
-        addToast(t('notes.exportSuccess'), 'success')
+        addToast('success', t('notes.exportSuccess'))
       }
     } catch (err) {
-      addToast(t('notes.exportFailed', { error: String(err) }), 'error')
+      addToast('error', t('notes.exportFailed', { error: String(err) }))
     }
   }, [title, content, addToast, t])
 

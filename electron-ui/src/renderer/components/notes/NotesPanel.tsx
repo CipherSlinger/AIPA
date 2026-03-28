@@ -152,7 +152,7 @@ export default function NotesPanel() {
   const handleExportAll = useCallback(async () => {
     const notesToExport = filteredNotes
     if (notesToExport.length === 0) {
-      addToast(t('notes.exportNoNotes'), 'warning')
+      addToast('warning', t('notes.exportNoNotes'))
       return
     }
     try {
@@ -177,12 +177,12 @@ export default function NotesPanel() {
         if (!result?.error) exported++
       }
       if (exported > 0) {
-        addToast(t('notes.exportAllSuccess', { count: String(exported) }), 'success')
+        addToast('success', t('notes.exportAllSuccess', { count: String(exported) }))
       } else {
-        addToast(t('notes.exportFailed', { error: 'No files were written' }), 'error')
+        addToast('error', t('notes.exportFailed', { error: 'No files were written' }))
       }
     } catch (err) {
-      addToast(t('notes.exportFailed', { error: String(err) }), 'error')
+      addToast('error', t('notes.exportFailed', { error: String(err) }))
     }
   }, [filteredNotes, addToast, t])
 
@@ -190,7 +190,7 @@ export default function NotesPanel() {
   const handleImportNotes = useCallback(async () => {
     const available = MAX_NOTES - crud.notes.length
     if (available <= 0) {
-      addToast(t('notes.maxNotesReached'), 'warning')
+      addToast('warning', t('notes.maxNotesReached'))
       return
     }
     try {
@@ -232,12 +232,12 @@ export default function NotesPanel() {
         const setPrefs = usePrefsStore.getState().setPrefs
         setPrefs({ notes: updated })
         window.electronAPI.prefsSet('notes', updated)
-        addToast(t('notes.importSuccess', { count: String(newNotes.length) }), 'success')
+        addToast('success', t('notes.importSuccess', { count: String(newNotes.length) }))
       } else {
-        addToast(t('notes.importFailed', { error: 'No files could be read' }), 'error')
+        addToast('error', t('notes.importFailed', { error: 'No files could be read' }))
       }
     } catch (err) {
-      addToast(t('notes.importFailed', { error: String(err) }), 'error')
+      addToast('error', t('notes.importFailed', { error: String(err) }))
     }
   }, [crud.notes, crud.activeCategoryFilter, addToast, t])
 

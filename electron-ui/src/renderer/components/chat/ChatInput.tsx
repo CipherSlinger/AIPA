@@ -334,7 +334,7 @@ export default function ChatInput({
     try {
       const text = await navigator.clipboard.readText()
       if (!text || !text.trim()) {
-        addToast({ type: 'info' as any, message: t('clipboard.emptyClipboard') })
+        addToast('info', t('clipboard.emptyClipboard'))
         return
       }
       const action = CLIPBOARD_ACTIONS.find(a => a.id === actionId)
@@ -342,15 +342,15 @@ export default function ChatInput({
       let prompt: string
       if (actionId === 'translate') {
         const lang = prefs.language === 'zh-CN' ? 'templateZh' : 'templateEn'
-        prompt = ((action as any)[lang] || action.template || '').replace('{text}', text.trim())
+        prompt = ((action as Record<string, unknown>)[lang] as string || '').replace('{text}', text.trim())
       } else {
-        prompt = (action as any).template.replace('{text}', text.trim())
+        prompt = ('template' in action ? (action as Record<string, unknown>).template as string : '').replace('{text}', text.trim())
       }
       if (prompt) {
         await onSend(prompt)
       }
     } catch {
-      addToast({ type: 'error' as any, message: t('clipboard.clipboardError') })
+      addToast('error', t('clipboard.clipboardError'))
     }
   }
 
