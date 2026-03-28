@@ -496,6 +496,13 @@
 | Dismiss button to cancel pending quote | P2 | DONE (Iteration 141) |
 | Auto-prepend quoted text as markdown when sending | P2 | DONE (Iteration 141) |
 
+### Iteration 142 -- Message.tsx i18n Completeness
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Replace 8 hardcoded English strings with i18n calls | P2-fix | DONE (Iteration 142) |
+| Collapse/Expand, Copy, Bookmark, Thinking, Generating, Raw Markdown titles | P2-fix | DONE (Iteration 142) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

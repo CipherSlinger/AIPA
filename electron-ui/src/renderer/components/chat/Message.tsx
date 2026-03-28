@@ -312,7 +312,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
                   display: 'flex', alignItems: 'center',
                   padding: 0,
                 }}
-                title={isCollapsed ? 'Expand message' : 'Collapse message'}
+                title={isCollapsed ? t('message.expand') : t('message.collapse')}
               >
                 {isCollapsed ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
               </button>
@@ -322,7 +322,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
                 </span>
               )}
               {(message as StandardChatMessage).isStreaming && (
-                <span style={{ color: 'var(--success)', fontSize: 11 }}>Generating...</span>
+                <span style={{ color: 'var(--success)', fontSize: 11 }}>{t('message.processing')}</span>
               )}
             </div>
           )}
@@ -342,7 +342,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
                     }}
                   >
                     {thinkingExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-                    {isMessageStreaming && thinking ? 'Thinking...' : 'Thinking'}
+                    {isMessageStreaming && thinking ? t('message.thinking') + '...' : t('message.thinking')}
                   </button>
                   {thinkingExpanded && (
                     <div style={{
@@ -546,7 +546,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
                       }}
                     />
                   ))}
-                  <span style={{ fontSize: 11, color: 'var(--success)', marginLeft: 4 }}>Generating...</span>
+                  <span style={{ fontSize: 11, color: 'var(--success)', marginLeft: 4 }}>{t('message.processing')}</span>
                 </div>
               )}
             </>
@@ -578,7 +578,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             {isAssistant && (
               <button
                 onClick={(e) => { e.stopPropagation(); setShowRawMarkdown(!showRawMarkdown) }}
-                title={showRawMarkdown ? 'Show rendered' : 'Show raw markdown'}
+                title={showRawMarkdown ? t('message.formattedView') : t('message.rawMarkdown')}
                 style={{
                   background: showRawMarkdown ? 'var(--accent)' : 'transparent',
                   border: 'none',
@@ -628,7 +628,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             {/* Copy */}
             <button
               onClick={(e) => { e.stopPropagation(); handleCopy() }}
-              title={copied ? 'Copied!' : 'Copy text'}
+              title={copied ? t('message.copied') : t('message.copy')}
               style={{
                 background: 'transparent',
                 border: 'none',
@@ -648,7 +648,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
               {copied ? (
                 <>
                   <Check size={13} />
-                  <span style={{ fontSize: 11, lineHeight: 1 }}>Copied!</span>
+                  <span style={{ fontSize: 11, lineHeight: 1 }}>{t('message.copied')}</span>
                 </>
               ) : (
                 <Copy size={13} />
@@ -659,7 +659,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             {!isPermission && !isPlan && (
               <button
                 onClick={(e) => { e.stopPropagation(); handleBookmarkAction() }}
-                title={(message as StandardChatMessage).bookmarked ? 'Remove bookmark' : 'Bookmark'}
+                title={(message as StandardChatMessage).bookmarked ? t('message.removeBookmark') : t('message.bookmark')}
                 style={{
                   background: 'transparent',
                   border: 'none',
