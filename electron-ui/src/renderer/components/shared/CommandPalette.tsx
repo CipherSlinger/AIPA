@@ -417,9 +417,9 @@ export default function CommandPalette({
             color: 'var(--text-muted)',
           }}
         >
-          <span>Arrow keys to navigate</span>
-          <span>Enter to select</span>
-          <span>Esc to close</span>
+          <span>{t('command.arrowKeysHint')}</span>
+          <span>{t('command.enterHint')}</span>
+          <span>{t('command.escHint')}</span>
         </div>
       </div>
     </div>

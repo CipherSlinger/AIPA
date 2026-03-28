@@ -400,7 +400,10 @@
     "showHelpDesc": "Display available slash commands",
     "availableCommands": "Available Commands",
     "openSessionFrom": "Open session from {{date}}",
-    "noResults": "No matching commands"
+    "noResults": "No matching commands",
+    "arrowKeysHint": "Arrow keys to navigate",
+    "enterHint": "Enter to select",
+    "escHint": "Esc to close"
   },
   "permission": {
     "allow": "Allow",

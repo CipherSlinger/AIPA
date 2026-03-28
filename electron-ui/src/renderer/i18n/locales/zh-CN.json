@@ -400,7 +400,10 @@
     "showHelpDesc": "\u663e\u793a\u53ef\u7528\u7684\u659c\u6760\u547d\u4ee4",
     "availableCommands": "\u53ef\u7528\u547d\u4ee4",
     "openSessionFrom": "\u6253\u5f00 {{date}} \u7684\u4f1a\u8bdd",
-    "noResults": "\u6ca1\u6709\u5339\u914d\u7684\u547d\u4ee4"
+    "noResults": "\u6ca1\u6709\u5339\u914d\u7684\u547d\u4ee4",
+    "arrowKeysHint": "\u65b9\u5411\u952e\u5bfc\u822a",
+    "enterHint": "Enter \u9009\u62e9",
+    "escHint": "Esc \u5173\u95ed"
   },
   "permission": {
     "allow": "\u5141\u8bb8",

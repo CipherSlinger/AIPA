@@ -534,6 +534,11 @@
 - **Files changed**: `SettingsPanel.tsx`, `en.json`, `zh-CN.json`
 - **Status**: Done
 
+### Iteration 148 — i18n command palette footer hints
+- **Feature**: Replace hardcoded English navigation hints in CommandPalette footer with i18n calls
+- **Files changed**: `CommandPalette.tsx`, `en.json`, `zh-CN.json`
+- **Status**: Done
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |
