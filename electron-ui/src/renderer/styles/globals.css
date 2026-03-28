@@ -85,15 +85,6 @@
   /* === NEW (Iteration 55): Input focus shadow === */
   --input-focus-shadow:   0 0 0 2px rgba(0,122,204,0.15);
 
-  /* === NEW (Iteration 63): Message reactions === */
-  --reaction-bar-bg:        rgba(0,0,0,0.75);
-  --reaction-bar-border:    rgba(255,255,255,0.08);
-  --reaction-bar-shadow:    0 2px 8px rgba(0,0,0,0.3);
-  --reaction-badge-bg:      rgba(255,255,255,0.08);
-  --reaction-badge-border:  rgba(255,255,255,0.12);
-  --reaction-badge-active:  rgba(0,122,204,0.2);
-  --reaction-badge-active-border: rgba(0,122,204,0.4);
-
   /* === NEW (Iteration 92): Task Queue === */
   --queue-accent:       #a78bfa;
   --queue-accent-deep:  #8b5cf6;
@@ -167,14 +158,6 @@
   --card-bg:              #ffffff;
   --card-border:          rgba(0,0,0,0.1);
   --input-focus-shadow:   0 0 0 2px rgba(37,99,235,0.2);
-
-  --reaction-bar-bg:        rgba(255,255,255,0.95);
-  --reaction-bar-border:    rgba(0,0,0,0.1);
-  --reaction-bar-shadow:    0 2px 8px rgba(0,0,0,0.1);
-  --reaction-badge-bg:      rgba(0,0,0,0.05);
-  --reaction-badge-border:  rgba(0,0,0,0.1);
-  --reaction-badge-active:  rgba(37,99,235,0.1);
-  --reaction-badge-active-border: rgba(37,99,235,0.3);
 
   /* === NEW (Iteration 92): Task Queue === */
   --queue-accent:       #7c3aed;

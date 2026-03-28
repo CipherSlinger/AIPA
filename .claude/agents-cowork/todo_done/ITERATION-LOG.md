@@ -1475,3 +1475,38 @@ renderer: 2397 modules transformed, built in 7.88s
 - [x] Zero visual or behavioral changes (pure refactor)
 - [x] Build passes with zero TypeScript errors on all three targets
 - [x] tsc --noEmit clean
+
+---
+
+## Iteration 112 -- Remove Emoji Reactions
+
+_Date: 2026-03-27 | Sprint UX Cleanup_
+
+### Summary
+Removed the emoji quick-react system from message bubbles per direct user feedback. The feature (added in Iteration 63) allowed hover-triggered emoji reactions (thumbsup, heart, laugh, surprised, thinking) on any message with persistent badges below bubbles. User explicitly requested removal as it provides limited value in an AI assistant context. Removed: REACTION_EMOJIS constant, reaction toolbar rendering, reaction badge row, reactionBarVisible/reactionTimerRef state, reactions/toggleReaction from Zustand store, and 14 reaction CSS variables (7 per theme). The hover action toolbar (Copy, Bookmark, Quote Reply, Raw Markdown, Edit) is preserved unchanged.
+
+### Files Changed
+- `src/renderer/components/chat/Message.tsx` -- Removed REACTION_EMOJIS constant, EMPTY_REACTIONS sentinel, reactionBarVisible state, reactionTimerRef, reactions/toggleReaction store selectors, reaction toolbar JSX (5 emoji buttons in floating pill), reaction badges JSX (persistent badges below bubbles), simplified onMouseEnter/onMouseLeave to plain setHovered calls
+- `src/renderer/store/index.ts` -- Removed `reactions: Record<string, string[]>` from ChatState interface, removed `toggleReaction` action, removed `reactions: {}` from initial state, removed toggleReaction implementation (~14 lines)
+- `src/renderer/styles/globals.css` -- Removed 7 reaction CSS variables from default theme (--reaction-bar-bg/border/shadow, --reaction-badge-bg/border/active/active-border) and 7 from light theme (same variables). CSS reduced from 21.50 kB to 20.89 kB
+
+### Build
+Status: SUCCESS
+
+```
+main: tsc clean
+preload: tsc clean
+renderer: 2397 modules transformed, built in 7.90s
+CSS: 20.89 kB (reduced from 21.50 kB)
+```
+
+### Acceptance Criteria
+- [x] No emoji reaction toolbar appears on message hover
+- [x] No reaction badges visible below any message bubble
+- [x] Hover action toolbar (Copy, Bookmark, Quote Reply, Raw Markdown, Edit) still works
+- [x] No TypeScript errors after removal
+- [x] `reactions` property removed from ChatState
+- [x] `toggleReaction` method removed
+- [x] All 14 reaction CSS variables removed (7 per theme x 2 themes)
+- [x] CSS bundle size reduced
+- [x] Build passes with zero errors

@@ -255,10 +255,18 @@
 | Extract useChatZoom hook | `prd-chatpanel-refactor-v1.md` | P1-eng | DONE (Iteration 111) |
 | Extract useConversationStats hook | `prd-chatpanel-refactor-v1.md` | P1-eng | DONE (Iteration 111) |
 
+### Iteration 112 -- Remove Emoji Reactions + UX Cleanup
+
+| Feature | PRD | Priority | Status |
+|---------|-----|----------|--------|
+| Remove emoji reaction system | `prd-remove-emoji-reactions-v1.md` | P0-ux | DONE (Iteration 112) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |
 |---------|----------|-------|
+| Daily office skills (PPT, weekly reports) | P1 | Agent skill system -- reference Doubao for skill capabilities |
+| Multi-model support | P1-arch | Reference OpenClaw and Claude Code official agent patterns |
 | Multi-tab conversations | P2 | Major architectural addition |
 | TypeScript strict mode | P1-eng | Substantial type error fixing |
 | Vitest test foundation | P1-eng | Requires npm install + config |
@@ -280,3 +288,5 @@
 | 2026-03-26 | No new npm dependencies in Sprint 2 | Both features can be built with existing APIs |
 | 2026-03-27 | Iteration 109: Session Tags | Power users need session organization beyond search and pinning. Tags are more flexible than folders (multi-label per session) and can leverage existing electron-store prefs system with zero new dependencies. |
 | 2026-03-27 | Iteration 111: ChatPanel Decomposition | ChatPanel.tsx at 1587 lines is a maintainability bottleneck. Decomposing into ChatHeader + ChatInput + 4 hooks reduces bug surface, improves render performance, and makes future feature development faster. Prioritized over new features because all 100+ existing features depend on this file. |
+| 2026-03-27 | Iteration 112: Remove Emoji Reactions | Direct user feedback: emoji reactions on AI messages provide no value in an AI assistant context. Removing reduces UI clutter and simplifies the message component. |
+| 2026-03-27 | Backlog: Daily office skills + Multi-model | User feedback requests Doubao-style skills (PPT, weekly reports) and OpenClaw/Claude Code agent patterns. Added to backlog as strategic direction for future sprints. |
