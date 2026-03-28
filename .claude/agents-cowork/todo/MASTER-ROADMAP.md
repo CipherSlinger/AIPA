@@ -261,6 +261,12 @@
 |---------|-----|----------|--------|
 | Remove emoji reaction system | `prd-remove-emoji-reactions-v1.md` | P0-ux | DONE (Iteration 112) |
 
+### Iteration 113 -- Fix User Bubble Background Color
+
+| Feature | PRD | Priority | Status |
+|---------|-----|----------|--------|
+| Fix user bubble dark theme readability | `prd-fix-user-bubble-color-v1.md` | P0-ux | DONE (Iteration 113) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

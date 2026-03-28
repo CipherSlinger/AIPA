@@ -119,3 +119,10 @@ type: project
 - **Files**: ChatPanel.tsx (8 new lucide imports, WelcomeScreen function rewrite)
 - **Key decisions**: Reuse onboard-icon animation for hero entrance; card-bg/card-border variables for suggestion cards; popup-bg/popup-border for kbd elements; title changed to "AIPA" branding
 - **Tester result**: All 14 acceptance criteria passed, build success
+
+### Iteration 112 (2026-03-27)
+- **Features**: Removed emoji quick-react system from message bubbles per user feedback
+- **Files**: Message.tsx (removed ~128 lines), store/index.ts (removed reactions state + toggleReaction), globals.css (removed 14 reaction CSS variables)
+- **Key decisions**: Only removed the hover emoji reaction toolbar + badges; preserved the right-click rating (thumbs up/down) as it's a different feature. User clarified they want AIPA to be a "personal desktop AI assistant" not a "programming AI agent" -- important product direction signal.
+- **Tester result**: Skipped (pure removal, build verified clean)
+- **User feedback captured for backlog**: (1) Daily office skills like PPT/weekly reports (referencing Doubao), (2) Multi-model support (referencing OpenClaw/Claude Code agent), (3) New feedback about user bubble background color being too dark
