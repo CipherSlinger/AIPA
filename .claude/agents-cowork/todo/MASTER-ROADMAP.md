@@ -349,6 +349,17 @@
 | Auto-detect target language for Translate action | `prd-clipboard-actions-v1.md` | P1 | DONE (Iteration 123) |
 | i18n for all clipboard UI (en + zh-CN) | `prd-clipboard-actions-v1.md` | P1 | DONE (Iteration 123) |
 
+### Iteration 124 -- Note Categories
+
+| Feature | PRD | Priority | Status |
+|---------|-----|----------|--------|
+| Category data model + persistence | `prd-note-categories-v1.md` | P1 | IN PROGRESS |
+| Category filter bar in Notes panel | `prd-note-categories-v1.md` | P1 | IN PROGRESS |
+| Category management (create/rename/delete) | `prd-note-categories-v1.md` | P1 | IN PROGRESS |
+| Note category assignment dropdown | `prd-note-categories-v1.md` | P1 | IN PROGRESS |
+| Category color dots on note list items | `prd-note-categories-v1.md` | P1 | IN PROGRESS |
+| i18n for all category UI (en + zh-CN) | `prd-note-categories-v1.md` | P1 | IN PROGRESS |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

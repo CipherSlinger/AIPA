@@ -96,6 +96,7 @@ export interface ClaudePrefs {
   sessionTags?: Record<string, string[]>  // sessionId -> array of tag IDs ('tag-1'..'tag-6')
   customPromptTemplates?: CustomPromptTemplate[]  // user-defined prompt templates
   notes?: Note[]  // user quick notes (persisted via electron-store)
+  noteCategories?: NoteCategory[]  // note categories (max 10, persisted via electron-store)
 }
 
 export interface Note {
@@ -104,6 +105,14 @@ export interface Note {
   content: string      // note content (plain text, max 10000 chars)
   createdAt: number    // epoch ms
   updatedAt: number    // epoch ms
+  categoryId?: string  // references NoteCategory.id; undefined = uncategorized
+}
+
+export interface NoteCategory {
+  id: string           // 'notecat-' + timestamp + random
+  name: string         // max 20 characters
+  color: string        // preset hex color
+  createdAt: number    // epoch ms
 }
 
 export interface CustomPromptTemplate {

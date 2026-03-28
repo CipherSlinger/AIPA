@@ -532,7 +532,16 @@
     "noResults": "No matching notes",
     "edit": "Edit",
     "preview": "Preview",
-    "nothingToPreview": "Nothing to preview"
+    "nothingToPreview": "Nothing to preview",
+    "allNotes": "All",
+    "manageCategories": "Manage",
+    "addCategory": "Add",
+    "newCategoryName": "New category name",
+    "categoryDeleted": "Category deleted. Notes moved to Uncategorized.",
+    "uncategorized": "Uncategorized",
+    "maxCategories": "Maximum 10 categories",
+    "categoryLabel": "Category",
+    "closeManage": "Close"
   },
   "clipboard": {
     "pasteAndAsk": "Paste & Ask",

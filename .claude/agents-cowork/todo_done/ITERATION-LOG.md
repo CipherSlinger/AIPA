@@ -1856,4 +1856,38 @@ renderer: 2399 modules transformed, built in 8.16s
 - [x] Translate action uses opposite language of current UI language
 - [x] All strings are in both en.json and zh-CN.json (8 new keys each)
 - [x] Build succeeds with no TypeScript errors
+
+---
+
+## Iteration 124 — Note Categories
+
+_Date: 2026-03-28 | Sprint Notes Enhancement_
+
+### Summary
+Added a color-coded category system to the Notes panel, enabling users to organize notes into up to 10 custom categories. Categories can be created, renamed, and deleted via an inline management panel. Notes can be filtered by category using a pill-style filter bar (same visual pattern as session tags). The note editor includes a dropdown to assign a category to any note.
+
+### Changes
+- **app.types.ts**: Added `NoteCategory` interface, extended `Note` with `categoryId?`, extended `ClaudePrefs` with `noteCategories?`
+- **NotesPanel.tsx**: Complete enhancement (+250 lines) -- category filter bar, inline management panel, note list category indicators, editor category dropdown
+- **en.json**: +10 i18n keys for category UI
+- **zh-CN.json**: +10 i18n keys for category UI
+- **README.md**: Added "Note categories" feature description
+- **README_CN.md**: Added "Note categories" feature description
+
+### Acceptance Criteria
+- [x] User can create up to 10 categories with name (max 20 chars) and color
+- [x] User can rename a category (inline edit)
+- [x] User can delete a category (two-click confirmation); notes in deleted category move to Uncategorized
+- [x] User can assign any note to a category via dropdown in the editor view
+- [x] Category filter bar shows all categories with counts
+- [x] Clicking a category pill filters notes to that category only
+- [x] "All" pill shows all notes (default state)
+- [x] Category data persists across app restarts (electron-store)
+- [x] Note's categoryId persists across app restarts
+- [x] Color dots appear on note list items and category pills
+- [x] Category name appears as subtitle in note list items
+- [x] i18n: All UI strings in both en.json and zh-CN.json
+- [x] No new npm dependencies
+- [x] Build succeeds with no TypeScript errors
+- [x] Deleting a category with assigned notes reassigns them to Uncategorized
 - [x] No new npm dependencies required
