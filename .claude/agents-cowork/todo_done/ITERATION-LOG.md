@@ -1912,3 +1912,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 171 (2026-03-28)
 - Scroll-to-top button -- ArrowUp button appears when scrolled past 400px from top in conversation; positioned at center-bottom like the scroll-to-bottom button; hides when scroll-to-bottom button is visible; smooth scroll animation
+
+### Iteration 172 (2026-03-28)
+- Notes count badge on NavRail -- Notes navigation icon now displays a count badge showing the total number of notes; matches the existing History badge pattern; uses usePrefsStore to read notes array length; badge hidden when count is zero

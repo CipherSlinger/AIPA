@@ -1,6 +1,6 @@
 import React from 'react'
 import { MessageSquarePlus, History, FolderOpen, NotebookPen, TerminalSquare, Settings, User } from 'lucide-react'
-import { useUiStore, useSessionStore, useChatStore } from '../../store'
+import { useUiStore, useSessionStore, useChatStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 
 interface NavItemProps {
@@ -163,6 +163,7 @@ export default function NavRail() {
   } = useUiStore()
 
   const sessionCount = useSessionStore(s => s.sessions.length)
+  const noteCount = usePrefsStore(s => (s.prefs.notes || []).length)
   const t = useT()
 
   // The active panel item (history/files/settings) matches activeNavItem
@@ -233,6 +234,7 @@ export default function NavRail() {
         label={t('nav.notes')}
         isActive={isNotesActive}
         onClick={() => setActiveNavItem('notes')}
+        badge={noteCount}
       />
 
       {/* Terminal */}

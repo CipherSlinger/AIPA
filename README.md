@@ -65,6 +65,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **System message styling** — error and system messages have distinct red-tinted appearance
 - **Contextual typing indicator** — shows what Claude is doing: "Thinking...", "Running command...", "Reading file...", etc.
 - **Session count badge** — sidebar History tab shows total number of sessions
+- **Notes count badge** — sidebar Notes tab shows total number of notes
 - **Collapsible code blocks** — long code blocks auto-collapse with "Show more/less" toggle
 - **Code block line count** — code blocks display line count in the header
 - **Date separators** — messages grouped by day with "Today", "Yesterday", or date headers
