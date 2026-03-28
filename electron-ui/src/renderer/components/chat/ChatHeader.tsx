@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react'
-import { Search, Download, ClipboardCopy, Bookmark, BarChart3, Maximize2, Minimize2, Plus, RefreshCw } from 'lucide-react'
-import { useChatStore } from '../../store'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { Search, Download, ClipboardCopy, Bookmark, BarChart3, Maximize2, Minimize2, Plus, RefreshCw, Pencil } from 'lucide-react'
+import { useChatStore, useSessionStore } from '../../store'
 import { useT } from '../../i18n'
 import type { ConversationStats, BookmarkedMessage } from '../../hooks/useConversationStats'
 import type { StandardChatMessage } from '../../types/app.types'
@@ -49,8 +49,11 @@ export default function ChatHeader({
   const t = useT()
   const [showBookmarks, setShowBookmarks] = useState(false)
   const [showStats, setShowStats] = useState(false)
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [editTitleValue, setEditTitleValue] = useState('')
   const bookmarksRef = useRef<HTMLDivElement>(null)
   const statsRef = useRef<HTMLDivElement>(null)
+  const titleInputRef = useRef<HTMLInputElement>(null)
 
   // Close bookmarks dropdown on click outside
   useEffect(() => {
@@ -75,6 +78,40 @@ export default function ChatHeader({
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [showStats])
+
+  // Focus title input when editing starts
+  useEffect(() => {
+    if (isEditingTitle && titleInputRef.current) {
+      titleInputRef.current.focus()
+      titleInputRef.current.select()
+    }
+  }, [isEditingTitle])
+
+  const handleTitleClick = useCallback(() => {
+    if (!sessionId || isStreaming) return
+    const currentTitle = sessionTitle || ''
+    setEditTitleValue(currentTitle)
+    setIsEditingTitle(true)
+  }, [sessionId, sessionTitle, isStreaming])
+
+  const commitTitleEdit = useCallback(() => {
+    const newTitle = editTitleValue.trim()
+    setIsEditingTitle(false)
+    if (!newTitle || !sessionId || newTitle === sessionTitle) return
+    // Rename via IPC and update stores
+    window.electronAPI.sessionRename(sessionId, newTitle)
+    useChatStore.getState().setSessionTitle(newTitle)
+    // Refresh session list to reflect the new title
+    window.electronAPI.sessionList().then((list: any) => {
+      if (list) {
+        useSessionStore.getState().setSessions(list)
+      }
+    }).catch(() => {})
+  }, [editTitleValue, sessionId, sessionTitle])
+
+  const cancelTitleEdit = useCallback(() => {
+    setIsEditingTitle(false)
+  }, [])
 
   const headerBtnStyle: React.CSSProperties = {
     background: 'none',
@@ -118,21 +155,57 @@ export default function ChatHeader({
         flexShrink: 0,
       }}
     >
-      <span style={{
-        fontSize: 13,
-        fontWeight: 600,
-        color: 'var(--chat-header-title)',
-        flex: 1,
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
-      }}>
-        {sessionTitle
-          ? sessionTitle
-          : sessionId
-          ? `Session: ${sessionId.slice(0, 8)}...`
-          : `${model?.split('-').slice(0, 3).join('-') || 'claude'}`}
-      </span>
+      {/* Session title -- editable on click */}
+      {isEditingTitle ? (
+        <input
+          ref={titleInputRef}
+          value={editTitleValue}
+          onChange={(e) => setEditTitleValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') commitTitleEdit()
+            if (e.key === 'Escape') cancelTitleEdit()
+          }}
+          onBlur={commitTitleEdit}
+          maxLength={100}
+          style={{
+            flex: 1,
+            fontSize: 13,
+            fontWeight: 600,
+            color: 'var(--text-bright)',
+            background: 'var(--input-field-bg)',
+            border: '1px solid var(--accent)',
+            borderRadius: 4,
+            padding: '2px 8px',
+            outline: 'none',
+            fontFamily: 'inherit',
+            minWidth: 0,
+          }}
+        />
+      ) : (
+        <span
+          onClick={handleTitleClick}
+          title={sessionId ? t('chat.clickToRename') : undefined}
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: 'var(--chat-header-title)',
+            flex: 1,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            cursor: sessionId && !isStreaming ? 'pointer' : 'default',
+            transition: 'color 150ms',
+          }}
+          onMouseEnter={(e) => { if (sessionId && !isStreaming) (e.currentTarget as HTMLElement).style.color = 'var(--accent)' }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--chat-header-title)' }}
+        >
+          {sessionTitle
+            ? sessionTitle
+            : sessionId
+            ? `Session: ${sessionId.slice(0, 8)}...`
+            : `${model?.split('-').slice(0, 3).join('-') || 'claude'}`}
+        </span>
+      )}
 
       {/* Search toggle */}
       <button

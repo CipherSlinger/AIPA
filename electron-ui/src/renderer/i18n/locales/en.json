@@ -23,6 +23,7 @@
     "send": "Send",
     "stop": "Stop",
     "newConversation": "New conversation",
+    "clickToRename": "Click to rename this conversation",
     "searchConversation": "Search in conversation",
     "export": "Export",
     "focusMode": "Focus mode",

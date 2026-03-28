@@ -449,6 +449,15 @@
 | Date display on welcome screen | P2 | DONE (Iteration 135) |
 | i18n for greetings (en + zh-CN) | P2 | DONE (Iteration 135) |
 
+### Iteration 136 -- Inline Title Rename in Chat Header
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Click session title to rename inline (Enter/Escape/blur) | P2 | DONE (Iteration 136) |
+| Hover highlight + cursor change on title | P2 | DONE (Iteration 136) |
+| Auto-refresh sidebar session list after rename | P2 | DONE (Iteration 136) |
+| i18n for rename tooltip (en + zh-CN) | P2 | DONE (Iteration 136) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |
