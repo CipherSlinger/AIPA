@@ -603,6 +603,9 @@
 - File browser parent directory navigation -- ArrowUp button in header to navigate to parent folder
 - README and README_CN updated with features from Iterations 154-160
 
+### Iteration 162 (2026-03-28)
+- File browser file type icons -- color-coded icons for code, text, image, video, audio, archive, data, and config files
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

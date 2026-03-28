@@ -1,8 +1,93 @@
 import React, { useState, useEffect } from 'react'
-import { Folder, FolderOpen, File, ChevronRight, ChevronDown, FolderPlus, ArrowUp } from 'lucide-react'
+import {
+  Folder, FolderOpen, File, ChevronRight, ChevronDown, FolderPlus, ArrowUp,
+  FileText, FileCode, FileImage, FileVideo, FileAudio, FileArchive, FileSpreadsheet, FileJson, Settings, Database
+} from 'lucide-react'
 import { FileEntry } from '../../types/app.types'
 import { useChatStore } from '../../store'
 import { useT } from '../../i18n'
+
+// File type icon mapping by extension
+const EXT_ICONS: Record<string, { icon: React.ElementType; color: string }> = {
+  // Code files
+  ts: { icon: FileCode, color: '#3178c6' },
+  tsx: { icon: FileCode, color: '#3178c6' },
+  js: { icon: FileCode, color: '#f7df1e' },
+  jsx: { icon: FileCode, color: '#f7df1e' },
+  py: { icon: FileCode, color: '#3776ab' },
+  rs: { icon: FileCode, color: '#dea584' },
+  go: { icon: FileCode, color: '#00add8' },
+  java: { icon: FileCode, color: '#e76f00' },
+  c: { icon: FileCode, color: '#555555' },
+  cpp: { icon: FileCode, color: '#6295cb' },
+  h: { icon: FileCode, color: '#555555' },
+  cs: { icon: FileCode, color: '#68217a' },
+  rb: { icon: FileCode, color: '#cc342d' },
+  php: { icon: FileCode, color: '#777bb3' },
+  swift: { icon: FileCode, color: '#f05138' },
+  kt: { icon: FileCode, color: '#7f52ff' },
+  vue: { icon: FileCode, color: '#4fc08d' },
+  svelte: { icon: FileCode, color: '#ff3e00' },
+  html: { icon: FileCode, color: '#e34c26' },
+  css: { icon: FileCode, color: '#264de4' },
+  scss: { icon: FileCode, color: '#cd6799' },
+  less: { icon: FileCode, color: '#1d365d' },
+  sh: { icon: FileCode, color: '#4eaa25' },
+  bat: { icon: FileCode, color: '#4eaa25' },
+  ps1: { icon: FileCode, color: '#012456' },
+  // Text / docs
+  md: { icon: FileText, color: '#519aba' },
+  txt: { icon: FileText, color: '#6b7280' },
+  pdf: { icon: FileText, color: '#e5252a' },
+  doc: { icon: FileText, color: '#2b579a' },
+  docx: { icon: FileText, color: '#2b579a' },
+  rtf: { icon: FileText, color: '#6b7280' },
+  // Data / config
+  json: { icon: FileJson, color: '#f7df1e' },
+  yaml: { icon: Settings, color: '#cb171e' },
+  yml: { icon: Settings, color: '#cb171e' },
+  toml: { icon: Settings, color: '#9c4121' },
+  xml: { icon: FileCode, color: '#e37933' },
+  csv: { icon: FileSpreadsheet, color: '#217346' },
+  xls: { icon: FileSpreadsheet, color: '#217346' },
+  xlsx: { icon: FileSpreadsheet, color: '#217346' },
+  sql: { icon: Database, color: '#336791' },
+  db: { icon: Database, color: '#336791' },
+  sqlite: { icon: Database, color: '#336791' },
+  // Images
+  png: { icon: FileImage, color: '#a855f7' },
+  jpg: { icon: FileImage, color: '#a855f7' },
+  jpeg: { icon: FileImage, color: '#a855f7' },
+  gif: { icon: FileImage, color: '#a855f7' },
+  svg: { icon: FileImage, color: '#ffb13b' },
+  webp: { icon: FileImage, color: '#a855f7' },
+  ico: { icon: FileImage, color: '#a855f7' },
+  bmp: { icon: FileImage, color: '#a855f7' },
+  // Video
+  mp4: { icon: FileVideo, color: '#ef4444' },
+  mkv: { icon: FileVideo, color: '#ef4444' },
+  avi: { icon: FileVideo, color: '#ef4444' },
+  mov: { icon: FileVideo, color: '#ef4444' },
+  webm: { icon: FileVideo, color: '#ef4444' },
+  // Audio
+  mp3: { icon: FileAudio, color: '#f97316' },
+  wav: { icon: FileAudio, color: '#f97316' },
+  ogg: { icon: FileAudio, color: '#f97316' },
+  flac: { icon: FileAudio, color: '#f97316' },
+  // Archives
+  zip: { icon: FileArchive, color: '#f59e0b' },
+  tar: { icon: FileArchive, color: '#f59e0b' },
+  gz: { icon: FileArchive, color: '#f59e0b' },
+  rar: { icon: FileArchive, color: '#f59e0b' },
+  '7z': { icon: FileArchive, color: '#f59e0b' },
+}
+
+function getFileIcon(name: string): { Icon: React.ElementType; color: string } {
+  const ext = name.includes('.') ? name.split('.').pop()?.toLowerCase() || '' : ''
+  const match = EXT_ICONS[ext]
+  if (match) return { Icon: match.icon, color: match.color }
+  return { Icon: File, color: 'var(--text-muted)' }
+}
 
 interface TreeNodeProps {
   entry: FileEntry
@@ -61,7 +146,10 @@ function TreeNode({ entry, depth, onSetCwd, t }: TreeNodeProps) {
           ? (expanded
             ? <FolderOpen size={13} style={{ color: 'var(--warning)', flexShrink: 0 }} />
             : <Folder size={13} style={{ color: 'var(--warning)', flexShrink: 0 }} />)
-          : <File size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />}
+          : (() => {
+              const { Icon, color } = getFileIcon(entry.name)
+              return <Icon size={13} style={{ color, flexShrink: 0 }} />
+            })()}
 
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {entry.name}
