@@ -1,5 +1,6 @@
 import { ipcMain, BrowserWindow, dialog, shell, app } from 'electron'
 import { ptyManager } from '../pty/pty-manager'
+import { fallbackShellManager } from '../pty/fallback-shell'
 import { streamBridgeManager } from '../pty/stream-bridge'
 import { readSettings, writeSettings, listSessions, loadSession, deleteSession, forkSession, renameSession, getMcpServers, setMcpServerEnabled, generateSessionTitle, rewindSession } from '../sessions/session-reader'
 import { getApiKey, setApiKey, getPref, setPref, getAllPrefs } from '../config/config-manager'
@@ -29,8 +30,50 @@ export function registerAllHandlers(win: BrowserWindow): void {
 // ────────────────────────────────────────────
 // PTY handlers
 // ────────────────────────────────────────────
+// Track which sessions are using the fallback shell (not real PTY)
+const fallbackSessions = new Set<string>()
+
 function registerPtyHandlers(win: BrowserWindow, send: (ch: string, ...a: unknown[]) => void): void {
   ipcMain.handle('pty:create', (_e, args) => {
+    // If node-pty is available, use real PTY; otherwise fall back to child_process shell
+    const useFallback = !ptyManager.isAvailable()
+
+    if (useFallback) {
+      log.debug(`pty:create using fallback shell (node-pty unavailable: ${ptyManager.getLoadError()})`)
+      try {
+        const sessionId = fallbackShellManager.create(args)
+        fallbackSessions.add(sessionId)
+
+        const dataHandler = (data: string) => {
+          send('pty:data', sessionId, data)
+        }
+        const exitHandler = (info: { exitCode: number; signal?: string }) => {
+          send('pty:exit', sessionId, info)
+          fallbackShellManager.removeListener(`data:${sessionId}`, dataHandler)
+          fallbackShellManager.removeListener(`exit:${sessionId}`, exitHandler)
+          fallbackSessions.delete(sessionId)
+        }
+
+        fallbackShellManager.on(`data:${sessionId}`, dataHandler)
+        fallbackShellManager.on(`exit:${sessionId}`, exitHandler)
+
+        // Send a notice to the renderer that this is fallback mode
+        send('pty:data', sessionId,
+          '\x1b[33m[Basic Mode] ' +
+          'Terminal is running in basic mode (node-pty native module not available).\x1b[0m\r\n' +
+          '\x1b[90mInteractive programs (vim, htop) may not work correctly. ' +
+          'Run "npm run rebuild-pty" to enable full terminal support.\x1b[0m\r\n\r\n'
+        )
+
+        return { sessionId, fallback: true }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        log.debug(`pty:create fallback failed: ${msg}`)
+        throw err
+      }
+    }
+
+    // Normal PTY path
     try {
       const sessionId = ptyManager.create(args)
 
@@ -39,7 +82,6 @@ function registerPtyHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
       }
       const exitHandler = (info: { exitCode: number; signal: string }) => {
         send('pty:exit', sessionId, info)
-        // Clean up listeners after exit to prevent leaks on reconnect
         ptyManager.removeListener(`data:${sessionId}`, dataHandler)
         ptyManager.removeListener(`exit:${sessionId}`, exitHandler)
       }
@@ -47,7 +89,7 @@ function registerPtyHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
       ptyManager.on(`data:${sessionId}`, dataHandler)
       ptyManager.on(`exit:${sessionId}`, exitHandler)
 
-      return sessionId
+      return { sessionId, fallback: false }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       log.debug(`pty:create failed: ${msg}`)
@@ -56,17 +98,32 @@ function registerPtyHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
   })
 
   ipcMain.handle('pty:write', (_e, { sessionId, data }) => {
-    ptyManager.write(sessionId, data)
+    if (fallbackSessions.has(sessionId)) {
+      fallbackShellManager.write(sessionId, data)
+    } else {
+      ptyManager.write(sessionId, data)
+    }
   })
 
   ipcMain.handle('pty:resize', (_e, { sessionId, cols, rows }) => {
-    ptyManager.resize(sessionId, cols, rows)
+    if (fallbackSessions.has(sessionId)) {
+      fallbackShellManager.resize(sessionId, cols, rows)
+    } else {
+      ptyManager.resize(sessionId, cols, rows)
+    }
   })
 
   ipcMain.handle('pty:destroy', (_e, sessionId) => {
-    ptyManager.removeAllListeners(`data:${sessionId}`)
-    ptyManager.removeAllListeners(`exit:${sessionId}`)
-    ptyManager.destroy(sessionId)
+    if (fallbackSessions.has(sessionId)) {
+      fallbackShellManager.removeAllListeners(`data:${sessionId}`)
+      fallbackShellManager.removeAllListeners(`exit:${sessionId}`)
+      fallbackShellManager.destroy(sessionId)
+      fallbackSessions.delete(sessionId)
+    } else {
+      ptyManager.removeAllListeners(`data:${sessionId}`)
+      ptyManager.removeAllListeners(`exit:${sessionId}`)
+      ptyManager.destroy(sessionId)
+    }
   })
 }
 

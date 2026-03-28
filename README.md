@@ -24,7 +24,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 ## Features
 
 - **Chat panel** — structured conversation with Claude via stream-JSON protocol, with tool-use visualization
-- **Terminal panel** — full interactive PTY terminal running Claude Code directly (xterm.js), with reconnect button to restart after process exit and clear error recovery
+- **Terminal panel** — full interactive PTY terminal running Claude Code directly (xterm.js), with reconnect button to restart after process exit and clear error recovery; automatic fallback to basic shell mode when native PTY module is unavailable (e.g., on Windows without C++ build tools)
 - **Session history** — browse and resume past sessions from `~/.claude/projects/`, with search highlighting, skeleton loaders, and active session indicator
 - **File browser** — navigate the working directory from the sidebar
 - **Settings** — configure API key, model, font, working directory, CLI flags, and MCP servers
@@ -152,7 +152,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Scroll-to-top button** — ArrowUp button appears when scrolled down in a conversation, enabling quick jump to the beginning; complements the existing scroll-to-bottom button
 - **Session duration** — session list items and hover tooltips show conversation duration (e.g., "12m", "1h 30m") calculated from first to last message timestamp
 - **Skill browser** — browse all installed Claude Code skills (personal and project-level) in a dedicated sidebar panel with search, detail view, and one-click invocation via slash command
-- **Skill marketplace** — curated collection of 24 community-sourced skills from real GitHub repositories (Anthropic, alirezarezvani, jezweb) across 7 categories (Code, DevOps, Writing, Productivity, Research, Creative, Design) with proper author attribution and source links; one-click install
+- **Skill marketplace** — curated collection of 29 community-sourced skills from Anthropic, OpenClaw, and community contributors across 7 categories; source-based filtering (Anthropic/OpenClaw/Community) and category filtering; i18n-translated descriptions and labels; one-click install with proper attribution and GitHub source links
 - **Skill management** — view skill details (SKILL.md content), delete personal skills with two-click confirmation, and install marketplace skills to `~/.claude/skills/`
 - **Follow-up suggestions** — after Claude finishes responding, 2-3 contextual follow-up chips appear (e.g., "Explain this code", "Key takeaways", "Give an example") based on content analysis of the response; click to instantly send
 

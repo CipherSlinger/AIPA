@@ -38,6 +38,7 @@ export function usePty(containerRef: React.RefObject<HTMLDivElement>) {
   const [ptyError, setPtyError] = useState<string | null>(null)
   const [ptyExited, setPtyExited] = useState(false)
   const [exitCode, setExitCode] = useState<number | null>(null)
+  const [isFallback, setIsFallback] = useState(false)
   const { prefs } = usePrefsStore()
 
   const startPty = useCallback(async () => {
@@ -57,6 +58,7 @@ export function usePty(containerRef: React.RefObject<HTMLDivElement>) {
     setPtyError(null)
     setPtyExited(false)
     setExitCode(null)
+    setIsFallback(false)
 
     const home = await window.electronAPI.fsGetHome()
     const cwd = prefs.workingDir || home
@@ -68,14 +70,18 @@ export function usePty(containerRef: React.RefObject<HTMLDivElement>) {
     const newSessionId = `terminal-${Date.now()}-${sessionCounter}`
 
     try {
-      await window.electronAPI.ptyCreate({
+      const result = await window.electronAPI.ptyCreate({
         sessionId: newSessionId,
         cwd,
         cols,
         rows,
         env: prefs.apiKey ? { ANTHROPIC_API_KEY: prefs.apiKey } : {},
       })
-      ptySessionId.current = newSessionId
+      // Handle both old (string) and new ({ sessionId, fallback }) return formats
+      const resolvedId = typeof result === 'string' ? result : result?.sessionId || newSessionId
+      const fallback = typeof result === 'object' && result?.fallback === true
+      ptySessionId.current = resolvedId
+      setIsFallback(fallback)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       setPtyError(msg)
@@ -203,5 +209,5 @@ export function usePty(containerRef: React.RefObject<HTMLDivElement>) {
     fitAddonRef.current?.fit()
   }, [])
 
-  return { term: termRef, refitTerminal, reconnect, ptyError, ptyExited, exitCode }
+  return { term: termRef, refitTerminal, reconnect, ptyError, ptyExited, exitCode, isFallback }
 }

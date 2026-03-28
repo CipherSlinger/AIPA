@@ -4,13 +4,16 @@ import {
   FolderOpen, Download, CheckCircle, Store, Package, ExternalLink,
 } from 'lucide-react'
 import { useT } from '../../i18n'
-import { useUiStore, useChatStore } from '../../store'
+import { useUiStore, useChatStore, usePrefsStore } from '../../store'
 import {
   MARKETPLACE_SKILLS,
   SKILL_CATEGORIES,
+  SKILL_SOURCES,
   CATEGORY_COLORS,
+  SOURCE_COLORS,
   type MarketplaceSkill,
   type SkillCategory,
+  type SkillSource,
 } from '../../utils/skillMarketplace'
 
 interface SkillInfo {
@@ -28,6 +31,7 @@ export default function SkillsPanel() {
   const addToast = useUiStore(s => s.addToast)
   const setQuotedText = useUiStore(s => s.setQuotedText)
   const workingDir = useChatStore(s => s.workingDir)
+  const language = usePrefsStore(s => s.prefs.language)
 
   const [activeTab, setActiveTab] = useState<TabView>('installed')
   const [skills, setSkills] = useState<SkillInfo[]>([])
@@ -37,6 +41,7 @@ export default function SkillsPanel() {
   const [skillContent, setSkillContent] = useState('')
   const [deletingSkillPath, setDeletingSkillPath] = useState<string | null>(null)
   const [marketplaceCategory, setMarketplaceCategory] = useState<SkillCategory | null>(null)
+  const [marketplaceSource, setMarketplaceSource] = useState<SkillSource | null>(null)
   const [installedSkillNames, setInstalledSkillNames] = useState<Set<string>>(new Set())
   const [installingSkillId, setInstallingSkillId] = useState<string | null>(null)
 
@@ -147,6 +152,9 @@ export default function SkillsPanel() {
     if (marketplaceCategory) {
       list = list.filter(s => s.category === marketplaceCategory)
     }
+    if (marketplaceSource) {
+      list = list.filter(s => s.source === marketplaceSource)
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
       list = list.filter(s =>
@@ -154,7 +162,7 @@ export default function SkillsPanel() {
       )
     }
     return list
-  }, [marketplaceCategory, searchQuery])
+  }, [marketplaceCategory, marketplaceSource, searchQuery])
 
   // ── Skill Detail View ──
   if (selectedSkill) {
@@ -405,6 +413,37 @@ export default function SkillsPanel() {
 
       {/* Marketplace category filter */}
       {activeTab === 'marketplace' && (
+        <>
+        {/* Source filter */}
+        <div style={{
+          display: 'flex',
+          gap: 6,
+          padding: '8px 14px 0',
+          flexWrap: 'wrap',
+          flexShrink: 0,
+        }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', alignSelf: 'center', marginRight: 4 }}>
+            {t('skills.sourceLabel')}
+          </span>
+          <CategoryPill
+            label={t('skills.allSources')}
+            isActive={marketplaceSource === null}
+            color={undefined}
+            count={MARKETPLACE_SKILLS.length}
+            onClick={() => setMarketplaceSource(null)}
+          />
+          {SKILL_SOURCES.map(src => (
+            <CategoryPill
+              key={src}
+              label={t(`skills.source_${src.toLowerCase()}`)}
+              isActive={marketplaceSource === src}
+              color={SOURCE_COLORS[src]}
+              count={MARKETPLACE_SKILLS.filter(s => s.source === src).length}
+              onClick={() => setMarketplaceSource(src === marketplaceSource ? null : src)}
+            />
+          ))}
+        </div>
+        {/* Category filter */}
         <div style={{
           display: 'flex',
           gap: 6,
@@ -412,6 +451,9 @@ export default function SkillsPanel() {
           flexWrap: 'wrap',
           flexShrink: 0,
         }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', alignSelf: 'center', marginRight: 4 }}>
+            {t('skills.categoryLabel')}
+          </span>
           <CategoryPill
             label={t('skills.allCategories')}
             isActive={marketplaceCategory === null}
@@ -422,7 +464,7 @@ export default function SkillsPanel() {
           {SKILL_CATEGORIES.map(cat => (
             <CategoryPill
               key={cat}
-              label={cat}
+              label={t(`skills.category_${cat.toLowerCase()}`)}
               isActive={marketplaceCategory === cat}
               color={CATEGORY_COLORS[cat]}
               count={MARKETPLACE_SKILLS.filter(s => s.category === cat).length}
@@ -430,6 +472,7 @@ export default function SkillsPanel() {
             />
           ))}
         </div>
+        </>
       )}
 
       {/* Content */}
@@ -523,6 +566,7 @@ export default function SkillsPanel() {
                 onInstall={() => handleInstallSkill(skill)}
                 onUse={() => handleUseSkill(skill.name)}
                 t={t}
+                language={language}
               />
             ))}
             {filteredMarketplace.length === 0 && (
@@ -752,16 +796,19 @@ function SkillCard({ skill, onOpen, onUse }: {
   )
 }
 
-function MarketplaceCard({ skill, isInstalled, isInstalling, onInstall, onUse, t }: {
+function MarketplaceCard({ skill, isInstalled, isInstalling, onInstall, onUse, t, language }: {
   skill: MarketplaceSkill
   isInstalled: boolean
   isInstalling: boolean
   onInstall: () => void
   onUse: () => void
   t: (key: string) => string
+  language?: string
 }) {
   const [hovered, setHovered] = useState(false)
   const catColor = CATEGORY_COLORS[skill.category]
+  const srcColor = SOURCE_COLORS[skill.source]
+  const description = (language === 'zh-CN' && skill.descriptionZh) ? skill.descriptionZh : skill.description
 
   return (
     <div
@@ -804,7 +851,17 @@ function MarketplaceCard({ skill, isInstalled, isInstalling, onInstall, onUse, t
               color: catColor,
               fontWeight: 500,
             }}>
-              {skill.category}
+              {t(`skills.category_${skill.category.toLowerCase()}`)}
+            </span>
+            <span style={{
+              fontSize: 9,
+              padding: '1px 6px',
+              borderRadius: 8,
+              background: `${srcColor}20`,
+              color: srcColor,
+              fontWeight: 500,
+            }}>
+              {t(`skills.source_${skill.source.toLowerCase()}`)}
             </span>
           </div>
           <div style={{
@@ -813,7 +870,7 @@ function MarketplaceCard({ skill, isInstalled, isInstalling, onInstall, onUse, t
             lineHeight: 1.4,
             marginBottom: 6,
           }}>
-            {skill.description}
+            {description}
           </div>
           <div style={{
             fontSize: 10,

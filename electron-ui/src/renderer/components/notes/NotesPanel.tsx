@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { Plus, Search, X, FolderDown, FolderUp, ArrowUpDown, ChevronDown } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useUiStore, usePrefsStore } from '../../store'
+import { Note } from '../../types/app.types'
 import { useNotesCRUD } from './useNotesCRUD'
 import { useNotesSearch } from './useNotesSearch'
 import { MAX_NOTES, MAX_CONTENT_LENGTH } from './notesConstants'
@@ -206,7 +207,7 @@ export default function NotesPanel() {
       if (!filePaths || filePaths.length === 0) return // user cancelled
 
       const toImport = filePaths.slice(0, available)
-      const newNotes = []
+      const newNotes: Note[] = []
       for (const fp of toImport) {
         const result = await api.fsReadFile(fp)
         if (result?.error || !result?.content) continue

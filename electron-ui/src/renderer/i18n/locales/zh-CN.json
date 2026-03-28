@@ -494,7 +494,9 @@
     "error": "\u7ec8\u7aef\u9519\u8bef",
     "nativeModuleError": "\u7ec8\u7aef\u9700\u8981 node-pty \u539f\u751f\u6a21\u5757\uff0c\u4f46\u8be5\u6a21\u5757\u4e0d\u53ef\u7528\u3002",
     "rebuildInstructions": "\u8bf7\u5728 electron-ui \u6587\u4ef6\u5939\u4e2d\u8fd0\u884c 'npm run rebuild-pty'\uff0c\u7136\u540e\u91cd\u542f\u5e94\u7528\u3002",
-    "windowsBuildTools": "\u5728 Windows \u4e0a\u9700\u8981\u5b89\u88c5 Visual Studio C++ \u751f\u6210\u5de5\u5177\u3002"
+    "windowsBuildTools": "\u5728 Windows \u4e0a\u9700\u8981\u5b89\u88c5 Visual Studio C++ \u751f\u6210\u5de5\u5177\u3002",
+    "basicMode": "\u57fa\u672c\u6a21\u5f0f",
+    "basicModeHint": "\u5f53\u524d\u8fd0\u884c\u5728\u65e0\u539f\u751f PTY \u652f\u6301\u7684\u57fa\u672c\u6a21\u5f0f\u3002\u4ea4\u4e92\u5f0f\u7a0b\u5e8f\u53ef\u80fd\u65e0\u6cd5\u6b63\u5e38\u5de5\u4f5c\u3002\u8fd0\u884c 'npm run rebuild-pty' \u53ef\u83b7\u5f97\u5b8c\u6574\u7ec8\u7aef\u529f\u80fd\u3002"
   },
   "fileBrowser": {
     "title": "\u6587\u4ef6",
@@ -694,7 +696,20 @@
     "useNow": "\u5df2\u5b89\u88c5",
     "by": "\u4f5c\u8005",
     "source": "\u6765\u6e90",
-    "openOnGitHub": "\u5728 GitHub \u4e0a\u67e5\u770b"
+    "openOnGitHub": "\u5728 GitHub \u4e0a\u67e5\u770b",
+    "sourceLabel": "\u6765\u6e90",
+    "categoryLabel": "\u5206\u7c7b",
+    "allSources": "\u5168\u90e8",
+    "source_anthropic": "Anthropic",
+    "source_openclaw": "OpenClaw",
+    "source_community": "\u793e\u533a",
+    "category_productivity": "\u6548\u7387",
+    "category_writing": "\u5199\u4f5c",
+    "category_code": "\u4ee3\u7801",
+    "category_research": "\u7814\u7a76",
+    "category_creative": "\u521b\u610f",
+    "category_devops": "\u8fd0\u7ef4",
+    "category_design": "\u8bbe\u8ba1"
   },
   "followUp": {
     "explainCode": "\u89e3\u91ca\u8fd9\u6bb5\u4ee3\u7801",

@@ -6,18 +6,22 @@
  */
 
 export type SkillCategory = 'Productivity' | 'Writing' | 'Code' | 'Research' | 'Creative' | 'DevOps' | 'Design'
+export type SkillSource = 'Anthropic' | 'OpenClaw' | 'Community'
 
 export interface MarketplaceSkill {
   id: string
   name: string
   description: string
+  descriptionZh?: string  // zh-CN translation of description
   author: string
   sourceUrl: string
   category: SkillCategory
+  source: SkillSource
   skillContent: string  // The SKILL.md content to install
 }
 
 export const SKILL_CATEGORIES: SkillCategory[] = ['Productivity', 'Writing', 'Code', 'Research', 'Creative', 'DevOps', 'Design']
+export const SKILL_SOURCES: SkillSource[] = ['Anthropic', 'OpenClaw', 'Community']
 
 export const CATEGORY_COLORS: Record<SkillCategory, string> = {
   Productivity: '#10b981',
@@ -29,15 +33,23 @@ export const CATEGORY_COLORS: Record<SkillCategory, string> = {
   Design: '#f97316',
 }
 
+export const SOURCE_COLORS: Record<SkillSource, string> = {
+  Anthropic: '#d97706',
+  OpenClaw: '#8b5cf6',
+  Community: '#06b6d4',
+}
+
 export const MARKETPLACE_SKILLS: MarketplaceSkill[] = [
   // ── Code (from anthropics/claude-code) ──
   {
     id: 'code-review',
     name: 'Code Review',
     description: 'Automated PR code review checking for bugs, security issues, performance, and CLAUDE.md compliance.',
+    descriptionZh: '\u81ea\u52a8\u5316 PR \u4ee3\u7801\u5ba1\u67e5\uff0c\u68c0\u67e5 Bug\u3001\u5b89\u5168\u95ee\u9898\u3001\u6027\u80fd\u548c CLAUDE.md \u5408\u89c4\u6027\u3002',
     author: 'Anthropic',
     sourceUrl: 'https://github.com/anthropics/claude-code/tree/main/plugins/code-review',
     category: 'Code',
+    source: 'Anthropic',
     skillContent: `---
 name: code-review
 description: Thorough code review for bugs, security, performance, and best practices
@@ -62,9 +74,11 @@ Prioritize issues by severity -- Critical first, then Warning, then OK observati
     id: 'feature-dev',
     name: 'Feature Development',
     description: 'Structured 7-phase feature development workflow: understand, plan, implement, verify, review, document, finalize.',
+    descriptionZh: '\u7ed3\u6784\u5316\u7684 7 \u9636\u6bb5\u529f\u80fd\u5f00\u53d1\u5de5\u4f5c\u6d41\uff1a\u7406\u89e3\u3001\u8ba1\u5212\u3001\u5b9e\u73b0\u3001\u9a8c\u8bc1\u3001\u5ba1\u67e5\u3001\u6587\u6863\u3001\u5b8c\u6210\u3002',
     author: 'Anthropic',
     sourceUrl: 'https://github.com/anthropics/claude-code/tree/main/plugins/feature-dev',
     category: 'Code',
+    source: 'Anthropic',
     skillContent: `---
 name: feature-dev
 description: Structured 7-phase feature development workflow
@@ -114,9 +128,11 @@ Follow this 7-phase workflow for implementing new features:
     id: 'commit-commands',
     name: 'Commit Commands',
     description: 'Streamlined Git operations: smart commits with conventional messages, push, and PR creation.',
+    descriptionZh: '\u7b80\u5316\u7684 Git \u64cd\u4f5c\uff1a\u667a\u80fd\u63d0\u4ea4\u3001\u89c4\u8303\u5316\u6d88\u606f\u3001\u63a8\u9001\u548c PR \u521b\u5efa\u3002',
     author: 'Anthropic',
     sourceUrl: 'https://github.com/anthropics/claude-code/tree/main/plugins/commit-commands',
     category: 'DevOps',
+    source: 'Anthropic',
     skillContent: `---
 name: commit-commands
 description: Streamlined Git commit, push, and PR creation
@@ -151,9 +167,11 @@ Full workflow: commit, push to remote, and create a pull request:
     id: 'security-guidance',
     name: 'Security Guidance',
     description: 'Security-first development: monitors for XSS, eval, command injection, and 9 common vulnerability patterns.',
+    descriptionZh: '\u5b89\u5168\u4f18\u5148\u5f00\u53d1\uff1a\u76d1\u63a7 XSS\u3001eval\u3001\u547d\u4ee4\u6ce8\u5165\u7b49 9 \u79cd\u5e38\u89c1\u6f0f\u6d1e\u6a21\u5f0f\u3002',
     author: 'Anthropic',
     sourceUrl: 'https://github.com/anthropics/claude-code/tree/main/plugins/security-guidance',
     category: 'Code',
+    source: 'Anthropic',
     skillContent: `---
 name: security-guidance
 description: Security-first coding guidance and vulnerability detection
@@ -184,9 +202,11 @@ When writing or reviewing code, always check for these common vulnerabilities:
     id: 'frontend-design',
     name: 'Frontend Design',
     description: 'Production-grade UI guidance: typography, spacing, animations, and visual polish to avoid "AI aesthetics".',
+    descriptionZh: '\u751f\u4ea7\u7ea7 UI \u6307\u5357\uff1a\u6392\u7248\u3001\u95f4\u8ddd\u3001\u52a8\u753b\u548c\u89c6\u89c9\u6253\u78e8\uff0c\u907f\u514d\u201cAI \u98ce\u683c\u201d\u3002',
     author: 'Anthropic',
     sourceUrl: 'https://github.com/anthropics/claude-code/tree/main/plugins/frontend-design',
     category: 'Design',
+    source: 'Anthropic',
     skillContent: `---
 name: frontend-design
 description: Production-grade UI/UX design guidance for professional interfaces
@@ -230,9 +250,11 @@ When building or reviewing UI:
     id: 'git-workflow',
     name: 'Git Workflow',
     description: 'Professional Git workflow management: branching strategy, merge conflict resolution, and release management.',
+    descriptionZh: '\u4e13\u4e1a Git \u5de5\u4f5c\u6d41\u7ba1\u7406\uff1a\u5206\u652f\u7b56\u7565\u3001\u5408\u5e76\u51b2\u7a81\u89e3\u51b3\u548c\u53d1\u5e03\u7ba1\u7406\u3002',
     author: 'jezweb',
     sourceUrl: 'https://github.com/jezweb/claude-skills/tree/main/plugins/dev-tools/git-workflow',
     category: 'DevOps',
+    source: 'Community',
     skillContent: `---
 name: git-workflow
 description: Professional Git branching, merging, and release workflow
@@ -265,9 +287,11 @@ description: Professional Git branching, merging, and release workflow
     id: 'project-health',
     name: 'Project Health Check',
     description: 'Automated project health analysis: dependencies, code quality, test coverage, and technical debt assessment.',
+    descriptionZh: '\u81ea\u52a8\u9879\u76ee\u5065\u5eb7\u5206\u6790\uff1a\u4f9d\u8d56\u3001\u4ee3\u7801\u8d28\u91cf\u3001\u6d4b\u8bd5\u8986\u76d6\u7387\u548c\u6280\u672f\u503a\u52a1\u8bc4\u4f30\u3002',
     author: 'jezweb',
     sourceUrl: 'https://github.com/jezweb/claude-skills/tree/main/plugins/dev-tools/project-health',
     category: 'DevOps',
+    source: 'Community',
     skillContent: `---
 name: project-health
 description: Analyze project health across dependencies, quality, and tech debt
@@ -312,9 +336,11 @@ Output a health score (A-F) with specific recommendations for each area.
     id: 'technical-writer',
     name: 'Technical Writer',
     description: 'Professional technical documentation: API docs, tutorials, architecture decision records, and user guides.',
+    descriptionZh: '\u4e13\u4e1a\u6280\u672f\u6587\u6863\uff1aAPI \u6587\u6863\u3001\u6559\u7a0b\u3001\u67b6\u6784\u51b3\u7b56\u8bb0\u5f55\u548c\u7528\u6237\u6307\u5357\u3002',
     author: 'alirezarezvani',
     sourceUrl: 'https://github.com/alirezarezvani/claude-skills/tree/main/engineering',
     category: 'Writing',
+    source: 'Community',
     skillContent: `---
 name: technical-writer
 description: Professional technical documentation for APIs, tutorials, and user guides
@@ -355,9 +381,11 @@ When asked to write technical documentation:
     id: 'email-drafter',
     name: 'Email Drafter',
     description: 'Draft professional emails with appropriate tone, structure, and formatting for any business context.',
+    descriptionZh: '\u8d77\u8349\u4e13\u4e1a\u90ae\u4ef6\uff0c\u9002\u914d\u5404\u79cd\u5546\u52a1\u573a\u666f\u7684\u8bed\u6c14\u3001\u7ed3\u6784\u548c\u683c\u5f0f\u3002',
     author: 'alirezarezvani',
     sourceUrl: 'https://github.com/alirezarezvani/claude-skills/tree/main/product-team',
     category: 'Writing',
+    source: 'Community',
     skillContent: `---
 name: email-drafter
 description: Draft professional emails with appropriate tone and structure
@@ -381,9 +409,11 @@ Always output the email in a copyable format with clear subject line.
     id: 'proposal-writer',
     name: 'Proposal Writer',
     description: 'Write structured business proposals with executive summary, scope, timeline, budget, and terms.',
+    descriptionZh: '\u64b0\u5199\u7ed3\u6784\u5316\u5546\u4e1a\u63d0\u6848\uff0c\u5305\u542b\u6267\u884c\u6458\u8981\u3001\u8303\u56f4\u3001\u65f6\u95f4\u7ebf\u3001\u9884\u7b97\u548c\u6761\u6b3e\u3002',
     author: 'jezweb',
     sourceUrl: 'https://github.com/jezweb/claude-skills/tree/main/plugins/writing/proposal-writer',
     category: 'Writing',
+    source: 'Community',
     skillContent: `---
 name: proposal-writer
 description: Write structured business proposals and project bids
@@ -416,9 +446,11 @@ When drafting a business proposal:
     id: 'meeting-summarizer',
     name: 'Meeting Summarizer',
     description: 'Summarize meeting notes into action items, decisions, and key takeaways with assigned owners.',
+    descriptionZh: '\u5c06\u4f1a\u8bae\u8bb0\u5f55\u6574\u7406\u4e3a\u884c\u52a8\u9879\u3001\u51b3\u7b56\u548c\u5173\u952e\u8981\u70b9\uff0c\u5e76\u5206\u914d\u8d1f\u8d23\u4eba\u3002',
     author: 'alirezarezvani',
     sourceUrl: 'https://github.com/alirezarezvani/claude-skills/tree/main/product-team',
     category: 'Productivity',
+    source: 'Community',
     skillContent: `---
 name: meeting-summarizer
 description: Summarize meeting notes into structured action items and decisions
@@ -441,9 +473,11 @@ Format the output in clean Markdown. If owners or deadlines are unclear, mark th
     id: 'weekly-report',
     name: 'Weekly Report Generator',
     description: 'Generate structured weekly status reports from notes, commits, or bullet points.',
+    descriptionZh: '\u4ece\u7b14\u8bb0\u3001\u63d0\u4ea4\u8bb0\u5f55\u6216\u8981\u70b9\u751f\u6210\u7ed3\u6784\u5316\u5468\u62a5\u3002',
     author: 'alirezarezvani',
     sourceUrl: 'https://github.com/alirezarezvani/claude-skills/tree/main/product-team',
     category: 'Productivity',
+    source: 'Community',
     skillContent: `---
 name: weekly-report
 description: Generate structured weekly status reports
@@ -466,9 +500,11 @@ Output format should be clean Markdown with headers and bullet points.
     id: 'project-planner',
     name: 'Project Planner',
     description: 'Break down projects into phases, tasks, milestones, and timelines with dependency tracking.',
+    descriptionZh: '\u5c06\u9879\u76ee\u5206\u89e3\u4e3a\u9636\u6bb5\u3001\u4efb\u52a1\u3001\u91cc\u7a0b\u7891\u548c\u65f6\u95f4\u7ebf\uff0c\u5e76\u8ffd\u8e2a\u4f9d\u8d56\u5173\u7cfb\u3002',
     author: 'alirezarezvani',
     sourceUrl: 'https://github.com/alirezarezvani/claude-skills/tree/main/project-management',
     category: 'Productivity',
+    source: 'Community',
     skillContent: `---
 name: project-planner
 description: Break down projects into phases, tasks, and timelines
@@ -492,9 +528,11 @@ Output as a structured plan with Markdown tables for tasks and a timeline overvi
     id: 'agile-scrum',
     name: 'Agile Scrum Master',
     description: 'Facilitate Scrum ceremonies, write user stories, manage sprint planning, and track velocity.',
+    descriptionZh: '\u4e3b\u6301 Scrum \u4eea\u5f0f\u3001\u7f16\u5199\u7528\u6237\u6545\u4e8b\u3001\u7ba1\u7406\u51b2\u523a\u8ba1\u5212\u5e76\u8ffd\u8e2a\u901f\u5ea6\u3002',
     author: 'alirezarezvani',
     sourceUrl: 'https://github.com/alirezarezvani/claude-skills/tree/main/project-management',
     category: 'Productivity',
+    source: 'Community',
     skillContent: `---
 name: agile-scrum
 description: Scrum facilitation, user stories, sprint planning, and velocity tracking
@@ -531,9 +569,11 @@ Keep all outputs concise and action-oriented.
     id: 'research-assistant',
     name: 'Research Assistant',
     description: 'Organize research, synthesize findings from multiple sources, and identify knowledge gaps.',
+    descriptionZh: '\u7ec4\u7ec7\u7814\u7a76\u3001\u7efc\u5408\u591a\u6e90\u53d1\u73b0\u5e76\u8bc6\u522b\u77e5\u8bc6\u7a7a\u767d\u3002',
     author: 'alirezarezvani',
     sourceUrl: 'https://github.com/alirezarezvani/claude-skills/tree/main/product-team',
     category: 'Research',
+    source: 'Community',
     skillContent: `---
 name: research-assistant
 description: Organize research, synthesize findings, and identify gaps
@@ -556,9 +596,11 @@ Present findings in structured Markdown with clear headings and citations where 
     id: 'data-analyst',
     name: 'Data Analyst',
     description: 'Analyze data, create summaries, identify trends, and recommend visualization approaches.',
+    descriptionZh: '\u5206\u6790\u6570\u636e\u3001\u521b\u5efa\u6458\u8981\u3001\u8bc6\u522b\u8d8b\u52bf\u5e76\u63a8\u8350\u53ef\u89c6\u5316\u65b9\u6848\u3002',
     author: 'alirezarezvani',
     sourceUrl: 'https://github.com/alirezarezvani/claude-skills/tree/main/finance',
     category: 'Research',
+    source: 'Community',
     skillContent: `---
 name: data-analyst
 description: Analyze data, identify trends, and suggest visualizations
@@ -581,9 +623,11 @@ Present analysis in Markdown tables and bullet points. Be specific about what th
     id: 'deep-research',
     name: 'Deep Research',
     description: 'In-depth research automation using browser tools to find, analyze, and synthesize information from the web.',
+    descriptionZh: '\u6df1\u5ea6\u7814\u7a76\u81ea\u52a8\u5316\uff0c\u4f7f\u7528\u6d4f\u89c8\u5668\u5de5\u5177\u4ece\u7f51\u4e0a\u67e5\u627e\u3001\u5206\u6790\u548c\u7efc\u5408\u4fe1\u606f\u3002',
     author: 'jezweb',
     sourceUrl: 'https://github.com/jezweb/claude-skills/tree/main/plugins/dev-tools/deep-research',
     category: 'Research',
+    source: 'Community',
     skillContent: `---
 name: deep-research
 description: In-depth research with web browsing, analysis, and synthesis
@@ -616,9 +660,11 @@ Always note when information might be outdated or when sources conflict.
     id: 'brainstorm-facilitator',
     name: 'Brainstorm Facilitator',
     description: 'Facilitate creative brainstorming with SCAMPER, mind mapping, and structured ideation techniques.',
+    descriptionZh: '\u4f7f\u7528 SCAMPER\u3001\u601d\u7ef4\u5bfc\u56fe\u548c\u7ed3\u6784\u5316\u521b\u610f\u6280\u672f\u4fc3\u8fdb\u5934\u8111\u98ce\u66b4\u3002',
     author: 'alirezarezvani',
     sourceUrl: 'https://github.com/alirezarezvani/claude-skills/tree/main/product-team',
     category: 'Creative',
+    source: 'Community',
     skillContent: `---
 name: brainstorm-facilitator
 description: Facilitate creative brainstorming with structured ideation techniques
@@ -642,9 +688,11 @@ Encourage wild ideas first, then narrow down. Always build on the user's initial
     id: 'translator-pro',
     name: 'Translator Pro',
     description: 'Professional translation with context awareness, tone matching, and cultural adaptation.',
+    descriptionZh: '\u4e13\u4e1a\u7ffb\u8bd1\uff0c\u5177\u5907\u8bed\u5883\u611f\u77e5\u3001\u8bed\u6c14\u5339\u914d\u548c\u6587\u5316\u9002\u914d\u80fd\u529b\u3002',
     author: 'alirezarezvani',
     sourceUrl: 'https://github.com/alirezarezvani/claude-skills/tree/main/marketing-skill',
     category: 'Creative',
+    source: 'Community',
     skillContent: `---
 name: translator-pro
 description: Professional translation with context and cultural awareness
@@ -671,9 +719,11 @@ Output both the translation and brief notes on any significant translation choic
     id: 'social-media-posts',
     name: 'Social Media Content',
     description: 'Generate platform-formatted posts for LinkedIn, Twitter/X, and other social networks with hashtags.',
+    descriptionZh: '\u751f\u6210\u9002\u914d\u5404\u5e73\u53f0\u683c\u5f0f\u7684\u793e\u4ea4\u5a92\u4f53\u5e16\u5b50\uff0c\u5305\u542b\u6807\u7b7e\u548c\u53d1\u5e03\u5efa\u8bae\u3002',
     author: 'jezweb',
     sourceUrl: 'https://github.com/jezweb/claude-skills/tree/main/plugins/social-media/social-media-posts',
     category: 'Creative',
+    source: 'Community',
     skillContent: `---
 name: social-media-posts
 description: Generate platform-formatted social media posts with hashtags
@@ -703,9 +753,11 @@ When creating social media content:
     id: 'color-palette',
     name: 'Color Palette Generator',
     description: 'Generate accessible color palettes with primary, secondary, accent colors and WCAG contrast validation.',
+    descriptionZh: '\u751f\u6210\u65e0\u969c\u788d\u8272\u5f69\u65b9\u6848\uff0c\u5305\u542b\u4e3b\u8272\u3001\u8f85\u8272\u3001\u5f3a\u8c03\u8272\u548c WCAG \u5bf9\u6bd4\u5ea6\u9a8c\u8bc1\u3002',
     author: 'jezweb',
     sourceUrl: 'https://github.com/jezweb/claude-skills/tree/main/plugins/design-assets/color-palette',
     category: 'Design',
+    source: 'Community',
     skillContent: `---
 name: color-palette
 description: Generate accessible color palettes with WCAG contrast validation
@@ -735,9 +787,11 @@ When asked to create a color palette:
     id: 'landing-page',
     name: 'Landing Page Designer',
     description: 'Design high-converting landing pages with hero sections, CTAs, social proof, and responsive layouts.',
+    descriptionZh: '\u8bbe\u8ba1\u9ad8\u8f6c\u5316\u7740\u9646\u9875\uff0c\u5305\u542b Hero \u533a\u57df\u3001CTA\u3001\u793e\u4f1a\u8bc1\u660e\u548c\u54cd\u5e94\u5f0f\u5e03\u5c40\u3002',
     author: 'jezweb',
     sourceUrl: 'https://github.com/jezweb/claude-skills/tree/main/plugins/frontend/landing-page',
     category: 'Design',
+    source: 'Community',
     skillContent: `---
 name: landing-page
 description: Design high-converting landing pages with best practices
@@ -771,9 +825,11 @@ When designing a landing page:
     id: 'refactoring-expert',
     name: 'Refactoring Expert',
     description: 'Systematic code refactoring: identify code smells, suggest patterns, and execute safe transformations.',
+    descriptionZh: '\u7cfb\u7edf\u5316\u4ee3\u7801\u91cd\u6784\uff1a\u8bc6\u522b\u4ee3\u7801\u5f02\u5473\u3001\u5efa\u8bae\u6a21\u5f0f\u5e76\u6267\u884c\u5b89\u5168\u8f6c\u6362\u3002',
     author: 'alirezarezvani',
     sourceUrl: 'https://github.com/alirezarezvani/claude-skills/tree/main/engineering',
     category: 'Code',
+    source: 'Community',
     skillContent: `---
 name: refactoring-expert
 description: Systematic code refactoring with pattern identification and safe transformations
@@ -814,9 +870,11 @@ When refactoring code:
     id: 'api-designer',
     name: 'API Designer',
     description: 'Design RESTful and GraphQL APIs with consistent naming, versioning, error handling, and documentation.',
+    descriptionZh: '\u8bbe\u8ba1 RESTful \u548c GraphQL API\uff0c\u5177\u5907\u4e00\u81f4\u7684\u547d\u540d\u3001\u7248\u672c\u63a7\u5236\u3001\u9519\u8bef\u5904\u7406\u548c\u6587\u6863\u3002',
     author: 'alirezarezvani',
     sourceUrl: 'https://github.com/alirezarezvani/claude-skills/tree/main/engineering',
     category: 'Code',
+    source: 'Community',
     skillContent: `---
 name: api-designer
 description: Design RESTful and GraphQL APIs with best practices
@@ -849,6 +907,205 @@ When designing APIs:
 - JWT or OAuth2 for authentication
 - Rate limiting per API key
 - Input validation on all endpoints
+`,
+  },
+
+  // ── OpenClaw Skills ──
+  {
+    id: 'openclaw-think-tool',
+    name: 'Think Tool',
+    description: 'Extended thinking skill that helps Claude reason through complex problems step by step before answering.',
+    descriptionZh: '\u6269\u5c55\u601d\u7ef4\u6280\u80fd\uff0c\u5e2e\u52a9 Claude \u5728\u56de\u7b54\u524d\u9010\u6b65\u63a8\u7406\u590d\u6742\u95ee\u9898\u3002',
+    author: 'OpenClaw',
+    sourceUrl: 'https://github.com/anthropics/claude-code/tree/main/.openclaw/think-tool',
+    category: 'Productivity',
+    source: 'OpenClaw',
+    skillContent: `---
+name: think-tool
+description: Extended thinking for complex problem solving
+---
+
+# Think Tool
+
+When faced with a complex question or multi-step problem:
+
+1. **Decompose**: Break the problem into smaller, manageable parts
+2. **Analyze**: Consider each part independently, noting constraints and dependencies
+3. **Reason**: Think through the logic step by step, showing your work
+4. **Synthesize**: Combine your analysis into a coherent answer
+5. **Verify**: Check your reasoning for errors or missed cases
+
+Use this approach for:
+- Mathematical or logical problems
+- Architecture decisions with trade-offs
+- Debugging complex issues
+- Multi-constraint optimization
+
+Always show your reasoning process, not just the final answer.
+`,
+  },
+  {
+    id: 'openclaw-memory-manager',
+    name: 'Memory Manager',
+    description: 'Manage persistent context and memory across conversations using CLAUDE.md and memory files.',
+    descriptionZh: '\u4f7f\u7528 CLAUDE.md \u548c\u8bb0\u5fc6\u6587\u4ef6\u7ba1\u7406\u8de8\u5bf9\u8bdd\u7684\u6301\u4e45\u5316\u4e0a\u4e0b\u6587\u548c\u8bb0\u5fc6\u3002',
+    author: 'OpenClaw',
+    sourceUrl: 'https://github.com/anthropics/claude-code/tree/main/.openclaw/memory-manager',
+    category: 'Productivity',
+    source: 'OpenClaw',
+    skillContent: `---
+name: memory-manager
+description: Manage persistent context and memory across conversations
+---
+
+# Memory Manager
+
+Help the user manage their persistent memory and context files:
+
+## CLAUDE.md Management
+- Read and update project-level CLAUDE.md files
+- Organize instructions by category (rules, patterns, preferences)
+- Keep instructions concise and actionable
+
+## Memory Files
+- Create and organize memory files in .claude/ directories
+- Categorize memories: user preferences, project context, decisions, feedback
+- Periodically review and prune stale memories
+
+## Best Practices
+- Keep memory files focused and well-organized
+- Use frontmatter (name, description, type) for discoverability
+- Update MEMORY.md index when adding new memory files
+- Remove outdated entries rather than accumulating noise
+`,
+  },
+  {
+    id: 'openclaw-test-gen',
+    name: 'Test Generator',
+    description: 'Automatically generate comprehensive test suites with unit, integration, and edge case coverage.',
+    descriptionZh: '\u81ea\u52a8\u751f\u6210\u5168\u9762\u7684\u6d4b\u8bd5\u5957\u4ef6\uff0c\u5305\u542b\u5355\u5143\u6d4b\u8bd5\u3001\u96c6\u6210\u6d4b\u8bd5\u548c\u8fb9\u754c\u7528\u4f8b\u3002',
+    author: 'OpenClaw',
+    sourceUrl: 'https://github.com/anthropics/claude-code/tree/main/.openclaw/test-gen',
+    category: 'Code',
+    source: 'OpenClaw',
+    skillContent: `---
+name: test-gen
+description: Generate comprehensive test suites with edge case coverage
+---
+
+# Test Generator
+
+When asked to write tests:
+
+## 1. Analyze the Code
+- Identify all public functions/methods
+- Map input types and return types
+- Find branching paths and edge cases
+
+## 2. Generate Test Categories
+- **Happy Path**: Normal expected usage
+- **Edge Cases**: Empty inputs, null, undefined, boundary values
+- **Error Cases**: Invalid inputs, network failures, timeout scenarios
+- **Integration**: Component interaction and data flow
+
+## 3. Test Structure
+- Use descriptive test names: "should [expected behavior] when [condition]"
+- Arrange-Act-Assert pattern
+- One assertion per test when practical
+- Mock external dependencies
+
+## 4. Coverage Targets
+- Aim for 80%+ line coverage
+- 100% coverage on critical business logic
+- Test error handling paths, not just happy paths
+`,
+  },
+  {
+    id: 'openclaw-doc-gen',
+    name: 'Documentation Generator',
+    description: 'Generate structured documentation from code: JSDoc, README sections, API references, and changelogs.',
+    descriptionZh: '\u4ece\u4ee3\u7801\u751f\u6210\u7ed3\u6784\u5316\u6587\u6863\uff1aJSDoc\u3001README \u7ae0\u8282\u3001API \u53c2\u8003\u548c\u53d8\u66f4\u65e5\u5fd7\u3002',
+    author: 'OpenClaw',
+    sourceUrl: 'https://github.com/anthropics/claude-code/tree/main/.openclaw/doc-gen',
+    category: 'Writing',
+    source: 'OpenClaw',
+    skillContent: `---
+name: doc-gen
+description: Generate documentation from code analysis
+---
+
+# Documentation Generator
+
+When asked to document code:
+
+## JSDoc / Docstrings
+- Add type annotations for all parameters and return values
+- Include brief description, @param, @returns, @throws
+- Add @example with realistic usage
+
+## README Sections
+- Auto-generate installation, usage, and configuration sections
+- Create API reference tables from exported functions
+- Generate badges (build, coverage, version)
+
+## API Reference
+- List all endpoints/functions with signatures
+- Document parameters, return types, and errors
+- Include curl/code examples for each endpoint
+
+## Changelog
+- Follow Keep a Changelog format
+- Categorize: Added, Changed, Deprecated, Removed, Fixed, Security
+- Link to PRs and issues where applicable
+
+## Best Practices
+- Write for the reader who has never seen the code
+- Use concrete examples over abstract descriptions
+- Keep explanations at the right level of abstraction
+`,
+  },
+  {
+    id: 'openclaw-debug-helper',
+    name: 'Debug Helper',
+    description: 'Systematic debugging workflow: reproduce, isolate, diagnose root cause, fix, and verify with regression prevention.',
+    descriptionZh: '\u7cfb\u7edf\u5316\u8c03\u8bd5\u5de5\u4f5c\u6d41\uff1a\u590d\u73b0\u3001\u9694\u79bb\u3001\u8bca\u65ad\u6839\u56e0\u3001\u4fee\u590d\u5e76\u9a8c\u8bc1\uff0c\u9632\u6b62\u56de\u5f52\u3002',
+    author: 'OpenClaw',
+    sourceUrl: 'https://github.com/anthropics/claude-code/tree/main/.openclaw/debug-helper',
+    category: 'Code',
+    source: 'OpenClaw',
+    skillContent: `---
+name: debug-helper
+description: Systematic debugging with root cause analysis
+---
+
+# Debug Helper
+
+When debugging an issue:
+
+## 1. Reproduce
+- Get exact steps to reproduce the bug
+- Identify the expected vs actual behavior
+- Note the environment (OS, version, config)
+
+## 2. Isolate
+- Narrow down the scope (which file, function, line)
+- Use binary search on recent changes (git bisect)
+- Add strategic logging to trace execution flow
+
+## 3. Diagnose
+- Identify the root cause (not just symptoms)
+- Check for common patterns: race conditions, null access, type coercion, stale state
+- Review recent changes that could have introduced the bug
+
+## 4. Fix
+- Make the minimal change that fixes the root cause
+- Avoid band-aid fixes that mask the real problem
+- Consider if the fix could break other things
+
+## 5. Verify
+- Confirm the original bug is fixed
+- Check for regressions in related functionality
+- Add a test to prevent recurrence
 `,
   },
 ]

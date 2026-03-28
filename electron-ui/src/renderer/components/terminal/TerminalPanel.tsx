@@ -1,12 +1,12 @@
 import React, { useRef } from 'react'
-import { Terminal, RefreshCw, AlertTriangle, Play } from 'lucide-react'
+import { Terminal, RefreshCw, AlertTriangle, Play, Info } from 'lucide-react'
 import { usePty } from '../../hooks/usePty'
 import { useT } from '../../i18n'
 import '@xterm/xterm/css/xterm.css'
 
 export default function TerminalPanel() {
   const containerRef = useRef<HTMLDivElement>(null)
-  const { refitTerminal, reconnect, ptyError, ptyExited } = usePty(containerRef as React.RefObject<HTMLDivElement>)
+  const { refitTerminal, reconnect, ptyError, ptyExited, isFallback } = usePty(containerRef as React.RefObject<HTMLDivElement>)
   const t = useT()
 
   const hasIssue = !!ptyError || ptyExited
@@ -33,6 +33,26 @@ export default function TerminalPanel() {
         <span style={{ fontSize: 12, color: ptyError ? 'var(--error)' : ptyExited ? 'var(--warning, #fbbf24)' : 'var(--text-muted)', flex: 1 }}>
           {ptyError ? t('terminal.error') : ptyExited ? t('terminal.exited') : t('terminal.title')}
         </span>
+        {/* Fallback mode indicator */}
+        {isFallback && !hasIssue && (
+          <span
+            title={t('terminal.basicModeHint')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 10,
+              color: '#f59e0b',
+              background: 'rgba(245, 158, 11, 0.12)',
+              padding: '2px 8px',
+              borderRadius: 8,
+              fontWeight: 500,
+            }}
+          >
+            <Info size={10} />
+            {t('terminal.basicMode')}
+          </span>
+        )}
         {/* Reconnect button -- shown when PTY has exited or errored */}
         {hasIssue && (
           <button

@@ -494,7 +494,9 @@
     "error": "Terminal Error",
     "nativeModuleError": "The terminal requires the node-pty native module, which is not available.",
     "rebuildInstructions": "Run 'npm run rebuild-pty' in the electron-ui folder and restart the app.",
-    "windowsBuildTools": "On Windows, this requires Visual Studio C++ Build Tools."
+    "windowsBuildTools": "On Windows, this requires Visual Studio C++ Build Tools.",
+    "basicMode": "Basic Mode",
+    "basicModeHint": "Running without native PTY support. Interactive programs may not work. Run 'npm run rebuild-pty' for full terminal features."
   },
   "fileBrowser": {
     "title": "Files",
@@ -694,7 +696,20 @@
     "useNow": "Installed",
     "by": "by",
     "source": "Source",
-    "openOnGitHub": "Open on GitHub"
+    "openOnGitHub": "Open on GitHub",
+    "sourceLabel": "Source",
+    "categoryLabel": "Category",
+    "allSources": "All",
+    "source_anthropic": "Anthropic",
+    "source_openclaw": "OpenClaw",
+    "source_community": "Community",
+    "category_productivity": "Productivity",
+    "category_writing": "Writing",
+    "category_code": "Code",
+    "category_research": "Research",
+    "category_creative": "Creative",
+    "category_devops": "DevOps",
+    "category_design": "Design"
   },
   "followUp": {
     "explainCode": "Explain this code",
