@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react'
-import { Plus, Search, X } from 'lucide-react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { Plus, Search, X, FolderDown } from 'lucide-react'
 import { useT } from '../../i18n'
+import { useUiStore } from '../../store'
 import { useNotesCRUD } from './useNotesCRUD'
 import { useNotesSearch } from './useNotesSearch'
 import { MAX_NOTES } from './notesConstants'
@@ -11,6 +12,7 @@ import CategoryManager from './CategoryManager'
 
 export default function NotesPanel() {
   const t = useT()
+  const addToast = useUiStore(s => s.addToast)
   const crud = useNotesCRUD()
   const [searchQuery, setSearchQuery] = useState('')
   const [, setTick] = useState(0)
@@ -27,6 +29,44 @@ export default function NotesPanel() {
     const interval = setInterval(() => setTick(t => t + 1), 30000)
     return () => clearInterval(interval)
   }, [])
+
+  // Bulk export notes as individual .md files to a selected folder
+  const handleExportAll = useCallback(async () => {
+    const notesToExport = filteredNotes
+    if (notesToExport.length === 0) {
+      addToast(t('notes.exportNoNotes'), 'warning')
+      return
+    }
+    try {
+      const api = (window as unknown as { electronAPI: { fsShowOpenDialog: () => Promise<string | null>; fsWriteFile: (filePath: string, content: string) => Promise<{ success?: boolean; error?: string }> } }).electronAPI
+      const dirPath = await api.fsShowOpenDialog()
+      if (!dirPath) return // user cancelled
+
+      let exported = 0
+      const usedNames = new Set<string>()
+      for (const note of notesToExport) {
+        let baseName = (note.title || 'Untitled Note').replace(/[<>:"/\\|?*]/g, '_').slice(0, 50)
+        // Deduplicate filenames
+        let fileName = baseName
+        let counter = 1
+        while (usedNames.has(fileName.toLowerCase())) {
+          fileName = `${baseName} (${counter})`
+          counter++
+        }
+        usedNames.add(fileName.toLowerCase())
+        const filePath = `${dirPath}/${fileName}.md`
+        const result = await api.fsWriteFile(filePath, note.content)
+        if (!result?.error) exported++
+      }
+      if (exported > 0) {
+        addToast(t('notes.exportAllSuccess', { count: String(exported) }), 'success')
+      } else {
+        addToast(t('notes.exportFailed', { error: 'No files were written' }), 'error')
+      }
+    } catch (err) {
+      addToast(t('notes.exportFailed', { error: String(err) }), 'error')
+    }
+  }, [filteredNotes, addToast, t])
 
   // ── Editor View ──
   if (crud.editingNoteId && crud.editingNote) {
@@ -67,30 +107,57 @@ export default function NotesPanel() {
         <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
           {t('notes.title')}
         </span>
-        <button
-          onClick={crud.handleCreateNote}
-          aria-label={t('notes.newNote')}
-          disabled={crud.notes.length >= MAX_NOTES}
-          style={{
-            background: 'none',
-            border: '1px solid var(--card-border)',
-            borderRadius: 6,
-            color: 'var(--accent)',
-            cursor: crud.notes.length >= MAX_NOTES ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            padding: '4px 10px',
-            fontSize: 12,
-            opacity: crud.notes.length >= MAX_NOTES ? 0.5 : 1,
-            transition: 'border-color 0.15s',
-          }}
-          onMouseEnter={e => { if (crud.notes.length < MAX_NOTES) e.currentTarget.style.borderColor = 'var(--accent)' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--card-border)' }}
-        >
-          <Plus size={14} />
-          {t('notes.newNote')}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {/* Export All button */}
+          {crud.notes.length > 0 && (
+            <button
+              onClick={handleExportAll}
+              aria-label={t('notes.exportAll')}
+              title={t('notes.exportAll')}
+              style={{
+                background: 'none',
+                border: '1px solid var(--card-border)',
+                borderRadius: 6,
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '4px 8px',
+                fontSize: 12,
+                transition: 'border-color 0.15s, color 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--card-border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+            >
+              <FolderDown size={14} />
+            </button>
+          )}
+          {/* New Note button */}
+          <button
+            onClick={crud.handleCreateNote}
+            aria-label={t('notes.newNote')}
+            disabled={crud.notes.length >= MAX_NOTES}
+            style={{
+              background: 'none',
+              border: '1px solid var(--card-border)',
+              borderRadius: 6,
+              color: 'var(--accent)',
+              cursor: crud.notes.length >= MAX_NOTES ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '4px 10px',
+              fontSize: 12,
+              opacity: crud.notes.length >= MAX_NOTES ? 0.5 : 1,
+              transition: 'border-color 0.15s',
+            }}
+            onMouseEnter={e => { if (crud.notes.length < MAX_NOTES) e.currentTarget.style.borderColor = 'var(--accent)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--card-border)' }}
+          >
+            <Plus size={14} />
+            {t('notes.newNote')}
+          </button>
+        </div>
       </div>
 
       {/* Search bar */}

@@ -111,6 +111,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Note title auto-generation** — notes automatically pick up their title from the first Markdown heading (`#`, `##`, `###`)
 - **Note categories** — organize notes into up to 10 color-coded categories; filter notes by category with a pill-style filter bar; assign categories from the note editor; manage (create, rename, delete) categories inline
 - **Clipboard quick actions** — "Paste & Ask" button in the chat toolbar reads clipboard text and offers one-click actions: Summarize, Translate, Rewrite, Explain, Grammar Check; auto-detects target language for translation
+- **Note export** — export individual notes as Markdown files via the editor toolbar (Download button + system Save dialog); bulk export all notes (or filtered by category) to a folder via the "Export All" button in the Notes panel header
 
 ## Security
 

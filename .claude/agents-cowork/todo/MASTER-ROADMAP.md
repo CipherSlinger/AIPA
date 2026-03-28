@@ -371,6 +371,14 @@
 | Extract useNotesCRUD + useNotesSearch hooks | `prd-notes-decomposition-v1.md` | P1-eng | DONE (Iteration 125) |
 | Extract notesConstants utilities | `prd-notes-decomposition-v1.md` | P1-eng | DONE (Iteration 125) |
 
+### Iteration 126 -- Note Export
+
+| Feature | PRD | Priority | Status |
+|---------|-----|----------|--------|
+| Single note export as Markdown (.md) file | `prd-note-export-v1.md` | P1 | DONE (Iteration 126) |
+| Bulk export all notes (or filtered) to folder | `prd-note-export-v1.md` | P1 | DONE (Iteration 126) |
+| i18n for export UI (en + zh-CN) | `prd-note-export-v1.md` | P1 | DONE (Iteration 126) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

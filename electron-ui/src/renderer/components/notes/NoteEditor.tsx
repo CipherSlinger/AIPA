@@ -1,9 +1,10 @@
-import React, { useRef, useEffect } from 'react'
-import { ArrowLeft, Trash2, ChevronDown, Check } from 'lucide-react'
+import React, { useRef, useEffect, useCallback } from 'react'
+import { ArrowLeft, Trash2, ChevronDown, Check, Download } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import { useT } from '../../i18n'
+import { useUiStore } from '../../store'
 import { Note, NoteCategory } from '../../types/app.types'
 import { MAX_CONTENT_LENGTH } from './notesConstants'
 
@@ -45,8 +46,30 @@ export default function NoteEditor({
   getCategoryById,
 }: NoteEditorProps) {
   const t = useT()
+  const addToast = useUiStore(s => s.addToast)
   const categoryDropdownRef = useRef<HTMLDivElement>(null)
   const noteCategory = getCategoryById(note.categoryId)
+
+  // Export single note as .md file
+  const handleExportNote = useCallback(async () => {
+    try {
+      const api = (window as unknown as { electronAPI: { fsShowSaveDialog: (defaultName: string, filters: { name: string; extensions: string[] }[]) => Promise<string | null>; fsWriteFile: (filePath: string, content: string) => Promise<{ success?: boolean; error?: string }> } }).electronAPI
+      const sanitizedTitle = (title || 'Untitled Note').replace(/[<>:"/\\|?*]/g, '_').slice(0, 50)
+      const filePath = await api.fsShowSaveDialog(`${sanitizedTitle}.md`, [
+        { name: 'Markdown', extensions: ['md'] },
+        { name: 'Text', extensions: ['txt'] },
+      ])
+      if (!filePath) return // user cancelled
+      const result = await api.fsWriteFile(filePath, content)
+      if (result?.error) {
+        addToast(t('notes.exportFailed', { error: result.error }), 'error')
+      } else {
+        addToast(t('notes.exportSuccess'), 'success')
+      }
+    } catch (err) {
+      addToast(t('notes.exportFailed', { error: String(err) }), 'error')
+    }
+  }, [title, content, addToast, t])
 
   // Close category dropdown when clicking outside
   useEffect(() => {
@@ -140,6 +163,28 @@ export default function NoteEditor({
             {t('notes.preview')}
           </button>
         </div>
+
+        {/* Export button */}
+        <button
+          onClick={handleExportNote}
+          aria-label={t('notes.exportNote')}
+          title={t('notes.exportNote')}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--text-muted)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            padding: 4,
+            borderRadius: 4,
+            transition: 'color 0.15s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+        >
+          <Download size={14} />
+        </button>
 
         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
           {content.length} {t('notes.characters')}

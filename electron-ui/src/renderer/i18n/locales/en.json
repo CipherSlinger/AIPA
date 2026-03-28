@@ -541,7 +541,13 @@
     "uncategorized": "Uncategorized",
     "maxCategories": "Maximum 10 categories",
     "categoryLabel": "Category",
-    "closeManage": "Close"
+    "closeManage": "Close",
+    "exportNote": "Export as Markdown",
+    "exportAll": "Export All",
+    "exportSuccess": "Note exported successfully",
+    "exportAllSuccess": "{{count}} notes exported successfully",
+    "exportFailed": "Export failed: {{error}}",
+    "exportNoNotes": "No notes to export"
   },
   "clipboard": {
     "pasteAndAsk": "Paste & Ask",
