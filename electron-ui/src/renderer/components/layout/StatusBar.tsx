@@ -177,9 +177,9 @@ export default function StatusBar() {
         {contextPct !== null && (
           <div
             style={{ display: 'flex', alignItems: 'center', gap: 4, opacity: 0.9 }}
-            title={`Context used: ${contextPct}% (${fmt(lastContextUsage!.used)} / ${fmt(lastContextUsage!.total)} tokens)`}
+            title={t('toolbar.contextUsed', { percent: String(contextPct), used: fmt(lastContextUsage!.used), total: fmt(lastContextUsage!.total) })}
           >
-            <span style={{ fontSize: 9, opacity: 0.7 }}>Ctx</span>
+            <span style={{ fontSize: 9, opacity: 0.7 }}>{t('toolbar.context')}</span>
             <div style={{ width: 60, height: 6, background: 'rgba(255,255,255,0.25)', borderRadius: 3, overflow: 'hidden' }}>
               <div style={{ width: `${contextPct}%`, height: '100%', background: ctxColor, transition: 'width 0.3s', borderRadius: 3 }} />
             </div>
@@ -220,7 +220,7 @@ export default function StatusBar() {
         {totalSessionCost > 0 && (
           <span
             style={{ opacity: 0.85, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 2, fontSize: 10 }}
-            title={lastCost != null ? `Last turn: $${lastCost.toFixed(4)} | Session total: $${totalSessionCost.toFixed(4)}` : `Session total: $${totalSessionCost.toFixed(4)}`}
+            title={lastCost != null ? t('toolbar.lastTurn', { cost: lastCost.toFixed(4), total: totalSessionCost.toFixed(4) }) : t('toolbar.sessionTotal', { total: totalSessionCost.toFixed(4) })}
           >
             <DollarSign size={10} />
             {totalSessionCost < 0.001 ? '<$0.001' : `$${totalSessionCost.toFixed(3)}`}

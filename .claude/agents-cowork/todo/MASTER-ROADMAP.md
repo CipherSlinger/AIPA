@@ -549,6 +549,11 @@
 - **Files changed**: `NotesPanel.tsx`
 - **Status**: Done
 
+### Iteration 151 — i18n StatusBar tooltip strings
+- **Feature**: Replace hardcoded English context usage tooltip, 'Ctx' label, and cost tooltips in StatusBar with i18n calls
+- **Files changed**: `StatusBar.tsx`
+- **Status**: Done
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |
