@@ -589,6 +589,11 @@
 - **What**: Improve session list empty state with icon, better layout, and 'start a new conversation' hint
 - **Why**: Empty states are first-touch UX; a helpful empty state guides new users instead of showing a bare text line
 
+### Iteration 159 -- Word count in note editor
+- **Status**: Done
+- **What**: Add word count display next to character count in note editor header
+- **Why**: Word count is a standard writing metric; personal assistant users drafting text need it at a glance
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

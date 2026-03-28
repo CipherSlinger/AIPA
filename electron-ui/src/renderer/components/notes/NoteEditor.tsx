@@ -186,8 +186,9 @@ export default function NoteEditor({
           <Download size={14} />
         </button>
 
-        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-          {content.length} {t('notes.characters')}
+        <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', gap: 8 }}>
+          <span>{content.length} {t('notes.characters')}</span>
+          <span>{content.trim() ? content.trim().split(/\s+/).length : 0} {t('notes.words')}</span>
         </span>
       </div>
 
