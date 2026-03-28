@@ -599,6 +599,10 @@
 - **What**: Add estimated reading time (based on 200 WPM) next to word count in note editor; fix hardcoded 'Untitled Note' in export filename
 - **Why**: Reading time is a standard writing tool feature (Medium, Notion); helps users gauge content length
 
+### Iteration 161 (2026-03-28)
+- File browser parent directory navigation -- ArrowUp button in header to navigate to parent folder
+- README and README_CN updated with features from Iterations 154-160
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

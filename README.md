@@ -126,6 +126,11 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Recent prompts on welcome screen** — welcome screen shows up to 3 most recently sent prompts for quick re-use, with a "Clear" button to reset history
 - **Context menu completeness** — right-click any message for full actions: Copy, Quote Reply, Edit (user messages), Save as Note (AI messages), Bookmark, Collapse, Rate, and Rewind
 - **Quote preview banner** — quoting a message shows a visual preview above the input with dismiss button, instead of raw markdown; quoted text is automatically prepended when sending
+- **Session message count badge** — session list rows show message count alongside the timestamp for quick context
+- **Welcome screen shortcut hints** — quick action buttons on the welcome screen display their keyboard shortcuts (e.g., `Ctrl+,`, `Ctrl+B`)
+- **Enhanced session list empty state** — empty session list shows a friendly icon and hint text instead of a blank panel
+- **Note editor word count** — note editor header shows live word count alongside character count
+- **Note reading time estimate** — note editor header displays estimated reading time (e.g., "~2 min read") based on word count
 
 ## Security
 

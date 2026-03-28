@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Folder, FolderOpen, File, ChevronRight, ChevronDown, FolderPlus } from 'lucide-react'
+import { Folder, FolderOpen, File, ChevronRight, ChevronDown, FolderPlus, ArrowUp } from 'lucide-react'
 import { FileEntry } from '../../types/app.types'
 import { useChatStore } from '../../store'
 import { useT } from '../../i18n'
@@ -111,6 +111,34 @@ export default function FileBrowser() {
     window.electronAPI.prefsSet('workingDir', path)
   }
 
+  const goToParent = () => {
+    if (!currentDir) return
+    // Cross-platform parent: handle both / and \ separators
+    const sep = currentDir.includes('\\') ? '\\' : '/'
+    const parts = currentDir.split(sep).filter(Boolean)
+    if (parts.length <= 1) {
+      // Already at root (e.g., "C:\" or "/")
+      const root = currentDir.includes('\\') ? parts[0] + '\\' : '/'
+      if (root !== currentDir) setCwd(root)
+      return
+    }
+    parts.pop()
+    const parent = currentDir.includes('\\')
+      ? parts.join('\\') + (parts.length === 1 && /^[A-Z]:$/i.test(parts[0]) ? '\\' : '')
+      : '/' + parts.join('/')
+    setCwd(parent)
+  }
+
+  // Determine if we can go up
+  const canGoUp = (() => {
+    if (!currentDir) return false
+    const sep = currentDir.includes('\\') ? '\\' : '/'
+    const parts = currentDir.split(sep).filter(Boolean)
+    // Can't go up from root (/ or C:\)
+    if (parts.length <= 1 && (currentDir === '/' || /^[A-Z]:\\?$/i.test(currentDir))) return false
+    return true
+  })()
+
   const shortDir = currentDir.length > 30
     ? '...' + currentDir.slice(-27)
     : currentDir
@@ -141,6 +169,25 @@ export default function FileBrowser() {
         >
           {shortDir || t('fileBrowser.selectDir')}
         </span>
+        <button
+          onClick={goToParent}
+          title={t('fileBrowser.parentDir')}
+          disabled={!canGoUp}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: canGoUp ? 'var(--text-muted)' : 'var(--text-muted)',
+            cursor: canGoUp ? 'pointer' : 'not-allowed',
+            display: 'flex',
+            alignItems: 'center',
+            opacity: canGoUp ? 1 : 0.3,
+            transition: 'opacity 0.15s, color 0.15s',
+          }}
+          onMouseEnter={e => { if (canGoUp) e.currentTarget.style.color = 'var(--accent)' }}
+          onMouseLeave={e => { if (canGoUp) e.currentTarget.style.color = 'var(--text-muted)' }}
+        >
+          <ArrowUp size={14} />
+        </button>
         <button
           onClick={openDialog}
           title={t('fileBrowser.chooseDir')}
