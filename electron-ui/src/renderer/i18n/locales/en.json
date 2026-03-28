@@ -279,7 +279,7 @@
   "onboarding": {
     "step": "Step {{current}} of {{total}}",
     "welcome": "Welcome to AIPA",
-    "welcomeSubtitle": "Your AI-powered personal assistant for coding, analysis, and creative work.",
+    "welcomeSubtitle": "Your AI-powered personal assistant -- writing, analysis, coding, and more.",
     "getStarted": "Get Started",
     "enterApiKey": "Enter Your API Key",
     "apiKeyStored": "Your key is stored locally and never uploaded anywhere.",

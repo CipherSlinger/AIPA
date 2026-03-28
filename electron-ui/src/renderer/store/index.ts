@@ -399,9 +399,9 @@ const DEFAULT_PREFS: ClaudePrefs = {
   desktopNotifications: true,
   quickReplies: [
     { label: 'Explain this', prompt: 'Please explain this in detail:' },
-    { label: 'Review code', prompt: 'Please review this code for bugs, performance issues, and best practices:' },
     { label: 'Summarize', prompt: 'Please summarize the above concisely:' },
-    { label: 'Fix bug', prompt: 'Please identify and fix the bug in:' },
+    { label: 'Draft email', prompt: 'Please help me draft an email about:' },
+    { label: 'Translate', prompt: 'Please translate the following:' },
   ],
 }
 

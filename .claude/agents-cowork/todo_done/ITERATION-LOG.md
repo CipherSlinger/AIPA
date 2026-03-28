@@ -1603,3 +1603,32 @@ renderer: 2397 modules transformed, built in 7.71s
 - [x] README.md updated with new template names
 - [x] README_CN.md updated with new template names
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 116 -- Final Product Positioning Sweep
+
+_Date: 2026-03-28 | Sprint Product Positioning_
+
+### Summary
+Final cleanup of developer-centric defaults remaining after iterations 114-115. Updated onboarding wizard subtitle from "coding, analysis, and creative work" to match the new personal assistant positioning. Replaced 2 of 4 default quick reply chips from developer tasks ("Review code", "Fix bug") with personal assistant tasks ("Draft email", "Translate"). All user-visible default text now reflects the personal assistant product direction.
+
+### Files Changed
+- `src/renderer/i18n/locales/en.json` -- Updated onboarding welcomeSubtitle to personal assistant positioning
+- `src/renderer/i18n/locales/zh-CN.json` -- Updated Chinese onboarding welcomeSubtitle
+- `src/renderer/store/index.ts` -- Updated DEFAULT_PREFS quickReplies from code-focused ("Review code", "Fix bug") to assistant-focused ("Draft email", "Translate")
+
+### Build
+Status: SUCCESS
+
+```
+main: tsc clean
+preload: tsc clean
+renderer: 2397 modules transformed, built in 7.75s
+```
+
+### Acceptance Criteria
+- [x] Onboarding subtitle updated in both en and zh-CN
+- [x] Quick reply defaults now balanced (Explain, Summarize, Draft email, Translate)
+- [x] No remaining developer-only defaults in first-run experience
+- [x] Build passes with zero errors

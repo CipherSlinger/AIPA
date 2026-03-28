@@ -279,6 +279,13 @@
 |---------|-----|----------|--------|
 | Personal assistant prompt templates | `prd-prompt-templates-update-v1.md` | P1 | DONE (Iteration 115) |
 
+### Iteration 116 -- Final Product Positioning Sweep
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Onboarding subtitle alignment | P1 | DONE (Iteration 116) |
+| Quick reply defaults alignment | P1 | DONE (Iteration 116) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |
