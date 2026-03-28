@@ -157,6 +157,9 @@
     "editSave": "\u4fdd\u5b58\u5e76\u53d1\u9001",
     "rewindSuccess": "\u6587\u4ef6\u5df2\u6062\u590d\u5230\u6b64\u6d88\u606f\u4e4b\u524d\u7684\u72b6\u6001",
     "rewindFailed": "\u56de\u9000\u5931\u8d25: {{error}}",
+    "saveAsNote": "\u4fdd\u5b58\u4e3a\u7b14\u8bb0",
+    "savedToNotes": "\u5df2\u4fdd\u5b58\u5230\u7b14\u8bb0",
+    "notesLimitReached": "\u7b14\u8bb0\u6570\u91cf\u5df2\u8fbe\u4e0a\u9650",
     "justNow": "\u521a\u521a",
     "secsAgo": "{{count}}\u79d2\u524d",
     "minsAgo": "{{count}}\u5206\u949f\u524d",
@@ -521,6 +524,8 @@
     "minsAgo": "{{count}}\u5206\u949f\u524d",
     "hoursAgo": "{{count}}\u5c0f\u65f6\u524d",
     "yesterday": "\u6628\u5929",
-    "daysAgo": "{{count}}\u5929\u524d"
+    "daysAgo": "{{count}}\u5929\u524d",
+    "sendToChat": "\u53d1\u9001\u5230\u804a\u5929",
+    "sentToChat": "\u5df2\u53d1\u9001\u5230\u804a\u5929"
   }
 }

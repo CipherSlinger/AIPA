@@ -55,3 +55,35 @@ type: project
 - **Trigger**: User feedback (reported multiple times). Previous fixes in 108/110 addressed wrong symptoms.
 - **Lesson learned**: Native module imports MUST be lazy-loaded with try-catch in Electron apps because the native binary may not be compiled for the target platform. Hard `import * as pty from 'node-pty'` crashes the entire main process module if the .node binary is missing. This class of issue is NOT detectable by `tsc` or `vite build` -- it only manifests at runtime on specific platforms.
 - **Process failure**: Frontend dev and tester could not catch this because: (1) builds always succeed on Linux where the binary exists, (2) there are no automated tests, (3) the tester does not have a Windows test environment. The fix is to make the code resilient to missing native modules rather than relying on testing.
+
+### Iteration 119 (2026-03-28)
+- **Features**: Custom Prompt Templates -- user-defined prompt templates with full CRUD management
+- **Changes**: New "Templates" tab in Settings panel. Users can create/edit/delete up to 20 custom templates. Templates appear in the General tab's template selector alongside built-in ones. Persisted via electron-store prefs.
+- **Files modified**: SettingsPanel.tsx (+283 lines), app.types.ts (+9), promptTemplates.ts (+23), en.json (+19), zh-CN.json (+19), README.md, README_CN.md
+- **Trigger**: Backlog item aligned with "personal assistant" product direction. Users need reusable workflows beyond 6 built-in templates.
+- **Pattern used**: Same CRUD pattern as session tags (inline edit, two-click delete confirmation, auto-save to electron-store).
+- **No bugs found**: Build clean, all acceptance criteria met on first pass.
+
+**Why:** Custom templates are a force multiplier for the "personal assistant" vision -- users build personal workflow libraries.
+**How to apply:** Future template enhancements (categories, sharing, variables) should extend the `CustomPromptTemplate` interface in app.types.ts and the `customPromptTemplates` prefs key.
+
+### Iteration 120 (2026-03-28)
+- **Features**: Quick Notes Sidebar Panel -- built-in notepad in the sidebar
+- **Changes**: New NotesPanel.tsx component (230 lines), NavRail Notes icon, Sidebar routing, store type extensions. Note CRUD with auto-save (1s debounce), two-click delete, 100-note limit, 10K char per note.
+- **Files modified**: NotesPanel.tsx (new), NavRail.tsx, Sidebar.tsx, store/index.ts, app.types.ts, en.json (+18), zh-CN.json (+18), README.md, README_CN.md
+- **Pattern used**: Same prefs persistence as custom templates and session tags. Same NavRail/Sidebar routing as Files and Settings tabs.
+- **No bugs found**: Build clean, all 19 acceptance criteria met on first pass.
+- **Pipeline note**: Sub-agent invocation via Skill tool failed ("Unknown skill: aipa-pm"). Leader executed all agent roles directly. This is a process issue to investigate -- agents defined in .claude/agents/ may need different invocation.
+
+**Why:** Note-taking is a fundamental personal assistant capability. Every major desktop assistant has it. AIPA lacked any persistent note-taking feature.
+**How to apply:** Future note enhancements (search, categories, Markdown) should extend the `Note` interface in app.types.ts and the `notes` prefs key. Same pattern as custom templates.
+
+### Iteration 121 (2026-03-28)
+- **Features**: Note-Chat Integration -- "Send to Chat" from Notes panel + "Save as Note" from assistant message context menu
+- **Changes**: NotesPanel.tsx (+MessageSquareShare button per note), MessageContextMenu.tsx (+onSaveAsNote prop), Message.tsx (+handleSaveAsNote callback creating Note via prefs store), en.json/zh-CN.json (+5 keys each)
+- **Pattern used**: Reused existing `quotedText` store mechanism for "Send to Chat" (same as Quote Reply). Note creation uses same prefs persistence pattern as existing CRUD.
+- **No bugs found**: Build clean, all 10 acceptance criteria met on first pass.
+- **Pipeline note**: Sub-agent invocation via Skill tool still fails. Leader executed all agent roles directly (same as Iteration 120).
+
+**Why:** Notes and Chat existed in isolation. Users had to copy-paste between them. Integration makes AIPA feel like a cohesive assistant.
+**How to apply:** Future note integrations (drag-and-drop, @note mentions, note search from chat) should use the same `setQuotedText` pattern for injecting text into chat input.

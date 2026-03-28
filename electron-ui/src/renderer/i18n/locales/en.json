@@ -157,6 +157,9 @@
     "editSave": "Save & Send",
     "rewindSuccess": "Files reverted to state before this message",
     "rewindFailed": "Rewind failed: {{error}}",
+    "saveAsNote": "Save as Note",
+    "savedToNotes": "Saved to Notes",
+    "notesLimitReached": "Notes limit reached",
     "justNow": "just now",
     "secsAgo": "{{count}}s ago",
     "minsAgo": "{{count}}m ago",
@@ -521,6 +524,8 @@
     "minsAgo": "{{count}}m ago",
     "hoursAgo": "{{count}}h ago",
     "yesterday": "Yesterday",
-    "daysAgo": "{{count}}d ago"
+    "daysAgo": "{{count}}d ago",
+    "sendToChat": "Send to Chat",
+    "sentToChat": "Sent to chat"
   }
 }

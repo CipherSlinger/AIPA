@@ -323,6 +323,14 @@
 | Character count + timestamps | `prd-quick-notes-v1.md` | P1 | DONE (Iteration 120) |
 | i18n for all notes UI (en + zh-CN) | `prd-quick-notes-v1.md` | P1 | DONE (Iteration 120) |
 
+### Iteration 121 -- Note-Chat Integration
+
+| Feature | PRD | Priority | Status |
+|---------|-----|----------|--------|
+| "Send to Chat" button on notes | `prd-note-chat-integration-v1.md` | P1 | DONE (Iteration 121) |
+| "Save as Note" in message context menu | `prd-note-chat-integration-v1.md` | P1 | DONE (Iteration 121) |
+| i18n for integration UI (en + zh-CN) | `prd-note-chat-integration-v1.md` | P1 | DONE (Iteration 121) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |
@@ -355,3 +363,4 @@
 | 2026-03-28 | Iteration 118: Lazy-load node-pty | Critical recurring bug: hard `import` of node-pty crashed entire main process when native binary missing. Changed to lazy `require()` with try-catch so terminal gracefully shows error with rebuild instructions instead of blank panel. |
 | 2026-03-28 | Iteration 119: Custom Prompt Templates | Users need reusable workflows beyond the 6 built-in templates. Custom templates support the "personal assistant" direction by letting users build a library of prompts (meeting notes, email drafts, weekly reports). Uses existing electron-store prefs system, no new dependencies. |
 | 2026-03-28 | Iteration 120: Quick Notes | Core personal assistant capability: users need to jot down notes alongside conversations. Every major assistant app (Notion AI, Doubao, macOS Notes) has integrated note-taking. Uses proven electron-store prefs pattern, zero new dependencies. |
+| 2026-03-28 | Iteration 121: Note-Chat Integration | Notes and Chat exist in isolation. Users must copy-paste between them. Bridging these two features with "Send to Chat" and "Save as Note" makes AIPA feel like a cohesive assistant rather than separate tools. Zero new dependencies, renderer-side only. |

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Plus, ArrowLeft, Trash2, NotebookPen } from 'lucide-react'
-import { usePrefsStore } from '../../store'
+import { Plus, ArrowLeft, Trash2, NotebookPen, MessageSquareShare } from 'lucide-react'
+import { usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import { Note } from '../../types/app.types'
 
@@ -26,6 +26,8 @@ function generateId(): string {
 export default function NotesPanel() {
   const t = useT()
   const { prefs, setPrefs } = usePrefsStore()
+  const setQuotedText = useUiStore(s => s.setQuotedText)
+  const addToast = useUiStore(s => s.addToast)
   const notes: Note[] = prefs.notes || []
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null)
@@ -135,6 +137,16 @@ export default function NotesPanel() {
     const timer = setTimeout(() => setDeletingNoteId(null), 3000)
     return () => clearTimeout(timer)
   }, [deletingNoteId])
+
+  const handleSendToChat = (note: Note, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const noteTitle = note.title || t('notes.untitled')
+    const text = note.content
+      ? `[Note: ${noteTitle}]\n${note.content}`
+      : `[Note: ${noteTitle}]`
+    setQuotedText(text)
+    addToast({ type: 'success', message: t('notes.sentToChat'), duration: 2000 })
+  }
 
   const editingNote = editingNoteId ? notes.find(n => n.id === editingNoteId) : null
 
@@ -325,28 +337,53 @@ export default function NotesPanel() {
                   {formatRelativeTime(note.updatedAt, t)}
                 </div>
               </div>
-              <button
-                onClick={(e) => handleDeleteNote(note.id, e)}
-                aria-label={deletingNoteId === note.id ? t('notes.deleteConfirm') : t('notes.delete')}
-                title={deletingNoteId === note.id ? t('notes.deleteConfirm') : undefined}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: deletingNoteId === note.id ? '#e06c75' : 'var(--text-muted)',
-                  cursor: 'pointer',
-                  padding: 4,
-                  borderRadius: 4,
-                  display: 'flex',
-                  alignItems: 'center',
-                  opacity: deletingNoteId === note.id ? 1 : 0.4,
-                  transition: 'opacity 0.15s, color 0.15s',
-                  flexShrink: 0,
-                }}
-                onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
-                onMouseLeave={e => { if (deletingNoteId !== note.id) e.currentTarget.style.opacity = '0.4' }}
-              >
-                <Trash2 size={14} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+                <button
+                  onClick={(e) => handleSendToChat(note, e)}
+                  aria-label={t('notes.sendToChat')}
+                  title={t('notes.sendToChat')}
+                  disabled={!note.title && !note.content}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    cursor: !note.title && !note.content ? 'default' : 'pointer',
+                    padding: 4,
+                    borderRadius: 4,
+                    display: 'flex',
+                    alignItems: 'center',
+                    opacity: !note.title && !note.content ? 0.3 : 0.4,
+                    transition: 'opacity 0.15s, color 0.15s',
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={e => { if (note.title || note.content) { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = 'var(--accent)' } }}
+                  onMouseLeave={e => { e.currentTarget.style.opacity = !note.title && !note.content ? '0.3' : '0.4'; e.currentTarget.style.color = 'var(--text-muted)' }}
+                >
+                  <MessageSquareShare size={14} />
+                </button>
+                <button
+                  onClick={(e) => handleDeleteNote(note.id, e)}
+                  aria-label={deletingNoteId === note.id ? t('notes.deleteConfirm') : t('notes.delete')}
+                  title={deletingNoteId === note.id ? t('notes.deleteConfirm') : undefined}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: deletingNoteId === note.id ? '#e06c75' : 'var(--text-muted)',
+                    cursor: 'pointer',
+                    padding: 4,
+                    borderRadius: 4,
+                    display: 'flex',
+                    alignItems: 'center',
+                    opacity: deletingNoteId === note.id ? 1 : 0.4,
+                    transition: 'opacity 0.15s, color 0.15s',
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
+                  onMouseLeave={e => { if (deletingNoteId !== note.id) e.currentTarget.style.opacity = '0.4' }}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
             </div>
           ))
         )}

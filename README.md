@@ -105,6 +105,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Zero TypeScript errors** — clean `tsc --noEmit` with full strict mode; SpeechRecognition Web API type declarations included
 - **Session tags** — color-coded tag system (Work, Personal, Research, Debug, Docs, Archive) for organizing sessions; assign via hover menu, filter by tag in sidebar, customize tag names in Settings
 - **Quick notes** — built-in notepad in the sidebar for jotting down ideas, to-dos, or key points alongside conversations; notes auto-save, persist across restarts, and support up to 100 entries
+- **Note-chat integration** — send any note to the chat input with one click ("Send to Chat"); save any assistant response as a note via right-click menu ("Save as Note"); seamlessly bridge note-taking and AI conversation
 
 ## Security
 

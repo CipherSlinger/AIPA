@@ -7,6 +7,7 @@ import ImageLightbox from '../shared/ImageLightbox'
 import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark, AlertTriangle, Code2, Check, CheckCheck, Clock, MessageSquareQuote, Pencil } from 'lucide-react'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
+import { Note } from '../../types/app.types'
 
 function relativeTime(ts: number, t: (key: string, params?: Record<string, string>) => string): string {
   const diff = Math.floor((Date.now() - ts) / 1000)
@@ -128,6 +129,31 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
       setTimeout(() => setCopied(false), 2000)
     })
   }, [message])
+
+  const addToast = useUiStore(s => s.addToast)
+  const handleSaveAsNote = useCallback(() => {
+    const text = (message as StandardChatMessage).content
+    if (!text) return
+    const MAX_NOTES = 100
+    const currentNotes: Note[] = usePrefsStore.getState().prefs.notes || []
+    if (currentNotes.length >= MAX_NOTES) {
+      addToast({ type: 'error', message: t('message.notesLimitReached'), duration: 3000 })
+      return
+    }
+    const now = Date.now()
+    const title = text.slice(0, 50) + (text.length > 50 ? '...' : '')
+    const newNote: Note = {
+      id: `note-${now}-${Math.random().toString(36).slice(2, 8)}`,
+      title,
+      content: text,
+      createdAt: now,
+      updatedAt: now,
+    }
+    const updated = [newNote, ...currentNotes]
+    usePrefsStore.getState().setPrefs({ notes: updated })
+    window.electronAPI.prefsSet('notes', updated)
+    addToast({ type: 'success', message: t('message.savedToNotes'), duration: 2000 })
+  }, [message, addToast, t])
 
   const handleDoubleClick = useCallback(() => {
     const text = (message as StandardChatMessage).content
@@ -672,6 +698,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           message={message}
           onCopy={handleCopy}
           onCopyMarkdown={isAssistant ? handleCopyMarkdown : undefined}
+          onSaveAsNote={isAssistant && (message as StandardChatMessage).content ? handleSaveAsNote : undefined}
           onRate={onRate ? (rating) => onRate(message.id, rating) : undefined}
           onBookmark={onBookmark ? () => onBookmark(message.id) : undefined}
           onCollapse={onCollapse ? () => onCollapse(message.id) : undefined}
