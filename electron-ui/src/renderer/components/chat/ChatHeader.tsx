@@ -202,7 +202,7 @@ export default function ChatHeader({
           {sessionTitle
             ? sessionTitle
             : sessionId
-            ? `Session: ${sessionId.slice(0, 8)}...`
+            ? t('chat.sessionPrefix', { id: sessionId.slice(0, 8) })
             : `${model?.split('-').slice(0, 3).join('-') || 'claude'}`}
         </span>
       )}
@@ -341,7 +341,7 @@ export default function ChatHeader({
                   <span style={{ color: 'var(--text-muted)', fontSize: 10, marginRight: 6 }}>
                     {std.role === 'user' ? t('chat.you') : t('chat.claude')}
                   </span>
-                  {preview || '(empty)'}
+                  {preview || t('chat.emptyPreview')}
                 </button>
               )
             })}
@@ -415,7 +415,7 @@ export default function ChatHeader({
               { label: t('chat.statsClaudeMessages'), value: conversationStats.assistant },
               { label: t('chat.statsTotalWords'), value: conversationStats.totalWords.toLocaleString() },
               { label: t('chat.statsToolUses'), value: conversationStats.toolUseCount },
-              { label: t('chat.statsDuration'), value: `~${conversationStats.durationMin} min` },
+              { label: t('chat.statsDuration'), value: t('chat.statsDurationValue', { min: String(conversationStats.durationMin) }) },
             ].map(({ label, value }) => (
               <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 11 }}>
                 <span style={{ color: 'var(--text-muted)' }}>{label}</span>

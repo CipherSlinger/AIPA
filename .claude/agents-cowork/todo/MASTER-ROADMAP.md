@@ -509,6 +509,14 @@
 |---------|----------|--------|
 | Replace hardcoded 'Sure?', '(no content)', 'No matches', 'No session history' with i18n | P2-fix | DONE (Iteration 143) |
 
+### Iteration 144 -- ToolUseBlock & ChatHeader i18n Completeness
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Replace hardcoded INPUT/OUTPUT/(no output) in ToolUseBlock with i18n | P2-fix | DONE (Iteration 144) |
+| Replace hardcoded Session:/\(empty\)/min in ChatHeader with i18n | P2-fix | DONE (Iteration 144) |
+| Add tool.input, tool.output, tool.noOutput, chat.sessionPrefix, chat.emptyPreview keys | P2-fix | DONE (Iteration 144) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

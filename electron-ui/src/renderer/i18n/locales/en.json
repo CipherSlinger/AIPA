@@ -86,7 +86,9 @@
     "scrollToBottom": "Scroll to bottom",
     "newMessages": "{{count}} new message",
     "newMessagesPlural": "{{count}} new messages",
-    "contextWarning": "Context window {{percent}}% full. Consider starting a new conversation for best results."
+    "contextWarning": "Context window {{percent}}% full. Consider starting a new conversation for best results.",
+    "sessionPrefix": "Session: {{id}}...",
+    "emptyPreview": "(empty)"
   },
   "welcome": {
     "title": "Hello! I'm AIPA",
@@ -507,6 +509,11 @@
     "rejected": "Rejected",
     "approve": "Approve & Continue",
     "reject": "Reject"
+  },
+  "tool": {
+    "input": "INPUT",
+    "output": "OUTPUT",
+    "noOutput": "(no output)"
   },
   "lightbox": {
     "zoomIn": "Zoom in (+)",

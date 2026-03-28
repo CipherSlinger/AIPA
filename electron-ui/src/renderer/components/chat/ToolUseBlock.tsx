@@ -218,7 +218,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
         <div style={{ borderTop: '1px solid var(--border)' }}>
           {/* Input section */}
           <div style={{ padding: '6px 8px' }}>
-            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4 }}>INPUT</div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4 }}>{t('tool.input')}</div>
             {isFileEdit && (tool.input.old_str || tool.input.new_str || tool.input.old_string || tool.input.new_string) ? (
               <>
                 {tool.input.path && (
@@ -236,7 +236,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
           {/* Output section */}
           {tool.result !== undefined && (
             <div style={{ borderTop: '1px solid var(--border)' }}>
-              <div style={{ padding: '4px 8px 0', fontSize: 10, color: 'var(--text-muted)' }}>OUTPUT</div>
+              <div style={{ padding: '4px 8px 0', fontSize: 10, color: 'var(--text-muted)' }}>{t('tool.output')}</div>
               {isBash ? (
                 <pre style={{
                   margin: 0, padding: '4px 8px 6px',
@@ -246,7 +246,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
                   whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                   borderRadius: '0 0 6px 6px',
                 }}>
-                  {resultText || '(no output)'}
+                  {resultText || t('tool.noOutput')}
                 </pre>
               ) : (
                 <pre style={{
