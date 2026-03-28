@@ -234,6 +234,16 @@
     "languageZhCN": "\u7b80\u4f53\u4e2d\u6587",
     "apiKey": "API Key",
     "model": "Model",
+    "models": {
+      "opus46": "Claude Opus (Most Powerful)",
+      "sonnet46": "Claude Sonnet (Recommended)",
+      "haiku45": "Claude Haiku (Fastest)",
+      "opus4": "Claude Opus 4",
+      "sonnet45": "Claude Sonnet 4.5",
+      "sonnet37": "Claude 3.7 Sonnet",
+      "sonnet35": "Claude 3.5 Sonnet",
+      "haiku35": "Claude 3.5 Haiku"
+    },
     "systemPrompt": "Custom System Prompt",
     "systemPromptPlaceholder": "Enter custom instructions appended to every conversation...",
     "systemPromptHint": "Passed via --append-system-prompt. Takes effect on new conversations.",

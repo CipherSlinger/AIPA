@@ -6,25 +6,23 @@ import { PROMPT_TEMPLATES } from '../../utils/promptTemplates'
 import type { CustomPromptTemplate } from '../../types/app.types'
 
 const TAG_PRESETS_SETTINGS = [
-  { id: 'tag-1', color: '#3b82f6' },
-  { id: 'tag-2', color: '#22c55e' },
-  { id: 'tag-3', color: '#f59e0b' },
-  { id: 'tag-4', color: '#ef4444' },
-  { id: 'tag-5', color: '#8b5cf6' },
-  { id: 'tag-6', color: '#6b7280' },
+  { id: 'tag-1', color: '#3b82f6', defaultKey: 'tags.work' },
+  { id: 'tag-2', color: '#22c55e', defaultKey: 'tags.personal' },
+  { id: 'tag-3', color: '#f59e0b', defaultKey: 'tags.research' },
+  { id: 'tag-4', color: '#ef4444', defaultKey: 'tags.debug' },
+  { id: 'tag-5', color: '#8b5cf6', defaultKey: 'tags.docs' },
+  { id: 'tag-6', color: '#6b7280', defaultKey: 'tags.archive' },
 ]
 
-const DEFAULT_TAG_NAMES = ['Work', 'Personal', 'Research', 'Debug', 'Docs', 'Archive']
-
-const MODEL_OPTIONS: { id: string; label: string }[] = [
-  { id: 'claude-opus-4-6',            label: 'Claude Opus (Most Powerful)' },
-  { id: 'claude-sonnet-4-6',          label: 'Claude Sonnet (Recommended)' },
-  { id: 'claude-haiku-4-5',           label: 'Claude Haiku (Fastest)' },
-  { id: 'claude-opus-4',              label: 'Claude Opus 4' },
-  { id: 'claude-sonnet-4-5',          label: 'Claude Sonnet 4.5' },
-  { id: 'claude-3-7-sonnet-20250219', label: 'Claude 3.7 Sonnet' },
-  { id: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet' },
-  { id: 'claude-3-5-haiku-20241022',  label: 'Claude 3.5 Haiku' },
+const MODEL_OPTIONS: { id: string; labelKey: string }[] = [
+  { id: 'claude-opus-4-6',            labelKey: 'settings.models.opus46' },
+  { id: 'claude-sonnet-4-6',          labelKey: 'settings.models.sonnet46' },
+  { id: 'claude-haiku-4-5',           labelKey: 'settings.models.haiku45' },
+  { id: 'claude-opus-4',              labelKey: 'settings.models.opus4' },
+  { id: 'claude-sonnet-4-5',          labelKey: 'settings.models.sonnet45' },
+  { id: 'claude-3-7-sonnet-20250219', labelKey: 'settings.models.sonnet37' },
+  { id: 'claude-3-5-sonnet-20241022', labelKey: 'settings.models.sonnet35' },
+  { id: 'claude-3-5-haiku-20241022',  labelKey: 'settings.models.haiku35' },
 ]
 
 const FONT_FAMILIES: { id: string; label: string }[] = [
@@ -72,7 +70,8 @@ export default function SettingsPanel() {
   const [saved, setSaved] = useState(false)
   const [settingsTab, setSettingsTab] = useState<'general' | 'templates' | 'mcp' | 'about'>('general')
   const [mcpServers, setMcpServers] = useState<{ name: string; command?: string; disabled?: boolean }[]>([])
-  const [localTagNames, setLocalTagNames] = useState<string[]>(prefs.tagNames || DEFAULT_TAG_NAMES)
+  const defaultTagNames = TAG_PRESETS_SETTINGS.map(tp => t(tp.defaultKey))
+  const [localTagNames, setLocalTagNames] = useState<string[]>(prefs.tagNames || defaultTagNames)
 
   // Custom prompt templates state
   const [customTemplates, setCustomTemplates] = useState<CustomPromptTemplate[]>(prefs.customPromptTemplates || [])
@@ -204,7 +203,7 @@ export default function SettingsPanel() {
           {/* Model */}
           {field(t('settings.model'), (
             <select value={local.model} onChange={(e) => setLocal({ ...local, model: e.target.value })} style={{ ...inputStyle }}>
-              {MODEL_OPTIONS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+              {MODEL_OPTIONS.map((m) => <option key={m.id} value={m.id}>{t(m.labelKey)}</option>)}
             </select>
           ))}
 

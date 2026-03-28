@@ -234,6 +234,16 @@
     "languageZhCN": "\u7b80\u4f53\u4e2d\u6587",
     "apiKey": "API \u5bc6\u94a5",
     "model": "\u6a21\u578b",
+    "models": {
+      "opus46": "Claude Opus\uff08\u6700\u5f3a\u6027\u80fd\uff09",
+      "sonnet46": "Claude Sonnet\uff08\u63a8\u8350\uff09",
+      "haiku45": "Claude Haiku\uff08\u6700\u5feb\u901f\u5ea6\uff09",
+      "opus4": "Claude Opus 4",
+      "sonnet45": "Claude Sonnet 4.5",
+      "sonnet37": "Claude 3.7 Sonnet",
+      "sonnet35": "Claude 3.5 Sonnet",
+      "haiku35": "Claude 3.5 Haiku"
+    },
     "systemPrompt": "\u81ea\u5b9a\u4e49\u7cfb\u7edf\u63d0\u793a\u8bcd",
     "systemPromptPlaceholder": "\u8f93\u5165\u6bcf\u6b21\u5bf9\u8bdd\u8ffd\u52a0\u7684\u81ea\u5b9a\u4e49\u6307\u4ee4...",
     "systemPromptHint": "\u901a\u8fc7 --append-system-prompt \u4f20\u9012\u3002\u5728\u65b0\u5bf9\u8bdd\u4e2d\u751f\u6548\u3002",

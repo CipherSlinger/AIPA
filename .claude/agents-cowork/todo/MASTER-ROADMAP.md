@@ -529,6 +529,11 @@
 - **Files changed**: `SessionList.tsx`
 - **Status**: Done
 
+### Iteration 147 — i18n model selector labels and tag name defaults
+- **Feature**: Replace hardcoded English model option labels with i18n keys; use i18n defaults for tag names in settings
+- **Files changed**: `SettingsPanel.tsx`, `en.json`, `zh-CN.json`
+- **Status**: Done
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |
