@@ -1,5 +1,5 @@
 import React from 'react'
-import { Bot, FolderSearch, Bug, Sparkles, FileCode2, Settings, Terminal, FolderOpen, Keyboard } from 'lucide-react'
+import { Bot, Mail, FileText, ClipboardList, Lightbulb, Settings, Terminal, FolderOpen, Keyboard } from 'lucide-react'
 import { useUiStore } from '../../store'
 import { useT } from '../../i18n'
 
@@ -10,10 +10,10 @@ interface Props {
 export default function WelcomeScreen({ onSuggestion }: Props) {
   const t = useT()
   const suggestions = [
-    { icon: FolderSearch, text: t('welcome.suggestion.analyzeCode') },
-    { icon: Bug, text: t('welcome.suggestion.findBug') },
-    { icon: Sparkles, text: t('welcome.suggestion.newFeature') },
-    { icon: FileCode2, text: t('welcome.suggestion.writeScript') },
+    { icon: Mail, text: t('welcome.suggestion.draftEmail') },
+    { icon: FileText, text: t('welcome.suggestion.summarizeDoc') },
+    { icon: ClipboardList, text: t('welcome.suggestion.weeklyReport') },
+    { icon: Lightbulb, text: t('welcome.suggestion.explainConcept') },
   ]
 
   const shortcuts = [

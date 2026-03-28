@@ -267,6 +267,12 @@
 |---------|-----|----------|--------|
 | Fix user bubble dark theme readability | `prd-fix-user-bubble-color-v1.md` | P0-ux | DONE (Iteration 113) |
 
+### Iteration 114 -- Welcome Screen Personal Assistant Repositioning
+
+| Feature | PRD | Priority | Status |
+|---------|-----|----------|--------|
+| Welcome Screen & placeholder personal assistant alignment | `prd-welcome-personal-assistant-v1.md` | P1 | DONE (Iteration 114) |
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

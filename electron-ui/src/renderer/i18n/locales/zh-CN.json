@@ -11,13 +11,13 @@
     "placeholder": "\u7ed9 AIPA \u53d1\u6d88\u606f...",
     "placeholders": {
       "default": "\u7ed9 AIPA \u53d1\u6d88\u606f...",
-      "analyzeCode": "\u8ba9\u6211\u5206\u6790\u4f60\u7684\u4ee3\u7801...",
-      "describeBug": "\u63cf\u8ff0\u4e00\u4e2a\u9700\u8981\u8c03\u67e5\u7684 Bug...",
-      "explainFunction": "\u8bd5\u8bd5: \"\u89e3\u91ca\u8fd9\u4e2a\u51fd\u6570\"",
-      "writeTest": "\u8ba9\u6211\u5199\u4e00\u4e2a\u6d4b\u8bd5...",
-      "refactorFile": "\u8bd5\u8bd5: \"\u91cd\u6784\u8fd9\u4e2a\u6587\u4ef6\"",
-      "buildFeature": "\u63cf\u8ff0\u4e00\u4e2a\u8981\u5f00\u53d1\u7684\u529f\u80fd...",
-      "reviewPR": "\u8ba9\u6211\u5ba1\u67e5\u4e00\u4e2a PR..."
+      "draftEmail": "\u5e2e\u6211\u8d77\u8349\u4e00\u5c01\u90ae\u4ef6...",
+      "summarize": "\u5e2e\u6211\u603b\u7ed3\u8fd9\u4e2a\u5185\u5bb9...",
+      "weeklyReport": "\u5199\u4e00\u4efd\u5468\u62a5...",
+      "explainConcept": "\u7ed9\u6211\u89e3\u91ca\u8fd9\u4e2a\u6982\u5ff5...",
+      "organize": "\u5e2e\u6211\u6574\u7406\u601d\u8def...",
+      "translate": "\u5e2e\u6211\u7ffb\u8bd1\u8fd9\u6bb5\u6587\u5b57...",
+      "helpCode": "\u5e2e\u6211\u5199\u4ee3\u7801..."
     },
     "send": "\u53d1\u9001",
     "stop": "\u505c\u6b62",
@@ -86,19 +86,12 @@
   },
   "welcome": {
     "title": "\u4f60\u597d\uff01\u6211\u662f AIPA",
-    "subtitle": "\u4f60\u7684 AI \u667a\u80fd\u52a9\u624b\uff0c\u64c5\u957f\u7f16\u7a0b\u3001\u5206\u6790\u548c\u521b\u610f\u5de5\u4f5c\u3002",
+    "subtitle": "\u4f60\u7684 AI \u4e2a\u4eba\u52a9\u624b\u2014\u2014\u5199\u4f5c\u3001\u5206\u6790\u3001\u7f16\u7a0b\uff0c\u65e0\u6240\u4e0d\u80fd\u3002",
     "suggestion": {
-      "analyzeCode": "\u5206\u6790\u4ee3\u7801\u7ed3\u6784",
-      "findBug": "\u67e5\u627e\u5e76\u4fee\u590d Bug",
-      "newFeature": "\u5b9e\u73b0\u65b0\u529f\u80fd",
-      "writeScript": "\u7f16\u5199\u81ea\u52a8\u5316\u811a\u672c",
-      "exploreProject": "\u63a2\u7d22\u9879\u76ee",
-      "exploreDesc": "\u6d4f\u89c8\u548c\u7406\u89e3\u4efb\u610f\u4ee3\u7801\u5e93",
-      "findBugDesc": "\u63cf\u8ff0\u95ee\u9898\uff0c\u6211\u6765\u8c03\u67e5",
-      "generateCode": "\u751f\u6210\u4ee3\u7801",
-      "generateDesc": "\u63cf\u8ff0\u4f60\u9700\u8981\u6784\u5efa\u7684\u5185\u5bb9",
-      "reviewCode": "\u5ba1\u67e5\u4ee3\u7801",
-      "reviewDesc": "\u83b7\u53d6\u4ee3\u7801\u53cd\u9988"
+      "draftEmail": "\u5e2e\u6211\u8d77\u8349\u90ae\u4ef6",
+      "summarizeDoc": "\u603b\u7ed3\u4e00\u7bc7\u6587\u6863",
+      "weeklyReport": "\u5199\u4e00\u4efd\u5468\u62a5",
+      "explainConcept": "\u7ed9\u6211\u89e3\u91ca\u4e00\u4e2a\u6982\u5ff5"
     },
     "shortcuts": "\u952e\u76d8\u5feb\u6377\u952e",
     "shortcut": {

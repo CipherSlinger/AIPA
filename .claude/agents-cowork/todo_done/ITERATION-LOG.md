@@ -1539,3 +1539,35 @@ CSS: 20.89 kB
 - [x] Light theme bubbles unchanged (#2563eb with white text)
 - [x] WCAG AA contrast ratio met (6.0:1, exceeds 4.5:1 requirement)
 - [x] Build passes with zero errors
+
+---
+
+## Iteration 114 -- Welcome Screen & Placeholders Personal Assistant Repositioning
+
+_Date: 2026-03-28 | Sprint Product Positioning_
+
+### Summary
+Repositioned the Welcome Screen and input placeholders from developer-centric to personal assistant-oriented, aligning with the user's explicit product direction feedback. Replaced 4 code-focused suggestion cards (Analyze Code, Find Bug, New Feature, Write Script) with 4 general-purpose cards (Draft Email, Summarize Document, Weekly Report, Explain Concept). Updated the subtitle from "coding, analysis, and creative work" to "writing, analysis, coding, and more". Replaced 7 developer-only input placeholders with a diverse mix where 6 of 8 are non-coding tasks. Updated icons from developer-focused (FolderSearch, Bug, Sparkles, FileCode2) to general-purpose (Mail, FileText, ClipboardList, Lightbulb). All strings updated in both en.json and zh-CN.json.
+
+### Files Changed
+- `src/renderer/components/chat/WelcomeScreen.tsx` -- Changed imports from developer icons to general icons (Mail, FileText, ClipboardList, Lightbulb); updated suggestion card keys to personal assistant tasks
+- `src/renderer/components/chat/ChatInput.tsx` -- Replaced 7 developer-focused PLACEHOLDER_KEYS with personal assistant-oriented keys (draftEmail, summarize, weeklyReport, explainConcept, organize, translate, helpCode)
+- `src/renderer/i18n/locales/en.json` -- Updated welcome subtitle, replaced all suggestion keys, replaced all placeholder keys with personal assistant tasks
+- `src/renderer/i18n/locales/zh-CN.json` -- Updated Chinese translations for all modified keys
+
+### Build
+Status: SUCCESS
+
+```
+main: tsc clean
+preload: tsc clean
+renderer: 2397 modules transformed, built in 7.58s
+JS: 1,062.26 kB (slightly reduced from 1,062.82 kB)
+```
+
+### Acceptance Criteria
+- [x] Welcome Screen shows 4 diverse suggestion cards (email, document, report, concept)
+- [x] Subtitle mentions broad capabilities ("writing, analysis, coding, and more")
+- [x] 6 of 8 placeholder suggestions are non-coding tasks
+- [x] All new strings have both en and zh-CN translations
+- [x] Build passes with zero errors

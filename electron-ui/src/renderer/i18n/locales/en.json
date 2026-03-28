@@ -11,13 +11,13 @@
     "placeholder": "Message AIPA...",
     "placeholders": {
       "default": "Message AIPA...",
-      "analyzeCode": "Ask me to analyze your code...",
-      "describeBug": "Describe a bug to investigate...",
-      "explainFunction": "Try: \"Explain this function\"",
-      "writeTest": "Ask me to write a test...",
-      "refactorFile": "Try: \"Refactor this file\"",
-      "buildFeature": "Describe a feature to build...",
-      "reviewPR": "Ask me to review a PR..."
+      "draftEmail": "Help me draft an email...",
+      "summarize": "Summarize this for me...",
+      "weeklyReport": "Write a weekly status report...",
+      "explainConcept": "Explain this concept to me...",
+      "organize": "Help me organize my thoughts...",
+      "translate": "Translate this text...",
+      "helpCode": "Help me with my code..."
     },
     "send": "Send",
     "stop": "Stop",
@@ -86,19 +86,12 @@
   },
   "welcome": {
     "title": "Hello! I'm AIPA",
-    "subtitle": "Your AI-powered assistant for coding, analysis, and creative work.",
+    "subtitle": "Your AI-powered personal assistant -- writing, analysis, coding, and more.",
     "suggestion": {
-      "analyzeCode": "Analyze code structure",
-      "findBug": "Find and fix a bug",
-      "newFeature": "Implement a new feature",
-      "writeScript": "Write an automation script",
-      "exploreProject": "Explore a project",
-      "exploreDesc": "Browse and understand any codebase",
-      "findBugDesc": "Describe an issue and I'll investigate",
-      "generateCode": "Generate code",
-      "generateDesc": "Describe what you need built",
-      "reviewCode": "Review code",
-      "reviewDesc": "Get feedback on your code"
+      "draftEmail": "Help me draft an email",
+      "summarizeDoc": "Summarize a document",
+      "weeklyReport": "Create a weekly report",
+      "explainConcept": "Explain a concept to me"
     },
     "shortcuts": "Keyboard Shortcuts",
     "shortcut": {

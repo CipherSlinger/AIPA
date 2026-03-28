@@ -10,13 +10,13 @@ import { useT } from '../../i18n'
 // Placeholder suggestion i18n keys
 const PLACEHOLDER_KEYS = [
   'chat.placeholders.default',
-  'chat.placeholders.analyzeCode',
-  'chat.placeholders.describeBug',
-  'chat.placeholders.explainFunction',
-  'chat.placeholders.writeTest',
-  'chat.placeholders.refactorFile',
-  'chat.placeholders.buildFeature',
-  'chat.placeholders.reviewPR',
+  'chat.placeholders.draftEmail',
+  'chat.placeholders.summarize',
+  'chat.placeholders.weeklyReport',
+  'chat.placeholders.explainConcept',
+  'chat.placeholders.organize',
+  'chat.placeholders.translate',
+  'chat.placeholders.helpCode',
 ]
 
 interface ChatInputProps {
