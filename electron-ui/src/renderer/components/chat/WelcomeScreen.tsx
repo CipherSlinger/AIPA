@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { Bot, Mail, FileText, ClipboardList, Lightbulb, Settings, Terminal, FolderOpen, Keyboard, History, X } from 'lucide-react'
-import { useUiStore } from '../../store'
+import { Bot, Mail, FileText, ClipboardList, Lightbulb, Settings, Terminal, FolderOpen, Keyboard, History, X, MessageSquare, Layers, Clock } from 'lucide-react'
+import { useUiStore, useSessionStore } from '../../store'
 import { useT } from '../../i18n'
 
 /** Returns a time-of-day greeting key */
@@ -18,6 +18,7 @@ interface Props {
 export default function WelcomeScreen({ onSuggestion }: Props) {
   const t = useT()
   const [greeting, setGreeting] = useState(getGreetingKey())
+  const sessions = useSessionStore(s => s.sessions)
 
   // Update greeting every minute in case the user leaves the app open across time boundaries
   useEffect(() => {
@@ -42,6 +43,18 @@ export default function WelcomeScreen({ onSuggestion }: Props) {
     try { localStorage.removeItem('aipa:input-history') } catch { /* ignore */ }
     setRecentPrompts([])
   }
+
+  // Compute usage stats from session store
+  const usageStats = useMemo(() => {
+    const totalSessions = sessions.length
+    const totalMessages = sessions.reduce((sum, s) => sum + (s.messageCount || 0), 0)
+    // Count sessions from today
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    const todayTs = todayStart.getTime()
+    const sessionsToday = sessions.filter(s => s.timestamp >= todayTs).length
+    return { totalSessions, totalMessages, sessionsToday }
+  }, [sessions])
 
   const suggestions = [
     { icon: Mail, text: t('welcome.suggestion.draftEmail'), templateId: 'writing-assistant' },
@@ -89,6 +102,41 @@ export default function WelcomeScreen({ onSuggestion }: Props) {
           {t('welcome.subtitle')}
         </div>
       </div>
+
+      {/* Usage stats bar */}
+      {usageStats.totalSessions > 0 && (
+        <div style={{
+          display: 'flex',
+          gap: 20,
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: '8px 16px',
+          background: 'var(--card-bg)',
+          border: '1px solid var(--card-border)',
+          borderRadius: 20,
+          fontSize: 11,
+          color: 'var(--text-muted)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Layers size={12} style={{ opacity: 0.6 }} />
+            <span><b style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{usageStats.totalSessions}</b> {t('welcome.statsSessions')}</span>
+          </div>
+          <div style={{ width: 1, height: 14, background: 'var(--border)', opacity: 0.5 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <MessageSquare size={12} style={{ opacity: 0.6 }} />
+            <span><b style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{usageStats.totalMessages}</b> {t('welcome.statsMessages')}</span>
+          </div>
+          {usageStats.sessionsToday > 0 && (
+            <>
+              <div style={{ width: 1, height: 14, background: 'var(--border)', opacity: 0.5 }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Clock size={12} style={{ opacity: 0.6 }} />
+                <span><b style={{ color: 'var(--accent)', fontWeight: 600 }}>{usageStats.sessionsToday}</b> {t('welcome.statsToday')}</span>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Suggestion cards */}
       <div style={{ display: 'flex', gap: 12, marginTop: 4, flexWrap: 'wrap', justifyContent: 'center' }}>

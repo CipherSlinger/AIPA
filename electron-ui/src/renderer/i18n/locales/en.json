@@ -118,7 +118,10 @@
     "openSettings": "Settings",
     "openTerminal": "Terminal",
     "openFiles": "Files",
-    "showShortcuts": "Shortcuts"
+    "showShortcuts": "Shortcuts",
+    "statsSessions": "sessions",
+    "statsMessages": "messages",
+    "statsToday": "today"
   },
   "message": {
     "copy": "Copy text",
