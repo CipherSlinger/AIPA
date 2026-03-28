@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Upload, RefreshCw, AlertTriangle } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
+import { StandardChatMessage } from '../../types/app.types'
 import { useStreamJson } from '../../hooks/useStreamJson'
 import { useStreamingTimer } from '../../hooks/useStreamingTimer'
 import { useChatZoom } from '../../hooks/useChatZoom'
@@ -13,6 +14,7 @@ import SearchBar from './SearchBar'
 import TaskQueuePanel from './TaskQueuePanel'
 import ThinkingIndicator from './ThinkingIndicator'
 import WelcomeScreen from './WelcomeScreen'
+import FollowUpChips from './FollowUpChips'
 import { formatMarkdown } from '../../utils/formatMarkdown'
 import { formatHtml } from '../../utils/formatHtml'
 import { getTemplateById } from '../../utils/promptTemplates'
@@ -68,6 +70,16 @@ export default function ChatPanel() {
 
   // Regeneration
   const canRegenerate = !isStreaming && messages.length >= 2 && messages[messages.length - 1]?.role === 'assistant'
+
+  // Compute last assistant message content for follow-up suggestions
+  const lastAssistantContent = useMemo(() => {
+    if (isStreaming || messages.length === 0) return ''
+    const last = messages[messages.length - 1]
+    if (last?.role === 'assistant') {
+      return (last as StandardChatMessage).content || ''
+    }
+    return ''
+  }, [messages, isStreaming])
 
   const handleRegenerate = async () => {
     if (isStreaming) return
@@ -461,6 +473,14 @@ export default function ChatPanel() {
             <span>{t('chat.regenerate')}</span>
           </button>
         </div>
+      )}
+
+      {/* Follow-up suggestion chips */}
+      {lastAssistantContent && !isStreaming && (
+        <FollowUpChips
+          lastAssistantContent={lastAssistantContent}
+          onSelect={(prompt) => sendMessage(prompt)}
+        />
       )}
 
       {/* Zoom indicator */}

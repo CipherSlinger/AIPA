@@ -1950,3 +1950,9 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 183 (2026-03-28)
 - Fix node-pty native module crash (P0 bug) -- recompiled node-pty for Electron v39 ABI; hardened postinstall script with explicit electron-rebuild step + verify-pty.js verification; addressed recurring user feedback about broken terminal
+
+### Iteration 184 (2026-03-28)
+- Skill marketplace v2 with community skills -- replaced 10 generic AI-written skills with 24 real community-sourced skills from GitHub (Anthropic, alirezarezvani, jezweb); added sourceUrl field to MarketplaceSkill interface; added source attribution button with ExternalLink icon on each marketplace card; expanded categories from 5 to 7 (added DevOps, Design); category pills now show per-category skill count; all skills have real author names and GitHub source links; i18n for en + zh-CN (source, openOnGitHub)
+
+### Iteration 185 (2026-03-28)
+- Follow-up suggestion chips -- contextual follow-up prompts appear after Claude finishes responding; 2-3 chips based on content analysis (code, comparison, translation, list, etc.); chips disappear when a new message is sent; FollowUpChips.tsx component; 13 follow-up patterns with i18n for en + zh-CN

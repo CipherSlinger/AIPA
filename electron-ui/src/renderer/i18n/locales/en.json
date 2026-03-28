@@ -692,6 +692,34 @@
     "installing": "Installing...",
     "installSuccess": "Skill installed successfully",
     "useNow": "Installed",
-    "by": "by"
+    "by": "by",
+    "source": "Source",
+    "openOnGitHub": "Open on GitHub"
+  },
+  "followUp": {
+    "explainCode": "Explain this code",
+    "explainCodePrompt": "Can you explain the code above in more detail? Break down how it works step by step.",
+    "elaborateSteps": "Elaborate on steps",
+    "elaborateStepsPrompt": "Can you elaborate on each step in more detail?",
+    "keyTakeaways": "Key takeaways",
+    "keyTakeawaysPrompt": "What are the key takeaways or most important points from your response?",
+    "recommend": "Which do you recommend?",
+    "recommendPrompt": "Based on the comparison above, which option would you recommend and why?",
+    "makeFormal": "Make it more formal",
+    "makeFormalPrompt": "Can you rewrite this in a more formal and professional tone?",
+    "makeConcise": "Make it shorter",
+    "makeConcisePrompt": "Can you make this more concise while keeping the key information?",
+    "improveTranslation": "Improve translation",
+    "improveTranslationPrompt": "Can you improve the translation above to sound more natural?",
+    "expandPoints": "Expand on these points",
+    "expandPointsPrompt": "Can you expand on each of these points with more detail?",
+    "addToTable": "Add more details",
+    "addToTablePrompt": "Can you add more detail or additional columns/rows to this table?",
+    "continueLabel": "Continue",
+    "continuePrompt": "Please continue.",
+    "simplify": "Simplify",
+    "simplifyPrompt": "Can you explain this in simpler terms?",
+    "giveExample": "Give an example",
+    "giveExamplePrompt": "Can you give me a practical example?"
   }
 }

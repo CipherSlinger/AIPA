@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   Puzzle, Search, X, RefreshCw, Play, ArrowLeft, Trash2,
-  FolderOpen, Download, CheckCircle, Store, Package,
+  FolderOpen, Download, CheckCircle, Store, Package, ExternalLink,
 } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useUiStore, useChatStore } from '../../store'
@@ -416,6 +416,7 @@ export default function SkillsPanel() {
             label={t('skills.allCategories')}
             isActive={marketplaceCategory === null}
             color={undefined}
+            count={MARKETPLACE_SKILLS.length}
             onClick={() => setMarketplaceCategory(null)}
           />
           {SKILL_CATEGORIES.map(cat => (
@@ -424,6 +425,7 @@ export default function SkillsPanel() {
               label={cat}
               isActive={marketplaceCategory === cat}
               color={CATEGORY_COLORS[cat]}
+              count={MARKETPLACE_SKILLS.filter(s => s.category === cat).length}
               onClick={() => setMarketplaceCategory(cat === marketplaceCategory ? null : cat)}
             />
           ))}
@@ -584,10 +586,11 @@ function TabButton({ label, icon, isActive, count, onClick }: {
   )
 }
 
-function CategoryPill({ label, isActive, color, onClick }: {
+function CategoryPill({ label, isActive, color, count, onClick }: {
   label: string
   isActive: boolean
   color?: string
+  count?: number
   onClick: () => void
 }) {
   return (
@@ -617,6 +620,17 @@ function CategoryPill({ label, isActive, color, onClick }: {
         }} />
       )}
       {label}
+      {count != null && (
+        <span style={{
+          fontSize: 9,
+          fontWeight: 600,
+          opacity: 0.7,
+          minWidth: 14,
+          textAlign: 'center',
+        }}>
+          {count}
+        </span>
+      )}
     </button>
   )
 }
@@ -805,8 +819,38 @@ function MarketplaceCard({ skill, isInstalled, isInstalling, onInstall, onUse, t
             fontSize: 10,
             color: 'var(--text-muted)',
             opacity: 0.7,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
           }}>
-            {t('skills.by')} {skill.author}
+            <span>{t('skills.by')} {skill.author}</span>
+            {skill.sourceUrl && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  window.electronAPI.shellOpenExternal(skill.sourceUrl)
+                }}
+                title={t('skills.openOnGitHub')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  padding: '1px 6px',
+                  borderRadius: 8,
+                  border: '1px solid var(--card-border)',
+                  background: 'transparent',
+                  color: 'var(--text-muted)',
+                  fontSize: 9,
+                  cursor: 'pointer',
+                  transition: 'color 0.15s, border-color 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--accent)' }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--card-border)' }}
+              >
+                <ExternalLink size={9} />
+                {t('skills.source')}
+              </button>
+            )}
           </div>
         </div>
         <div style={{ flexShrink: 0 }}>
