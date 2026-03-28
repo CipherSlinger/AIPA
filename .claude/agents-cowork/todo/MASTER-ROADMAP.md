@@ -609,6 +609,9 @@
 ### Iteration 163 (2026-03-28)
 - File browser click-to-mention -- clicking a file inserts @filepath into chat input for quick file referencing
 
+### Iteration 164 (2026-03-28)
+- Session export from sidebar -- Download button in session action buttons exports conversation as Markdown file
+
 ### Backlog (Sprint 5+)
 
 | Feature | Priority | Notes |

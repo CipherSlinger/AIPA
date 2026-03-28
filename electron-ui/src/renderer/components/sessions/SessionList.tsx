@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react'
-import { Trash2, RefreshCw, MessageSquare, GitBranch, Pencil, ArrowUpDown, Star, Search, Tag, Check } from 'lucide-react'
+import { Trash2, RefreshCw, MessageSquare, GitBranch, Pencil, ArrowUpDown, Star, Search, Tag, Check, Download } from 'lucide-react'
 import { SessionListItem, SessionMessage, StandardChatMessage, ToolUseInfo, ChatMessage } from '../../types/app.types'
 import { useSessionStore, useChatStore, useUiStore, usePrefsStore } from '../../store'
 import { SkeletonSessionRow } from '../ui/Skeleton'
@@ -316,6 +316,43 @@ export default function SessionList() {
       await loadSessions()
     } else {
       addToast('error', t('session.forkFailed'))
+    }
+  }
+
+  const exportSession = async (e: React.MouseEvent, session: SessionListItem) => {
+    e.stopPropagation()
+    try {
+      const raw = await window.electronAPI.sessionLoad(session.sessionId)
+      const chatMessages = parseSessionMessages(raw)
+      // Format as Markdown
+      const title = session.title || session.lastPrompt || 'Untitled Session'
+      const lines: string[] = [`# ${title}\n`]
+      lines.push(`_Exported: ${new Date().toLocaleString()} | Messages: ${chatMessages.length}_\n`)
+      lines.push('---\n')
+      for (const msg of chatMessages) {
+        if (msg.role === 'user') {
+          lines.push(`## You\n`)
+          lines.push((msg as StandardChatMessage).content + '\n')
+        } else if (msg.role === 'assistant') {
+          lines.push(`## Claude\n`)
+          lines.push((msg as StandardChatMessage).content + '\n')
+        }
+      }
+      const markdown = lines.join('\n')
+      const sanitizedTitle = title.replace(/[<>:"/\\|?*]/g, '_').slice(0, 50)
+      const filePath = await window.electronAPI.fsShowSaveDialog(`${sanitizedTitle}.md`, [
+        { name: 'Markdown', extensions: ['md'] },
+        { name: 'Text', extensions: ['txt'] },
+      ])
+      if (!filePath) return
+      const result = await window.electronAPI.fsWriteFile(filePath, markdown)
+      if (result?.error) {
+        addToast('error', t('chat.exportFailed', { error: result.error }))
+      } else {
+        addToast('success', t('chat.exportSuccess'))
+      }
+    } catch (err) {
+      addToast('error', t('chat.exportFailed', { error: String(err) }))
     }
   }
 
@@ -888,6 +925,13 @@ export default function SessionList() {
                 style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
               >
                 <GitBranch size={11} />
+              </button>
+              <button
+                onClick={(e) => exportSession(e, session)}
+                title={t('session.export')}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+              >
+                <Download size={11} />
               </button>
               <button
                 onClick={(e) => deleteSession(e, session.sessionId)}

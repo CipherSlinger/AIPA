@@ -219,6 +219,7 @@
     "deleted": "Session deleted",
     "forked": "Session forked",
     "forkFailed": "Failed to fork session",
+    "export": "Export session",
     "doubleClickRename": "Double-click to rename"
   },
   "settings": {
