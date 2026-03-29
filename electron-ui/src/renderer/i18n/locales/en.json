@@ -795,6 +795,16 @@
     "emptyClipboard": "Clipboard is empty",
     "clipboardError": "Could not read clipboard"
   },
+  "datetime": {
+    "insertDate": "Insert Date/Time",
+    "today": "Today",
+    "now": "Now",
+    "time": "Time",
+    "tomorrow": "Tomorrow",
+    "yesterday": "Yesterday",
+    "weekday": "Day of week",
+    "iso": "ISO date"
+  },
   "skills": {
     "title": "Skills",
     "installed": "Installed",

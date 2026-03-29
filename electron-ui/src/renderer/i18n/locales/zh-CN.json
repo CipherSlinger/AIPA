@@ -795,6 +795,16 @@
     "emptyClipboard": "\u526a\u8d34\u677f\u4e3a\u7a7a",
     "clipboardError": "\u65e0\u6cd5\u8bfb\u53d6\u526a\u8d34\u677f"
   },
+  "datetime": {
+    "insertDate": "\u63d2\u5165\u65e5\u671f/\u65f6\u95f4",
+    "today": "\u4eca\u5929",
+    "now": "\u73b0\u5728",
+    "time": "\u65f6\u95f4",
+    "tomorrow": "\u660e\u5929",
+    "yesterday": "\u6628\u5929",
+    "weekday": "\u661f\u671f",
+    "iso": "ISO \u65e5\u671f"
+  },
   "skills": {
     "title": "\u6280\u80fd",
     "installed": "\u5df2\u5b89\u88c5",

@@ -2170,3 +2170,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 253 (2026-03-29)
 - README batch update for iterations 249-252 -- added 4 new feature entries to both README.md and README_CN.md covering: inline prompt autocomplete (ghost text + Tab), favorite prompts quick access (Star button), conversation summarize button, long text paste detection; 2 files changed; no build needed
+
+### Iteration 254 (2026-03-29)
+- Typing speed WPM indicator -- compose status bar now shows real-time words-per-minute typing speed when actively typing; calculated from keystroke timestamps over a 10-second rolling window (chars/5 per minute); displays with accent color when >60 WPM; updates every second; auto-clears when idle; i18n: 1 new key (chat.wpm) in en.json and zh-CN.json; 3 files changed; build SUCCESS

@@ -412,6 +412,13 @@ export default function ChatInput({
           textareaRef.current?.focus()
         }}
         onSend={onSend}
+        onInsertText={(text) => {
+          setInput(prev => {
+            const sep = prev.length > 0 && !prev.endsWith(' ') ? ' ' : ''
+            return prev + sep + text
+          })
+          setTimeout(() => textareaRef.current?.focus(), 0)
+        }}
         hasInput={!!input.trim()}
       />
       {/* Quick reply chips */}
