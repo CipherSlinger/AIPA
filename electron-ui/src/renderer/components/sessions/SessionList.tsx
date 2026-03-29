@@ -22,10 +22,10 @@ export default function SessionList() {
   const actions = useSessionListActions()
 
   const [filter, setFilter] = useState('')
-  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'alpha'>(() => {
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'alpha' | 'messages'>(() => {
     try {
       const stored = localStorage.getItem('aipa:session-sort')
-      if (stored === 'newest' || stored === 'oldest' || stored === 'alpha') return stored
+      if (stored === 'newest' || stored === 'oldest' || stored === 'alpha' || stored === 'messages') return stored
     } catch {}
     return 'newest'
   })
@@ -187,10 +187,11 @@ export default function SessionList() {
       if (aPinned !== bPinned) return bPinned - aPinned
       if (sortBy === 'oldest') return a.timestamp - b.timestamp
       if (sortBy === 'alpha') return (a.title || a.lastPrompt).localeCompare(b.title || b.lastPrompt)
+      if (sortBy === 'messages') return (b.messageCount || 0) - (a.messageCount || 0)
       return b.timestamp - a.timestamp
     })
 
-  const showDateGroups = sortBy !== 'alpha' && !filter
+  const showDateGroups = sortBy !== 'alpha' && sortBy !== 'messages' && !filter
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -241,18 +242,18 @@ export default function SessionList() {
         </button>
         <button
           onClick={() => setSortBy(prev => {
-            const next = prev === 'newest' ? 'oldest' : prev === 'oldest' ? 'alpha' : 'newest'
+            const next = prev === 'newest' ? 'oldest' : prev === 'oldest' ? 'alpha' : prev === 'alpha' ? 'messages' : 'newest'
             try { localStorage.setItem('aipa:session-sort', next) } catch {}
             return next
           })}
-          title={`${t('session.sort')}: ${sortBy === 'newest' ? t('session.sortNewest') : sortBy === 'oldest' ? t('session.sortOldest') : t('session.sortAlpha')}`}
+          title={`${t('session.sort')}: ${sortBy === 'newest' ? t('session.sortNewest') : sortBy === 'oldest' ? t('session.sortOldest') : sortBy === 'messages' ? t('session.sortMessages') : t('session.sortAlpha')}`}
           style={{
             background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
             display: 'flex', alignItems: 'center', gap: 2, fontSize: 10,
           }}
         >
           <ArrowUpDown size={11} />
-          <span>{sortBy === 'newest' ? t('session.sortNew') : sortBy === 'oldest' ? t('session.sortOld') : 'A-Z'}</span>
+          <span>{sortBy === 'newest' ? t('session.sortNew') : sortBy === 'oldest' ? t('session.sortOld') : sortBy === 'messages' ? t('session.sortMsgs') : 'A-Z'}</span>
         </button>
         <button
           onClick={() => {

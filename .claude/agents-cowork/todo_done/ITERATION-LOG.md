@@ -2107,3 +2107,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 232 (2026-03-28)
 - Paste URL detection with quick action chips -- ChatInput.tsx: when user pastes text containing a URL, detects it via regex and shows quick action chips (Summarize/Explain/Translate) with the URL preview; clicking a chip prepends the action text to the input; chips auto-dismiss after 8 seconds or manual close; clears on send; uses Link2 icon from lucide-react; 3 new i18n keys (chat.urlAction.summarize/explain/translate) in en.json and zh-CN.json; 3 files changed; build SUCCESS
+
+### Iteration 233 (2026-03-28)
+- Session sort by message count -- SessionList.tsx: added 'messages' sort option to the sort cycle (Newest -> Oldest -> A-Z -> Messages -> Newest); sorts by messageCount descending (most messages first); date group headers disabled for message sort; 4 new i18n keys (sortMessages, sortMsgs in both locales); 3 files changed; build SUCCESS
