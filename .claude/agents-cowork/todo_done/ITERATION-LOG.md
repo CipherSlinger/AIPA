@@ -2173,3 +2173,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 254 (2026-03-29)
 - Typing speed WPM indicator -- compose status bar now shows real-time words-per-minute typing speed when actively typing; calculated from keystroke timestamps over a 10-second rolling window (chars/5 per minute); displays with accent color when >60 WPM; updates every second; auto-clears when idle; i18n: 1 new key (chat.wpm) in en.json and zh-CN.json; 3 files changed; build SUCCESS
+
+### Iteration 255 (2026-03-29)
+- Date/time quick-insert toolbar button -- Calendar icon button in InputToolbar opens a dropdown with 7 date/time format options (Today, Now, Time, Tomorrow, Yesterday, Day of week, ISO date); clicking an option inserts the formatted date/time string at the cursor position; dates use locale-aware formatting; DateTimeInsert sub-component with click-outside dismiss; i18n: 8 new keys under datetime namespace in en.json and zh-CN.json; 4 files changed; build SUCCESS

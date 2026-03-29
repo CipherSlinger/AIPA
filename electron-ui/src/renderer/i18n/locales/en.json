@@ -476,7 +476,8 @@
     "insertSlashCommand": "Insert slash command",
     "stopRecording": "Stop recording",
     "voiceInput": "Voice input",
-    "favoritePrompts": "Favorite prompts"
+    "favoritePrompts": "Favorite prompts",
+    "emoji": "Insert emoji"
   },
   "quickReply": {
     "labelPlaceholder": "Label",
