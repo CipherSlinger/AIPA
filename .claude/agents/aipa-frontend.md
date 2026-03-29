@@ -181,12 +181,22 @@ const messages = useChatStore(s => s.messages)
 - **超过 600 行**：必须在下一次迭代中安排分解重构，拆分为子组件 + hooks
 - **超过 800 行**：当前迭代内就应启动分解，不要继续往大文件添加功能
 
-已知需要分解的组件（截至 Iteration 207）：
-- `ChatHeader.tsx` (862 lines) -- 提取 model switcher、persona switcher、bookmarks panel
-- `ChatInput.tsx` (908 lines) -- 提取 clipboard actions、speech recognition、at-mention popup
-- `Message.tsx` (866 lines) -- 提取 hover toolbar、edit mode、status indicators
-- `SettingsPersonas.tsx` (643 lines) -- 提取 persona editor、preset installer
-- `WelcomeScreen.tsx` (523 lines) -- 提取 persona cards、suggestion cards、stats bar
+<!-- improved by agent-leader 2026-03-29: 更新分解积压列表，所有 207 时代的积压已清零 -->
+已分解完成的组件（Iteration 208-227 期间全部清零）：
+- ~~`ChatHeader.tsx`~~ (862→353 lines, Iter 209)
+- ~~`ChatInput.tsx`~~ (935→407 lines, Iter 212)
+- ~~`Message.tsx`~~ (889→307 lines, Iter 214)
+- ~~`SettingsPersonas.tsx`~~ (643→315 lines, Iter 218)
+- ~~`WelcomeScreen.tsx`~~ (523→363 lines, Iter 223)
+- ~~`MessageContent.tsx`~~ (686→293 lines, Iter 220)
+- ~~`SessionList.tsx`~~ (708→532 lines, Iter 221)
+- ~~`NoteEditor.tsx`~~ (628→331 lines, Iter 224)
+- ~~`NotesPanel.tsx`~~ (511→206 lines, Iter 226)
+- ~~`MessageList.tsx`~~ (666→395 lines, Iter 227)
+
+当前关注列表（截至 Iteration 227）：
+- `ChatPanel.tsx` (621 lines) -- 最大组件，待分解
+- `SessionList.tsx` (532 lines) -- 仍高于 400 行阈值，可进一步分解
 
 ---
 

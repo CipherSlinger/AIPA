@@ -2090,3 +2090,5 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 227 (2026-03-29)
 - MessageList decomposition refactor -- MessageList.tsx reduced from 666 to 395 lines (41% reduction); extracted messageListUtils.ts (126 lines, formatDateLabel/formatTimeGap/formatResponseTime helpers, ListItem type, scrollPositionMap, useBuildItems/useShowAvatarMap/useLastUserMsgId/useAssistantReplyMap hooks), useMessageListScroll.ts (184 lines, scroll position save/restore, auto-scroll, scroll-to-top/bottom buttons, unread count, scroll lock, keyboard navigation Ctrl+Home/End/PageUp/PageDown/Alt+Up/Down); pure refactor with zero visual or behavioral changes; 3 files changed; build SUCCESS
+
+[RETRO] retro-2026-03-29-iterations-218-227.md completed, covered Iteration 218-227, next forced retro after Iteration 237
