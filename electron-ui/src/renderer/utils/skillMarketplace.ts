@@ -1277,6 +1277,464 @@ Generate structured business reports from raw data.
 - Action items and recommendations
 `,
   },
+  // ── OpenClaw Skills (additional) ──
+  {
+    id: 'openclaw-code-explainer',
+    name: 'Code Explainer',
+    description: 'Explain complex code in plain language with line-by-line annotations, flow diagrams, and concept breakdowns.',
+    descriptionZh: '用通俗语言解释复杂代码，提供逐行注释、流程图和概念分解。',
+    author: 'OpenClaw',
+    sourceUrl: 'https://github.com/anthropics/claude-code/tree/main/.openclaw/code-explainer',
+    category: 'Code',
+    source: 'OpenClaw',
+    skillContent: `---
+name: code-explainer
+description: Explain complex code in plain language with annotations
+---
+
+# Code Explainer
+
+When asked to explain code:
+
+## Approach
+1. **Overview**: What does this code do in one sentence?
+2. **Architecture**: How are the pieces organized? (modules, classes, functions)
+3. **Line-by-Line**: Walk through key sections with annotations
+4. **Data Flow**: Trace how data moves through the system
+5. **Why**: Explain design decisions and trade-offs
+
+## Output Levels
+- **Beginner**: Use analogies, avoid jargon, explain every concept
+- **Intermediate**: Focus on patterns, idioms, and best practices
+- **Expert**: Highlight edge cases, performance, and alternative approaches
+
+Always ask the user's experience level if not provided.
+`,
+  },
+  {
+    id: 'openclaw-changelog-gen',
+    name: 'Changelog Generator',
+    description: 'Generate changelogs from git history following Keep a Changelog format with semantic versioning.',
+    descriptionZh: '从 Git 历史自动生成变更日志，遵循 Keep a Changelog 格式和语义化版本控制。',
+    author: 'OpenClaw',
+    sourceUrl: 'https://github.com/anthropics/claude-code/tree/main/.openclaw/changelog-gen',
+    category: 'DevOps',
+    source: 'OpenClaw',
+    skillContent: `---
+name: changelog-gen
+description: Generate changelogs from git history with semantic versioning
+---
+
+# Changelog Generator
+
+Generate structured changelogs from git commit history.
+
+## Process
+1. **Read History**: Analyze recent git commits and PR descriptions
+2. **Categorize Changes**:
+   - Added: New features
+   - Changed: Updates to existing functionality
+   - Deprecated: Soon-to-be-removed features
+   - Removed: Removed features
+   - Fixed: Bug fixes
+   - Security: Vulnerability patches
+3. **Version Suggestion**: Recommend semantic version bump (major/minor/patch)
+4. **Format**: Follow Keep a Changelog (keepachangelog.com) format
+
+## Output
+- Markdown changelog entry with date and version
+- Link to PR/commit for each change
+- Breaking changes highlighted at top
+`,
+  },
+  {
+    id: 'openclaw-prompt-engineer',
+    name: 'Prompt Engineer',
+    description: 'Optimize and refine prompts for better AI responses: structure, clarity, examples, and constraint specification.',
+    descriptionZh: '优化和改进提示词以获得更好的 AI 响应：结构、清晰度、示例和约束规范。',
+    author: 'OpenClaw',
+    sourceUrl: 'https://github.com/anthropics/claude-code/tree/main/.openclaw/prompt-engineer',
+    category: 'Productivity',
+    source: 'OpenClaw',
+    skillContent: `---
+name: prompt-engineer
+description: Optimize prompts for better AI responses
+---
+
+# Prompt Engineer
+
+Help users craft more effective prompts.
+
+## Analysis
+When given a prompt to improve:
+1. **Identify Issues**: Vagueness, missing context, conflicting instructions
+2. **Add Structure**: Role, task, format, constraints, examples
+3. **Optimize**: Remove ambiguity, add specificity, set clear expectations
+
+## Techniques
+- **Role Setting**: "You are a [specific expert] who..."
+- **Few-Shot Examples**: Provide 2-3 input/output examples
+- **Chain of Thought**: "Think step by step about..."
+- **Output Format**: Specify exact format (JSON, Markdown, table)
+- **Constraints**: Set boundaries on length, tone, scope
+
+## Quality Checklist
+- Is the task clear and specific?
+- Is the expected output format defined?
+- Are edge cases handled?
+- Is the tone/style specified?
+
+Output the improved prompt in a copyable code block.
+`,
+  },
+  {
+    id: 'openclaw-regex-wizard',
+    name: 'Regex Wizard',
+    description: 'Build, test, and explain regular expressions with visual breakdowns and test case generation.',
+    descriptionZh: '构建、测试和解释正则表达式，提供可视化分解和测试用例生成。',
+    author: 'OpenClaw',
+    sourceUrl: 'https://github.com/anthropics/claude-code/tree/main/.openclaw/regex-wizard',
+    category: 'Code',
+    source: 'OpenClaw',
+    skillContent: `---
+name: regex-wizard
+description: Build, test, and explain regular expressions
+---
+
+# Regex Wizard
+
+Help users create and understand regular expressions.
+
+## When Building Regex
+1. **Understand Requirements**: What should match? What should not?
+2. **Build Incrementally**: Start simple, add complexity step by step
+3. **Explain Each Part**: Break down the pattern with annotations
+4. **Test Cases**: Provide match/no-match examples
+
+## When Explaining Regex
+- Break the pattern into labeled segments
+- Explain each segment in plain English
+- Show what each part captures
+- Warn about common pitfalls (greedy vs lazy, backtracking)
+
+## Best Practices
+- Prefer named capture groups for readability
+- Use non-capturing groups (?:...) when capture isn't needed
+- Test edge cases: empty strings, special characters, Unicode
+- Consider performance for large inputs
+
+## Output Format
+\`\`\`
+Pattern: /regex-here/flags
+Explanation:
+  /regex/  — description of each part
+Test Cases:
+  ✓ "match1" → captures: [...]
+  ✗ "no-match1" → does not match
+\`\`\`
+`,
+  },
+
+  // ── Community Skills (additional everyday productivity) ──
+  {
+    id: 'community-decision-matrix',
+    name: 'Decision Matrix',
+    description: 'Structured decision-making using weighted criteria matrices, pros/cons analysis, and risk assessment.',
+    descriptionZh: '使用加权标准矩阵、优缺点分析和风险评估进行结构化决策。',
+    author: 'jezweb',
+    sourceUrl: 'https://github.com/jezweb/claude-skills/tree/main/plugins/productivity/decision-matrix',
+    category: 'Productivity',
+    source: 'Community',
+    skillContent: `---
+name: decision-matrix
+description: Structured decision-making with weighted criteria
+---
+
+# Decision Matrix
+
+Help users make well-reasoned decisions.
+
+## Process
+1. **Define Options**: List all alternatives being considered
+2. **Identify Criteria**: What factors matter? (cost, time, quality, risk, etc.)
+3. **Weight Criteria**: Rate importance of each criterion (1-5)
+4. **Score Options**: Rate each option against each criterion (1-5)
+5. **Calculate**: Weighted score = weight × score for each option
+6. **Analyze**: Compare total scores and discuss trade-offs
+
+## Output Format
+| Criteria | Weight | Option A | Option B | Option C |
+|----------|--------|----------|----------|----------|
+| Cost     | 4      | 3 (12)   | 5 (20)   | 2 (8)    |
+| ...      | ...    | ...      | ...      | ...      |
+| **Total**|        | **XX**   | **XX**   | **XX**   |
+
+## Additional Analysis
+- Sensitivity check: Would changing any weight flip the result?
+- Risk factors not captured in scores
+- Recommendation with reasoning
+`,
+  },
+  {
+    id: 'community-interview-prep',
+    name: 'Interview Prep Coach',
+    description: 'Prepare for job interviews with STAR method answers, technical question drills, and behavioral practice.',
+    descriptionZh: '使用 STAR 方法回答、技术问题训练和行为面试练习准备求职面试。',
+    author: 'alirezarezvani',
+    sourceUrl: 'https://github.com/alirezarezvani/claude-skills/tree/main/personal',
+    category: 'Productivity',
+    source: 'Community',
+    skillContent: `---
+name: interview-prep
+description: Job interview preparation with STAR answers and practice drills
+---
+
+# Interview Prep Coach
+
+Help users prepare for job interviews.
+
+## Behavioral Questions (STAR Method)
+For each question, structure the answer as:
+- **Situation**: Set the scene (1-2 sentences)
+- **Task**: What was your responsibility?
+- **Action**: What did you specifically do? (most detail here)
+- **Result**: What was the outcome? (quantify if possible)
+
+## Technical Preparation
+- Review common questions for the role/technology
+- Practice explaining concepts at different levels
+- Prepare "I don't know, but here's how I'd approach it" responses
+
+## Mock Interview Mode
+- Ask questions one at a time
+- Give feedback after each answer
+- Rate answers on: Clarity, Specificity, Relevance, Impact
+
+## General Tips
+- Research the company's recent news, products, culture
+- Prepare 3-5 questions to ask the interviewer
+- Practice the 2-minute self-introduction
+- Prepare salary negotiation talking points
+`,
+  },
+  {
+    id: 'community-content-calendar',
+    name: 'Content Calendar',
+    description: 'Plan and organize content publishing schedules across platforms with topic ideation and scheduling.',
+    descriptionZh: '规划和组织跨平台的内容发布日程，包含主题创意和排期。',
+    author: 'jezweb',
+    sourceUrl: 'https://github.com/jezweb/claude-skills/tree/main/plugins/social-media/content-calendar',
+    category: 'Creative',
+    source: 'Community',
+    skillContent: `---
+name: content-calendar
+description: Plan content publishing schedules with topic ideation
+---
+
+# Content Calendar
+
+Help users plan and manage content creation.
+
+## Monthly Planning
+1. **Theme Selection**: Choose 2-3 monthly themes aligned with goals
+2. **Content Mix**: Balance content types (educational, entertaining, promotional)
+3. **Platform Strategy**: Tailor content for each platform
+4. **Scheduling**: Map content to specific dates and times
+
+## Weekly Content Plan
+| Day | Platform | Type | Topic | Status |
+|-----|----------|------|-------|--------|
+| Mon | Blog | Educational | [topic] | Draft |
+| Tue | LinkedIn | Thought Leadership | [topic] | Scheduled |
+| ... | ... | ... | ... | ... |
+
+## Topic Ideation
+- Industry trends and news commentary
+- How-to guides and tutorials
+- Behind-the-scenes and process sharing
+- User stories and case studies
+- Repurpose: turn one piece into multiple formats
+
+## Best Practices
+- Batch content creation for efficiency
+- Leave buffer days for timely/reactive content
+- Track performance metrics to refine strategy
+`,
+  },
+  {
+    id: 'community-budget-planner',
+    name: 'Budget Planner',
+    description: 'Personal and project budget planning with expense tracking, savings goals, and financial projections.',
+    descriptionZh: '个人和项目预算规划，包含支出跟踪、储蓄目标和财务预测。',
+    author: 'alirezarezvani',
+    sourceUrl: 'https://github.com/alirezarezvani/claude-skills/tree/main/finance',
+    category: 'Productivity',
+    source: 'Community',
+    skillContent: `---
+name: budget-planner
+description: Budget planning with expense tracking and financial projections
+---
+
+# Budget Planner
+
+Help users create and manage budgets.
+
+## Personal Budget
+1. **Income**: List all income sources with amounts
+2. **Fixed Expenses**: Rent, subscriptions, insurance, loans
+3. **Variable Expenses**: Food, transport, entertainment, shopping
+4. **Savings Goals**: Emergency fund, investments, specific goals
+5. **50/30/20 Rule**: 50% needs, 30% wants, 20% savings
+
+## Project Budget
+1. **Cost Categories**: Personnel, tools, infrastructure, marketing
+2. **One-time vs Recurring**: Separate setup costs from ongoing expenses
+3. **Contingency**: Add 10-20% buffer for unknowns
+4. **Timeline**: Map costs to project phases
+
+## Output Format
+| Category | Monthly | Annual | % of Total |
+|----------|---------|--------|------------|
+| Housing  | $X,XXX  | $XX,XXX| XX%        |
+| ...      | ...     | ...    | ...        |
+
+## Analysis
+- Where are the biggest spending areas?
+- What can be optimized?
+- Are savings goals realistic given income?
+`,
+  },
+  {
+    id: 'community-learning-path',
+    name: 'Learning Path Designer',
+    description: 'Design structured learning paths for new skills with resources, milestones, and practice exercises.',
+    descriptionZh: '为新技能设计结构化学习路径，包含资源、里程碑和练习。',
+    author: 'alirezarezvani',
+    sourceUrl: 'https://github.com/alirezarezvani/claude-skills/tree/main/personal',
+    category: 'Research',
+    source: 'Community',
+    skillContent: `---
+name: learning-path
+description: Design structured learning paths with milestones and resources
+---
+
+# Learning Path Designer
+
+Create personalized learning paths for any skill.
+
+## Assessment
+1. **Current Level**: What do you already know?
+2. **Goal**: What do you want to achieve? By when?
+3. **Learning Style**: Reading, video, hands-on, discussion?
+4. **Time Budget**: How many hours per week?
+
+## Path Design
+1. **Foundations** (Week 1-2): Core concepts and vocabulary
+2. **Building Blocks** (Week 3-4): Essential skills and patterns
+3. **Application** (Week 5-6): Practice projects and exercises
+4. **Deepening** (Week 7-8): Advanced topics and specialization
+
+## For Each Module
+- Learning objectives (what you'll be able to do)
+- Recommended resources (free and paid options)
+- Practice exercises with expected time
+- Self-assessment quiz or project checkpoint
+
+## Progress Tracking
+- Weekly check-in questions
+- Milestone celebrations
+- Adjustment recommendations based on pace
+`,
+  },
+  {
+    id: 'community-presentation-builder',
+    name: 'Presentation Builder',
+    description: 'Create compelling presentation outlines with narrative structure, slide content, and speaker notes.',
+    descriptionZh: '创建引人入胜的演示文稿大纲，包含叙事结构、幻灯片内容和演讲备注。',
+    author: 'jezweb',
+    sourceUrl: 'https://github.com/jezweb/claude-skills/tree/main/plugins/writing/presentation-builder',
+    category: 'Writing',
+    source: 'Community',
+    skillContent: `---
+name: presentation-builder
+description: Create presentation outlines with narrative structure and speaker notes
+---
+
+# Presentation Builder
+
+Help users create compelling presentations.
+
+## Structure
+1. **Opening Hook** (1 slide): Question, statistic, or story that grabs attention
+2. **Problem/Context** (2-3 slides): Why this matters to the audience
+3. **Core Content** (5-8 slides): Key points with supporting evidence
+4. **Solution/Proposal** (2-3 slides): What you're recommending
+5. **Call to Action** (1 slide): What should the audience do next?
+
+## Per Slide
+- **Headline**: One key message (max 8 words)
+- **Visual**: Suggestion for image, chart, or diagram
+- **Bullet Points**: Max 3 points, max 7 words each
+- **Speaker Notes**: What to say (not what's on the slide)
+
+## Design Tips
+- One idea per slide
+- Use high-quality images over clip art
+- Data visualization over data tables
+- Consistent color scheme and fonts
+- White space is your friend
+
+## Timing Guide
+- Plan 1-2 minutes per slide
+- Leave 20% of time for Q&A
+- Practice transitions between sections
+`,
+  },
+  {
+    id: 'community-contract-reviewer',
+    name: 'Contract Reviewer',
+    description: 'Review contracts and agreements identifying key clauses, risks, unusual terms, and negotiation points.',
+    descriptionZh: '审查合同和协议，识别关键条款、风险、异常条款和谈判要点。',
+    author: 'alirezarezvani',
+    sourceUrl: 'https://github.com/alirezarezvani/claude-skills/tree/main/legal',
+    category: 'Productivity',
+    source: 'Community',
+    skillContent: `---
+name: contract-reviewer
+description: Review contracts identifying risks, key clauses, and negotiation points
+---
+
+# Contract Reviewer
+
+Help users understand and review contracts (not legal advice).
+
+## Review Checklist
+1. **Parties**: Who is involved? Are they correctly identified?
+2. **Scope**: What exactly is being agreed upon?
+3. **Term & Termination**: Duration, renewal, exit conditions
+4. **Payment**: Amount, schedule, late penalties, currency
+5. **Liability**: Caps, indemnification, insurance requirements
+6. **IP Ownership**: Who owns the work product?
+7. **Confidentiality**: NDA scope, duration, exceptions
+8. **Dispute Resolution**: Jurisdiction, arbitration, mediation
+
+## Red Flags
+- Unlimited liability clauses
+- Automatic renewal without notice requirements
+- Non-compete clauses that are overly broad
+- Unilateral amendment rights
+- Missing force majeure clause
+
+## Output Format
+- Summary of key terms (plain language)
+- Risk assessment (Low / Medium / High) for each section
+- Specific clauses to negotiate or modify
+- Questions to ask the other party
+
+**Disclaimer**: This is analysis assistance, not legal advice. Consult a lawyer for binding decisions.
+`,
+  },
+
   {
     id: 'clawhub-accessibility',
     name: 'Accessibility Toolkit',
