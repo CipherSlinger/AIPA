@@ -2087,3 +2087,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 226 (2026-03-29)
 - NotesPanel decomposition refactor -- NotesPanel.tsx reduced from 511 to 206 lines (60% reduction); extracted NotesHeader.tsx (260 lines, header toolbar with sort/export/import/new-note buttons + template dropdown menu with click-outside dismiss), useNotesIO.ts (113 lines, bulk export and import logic with file dialog APIs); NotesPanel.tsx now a thin orchestrator composing NotesHeader, search bar, CategoryFilterBar, CategoryManager, NoteList, and NoteEditor; NOTE_TEMPLATES constant moved to NotesHeader.tsx; pure refactor with zero visual or behavioral changes; 3 files changed; build SUCCESS
+
+### Iteration 227 (2026-03-29)
+- MessageList decomposition refactor -- MessageList.tsx reduced from 666 to 395 lines (41% reduction); extracted messageListUtils.ts (126 lines, formatDateLabel/formatTimeGap/formatResponseTime helpers, ListItem type, scrollPositionMap, useBuildItems/useShowAvatarMap/useLastUserMsgId/useAssistantReplyMap hooks), useMessageListScroll.ts (184 lines, scroll position save/restore, auto-scroll, scroll-to-top/bottom buttons, unread count, scroll lock, keyboard navigation Ctrl+Home/End/PageUp/PageDown/Alt+Up/Down); pure refactor with zero visual or behavioral changes; 3 files changed; build SUCCESS
