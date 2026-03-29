@@ -2078,3 +2078,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 223 (2026-03-29)
 - WelcomeScreen decomposition refactor -- WelcomeScreen.tsx reduced from 523 to 363 lines (31% reduction); extracted welcomeScreenConstants.ts (107 lines) with getGreetingKey, getPersonaStarters, getDefaultSuggestions, getShortcuts, getQuickActions functions and StarterItem/ShortcutDef/QuickAction interfaces; WelcomeScreen.tsx now imports constants and uses useMemo for suggestions/shortcuts/quickActions; removed duplicated persona starter logic, default suggestions data, shortcuts data, and quick actions data from the component body; pure refactor with zero visual or behavioral changes; 2 files changed; build SUCCESS
+
+### Iteration 224 (2026-03-29)
+- NoteEditor decomposition refactor -- NoteEditor.tsx reduced from 628 to 331 lines (47% reduction); extracted NoteEditorHeader.tsx (207 lines, editor toolbar with back button, edit/preview toggle, export/duplicate/pin buttons, save status, word/char count), NoteCategorySelector.tsx (153 lines, category dropdown with click-outside dismiss); moved FORMAT_ACTIONS constant and FormatAction interface to notesConstants.ts; pure refactor with zero visual or behavioral changes; 4 files changed; build SUCCESS

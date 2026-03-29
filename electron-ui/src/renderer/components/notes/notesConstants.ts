@@ -1,7 +1,28 @@
+import { Bold, Italic, Heading, List, ListOrdered, Code, Link } from 'lucide-react'
+
 export const MAX_NOTES = 100
 export const MAX_CONTENT_LENGTH = 10000
 export const MAX_CATEGORIES = 10
 export const MAX_CATEGORY_NAME = 20
+
+// Markdown formatting toolbar actions
+export interface FormatAction {
+  icon: React.ElementType
+  labelKey: string
+  prefix: string
+  suffix: string
+  blockMode?: boolean // true = applies to whole lines (heading, list)
+}
+
+export const FORMAT_ACTIONS: FormatAction[] = [
+  { icon: Bold, labelKey: 'notes.formatBold', prefix: '**', suffix: '**' },
+  { icon: Italic, labelKey: 'notes.formatItalic', prefix: '_', suffix: '_' },
+  { icon: Heading, labelKey: 'notes.formatHeading', prefix: '## ', suffix: '', blockMode: true },
+  { icon: List, labelKey: 'notes.formatBulletList', prefix: '- ', suffix: '', blockMode: true },
+  { icon: ListOrdered, labelKey: 'notes.formatNumberedList', prefix: '1. ', suffix: '', blockMode: true },
+  { icon: Code, labelKey: 'notes.formatCode', prefix: '`', suffix: '`' },
+  { icon: Link, labelKey: 'notes.formatLink', prefix: '[', suffix: '](url)' },
+]
 
 export const CATEGORY_COLORS = [
   '#3b82f6', // blue
