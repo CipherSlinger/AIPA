@@ -10,6 +10,7 @@ interface ContextMenuProps {
   onCopy: () => void
   onCopyMarkdown?: () => void
   onCopyRichText?: () => void
+  onCopyCodeBlocks?: () => void
   onSaveAsNote?: () => void
   onRememberThis?: () => void
   onQuoteReply?: () => void
@@ -22,7 +23,7 @@ interface ContextMenuProps {
   onClose: () => void
 }
 
-export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdown, onCopyRichText, onSaveAsNote, onRememberThis, onQuoteReply, onEditMessage, onRate, onRewind, onBookmark, onPin, onCollapse, onClose }: ContextMenuProps) {
+export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdown, onCopyRichText, onCopyCodeBlocks, onSaveAsNote, onRememberThis, onQuoteReply, onEditMessage, onRate, onRewind, onBookmark, onPin, onCollapse, onClose }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Clamp position to viewport
@@ -133,6 +134,18 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
           onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
         >
           <span>{t('message.copyRichText')}</span>
+        </button>
+      )}
+
+      {/* Copy Code Blocks (assistant only, when code blocks present) */}
+      {isAssistant && onCopyCodeBlocks && (
+        <button
+          style={itemStyle}
+          onClick={() => { onCopyCodeBlocks(); onClose() }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+        >
+          <span>{t('message.copyCodeBlocks')}</span>
         </button>
       )}
 

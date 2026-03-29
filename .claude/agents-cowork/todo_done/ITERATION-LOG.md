@@ -2203,3 +2203,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 264 (2026-03-29)
 - Message emoji reactions -- SmilePlus icon button in message hover toolbar opens emoji picker popup with 8 reaction emojis; clicking an emoji toggles it on/off the message (max 8 per message); reactions display as small chips below the message bubble; click a displayed reaction to remove it; reaction picker highlights already-selected emojis; hover scale animation on picker emojis; toggleReaction action in Zustand store with reactions array on StandardChatMessage; memo comparison updated; i18n: 2 new keys (message.addReaction, message.removeReaction) in en.json and zh-CN.json; 5 files changed; build SUCCESS
+
+### Iteration 265 (2026-03-29)
+- Copy code blocks from message -- right-click context menu option "Copy code blocks" on assistant messages that contain fenced code blocks; extracts all ```...``` code blocks from the message content, joins them, and copies to clipboard; handleCopyCodeBlocks added to useMessageActions hook using regex extraction; only appears in context menu when message contains code blocks; toast shows count of blocks copied; i18n: 3 new keys (message.copyCodeBlocks, message.codeBlocksCopied, message.noCodeBlocks) in en.json and zh-CN.json; 5 files changed; build SUCCESS

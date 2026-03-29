@@ -259,7 +259,10 @@
     "unpinned": "\u6d88\u606f\u5df2\u53d6\u6d88\u7f6e\u9876",
     "pinnedMessages": "\u7f6e\u9876\u6d88\u606f",
     "addReaction": "\u6dfb\u52a0\u8868\u60c5",
-    "removeReaction": "\u79fb\u9664\u8868\u60c5"
+    "removeReaction": "\u79fb\u9664\u8868\u60c5",
+    "copyCodeBlocks": "\u590d\u5236\u4ee3\u7801\u5757",
+    "codeBlocksCopied": "\u5df2\u590d\u5236 {{count}} \u4e2a\u4ee3\u7801\u5757",
+    "noCodeBlocks": "\u672a\u627e\u5230\u4ee3\u7801\u5757"
   },
   "selection": {
     "copySelection": "\u590d\u5236\u9009\u4e2d\u6587\u672c",

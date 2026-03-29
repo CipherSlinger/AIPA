@@ -172,6 +172,25 @@ export function useMessageActions({ message, isPermission, isPlan }: UseMessageA
     })
   }, [message, isPermission, isPlan])
 
+  const handleCopyCodeBlocks = useCallback(() => {
+    const text = (message as StandardChatMessage).content
+    if (!text) return
+    const codeBlockRegex = /```(?:\w*)\n([\s\S]*?)```/g
+    const blocks: string[] = []
+    let match: RegExpExecArray | null
+    while ((match = codeBlockRegex.exec(text)) !== null) {
+      blocks.push(match[1].trimEnd())
+    }
+    if (blocks.length === 0) {
+      addToast('info', t('message.noCodeBlocks'))
+      return
+    }
+    const combined = blocks.join('\n\n')
+    navigator.clipboard.writeText(combined).then(() => {
+      addToast('success', t('message.codeBlocksCopied', { count: String(blocks.length) }))
+    })
+  }, [message, addToast, t])
+
   return {
     copied,
     handleCopy,
@@ -184,5 +203,6 @@ export function useMessageActions({ message, isPermission, isPlan }: UseMessageA
     handleShare,
     handlePin,
     handleDoubleClick,
+    handleCopyCodeBlocks,
   }
 }

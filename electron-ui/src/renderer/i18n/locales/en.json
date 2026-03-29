@@ -259,7 +259,10 @@
     "unpinned": "Message unpinned",
     "pinnedMessages": "Pinned messages",
     "addReaction": "Add reaction",
-    "removeReaction": "Remove reaction"
+    "removeReaction": "Remove reaction",
+    "copyCodeBlocks": "Copy code blocks",
+    "codeBlocksCopied": "{{count}} code block(s) copied",
+    "noCodeBlocks": "No code blocks found"
   },
   "selection": {
     "copySelection": "Copy selected text",
