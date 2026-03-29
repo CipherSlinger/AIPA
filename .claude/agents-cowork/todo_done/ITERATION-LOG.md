@@ -2055,3 +2055,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 216 (2026-03-29)
 - Bookmarks panel polish -- (1) Role avatar icons replace text labels in bookmarks dropdown (User/Bot mini circles with avatar colors); (2) Relative timestamps shown under each bookmark preview; (3) Export bookmarks button (Download icon) in panel header exports only bookmarked messages as Markdown file; (4) Empty state enhanced with shortcut hint "Or click the bookmark icon on hover"; (5) Bookmark count shown in panel header title; 3 new i18n keys (bookmarkShortcutHint, exportBookmarks, bookmarksExported) in en.json and zh-CN.json; 5 files changed; build SUCCESS
+
+### Iteration 217 (2026-03-29)
+- Shortcut cheatsheet search, universal word/token tooltip -- (1) ShortcutCheatsheet now has a search/filter input at the top; filters shortcuts in real-time by action name or key combo using useMemo; autoFocus on open; accent border on focus; Search icon; (2) Word/token info tooltip extended from assistant-only to all messages (user and assistant) in Message.tsx; 1 new i18n key (shortcutCheatsheet.searchPlaceholder) in en.json and zh-CN.json; 4 files changed; build SUCCESS

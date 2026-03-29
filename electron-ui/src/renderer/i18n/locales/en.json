@@ -631,6 +631,7 @@
     "jumpToLastMessage": "Jump to last message",
     "pageUpDown": "Page up / Page down",
     "messageContextMenu": "Message context menu",
+    "searchPlaceholder": "Filter shortcuts...",
     "pressEscToClose": "Press Esc to close"
   },
   "plan": {

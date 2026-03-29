@@ -62,8 +62,8 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
     handleCopyMarkdown, handleCopyRichText, handleSaveAsNote, handleDoubleClick,
   } = useMessageActions({ message, isPermission, isPlan })
 
-  // Word info tooltip
-  const wordInfo = isAssistant && (message as StandardChatMessage).content
+  // Word info tooltip (both user and assistant messages)
+  const wordInfo = (message as StandardChatMessage).content
     ? (() => {
         const text = (message as StandardChatMessage).content
         const words = text.split(/\s+/).filter(w => w.length > 0).length

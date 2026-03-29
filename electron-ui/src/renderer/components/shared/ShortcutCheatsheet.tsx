@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { X } from 'lucide-react'
+import { X, Search } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 
@@ -60,6 +60,21 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
   const t = useT()
   const overlayRef = useRef<HTMLDivElement>(null)
   const focusTrapRef = useFocusTrap(true)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const [searchFilter, setSearchFilter] = useState('')
+
+  // Filter shortcuts based on search query
+  const filteredSections = useMemo(() => {
+    if (!searchFilter.trim()) return SHORTCUTS
+    const query = searchFilter.toLowerCase()
+    return SHORTCUTS.map(section => ({
+      ...section,
+      items: section.items.filter(item =>
+        t(`shortcutCheatsheet.${item.actionKey}`).toLowerCase().includes(query) ||
+        item.keys.toLowerCase().includes(query)
+      ),
+    })).filter(section => section.items.length > 0)
+  }, [searchFilter, t])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -100,7 +115,7 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
           boxShadow: 'var(--popup-shadow)',
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-bright)', margin: 0 }}>
             {t('shortcutCheatsheet.title')}
           </h2>
@@ -120,7 +135,33 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
           </button>
         </div>
 
-        {SHORTCUTS.map(section => (
+        {/* Search filter */}
+        <div style={{ position: 'relative', marginBottom: 12 }}>
+          <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchFilter}
+            onChange={(e) => setSearchFilter(e.target.value)}
+            placeholder={t('shortcutCheatsheet.searchPlaceholder')}
+            style={{
+              width: '100%',
+              padding: '6px 10px 6px 30px',
+              background: 'var(--bg-input)',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+              color: 'var(--text-primary)',
+              fontSize: 12,
+              outline: 'none',
+              boxSizing: 'border-box',
+            }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--accent)' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
+            autoFocus
+          />
+        </div>
+
+        {filteredSections.map(section => (
           <div key={section.sectionKey} style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
               {t(`shortcutCheatsheet.${section.sectionKey}`)}
