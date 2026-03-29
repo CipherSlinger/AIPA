@@ -315,9 +315,18 @@ export default function StatusBar() {
 
       {/* Right Zone: Metrics + Controls */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-        {/* Token usage */}
+        {/* Token usage (click to copy) */}
         {lastUsage && (
-          <span style={{ opacity: 0.85, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 3, fontSize: 10 }}>
+          <button
+            onClick={() => {
+              const text = `Input: ${lastUsage.inputTokens} tokens, Output: ${lastUsage.outputTokens} tokens${lastUsage.cacheTokens > 0 ? `, Cache: ${lastUsage.cacheTokens} tokens` : ''}`
+              navigator.clipboard.writeText(text).then(() => {
+                useUiStore.getState().addToast('success', t('toolbar.tokensCopied'))
+              })
+            }}
+            title={t('toolbar.clickToCopyTokens')}
+            style={{ opacity: 0.85, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 0 }}
+          >
             <ArrowUp size={9} />
             {fmt(lastUsage.inputTokens)}
             <ArrowDown size={9} />
@@ -328,18 +337,24 @@ export default function StatusBar() {
                 {fmt(lastUsage.cacheTokens)}
               </>
             )}
-          </span>
+          </button>
         )}
 
-        {/* Cost */}
+        {/* Cost (click to copy) */}
         {totalSessionCost > 0 && (
-          <span
-            style={{ opacity: 0.85, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 2, fontSize: 10 }}
+          <button
+            onClick={() => {
+              const text = `Session cost: $${totalSessionCost.toFixed(4)}${lastCost != null ? ` (last turn: $${lastCost.toFixed(4)})` : ''}`
+              navigator.clipboard.writeText(text).then(() => {
+                useUiStore.getState().addToast('success', t('toolbar.costCopied'))
+              })
+            }}
             title={lastCost != null ? t('toolbar.lastTurn', { cost: lastCost.toFixed(4), total: totalSessionCost.toFixed(4) }) : t('toolbar.sessionTotal', { total: totalSessionCost.toFixed(4) })}
+            style={{ opacity: 0.85, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 2, fontSize: 10, background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 0 }}
           >
             <DollarSign size={10} />
             {totalSessionCost < 0.001 ? '<$0.001' : `$${totalSessionCost.toFixed(3)}`}
-          </span>
+          </button>
         )}
 
         {/* Model badge (clickable) */}

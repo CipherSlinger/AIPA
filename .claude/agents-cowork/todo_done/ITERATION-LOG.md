@@ -2254,3 +2254,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 281 (2026-03-29)
 - README batch update for iterations 271-280 -- added 8 new feature entries to both README.md and README_CN.md covering: message annotations, input markdown formatting (Ctrl+B/I), focus timer (Pomodoro), save clipboard as note, copy stats button, message rating in toolbar, status bar model switcher; 2 files changed; no build needed
+
+### Iteration 282 (2026-03-29)
+- Status bar click-to-copy metrics -- token usage and cost displays in the status bar are now clickable buttons; clicking tokens copies "Input: X tokens, Output: Y tokens" to clipboard; clicking cost copies "Session cost: $X.XXXX" with last turn breakdown; toast confirmation on copy; i18n: 3 new keys (toolbar.tokensCopied, toolbar.costCopied, toolbar.clickToCopyTokens) in en.json and zh-CN.json; 3 files changed; build SUCCESS
