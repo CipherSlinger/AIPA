@@ -2242,3 +2242,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 277 (2026-03-29)
 - Save clipboard as note command -- new "Save Clipboard as Note" command in the command palette (Ctrl+Shift+P); reads clipboard text via navigator.clipboard.readText(), creates a new note with first 50 chars as title; respects 100 note limit; shows appropriate toasts for success/empty/error; i18n: 5 new keys (command.clipboardToNote, clipboardToNoteDesc, clipboardNoteSaved, clipboardEmpty, clipboardReadFailed) in en.json and zh-CN.json; 3 files changed; build SUCCESS
+
+### Iteration 278 (2026-03-29)
+- Copy stats button in stats panel -- added "Copy Stats" button to the conversation statistics popover; copies all stats as formatted text to clipboard (message counts, word/char totals, reading time, tool uses, duration, avg response time, annotations, session cost); button shows clipboard icon, switches to checkmark with "Stats copied" label for 2s after copy; i18n: 2 new keys (chat.copyStats, chat.statsCopied) in en.json and zh-CN.json; 3 files changed; build SUCCESS

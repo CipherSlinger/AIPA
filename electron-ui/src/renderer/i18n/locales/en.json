@@ -104,6 +104,8 @@
     "copyFailed": "Failed to copy",
     "conversationStats": "Conversation Stats",
     "statsSessionCost": "Session cost",
+    "copyStats": "Copy Stats",
+    "statsCopied": "Stats copied",
     "words": "words",
     "chars": "chars",
     "long": "long",

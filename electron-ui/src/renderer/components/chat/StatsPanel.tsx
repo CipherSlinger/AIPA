@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
-import { BarChart3 } from 'lucide-react'
-import { useChatStore } from '../../store'
+import { BarChart3, ClipboardCopy, Check } from 'lucide-react'
+import { useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import { useClickOutside } from '../../hooks/useClickOutside'
 import type { ConversationStats } from '../../hooks/useConversationStats'
@@ -21,8 +21,39 @@ export default function StatsPanel({
   hoverOut,
 }: StatsPanelProps) {
   const t = useT()
+  const addToast = useUiStore(s => s.addToast)
   const [showStats, setShowStats] = useState(false)
+  const [statsCopied, setStatsCopied] = useState(false)
   const statsRef = useRef<HTMLDivElement>(null)
+
+  const handleCopyStats = useCallback(() => {
+    const lines: string[] = [
+      `${t('chat.conversationStats')}`,
+      `${t('chat.statsMessages')}: ${conversationStats.total}`,
+      `${t('chat.statsYourMessages')}: ${conversationStats.user}`,
+      `${t('chat.statsClaudeMessages')}: ${conversationStats.assistant}`,
+      `${t('chat.statsTotalWords')}: ${conversationStats.totalWords.toLocaleString()}`,
+      `${t('chat.statsTotalChars')}: ${conversationStats.totalChars.toLocaleString()}`,
+      `${t('chat.statsReadingTime')}: ${t('chat.statsReadingTimeValue', { min: String(conversationStats.readingTimeMin) })}`,
+      `${t('chat.statsToolUses')}: ${conversationStats.toolUseCount}`,
+      `${t('chat.statsDuration')}: ${t('chat.statsDurationValue', { min: String(conversationStats.durationMin) })}`,
+    ]
+    if (conversationStats.avgResponseSec > 0) {
+      lines.push(`${t('chat.statsAvgResponse')}: ~${conversationStats.avgResponseSec}s`)
+    }
+    if (conversationStats.annotationCount > 0) {
+      lines.push(`${t('chat.statsAnnotations')}: ${conversationStats.annotationCount}`)
+    }
+    const cost = useChatStore.getState().totalSessionCost
+    if (cost > 0) {
+      lines.push(`${t('chat.statsSessionCost')}: $${cost.toFixed(4)}`)
+    }
+    navigator.clipboard.writeText(lines.join('\n')).then(() => {
+      setStatsCopied(true)
+      addToast('success', t('chat.statsCopied'))
+      setTimeout(() => setStatsCopied(false), 2000)
+    })
+  }, [conversationStats, addToast, t])
 
   useClickOutside(statsRef, showStats, useCallback(() => setShowStats(false), []))
 
@@ -118,6 +149,21 @@ export default function StatsPanel({
               {t('chat.expandAll')}
             </button>
           </div>
+          {/* Copy stats */}
+          <button
+            onClick={handleCopyStats}
+            style={{
+              width: '100%', marginTop: 6, background: 'var(--bg-input)', border: '1px solid var(--border)',
+              borderRadius: 4, padding: '4px 0', color: statsCopied ? 'var(--success)' : 'var(--text-muted)',
+              cursor: 'pointer', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+              transition: 'color 0.15s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+            onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+          >
+            {statsCopied ? <Check size={10} /> : <ClipboardCopy size={10} />}
+            {statsCopied ? t('chat.statsCopied') : t('chat.copyStats')}
+          </button>
         </div>
       )}
     </div>
