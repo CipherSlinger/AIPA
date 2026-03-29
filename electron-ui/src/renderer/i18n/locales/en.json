@@ -504,6 +504,15 @@
     "longer": "Make longer",
     "grammar": "Fix grammar"
   },
+  "tone": {
+    "title": "Response tone",
+    "default": "Default",
+    "concise": "Concise",
+    "detailed": "Detailed",
+    "professional": "Professional",
+    "casual": "Casual",
+    "creative": "Creative"
+  },
   "quickReply": {
     "labelPlaceholder": "Label",
     "promptPlaceholder": "Prompt text",

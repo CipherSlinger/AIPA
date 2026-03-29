@@ -504,6 +504,15 @@
     "longer": "\u6269\u5c55\u6587\u672c",
     "grammar": "\u4fee\u6b63\u8bed\u6cd5"
   },
+  "tone": {
+    "title": "\u56de\u590d\u98ce\u683c",
+    "default": "\u9ed8\u8ba4",
+    "concise": "\u7b80\u6d01",
+    "detailed": "\u8be6\u7ec6",
+    "professional": "\u4e13\u4e1a",
+    "casual": "\u968f\u610f",
+    "creative": "\u521b\u610f"
+  },
   "quickReply": {
     "labelPlaceholder": "\u6807\u7b7e",
     "promptPlaceholder": "\u63d0\u793a\u8bcd\u6587\u672c",

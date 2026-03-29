@@ -106,10 +106,25 @@ export function useStreamJson() {
       flags.push('--thinking', 'adaptive')
     }
 
-    // Build combined system prompt: user system prompt + memory context
+    // Build combined system prompt: user system prompt + response tone + memory context
     const systemPromptParts: string[] = []
     if (prefs.systemPrompt?.trim()) {
       systemPromptParts.push(prefs.systemPrompt.trim())
+    }
+
+    // Inject response tone modifier
+    if (prefs.responseTone && prefs.responseTone !== 'default') {
+      const toneInstructions: Record<string, string> = {
+        concise: 'Be concise and brief. Give short, direct answers without unnecessary elaboration.',
+        detailed: 'Be thorough and detailed. Provide comprehensive explanations with examples when helpful.',
+        professional: 'Use a professional, formal tone. Be precise and business-appropriate.',
+        casual: 'Use a casual, friendly tone. Be conversational and approachable.',
+        creative: 'Be creative and expressive. Use vivid language, metaphors, and an engaging style.',
+      }
+      const instruction = toneInstructions[prefs.responseTone]
+      if (instruction) {
+        systemPromptParts.push(`<response_tone>\n${instruction}\n</response_tone>`)
+      }
     }
 
     // Inject persistent memories as context

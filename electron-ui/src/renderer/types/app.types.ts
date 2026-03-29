@@ -93,6 +93,7 @@ export interface ClaudePrefs {
   systemPrompt?: string    // custom system prompt (passed via --append-system-prompt)
   maxTurns?: number        // --max-turns
   maxBudgetUsd?: number    // --max-budget-usd
+  responseTone?: 'default' | 'concise' | 'detailed' | 'professional' | 'casual' | 'creative'  // response style modifier
   notifySound?: boolean     // play sound when response completes (default true)
   compactMode?: boolean     // reduce spacing for power users (default false)
   quickReplies?: { label: string; prompt: string }[]  // quick reply template chips

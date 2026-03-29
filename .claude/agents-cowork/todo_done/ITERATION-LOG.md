@@ -2209,3 +2209,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 266 (2026-03-29)
 - Translate message button -- Languages icon button in message hover toolbar sends full message content as a translate request to Claude; auto-detects target language based on UI language (Chinese UI -> English, English UI -> Chinese); uses aipa:sendPrompt custom event pattern; works on both user and assistant messages; truncates at 2000 chars for very long messages; handleTranslate added to useMessageActions hook; i18n: 1 new key (message.translateMessage) in en.json and zh-CN.json; 5 files changed; build SUCCESS
+
+### Iteration 267 (2026-03-29)
+- Response tone selector -- Palette icon pill in InputToolbar lets users pick a response tone (Default/Concise/Detailed/Professional/Casual/Creative) that modifies how Claude responds; selected tone injected as `<response_tone>` block in system prompt via useStreamJson; popup dropdown with checkmark on active tone; pill highlights when non-default tone active; tone persists via electron-store; responseTone field added to ClaudePrefs; i18n: 7 new keys under tone namespace in en.json and zh-CN.json; 5 files changed; build SUCCESS
