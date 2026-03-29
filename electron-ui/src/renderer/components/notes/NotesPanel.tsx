@@ -498,6 +498,7 @@ export default function NotesPanel() {
           filteredNotes={filteredNotes}
           hasNotes={crud.notes.length > 0}
           deletingNoteId={crud.deletingNoteId}
+          searchQuery={searchQuery}
           onOpen={crud.handleOpenNote}
           onDelete={crud.handleDeleteNote}
           onSendToChat={crud.handleSendToChat}

@@ -4,11 +4,44 @@ import { useT } from '../../i18n'
 import { Note, NoteCategory } from '../../types/app.types'
 import { formatRelativeTime } from './notesConstants'
 
+/** Highlight matching text with accent background */
+function HighlightText({ text, query }: { text: string; query: string }) {
+  if (!query.trim() || !text) return <>{text}</>
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+  const parts = text.split(regex)
+  return (
+    <>
+      {parts.map((part, i) =>
+        regex.test(part) ? (
+          <span key={i} style={{ background: 'rgba(0,122,204,0.25)', borderRadius: 2, padding: '0 1px' }}>{part}</span>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
+  )
+}
+
+/** Extract a content snippet around the first match */
+function getContentSnippet(content: string, query: string, maxLen = 80): string | null {
+  if (!query.trim() || !content) return null
+  const lower = content.toLowerCase()
+  const idx = lower.indexOf(query.toLowerCase())
+  if (idx === -1) return null
+  const start = Math.max(0, idx - 20)
+  const end = Math.min(content.length, idx + query.length + maxLen - 20)
+  let snippet = content.slice(start, end).replace(/\n/g, ' ')
+  if (start > 0) snippet = '...' + snippet
+  if (end < content.length) snippet = snippet + '...'
+  return snippet
+}
+
 interface NoteListProps {
   notes: Note[]
   filteredNotes: Note[]
   hasNotes: boolean
   deletingNoteId: string | null
+  searchQuery?: string
   onOpen: (note: Note) => void
   onDelete: (noteId: string, e: React.MouseEvent) => void
   onSendToChat: (note: Note, e: React.MouseEvent) => void
@@ -21,6 +54,7 @@ export default function NoteList({
   filteredNotes,
   hasNotes,
   deletingNoteId,
+  searchQuery = '',
   onOpen,
   onDelete,
   onSendToChat,
@@ -98,8 +132,25 @@ export default function NoteList({
                 {note.pinned && (
                   <Pin size={11} style={{ flexShrink: 0, color: 'var(--accent)', transform: 'rotate(45deg)' }} />
                 )}
-                {note.title || note.content.slice(0, 30) || t('notes.untitled')}
+                <HighlightText
+                  text={note.title || note.content.slice(0, 30) || t('notes.untitled')}
+                  query={searchQuery}
+                />
               </div>
+              {/* Content match snippet when searching */}
+              {searchQuery.trim() && (() => {
+                const snippet = getContentSnippet(note.content, searchQuery)
+                if (!snippet) return null
+                return (
+                  <div style={{
+                    fontSize: 11, color: 'var(--text-muted)', marginTop: 3,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    fontStyle: 'italic', opacity: 0.8,
+                  }}>
+                    <HighlightText text={snippet} query={searchQuery} />
+                  </div>
+                )
+              })()}
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
                 {noteCat && (
                   <>
@@ -111,6 +162,8 @@ export default function NoteList({
                   </>
                 )}
                 {formatRelativeTime(note.updatedAt, t)}
+                <span style={{ opacity: 0.4 }}>|</span>
+                <span>{note.content.trim() ? note.content.trim().split(/\s+/).length : 0} {t('notes.words')}</span>
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
