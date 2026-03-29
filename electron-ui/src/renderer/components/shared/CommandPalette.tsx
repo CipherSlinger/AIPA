@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import {
   Plus, Download, PanelLeft, Terminal, Settings, History,
-  FolderOpen, Zap, Trash2, HelpCircle, Search, Cpu,
+  FolderOpen, Zap, Trash2, HelpCircle, Search, Cpu, Sparkles,
 } from 'lucide-react'
 import { useChatStore, useSessionStore, useUiStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
@@ -15,7 +15,7 @@ interface PaletteCommand {
   icon?: React.ReactNode
   shortcut?: string
   action: () => void
-  category: 'action' | 'slash' | 'session' | 'model'
+  category: 'action' | 'slash' | 'session' | 'model' | 'persona'
 }
 
 interface CommandPaletteProps {
@@ -139,6 +139,54 @@ export default function CommandPalette({
         },
         category: 'model' as const,
       })),
+      // Persona switching commands
+      ...(() => {
+        const personas = usePrefsStore.getState().prefs.personas || []
+        const activePersonaId = usePrefsStore.getState().prefs.activePersonaId
+        const personaCmds: PaletteCommand[] = []
+        if (personas.length > 0) {
+          // Deactivate persona command
+          if (activePersonaId) {
+            personaCmds.push({
+              id: 'persona-none',
+              name: `${t('persona.selectPersona')}: ${t('persona.noPersona')}`,
+              description: t('persona.deactivated'),
+              icon: <Sparkles size={14} />,
+              action: () => {
+                usePrefsStore.getState().setPrefs({ activePersonaId: undefined, systemPrompt: '' })
+                window.electronAPI.prefsSet('activePersonaId', undefined)
+                window.electronAPI.prefsSet('systemPrompt', '')
+                useUiStore.getState().addToast('info', t('persona.deactivated'))
+                onClose()
+              },
+              category: 'persona' as const,
+            })
+          }
+          // Each persona
+          for (const p of personas) {
+            personaCmds.push({
+              id: `persona-${p.id}`,
+              name: `${t('persona.selectPersona')}: ${p.emoji} ${p.name}`,
+              description: MODEL_OPTIONS.find(m => m.id === p.model)?.labelKey ? t(MODEL_OPTIONS.find(m => m.id === p.model)!.labelKey) : p.model,
+              icon: <Sparkles size={14} />,
+              action: () => {
+                usePrefsStore.getState().setPrefs({
+                  activePersonaId: p.id,
+                  model: p.model,
+                  systemPrompt: p.systemPrompt,
+                })
+                window.electronAPI.prefsSet('activePersonaId', p.id)
+                window.electronAPI.prefsSet('model', p.model)
+                window.electronAPI.prefsSet('systemPrompt', p.systemPrompt)
+                useUiStore.getState().addToast('success', t('persona.switchedTo', { name: p.name }))
+                onClose()
+              },
+              category: 'persona' as const,
+            })
+          }
+        }
+        return personaCmds
+      })(),
       // Slash commands
       {
         id: 'slash-compact',

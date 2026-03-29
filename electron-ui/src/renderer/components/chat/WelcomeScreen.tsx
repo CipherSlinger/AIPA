@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { Bot, Mail, FileText, ClipboardList, Lightbulb, Settings, Terminal, FolderOpen, Keyboard, History, X, MessageSquare, Layers, Clock, ArrowRight } from 'lucide-react'
-import { useUiStore, useSessionStore } from '../../store'
+import { Bot, Mail, FileText, ClipboardList, Lightbulb, Settings, Terminal, FolderOpen, Keyboard, History, X, MessageSquare, Layers, Clock, ArrowRight, Sparkles } from 'lucide-react'
+import { useUiStore, useSessionStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 
 /** Returns a time-of-day greeting key */
@@ -20,6 +20,8 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
   const t = useT()
   const [greeting, setGreeting] = useState(getGreetingKey())
   const sessions = useSessionStore(s => s.sessions)
+  const personas = usePrefsStore(s => s.prefs.personas) || []
+  const activePersonaId = usePrefsStore(s => s.prefs.activePersonaId)
 
   // Update greeting every minute in case the user leaves the app open across time boundaries
   useEffect(() => {
@@ -197,6 +199,79 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
           </div>
           <ArrowRight size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
         </button>
+      )}
+
+      {/* Persona quick-start cards */}
+      {personas.length > 0 && (
+        <div style={{ width: '100%', maxWidth: 420 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Sparkles size={11} />
+            <span>{t('persona.title')}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {personas.slice(0, 4).map(p => {
+              const isActive = p.id === activePersonaId
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    if (isActive) return
+                    usePrefsStore.getState().setPrefs({
+                      activePersonaId: p.id,
+                      model: p.model,
+                      systemPrompt: p.systemPrompt,
+                    })
+                    window.electronAPI.prefsSet('activePersonaId', p.id)
+                    window.electronAPI.prefsSet('model', p.model)
+                    window.electronAPI.prefsSet('systemPrompt', p.systemPrompt)
+                    useUiStore.getState().addToast('success', t('persona.switchedTo', { name: p.name }))
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '8px 14px',
+                    background: isActive ? `${p.color}18` : 'var(--card-bg)',
+                    border: `1px solid ${isActive ? p.color : 'var(--card-border)'}`,
+                    borderRadius: 10,
+                    color: isActive ? p.color : 'var(--text-primary)',
+                    cursor: isActive ? 'default' : 'pointer',
+                    fontSize: 12,
+                    transition: 'background 0.15s, border-color 0.15s, transform 0.15s',
+                    fontWeight: isActive ? 600 : 400,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = p.color;
+                      (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.03)'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--card-border)';
+                      (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'
+                    }
+                  }}
+                >
+                  <span style={{ fontSize: 18 }}>{p.emoji}</span>
+                  <span>{p.name}</span>
+                  {isActive && (
+                    <span style={{
+                      fontSize: 8,
+                      background: p.color,
+                      color: '#fff',
+                      padding: '1px 5px',
+                      borderRadius: 6,
+                      fontWeight: 600,
+                    }}>
+                      {t('persona.active')}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </div>
       )}
 
       {/* Suggestion cards */}

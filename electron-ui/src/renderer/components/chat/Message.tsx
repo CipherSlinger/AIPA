@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react'
-import { ChatMessage, StandardChatMessage } from '../../types/app.types'
+import { ChatMessage, StandardChatMessage, Persona } from '../../types/app.types'
 import MessageContent from './MessageContent'
 import ToolUseBlock from './ToolUseBlock'
 import MessageContextMenu from './MessageContextMenu'
@@ -79,6 +79,11 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   const isPlan = message.role === 'plan'
   const isCollapsed = !isPermission && !isPlan && (message as StandardChatMessage).collapsed
   const compact = usePrefsStore(s => s.prefs.compactMode)
+  const activePersona: Persona | undefined = usePrefsStore(s => {
+    const personas = s.prefs.personas || []
+    const activeId = s.prefs.activePersonaId
+    return activeId ? personas.find(p => p.id === activeId) : undefined
+  })
   // Message status indicator: "sending" (clock), "sent" (check), or "read" (double check) for user messages
   const globalIsStreaming = useChatStore(s => s.isStreaming)
   const toggleBookmarkStore = useChatStore(s => s.toggleBookmark)
@@ -334,7 +339,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             width: avatarSize,
             height: avatarSize,
             borderRadius: '50%',
-            background: isUser ? 'var(--avatar-user)' : 'var(--avatar-ai)',
+            background: isUser ? 'var(--avatar-user)' : (isAssistant && activePersona ? `${activePersona.color}30` : 'var(--avatar-ai)'),
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -344,6 +349,8 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
         >
           {isUser
             ? <User size={iconSize} color="#ffffff" />
+            : isAssistant && activePersona
+            ? <span style={{ fontSize: avatarSize * 0.55, lineHeight: 1 }}>{activePersona.emoji}</span>
             : <Bot size={iconSize} color="#ffffff" />
           }
         </div>
