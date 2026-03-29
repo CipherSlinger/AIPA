@@ -164,6 +164,7 @@ export default function MemoryPanel() {
         padding: '12px 12px 8px',
         borderBottom: '1px solid var(--border)',
         flexShrink: 0,
+        background: 'linear-gradient(180deg, rgba(139, 92, 246, 0.06) 0%, transparent 100%)',
       }}>
         <div style={{
           display: 'flex',
@@ -488,7 +489,7 @@ export default function MemoryPanel() {
             color: 'var(--text-muted)',
             gap: 8,
           }}>
-            <Brain size={32} style={{ opacity: 0.3 }} />
+            <Brain size={32} style={{ opacity: 0.3, animation: 'pulse 2s ease-in-out infinite' }} />
             <span style={{ fontSize: 12 }}>
               {memories.length === 0
                 ? t('memory.emptyState')
@@ -751,10 +752,14 @@ export default function MemoryPanel() {
         </span>
       </div>
 
-      {/* CSS for hover actions */}
+      {/* CSS for hover actions and animations */}
       <style>{`
         div:hover > .memory-item-actions {
           display: flex !important;
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 0.3; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(1.05); }
         }
       `}</style>
     </div>

@@ -341,6 +341,7 @@ export default function WorkflowPanel() {
         padding: '12px 12px 8px',
         borderBottom: '1px solid var(--border)',
         flexShrink: 0,
+        background: 'linear-gradient(180deg, rgba(16, 185, 129, 0.06) 0%, transparent 100%)',
       }}>
         <div style={{
           display: 'flex',
@@ -538,7 +539,7 @@ export default function WorkflowPanel() {
             gap: 8,
             padding: '0 16px',
           }}>
-            <WorkflowIcon size={32} style={{ opacity: 0.3 }} />
+            <WorkflowIcon size={32} style={{ opacity: 0.3, animation: 'wf-pulse 2s ease-in-out infinite' }} />
             <span style={{ fontSize: 12 }}>
               {workflows.length === 0 ? t('workflow.emptyState') : t('workflow.noResults')}
             </span>
@@ -853,6 +854,14 @@ export default function WorkflowPanel() {
           {t('workflow.inspired')}
         </span>
       </div>
+
+      {/* CSS animations */}
+      <style>{`
+        @keyframes wf-pulse {
+          0%, 100% { opacity: 0.3; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(1.05); }
+        }
+      `}</style>
     </div>
   )
 }

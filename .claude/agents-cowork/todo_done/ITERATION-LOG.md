@@ -2131,3 +2131,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 240 (2026-03-29)
 - Command Palette enhancement with workflow + panel shortcuts -- CommandPalette.tsx enhanced with 4 new panel-opener commands: Open Notes (Ctrl+3), Open Memory (Ctrl+6), Open Workflows (Ctrl+7); all saved workflows appear as "Run Workflow: [icon] [name]" commands with green Play icon and "workflow" category badge; running a workflow from palette queues all steps into the task queue; workflow commands show step count and description; icon color coding updated: workflow commands use emerald green (#10b981); 8 new i18n keys (command.openNotes/openNotesDesc/openMemory/openMemoryDesc/openWorkflows/openWorkflowsDesc/runWorkflow/runWorkflowDesc) in en.json and zh-CN.json; 3 files changed; build SUCCESS
+
+### Iteration 241 (2026-03-29)
+- UI beautification pass -- NavRail compacted: width 56->48px, icon buttons 40x40->36x36, marginBottom 4->2, all icons 20->18px for a tighter fit with 9 nav items; MemoryPanel gradient header added (purple tint: rgba(139,92,246,0.06)), empty state Brain icon now pulses; WorkflowPanel gradient header added (emerald tint: rgba(16,185,129,0.06)), empty state Workflow icon now pulses with wf-pulse animation; consistent visual language across all sidebar panels; 3 files changed; build SUCCESS

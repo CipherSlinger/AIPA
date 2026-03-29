@@ -40,8 +40,8 @@ function NavItem({ icon, label, isActive, onClick, badge, shortcut }: NavItemPro
       onMouseLeave={handleMouseLeave}
       className="nav-icon-btn"
       style={{
-        width: 40,
-        height: 40,
+        width: 36,
+        height: 36,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -54,7 +54,7 @@ function NavItem({ icon, label, isActive, onClick, badge, shortcut }: NavItemPro
           : 'transparent',
         cursor: 'pointer',
         position: 'relative',
-        marginBottom: 4,
+        marginBottom: 2,
         transition: 'background 0.15s ease',
         color: isActive
           ? 'var(--nav-icon-active)'
@@ -199,7 +199,7 @@ export default function NavRail() {
       role="navigation"
       aria-label="Main navigation"
       style={{
-        width: 56,
+        width: 48,
         flexShrink: 0,
         background: 'var(--bg-nav)',
         borderRight: '1px solid var(--border)',
@@ -214,7 +214,7 @@ export default function NavRail() {
     >
       {/* New Chat */}
       <NavItem
-        icon={<MessageSquarePlus size={20} />}
+        icon={<MessageSquarePlus size={18} />}
         label={t('nav.newChat')}
         shortcut="Ctrl+N"
         onClick={handleNewChat}
@@ -222,7 +222,7 @@ export default function NavRail() {
 
       {/* History */}
       <NavItem
-        icon={<History size={20} />}
+        icon={<History size={18} />}
         label={t('nav.history')}
         shortcut="Ctrl+1"
         isActive={isHistoryActive}
@@ -232,7 +232,7 @@ export default function NavRail() {
 
       {/* Files */}
       <NavItem
-        icon={<FolderOpen size={20} />}
+        icon={<FolderOpen size={18} />}
         label={t('nav.files')}
         shortcut="Ctrl+2"
         isActive={isFilesActive}
@@ -241,7 +241,7 @@ export default function NavRail() {
 
       {/* Notes */}
       <NavItem
-        icon={<NotebookPen size={20} />}
+        icon={<NotebookPen size={18} />}
         label={t('nav.notes')}
         shortcut="Ctrl+3"
         isActive={isNotesActive}
@@ -251,7 +251,7 @@ export default function NavRail() {
 
       {/* Skills */}
       <NavItem
-        icon={<Puzzle size={20} />}
+        icon={<Puzzle size={18} />}
         label={t('nav.skills')}
         shortcut="Ctrl+4"
         isActive={isSkillsActive}
@@ -260,7 +260,7 @@ export default function NavRail() {
 
       {/* Memory */}
       <NavItem
-        icon={<Brain size={20} />}
+        icon={<Brain size={18} />}
         label={t('nav.memory')}
         shortcut="Ctrl+6"
         isActive={isMemoryActive}
@@ -270,7 +270,7 @@ export default function NavRail() {
 
       {/* Workflows */}
       <NavItem
-        icon={<Workflow size={20} />}
+        icon={<Workflow size={18} />}
         label={t('nav.workflows')}
         shortcut="Ctrl+7"
         isActive={isWorkflowsActive}
@@ -280,7 +280,7 @@ export default function NavRail() {
 
       {/* Terminal */}
       <NavItem
-        icon={<TerminalSquare size={20} />}
+        icon={<TerminalSquare size={18} />}
         label={t('nav.terminal')}
         shortcut="Ctrl+`"
         onClick={handleTerminal}
@@ -291,7 +291,7 @@ export default function NavRail() {
 
       {/* Settings */}
       <NavItem
-        icon={<Settings size={20} />}
+        icon={<Settings size={18} />}
         label={t('nav.settings')}
         shortcut="Ctrl+5"
         isActive={isSettingsActive}
