@@ -190,7 +190,13 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Inline prompt autocomplete** — as you type 3+ characters, ghost text from your prompt history appears after the cursor; press Tab to accept the suggestion; matches the most frequently used history entry
 - **Favorite prompts quick access** — Star button in the input toolbar shows a dropdown of favorited prompt history items; click to send immediately; sorted by last used with usage count badge
 - **Conversation summarize** — FileText button in the chat header sends a summarization prompt to generate an AI summary of the current conversation; disabled during streaming or with fewer than 2 messages
-- **Long text paste detection** — pasting text longer than 500 characters shows quick action chips (Summarize, Explain, Translate, Rewrite); auto-dismisses after 12 seconds; Escape to dismiss
+- **Long text paste detection** -- pasting text longer than 500 characters shows quick action chips (Summarize, Explain, Translate, Rewrite); auto-dismisses after 12 seconds; Escape to dismiss
+- **Typing speed indicator** -- real-time words-per-minute display in the compose status bar when actively typing; calculated from a 10-second rolling keystroke window; highlights in accent color when exceeding 60 WPM
+- **Date/time quick insert** -- Calendar button in the input toolbar opens a dropdown with 7 date/time formats (Today, Now, Time, Tomorrow, Yesterday, Weekday, ISO); locale-aware formatting; one-click insert at cursor
+- **Emoji picker** -- Smile button in the input toolbar opens a 4-category emoji grid (Smileys, Gestures, Hearts, Objects) with 64 frequently-used emojis; tabbed navigation; hover scale animation
+- **Message share button** -- Share button on message hover toolbar copies the message as formatted shareable text with role label and date attribution
+- **Text transform actions** -- Wand button in the input toolbar sends the current input text through 5 transform actions: Make formal, Make casual, Shorten, Expand, Fix grammar
+- **Regenerate with model picker** -- split regenerate button with dropdown to switch Claude models before regenerating; compare responses from different models easily
 
 ## Security
 

@@ -2176,3 +2176,15 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 255 (2026-03-29)
 - Date/time quick-insert toolbar button -- Calendar icon button in InputToolbar opens a dropdown with 7 date/time format options (Today, Now, Time, Tomorrow, Yesterday, Day of week, ISO date); clicking an option inserts the formatted date/time string at the cursor position; dates use locale-aware formatting; DateTimeInsert sub-component with click-outside dismiss; i18n: 8 new keys under datetime namespace in en.json and zh-CN.json; 4 files changed; build SUCCESS
+
+### Iteration 256 (2026-03-29)
+- Emoji picker with 4 categories -- Smile icon button in InputToolbar opens a popup emoji grid with 4 tabbed categories (Smileys, Gestures, Hearts, Objects), 16 emojis per category; clicking an emoji inserts it at cursor; hover scale animation on emoji buttons; category tabs with active state highlighting; click-outside dismiss; i18n: 1 new key (toolbar.emoji) in en.json and zh-CN.json; 3 files changed; build SUCCESS
+
+### Iteration 257 (2026-03-29)
+- Message share button -- Share2 icon button in message hover toolbar copies message as formatted shareable text with role label and date attribution ("AIPA -- March 29, 2026:\n\n[content]"); added handleShare to useMessageActions hook; wired onShare prop through MessageActionToolbar; toast confirmation; i18n: 2 new keys (shareMessage, messageCopiedAsShare) in en.json and zh-CN.json; 5 files changed; build SUCCESS
+
+### Iteration 258 (2026-03-29)
+- Input text transform actions -- Wand2 icon button in InputToolbar opens a dropdown with 5 text transform actions (Make formal, Make casual, Make shorter, Make longer, Fix grammar); clicking an action sends the current input text with a transform prompt to Claude; button disabled when input is empty; TextTransformMenu sub-component with click-outside dismiss; i18n: 6 new keys under transform namespace in en.json and zh-CN.json; 4 files changed; build SUCCESS
+
+### Iteration 259 (2026-03-29)
+- Regenerate with model picker -- split the regenerate button into main button + chevron dropdown; dropdown shows all 8 Claude models with current model highlighted; clicking a model switches to it and regenerates the response; model change persists; uses MODEL_OPTIONS from settingsConstants; i18n: 2 new keys (regenerateWithModel, currentModel) in en.json and zh-CN.json; 3 files changed; build SUCCESS
