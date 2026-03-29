@@ -164,6 +164,11 @@ export default function NavRail() {
 
   const sessionCount = useSessionStore(s => s.sessions.length)
   const noteCount = usePrefsStore(s => (s.prefs.notes || []).length)
+  const activePersona = usePrefsStore(s => {
+    const personas = s.prefs.personas || []
+    const activeId = s.prefs.activePersonaId
+    return activeId ? personas.find(p => p.id === activeId) : undefined
+  })
   const t = useT()
 
   // The active panel item (history/files/settings) matches activeNavItem
@@ -267,23 +272,29 @@ export default function NavRail() {
         onClick={() => setActiveNavItem('settings')}
       />
 
-      {/* Avatar placeholder */}
+      {/* Avatar — shows persona emoji when active, otherwise generic user icon */}
       <div
         style={{
           width: 36,
           height: 36,
           borderRadius: '50%',
-          background: 'var(--avatar-ai)',
+          background: activePersona ? `${activePersona.color}20` : 'var(--avatar-ai)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'default',
           marginTop: 8,
           flexShrink: 0,
+          border: activePersona ? `2px solid ${activePersona.color}` : '2px solid transparent',
+          transition: 'background 200ms, border-color 200ms',
         }}
-        aria-label={t('nav.userProfile')}
+        aria-label={activePersona ? activePersona.name : t('nav.userProfile')}
+        title={activePersona ? activePersona.name : t('nav.userProfile')}
       >
-        <User size={18} color="#ffffff" />
+        {activePersona
+          ? <span style={{ fontSize: 18, lineHeight: 1 }}>{activePersona.emoji}</span>
+          : <User size={18} color="#ffffff" />
+        }
       </div>
     </nav>
   )

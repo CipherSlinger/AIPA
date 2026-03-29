@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Square, Mic, MicOff, AtSign, TerminalSquare, ListPlus, ClipboardPaste, FileText, Languages, PenLine, CircleHelp, SpellCheck, X, MessageSquareQuote } from 'lucide-react'
+import { Send, Square, Mic, MicOff, AtSign, TerminalSquare, ListPlus, ClipboardPaste, FileText, Languages, PenLine, CircleHelp, SpellCheck, X, MessageSquareQuote, Sparkles } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import AtMentionPopup from './AtMentionPopup'
 import SlashCommandPopup, { SLASH_COMMANDS, SlashCommand } from './SlashCommandPopup'
@@ -657,6 +657,27 @@ export default function ChatInput({
             transition: 'border-color 200ms',
           }}
         >
+          {/* Active persona indicator */}
+          {(() => {
+            const personas = prefs.personas || []
+            const activePersona = prefs.activePersonaId ? personas.find(p => p.id === prefs.activePersonaId) : undefined
+            if (!activePersona) return null
+            return (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '3px 8px',
+                marginBottom: 4,
+                fontSize: 11,
+                color: activePersona.color,
+                opacity: 0.8,
+              }}>
+                <Sparkles size={10} />
+                <span style={{ fontWeight: 500 }}>{activePersona.emoji} {activePersona.name}</span>
+              </div>
+            )
+          })()}
           {attachments.length > 0 && (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingBottom: 8 }}>
               {attachments.map(img => (

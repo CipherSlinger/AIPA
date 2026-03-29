@@ -110,6 +110,28 @@
       "weeklyReport": "Create a weekly report",
       "explainConcept": "Explain a concept to me"
     },
+    "starter": {
+      "draftEmail": "Help me draft a professional email",
+      "proofread": "Proofread and improve my text",
+      "blogPost": "Help me write a blog post",
+      "rewriteTone": "Rewrite this in a different tone",
+      "analyzeTopic": "Research a topic for me",
+      "compareOptions": "Compare these options",
+      "summarizeArticle": "Summarize this article",
+      "factCheck": "Fact-check this claim",
+      "brainstorm": "Brainstorm ideas with me",
+      "storyIdea": "Help me develop a story idea",
+      "namingIdeas": "Generate naming ideas",
+      "creativeAngle": "Find a creative angle for this",
+      "explainSimply": "Explain this in simple terms",
+      "quizMe": "Quiz me on this topic",
+      "studyPlan": "Create a study plan",
+      "practiceProblems": "Give me practice problems",
+      "planMyDay": "Help me plan my day",
+      "breakdownGoal": "Break down this goal into steps",
+      "prioritizeTasks": "Help me prioritize my tasks",
+      "weeklyReview": "Guide my weekly review"
+    },
     "shortcuts": "Keyboard Shortcuts",
     "shortcut": {
       "toggleWindow": "Show/hide AIPA (global)",

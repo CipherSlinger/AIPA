@@ -22,6 +22,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
   const sessions = useSessionStore(s => s.sessions)
   const personas = usePrefsStore(s => s.prefs.personas) || []
   const activePersonaId = usePrefsStore(s => s.prefs.activePersonaId)
+  const activePersona = personas.find(p => p.id === activePersonaId)
 
   // Update greeting every minute in case the user leaves the app open across time boundaries
   useEffect(() => {
@@ -66,7 +67,54 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
     return sorted[0]
   }, [sessions])
 
-  const suggestions = [
+  // Persona-specific starters based on active persona name
+  const personaStarters = useMemo(() => {
+    if (!activePersona) return null
+    const name = activePersona.name.toLowerCase()
+    if (name.includes('writ')) {
+      return [
+        { icon: Mail, text: t('welcome.starter.draftEmail') },
+        { icon: FileText, text: t('welcome.starter.proofread') },
+        { icon: ClipboardList, text: t('welcome.starter.blogPost') },
+        { icon: Lightbulb, text: t('welcome.starter.rewriteTone') },
+      ]
+    }
+    if (name.includes('research') || name.includes('analyst')) {
+      return [
+        { icon: FileText, text: t('welcome.starter.analyzeTopic') },
+        { icon: ClipboardList, text: t('welcome.starter.compareOptions') },
+        { icon: Lightbulb, text: t('welcome.starter.summarizeArticle') },
+        { icon: Mail, text: t('welcome.starter.factCheck') },
+      ]
+    }
+    if (name.includes('creative') || name.includes('art')) {
+      return [
+        { icon: Lightbulb, text: t('welcome.starter.brainstorm') },
+        { icon: FileText, text: t('welcome.starter.storyIdea') },
+        { icon: ClipboardList, text: t('welcome.starter.namingIdeas') },
+        { icon: Mail, text: t('welcome.starter.creativeAngle') },
+      ]
+    }
+    if (name.includes('tutor') || name.includes('study') || name.includes('teach')) {
+      return [
+        { icon: Lightbulb, text: t('welcome.starter.explainSimply') },
+        { icon: FileText, text: t('welcome.starter.quizMe') },
+        { icon: ClipboardList, text: t('welcome.starter.studyPlan') },
+        { icon: Mail, text: t('welcome.starter.practiceProblems') },
+      ]
+    }
+    if (name.includes('productiv') || name.includes('coach') || name.includes('plan')) {
+      return [
+        { icon: ClipboardList, text: t('welcome.starter.planMyDay') },
+        { icon: FileText, text: t('welcome.starter.breakdownGoal') },
+        { icon: Lightbulb, text: t('welcome.starter.prioritizeTasks') },
+        { icon: Mail, text: t('welcome.starter.weeklyReview') },
+      ]
+    }
+    return null
+  }, [activePersona, t])
+
+  const suggestions = personaStarters || [
     { icon: Mail, text: t('welcome.suggestion.draftEmail'), templateId: 'writing-assistant' },
     { icon: FileText, text: t('welcome.suggestion.summarizeDoc'), templateId: 'research-analyst' },
     { icon: ClipboardList, text: t('welcome.suggestion.weeklyReport'), templateId: 'writing-assistant' },
@@ -88,8 +136,6 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
     { label: t('welcome.openFiles'), icon: FolderOpen, shortcut: 'Ctrl+B', action: () => { useUiStore.getState().setSidebarOpen(true); useUiStore.getState().setSidebarTab('files') } },
     { label: t('welcome.showShortcuts'), icon: Keyboard, shortcut: 'Ctrl+/', action: () => window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, key: '/' })) },
   ]
-
-  const activePersona = personas.find(p => p.id === activePersonaId)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', gap: 24, padding: '0 20px' }}>
@@ -286,7 +332,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
 
       {/* Suggestion cards */}
       <div style={{ display: 'flex', gap: 12, marginTop: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
-        {suggestions.map(({ icon: Icon, text, templateId }) => (
+        {suggestions.map(({ icon: Icon, text, templateId }: { icon: any; text: string; templateId?: string }) => (
           <button
             key={text}
             onClick={() => onSuggestion(text, templateId)}
@@ -321,12 +367,12 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
               width: 44,
               height: 44,
               borderRadius: '50%',
-              background: 'rgba(0,122,204,0.08)',
+              background: activePersona ? `${activePersona.color}14` : 'rgba(0,122,204,0.08)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}>
-              <Icon size={24} color="var(--accent)" />
+              <Icon size={24} color={activePersona ? activePersona.color : 'var(--accent)'} />
             </div>
             <span style={{ textAlign: 'center', lineHeight: 1.4 }}>{text}</span>
           </button>
