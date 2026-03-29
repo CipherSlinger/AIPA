@@ -103,6 +103,7 @@
     "greetingMorning": "Good morning!",
     "greetingAfternoon": "Good afternoon!",
     "greetingEvening": "Good evening!",
+    "greetingWithName": "{{greeting}} {{name}}",
     "subtitle": "Your AI-powered personal assistant -- writing, analysis, coding, and more.",
     "suggestion": {
       "draftEmail": "Help me draft an email",
@@ -296,6 +297,9 @@
       "behavior": "Behavior"
     },
     "searchPlaceholder": "Search settings...",
+    "displayName": "Display Name",
+    "displayNamePlaceholder": "Your name (shown in greeting)",
+    "displayNameHint": "Personalize the welcome screen greeting with your name",
     "language": "Language / \u8bed\u8a00",
     "languageSystem": "System Default",
     "languageEn": "English",
@@ -828,6 +832,12 @@
     "updated": "Persona updated",
     "deleted": "Persona deleted",
     "presets": "Preset Personas (click to add)",
-    "personaGreeting": "I'm {{name}}, ready to help!"
+    "personaGreeting": "I'm {{name}}, ready to help!",
+    "exportPersonas": "Export",
+    "importPersonas": "Import",
+    "exportSuccess": "Personas exported",
+    "importSuccess": "{{count}} personas imported",
+    "importFailed": "Import failed: invalid file format",
+    "importNoDuplicates": "No new personas to import (all duplicates)"
   }
 }

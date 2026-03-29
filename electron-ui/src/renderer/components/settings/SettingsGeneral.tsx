@@ -42,7 +42,7 @@ export default function SettingsGeneral({
   const groupKeywords = useMemo(() => ({
     aiEngine: [t('settings.apiKey'), t('settings.model'), t('settings.thinkingMode'), t('settings.maxTurns'), t('settings.budgetLimit'), 'API', 'Claude', 'Opus', 'Sonnet', 'Haiku', t('settings.groups.aiEngine')].join(' ').toLowerCase(),
     prompts: [t('settings.promptTemplate'), t('settings.systemPrompt'), t('settings.groups.prompts')].join(' ').toLowerCase(),
-    appearance: [t('settings.language'), t('settings.theme'), t('settings.fontSize'), t('settings.fontFamily'), t('settings.compactMode'), t('settings.groups.appearance')].join(' ').toLowerCase(),
+    appearance: [t('settings.language'), t('settings.displayName'), t('settings.theme'), t('settings.fontSize'), t('settings.fontFamily'), t('settings.compactMode'), t('settings.groups.appearance')].join(' ').toLowerCase(),
     workspace: [t('settings.workingFolder'), t('tags.sectionTitle'), t('settings.groups.workspace')].join(' ').toLowerCase(),
     behavior: [t('settings.skipPermissions'), t('settings.verbose'), t('settings.completionSound'), t('settings.desktopNotifications'), t('settings.groups.behavior')].join(' ').toLowerCase(),
   }), [t])
@@ -254,6 +254,18 @@ export default function SettingsGeneral({
             <option value="en">{t('settings.languageEn')}</option>
             <option value="zh-CN">{t('settings.languageZhCN')}</option>
           </select>
+        )}
+
+        {field(
+          t('settings.displayName'),
+          <input
+            value={local.displayName || ''}
+            onChange={(e) => updateLocal({ displayName: e.target.value.slice(0, 30) })}
+            placeholder={t('settings.displayNamePlaceholder')}
+            maxLength={30}
+            style={{ ...INPUT_STYLE }}
+          />,
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('settings.displayNameHint')}</span>
         )}
 
         {field(t('settings.theme'), (

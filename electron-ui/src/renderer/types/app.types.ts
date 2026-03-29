@@ -103,6 +103,7 @@ export interface ClaudePrefs {
   noteCategories?: NoteCategory[]  // note categories (max 10, persisted via electron-store)
   personas?: Persona[]  // user-defined AI personas (max 10, persisted via electron-store)
   activePersonaId?: string  // currently active persona ID (null/undefined = no persona)
+  displayName?: string  // user's display name for personalized greeting (max 30 chars)
 }
 
 export interface Note {

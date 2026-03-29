@@ -23,6 +23,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
   const personas = usePrefsStore(s => s.prefs.personas) || []
   const activePersonaId = usePrefsStore(s => s.prefs.activePersonaId)
   const activePersona = personas.find(p => p.id === activePersonaId)
+  const displayName = usePrefsStore(s => s.prefs.displayName)
 
   // Update greeting every minute in case the user leaves the app open across time boundaries
   useEffect(() => {
@@ -155,7 +156,9 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
         }
       </div>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 28, color: 'var(--text-bright)', fontWeight: 700, letterSpacing: '-0.02em' }}>{t(greeting)}</div>
+        <div style={{ fontSize: 28, color: 'var(--text-bright)', fontWeight: 700, letterSpacing: '-0.02em' }}>
+          {displayName ? t('welcome.greetingWithName', { greeting: t(greeting), name: displayName }) : t(greeting)}
+        </div>
         {activePersona && (
           <div style={{ fontSize: 13, color: activePersona.color, marginTop: 4, fontWeight: 500 }}>
             {t('persona.personaGreeting', { name: activePersona.name })}

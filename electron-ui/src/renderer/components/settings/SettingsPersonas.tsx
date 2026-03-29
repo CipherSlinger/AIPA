@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Plus, Pencil, Trash2, Check, X, Sparkles, Download } from 'lucide-react'
+import { Plus, Pencil, Trash2, Check, X, Sparkles, Download, Upload } from 'lucide-react'
 import { usePrefsStore, useUiStore } from '../../store'
 import { useI18n } from '../../i18n'
 import type { Persona } from '../../types/app.types'
@@ -535,6 +535,107 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Export / Import personas */}
+      {personas.length > 0 && (
+        <div style={{ marginTop: 12, display: 'flex', gap: 6 }}>
+          <button
+            onClick={() => {
+              const data = JSON.stringify(personas, null, 2)
+              const blob = new Blob([data], { type: 'application/json' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `aipa-personas-${new Date().toISOString().slice(0, 10)}.json`
+              a.click()
+              URL.revokeObjectURL(url)
+              addToast('success', t('persona.exportSuccess'))
+            }}
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 5,
+              padding: '5px 0',
+              background: 'none',
+              border: '1px solid var(--border)',
+              borderRadius: 4,
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              fontSize: 10,
+              transition: 'border-color 150ms, color 150ms',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+          >
+            <Download size={11} />
+            {t('persona.exportPersonas')}
+          </button>
+          <button
+            onClick={() => {
+              const input = document.createElement('input')
+              input.type = 'file'
+              input.accept = '.json'
+              input.onchange = async (e) => {
+                const file = (e.target as HTMLInputElement).files?.[0]
+                if (!file) return
+                try {
+                  const text = await file.text()
+                  const imported = JSON.parse(text)
+                  if (!Array.isArray(imported)) throw new Error('Invalid format')
+                  const valid = imported.filter((p: any) => p.name && p.emoji && p.model && p.systemPrompt)
+                  if (valid.length === 0) throw new Error('No valid personas')
+                  const merged = [...personas]
+                  let added = 0
+                  for (const p of valid) {
+                    if (merged.length >= 10) break
+                    if (merged.some(existing => existing.name === p.name)) continue
+                    merged.push({
+                      ...p,
+                      id: `persona-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                      createdAt: Date.now(),
+                      updatedAt: Date.now(),
+                    })
+                    added++
+                  }
+                  if (added > 0) {
+                    savePersonas(merged)
+                    addToast('success', t('persona.importSuccess', { count: String(added) }))
+                  } else {
+                    addToast('info', t('persona.importNoDuplicates'))
+                  }
+                } catch {
+                  addToast('error', t('persona.importFailed'))
+                }
+              }
+              input.click()
+            }}
+            disabled={personas.length >= 10}
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 5,
+              padding: '5px 0',
+              background: 'none',
+              border: '1px solid var(--border)',
+              borderRadius: 4,
+              color: 'var(--text-muted)',
+              cursor: personas.length >= 10 ? 'not-allowed' : 'pointer',
+              fontSize: 10,
+              opacity: personas.length >= 10 ? 0.5 : 1,
+              transition: 'border-color 150ms, color 150ms',
+            }}
+            onMouseEnter={e => { if (personas.length < 10) { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--text-primary)' } }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+          >
+            <Upload size={11} />
+            {t('persona.importPersonas')}
+          </button>
         </div>
       )}
     </div>
