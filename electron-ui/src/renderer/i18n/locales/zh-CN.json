@@ -499,7 +499,10 @@
     "favoritePrompts": "\u6536\u85cf\u63d0\u793a\u8bcd",
     "emoji": "\u63d2\u5165\u8868\u60c5",
     "saveAsNote": "\u4fdd\u5b58\u8f93\u5165\u4e3a\u7b14\u8bb0",
-    "savedAsNote": "\u8f93\u5165\u5df2\u4fdd\u5b58\u5230\u7b14\u8bb0"
+    "savedAsNote": "\u8f93\u5165\u5df2\u4fdd\u5b58\u5230\u7b14\u8bb0",
+    "startFocusTimer": "\u542f\u52a8 25 \u5206\u949f\u4e13\u6ce8\u8ba1\u65f6\u5668",
+    "stopFocusTimer": "\u505c\u6b62\u4e13\u6ce8\u8ba1\u65f6\u5668",
+    "focusTimerComplete": "\u4e13\u6ce8\u65f6\u95f4\u7ed3\u675f\uff01\u4f11\u606f\u4e00\u4e0b\u5427\u3002"
   },
   "transform": {
     "title": "\u6587\u672c\u53d8\u6362",

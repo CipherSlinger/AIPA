@@ -1,5 +1,5 @@
-import React, { useRef, useEffect, useState } from 'react'
-import { PanelLeft, Terminal, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap } from 'lucide-react'
+import React, { useRef, useEffect, useState, useCallback } from 'react'
+import { PanelLeft, Terminal, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Play, Square } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { StandardChatMessage } from '../../types/app.types'
 import { useT } from '../../i18n'
@@ -79,6 +79,62 @@ export default function StatusBar() {
   }, [isStreaming])
 
   const dirLabel = workingDir || prefs.workingDir || '~'
+
+  // Focus timer (Pomodoro)
+  const POMODORO_DURATION = 25 * 60 // 25 minutes in seconds
+  const [focusTimerActive, setFocusTimerActive] = useState(false)
+  const [focusTimerRemaining, setFocusTimerRemaining] = useState(POMODORO_DURATION)
+  const focusTimerRef = useRef<number>(0)
+
+  const toggleFocusTimer = useCallback(() => {
+    if (focusTimerActive) {
+      // Stop timer
+      if (focusTimerRef.current) clearInterval(focusTimerRef.current)
+      focusTimerRef.current = 0
+      setFocusTimerActive(false)
+      setFocusTimerRemaining(POMODORO_DURATION)
+    } else {
+      // Start timer
+      setFocusTimerRemaining(POMODORO_DURATION)
+      setFocusTimerActive(true)
+    }
+  }, [focusTimerActive, POMODORO_DURATION])
+
+  useEffect(() => {
+    if (!focusTimerActive) return
+    focusTimerRef.current = window.setInterval(() => {
+      setFocusTimerRemaining(prev => {
+        if (prev <= 1) {
+          // Timer complete
+          clearInterval(focusTimerRef.current)
+          focusTimerRef.current = 0
+          setFocusTimerActive(false)
+          // Play notification sound if enabled
+          if (prefs.notifySound !== false) {
+            try {
+              const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH2MkZabnp2bl5KMhoJ+enl5e36BhYmMj5KUlpeTkI2Kh4SBfnt5eHl7foKGio6RlJaXlpOPjImGg4B9e3p5ent+goaMkJOWmJiWk5CMiYaEgX58e3t7fH+Ch4uPk5aYl5WSkI2Jh4SAf3x7e3x9f4KHi4+TlpiXlZKQjIqHhIKAf317e3x9gIOIjJCTlpeWk5GNi4mHhIJ/fXx7fH6AgYSIjJCSlZaVk5CQjouJh4SBf317fH1+gIKEiIuOkZOVlJOQjo2LiYeEg4F/fn18fn+AgoWHi46RkpSUkpCNi4qIh4SDgX9+fX5/gIGDhYmLjpCSkpGQjYyLiYiGhYOBgH5+f4CBgoSGiIuNkJGSkZCOjYyKiYiGhYOCgIB/f4CBgoSFh4qMjpCRkpGQjo2Mi4qJh4aFg4KBgH+AgoKDhYeJi42PkJGRkI+OjYyLiomIh4WEg4KBgICBgoOEhoeJi42Oj5CQj46NjIuLiomIh4aFhIOCgoGBgYKDhIWHiImLjI6Oj4+OjY2Mi4uKiYiHhoWEhIODgoKCg4OEhYaHiYqLjI2Oj46OjY2Mi4uKiYmIh4aGhYWEhIODg4ODhIWGh4iJiouMjY2OjY2NjIyLi4qKiYiIh4eGhoWFhYSEhIWFhoaHiImKi4yMjY2NjY2NjIyLi4uKiomJiIiHh4aGhoaGhoaGh4eIiImKiouMjIyNjY2NjIyMi4uLi4qKiYmJiIiHh4eHh4eHh4eHiIiJiYqKi4uMjIyMjIyMjIyMi4uLi4qKioqJiYmIiIiIiIiIiIiIiIiJiYmKiouLi4yMjIyMjIyMjIuLi4uLi4qKioqJiYmJiYmJiYmJiYmJiYmJiYqKioqLi4uLi4yMjIyMjIyMi4uLi4uLi4uKioqKiomJiYmJiYmJiYmJiYmJiYqKioqKi4uLi4uLjIyMjIyMjIuLi4uLi4uLioqKioqKiYmJiYmJiYmJiYmJiYqKioqKi4uLi4uLi4yMjIyMi4uLi4uLi4uLi4qKioqKioqJiYmJiYmJiYmJiYqKioqKi4uLi4uLi4uLjIyMi4uLi4uLi4uLi4qKioqKioqKiYqKioqKioqKioqKioqKi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uKioqKioqKioqKioqKioqKioqKioqLi4uLi4uLi4uLi4uLi4uLi4uLi4uLioqKioqKioqKioqKioqKioqKioqKi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4qKioqKioqK')
+              audio.volume = 0.3
+              audio.play().catch(() => {})
+            } catch {}
+          }
+          // Show toast
+          useUiStore.getState().addToast('success', t('toolbar.focusTimerComplete'))
+          return POMODORO_DURATION
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => {
+      if (focusTimerRef.current) clearInterval(focusTimerRef.current)
+    }
+  }, [focusTimerActive, prefs.notifySound, t, POMODORO_DURATION])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (focusTimerRef.current) clearInterval(focusTimerRef.current)
+    }
+  }, [])
   const dirShort = dirLabel.split(/[/\\]/).pop() || dirLabel
   const modelLabel = prefs.model || 'claude-sonnet-4-6'
   const shortModel = modelLabel
@@ -194,6 +250,43 @@ export default function StatusBar() {
             {formatDuration(sessionDuration)}
           </span>
         )}
+
+        {/* Focus timer */}
+        <button
+          onClick={toggleFocusTimer}
+          title={focusTimerActive ? t('toolbar.stopFocusTimer') : t('toolbar.startFocusTimer')}
+          style={{
+            background: focusTimerActive ? 'rgba(255,255,255,0.15)' : 'none',
+            border: 'none',
+            color: '#fff',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 3,
+            padding: '1px 5px',
+            borderRadius: 4,
+            fontSize: 10,
+            opacity: focusTimerActive ? 1 : 0.6,
+            transition: 'opacity 0.15s',
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = focusTimerActive ? '1' : '0.6' }}
+        >
+          {focusTimerActive ? (
+            <>
+              <Timer size={10} style={{ color: '#4ade80' }} />
+              <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+                {Math.floor(focusTimerRemaining / 60)}:{String(focusTimerRemaining % 60).padStart(2, '0')}
+              </span>
+              <Square size={8} />
+            </>
+          ) : (
+            <>
+              <Timer size={10} />
+              <span>25m</span>
+            </>
+          )}
+        </button>
       </div>
 
       <Separator />

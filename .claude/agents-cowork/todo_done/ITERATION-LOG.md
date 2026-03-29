@@ -2236,3 +2236,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 275 (2026-03-29)
 - Input markdown formatting shortcuts -- Ctrl+B wraps selected text in **bold** markers, Ctrl+I wraps in *italic* markers in the chat input textarea; if no text selected, inserts marker pair and places cursor in middle; does not conflict with Ctrl+B sidebar toggle because textarea captures the event first when focused; added to shortcut cheatsheet under chat section; i18n: 2 new keys (shortcut.boldText, shortcut.italicText) in en.json and zh-CN.json; 4 files changed; build SUCCESS
+
+### Iteration 276 (2026-03-29)
+- Focus timer (Pomodoro) in status bar -- Timer icon button in the status bar starts a 25-minute Pomodoro focus timer; shows countdown with mm:ss in tabular-nums font; green Timer icon when active; click to stop/reset; plays completion sound (if enabled) and shows toast when time is up; button shows "25m" when inactive; i18n: 3 new keys (toolbar.startFocusTimer, stopFocusTimer, focusTimerComplete) in en.json and zh-CN.json; 3 files changed; build SUCCESS
