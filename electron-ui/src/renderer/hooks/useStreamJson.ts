@@ -101,9 +101,42 @@ export function useStreamJson() {
     if (prefs.thinkingLevel === 'adaptive') {
       flags.push('--thinking', 'adaptive')
     }
+
+    // Build combined system prompt: user system prompt + memory context
+    const systemPromptParts: string[] = []
     if (prefs.systemPrompt?.trim()) {
-      flags.push('--append-system-prompt', prefs.systemPrompt.trim())
+      systemPromptParts.push(prefs.systemPrompt.trim())
     }
+
+    // Inject persistent memories as context
+    const memories = prefs.memories || []
+    if (memories.length > 0) {
+      const pinnedMemories = memories.filter(m => m.pinned)
+      const recentMemories = memories
+        .filter(m => !m.pinned)
+        .sort((a, b) => b.updatedAt - a.updatedAt)
+        .slice(0, 10) // max 10 non-pinned recent memories
+      const allInjected = [...pinnedMemories, ...recentMemories]
+      if (allInjected.length > 0) {
+        const categoryLabels: Record<string, string> = {
+          preference: 'Preference',
+          fact: 'Fact',
+          instruction: 'Instruction',
+          context: 'Context',
+        }
+        const memoryLines = allInjected.map(m =>
+          `- [${categoryLabels[m.category] || m.category}]${m.pinned ? ' (pinned)' : ''} ${m.content}`
+        )
+        systemPromptParts.push(
+          `\n<user_memory>\nThe user has saved the following memories. Use them to personalize your responses:\n${memoryLines.join('\n')}\n</user_memory>`
+        )
+      }
+    }
+
+    if (systemPromptParts.length > 0) {
+      flags.push('--append-system-prompt', systemPromptParts.join('\n\n'))
+    }
+
     if (prefs.maxTurns && prefs.maxTurns > 0) {
       flags.push('--max-turns', String(prefs.maxTurns))
     }
