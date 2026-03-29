@@ -197,6 +197,15 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Message share button** -- Share button on message hover toolbar copies the message as formatted shareable text with role label and date attribution
 - **Text transform actions** -- Wand button in the input toolbar sends the current input text through 5 transform actions: Make formal, Make casual, Shorten, Expand, Fix grammar
 - **Regenerate with model picker** -- split regenerate button with dropdown to switch Claude models before regenerating; compare responses from different models easily
+- **Pinned messages** -- pin important messages to the top of the chat for quick reference; Pin button on hover toolbar and context menu; pinned messages strip at top of conversation with collapsible header; click any pinned preview to scroll to the original message
+- **Text snippets** -- define reusable text snippets with `::keyword` trigger; type `::` followed by a keyword in the chat input to expand the snippet; manage snippets in Settings > Templates tab with full CRUD (max 50); keyboard navigation for snippet popup
+- **Save input as note** -- StickyNote button in the input toolbar saves the current chat input text as a new note without sending it to Claude; great for preserving drafts and ideas
+- **Message emoji reactions** -- SmilePlus button on message hover toolbar opens an emoji picker with 8 reaction emojis; click to toggle reactions on/off; reactions display as small chips below the message bubble
+- **Copy code blocks** -- right-click assistant messages containing code to copy all fenced code blocks at once; shows count of blocks copied in toast notification
+- **Translate message** -- Languages button on message hover toolbar sends the full message as a translation request; auto-detects target language based on UI language (Chinese UI -> English, English UI -> Chinese)
+- **Response tone selector** -- Palette pill in the input toolbar lets you pick a response style (Default, Concise, Detailed, Professional, Casual, Creative); tone modifier injected into system prompt; persists across messages
+- **Quick language toggle** -- `Ctrl+Shift+L` toggles UI language between English and Chinese instantly; mirrors the `Ctrl+Shift+D` theme toggle pattern
+- **Command palette toggles** -- Toggle Theme and Toggle Language commands available in the Command Palette (`Ctrl+Shift+P`) with context-aware icons
 
 ## Security
 

@@ -2218,3 +2218,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 269 (2026-03-29)
 - Command palette toggle commands -- added Toggle Theme (Ctrl+Shift+D) and Toggle Language (Ctrl+Shift+L) commands to the command palette with Sun/Moon and Languages icons; theme command shows context-aware icon (Sun in dark mode, Moon in light mode); 4 new i18n keys (command.toggleTheme/toggleThemeDesc/toggleLanguage/toggleLanguageDesc) in en.json and zh-CN.json; 3 files changed; build SUCCESS
+
+### Iteration 270 (2026-03-29)
+- README batch update for iterations 261-269 -- added 10 new feature entries to both README.md and README_CN.md covering: pinned messages, text snippets (::keyword trigger), save input as note, message emoji reactions, copy code blocks, translate message button, response tone selector, quick language toggle (Ctrl+Shift+L), command palette toggle commands; 2 files changed; no build needed
