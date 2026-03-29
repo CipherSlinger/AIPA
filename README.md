@@ -174,6 +174,15 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Shortcut cheatsheet search** — search/filter input at the top of the shortcut cheatsheet for quick shortcut lookup by action name or key combo
 - **Note search highlighting** — search terms are highlighted in note titles and content snippets with accent-colored background; matching context shown around hits
 - **Cross-session search** — press Enter in the session search bar to search across all session files; results shown with match type badges, context snippets, and keyword highlighting; `Ctrl+Shift+F` opens global search from anywhere
+- **Input length progress ring** — circular SVG progress ring around the send button fills as you type; color transitions from accent (< 5K chars) to warning yellow (5K-8K) to orange (8K-10K) to error red (10K+)
+- **Persistent memory** — AI memory manager in the sidebar (Brain icon, `Ctrl+6`); create, edit, delete, search, pin, and categorize memories across 4 types (Preference, Fact, Instruction, Context); memories persist across all sessions and are injected as context for personalized responses (max 200)
+- **Workflow builder** — multi-step prompt pipeline builder in the sidebar (Workflow icon, `Ctrl+7`); chain multiple prompts into reusable workflows; each step runs sequentially via the task queue; create/edit/delete/duplicate/reorder steps; 3 preset workflows (Weekly Report, Code Review, Research & Summarize); run counter tracks usage
+- **Command Palette workflow integration** — `Ctrl+Shift+P` now includes all saved workflows as runnable commands; panel-opener shortcuts for Notes, Memory, and Workflows; workflow commands show step count and description
+- **Selection toolbar translate & explain** — select text in any message to see Translate and Explain quick actions; Translate auto-detects target language based on UI language; Explain sends a simplified explanation prompt
+- **Message Read Aloud** — Volume2 button on assistant messages reads the response aloud using Web Speech API; markdown formatting stripped for cleaner speech; click again to stop
+- **Paste URL quick actions** — paste a URL into the chat input and quick action chips appear (Summarize, Explain, Translate) with URL preview; click a chip to prepend the action text
+- **Session sort by message count** — sort sessions by message count in the sidebar; most-discussed sessions rise to the top
+- **Keyboard UX enhancements** — F2 to rename focused session, Delete key to delete with double-press confirmation, Escape to dismiss URL chips and quote previews
 
 ## Security
 

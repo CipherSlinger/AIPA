@@ -2134,3 +2134,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 241 (2026-03-29)
 - UI beautification pass -- NavRail compacted: width 56->48px, icon buttons 40x40->36x36, marginBottom 4->2, all icons 20->18px for a tighter fit with 9 nav items; MemoryPanel gradient header added (purple tint: rgba(139,92,246,0.06)), empty state Brain icon now pulses; WorkflowPanel gradient header added (emerald tint: rgba(16,185,129,0.06)), empty state Workflow icon now pulses with wf-pulse animation; consistent visual language across all sidebar panels; 3 files changed; build SUCCESS
+
+### Iteration 242 (2026-03-29)
+- README batch update for iterations 237-241 -- added 10 new feature entries to both README.md and README_CN.md covering: input length progress ring, persistent memory manager, workflow pipeline builder, command palette workflow integration, selection toolbar translate & explain, message read aloud, paste URL quick actions, session sort by message count, keyboard UX enhancements (F2/Delete/Escape); 2 files changed; no build needed
