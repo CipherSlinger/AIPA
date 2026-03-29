@@ -63,7 +63,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   // Extracted actions hook
   const {
     copied, handleCopy, handleQuote, handleBookmarkAction,
-    handleCopyMarkdown, handleCopyRichText, handleSaveAsNote, handleRememberThis, handleDoubleClick,
+    handleCopyMarkdown, handleCopyRichText, handleSaveAsNote, handleRememberThis, handleShare, handleDoubleClick,
   } = useMessageActions({ message, isPermission, isPlan })
 
   // Word info tooltip (both user and assistant messages)
@@ -306,6 +306,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             onCopy={handleCopy}
             onBookmark={() => handleBookmarkAction(onBookmark)}
             onQuote={handleQuote}
+            onShare={handleShare}
             onSaveAsNote={handleSaveAsNote}
             onRememberThis={handleRememberThis}
             onReadAloud={isAssistant ? handleReadAloud : undefined}

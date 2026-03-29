@@ -248,7 +248,9 @@
     "readAloud": "Read aloud",
     "stopReading": "Stop reading",
     "rememberThis": "Remember this",
-    "savedToMemory": "Saved to memory"
+    "savedToMemory": "Saved to memory",
+    "shareMessage": "Share message",
+    "messageCopiedAsShare": "Message copied as shareable text"
   },
   "selection": {
     "copySelection": "Copy selected text",
