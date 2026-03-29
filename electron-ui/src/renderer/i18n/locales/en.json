@@ -610,6 +610,8 @@
     "collapseExpandAll": "Collapse/expand all",
     "toggleTheme": "Toggle dark/light theme",
     "prevNextSession": "Previous/next session",
+    "switchSidebarTab": "Switch sidebar tab (History/Files/Notes/Skills/Settings)",
+    "quickSearch": "Focus session search",
     "sendMessage": "Send message",
     "newLine": "New line",
     "stopStreaming": "Stop streaming",

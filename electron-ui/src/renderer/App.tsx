@@ -274,6 +274,35 @@ export default function App() {
         setPrefs({ theme: newTheme })
         window.electronAPI.prefsSet('theme', newTheme)
       }
+      // Ctrl+1-5: Switch sidebar tabs
+      if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key >= '1' && e.key <= '5') {
+        e.preventDefault()
+        const tabs = ['history', 'files', 'notes', 'skills', 'settings'] as const
+        const idx = parseInt(e.key) - 1
+        const ui = useUiStore.getState()
+        const tab = tabs[idx]
+        if (ui.sidebarOpen && ui.sidebarTab === tab) {
+          ui.setSidebarOpen(false)
+        } else {
+          ui.setSidebarOpen(true)
+          ui.setSidebarTab(tab)
+          ui.setActiveNavItem(tab)
+        }
+      }
+      // / key: Focus session search (when not in an input)
+      if (e.key === '/' && !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
+        const activeEl = document.activeElement
+        const inInput = activeEl instanceof HTMLTextAreaElement || activeEl instanceof HTMLInputElement || (activeEl as HTMLElement)?.isContentEditable
+        const hasModal = document.querySelector('[role="dialog"]')
+        if (!inInput && !hasModal) {
+          e.preventDefault()
+          const ui = useUiStore.getState()
+          if (!ui.sidebarOpen || ui.sidebarTab !== 'history') {
+            ui.setActiveNavItem('history')
+          }
+          window.dispatchEvent(new CustomEvent('aipa:globalSearchFocus'))
+        }
+      }
       // Ctrl+[ / Ctrl+]: Navigate between sessions
       if (e.ctrlKey && !e.shiftKey && (e.key === '[' || e.key === ']')) {
         e.preventDefault()

@@ -28,6 +28,8 @@ const SHORTCUTS = [
     { keys: 'Ctrl + Shift + C', actionKey: 'collapseExpandAll' },
     { keys: 'Ctrl + Shift + D', actionKey: 'toggleTheme' },
     { keys: 'Ctrl + [ / ]', actionKey: 'prevNextSession' },
+    { keys: 'Ctrl + 1-5', actionKey: 'switchSidebarTab' },
+    { keys: '/', actionKey: 'quickSearch' },
   ]},
   { sectionKey: 'chat', items: [
     { keys: 'Enter', actionKey: 'sendMessage' },

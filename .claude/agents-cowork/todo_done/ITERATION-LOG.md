@@ -2098,3 +2098,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 229 (2026-03-29)
 - README batch update -- added 13 missing feature entries to both README.md and README_CN.md covering iterations 208-228: Ctrl+Home/End navigation, time-gap separators, response time badges, save-to-note toolbar button, per-session drafts, bookmarks/stats shortcuts, stats reading time, scroll lock, bookmarks export, shortcut cheatsheet search, note search highlighting, cross-session search; updated skill marketplace count from 34 to 46; 2 files changed; no build needed
+
+### Iteration 230 (2026-03-28)
+- Sidebar tab number shortcuts + slash-to-search -- (1) App.tsx: Ctrl+1 through Ctrl+5 switch sidebar tabs (History/Files/Notes/Skills/Settings) with toggle behavior (pressing active tab closes sidebar); (2) App.tsx: bare `/` key focuses session search when not in any input field or modal, opening history sidebar if needed; (3) NavRail.tsx: updated tooltip shortcut hints from Ctrl+B/Ctrl+Shift+N/Ctrl+, to Ctrl+1/2/3/4/5 for the 5 sidebar panels; (4) ShortcutCheatsheet.tsx: 2 new entries (Ctrl+1-5, `/`) in General section; (5) i18n: 2 new keys (switchSidebarTab, quickSearch) in en.json and zh-CN.json; 5 files changed; build SUCCESS

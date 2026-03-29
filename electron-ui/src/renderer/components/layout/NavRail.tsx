@@ -220,7 +220,7 @@ export default function NavRail() {
       <NavItem
         icon={<History size={20} />}
         label={t('nav.history')}
-        shortcut="Ctrl+B"
+        shortcut="Ctrl+1"
         isActive={isHistoryActive}
         onClick={() => setActiveNavItem('history')}
         badge={sessionCount}
@@ -230,6 +230,7 @@ export default function NavRail() {
       <NavItem
         icon={<FolderOpen size={20} />}
         label={t('nav.files')}
+        shortcut="Ctrl+2"
         isActive={isFilesActive}
         onClick={() => setActiveNavItem('files')}
       />
@@ -238,7 +239,7 @@ export default function NavRail() {
       <NavItem
         icon={<NotebookPen size={20} />}
         label={t('nav.notes')}
-        shortcut="Ctrl+Shift+N"
+        shortcut="Ctrl+3"
         isActive={isNotesActive}
         onClick={() => setActiveNavItem('notes')}
         badge={noteCount}
@@ -248,6 +249,7 @@ export default function NavRail() {
       <NavItem
         icon={<Puzzle size={20} />}
         label={t('nav.skills')}
+        shortcut="Ctrl+4"
         isActive={isSkillsActive}
         onClick={() => setActiveNavItem('skills')}
       />
@@ -267,7 +269,7 @@ export default function NavRail() {
       <NavItem
         icon={<Settings size={20} />}
         label={t('nav.settings')}
-        shortcut="Ctrl+,"
+        shortcut="Ctrl+5"
         isActive={isSettingsActive}
         onClick={() => setActiveNavItem('settings')}
       />
