@@ -2248,3 +2248,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 279 (2026-03-29)
 - Message rating in hover toolbar -- added ThumbsUp/ThumbsDown buttons to the assistant message hover toolbar for quick one-click rating; thumbs up shows in success color when active with filled icon, thumbs down shows in error color; clicking toggles the rating (click again to remove); complements the existing right-click context menu rating; uses existing i18n keys (message.thumbsUp, message.thumbsDown); 2 files changed; build SUCCESS
+
+### Iteration 280 (2026-03-29)
+- Status bar model quick-switcher -- model badge in status bar is now clickable; opens an upward dropdown showing all 8 Claude models with checkmark on current model; selecting a model switches immediately with toast notification; ChevronUp icon indicates clickability; dropdown uses popup styling system with popup-in animation; click outside to dismiss; no new i18n keys needed (reuses existing chat.switchModel, chat.modelSwitched); 1 file changed; build SUCCESS
