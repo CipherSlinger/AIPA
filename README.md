@@ -187,6 +187,10 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Memory injection** — persistent memories are automatically injected as context into every conversation; pinned memories always included, plus up to 10 most recent; makes the AI truly personalized over time
 - **Scheduled prompts** — schedule recurring AI prompts in the sidebar (Clock icon, `Ctrl+8`); supports one-time, daily, weekly, and monthly schedules with time picker and day selector; auto-executes via the task queue; 3 presets (Daily Summary, Weekly Review, Morning Motivation); inspired by OpenClaw's cron service
 - **Prompt history** — searchable history of all sent prompts in the sidebar (ListRestart icon, `Ctrl+9`); tracks usage frequency, favorites, and timestamps; sort by recent/most-used/alphabetical; one-click re-send or copy; automatically records every prompt with deduplication; inspired by OpenClaw's session analytics
+- **Inline prompt autocomplete** — as you type 3+ characters, ghost text from your prompt history appears after the cursor; press Tab to accept the suggestion; matches the most frequently used history entry
+- **Favorite prompts quick access** — Star button in the input toolbar shows a dropdown of favorited prompt history items; click to send immediately; sorted by last used with usage count badge
+- **Conversation summarize** — FileText button in the chat header sends a summarization prompt to generate an AI summary of the current conversation; disabled during streaming or with fewer than 2 messages
+- **Long text paste detection** — pasting text longer than 500 characters shows quick action chips (Summarize, Explain, Translate, Rewrite); auto-dismisses after 12 seconds; Escape to dismiss
 
 ## Security
 
