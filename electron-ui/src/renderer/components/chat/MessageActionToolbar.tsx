@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { StandardChatMessage } from '../../types/app.types'
-import { Copy, Check, Bookmark, Code2, Pencil, MessageSquareQuote, NotebookPen, Volume2, VolumeX, Brain, Share2, Pin, SmilePlus } from 'lucide-react'
+import { Copy, Check, Bookmark, Code2, Pencil, MessageSquareQuote, NotebookPen, Volume2, VolumeX, Brain, Share2, Pin, SmilePlus, Languages } from 'lucide-react'
 import { useT } from '../../i18n'
 
 const actionBtnStyle: React.CSSProperties = {
@@ -41,6 +41,7 @@ interface MessageActionToolbarProps {
   onShare: () => void
   onPin: () => void
   onReaction: (emoji: string) => void
+  onTranslate: () => void
   onReadAloud?: () => void
   isSpeaking?: boolean
   hasOnEdit: boolean
@@ -49,7 +50,7 @@ interface MessageActionToolbarProps {
 export default function MessageActionToolbar({
   isUser, isAssistant, isPermission, isPlan, message,
   copied, showRawMarkdown, globalIsStreaming,
-  onToggleRawMarkdown, onStartEdit, onCopy, onBookmark, onQuote, onSaveAsNote, onRememberThis, onShare, onPin, onReaction, onReadAloud, isSpeaking,
+  onToggleRawMarkdown, onStartEdit, onCopy, onBookmark, onQuote, onSaveAsNote, onRememberThis, onShare, onPin, onReaction, onTranslate, onReadAloud, isSpeaking,
   hasOnEdit,
 }: MessageActionToolbarProps) {
   const t = useT()
@@ -177,6 +178,19 @@ export default function MessageActionToolbar({
           onMouseLeave={(e) => hoverOut(e)}
         >
           <MessageSquareQuote size={13} />
+        </button>
+      )}
+
+      {/* Translate */}
+      {!isPermission && !isPlan && message.content && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onTranslate() }}
+          title={t('message.translateMessage')}
+          style={actionBtnStyle}
+          onMouseEnter={(e) => hoverIn(e)}
+          onMouseLeave={(e) => hoverOut(e)}
+        >
+          <Languages size={13} />
         </button>
       )}
 

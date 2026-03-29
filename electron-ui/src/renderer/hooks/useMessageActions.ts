@@ -172,6 +172,16 @@ export function useMessageActions({ message, isPermission, isPlan }: UseMessageA
     })
   }, [message, isPermission, isPlan])
 
+  const handleTranslate = useCallback(() => {
+    const text = (message as StandardChatMessage).content
+    if (!text) return
+    const lang = usePrefsStore.getState().prefs.language || 'en'
+    const targetLang = lang === 'zh-CN' ? 'English' : 'Chinese'
+    const snippet = text.length > 2000 ? text.slice(0, 2000) + '...' : text
+    const prompt = `Translate the following text to ${targetLang}:\n\n${snippet}`
+    window.dispatchEvent(new CustomEvent('aipa:sendPrompt', { detail: prompt }))
+  }, [message])
+
   const handleCopyCodeBlocks = useCallback(() => {
     const text = (message as StandardChatMessage).content
     if (!text) return
@@ -203,6 +213,7 @@ export function useMessageActions({ message, isPermission, isPlan }: UseMessageA
     handleShare,
     handlePin,
     handleDoubleClick,
+    handleTranslate,
     handleCopyCodeBlocks,
   }
 }

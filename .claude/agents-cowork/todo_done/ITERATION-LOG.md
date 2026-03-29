@@ -2206,3 +2206,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 265 (2026-03-29)
 - Copy code blocks from message -- right-click context menu option "Copy code blocks" on assistant messages that contain fenced code blocks; extracts all ```...``` code blocks from the message content, joins them, and copies to clipboard; handleCopyCodeBlocks added to useMessageActions hook using regex extraction; only appears in context menu when message contains code blocks; toast shows count of blocks copied; i18n: 3 new keys (message.copyCodeBlocks, message.codeBlocksCopied, message.noCodeBlocks) in en.json and zh-CN.json; 5 files changed; build SUCCESS
+
+### Iteration 266 (2026-03-29)
+- Translate message button -- Languages icon button in message hover toolbar sends full message content as a translate request to Claude; auto-detects target language based on UI language (Chinese UI -> English, English UI -> Chinese); uses aipa:sendPrompt custom event pattern; works on both user and assistant messages; truncates at 2000 chars for very long messages; handleTranslate added to useMessageActions hook; i18n: 1 new key (message.translateMessage) in en.json and zh-CN.json; 5 files changed; build SUCCESS

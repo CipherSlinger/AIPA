@@ -63,7 +63,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   // Extracted actions hook
   const {
     copied, handleCopy, handleQuote, handleBookmarkAction,
-    handleCopyMarkdown, handleCopyRichText, handleSaveAsNote, handleRememberThis, handleShare, handlePin, handleDoubleClick, handleCopyCodeBlocks,
+    handleCopyMarkdown, handleCopyRichText, handleSaveAsNote, handleRememberThis, handleShare, handlePin, handleDoubleClick, handleTranslate, handleCopyCodeBlocks,
   } = useMessageActions({ message, isPermission, isPlan })
 
   const toggleReaction = useChatStore(s => s.toggleReaction)
@@ -361,6 +361,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             onShare={handleShare}
             onPin={handlePin}
             onReaction={handleReaction}
+            onTranslate={handleTranslate}
             onSaveAsNote={handleSaveAsNote}
             onRememberThis={handleRememberThis}
             onReadAloud={isAssistant ? handleReadAloud : undefined}
