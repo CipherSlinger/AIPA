@@ -1,15 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { Bot, Mail, FileText, ClipboardList, Lightbulb, Settings, Terminal, FolderOpen, Keyboard, History, X, MessageSquare, Layers, Clock, ArrowRight, Sparkles } from 'lucide-react'
+import { Bot, History, X, MessageSquare, Layers, Clock, ArrowRight, Sparkles } from 'lucide-react'
 import { useUiStore, useSessionStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
-
-/** Returns a time-of-day greeting key */
-function getGreetingKey(): string {
-  const hour = new Date().getHours()
-  if (hour >= 5 && hour < 12) return 'welcome.greetingMorning'
-  if (hour >= 12 && hour < 18) return 'welcome.greetingAfternoon'
-  return 'welcome.greetingEvening'
-}
+import { getGreetingKey, getPersonaStarters, getDefaultSuggestions, getShortcuts, getQuickActions } from './welcomeScreenConstants'
 
 interface Props {
   onSuggestion: (text: string, templateId?: string) => void
@@ -27,9 +20,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
 
   // Update greeting every minute in case the user leaves the app open across time boundaries
   useEffect(() => {
-    const interval = setInterval(() => {
-      setGreeting(getGreetingKey())
-    }, 60000)
+    const interval = setInterval(() => { setGreeting(getGreetingKey()) }, 60000)
     return () => clearInterval(interval)
   }, [])
 
@@ -53,7 +44,6 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
   const usageStats = useMemo(() => {
     const totalSessions = sessions.length
     const totalMessages = sessions.reduce((sum, s) => sum + (s.messageCount || 0), 0)
-    // Count sessions from today
     const todayStart = new Date()
     todayStart.setHours(0, 0, 0, 0)
     const todayTs = todayStart.getTime()
@@ -68,87 +58,23 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
     return sorted[0]
   }, [sessions])
 
-  // Persona-specific starters based on active persona name
-  const personaStarters = useMemo(() => {
-    if (!activePersona) return null
-    const name = activePersona.name.toLowerCase()
-    if (name.includes('writ')) {
-      return [
-        { icon: Mail, text: t('welcome.starter.draftEmail') },
-        { icon: FileText, text: t('welcome.starter.proofread') },
-        { icon: ClipboardList, text: t('welcome.starter.blogPost') },
-        { icon: Lightbulb, text: t('welcome.starter.rewriteTone') },
-      ]
-    }
-    if (name.includes('research') || name.includes('analyst')) {
-      return [
-        { icon: FileText, text: t('welcome.starter.analyzeTopic') },
-        { icon: ClipboardList, text: t('welcome.starter.compareOptions') },
-        { icon: Lightbulb, text: t('welcome.starter.summarizeArticle') },
-        { icon: Mail, text: t('welcome.starter.factCheck') },
-      ]
-    }
-    if (name.includes('creative') || name.includes('art')) {
-      return [
-        { icon: Lightbulb, text: t('welcome.starter.brainstorm') },
-        { icon: FileText, text: t('welcome.starter.storyIdea') },
-        { icon: ClipboardList, text: t('welcome.starter.namingIdeas') },
-        { icon: Mail, text: t('welcome.starter.creativeAngle') },
-      ]
-    }
-    if (name.includes('tutor') || name.includes('study') || name.includes('teach')) {
-      return [
-        { icon: Lightbulb, text: t('welcome.starter.explainSimply') },
-        { icon: FileText, text: t('welcome.starter.quizMe') },
-        { icon: ClipboardList, text: t('welcome.starter.studyPlan') },
-        { icon: Mail, text: t('welcome.starter.practiceProblems') },
-      ]
-    }
-    if (name.includes('productiv') || name.includes('coach') || name.includes('plan')) {
-      return [
-        { icon: ClipboardList, text: t('welcome.starter.planMyDay') },
-        { icon: FileText, text: t('welcome.starter.breakdownGoal') },
-        { icon: Lightbulb, text: t('welcome.starter.prioritizeTasks') },
-        { icon: Mail, text: t('welcome.starter.weeklyReview') },
-      ]
-    }
-    return null
+  // Suggestions: persona-specific starters or defaults
+  const suggestions = useMemo(() => {
+    return getPersonaStarters(activePersona?.name, t) || getDefaultSuggestions(t)
   }, [activePersona, t])
 
-  const suggestions = personaStarters || [
-    { icon: Mail, text: t('welcome.suggestion.draftEmail'), templateId: 'writing-assistant' },
-    { icon: FileText, text: t('welcome.suggestion.summarizeDoc'), templateId: 'research-analyst' },
-    { icon: ClipboardList, text: t('welcome.suggestion.weeklyReport'), templateId: 'writing-assistant' },
-    { icon: Lightbulb, text: t('welcome.suggestion.explainConcept'), templateId: 'language-tutor' },
-  ]
+  const shortcuts = useMemo(() => getShortcuts(t), [t])
+  const quickActions = useMemo(() => getQuickActions(t), [t])
 
-  const shortcuts = [
-    { keys: 'Ctrl+Shift+Space', desc: t('welcome.shortcut.toggleWindow') },
-    { keys: 'Ctrl+Shift+G', desc: t('welcome.shortcut.clipboardAction') },
-    { keys: 'Ctrl+Shift+P', desc: t('welcome.shortcut.commandPalette') },
-    { keys: 'Ctrl+B', desc: t('welcome.shortcut.toggleSidebar') },
-    { keys: 'Ctrl+L', desc: t('welcome.shortcut.focusInput') },
-    { keys: '@file', desc: t('welcome.shortcut.referenceFiles') },
-  ]
-
-  const quickActions = [
-    { label: t('welcome.openSettings'), icon: Settings, shortcut: 'Ctrl+,', action: () => { useUiStore.getState().setSidebarOpen(true); useUiStore.getState().setSidebarTab('settings') } },
-    { label: t('welcome.openTerminal'), icon: Terminal, shortcut: 'Ctrl+`', action: () => useUiStore.getState().toggleTerminal() },
-    { label: t('welcome.openFiles'), icon: FolderOpen, shortcut: 'Ctrl+B', action: () => { useUiStore.getState().setSidebarOpen(true); useUiStore.getState().setSidebarTab('files') } },
-    { label: t('welcome.showShortcuts'), icon: Keyboard, shortcut: 'Ctrl+/', action: () => window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, key: '/' })) },
-  ]
+  const accentTint = activePersona ? `${activePersona.color}20` : 'rgba(0,122,204,0.1)'
+  const accentColor = activePersona?.color || 'var(--accent)'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', gap: 24, padding: '0 20px' }}>
       {/* Hero icon */}
       <div className="onboard-icon" style={{
-        width: 80,
-        height: 80,
-        borderRadius: '50%',
-        background: activePersona ? `${activePersona.color}20` : 'rgba(0,122,204,0.1)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        width: 80, height: 80, borderRadius: '50%', background: accentTint,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         {activePersona
           ? <span style={{ fontSize: 44, lineHeight: 1 }}>{activePersona.emoji}</span>
@@ -175,16 +101,9 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
       {/* Usage stats bar */}
       {usageStats.totalSessions > 0 && (
         <div style={{
-          display: 'flex',
-          gap: 20,
-          justifyContent: 'center',
-          alignItems: 'center',
-          padding: '8px 16px',
-          background: 'var(--card-bg)',
-          border: '1px solid var(--card-border)',
-          borderRadius: 20,
-          fontSize: 11,
-          color: 'var(--text-muted)',
+          display: 'flex', gap: 20, justifyContent: 'center', alignItems: 'center',
+          padding: '8px 16px', background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+          borderRadius: 20, fontSize: 11, color: 'var(--text-muted)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <Layers size={12} style={{ opacity: 0.6 }} />
@@ -212,20 +131,10 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
         <button
           onClick={() => onOpenSession(lastSession.sessionId)}
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            padding: '12px 20px',
-            background: 'var(--card-bg)',
-            border: '1px solid var(--card-border)',
-            borderRadius: 12,
-            color: 'var(--text-primary)',
-            cursor: 'pointer',
-            fontSize: 13,
-            width: '100%',
-            maxWidth: 420,
-            transition: 'background 0.15s, border-color 0.15s',
-            textAlign: 'left',
+            display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px',
+            background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 12,
+            color: 'var(--text-primary)', cursor: 'pointer', fontSize: 13,
+            width: '100%', maxWidth: 420, transition: 'background 0.15s, border-color 0.15s', textAlign: 'left',
           }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLButtonElement).style.background = 'var(--action-btn-hover)';
@@ -237,14 +146,8 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
           }}
         >
           <div style={{
-            width: 36,
-            height: 36,
-            borderRadius: '50%',
-            background: 'rgba(0,122,204,0.08)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
+            width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,122,204,0.08)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
           }}>
             <History size={18} color="var(--accent)" />
           </div>
@@ -286,16 +189,11 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
                     useUiStore.getState().addToast('success', t('persona.switchedTo', { name: p.name }))
                   }}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '8px 14px',
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px',
                     background: isActive ? `${p.color}18` : 'var(--card-bg)',
                     border: `1px solid ${isActive ? p.color : 'var(--card-border)'}`,
-                    borderRadius: 10,
-                    color: isActive ? p.color : 'var(--text-primary)',
-                    cursor: isActive ? 'default' : 'pointer',
-                    fontSize: 12,
+                    borderRadius: 10, color: isActive ? p.color : 'var(--text-primary)',
+                    cursor: isActive ? 'default' : 'pointer', fontSize: 12,
                     transition: 'background 0.15s, border-color 0.15s, transform 0.15s',
                     fontWeight: isActive ? 600 : 400,
                   }}
@@ -316,12 +214,8 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
                   <span>{p.name}</span>
                   {isActive && (
                     <span style={{
-                      fontSize: 8,
-                      background: p.color,
-                      color: '#fff',
-                      padding: '1px 5px',
-                      borderRadius: 6,
-                      fontWeight: 600,
+                      fontSize: 8, background: p.color, color: '#fff',
+                      padding: '1px 5px', borderRadius: 6, fontWeight: 600,
                     }}>
                       {t('persona.active')}
                     </span>
@@ -340,20 +234,10 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
             key={text}
             onClick={() => onSuggestion(text, templateId)}
             style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 10,
-              padding: '20px 16px',
-              background: 'var(--card-bg)',
-              border: '1px solid var(--card-border)',
-              borderRadius: 12,
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              fontSize: 13,
-              minWidth: 130,
-              maxWidth: 150,
-              transition: 'background 0.15s, border-color 0.15s, transform 0.15s',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+              padding: '20px 16px', background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+              borderRadius: 12, color: 'var(--text-primary)', cursor: 'pointer', fontSize: 13,
+              minWidth: 130, maxWidth: 150, transition: 'background 0.15s, border-color 0.15s, transform 0.15s',
             }}
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLButtonElement).style.background = 'var(--action-btn-hover)';
@@ -367,15 +251,11 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
             }}
           >
             <div style={{
-              width: 44,
-              height: 44,
-              borderRadius: '50%',
+              width: 44, height: 44, borderRadius: '50%',
               background: activePersona ? `${activePersona.color}14` : 'rgba(0,122,204,0.08)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <Icon size={24} color={activePersona ? activePersona.color : 'var(--accent)'} />
+              <Icon size={24} color={accentColor} />
             </div>
             <span style={{ textAlign: 'center', lineHeight: 1.4 }}>{text}</span>
           </button>
@@ -384,25 +264,14 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
 
       {/* Keyboard shortcuts */}
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, auto)',
-        gap: '8px 20px',
-        padding: '14px 20px',
-        background: 'var(--card-bg)',
-        border: '1px solid var(--card-border)',
-        borderRadius: 10,
+        display: 'grid', gridTemplateColumns: 'repeat(3, auto)', gap: '8px 20px',
+        padding: '14px 20px', background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 10,
       }}>
         {shortcuts.map(({ keys, desc }) => (
           <div key={keys} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
             <kbd style={{
-              background: 'var(--popup-bg)',
-              border: '1px solid var(--popup-border)',
-              borderRadius: 4,
-              padding: '2px 8px',
-              fontSize: 10,
-              fontFamily: 'monospace',
-              color: 'var(--text-primary)',
-              whiteSpace: 'nowrap',
+              background: 'var(--popup-bg)', border: '1px solid var(--popup-border)', borderRadius: 4,
+              padding: '2px 8px', fontSize: 10, fontFamily: 'monospace', color: 'var(--text-primary)', whiteSpace: 'nowrap',
             }}>{keys}</kbd>
             <span style={{ color: 'var(--text-muted)' }}>{desc}</span>
           </div>
@@ -419,18 +288,9 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
               onClick={clearRecentPrompts}
               title={t('welcome.clearHistory')}
               style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-muted)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                padding: '1px 3px',
-                borderRadius: 3,
-                fontSize: 10,
-                gap: 2,
-                opacity: 0.7,
-                transition: 'color 150ms, opacity 150ms',
+                background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', padding: '1px 3px', borderRadius: 3,
+                fontSize: 10, gap: 2, opacity: 0.7, transition: 'color 150ms, opacity 150ms',
               }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--error)'; (e.currentTarget as HTMLElement).style.opacity = '1' }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'; (e.currentTarget as HTMLElement).style.opacity = '0.7' }}
@@ -445,17 +305,9 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
                 key={i}
                 onClick={() => onSuggestion(prompt)}
                 style={{
-                  background: 'var(--card-bg)',
-                  border: '1px solid var(--card-border)',
-                  borderRadius: 8,
-                  padding: '8px 12px',
-                  color: 'var(--text-primary)',
-                  cursor: 'pointer',
-                  fontSize: 12,
-                  textAlign: 'left',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
+                  background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 8,
+                  padding: '8px 12px', color: 'var(--text-primary)', cursor: 'pointer', fontSize: 12,
+                  textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   transition: 'background 0.15s, border-color 0.15s',
                 }}
                 onMouseEnter={(e) => {
@@ -483,16 +335,9 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
             onClick={action}
             title={`${label} (${shortcut})`}
             style={{
-              background: 'none',
-              border: '1px solid var(--card-border)',
-              borderRadius: 6,
-              padding: '5px 14px',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              fontSize: 12,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 5,
+              background: 'none', border: '1px solid var(--card-border)', borderRadius: 6,
+              padding: '5px 14px', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 12,
+              display: 'inline-flex', alignItems: 'center', gap: 5,
               transition: 'border-color 0.15s, color 0.15s',
             }}
             onMouseEnter={(e) => {
@@ -507,13 +352,8 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
             <QIcon size={12} />
             {label}
             <kbd style={{
-              fontSize: 9,
-              opacity: 0.5,
-              fontFamily: 'monospace',
-              background: 'rgba(255,255,255,0.06)',
-              padding: '1px 4px',
-              borderRadius: 3,
-              border: '1px solid rgba(255,255,255,0.1)',
+              fontSize: 9, opacity: 0.5, fontFamily: 'monospace', background: 'rgba(255,255,255,0.06)',
+              padding: '1px 4px', borderRadius: 3, border: '1px solid rgba(255,255,255,0.1)',
             }}>{shortcut}</kbd>
           </button>
         ))}
