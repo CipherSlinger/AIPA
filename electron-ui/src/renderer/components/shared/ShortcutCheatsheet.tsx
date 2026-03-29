@@ -48,6 +48,8 @@ const SHORTCUTS = [
     { keys: 'Ctrl + Shift + Q', actionKey: 'addToTaskQueue' },
     { keys: 'Ctrl + Shift + R', actionKey: 'regenerateResponse' },
     { keys: 'Ctrl + U', actionKey: 'clearInput' },
+    { keys: 'Ctrl + B', actionKey: 'boldText' },
+    { keys: 'Ctrl + I', actionKey: 'italicText' },
     { keys: 'Ctrl + = / -', actionKey: 'zoomInOut' },
     { keys: 'Ctrl + 0', actionKey: 'resetZoom' },
   ]},

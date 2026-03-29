@@ -282,6 +282,35 @@ export default function ChatInput({
     }
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
     if (e.ctrlKey && !e.shiftKey && e.key === 'u') { e.preventDefault(); setInput('') }
+    // Markdown formatting shortcuts
+    if (e.ctrlKey && !e.shiftKey && (e.key === 'b' || e.key === 'i')) {
+      e.preventDefault()
+      const ta = textareaRef.current
+      if (!ta) return
+      const start = ta.selectionStart
+      const end = ta.selectionEnd
+      const selected = input.substring(start, end)
+      const wrapper = e.key === 'b' ? '**' : '*'
+      if (selected) {
+        // Wrap selection
+        const newText = input.substring(0, start) + wrapper + selected + wrapper + input.substring(end)
+        setInput(newText)
+        // Restore selection to include formatting
+        setTimeout(() => {
+          ta.selectionStart = start + wrapper.length
+          ta.selectionEnd = end + wrapper.length
+        }, 0)
+      } else {
+        // Insert wrapper pair and place cursor in middle
+        const newText = input.substring(0, start) + wrapper + wrapper + input.substring(end)
+        setInput(newText)
+        setTimeout(() => {
+          ta.selectionStart = start + wrapper.length
+          ta.selectionEnd = start + wrapper.length
+        }, 0)
+      }
+      return
+    }
     // Escape: dismiss URL chips, long text chips, then quote preview
     if (e.key === 'Escape' && atQuery === null && slashQuery === null) {
       if (pastedUrl) { e.preventDefault(); setPastedUrl(null); if (urlChipTimerRef.current) clearTimeout(urlChipTimerRef.current); return }

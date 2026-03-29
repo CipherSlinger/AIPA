@@ -2233,3 +2233,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 274 (2026-03-29)
 - Annotation count in stats panel -- stats panel now shows count of annotated messages when annotations exist; annotationCount field added to ConversationStats interface in useConversationStats.ts; conditionally displayed row in StatsPanel.tsx; i18n: 1 new key (chat.statsAnnotations) in en.json and zh-CN.json; 4 files changed; build SUCCESS
+
+### Iteration 275 (2026-03-29)
+- Input markdown formatting shortcuts -- Ctrl+B wraps selected text in **bold** markers, Ctrl+I wraps in *italic* markers in the chat input textarea; if no text selected, inserts marker pair and places cursor in middle; does not conflict with Ctrl+B sidebar toggle because textarea captures the event first when focused; added to shortcut cheatsheet under chat section; i18n: 2 new keys (shortcut.boldText, shortcut.italicText) in en.json and zh-CN.json; 4 files changed; build SUCCESS

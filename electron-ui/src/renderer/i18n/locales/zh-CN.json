@@ -705,6 +705,8 @@
     "addToTaskQueue": "\u52a0\u5165\u4efb\u52a1\u961f\u5217",
     "regenerateResponse": "\u91cd\u65b0\u751f\u6210\u56de\u590d",
     "clearInput": "\u6e05\u9664\u8f93\u5165\u6587\u672c",
+    "boldText": "\u52a0\u7c97\u9009\u4e2d\u6587\u672c",
+    "italicText": "\u659c\u4f53\u9009\u4e2d\u6587\u672c",
     "zoomInOut": "\u653e\u5927 / \u7f29\u5c0f",
     "resetZoom": "\u91cd\u7f6e\u7f29\u653e",
     "searchInConversation": "\u641c\u7d22\u5bf9\u8bdd",

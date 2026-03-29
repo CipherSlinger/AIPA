@@ -705,6 +705,8 @@
     "addToTaskQueue": "Add to task queue",
     "regenerateResponse": "Regenerate response",
     "clearInput": "Clear input text",
+    "boldText": "Bold selected text",
+    "italicText": "Italic selected text",
     "zoomInOut": "Zoom in / out",
     "resetZoom": "Reset zoom",
     "searchInConversation": "Search in conversation",
