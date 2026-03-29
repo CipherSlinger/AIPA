@@ -1,5 +1,5 @@
 import React from 'react'
-import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, TerminalSquare, Settings, User } from 'lucide-react'
+import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, TerminalSquare, Settings, User } from 'lucide-react'
 import { useUiStore, useSessionStore, useChatStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 
@@ -164,6 +164,7 @@ export default function NavRail() {
 
   const sessionCount = useSessionStore(s => s.sessions.length)
   const noteCount = usePrefsStore(s => (s.prefs.notes || []).length)
+  const memoryCount = usePrefsStore(s => (s.prefs.memories || []).length)
   const activePersona = usePrefsStore(s => {
     const personas = s.prefs.personas || []
     const activeId = s.prefs.activePersonaId
@@ -176,6 +177,7 @@ export default function NavRail() {
   const isFilesActive = activeNavItem === 'files' && sidebarTab === 'files'
   const isNotesActive = activeNavItem === 'notes' && sidebarTab === 'notes'
   const isSkillsActive = activeNavItem === 'skills' && sidebarTab === 'skills'
+  const isMemoryActive = activeNavItem === 'memory' && sidebarTab === 'memory'
   const isSettingsActive = activeNavItem === 'settings' && sidebarTab === 'settings'
 
   const handleNewChat = () => {
@@ -252,6 +254,16 @@ export default function NavRail() {
         shortcut="Ctrl+4"
         isActive={isSkillsActive}
         onClick={() => setActiveNavItem('skills')}
+      />
+
+      {/* Memory */}
+      <NavItem
+        icon={<Brain size={20} />}
+        label={t('nav.memory')}
+        shortcut="Ctrl+6"
+        isActive={isMemoryActive}
+        onClick={() => setActiveNavItem('memory')}
+        badge={memoryCount}
       />
 
       {/* Terminal */}

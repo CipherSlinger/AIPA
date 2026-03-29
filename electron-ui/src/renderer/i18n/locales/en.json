@@ -7,7 +7,8 @@
     "settings": "Settings",
     "userProfile": "User profile",
     "notes": "Notes",
-    "skills": "Skills"
+    "skills": "Skills",
+    "memory": "Memory"
   },
   "chat": {
     "placeholder": "Message AIPA...",
@@ -621,7 +622,7 @@
     "collapseExpandAll": "Collapse/expand all",
     "toggleTheme": "Toggle dark/light theme",
     "prevNextSession": "Previous/next session",
-    "switchSidebarTab": "Switch sidebar tab (History/Files/Notes/Skills/Settings)",
+    "switchSidebarTab": "Switch sidebar tab (History/Files/Notes/Skills/Settings/Memory)",
     "quickSearch": "Focus session search",
     "sessionList": "Session List",
     "navigateSessions": "Navigate sessions",
@@ -889,5 +890,34 @@
     "importSuccess": "{{count}} personas imported",
     "importFailed": "Import failed: invalid file format",
     "importNoDuplicates": "No new personas to import (all duplicates)"
+  },
+  "memory": {
+    "title": "Memory",
+    "addNew": "Add memory",
+    "clearAll": "Clear all memories",
+    "searchPlaceholder": "Search memories...",
+    "all": "All",
+    "catPreference": "Preference",
+    "catFact": "Fact",
+    "catInstruction": "Instruction",
+    "catContext": "Context",
+    "addPlaceholder": "What should AIPA remember? e.g. 'I prefer concise responses' or 'My project uses TypeScript'",
+    "cancel": "Cancel",
+    "save": "Save",
+    "added": "Memory saved",
+    "deleted": "Memory deleted",
+    "updated": "Memory updated",
+    "clearedAll": "All memories cleared",
+    "limitReached": "Memory limit reached (200 max)",
+    "emptyState": "No memories yet",
+    "emptyHint": "Add memories to help AIPA personalize its responses. Memories persist across all sessions.",
+    "noResults": "No matching memories",
+    "pin": "Pin to top",
+    "unpin": "Unpin",
+    "edit": "Edit",
+    "delete": "Delete",
+    "justNow": "just now",
+    "footer": "{{count}} / {{max}} memories",
+    "inspired": "Inspired by OpenClaw"
   }
 }

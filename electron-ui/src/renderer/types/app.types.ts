@@ -104,6 +104,7 @@ export interface ClaudePrefs {
   personas?: Persona[]  // user-defined AI personas (max 10, persisted via electron-store)
   activePersonaId?: string  // currently active persona ID (null/undefined = no persona)
   displayName?: string  // user's display name for personalized greeting (max 30 chars)
+  memories?: MemoryItem[]  // persistent AI memory items (max 200, persisted via electron-store)
 }
 
 export interface Note {
@@ -140,4 +141,16 @@ export interface Persona {
   color: string        // badge/accent color hex
   createdAt: number    // epoch ms
   updatedAt: number    // epoch ms
+}
+
+export type MemoryCategory = 'preference' | 'fact' | 'instruction' | 'context'
+
+export interface MemoryItem {
+  id: string              // 'mem-' + timestamp + random
+  content: string         // the memory content text (max 500 chars)
+  category: MemoryCategory // memory type
+  pinned?: boolean        // pinned memories stay at top
+  createdAt: number       // epoch ms
+  updatedAt: number       // epoch ms
+  source?: string         // optional: which session it came from
 }

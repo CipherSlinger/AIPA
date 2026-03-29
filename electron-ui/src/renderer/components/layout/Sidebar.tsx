@@ -7,6 +7,7 @@ const FileBrowser = React.lazy(() => import('../filebrowser/FileBrowser'))
 const NotesPanel = React.lazy(() => import('../notes/NotesPanel'))
 const SkillsPanel = React.lazy(() => import('../skills/SkillsPanel'))
 const SettingsPanel = React.lazy(() => import('../settings/SettingsPanel'))
+const MemoryPanel = React.lazy(() => import('../memory/MemoryPanel'))
 
 function PanelFallback() {
   return (
@@ -63,6 +64,11 @@ export default function Sidebar() {
         {sidebarTab === 'settings' && (
           <Suspense fallback={<PanelFallback />}>
             <SettingsPanel />
+          </Suspense>
+        )}
+        {sidebarTab === 'memory' && (
+          <Suspense fallback={<PanelFallback />}>
+            <MemoryPanel />
           </Suspense>
         )}
       </div>

@@ -274,10 +274,10 @@ export default function App() {
         setPrefs({ theme: newTheme })
         window.electronAPI.prefsSet('theme', newTheme)
       }
-      // Ctrl+1-5: Switch sidebar tabs
-      if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key >= '1' && e.key <= '5') {
+      // Ctrl+1-6: Switch sidebar tabs
+      if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key >= '1' && e.key <= '6') {
         e.preventDefault()
-        const tabs = ['history', 'files', 'notes', 'skills', 'settings'] as const
+        const tabs = ['history', 'files', 'notes', 'skills', 'settings', 'memory'] as const
         const idx = parseInt(e.key) - 1
         const ui = useUiStore.getState()
         const tab = tabs[idx]
