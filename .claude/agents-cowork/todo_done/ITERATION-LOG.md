@@ -2058,3 +2058,5 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 217 (2026-03-29)
 - Shortcut cheatsheet search, universal word/token tooltip -- (1) ShortcutCheatsheet now has a search/filter input at the top; filters shortcuts in real-time by action name or key combo using useMemo; autoFocus on open; accent border on focus; Search icon; (2) Word/token info tooltip extended from assistant-only to all messages (user and assistant) in Message.tsx; 1 new i18n key (shortcutCheatsheet.searchPlaceholder) in en.json and zh-CN.json; 4 files changed; build SUCCESS
+
+[RETRO] retro-2026-03-29-iterations-208-217.md completed, covered Iteration 208-217, next forced retro after Iteration 227
