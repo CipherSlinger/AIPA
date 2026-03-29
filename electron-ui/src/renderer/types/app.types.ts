@@ -105,6 +105,7 @@ export interface ClaudePrefs {
   activePersonaId?: string  // currently active persona ID (null/undefined = no persona)
   displayName?: string  // user's display name for personalized greeting (max 30 chars)
   memories?: MemoryItem[]  // persistent AI memory items (max 200, persisted via electron-store)
+  workflows?: Workflow[]   // prompt chain workflows (max 50, persisted via electron-store)
 }
 
 export interface Note {
@@ -153,4 +154,21 @@ export interface MemoryItem {
   createdAt: number       // epoch ms
   updatedAt: number       // epoch ms
   source?: string         // optional: which session it came from
+}
+
+export interface WorkflowStep {
+  id: string              // 'step-' + timestamp + random
+  title: string           // step display name (max 50 chars)
+  prompt: string          // the prompt text to send (max 2000 chars)
+}
+
+export interface Workflow {
+  id: string              // 'wf-' + timestamp + random
+  name: string            // workflow name (max 50 chars)
+  description: string     // short description (max 200 chars)
+  steps: WorkflowStep[]   // ordered list of steps (max 20)
+  icon: string            // emoji icon
+  createdAt: number       // epoch ms
+  updatedAt: number       // epoch ms
+  runCount: number        // how many times this workflow has been run
 }

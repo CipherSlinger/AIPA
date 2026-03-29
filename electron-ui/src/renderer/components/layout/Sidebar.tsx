@@ -8,6 +8,7 @@ const NotesPanel = React.lazy(() => import('../notes/NotesPanel'))
 const SkillsPanel = React.lazy(() => import('../skills/SkillsPanel'))
 const SettingsPanel = React.lazy(() => import('../settings/SettingsPanel'))
 const MemoryPanel = React.lazy(() => import('../memory/MemoryPanel'))
+const WorkflowPanel = React.lazy(() => import('../workflows/WorkflowPanel'))
 
 function PanelFallback() {
   return (
@@ -69,6 +70,11 @@ export default function Sidebar() {
         {sidebarTab === 'memory' && (
           <Suspense fallback={<PanelFallback />}>
             <MemoryPanel />
+          </Suspense>
+        )}
+        {sidebarTab === 'workflows' && (
+          <Suspense fallback={<PanelFallback />}>
+            <WorkflowPanel />
           </Suspense>
         )}
       </div>

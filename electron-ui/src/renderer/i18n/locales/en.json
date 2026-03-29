@@ -8,7 +8,8 @@
     "userProfile": "User profile",
     "notes": "Notes",
     "skills": "Skills",
-    "memory": "Memory"
+    "memory": "Memory",
+    "workflows": "Workflows"
   },
   "chat": {
     "placeholder": "Message AIPA...",
@@ -622,7 +623,7 @@
     "collapseExpandAll": "Collapse/expand all",
     "toggleTheme": "Toggle dark/light theme",
     "prevNextSession": "Previous/next session",
-    "switchSidebarTab": "Switch sidebar tab (History/Files/Notes/Skills/Settings/Memory)",
+    "switchSidebarTab": "Switch sidebar tab (History/Files/Notes/Skills/Settings/Memory/Workflows)",
     "quickSearch": "Focus session search",
     "sessionList": "Session List",
     "navigateSessions": "Navigate sessions",
@@ -919,5 +920,36 @@
     "justNow": "just now",
     "footer": "{{count}} / {{max}} memories",
     "inspired": "Inspired by OpenClaw"
+  },
+  "workflow": {
+    "title": "Workflows",
+    "create": "Create workflow",
+    "searchPlaceholder": "Search workflows...",
+    "namePlaceholder": "Workflow name (e.g. Weekly Report)",
+    "descPlaceholder": "Short description (optional)",
+    "steps": "Steps",
+    "stepsLabel": "steps",
+    "addStep": "Add step",
+    "stepPromptPlaceholder": "What should AIPA do in this step?",
+    "cancel": "Cancel",
+    "save": "Save",
+    "run": "Run",
+    "edit": "Edit",
+    "delete": "Delete",
+    "duplicate": "Copy",
+    "created": "Workflow created",
+    "updated": "Workflow updated",
+    "deleted": "Workflow deleted",
+    "duplicated": "Workflow duplicated",
+    "installed": "{{name}} installed",
+    "running": "Running {{name}} ({{count}} steps queued)",
+    "limitReached": "Workflow limit reached (50 max)",
+    "runCount": "{{count}} runs",
+    "emptyState": "No workflows yet",
+    "emptyHint": "Chain multiple prompts into reusable workflows. Each step runs sequentially using the task queue.",
+    "noResults": "No matching workflows",
+    "presets": "Preset Workflows",
+    "footer": "Prompt chains for multi-step tasks",
+    "inspired": "Inspired by OpenClaw Lobster"
   }
 }
