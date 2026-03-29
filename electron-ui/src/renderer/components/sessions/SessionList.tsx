@@ -1,27 +1,27 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react'
-import { Trash2, RefreshCw, MessageSquare, ArrowUpDown, Search, CheckSquare, Square, Globe } from 'lucide-react'
-import { SessionListItem, StandardChatMessage, ChatMessage } from '../../types/app.types'
-import { useSessionStore, useChatStore, useUiStore, usePrefsStore } from '../../store'
+// SessionList — decomposed orchestrator (Iteration 221)
+// Sub-components: SessionItem, SessionFilters, SessionTooltip, GlobalSearchResults, TagPicker, BulkDeleteBar
+// Hook: useSessionListActions
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import { RefreshCw, MessageSquare, ArrowUpDown, Search, CheckSquare, Square, Globe, Trash2 } from 'lucide-react'
+import { SessionListItem } from '../../types/app.types'
+import { usePrefsStore, useSessionStore } from '../../store'
 import { SkeletonSessionRow } from '../ui/Skeleton'
 import { useT } from '../../i18n'
-import { TAG_PRESETS, parseSessionMessages, getDateGroup } from './sessionUtils'
+import { TAG_PRESETS, getDateGroup } from './sessionUtils'
 import SessionItem from './SessionItem'
 import SessionFilters from './SessionFilters'
 import SessionTooltip from './SessionTooltip'
 import GlobalSearchResults from './GlobalSearchResults'
 import TagPicker from './TagPicker'
 import BulkDeleteBar from './BulkDeleteBar'
+import { useSessionListActions } from './useSessionListActions'
 
 export default function SessionList() {
-  const { sessions, loading, setSessions, setLoading } = useSessionStore()
-  const { clearMessages, loadHistory, setSessionId, currentSessionId } = useChatStore()
-  const isStreaming = useChatStore(s => s.isStreaming)
-  const { addToast } = useUiStore()
   const { prefs, setPrefs } = usePrefsStore()
   const t = useT()
+  const actions = useSessionListActions()
+
   const [filter, setFilter] = useState('')
-  const [renamingId, setRenamingId] = useState<string | null>(null)
-  const [renameValue, setRenameValue] = useState('')
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'alpha'>(() => {
     try {
       const stored = localStorage.getItem('aipa:session-sort')
@@ -30,100 +30,14 @@ export default function SessionList() {
     return 'newest'
   })
 
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [focusedIdx, setFocusedIdx] = useState(-1)
   const listRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
-
-  // ── Multi-select mode ──
-  const [selectMode, setSelectMode] = useState(false)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
-
-  const exitSelectMode = useCallback(() => {
-    setSelectMode(false)
-    setSelectedIds(new Set())
-    setConfirmBulkDelete(false)
-  }, [])
-
-  const toggleSelectId = (sessionId: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev)
-      if (next.has(sessionId)) {
-        next.delete(sessionId)
-      } else {
-        next.add(sessionId)
-      }
-      return next
-    })
-  }
-
-  // Exit select mode on Escape
-  useEffect(() => {
-    if (!selectMode) return
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') exitSelectMode()
-    }
-    window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
-  }, [selectMode, exitSelectMode])
 
   // Session preview tooltip state
   const [tooltipSession, setTooltipSession] = useState<SessionListItem | null>(null)
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
   const tooltipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // ── Global search state ──
-  const [globalSearchResults, setGlobalSearchResults] = useState<{ sessionId: string; title?: string; project: string; matchType: 'title' | 'content'; snippet: string; timestamp: number }[]>([])
-  const [isGlobalSearching, setIsGlobalSearching] = useState(false)
-  const [showGlobalResults, setShowGlobalResults] = useState(false)
-  const [lastGlobalQuery, setLastGlobalQuery] = useState('')
-
-  const handleGlobalSearch = useCallback(async (query: string) => {
-    if (!query || query.length < 2) {
-      setGlobalSearchResults([])
-      setShowGlobalResults(false)
-      return
-    }
-    setIsGlobalSearching(true)
-    setShowGlobalResults(true)
-    setLastGlobalQuery(query)
-    try {
-      const results = await window.electronAPI.sessionSearch(query, 20)
-      setGlobalSearchResults(results)
-    } catch {
-      setGlobalSearchResults([])
-    }
-    setIsGlobalSearching(false)
-  }, [])
-
-  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && filter.trim().length >= 2) {
-      e.preventDefault()
-      handleGlobalSearch(filter.trim())
-    }
-    if (e.key === 'Escape' && showGlobalResults) {
-      e.preventDefault()
-      setShowGlobalResults(false)
-    }
-  }, [filter, handleGlobalSearch, showGlobalResults])
-
-  const showSessionTooltip = useCallback((session: SessionListItem, e: React.MouseEvent) => {
-    if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current)
-    const rect = e.currentTarget.getBoundingClientRect()
-    tooltipTimerRef.current = setTimeout(() => {
-      setTooltipSession(session)
-      setTooltipPos({ top: rect.top, left: rect.right + 8 })
-    }, 500)
-  }, [])
-
-  const hideSessionTooltip = useCallback(() => {
-    if (tooltipTimerRef.current) {
-      clearTimeout(tooltipTimerRef.current)
-      tooltipTimerRef.current = null
-    }
-    setTooltipSession(null)
-  }, [])
 
   // ── Session Tags ──
   const sessionTags: Record<string, string[]> = prefs.sessionTags || {}
@@ -170,9 +84,9 @@ export default function SessionList() {
   }, [tagPickerSessionId, closeTagPicker])
 
   // Compute unique project paths for project filter
-  const uniqueProjects = React.useMemo(() => {
+  const uniqueProjects = useMemo(() => {
     const projects = new Map<string, number>()
-    for (const s of sessions) {
+    for (const s of actions.sessions) {
       if (s.project) {
         projects.set(s.project, (projects.get(s.project) || 0) + 1)
       }
@@ -180,7 +94,7 @@ export default function SessionList() {
     return [...projects.entries()]
       .sort((a, b) => b[1] - a[1])
       .map(([name, count]) => ({ name, count }))
-  }, [sessions])
+  }, [actions.sessions])
 
   // Pinned sessions
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(() => {
@@ -204,14 +118,7 @@ export default function SessionList() {
     })
   }
 
-  const loadSessions = async () => {
-    setLoading(true)
-    const list = await window.electronAPI.sessionList()
-    setSessions(list || [])
-    setLoading(false)
-  }
-
-  useEffect(() => { loadSessions() }, [])
+  useEffect(() => { actions.loadSessions() }, [])
 
   // Listen for global search focus (Ctrl+Shift+F from ChatPanel)
   useEffect(() => {
@@ -230,110 +137,43 @@ export default function SessionList() {
     const handler = async (e: Event) => {
       const sessionId = (e as CustomEvent).detail as string
       if (!sessionId) return
-      const raw = await window.electronAPI.sessionLoad(sessionId)
-      const chatMessages = parseSessionMessages(raw)
-      clearMessages()
-      loadHistory(chatMessages)
-      setSessionId(sessionId)
+      actions.handleOpenGlobalResult(sessionId)
     }
     window.addEventListener('aipa:openSession', handler)
     return () => window.removeEventListener('aipa:openSession', handler)
   }, [])
 
-  const openSession = async (session: SessionListItem) => {
-    if (renamingId === session.sessionId) return
-    const raw = await window.electronAPI.sessionLoad(session.sessionId)
-    const chatMessages = parseSessionMessages(raw)
-    clearMessages()
-    loadHistory(chatMessages)
-    setSessionId(session.sessionId)
-  }
+  const showSessionTooltip = useCallback((session: SessionListItem, e: React.MouseEvent) => {
+    if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current)
+    const rect = e.currentTarget.getBoundingClientRect()
+    tooltipTimerRef.current = setTimeout(() => {
+      setTooltipSession(session)
+      setTooltipPos({ top: rect.top, left: rect.right + 8 })
+    }, 500)
+  }, [])
 
-  const deleteSession = async (e: React.MouseEvent, sessionId: string) => {
-    e.stopPropagation()
-    if (confirmDeleteId === sessionId) {
-      setConfirmDeleteId(null)
-      await window.electronAPI.sessionDelete(sessionId)
-      addToast('success', t('session.deleted'))
-      loadSessions()
-    } else {
-      setConfirmDeleteId(sessionId)
-      setTimeout(() => setConfirmDeleteId(prev => prev === sessionId ? null : prev), 3000)
+  const hideSessionTooltip = useCallback(() => {
+    if (tooltipTimerRef.current) {
+      clearTimeout(tooltipTimerRef.current)
+      tooltipTimerRef.current = null
     }
-  }
+    setTooltipSession(null)
+  }, [])
 
-  const forkSession = async (e: React.MouseEvent, session: SessionListItem) => {
-    e.stopPropagation()
-    const messages = await window.electronAPI.sessionLoad(session.sessionId)
-    const newId = await window.electronAPI.sessionFork(session.sessionId, messages.length - 1)
-    if (newId) {
-      addToast('success', t('session.forked'))
-      await loadSessions()
-    } else {
-      addToast('error', t('session.forkFailed'))
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && filter.trim().length >= 2) {
+      e.preventDefault()
+      actions.handleGlobalSearch(filter.trim())
     }
-  }
-
-  const exportSession = async (e: React.MouseEvent, session: SessionListItem) => {
-    e.stopPropagation()
-    try {
-      const raw = await window.electronAPI.sessionLoad(session.sessionId)
-      const chatMessages = parseSessionMessages(raw)
-      const title = session.title || session.lastPrompt || t('session.untitledSession')
-      const lines: string[] = [`# ${title}\n`]
-      lines.push(`_Exported: ${new Date().toLocaleString()} | Messages: ${chatMessages.length}_\n`)
-      lines.push('---\n')
-      for (const msg of chatMessages) {
-        if (msg.role === 'user') {
-          lines.push(`## You\n`)
-          lines.push((msg as StandardChatMessage).content + '\n')
-        } else if (msg.role === 'assistant') {
-          lines.push(`## Claude\n`)
-          lines.push((msg as StandardChatMessage).content + '\n')
-        }
-      }
-      const markdown = lines.join('\n')
-      const sanitizedTitle = title.replace(/[<>:"/\\|?*]/g, '_').slice(0, 50)
-      const filePath = await window.electronAPI.fsShowSaveDialog(`${sanitizedTitle}.md`, [
-        { name: 'Markdown', extensions: ['md'] },
-        { name: 'Text', extensions: ['txt'] },
-      ])
-      if (!filePath) return
-      const result = await window.electronAPI.fsWriteFile(filePath, markdown)
-      if (result?.error) {
-        addToast('error', t('chat.exportFailed', { error: result.error }))
-      } else {
-        addToast('success', t('chat.exportSuccess'))
-      }
-    } catch (err) {
-      addToast('error', t('chat.exportFailed', { error: String(err) }))
+    if (e.key === 'Escape' && actions.showGlobalResults) {
+      e.preventDefault()
+      actions.setShowGlobalResults(false)
     }
-  }
+  }, [filter, actions.handleGlobalSearch, actions.showGlobalResults])
 
-  const startRename = (e: React.MouseEvent, session: SessionListItem) => {
-    e.stopPropagation()
-    setRenamingId(session.sessionId)
-    setRenameValue(session.title || session.lastPrompt || '')
-  }
+  const sessionLoading = useSessionStore(s => s.loading)
 
-  const commitRename = async (sessionId: string) => {
-    if (renameValue.trim()) {
-      await window.electronAPI.sessionRename(sessionId, renameValue.trim())
-      await loadSessions()
-    }
-    setRenamingId(null)
-  }
-
-  const handleOpenGlobalResult = useCallback(async (sessionId: string) => {
-    const raw = await window.electronAPI.sessionLoad(sessionId)
-    const chatMessages = parseSessionMessages(raw)
-    clearMessages()
-    loadHistory(chatMessages)
-    setSessionId(sessionId)
-    setShowGlobalResults(false)
-  }, [clearMessages, loadHistory, setSessionId])
-
-  const filtered = sessions
+  const filtered = actions.sessions
     .filter((s) => {
       const matchesText = !filter || (s.title || s.lastPrompt).toLowerCase().includes(filter.toLowerCase()) ||
         s.project.toLowerCase().includes(filter.toLowerCase())
@@ -361,7 +201,7 @@ export default function SessionList() {
           <input
             ref={searchInputRef}
             value={filter}
-            onChange={(e) => { setFilter(e.target.value); if (!e.target.value) setShowGlobalResults(false) }}
+            onChange={(e) => { setFilter(e.target.value); if (!e.target.value) actions.setShowGlobalResults(false) }}
             onKeyDown={handleSearchKeyDown}
             placeholder={t('session.search')}
             style={{
@@ -393,7 +233,7 @@ export default function SessionList() {
           )}
         </div>
         <button
-          onClick={loadSessions}
+          onClick={actions.loadSessions}
           title={t('session.refresh')}
           style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
         >
@@ -416,37 +256,29 @@ export default function SessionList() {
         </button>
         <button
           onClick={() => {
-            if (selectMode) {
-              exitSelectMode()
+            if (actions.selectMode) {
+              actions.exitSelectMode()
             } else {
-              setSelectMode(true)
-              setSelectedIds(new Set())
+              actions.setSelectMode(true)
+              actions.setSelectedIds(new Set())
             }
           }}
-          title={selectMode ? t('session.exitSelect') : t('session.selectMode')}
+          title={actions.selectMode ? t('session.exitSelect') : t('session.selectMode')}
           style={{
-            background: selectMode ? 'var(--accent)' : 'none',
+            background: actions.selectMode ? 'var(--accent)' : 'none',
             border: 'none',
-            color: selectMode ? '#fff' : 'var(--text-muted)',
+            color: actions.selectMode ? '#fff' : 'var(--text-muted)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             borderRadius: 3,
-            padding: selectMode ? '1px 4px' : 0,
+            padding: actions.selectMode ? '1px 4px' : 0,
           }}
         >
           <CheckSquare size={13} />
         </button>
         <button
-          onClick={async () => {
-            if (!sessions.length) return
-            const ok = window.confirm(t('session.deleteAllConfirm', { count: String(sessions.length) }))
-            if (!ok) return
-            for (const s of sessions) {
-              await window.electronAPI.sessionDelete(s.sessionId)
-            }
-            loadSessions()
-          }}
+          onClick={actions.deleteAll}
           title={t('session.deleteAll')}
           style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
         >
@@ -466,7 +298,7 @@ export default function SessionList() {
       />
 
       {/* Select All bar */}
-      {selectMode && filtered.length > 0 && (
+      {actions.selectMode && filtered.length > 0 && (
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -480,13 +312,13 @@ export default function SessionList() {
           <button
             onClick={() => {
               const selectableIds = filtered
-                .filter(s => s.sessionId !== currentSessionId)
+                .filter(s => s.sessionId !== actions.currentSessionId)
                 .map(s => s.sessionId)
-              const allSelected = selectableIds.every(id => selectedIds.has(id))
+              const allSelected = selectableIds.every(id => actions.selectedIds.has(id))
               if (allSelected) {
-                setSelectedIds(new Set())
+                actions.setSelectedIds(new Set())
               } else {
-                setSelectedIds(new Set(selectableIds))
+                actions.setSelectedIds(new Set(selectableIds))
               }
             }}
             style={{
@@ -502,36 +334,36 @@ export default function SessionList() {
             }}
           >
             {(() => {
-              const selectableIds = filtered.filter(s => s.sessionId !== currentSessionId).map(s => s.sessionId)
-              const allSelected = selectableIds.length > 0 && selectableIds.every(id => selectedIds.has(id))
+              const selectableIds = filtered.filter(s => s.sessionId !== actions.currentSessionId).map(s => s.sessionId)
+              const allSelected = selectableIds.length > 0 && selectableIds.every(id => actions.selectedIds.has(id))
               return allSelected
                 ? <CheckSquare size={13} style={{ color: 'var(--accent)' }} />
                 : <Square size={13} />
             })()}
             <span>{t('session.selectAll')}</span>
           </button>
-          {selectedIds.size > 0 && (
+          {actions.selectedIds.size > 0 && (
             <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--accent)', fontWeight: 500 }}>
-              {t('session.selectedCount', { count: String(selectedIds.size) })}
+              {t('session.selectedCount', { count: String(actions.selectedIds.size) })}
             </span>
           )}
         </div>
       )}
 
       {/* Global search results */}
-      {showGlobalResults && (
+      {actions.showGlobalResults && (
         <GlobalSearchResults
-          results={globalSearchResults}
-          isSearching={isGlobalSearching}
-          lastQuery={lastGlobalQuery}
-          currentSessionId={currentSessionId}
-          onOpenSession={handleOpenGlobalResult}
-          onClose={() => setShowGlobalResults(false)}
+          results={actions.globalSearchResults}
+          isSearching={actions.isGlobalSearching}
+          lastQuery={actions.lastGlobalQuery}
+          currentSessionId={actions.currentSessionId}
+          onOpenSession={actions.handleOpenGlobalResult}
+          onClose={() => actions.setShowGlobalResults(false)}
         />
       )}
 
       {/* Global search hint */}
-      {filter.trim().length >= 2 && !showGlobalResults && (
+      {filter.trim().length >= 2 && !actions.showGlobalResults && (
         <div style={{
           padding: '4px 12px',
           fontSize: 10,
@@ -561,17 +393,17 @@ export default function SessionList() {
             setFocusedIdx(prev => Math.max(prev - 1, 0))
           } else if (e.key === 'Enter' && focusedIdx >= 0 && focusedIdx < filtered.length) {
             e.preventDefault()
-            openSession(filtered[focusedIdx])
+            actions.openSession(filtered[focusedIdx])
           }
         }}
         style={{ flex: 1, overflowY: 'auto', outline: 'none' }}
       >
-        {loading && (
+        {sessionLoading && (
           <div>
             {[0, 1, 2, 3, 4].map(i => <SkeletonSessionRow key={i} />)}
           </div>
         )}
-        {!loading && filtered.length === 0 && (
+        {!sessionLoading && filtered.length === 0 && (
           <div style={{
             padding: '32px 16px',
             color: 'var(--text-muted)',
@@ -632,30 +464,30 @@ export default function SessionList() {
               {dateHeader}
               <SessionItem
                 session={session}
-                isActive={currentSessionId === session.sessionId}
+                isActive={actions.currentSessionId === session.sessionId}
                 isFocused={idx === focusedIdx}
                 isPinned={isPinned}
-                isStreaming={isStreaming}
-                isSelected={selectedIds.has(session.sessionId)}
-                isSelectDisabled={selectMode && currentSessionId === session.sessionId}
-                selectMode={selectMode}
+                isStreaming={actions.isStreaming}
+                isSelected={actions.selectedIds.has(session.sessionId)}
+                isSelectDisabled={actions.selectMode && actions.currentSessionId === session.sessionId}
+                selectMode={actions.selectMode}
                 filter={filter}
-                renamingId={renamingId}
-                renameValue={renameValue}
-                confirmDeleteId={confirmDeleteId}
+                renamingId={actions.renamingId}
+                renameValue={actions.renameValue}
+                confirmDeleteId={actions.confirmDeleteId}
                 sessionTags={sessionTags}
                 tagNames={tagNames}
-                onOpen={openSession}
-                onToggleSelect={toggleSelectId}
+                onOpen={actions.openSession}
+                onToggleSelect={actions.toggleSelectId}
                 onTogglePin={togglePin}
                 onOpenTagPicker={openTagPicker}
-                onStartRename={startRename}
-                onFork={forkSession}
-                onExport={exportSession}
-                onDelete={deleteSession}
-                onRenameChange={setRenameValue}
-                onRenameCommit={commitRename}
-                onRenameCancel={() => setRenamingId(null)}
+                onStartRename={actions.startRename}
+                onFork={actions.forkSession}
+                onExport={actions.exportSession}
+                onDelete={actions.deleteSession}
+                onRenameChange={actions.setRenameValue}
+                onRenameCommit={actions.commitRename}
+                onRenameCancel={() => actions.setRenamingId(null)}
                 onShowTooltip={showSessionTooltip}
                 onHideTooltip={hideSessionTooltip}
               />
@@ -686,21 +518,13 @@ export default function SessionList() {
       )}
 
       {/* Bulk delete floating action bar */}
-      {selectMode && selectedIds.size > 0 && (
+      {actions.selectMode && actions.selectedIds.size > 0 && (
         <BulkDeleteBar
-          selectedCount={selectedIds.size}
-          confirmBulkDelete={confirmBulkDelete}
-          onCancel={exitSelectMode}
-          onDelete={async () => {
-            const toDelete = [...selectedIds]
-            for (const id of toDelete) {
-              await window.electronAPI.sessionDelete(id)
-            }
-            addToast('success', t('session.bulkDeleted', { count: String(toDelete.length) }))
-            exitSelectMode()
-            loadSessions()
-          }}
-          onConfirm={() => setConfirmBulkDelete(true)}
+          selectedCount={actions.selectedIds.size}
+          confirmBulkDelete={actions.confirmBulkDelete}
+          onCancel={actions.exitSelectMode}
+          onDelete={actions.bulkDelete}
+          onConfirm={() => actions.setConfirmBulkDelete(true)}
         />
       )}
     </div>
