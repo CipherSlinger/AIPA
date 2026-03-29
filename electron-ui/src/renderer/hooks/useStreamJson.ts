@@ -3,6 +3,7 @@ import { useChatStore, usePrefsStore, useSessionStore } from '../store'
 import { PermissionMessage, PlanMessage, StandardChatMessage } from '../types/app.types'
 import { useUiStore } from '../store'
 import { useT } from '../i18n'
+import { recordPrompt } from '../utils/promptHistoryUtils'
 
 function sendCompletionNotification(title: string, summary: string) {
   if (document.hasFocus()) return  // Don't notify when window is focused
@@ -94,6 +95,9 @@ export function useStreamJson() {
     useChatStore.getState().addMessage(userMsg)
     setStreaming(true)
     sendTimestampRef.current = Date.now()
+
+    // Record prompt in history for analytics
+    recordPrompt(prompt)
 
     const currentSessionId = useChatStore.getState().currentSessionId
 

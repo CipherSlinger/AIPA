@@ -425,12 +425,12 @@ export const usePrefsStore = create<PrefsState>((set) => ({
 
 // ── UI store ────────────────────────────────────
 interface UiState {
-  sidebarTab: 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'schedules'
+  sidebarTab: 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'schedules' | 'prompthistory'
   sidebarOpen: boolean
   terminalOpen: boolean
   commandPaletteOpen: boolean
   toasts: ToastItem[]
-  setSidebarTab: (tab: 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'schedules') => void
+  setSidebarTab: (tab: 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'schedules' | 'prompthistory') => void
   setSidebarOpen: (v: boolean) => void
   setTerminalOpen: (v: boolean) => void
   setCommandPaletteOpen: (v: boolean) => void
@@ -443,7 +443,7 @@ interface UiState {
   removeToast: (id: string) => void
 
   // NavRail active item tracking
-  activeNavItem: 'chat' | 'history' | 'files' | 'terminal' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'schedules'
+  activeNavItem: 'chat' | 'history' | 'files' | 'terminal' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'schedules' | 'prompthistory'
   setActiveNavItem: (item: UiState['activeNavItem']) => void
 
   // Quote reply: text to prefill into the input bar
@@ -481,7 +481,7 @@ export const useUiStore = create<UiState>((set) => ({
   },
   removeToast: (id) => set((s) => ({ toasts: s.toasts.filter(t => t.id !== id) })),
   setActiveNavItem: (item) => set((s) => {
-    if (item === 'history' || item === 'files' || item === 'settings' || item === 'notes' || item === 'skills' || item === 'memory' || item === 'workflows' || item === 'schedules') {
+    if (item === 'history' || item === 'files' || item === 'settings' || item === 'notes' || item === 'skills' || item === 'memory' || item === 'workflows' || item === 'schedules' || item === 'prompthistory') {
       return { activeNavItem: item, sidebarTab: item, sidebarOpen: true }
     }
     return { activeNavItem: item }

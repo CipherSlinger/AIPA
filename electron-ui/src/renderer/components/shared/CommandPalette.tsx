@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import {
   Plus, Download, PanelLeft, Terminal, Settings, History,
   FolderOpen, Zap, Trash2, HelpCircle, Search, Cpu, Sparkles,
-  Brain, Workflow, Clock, Play, NotebookPen,
+  Brain, Workflow, Clock, ListRestart, Play, NotebookPen,
 } from 'lucide-react'
 import { useChatStore, useSessionStore, useUiStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
@@ -146,6 +146,15 @@ export default function CommandPalette({
         icon: <Clock size={14} />,
         shortcut: 'Ctrl+8',
         action: () => { setActiveNavItem('schedules'); onClose() },
+        category: 'action',
+      },
+      {
+        id: 'open-prompthistory',
+        name: t('command.openPromptHistory'),
+        description: t('command.openPromptHistoryDesc'),
+        icon: <ListRestart size={14} />,
+        shortcut: 'Ctrl+9',
+        action: () => { setActiveNavItem('prompthistory'); onClose() },
         category: 'action',
       },
       {

@@ -10,7 +10,8 @@
     "skills": "Skills",
     "memory": "Memory",
     "workflows": "Workflows",
-    "schedules": "Schedules"
+    "schedules": "Schedules",
+    "promptHistory": "Prompt History"
   },
   "chat": {
     "placeholder": "Message AIPA...",
@@ -508,6 +509,8 @@
     "openWorkflowsDesc": "Open the workflow pipeline builder",
     "openSchedules": "Open Schedules",
     "openSchedulesDesc": "Open the scheduled prompts panel",
+    "openPromptHistory": "Open Prompt History",
+    "openPromptHistoryDesc": "View and re-use previously sent prompts",
     "runWorkflow": "Run Workflow",
     "runWorkflowDesc": "Execute this workflow pipeline",
     "changeWorkingDir": "Change Working Directory",
@@ -1000,5 +1003,36 @@
     "presets": "Preset Schedules",
     "footer": "Recurring prompts inspired by OpenClaw Cron",
     "inspired": "Inspired by OpenClaw Cron"
+  },
+  "promptHistory": {
+    "title": "Prompt History",
+    "search": "Search prompts...",
+    "sortRecent": "Recent",
+    "sortFrequent": "Most used",
+    "sortAlpha": "A-Z",
+    "favoritesOnly": "Favorites only",
+    "uniquePrompts": "{{n}} unique",
+    "totalSent": "{{n}} total sent",
+    "favorites": "{{n}} favorites",
+    "queued": "Prompt queued",
+    "copied": "Copied to clipboard",
+    "copyFailed": "Copy failed",
+    "deleted": "Prompt removed",
+    "cleared": "History cleared",
+    "clearAll": "Clear all",
+    "resend": "Send again",
+    "copy": "Copy",
+    "delete": "Remove",
+    "markFavorite": "Star",
+    "unfavorite": "Unstar",
+    "usedCount": "{{n}}x used",
+    "justNow": "Just now",
+    "minutesAgo": "{{n}}m ago",
+    "hoursAgo": "{{n}}h ago",
+    "daysAgo": "{{n}}d ago",
+    "emptyState": "No prompts yet",
+    "emptyHint": "Your sent prompts will appear here. Star favorites for quick re-use.",
+    "noResults": "No matching prompts",
+    "footer": "Prompt analytics inspired by OpenClaw"
   }
 }

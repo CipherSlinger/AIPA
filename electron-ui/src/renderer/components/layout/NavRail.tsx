@@ -1,5 +1,5 @@
 import React from 'react'
-import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, Clock, TerminalSquare, Settings, User } from 'lucide-react'
+import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, Clock, ListRestart, TerminalSquare, Settings, User } from 'lucide-react'
 import { useUiStore, useSessionStore, useChatStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 
@@ -167,6 +167,7 @@ export default function NavRail() {
   const memoryCount = usePrefsStore(s => (s.prefs.memories || []).length)
   const workflowCount = usePrefsStore(s => (s.prefs.workflows || []).length)
   const scheduleCount = usePrefsStore(s => (s.prefs.scheduledPrompts || []).filter(sp => sp.enabled).length)
+  const promptHistoryCount = usePrefsStore(s => (s.prefs.promptHistory || []).length)
   const activePersona = usePrefsStore(s => {
     const personas = s.prefs.personas || []
     const activeId = s.prefs.activePersonaId
@@ -182,6 +183,7 @@ export default function NavRail() {
   const isMemoryActive = activeNavItem === 'memory' && sidebarTab === 'memory'
   const isWorkflowsActive = activeNavItem === 'workflows' && sidebarTab === 'workflows'
   const isSchedulesActive = activeNavItem === 'schedules' && sidebarTab === 'schedules'
+  const isPromptHistoryActive = activeNavItem === 'prompthistory' && sidebarTab === 'prompthistory'
   const isSettingsActive = activeNavItem === 'settings' && sidebarTab === 'settings'
 
   const handleNewChat = () => {
@@ -288,6 +290,16 @@ export default function NavRail() {
         isActive={isSchedulesActive}
         onClick={() => setActiveNavItem('schedules')}
         badge={scheduleCount}
+      />
+
+      {/* Prompt History */}
+      <NavItem
+        icon={<ListRestart size={18} />}
+        label={t('nav.promptHistory')}
+        shortcut="Ctrl+9"
+        isActive={isPromptHistoryActive}
+        onClick={() => setActiveNavItem('prompthistory')}
+        badge={promptHistoryCount}
       />
 
       {/* Terminal */}

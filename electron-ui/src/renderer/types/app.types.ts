@@ -107,6 +107,7 @@ export interface ClaudePrefs {
   memories?: MemoryItem[]  // persistent AI memory items (max 200, persisted via electron-store)
   workflows?: Workflow[]   // prompt chain workflows (max 50, persisted via electron-store)
   scheduledPrompts?: ScheduledPrompt[]  // scheduled/recurring prompts (max 30, persisted via electron-store)
+  promptHistory?: PromptHistoryItem[]   // prompt send history for analytics (max 200, persisted via electron-store)
 }
 
 export interface Note {
@@ -192,4 +193,13 @@ export interface ScheduledPrompt {
   runCount: number         // how many times this has been run
   createdAt: number        // epoch ms
   updatedAt: number        // epoch ms
+}
+
+export interface PromptHistoryItem {
+  id: string              // 'ph-' + hash of normalized text
+  text: string            // the prompt text (first 500 chars)
+  count: number           // how many times this exact prompt was sent
+  lastUsedAt: number      // epoch ms of most recent use
+  firstUsedAt: number     // epoch ms of first use
+  favorite?: boolean      // starred for quick access
 }
