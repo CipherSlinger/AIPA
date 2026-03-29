@@ -80,8 +80,23 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
   const [finalDuration, setFinalDuration] = useState<number | null>(null)
   const startTimeRef = useRef<number | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const userToggledRef = useRef(false)
 
   const isRunning = tool.status === 'running'
+
+  // Auto-expand when tool starts running, auto-collapse when done
+  // Respects manual user toggle: if user collapsed a running tool, don't re-expand
+  useEffect(() => {
+    if (isRunning && !userToggledRef.current) {
+      setExpanded(true)
+    } else if (!isRunning && !userToggledRef.current) {
+      setExpanded(false)
+    }
+    // Reset user toggle tracking when tool status changes
+    if (!isRunning) {
+      userToggledRef.current = false
+    }
+  }, [isRunning])
 
   // Start elapsed timer when tool begins running, capture final duration when done
   useEffect(() => {
@@ -150,7 +165,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
     >
       {/* Header */}
       <button
-        onClick={() => setExpanded(!expanded)}
+        onClick={() => { userToggledRef.current = true; setExpanded(!expanded) }}
         style={{
           width: '100%',
           display: 'flex',

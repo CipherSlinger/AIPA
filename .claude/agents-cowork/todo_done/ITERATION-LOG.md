@@ -2101,3 +2101,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 230 (2026-03-28)
 - Sidebar tab number shortcuts + slash-to-search -- (1) App.tsx: Ctrl+1 through Ctrl+5 switch sidebar tabs (History/Files/Notes/Skills/Settings) with toggle behavior (pressing active tab closes sidebar); (2) App.tsx: bare `/` key focuses session search when not in any input field or modal, opening history sidebar if needed; (3) NavRail.tsx: updated tooltip shortcut hints from Ctrl+B/Ctrl+Shift+N/Ctrl+, to Ctrl+1/2/3/4/5 for the 5 sidebar panels; (4) ShortcutCheatsheet.tsx: 2 new entries (Ctrl+1-5, `/`) in General section; (5) i18n: 2 new keys (switchSidebarTab, quickSearch) in en.json and zh-CN.json; 5 files changed; build SUCCESS
+
+### Iteration 231 (2026-03-28)
+- Auto-expand active tool calls during streaming -- ToolUseBlock.tsx: tool call blocks now auto-expand when their status is 'running' and auto-collapse when they complete ('done'/'error'); uses userToggledRef to respect manual user interaction (if user manually collapses a running tool, it won't re-expand); creates a more transparent streaming experience where users can see tool inputs/outputs in real-time; 1 file changed; build SUCCESS
