@@ -214,6 +214,11 @@ export default function ChatInput({
     }
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
     if (e.ctrlKey && !e.shiftKey && e.key === 'u') { e.preventDefault(); setInput('') }
+    // Escape: dismiss URL chips, then quote preview
+    if (e.key === 'Escape' && atQuery === null && slashQuery === null) {
+      if (pastedUrl) { e.preventDefault(); setPastedUrl(null); if (urlChipTimerRef.current) clearTimeout(urlChipTimerRef.current); return }
+      if (pendingQuote) { e.preventDefault(); setPendingQuote(null); return }
+    }
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {

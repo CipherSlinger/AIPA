@@ -395,6 +395,18 @@ export default function SessionList() {
           } else if (e.key === 'Enter' && focusedIdx >= 0 && focusedIdx < filtered.length) {
             e.preventDefault()
             actions.openSession(filtered[focusedIdx])
+          } else if (e.key === 'F2' && focusedIdx >= 0 && focusedIdx < filtered.length) {
+            e.preventDefault()
+            const session = filtered[focusedIdx]
+            actions.setRenamingId(session.sessionId)
+            actions.setRenameValue(session.title || session.lastPrompt || '')
+          } else if (e.key === 'Delete' && focusedIdx >= 0 && focusedIdx < filtered.length) {
+            e.preventDefault()
+            const session = filtered[focusedIdx]
+            if (session.sessionId === actions.currentSessionId) return
+            // Simulate the double-press delete pattern via synthetic mouse event
+            const fakeEvent = { stopPropagation: () => {} } as React.MouseEvent
+            actions.deleteSession(fakeEvent, session.sessionId)
           }
         }}
         style={{ flex: 1, overflowY: 'auto', outline: 'none' }}

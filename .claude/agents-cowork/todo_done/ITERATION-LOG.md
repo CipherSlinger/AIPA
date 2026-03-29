@@ -2110,3 +2110,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 233 (2026-03-28)
 - Session sort by message count -- SessionList.tsx: added 'messages' sort option to the sort cycle (Newest -> Oldest -> A-Z -> Messages -> Newest); sorts by messageCount descending (most messages first); date group headers disabled for message sort; 4 new i18n keys (sortMessages, sortMsgs in both locales); 3 files changed; build SUCCESS
+
+### Iteration 234 (2026-03-28)
+- Keyboard UX enhancements -- (1) ChatInput.tsx: Escape key now dismisses URL paste chips and pending quote preview in priority order; (2) SessionList.tsx: F2 key triggers rename on focused session, Delete key triggers delete with double-press confirmation (protected: active session cannot be deleted); (3) ShortcutCheatsheet.tsx: new "Session List" section with 4 entries (Up/Down, Enter, F2, Delete); (4) i18n: 5 new keys (sessionList, navigateSessions, openSession, renameSession, deleteSession); 5 files changed; build SUCCESS

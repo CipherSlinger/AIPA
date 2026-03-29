@@ -31,6 +31,12 @@ const SHORTCUTS = [
     { keys: 'Ctrl + 1-5', actionKey: 'switchSidebarTab' },
     { keys: '/', actionKey: 'quickSearch' },
   ]},
+  { sectionKey: 'sessionList', items: [
+    { keys: 'Up / Down', actionKey: 'navigateSessions' },
+    { keys: 'Enter', actionKey: 'openSession' },
+    { keys: 'F2', actionKey: 'renameSession' },
+    { keys: 'Delete', actionKey: 'deleteSession' },
+  ]},
   { sectionKey: 'chat', items: [
     { keys: 'Enter', actionKey: 'sendMessage' },
     { keys: 'Shift + Enter', actionKey: 'newLine' },
