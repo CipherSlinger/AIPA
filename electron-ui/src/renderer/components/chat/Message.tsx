@@ -63,6 +63,7 @@ interface Props {
   onCollapse?: (msgId: string) => void
   onEdit?: (msgId: string, newContent: string) => void
   searchQuery?: string
+  searchCaseSensitive?: boolean
   showAvatar?: boolean
   /** Pre-computed: is this the last user message in the list? (passed from MessageList to avoid per-message Zustand scans) */
   isLastUserMsg?: boolean
@@ -70,7 +71,7 @@ interface Props {
   hasAssistantReply?: boolean
 }
 
-export default React.memo(function Message({ message, onRate, onRewind, onBookmark, onCollapse, onEdit, searchQuery, showAvatar = true, isLastUserMsg = false, hasAssistantReply = false }: Props) {
+export default React.memo(function Message({ message, onRate, onRewind, onBookmark, onCollapse, onEdit, searchQuery, searchCaseSensitive, showAvatar = true, isLastUserMsg = false, hasAssistantReply = false }: Props) {
   const t = useT()
   const isUser = message.role === 'user'
   const isAssistant = message.role === 'assistant'
@@ -583,7 +584,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
                       {message.content}
                     </pre>
                   ) : (
-                    <MessageContent content={message.content} isUser={isUser} searchQuery={searchQuery} />
+                    <MessageContent content={message.content} isUser={isUser} searchQuery={searchQuery} searchCaseSensitive={searchCaseSensitive} />
                   )}
                 </div>
               )}
@@ -859,6 +860,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   if (pm.thinking !== nm.thinking) return false
   if ((pm.toolUses?.length ?? 0) !== (nm.toolUses?.length ?? 0)) return false
   if (prevProps.searchQuery !== nextProps.searchQuery) return false
+  if (prevProps.searchCaseSensitive !== nextProps.searchCaseSensitive) return false
   if (prevProps.showAvatar !== nextProps.showAvatar) return false
   return true
 })

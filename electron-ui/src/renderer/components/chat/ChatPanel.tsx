@@ -440,6 +440,7 @@ export default function ChatPanel() {
             onGrantPermission={grantToolPermission}
             sessionId={currentSessionId}
             searchQuery={searchQuery}
+            searchCaseSensitive={caseSensitive}
             highlightedMessageIdx={searchMatches.length > 0 ? searchMatches[currentMatchIdx] : undefined}
             scrollToMessageIdx={scrollToMessageIdx}
             onEdit={async (msgId, newContent) => {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Bot } from 'lucide-react'
-import { useChatStore } from '../../store'
+import { useChatStore, usePrefsStore } from '../../store'
 import { StandardChatMessage } from '../../types/app.types'
 import { useT } from '../../i18n'
 
@@ -9,6 +9,11 @@ export default function ThinkingIndicator() {
   const pendingToolUses = useChatStore(s => s.pendingToolUses)
   const t = useT()
   const [elapsed, setElapsed] = useState(0)
+
+  // Persona awareness
+  const activePersonaId = usePrefsStore(s => s.prefs.activePersonaId)
+  const personas = usePrefsStore(s => s.prefs.personas)
+  const activePersona = activePersonaId ? personas?.find(p => p.id === activePersonaId) : null
 
   // Elapsed timer
   useEffect(() => {
@@ -54,20 +59,29 @@ export default function ThinkingIndicator() {
       aria-label={`${activityLabel}...`}
       className="message-enter-left"
     >
-      {/* Mini AI avatar */}
+      {/* Mini AI avatar — persona-aware */}
       <div
         style={{
           width: 28,
           height: 28,
           borderRadius: '50%',
-          background: 'var(--bubble-ai)',
+          background: activePersona?.color
+            ? `${activePersona.color}22`
+            : 'var(--bubble-ai)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
+          border: activePersona?.color
+            ? `1.5px solid ${activePersona.color}44`
+            : 'none',
         }}
       >
-        <Bot size={16} color="var(--bubble-ai-text)" />
+        {activePersona?.emoji ? (
+          <span style={{ fontSize: 15, lineHeight: 1 }}>{activePersona.emoji}</span>
+        ) : (
+          <Bot size={16} color="var(--bubble-ai-text)" />
+        )}
       </div>
 
       {/* Mini bubble */}
@@ -89,7 +103,7 @@ export default function ThinkingIndicator() {
                 width: 5,
                 height: 5,
                 borderRadius: '50%',
-                background: 'var(--accent)',
+                background: activePersona?.color || 'var(--accent)',
                 animation: `dot-wave 1.2s ease-in-out ${i * 0.15}s infinite`,
               }}
             />

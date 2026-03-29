@@ -11,11 +11,13 @@ interface Props {
   content: string
   isUser?: boolean
   searchQuery?: string
+  searchCaseSensitive?: boolean
 }
 
-function HighlightedText({ text, query }: { text: string; query: string }) {
+function HighlightedText({ text, query, caseSensitive = false }: { text: string; query: string; caseSensitive?: boolean }) {
   if (!query.trim()) return <>{text}</>
-  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+  const flags = caseSensitive ? 'g' : 'gi'
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, flags)
   const parts = text.split(regex)
   return (
     <>
@@ -437,11 +439,11 @@ function extractText(children: React.ReactNode): string {
   return ''
 }
 
-export default React.memo(function MessageContent({ content, isUser, searchQuery }: Props) {
+export default React.memo(function MessageContent({ content, isUser, searchQuery, searchCaseSensitive }: Props) {
   if (isUser) {
     return (
       <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, color: 'var(--text-primary)', fontSize: 13 }}>
-        {searchQuery ? <HighlightedText text={content} query={searchQuery} /> : content}
+        {searchQuery ? <HighlightedText text={content} query={searchQuery} caseSensitive={searchCaseSensitive} /> : content}
       </div>
     )
   }

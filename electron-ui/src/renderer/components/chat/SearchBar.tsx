@@ -126,7 +126,7 @@ export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, c
       )}
       {query && (
         <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-          {matchCount > 0 ? `${currentMatch + 1} / ${matchCount}` : t('chat.noMatches')}
+          {matchCount > 0 ? t('chat.searchCount', { current: String(currentMatch + 1), total: String(matchCount) }) : t('chat.noMatches')}
         </span>
       )}
       <button

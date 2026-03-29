@@ -34,12 +34,13 @@ interface Props {
   onGrantPermission: (permissionId: string, toolName: string) => void
   sessionId?: string | null
   searchQuery?: string
+  searchCaseSensitive?: boolean
   highlightedMessageIdx?: number
   scrollToMessageIdx?: number
   onEdit?: (msgId: string, newContent: string) => void
 }
 
-export default function MessageList({ messages, onPermission, onGrantPermission, sessionId, searchQuery, highlightedMessageIdx, scrollToMessageIdx, onEdit }: Props) {
+export default function MessageList({ messages, onPermission, onGrantPermission, sessionId, searchQuery, searchCaseSensitive, highlightedMessageIdx, scrollToMessageIdx, onEdit }: Props) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const resolvePlan = useChatStore(s => s.resolvePlan)
   const rateMessage = useChatStore(s => s.rateMessage)
@@ -233,6 +234,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       <Message
         message={msg}
         searchQuery={searchQuery}
+        searchCaseSensitive={searchCaseSensitive}
         showAvatar={showAvatar}
         isLastUserMsg={msg.role === 'user' && msg.id === lastUserMsgId}
         hasAssistantReply={msg.role === 'user' && (assistantReplyMap.get(msg.id) ?? false)}
@@ -254,7 +256,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
         } : undefined}
       />
     )
-  }, [onPermission, onGrantPermission, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery, showAvatarMap, onEdit, t, lastUserMsgId, assistantReplyMap])
+  }, [onPermission, onGrantPermission, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery, searchCaseSensitive, showAvatarMap, onEdit, t, lastUserMsgId, assistantReplyMap])
 
   // Scroll progress (0..1)
   const [scrollProgress, setScrollProgress] = useState(0)

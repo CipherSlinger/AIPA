@@ -79,6 +79,7 @@
     "searchCaseSensitive": "Match case",
     "searchFilterUser": "Your messages only",
     "searchFilterClaude": "Claude messages only",
+    "searchCount": "{{current}} / {{total}}",
     "copyFailed": "Failed to copy",
     "conversationStats": "Conversation Stats",
     "statsSessionCost": "Session cost",
