@@ -797,7 +797,13 @@
     "category_creative": "\u521b\u610f",
     "category_devops": "\u8fd0\u7ef4",
     "category_design": "\u8bbe\u8ba1",
-    "browseOnClawhub": "\u5728 ClawhHub.ai \u6d4f\u89c8\u66f4\u591a\u6280\u80fd"
+    "browseOnClawhub": "\u5728 ClawhHub.ai \u6d4f\u89c8\u66f4\u591a\u6280\u80fd",
+    "fetchFromClawhub": "\u4ece ClawhHub \u83b7\u53d6",
+    "fetchingClawhub": "\u6b63\u5728\u4ece ClawhHub \u83b7\u53d6...",
+    "newSkillsFound": "\u4e2a\u65b0\u6280\u80fd\u5df2\u4ece ClawhHub \u52a0\u8f7d",
+    "noNewSkills": "\u672a\u53d1\u73b0\u65b0\u6280\u80fd \u2014 ClawhHub \u6280\u80fd\u5747\u5df2\u5217\u51fa",
+    "clawhubEmpty": "ClawhHub \u672a\u8fd4\u56de\u7ed3\u679c",
+    "clawhubError": "\u65e0\u6cd5\u8fde\u63a5 ClawhHub"
   },
   "followUp": {
     "explainCode": "\u89e3\u91ca\u8fd9\u6bb5\u4ee3\u7801",

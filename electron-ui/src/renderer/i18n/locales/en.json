@@ -797,7 +797,13 @@
     "category_creative": "Creative",
     "category_devops": "DevOps",
     "category_design": "Design",
-    "browseOnClawhub": "Browse more on ClawhHub.ai"
+    "browseOnClawhub": "Browse more on ClawhHub.ai",
+    "fetchFromClawhub": "Fetch from ClawhHub",
+    "fetchingClawhub": "Fetching from ClawhHub...",
+    "newSkillsFound": "new skills found from ClawhHub",
+    "noNewSkills": "No new skills found — all ClawhHub skills already listed",
+    "clawhubEmpty": "ClawhHub returned no results",
+    "clawhubError": "Failed to connect to ClawhHub"
   },
   "followUp": {
     "explainCode": "Explain this code",

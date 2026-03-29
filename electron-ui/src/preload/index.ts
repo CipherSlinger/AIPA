@@ -110,6 +110,7 @@ const electronAPI = {
   skillsRead: (dirPath: string) => ipcRenderer.invoke('skills:read', dirPath),
   skillsInstall: (args: { name: string; content: string }) => ipcRenderer.invoke('skills:install', args),
   skillsDelete: (dirPath: string) => ipcRenderer.invoke('skills:delete', dirPath),
+  skillsFetchClawhub: () => ipcRenderer.invoke('skills:fetchClawhub'),
 
   // ── Window ──────────────────────────────
   windowSetTitleBarOverlay: (opts: { color: string; symbolColor: string }) =>

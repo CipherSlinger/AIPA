@@ -577,6 +577,36 @@ function registerSkillsHandlers(): void {
     }
   })
 
+  ipcMain.handle('skills:fetchClawhub', async () => {
+    try {
+      const { net } = require('electron')
+      const response = await net.fetch('https://clawhub.ai/api/v1/skills?sort=downloads&limit=50', {
+        headers: { 'Accept': 'application/json', 'User-Agent': 'AIPA/1.0' },
+      })
+      if (!response.ok) {
+        return { error: `HTTP ${response.status}`, skills: [] }
+      }
+      const data = await response.json()
+      if (data && Array.isArray(data.items) && data.items.length > 0) {
+        return { skills: data.items, source: 'api' }
+      }
+      // API returned empty -- try alternate endpoint
+      const altResponse = await net.fetch('https://clawhub.ai/api/v1/skills', {
+        headers: { 'Accept': 'application/json', 'User-Agent': 'AIPA/1.0' },
+      })
+      if (altResponse.ok) {
+        const altData = await altResponse.json()
+        if (altData && Array.isArray(altData.items) && altData.items.length > 0) {
+          return { skills: altData.items, source: 'api' }
+        }
+      }
+      return { skills: [], source: 'empty', message: 'ClawhHub API returned no results' }
+    } catch (err) {
+      log.warn('skills:fetchClawhub error:', String(err))
+      return { error: String(err), skills: [] }
+    }
+  })
+
   ipcMain.handle('skills:delete', (_e, dirPath: string) => {
     try {
       // Only allow deleting from personal skills directory
