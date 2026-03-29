@@ -106,6 +106,7 @@ export interface ClaudePrefs {
   displayName?: string  // user's display name for personalized greeting (max 30 chars)
   memories?: MemoryItem[]  // persistent AI memory items (max 200, persisted via electron-store)
   workflows?: Workflow[]   // prompt chain workflows (max 50, persisted via electron-store)
+  scheduledPrompts?: ScheduledPrompt[]  // scheduled/recurring prompts (max 30, persisted via electron-store)
 }
 
 export interface Note {
@@ -171,4 +172,24 @@ export interface Workflow {
   createdAt: number       // epoch ms
   updatedAt: number       // epoch ms
   runCount: number        // how many times this workflow has been run
+}
+
+export type ScheduleRepeat = 'once' | 'daily' | 'weekly' | 'monthly'
+
+export interface ScheduledPrompt {
+  id: string               // 'sched-' + timestamp + random
+  name: string             // display name (max 50 chars)
+  prompt: string           // the prompt text to send (max 2000 chars)
+  icon: string             // emoji icon
+  repeat: ScheduleRepeat   // recurrence pattern
+  hour: number             // 0-23, hour of day to execute
+  minute: number           // 0-59, minute to execute
+  dayOfWeek?: number       // 0-6 (Sun-Sat), only used for 'weekly'
+  dayOfMonth?: number      // 1-31, only used for 'monthly'
+  enabled: boolean         // whether the schedule is active
+  lastRunAt?: number       // epoch ms of last execution
+  nextRunAt: number        // epoch ms of next planned execution
+  runCount: number         // how many times this has been run
+  createdAt: number        // epoch ms
+  updatedAt: number        // epoch ms
 }

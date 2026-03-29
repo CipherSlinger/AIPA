@@ -28,7 +28,7 @@ const SHORTCUTS = [
     { keys: 'Ctrl + Shift + C', actionKey: 'collapseExpandAll' },
     { keys: 'Ctrl + Shift + D', actionKey: 'toggleTheme' },
     { keys: 'Ctrl + [ / ]', actionKey: 'prevNextSession' },
-    { keys: 'Ctrl + 1-7', actionKey: 'switchSidebarTab' },
+    { keys: 'Ctrl + 1-8', actionKey: 'switchSidebarTab' },
     { keys: '/', actionKey: 'quickSearch' },
   ]},
   { sectionKey: 'sessionList', items: [

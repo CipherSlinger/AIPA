@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import {
   Plus, Download, PanelLeft, Terminal, Settings, History,
   FolderOpen, Zap, Trash2, HelpCircle, Search, Cpu, Sparkles,
-  Brain, Workflow, Play, NotebookPen,
+  Brain, Workflow, Clock, Play, NotebookPen,
 } from 'lucide-react'
 import { useChatStore, useSessionStore, useUiStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
@@ -137,6 +137,15 @@ export default function CommandPalette({
         icon: <Workflow size={14} />,
         shortcut: 'Ctrl+7',
         action: () => { setActiveNavItem('workflows'); onClose() },
+        category: 'action',
+      },
+      {
+        id: 'open-schedules',
+        name: t('command.openSchedules'),
+        description: t('command.openSchedulesDesc'),
+        icon: <Clock size={14} />,
+        shortcut: 'Ctrl+8',
+        action: () => { setActiveNavItem('schedules'); onClose() },
         category: 'action',
       },
       {
