@@ -2140,3 +2140,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 243 (2026-03-29)
 - Memory injection into chat system prompt -- useStreamJson.ts: persistent memories are now injected as `<user_memory>` context block into the system prompt via `--append-system-prompt`; pinned memories are always included, plus up to 10 most recent non-pinned memories sorted by updatedAt; each memory formatted with category label and pin status; combined with user's custom system prompt if set; this makes the Memory panel functional -- saved memories now actually influence AI responses for personalized conversations; 1 file changed; build SUCCESS
+
+### Iteration 244 (2026-03-29)
+- Remember This context action -- Brain icon button added to assistant message hover toolbar and right-click context menu; clicking saves the first 500 chars of the message as a memory item (category: context, source: chat); follows the same pattern as Save to Note; useMessageActions.ts: new handleRememberThis function; MessageActionToolbar.tsx: Brain icon button; MessageContextMenu.tsx: "Remember this" menu item; i18n: 2 new keys (rememberThis, savedToMemory) in en.json and zh-CN.json; 6 files changed; build SUCCESS

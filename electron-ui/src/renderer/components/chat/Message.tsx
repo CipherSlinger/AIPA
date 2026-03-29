@@ -63,7 +63,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   // Extracted actions hook
   const {
     copied, handleCopy, handleQuote, handleBookmarkAction,
-    handleCopyMarkdown, handleCopyRichText, handleSaveAsNote, handleDoubleClick,
+    handleCopyMarkdown, handleCopyRichText, handleSaveAsNote, handleRememberThis, handleDoubleClick,
   } = useMessageActions({ message, isPermission, isPlan })
 
   // Word info tooltip (both user and assistant messages)
@@ -307,6 +307,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             onBookmark={() => handleBookmarkAction(onBookmark)}
             onQuote={handleQuote}
             onSaveAsNote={handleSaveAsNote}
+            onRememberThis={handleRememberThis}
             onReadAloud={isAssistant ? handleReadAloud : undefined}
             isSpeaking={isSpeaking}
             hasOnEdit={!!onEdit}
@@ -329,6 +330,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           onCopyMarkdown={isAssistant ? handleCopyMarkdown : undefined}
           onCopyRichText={isAssistant ? handleCopyRichText : undefined}
           onSaveAsNote={isAssistant && (message as StandardChatMessage).content ? handleSaveAsNote : undefined}
+          onRememberThis={isAssistant && (message as StandardChatMessage).content ? handleRememberThis : undefined}
           onQuoteReply={!isPermission && !isPlan && (message as StandardChatMessage).content ? handleQuote : undefined}
           onEditMessage={isUser && onEdit && !globalIsStreaming ? handleStartEdit : undefined}
           onRate={onRate ? (rating) => onRate(message.id, rating) : undefined}

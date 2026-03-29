@@ -11,6 +11,7 @@ interface ContextMenuProps {
   onCopyMarkdown?: () => void
   onCopyRichText?: () => void
   onSaveAsNote?: () => void
+  onRememberThis?: () => void
   onQuoteReply?: () => void
   onEditMessage?: () => void
   onRate?: (rating: 'up' | 'down' | null) => void
@@ -20,7 +21,7 @@ interface ContextMenuProps {
   onClose: () => void
 }
 
-export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdown, onCopyRichText, onSaveAsNote, onQuoteReply, onEditMessage, onRate, onRewind, onBookmark, onCollapse, onClose }: ContextMenuProps) {
+export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdown, onCopyRichText, onSaveAsNote, onRememberThis, onQuoteReply, onEditMessage, onRate, onRewind, onBookmark, onCollapse, onClose }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Clamp position to viewport
@@ -142,6 +143,18 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
           onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
         >
           <span>{t('message.saveAsNote')}</span>
+        </button>
+      )}
+
+      {/* Remember This (assistant only) */}
+      {isAssistant && onRememberThis && (
+        <button
+          style={itemStyle}
+          onClick={() => { onRememberThis(); onClose() }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+        >
+          <span>{t('message.rememberThis')}</span>
         </button>
       )}
 

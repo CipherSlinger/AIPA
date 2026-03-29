@@ -240,7 +240,9 @@
     "responseDuration": "took {{time}}",
     "saveToNote": "Save to note",
     "readAloud": "Read aloud",
-    "stopReading": "Stop reading"
+    "stopReading": "Stop reading",
+    "rememberThis": "Remember this",
+    "savedToMemory": "Saved to memory"
   },
   "selection": {
     "copySelection": "Copy selected text",

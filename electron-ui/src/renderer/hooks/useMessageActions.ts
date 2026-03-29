@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { StandardChatMessage, Note } from '../types/app.types'
+import { StandardChatMessage, Note, MemoryItem } from '../types/app.types'
 import { usePrefsStore, useChatStore, useUiStore } from '../store'
 import { useT } from '../i18n'
 
@@ -119,6 +119,32 @@ export function useMessageActions({ message, isPermission, isPlan }: UseMessageA
     addToast('success', t('message.savedToNotes'))
   }, [message, addToast, t])
 
+  const handleRememberThis = useCallback(() => {
+    const text = (message as StandardChatMessage).content
+    if (!text) return
+    const MAX_MEMORIES = 200
+    const currentMemories: MemoryItem[] = usePrefsStore.getState().prefs.memories || []
+    if (currentMemories.length >= MAX_MEMORIES) {
+      addToast('error', t('memory.limitReached'))
+      return
+    }
+    const now = Date.now()
+    // Take first 500 chars as memory content
+    const content = text.slice(0, 500)
+    const newMemory: MemoryItem = {
+      id: `mem-${now}-${Math.random().toString(36).slice(2, 6)}`,
+      content,
+      category: 'context',
+      createdAt: now,
+      updatedAt: now,
+      source: 'chat',
+    }
+    const updated = [newMemory, ...currentMemories]
+    usePrefsStore.getState().setPrefs({ memories: updated })
+    window.electronAPI.prefsSet('memories', updated)
+    addToast('success', t('message.savedToMemory'))
+  }, [message, addToast, t])
+
   const handleDoubleClick = useCallback(() => {
     const text = (message as StandardChatMessage).content
     if (!text || isPermission || isPlan) return
@@ -136,6 +162,7 @@ export function useMessageActions({ message, isPermission, isPlan }: UseMessageA
     handleCopyMarkdown,
     handleCopyRichText,
     handleSaveAsNote,
+    handleRememberThis,
     handleDoubleClick,
   }
 }
