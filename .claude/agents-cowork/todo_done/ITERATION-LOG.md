@@ -2251,3 +2251,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 280 (2026-03-29)
 - Status bar model quick-switcher -- model badge in status bar is now clickable; opens an upward dropdown showing all 8 Claude models with checkmark on current model; selecting a model switches immediately with toast notification; ChevronUp icon indicates clickability; dropdown uses popup styling system with popup-in animation; click outside to dismiss; no new i18n keys needed (reuses existing chat.switchModel, chat.modelSwitched); 1 file changed; build SUCCESS
+
+### Iteration 281 (2026-03-29)
+- README batch update for iterations 271-280 -- added 8 new feature entries to both README.md and README_CN.md covering: message annotations, input markdown formatting (Ctrl+B/I), focus timer (Pomodoro), save clipboard as note, copy stats button, message rating in toolbar, status bar model switcher; 2 files changed; no build needed

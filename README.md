@@ -206,6 +206,13 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Response tone selector** -- Palette pill in the input toolbar lets you pick a response style (Default, Concise, Detailed, Professional, Casual, Creative); tone modifier injected into system prompt; persists across messages
 - **Quick language toggle** -- `Ctrl+Shift+L` toggles UI language between English and Chinese instantly; mirrors the `Ctrl+Shift+D` theme toggle pattern
 - **Command palette toggles** -- Toggle Theme and Toggle Language commands available in the Command Palette (`Ctrl+Shift+P`) with context-aware icons
+- **Message annotations** -- attach private notes to any message; StickyNote button on hover toolbar toggles inline annotation editor; annotations display as yellow-tinted strips below the message bubble; searchable via Ctrl+F; annotation count shown in stats panel
+- **Input markdown formatting** -- `Ctrl+B` wraps selected text in bold markers, `Ctrl+I` wraps in italic; inserts marker pair with cursor placement when no selection
+- **Focus timer (Pomodoro)** -- 25-minute countdown timer in the status bar; visual countdown display; completion notification sound and toast; one-click start/stop
+- **Save clipboard as note** -- Command Palette command that reads clipboard text and creates a new note automatically
+- **Copy conversation stats** -- Copy Stats button in the statistics panel copies all stats as formatted text to clipboard
+- **Message rating in toolbar** -- ThumbsUp/ThumbsDown buttons directly on the assistant message hover toolbar for quick one-click response rating
+- **Status bar model switcher** -- click the model badge in the status bar to open a quick-switch dropdown showing all Claude models; instant model switching without opening Settings
 
 ## Security
 
