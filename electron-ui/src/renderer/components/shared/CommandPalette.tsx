@@ -3,6 +3,7 @@ import {
   Plus, Download, PanelLeft, Terminal, Settings, History,
   FolderOpen, Zap, Trash2, HelpCircle, Search, Cpu, Sparkles,
   Brain, Workflow, Clock, ListRestart, Play, NotebookPen,
+  Sun, Moon, Languages, Palette,
 } from 'lucide-react'
 import { useChatStore, useSessionStore, useUiStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
@@ -234,6 +235,37 @@ export default function CommandPalette({
         }
         return personaCmds
       })(),
+      // Toggle commands
+      {
+        id: 'toggle-theme',
+        name: t('command.toggleTheme'),
+        description: t('command.toggleThemeDesc'),
+        icon: (usePrefsStore.getState().prefs.theme || 'vscode') === 'light' ? <Moon size={14} /> : <Sun size={14} />,
+        shortcut: 'Ctrl+Shift+D',
+        action: () => {
+          const cur = usePrefsStore.getState().prefs.theme || 'vscode'
+          const next = cur === 'light' ? 'vscode' : 'light'
+          usePrefsStore.getState().setPrefs({ theme: next })
+          window.electronAPI.prefsSet('theme', next)
+          onClose()
+        },
+        category: 'action',
+      },
+      {
+        id: 'toggle-language',
+        name: t('command.toggleLanguage'),
+        description: t('command.toggleLanguageDesc'),
+        icon: <Languages size={14} />,
+        shortcut: 'Ctrl+Shift+L',
+        action: () => {
+          const cur = usePrefsStore.getState().prefs.language || 'en'
+          const next = cur === 'zh-CN' ? 'en' : 'zh-CN'
+          usePrefsStore.getState().setPrefs({ language: next })
+          window.electronAPI.prefsSet('language', next)
+          onClose()
+        },
+        category: 'action',
+      },
       // Slash commands
       {
         id: 'slash-compact',

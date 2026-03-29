@@ -2215,3 +2215,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 268 (2026-03-29)
 - Quick language toggle shortcut -- Ctrl+Shift+L toggles UI language between English and Chinese instantly; mirrors the Ctrl+Shift+D theme toggle pattern; added to shortcut cheatsheet; i18n: 1 new key (toggleLanguage) in en.json and zh-CN.json; 4 files changed; build SUCCESS
+
+### Iteration 269 (2026-03-29)
+- Command palette toggle commands -- added Toggle Theme (Ctrl+Shift+D) and Toggle Language (Ctrl+Shift+L) commands to the command palette with Sun/Moon and Languages icons; theme command shows context-aware icon (Sun in dark mode, Moon in light mode); 4 new i18n keys (command.toggleTheme/toggleThemeDesc/toggleLanguage/toggleLanguageDesc) in en.json and zh-CN.json; 3 files changed; build SUCCESS
