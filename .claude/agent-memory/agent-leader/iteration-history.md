@@ -145,3 +145,35 @@ Improvements landed:
 3. aipa-frontend.md: ITERATION-LOG format enforcement (no one-liner regression)
 
 Next forced retro: after Iteration 188.
+
+## Retrospective: Iteration 189-198 (2026-03-28)
+
+**10 iterations. Mostly engineering quality work.**
+
+Key stats:
+- 2 major decompositions: SessionList (1736->708), SettingsPanel (986->125)
+- Bundle reduced 1,268 KB -> 1,127 KB via React.lazy code-splitting
+- First accessibility work (focus trapping, ARIA attributes)
+- ITERATION-LOG one-liner format accepted as valid for minor iterations
+
+Improvements landed:
+1. Accepted compact ITERATION-LOG format as valid (policy change)
+2. MASTER-ROADMAP update cadence: every 10 iterations at retro time
+
+## Retrospective: Iteration 199-207 (2026-03-28)
+
+**9 iterations. Personas feature dominated (5 of 9).**
+
+Key stats:
+- Personas system: 5 iterations (200-204) for what should have been 1-2 PRDs
+- No PRD written for the Personas feature (ad-hoc scope creep)
+- 8 ITERATION-LOG entries missing (worst gap ever, recovered during retro)
+- ChatHeader.tsx grew to 862 lines, ChatInput.tsx to 908, Message.tsx to 866
+- SettingsPersonas.tsx born at 440 lines, grew to 643 over 5 iterations without decomposition
+
+Improvements landed:
+1. aipa-frontend.md: Component size monitoring rules (400/600/800 line thresholds)
+2. aipa-frontend.md: ITERATION-LOG mandatory update after every commit
+3. Known decomposition candidates listed: ChatHeader, ChatInput, Message, SettingsPersonas, WelcomeScreen
+
+Next forced retro: after Iteration 217.

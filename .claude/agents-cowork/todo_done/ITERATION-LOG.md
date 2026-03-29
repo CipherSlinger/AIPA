@@ -2002,3 +2002,32 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 - Model quick-switcher + SkillsPanel decomposition + command palette model commands -- (1) Model quick-switcher in ChatHeader: click the model name badge next to the session title to open a dropdown with all 8 Claude models; selected model shown with checkmark; selecting a model saves to prefs and updates the badge in real time; ChevronDown icon indicates clickability; model display name auto-shortened (claude-sonnet-4-6 -> "Sonnet 4.6"); (2) SkillsPanel.tsx decomposed from 996 lines: extracted MarketplaceCard.tsx (marketplace skill card with install/source badge/external link), SkillCard.tsx (installed skill card with detail/delete actions), SkillDetail.tsx (skill detail view with content display and use-in-chat button), skillsShared.tsx (shared types SkillInfo + TabView); SkillsPanel.tsx reduced to ~450 lines orchestrator; (3) CommandPalette model commands: 8 "Switch model to X" commands appear in the palette searchable by model name; selecting one updates prefs.model and shows a success toast; all model commands have a CPU icon; i18n: modelQuickSwitch and switchToModel keys in en.json and zh-CN.json
 
 [RETRO] retro-2026-03-28-iterations-189-198.md 完成，已覆盖 Iteration 189–198，下次强制回顾在 Iteration 208 后
+
+### Iteration 200 (2026-03-28)
+- AI Personas system with CRUD, chat header switcher, OpenClaw-inspired -- new SettingsPersonas.tsx (440 lines) with persona CRUD (name, emoji, system prompt, color); ChatHeader persona switcher dropdown; Persona interface in app.types.ts; 33 i18n keys en + zh-CN; 6 files changed; build SUCCESS
+
+### Iteration 201 (2026-03-28)
+- Persona avatar on messages, command palette personas, welcome screen persona cards -- Message.tsx shows persona emoji instead of Bot icon when persona active; CommandPalette adds persona switch commands; WelcomeScreen shows persona cards for quick activation; 3 files changed; build SUCCESS
+
+### Iteration 202 (2026-03-28)
+- 5 preset personas, persona greeting on welcome screen, persona presets installer -- preset personas (Assistant, Writer, Analyst, Tutor, Coder) with one-click install; WelcomeScreen shows persona greeting when active; SettingsPersonas preset installer UI; 4 files changed; build SUCCESS
+
+### Iteration 203 (2026-03-28)
+- Persona input indicator, NavRail persona avatar, persona-specific starters -- ChatInput shows active persona name chip above textarea; NavRail bottom avatar shows persona emoji; WelcomeScreen shows persona-specific starter suggestions; 22 i18n keys; 5 files changed; build SUCCESS
+
+### Iteration 204 (2026-03-28)
+- Display name greeting, persona export/import, persona starters i18n -- SettingsPersonas export/import as JSON; displayName field on Persona; persona starters use i18n keys; 12 i18n keys; 6 files changed; build SUCCESS
+
+### Iteration 205 (2026-03-28)
+- Model indicator chip, avg response time stat, display name keys -- ChatInput shows model name badge; useConversationStats adds avgResponseTime calculation; displayName i18n keys; 5 files changed; build SUCCESS
+
+### Iteration 206 (2026-03-28)
+- Search case-sensitive toggle, role filter, regenerate shortcut hint -- SearchBar adds case-sensitive toggle button (Aa icon) and role filter dropdown (All/User/Assistant); useConversationSearch refactored for case sensitivity and role filtering; ChatInput shows Ctrl+Shift+R hint on regenerate button; 3 i18n keys; 5 files changed; build SUCCESS
+
+### Iteration 207 (2026-03-28)
+- Persona-aware thinking indicator, search case-sensitive highlight, search count i18n -- ThinkingIndicator shows active persona emoji and name instead of generic Bot icon; SearchBar match count uses i18n key; case-sensitive search highlights preserve original case; 1 i18n key; 8 files changed; build SUCCESS
+
+[RETRO] retro-2026-03-28-iterations-199-207.md 完成，已覆盖 Iteration 199–207，下次强制回顾在 Iteration 217 后
+
+### Iteration 208 (2026-03-28)
+- Ctrl+Home/End jump to first/last message, PageUp/Down scroll, percentage-based scroll restore -- (1) Ctrl+Home jumps to the very first message in conversation; Ctrl+End jumps to the last message; dispatched via custom events from ChatPanel to MessageList; (2) PageUp/PageDown scrolls message list by 80% of visible height when not focused in a textarea; (3) Scroll position memory improved from pixel-based to percentage-based (0-1) so positions restore correctly even after window resize or content reflow; (4) ShortcutCheatsheet updated with 3 new entries; (5) i18n: 6 new keys in en.json and zh-CN.json (jumpToFirst, jumpToLast, pageScroll, jumpToFirstMessage, jumpToLastMessage, pageUpDown); 5 files changed; build SUCCESS

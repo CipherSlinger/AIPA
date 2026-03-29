@@ -173,6 +173,46 @@ const messages = useChatStore(s => s.messages)
 
 ---
 
+<!-- improved by agent-leader 2026-03-28: 组件体积监控规则，防止 monolith 再次出现 -->
+### 组件体积监控（必须遵守）
+
+每次迭代完成后，检查本次修改过的组件文件行数：
+- **超过 400 行**：标记为「关注」，在 ITERATION-LOG 中记录
+- **超过 600 行**：必须在下一次迭代中安排分解重构，拆分为子组件 + hooks
+- **超过 800 行**：当前迭代内就应启动分解，不要继续往大文件添加功能
+
+已知需要分解的组件（截至 Iteration 207）：
+- `ChatHeader.tsx` (862 lines) -- 提取 model switcher、persona switcher、bookmarks panel
+- `ChatInput.tsx` (908 lines) -- 提取 clipboard actions、speech recognition、at-mention popup
+- `Message.tsx` (866 lines) -- 提取 hover toolbar、edit mode、status indicators
+- `SettingsPersonas.tsx` (643 lines) -- 提取 persona editor、preset installer
+- `WelcomeScreen.tsx` (523 lines) -- 提取 persona cards、suggestion cards、stats bar
+
+---
+
+<!-- improved by agent-leader 2026-03-28: 强化 ITERATION-LOG 更新要求 -->
+### ITERATION-LOG 更新（必须遵守，不得跳过）
+
+每次迭代 git commit 之后，**必须**在 `.claude/agents-cowork/todo_done/ITERATION-LOG.md` 追加一条记录。
+
+最小格式（紧凑模式，适用于所有迭代）：
+```
+### Iteration N (YYYY-MM-DD)
+- [功能描述] -- [关键变更说明]; [N] files changed; build SUCCESS
+```
+
+详细格式（用于新建组件、重大功能、架构变更）：
+```
+### Iteration N (YYYY-MM-DD)
+- [功能描述] -- [详细说明]
+- Files: [列出关键文件]
+- Build: SUCCESS
+```
+
+**缺失 ITERATION-LOG 条目是流水线事故**。回顾会将此作为严重流程违规记录。
+
+---
+
 ## 注意事项
 
 - **不要重建 node-pty**，也不要修改 electron-store 版本（必须保持 v8）
