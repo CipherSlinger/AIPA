@@ -82,6 +82,8 @@
     "longInput": "(\u8f83\u957f)",
     "veryLongInput": "(\u975e\u5e38\u957f)",
     "regenerate": "\u91cd\u65b0\u751f\u6210\u56de\u590d",
+    "regenerateWithModel": "\u4f7f\u7528\u5176\u4ed6\u6a21\u578b\u91cd\u65b0\u751f\u6210",
+    "currentModel": "\u5f53\u524d",
     "resetZoom": "\u91cd\u7f6e\u7f29\u653e (Ctrl+0)",
     "copyConversation": "\u590d\u5236\u5bf9\u8bdd",
     "copiedToClipboard": "\u5bf9\u8bdd\u5df2\u590d\u5236\u5230\u526a\u8d34\u677f",

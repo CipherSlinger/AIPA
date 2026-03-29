@@ -82,6 +82,8 @@
     "longInput": "(long)",
     "veryLongInput": "(very long)",
     "regenerate": "Regenerate response",
+    "regenerateWithModel": "Regenerate with different model",
+    "currentModel": "current",
     "resetZoom": "Reset zoom (Ctrl+0)",
     "copyConversation": "Copy conversation",
     "copiedToClipboard": "Conversation copied to clipboard",
