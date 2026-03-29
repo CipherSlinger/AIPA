@@ -2084,3 +2084,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 225 (2026-03-29)
 - Note list search highlighting + content preview + word count -- NoteList.tsx enhanced with HighlightText component (regex-based search term highlighting with accent background), getContentSnippet function (extracts 80-char context around first match with ellipsis), searchQuery prop wired from NotesPanel; note titles and content snippets highlight matching terms during search; word count added to note metadata line; NotesPanel.tsx updated to pass searchQuery prop to NoteList; 2 files changed; build SUCCESS
+
+### Iteration 226 (2026-03-29)
+- NotesPanel decomposition refactor -- NotesPanel.tsx reduced from 511 to 206 lines (60% reduction); extracted NotesHeader.tsx (260 lines, header toolbar with sort/export/import/new-note buttons + template dropdown menu with click-outside dismiss), useNotesIO.ts (113 lines, bulk export and import logic with file dialog APIs); NotesPanel.tsx now a thin orchestrator composing NotesHeader, search bar, CategoryFilterBar, CategoryManager, NoteList, and NoteEditor; NOTE_TEMPLATES constant moved to NotesHeader.tsx; pure refactor with zero visual or behavioral changes; 3 files changed; build SUCCESS
