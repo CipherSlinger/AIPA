@@ -183,6 +183,10 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Paste URL quick actions** — paste a URL into the chat input and quick action chips appear (Summarize, Explain, Translate) with URL preview; click a chip to prepend the action text
 - **Session sort by message count** — sort sessions by message count in the sidebar; most-discussed sessions rise to the top
 - **Keyboard UX enhancements** — F2 to rename focused session, Delete key to delete with double-press confirmation, Escape to dismiss URL chips and quote previews
+- **Remember This** — save any assistant response as a memory item directly from the hover toolbar (Brain icon) or right-click context menu; automatically categorized as "context" memory with source tracking
+- **Memory injection** — persistent memories are automatically injected as context into every conversation; pinned memories always included, plus up to 10 most recent; makes the AI truly personalized over time
+- **Scheduled prompts** — schedule recurring AI prompts in the sidebar (Clock icon, `Ctrl+8`); supports one-time, daily, weekly, and monthly schedules with time picker and day selector; auto-executes via the task queue; 3 presets (Daily Summary, Weekly Review, Morning Motivation); inspired by OpenClaw's cron service
+- **Prompt history** — searchable history of all sent prompts in the sidebar (ListRestart icon, `Ctrl+9`); tracks usage frequency, favorites, and timestamps; sort by recent/most-used/alphabetical; one-click re-send or copy; automatically records every prompt with deduplication; inspired by OpenClaw's session analytics
 
 ## Security
 

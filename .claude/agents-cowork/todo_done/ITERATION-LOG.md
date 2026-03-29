@@ -2152,3 +2152,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 247 (2026-03-29)
 - UI beautification pass for NavRail compaction -- NavRail width reduced from 48px to 44px, icon buttons from 36x36 to 32x32, all icons from 18px to 16px, avatar from 36px to 30px, marginBottom from 2 to 1, padding from 12 to 8; NavRail now supports overflow scroll with hidden scrollbar for 11+ nav items; hover scale reduced from 1.1 to 1.08, active scale from 0.95 to 0.93 for more subtle micro-interactions; CSS scrollbar hidden via webkit pseudo-element; consistent visual density across all navigation items; 2 files changed; build SUCCESS
+
+### Iteration 248 (2026-03-29)
+- README batch update for iterations 243-247 -- added 5 new feature entries to both README.md and README_CN.md covering: Remember This context action, memory injection into chat, scheduled prompts (cron-inspired), prompt history panel, input length progress ring; 2 files changed; no build needed
