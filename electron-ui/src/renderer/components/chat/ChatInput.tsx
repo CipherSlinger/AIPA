@@ -30,6 +30,7 @@ const CLIPBOARD_ACTIONS = [
 
 interface ChatInputProps {
   isStreaming: boolean
+  sessionId: string | null
   onSend: (text: string, attachments?: ImageAttachment[]) => Promise<void>
   onAbort: () => void
   onNewConversation: () => void
@@ -37,6 +38,7 @@ interface ChatInputProps {
 
 export default function ChatInput({
   isStreaming,
+  sessionId,
   onSend,
   onAbort,
   onNewConversation,
@@ -49,8 +51,15 @@ export default function ChatInput({
   const taskQueue = useChatStore(s => s.taskQueue)
   const addToQueue = useChatStore(s => s.addToQueue)
 
+  // Draft key for per-session persistence
+  const draftKey = sessionId ? `aipa:draft:${sessionId}` : 'aipa:draft-input'
+
   const [input, setInput] = useState(() => {
     try {
+      // Try per-session draft first, fall back to global draft
+      if (sessionId) {
+        return localStorage.getItem(`aipa:draft:${sessionId}`) || ''
+      }
       return sessionStorage.getItem('aipa:draft-input') || ''
     } catch { return '' }
   })
@@ -115,16 +124,34 @@ export default function ChatInput({
     return () => window.removeEventListener('aipa:dropFiles', handler)
   }, [addFiles])
 
-  // Auto-save draft input to sessionStorage
+  // Auto-save draft input to localStorage (per-session) and sessionStorage (global fallback)
   useEffect(() => {
     try {
       if (input) {
+        localStorage.setItem(draftKey, input)
         sessionStorage.setItem('aipa:draft-input', input)
       } else {
+        localStorage.removeItem(draftKey)
         sessionStorage.removeItem('aipa:draft-input')
       }
-    } catch { /* sessionStorage may not be available */ }
-  }, [input])
+    } catch { /* storage may not be available */ }
+  }, [input, draftKey])
+
+  // Restore draft when session changes
+  const prevSessionIdRef = useRef(sessionId)
+  useEffect(() => {
+    if (prevSessionIdRef.current === sessionId) return
+    prevSessionIdRef.current = sessionId
+    try {
+      const draft = sessionId
+        ? localStorage.getItem(`aipa:draft:${sessionId}`) || ''
+        : ''
+      setInput(draft)
+      if (draft) {
+        addToast(t('chat.draftRestored'), 'info')
+      }
+    } catch { setInput('') }
+  }, [sessionId])
 
   // Pending quote (shown as a visual banner above input)
   const [pendingQuote, setPendingQuote] = useState<string | null>(null)
@@ -192,7 +219,7 @@ export default function ChatInput({
     setAtQuery(null)
     clearAttachments()
     resizeTextarea()
-    try { sessionStorage.removeItem('aipa:draft-input') } catch { /* ignore */ }
+    try { localStorage.removeItem(draftKey); sessionStorage.removeItem('aipa:draft-input') } catch { /* ignore */ }
     await onSend(finalText, attachments.length > 0 ? attachments : undefined)
   }
 
@@ -395,7 +422,7 @@ export default function ChatInput({
           addToQueue(currentInput)
           setInput('')
           resizeTextarea()
-          try { sessionStorage.removeItem('aipa:draft-input') } catch { /* ignore */ }
+          try { localStorage.removeItem(draftKey); sessionStorage.removeItem('aipa:draft-input') } catch { /* ignore */ }
           textareaRef.current?.focus()
         }
       }
@@ -598,7 +625,7 @@ export default function ChatInput({
               addToQueue(text)
               setInput('')
               resizeTextarea()
-              try { sessionStorage.removeItem('aipa:draft-input') } catch { /* ignore */ }
+              try { localStorage.removeItem(draftKey); sessionStorage.removeItem('aipa:draft-input') } catch { /* ignore */ }
               textareaRef.current?.focus()
             }}
             disabled={!input.trim()}

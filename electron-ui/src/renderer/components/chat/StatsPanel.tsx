@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { BarChart3 } from 'lucide-react'
 import { useChatStore } from '../../store'
 import { useT } from '../../i18n'
@@ -25,6 +25,13 @@ export default function StatsPanel({
   const statsRef = useRef<HTMLDivElement>(null)
 
   useClickOutside(statsRef, showStats, useCallback(() => setShowStats(false), []))
+
+  // Listen for Ctrl+Shift+S toggle event
+  useEffect(() => {
+    const handler = () => setShowStats(prev => !prev)
+    window.addEventListener('aipa:toggleStats', handler)
+    return () => window.removeEventListener('aipa:toggleStats', handler)
+  }, [])
 
   return (
     <div style={{ position: 'relative' }} ref={statsRef}>

@@ -147,6 +147,16 @@ export default function ChatPanel() {
         e.preventDefault()
         copyConversation()
       }
+      // Ctrl+Shift+B: Toggle bookmarks panel
+      if (e.ctrlKey && e.shiftKey && e.key === 'B') {
+        e.preventDefault()
+        window.dispatchEvent(new CustomEvent('aipa:toggleBookmarks'))
+      }
+      // Ctrl+Shift+S: Toggle stats panel
+      if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+        e.preventDefault()
+        window.dispatchEvent(new CustomEvent('aipa:toggleStats'))
+      }
       if (e.ctrlKey && !e.shiftKey && e.key === 'f') {
         e.preventDefault()
         setSearchOpen(true)
@@ -570,6 +580,7 @@ export default function ChatPanel() {
       {/* Input bar */}
       <ChatInput
         isStreaming={isStreaming}
+        sessionId={currentSessionId}
         onSend={sendMessage}
         onAbort={abort}
         onNewConversation={newConversation}

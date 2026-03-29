@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { Bookmark } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useClickOutside } from '../../hooks/useClickOutside'
@@ -25,6 +25,13 @@ export default function BookmarksPanel({
   const bookmarksRef = useRef<HTMLDivElement>(null)
 
   useClickOutside(bookmarksRef, showBookmarks, useCallback(() => setShowBookmarks(false), []))
+
+  // Listen for Ctrl+Shift+B toggle event
+  useEffect(() => {
+    const handler = () => setShowBookmarks(prev => !prev)
+    window.addEventListener('aipa:toggleBookmarks', handler)
+    return () => window.removeEventListener('aipa:toggleBookmarks', handler)
+  }, [])
 
   return (
     <div style={{ position: 'relative' }} ref={bookmarksRef}>
