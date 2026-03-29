@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Send, Square, X, MessageSquareQuote, Sparkles, Link2 } from 'lucide-react'
+import { Send, Square, X, MessageSquareQuote, Sparkles, Link2, FileText } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import AtMentionPopup from './AtMentionPopup'
 import SlashCommandPopup, { SLASH_COMMANDS, SlashCommand } from './SlashCommandPopup'
@@ -98,6 +98,10 @@ export default function ChatInput({
   const [pastedUrl, setPastedUrl] = useState<string | null>(null)
   const urlChipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Long text paste detection
+  const [pastedLongText, setPastedLongText] = useState<boolean>(false)
+  const longTextTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const URL_REGEX = /https?:\/\/[^\s<>'"]+/i
 
   const handleTextPaste = useCallback((e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -112,6 +116,12 @@ export default function ChatInput({
         // Auto-dismiss after 8 seconds
         if (urlChipTimerRef.current) clearTimeout(urlChipTimerRef.current)
         urlChipTimerRef.current = setTimeout(() => setPastedUrl(null), 8000)
+      }
+      // Detect long text paste (>500 chars, no URL already shown)
+      if (text.length > 500 && !match) {
+        setPastedLongText(true)
+        if (longTextTimerRef.current) clearTimeout(longTextTimerRef.current)
+        longTextTimerRef.current = setTimeout(() => setPastedLongText(false), 12000)
       }
     }
   }, [handlePaste])
@@ -131,9 +141,21 @@ export default function ChatInput({
     textareaRef.current?.focus()
   }, [pastedUrl])
 
-  // Clean up timer on unmount
+  const handleLongTextAction = useCallback((action: string) => {
+    setInput(prev => {
+      return `${action}:\n\n${prev}`
+    })
+    setPastedLongText(false)
+    if (longTextTimerRef.current) clearTimeout(longTextTimerRef.current)
+    textareaRef.current?.focus()
+  }, [])
+
+  // Clean up timers on unmount
   useEffect(() => {
-    return () => { if (urlChipTimerRef.current) clearTimeout(urlChipTimerRef.current) }
+    return () => {
+      if (urlChipTimerRef.current) clearTimeout(urlChipTimerRef.current)
+      if (longTextTimerRef.current) clearTimeout(longTextTimerRef.current)
+    }
   }, [])
 
   // Handle quote reply: store as pending quote instead of raw markdown injection
@@ -189,6 +211,7 @@ export default function ChatInput({
     setInput('')
     setAtQuery(null)
     setPastedUrl(null)
+    setPastedLongText(false)
     clearAttachments()
     resizeTextarea()
     clearDraft()
@@ -221,9 +244,10 @@ export default function ChatInput({
     }
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
     if (e.ctrlKey && !e.shiftKey && e.key === 'u') { e.preventDefault(); setInput('') }
-    // Escape: dismiss URL chips, then quote preview
+    // Escape: dismiss URL chips, long text chips, then quote preview
     if (e.key === 'Escape' && atQuery === null && slashQuery === null) {
       if (pastedUrl) { e.preventDefault(); setPastedUrl(null); if (urlChipTimerRef.current) clearTimeout(urlChipTimerRef.current); return }
+      if (pastedLongText) { e.preventDefault(); setPastedLongText(false); if (longTextTimerRef.current) clearTimeout(longTextTimerRef.current); return }
       if (pendingQuote) { e.preventDefault(); setPendingQuote(null); return }
     }
   }
@@ -435,6 +459,48 @@ export default function ChatInput({
               ))}
               <button
                 onClick={() => { setPastedUrl(null); if (urlChipTimerRef.current) clearTimeout(urlChipTimerRef.current) }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2, display: 'flex', opacity: 0.6 }}
+              >
+                <X size={12} />
+              </button>
+            </div>
+          )}
+          {/* Long text paste quick action chips */}
+          {pastedLongText && !pastedUrl && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px', marginBottom: 4, flexWrap: 'wrap' }}>
+              <FileText size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+              <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                {t('chat.longPaste', { count: String(input.length) })}
+              </span>
+              {[
+                { key: 'summarize', label: t('chat.urlAction.summarize') },
+                { key: 'explain', label: t('chat.urlAction.explain') },
+                { key: 'translate', label: t('chat.urlAction.translate') },
+                { key: 'rewrite', label: t('clipboard.rewrite') },
+              ].map(action => (
+                <button
+                  key={action.key}
+                  onClick={() => handleLongTextAction(action.label)}
+                  style={{
+                    padding: '2px 8px',
+                    fontSize: 10,
+                    fontWeight: 500,
+                    background: 'rgba(0, 122, 204, 0.1)',
+                    border: '1px solid rgba(0, 122, 204, 0.25)',
+                    borderRadius: 10,
+                    color: 'var(--accent)',
+                    cursor: 'pointer',
+                    transition: 'background 150ms, border-color 150ms',
+                    whiteSpace: 'nowrap',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0, 122, 204, 0.2)'; e.currentTarget.style.borderColor = 'var(--accent)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0, 122, 204, 0.1)'; e.currentTarget.style.borderColor = 'rgba(0, 122, 204, 0.25)' }}
+                >
+                  {action.label}
+                </button>
+              ))}
+              <button
+                onClick={() => { setPastedLongText(false); if (longTextTimerRef.current) clearTimeout(longTextTimerRef.current) }}
                 style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2, display: 'flex', opacity: 0.6 }}
               >
                 <X size={12} />
