@@ -2245,3 +2245,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 278 (2026-03-29)
 - Copy stats button in stats panel -- added "Copy Stats" button to the conversation statistics popover; copies all stats as formatted text to clipboard (message counts, word/char totals, reading time, tool uses, duration, avg response time, annotations, session cost); button shows clipboard icon, switches to checkmark with "Stats copied" label for 2s after copy; i18n: 2 new keys (chat.copyStats, chat.statsCopied) in en.json and zh-CN.json; 3 files changed; build SUCCESS
+
+### Iteration 279 (2026-03-29)
+- Message rating in hover toolbar -- added ThumbsUp/ThumbsDown buttons to the assistant message hover toolbar for quick one-click rating; thumbs up shows in success color when active with filled icon, thumbs down shows in error color; clicking toggles the rating (click again to remove); complements the existing right-click context menu rating; uses existing i18n keys (message.thumbsUp, message.thumbsDown); 2 files changed; build SUCCESS

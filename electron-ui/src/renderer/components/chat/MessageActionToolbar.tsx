@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { StandardChatMessage } from '../../types/app.types'
-import { Copy, Check, Bookmark, Code2, Pencil, MessageSquareQuote, NotebookPen, Volume2, VolumeX, Brain, Share2, Pin, SmilePlus, Languages, StickyNote } from 'lucide-react'
+import { Copy, Check, Bookmark, Code2, Pencil, MessageSquareQuote, NotebookPen, Volume2, VolumeX, Brain, Share2, Pin, SmilePlus, Languages, StickyNote, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { useT } from '../../i18n'
 
 const actionBtnStyle: React.CSSProperties = {
@@ -47,6 +47,7 @@ interface MessageActionToolbarProps {
   hasOnEdit: boolean
   onAnnotate?: () => void
   hasAnnotation?: boolean
+  onRate?: (rating: 'up' | 'down' | null) => void
 }
 
 export default function MessageActionToolbar({
@@ -55,6 +56,7 @@ export default function MessageActionToolbar({
   onToggleRawMarkdown, onStartEdit, onCopy, onBookmark, onQuote, onSaveAsNote, onRememberThis, onShare, onPin, onReaction, onTranslate, onReadAloud, isSpeaking,
   hasOnEdit,
   onAnnotate, hasAnnotation,
+  onRate,
 }: MessageActionToolbarProps) {
   const t = useT()
   const [showReactionPicker, setShowReactionPicker] = useState(false)
@@ -303,6 +305,36 @@ export default function MessageActionToolbar({
         >
           {isSpeaking ? <VolumeX size={13} /> : <Volume2 size={13} />}
         </button>
+      )}
+
+      {/* Rate (assistant messages only) */}
+      {isAssistant && onRate && (
+        <>
+          <button
+            onClick={(e) => { e.stopPropagation(); onRate(message.rating === 'up' ? null : 'up') }}
+            title={t('message.thumbsUp')}
+            style={{
+              ...actionBtnStyle,
+              color: message.rating === 'up' ? 'var(--success)' : 'var(--text-muted)',
+            }}
+            onMouseEnter={(e) => hoverIn(e, message.rating === 'up')}
+            onMouseLeave={(e) => hoverOut(e, message.rating === 'up')}
+          >
+            <ThumbsUp size={13} style={message.rating === 'up' ? { fill: 'var(--success)', opacity: 0.3 } : {}} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onRate(message.rating === 'down' ? null : 'down') }}
+            title={t('message.thumbsDown')}
+            style={{
+              ...actionBtnStyle,
+              color: message.rating === 'down' ? 'var(--error)' : 'var(--text-muted)',
+            }}
+            onMouseEnter={(e) => hoverIn(e, message.rating === 'down')}
+            onMouseLeave={(e) => hoverOut(e, message.rating === 'down')}
+          >
+            <ThumbsDown size={13} style={message.rating === 'down' ? { fill: 'var(--error)', opacity: 0.3 } : {}} />
+          </button>
+        </>
       )}
 
       {/* Save to Note (assistant messages only) */}

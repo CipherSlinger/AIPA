@@ -514,6 +514,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             hasOnEdit={!!onEdit}
             onAnnotate={handleAnnotateToggle}
             hasAnnotation={!!(message as StandardChatMessage).annotation}
+            onRate={onRate ? (rating) => onRate(message.id, rating) : undefined}
           />
         )}
       </div>
