@@ -2104,3 +2104,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 231 (2026-03-28)
 - Auto-expand active tool calls during streaming -- ToolUseBlock.tsx: tool call blocks now auto-expand when their status is 'running' and auto-collapse when they complete ('done'/'error'); uses userToggledRef to respect manual user interaction (if user manually collapses a running tool, it won't re-expand); creates a more transparent streaming experience where users can see tool inputs/outputs in real-time; 1 file changed; build SUCCESS
+
+### Iteration 232 (2026-03-28)
+- Paste URL detection with quick action chips -- ChatInput.tsx: when user pastes text containing a URL, detects it via regex and shows quick action chips (Summarize/Explain/Translate) with the URL preview; clicking a chip prepends the action text to the input; chips auto-dismiss after 8 seconds or manual close; clears on send; uses Link2 icon from lucide-react; 3 new i18n keys (chat.urlAction.summarize/explain/translate) in en.json and zh-CN.json; 3 files changed; build SUCCESS

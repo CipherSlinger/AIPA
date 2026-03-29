@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Square, X, MessageSquareQuote, Sparkles } from 'lucide-react'
+import { Send, Square, X, MessageSquareQuote, Sparkles, Link2 } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import AtMentionPopup from './AtMentionPopup'
 import SlashCommandPopup, { SLASH_COMMANDS, SlashCommand } from './SlashCommandPopup'
@@ -93,6 +93,48 @@ export default function ChatInput({
   // Pending quote (shown as a visual banner above input)
   const [pendingQuote, setPendingQuote] = useState<string | null>(null)
 
+  // URL paste detection chips
+  const [pastedUrl, setPastedUrl] = useState<string | null>(null)
+  const urlChipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const URL_REGEX = /https?:\/\/[^\s<>'"]+/i
+
+  const handleTextPaste = useCallback((e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    // Let useImagePaste handle image pastes first
+    handlePaste(e)
+    // Detect URL in pasted text
+    const text = e.clipboardData.getData('text/plain')
+    if (text) {
+      const match = text.match(URL_REGEX)
+      if (match) {
+        setPastedUrl(match[0])
+        // Auto-dismiss after 8 seconds
+        if (urlChipTimerRef.current) clearTimeout(urlChipTimerRef.current)
+        urlChipTimerRef.current = setTimeout(() => setPastedUrl(null), 8000)
+      }
+    }
+  }, [handlePaste])
+
+  const handleUrlAction = useCallback((action: string) => {
+    if (!pastedUrl) return
+    setInput(prev => {
+      // Replace the URL with "action: URL" pattern
+      const actionPrefix = `${action}: ${pastedUrl}\n`
+      if (prev.includes(pastedUrl)) {
+        return actionPrefix + prev.replace(pastedUrl, '').trim()
+      }
+      return actionPrefix + prev.trim()
+    })
+    setPastedUrl(null)
+    if (urlChipTimerRef.current) clearTimeout(urlChipTimerRef.current)
+    textareaRef.current?.focus()
+  }, [pastedUrl])
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => { if (urlChipTimerRef.current) clearTimeout(urlChipTimerRef.current) }
+  }, [])
+
   // Handle quote reply: store as pending quote instead of raw markdown injection
   useEffect(() => {
     if (!quotedText) return
@@ -145,6 +187,7 @@ export default function ChatInput({
     if (text) addToHistory(text)
     setInput('')
     setAtQuery(null)
+    setPastedUrl(null)
     clearAttachments()
     resizeTextarea()
     clearDraft()
@@ -326,6 +369,45 @@ export default function ChatInput({
               ))}
             </div>
           )}
+          {/* URL paste quick action chips */}
+          {pastedUrl && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px', marginBottom: 4, flexWrap: 'wrap' }}>
+              <Link2 size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+              <span style={{ fontSize: 10, color: 'var(--text-muted)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pastedUrl}</span>
+              {[
+                { key: 'summarize', label: t('chat.urlAction.summarize') },
+                { key: 'explain', label: t('chat.urlAction.explain') },
+                { key: 'translate', label: t('chat.urlAction.translate') },
+              ].map(action => (
+                <button
+                  key={action.key}
+                  onClick={() => handleUrlAction(action.label)}
+                  style={{
+                    padding: '2px 8px',
+                    fontSize: 10,
+                    fontWeight: 500,
+                    background: 'rgba(0, 122, 204, 0.1)',
+                    border: '1px solid rgba(0, 122, 204, 0.25)',
+                    borderRadius: 10,
+                    color: 'var(--accent)',
+                    cursor: 'pointer',
+                    transition: 'background 150ms, border-color 150ms',
+                    whiteSpace: 'nowrap',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0, 122, 204, 0.2)'; e.currentTarget.style.borderColor = 'var(--accent)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0, 122, 204, 0.1)'; e.currentTarget.style.borderColor = 'rgba(0, 122, 204, 0.25)' }}
+                >
+                  {action.label}
+                </button>
+              ))}
+              <button
+                onClick={() => { setPastedUrl(null); if (urlChipTimerRef.current) clearTimeout(urlChipTimerRef.current) }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2, display: 'flex', opacity: 0.6 }}
+              >
+                <X size={12} />
+              </button>
+            </div>
+          )}
           {/* Pending quote preview banner */}
           {pendingQuote && (
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 10px', marginBottom: 6, background: 'rgba(0, 122, 204, 0.08)', borderLeft: '3px solid var(--accent)', borderRadius: 4, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
@@ -353,7 +435,7 @@ export default function ChatInput({
             value={input}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            onPaste={handlePaste}
+            onPaste={handleTextPaste}
             onDragOver={(e) => e.preventDefault()}
             onFocus={() => { if (inputWrapRef.current) inputWrapRef.current.style.borderColor = 'var(--input-field-focus)' }}
             onBlur={() => { if (inputWrapRef.current) inputWrapRef.current.style.borderColor = 'var(--input-field-border)' }}

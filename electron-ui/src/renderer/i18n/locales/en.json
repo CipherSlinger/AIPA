@@ -41,6 +41,11 @@
     "expandAll": "Expand all",
     "dragDropHint": "Drop files here",
     "dragDropSubHint": "Images attached, other files referenced via @path",
+    "urlAction": {
+      "summarize": "Summarize this page",
+      "explain": "Explain this page",
+      "translate": "Translate this page"
+    },
     "tooManyFiles": "Too many files (max {{max}}). First {{max}} processed.",
     "fileTooLarge": "{{name}} is too large (max 10MB)",
     "exportFailed": "Export failed: {{error}}",
