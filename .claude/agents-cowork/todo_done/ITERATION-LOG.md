@@ -2188,3 +2188,9 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 259 (2026-03-29)
 - Regenerate with model picker -- split the regenerate button into main button + chevron dropdown; dropdown shows all 8 Claude models with current model highlighted; clicking a model switches to it and regenerates the response; model change persists; uses MODEL_OPTIONS from settingsConstants; i18n: 2 new keys (regenerateWithModel, currentModel) in en.json and zh-CN.json; 3 files changed; build SUCCESS
+
+### Iteration 260 (2026-03-29)
+- README batch update for iterations 254-259 -- added 7 new feature entries to both README.md and README_CN.md covering: typing speed WPM indicator, date/time quick insert, emoji picker, message share button, text transform actions, regenerate with model picker; 3 files changed; no build needed
+
+### Iteration 261 (2026-03-29)
+- Pinned messages -- pin important messages to the top of the chat for quick reference; Pin button in message hover toolbar and right-click context menu; pinned messages strip at top of MessageList with collapsible header showing Pin icon + count; each pinned preview shows role label, content snippet (120 chars), click to scroll to message; pin indicator (rotated Pin icon in accent color) on message bubble; togglePin action in Zustand store; i18n for en + zh-CN (5 new keys: pinMessage, unpinMessage, pinnedMessage, unpinned, pinnedMessages); 9 files changed; build SUCCESS

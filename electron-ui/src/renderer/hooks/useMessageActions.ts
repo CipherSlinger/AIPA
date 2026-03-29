@@ -156,6 +156,13 @@ export function useMessageActions({ message, isPermission, isPlan }: UseMessageA
     })
   }, [message, addToast, t])
 
+  const handlePin = useCallback(() => {
+    const togglePin = useChatStore.getState().togglePin
+    togglePin(message.id)
+    const wasPinned = (message as StandardChatMessage).pinned
+    addToast('success', wasPinned ? t('message.unpinned') : t('message.pinnedMessage'))
+  }, [message, addToast, t])
+
   const handleDoubleClick = useCallback(() => {
     const text = (message as StandardChatMessage).content
     if (!text || isPermission || isPlan) return
@@ -175,6 +182,7 @@ export function useMessageActions({ message, isPermission, isPlan }: UseMessageA
     handleSaveAsNote,
     handleRememberThis,
     handleShare,
+    handlePin,
     handleDoubleClick,
   }
 }

@@ -40,6 +40,7 @@ export interface StandardChatMessage {
   rating?: 'up' | 'down' | null
   bookmarked?: boolean
   collapsed?: boolean
+  pinned?: boolean
   /** Duration in ms from when the user sent the prompt to when the result arrived */
   responseDuration?: number
   /** Internal: accumulated content chunks during streaming (joined into content on stream end) */

@@ -17,11 +17,12 @@ interface ContextMenuProps {
   onRate?: (rating: 'up' | 'down' | null) => void
   onRewind?: () => void
   onBookmark?: () => void
+  onPin?: () => void
   onCollapse?: () => void
   onClose: () => void
 }
 
-export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdown, onCopyRichText, onSaveAsNote, onRememberThis, onQuoteReply, onEditMessage, onRate, onRewind, onBookmark, onCollapse, onClose }: ContextMenuProps) {
+export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdown, onCopyRichText, onSaveAsNote, onRememberThis, onQuoteReply, onEditMessage, onRate, onRewind, onBookmark, onPin, onCollapse, onClose }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Clamp position to viewport
@@ -62,6 +63,7 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
   const isAssistant = message.role === 'assistant'
   const rating = isAssistant ? (message as StandardChatMessage).rating : undefined
   const isBookmarked = message.role !== 'permission' && message.role !== 'plan' ? (message as StandardChatMessage).bookmarked : false
+  const isPinned = message.role !== 'permission' && message.role !== 'plan' ? (message as StandardChatMessage).pinned : false
   const isCollapsed = message.role !== 'permission' && message.role !== 'plan' ? (message as StandardChatMessage).collapsed : false
   const t = useT()
 
@@ -192,6 +194,19 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
         >
           <span>{isBookmarked ? t('message.removeBookmark') : t('message.bookmark')}</span>
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{isBookmarked ? '\u2605' : '\u2606'}</span>
+        </button>
+      )}
+
+      {/* Pin */}
+      {onPin && message.role !== 'permission' && message.role !== 'plan' && (
+        <button
+          style={itemStyle}
+          onClick={() => { onPin(); onClose() }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+        >
+          <span>{isPinned ? t('message.unpinMessage') : t('message.pinMessage')}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{isPinned ? '\u{1F4CC}' : '\u{1F4CC}'}</span>
         </button>
       )}
 

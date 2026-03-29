@@ -99,6 +99,7 @@ interface ChatState {
   resolvePlan: (planId: string, decision: 'accepted' | 'rejected') => void
   rateMessage: (msgId: string, rating: 'up' | 'down' | null) => void
   toggleBookmark: (msgId: string) => void
+  togglePin: (msgId: string) => void
   toggleCollapse: (msgId: string) => void
   collapseAll: () => void
   expandAll: () => void
@@ -280,6 +281,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   toggleBookmark: (msgId) => set((s) => ({
     messages: s.messages.map(m => m.id === msgId ? { ...m, bookmarked: !(m as StandardChatMessage).bookmarked } as StandardChatMessage : m)
+  })),
+
+  togglePin: (msgId) => set((s) => ({
+    messages: s.messages.map(m => m.id === msgId ? { ...m, pinned: !(m as StandardChatMessage).pinned } as StandardChatMessage : m)
   })),
 
   toggleCollapse: (msgId) => set((s) => ({

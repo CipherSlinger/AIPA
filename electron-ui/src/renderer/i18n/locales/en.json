@@ -252,7 +252,12 @@
     "rememberThis": "Remember this",
     "savedToMemory": "Saved to memory",
     "shareMessage": "Share message",
-    "messageCopiedAsShare": "Message copied as shareable text"
+    "messageCopiedAsShare": "Message copied as shareable text",
+    "pinMessage": "Pin message",
+    "unpinMessage": "Unpin message",
+    "pinnedMessage": "Message pinned",
+    "unpinned": "Message unpinned",
+    "pinnedMessages": "Pinned messages"
   },
   "selection": {
     "copySelection": "Copy selected text",

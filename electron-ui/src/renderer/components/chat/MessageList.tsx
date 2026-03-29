@@ -1,12 +1,12 @@
-import React, { useEffect, useCallback, useRef } from 'react'
+import React, { useEffect, useCallback, useRef, useState, useMemo } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { ChatMessage } from '../../types/app.types'
+import { ChatMessage, StandardChatMessage } from '../../types/app.types'
 import Message from './Message'
 import PermissionCard from './PermissionCard'
 import PlanCard from './PlanCard'
 import { useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
-import { ArrowDown, ArrowUp, Lock, Unlock } from 'lucide-react'
+import { ArrowDown, ArrowUp, Lock, Unlock, Pin, ChevronDown, ChevronUp } from 'lucide-react'
 import { useBuildItems, useShowAvatarMap, useLastUserMsgId, useAssistantReplyMap } from './messageListUtils'
 import { useMessageListScroll } from './useMessageListScroll'
 
@@ -31,6 +31,15 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   const addToast = useUiStore(s => s.addToast)
   const t = useT()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  // Pinned messages strip
+  const [pinnedExpanded, setPinnedExpanded] = useState(true)
+  const pinnedMessages = useMemo(() =>
+    messages
+      .map((m, idx) => ({ msg: m, idx }))
+      .filter(({ msg }) => msg.role !== 'permission' && msg.role !== 'plan' && (msg as StandardChatMessage).pinned),
+    [messages]
+  )
 
   // Pre-computed data
   const items = useBuildItems(messages, t)
@@ -145,6 +154,93 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
               transition: 'width 0.1s ease-out',
             }}
           />
+        </div>
+      )}
+      {/* Pinned messages strip */}
+      {pinnedMessages.length > 0 && (
+        <div style={{
+          flexShrink: 0,
+          background: 'var(--popup-bg)',
+          borderBottom: '1px solid var(--popup-border)',
+        }}>
+          <button
+            onClick={() => setPinnedExpanded(prev => !prev)}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '4px 12px',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--accent)',
+              fontSize: 11,
+              fontWeight: 600,
+            }}
+          >
+            <Pin size={12} style={{ transform: 'rotate(-45deg)' }} />
+            <span>{t('message.pinnedMessages')} ({pinnedMessages.length})</span>
+            <span style={{ marginLeft: 'auto' }}>
+              {pinnedExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            </span>
+          </button>
+          {pinnedExpanded && (
+            <div style={{ padding: '0 12px 6px', display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 160, overflowY: 'auto' }}>
+              {pinnedMessages.map(({ msg, idx }) => {
+                const content = (msg as StandardChatMessage).content || ''
+                const preview = content.length > 120 ? content.slice(0, 120) + '...' : content
+                const roleLabel = msg.role === 'user' ? 'You' : 'AIPA'
+                return (
+                  <button
+                    key={msg.id}
+                    onClick={() => {
+                      const itemIdx = items.findIndex(it => it.type === 'message' && it.msgIdx === idx)
+                      if (itemIdx >= 0) {
+                        virtualizer.scrollToIndex(itemIdx, { align: 'center', behavior: 'smooth' })
+                      }
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 8,
+                      padding: '5px 8px',
+                      background: 'var(--action-btn-bg)',
+                      border: '1px solid var(--action-btn-border)',
+                      borderRadius: 6,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      width: '100%',
+                      transition: 'background 0.12s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'var(--action-btn-bg)' }}
+                  >
+                    <span style={{
+                      fontSize: 10,
+                      fontWeight: 600,
+                      color: msg.role === 'user' ? 'var(--accent)' : 'var(--text-muted)',
+                      flexShrink: 0,
+                      minWidth: 32,
+                    }}>
+                      {roleLabel}
+                    </span>
+                    <span style={{
+                      fontSize: 11,
+                      color: 'var(--text-primary)',
+                      lineHeight: 1.4,
+                      overflow: 'hidden',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                    }}>
+                      {preview}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
     <div

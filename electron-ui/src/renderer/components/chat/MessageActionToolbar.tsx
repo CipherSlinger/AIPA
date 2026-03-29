@@ -1,6 +1,6 @@
 import React from 'react'
 import { StandardChatMessage } from '../../types/app.types'
-import { Copy, Check, Bookmark, Code2, Pencil, MessageSquareQuote, NotebookPen, Volume2, VolumeX, Brain, Share2 } from 'lucide-react'
+import { Copy, Check, Bookmark, Code2, Pencil, MessageSquareQuote, NotebookPen, Volume2, VolumeX, Brain, Share2, Pin } from 'lucide-react'
 import { useT } from '../../i18n'
 
 const actionBtnStyle: React.CSSProperties = {
@@ -39,6 +39,7 @@ interface MessageActionToolbarProps {
   onSaveAsNote: () => void
   onRememberThis: () => void
   onShare: () => void
+  onPin: () => void
   onReadAloud?: () => void
   isSpeaking?: boolean
   hasOnEdit: boolean
@@ -47,7 +48,7 @@ interface MessageActionToolbarProps {
 export default function MessageActionToolbar({
   isUser, isAssistant, isPermission, isPlan, message,
   copied, showRawMarkdown, globalIsStreaming,
-  onToggleRawMarkdown, onStartEdit, onCopy, onBookmark, onQuote, onSaveAsNote, onRememberThis, onShare, onReadAloud, isSpeaking,
+  onToggleRawMarkdown, onStartEdit, onCopy, onBookmark, onQuote, onSaveAsNote, onRememberThis, onShare, onPin, onReadAloud, isSpeaking,
   hasOnEdit,
 }: MessageActionToolbarProps) {
   const t = useT()
@@ -140,6 +141,25 @@ export default function MessageActionToolbar({
           <Bookmark
             size={13}
             style={message.bookmarked ? { fill: 'var(--warning)' } : {}}
+          />
+        </button>
+      )}
+
+      {/* Pin */}
+      {!isPermission && !isPlan && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onPin() }}
+          title={message.pinned ? t('message.unpinMessage') : t('message.pinMessage')}
+          style={{
+            ...actionBtnStyle,
+            color: message.pinned ? 'var(--accent)' : 'var(--text-muted)',
+          }}
+          onMouseEnter={(e) => hoverIn(e)}
+          onMouseLeave={(e) => hoverOut(e)}
+        >
+          <Pin
+            size={13}
+            style={message.pinned ? { fill: 'var(--accent)' } : {}}
           />
         </button>
       )}

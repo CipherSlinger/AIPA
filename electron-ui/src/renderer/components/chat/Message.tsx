@@ -5,7 +5,7 @@ import MessageActionToolbar from './MessageActionToolbar'
 import MessageBubbleContent from './MessageBubbleContent'
 import SelectionToolbar from './SelectionToolbar'
 import ImageLightbox from '../shared/ImageLightbox'
-import { User, Bot, Bookmark } from 'lucide-react'
+import { User, Bot, Bookmark, Pin } from 'lucide-react'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import { useMessageActions } from '../../hooks/useMessageActions'
@@ -63,7 +63,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   // Extracted actions hook
   const {
     copied, handleCopy, handleQuote, handleBookmarkAction,
-    handleCopyMarkdown, handleCopyRichText, handleSaveAsNote, handleRememberThis, handleShare, handleDoubleClick,
+    handleCopyMarkdown, handleCopyRichText, handleSaveAsNote, handleRememberThis, handleShare, handlePin, handleDoubleClick,
   } = useMessageActions({ message, isPermission, isPlan })
 
   // Word info tooltip (both user and assistant messages)
@@ -266,6 +266,17 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             </div>
           )}
 
+          {/* Pin indicator */}
+          {!isPermission && !isPlan && (message as StandardChatMessage).pinned && (
+            <div style={{
+              position: 'absolute', top: -6,
+              right: isUser ? (((message as StandardChatMessage).bookmarked) ? undefined : -6) : undefined,
+              left: isUser ? undefined : (((message as StandardChatMessage).bookmarked) ? 6 : -6),
+            }}>
+              <Pin size={12} style={{ color: 'var(--accent)', fill: 'var(--accent)', transform: 'rotate(-45deg)' }} />
+            </div>
+          )}
+
           <MessageBubbleContent
             message={message as StandardChatMessage}
             isUser={isUser}
@@ -307,6 +318,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             onBookmark={() => handleBookmarkAction(onBookmark)}
             onQuote={handleQuote}
             onShare={handleShare}
+            onPin={handlePin}
             onSaveAsNote={handleSaveAsNote}
             onRememberThis={handleRememberThis}
             onReadAloud={isAssistant ? handleReadAloud : undefined}
@@ -336,6 +348,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           onEditMessage={isUser && onEdit && !globalIsStreaming ? handleStartEdit : undefined}
           onRate={onRate ? (rating) => onRate(message.id, rating) : undefined}
           onBookmark={onBookmark ? () => onBookmark(message.id) : undefined}
+          onPin={handlePin}
           onCollapse={onCollapse ? () => onCollapse(message.id) : undefined}
           onRewind={onRewind && (message as StandardChatMessage).timestamp
             ? () => onRewind((message as StandardChatMessage).timestamp)
@@ -364,6 +377,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   if (pm.isStreaming !== nm.isStreaming) return false
   if (pm.rating !== nm.rating) return false
   if (pm.bookmarked !== nm.bookmarked) return false
+  if (pm.pinned !== nm.pinned) return false
   if (pm.collapsed !== nm.collapsed) return false
   if (pm.thinking !== nm.thinking) return false
   if ((pm.toolUses?.length ?? 0) !== (nm.toolUses?.length ?? 0)) return false
