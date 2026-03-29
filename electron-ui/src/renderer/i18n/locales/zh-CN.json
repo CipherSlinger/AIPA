@@ -481,6 +481,14 @@
     "favoritePrompts": "\u6536\u85cf\u63d0\u793a\u8bcd",
     "emoji": "\u63d2\u5165\u8868\u60c5"
   },
+  "transform": {
+    "title": "\u6587\u672c\u53d8\u6362",
+    "formal": "\u6b63\u5f0f\u8bed\u6c14",
+    "casual": "\u968f\u610f\u8bed\u6c14",
+    "shorter": "\u7f29\u77ed\u6587\u672c",
+    "longer": "\u6269\u5c55\u6587\u672c",
+    "grammar": "\u4fee\u6b63\u8bed\u6cd5"
+  },
   "quickReply": {
     "labelPlaceholder": "\u6807\u7b7e",
     "promptPlaceholder": "\u63d0\u793a\u8bcd\u6587\u672c",

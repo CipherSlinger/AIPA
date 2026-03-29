@@ -481,6 +481,14 @@
     "favoritePrompts": "Favorite prompts",
     "emoji": "Insert emoji"
   },
+  "transform": {
+    "title": "Transform text",
+    "formal": "Make formal",
+    "casual": "Make casual",
+    "shorter": "Make shorter",
+    "longer": "Make longer",
+    "grammar": "Fix grammar"
+  },
   "quickReply": {
     "labelPlaceholder": "Label",
     "promptPlaceholder": "Prompt text",

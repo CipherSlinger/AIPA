@@ -420,6 +420,7 @@ export default function ChatInput({
           setTimeout(() => textareaRef.current?.focus(), 0)
         }}
         hasInput={!!input.trim()}
+        inputText={input}
       />
       {/* Quick reply chips */}
       <QuickReplyChips onInsert={(prompt) => {
