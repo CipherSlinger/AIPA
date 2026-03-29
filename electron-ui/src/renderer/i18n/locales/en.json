@@ -60,6 +60,7 @@
     "statsTotalWords": "Total words",
     "statsToolUses": "Tool uses",
     "statsDuration": "Duration",
+    "statsAvgResponse": "Avg response time",
     "statsDurationValue": "~{{min}} min",
     "wordCount": "{{words}} words",
     "charCountLabel": "{{chars}} chars",

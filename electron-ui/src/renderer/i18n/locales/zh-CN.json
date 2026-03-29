@@ -60,6 +60,7 @@
     "statsTotalWords": "\u603b\u8bcd\u6570",
     "statsToolUses": "\u5de5\u5177\u8c03\u7528",
     "statsDuration": "\u65f6\u957f",
+    "statsAvgResponse": "\u5e73\u5747\u54cd\u5e94\u65f6\u95f4",
     "statsDurationValue": "\u7ea6 {{min}} \u5206\u949f",
     "wordCount": "{{words}} \u4e2a\u8bcd",
     "charCountLabel": "{{chars}} \u5b57\u7b26",

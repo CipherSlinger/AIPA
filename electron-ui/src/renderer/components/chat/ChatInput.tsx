@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Square, Mic, MicOff, AtSign, TerminalSquare, ListPlus, ClipboardPaste, FileText, Languages, PenLine, CircleHelp, SpellCheck, X, MessageSquareQuote, Sparkles } from 'lucide-react'
+import { Send, Square, Mic, MicOff, AtSign, TerminalSquare, ListPlus, ClipboardPaste, FileText, Languages, PenLine, CircleHelp, SpellCheck, X, MessageSquareQuote, Sparkles, Cpu } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import AtMentionPopup from './AtMentionPopup'
 import SlashCommandPopup, { SLASH_COMMANDS, SlashCommand } from './SlashCommandPopup'
@@ -559,6 +559,35 @@ export default function ChatInput({
             </div>
           )}
         </div>
+        {/* Compact model indicator */}
+        <button
+          onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, shiftKey: true, key: 'P' }))}
+          title={t('chat.switchModel')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 3,
+            padding: '2px 8px',
+            background: 'none',
+            border: '1px solid var(--border)',
+            borderRadius: 10,
+            color: 'var(--text-muted)',
+            cursor: 'pointer',
+            fontSize: 9,
+            flexShrink: 0,
+            transition: 'border-color 150ms, color 150ms',
+            whiteSpace: 'nowrap',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+        >
+          <Cpu size={9} />
+          {(() => {
+            const m = prefs.model || 'claude-sonnet-4-6'
+            const parts = m.replace('claude-', '').split('-')
+            return parts[0].charAt(0).toUpperCase() + parts[0].slice(1) + (parts[1] ? ' ' + parts.slice(1).join('.') : '')
+          })()}
+        </button>
         <span style={{ flex: 1 }} />
         {/* Queue button */}
         <div style={{ position: 'relative', display: 'inline-flex' }}>

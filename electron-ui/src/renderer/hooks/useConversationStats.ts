@@ -8,6 +8,7 @@ export interface ConversationStats {
   totalWords: number
   toolUseCount: number
   durationMin: number
+  avgResponseSec: number  // average assistant response time in seconds
 }
 
 export interface BookmarkedMessage {
@@ -41,6 +42,13 @@ export function useConversationStats(messages: ChatMessage[]) {
     const lastTs = messages.length > 0 ? messages[messages.length - 1].timestamp : 0
     const durationMs = lastTs - firstTs
     const durationMin = Math.max(1, Math.round(durationMs / 60000))
+    // Calculate average response time from responseDuration fields
+    const responseTimes = messages
+      .filter(m => m.role === 'assistant' && (m as StandardChatMessage).responseDuration)
+      .map(m => (m as StandardChatMessage).responseDuration!)
+    const avgResponseSec = responseTimes.length > 0
+      ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length / 1000)
+      : 0
     return {
       total: messages.filter(m => m.role !== 'permission' && m.role !== 'plan').length,
       user: userMsgs.length,
@@ -48,6 +56,7 @@ export function useConversationStats(messages: ChatMessage[]) {
       totalWords,
       toolUseCount,
       durationMin,
+      avgResponseSec,
     }
   }, [messages])
 

@@ -763,6 +763,7 @@ export default function ChatHeader({
               { label: t('chat.statsTotalWords'), value: conversationStats.totalWords.toLocaleString() },
               { label: t('chat.statsToolUses'), value: conversationStats.toolUseCount },
               { label: t('chat.statsDuration'), value: t('chat.statsDurationValue', { min: String(conversationStats.durationMin) }) },
+              ...(conversationStats.avgResponseSec > 0 ? [{ label: t('chat.statsAvgResponse'), value: `~${conversationStats.avgResponseSec}s` }] : []),
             ].map(({ label, value }) => (
               <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 11 }}>
                 <span style={{ color: 'var(--text-muted)' }}>{label}</span>
