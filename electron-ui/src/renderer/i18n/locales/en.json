@@ -104,7 +104,8 @@
     "workingDirDefault": "Home directory",
     "clickToChangeDir": "Click to change working directory",
     "switchModel": "Switch model",
-    "modelSwitched": "Model switched to {{model}}"
+    "modelSwitched": "Model switched to {{model}}",
+    "repliedIn": "replied in {{time}}"
   },
   "welcome": {
     "title": "Hello! I'm AIPA",
@@ -220,7 +221,8 @@
     "minsAgo": "{{count}}m ago",
     "hoursAgo": "{{count}}h ago",
     "daysAgo": "{{count}}d ago",
-    "responseDuration": "took {{time}}"
+    "responseDuration": "took {{time}}",
+    "saveToNote": "Save to note"
   },
   "selection": {
     "copySelection": "Copy selected text",

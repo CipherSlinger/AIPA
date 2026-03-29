@@ -23,7 +23,30 @@ function formatDateLabel(ts: number, t: (key: string) => string): string {
   return date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
 }
 
-type ListItem = { type: 'message'; msg: ChatMessage; msgIdx: number } | { type: 'dateSep'; label: string }
+// ── Time gap separator ── Show time when messages are >30 minutes apart within the same day
+const TIME_GAP_THRESHOLD_MS = 30 * 60 * 1000 // 30 minutes
+
+function formatTimeGap(ts: number): string {
+  const d = new Date(ts)
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+// ── Response time badge ── Shows how long the assistant took to reply
+function formatResponseTime(ms: number, t: (key: string, p?: Record<string, string>) => string): string {
+  const secs = Math.round(ms / 1000)
+  if (secs < 1) return ''
+  if (secs < 60) return t('chat.repliedIn', { time: `${secs}s` })
+  const mins = Math.floor(secs / 60)
+  const remSecs = secs % 60
+  const timeStr = remSecs > 0 ? `${mins}m ${remSecs}s` : `${mins}m`
+  return t('chat.repliedIn', { time: timeStr })
+}
+
+type ListItem =
+  | { type: 'message'; msg: ChatMessage; msgIdx: number }
+  | { type: 'dateSep'; label: string }
+  | { type: 'timeGap'; label: string }
+  | { type: 'responseTime'; label: string }
 
 // Store scroll positions per session (as percentage 0-1) so switching back restores position
 // Using percentage-based storage for better cross-window-resize behavior
@@ -51,23 +74,38 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   const t = useT()
   const [showScrollBtn, setShowScrollBtn] = useState(false)
   const [showScrollTopBtn, setShowScrollTopBtn] = useState(false)
+  const [scrollPct, setScrollPct] = useState(100)
   const isNearBottomRef = useRef(true)
   const prevSessionIdRef = useRef<string | null | undefined>(sessionId)
   const lastSeenCountRef = useRef(messages.length)
   const [unreadCount, setUnreadCount] = useState(0)
   const prevMessageCountRef = useRef(messages.length)
 
-  // Build flat list of items: date separators + messages
+  // Build flat list of items: date separators + time gap separators + response time badges + messages
   const items: ListItem[] = useMemo(() => {
     const result: ListItem[] = []
     let lastDateLabel = ''
+    let lastTimestamp = 0
     messages.forEach((msg, idx) => {
       if (msg.timestamp) {
         const label = formatDateLabel(msg.timestamp, t)
         if (label !== lastDateLabel) {
           result.push({ type: 'dateSep', label })
           lastDateLabel = label
+          lastTimestamp = msg.timestamp
+        } else if (lastTimestamp > 0 && msg.timestamp - lastTimestamp > TIME_GAP_THRESHOLD_MS) {
+          // Same day but >30 min gap: insert time separator
+          result.push({ type: 'timeGap', label: formatTimeGap(msg.timestamp) })
         }
+        // Response time badge: when previous message is user and this one is assistant
+        if (idx > 0 && msg.role === 'assistant' && messages[idx - 1].role === 'user' && messages[idx - 1].timestamp) {
+          const elapsed = msg.timestamp - messages[idx - 1].timestamp!
+          if (elapsed >= 1000) {
+            const rtLabel = formatResponseTime(elapsed, t)
+            if (rtLabel) result.push({ type: 'responseTime', label: rtLabel })
+          }
+        }
+        lastTimestamp = msg.timestamp
       }
       result.push({ type: 'message', msg, msgIdx: idx })
     })
@@ -114,7 +152,13 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   const virtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => scrollContainerRef.current,
-    estimateSize: (idx) => items[idx].type === 'dateSep' ? 32 : 80,
+    estimateSize: (idx) => {
+      const item = items[idx]
+      if (item.type === 'dateSep') return 32
+      if (item.type === 'timeGap') return 28
+      if (item.type === 'responseTime') return 22
+      return 80
+    },
     overscan: 5,
   })
 
@@ -165,6 +209,12 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
     // Show scroll-to-top button when scrolled down past 400px from top
     const el = scrollContainerRef.current
     setShowScrollTopBtn(el ? el.scrollTop > 400 : false)
+    // Compute scroll percentage for position indicator
+    if (el) {
+      const scrollable = el.scrollHeight - el.clientHeight
+      const pct = scrollable > 0 ? Math.round((el.scrollTop / scrollable) * 100) : 100
+      setScrollPct(pct)
+    }
   }, [checkIfNearBottom, messages.length])
 
   const scrollToBottom = useCallback(() => {
@@ -379,6 +429,71 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
               </div>
             )
           }
+          if (item.type === 'timeGap') {
+            return (
+              <div
+                key={`tgap-${virtualRow.index}`}
+                data-index={virtualRow.index}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '4px 20px',
+                }}>
+                  <span style={{
+                    fontSize: 9,
+                    color: 'var(--text-muted)',
+                    opacity: 0.7,
+                    fontFamily: 'monospace',
+                    letterSpacing: 0.5,
+                  }}>
+                    {item.label}
+                  </span>
+                </div>
+              </div>
+            )
+          }
+          if (item.type === 'responseTime') {
+            return (
+              <div
+                key={`rt-${virtualRow.index}`}
+                data-index={virtualRow.index}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '2px 20px',
+                }}>
+                  <span style={{
+                    fontSize: 9,
+                    color: 'var(--text-muted)',
+                    opacity: 0.5,
+                    fontStyle: 'italic',
+                  }}>
+                    {item.label}
+                  </span>
+                </div>
+              </div>
+            )
+          }
           const msg = item.msg
           const isHighlighted = item.msgIdx === highlightedMessageIdx
           const isLastMessage = item.msgIdx === messages.length - 1
@@ -456,8 +571,8 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
             gap: 4,
             minWidth: 32,
             height: 32,
-            borderRadius: unreadCount > 0 ? 16 : '50%',
-            padding: unreadCount > 0 ? '0 12px' : 0,
+            borderRadius: (unreadCount > 0 || scrollPct < 100) ? 16 : '50%',
+            padding: (unreadCount > 0 || scrollPct < 100) ? '0 12px' : 0,
             background: 'var(--accent)',
             border: 'none',
             color: '#fff',
@@ -473,7 +588,10 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
           onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.9')}
         >
           <ArrowDown size={14} />
-          {unreadCount > 0 && <span>{unreadCount}</span>}
+          {unreadCount > 0
+            ? <span>{unreadCount}</span>
+            : <span style={{ fontSize: 10, fontFamily: 'monospace', opacity: 0.85 }}>{scrollPct}%</span>
+          }
         </button>
       )}
     </div>

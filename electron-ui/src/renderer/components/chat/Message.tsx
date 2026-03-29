@@ -5,7 +5,7 @@ import ToolUseBlock from './ToolUseBlock'
 import MessageContextMenu from './MessageContextMenu'
 import SelectionToolbar from './SelectionToolbar'
 import ImageLightbox from '../shared/ImageLightbox'
-import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark, AlertTriangle, Code2, Check, CheckCheck, Clock, MessageSquareQuote, Pencil, Timer } from 'lucide-react'
+import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark, AlertTriangle, Code2, Check, CheckCheck, Clock, MessageSquareQuote, Pencil, Timer, NotebookPen } from 'lucide-react'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import { Note } from '../../types/app.types'
@@ -799,6 +799,29 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
                 onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
               >
                 <MessageSquareQuote size={13} />
+              </button>
+            )}
+
+            {/* Save to Note (assistant messages only) */}
+            {isAssistant && (message as StandardChatMessage).content && (
+              <button
+                onClick={(e) => { e.stopPropagation(); handleSaveAsNote() }}
+                title={t('message.saveToNote')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  borderRadius: 5,
+                  padding: '3px 5px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  color: 'var(--text-muted)',
+                  transition: 'background 0.12s ease, color 0.12s ease',
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+              >
+                <NotebookPen size={13} />
               </button>
             )}
           </div>
