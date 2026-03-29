@@ -291,13 +291,41 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       const pageSize = el.clientHeight * 0.8 // Scroll 80% of visible height
       el.scrollBy({ top: direction === 'up' ? -pageSize : pageSize, behavior: 'smooth' })
     }
+    // Jump between user messages (Alt+Up / Alt+Down)
+    const userMessageIndices = items.reduce<number[]>((acc, item, idx) => {
+      if (item.type === 'message' && item.msg.role === 'user') acc.push(idx)
+      return acc
+    }, [])
+    const currentUserMsgRef = { current: -1 } // track which user message we're near
+    const handleJumpUserMessage = (e: Event) => {
+      const direction = (e as CustomEvent).detail as 'prev' | 'next'
+      if (userMessageIndices.length === 0) return
+      const el = scrollContainerRef.current
+      if (!el) return
+      // Determine current approximate position in the list
+      const scrollRatio = el.scrollTop / Math.max(1, el.scrollHeight - el.clientHeight)
+      const approxIndex = Math.round(scrollRatio * (items.length - 1))
+      if (direction === 'next') {
+        const nextIdx = userMessageIndices.find(i => i > approxIndex)
+        if (nextIdx !== undefined) {
+          virtualizer.scrollToIndex(nextIdx, { align: 'center', behavior: 'smooth' })
+        }
+      } else {
+        const prevIdx = [...userMessageIndices].reverse().find(i => i < approxIndex)
+        if (prevIdx !== undefined) {
+          virtualizer.scrollToIndex(prevIdx, { align: 'center', behavior: 'smooth' })
+        }
+      }
+    }
     window.addEventListener('aipa:scrollToFirst', handleScrollToFirst)
     window.addEventListener('aipa:scrollToLast', handleScrollToLast)
     window.addEventListener('aipa:pageScroll', handlePageScroll)
+    window.addEventListener('aipa:jumpUserMessage', handleJumpUserMessage)
     return () => {
       window.removeEventListener('aipa:scrollToFirst', handleScrollToFirst)
       window.removeEventListener('aipa:scrollToLast', handleScrollToLast)
       window.removeEventListener('aipa:pageScroll', handlePageScroll)
+      window.removeEventListener('aipa:jumpUserMessage', handleJumpUserMessage)
     }
   }, [items.length, virtualizer])
 

@@ -630,6 +630,7 @@
     "jumpToFirstMessage": "\u8df3\u8f6c\u5230\u7b2c\u4e00\u6761\u6d88\u606f",
     "jumpToLastMessage": "\u8df3\u8f6c\u5230\u6700\u540e\u4e00\u6761\u6d88\u606f",
     "pageUpDown": "\u5411\u4e0a/\u5411\u4e0b\u7ffb\u9875",
+    "jumpUserMessage": "\u8df3\u8f6c\u5230\u4e0a/\u4e0b\u4e00\u6761\u7528\u6237\u6d88\u606f",
     "messageContextMenu": "\u6d88\u606f\u53f3\u952e\u83dc\u5355",
     "searchPlaceholder": "\u7b5b\u9009\u5feb\u6377\u952e...",
     "pressEscToClose": "\u6309 Esc \u5173\u95ed"

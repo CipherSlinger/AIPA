@@ -52,6 +52,7 @@ const SHORTCUTS = [
     { keys: 'Ctrl + Home', actionKey: 'jumpToFirstMessage' },
     { keys: 'Ctrl + End', actionKey: 'jumpToLastMessage' },
     { keys: 'PageUp / PageDown', actionKey: 'pageUpDown' },
+    { keys: 'Alt + Up / Down', actionKey: 'jumpUserMessage' },
     { keys: 'Right-click', actionKey: 'messageContextMenu' },
   ]},
 ]

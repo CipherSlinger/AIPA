@@ -210,6 +210,15 @@ export default function ChatPanel() {
         e.preventDefault()
         window.dispatchEvent(new CustomEvent('aipa:scrollToLast'))
       }
+      // Alt+Up / Alt+Down: Jump between user messages
+      if (e.altKey && !e.ctrlKey && !e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        const activeEl = document.activeElement
+        const inInput = activeEl instanceof HTMLTextAreaElement || activeEl instanceof HTMLInputElement
+        if (!inInput) {
+          e.preventDefault()
+          window.dispatchEvent(new CustomEvent('aipa:jumpUserMessage', { detail: e.key === 'ArrowUp' ? 'prev' : 'next' }))
+        }
+      }
       // Page Up / Page Down: Chunk scroll in message list
       if ((e.key === 'PageUp' || e.key === 'PageDown') && !e.ctrlKey && !e.shiftKey) {
         // Only intercept if not in a textarea/input

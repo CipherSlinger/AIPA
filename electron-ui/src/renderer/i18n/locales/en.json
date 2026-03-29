@@ -630,6 +630,7 @@
     "jumpToFirstMessage": "Jump to first message",
     "jumpToLastMessage": "Jump to last message",
     "pageUpDown": "Page up / Page down",
+    "jumpUserMessage": "Jump to prev/next user message",
     "messageContextMenu": "Message context menu",
     "searchPlaceholder": "Filter shortcuts...",
     "pressEscToClose": "Press Esc to close"
