@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Send, Square, X, MessageSquareQuote, Sparkles, Link2 } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import AtMentionPopup from './AtMentionPopup'
@@ -10,6 +10,7 @@ import { useImagePaste, ImageAttachment } from '../../hooks/useImagePaste'
 import { useChatInputDraft } from '../../hooks/useChatInputDraft'
 import { useChatInputHistory } from '../../hooks/useChatInputHistory'
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition'
+import { PromptHistoryItem } from '../../types/app.types'
 import { useT } from '../../i18n'
 
 interface ChatInputProps {
@@ -212,6 +213,12 @@ export default function ChatInput({
         if (result !== null) { e.preventDefault(); setInput(result) }
       }
     }
+    // Tab: accept ghost text autocomplete
+    if (e.key === 'Tab' && !e.shiftKey && ghostText) {
+      e.preventDefault()
+      setInput(prev => prev.trimStart() + ghostText)
+      return
+    }
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
     if (e.ctrlKey && !e.shiftKey && e.key === 'u') { e.preventDefault(); setInput('') }
     // Escape: dismiss URL chips, then quote preview
@@ -309,6 +316,27 @@ export default function ChatInput({
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [input, addToQueue, resizeTextarea])
+
+  // Inline prompt autocomplete from history
+  const promptHistory: PromptHistoryItem[] = prefs.promptHistory || []
+  const ghostText = useMemo(() => {
+    const trimmed = input.trimStart()
+    if (trimmed.length < 3 || slashQuery !== null || atQuery !== null) return ''
+    const lower = trimmed.toLowerCase()
+    // Find the most-used matching history entry
+    let best: PromptHistoryItem | null = null
+    for (const item of promptHistory) {
+      const itemLower = item.text.toLowerCase()
+      if (itemLower.startsWith(lower) && itemLower !== lower) {
+        if (!best || item.count > best.count || (item.count === best.count && item.lastUsedAt > best.lastUsedAt)) {
+          best = item
+        }
+      }
+    }
+    if (!best) return ''
+    // Return only the suffix (the part after what's already typed)
+    return best.text.slice(trimmed.length)
+  }, [input, promptHistory, slashQuery, atQuery])
 
   // Active persona indicator
   const personas = prefs.personas || []
@@ -435,39 +463,101 @@ export default function ChatInput({
           {atQuery !== null && <AtMentionPopup query={atQuery} onSelect={handleAtSelect} onDismiss={() => setAtQuery(null)} anchorRef={inputWrapRef as React.RefObject<HTMLElement>} />}
           {slashQuery !== null && <SlashCommandPopup query={slashQuery} onSelect={handleSlashSelect} onDismiss={() => setSlashQuery(null)} selectedIndex={slashIndex} onHover={setSlashIndex} extraCommands={customCommands} />}
           {/* Textarea */}
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            onPaste={handleTextPaste}
-            onDragOver={(e) => e.preventDefault()}
-            onFocus={() => { if (inputWrapRef.current) inputWrapRef.current.style.borderColor = 'var(--input-field-focus)' }}
-            onBlur={() => { if (inputWrapRef.current) inputWrapRef.current.style.borderColor = 'var(--input-field-border)' }}
-            placeholder={t(PLACEHOLDER_KEYS[placeholderIdx])}
-            aria-label={t('chat.placeholder')}
-            rows={1}
-            style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--text-primary)', resize: 'none', fontFamily: 'inherit', fontSize: 13, lineHeight: 1.5, minHeight: 20, maxHeight: 160, overflow: 'auto' }}
-          />
+          <div style={{ position: 'relative', flex: 1 }}>
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              onPaste={handleTextPaste}
+              onDragOver={(e) => e.preventDefault()}
+              onFocus={() => { if (inputWrapRef.current) inputWrapRef.current.style.borderColor = 'var(--input-field-focus)' }}
+              onBlur={() => { if (inputWrapRef.current) inputWrapRef.current.style.borderColor = 'var(--input-field-border)' }}
+              placeholder={t(PLACEHOLDER_KEYS[placeholderIdx])}
+              aria-label={t('chat.placeholder')}
+              rows={1}
+              style={{ flex: 1, width: '100%', background: 'none', border: 'none', outline: 'none', color: 'var(--text-primary)', resize: 'none', fontFamily: 'inherit', fontSize: 13, lineHeight: 1.5, minHeight: 20, maxHeight: 160, overflow: 'auto' }}
+            />
+            {/* Ghost text autocomplete overlay */}
+            {ghostText && input.trimStart().length >= 3 && (
+              <div
+                aria-hidden="true"
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  pointerEvents: 'none',
+                  fontFamily: 'inherit',
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  color: 'transparent',
+                  overflow: 'hidden',
+                  maxHeight: 160,
+                }}
+              >
+                <span style={{ visibility: 'hidden' }}>{input}</span>
+                <span style={{ color: 'var(--text-muted)', opacity: 0.45 }}>{ghostText}</span>
+                <span style={{ fontSize: 9, color: 'var(--text-muted)', opacity: 0.35, marginLeft: 4 }}>Tab</span>
+              </div>
+            )}
+          </div>
         </div>
-        {/* Send / Stop button */}
-        <button
-          onClick={isStreaming ? onAbort : handleSend}
-          disabled={!isStreaming && !input.trim() && attachments.length === 0}
-          title={isStreaming ? t('chat.stopGenerating') : t('chat.sendEnter')}
-          style={{
-            background: isStreaming ? 'var(--error)' : 'var(--accent)', border: 'none', borderRadius: 10, width: 36, height: 36,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
-            cursor: isStreaming || input.trim() || attachments.length > 0 ? 'pointer' : 'not-allowed',
-            opacity: !isStreaming && !input.trim() && attachments.length === 0 ? 0.4 : 1,
-            flexShrink: 0, transition: 'background 150ms, opacity 150ms', alignSelf: 'flex-end', position: 'relative',
-          }}
-        >
-          {isStreaming ? <Square size={14} /> : <Send size={14} />}
-          {!isStreaming && (
-            <span style={{ position: 'absolute', bottom: -14, fontSize: 9, color: 'var(--text-muted)', opacity: 0.5, whiteSpace: 'nowrap', fontFamily: 'inherit' }}>Enter</span>
+        {/* Send / Stop button with progress ring */}
+        <div style={{ position: 'relative', flexShrink: 0, alignSelf: 'flex-end' }}>
+          {/* Progress ring (only when input has content and not streaming) */}
+          {!isStreaming && input.length > 0 && (
+            <svg
+              width={44}
+              height={44}
+              style={{
+                position: 'absolute',
+                top: -4,
+                left: -4,
+                transform: 'rotate(-90deg)',
+                pointerEvents: 'none',
+              }}
+            >
+              <circle
+                cx={22}
+                cy={22}
+                r={20}
+                fill="none"
+                stroke={
+                  input.length > 10000 ? 'var(--error)'
+                    : input.length > 8000 ? '#f97316'
+                    : input.length > 5000 ? 'var(--warning)'
+                    : 'var(--accent)'
+                }
+                strokeWidth={2}
+                strokeDasharray={2 * Math.PI * 20}
+                strokeDashoffset={2 * Math.PI * 20 * (1 - Math.min(input.length / 12000, 1))}
+                strokeLinecap="round"
+                opacity={0.6}
+                style={{ transition: 'stroke-dashoffset 300ms ease, stroke 300ms ease' }}
+              />
+            </svg>
           )}
-        </button>
+          <button
+            onClick={isStreaming ? onAbort : handleSend}
+            disabled={!isStreaming && !input.trim() && attachments.length === 0}
+            title={isStreaming ? t('chat.stopGenerating') : t('chat.sendEnter')}
+            style={{
+              background: isStreaming ? 'var(--error)' : 'var(--accent)', border: 'none', borderRadius: 10, width: 36, height: 36,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
+              cursor: isStreaming || input.trim() || attachments.length > 0 ? 'pointer' : 'not-allowed',
+              opacity: !isStreaming && !input.trim() && attachments.length === 0 ? 0.4 : 1,
+              flexShrink: 0, transition: 'background 150ms, opacity 150ms', position: 'relative',
+            }}
+          >
+            {isStreaming ? <Square size={14} /> : <Send size={14} />}
+            {!isStreaming && (
+              <span style={{ position: 'absolute', bottom: -14, fontSize: 9, color: 'var(--text-muted)', opacity: 0.5, whiteSpace: 'nowrap', fontFamily: 'inherit' }}>Enter</span>
+            )}
+          </button>
+        </div>
       </div>
       {/* Compose status */}
       {input.trim().length > 0 && (
