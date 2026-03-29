@@ -46,7 +46,9 @@ export default function ChatPanel() {
   const { bookmarkedMessages, conversationStats } = useConversationStats(messages)
   const {
     searchOpen, searchQuery, searchMatches, currentMatchIdx,
+    caseSensitive, roleFilter,
     handleSearch, handleSearchNavigate, handleSearchClose, setSearchOpen,
+    toggleCaseSensitive, changeRoleFilter,
   } = useConversationSearch(messages)
 
   // Scroll-to-message state (for bookmarks panel)
@@ -359,6 +361,10 @@ export default function ChatPanel() {
           onClose={handleSearchClose}
           matchCount={searchMatches.length}
           currentMatch={currentMatchIdx}
+          caseSensitive={caseSensitive}
+          onToggleCaseSensitive={toggleCaseSensitive}
+          roleFilter={roleFilter}
+          onChangeRoleFilter={changeRoleFilter}
         />
       )}
 
@@ -452,7 +458,7 @@ export default function ChatPanel() {
         <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 16px 8px' }}>
           <button
             onClick={handleRegenerate}
-            title={t('chat.regenerate')}
+            title={`${t('chat.regenerate')} (Ctrl+Shift+R)`}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -482,6 +488,16 @@ export default function ChatPanel() {
           >
             <RefreshCw size={14} />
             <span>{t('chat.regenerate')}</span>
+            <kbd style={{
+              fontSize: 9,
+              opacity: 0.5,
+              fontFamily: 'monospace',
+              background: 'rgba(255,255,255,0.06)',
+              padding: '1px 5px',
+              borderRadius: 3,
+              border: '1px solid rgba(255,255,255,0.1)',
+              marginLeft: 2,
+            }}>Ctrl+Shift+R</kbd>
           </button>
         </div>
       )}

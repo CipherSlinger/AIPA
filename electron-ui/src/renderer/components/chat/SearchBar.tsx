@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Search, X, ChevronUp, ChevronDown } from 'lucide-react'
+import { Search, X, ChevronUp, ChevronDown, CaseSensitive, User, Bot } from 'lucide-react'
 import { useT } from '../../i18n'
+import type { SearchRoleFilter } from '../../hooks/useConversationSearch'
 
 interface Props {
   onSearch: (query: string) => void
@@ -8,9 +9,13 @@ interface Props {
   onClose: () => void
   matchCount: number
   currentMatch: number
+  caseSensitive?: boolean
+  onToggleCaseSensitive?: () => void
+  roleFilter?: SearchRoleFilter
+  onChangeRoleFilter?: (role: SearchRoleFilter) => void
 }
 
-export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, currentMatch }: Props) {
+export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, currentMatch, caseSensitive = false, onToggleCaseSensitive, roleFilter = 'all', onChangeRoleFilter }: Props) {
   const t = useT()
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -39,6 +44,21 @@ export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, c
     setQuery(val)
     onSearch(val)
   }, [onSearch])
+
+  const toggleBtnStyle = (active: boolean): React.CSSProperties => ({
+    background: active ? 'var(--accent)' : 'none',
+    border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+    borderRadius: 3,
+    color: active ? '#fff' : 'var(--text-muted)',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 24,
+    height: 22,
+    flexShrink: 0,
+    transition: 'background 100ms, color 100ms, border-color 100ms',
+  })
 
   return (
     <div
@@ -69,6 +89,41 @@ export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, c
           outline: 'none',
         }}
       />
+      {/* Case sensitive toggle */}
+      {onToggleCaseSensitive && (
+        <button
+          onClick={onToggleCaseSensitive}
+          title={t('chat.searchCaseSensitive')}
+          style={toggleBtnStyle(caseSensitive)}
+          onMouseEnter={(e) => { if (!caseSensitive) e.currentTarget.style.borderColor = 'var(--accent)' }}
+          onMouseLeave={(e) => { if (!caseSensitive) e.currentTarget.style.borderColor = 'var(--border)' }}
+        >
+          <CaseSensitive size={14} />
+        </button>
+      )}
+      {/* Role filter: User / Claude */}
+      {onChangeRoleFilter && (
+        <>
+          <button
+            onClick={() => onChangeRoleFilter(roleFilter === 'user' ? 'all' : 'user')}
+            title={t('chat.searchFilterUser')}
+            style={toggleBtnStyle(roleFilter === 'user')}
+            onMouseEnter={(e) => { if (roleFilter !== 'user') e.currentTarget.style.borderColor = 'var(--accent)' }}
+            onMouseLeave={(e) => { if (roleFilter !== 'user') e.currentTarget.style.borderColor = 'var(--border)' }}
+          >
+            <User size={12} />
+          </button>
+          <button
+            onClick={() => onChangeRoleFilter(roleFilter === 'assistant' ? 'all' : 'assistant')}
+            title={t('chat.searchFilterClaude')}
+            style={toggleBtnStyle(roleFilter === 'assistant')}
+            onMouseEnter={(e) => { if (roleFilter !== 'assistant') e.currentTarget.style.borderColor = 'var(--accent)' }}
+            onMouseLeave={(e) => { if (roleFilter !== 'assistant') e.currentTarget.style.borderColor = 'var(--border)' }}
+          >
+            <Bot size={12} />
+          </button>
+        </>
+      )}
       {query && (
         <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
           {matchCount > 0 ? `${currentMatch + 1} / ${matchCount}` : t('chat.noMatches')}
