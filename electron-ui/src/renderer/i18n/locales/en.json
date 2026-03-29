@@ -263,7 +263,11 @@
     "removeReaction": "Remove reaction",
     "copyCodeBlocks": "Copy code blocks",
     "codeBlocksCopied": "{{count}} code block(s) copied",
-    "noCodeBlocks": "No code blocks found"
+    "noCodeBlocks": "No code blocks found",
+    "addAnnotation": "Add annotation",
+    "editAnnotation": "Edit annotation",
+    "removeAnnotation": "Remove annotation",
+    "annotationPlaceholder": "Add a private note..."
   },
   "selection": {
     "copySelection": "Copy selected text",

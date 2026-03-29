@@ -130,6 +130,9 @@ interface ChatState {
 
   // Response duration tracking
   setResponseDuration: (msgId: string, duration: number) => void
+
+  // Message annotations
+  setAnnotation: (msgId: string, text: string) => void
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -374,6 +377,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
     messages: s.messages.map(m =>
       m.id === msgId && m.role === 'assistant'
         ? { ...(m as StandardChatMessage), responseDuration: duration }
+        : m
+    ),
+  })),
+
+  setAnnotation: (msgId, text) => set((s) => ({
+    messages: s.messages.map(m =>
+      m.id === msgId
+        ? { ...(m as StandardChatMessage), annotation: text || undefined }
         : m
     ),
   })),

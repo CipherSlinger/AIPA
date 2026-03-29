@@ -5,7 +5,7 @@ import MessageActionToolbar from './MessageActionToolbar'
 import MessageBubbleContent from './MessageBubbleContent'
 import SelectionToolbar from './SelectionToolbar'
 import ImageLightbox from '../shared/ImageLightbox'
-import { User, Bot, Bookmark, Pin } from 'lucide-react'
+import { User, Bot, Bookmark, Pin, StickyNote, X } from 'lucide-react'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import { useMessageActions } from '../../hooks/useMessageActions'
@@ -60,6 +60,11 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   const editTextareaRef = React.useRef<HTMLTextAreaElement>(null)
   const bubbleRef = useRef<HTMLDivElement>(null)
 
+  // Annotation state
+  const [showAnnotationEditor, setShowAnnotationEditor] = useState(false)
+  const [annotationDraft, setAnnotationDraft] = useState('')
+  const annotationRef = useRef<HTMLTextAreaElement>(null)
+
   // Extracted actions hook
   const {
     copied, handleCopy, handleQuote, handleBookmarkAction,
@@ -67,9 +72,38 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   } = useMessageActions({ message, isPermission, isPlan })
 
   const toggleReaction = useChatStore(s => s.toggleReaction)
+  const setAnnotation = useChatStore(s => s.setAnnotation)
   const handleReaction = useCallback((emoji: string) => {
     toggleReaction(message.id, emoji)
   }, [toggleReaction, message.id])
+
+  const handleAnnotateToggle = useCallback(() => {
+    if (showAnnotationEditor) {
+      // Save and close
+      setAnnotation(message.id, annotationDraft.trim())
+      setShowAnnotationEditor(false)
+    } else {
+      // Open editor with current value
+      setAnnotationDraft((message as StandardChatMessage).annotation || '')
+      setShowAnnotationEditor(true)
+      setTimeout(() => annotationRef.current?.focus(), 50)
+    }
+  }, [showAnnotationEditor, annotationDraft, message.id, message, setAnnotation])
+
+  const handleAnnotationKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      setAnnotation(message.id, annotationDraft.trim())
+      setShowAnnotationEditor(false)
+    } else if (e.key === 'Escape') {
+      setShowAnnotationEditor(false)
+    }
+  }, [annotationDraft, message.id, setAnnotation])
+
+  const handleRemoveAnnotation = useCallback(() => {
+    setAnnotation(message.id, '')
+    setShowAnnotationEditor(false)
+  }, [message.id, setAnnotation])
 
   // Word info tooltip (both user and assistant messages)
   const wordInfo = (message as StandardChatMessage).content
@@ -342,6 +376,117 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           </div>
         )}
 
+        {/* Annotation display / editor */}
+        {!isPermission && !isPlan && ((message as StandardChatMessage).annotation || showAnnotationEditor) && (
+          <div style={{
+            marginTop: 4,
+            ...(isUser ? { alignSelf: 'flex-end' } : {}),
+          }}>
+            {showAnnotationEditor ? (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4,
+                background: 'var(--popup-bg)',
+                border: '1px solid var(--popup-border)',
+                borderRadius: 6,
+                padding: 6,
+              }}>
+                <textarea
+                  ref={annotationRef}
+                  value={annotationDraft}
+                  onChange={(e) => setAnnotationDraft(e.target.value)}
+                  onKeyDown={handleAnnotationKeyDown}
+                  placeholder={t('message.annotationPlaceholder')}
+                  maxLength={500}
+                  style={{
+                    width: '100%',
+                    minWidth: 200,
+                    minHeight: 40,
+                    maxHeight: 100,
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    color: 'var(--text)',
+                    fontSize: 12,
+                    fontFamily: 'inherit',
+                    resize: 'vertical',
+                    padding: 4,
+                  }}
+                />
+                <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
+                  <span style={{ fontSize: 10, color: 'var(--text-muted)', marginRight: 'auto' }}>
+                    {annotationDraft.length}/500
+                  </span>
+                  {(message as StandardChatMessage).annotation && (
+                    <button
+                      onClick={handleRemoveAnnotation}
+                      style={{
+                        background: 'transparent', border: 'none', cursor: 'pointer',
+                        color: 'var(--error, #e55)', fontSize: 11, padding: '2px 6px',
+                        borderRadius: 3,
+                      }}
+                      title={t('message.removeAnnotation')}
+                    >
+                      {t('message.removeAnnotation')}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowAnnotationEditor(false)}
+                    style={{
+                      background: 'transparent', border: 'none', cursor: 'pointer',
+                      color: 'var(--text-muted)', fontSize: 11, padding: '2px 6px',
+                      borderRadius: 3,
+                    }}
+                  >
+                    {t('message.editCancel')}
+                  </button>
+                  <button
+                    onClick={() => { setAnnotation(message.id, annotationDraft.trim()); setShowAnnotationEditor(false) }}
+                    style={{
+                      background: 'var(--accent)', border: 'none', cursor: 'pointer',
+                      color: '#fff', fontSize: 11, padding: '2px 8px',
+                      borderRadius: 3,
+                    }}
+                  >
+                    {t('message.editSave').replace(' & Send', '')}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div
+                onClick={() => handleAnnotateToggle()}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 4,
+                  padding: '3px 8px',
+                  background: 'rgba(255, 193, 7, 0.08)',
+                  border: '1px solid rgba(255, 193, 7, 0.2)',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  maxWidth: '100%',
+                  transition: 'background 0.12s ease',
+                }}
+                title={t('message.editAnnotation')}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255, 193, 7, 0.15)' }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255, 193, 7, 0.08)' }}
+              >
+                <StickyNote size={11} style={{ color: 'var(--warning, #ffc107)', marginTop: 2, flexShrink: 0 }} />
+                <span style={{
+                  fontSize: 11,
+                  color: 'var(--text-muted)',
+                  lineHeight: 1.4,
+                  wordBreak: 'break-word',
+                  whiteSpace: 'pre-wrap',
+                }}>
+                  {(message as StandardChatMessage).annotation}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Floating action toolbar */}
         {hovered && !isCollapsed && (
           <MessageActionToolbar
@@ -367,6 +512,8 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             onReadAloud={isAssistant ? handleReadAloud : undefined}
             isSpeaking={isSpeaking}
             hasOnEdit={!!onEdit}
+            onAnnotate={handleAnnotateToggle}
+            hasAnnotation={!!(message as StandardChatMessage).annotation}
           />
         )}
       </div>
@@ -425,6 +572,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   if ((pm.reactions?.length ?? 0) !== (nm.reactions?.length ?? 0)) return false
   if (pm.reactions?.join(',') !== nm.reactions?.join(',')) return false
   if (pm.collapsed !== nm.collapsed) return false
+  if (pm.annotation !== nm.annotation) return false
   if (pm.thinking !== nm.thinking) return false
   if ((pm.toolUses?.length ?? 0) !== (nm.toolUses?.length ?? 0)) return false
   if (prevProps.searchQuery !== nextProps.searchQuery) return false

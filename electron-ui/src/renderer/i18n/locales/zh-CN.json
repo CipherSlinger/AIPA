@@ -263,7 +263,11 @@
     "removeReaction": "\u79fb\u9664\u8868\u60c5",
     "copyCodeBlocks": "\u590d\u5236\u4ee3\u7801\u5757",
     "codeBlocksCopied": "\u5df2\u590d\u5236 {{count}} \u4e2a\u4ee3\u7801\u5757",
-    "noCodeBlocks": "\u672a\u627e\u5230\u4ee3\u7801\u5757"
+    "noCodeBlocks": "\u672a\u627e\u5230\u4ee3\u7801\u5757",
+    "addAnnotation": "\u6dfb\u52a0\u6279\u6ce8",
+    "editAnnotation": "\u7f16\u8f91\u6279\u6ce8",
+    "removeAnnotation": "\u79fb\u9664\u6279\u6ce8",
+    "annotationPlaceholder": "\u6dfb\u52a0\u79c1\u4eba\u5907\u6ce8..."
   },
   "selection": {
     "copySelection": "\u590d\u5236\u9009\u4e2d\u6587\u672c",

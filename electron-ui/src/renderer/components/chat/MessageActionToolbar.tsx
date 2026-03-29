@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { StandardChatMessage } from '../../types/app.types'
-import { Copy, Check, Bookmark, Code2, Pencil, MessageSquareQuote, NotebookPen, Volume2, VolumeX, Brain, Share2, Pin, SmilePlus, Languages } from 'lucide-react'
+import { Copy, Check, Bookmark, Code2, Pencil, MessageSquareQuote, NotebookPen, Volume2, VolumeX, Brain, Share2, Pin, SmilePlus, Languages, StickyNote } from 'lucide-react'
 import { useT } from '../../i18n'
 
 const actionBtnStyle: React.CSSProperties = {
@@ -45,6 +45,8 @@ interface MessageActionToolbarProps {
   onReadAloud?: () => void
   isSpeaking?: boolean
   hasOnEdit: boolean
+  onAnnotate?: () => void
+  hasAnnotation?: boolean
 }
 
 export default function MessageActionToolbar({
@@ -52,6 +54,7 @@ export default function MessageActionToolbar({
   copied, showRawMarkdown, globalIsStreaming,
   onToggleRawMarkdown, onStartEdit, onCopy, onBookmark, onQuote, onSaveAsNote, onRememberThis, onShare, onPin, onReaction, onTranslate, onReadAloud, isSpeaking,
   hasOnEdit,
+  onAnnotate, hasAnnotation,
 }: MessageActionToolbarProps) {
   const t = useT()
   const [showReactionPicker, setShowReactionPicker] = useState(false)
@@ -204,6 +207,22 @@ export default function MessageActionToolbar({
           onMouseLeave={(e) => hoverOut(e)}
         >
           <Share2 size={13} />
+        </button>
+      )}
+
+      {/* Annotate */}
+      {!isPermission && !isPlan && onAnnotate && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onAnnotate() }}
+          title={hasAnnotation ? t('message.editAnnotation') : t('message.addAnnotation')}
+          style={{
+            ...actionBtnStyle,
+            color: hasAnnotation ? 'var(--accent)' : 'var(--text-muted)',
+          }}
+          onMouseEnter={(e) => hoverIn(e)}
+          onMouseLeave={(e) => hoverOut(e)}
+        >
+          <StickyNote size={13} style={hasAnnotation ? { fill: 'var(--accent)', opacity: 0.3 } : {}} />
         </button>
       )}
 

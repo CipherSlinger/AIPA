@@ -2221,3 +2221,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 270 (2026-03-29)
 - README batch update for iterations 261-269 -- added 10 new feature entries to both README.md and README_CN.md covering: pinned messages, text snippets (::keyword trigger), save input as note, message emoji reactions, copy code blocks, translate message button, response tone selector, quick language toggle (Ctrl+Shift+L), command palette toggle commands; 2 files changed; no build needed
+
+### Iteration 271 (2026-03-29)
+- Message annotations -- private user notes attached to any message; StickyNote icon button in message hover toolbar toggles inline annotation editor; annotations display as a subtle yellow-tinted strip below the message bubble with StickyNote icon; inline editor with textarea (max 500 chars), character counter, Save/Cancel/Remove buttons; Enter to save, Escape to cancel; click existing annotation to edit; annotation field on StandardChatMessage type; setAnnotation action in Zustand store; React.memo comparison updated for annotation; i18n: 4 new keys (message.addAnnotation, editAnnotation, removeAnnotation, annotationPlaceholder) in en.json and zh-CN.json; 5 files changed; build SUCCESS

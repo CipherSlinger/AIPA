@@ -42,6 +42,7 @@ export interface StandardChatMessage {
   collapsed?: boolean
   pinned?: boolean
   reactions?: string[]  // emoji reactions (e.g. ['thumbsup', 'heart', 'fire'])
+  annotation?: string  // private user annotation/note attached to this message
   /** Duration in ms from when the user sent the prompt to when the result arrived */
   responseDuration?: number
   /** Internal: accumulated content chunks during streaming (joined into content on stream end) */
