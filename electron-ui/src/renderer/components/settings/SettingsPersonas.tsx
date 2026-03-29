@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Plus, Pencil, Trash2, Check, X, Sparkles } from 'lucide-react'
+import { Plus, Pencil, Trash2, Check, X, Sparkles, Download } from 'lucide-react'
 import { usePrefsStore, useUiStore } from '../../store'
 import { useI18n } from '../../i18n'
 import type { Persona } from '../../types/app.types'
@@ -15,6 +15,45 @@ const EMOJI_PRESETS = [
   '\u{1F3A8}', '\u{1F4DA}', '\u{1F9D1}\u200D\u{1F4BB}', '\u{1F680}',
   '\u{1F9E0}', '\u{1F916}', '\u2728', '\u{1F30D}',
   '\u{1F3AF}', '\u{1F4CA}', '\u2764\uFE0F', '\u{1F4A1}',
+]
+
+/** Built-in persona presets that users can install with one click */
+const PERSONA_PRESETS: Omit<Persona, 'id' | 'createdAt' | 'updatedAt'>[] = [
+  {
+    name: 'Writing Coach',
+    emoji: '\u{1F4DD}',
+    model: 'claude-sonnet-4-6',
+    systemPrompt: 'You are an experienced writing coach. Help draft, edit, and improve any written content -- emails, reports, articles, creative pieces. Focus on clarity, tone, and impact. Offer specific suggestions, not vague feedback. Adapt your style to the audience and purpose.',
+    color: '#3b82f6',
+  },
+  {
+    name: 'Research Analyst',
+    emoji: '\u{1F9D1}\u200D\u{1F52C}',
+    model: 'claude-sonnet-4-6',
+    systemPrompt: 'You are a thorough research analyst. Help gather, organize, and analyze information on any topic. Present findings in structured formats with clear summaries, pros/cons comparisons, and actionable conclusions. Cite sources when possible.',
+    color: '#22c55e',
+  },
+  {
+    name: 'Creative Partner',
+    emoji: '\u{1F3A8}',
+    model: 'claude-sonnet-4-6',
+    systemPrompt: 'You are a creative brainstorming partner. Help generate ideas, develop concepts, explore creative directions, and overcome creative blocks. Think divergently, offer unexpected connections, and build on ideas with enthusiasm. Be playful but practical.',
+    color: '#f59e0b',
+  },
+  {
+    name: 'Study Tutor',
+    emoji: '\u{1F9D1}\u200D\u{1F3EB}',
+    model: 'claude-sonnet-4-6',
+    systemPrompt: 'You are a patient and encouraging tutor. Explain concepts step by step using simple language and relatable analogies. Adapt to the learner\'s level. Ask questions to check understanding. Use examples and visual descriptions. Make learning engaging and build confidence.',
+    color: '#8b5cf6',
+  },
+  {
+    name: 'Productivity Coach',
+    emoji: '\u{1F680}',
+    model: 'claude-sonnet-4-6',
+    systemPrompt: 'You are a productivity and planning coach. Help organize tasks, set priorities, create action plans, and manage time effectively. Break down large goals into small steps. Suggest workflow improvements. Keep the user focused on what matters most. Be direct and structured.',
+    color: '#06b6d4',
+  },
 ]
 
 interface SettingsPersonasProps {
@@ -433,6 +472,69 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Preset personas */}
+      {personas.length < 10 && (
+        <div style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>
+            {t('persona.presets')}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {PERSONA_PRESETS.filter(preset => !personas.some(p => p.name === preset.name)).map((preset, i) => (
+              <div
+                key={i}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '6px 10px',
+                  background: 'var(--card-bg)',
+                  border: '1px solid var(--card-border)',
+                  borderRadius: 6,
+                }}
+              >
+                <span style={{ fontSize: 16, width: 24, textAlign: 'center' }}>{preset.emoji}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-bright)' }}>{preset.name}</div>
+                  <div style={{ fontSize: 9, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {preset.systemPrompt.slice(0, 60)}...
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    if (personas.length >= 10) return
+                    const newPersona: Persona = {
+                      ...preset,
+                      id: `persona-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                      createdAt: Date.now(),
+                      updatedAt: Date.now(),
+                    }
+                    savePersonas([...personas, newPersona])
+                    addToast('success', t('persona.created'))
+                  }}
+                  title={t('persona.addPersona')}
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 4,
+                    border: 'none',
+                    background: 'none',
+                    color: 'var(--accent)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                >
+                  <Download size={13} />
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

@@ -804,6 +804,8 @@
     "personaActive": "{{name}} active",
     "created": "Persona created",
     "updated": "Persona updated",
-    "deleted": "Persona deleted"
+    "deleted": "Persona deleted",
+    "presets": "Preset Personas (click to add)",
+    "personaGreeting": "I'm {{name}}, ready to help!"
   }
 }

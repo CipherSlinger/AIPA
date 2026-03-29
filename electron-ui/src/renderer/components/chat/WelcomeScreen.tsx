@@ -89,6 +89,8 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
     { label: t('welcome.showShortcuts'), icon: Keyboard, shortcut: 'Ctrl+/', action: () => window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, key: '/' })) },
   ]
 
+  const activePersona = personas.find(p => p.id === activePersonaId)
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', gap: 24, padding: '0 20px' }}>
       {/* Hero icon */}
@@ -96,15 +98,23 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
         width: 80,
         height: 80,
         borderRadius: '50%',
-        background: 'rgba(0,122,204,0.1)',
+        background: activePersona ? `${activePersona.color}20` : 'rgba(0,122,204,0.1)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        <Bot size={48} color="var(--accent)" strokeWidth={1.5} />
+        {activePersona
+          ? <span style={{ fontSize: 44, lineHeight: 1 }}>{activePersona.emoji}</span>
+          : <Bot size={48} color="var(--accent)" strokeWidth={1.5} />
+        }
       </div>
       <div style={{ textAlign: 'center' }}>
         <div style={{ fontSize: 28, color: 'var(--text-bright)', fontWeight: 700, letterSpacing: '-0.02em' }}>{t(greeting)}</div>
+        {activePersona && (
+          <div style={{ fontSize: 13, color: activePersona.color, marginTop: 4, fontWeight: 500 }}>
+            {t('persona.personaGreeting', { name: activePersona.name })}
+          </div>
+        )}
         <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4, opacity: 0.7 }}>
           {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
         </div>

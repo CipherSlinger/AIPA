@@ -804,6 +804,8 @@
     "personaActive": "{{name}} \u5df2\u6fc0\u6d3b",
     "created": "\u89d2\u8272\u5df2\u521b\u5efa",
     "updated": "\u89d2\u8272\u5df2\u66f4\u65b0",
-    "deleted": "\u89d2\u8272\u5df2\u5220\u9664"
+    "deleted": "\u89d2\u8272\u5df2\u5220\u9664",
+    "presets": "\u9884\u8bbe\u89d2\u8272\uff08\u70b9\u51fb\u6dfb\u52a0\uff09",
+    "personaGreeting": "\u6211\u662f{{name}}\uff0c\u968f\u65f6\u4e3a\u4f60\u670d\u52a1\uff01"
   }
 }
