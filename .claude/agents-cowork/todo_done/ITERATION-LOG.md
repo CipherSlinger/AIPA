@@ -2257,3 +2257,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 282 (2026-03-29)
 - Status bar click-to-copy metrics -- token usage and cost displays in the status bar are now clickable buttons; clicking tokens copies "Input: X tokens, Output: Y tokens" to clipboard; clicking cost copies "Session cost: $X.XXXX" with last turn breakdown; toast confirmation on copy; i18n: 3 new keys (toolbar.tokensCopied, toolbar.costCopied, toolbar.clickToCopyTokens) in en.json and zh-CN.json; 3 files changed; build SUCCESS
+
+### Iteration 283 (2026-03-29)
+- Context window warning toast -- when context window usage exceeds 85%, shows a warning toast "Context window X% full. Consider starting a new conversation for best results."; warning fires only once per session to avoid spam; ref resets when starting a new conversation; uses existing i18n key (chat.contextWarning); 1 file changed; build SUCCESS

@@ -81,6 +81,8 @@ export function useStreamJson() {
   const sendMessageRef = useRef<((prompt: string) => Promise<unknown>) | null>(null)
   // Track when the user sends a message to calculate response duration
   const sendTimestampRef = useRef<number>(0)
+  // Only warn once per session about context window nearing capacity
+  const contextWarningShownRef = useRef<boolean>(false)
 
   const sendMessage = async (prompt: string, attachments?: import('./useImagePaste').ImageAttachment[]) => {
     if (!prompt.trim() && (!attachments || attachments.length === 0)) return
@@ -230,6 +232,7 @@ export function useStreamJson() {
     }
     denyPendingPermissions()
     useChatStore.getState().clearMessages()
+    contextWarningShownRef.current = false
   }
 
   useEffect(() => {
@@ -305,6 +308,13 @@ export function useStreamJson() {
           // context window usage
           if (usage?.context_window && usage.context_window > 0) {
             setLastContextUsage({ used: usage.input_tokens ?? 0, total: usage.context_window })
+            // Warn when context window is getting full
+            const pct = Math.round((usage.input_tokens ?? 0) / usage.context_window * 100)
+            if (pct >= 85 && !contextWarningShownRef.current) {
+              contextWarningShownRef.current = true
+              const addToast = useUiStore.getState().addToast
+              addToast('warning', t('chat.contextWarning', { percent: String(pct) }))
+            }
           }
           // Set response duration on the last assistant message
           if (sendTimestampRef.current > 0) {
