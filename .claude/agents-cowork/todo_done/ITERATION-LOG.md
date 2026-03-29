@@ -2060,3 +2060,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 - Shortcut cheatsheet search, universal word/token tooltip -- (1) ShortcutCheatsheet now has a search/filter input at the top; filters shortcuts in real-time by action name or key combo using useMemo; autoFocus on open; accent border on focus; Search icon; (2) Word/token info tooltip extended from assistant-only to all messages (user and assistant) in Message.tsx; 1 new i18n key (shortcutCheatsheet.searchPlaceholder) in en.json and zh-CN.json; 4 files changed; build SUCCESS
 
 [RETRO] retro-2026-03-29-iterations-208-217.md completed, covered Iteration 208-217, next forced retro after Iteration 227
+
+### Iteration 218 (2026-03-29)
+- SettingsPersonas decomposition refactor -- SettingsPersonas.tsx reduced from 643 to 315 lines (51% reduction); extracted 4 new files: personaConstants.ts (52 lines, PERSONA_COLORS/EMOJI_PRESETS/PERSONA_PRESETS data), PersonaForm.tsx (161 lines, persona create/edit form with emoji picker, model selector, color picker), PersonaCard.tsx (136 lines, individual persona card with activate/edit/delete actions), PersonaPresets.tsx (69 lines, preset personas installer section); pure refactor with zero visual or behavioral changes; build SUCCESS
