@@ -1,0 +1,272 @@
+import React, { useState, useEffect, useRef } from 'react'
+import { StandardChatMessage } from '../../types/app.types'
+import MessageContent from './MessageContent'
+import ToolUseBlock from './ToolUseBlock'
+import { ChevronDown, ChevronRight, Check, CheckCheck, Clock, Timer } from 'lucide-react'
+import { useT } from '../../i18n'
+import { getShowAbsoluteTime, formatAbsoluteTime, relativeTime, formatResponseDuration } from './messageUtils'
+
+interface MessageBubbleContentProps {
+  message: StandardChatMessage
+  isUser: boolean
+  isAssistant: boolean
+  isPermission: boolean
+  isCollapsed: boolean
+  compact: boolean
+  searchQuery?: string
+  searchCaseSensitive?: boolean
+  msgStatus: 'sending' | 'sent' | 'read' | null
+  // Editing state (controlled by parent)
+  isEditing: boolean
+  editContent: string
+  onEditContentChange: (v: string) => void
+  onEditSubmit: () => void
+  onEditCancel: () => void
+  editTextareaRef: React.RefObject<HTMLTextAreaElement>
+  // Raw markdown (controlled by parent)
+  showRawMarkdown: boolean
+  // Image lightbox
+  onImageClick: (src: string, alt: string) => void
+  // Callbacks
+  onCollapse?: (id: string) => void
+  onEdit?: (id: string, content: string) => void
+  onTimestampClick: () => void
+}
+
+export default function MessageBubbleContent({
+  message, isUser, isAssistant, isPermission, isCollapsed, compact,
+  searchQuery, searchCaseSensitive, msgStatus,
+  isEditing, editContent, onEditContentChange, onEditSubmit, onEditCancel, editTextareaRef,
+  showRawMarkdown, onImageClick,
+  onCollapse, onEdit, onTimestampClick,
+}: MessageBubbleContentProps) {
+  const t = useT()
+  const thinking = message.thinking
+  const isMessageStreaming = message.isStreaming
+  const [thinkingExpanded, setThinkingExpanded] = useState(false)
+
+  // Auto-expand thinking block while streaming, auto-collapse when done
+  const prevStreamingRef = useRef(false)
+  useEffect(() => {
+    if (isMessageStreaming && thinking && !prevStreamingRef.current) {
+      setThinkingExpanded(true)
+    } else if (!isMessageStreaming && prevStreamingRef.current && thinking) {
+      setThinkingExpanded(false)
+    }
+    prevStreamingRef.current = !!isMessageStreaming
+  }, [isMessageStreaming, thinking])
+
+  return (
+    <>
+      {/* Collapse toggle row */}
+      {onCollapse && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: isCollapsed ? 0 : 4 }}>
+          <button
+            onClick={(e) => { e.stopPropagation(); onCollapse(message.id) }}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: isUser ? 'rgba(255,255,255,0.5)' : 'var(--text-muted)',
+              display: 'flex', alignItems: 'center', padding: 0,
+            }}
+            title={isCollapsed ? t('message.expand') : t('message.collapse')}
+          >
+            {isCollapsed ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
+          </button>
+          {isCollapsed && (
+            <span style={{ fontSize: 11, opacity: 0.6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+              {(message.content || '').slice(0, 100).replace(/\n/g, ' ')}
+            </span>
+          )}
+          {message.isStreaming && (
+            <span style={{ color: 'var(--success)', fontSize: 11 }}>{t('message.processing')}</span>
+          )}
+        </div>
+      )}
+
+      {!isCollapsed && (
+        <>
+          {/* Thinking block */}
+          {thinking && (
+            <div style={{ marginBottom: 8 }}>
+              <button
+                onClick={() => setThinkingExpanded(!thinkingExpanded)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: isUser ? 'rgba(255,255,255,0.5)' : 'var(--text-muted)',
+                  fontSize: 11, padding: 0, marginBottom: 4,
+                }}
+              >
+                {thinkingExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+                {isMessageStreaming && thinking ? t('message.thinking') + '...' : t('message.thinking')}
+              </button>
+              {thinkingExpanded && (
+                <div style={{
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  border: '1px solid var(--bubble-ai-border)',
+                  borderRadius: 4, padding: '8px 12px',
+                  fontSize: 12, color: 'var(--text-muted)',
+                  fontStyle: 'italic', lineHeight: 1.6,
+                  whiteSpace: 'pre-wrap', maxHeight: 300, overflowY: 'auto',
+                }}>
+                  {thinking}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Image attachments (user messages) */}
+          {isUser && message.attachments?.length ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
+              {message.attachments!.map((att, i) => (
+                <img
+                  key={i}
+                  src={att.dataUrl}
+                  alt={att.name}
+                  title={att.name}
+                  style={{
+                    maxWidth: 200, maxHeight: 150,
+                    borderRadius: 6, border: 'none', objectFit: 'cover', cursor: 'pointer',
+                  }}
+                  onClick={() => onImageClick(att.dataUrl, att.name)}
+                />
+              ))}
+            </div>
+          ) : null}
+
+          {/* Tool uses (inside AI bubble) */}
+          {!isPermission && message.toolUses && message.toolUses.length > 0 && (
+            <div style={{ borderTop: '1px solid var(--bubble-ai-border)', marginTop: 8, paddingTop: 8 }}>
+              {message.toolUses.map((tool) => (
+                <div key={tool.id} style={{ background: 'rgba(0, 0, 0, 0.15)', borderRadius: 6, marginBottom: 4 }}>
+                  <ToolUseBlock tool={tool} />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Text content */}
+          {isEditing && isUser ? (
+            <div style={{ width: '100%' }}>
+              <textarea
+                ref={editTextareaRef}
+                value={editContent}
+                onChange={(e) => onEditContentChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    onEditSubmit()
+                  }
+                  if (e.key === 'Escape') onEditCancel()
+                }}
+                style={{
+                  width: '100%', minHeight: 60, padding: '8px 10px',
+                  background: 'rgba(0,0,0,0.15)', border: '1px solid var(--accent)',
+                  borderRadius: 6, color: 'inherit', fontSize: 14,
+                  lineHeight: 1.6, fontFamily: 'inherit', resize: 'vertical', outline: 'none',
+                }}
+                autoFocus
+              />
+              <div style={{ display: 'flex', gap: 6, marginTop: 6, justifyContent: 'flex-end' }}>
+                <button
+                  onClick={onEditCancel}
+                  style={{
+                    background: 'transparent', border: '1px solid var(--border)',
+                    borderRadius: 6, padding: '4px 12px',
+                    color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer',
+                    transition: 'background 150ms ease',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                >
+                  {t('message.editCancel')}
+                </button>
+                <button
+                  onClick={onEditSubmit}
+                  disabled={!editContent.trim()}
+                  style={{
+                    background: 'var(--accent)', border: 'none',
+                    borderRadius: 6, padding: '4px 12px',
+                    color: '#fff', fontSize: 12, fontWeight: 500,
+                    cursor: editContent.trim() ? 'pointer' : 'not-allowed',
+                    opacity: editContent.trim() ? 1 : 0.5,
+                    transition: 'opacity 150ms ease',
+                  }}
+                >
+                  {t('message.editSave')}
+                </button>
+              </div>
+            </div>
+          ) : message.content && (
+            <div>
+              {isAssistant && showRawMarkdown ? (
+                <pre style={{
+                  whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                  fontSize: 12, lineHeight: 1.6,
+                  color: 'var(--bubble-ai-text)',
+                  background: 'rgba(0,0,0,0.1)',
+                  border: '1px solid var(--bubble-ai-border)',
+                  borderRadius: 4, padding: '8px 12px', margin: 0,
+                  fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
+                }}>
+                  {message.content}
+                </pre>
+              ) : (
+                <MessageContent content={message.content} isUser={isUser} searchQuery={searchQuery} searchCaseSensitive={searchCaseSensitive} />
+              )}
+            </div>
+          )}
+
+          {/* Timestamp inside bubble */}
+          {message.timestamp && (
+            <div
+              style={{
+                fontSize: compact ? 10 : 11,
+                color: isUser ? 'rgba(255,255,255,0.5)' : 'var(--text-muted)',
+                display: 'flex', justifyContent: 'flex-end',
+                alignItems: 'center', gap: 4,
+                marginTop: 6, lineHeight: 1,
+                cursor: 'pointer', userSelect: 'none',
+              }}
+              title={getShowAbsoluteTime()
+                ? relativeTime(message.timestamp, t)
+                : new Date(message.timestamp).toLocaleString()}
+              onClick={onTimestampClick}
+            >
+              {getShowAbsoluteTime()
+                ? formatAbsoluteTime(message.timestamp, t)
+                : relativeTime(message.timestamp, t)}
+              {!isUser && message.responseDuration != null && message.responseDuration > 0 && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, opacity: 0.7 }} title={t('message.responseDuration', { time: formatResponseDuration(message.responseDuration!) })}>
+                  <Timer size={9} />
+                  {formatResponseDuration(message.responseDuration!)}
+                </span>
+              )}
+              {msgStatus === 'sending' && <Clock size={10} style={{ opacity: 0.8 }} />}
+              {msgStatus === 'sent' && <Check size={12} style={{ opacity: 0.9 }} />}
+              {msgStatus === 'read' && <CheckCheck size={12} style={{ color: 'var(--accent)', opacity: 1 }} />}
+            </div>
+          )}
+
+          {/* Streaming indicator */}
+          {message.isStreaming && (
+            <div style={{ display: 'flex', gap: 4, marginTop: 4, alignItems: 'center' }}>
+              {[0, 1, 2].map(i => (
+                <div
+                  key={i}
+                  style={{
+                    width: 6, height: 6, borderRadius: '50%',
+                    background: 'var(--success)',
+                    animation: 'pulse 1.4s ease-in-out infinite',
+                    animationDelay: `${i * 0.2}s`,
+                  }}
+                />
+              ))}
+              <span style={{ fontSize: 11, color: 'var(--success)', marginLeft: 4 }}>{t('message.processing')}</span>
+            </div>
+          )}
+        </>
+      )}
+    </>
+  )
+}

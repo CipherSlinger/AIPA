@@ -1,73 +1,27 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { ChatMessage, StandardChatMessage, Persona } from '../../types/app.types'
-import MessageContent from './MessageContent'
-import ToolUseBlock from './ToolUseBlock'
 import MessageContextMenu from './MessageContextMenu'
+import MessageActionToolbar from './MessageActionToolbar'
+import MessageBubbleContent from './MessageBubbleContent'
 import SelectionToolbar from './SelectionToolbar'
 import ImageLightbox from '../shared/ImageLightbox'
-import { User, Bot, Copy, ChevronDown, ChevronRight, Bookmark, AlertTriangle, Code2, Check, CheckCheck, Clock, MessageSquareQuote, Pencil, Timer, NotebookPen } from 'lucide-react'
+import { User, Bot, Bookmark } from 'lucide-react'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
-import { Note } from '../../types/app.types'
-
-// Session-level timestamp display mode (shared across all messages)
-let _showAbsoluteTime = (() => {
-  try { return localStorage.getItem('aipa:absoluteTime') === 'true' } catch { return false }
-})()
-function getShowAbsoluteTime() { return _showAbsoluteTime }
-function toggleShowAbsoluteTime() {
-  _showAbsoluteTime = !_showAbsoluteTime
-  try { localStorage.setItem('aipa:absoluteTime', String(_showAbsoluteTime)) } catch {}
-}
-
-function formatResponseDuration(ms: number): string {
-  const secs = Math.round(ms / 1000)
-  if (secs < 60) return `${secs}s`
-  const mins = Math.floor(secs / 60)
-  const remainSecs = secs % 60
-  return remainSecs > 0 ? `${mins}m ${remainSecs}s` : `${mins}m`
-}
-
-function formatAbsoluteTime(ts: number, t: (key: string, params?: Record<string, string>) => string): string {
-  const date = new Date(ts)
-  const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const msgDay = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-  const diffDays = Math.round((today.getTime() - msgDay.getTime()) / 86400000)
-  const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-
-  if (diffDays === 0) return `${t('session.today')} ${time}`
-  if (diffDays === 1) return `${t('session.yesterday')} ${time}`
-  const monthDay = date.toLocaleDateString([], { month: 'short', day: 'numeric' })
-  return `${monthDay} ${time}`
-}
-
-function relativeTime(ts: number, t: (key: string, params?: Record<string, string>) => string): string {
-  const diff = Math.floor((Date.now() - ts) / 1000)
-  if (diff < 5) return t('message.justNow')
-  if (diff < 60) return t('message.secsAgo', { count: String(diff) })
-  const mins = Math.floor(diff / 60)
-  if (mins < 60) return t('message.minsAgo', { count: String(mins) })
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return t('message.hoursAgo', { count: String(hrs) })
-  const days = Math.floor(hrs / 24)
-  if (days === 1) return t('session.yesterday')
-  return t('message.daysAgo', { count: String(days) })
-}
+import { useMessageActions } from '../../hooks/useMessageActions'
+import { toggleShowAbsoluteTime } from './messageUtils'
 
 interface Props {
   message: ChatMessage
-  onRate?: (msgId: string, rating: 'up' | 'down' | null) => void
-  onRewind?: (msgTimestamp: number) => void
+  onRate?: (msgId: string, rating: 'positive' | 'negative') => void
+  onRewind?: (ts: number) => void
   onBookmark?: (msgId: string) => void
   onCollapse?: (msgId: string) => void
   onEdit?: (msgId: string, newContent: string) => void
   searchQuery?: string
   searchCaseSensitive?: boolean
   showAvatar?: boolean
-  /** Pre-computed: is this the last user message in the list? (passed from MessageList to avoid per-message Zustand scans) */
   isLastUserMsg?: boolean
-  /** Pre-computed: does an assistant reply exist after this message? (passed from MessageList to avoid per-message Zustand scans) */
   hasAssistantReply?: boolean
 }
 
@@ -85,32 +39,16 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
     const activeId = s.prefs.activePersonaId
     return activeId ? personas.find(p => p.id === activeId) : undefined
   })
-  // Message status indicator: "sending" (clock), "sent" (check), or "read" (double check) for user messages
   const globalIsStreaming = useChatStore(s => s.isStreaming)
-  const toggleBookmarkStore = useChatStore(s => s.toggleBookmark)
-  const setQuotedText = useUiStore(s => s.setQuotedText)
   const msgStatus: 'sending' | 'sent' | 'read' | null = isUser
     ? (globalIsStreaming && isLastUserMsg ? 'sending' : hasAssistantReply ? 'read' : 'sent')
     : null
+
   const [hovered, setHovered] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const [thinkingExpanded, setThinkingExpanded] = useState(false)
+  const [showRawMarkdown, setShowRawMarkdown] = useState(false)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
   const [, setTick] = useState(0)
-  const [showRawMarkdown, setShowRawMarkdown] = useState(false)
   const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string } | null>(null)
-
-  // Listen for timestamp mode toggle from any message (re-render all messages when toggled)
-  useEffect(() => {
-    const handler = () => setTick(n => n + 1)
-    window.addEventListener('aipa:timestampToggle', handler)
-    return () => window.removeEventListener('aipa:timestampToggle', handler)
-  }, [])
-
-  const handleTimestampClick = useCallback(() => {
-    toggleShowAbsoluteTime()
-    window.dispatchEvent(new CustomEvent('aipa:timestampToggle'))
-  }, [])
 
   // Editing state (user messages only)
   const [isEditing, setIsEditing] = useState(false)
@@ -118,23 +56,13 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   const editTextareaRef = React.useRef<HTMLTextAreaElement>(null)
   const bubbleRef = useRef<HTMLDivElement>(null)
 
-  const thinking = message.role !== 'permission' ? (message as StandardChatMessage).thinking : undefined
-  const isMessageStreaming = (message as StandardChatMessage).isStreaming
+  // Extracted actions hook
+  const {
+    copied, handleCopy, handleQuote, handleBookmarkAction,
+    handleCopyMarkdown, handleCopyRichText, handleSaveAsNote, handleDoubleClick,
+  } = useMessageActions({ message, isPermission, isPlan })
 
-  // Auto-expand thinking block while streaming, auto-collapse when done
-  const prevStreamingRef = React.useRef(false)
-  useEffect(() => {
-    if (isMessageStreaming && thinking && !prevStreamingRef.current) {
-      // Started streaming with thinking content — auto-expand
-      setThinkingExpanded(true)
-    } else if (!isMessageStreaming && prevStreamingRef.current && thinking) {
-      // Streaming just ended — auto-collapse thinking
-      setThinkingExpanded(false)
-    }
-    prevStreamingRef.current = !!isMessageStreaming
-  }, [isMessageStreaming, thinking])
-
-  // Compute word and approx token count for assistant messages
+  // Word info tooltip
   const wordInfo = isAssistant && (message as StandardChatMessage).content
     ? (() => {
         const text = (message as StandardChatMessage).content
@@ -144,124 +72,23 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
       })()
     : null
 
+  // Listen for timestamp mode toggle (re-render all messages)
+  useEffect(() => {
+    const handler = () => setTick(n => n + 1)
+    window.addEventListener('aipa:timestampToggle', handler)
+    return () => window.removeEventListener('aipa:timestampToggle', handler)
+  }, [])
+
   // Live-update relative timestamp every 30 seconds
   useEffect(() => {
     const id = setInterval(() => setTick(t => t + 1), 30000)
     return () => clearInterval(id)
   }, [])
 
-  const handleCopy = useCallback(() => {
-    const text = (message as StandardChatMessage).content
-    if (!text) return
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
-  }, [message])
-
-  const handleQuote = useCallback(() => {
-    const text = (message as StandardChatMessage).content
-    if (!text) return
-    setQuotedText(text)
-  }, [message, setQuotedText])
-
-  const handleBookmarkAction = useCallback(() => {
-    if (onBookmark) {
-      onBookmark(message.id)
-    } else {
-      toggleBookmarkStore(message.id)
-    }
-  }, [message.id, onBookmark, toggleBookmarkStore])
-
-  const handleCopyMarkdown = useCallback(() => {
-    const text = (message as StandardChatMessage).content
-    if (!text) return
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
-  }, [message])
-
-  const handleCopyRichText = useCallback(() => {
-    const text = (message as StandardChatMessage).content
-    if (!text) return
-    // Convert markdown to simple HTML and copy as rich text
-    let html = text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-    // Code blocks
-    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_m, lang, code) => {
-      return `<pre style="background:#f6f8fa;padding:12px;border-radius:6px;overflow-x:auto;font-family:monospace;font-size:13px;border:1px solid #d0d7de">${lang ? `<div style="font-size:11px;color:#656d76;margin-bottom:4px">${lang}</div>` : ''}<code>${code.trimEnd()}</code></pre>`
-    })
-    // Inline code
-    html = html.replace(/`([^`]+)`/g, '<code style="background:#f6f8fa;padding:2px 6px;border-radius:4px;font-family:monospace;font-size:13px">$1</code>')
-    // Headers
-    html = html.replace(/^### (.+)$/gm, '<h3 style="margin:12px 0 4px">$1</h3>')
-    html = html.replace(/^## (.+)$/gm, '<h2 style="margin:14px 0 6px">$1</h2>')
-    html = html.replace(/^# (.+)$/gm, '<h1 style="margin:16px 0 8px">$1</h1>')
-    // Bold and italic
-    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>')
-    // Links
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
-    // Lists
-    html = html.replace(/^- (.+)$/gm, '<li>$1</li>')
-    html = html.replace(/(<li>.*<\/li>\n?)+/g, (match) => `<ul style="margin:8px 0;padding-left:20px">${match}</ul>`)
-    // Paragraphs
-    html = html.replace(/\n\n/g, '</p><p>')
-    html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;line-height:1.6;color:#1f2328"><p>${html}</p></div>`
-    html = html.replace(/<p>\s*<\/p>/g, '')
-
-    const blob = new Blob([html], { type: 'text/html' })
-    const plainBlob = new Blob([text], { type: 'text/plain' })
-    navigator.clipboard.write([
-      new ClipboardItem({
-        'text/html': blob,
-        'text/plain': plainBlob,
-      })
-    ]).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }).catch(() => {
-      // Fallback to plain text copy
-      navigator.clipboard.writeText(text)
-    })
-  }, [message])
-
-  const addToast = useUiStore(s => s.addToast)
-  const handleSaveAsNote = useCallback(() => {
-    const text = (message as StandardChatMessage).content
-    if (!text) return
-    const MAX_NOTES = 100
-    const currentNotes: Note[] = usePrefsStore.getState().prefs.notes || []
-    if (currentNotes.length >= MAX_NOTES) {
-      addToast('error', t('message.notesLimitReached'))
-      return
-    }
-    const now = Date.now()
-    const title = text.slice(0, 50) + (text.length > 50 ? '...' : '')
-    const newNote: Note = {
-      id: `note-${now}-${Math.random().toString(36).slice(2, 8)}`,
-      title,
-      content: text,
-      createdAt: now,
-      updatedAt: now,
-    }
-    const updated = [newNote, ...currentNotes]
-    usePrefsStore.getState().setPrefs({ notes: updated })
-    window.electronAPI.prefsSet('notes', updated)
-    addToast('success', t('message.savedToNotes'))
-  }, [message, addToast, t])
-
-  const handleDoubleClick = useCallback(() => {
-    const text = (message as StandardChatMessage).content
-    if (!text || isPermission || isPlan) return
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
-  }, [message, isPermission, isPlan])
+  const handleTimestampClick = useCallback(() => {
+    toggleShowAbsoluteTime()
+    window.dispatchEvent(new CustomEvent('aipa:timestampToggle'))
+  }, [])
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     if (isPermission || isPlan) return
@@ -269,41 +96,37 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
     setContextMenu({ x: e.clientX, y: e.clientY })
   }, [isPermission, isPlan])
 
+  const handleStartEdit = useCallback(() => {
+    setEditContent((message as StandardChatMessage).content || '')
+    setIsEditing(true)
+    setTimeout(() => editTextareaRef.current?.focus(), 50)
+  }, [message])
+
+  const handleEditSubmit = useCallback(() => {
+    if (editContent.trim() && onEdit) {
+      onEdit(message.id, editContent.trim())
+      setIsEditing(false)
+    }
+  }, [editContent, onEdit, message.id])
+
   // --- System message ---
   if (isSystem) {
     return (
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          padding: '4px 20px',
-        }}
-      >
-        <span
-          style={{
-            background: 'rgba(244, 71, 71, 0.08)',
-            borderRadius: 4,
-            padding: '4px 12px',
-            fontSize: 12,
-            color: 'var(--text-muted)',
-          }}
-        >
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 20px' }}>
+        <span style={{
+          background: 'rgba(244, 71, 71, 0.08)', borderRadius: 4,
+          padding: '4px 12px', fontSize: 12, color: 'var(--text-muted)',
+        }}>
           {(message as StandardChatMessage).content}
         </span>
       </div>
     )
   }
 
-  // --- Permission / Plan cards: centered, no bubble wrap ---
+  // --- Permission / Plan cards ---
   if (isPermission || isPlan) {
     return (
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          padding: '8px 20px',
-        }}
-      >
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 20px' }}>
         {/* Children will be rendered by MessageList via PermissionCard/PlanCard */}
       </div>
     )
@@ -312,9 +135,6 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   // --- Avatar sizes ---
   const avatarSize = compact ? 28 : 36
   const iconSize = compact ? 14 : 18
-
-  // --- Bubble layout (user or assistant) ---
-  const bubblePadding = compact ? '8px 20px' : '8px 20px'
 
   return (
     <div
@@ -337,15 +157,11 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
       {showAvatar ? (
         <div
           style={{
-            width: avatarSize,
-            height: avatarSize,
+            width: avatarSize, height: avatarSize,
             borderRadius: '50%',
             background: isUser ? 'var(--avatar-user)' : (isAssistant && activePersona ? `${activePersona.color}30` : 'var(--avatar-ai)'),
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            marginTop: 2,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0, marginTop: 2,
           }}
         >
           {isUser
@@ -356,7 +172,6 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           }
         </div>
       ) : (
-        // Spacer preserves alignment for consecutive same-role messages
         <div style={{ width: avatarSize, flexShrink: 0 }} />
       )}
 
@@ -378,453 +193,60 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           }}
           title={wordInfo || undefined}
         >
-          {/* Bookmark indicator (top-right outside corner) */}
+          {/* Bookmark indicator */}
           {!isPermission && !isPlan && (message as StandardChatMessage).bookmarked && (
-            <div
-              style={{
-                position: 'absolute',
-                top: -6,
-                right: isUser ? undefined : -6,
-                left: isUser ? -6 : undefined,
-              }}
-            >
+            <div style={{
+              position: 'absolute', top: -6,
+              right: isUser ? undefined : -6,
+              left: isUser ? -6 : undefined,
+            }}>
               <Bookmark size={14} style={{ color: 'var(--warning)', fill: 'var(--warning)' }} />
             </div>
           )}
 
-          {/* Collapse toggle row */}
-          {onCollapse && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: isCollapsed ? 0 : 4 }}>
-              <button
-                onClick={(e) => { e.stopPropagation(); onCollapse(message.id) }}
-                style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: isUser ? 'rgba(255,255,255,0.5)' : 'var(--text-muted)',
-                  display: 'flex', alignItems: 'center',
-                  padding: 0,
-                }}
-                title={isCollapsed ? t('message.expand') : t('message.collapse')}
-              >
-                {isCollapsed ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
-              </button>
-              {isCollapsed && (
-                <span style={{ fontSize: 11, opacity: 0.6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                  {((message as StandardChatMessage).content || '').slice(0, 100).replace(/\n/g, ' ')}
-                </span>
-              )}
-              {(message as StandardChatMessage).isStreaming && (
-                <span style={{ color: 'var(--success)', fontSize: 11 }}>{t('message.processing')}</span>
-              )}
-            </div>
-          )}
-
-          {!isCollapsed && (
-            <>
-              {/* Thinking block */}
-              {thinking && (
-                <div style={{ marginBottom: 8 }}>
-                  <button
-                    onClick={() => setThinkingExpanded(!thinkingExpanded)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 4,
-                      background: 'none', border: 'none', cursor: 'pointer',
-                      color: isUser ? 'rgba(255,255,255,0.5)' : 'var(--text-muted)',
-                      fontSize: 11, padding: 0, marginBottom: 4,
-                    }}
-                  >
-                    {thinkingExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-                    {isMessageStreaming && thinking ? t('message.thinking') + '...' : t('message.thinking')}
-                  </button>
-                  {thinkingExpanded && (
-                    <div style={{
-                      background: 'rgba(0, 0, 0, 0.2)',
-                      border: '1px solid var(--bubble-ai-border)',
-                      borderRadius: 4, padding: '8px 12px',
-                      fontSize: 12, color: 'var(--text-muted)',
-                      fontStyle: 'italic', lineHeight: 1.6,
-                      whiteSpace: 'pre-wrap', maxHeight: 300, overflowY: 'auto',
-                    }}>
-                      {thinking}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Image attachments (user messages) */}
-              {isUser && (message as StandardChatMessage).attachments?.length ? (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
-                  {(message as StandardChatMessage).attachments!.map((att, i) => (
-                    <img
-                      key={i}
-                      src={att.dataUrl}
-                      alt={att.name}
-                      title={att.name}
-                      style={{
-                        maxWidth: 200,
-                        maxHeight: 150,
-                        borderRadius: 6,
-                        border: 'none',
-                        objectFit: 'cover',
-                        cursor: 'pointer',
-                      }}
-                      onClick={() => setLightboxImage({ src: att.dataUrl, alt: att.name })}
-                    />
-                  ))}
-                </div>
-              ) : null}
-
-              {/* Tool uses (inside AI bubble) */}
-              {!isPermission && (message as StandardChatMessage).toolUses && (message as StandardChatMessage).toolUses!.length > 0 && (
-                <div style={{ borderTop: '1px solid var(--bubble-ai-border)', marginTop: 8, paddingTop: 8 }}>
-                  {(message as StandardChatMessage).toolUses!.map((tool) => (
-                    <div
-                      key={tool.id}
-                      style={{ background: 'rgba(0, 0, 0, 0.15)', borderRadius: 6, marginBottom: 4 }}
-                    >
-                      <ToolUseBlock tool={tool} />
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Text content */}
-              {isEditing && isUser ? (
-                <div style={{ width: '100%' }}>
-                  <textarea
-                    ref={editTextareaRef}
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault()
-                        if (editContent.trim() && onEdit) {
-                          onEdit(message.id, editContent.trim())
-                          setIsEditing(false)
-                        }
-                      }
-                      if (e.key === 'Escape') {
-                        setIsEditing(false)
-                      }
-                    }}
-                    style={{
-                      width: '100%',
-                      minHeight: 60,
-                      padding: '8px 10px',
-                      background: 'rgba(0,0,0,0.15)',
-                      border: '1px solid var(--accent)',
-                      borderRadius: 6,
-                      color: 'inherit',
-                      fontSize: 14,
-                      lineHeight: 1.6,
-                      fontFamily: 'inherit',
-                      resize: 'vertical',
-                      outline: 'none',
-                    }}
-                    autoFocus
-                  />
-                  <div style={{ display: 'flex', gap: 6, marginTop: 6, justifyContent: 'flex-end' }}>
-                    <button
-                      onClick={() => setIsEditing(false)}
-                      style={{
-                        background: 'transparent',
-                        border: '1px solid var(--border)',
-                        borderRadius: 6,
-                        padding: '4px 12px',
-                        color: 'var(--text-muted)',
-                        fontSize: 12,
-                        cursor: 'pointer',
-                        transition: 'background 150ms ease',
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-                    >
-                      {t('message.editCancel')}
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (editContent.trim() && onEdit) {
-                          onEdit(message.id, editContent.trim())
-                          setIsEditing(false)
-                        }
-                      }}
-                      disabled={!editContent.trim()}
-                      style={{
-                        background: 'var(--accent)',
-                        border: 'none',
-                        borderRadius: 6,
-                        padding: '4px 12px',
-                        color: '#fff',
-                        fontSize: 12,
-                        fontWeight: 500,
-                        cursor: editContent.trim() ? 'pointer' : 'not-allowed',
-                        opacity: editContent.trim() ? 1 : 0.5,
-                        transition: 'opacity 150ms ease',
-                      }}
-                    >
-                      {t('message.editSave')}
-                    </button>
-                  </div>
-                </div>
-              ) : message.content && (
-                <div>
-                  {isAssistant && showRawMarkdown ? (
-                    <pre style={{
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
-                      fontSize: 12,
-                      lineHeight: 1.6,
-                      color: 'var(--bubble-ai-text)',
-                      background: 'rgba(0,0,0,0.1)',
-                      border: '1px solid var(--bubble-ai-border)',
-                      borderRadius: 4,
-                      padding: '8px 12px',
-                      margin: 0,
-                      fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
-                    }}>
-                      {message.content}
-                    </pre>
-                  ) : (
-                    <MessageContent content={message.content} isUser={isUser} searchQuery={searchQuery} searchCaseSensitive={searchCaseSensitive} />
-                  )}
-                </div>
-              )}
-
-              {/* Timestamp inside bubble */}
-              {(message as StandardChatMessage).timestamp && (
-                <div
-                  style={{
-                    fontSize: compact ? 10 : 11,
-                    color: isUser ? 'rgba(255,255,255,0.5)' : 'var(--text-muted)',
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                    alignItems: 'center',
-                    gap: 4,
-                    marginTop: 6,
-                    lineHeight: 1,
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                  }}
-                  title={getShowAbsoluteTime()
-                    ? relativeTime((message as StandardChatMessage).timestamp, t)
-                    : new Date((message as StandardChatMessage).timestamp).toLocaleString()}
-                  onClick={handleTimestampClick}
-                >
-                  {getShowAbsoluteTime()
-                    ? formatAbsoluteTime((message as StandardChatMessage).timestamp, t)
-                    : relativeTime((message as StandardChatMessage).timestamp, t)}
-                  {!isUser && (message as StandardChatMessage).responseDuration != null && (message as StandardChatMessage).responseDuration! > 0 && (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, opacity: 0.7 }} title={t('message.responseDuration', { time: formatResponseDuration((message as StandardChatMessage).responseDuration!) })}>
-                      <Timer size={9} />
-                      {formatResponseDuration((message as StandardChatMessage).responseDuration!)}
-                    </span>
-                  )}
-                  {msgStatus === 'sending' && (
-                    <Clock size={10} style={{ opacity: 0.8 }} />
-                  )}
-                  {msgStatus === 'sent' && (
-                    <Check size={12} style={{ opacity: 0.9 }} />
-                  )}
-                  {msgStatus === 'read' && (
-                    <CheckCheck size={12} style={{ color: 'var(--accent)', opacity: 1 }} />
-                  )}
-                </div>
-              )}
-
-              {/* Streaming indicator */}
-              {(message as StandardChatMessage).isStreaming && (
-                <div style={{ display: 'flex', gap: 4, marginTop: 4, alignItems: 'center' }}>
-                  {[0, 1, 2].map(i => (
-                    <div
-                      key={i}
-                      style={{
-                        width: 6, height: 6, borderRadius: '50%',
-                        background: 'var(--success)',
-                        animation: 'pulse 1.4s ease-in-out infinite',
-                        animationDelay: `${i * 0.2}s`,
-                      }}
-                    />
-                  ))}
-                  <span style={{ fontSize: 11, color: 'var(--success)', marginLeft: 4 }}>{t('message.processing')}</span>
-                </div>
-              )}
-            </>
-          )}
+          <MessageBubbleContent
+            message={message as StandardChatMessage}
+            isUser={isUser}
+            isAssistant={isAssistant}
+            isPermission={isPermission}
+            isCollapsed={!!isCollapsed}
+            compact={!!compact}
+            searchQuery={searchQuery}
+            searchCaseSensitive={searchCaseSensitive}
+            msgStatus={msgStatus}
+            isEditing={isEditing}
+            editContent={editContent}
+            onEditContentChange={setEditContent}
+            onEditSubmit={handleEditSubmit}
+            onEditCancel={() => setIsEditing(false)}
+            editTextareaRef={editTextareaRef as React.RefObject<HTMLTextAreaElement>}
+            showRawMarkdown={showRawMarkdown}
+            onImageClick={(src, alt) => setLightboxImage({ src, alt })}
+            onCollapse={onCollapse}
+            onEdit={onEdit}
+            onTimestampClick={handleTimestampClick}
+          />
         </div>
 
-        {/* Floating action toolbar — top-right corner of bubble, shown on hover */}
+        {/* Floating action toolbar */}
         {hovered && !isCollapsed && (
-          <div
-            role="toolbar"
-            aria-label="Message actions"
-            className="popup-enter"
-            style={{
-              position: 'absolute',
-              top: -14,
-              ...(isUser ? { left: 0 } : { right: 0 }),
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2,
-              padding: '3px 5px',
-              background: 'var(--popup-bg)',
-              border: '1px solid var(--popup-border)',
-              boxShadow: 'var(--popup-shadow)',
-              borderRadius: 8,
-              zIndex: 20,
-            }}
-          >
-            {/* Raw markdown toggle (assistant only) */}
-            {isAssistant && (
-              <button
-                onClick={(e) => { e.stopPropagation(); setShowRawMarkdown(!showRawMarkdown) }}
-                title={showRawMarkdown ? t('message.formattedView') : t('message.rawMarkdown')}
-                style={{
-                  background: showRawMarkdown ? 'var(--accent)' : 'transparent',
-                  border: 'none',
-                  borderRadius: 5,
-                  padding: '3px 5px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  color: showRawMarkdown ? '#fff' : 'var(--text-muted)',
-                  transition: 'background 0.12s ease, color 0.12s ease',
-                }}
-                onMouseEnter={(e) => { if (!showRawMarkdown) (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
-                onMouseLeave={(e) => { if (!showRawMarkdown) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
-              >
-                <Code2 size={13} />
-              </button>
-            )}
-
-            {/* Edit (user messages only) */}
-            {isUser && onEdit && !globalIsStreaming && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setEditContent((message as StandardChatMessage).content || '')
-                  setIsEditing(true)
-                  setTimeout(() => editTextareaRef.current?.focus(), 50)
-                }}
-                title={t('message.editMessage')}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  borderRadius: 5,
-                  padding: '3px 5px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  color: 'var(--text-muted)',
-                  transition: 'background 0.12s ease, color 0.12s ease',
-                }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
-              >
-                <Pencil size={13} />
-              </button>
-            )}
-
-            {/* Copy */}
-            <button
-              onClick={(e) => { e.stopPropagation(); handleCopy() }}
-              title={copied ? t('message.copied') : t('message.copy')}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                borderRadius: 5,
-                padding: '3px 5px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 3,
-                color: copied ? 'var(--success)' : 'var(--text-muted)',
-                fontSize: 11,
-                transition: 'background 0.12s ease, color 0.12s ease',
-              }}
-              onMouseEnter={(e) => { if (!copied) (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
-            >
-              {copied ? (
-                <>
-                  <Check size={13} />
-                  <span style={{ fontSize: 11, lineHeight: 1 }}>{t('message.copied')}</span>
-                </>
-              ) : (
-                <Copy size={13} />
-              )}
-            </button>
-
-            {/* Bookmark */}
-            {!isPermission && !isPlan && (
-              <button
-                onClick={(e) => { e.stopPropagation(); handleBookmarkAction() }}
-                title={(message as StandardChatMessage).bookmarked ? t('message.removeBookmark') : t('message.bookmark')}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  borderRadius: 5,
-                  padding: '3px 5px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  color: (message as StandardChatMessage).bookmarked ? 'var(--warning)' : 'var(--text-muted)',
-                  transition: 'background 0.12s ease, color 0.12s ease',
-                }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
-              >
-                <Bookmark
-                  size={13}
-                  style={(message as StandardChatMessage).bookmarked ? { fill: 'var(--warning)' } : {}}
-                />
-              </button>
-            )}
-
-            {/* Quote reply */}
-            {!isPermission && !isPlan && (message as StandardChatMessage).content && (
-              <button
-                onClick={(e) => { e.stopPropagation(); handleQuote() }}
-                title={t('message.quoteReply')}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  borderRadius: 5,
-                  padding: '3px 5px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  color: 'var(--text-muted)',
-                  transition: 'background 0.12s ease, color 0.12s ease',
-                }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
-              >
-                <MessageSquareQuote size={13} />
-              </button>
-            )}
-
-            {/* Save to Note (assistant messages only) */}
-            {isAssistant && (message as StandardChatMessage).content && (
-              <button
-                onClick={(e) => { e.stopPropagation(); handleSaveAsNote() }}
-                title={t('message.saveToNote')}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  borderRadius: 5,
-                  padding: '3px 5px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  color: 'var(--text-muted)',
-                  transition: 'background 0.12s ease, color 0.12s ease',
-                }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
-              >
-                <NotebookPen size={13} />
-              </button>
-            )}
-          </div>
+          <MessageActionToolbar
+            isUser={isUser}
+            isAssistant={isAssistant}
+            isPermission={isPermission}
+            isPlan={isPlan}
+            message={message as StandardChatMessage}
+            copied={copied}
+            showRawMarkdown={showRawMarkdown}
+            globalIsStreaming={globalIsStreaming}
+            onToggleRawMarkdown={() => setShowRawMarkdown(!showRawMarkdown)}
+            onStartEdit={handleStartEdit}
+            onCopy={handleCopy}
+            onBookmark={() => handleBookmarkAction(onBookmark)}
+            onQuote={handleQuote}
+            onSaveAsNote={handleSaveAsNote}
+            hasOnEdit={!!onEdit}
+          />
         )}
       </div>
 
@@ -844,11 +266,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           onCopyRichText={isAssistant ? handleCopyRichText : undefined}
           onSaveAsNote={isAssistant && (message as StandardChatMessage).content ? handleSaveAsNote : undefined}
           onQuoteReply={!isPermission && !isPlan && (message as StandardChatMessage).content ? handleQuote : undefined}
-          onEditMessage={isUser && onEdit && !globalIsStreaming ? () => {
-            setEditContent((message as StandardChatMessage).content || '')
-            setIsEditing(true)
-            setTimeout(() => editTextareaRef.current?.focus(), 50)
-          } : undefined}
+          onEditMessage={isUser && onEdit && !globalIsStreaming ? handleStartEdit : undefined}
           onRate={onRate ? (rating) => onRate(message.id, rating) : undefined}
           onBookmark={onBookmark ? () => onBookmark(message.id) : undefined}
           onCollapse={onCollapse ? () => onCollapse(message.id) : undefined}
