@@ -2113,3 +2113,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 234 (2026-03-28)
 - Keyboard UX enhancements -- (1) ChatInput.tsx: Escape key now dismisses URL paste chips and pending quote preview in priority order; (2) SessionList.tsx: F2 key triggers rename on focused session, Delete key triggers delete with double-press confirmation (protected: active session cannot be deleted); (3) ShortcutCheatsheet.tsx: new "Session List" section with 4 entries (Up/Down, Enter, F2, Delete); (4) i18n: 5 new keys (sessionList, navigateSessions, openSession, renameSession, deleteSession); 5 files changed; build SUCCESS
+
+### Iteration 235 (2026-03-28)
+- Message text-to-speech (Read Aloud) -- Volume2 button in assistant message hover toolbar uses Web Speech API (speechSynthesis) to read message content aloud; markdown formatting stripped for cleaner speech (code blocks replaced with "code block omitted", bold/italic/links/headings cleaned); VolumeX icon shown while speaking; click again to stop; utterance cleanup on unmount; i18n: 2 new keys (readAloud, stopReading) in en.json and zh-CN.json; 4 files changed; build SUCCESS

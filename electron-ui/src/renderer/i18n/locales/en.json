@@ -236,7 +236,9 @@
     "hoursAgo": "{{count}}h ago",
     "daysAgo": "{{count}}d ago",
     "responseDuration": "took {{time}}",
-    "saveToNote": "Save to note"
+    "saveToNote": "Save to note",
+    "readAloud": "Read aloud",
+    "stopReading": "Stop reading"
   },
   "selection": {
     "copySelection": "Copy selected text",

@@ -236,7 +236,9 @@
     "hoursAgo": "{{count}}\u5c0f\u65f6\u524d",
     "daysAgo": "{{count}}\u5929\u524d",
     "responseDuration": "\u8017\u65f6 {{time}}",
-    "saveToNote": "\u4fdd\u5b58\u5230\u7b14\u8bb0"
+    "saveToNote": "\u4fdd\u5b58\u5230\u7b14\u8bb0",
+    "readAloud": "\u6717\u8bfb",
+    "stopReading": "\u505c\u6b62\u6717\u8bfb"
   },
   "selection": {
     "copySelection": "\u590d\u5236\u9009\u4e2d\u6587\u672c",

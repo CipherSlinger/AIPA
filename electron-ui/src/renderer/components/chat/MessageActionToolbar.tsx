@@ -1,6 +1,6 @@
 import React from 'react'
 import { StandardChatMessage } from '../../types/app.types'
-import { Copy, Check, Bookmark, Code2, Pencil, MessageSquareQuote, NotebookPen } from 'lucide-react'
+import { Copy, Check, Bookmark, Code2, Pencil, MessageSquareQuote, NotebookPen, Volume2, VolumeX } from 'lucide-react'
 import { useT } from '../../i18n'
 
 const actionBtnStyle: React.CSSProperties = {
@@ -37,13 +37,15 @@ interface MessageActionToolbarProps {
   onBookmark: () => void
   onQuote: () => void
   onSaveAsNote: () => void
+  onReadAloud?: () => void
+  isSpeaking?: boolean
   hasOnEdit: boolean
 }
 
 export default function MessageActionToolbar({
   isUser, isAssistant, isPermission, isPlan, message,
   copied, showRawMarkdown, globalIsStreaming,
-  onToggleRawMarkdown, onStartEdit, onCopy, onBookmark, onQuote, onSaveAsNote,
+  onToggleRawMarkdown, onStartEdit, onCopy, onBookmark, onQuote, onSaveAsNote, onReadAloud, isSpeaking,
   hasOnEdit,
 }: MessageActionToolbarProps) {
   const t = useT()
@@ -150,6 +152,22 @@ export default function MessageActionToolbar({
           onMouseLeave={(e) => hoverOut(e)}
         >
           <MessageSquareQuote size={13} />
+        </button>
+      )}
+
+      {/* Read Aloud (assistant messages only) */}
+      {isAssistant && onReadAloud && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onReadAloud() }}
+          title={isSpeaking ? t('message.stopReading') : t('message.readAloud')}
+          style={{
+            ...actionBtnStyle,
+            color: isSpeaking ? 'var(--accent)' : 'var(--text-muted)',
+          }}
+          onMouseEnter={(e) => hoverIn(e, isSpeaking)}
+          onMouseLeave={(e) => hoverOut(e, isSpeaking)}
+        >
+          {isSpeaking ? <VolumeX size={13} /> : <Volume2 size={13} />}
         </button>
       )}
 
