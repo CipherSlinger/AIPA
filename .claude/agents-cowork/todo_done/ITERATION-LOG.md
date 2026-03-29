@@ -2260,3 +2260,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 283 (2026-03-29)
 - Context window warning toast -- when context window usage exceeds 85%, shows a warning toast "Context window X% full. Consider starting a new conversation for best results."; warning fires only once per session to avoid spam; ref resets when starting a new conversation; uses existing i18n key (chat.contextWarning); 1 file changed; build SUCCESS
+
+### Iteration 284 (2026-03-29)
+- Streaming speed tokens/sec estimate -- streaming speed indicator in status bar now shows estimated tokens/sec alongside chars/sec (chars / 4 approximation); displayed in muted parenthetical format "~N tok/s"; i18n: 1 new key (toolbar.tokPerSec) in en.json and zh-CN.json; 3 files changed; build SUCCESS

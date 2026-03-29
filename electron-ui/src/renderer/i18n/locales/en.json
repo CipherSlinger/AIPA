@@ -488,6 +488,7 @@
     "toggleTerminal": "Toggle terminal (Ctrl+`)",
     "streaming": "Streaming",
     "charsPerSec": "c/s",
+    "tokPerSec": "tok/s",
     "context": "Ctx",
     "contextUsed": "Context used: {{percent}}% ({{used}} / {{total}} tokens)",
     "msgs": "{{count}} msgs",

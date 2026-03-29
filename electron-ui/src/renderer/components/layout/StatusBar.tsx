@@ -239,6 +239,9 @@ export default function StatusBar() {
                   ? `${(streamingSpeed / 1000).toFixed(1)}k`
                   : streamingSpeed
                 } {t('toolbar.charsPerSec')}
+                <span style={{ opacity: 0.6 }}>
+                  (~{Math.round(streamingSpeed / 4)} {t('toolbar.tokPerSec')})
+                </span>
               </span>
             )}
           </span>
