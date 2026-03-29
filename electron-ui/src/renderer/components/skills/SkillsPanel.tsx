@@ -1,7 +1,8 @@
+// Skills panel — decomposed orchestrator (Iteration 199)
+// Sub-components: SkillDetail, SkillCard, MarketplaceCard, skillsShared
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import {
-  Puzzle, Search, X, RefreshCw, Play, ArrowLeft, Trash2,
-  FolderOpen, Download, CheckCircle, Store, Package, ExternalLink,
+  Puzzle, Search, X, RefreshCw, Store, Package, ExternalLink,
 } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useUiStore, useChatStore, usePrefsStore } from '../../store'
@@ -16,14 +17,10 @@ import {
   type SkillCategory,
   type SkillSource,
 } from '../../utils/skillMarketplace'
-
-interface SkillInfo {
-  name: string
-  description: string
-  source: 'personal' | 'project'
-  dirPath: string
-  fileName: string
-}
+import { TabButton, CategoryPill, type SkillInfo } from './skillsShared'
+import SkillDetail from './SkillDetail'
+import { SkillSection } from './SkillCard'
+import MarketplaceCard from './MarketplaceCard'
 
 type TabView = 'installed' | 'marketplace'
 
@@ -95,7 +92,6 @@ export default function SkillsPanel() {
   // Delete skill (personal only)
   const handleDeleteSkill = useCallback(async (dirPath: string) => {
     if (deletingSkillPath === dirPath) {
-      // Second click — confirm delete
       try {
         const result = await window.electronAPI.skillsDelete(dirPath)
         if (result?.success) {
@@ -111,7 +107,6 @@ export default function SkillsPanel() {
       }
     } else {
       setDeletingSkillPath(dirPath)
-      // Reset after 3 seconds
       setTimeout(() => setDeletingSkillPath(null), 3000)
     }
   }, [deletingSkillPath, addToast, t, loadSkills])
@@ -168,135 +163,14 @@ export default function SkillsPanel() {
   // ── Skill Detail View ──
   if (selectedSkill) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        {/* Header */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '12px 14px',
-          borderBottom: '1px solid var(--border)',
-          flexShrink: 0,
-        }}>
-          <button
-            onClick={handleBack}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              padding: 4,
-            }}
-            onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
-            aria-label={t('skills.back')}
-          >
-            <ArrowLeft size={16} />
-          </button>
-          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>
-            {selectedSkill.name}
-          </span>
-          <span style={{
-            fontSize: 10,
-            padding: '2px 8px',
-            borderRadius: 10,
-            background: selectedSkill.source === 'personal'
-              ? 'rgba(99, 102, 241, 0.15)'
-              : 'rgba(16, 185, 129, 0.15)',
-            color: selectedSkill.source === 'personal' ? '#6366f1' : '#10b981',
-            fontWeight: 500,
-          }}>
-            {selectedSkill.source === 'personal' ? t('skills.personal') : t('skills.project')}
-          </span>
-        </div>
-
-        {/* Description */}
-        <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>
-            {selectedSkill.description}
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-            {selectedSkill.dirPath}
-          </div>
-        </div>
-
-        {/* Action buttons */}
-        <div style={{
-          display: 'flex',
-          gap: 8,
-          padding: '10px 14px',
-          borderBottom: '1px solid var(--border)',
-          flexShrink: 0,
-        }}>
-          <button
-            onClick={() => handleUseSkill(selectedSkill.name)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '6px 14px',
-              background: 'var(--accent)',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: 6,
-              fontSize: 12,
-              fontWeight: 500,
-              cursor: 'pointer',
-              transition: 'opacity 0.15s',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
-            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-          >
-            <Play size={14} />
-            {t('skills.useSkill')}
-          </button>
-
-          {selectedSkill.source === 'personal' && (
-            <button
-              onClick={() => handleDeleteSkill(selectedSkill.dirPath)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '6px 14px',
-                background: deletingSkillPath === selectedSkill.dirPath ? '#ef4444' : 'none',
-                color: deletingSkillPath === selectedSkill.dirPath ? '#ffffff' : 'var(--text-muted)',
-                border: `1px solid ${deletingSkillPath === selectedSkill.dirPath ? '#ef4444' : 'var(--card-border)'}`,
-                borderRadius: 6,
-                fontSize: 12,
-                cursor: 'pointer',
-                transition: 'all 0.15s',
-              }}
-            >
-              <Trash2 size={14} />
-              {deletingSkillPath === selectedSkill.dirPath ? t('skills.confirmDelete') : t('skills.deleteSkill')}
-            </button>
-          )}
-        </div>
-
-        {/* Skill content preview */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px' }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase' }}>
-            SKILL.md
-          </div>
-          <pre style={{
-            fontSize: 12,
-            color: 'var(--text-secondary)',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
-            lineHeight: 1.6,
-            margin: 0,
-            fontFamily: 'var(--font-mono, "Cascadia Code", "Fira Code", monospace)',
-            background: 'var(--code-bg, rgba(0,0,0,0.1))',
-            borderRadius: 8,
-            padding: 12,
-          }}>
-            {skillContent}
-          </pre>
-        </div>
-      </div>
+      <SkillDetail
+        skill={selectedSkill}
+        skillContent={skillContent}
+        deletingSkillPath={deletingSkillPath}
+        onBack={handleBack}
+        onUseSkill={handleUseSkill}
+        onDeleteSkill={handleDeleteSkill}
+      />
     )
   }
 
@@ -412,7 +286,7 @@ export default function SkillsPanel() {
         </div>
       </div>
 
-      {/* Marketplace category filter */}
+      {/* Marketplace filters */}
       {activeTab === 'marketplace' && (
         <>
         {/* Source filter */}
@@ -479,7 +353,6 @@ export default function SkillsPanel() {
       {/* Content */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {activeTab === 'installed' ? (
-          // ── Installed Skills ──
           <>
             {skills.length === 0 && !loading ? (
               <div style={{
@@ -524,7 +397,6 @@ export default function SkillsPanel() {
               </div>
             ) : (
               <>
-                {/* Personal skills section */}
                 {filteredSkills.filter(s => s.source === 'personal').length > 0 && (
                   <SkillSection
                     label={t('skills.personalSkills')}
@@ -533,7 +405,6 @@ export default function SkillsPanel() {
                     onUse={handleUseSkill}
                   />
                 )}
-                {/* Project skills section */}
                 {filteredSkills.filter(s => s.source === 'project').length > 0 && (
                   <SkillSection
                     label={t('skills.projectSkills')}
@@ -556,7 +427,6 @@ export default function SkillsPanel() {
             )}
           </>
         ) : (
-          // ── Marketplace ──
           <div style={{ padding: '4px 0' }}>
             {filteredMarketplace.map(skill => (
               <MarketplaceCard
@@ -612,384 +482,6 @@ export default function SkillsPanel() {
             </div>
           </div>
         )}
-      </div>
-    </div>
-  )
-}
-
-// ── Sub-components ──
-
-function TabButton({ label, icon, isActive, count, onClick }: {
-  label: string
-  icon: React.ReactNode
-  isActive: boolean
-  count: number
-  onClick: () => void
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 6,
-        padding: '10px 0',
-        background: 'none',
-        border: 'none',
-        borderBottom: isActive ? '2px solid var(--accent)' : '2px solid transparent',
-        color: isActive ? 'var(--accent)' : 'var(--text-muted)',
-        fontSize: 12,
-        fontWeight: isActive ? 600 : 400,
-        cursor: 'pointer',
-        transition: 'all 0.15s',
-      }}
-    >
-      {icon}
-      {label}
-      <span style={{
-        fontSize: 10,
-        padding: '1px 6px',
-        borderRadius: 8,
-        background: isActive ? 'rgba(59, 130, 246, 0.15)' : 'rgba(128,128,128,0.15)',
-        fontWeight: 500,
-      }}>
-        {count}
-      </span>
-    </button>
-  )
-}
-
-function CategoryPill({ label, isActive, color, count, onClick }: {
-  label: string
-  isActive: boolean
-  color?: string
-  count?: number
-  onClick: () => void
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 4,
-        padding: '3px 10px',
-        borderRadius: 12,
-        border: `1px solid ${isActive && color ? color : 'var(--card-border)'}`,
-        background: isActive && color ? `${color}20` : isActive ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
-        color: isActive && color ? color : isActive ? 'var(--accent)' : 'var(--text-muted)',
-        fontSize: 11,
-        fontWeight: isActive ? 500 : 400,
-        cursor: 'pointer',
-        transition: 'all 0.15s',
-      }}
-    >
-      {color && (
-        <div style={{
-          width: 6,
-          height: 6,
-          borderRadius: '50%',
-          background: color,
-        }} />
-      )}
-      {label}
-      {count != null && (
-        <span style={{
-          fontSize: 9,
-          fontWeight: 600,
-          opacity: 0.7,
-          minWidth: 14,
-          textAlign: 'center',
-        }}>
-          {count}
-        </span>
-      )}
-    </button>
-  )
-}
-
-function SkillSection({ label, skills, onOpen, onUse }: {
-  label: string
-  skills: SkillInfo[]
-  onOpen: (skill: SkillInfo) => void
-  onUse: (name: string) => void
-}) {
-  return (
-    <div>
-      <div style={{
-        padding: '10px 14px 6px',
-        fontSize: 10,
-        fontWeight: 600,
-        color: 'var(--text-muted)',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-      }}>
-        {label} ({skills.length})
-      </div>
-      {skills.map(skill => (
-        <SkillCard
-          key={skill.dirPath}
-          skill={skill}
-          onOpen={() => onOpen(skill)}
-          onUse={() => onUse(skill.name)}
-        />
-      ))}
-    </div>
-  )
-}
-
-function SkillCard({ skill, onOpen, onUse }: {
-  skill: SkillInfo
-  onOpen: () => void
-  onUse: () => void
-}) {
-  const [hovered, setHovered] = useState(false)
-  const t = useT()
-
-  return (
-    <div
-      onClick={onOpen}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        padding: '10px 14px',
-        cursor: 'pointer',
-        background: hovered ? 'rgba(255,255,255,0.03)' : 'transparent',
-        transition: 'background 0.1s',
-        borderBottom: '1px solid var(--border)',
-      }}
-    >
-      <div style={{
-        width: 36,
-        height: 36,
-        borderRadius: 8,
-        background: skill.source === 'personal'
-          ? 'rgba(99, 102, 241, 0.12)'
-          : 'rgba(16, 185, 129, 0.12)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-      }}>
-        <Puzzle size={18} style={{
-          color: skill.source === 'personal' ? '#6366f1' : '#10b981',
-        }} />
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{
-          fontSize: 13,
-          fontWeight: 500,
-          color: 'var(--text-primary)',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}>
-          {skill.name}
-        </div>
-        <div style={{
-          fontSize: 11,
-          color: 'var(--text-muted)',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          marginTop: 2,
-        }}>
-          {skill.description}
-        </div>
-      </div>
-      {hovered && (
-        <button
-          onClick={e => { e.stopPropagation(); onUse() }}
-          title={t('skills.useSkill')}
-          style={{
-            background: 'var(--accent)',
-            border: 'none',
-            borderRadius: 6,
-            color: '#ffffff',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            padding: '4px 8px',
-            gap: 4,
-            fontSize: 11,
-            flexShrink: 0,
-          }}
-        >
-          <Play size={12} />
-        </button>
-      )}
-    </div>
-  )
-}
-
-function MarketplaceCard({ skill, isInstalled, isInstalling, onInstall, onUse, t, language }: {
-  skill: MarketplaceSkill
-  isInstalled: boolean
-  isInstalling: boolean
-  onInstall: () => void
-  onUse: () => void
-  t: (key: string) => string
-  language?: string
-}) {
-  const [hovered, setHovered] = useState(false)
-  const catColor = CATEGORY_COLORS[skill.category]
-  const srcColor = SOURCE_COLORS[skill.source]
-  const description = (language === 'zh-CN' && skill.descriptionZh) ? skill.descriptionZh : skill.description
-
-  return (
-    <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        padding: '12px 14px',
-        borderBottom: '1px solid var(--border)',
-        background: hovered ? 'rgba(255,255,255,0.03)' : 'transparent',
-        transition: 'background 0.1s',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-        <div style={{
-          width: 36,
-          height: 36,
-          borderRadius: 8,
-          background: `${catColor}15`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}>
-          <Package size={18} style={{ color: catColor }} />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <span style={{
-              fontSize: 13,
-              fontWeight: 500,
-              color: 'var(--text-primary)',
-            }}>
-              {skill.name}
-            </span>
-            <span style={{
-              fontSize: 9,
-              padding: '1px 6px',
-              borderRadius: 8,
-              background: `${catColor}20`,
-              color: catColor,
-              fontWeight: 500,
-            }}>
-              {t(`skills.category_${skill.category.toLowerCase()}`)}
-            </span>
-            <span style={{
-              fontSize: 9,
-              padding: '1px 6px',
-              borderRadius: 8,
-              background: `${srcColor}20`,
-              color: srcColor,
-              fontWeight: 500,
-            }}>
-              {t(`skills.source_${skill.source.toLowerCase()}`)}
-            </span>
-          </div>
-          <div style={{
-            fontSize: 11,
-            color: 'var(--text-muted)',
-            lineHeight: 1.4,
-            marginBottom: 6,
-          }}>
-            {description}
-          </div>
-          <div style={{
-            fontSize: 10,
-            color: 'var(--text-muted)',
-            opacity: 0.7,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-          }}>
-            <span>{t('skills.by')} {skill.author}</span>
-            {skill.sourceUrl && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  window.electronAPI.shellOpenExternal(skill.sourceUrl)
-                }}
-                title={t('skills.openOnGitHub')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 3,
-                  padding: '1px 6px',
-                  borderRadius: 8,
-                  border: '1px solid var(--card-border)',
-                  background: 'transparent',
-                  color: 'var(--text-muted)',
-                  fontSize: 9,
-                  cursor: 'pointer',
-                  transition: 'color 0.15s, border-color 0.15s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--accent)' }}
-                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--card-border)' }}
-              >
-                <ExternalLink size={9} />
-                {t('skills.source')}
-              </button>
-            )}
-          </div>
-        </div>
-        <div style={{ flexShrink: 0 }}>
-          {isInstalled ? (
-            <button
-              onClick={onUse}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: '6px 12px',
-                background: 'rgba(16, 185, 129, 0.12)',
-                color: '#10b981',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
-                borderRadius: 6,
-                fontSize: 11,
-                fontWeight: 500,
-                cursor: 'pointer',
-                transition: 'opacity 0.15s',
-              }}
-            >
-              <CheckCircle size={12} />
-              {t('skills.useNow')}
-            </button>
-          ) : (
-            <button
-              onClick={onInstall}
-              disabled={isInstalling}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: '6px 12px',
-                background: 'var(--accent)',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: 6,
-                fontSize: 11,
-                fontWeight: 500,
-                cursor: isInstalling ? 'wait' : 'pointer',
-                opacity: isInstalling ? 0.6 : 1,
-                transition: 'opacity 0.15s',
-              }}
-              onMouseEnter={e => { if (!isInstalling) e.currentTarget.style.opacity = '0.85' }}
-              onMouseLeave={e => { if (!isInstalling) e.currentTarget.style.opacity = '1' }}
-            >
-              <Download size={12} />
-              {isInstalling ? t('skills.installing') : t('skills.install')}
-            </button>
-          )}
-        </div>
       </div>
     </div>
   )

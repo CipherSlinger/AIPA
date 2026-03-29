@@ -158,6 +158,9 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Skill marketplace** — curated collection of 34 community-sourced skills from Anthropic, OpenClaw, ClawhHub, and community contributors across 7 categories; source-based filtering (Anthropic/OpenClaw/ClawhHub/Community) and category filtering; i18n-translated descriptions and labels; one-click install with proper attribution and source links; "Browse on ClawhHub.ai" link for discovering more skills
 - **Skill management** — view skill details (SKILL.md content), delete personal skills with two-click confirmation, and install marketplace skills to `~/.claude/skills/`
 - **Follow-up suggestions** — after Claude finishes responding, 2-3 contextual follow-up chips appear (e.g., "Explain this code", "Key takeaways", "Give an example") based on content analysis of the response; click to instantly send
+- **Model quick-switcher** — click the model name badge in the chat header to open a dropdown and switch between all 8 Claude models instantly; also accessible from Command Palette (`Ctrl+Shift+P`) with searchable "Switch model to X" commands; selected model shown with checkmark and persisted to settings
+- **Lazy-loaded sidebar panels** — Settings, Notes, Skills, and File Browser panels use `React.lazy()` + `Suspense` for faster initial load; initial bundle reduced from 1,268 KB to 1,132 KB (-10.7%)
+- **Accessibility foundations** — focus trap for modal dialogs (CommandPalette, ImageLightbox) keeps Tab navigation within modal bounds; `role="dialog"` and `aria-modal` on overlays; `role="switch"` and `aria-checked` on toggle buttons; `aria-live="polite"` on toast notifications
 
 ## Security
 

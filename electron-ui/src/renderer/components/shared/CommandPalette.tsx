@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import {
   Plus, Download, PanelLeft, Terminal, Settings, History,
-  FolderOpen, Zap, Trash2, HelpCircle, Search,
+  FolderOpen, Zap, Trash2, HelpCircle, Search, Cpu,
 } from 'lucide-react'
-import { useChatStore, useSessionStore, useUiStore } from '../../store'
+import { useChatStore, useSessionStore, useUiStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
+import { MODEL_OPTIONS } from '../settings/settingsConstants'
 
 interface PaletteCommand {
   id: string
@@ -14,7 +15,7 @@ interface PaletteCommand {
   icon?: React.ReactNode
   shortcut?: string
   action: () => void
-  category: 'action' | 'slash' | 'session'
+  category: 'action' | 'slash' | 'session' | 'model'
 }
 
 interface CommandPaletteProps {
@@ -124,6 +125,20 @@ export default function CommandPalette({
         },
         category: 'action',
       },
+      // Model switching commands
+      ...MODEL_OPTIONS.map(opt => ({
+        id: `model-${opt.id}`,
+        name: `${t('chat.switchModel')}: ${t(opt.labelKey)}`,
+        description: opt.id,
+        icon: <Cpu size={14} />,
+        action: () => {
+          usePrefsStore.getState().setPrefs({ model: opt.id })
+          window.electronAPI.prefsSet('model', opt.id)
+          useUiStore.getState().addToast('success', t('chat.modelSwitched', { model: t(opt.labelKey) }))
+          onClose()
+        },
+        category: 'model' as const,
+      })),
       // Slash commands
       {
         id: 'slash-compact',
@@ -343,7 +358,7 @@ export default function CommandPalette({
             >
               <span
                 style={{
-                  color: cmd.category === 'slash' ? 'var(--warning)' : cmd.category === 'session' ? 'var(--success)' : 'var(--accent)',
+                  color: cmd.category === 'slash' ? 'var(--warning)' : cmd.category === 'session' ? 'var(--success)' : cmd.category === 'model' ? '#8b5cf6' : 'var(--accent)',
                   display: 'flex',
                   alignItems: 'center',
                   flexShrink: 0,
@@ -394,7 +409,7 @@ export default function CommandPalette({
                   {cmd.shortcut}
                 </kbd>
               )}
-              {(cmd.category === 'slash' || cmd.category === 'session') && (
+              {(cmd.category === 'slash' || cmd.category === 'session' || cmd.category === 'model') && (
                 <span
                   style={{
                     fontSize: 9,
@@ -405,7 +420,7 @@ export default function CommandPalette({
                     flexShrink: 0,
                   }}
                 >
-                  {cmd.category === 'slash' ? 'slash' : 'session'}
+                  {cmd.category === 'slash' ? 'slash' : cmd.category === 'model' ? 'model' : 'session'}
                 </span>
               )}
             </div>

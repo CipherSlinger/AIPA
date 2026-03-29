@@ -94,7 +94,9 @@
     "emptyPreview": "(\u65e0\u5185\u5bb9)",
     "workingDir": "\u5de5\u4f5c\u76ee\u5f55",
     "workingDirDefault": "\u4e3b\u76ee\u5f55",
-    "clickToChangeDir": "\u70b9\u51fb\u66f4\u6539\u5de5\u4f5c\u76ee\u5f55"
+    "clickToChangeDir": "\u70b9\u51fb\u66f4\u6539\u5de5\u4f5c\u76ee\u5f55",
+    "switchModel": "\u5207\u6362\u6a21\u578b",
+    "modelSwitched": "\u5df2\u5207\u6362\u5230 {{model}}"
   },
   "welcome": {
     "title": "\u4f60\u597d\uff01\u6211\u662f AIPA",

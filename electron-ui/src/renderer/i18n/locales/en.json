@@ -94,7 +94,9 @@
     "emptyPreview": "(empty)",
     "workingDir": "Working directory",
     "workingDirDefault": "Home directory",
-    "clickToChangeDir": "Click to change working directory"
+    "clickToChangeDir": "Click to change working directory",
+    "switchModel": "Switch model",
+    "modelSwitched": "Model switched to {{model}}"
   },
   "welcome": {
     "title": "Hello! I'm AIPA",
