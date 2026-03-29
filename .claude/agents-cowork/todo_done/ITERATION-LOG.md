@@ -2227,3 +2227,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 272 (2026-03-29)
 - Context menu annotate option -- added Annotate entry to the right-click context menu for all messages; shows "Add annotation" or "Edit annotation" based on existing state; with clipboard/notepad emoji indicator; onAnnotate + hasAnnotation props threaded from Message.tsx through to MessageContextMenu; complements the hover toolbar annotation button from Iteration 271; 2 files changed; build SUCCESS
+
+### Iteration 273 (2026-03-29)
+- Search includes annotations -- conversation search (Ctrl+F) now also matches against message annotation text, not just message content; annotation text appended to search text in useConversationSearch.ts; makes annotations discoverable through existing search infrastructure; 1 file changed; build SUCCESS

@@ -34,9 +34,11 @@ export function useConversationSearch(messages: ChatMessage[]) {
       if (role === 'user' && msg.role !== 'user') return
       if (role === 'assistant' && msg.role !== 'assistant') return
       const content = (msg as StandardChatMessage).content || ''
+      const annotation = (msg as StandardChatMessage).annotation || ''
+      const searchText = content + (annotation ? '\n' + annotation : '')
       const found = cs
-        ? content.includes(query)
-        : content.toLowerCase().includes(query.toLowerCase())
+        ? searchText.includes(query)
+        : searchText.toLowerCase().includes(query.toLowerCase())
       if (found) {
         matches.push(idx)
       }
