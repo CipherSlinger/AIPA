@@ -20,10 +20,12 @@ interface ContextMenuProps {
   onBookmark?: () => void
   onPin?: () => void
   onCollapse?: () => void
+  onAnnotate?: () => void
+  hasAnnotation?: boolean
   onClose: () => void
 }
 
-export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdown, onCopyRichText, onCopyCodeBlocks, onSaveAsNote, onRememberThis, onQuoteReply, onEditMessage, onRate, onRewind, onBookmark, onPin, onCollapse, onClose }: ContextMenuProps) {
+export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdown, onCopyRichText, onCopyCodeBlocks, onSaveAsNote, onRememberThis, onQuoteReply, onEditMessage, onRate, onRewind, onBookmark, onPin, onCollapse, onAnnotate, hasAnnotation, onClose }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Clamp position to viewport
@@ -220,6 +222,19 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
         >
           <span>{isPinned ? t('message.unpinMessage') : t('message.pinMessage')}</span>
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{isPinned ? '\u{1F4CC}' : '\u{1F4CC}'}</span>
+        </button>
+      )}
+
+      {/* Annotate */}
+      {onAnnotate && message.role !== 'permission' && message.role !== 'plan' && (
+        <button
+          style={itemStyle}
+          onClick={() => { onAnnotate(); onClose() }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+        >
+          <span>{hasAnnotation ? t('message.editAnnotation') : t('message.addAnnotation')}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{hasAnnotation ? '\u{1F4DD}' : '\u{1F4CB}'}</span>
         </button>
       )}
 

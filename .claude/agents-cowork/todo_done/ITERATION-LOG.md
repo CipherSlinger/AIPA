@@ -2224,3 +2224,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 271 (2026-03-29)
 - Message annotations -- private user notes attached to any message; StickyNote icon button in message hover toolbar toggles inline annotation editor; annotations display as a subtle yellow-tinted strip below the message bubble with StickyNote icon; inline editor with textarea (max 500 chars), character counter, Save/Cancel/Remove buttons; Enter to save, Escape to cancel; click existing annotation to edit; annotation field on StandardChatMessage type; setAnnotation action in Zustand store; React.memo comparison updated for annotation; i18n: 4 new keys (message.addAnnotation, editAnnotation, removeAnnotation, annotationPlaceholder) in en.json and zh-CN.json; 5 files changed; build SUCCESS
+
+### Iteration 272 (2026-03-29)
+- Context menu annotate option -- added Annotate entry to the right-click context menu for all messages; shows "Add annotation" or "Edit annotation" based on existing state; with clipboard/notepad emoji indicator; onAnnotate + hasAnnotation props threaded from Message.tsx through to MessageContextMenu; complements the hover toolbar annotation button from Iteration 271; 2 files changed; build SUCCESS

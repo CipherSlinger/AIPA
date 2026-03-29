@@ -540,6 +540,8 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           onRate={onRate ? (rating) => onRate(message.id, rating) : undefined}
           onBookmark={onBookmark ? () => onBookmark(message.id) : undefined}
           onPin={handlePin}
+          onAnnotate={handleAnnotateToggle}
+          hasAnnotation={!!(message as StandardChatMessage).annotation}
           onCollapse={onCollapse ? () => onCollapse(message.id) : undefined}
           onRewind={onRewind && (message as StandardChatMessage).timestamp
             ? () => onRewind((message as StandardChatMessage).timestamp)
