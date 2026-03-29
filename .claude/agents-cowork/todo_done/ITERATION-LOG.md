@@ -2239,3 +2239,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 276 (2026-03-29)
 - Focus timer (Pomodoro) in status bar -- Timer icon button in the status bar starts a 25-minute Pomodoro focus timer; shows countdown with mm:ss in tabular-nums font; green Timer icon when active; click to stop/reset; plays completion sound (if enabled) and shows toast when time is up; button shows "25m" when inactive; i18n: 3 new keys (toolbar.startFocusTimer, stopFocusTimer, focusTimerComplete) in en.json and zh-CN.json; 3 files changed; build SUCCESS
+
+### Iteration 277 (2026-03-29)
+- Save clipboard as note command -- new "Save Clipboard as Note" command in the command palette (Ctrl+Shift+P); reads clipboard text via navigator.clipboard.readText(), creates a new note with first 50 chars as title; respects 100 note limit; shows appropriate toasts for success/empty/error; i18n: 5 new keys (command.clipboardToNote, clipboardToNoteDesc, clipboardNoteSaved, clipboardEmpty, clipboardReadFailed) in en.json and zh-CN.json; 3 files changed; build SUCCESS

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import {
   Plus, Download, PanelLeft, Terminal, Settings, History,
   FolderOpen, Zap, Trash2, HelpCircle, Search, Cpu, Sparkles,
-  Brain, Workflow, Clock, ListRestart, Play, NotebookPen,
+  Brain, Workflow, Clock, ListRestart, Play, NotebookPen, ClipboardPaste,
   Sun, Moon, Languages, Palette,
 } from 'lucide-react'
 import { useChatStore, useSessionStore, useUiStore, usePrefsStore } from '../../store'
@@ -235,6 +235,39 @@ export default function CommandPalette({
         }
         return personaCmds
       })(),
+      // Save clipboard as note
+      {
+        id: 'clipboard-to-note',
+        name: t('command.clipboardToNote'),
+        description: t('command.clipboardToNoteDesc'),
+        icon: <ClipboardPaste size={14} />,
+        action: async () => {
+          try {
+            const text = await navigator.clipboard.readText()
+            if (!text || !text.trim()) {
+              addToast('warning', t('command.clipboardEmpty'))
+              onClose()
+              return
+            }
+            const notes = usePrefsStore.getState().prefs.notes || []
+            if (notes.length >= 100) {
+              addToast('warning', t('message.notesLimitReached'))
+              onClose()
+              return
+            }
+            const now = Date.now()
+            const title = text.trim().slice(0, 50).replace(/\n/g, ' ')
+            const newNote = { id: `note-${now}`, title, content: text.trim().slice(0, 10000), createdAt: now, updatedAt: now }
+            usePrefsStore.getState().setPrefs({ notes: [newNote, ...notes] })
+            window.electronAPI.prefsSet('notes', [newNote, ...notes])
+            addToast('success', t('command.clipboardNoteSaved'))
+          } catch {
+            addToast('error', t('command.clipboardReadFailed'))
+          }
+          onClose()
+        },
+        category: 'action',
+      },
       // Toggle commands
       {
         id: 'toggle-theme',
