@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Search, Download, ClipboardCopy, Maximize2, Minimize2, Plus, FolderOpen } from 'lucide-react'
-import { useChatStore, useSessionStore, usePrefsStore } from '../../store'
+import { Search, Download, ClipboardCopy, Maximize2, Minimize2, Plus, FolderOpen, FileText } from 'lucide-react'
+import { useChatStore, useSessionStore, usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import ModelPicker from './ModelPicker'
 import PersonaPicker from './PersonaPicker'
@@ -28,6 +28,7 @@ interface ChatHeaderProps {
   onRegenerate: () => void
   onScrollToMessage: (idx: number) => void
   onExportBookmarks: () => void
+  onSummarize: () => void
 }
 
 /** Shared header button styling */
@@ -80,6 +81,7 @@ export default function ChatHeader({
   onRegenerate,
   onScrollToMessage,
   onExportBookmarks,
+  onSummarize,
 }: ChatHeaderProps) {
   const t = useT()
   const [isEditingTitle, setIsEditingTitle] = useState(false)
@@ -278,6 +280,22 @@ export default function ChatHeader({
         onMouseLeave={(e) => hoverOut(e)}
       >
         <ClipboardCopy size={15} />
+      </button>
+
+      {/* Summarize conversation */}
+      <button
+        onClick={onSummarize}
+        disabled={messageCount < 2 || isStreaming}
+        title={t('chat.summarize')}
+        style={{
+          ...headerBtnStyle,
+          cursor: messageCount < 2 || isStreaming ? 'not-allowed' : 'pointer',
+          opacity: messageCount < 2 || isStreaming ? 0.3 : 1,
+        }}
+        onMouseEnter={(e) => hoverIn(e)}
+        onMouseLeave={(e) => hoverOut(e)}
+      >
+        <FileText size={15} />
       </button>
 
       {/* Bookmarks dropdown (extracted) */}

@@ -119,6 +119,11 @@ export default function ChatPanel() {
     await sendMessage(text.trim())
   }
 
+  const handleSummarize = useCallback(async () => {
+    if (isStreaming || messages.length < 2) return
+    await sendMessage(t('chat.summarizePrompt'))
+  }, [isStreaming, messages.length, sendMessage, t])
+
   return (
     <div
       className="flex flex-col h-full"
@@ -178,6 +183,7 @@ export default function ChatPanel() {
         onRegenerate={handleRegenerate}
         onScrollToMessage={handleScrollToMessage}
         onExportBookmarks={exportBookmarks}
+        onSummarize={handleSummarize}
       />
 
       {/* Search bar */}

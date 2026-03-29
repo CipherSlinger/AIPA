@@ -86,6 +86,8 @@
     "copyConversation": "Copy conversation",
     "copiedToClipboard": "Conversation copied to clipboard",
     "templateActivated": "Activated: {{name}}",
+    "summarize": "Summarize conversation",
+    "summarizePrompt": "Please provide a concise summary of our conversation so far. Include the main topics discussed, key decisions or conclusions reached, and any action items or next steps mentioned.",
     "searchPlaceholder": "Search in conversation...",
     "noMatches": "No matches",
     "previousMatch": "Previous match (Shift+Enter)",
