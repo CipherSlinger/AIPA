@@ -2095,3 +2095,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 228 (2026-03-29)
 - ChatPanel decomposition refactor -- ChatPanel.tsx reduced from 621 to 376 lines (39% reduction); extracted 4 new files: chatPanelConstants.ts (5 lines, IMAGE_EXTENSIONS/MAX_FILE_SIZE/MAX_FILE_COUNT), useConversationExport.ts (88 lines, export/copy/bookmark-export logic), useDragAndDrop.ts (89 lines, file drag-and-drop handling with image/path routing), useChatPanelShortcuts.ts (117 lines, all global keyboard shortcuts + CommandPalette event listeners); pure refactor with zero visual or behavioral changes; 5 files changed; build SUCCESS
+
+### Iteration 229 (2026-03-29)
+- README batch update -- added 13 missing feature entries to both README.md and README_CN.md covering iterations 208-228: Ctrl+Home/End navigation, time-gap separators, response time badges, save-to-note toolbar button, per-session drafts, bookmarks/stats shortcuts, stats reading time, scroll lock, bookmarks export, shortcut cheatsheet search, note search highlighting, cross-session search; updated skill marketplace count from 34 to 46; 2 files changed; no build needed
