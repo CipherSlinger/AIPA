@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { Upload, RefreshCw, AlertTriangle } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { StandardChatMessage } from '../../types/app.types'
@@ -7,6 +7,9 @@ import { useStreamingTimer } from '../../hooks/useStreamingTimer'
 import { useChatZoom } from '../../hooks/useChatZoom'
 import { useConversationSearch } from '../../hooks/useConversationSearch'
 import { useConversationStats } from '../../hooks/useConversationStats'
+import { useConversationExport } from './useConversationExport'
+import { useDragAndDrop } from './useDragAndDrop'
+import { useChatPanelShortcuts } from './useChatPanelShortcuts'
 import ChatHeader from './ChatHeader'
 import ChatInput from './ChatInput'
 import MessageList from './MessageList'
@@ -15,15 +18,8 @@ import TaskQueuePanel from './TaskQueuePanel'
 import ThinkingIndicator from './ThinkingIndicator'
 import WelcomeScreen from './WelcomeScreen'
 import FollowUpChips from './FollowUpChips'
-import { formatMarkdown } from '../../utils/formatMarkdown'
-import { formatHtml } from '../../utils/formatHtml'
 import { getTemplateById } from '../../utils/promptTemplates'
 import { useT } from '../../i18n'
-
-// Constants for drag-and-drop file handling
-const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg']
-const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
-const MAX_FILE_COUNT = 10
 
 export default function ChatPanel() {
   const t = useT()
@@ -51,12 +47,16 @@ export default function ChatPanel() {
     toggleCaseSensitive, changeRoleFilter,
   } = useConversationSearch(messages)
 
+  const { exportConversation, exportBookmarks, copyConversation } = useConversationExport(
+    messages, currentSessionId, currentSessionTitle, prefs.model, bookmarkedMessages, addToast,
+  )
+
+  const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleFileDrop } = useDragAndDrop(addToast)
+
+  useChatPanelShortcuts(exportConversation, copyConversation, setSearchOpen, sendMessage, abort)
+
   // Scroll-to-message state (for bookmarks panel)
   const [scrollToMessageIdx, setScrollToMessageIdx] = useState<number | undefined>(undefined)
-
-  // Drag-and-drop state
-  const [isDragOver, setIsDragOver] = useState(false)
-  const dragCounterRef = useRef(0)
   const [contextWarningDismissed, setContextWarningDismissed] = useState(false)
 
   // Context window usage warning
@@ -65,7 +65,6 @@ export default function ChatPanel() {
     : null
   const showContextWarning = contextPct !== null && contextPct >= 80 && !contextWarningDismissed
 
-  // Reset context warning when session changes
   useEffect(() => {
     setContextWarningDismissed(false)
   }, [currentSessionId])
@@ -73,7 +72,6 @@ export default function ChatPanel() {
   // Regeneration
   const canRegenerate = !isStreaming && messages.length >= 2 && messages[messages.length - 1]?.role === 'assistant'
 
-  // Compute last assistant message content for follow-up suggestions
   const lastAssistantContent = useMemo(() => {
     if (isStreaming || messages.length === 0) return ''
     const last = messages[messages.length - 1]
@@ -91,248 +89,6 @@ export default function ChatPanel() {
     }
   }
 
-  // ── Export conversation ──────────────────────────
-  const exportConversation = useCallback(async () => {
-    if (messages.length === 0) return
-    const now = new Date()
-    const ts = now.toISOString().replace(/[:.]/g, '-').slice(0, 19)
-    const defaultName = `aipa-export-${ts}`
-    const filePath = await window.electronAPI.fsShowSaveDialog(defaultName, [
-      { name: 'Markdown', extensions: ['md'] },
-      { name: 'HTML', extensions: ['html'] },
-      { name: 'JSON', extensions: ['json'] },
-    ])
-    if (!filePath) return
-
-    const isJson = filePath.toLowerCase().endsWith('.json')
-    const isHtml = filePath.toLowerCase().endsWith('.html') || filePath.toLowerCase().endsWith('.htm')
-    let content: string
-
-    if (isJson) {
-      content = JSON.stringify(messages, null, 2)
-    } else if (isHtml) {
-      content = formatHtml(messages, currentSessionId, now, currentSessionTitle, prefs.model)
-    } else {
-      content = formatMarkdown(messages, currentSessionId, now, currentSessionTitle, prefs.model)
-    }
-
-    const result = await window.electronAPI.fsWriteFile(filePath, content)
-    if (result?.error) {
-      addToast('error', t('chat.exportFailed', { error: result.error }))
-    } else {
-      addToast('success', t('chat.exportSuccess'))
-    }
-  }, [messages, currentSessionId, addToast, t])
-
-  // ── Export bookmarks only ──────────────────────────
-  const exportBookmarks = useCallback(async () => {
-    if (bookmarkedMessages.length === 0) return
-    const bookmarkedMsgs = bookmarkedMessages.map(b => b.msg)
-    const now = new Date()
-    const ts = now.toISOString().replace(/[:.]/g, '-').slice(0, 19)
-    const defaultName = `aipa-bookmarks-${ts}`
-    const filePath = await window.electronAPI.fsShowSaveDialog(defaultName, [
-      { name: 'Markdown', extensions: ['md'] },
-    ])
-    if (!filePath) return
-    const content = formatMarkdown(bookmarkedMsgs, currentSessionId, now, currentSessionTitle, prefs.model)
-    const result = await window.electronAPI.fsWriteFile(filePath, content)
-    if (result?.error) {
-      addToast('error', t('chat.exportFailed', { error: result.error }))
-    } else {
-      addToast('success', t('chat.bookmarksExported'))
-    }
-  }, [bookmarkedMessages, currentSessionId, currentSessionTitle, prefs.model, addToast, t])
-
-  // ── Copy conversation to clipboard ──────────────────────────
-  const copyConversation = useCallback(async () => {
-    if (messages.length === 0) return
-    const md = formatMarkdown(messages, currentSessionId, new Date(), currentSessionTitle, prefs.model)
-    try {
-      await navigator.clipboard.writeText(md)
-      addToast('success', t('chat.copiedToClipboard'))
-    } catch {
-      addToast('error', t('chat.copyFailed'))
-    }
-  }, [messages, currentSessionId, addToast, t])
-
-  // ── Global keyboard shortcuts ──────────────────────────
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key === 'E') {
-        e.preventDefault()
-        exportConversation()
-      }
-      if (e.ctrlKey && e.shiftKey && e.key === 'X') {
-        e.preventDefault()
-        copyConversation()
-      }
-      // Ctrl+Shift+B: Toggle bookmarks panel
-      if (e.ctrlKey && e.shiftKey && e.key === 'B') {
-        e.preventDefault()
-        window.dispatchEvent(new CustomEvent('aipa:toggleBookmarks'))
-      }
-      // Ctrl+Shift+S: Toggle stats panel
-      if (e.ctrlKey && e.shiftKey && e.key === 'S') {
-        e.preventDefault()
-        window.dispatchEvent(new CustomEvent('aipa:toggleStats'))
-      }
-      if (e.ctrlKey && !e.shiftKey && e.key === 'f') {
-        e.preventDefault()
-        setSearchOpen(true)
-      }
-      // Ctrl+Shift+F: Global cross-session search
-      if (e.ctrlKey && e.shiftKey && e.key === 'F') {
-        e.preventDefault()
-        // Open sidebar to history tab and trigger global search focus
-        const uiState = useUiStore.getState()
-        if (!uiState.sidebarOpen || uiState.sidebarTab !== 'history') {
-          uiState.setActiveNavItem('history')
-        }
-        // Dispatch custom event so SessionList can focus search input
-        window.dispatchEvent(new CustomEvent('aipa:globalSearchFocus'))
-      }
-      if (e.ctrlKey && e.shiftKey && e.key === 'R') {
-        e.preventDefault()
-        const state = useChatStore.getState()
-        if (!state.isStreaming && state.messages.length >= 2 && state.messages[state.messages.length - 1]?.role === 'assistant') {
-          const prompt = state.prepareRegeneration()
-          if (prompt) sendMessage(prompt)
-        }
-      }
-      // Ctrl+Home: Jump to first message
-      if (e.ctrlKey && !e.shiftKey && e.key === 'Home') {
-        e.preventDefault()
-        window.dispatchEvent(new CustomEvent('aipa:scrollToFirst'))
-      }
-      // Ctrl+End: Jump to last message
-      if (e.ctrlKey && !e.shiftKey && e.key === 'End') {
-        e.preventDefault()
-        window.dispatchEvent(new CustomEvent('aipa:scrollToLast'))
-      }
-      // Alt+Up / Alt+Down: Jump between user messages
-      if (e.altKey && !e.ctrlKey && !e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
-        const activeEl = document.activeElement
-        const inInput = activeEl instanceof HTMLTextAreaElement || activeEl instanceof HTMLInputElement
-        if (!inInput) {
-          e.preventDefault()
-          window.dispatchEvent(new CustomEvent('aipa:jumpUserMessage', { detail: e.key === 'ArrowUp' ? 'prev' : 'next' }))
-        }
-      }
-      // Page Up / Page Down: Chunk scroll in message list
-      if ((e.key === 'PageUp' || e.key === 'PageDown') && !e.ctrlKey && !e.shiftKey) {
-        // Only intercept if not in a textarea/input
-        const activeEl = document.activeElement
-        const inInput = activeEl instanceof HTMLTextAreaElement || activeEl instanceof HTMLInputElement
-        if (!inInput) {
-          e.preventDefault()
-          window.dispatchEvent(new CustomEvent('aipa:pageScroll', { detail: e.key === 'PageUp' ? 'up' : 'down' }))
-        }
-      }
-      // Escape to stop streaming (only when no popup/modal is active)
-      if (e.key === 'Escape' && !e.ctrlKey && !e.shiftKey && !e.altKey) {
-        const state = useChatStore.getState()
-        if (state.isStreaming) {
-          // Don't intercept if user is in an input/textarea or a modal is open
-          const activeEl = document.activeElement
-          const inInput = activeEl instanceof HTMLTextAreaElement || activeEl instanceof HTMLInputElement
-          const hasModal = document.querySelector('[role="dialog"]') || document.querySelector('.lightbox-overlay')
-          if (!inInput && !hasModal) {
-            e.preventDefault()
-            abort()
-          }
-        }
-      }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [exportConversation, copyConversation, setSearchOpen, sendMessage, abort])
-
-  // Listen for export trigger from CommandPalette
-  useEffect(() => {
-    const handler = () => exportConversation()
-    window.addEventListener('aipa:export', handler)
-    return () => window.removeEventListener('aipa:export', handler)
-  }, [exportConversation])
-
-  // Listen for slash command from CommandPalette
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const cmd = (e as CustomEvent).detail as string
-      if (cmd) sendMessage(cmd)
-    }
-    window.addEventListener('aipa:slashCommand', handler)
-    return () => window.removeEventListener('aipa:slashCommand', handler)
-  }, [sendMessage])
-
-  // ── File drag-and-drop ──────────────────────────
-  const handleDragEnter = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    dragCounterRef.current++
-    if (e.dataTransfer.types.includes('Files')) {
-      setIsDragOver(true)
-    }
-  }, [])
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-  }, [])
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    dragCounterRef.current--
-    if (dragCounterRef.current <= 0) {
-      dragCounterRef.current = 0
-      setIsDragOver(false)
-    }
-  }, [])
-
-  const handleFileDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    dragCounterRef.current = 0
-    setIsDragOver(false)
-
-    const files = Array.from(e.dataTransfer.files)
-    if (files.length === 0) return
-
-    if (files.length > MAX_FILE_COUNT) {
-      addToast('warning', t('chat.tooManyFiles', { max: String(MAX_FILE_COUNT) }))
-    }
-
-    const processFiles = files.slice(0, MAX_FILE_COUNT)
-    const imageFiles: File[] = []
-    const pathFiles: string[] = []
-
-    for (const file of processFiles) {
-      const ext = '.' + file.name.split('.').pop()?.toLowerCase()
-      const isImage = IMAGE_EXTENSIONS.includes(ext)
-
-      if (isImage) {
-        if (file.size > MAX_FILE_SIZE) {
-          addToast('error', t('chat.fileTooLarge', { name: file.name }))
-          continue
-        }
-        imageFiles.push(file)
-      } else {
-        const filePath = (file as any).path as string
-        if (filePath) {
-          pathFiles.push(filePath)
-        }
-      }
-    }
-
-    // Dispatch to ChatInput via CustomEvent
-    const atPaths = pathFiles.length > 0 ? pathFiles.map(p => `@${p}`).join(' ') : undefined
-    window.dispatchEvent(new CustomEvent('aipa:dropFiles', {
-      detail: { imageFiles, atPaths }
-    }))
-  }, [addToast, t])
-
-  // Scroll-to-message handler for bookmarks
   const handleScrollToMessage = useCallback((idx: number) => {
     setScrollToMessageIdx(idx)
     setTimeout(() => setScrollToMessageIdx(undefined), 100)
@@ -340,7 +96,6 @@ export default function ChatPanel() {
 
   const sendText = async (text: string, templateId?: string) => {
     if (!text.trim() || isStreaming) return
-    // Auto-activate prompt template if suggestion card provides one
     if (templateId) {
       const template = getTemplateById(templateId)
       if (template && template.prompt) {
