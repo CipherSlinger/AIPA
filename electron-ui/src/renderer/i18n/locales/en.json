@@ -76,6 +76,7 @@
     "statsToolUses": "Tool uses",
     "statsDuration": "Duration",
     "statsAvgResponse": "Avg response time",
+    "statsAnnotations": "Annotations",
     "statsDurationValue": "~{{min}} min",
     "wordCount": "{{words}} words",
     "charCountLabel": "{{chars}} chars",

@@ -2230,3 +2230,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 273 (2026-03-29)
 - Search includes annotations -- conversation search (Ctrl+F) now also matches against message annotation text, not just message content; annotation text appended to search text in useConversationSearch.ts; makes annotations discoverable through existing search infrastructure; 1 file changed; build SUCCESS
+
+### Iteration 274 (2026-03-29)
+- Annotation count in stats panel -- stats panel now shows count of annotated messages when annotations exist; annotationCount field added to ConversationStats interface in useConversationStats.ts; conditionally displayed row in StatsPanel.tsx; i18n: 1 new key (chat.statsAnnotations) in en.json and zh-CN.json; 4 files changed; build SUCCESS

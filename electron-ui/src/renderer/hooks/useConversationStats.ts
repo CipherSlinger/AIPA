@@ -11,6 +11,7 @@ export interface ConversationStats {
   toolUseCount: number
   durationMin: number
   avgResponseSec: number  // average assistant response time in seconds
+  annotationCount: number  // number of messages with annotations
 }
 
 export interface BookmarkedMessage {
@@ -56,6 +57,9 @@ export function useConversationStats(messages: ChatMessage[]) {
     const avgResponseSec = responseTimes.length > 0
       ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length / 1000)
       : 0
+    const annotationCount = messages.filter(m =>
+      m.role !== 'permission' && m.role !== 'plan' && (m as StandardChatMessage).annotation
+    ).length
     return {
       total: messages.filter(m => m.role !== 'permission' && m.role !== 'plan').length,
       user: userMsgs.length,
@@ -66,6 +70,7 @@ export function useConversationStats(messages: ChatMessage[]) {
       toolUseCount,
       durationMin,
       avgResponseSec,
+      annotationCount,
     }
   }, [messages])
 
