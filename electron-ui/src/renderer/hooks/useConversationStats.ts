@@ -6,6 +6,8 @@ export interface ConversationStats {
   user: number
   assistant: number
   totalWords: number
+  totalChars: number
+  readingTimeMin: number
   toolUseCount: number
   durationMin: number
   avgResponseSec: number  // average assistant response time in seconds
@@ -34,6 +36,11 @@ export function useConversationStats(messages: ChatMessage[]) {
       const content = (m as StandardChatMessage).content || ''
       return sum + content.split(/\s+/).filter(w => w.length > 0).length
     }, 0)
+    const totalChars = messages.reduce((sum, m) => {
+      if (m.role === 'permission' || m.role === 'plan') return sum
+      return sum + ((m as StandardChatMessage).content || '').length
+    }, 0)
+    const readingTimeMin = Math.max(1, Math.round(totalWords / 200))
     const toolUseCount = messages.reduce((sum, m) => {
       if (m.role === 'permission' || m.role === 'plan') return sum
       return sum + ((m as StandardChatMessage).toolUses?.length || 0)
@@ -54,6 +61,8 @@ export function useConversationStats(messages: ChatMessage[]) {
       user: userMsgs.length,
       assistant: assistantMsgs.length,
       totalWords,
+      totalChars,
+      readingTimeMin,
       toolUseCount,
       durationMin,
       avgResponseSec,

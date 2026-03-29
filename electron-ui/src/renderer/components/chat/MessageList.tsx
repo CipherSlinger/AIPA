@@ -6,7 +6,7 @@ import PermissionCard from './PermissionCard'
 import PlanCard from './PlanCard'
 import { useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
-import { ArrowDown, ArrowUp } from 'lucide-react'
+import { ArrowDown, ArrowUp, Lock, Unlock } from 'lucide-react'
 
 // ── Date separator logic ──
 function formatDateLabel(ts: number, t: (key: string) => string): string {
@@ -57,6 +57,7 @@ interface Props {
   onPermission: (permissionId: string, allowed: boolean) => void
   onGrantPermission: (permissionId: string, toolName: string) => void
   sessionId?: string | null
+  isStreaming?: boolean
   searchQuery?: string
   searchCaseSensitive?: boolean
   highlightedMessageIdx?: number
@@ -64,7 +65,7 @@ interface Props {
   onEdit?: (msgId: string, newContent: string) => void
 }
 
-export default function MessageList({ messages, onPermission, onGrantPermission, sessionId, searchQuery, searchCaseSensitive, highlightedMessageIdx, scrollToMessageIdx, onEdit }: Props) {
+export default function MessageList({ messages, onPermission, onGrantPermission, sessionId, isStreaming, searchQuery, searchCaseSensitive, highlightedMessageIdx, scrollToMessageIdx, onEdit }: Props) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const resolvePlan = useChatStore(s => s.resolvePlan)
   const rateMessage = useChatStore(s => s.rateMessage)
@@ -80,6 +81,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   const lastSeenCountRef = useRef(messages.length)
   const [unreadCount, setUnreadCount] = useState(0)
   const prevMessageCountRef = useRef(messages.length)
+  const [scrollLocked, setScrollLocked] = useState(false)
 
   // Build flat list of items: date separators + time gap separators + response time badges + messages
   const items: ListItem[] = useMemo(() => {
@@ -227,9 +229,9 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
     virtualizer.scrollToIndex(0, { align: 'start', behavior: 'smooth' })
   }, [virtualizer])
 
-  // Auto-scroll only when user is near the bottom
+  // Auto-scroll only when user is near the bottom and scroll is not locked
   useEffect(() => {
-    if (isNearBottomRef.current && items.length > 0) {
+    if (isNearBottomRef.current && !scrollLocked && items.length > 0) {
       requestAnimationFrame(() => {
         virtualizer.scrollToIndex(items.length - 1, { align: 'end', behavior: 'smooth' })
       })
@@ -244,6 +246,11 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       }
     }
   }, [messages.length, messages[messages.length - 1]])
+
+  // Auto-unlock scroll when streaming stops
+  useEffect(() => {
+    if (!isStreaming && scrollLocked) setScrollLocked(false)
+  }, [isStreaming])
 
   // Scroll to highlighted search match (map message idx to item idx)
   useEffect(() => {
@@ -554,6 +561,37 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
           onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.8'; e.currentTarget.style.color = 'var(--text-muted)' }}
         >
           <ArrowUp size={14} />
+        </button>
+      )}
+      {/* Scroll lock button (visible during streaming) */}
+      {isStreaming && (
+        <button
+          onClick={() => setScrollLocked(prev => !prev)}
+          title={scrollLocked ? t('chat.scrollUnlock') : t('chat.scrollLock')}
+          style={{
+            position: 'sticky',
+            bottom: showScrollBtn ? 50 : 12,
+            left: '50%',
+            transform: 'translateX(24px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 28,
+            height: 28,
+            borderRadius: '50%',
+            background: scrollLocked ? 'var(--warning)' : 'var(--bg-hover)',
+            border: `1px solid ${scrollLocked ? 'var(--warning)' : 'var(--border)'}`,
+            color: scrollLocked ? '#fff' : 'var(--text-muted)',
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+            zIndex: 10,
+            opacity: 0.85,
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = '1' }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.85' }}
+        >
+          {scrollLocked ? <Lock size={12} /> : <Unlock size={12} />}
         </button>
       )}
       {showScrollBtn && (

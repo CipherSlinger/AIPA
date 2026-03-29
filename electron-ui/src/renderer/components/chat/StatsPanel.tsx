@@ -75,6 +75,8 @@ export default function StatsPanel({
             { label: t('chat.statsYourMessages'), value: conversationStats.user },
             { label: t('chat.statsClaudeMessages'), value: conversationStats.assistant },
             { label: t('chat.statsTotalWords'), value: conversationStats.totalWords.toLocaleString() },
+            { label: t('chat.statsTotalChars'), value: conversationStats.totalChars.toLocaleString() },
+            { label: t('chat.statsReadingTime'), value: t('chat.statsReadingTimeValue', { min: String(conversationStats.readingTimeMin) }) },
             { label: t('chat.statsToolUses'), value: conversationStats.toolUseCount },
             { label: t('chat.statsDuration'), value: t('chat.statsDurationValue', { min: String(conversationStats.durationMin) }) },
             ...(conversationStats.avgResponseSec > 0 ? [{ label: t('chat.statsAvgResponse'), value: `~${conversationStats.avgResponseSec}s` }] : []),

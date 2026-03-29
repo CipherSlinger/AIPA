@@ -2043,3 +2043,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 212 (2026-03-29)
 - ChatInput decomposition refactor -- ChatInput.tsx reduced from 935 to 407 lines (56% reduction); extracted 6 new files: InputToolbar.tsx (148 lines, toolbar row with all buttons), ClipboardActionsMenu.tsx (117 lines, clipboard dropdown component), chatInputConstants.ts (48 lines, PLACEHOLDER_KEYS, CLIPBOARD_ACTIONS, shared toolbar styles), useChatInputDraft.ts (61 lines, per-session draft persistence hook), useChatInputHistory.ts (50 lines, input history navigation hook), useSpeechRecognition.ts (36 lines, Web Speech API hook); pure refactor with zero visual or behavioral changes; build SUCCESS
+
+### Iteration 213 (2026-03-29)
+- Stats panel enhancements, scroll lock during streaming -- (1) Stats panel now shows total character count and estimated reading time (based on 200 WPM) alongside existing word count; ConversationStats interface extended with totalChars and readingTimeMin fields; (2) Scroll lock button appears during streaming as a Lock/Unlock icon; clicking it prevents auto-scroll while reading earlier parts of a long response; auto-unlocks when streaming completes; (3) i18n: 6 new keys (statsTotalChars, statsReadingTime, statsReadingTimeValue, scrollLock, scrollUnlock) in en.json and zh-CN.json; 6 files changed; build SUCCESS

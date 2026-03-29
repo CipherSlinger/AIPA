@@ -469,6 +469,7 @@ export default function ChatPanel() {
             onPermission={respondPermission}
             onGrantPermission={grantToolPermission}
             sessionId={currentSessionId}
+            isStreaming={isStreaming}
             searchQuery={searchQuery}
             searchCaseSensitive={caseSensitive}
             highlightedMessageIdx={searchMatches.length > 0 ? searchMatches[currentMatchIdx] : undefined}
