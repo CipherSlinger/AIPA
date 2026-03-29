@@ -2200,3 +2200,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 263 (2026-03-29)
 - Save input as note button -- StickyNote icon button in InputToolbar saves current chat input text directly as a new note without sending to Claude; creates note with auto-generated title (first 50 chars); respects 100 note limit; button disabled when input is empty; green hover accent; toast confirmation; bridges Chat and Notes features; i18n: 2 new keys (toolbar.saveAsNote, toolbar.savedAsNote) in en.json and zh-CN.json; 3 files changed; build SUCCESS
+
+### Iteration 264 (2026-03-29)
+- Message emoji reactions -- SmilePlus icon button in message hover toolbar opens emoji picker popup with 8 reaction emojis; clicking an emoji toggles it on/off the message (max 8 per message); reactions display as small chips below the message bubble; click a displayed reaction to remove it; reaction picker highlights already-selected emojis; hover scale animation on picker emojis; toggleReaction action in Zustand store with reactions array on StandardChatMessage; memo comparison updated; i18n: 2 new keys (message.addReaction, message.removeReaction) in en.json and zh-CN.json; 5 files changed; build SUCCESS

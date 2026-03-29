@@ -257,7 +257,9 @@
     "unpinMessage": "Unpin message",
     "pinnedMessage": "Message pinned",
     "unpinned": "Message unpinned",
-    "pinnedMessages": "Pinned messages"
+    "pinnedMessages": "Pinned messages",
+    "addReaction": "Add reaction",
+    "removeReaction": "Remove reaction"
   },
   "selection": {
     "copySelection": "Copy selected text",

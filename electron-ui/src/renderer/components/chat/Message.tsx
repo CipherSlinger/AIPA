@@ -66,6 +66,11 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
     handleCopyMarkdown, handleCopyRichText, handleSaveAsNote, handleRememberThis, handleShare, handlePin, handleDoubleClick,
   } = useMessageActions({ message, isPermission, isPlan })
 
+  const toggleReaction = useChatStore(s => s.toggleReaction)
+  const handleReaction = useCallback((emoji: string) => {
+    toggleReaction(message.id, emoji)
+  }, [toggleReaction, message.id])
+
   // Word info tooltip (both user and assistant messages)
   const wordInfo = (message as StandardChatMessage).content
     ? (() => {
@@ -301,6 +306,42 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           />
         </div>
 
+        {/* Reaction display bar */}
+        {!isPermission && !isPlan && (message as StandardChatMessage).reactions && (message as StandardChatMessage).reactions!.length > 0 && (
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 4,
+            marginTop: 4,
+            ...(isUser ? { justifyContent: 'flex-end' } : {}),
+          }}>
+            {(message as StandardChatMessage).reactions!.map(emoji => (
+              <button
+                key={emoji}
+                onClick={(e) => { e.stopPropagation(); handleReaction(emoji) }}
+                title={t('message.removeReaction')}
+                style={{
+                  background: 'var(--bubble-ai, rgba(100,108,255,0.08))',
+                  border: '1px solid var(--popup-border)',
+                  borderRadius: 12,
+                  padding: '1px 6px',
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  lineHeight: 1.4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 2,
+                  transition: 'transform 0.1s ease, background 0.12s ease',
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bubble-ai, rgba(100,108,255,0.08))' }}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Floating action toolbar */}
         {hovered && !isCollapsed && (
           <MessageActionToolbar
@@ -319,6 +360,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             onQuote={handleQuote}
             onShare={handleShare}
             onPin={handlePin}
+            onReaction={handleReaction}
             onSaveAsNote={handleSaveAsNote}
             onRememberThis={handleRememberThis}
             onReadAloud={isAssistant ? handleReadAloud : undefined}
@@ -378,6 +420,8 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   if (pm.rating !== nm.rating) return false
   if (pm.bookmarked !== nm.bookmarked) return false
   if (pm.pinned !== nm.pinned) return false
+  if ((pm.reactions?.length ?? 0) !== (nm.reactions?.length ?? 0)) return false
+  if (pm.reactions?.join(',') !== nm.reactions?.join(',')) return false
   if (pm.collapsed !== nm.collapsed) return false
   if (pm.thinking !== nm.thinking) return false
   if ((pm.toolUses?.length ?? 0) !== (nm.toolUses?.length ?? 0)) return false

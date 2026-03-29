@@ -257,7 +257,9 @@
     "unpinMessage": "\u53d6\u6d88\u7f6e\u9876",
     "pinnedMessage": "\u6d88\u606f\u5df2\u7f6e\u9876",
     "unpinned": "\u6d88\u606f\u5df2\u53d6\u6d88\u7f6e\u9876",
-    "pinnedMessages": "\u7f6e\u9876\u6d88\u606f"
+    "pinnedMessages": "\u7f6e\u9876\u6d88\u606f",
+    "addReaction": "\u6dfb\u52a0\u8868\u60c5",
+    "removeReaction": "\u79fb\u9664\u8868\u60c5"
   },
   "selection": {
     "copySelection": "\u590d\u5236\u9009\u4e2d\u6587\u672c",
