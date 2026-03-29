@@ -471,7 +471,8 @@
     "insertMention": "Insert @mention",
     "insertSlashCommand": "Insert slash command",
     "stopRecording": "Stop recording",
-    "voiceInput": "Voice input"
+    "voiceInput": "Voice input",
+    "favoritePrompts": "Favorite prompts"
   },
   "quickReply": {
     "labelPlaceholder": "Label",

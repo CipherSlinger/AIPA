@@ -471,7 +471,8 @@
     "insertMention": "\u63d2\u5165@\u63d0\u53ca",
     "insertSlashCommand": "\u63d2\u5165\u659c\u6760\u547d\u4ee4",
     "stopRecording": "\u505c\u6b62\u5f55\u97f3",
-    "voiceInput": "\u8bed\u97f3\u8f93\u5165"
+    "voiceInput": "\u8bed\u97f3\u8f93\u5165",
+    "favoritePrompts": "\u6536\u85cf\u63d0\u793a\u8bcd"
   },
   "quickReply": {
     "labelPlaceholder": "\u6807\u7b7e",
