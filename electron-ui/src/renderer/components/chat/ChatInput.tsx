@@ -52,6 +52,27 @@ export default function ChatInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const inputWrapRef = useRef<HTMLDivElement>(null)
 
+  // Typing speed (WPM) tracking
+  const keystrokeTimestamps = useRef<number[]>([])
+  const [typingWpm, setTypingWpm] = useState(0)
+  const wpmTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    wpmTimerRef.current = setInterval(() => {
+      const now = Date.now()
+      // Keep only keystrokes within last 10 seconds
+      keystrokeTimestamps.current = keystrokeTimestamps.current.filter(t => now - t < 10000)
+      const count = keystrokeTimestamps.current.length
+      if (count < 2) { setTypingWpm(0); return }
+      // Characters per minute, then convert to words (avg 5 chars/word)
+      const span = (now - keystrokeTimestamps.current[0]) / 60000 // minutes
+      if (span < 0.001) { setTypingWpm(0); return }
+      const wpm = Math.round((count / 5) / span)
+      setTypingWpm(wpm)
+    }, 1000)
+    return () => { if (wpmTimerRef.current) clearInterval(wpmTimerRef.current) }
+  }, [])
+
   // @ mention state
   const [atQuery, setAtQuery] = useState<string | null>(null)
 
@@ -254,6 +275,13 @@ export default function ChatInput({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value
+    // Track keystrokes for WPM calculation
+    if (val.length > input.length) {
+      const now = Date.now()
+      for (let i = 0; i < val.length - input.length; i++) {
+        keystrokeTimestamps.current.push(now)
+      }
+    }
     setInput(val)
     const cursor = e.target.selectionStart
     const textBefore = val.slice(0, cursor)
@@ -637,6 +665,12 @@ export default function ChatInput({
           <span>{input.length.toLocaleString()} {t('chat.chars')}{input.length > 10000 ? ` (${t('chat.veryLong')})` : input.length > 5000 ? ` (${t('chat.long')})` : ''}</span>
           <span style={{ opacity: 0.4 }}>|</span>
           <span>{t('message.approxTokens', { count: String(Math.ceil(input.length / 4)) })}</span>
+          {typingWpm > 0 && (
+            <>
+              <span style={{ opacity: 0.4 }}>|</span>
+              <span style={{ color: typingWpm > 60 ? 'var(--accent)' : 'var(--text-muted)' }}>{typingWpm} {t('chat.wpm')}</span>
+            </>
+          )}
         </div>
       )}
       {/* Input history hint */}

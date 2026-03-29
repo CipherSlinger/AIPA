@@ -2155,3 +2155,18 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 248 (2026-03-29)
 - README batch update for iterations 243-247 -- added 5 new feature entries to both README.md and README_CN.md covering: Remember This context action, memory injection into chat, scheduled prompts (cron-inspired), prompt history panel, input length progress ring; 2 files changed; no build needed
+
+### Iteration 249 (2026-03-29)
+- Inline prompt autocomplete with ghost text -- ChatInput.tsx: as user types 3+ characters, a ghost text suggestion from prompt history appears after the cursor in muted color with a "Tab" hint; pressing Tab accepts the suggestion and completes the input; suggestion is the most frequently used history entry whose text starts with the current input; ghost text rendered as an absolute-positioned overlay with transparent typed text + visible suffix; disabled during @mention and /command popups; uses useMemo for efficient matching against promptHistory array; 1 file changed; build SUCCESS
+
+### Iteration 250 (2026-03-29)
+- Favorite prompts quick access in input toolbar -- Star icon button in InputToolbar shows a dropdown of favorited prompt history items; clicking a favorite sends it immediately as a message; dropdown shows up to 15 favorites sorted by last used, with usage count badge; star button only visible when favorites exist; golden highlight on active state; popup uses popup styling system with popup-in animation; click outside to dismiss; i18n: 1 new key (toolbar.favoritePrompts) in en.json and zh-CN.json; 3 files changed; build SUCCESS
+
+### Iteration 251 (2026-03-29)
+- Conversation summarize button in chat header -- FileText icon button in ChatHeader sends a "summarize this conversation" prompt to generate an AI summary; button disabled when fewer than 2 messages or during streaming; uses i18n-stored prompt template for consistent cross-language summarization; i18n: 2 new keys (chat.summarize, chat.summarizePrompt) in en.json and zh-CN.json; 4 files changed; build SUCCESS
+
+### Iteration 252 (2026-03-29)
+- Long text paste detection with quick action chips -- ChatInput.tsx: when user pastes text longer than 500 characters, shows action chips (Summarize, Explain, Translate, Rewrite) similar to URL paste detection; clicking an action prepends the action label to the pasted text; auto-dismiss after 12 seconds; Escape key dismisses; clears on send; does not show when URL chips are already visible; uses FileText icon indicator; i18n: 1 new key (chat.longPaste) in en.json and zh-CN.json; 3 files changed; build SUCCESS
+
+### Iteration 253 (2026-03-29)
+- README batch update for iterations 249-252 -- added 4 new feature entries to both README.md and README_CN.md covering: inline prompt autocomplete (ghost text + Tab), favorite prompts quick access (Star button), conversation summarize button, long text paste detection; 2 files changed; no build needed
