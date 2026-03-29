@@ -344,10 +344,15 @@ code:not(pre code) {
   transition: transform 0.15s ease, color 0.15s ease;
 }
 .nav-icon-btn:hover {
-  transform: scale(1.1);
+  transform: scale(1.08);
 }
 .nav-icon-btn:active {
-  transform: scale(0.95);
+  transform: scale(0.93);
+}
+
+/* NavRail scrollbar hidden (Iteration 247) */
+nav[aria-label="Main navigation"]::-webkit-scrollbar {
+  display: none;
 }
 
 /* Tool output expand/collapse animation (Iteration 55) */

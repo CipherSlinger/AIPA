@@ -40,12 +40,12 @@ function NavItem({ icon, label, isActive, onClick, badge, shortcut }: NavItemPro
       onMouseLeave={handleMouseLeave}
       className="nav-icon-btn"
       style={{
-        width: 36,
-        height: 36,
+        width: 32,
+        height: 32,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 8,
+        borderRadius: 7,
         border: 'none',
         background: isActive
           ? 'rgba(255,255,255,0.08)'
@@ -54,7 +54,7 @@ function NavItem({ icon, label, isActive, onClick, badge, shortcut }: NavItemPro
           : 'transparent',
         cursor: 'pointer',
         position: 'relative',
-        marginBottom: 2,
+        marginBottom: 1,
         transition: 'background 0.15s ease',
         color: isActive
           ? 'var(--nav-icon-active)'
@@ -73,7 +73,7 @@ function NavItem({ icon, label, isActive, onClick, badge, shortcut }: NavItemPro
             top: '50%',
             transform: 'translateY(-50%)',
             width: 3,
-            height: 20,
+            height: 16,
             borderRadius: '0 2px 2px 0',
             background: 'var(--nav-indicator)',
             opacity: 1,
@@ -203,22 +203,23 @@ export default function NavRail() {
       role="navigation"
       aria-label="Main navigation"
       style={{
-        width: 48,
+        width: 44,
         flexShrink: 0,
         background: 'var(--bg-nav)',
         borderRight: '1px solid var(--border)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        paddingTop: 12,
-        paddingBottom: 12,
+        paddingTop: 8,
+        paddingBottom: 8,
         userSelect: 'none',
-        overflow: 'hidden',
+        overflowY: 'auto',
+        overflowX: 'hidden',
       }}
     >
       {/* New Chat */}
       <NavItem
-        icon={<MessageSquarePlus size={18} />}
+        icon={<MessageSquarePlus size={16} />}
         label={t('nav.newChat')}
         shortcut="Ctrl+N"
         onClick={handleNewChat}
@@ -226,7 +227,7 @@ export default function NavRail() {
 
       {/* History */}
       <NavItem
-        icon={<History size={18} />}
+        icon={<History size={16} />}
         label={t('nav.history')}
         shortcut="Ctrl+1"
         isActive={isHistoryActive}
@@ -236,7 +237,7 @@ export default function NavRail() {
 
       {/* Files */}
       <NavItem
-        icon={<FolderOpen size={18} />}
+        icon={<FolderOpen size={16} />}
         label={t('nav.files')}
         shortcut="Ctrl+2"
         isActive={isFilesActive}
@@ -245,7 +246,7 @@ export default function NavRail() {
 
       {/* Notes */}
       <NavItem
-        icon={<NotebookPen size={18} />}
+        icon={<NotebookPen size={16} />}
         label={t('nav.notes')}
         shortcut="Ctrl+3"
         isActive={isNotesActive}
@@ -255,7 +256,7 @@ export default function NavRail() {
 
       {/* Skills */}
       <NavItem
-        icon={<Puzzle size={18} />}
+        icon={<Puzzle size={16} />}
         label={t('nav.skills')}
         shortcut="Ctrl+4"
         isActive={isSkillsActive}
@@ -264,7 +265,7 @@ export default function NavRail() {
 
       {/* Memory */}
       <NavItem
-        icon={<Brain size={18} />}
+        icon={<Brain size={16} />}
         label={t('nav.memory')}
         shortcut="Ctrl+6"
         isActive={isMemoryActive}
@@ -274,7 +275,7 @@ export default function NavRail() {
 
       {/* Workflows */}
       <NavItem
-        icon={<Workflow size={18} />}
+        icon={<Workflow size={16} />}
         label={t('nav.workflows')}
         shortcut="Ctrl+7"
         isActive={isWorkflowsActive}
@@ -284,7 +285,7 @@ export default function NavRail() {
 
       {/* Schedules */}
       <NavItem
-        icon={<Clock size={18} />}
+        icon={<Clock size={16} />}
         label={t('nav.schedules')}
         shortcut="Ctrl+8"
         isActive={isSchedulesActive}
@@ -294,7 +295,7 @@ export default function NavRail() {
 
       {/* Prompt History */}
       <NavItem
-        icon={<ListRestart size={18} />}
+        icon={<ListRestart size={16} />}
         label={t('nav.promptHistory')}
         shortcut="Ctrl+9"
         isActive={isPromptHistoryActive}
@@ -304,7 +305,7 @@ export default function NavRail() {
 
       {/* Terminal */}
       <NavItem
-        icon={<TerminalSquare size={18} />}
+        icon={<TerminalSquare size={16} />}
         label={t('nav.terminal')}
         shortcut="Ctrl+`"
         onClick={handleTerminal}
@@ -315,25 +316,25 @@ export default function NavRail() {
 
       {/* Settings */}
       <NavItem
-        icon={<Settings size={18} />}
+        icon={<Settings size={16} />}
         label={t('nav.settings')}
         shortcut="Ctrl+5"
         isActive={isSettingsActive}
         onClick={() => setActiveNavItem('settings')}
       />
 
-      {/* Avatar — shows persona emoji when active, otherwise generic user icon */}
+      {/* Avatar -- shows persona emoji when active, otherwise generic user icon */}
       <div
         style={{
-          width: 36,
-          height: 36,
+          width: 30,
+          height: 30,
           borderRadius: '50%',
           background: activePersona ? `${activePersona.color}20` : 'var(--avatar-ai)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'default',
-          marginTop: 8,
+          marginTop: 6,
           flexShrink: 0,
           border: activePersona ? `2px solid ${activePersona.color}` : '2px solid transparent',
           transition: 'background 200ms, border-color 200ms',
@@ -342,8 +343,8 @@ export default function NavRail() {
         title={activePersona ? activePersona.name : t('nav.userProfile')}
       >
         {activePersona
-          ? <span style={{ fontSize: 18, lineHeight: 1 }}>{activePersona.emoji}</span>
-          : <User size={18} color="#ffffff" />
+          ? <span style={{ fontSize: 14, lineHeight: 1 }}>{activePersona.emoji}</span>
+          : <User size={14} color="#ffffff" />
         }
       </div>
     </nav>
