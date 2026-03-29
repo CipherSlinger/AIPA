@@ -155,13 +155,25 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Scroll-to-top button** — ArrowUp button appears when scrolled down in a conversation, enabling quick jump to the beginning; complements the existing scroll-to-bottom button
 - **Session duration** — session list items and hover tooltips show conversation duration (e.g., "12m", "1h 30m") calculated from first to last message timestamp
 - **Skill browser** — browse all installed Claude Code skills (personal and project-level) in a dedicated sidebar panel with search, detail view, and one-click invocation via slash command
-- **Skill marketplace** — curated collection of 34 community-sourced skills from Anthropic, OpenClaw, ClawhHub, and community contributors across 7 categories; source-based filtering (Anthropic/OpenClaw/ClawhHub/Community) and category filtering; i18n-translated descriptions and labels; one-click install with proper attribution and source links; "Browse on ClawhHub.ai" link for discovering more skills
+- **Skill marketplace** — curated collection of 46 community-sourced skills from Anthropic, OpenClaw, ClawhHub, and community contributors across 7 categories; source-based filtering (Anthropic/OpenClaw/ClawhHub/Community) and category filtering; i18n-translated descriptions and labels; one-click install with proper attribution and source links; "Browse on ClawhHub.ai" link for discovering more skills
 - **Skill management** — view skill details (SKILL.md content), delete personal skills with two-click confirmation, and install marketplace skills to `~/.claude/skills/`
 - **Follow-up suggestions** — after Claude finishes responding, 2-3 contextual follow-up chips appear (e.g., "Explain this code", "Key takeaways", "Give an example") based on content analysis of the response; click to instantly send
 - **Model quick-switcher** — click the model name badge in the chat header to open a dropdown and switch between all 8 Claude models instantly; also accessible from Command Palette (`Ctrl+Shift+P`) with searchable "Switch model to X" commands; selected model shown with checkmark and persisted to settings
 - **Lazy-loaded sidebar panels** — Settings, Notes, Skills, and File Browser panels use `React.lazy()` + `Suspense` for faster initial load; initial bundle reduced from 1,268 KB to 1,132 KB (-10.7%)
 - **Accessibility foundations** — focus trap for modal dialogs (CommandPalette, ImageLightbox) keeps Tab navigation within modal bounds; `role="dialog"` and `aria-modal` on overlays; `role="switch"` and `aria-checked` on toggle buttons; `aria-live="polite"` on toast notifications
 - **AI Personas** — create custom assistant profiles (up to 10) with their own name, emoji avatar, preferred model, system prompt, and badge color; quick-switch between personas from the chat header dropdown; activate a persona to automatically apply its model and system prompt; manage personas in Settings > Personas tab; inspired by OpenClaw's multi-agent architecture
+- **Ctrl+Home/End navigation** — jump instantly to the first or last message in a conversation; PageUp/PageDown scrolls by 80% of visible height; Alt+Up/Down jumps between user messages for quick review
+- **Time-gap separators** — subtle time markers appear between messages that are more than 30 minutes apart within the same day, making long conversations easier to scan
+- **Response time badges** — small "replied in Xs" badge between user message and assistant reply shows how long the AI took to respond (visible for responses taking 1s or more)
+- **Save to note from toolbar** — one-click NotebookPen button on assistant message hover toolbar saves the response as a note, promoting the feature from context-menu-only to immediate access
+- **Per-session draft persistence** — chat input drafts now persist per-session in localStorage; switching sessions restores the draft for that session with a toast notification
+- **Bookmarks & stats shortcuts** — `Ctrl+Shift+B` toggles bookmarks panel, `Ctrl+Shift+S` toggles stats panel; both added to shortcut cheatsheet
+- **Stats panel reading time** — stats popover now shows total character count and estimated reading time (based on 200 WPM) alongside word count
+- **Scroll lock during streaming** — lock/unlock button appears during streaming to prevent auto-scroll while reading earlier parts of a long response; auto-unlocks when streaming completes
+- **Bookmarks export** — export only bookmarked messages as a Markdown file via the bookmarks panel header
+- **Shortcut cheatsheet search** — search/filter input at the top of the shortcut cheatsheet for quick shortcut lookup by action name or key combo
+- **Note search highlighting** — search terms are highlighted in note titles and content snippets with accent-colored background; matching context shown around hits
+- **Cross-session search** — press Enter in the session search bar to search across all session files; results shown with match type badges, context snippets, and keyword highlighting; `Ctrl+Shift+F` opens global search from anywhere
 
 ## Security
 
