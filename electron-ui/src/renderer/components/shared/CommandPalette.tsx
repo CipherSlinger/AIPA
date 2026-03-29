@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import {
   Plus, Download, PanelLeft, Terminal, Settings, History,
   FolderOpen, Zap, Trash2, HelpCircle, Search, Cpu, Sparkles,
+  Brain, Workflow, Play, NotebookPen,
 } from 'lucide-react'
 import { useChatStore, useSessionStore, useUiStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
@@ -15,7 +16,7 @@ interface PaletteCommand {
   icon?: React.ReactNode
   shortcut?: string
   action: () => void
-  category: 'action' | 'slash' | 'session' | 'model' | 'persona'
+  category: 'action' | 'slash' | 'session' | 'model' | 'persona' | 'workflow'
 }
 
 interface CommandPaletteProps {
@@ -41,10 +42,11 @@ export default function CommandPalette({
 
   const {
     toggleSidebar, toggleTerminal, setSidebarTab,
-    setSidebarOpen,
+    setSidebarOpen, setActiveNavItem, addToast,
   } = useUiStore()
 
   const { sessions } = useSessionStore()
+  const addToQueue = useChatStore(s => s.addToQueue)
 
   // Build command list
   const commands = useMemo<PaletteCommand[]>(() => {
@@ -108,6 +110,33 @@ export default function CommandPalette({
         description: t('command.openFilesDesc'),
         icon: <FolderOpen size={14} />,
         action: () => { setSidebarOpen(true); setSidebarTab('files'); onClose() },
+        category: 'action',
+      },
+      {
+        id: 'open-notes',
+        name: t('command.openNotes'),
+        description: t('command.openNotesDesc'),
+        icon: <NotebookPen size={14} />,
+        shortcut: 'Ctrl+3',
+        action: () => { setActiveNavItem('notes'); onClose() },
+        category: 'action',
+      },
+      {
+        id: 'open-memory',
+        name: t('command.openMemory'),
+        description: t('command.openMemoryDesc'),
+        icon: <Brain size={14} />,
+        shortcut: 'Ctrl+6',
+        action: () => { setActiveNavItem('memory'); onClose() },
+        category: 'action',
+      },
+      {
+        id: 'open-workflows',
+        name: t('command.openWorkflows'),
+        description: t('command.openWorkflowsDesc'),
+        icon: <Workflow size={14} />,
+        shortcut: 'Ctrl+7',
+        action: () => { setActiveNavItem('workflows'); onClose() },
         category: 'action',
       },
       {
@@ -235,8 +264,27 @@ export default function CommandPalette({
       })
     }
 
+    // Add workflow run commands
+    const workflows = usePrefsStore.getState().prefs.workflows || []
+    for (const wf of workflows) {
+      cmds.push({
+        id: `workflow-${wf.id}`,
+        name: `${t('command.runWorkflow')}: ${wf.icon} ${wf.name}`,
+        description: `${wf.steps.length} ${t('workflow.stepsLabel')} — ${wf.description || t('command.runWorkflowDesc')}`,
+        icon: <Play size={14} />,
+        action: () => {
+          for (const step of wf.steps) {
+            addToQueue(step.prompt)
+          }
+          addToast('success', t('workflow.running', { name: wf.name, count: String(wf.steps.length) }))
+          onClose()
+        },
+        category: 'workflow',
+      })
+    }
+
     return cmds
-  }, [onClose, onExport, onNewConversation, onSendSlashCommand, toggleSidebar, toggleTerminal, setSidebarTab, setSidebarOpen, sessions, t])
+  }, [onClose, onExport, onNewConversation, onSendSlashCommand, toggleSidebar, toggleTerminal, setSidebarTab, setSidebarOpen, setActiveNavItem, addToQueue, addToast, sessions, t])
 
   // Filter commands by query
   const filtered = useMemo(() => {
@@ -406,7 +454,7 @@ export default function CommandPalette({
             >
               <span
                 style={{
-                  color: cmd.category === 'slash' ? 'var(--warning)' : cmd.category === 'session' ? 'var(--success)' : cmd.category === 'model' ? '#8b5cf6' : 'var(--accent)',
+                  color: cmd.category === 'slash' ? 'var(--warning)' : cmd.category === 'session' ? 'var(--success)' : cmd.category === 'model' ? '#8b5cf6' : cmd.category === 'workflow' ? '#10b981' : 'var(--accent)',
                   display: 'flex',
                   alignItems: 'center',
                   flexShrink: 0,
@@ -457,7 +505,7 @@ export default function CommandPalette({
                   {cmd.shortcut}
                 </kbd>
               )}
-              {(cmd.category === 'slash' || cmd.category === 'session' || cmd.category === 'model') && (
+              {(cmd.category === 'slash' || cmd.category === 'session' || cmd.category === 'model' || cmd.category === 'workflow') && (
                 <span
                   style={{
                     fontSize: 9,
@@ -468,7 +516,7 @@ export default function CommandPalette({
                     flexShrink: 0,
                   }}
                 >
-                  {cmd.category === 'slash' ? 'slash' : cmd.category === 'model' ? 'model' : 'session'}
+                  {cmd.category === 'slash' ? 'slash' : cmd.category === 'model' ? 'model' : cmd.category === 'workflow' ? 'workflow' : 'session'}
                 </span>
               )}
             </div>
