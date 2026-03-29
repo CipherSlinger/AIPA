@@ -47,6 +47,9 @@ const SHORTCUTS = [
     { keys: 'Ctrl + Shift + F', actionKey: 'globalSearch' },
     { keys: 'Ctrl + Shift + E', actionKey: 'exportConversation' },
     { keys: 'Ctrl + Shift + X', actionKey: 'copyConversation' },
+    { keys: 'Ctrl + Home', actionKey: 'jumpToFirstMessage' },
+    { keys: 'Ctrl + End', actionKey: 'jumpToLastMessage' },
+    { keys: 'PageUp / PageDown', actionKey: 'pageUpDown' },
     { keys: 'Right-click', actionKey: 'messageContextMenu' },
   ]},
 ]

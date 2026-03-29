@@ -170,6 +170,26 @@ export default function ChatPanel() {
           if (prompt) sendMessage(prompt)
         }
       }
+      // Ctrl+Home: Jump to first message
+      if (e.ctrlKey && !e.shiftKey && e.key === 'Home') {
+        e.preventDefault()
+        window.dispatchEvent(new CustomEvent('aipa:scrollToFirst'))
+      }
+      // Ctrl+End: Jump to last message
+      if (e.ctrlKey && !e.shiftKey && e.key === 'End') {
+        e.preventDefault()
+        window.dispatchEvent(new CustomEvent('aipa:scrollToLast'))
+      }
+      // Page Up / Page Down: Chunk scroll in message list
+      if ((e.key === 'PageUp' || e.key === 'PageDown') && !e.ctrlKey && !e.shiftKey) {
+        // Only intercept if not in a textarea/input
+        const activeEl = document.activeElement
+        const inInput = activeEl instanceof HTMLTextAreaElement || activeEl instanceof HTMLInputElement
+        if (!inInput) {
+          e.preventDefault()
+          window.dispatchEvent(new CustomEvent('aipa:pageScroll', { detail: e.key === 'PageUp' ? 'up' : 'down' }))
+        }
+      }
       // Escape to stop streaming (only when no popup/modal is active)
       if (e.key === 'Escape' && !e.ctrlKey && !e.shiftKey && !e.altKey) {
         const state = useChatStore.getState()

@@ -25,7 +25,8 @@ function formatDateLabel(ts: number, t: (key: string) => string): string {
 
 type ListItem = { type: 'message'; msg: ChatMessage; msgIdx: number } | { type: 'dateSep'; label: string }
 
-// Store scroll positions per session so switching back restores position
+// Store scroll positions per session (as percentage 0-1) so switching back restores position
+// Using percentage-based storage for better cross-window-resize behavior
 const scrollPositionMap = new Map<string, number>()
 
 interface Props {
@@ -120,22 +121,26 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   // Save scroll position when session changes, restore for new session
   useEffect(() => {
     if (prevSessionIdRef.current && prevSessionIdRef.current !== sessionId) {
-      // Save old position
+      // Save old position as percentage (0-1) for cross-resize compatibility
       const el = scrollContainerRef.current
       if (el) {
-        scrollPositionMap.set(prevSessionIdRef.current, el.scrollTop)
+        const scrollable = el.scrollHeight - el.clientHeight
+        const pct = scrollable > 0 ? el.scrollTop / scrollable : 1
+        scrollPositionMap.set(prevSessionIdRef.current, pct)
       }
     }
     prevSessionIdRef.current = sessionId
 
-    // Restore position for new session
+    // Restore position for new session (convert percentage back to pixels)
     if (sessionId && scrollPositionMap.has(sessionId)) {
-      const saved = scrollPositionMap.get(sessionId)!
+      const savedPct = scrollPositionMap.get(sessionId)!
       requestAnimationFrame(() => {
         const el = scrollContainerRef.current
         if (el) {
-          el.scrollTop = saved
-          isNearBottomRef.current = el.scrollHeight - saved - el.clientHeight < 80
+          const scrollable = el.scrollHeight - el.clientHeight
+          const targetScroll = Math.round(savedPct * scrollable)
+          el.scrollTop = targetScroll
+          isNearBottomRef.current = el.scrollHeight - targetScroll - el.clientHeight < 80
           setShowScrollBtn(!isNearBottomRef.current)
         }
       })
@@ -209,6 +214,35 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       }
     }
   }, [scrollToMessageIdx, virtualizer, items])
+
+  // Keyboard navigation: Ctrl+Home (first), Ctrl+End (last), PageUp/Down
+  useEffect(() => {
+    const handleScrollToFirst = () => {
+      if (items.length > 0) {
+        virtualizer.scrollToIndex(0, { align: 'start', behavior: 'smooth' })
+      }
+    }
+    const handleScrollToLast = () => {
+      if (items.length > 0) {
+        virtualizer.scrollToIndex(items.length - 1, { align: 'end', behavior: 'smooth' })
+      }
+    }
+    const handlePageScroll = (e: Event) => {
+      const direction = (e as CustomEvent).detail as 'up' | 'down'
+      const el = scrollContainerRef.current
+      if (!el) return
+      const pageSize = el.clientHeight * 0.8 // Scroll 80% of visible height
+      el.scrollBy({ top: direction === 'up' ? -pageSize : pageSize, behavior: 'smooth' })
+    }
+    window.addEventListener('aipa:scrollToFirst', handleScrollToFirst)
+    window.addEventListener('aipa:scrollToLast', handleScrollToLast)
+    window.addEventListener('aipa:pageScroll', handlePageScroll)
+    return () => {
+      window.removeEventListener('aipa:scrollToFirst', handleScrollToFirst)
+      window.removeEventListener('aipa:scrollToLast', handleScrollToLast)
+      window.removeEventListener('aipa:pageScroll', handlePageScroll)
+    }
+  }, [items.length, virtualizer])
 
   const renderMessage = useCallback((msg: ChatMessage, isHighlighted: boolean, msgIdx: number) => {
     if (msg.role === 'permission') {
