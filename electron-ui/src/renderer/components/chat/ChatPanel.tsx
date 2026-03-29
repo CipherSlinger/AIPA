@@ -55,6 +55,18 @@ export default function ChatPanel() {
 
   useChatPanelShortcuts(exportConversation, copyConversation, setSearchOpen, sendMessage, abort)
 
+  // Listen for external send prompt events (from SelectionToolbar)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const prompt = (e as CustomEvent).detail as string
+      if (prompt && !isStreaming) {
+        sendMessage(prompt)
+      }
+    }
+    window.addEventListener('aipa:sendPrompt', handler)
+    return () => window.removeEventListener('aipa:sendPrompt', handler)
+  }, [sendMessage, isStreaming])
+
   // Scroll-to-message state (for bookmarks panel)
   const [scrollToMessageIdx, setScrollToMessageIdx] = useState<number | undefined>(undefined)
   const [contextWarningDismissed, setContextWarningDismissed] = useState(false)

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Copy, MessageSquareQuote, StickyNote, Check } from 'lucide-react'
+import { Copy, MessageSquareQuote, StickyNote, Check, Languages, Lightbulb } from 'lucide-react'
 import { useUiStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 import { Note } from '../../types/app.types'
@@ -133,6 +133,26 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
     window.getSelection()?.removeAllRanges()
   }, [selectedText, addToast, t])
 
+  const handleTranslate = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const lang = usePrefsStore.getState().prefs.language
+    const targetLang = lang === 'zh-CN' ? 'English' : 'Chinese'
+    const prompt = `Translate the following text to ${targetLang}:\n\n${selectedText}`
+    window.dispatchEvent(new CustomEvent('aipa:sendPrompt', { detail: prompt }))
+    setVisible(false)
+    window.getSelection()?.removeAllRanges()
+  }, [selectedText])
+
+  const handleExplain = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const prompt = `Explain the following in simple terms:\n\n${selectedText}`
+    window.dispatchEvent(new CustomEvent('aipa:sendPrompt', { detail: prompt }))
+    setVisible(false)
+    window.getSelection()?.removeAllRanges()
+  }, [selectedText])
+
   if (!visible || !selectedText) return null
 
   // Calculate position relative to viewport
@@ -239,6 +259,59 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
       >
         <StickyNote size={13} />
         <span>{t('selection.note')}</span>
+      </button>
+
+      {/* Separator */}
+      <div style={{ width: 1, height: 16, background: 'var(--popup-border)', flexShrink: 0 }} />
+
+      {/* Translate */}
+      <button
+        onClick={handleTranslate}
+        title={t('selection.translate')}
+        style={{
+          background: 'transparent',
+          border: 'none',
+          borderRadius: 5,
+          padding: '4px 6px',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 3,
+          color: 'var(--text-muted)',
+          fontSize: 11,
+          transition: 'background 0.12s ease, color 0.12s ease',
+          whiteSpace: 'nowrap',
+        }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+      >
+        <Languages size={13} />
+        <span>{t('selection.translate')}</span>
+      </button>
+
+      {/* Explain */}
+      <button
+        onClick={handleExplain}
+        title={t('selection.explain')}
+        style={{
+          background: 'transparent',
+          border: 'none',
+          borderRadius: 5,
+          padding: '4px 6px',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 3,
+          color: 'var(--text-muted)',
+          fontSize: 11,
+          transition: 'background 0.12s ease, color 0.12s ease',
+          whiteSpace: 'nowrap',
+        }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+      >
+        <Lightbulb size={13} />
+        <span>{t('selection.explain')}</span>
       </button>
     </div>
   )

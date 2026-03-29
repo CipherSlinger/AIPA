@@ -246,7 +246,9 @@
     "quoteSelection": "Quote selected text",
     "quote": "Quote",
     "saveToNotes": "Save selection to Notes",
-    "note": "Note"
+    "note": "Note",
+    "translate": "Translate",
+    "explain": "Explain"
   },
   "session": {
     "search": "Search sessions...",

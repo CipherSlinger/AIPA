@@ -2116,3 +2116,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 235 (2026-03-28)
 - Message text-to-speech (Read Aloud) -- Volume2 button in assistant message hover toolbar uses Web Speech API (speechSynthesis) to read message content aloud; markdown formatting stripped for cleaner speech (code blocks replaced with "code block omitted", bold/italic/links/headings cleaned); VolumeX icon shown while speaking; click again to stop; utterance cleanup on unmount; i18n: 2 new keys (readAloud, stopReading) in en.json and zh-CN.json; 4 files changed; build SUCCESS
+
+### Iteration 236 (2026-03-28)
+- Selection toolbar translate + explain actions -- added Translate (Languages icon) and Explain (Lightbulb icon) buttons to the text selection floating toolbar; selecting text in any message now shows 5 actions: Copy, Quote, Note, Translate, Explain; Translate auto-detects target language based on current UI language (Chinese UI -> translate to English, English UI -> translate to Chinese); Explain sends "Explain in simple terms" prompt; both actions dispatch aipa:sendPrompt custom event handled by ChatPanel to immediately send the prompt; ChatPanel.tsx adds sendPrompt event listener; i18n: 2 new keys (selection.translate, selection.explain) in en.json and zh-CN.json; 4 files changed; build SUCCESS
