@@ -274,6 +274,14 @@ export default function App() {
         setPrefs({ theme: newTheme })
         window.electronAPI.prefsSet('theme', newTheme)
       }
+      // Ctrl+Shift+L: Toggle language (en <-> zh-CN)
+      if (e.ctrlKey && e.shiftKey && e.key === 'L') {
+        e.preventDefault()
+        const currentLang = usePrefsStore.getState().prefs.language || 'en'
+        const newLang = currentLang === 'zh-CN' ? 'en' : 'zh-CN'
+        setPrefs({ language: newLang })
+        window.electronAPI.prefsSet('language', newLang)
+      }
       // Ctrl+1-9: Switch sidebar tabs
       if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key >= '1' && e.key <= '9') {
         e.preventDefault()

@@ -2212,3 +2212,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 267 (2026-03-29)
 - Response tone selector -- Palette icon pill in InputToolbar lets users pick a response tone (Default/Concise/Detailed/Professional/Casual/Creative) that modifies how Claude responds; selected tone injected as `<response_tone>` block in system prompt via useStreamJson; popup dropdown with checkmark on active tone; pill highlights when non-default tone active; tone persists via electron-store; responseTone field added to ClaudePrefs; i18n: 7 new keys under tone namespace in en.json and zh-CN.json; 5 files changed; build SUCCESS
+
+### Iteration 268 (2026-03-29)
+- Quick language toggle shortcut -- Ctrl+Shift+L toggles UI language between English and Chinese instantly; mirrors the Ctrl+Shift+D theme toggle pattern; added to shortcut cheatsheet; i18n: 1 new key (toggleLanguage) in en.json and zh-CN.json; 4 files changed; build SUCCESS

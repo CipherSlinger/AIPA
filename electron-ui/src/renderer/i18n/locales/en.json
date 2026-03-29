@@ -678,6 +678,7 @@
     "toggleNotes": "Toggle notes panel",
     "collapseExpandAll": "Collapse/expand all",
     "toggleTheme": "Toggle dark/light theme",
+    "toggleLanguage": "Toggle language (EN/CN)",
     "prevNextSession": "Previous/next session",
     "switchSidebarTab": "Switch sidebar tab (History/Files/Notes/Skills/Settings/Memory/Workflows)",
     "quickSearch": "Focus session search",
