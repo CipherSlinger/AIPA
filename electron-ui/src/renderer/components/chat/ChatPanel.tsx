@@ -124,6 +124,26 @@ export default function ChatPanel() {
     }
   }, [messages, currentSessionId, addToast, t])
 
+  // ── Export bookmarks only ──────────────────────────
+  const exportBookmarks = useCallback(async () => {
+    if (bookmarkedMessages.length === 0) return
+    const bookmarkedMsgs = bookmarkedMessages.map(b => b.msg)
+    const now = new Date()
+    const ts = now.toISOString().replace(/[:.]/g, '-').slice(0, 19)
+    const defaultName = `aipa-bookmarks-${ts}`
+    const filePath = await window.electronAPI.fsShowSaveDialog(defaultName, [
+      { name: 'Markdown', extensions: ['md'] },
+    ])
+    if (!filePath) return
+    const content = formatMarkdown(bookmarkedMsgs, currentSessionId, now, currentSessionTitle, prefs.model)
+    const result = await window.electronAPI.fsWriteFile(filePath, content)
+    if (result?.error) {
+      addToast('error', t('chat.exportFailed', { error: result.error }))
+    } else {
+      addToast('success', t('chat.bookmarksExported'))
+    }
+  }, [bookmarkedMessages, currentSessionId, currentSessionTitle, prefs.model, addToast, t])
+
   // ── Copy conversation to clipboard ──────────────────────────
   const copyConversation = useCallback(async () => {
     if (messages.length === 0) return
@@ -381,6 +401,7 @@ export default function ChatPanel() {
         onNewConversation={newConversation}
         onRegenerate={handleRegenerate}
         onScrollToMessage={handleScrollToMessage}
+        onExportBookmarks={exportBookmarks}
       />
 
       {/* Search bar */}

@@ -2052,3 +2052,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 215 (2026-03-29)
 - Skills marketplace expansion -- added 12 new skills to the curated marketplace: 4 OpenClaw skills (Code Explainer, Changelog Generator, Prompt Engineer, Regex Wizard) and 8 Community skills (Decision Matrix, Interview Prep Coach, Content Calendar, Budget Planner, Learning Path Designer, Presentation Builder, Contract Reviewer); total marketplace catalog increased from 34 to 46 skills; all new skills have full SKILL.md content, sourceUrl, descriptionZh Chinese translations, and proper author/source attribution; addresses user feedback "openhub上的skill数量肯定不止这么少"; build SUCCESS
+
+### Iteration 216 (2026-03-29)
+- Bookmarks panel polish -- (1) Role avatar icons replace text labels in bookmarks dropdown (User/Bot mini circles with avatar colors); (2) Relative timestamps shown under each bookmark preview; (3) Export bookmarks button (Download icon) in panel header exports only bookmarked messages as Markdown file; (4) Empty state enhanced with shortcut hint "Or click the bookmark icon on hover"; (5) Bookmark count shown in panel header title; 3 new i18n keys (bookmarkShortcutHint, exportBookmarks, bookmarksExported) in en.json and zh-CN.json; 5 files changed; build SUCCESS

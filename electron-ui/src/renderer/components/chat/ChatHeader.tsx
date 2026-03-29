@@ -27,6 +27,7 @@ interface ChatHeaderProps {
   onNewConversation: () => void
   onRegenerate: () => void
   onScrollToMessage: (idx: number) => void
+  onExportBookmarks: () => void
 }
 
 /** Shared header button styling */
@@ -78,6 +79,7 @@ export default function ChatHeader({
   onNewConversation,
   onRegenerate,
   onScrollToMessage,
+  onExportBookmarks,
 }: ChatHeaderProps) {
   const t = useT()
   const [isEditingTitle, setIsEditingTitle] = useState(false)
@@ -282,6 +284,7 @@ export default function ChatHeader({
       <BookmarksPanel
         bookmarkedMessages={bookmarkedMessages}
         onScrollToMessage={onScrollToMessage}
+        onExportBookmarks={bookmarkedMessages.length > 0 ? onExportBookmarks : undefined}
         headerBtnStyle={headerBtnStyle}
         hoverIn={hoverIn}
         hoverOut={hoverOut}

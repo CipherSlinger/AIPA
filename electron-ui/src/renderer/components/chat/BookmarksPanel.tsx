@@ -1,13 +1,15 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
-import { Bookmark } from 'lucide-react'
+import { Bookmark, Download, User, Bot } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useClickOutside } from '../../hooks/useClickOutside'
+import { relativeTime } from './messageUtils'
 import type { BookmarkedMessage } from '../../hooks/useConversationStats'
 import type { StandardChatMessage } from '../../types/app.types'
 
 interface BookmarksPanelProps {
   bookmarkedMessages: BookmarkedMessage[]
   onScrollToMessage: (idx: number) => void
+  onExportBookmarks?: () => void
   headerBtnStyle: React.CSSProperties
   hoverIn: (e: React.MouseEvent<HTMLButtonElement>, active?: boolean) => void
   hoverOut: (e: React.MouseEvent<HTMLButtonElement>, active?: boolean, defaultColor?: string) => void
@@ -16,6 +18,7 @@ interface BookmarksPanelProps {
 export default function BookmarksPanel({
   bookmarkedMessages,
   onScrollToMessage,
+  onExportBookmarks,
   headerBtnStyle,
   hoverIn,
   hoverOut,
@@ -86,12 +89,24 @@ export default function BookmarksPanel({
             marginTop: 4,
           }}
         >
-          <div style={{ padding: '6px 12px', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, borderBottom: '1px solid var(--border)' }}>
-            {t('chat.bookmarks')}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, borderBottom: '1px solid var(--border)' }}>
+            <span>{t('chat.bookmarks')} ({bookmarkedMessages.length})</span>
+            {onExportBookmarks && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onExportBookmarks() }}
+                title={t('chat.exportBookmarks')}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', padding: 2, borderRadius: 4 }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)' }}
+              >
+                <Download size={12} />
+              </button>
+            )}
           </div>
           {bookmarkedMessages.map(({ msg, idx }) => {
             const std = msg as StandardChatMessage
             const preview = (std.content || '').slice(0, 80).replace(/\n/g, ' ')
+            const isUserMsg = std.role === 'user'
             return (
               <button
                 key={msg.id}
@@ -100,7 +115,9 @@ export default function BookmarksPanel({
                   setShowBookmarks(false)
                 }}
                 style={{
-                  display: 'block',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 8,
                   width: '100%',
                   textAlign: 'left',
                   background: 'none',
@@ -110,17 +127,28 @@ export default function BookmarksPanel({
                   color: 'var(--text-primary)',
                   fontSize: 12,
                   lineHeight: 1.4,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
               >
-                <span style={{ color: 'var(--text-muted)', fontSize: 10, marginRight: 6 }}>
-                  {std.role === 'user' ? t('chat.you') : t('chat.claude')}
-                </span>
-                {preview || t('chat.emptyPreview')}
+                <div style={{
+                  width: 20, height: 20, borderRadius: '50%',
+                  background: isUserMsg ? 'var(--avatar-user)' : 'var(--avatar-ai)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0, marginTop: 1,
+                }}>
+                  {isUserMsg ? <User size={10} color="#ffffff" /> : <Bot size={10} color="#ffffff" />}
+                </div>
+                <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
+                  <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {preview || t('chat.emptyPreview')}
+                  </div>
+                  {std.timestamp && (
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2, opacity: 0.7 }}>
+                      {relativeTime(std.timestamp, t)}
+                    </div>
+                  )}
+                </div>
               </button>
             )
           })}
@@ -147,6 +175,7 @@ export default function BookmarksPanel({
         >
           {t('chat.noBookmarks')}
           <div style={{ fontSize: 10, marginTop: 4 }}>{t('chat.bookmarkHint')}</div>
+          <div style={{ fontSize: 10, marginTop: 2, opacity: 0.7 }}>{t('chat.bookmarkShortcutHint')}</div>
         </div>
       )}
     </div>
