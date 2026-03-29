@@ -2194,3 +2194,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 261 (2026-03-29)
 - Pinned messages -- pin important messages to the top of the chat for quick reference; Pin button in message hover toolbar and right-click context menu; pinned messages strip at top of MessageList with collapsible header showing Pin icon + count; each pinned preview shows role label, content snippet (120 chars), click to scroll to message; pin indicator (rotated Pin icon in accent color) on message bubble; togglePin action in Zustand store; i18n for en + zh-CN (5 new keys: pinMessage, unpinMessage, pinnedMessage, unpinned, pinnedMessages); 9 files changed; build SUCCESS
+
+### Iteration 262 (2026-03-29)
+- Text snippets with ::keyword trigger -- type ::keyword in chat input to expand reusable text snippets; popup shows matching snippets with keyword and content preview; keyboard navigation (arrows, Enter/Tab to select, Esc to dismiss); snippet management UI in Settings > Templates tab with full CRUD (add keyword + content, inline edit, two-click delete); TextSnippet interface added to app.types.ts; snippets persisted via electron-store (max 50); i18n: 11 new keys under snippet namespace in en.json and zh-CN.json; 5 files changed; build SUCCESS

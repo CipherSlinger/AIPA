@@ -10,7 +10,7 @@ import { useImagePaste, ImageAttachment } from '../../hooks/useImagePaste'
 import { useChatInputDraft } from '../../hooks/useChatInputDraft'
 import { useChatInputHistory } from '../../hooks/useChatInputHistory'
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition'
-import { PromptHistoryItem } from '../../types/app.types'
+import { PromptHistoryItem, TextSnippet } from '../../types/app.types'
 import { useT } from '../../i18n'
 
 interface ChatInputProps {
@@ -80,6 +80,16 @@ export default function ChatInput({
   const [slashQuery, setSlashQuery] = useState<string | null>(null)
   const [slashIndex, setSlashIndex] = useState(0)
   const [customCommands, setCustomCommands] = useState<{ name: string; description: string }[]>([])
+
+  // Text snippet state (::keyword trigger)
+  const [snippetQuery, setSnippetQuery] = useState<string | null>(null)
+  const [snippetIndex, setSnippetIndex] = useState(0)
+  const textSnippets: TextSnippet[] = usePrefsStore(s => s.prefs.textSnippets || [])
+  const filteredSnippets = useMemo(() => {
+    if (snippetQuery === null || textSnippets.length === 0) return []
+    const q = snippetQuery.toLowerCase()
+    return textSnippets.filter(s => s.keyword.toLowerCase().startsWith(q)).slice(0, 8)
+  }, [snippetQuery, textSnippets])
 
   // Rotating placeholder
   const [placeholderIdx, setPlaceholderIdx] = useState(0)
@@ -242,6 +252,13 @@ export default function ChatInput({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (atQuery !== null && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === 'Escape')) return
     if (slashQuery !== null && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === 'Escape')) return
+    // Snippet popup keyboard navigation
+    if (snippetQuery !== null && filteredSnippets.length > 0) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); setSnippetIndex(i => Math.min(i + 1, filteredSnippets.length - 1)); return }
+      if (e.key === 'ArrowUp') { e.preventDefault(); setSnippetIndex(i => Math.max(i - 1, 0)); return }
+      if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); handleSnippetSelect(filteredSnippets[snippetIndex]); return }
+      if (e.key === 'Escape') { e.preventDefault(); setSnippetQuery(null); return }
+    }
 
     if (e.key === 'ArrowUp' && !e.shiftKey && atQuery === null && slashQuery === null) {
       const ta = textareaRef.current
@@ -290,6 +307,10 @@ export default function ChatInput({
     const slashMatch = textBefore.match(/(?:^|\s)(\/[^\s]*)$/)
     if (slashMatch) { setSlashQuery(slashMatch[1].slice(1)); setSlashIndex(0); setAtQuery(null) }
     else if (!atMatch) { setSlashQuery(null) }
+    // Detect ::keyword for text snippets
+    const snippetMatch = textBefore.match(/::(\w*)$/)
+    if (snippetMatch && !atMatch && !slashMatch) { setSnippetQuery(snippetMatch[1]); setSnippetIndex(0) }
+    else { setSnippetQuery(null) }
   }
 
   const handleAtSelect = (filePath: string) => {
@@ -302,6 +323,19 @@ export default function ChatInput({
       setInput(replaced)
     }
     setAtQuery(null)
+    textareaRef.current?.focus()
+  }
+
+  const handleSnippetSelect = (snippet: TextSnippet) => {
+    const cursor = textareaRef.current?.selectionStart ?? input.length
+    const textBefore = input.slice(0, cursor)
+    const textAfter = input.slice(cursor)
+    const snippetMatch = textBefore.match(/::(\w*)$/)
+    if (snippetMatch) {
+      const replaced = textBefore.slice(0, textBefore.length - snippetMatch[0].length) + snippet.content + textAfter
+      setInput(replaced)
+    }
+    setSnippetQuery(null)
     textareaRef.current?.focus()
   }
 
@@ -564,6 +598,73 @@ export default function ChatInput({
           {/* Popups */}
           {atQuery !== null && <AtMentionPopup query={atQuery} onSelect={handleAtSelect} onDismiss={() => setAtQuery(null)} anchorRef={inputWrapRef as React.RefObject<HTMLElement>} />}
           {slashQuery !== null && <SlashCommandPopup query={slashQuery} onSelect={handleSlashSelect} onDismiss={() => setSlashQuery(null)} selectedIndex={slashIndex} onHover={setSlashIndex} extraCommands={customCommands} />}
+          {/* Text snippet popup */}
+          {snippetQuery !== null && filteredSnippets.length > 0 && (
+            <div
+              className="popup-enter"
+              style={{
+                position: 'absolute',
+                bottom: '100%',
+                left: 0,
+                marginBottom: 4,
+                width: 320,
+                maxHeight: 240,
+                overflowY: 'auto',
+                background: 'var(--popup-bg)',
+                border: '1px solid var(--popup-border)',
+                borderRadius: 8,
+                boxShadow: 'var(--popup-shadow)',
+                padding: '4px 0',
+                zIndex: 50,
+              }}
+            >
+              <div style={{ padding: '4px 10px 2px', fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, letterSpacing: 0.3 }}>
+                {t('snippet.title')}
+              </div>
+              {filteredSnippets.map((snippet, idx) => (
+                <button
+                  key={snippet.id}
+                  onClick={() => handleSnippetSelect(snippet)}
+                  onMouseEnter={() => setSnippetIndex(idx)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 8,
+                    padding: '6px 10px',
+                    background: idx === snippetIndex ? 'var(--popup-item-hover)' : 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    width: '100%',
+                    textAlign: 'left',
+                    borderRadius: 0,
+                  }}
+                >
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: 'var(--accent)',
+                    fontFamily: 'monospace',
+                    flexShrink: 0,
+                    minWidth: 48,
+                  }}>
+                    ::{snippet.keyword}
+                  </span>
+                  <span style={{
+                    fontSize: 11,
+                    color: 'var(--text-primary)',
+                    overflow: 'hidden',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    lineHeight: 1.4,
+                    opacity: 0.8,
+                  }}>
+                    {snippet.content.length > 80 ? snippet.content.slice(0, 80) + '...' : snippet.content}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
           {/* Textarea */}
           <div style={{ position: 'relative', flex: 1 }}>
             <textarea

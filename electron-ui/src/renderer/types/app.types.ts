@@ -109,6 +109,13 @@ export interface ClaudePrefs {
   workflows?: Workflow[]   // prompt chain workflows (max 50, persisted via electron-store)
   scheduledPrompts?: ScheduledPrompt[]  // scheduled/recurring prompts (max 30, persisted via electron-store)
   promptHistory?: PromptHistoryItem[]   // prompt send history for analytics (max 200, persisted via electron-store)
+  textSnippets?: TextSnippet[]          // user-defined text snippets triggered by ::keyword (max 50)
+}
+
+export interface TextSnippet {
+  id: string           // unique id
+  keyword: string      // trigger keyword (e.g., 'sig', 'email', 'addr') -- no spaces, max 20 chars
+  content: string      // snippet content to insert (max 2000 chars)
 }
 
 export interface Note {

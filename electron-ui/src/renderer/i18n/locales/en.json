@@ -1037,6 +1037,18 @@
     "footer": "Recurring prompts inspired by OpenClaw Cron",
     "inspired": "Inspired by OpenClaw Cron"
   },
+  "snippet": {
+    "title": "Text Snippets",
+    "keyword": "Keyword",
+    "content": "Content",
+    "keywordPlaceholder": "e.g., sig, email, addr",
+    "contentPlaceholder": "Snippet text to insert when triggered...",
+    "triggerHint": "Type ::keyword in chat to expand",
+    "hint": "Define reusable text snippets triggered by typing ::keyword in the chat input.",
+    "add": "Add Snippet",
+    "empty": "No snippets yet. Create one to quickly insert reusable text.",
+    "limitReached": "Maximum 50 snippets reached."
+  },
   "promptHistory": {
     "title": "Prompt History",
     "search": "Search prompts...",
