@@ -486,7 +486,9 @@
     "stopRecording": "Stop recording",
     "voiceInput": "Voice input",
     "favoritePrompts": "Favorite prompts",
-    "emoji": "Insert emoji"
+    "emoji": "Insert emoji",
+    "saveAsNote": "Save input as note",
+    "savedAsNote": "Input saved to Notes"
   },
   "transform": {
     "title": "Transform text",

@@ -2197,3 +2197,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 262 (2026-03-29)
 - Text snippets with ::keyword trigger -- type ::keyword in chat input to expand reusable text snippets; popup shows matching snippets with keyword and content preview; keyboard navigation (arrows, Enter/Tab to select, Esc to dismiss); snippet management UI in Settings > Templates tab with full CRUD (add keyword + content, inline edit, two-click delete); TextSnippet interface added to app.types.ts; snippets persisted via electron-store (max 50); i18n: 11 new keys under snippet namespace in en.json and zh-CN.json; 5 files changed; build SUCCESS
+
+### Iteration 263 (2026-03-29)
+- Save input as note button -- StickyNote icon button in InputToolbar saves current chat input text directly as a new note without sending to Claude; creates note with auto-generated title (first 50 chars); respects 100 note limit; button disabled when input is empty; green hover accent; toast confirmation; bridges Chat and Notes features; i18n: 2 new keys (toolbar.saveAsNote, toolbar.savedAsNote) in en.json and zh-CN.json; 3 files changed; build SUCCESS

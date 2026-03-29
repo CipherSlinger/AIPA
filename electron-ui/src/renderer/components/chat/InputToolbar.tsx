@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { AtSign, TerminalSquare, Mic, MicOff, ListPlus, Cpu, Star, Calendar, Smile, Wand2 } from 'lucide-react'
+import { AtSign, TerminalSquare, Mic, MicOff, ListPlus, Cpu, Star, Calendar, Smile, Wand2, StickyNote } from 'lucide-react'
 import { useT } from '../../i18n'
-import { usePrefsStore, useChatStore } from '../../store'
+import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import ClipboardActionsMenu from './ClipboardActionsMenu'
 import { toolbarBtnStyle, toolbarHoverIn, toolbarHoverOut } from './chatInputConstants'
-import { PromptHistoryItem } from '../../types/app.types'
+import { PromptHistoryItem, Note } from '../../types/app.types'
 
 interface InputToolbarProps {
   listening: boolean
@@ -169,6 +169,8 @@ export default function InputToolbar({
           )}
         </div>
       )}
+      {/* Save input as note */}
+      <SaveAsNoteButton inputText={inputText} />
       {/* Model indicator chip */}
       <button
         onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, shiftKey: true, key: 'P' }))}
@@ -548,5 +550,53 @@ function TextTransformMenu({ inputText, onSend }: { inputText: string; onSend: (
         </div>
       )}
     </div>
+  )
+}
+
+// Save current input text as a new note
+function SaveAsNoteButton({ inputText }: { inputText: string }) {
+  const t = useT()
+  const addToast = useUiStore(s => s.addToast)
+  const hasText = inputText.trim().length > 0
+
+  const handleSave = () => {
+    const text = inputText.trim()
+    if (!text) return
+    const MAX_NOTES = 100
+    const currentNotes: Note[] = usePrefsStore.getState().prefs.notes || []
+    if (currentNotes.length >= MAX_NOTES) {
+      addToast(t('message.notesLimitReached'), 'error')
+      return
+    }
+    const now = Date.now()
+    const title = text.slice(0, 50) + (text.length > 50 ? '...' : '')
+    const newNote: Note = {
+      id: `note-${now}-${Math.random().toString(36).slice(2, 8)}`,
+      title,
+      content: text,
+      createdAt: now,
+      updatedAt: now,
+    }
+    const updated = [newNote, ...currentNotes]
+    usePrefsStore.getState().setPrefs({ notes: updated })
+    window.electronAPI.prefsSet('notes', updated)
+    addToast(t('toolbar.savedAsNote'), 'success')
+  }
+
+  return (
+    <button
+      onClick={handleSave}
+      disabled={!hasText}
+      title={t('toolbar.saveAsNote')}
+      style={{
+        ...toolbarBtnStyle,
+        opacity: hasText ? 1 : 0.4,
+        cursor: hasText ? 'pointer' : 'not-allowed',
+      }}
+      onMouseEnter={(e) => { if (hasText) { e.currentTarget.style.color = '#22c55e'; e.currentTarget.style.background = 'rgba(34, 197, 94, 0.10)' } }}
+      onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--input-toolbar-icon)'; e.currentTarget.style.background = 'none' }}
+    >
+      <StickyNote size={16} />
+    </button>
   )
 }
