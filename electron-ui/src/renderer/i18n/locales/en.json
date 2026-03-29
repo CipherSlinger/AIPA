@@ -262,6 +262,7 @@
     "tabs": {
       "general": "General",
       "templates": "Templates",
+      "personas": "Personas",
       "mcp": "MCP Servers",
       "about": "About"
     },
@@ -772,5 +773,37 @@
     "simplifyPrompt": "Can you explain this in simpler terms?",
     "giveExample": "Give an example",
     "giveExamplePrompt": "Can you give me a practical example?"
+  },
+  "persona": {
+    "title": "AI Personas",
+    "subtitle": "Create custom assistant profiles with their own personality, model, and behavior",
+    "addPersona": "New Persona",
+    "editPersona": "Edit Persona",
+    "deletePersona": "Delete Persona",
+    "deleteConfirm": "Delete this persona? This cannot be undone.",
+    "name": "Name",
+    "namePlaceholder": "e.g., Writing Coach",
+    "emoji": "Avatar Emoji",
+    "emojiPlaceholder": "Pick an emoji",
+    "model": "Preferred Model",
+    "systemPrompt": "System Prompt",
+    "systemPromptPlaceholder": "Describe how this persona should behave...",
+    "color": "Badge Color",
+    "save": "Save",
+    "cancel": "Cancel",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "active": "Active",
+    "noPersonas": "No personas yet",
+    "noPersonasHint": "Create a persona to give your assistant a unique personality",
+    "maxReached": "Maximum 10 personas reached",
+    "switchedTo": "Switched to {{name}}",
+    "deactivated": "Persona deactivated",
+    "selectPersona": "Select Persona",
+    "noPersona": "Default (No Persona)",
+    "personaActive": "{{name}} active",
+    "created": "Persona created",
+    "updated": "Persona updated",
+    "deleted": "Persona deleted"
   }
 }

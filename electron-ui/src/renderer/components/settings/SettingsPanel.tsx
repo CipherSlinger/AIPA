@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { usePrefsStore } from '../../store'
 import { useI18n } from '../../i18n'
-import type { CustomPromptTemplate } from '../../types/app.types'
+import type { CustomPromptTemplate, Persona } from '../../types/app.types'
 import SettingsGeneral from './SettingsGeneral'
 import SettingsTemplates from './SettingsTemplates'
+import SettingsPersonas from './SettingsPersonas'
 import SettingsMcp from './SettingsMcp'
 import SettingsAbout from './SettingsAbout'
 
-type SettingsTab = 'general' | 'templates' | 'mcp' | 'about'
+type SettingsTab = 'general' | 'templates' | 'personas' | 'mcp' | 'about'
 
 export default function SettingsPanel() {
   const { prefs, setPrefs } = usePrefsStore()
@@ -17,6 +18,7 @@ export default function SettingsPanel() {
   const [saved, setSaved] = useState(false)
   const [settingsTab, setSettingsTab] = useState<SettingsTab>('general')
   const [customTemplates, setCustomTemplates] = useState<CustomPromptTemplate[]>(prefs.customPromptTemplates || [])
+  const [personas, setPersonas] = useState<Persona[]>(prefs.personas || [])
 
   useEffect(() => {
     const load = async () => {
@@ -25,6 +27,9 @@ export default function SettingsPanel() {
       setLocal({ ...all, apiKey: all.apiKey || env.apiKey || '' })
       if (all.customPromptTemplates) {
         setCustomTemplates(all.customPromptTemplates)
+      }
+      if (all.personas) {
+        setPersonas(all.personas)
       }
     }
     load()
@@ -76,7 +81,7 @@ export default function SettingsPanel() {
 
       {/* Tab bar */}
       <div role="tablist" style={{ display: 'flex', gap: 4, marginBottom: 14, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>
-        {(['general', 'templates', 'mcp', 'about'] as const).map(tab => (
+        {(['general', 'templates', 'personas', 'mcp', 'about'] as const).map(tab => (
           <button
             key={tab}
             role="tab"
@@ -111,6 +116,12 @@ export default function SettingsPanel() {
         <SettingsTemplates
           customTemplates={customTemplates}
           setCustomTemplates={setCustomTemplates}
+        />
+      ) : settingsTab === 'personas' ? (
+        <SettingsPersonas
+          personas={personas}
+          setPersonas={setPersonas}
+          activePersonaId={prefs.activePersonaId}
         />
       ) : settingsTab === 'mcp' ? (
         <SettingsMcp />

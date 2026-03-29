@@ -161,6 +161,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Model quick-switcher** — click the model name badge in the chat header to open a dropdown and switch between all 8 Claude models instantly; also accessible from Command Palette (`Ctrl+Shift+P`) with searchable "Switch model to X" commands; selected model shown with checkmark and persisted to settings
 - **Lazy-loaded sidebar panels** — Settings, Notes, Skills, and File Browser panels use `React.lazy()` + `Suspense` for faster initial load; initial bundle reduced from 1,268 KB to 1,132 KB (-10.7%)
 - **Accessibility foundations** — focus trap for modal dialogs (CommandPalette, ImageLightbox) keeps Tab navigation within modal bounds; `role="dialog"` and `aria-modal` on overlays; `role="switch"` and `aria-checked` on toggle buttons; `aria-live="polite"` on toast notifications
+- **AI Personas** — create custom assistant profiles (up to 10) with their own name, emoji avatar, preferred model, system prompt, and badge color; quick-switch between personas from the chat header dropdown; activate a persona to automatically apply its model and system prompt; manage personas in Settings > Personas tab; inspired by OpenClaw's multi-agent architecture
 
 ## Security
 

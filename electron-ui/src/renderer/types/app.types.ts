@@ -101,6 +101,8 @@ export interface ClaudePrefs {
   customPromptTemplates?: CustomPromptTemplate[]  // user-defined prompt templates
   notes?: Note[]  // user quick notes (persisted via electron-store)
   noteCategories?: NoteCategory[]  // note categories (max 10, persisted via electron-store)
+  personas?: Persona[]  // user-defined AI personas (max 10, persisted via electron-store)
+  activePersonaId?: string  // currently active persona ID (null/undefined = no persona)
 }
 
 export interface Note {
@@ -126,4 +128,15 @@ export interface CustomPromptTemplate {
   prompt: string       // system prompt text
   createdAt: number    // timestamp
   updatedAt: number    // timestamp
+}
+
+export interface Persona {
+  id: string           // 'persona-' + timestamp
+  name: string         // display name (max 30 chars)
+  emoji: string        // emoji avatar (single emoji, e.g. '🧑‍💼')
+  model: string        // preferred model ID (e.g. 'claude-sonnet-4-6')
+  systemPrompt: string // system prompt text
+  color: string        // badge/accent color hex
+  createdAt: number    // epoch ms
+  updatedAt: number    // epoch ms
 }
