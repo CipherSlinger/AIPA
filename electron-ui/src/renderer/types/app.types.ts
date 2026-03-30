@@ -114,6 +114,18 @@ export interface ClaudePrefs {
   promptHistory?: PromptHistoryItem[]   // prompt send history for analytics (max 200, persisted via electron-store)
   textSnippets?: TextSnippet[]          // user-defined text snippets triggered by ::keyword (max 50)
   navExpanded?: boolean                 // expand NavRail to show icon + label (default false, icon-only)
+  apiKeyPool?: ApiKeyEntry[]            // multi-key pool for auto-switching on quota exhaustion
+  activeApiKeyId?: string              // id of currently active key (undefined = use apiKey field)
+}
+
+export interface ApiKeyEntry {
+  id: string           // unique id
+  label: string        // display label (e.g. 'Key 1', 'Work Key')
+  apiKey: string       // the API key
+  baseUrl?: string     // optional custom base URL (for OpenAI-compatible endpoints)
+  enabled: boolean     // whether this key is enabled in the pool
+  exhausted: boolean   // whether this key hit quota limit (auto-set on 402)
+  addedAt: number      // epoch ms
 }
 
 export interface TextSnippet {

@@ -56,6 +56,44 @@ function playCompletionSound() {
   }
 }
 
+/** Get the currently active API key from pool or fallback to single key */
+function getActiveApiKey(): string {
+  const prefs = usePrefsStore.getState().prefs
+  const pool = prefs.apiKeyPool || []
+  const enabledKeys = pool.filter(k => k.enabled && !k.exhausted)
+  if (enabledKeys.length > 0) {
+    // If activeApiKeyId is set and still valid, use it
+    const active = prefs.activeApiKeyId ? enabledKeys.find(k => k.id === prefs.activeApiKeyId) : null
+    return (active ?? enabledKeys[0]).apiKey
+  }
+  return prefs.apiKey || ''
+}
+
+/** Mark current active pool key as exhausted and switch to next */
+function rotateApiKey(): boolean {
+  const prefs = usePrefsStore.getState().prefs
+  const pool = prefs.apiKeyPool || []
+  if (pool.length === 0) return false
+  const enabledKeys = pool.filter(k => k.enabled && !k.exhausted)
+  const currentId = prefs.activeApiKeyId
+  const currentIdx = currentId ? enabledKeys.findIndex(k => k.id === currentId) : 0
+  // Mark current as exhausted
+  const updatedPool = pool.map(k =>
+    k.id === (currentId ?? enabledKeys[0]?.id) ? { ...k, exhausted: true } : k
+  )
+  const remaining = updatedPool.filter(k => k.enabled && !k.exhausted)
+  if (remaining.length === 0) {
+    usePrefsStore.getState().setPrefs({ apiKeyPool: updatedPool, activeApiKeyId: undefined })
+    window.electronAPI.prefsSet('apiKeyPool', updatedPool)
+    return false
+  }
+  const nextKey = remaining[currentIdx < remaining.length ? currentIdx : 0]
+  usePrefsStore.getState().setPrefs({ apiKeyPool: updatedPool, activeApiKeyId: nextKey.id })
+  window.electronAPI.prefsSet('apiKeyPool', updatedPool)
+  window.electronAPI.prefsSet('activeApiKeyId', nextKey.id)
+  return true
+}
+
 export function useStreamJson() {
   // Use individual selectors so this hook only re-renders when the specific
   // action references change (they never do in Zustand), not on every state update.
@@ -188,7 +226,7 @@ export function useStreamJson() {
       activeBridgeId: activeBridgeIdRef.current ?? undefined,
       model: prefs.model,
       env: {
-        ...(prefs.apiKey ? { ANTHROPIC_API_KEY: prefs.apiKey } : {}),
+        ...(getActiveApiKey() ? { ANTHROPIC_API_KEY: getActiveApiKey() } : {}),
       },
       flags,
     })
@@ -399,6 +437,26 @@ export function useStreamJson() {
         }
         case 'cli:error': {
           const errText = (data.error as string) || 'CLI encountered an unknown error'
+          // Detect quota/billing exhaustion and auto-rotate API key
+          const isQuotaError = /402|billing|credit|quota|rate.limit|overloaded/i.test(errText)
+          if (isQuotaError && (usePrefsStore.getState().prefs.apiKeyPool || []).length > 0) {
+            const switched = rotateApiKey()
+            if (switched) {
+              const nextKey = usePrefsStore.getState().prefs.activeApiKeyId
+              const pool = usePrefsStore.getState().prefs.apiKeyPool || []
+              const entry = pool.find(k => k.id === nextKey)
+              useUiStore.getState().addToast('warning', t('settings.apiKeyAutoSwitched', { label: entry?.label || 'next key' }))
+              // Auto-retry the last message
+              const msgs = useChatStore.getState().messages
+              const lastUser = [...msgs].reverse().find(m => m.role === 'user')
+              if (lastUser) {
+                setTimeout(() => {
+                  sendMessageRef.current?.((lastUser as StandardChatMessage).content)
+                }, 500)
+                return
+              }
+            }
+          }
           useChatStore.getState().addMessage({
             id: `err-${Date.now()}`,
             role: 'assistant',

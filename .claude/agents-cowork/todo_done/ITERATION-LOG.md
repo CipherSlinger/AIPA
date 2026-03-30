@@ -2263,3 +2263,24 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 284 (2026-03-29)
 - Streaming speed tokens/sec estimate -- streaming speed indicator in status bar now shows estimated tokens/sec alongside chars/sec (chars / 4 approximation); displayed in muted parenthetical format "~N tok/s"; i18n: 1 new key (toolbar.tokPerSec) in en.json and zh-CN.json; 3 files changed; build SUCCESS
+
+### Iteration 285 (2026-03-29)
+- Inline calculator in chat input -- type "= expression" (e.g., "= 42 * 1.18") to see instant result below the input; supports basic arithmetic, exponentiation (^), percent (%), and parentheses; press Tab to accept the calculated result; Calculator icon and tabular-nums formatting; i18n: 1 new key (chat.calcTabHint) in en.json and zh-CN.json; 3 files changed; build SUCCESS
+
+### Iteration 286 (2026-03-29)
+- Stopwatch count-up timer in status bar -- StopCircle icon button next to the Pomodoro timer; click to start counting up, click again to pause, double-click when paused to reset; amber icon when active; displays elapsed time using existing formatDuration utility; i18n: 4 new keys (toolbar.stopwatch, startStopwatch, stopStopwatch, resumeStopwatch) in en.json and zh-CN.json; 3 files changed; build SUCCESS
+
+### Iteration 287 (2026-03-29)
+- Message word count in bubble -- each message bubble now shows word count next to the timestamp line with a Type icon; only visible for non-streaming messages; hover shows "X words" tooltip; useful for tracking email/report/essay word counts in assistant responses; i18n: 1 new key (message.wordCount) in en.json and zh-CN.json; 3 files changed; build SUCCESS
+
+### Iteration 288 (2026-03-29)
+- Copy last response command -- new "Copy Last Response" command in the command palette (Ctrl+Shift+P); finds the most recent assistant message and copies its content to clipboard; shows toast confirmation or "no response to copy" if no assistant messages exist; Copy icon in palette; i18n: 4 new keys (command.copyLastResponse, copyLastResponseDesc, lastResponseCopied, noResponseToCopy) in en.json and zh-CN.json; 3 files changed; build SUCCESS
+
+### Iteration 289 (2026-03-29)
+- Daily inspiration quote command -- new "Daily Inspiration" command in the command palette; shows a random motivational quote from 20 curated quotes as an info toast (8-second duration); Sparkles icon; great for the personal assistant "daily companion" feel; i18n: 2 new keys (command.dailyInspiration, dailyInspirationDesc) in en.json and zh-CN.json; 3 files changed; build SUCCESS
+
+### Iteration 290 (2026-03-29)
+- Text case cycling shortcut -- Ctrl+Shift+U cycles selected text in chat input through UPPERCASE -> lowercase -> Title Case; works with any text selection in the textarea; preserves selection after transform; added to keyboard shortcut cheatsheet; i18n: 1 new key (shortcut.cycleTextCase) in en.json and zh-CN.json; 4 files changed; build SUCCESS
+
+### Iteration 291 (2026-03-29)
+- README batch update for iterations 282-290 -- added 10 new feature entries to both README.md and README_CN.md covering: click-to-copy token usage & cost, context window warning toast, streaming speed tokens/sec, inline calculator, stopwatch timer, message word count, copy last response command, daily inspiration, text case cycling; 2 files changed; no build needed

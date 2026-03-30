@@ -222,6 +222,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Copy last response command** -- "Copy Last Response" in the Command Palette (`Ctrl+Shift+P`) copies the most recent assistant message to clipboard with one action
 - **Daily inspiration** -- "Daily Inspiration" command in the Command Palette shows a random motivational quote as an info toast; 20 curated quotes for the personal assistant companion feel
 - **Text case cycling** -- `Ctrl+Shift+U` cycles selected text in the chat input through UPPERCASE, lowercase, and Title Case; preserves selection after transform
+- **API key pool with auto-failover** -- add multiple API keys in Settings; when one key's quota is exhausted, AIPA automatically rotates to the next enabled key; import keys from JSON/CSV/TXT files; visual status indicators (green=active, red=exhausted, gray=disabled); reset exhausted keys with one click
 
 ## Security
 

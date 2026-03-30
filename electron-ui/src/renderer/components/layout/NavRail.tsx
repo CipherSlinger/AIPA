@@ -22,7 +22,7 @@ function NavItem({ icon, label, isActive, onClick, badge, shortcut, expanded }: 
     setHovered(true)
     // Only show tooltip in collapsed mode
     if (!expanded) {
-      tooltipTimerRef.current = setTimeout(() => setShowTooltip(true), 400)
+      tooltipTimerRef.current = setTimeout(() => setShowTooltip(true), 300)
     }
   }
 
@@ -44,8 +44,8 @@ function NavItem({ icon, label, isActive, onClick, badge, shortcut, expanded }: 
       onMouseLeave={handleMouseLeave}
       className="nav-icon-btn"
       style={{
-        width: expanded ? '100%' : 32,
-        height: 32,
+        width: expanded ? '100%' : 36,
+        height: 36,
         display: 'flex',
         alignItems: 'center',
         justifyContent: expanded ? 'flex-start' : 'center',
@@ -230,14 +230,14 @@ export default function NavRail() {
     toggleTerminal()
   }
 
-  const iconSize = navExpanded ? 18 : 16
+  const iconSize = navExpanded ? 20 : 18
 
   return (
     <nav
       role="navigation"
       aria-label="Main navigation"
       style={{
-        width: navExpanded ? 140 : 44,
+        width: navExpanded ? 152 : 48,
         flexShrink: 0,
         background: 'var(--bg-nav)',
         borderRight: '1px solid var(--border)',
