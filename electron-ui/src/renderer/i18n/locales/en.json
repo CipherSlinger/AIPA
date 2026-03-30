@@ -426,6 +426,7 @@
     "fontFamily": "Font Family",
     "fontSystemDefault": "System Default",
     "theme": "Theme",
+    "themeSystem": "System",
     "themeDark": "Dark",
     "themeLight": "Light",
     "skipPermissions": "Skip Tool Permissions",

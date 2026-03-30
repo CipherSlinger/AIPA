@@ -28,7 +28,8 @@ export const FONT_FAMILIES: { id: string; label: string; labelKey?: string }[] =
   { id: 'system-ui, sans-serif',                             label: 'System Default', labelKey: 'settings.fontSystemDefault' },
 ]
 
-export const THEMES: { id: 'vscode' | 'light'; label: string; labelKey: string; colors: string[] }[] = [
+export const THEMES: { id: 'vscode' | 'light' | 'system'; label: string; labelKey: string; colors: string[] }[] = [
+  { id: 'system',   label: 'System', labelKey: 'settings.themeSystem', colors: ['#1e1e1e', '#f5f5f7', '#007acc', '#2563eb'] },
   { id: 'vscode',   label: 'Dark',   labelKey: 'settings.themeDark',  colors: ['#1e1e1e', '#007acc', '#264f78', '#2d2d2d'] },
   { id: 'light',    label: 'Light',  labelKey: 'settings.themeLight', colors: ['#f5f5f7', '#2563eb', '#eaebee', '#ededf0'] },
 ]

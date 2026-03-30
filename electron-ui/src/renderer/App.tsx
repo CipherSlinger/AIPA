@@ -95,7 +95,7 @@ export default function App() {
       // Tray: theme changed from tray menu
       window.electronAPI.onMenuEvent('themeChanged', (newTheme) => {
         if (typeof newTheme === 'string') {
-          setPrefs({ theme: newTheme as 'vscode' | 'light' })
+          setPrefs({ theme: newTheme as 'vscode' | 'light' | 'system' })
         }
       }),
       // Tray: clipboard quick action — populate chat input with clipboard text
@@ -143,18 +143,29 @@ export default function App() {
     return unsubscribe
   }, [])
 
-  // Apply theme
+  // Apply theme (supports 'system' for OS-level dark/light auto-detection)
   useEffect(() => {
+    const applyEffectiveTheme = (effective: 'vscode' | 'light') => {
+      if (effective === 'vscode') {
+        document.documentElement.removeAttribute('data-theme')
+        window.electronAPI.windowSetTitleBarOverlay({ color: '#2c2c2c', symbolColor: '#cccccc' })
+      } else {
+        document.documentElement.setAttribute('data-theme', 'light')
+        window.electronAPI.windowSetTitleBarOverlay({ color: '#f8f8f8', symbolColor: '#1a1a1a' })
+      }
+    }
+
     const theme = prefs.theme || 'vscode'
-    if (theme === 'vscode') {
-      document.documentElement.removeAttribute('data-theme')
-      window.electronAPI.windowSetTitleBarOverlay({ color: '#2c2c2c', symbolColor: '#cccccc' })
-    } else if (theme === 'light') {
-      document.documentElement.setAttribute('data-theme', theme)
-      window.electronAPI.windowSetTitleBarOverlay({ color: '#f8f8f8', symbolColor: '#1a1a1a' })
+    if (theme === 'system') {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)')
+      applyEffectiveTheme(mq.matches ? 'vscode' : 'light')
+      const handler = (e: MediaQueryListEvent) => {
+        applyEffectiveTheme(e.matches ? 'vscode' : 'light')
+      }
+      mq.addEventListener('change', handler)
+      return () => mq.removeEventListener('change', handler)
     } else {
-      document.documentElement.setAttribute('data-theme', theme)
-      window.electronAPI.windowSetTitleBarOverlay({ color: '#2c2c2c', symbolColor: '#cccccc' })
+      applyEffectiveTheme(theme === 'light' ? 'light' : 'vscode')
     }
   }, [prefs.theme])
 
@@ -266,11 +277,13 @@ export default function App() {
           store.collapseAll()
         }
       }
-      // Ctrl+Shift+D: Toggle dark/light theme
+      // Ctrl+Shift+D: Cycle theme (System -> Dark -> Light -> System)
       if (e.ctrlKey && e.shiftKey && e.key === 'D') {
         e.preventDefault()
         const currentTheme = usePrefsStore.getState().prefs.theme || 'vscode'
-        const newTheme = currentTheme === 'light' ? 'vscode' : 'light'
+        const themeOrder: Array<'system' | 'vscode' | 'light'> = ['system', 'vscode', 'light']
+        const currentIdx = themeOrder.indexOf(currentTheme as typeof themeOrder[number])
+        const newTheme = themeOrder[(currentIdx + 1) % themeOrder.length]
         setPrefs({ theme: newTheme })
         window.electronAPI.prefsSet('theme', newTheme)
       }

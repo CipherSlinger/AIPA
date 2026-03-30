@@ -430,7 +430,7 @@ export default function SettingsGeneral({
                   <div style={{ display: 'flex', gap: 2 }}>
                     {theme.colors.map((c, i) => <div key={i} style={{ width: 10, height: 10, borderRadius: 2, background: c }} />)}
                   </div>
-                  <span style={{ fontSize: 9, color: theme.id === 'light' ? '#666' : '#aaa', whiteSpace: 'nowrap' }}>{theme.label}</span>
+                  <span style={{ fontSize: 9, color: theme.id === 'light' ? '#666' : '#aaa', whiteSpace: 'nowrap' }}>{t(theme.labelKey)}</span>
                 </button>
               )
             })}
