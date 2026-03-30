@@ -589,6 +589,8 @@
     "openFilesDesc": "打开文件浏览面板",
     "openNotes": "打开笔记",
     "openNotesDesc": "打开笔记面板",
+    "openSkills": "打开技能",
+    "openSkillsDesc": "浏览和管理 AI 技能",
     "openMemory": "打开记忆",
     "openMemoryDesc": "打开 AI 记忆管理面板",
     "openWorkflows": "打开工作流",

@@ -115,6 +115,15 @@ export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] 
       category: 'action',
     },
     {
+      id: 'open-skills',
+      name: t('command.openSkills'),
+      description: t('command.openSkillsDesc'),
+      icon: <Sparkles size={14} />,
+      shortcut: 'Ctrl+4',
+      action: () => { setActiveNavItem('skills'); onClose() },
+      category: 'action',
+    },
+    {
       id: 'open-memory',
       name: t('command.openMemory'),
       description: t('command.openMemoryDesc'),

@@ -589,6 +589,8 @@
     "openFilesDesc": "Open the file browser panel",
     "openNotes": "Open Notes",
     "openNotesDesc": "Open the notes panel",
+    "openSkills": "Open Skills",
+    "openSkillsDesc": "Browse and manage AI skills",
     "openMemory": "Open Memory",
     "openMemoryDesc": "Open the AI memory manager panel",
     "openWorkflows": "Open Workflows",

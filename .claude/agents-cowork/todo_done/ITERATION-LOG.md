@@ -2459,3 +2459,6 @@ Status: SUCCESS
 
 ### Iteration 337 (2026-03-30)
 - README: document system tray & global hotkeys -- (1) Added "Always Available" row to "What AIPA Can Do" table in both README.md and README_CN.md highlighting system tray, global hotkeys, and desktop notifications. (2) Added new "System Tray & Global Access" section to Highlights in both READMEs documenting minimize-to-tray, Ctrl+Shift+Space toggle, Ctrl+Shift+G clipboard quick-action, tray context menu, and desktop notifications. (3) Added Ctrl+Shift+Space and Ctrl+Shift+G to the keyboard shortcuts table in both READMEs. 2 files changed; docs only, no code changes
+
+### Iteration 338 (2026-03-30)
+- Add missing "Open Skills" command palette entry -- The command palette had entries for all sidebar panels (History, Files, Notes, Memory, Workflows, Prompt History, Channel) except Skills (Ctrl+4). Added the missing entry with Sparkles icon, Ctrl+4 shortcut, and proper action to open the Skills panel. Added i18n keys (command.openSkills, command.openSkillsDesc) to both en.json and zh-CN.json. 3 files changed; build SUCCESS
