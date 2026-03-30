@@ -3,6 +3,7 @@ import { SlashCommand, SLASH_COMMANDS } from './SlashCommandPopup'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { TextSnippet } from '../../types/app.types'
 import { useT } from '../../i18n'
+import { Terminal } from 'lucide-react'
 
 interface UseInputPopupsOptions {
   input: string
@@ -161,6 +162,7 @@ export function useInputPopups({
                 (c.source === 'project'
                   ? ` ${t('command.sourceProject')}`
                   : ` ${t('command.sourceUser')}`),
+              icon: Terminal,
             })),
           )
         },

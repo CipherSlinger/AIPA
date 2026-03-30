@@ -13,7 +13,7 @@ import { toggleShowAbsoluteTime } from './messageUtils'
 
 interface Props {
   message: ChatMessage
-  onRate?: (msgId: string, rating: 'positive' | 'negative') => void
+  onRate?: (msgId: string, rating: 'up' | 'down' | null) => void
   onRewind?: (ts: number) => void
   onBookmark?: (msgId: string) => void
   onCollapse?: (msgId: string) => void

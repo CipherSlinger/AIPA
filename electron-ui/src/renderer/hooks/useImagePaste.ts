@@ -103,11 +103,12 @@ export function useImagePaste() {
         try {
           const result = await window.electronAPI.fsReadFile(filePath)
           if (result?.content) {
-            content = result.content
-            size = content.length
+            const fileContent = result.content
+            content = fileContent
+            size = fileContent.length
             if (size > MAX_FILE_SIZE) {
               // Truncate very large files
-              content = content.slice(0, MAX_FILE_SIZE)
+              content = fileContent.slice(0, MAX_FILE_SIZE)
               size = MAX_FILE_SIZE
             }
           }

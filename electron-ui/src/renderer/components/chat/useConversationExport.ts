@@ -3,6 +3,7 @@ import { ChatMessage } from '../../types/app.types'
 import { formatMarkdown } from '../../utils/formatMarkdown'
 import { formatHtml } from '../../utils/formatHtml'
 import { useT } from '../../i18n'
+import { ToastType } from '../ui/Toast'
 
 interface BookmarkedMsg {
   msg: ChatMessage
@@ -15,10 +16,10 @@ interface BookmarkedMsg {
 export function useConversationExport(
   messages: ChatMessage[],
   currentSessionId: string | null,
-  currentSessionTitle: string,
+  currentSessionTitle: string | null,
   model: string,
   bookmarkedMessages: BookmarkedMsg[],
-  addToast: (type: string, message: string) => void,
+  addToast: (type: ToastType, message: string) => void,
 ) {
   const t = useT()
 

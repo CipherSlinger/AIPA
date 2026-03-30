@@ -492,7 +492,7 @@ function SaveAsNoteButton({ inputText }: { inputText: string }) {
     const MAX_NOTES = 100
     const currentNotes: Note[] = usePrefsStore.getState().prefs.notes || []
     if (currentNotes.length >= MAX_NOTES) {
-      addToast(t('message.notesLimitReached'), 'error')
+      addToast('error', t('message.notesLimitReached'))
       return
     }
     const now = Date.now()
@@ -507,7 +507,7 @@ function SaveAsNoteButton({ inputText }: { inputText: string }) {
     const updated = [newNote, ...currentNotes]
     usePrefsStore.getState().setPrefs({ notes: updated })
     window.electronAPI.prefsSet('notes', updated)
-    addToast(t('toolbar.savedAsNote'), 'success')
+    addToast('success', t('toolbar.savedAsNote'))
   }
 
   return (

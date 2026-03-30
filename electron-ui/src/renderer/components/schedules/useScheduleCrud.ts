@@ -39,7 +39,7 @@ export function useScheduleCrud(t: (key: string) => string) {
         if (!s.enabled) return s
         if (s.nextRunAt <= now) {
           addToQueue(s.prompt)
-          addToast(t('schedule.triggered').replace('{{name}}', s.name), 'info' as any)
+          addToast('info', t('schedule.triggered').replace('{{name}}', s.name))
 
           const newNext = s.repeat === 'once'
             ? s.nextRunAt
@@ -91,7 +91,7 @@ export function useScheduleCrud(t: (key: string) => string) {
   const handleAdd = useCallback(() => {
     if (!formName.trim() || !formPrompt.trim()) return
     if (schedules.length >= MAX_SCHEDULES) {
-      addToast(t('schedule.limitReached'), 'warning' as any)
+      addToast('warning', t('schedule.limitReached'))
       return
     }
 
@@ -117,7 +117,7 @@ export function useScheduleCrud(t: (key: string) => string) {
     }
 
     setPrefs({ scheduledPrompts: [...schedules, newSchedule] })
-    addToast(t('schedule.created'), 'success' as any)
+    addToast('success', t('schedule.created'))
     resetForm()
     setShowAddForm(false)
   }, [formName, formPrompt, formIcon, formRepeat, formHour, formMinute, formDayOfWeek, formDayOfMonth, schedules, setPrefs, addToast, resetForm, t])
@@ -140,14 +140,14 @@ export function useScheduleCrud(t: (key: string) => string) {
 
   const handleDelete = useCallback((id: string) => {
     setPrefs({ scheduledPrompts: schedules.filter(s => s.id !== id) })
-    addToast(t('schedule.deleted'), 'info' as any)
+    addToast('info', t('schedule.deleted'))
   }, [schedules, setPrefs, addToast, t])
 
   const handleRunNow = useCallback((id: string) => {
     const schedule = schedules.find(s => s.id === id)
     if (!schedule) return
     addToQueue(schedule.prompt)
-    addToast(t('schedule.runNow').replace('{{name}}', schedule.name), 'success' as any)
+    addToast('success', t('schedule.runNow').replace('{{name}}', schedule.name))
 
     const updated = schedules.map(s => {
       if (s.id !== id) return s
@@ -193,14 +193,14 @@ export function useScheduleCrud(t: (key: string) => string) {
       }
     })
     setPrefs({ scheduledPrompts: updated })
-    addToast(t('schedule.updated'), 'success' as any)
+    addToast('success', t('schedule.updated'))
     setEditingId(null)
     resetForm()
   }, [editingId, formName, formPrompt, formIcon, formRepeat, formHour, formMinute, formDayOfWeek, formDayOfMonth, schedules, setPrefs, addToast, resetForm, t])
 
   const handleInstallPreset = useCallback((preset: typeof PRESET_SCHEDULES[0]) => {
     if (schedules.length >= MAX_SCHEDULES) {
-      addToast(t('schedule.limitReached'), 'warning' as any)
+      addToast('warning', t('schedule.limitReached'))
       return
     }
     const now = Date.now()
@@ -213,7 +213,7 @@ export function useScheduleCrud(t: (key: string) => string) {
       updatedAt: now,
     }
     setPrefs({ scheduledPrompts: [...schedules, newSchedule] })
-    addToast(t('schedule.installed').replace('{{name}}', preset.name), 'success' as any)
+    addToast('success', t('schedule.installed').replace('{{name}}', preset.name))
   }, [schedules, setPrefs, addToast, t])
 
   return {

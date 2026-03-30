@@ -1,13 +1,14 @@
 import { useState, useRef, useCallback } from 'react'
 import { IMAGE_EXTENSIONS, MAX_FILE_SIZE, MAX_FILE_COUNT } from './chatPanelConstants'
 import { useT } from '../../i18n'
+import { ToastType } from '../ui/Toast'
 
 /**
  * Hook encapsulating file drag-and-drop handling for ChatPanel.
  * Dispatches 'aipa:dropFiles' custom event with processed file data.
  */
 export function useDragAndDrop(
-  addToast: (type: string, message: string) => void,
+  addToast: (type: ToastType, message: string) => void,
 ) {
   const t = useT()
   const [isDragOver, setIsDragOver] = useState(false)

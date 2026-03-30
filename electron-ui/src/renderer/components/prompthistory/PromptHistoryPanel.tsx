@@ -80,27 +80,27 @@ export default function PromptHistoryPanel() {
 
   const handleResend = useCallback((text: string) => {
     addToQueue(text)
-    addToast(t('promptHistory.queued'), 'success')
+    addToast('success', t('promptHistory.queued'))
   }, [addToQueue, addToast, t])
 
   const handleCopy = useCallback(async (text: string) => {
     try {
       await navigator.clipboard.writeText(text)
-      addToast(t('promptHistory.copied'), 'success')
+      addToast('success', t('promptHistory.copied'))
     } catch {
-      addToast(t('promptHistory.copyFailed'), 'error')
+      addToast('error', t('promptHistory.copyFailed'))
     }
   }, [addToast, t])
 
   const handleDelete = useCallback((id: string) => {
     setPrefs({ promptHistory: history.filter(h => h.id !== id) })
-    addToast(t('promptHistory.deleted'), 'info')
+    addToast('info', t('promptHistory.deleted'))
   }, [history, setPrefs, addToast, t])
 
   const handleClearAll = useCallback(() => {
     if (history.length === 0) return
     setPrefs({ promptHistory: [] })
-    addToast(t('promptHistory.cleared'), 'info')
+    addToast('info', t('promptHistory.cleared'))
   }, [history, setPrefs, addToast, t])
 
   const totalPrompts = useMemo(() =>

@@ -40,7 +40,7 @@ export default function ChatInput({
   // Draft persistence (per-session)
   const { input, setInput, clearDraft } = useChatInputDraft({
     sessionId,
-    onDraftRestored: () => addToast(t('chat.draftRestored'), 'info'),
+    onDraftRestored: () => addToast('info', t('chat.draftRestored')),
   })
 
   // Input history navigation
