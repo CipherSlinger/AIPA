@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { AtSign, TerminalSquare, Mic, MicOff, ListPlus, Cpu, Star, Calendar, Smile, Wand2, StickyNote, Palette } from 'lucide-react'
+import { AtSign, TerminalSquare, Mic, MicOff, ListPlus, Cpu, Star, Calendar, Smile, Wand2, StickyNote, Palette, Paperclip } from 'lucide-react'
 import { useT } from '../../i18n'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import ClipboardActionsMenu from './ClipboardActionsMenu'
@@ -14,6 +14,8 @@ interface InputToolbarProps {
   onQueueClick: () => void
   onSend: (text: string) => Promise<void>
   onInsertText: (text: string) => void
+  onAttachFiles: () => void
+  fileAttachmentCount: number
   hasInput: boolean
   inputText: string
 }
@@ -26,6 +28,8 @@ export default function InputToolbar({
   onQueueClick,
   onSend,
   onInsertText,
+  onAttachFiles,
+  fileAttachmentCount,
   hasInput,
   inputText,
 }: InputToolbarProps) {
@@ -61,6 +65,41 @@ export default function InputToolbar({
       >
         <AtSign size={16} />
       </button>
+      {/* Attach files */}
+      <div style={{ position: 'relative', display: 'inline-flex' }}>
+        <button
+          onClick={onAttachFiles}
+          title={t('toolbar.attachFiles')}
+          style={{
+            ...toolbarBtnStyle,
+            color: fileAttachmentCount > 0 ? 'var(--accent)' : 'var(--input-toolbar-icon)',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.background = 'rgba(0, 122, 204, 0.10)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = fileAttachmentCount > 0 ? 'var(--accent)' : 'var(--input-toolbar-icon)'; e.currentTarget.style.background = 'none' }}
+        >
+          <Paperclip size={16} />
+        </button>
+        {fileAttachmentCount > 0 && (
+          <span style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: 14,
+            height: 14,
+            background: 'var(--accent)',
+            color: '#ffffff',
+            fontSize: 9,
+            fontWeight: 600,
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+          }}>
+            {fileAttachmentCount > 9 ? '9+' : fileAttachmentCount}
+          </span>
+        )}
+      </div>
       {/* / slash command */}
       <button
         onClick={onSlashClick}

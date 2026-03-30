@@ -6,7 +6,7 @@ import SlashCommandPopup, { SLASH_COMMANDS, SlashCommand } from './SlashCommandP
 import QuickReplyChips from './QuickReplyChips'
 import InputToolbar from './InputToolbar'
 import { PLACEHOLDER_KEYS } from './chatInputConstants'
-import { useImagePaste, ImageAttachment } from '../../hooks/useImagePaste'
+import { useImagePaste, ImageAttachment, FileAttachment } from '../../hooks/useImagePaste'
 import { useChatInputDraft } from '../../hooks/useChatInputDraft'
 import { useChatInputHistory } from '../../hooks/useChatInputHistory'
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition'
@@ -16,7 +16,7 @@ import { useT } from '../../i18n'
 interface ChatInputProps {
   isStreaming: boolean
   sessionId: string | null
-  onSend: (text: string, attachments?: ImageAttachment[]) => Promise<void>
+  onSend: (text: string, attachments?: ImageAttachment[], fileAttachments?: FileAttachment[]) => Promise<void>
   onAbort: () => void
   onNewConversation: () => void
 }
@@ -101,7 +101,7 @@ export default function ChatInput({
     return () => clearInterval(id)
   }, [input])
 
-  const { attachments, handlePaste, addFiles, removeAttachment, clearAttachments } = useImagePaste()
+  const { attachments, fileAttachments, handlePaste, addFiles, addFileAttachments, removeAttachment, removeFileAttachment, clearAttachments } = useImagePaste()
 
   // Expose addFiles and setInput via window events so parent drag-and-drop can use them
   useEffect(() => {
@@ -231,12 +231,25 @@ export default function ChatInput({
 
   const handleSend = async () => {
     const text = input.trim()
-    if (!text && attachments.length === 0 || isStreaming) return
-    let finalText = text || t('chat.describeImage')
+    if (!text && attachments.length === 0 && fileAttachments.length === 0 || isStreaming) return
+    let finalText = text || (attachments.length > 0 ? t('chat.describeImage') : t('chat.analyzeFiles'))
     if (pendingQuote) {
       const quotedLines = pendingQuote.split('\n').map((l: string) => `> ${l}`).join('\n')
       finalText = quotedLines + '\n\n' + finalText
       setPendingQuote(null)
+    }
+    // Inject file contents as context into the prompt
+    if (fileAttachments.length > 0) {
+      const fileContextParts: string[] = []
+      for (const file of fileAttachments) {
+        if (file.content) {
+          const truncated = file.content.length > 50000 ? file.content.slice(0, 50000) + '\n... (truncated)' : file.content
+          fileContextParts.push(`<file path="${file.path}" name="${file.name}">\n${truncated}\n</file>`)
+        } else {
+          fileContextParts.push(`<file path="${file.path}" name="${file.name}">(binary file, content not shown)</file>`)
+        }
+      }
+      finalText = fileContextParts.join('\n\n') + '\n\n' + finalText
     }
     if (text) addToHistory(text)
     setInput('')
@@ -246,7 +259,7 @@ export default function ChatInput({
     clearAttachments()
     resizeTextarea()
     clearDraft()
-    await onSend(finalText, attachments.length > 0 ? attachments : undefined)
+    await onSend(finalText, attachments.length > 0 ? attachments : undefined, fileAttachments.length > 0 ? fileAttachments : undefined)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -544,6 +557,17 @@ export default function ChatInput({
           })
           setTimeout(() => textareaRef.current?.focus(), 0)
         }}
+        onAttachFiles={async () => {
+          const paths = await window.electronAPI.fsShowOpenFileDialog(
+            [{ name: 'All Files', extensions: ['*'] }],
+            true
+          )
+          if (paths && paths.length > 0) {
+            await addFileAttachments(paths)
+          }
+          textareaRef.current?.focus()
+        }}
+        fileAttachmentCount={fileAttachments.length}
         hasInput={!!input.trim()}
         inputText={input}
       />
@@ -583,6 +607,37 @@ export default function ChatInput({
                 <div key={img.id} style={{ position: 'relative', flexShrink: 0 }}>
                   <img src={img.dataUrl} alt={img.name} style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--input-field-border)' }} />
                   <button onClick={() => removeAttachment(img.id)} style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: 'var(--error)', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, lineHeight: '1' }}>{'\u00d7'}</button>
+                </div>
+              ))}
+            </div>
+          )}
+          {/* File attachments */}
+          {fileAttachments.length > 0 && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingBottom: 8 }}>
+              {fileAttachments.map(file => (
+                <div key={file.id} style={{
+                  position: 'relative', display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '4px 8px', background: 'rgba(0, 122, 204, 0.06)',
+                  border: '1px solid rgba(0, 122, 204, 0.15)', borderRadius: 6,
+                  maxWidth: 200,
+                }}>
+                  <FileText size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                  <div style={{ overflow: 'hidden', flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</div>
+                    <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>
+                      {file.content ? `${Math.ceil(file.size / 1024)}KB` : t('chat.fileRefOnly')}
+                    </div>
+                  </div>
+                  <button onClick={() => removeFileAttachment(file.id)} style={{
+                    background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', padding: 1, borderRadius: 4, flexShrink: 0,
+                    transition: 'color 150ms',
+                  }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--error)' }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)' }}
+                  >
+                    <X size={12} />
+                  </button>
                 </div>
               ))}
             </div>
@@ -836,13 +891,13 @@ export default function ChatInput({
           )}
           <button
             onClick={isStreaming ? onAbort : handleSend}
-            disabled={!isStreaming && !input.trim() && attachments.length === 0}
+            disabled={!isStreaming && !input.trim() && attachments.length === 0 && fileAttachments.length === 0}
             title={isStreaming ? t('chat.stopGenerating') : t('chat.sendEnter')}
             style={{
               background: isStreaming ? 'var(--error)' : 'var(--accent)', border: 'none', borderRadius: 10, width: 36, height: 36,
               display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
-              cursor: isStreaming || input.trim() || attachments.length > 0 ? 'pointer' : 'not-allowed',
-              opacity: !isStreaming && !input.trim() && attachments.length === 0 ? 0.4 : 1,
+              cursor: isStreaming || input.trim() || attachments.length > 0 || fileAttachments.length > 0 ? 'pointer' : 'not-allowed',
+              opacity: !isStreaming && !input.trim() && attachments.length === 0 && fileAttachments.length === 0 ? 0.4 : 1,
               flexShrink: 0, transition: 'background 150ms, opacity 150ms', position: 'relative',
             }}
           >

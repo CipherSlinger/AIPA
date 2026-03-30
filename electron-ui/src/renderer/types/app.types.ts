@@ -37,6 +37,7 @@ export interface StandardChatMessage {
   timestamp: number
   isStreaming?: boolean
   attachments?: { name: string; dataUrl: string }[]  // image attachments
+  fileAttachments?: { name: string; path: string; size: number }[]  // file context attachments
   rating?: 'up' | 'down' | null
   bookmarked?: boolean
   collapsed?: boolean
@@ -116,6 +117,7 @@ export interface ClaudePrefs {
   navExpanded?: boolean                 // expand NavRail to show icon + label (default false, icon-only)
   apiKeyPool?: ApiKeyEntry[]            // multi-key pool for auto-switching on quota exhaustion
   activeApiKeyId?: string              // id of currently active key (undefined = use apiKey field)
+  systemPresence?: boolean             // inject OS time, working dir, user name into system prompt (default true)
 }
 
 export interface ApiKeyEntry {
