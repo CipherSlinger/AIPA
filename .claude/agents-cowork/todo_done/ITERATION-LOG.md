@@ -2456,3 +2456,6 @@ Status: SUCCESS
 
 ### Iteration 336 (2026-03-30)
 - Enhanced system tray UX -- (1) Tray menu now rebuilds dynamically on every right-click, so "Recent Sessions" always shows the latest 5 sessions instead of being frozen at startup. (2) Added "Ask about Clipboard" entry to tray context menu, mirroring the Ctrl+Shift+G global hotkey functionality but accessible without remembering the shortcut. (3) Tray tooltip now shows session count ("AIPA - AI Personal Assistant (N sessions)") and updates on every menu rebuild. Pure main process changes, 1 file changed (main/index.ts); build SUCCESS
+
+### Iteration 337 (2026-03-30)
+- README: document system tray & global hotkeys -- (1) Added "Always Available" row to "What AIPA Can Do" table in both README.md and README_CN.md highlighting system tray, global hotkeys, and desktop notifications. (2) Added new "System Tray & Global Access" section to Highlights in both READMEs documenting minimize-to-tray, Ctrl+Shift+Space toggle, Ctrl+Shift+G clipboard quick-action, tray context menu, and desktop notifications. (3) Added Ctrl+Shift+Space and Ctrl+Shift+G to the keyboard shortcuts table in both READMEs. 2 files changed; docs only, no code changes

@@ -31,6 +31,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 | **Workflows** | Chain prompts into reusable pipelines; schedule them to run daily, weekly, or monthly |
 | **Notes** | Markdown notepad with categories, templates, and one-click save from any chat response |
 | **Multi-Model** | Switch between Claude, GPT-4, DeepSeek, or local Ollama models mid-session |
+| **Always Available** | System tray with quick actions, global hotkeys (`Ctrl+Shift+Space` toggle, `Ctrl+Shift+G` clipboard ask), and desktop notifications |
 | **Channel** | Connect Feishu and WeChat messaging channels via OpenClaw — configure, test, and manage from the sidebar |
 
 ---
@@ -76,6 +77,13 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 - Configure, test, and manage both channels from the sidebar `Radio` icon (`Ctrl+9`)
 - Powered by OpenClaw integration
 
+### System Tray & Global Access
+- Minimize to system tray — AIPA stays ready in the background
+- `Ctrl+Shift+Space` toggles the window from any application
+- `Ctrl+Shift+G` reads clipboard and opens AIPA with the text pre-filled for instant analysis
+- Right-click tray icon for quick actions: new chat, recent sessions, theme toggle, clipboard ask
+- Desktop notifications when responses complete while the window is unfocused
+
 ---
 
 ## Keyboard Shortcuts
@@ -96,6 +104,8 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 | `Ctrl+1–5` | History, Files, Notes, Skills, Settings |
 | `Ctrl+6–9` | Memory, Workflows, Prompt History, Channel |
 | `Ctrl+/` | Shortcut cheatsheet |
+| `Ctrl+Shift+Space` | Toggle AIPA window (global, works from any app) |
+| `Ctrl+Shift+G` | Clipboard quick action (global: reads clipboard, opens AIPA, sends to chat) |
 
 ---
 
