@@ -2427,3 +2427,6 @@ Status: SUCCESS
 
 ### Iteration 327 (2026-03-30)
 - Double-click titlebar to maximize/restore -- Added `window:toggleMaximize` IPC channel (main/ipc/index.ts handler + preload exposure as `windowToggleMaximize()`). AppShell.tsx drag-region now has `onDoubleClick` calling `window.electronAPI.windowToggleMaximize()`. This is standard desktop window behavior that was missing with the custom frameless titlebar. 3 files changed; tsc --noEmit: 0 errors; build SUCCESS
+
+### Iteration 328 (2026-03-30)
+- Persist sidebar tab across restarts -- The active sidebar tab (history, notes, settings, etc.) and corresponding NavRail active item are now saved to localStorage (`aipa:sidebar-tab`) and restored on next startup. Both `setSidebarTab()` and `setActiveNavItem()` now persist the tab. Validated against a whitelist of known tab names to prevent invalid state on format changes. Previously, every restart reset to the History tab. 1 file changed (store/index.ts); tsc --noEmit: 0 errors; build SUCCESS

@@ -474,16 +474,29 @@ interface UiState {
   setQuotedText: (text: string | null) => void
 }
 
+// Restore last sidebar tab from localStorage
+const savedSidebarTab = (() => {
+  try {
+    const saved = localStorage.getItem('aipa:sidebar-tab')
+    const valid = ['history', 'files', 'settings', 'notes', 'skills', 'memory', 'workflows', 'prompthistory', 'channel']
+    if (saved && valid.includes(saved)) return saved as UiState['sidebarTab']
+  } catch {}
+  return 'history' as const
+})()
+
 export const useUiStore = create<UiState>((set) => ({
-  sidebarTab: 'history',
+  sidebarTab: savedSidebarTab,
   sidebarOpen: true,
   terminalOpen: false,
   commandPaletteOpen: false,
   focusMode: false,
   toasts: [],
-  activeNavItem: 'history',
+  activeNavItem: savedSidebarTab,
   quotedText: null,
-  setSidebarTab: (tab) => set({ sidebarTab: tab }),
+  setSidebarTab: (tab) => {
+    try { localStorage.setItem('aipa:sidebar-tab', tab) } catch {}
+    set({ sidebarTab: tab })
+  },
   setSidebarOpen: (v) => set({ sidebarOpen: v }),
   setTerminalOpen: (v) => set({ terminalOpen: v }),
   setCommandPaletteOpen: (v) => set({ commandPaletteOpen: v }),
@@ -505,6 +518,7 @@ export const useUiStore = create<UiState>((set) => ({
   removeToast: (id) => set((s) => ({ toasts: s.toasts.filter(t => t.id !== id) })),
   setActiveNavItem: (item) => set((s) => {
     if (item === 'history' || item === 'files' || item === 'settings' || item === 'notes' || item === 'skills' || item === 'memory' || item === 'workflows' || item === 'prompthistory' || item === 'channel') {
+      try { localStorage.setItem('aipa:sidebar-tab', item) } catch {}
       return { activeNavItem: item, sidebarTab: item, sidebarOpen: true }
     }
     return { activeNavItem: item }
