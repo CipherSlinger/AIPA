@@ -249,8 +249,8 @@ export default function App() {
         e.preventDefault()
         setShowShortcuts(prev => !prev)
       }
-      // Ctrl+Shift+F: Focus mode (hide sidebar + terminal)
-      if (e.ctrlKey && e.shiftKey && e.key === 'F') {
+      // Ctrl+Shift+O: Focus mode (hide sidebar + terminal)
+      if (e.ctrlKey && e.shiftKey && e.key === 'O') {
         e.preventDefault()
         toggleFocusMode()
       }

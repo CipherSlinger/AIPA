@@ -2436,3 +2436,6 @@ Status: SUCCESS
 
 ### Iteration 330 (2026-03-30)
 - Always-on-top / Pin Window -- Added Ctrl+Shift+T keyboard shortcut and command palette entry to toggle the window always-on-top mode. When pinned, the AIPA window stays above all other windows -- a core UX pattern for personal assistant apps. Status bar shows a Pin icon (rotated 45deg when active) for quick toggle. Main process: 2 new IPC handlers (window:setAlwaysOnTop, window:isAlwaysOnTop). Preload: 2 new bridged methods. UiStore: new alwaysOnTop state. Command palette: new "Toggle Always on Top" entry with Pin icon. ShortcutCheatsheet: pinWindow entry. i18n: 6 new keys (window.pinWindow, window.pinnedOn, window.pinnedOff, command.toggleAlwaysOnTop/Desc, shortcutCheatsheet.pinWindow) in en.json and zh-CN.json. README: keyboard shortcut added. 9 files changed; build SUCCESS
+
+### Iteration 331 (2026-03-30)
+- Fix Ctrl+Shift+F shortcut conflict -- Ctrl+Shift+F was registered for both Focus Mode (App.tsx) and Global Cross-Session Search (useChatPanelShortcuts.ts), causing both handlers to fire simultaneously. Reassigned Focus Mode to Ctrl+Shift+O. Updated App.tsx handler, ShortcutCheatsheet.tsx key display, ChatHeader.tsx tooltip, and added Ctrl+Shift+O to README keyboard shortcuts table. Global search (Ctrl+Shift+F) now works without triggering focus mode. 5 files changed; build SUCCESS

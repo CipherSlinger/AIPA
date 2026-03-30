@@ -90,6 +90,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 | `Ctrl+Shift+D` | Cycle theme (Dark / Light / System) |
 | `Ctrl+Shift+M` | Cycle model (Sonnet / Opus / Haiku) |
 | `Ctrl+Shift+T` | Pin window on top (always-on-top) |
+| `Ctrl+Shift+O` | Focus mode (hide sidebar + terminal) |
 | `Ctrl+B` | Toggle sidebar |
 | `Ctrl+`` ` `` | Toggle terminal |
 | `Ctrl+1–5` | History, Files, Notes, Skills, Settings |

@@ -320,7 +320,7 @@ export default function ChatHeader({
       {/* Focus mode toggle */}
       <button
         onClick={onToggleFocus}
-        title={focusMode ? `${t('chat.exitFocusMode')} (Ctrl+Shift+F)` : `${t('chat.focusMode')} (Ctrl+Shift+F)`}
+        title={focusMode ? `${t('chat.exitFocusMode')} (Ctrl+Shift+O)` : `${t('chat.focusMode')} (Ctrl+Shift+O)`}
         style={{
           ...headerBtnStyle,
           background: focusMode ? 'var(--accent)' : 'none',
