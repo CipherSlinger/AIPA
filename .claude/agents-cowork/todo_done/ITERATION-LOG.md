@@ -2284,3 +2284,21 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 291 (2026-03-29)
 - README batch update for iterations 282-290 -- added 10 new feature entries to both README.md and README_CN.md covering: click-to-copy token usage & cost, context window warning toast, streaming speed tokens/sec, inline calculator, stopwatch timer, message word count, copy last response command, daily inspiration, text case cycling; 2 files changed; no build needed
+
+### Iteration 291-fix (2026-03-29)
+- Fix: chat panel crash -- useMessageListScroll object ref in useEffect deps caused crash; 1 file changed; build SUCCESS
+
+### Iteration 292 (2026-03-29)
+- Expandable NavRail with icon + label mode -- NavRail can now be expanded to show icon + label side by side; 2 files changed; build SUCCESS
+- Multi-API key pool with auto-failover + NavRail icon enlargement -- users can configure multiple API keys with automatic failover; enlarged NavRail icons; multiple files changed; build SUCCESS
+
+### Iteration 293 (2026-03-29)
+- File context attachment with paperclip button -- paperclip button in input area lets users attach file content as text context for the conversation; multiple files changed; build SUCCESS
+
+### Iteration 294 (2026-03-29)
+- Context usage meter with compact button and Ctrl+Shift+C shortcut -- shows context window usage as a compact meter with keyboard shortcut; multiple files changed; build SUCCESS
+
+### Iteration 295 (2026-03-29)
+- Memory fuzzy search with relevance scoring and auto-category suggestion -- memory panel now supports fuzzy search with relevance scoring and automatically suggests categories for new memories; multiple files changed; build SUCCESS
+
+[RETRO] retro-2026-03-30-iterations-228-295.md completed, covering Iteration 228-295, next forced retro after Iteration 305

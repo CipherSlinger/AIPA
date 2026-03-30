@@ -177,3 +177,25 @@ Improvements landed:
 3. Known decomposition candidates listed: ChatHeader, ChatInput, Message, SettingsPersonas, WelcomeScreen
 
 Next forced retro: after Iteration 217.
+
+## Retrospective: Iteration 228-295 (2026-03-30)
+
+**68 iterations analyzed. Core finding: Agent-leader bypassed for entire span.**
+
+Key stats:
+- 62 feature commits, 1 bug fix, 7 doc updates, 0 build failures
+- Zero PRDs, zero UI specs, zero test reports, zero retros during span
+- i18n perfect parity: 1,073 keys EN = 1,073 keys ZH-CN
+- 1 runtime bug (Iteration 291 useMessageListScroll crash)
+- Duplicate iteration numbers: 291 and 292 each used twice
+- ChatInput.tsx grew to 992 lines (exceeds 800-line urgent threshold)
+- 3 new panels born oversized: WorkflowPanel (892), MemoryPanel (887), SchedulePanel (771)
+
+Improvements landed:
+1. agent-leader.md: New "Continuous Iteration Mode" section with 5 mandatory constraints
+2. agent-leader.md: New risk rows for detecting bypassed supervision
+3. ITERATION-LOG: Missing entries for 292-295 backfilled
+
+Outstanding tech debt: ChatInput.tsx (992), WorkflowPanel.tsx (892), MemoryPanel.tsx (887), SchedulePanel.tsx (771), InputToolbar.tsx (750), StatusBar.tsx (674) all need decomposition.
+
+Next forced retro: after Iteration 305.

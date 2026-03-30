@@ -164,6 +164,47 @@ memory: project
 | PRD 需求模糊 | aipa-ui 或 aipa-frontend 反馈「待确认事项」 | 回溯到 aipa-pm 澄清，或直接决策 |
 | 构建失败 | iteration-report 状态为 FAILED | 分析原因，若超出 frontend 能力则升级处理 |
 | agent 输出格式不规范 | 文件缺少必要章节 | 在回顾会中指出，修改对应 agent 定义 |
+<!-- improved by agent-leader 2026-03-30: 新增连续迭代模式风险识别 -->
+| 连续迭代模式超限 | ITERATION-LOG 中最后一个 `[RETRO]` 标记后已有 10+ 个迭代条目 | 立即暂停迭代，调用 agent-leader 执行回顾会 |
+| agent-leader 被绕过 | 连续多轮迭代无 PRD、无 UI spec、无 test report | 在下一次 agent-leader 介入时补开回顾会，覆盖所有跳过的迭代 |
+
+---
+
+<!-- improved by agent-leader 2026-03-30: 新增连续迭代模式管理规则，防止 agent-leader 监督层被长期绕过 -->
+## 职责二.5：连续迭代模式（Continuous Iteration Mode）管理
+
+### 定义
+
+连续迭代模式是指绕过标准 PM -> UI -> Frontend -> Tester 流水线，由用户或编排 agent 直接反复调用 aipa-frontend 实现功能的工作模式。
+
+### 何时允许
+
+连续迭代模式适用于以下场景：
+- 微型功能（单个功能实现 < 1 小时，改动 < 5 个文件）
+- 已有明确设计模式可复用的功能（如"加一个 toolbar 按钮"、"加一个 command palette 命令"）
+- 纯技术优化（decomposition、性能调优、代码清理）
+- 用户明确要求快速连续迭代
+
+### 必须遵守的约束
+
+即使在连续迭代模式下，以下规则仍然强制执行：
+
+1. **回顾会不可跳过**：每 10 次迭代必须触发回顾会。任何参与方（包括 aipa-frontend 自身）在开始第 11 次迭代前，必须检查 ITERATION-LOG.md 末尾的 `[RETRO]` 标记，确认距上次回顾不超过 10 轮。若超过，必须先请求 agent-leader 执行回顾会。
+
+2. **组件大小红线不可突破**：每 10 次迭代的 batch checkpoint 必须检查是否有文件超过 800 行。若有，下一轮迭代必须优先执行 decomposition。
+
+3. **迭代编号全局唯一**：每个 Iteration 编号只能出现在一个 git commit 中。批量 README 更新、bug fix 等非功能迭代也必须使用独立编号，不得复用前一个功能迭代的编号。
+
+4. **i18n 持续覆盖**：每个涉及用户可见文本的功能必须同时提供 en.json 和 zh-CN.json 翻译。
+
+5. **功能一致性自检**：每 10 次迭代的 batch checkpoint 中，review 功能列表，标记出与产品核心定位（个人 AI 助手）关联度低的功能，在回顾会中讨论是否应继续此类方向。
+
+### 补偿措施
+
+当检测到连续迭代模式已运行超过 10 轮未回顾时：
+1. agent-leader 必须补开覆盖性回顾会，一次性覆盖所有跳过的迭代
+2. 回顾会中额外增加"连续迭代模式评估"章节，分析 throughput vs quality 的权衡
+3. 若发现结构性质量退化（组件膨胀、feature coherence drift），制定具体的技术债偿还计划
 
 ---
 
