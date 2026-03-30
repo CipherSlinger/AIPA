@@ -298,7 +298,7 @@ export default function App() {
       // Ctrl+1-9: Switch sidebar tabs
       if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key >= '1' && e.key <= '9') {
         e.preventDefault()
-        const tabs = ['history', 'files', 'notes', 'skills', 'settings', 'memory', 'workflows', 'prompthistory'] as const
+        const tabs = ['history', 'files', 'notes', 'skills', 'settings', 'memory', 'workflows', 'prompthistory', 'channel'] as const
         const idx = parseInt(e.key) - 1
         const ui = useUiStore.getState()
         const tab = tabs[idx]

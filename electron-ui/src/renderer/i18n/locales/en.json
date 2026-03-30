@@ -12,6 +12,7 @@
     "workflows": "Workflows",
     "schedules": "Schedules",
     "promptHistory": "Prompt History",
+    "channel": "Channel",
     "expandNav": "Expand sidebar",
     "collapseNav": "Collapse"
   },
@@ -370,10 +371,10 @@
     "displayName": "Display Name",
     "displayNamePlaceholder": "Your name (shown in greeting)",
     "displayNameHint": "Personalize the welcome screen greeting with your name",
-    "language": "Language / \u8bed\u8a00",
+    "language": "Language / 语言",
     "languageSystem": "System Default",
     "languageEn": "English",
-    "languageZhCN": "\u7b80\u4f53\u4e2d\u6587",
+    "languageZhCN": "简体中文",
     "apiKey": "API Key",
     "apiKeyPool": "API Key Pool",
     "apiKeyPoolHint": "Add multiple keys for auto-failover when quota is exhausted",
@@ -450,7 +451,7 @@
     "mcpHint": "Add mcpServers to ~/.claude/settings.json",
     "about": {
       "aiPersonalAssistant": "AI Personal Assistant",
-      "version": "v1.0.0 \u00b7 Claude Code CLI v2.1.81",
+      "version": "v1.0.0 · Claude Code CLI v2.1.81",
       "links": "Links",
       "githubRepo": "GitHub Repository",
       "anthropicConsole": "Anthropic Console",
@@ -624,7 +625,9 @@
     "enterHint": "Enter to select",
     "escHint": "Esc to close",
     "sourceProject": "[Project]",
-    "sourceUser": "[User]"
+    "sourceUser": "[User]",
+    "openChannel": "Open Channel",
+    "openChannelDesc": "Connect Feishu and WeChat messaging channels"
   },
   "permission": {
     "allow": "Allow",
@@ -1190,6 +1193,41 @@
       "vision": "Vision",
       "code": "Code",
       "reasoning": "Reasoning"
+    }
+  },
+  "channel": {
+    "title": "Channel",
+    "connectedCount": "connected",
+    "setup": "Setup Guide",
+    "viewDocs": "View docs",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "testing": "Testing...",
+    "lastTested": "Last tested",
+    "optional": "Optional",
+    "footer": "Powered by OpenClaw — connect AI to your messaging channels",
+    "feishu": {
+      "name": "Feishu",
+      "subtitle": "飞书 · Enterprise collaboration",
+      "appId": "App ID",
+      "appSecret": "App Secret",
+      "webhookUrl": "Bot Webhook URL",
+      "webhookHint": "Custom bot webhook URL from Feishu developer console",
+      "verifyToken": "Verify Token",
+      "verifyHint": "For incoming webhook signature verification (recommended)",
+      "setupHint": "Create a Feishu custom bot in your group, copy the webhook URL, and enter your App ID and Secret from the Feishu Open Platform."
+    },
+    "wechat": {
+      "name": "WeChat",
+      "subtitle": "微信公众号 · Official Account",
+      "appId": "App ID",
+      "appSecret": "App Secret",
+      "token": "Token",
+      "tokenPlaceholder": "Your custom verification token",
+      "tokenHint": "Used for webhook verification between WeChat and your server",
+      "encodingAESKey": "Encoding AES Key",
+      "aesHint": "43-char key for message encryption (leave blank for plaintext mode)",
+      "setupHint": "Register a WeChat Official Account, enable developer mode, and set the server URL to your AIPA webhook endpoint."
     }
   }
 }

@@ -4,7 +4,7 @@ import React from 'react'
 import {
   Plus, Download, PanelLeft, Terminal, Settings, History,
   FolderOpen, Zap, Trash2, HelpCircle, Cpu, Sparkles,
-  Brain, Workflow, ListRestart, Play, NotebookPen, ClipboardPaste,
+  Brain, Workflow, ListRestart, Play, NotebookPen, ClipboardPaste, Radio,
   Sun, Moon, Languages, Copy,
 } from 'lucide-react'
 import { useChatStore, useSessionStore, useUiStore, usePrefsStore } from '../../store'
@@ -29,9 +29,9 @@ interface CommandBuilderArgs {
   onSendSlashCommand: (cmd: string) => void
   toggleSidebar: () => void
   toggleTerminal: () => void
-  setSidebarTab: (tab: 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory') => void
+  setSidebarTab: (tab: 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory' | 'channel') => void
   setSidebarOpen: (open: boolean) => void
-  setActiveNavItem: (item: 'chat' | 'history' | 'files' | 'terminal' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory') => void
+  setActiveNavItem: (item: 'chat' | 'history' | 'files' | 'terminal' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory' | 'channel') => void
   addToQueue: (text: string) => void
   addToast: (type: 'success' | 'error' | 'info' | 'warning', msg: string, duration?: number) => void
   sessions: SessionListItem[]
@@ -139,6 +139,15 @@ export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] 
       icon: <ListRestart size={14} />,
       shortcut: 'Ctrl+8',
       action: () => { setActiveNavItem('prompthistory'); onClose() },
+      category: 'action',
+    },
+    {
+      id: 'open-channel',
+      name: t('command.openChannel'),
+      description: t('command.openChannelDesc'),
+      icon: <Radio size={14} />,
+      shortcut: 'Ctrl+9',
+      action: () => { setActiveNavItem('channel'); onClose() },
       category: 'action',
     },
     {

@@ -31,6 +31,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 | **Workflows** | Chain prompts into reusable pipelines; schedule them to run daily, weekly, or monthly |
 | **Notes** | Markdown notepad with categories, templates, and one-click save from any chat response |
 | **Multi-Model** | Switch between Claude, GPT-4, DeepSeek, or local Ollama models mid-session |
+| **Channel** | Connect Feishu and WeChat messaging channels via OpenClaw — configure, test, and manage from the sidebar |
 
 ---
 
@@ -69,6 +70,12 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 - 46+ curated skills from Anthropic, OpenClaw, ClawhHub, and community
 - One-click install; live browsing from ClawhHub.ai
 
+### Channel (Feishu & WeChat)
+- Connect your **Feishu** workspace bot via webhook URL + App credentials
+- Connect your **WeChat Official Account** via token + App credentials
+- Configure, test, and manage both channels from the sidebar `Radio` icon (`Ctrl+9`)
+- Powered by OpenClaw integration
+
 ---
 
 ## Keyboard Shortcuts
@@ -84,7 +91,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 | `Ctrl+B` | Toggle sidebar |
 | `Ctrl+`` ` `` | Toggle terminal |
 | `Ctrl+1–5` | History, Files, Notes, Skills, Settings |
-| `Ctrl+6–8` | Memory, Workflows, Prompt History |
+| `Ctrl+6–9` | Memory, Workflows, Prompt History, Channel |
 | `Ctrl+/` | Shortcut cheatsheet |
 
 ---

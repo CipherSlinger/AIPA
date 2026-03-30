@@ -118,6 +118,8 @@ export interface ClaudePrefs {
   apiKeyPool?: ApiKeyEntry[]            // multi-key pool for auto-switching on quota exhaustion
   activeApiKeyId?: string              // id of currently active key (undefined = use apiKey field)
   systemPresence?: boolean             // inject OS time, working dir, user name into system prompt (default true)
+  channelFeishu?: import('../components/channel/channelConstants').FeishuConfig   // Feishu channel config
+  channelWechat?: import('../components/channel/channelConstants').WechatConfig   // WeChat channel config
 }
 
 export interface ApiKeyEntry {

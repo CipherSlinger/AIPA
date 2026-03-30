@@ -1,5 +1,5 @@
 import React from 'react'
-import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, ListRestart, TerminalSquare, Settings, User, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, ListRestart, TerminalSquare, Settings, User, PanelLeftClose, PanelLeftOpen, Radio } from 'lucide-react'
 import { useUiStore, useSessionStore, useChatStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 
@@ -216,6 +216,7 @@ export default function NavRail() {
   const isMemoryActive = activeNavItem === 'memory' && sidebarTab === 'memory'
   const isWorkflowsActive = activeNavItem === 'workflows' && sidebarTab === 'workflows'
   const isPromptHistoryActive = activeNavItem === 'prompthistory' && sidebarTab === 'prompthistory'
+  const isChannelActive = activeNavItem === 'channel' && sidebarTab === 'channel'
   const isSettingsActive = activeNavItem === 'settings' && sidebarTab === 'settings'
 
   const handleNewChat = () => {
@@ -335,6 +336,16 @@ export default function NavRail() {
         isActive={isPromptHistoryActive}
         onClick={() => setActiveNavItem('prompthistory')}
         badge={promptHistoryCount}
+        expanded={navExpanded}
+      />
+
+      {/* Channel */}
+      <NavItem
+        icon={<Radio size={iconSize} />}
+        label={t('nav.channel')}
+        shortcut="Ctrl+9"
+        isActive={isChannelActive}
+        onClick={() => setActiveNavItem('channel')}
         expanded={navExpanded}
       />
 
