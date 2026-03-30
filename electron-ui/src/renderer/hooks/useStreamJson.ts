@@ -5,6 +5,24 @@ import { useUiStore } from '../store'
 import { useT } from '../i18n'
 import { recordPrompt } from '../utils/promptHistoryUtils'
 
+/** Check if the current model should be routed to a non-Claude provider */
+async function resolveProvider(modelId: string | undefined): Promise<{ type: 'claude-cli' } | { type: 'provider'; providerId: string }> {
+  if (!modelId) return { type: 'claude-cli' }
+  try {
+    const configs = await window.electronAPI.providerListConfigs()
+    for (const config of configs as { id: string; type: string; models: { id: string }[]; enabled: boolean }[]) {
+      if (!config.enabled) continue
+      if (config.type === 'claude-cli') continue
+      if (config.models.some(m => m.id === modelId)) {
+        return { type: 'provider', providerId: config.id }
+      }
+    }
+  } catch {
+    // Fallback to Claude CLI if provider system is unavailable
+  }
+  return { type: 'claude-cli' }
+}
+
 function sendCompletionNotification(title: string, summary: string) {
   if (document.hasFocus()) return  // Don't notify when window is focused
   if (usePrefsStore.getState().prefs.desktopNotifications === false) return
@@ -236,6 +254,45 @@ export function useStreamJson() {
       actualPrompt = prompt
     }
 
+    // Route to appropriate provider based on model
+    const routing = await resolveProvider(prefs.model)
+
+    if (routing.type === 'provider') {
+      // Non-Claude provider: use providerSendMessage IPC
+      // Build conversation history for context
+      const existingMsgs = useChatStore.getState().messages
+      const contextMessages = existingMsgs
+        .filter(m => m.role === 'user' || m.role === 'assistant')
+        .slice(-20) // Last 20 messages for context
+        .map(m => ({
+          role: m.role as string,
+          content: (m as StandardChatMessage).content || '',
+        }))
+      // Remove the last user message since it's sent as the prompt
+      if (contextMessages.length > 0 && contextMessages[contextMessages.length - 1].role === 'user') {
+        contextMessages.pop()
+      }
+
+      const systemPrompt = systemPromptParts.length > 0 ? systemPromptParts.join('\n\n') : undefined
+
+      const result = await window.electronAPI.providerSendMessage({
+        prompt: actualPrompt,
+        model: prefs.model || 'gpt-4o',
+        systemPrompt,
+        messages: contextMessages,
+        images: attachments?.map(a => a.dataUrl),
+        maxTokens: 4096,
+        temperature: 0.7,
+      })
+
+      if (result?.success && result.sessionId) {
+        activeBridgeIdRef.current = result.sessionId
+      }
+
+      return result
+    }
+
+    // Claude CLI provider: use existing cliSendMessage
     const result = await window.electronAPI.cliSendMessage({
       prompt: actualPrompt,
       cwd: prefs.workingDir || (await window.electronAPI.fsGetHome()),
@@ -504,7 +561,17 @@ export function useStreamJson() {
       }
     })
 
-    return unsub
+    // Listen for provider failover events
+    const unsubFailover = window.electronAPI.onProviderFailover((data) => {
+      useUiStore.getState().addToast('warning',
+        `Failover: ${data.fromProvider} -> ${data.toProvider}. ${data.reason}`
+      )
+    })
+
+    return () => {
+      unsub()
+      unsubFailover()
+    }
   }, [])
 
   return { sendMessage, abort, respondPermission, grantToolPermission, newConversation }
