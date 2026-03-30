@@ -137,9 +137,26 @@ export function useMessageListScroll(
     virtualizer.scrollToIndex(0, { align: 'start', behavior: 'smooth' })
   }, [virtualizer])
 
+  // Keep scrollLocked in a ref so the auto-scroll effect can read it without
+  // adding it to the dependency array. This breaks the loop:
+  //   messages.length change → effect → setScrollLocked → scrollLocked change
+  //   → effect reruns → setUnreadCount → rerender → loop
+  // STABILITY (Iteration 308): scrollLocked state drives UI (lock button color),
+  // but the auto-scroll logic only needs to *read* it, not react to its changes.
+  const scrollLockedRef = useRef(scrollLocked)
+  scrollLockedRef.current = scrollLocked
+
   // Auto-scroll only when user is near the bottom and scroll is not locked.
   // Uses a ref guard to prevent re-entrance during streaming when scrollToIndex
   // triggers scroll events that update state and re-trigger this effect.
+  //
+  // STABILITY (Iteration 308): setState calls inside this effect are wrapped in
+  // RAF (via the shared scrollThrottleRef pattern) to prevent synchronous
+  // state-update cascades during streaming. During a streaming burst, messages.length
+  // can change 10-30 times per second; without batching those setState calls hit
+  // React's 50-update safety limit (error #185).
+  const autoScrollStateRAFRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null)
+
   useEffect(() => {
     const lastMsgId = messages.length > 0 ? messages[messages.length - 1]?.id : undefined
     // Skip if the last message hasn't actually changed
@@ -148,7 +165,7 @@ export function useMessageListScroll(
     }
     lastMsgIdRef.current = lastMsgId
 
-    if (isNearBottomRef.current && !scrollLocked && items.length > 0) {
+    if (isNearBottomRef.current && !scrollLockedRef.current && items.length > 0) {
       // Guard against re-entrance: scrollToIndex fires scroll events
       // which could trigger handleScroll -> state updates -> re-render -> this effect
       if (!autoScrollingRef.current) {
@@ -160,20 +177,48 @@ export function useMessageListScroll(
         })
       }
       lastSeenCountRef.current = messages.length
-      setUnreadCount(0)
+      // STABILITY (Iteration 308): Batch state update via RAF instead of calling
+      // setState synchronously inside the effect. Synchronous setState here would
+      // immediately queue a re-render which can retrigger this effect before React
+      // has finished processing the current render batch, contributing to #185.
+      if (autoScrollStateRAFRef.current !== null) cancelAnimationFrame(autoScrollStateRAFRef.current)
+      autoScrollStateRAFRef.current = requestAnimationFrame(() => {
+        autoScrollStateRAFRef.current = null
+        setUnreadCount(0)
+      })
     } else if (items.length > 0) {
-      setShowScrollBtn(true)
       const newMessages = messages.length - lastSeenCountRef.current
-      if (newMessages > 0) {
-        setUnreadCount(newMessages)
+      if (autoScrollStateRAFRef.current !== null) cancelAnimationFrame(autoScrollStateRAFRef.current)
+      autoScrollStateRAFRef.current = requestAnimationFrame(() => {
+        autoScrollStateRAFRef.current = null
+        setShowScrollBtn(true)
+        if (newMessages > 0) {
+          setUnreadCount(newMessages)
+        }
+      })
+    }
+  }, [messages.length, items.length]) // scrollLocked intentionally excluded — read via ref above
+
+  // Cleanup auto-scroll RAF on unmount
+  useEffect(() => {
+    return () => {
+      if (autoScrollStateRAFRef.current !== null) {
+        cancelAnimationFrame(autoScrollStateRAFRef.current)
       }
     }
-  }, [messages.length, scrollLocked, items.length])
+  }, [])
 
-  // Auto-unlock scroll when streaming stops
+  // Auto-unlock scroll when streaming stops.
+  // STABILITY (Iteration 308): Both isStreaming and scrollLocked are in deps.
+  // Without scrollLocked in deps, this effect uses a stale closure where
+  // scrollLocked is always false (its initial value), so the condition
+  // `!isStreaming && scrollLocked` never fires. Adding scrollLocked to deps
+  // is safe because this effect only runs when isStreaming transitions false→true
+  // or when scrollLocked is manually set by the user — both are rare events,
+  // not streaming-frequency updates.
   useEffect(() => {
     if (!isStreaming && scrollLocked) setScrollLocked(false)
-  }, [isStreaming])
+  }, [isStreaming, scrollLocked])
 
   // Keyboard navigation: Ctrl+Home (first), Ctrl+End (last), PageUp/Down, Alt+Up/Down
   useEffect(() => {
