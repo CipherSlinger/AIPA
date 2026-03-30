@@ -1,0 +1,68 @@
+import React from 'react'
+import { Workflow, WorkflowStep } from '../../types/app.types'
+
+export const MAX_WORKFLOWS = 50
+export const MAX_STEPS = 20
+export const MAX_STEP_PROMPT = 2000
+export const MAX_NAME_LENGTH = 50
+export const MAX_DESC_LENGTH = 200
+
+export const WORKFLOW_ICONS = ['🔄', '📝', '🔍', '📊', '🎯', '🚀', '💡', '📧', '🗂️', '✅', '📋', '🔧']
+
+export const PRESET_WORKFLOWS: Omit<Workflow, 'id' | 'createdAt' | 'updatedAt' | 'runCount'>[] = [
+  {
+    name: 'Weekly Report',
+    description: 'Generate a structured weekly status report',
+    icon: '📊',
+    steps: [
+      { id: 'p1', title: 'Gather accomplishments', prompt: 'List my key accomplishments this week based on our conversation history. Focus on concrete outcomes and deliverables.' },
+      { id: 'p2', title: 'Identify blockers', prompt: 'Based on what we discussed, what blockers or challenges did I face? How were they resolved or what still needs attention?' },
+      { id: 'p3', title: 'Draft the report', prompt: 'Now compile this into a professional weekly status report with sections: Accomplishments, Challenges, Next Week Plans. Keep it concise and actionable.' },
+    ],
+  },
+  {
+    name: 'Code Review',
+    description: 'Thorough code review pipeline',
+    icon: '🔍',
+    steps: [
+      { id: 'p1', title: 'Overview scan', prompt: 'Give me a high-level overview of this code. What does it do? What patterns does it use?' },
+      { id: 'p2', title: 'Bug & security check', prompt: 'Now examine it for potential bugs, edge cases, and security vulnerabilities. Be thorough.' },
+      { id: 'p3', title: 'Improvement suggestions', prompt: 'Suggest specific improvements for readability, performance, and maintainability. Prioritize by impact.' },
+    ],
+  },
+  {
+    name: 'Research & Summarize',
+    description: 'Deep-dive research with structured output',
+    icon: '📝',
+    steps: [
+      { id: 'p1', title: 'Initial research', prompt: 'Research this topic thoroughly. Provide key facts, different perspectives, and recent developments.' },
+      { id: 'p2', title: 'Analysis', prompt: 'Analyze the findings. What are the pros and cons? What trade-offs exist? What does the evidence suggest?' },
+      { id: 'p3', title: 'Executive summary', prompt: 'Create a concise executive summary with: Key Takeaways (3-5 bullets), Recommendation, and Next Steps.' },
+    ],
+  },
+]
+
+export const iconBtnStyle: React.CSSProperties = {
+  background: 'transparent',
+  border: 'none',
+  borderRadius: 3,
+  padding: 2,
+  cursor: 'pointer',
+  color: 'var(--text-muted)',
+  display: 'flex',
+  alignItems: 'center',
+}
+
+export const smallBtnStyle: React.CSSProperties = {
+  background: 'transparent',
+  border: '1px solid var(--border)',
+  borderRadius: 4,
+  padding: '2px 8px',
+  fontSize: 10,
+  color: 'var(--text-muted)',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  gap: 3,
+  transition: 'border-color 0.15s ease',
+}

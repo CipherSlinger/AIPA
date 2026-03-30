@@ -2337,3 +2337,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 306 (2026-03-29)
 - ChatInput.tsx decomposition refactor -- Reduced ChatInput.tsx from 992 to 720 lines (27% reduction, below 800-line urgent threshold). Extracted 4 hooks: useTypingWpm.ts (36 lines, WPM tracking), useInputPopups.ts (218 lines, @mention/slash-command/snippet state+handlers), useInputCompletion.ts (64 lines, ghost-text autocomplete + inline calculator), usePasteDetection.ts (126 lines, URL/long-text paste detection + quote reply). Zero behavior changes, same decomposition pattern as ChatPanel (Iteration 111) and NotesPanel (Iteration 125). 5 files changed (4 new, 1 refactored); build SUCCESS
+
+### Iteration 307 (2026-03-29)
+- WorkflowPanel.tsx decomposition refactor -- Reduced WorkflowPanel.tsx from 892 to 289 lines (68% reduction). Extracted 4 files: workflowConstants.ts (68 lines, MAX limits/presets/styles), useWorkflowCrud.ts (177 lines, all CRUD logic+state), WorkflowStepEditor.tsx (141 lines, reusable step editor), WorkflowItem.tsx (198 lines, individual workflow card with expand/edit). Zero behavior changes. 5 files changed (4 new, 1 refactored); build SUCCESS
