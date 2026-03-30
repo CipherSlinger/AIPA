@@ -38,16 +38,24 @@ type: project
   - It.306-315: Systematic decomposition sprint (all 6 >683-line files resolved)
   - It.316-321: Feedback items (node-pty stderr, Channel panel, SchedulePanel merge, README)
 
-### Iterations 322-324 (2026-03-30, leader-driven)
+### Iterations 322-331 (2026-03-30, leader-driven)
 - **It.322**: Vite bundle splitting (1282->432 kB main chunk), quick reply chips overhaul, dynamic About version, GitHub URL fix
 - **It.323**: CSS cleanup (removed 16 stale iteration comments)
 - **It.324**: Store defaults alignment for quick reply chips
-- **Current version**: 1.1.3
+- **It.325**: Window position/size persistence across restarts
+- **It.326**: Theme-aware startup (no dark flash), off-screen guard
+- **It.327**: Double-click titlebar to maximize/restore
+- **It.328**: Persist sidebar tab across restarts
+- **It.329**: Ctrl+Shift+M model cycling shortcut
+- **It.330**: Ctrl+Shift+T always-on-top pin window
+- **It.331**: Fix Ctrl+Shift+F shortcut conflict (focus mode -> Ctrl+Shift+O)
+- **Current version**: 1.1.10
 - **Build status**: Clean (tsc zero errors, build SUCCESS)
-- **Next forced retro**: After Iteration 331
+- **Next forced retro**: After Iteration 341
+- **Retro**: retro-2026-03-30-iterations-322-331.md
 
 ### Outstanding Tech Debt
-- InputToolbar.tsx: Resolved (295 lines after It.317 decomposition)
-- No files above 800-line red line
-- ipc/index.ts (763 lines) is the largest file but is well-organized by handler groups
+- ipc/index.ts (784 lines) approaching 800-line red line -- monitor, plan decomposition if grows
 - skillMarketplace.ts (1781 lines) is data-only, fine as-is
+- No other files above 600 lines
+- Shortcut registry: shortcuts distributed across App.tsx, useChatPanelShortcuts.ts, ChatInput.tsx -- no centralized conflict detection
