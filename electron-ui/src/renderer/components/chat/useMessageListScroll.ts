@@ -108,7 +108,7 @@ export function useMessageListScroll(
         setUnreadCount(newMessages)
       }
     }
-  }, [messages.length, messages[messages.length - 1]])
+  }, [messages.length, messages[messages.length - 1]?.id])
 
   // Auto-unlock scroll when streaming stops
   useEffect(() => {
