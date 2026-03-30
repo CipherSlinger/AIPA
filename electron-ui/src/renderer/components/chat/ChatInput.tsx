@@ -316,6 +316,34 @@ export default function ChatInput({
       }
       return
     }
+    // Ctrl+Shift+U: Cycle text case (UPPER -> lower -> Title -> original)
+    if (e.ctrlKey && e.shiftKey && e.key === 'U') {
+      e.preventDefault()
+      const ta = textareaRef.current
+      if (!ta) return
+      const start = ta.selectionStart
+      const end = ta.selectionEnd
+      const selected = input.substring(start, end)
+      if (!selected) return
+      let transformed: string
+      if (selected === selected.toUpperCase() && selected !== selected.toLowerCase()) {
+        // Currently UPPER -> go to lower
+        transformed = selected.toLowerCase()
+      } else if (selected === selected.toLowerCase() && selected !== selected.toUpperCase()) {
+        // Currently lower -> go to Title Case
+        transformed = selected.replace(/\b\w/g, c => c.toUpperCase())
+      } else {
+        // Title case or mixed -> go to UPPER
+        transformed = selected.toUpperCase()
+      }
+      const newText = input.substring(0, start) + transformed + input.substring(end)
+      setInput(newText)
+      setTimeout(() => {
+        ta.selectionStart = start
+        ta.selectionEnd = start + transformed.length
+      }, 0)
+      return
+    }
     // Escape: dismiss URL chips, long text chips, then quote preview
     if (e.key === 'Escape' && atQuery === null && slashQuery === null) {
       if (pastedUrl) { e.preventDefault(); setPastedUrl(null); if (urlChipTimerRef.current) clearTimeout(urlChipTimerRef.current); return }

@@ -50,6 +50,7 @@ const SHORTCUTS = [
     { keys: 'Ctrl + U', actionKey: 'clearInput' },
     { keys: 'Ctrl + B', actionKey: 'boldText' },
     { keys: 'Ctrl + I', actionKey: 'italicText' },
+    { keys: 'Ctrl + Shift + U', actionKey: 'cycleTextCase' },
     { keys: 'Ctrl + = / -', actionKey: 'zoomInOut' },
     { keys: 'Ctrl + 0', actionKey: 'resetZoom' },
   ]},

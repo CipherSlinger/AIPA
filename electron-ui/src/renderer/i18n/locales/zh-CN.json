@@ -733,6 +733,7 @@
     "clearInput": "\u6e05\u9664\u8f93\u5165\u6587\u672c",
     "boldText": "\u52a0\u7c97\u9009\u4e2d\u6587\u672c",
     "italicText": "\u659c\u4f53\u9009\u4e2d\u6587\u672c",
+    "cycleTextCase": "\u5faa\u73af\u5207\u6362\u5927\u5c0f\u5199\uff08\u5927\u5199/\u5c0f\u5199/\u9996\u5b57\u6bcd\u5927\u5199\uff09",
     "zoomInOut": "\u653e\u5927 / \u7f29\u5c0f",
     "resetZoom": "\u91cd\u7f6e\u7f29\u653e",
     "searchInConversation": "\u641c\u7d22\u5bf9\u8bdd",

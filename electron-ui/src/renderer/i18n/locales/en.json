@@ -733,6 +733,7 @@
     "clearInput": "Clear input text",
     "boldText": "Bold selected text",
     "italicText": "Italic selected text",
+    "cycleTextCase": "Cycle text case (upper/lower/title)",
     "zoomInOut": "Zoom in / out",
     "resetZoom": "Reset zoom",
     "searchInConversation": "Search in conversation",
