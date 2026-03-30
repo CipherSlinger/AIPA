@@ -3,7 +3,7 @@ import { Save, Eye, EyeOff, Brain, MessageSquare, Palette, FolderOpen, Settings2
 import { usePrefsStore } from '../../store'
 import { useI18n } from '../../i18n'
 import { PROMPT_TEMPLATES } from '../../utils/promptTemplates'
-import type { CustomPromptTemplate, ApiKeyEntry } from '../../types/app.types'
+import type { ApiKeyEntry } from '../../types/app.types'
 import SettingsGroup from './SettingsGroup'
 import Toggle from '../ui/Toggle'
 import {
@@ -21,7 +21,6 @@ interface SettingsGeneralProps {
   setShowKey: (v: boolean) => void
   saved: boolean
   onSave: () => void
-  customTemplates: CustomPromptTemplate[]
 }
 
 export default function SettingsGeneral({
@@ -31,7 +30,6 @@ export default function SettingsGeneral({
   setShowKey,
   saved,
   onSave,
-  customTemplates,
 }: SettingsGeneralProps) {
   const { setPrefs } = usePrefsStore()
   const { t, locale, setLocale } = useI18n()
@@ -336,18 +334,12 @@ export default function SettingsGeneral({
           <select
             value={
               PROMPT_TEMPLATES.find(tpl => tpl.prompt === (local.systemPrompt ?? ''))?.id
-              || customTemplates.find(ct => ct.prompt === (local.systemPrompt ?? ''))?.id
               || (local.systemPrompt?.trim() ? 'custom' : 'none')
             }
             onChange={(e) => {
               const tpl = PROMPT_TEMPLATES.find(t => t.id === e.target.value)
               if (tpl) {
                 updateLocal({ systemPrompt: tpl.prompt })
-              } else {
-                const customTpl = customTemplates.find(ct => ct.id === e.target.value)
-                if (customTpl) {
-                  updateLocal({ systemPrompt: customTpl.prompt })
-                }
               }
             }}
             style={{ ...INPUT_STYLE }}
@@ -355,13 +347,7 @@ export default function SettingsGeneral({
             {PROMPT_TEMPLATES.map((tpl) => (
               <option key={tpl.id} value={tpl.id}>{t(tpl.labelKey)}</option>
             ))}
-            {customTemplates.length > 0 && (
-              <option disabled>{'---'}</option>
-            )}
-            {customTemplates.map((ct) => (
-              <option key={ct.id} value={ct.id}>{ct.name} {t('settings.templates.customSuffix')}</option>
-            ))}
-            {!PROMPT_TEMPLATES.find(tpl => tpl.prompt === (local.systemPrompt ?? '')) && !customTemplates.find(ct => ct.prompt === (local.systemPrompt ?? '')) && local.systemPrompt?.trim() && (
+            {!PROMPT_TEMPLATES.find(tpl => tpl.prompt === (local.systemPrompt ?? '')) && local.systemPrompt?.trim() && (
               <option value="custom">{t('settings.promptTemplateCustom')}</option>
             )}
           </select>,

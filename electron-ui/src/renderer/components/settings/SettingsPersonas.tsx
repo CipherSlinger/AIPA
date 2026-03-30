@@ -6,6 +6,7 @@ import type { Persona } from '../../types/app.types'
 import PersonaForm from './PersonaForm'
 import PersonaCard from './PersonaCard'
 import PersonaPresets from './PersonaPresets'
+import { SnippetsSection } from './SettingsTemplates'
 
 interface SettingsPersonasProps {
   personas: Persona[]
@@ -317,6 +318,8 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
           </button>
         </div>
       )}
+      {/* Text Snippets (moved from Templates tab, Iteration 309) */}
+      <SnippetsSection />
     </div>
   )
 }

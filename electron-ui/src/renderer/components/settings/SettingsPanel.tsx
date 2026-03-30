@@ -4,12 +4,15 @@ import { useI18n } from '../../i18n'
 import type { CustomPromptTemplate, Persona } from '../../types/app.types'
 import SettingsGeneral from './SettingsGeneral'
 import SettingsProviders from './SettingsProviders'
-import SettingsTemplates from './SettingsTemplates'
 import SettingsPersonas from './SettingsPersonas'
 import SettingsMcp from './SettingsMcp'
 import SettingsAbout from './SettingsAbout'
 
-type SettingsTab = 'general' | 'providers' | 'templates' | 'personas' | 'mcp' | 'about'
+type SettingsTab = 'general' | 'providers' | 'personas' | 'mcp' | 'about'
+
+// Default emojis for migrated templates (Iteration 309: merge Templates into Personas)
+const MIGRATION_EMOJIS = ['\u{1F4DD}', '\u{1F4CB}', '\u{1F4CC}', '\u{1F4D6}', '\u{1F4DA}', '\u{1F3AF}', '\u{1F4A1}', '\u{2B50}', '\u{1F680}', '\u{1F3C6}']
+const MIGRATION_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#ec4899', '#f97316', '#14b8a6', '#6366f1']
 
 export default function SettingsPanel() {
   const { prefs, setPrefs } = usePrefsStore()
@@ -18,7 +21,6 @@ export default function SettingsPanel() {
   const [showKey, setShowKey] = useState(false)
   const [saved, setSaved] = useState(false)
   const [settingsTab, setSettingsTab] = useState<SettingsTab>('general')
-  const [customTemplates, setCustomTemplates] = useState<CustomPromptTemplate[]>(prefs.customPromptTemplates || [])
   const [personas, setPersonas] = useState<Persona[]>(prefs.personas || [])
 
   useEffect(() => {
@@ -26,11 +28,40 @@ export default function SettingsPanel() {
       const all = await window.electronAPI.prefsGetAll()
       const env = await window.electronAPI.configGetEnv()
       setLocal({ ...all, apiKey: all.apiKey || env.apiKey || '' })
-      if (all.customPromptTemplates) {
-        setCustomTemplates(all.customPromptTemplates)
-      }
       if (all.personas) {
         setPersonas(all.personas)
+      }
+
+      // Iteration 309: Migrate custom templates to personas (one-time)
+      const templates: CustomPromptTemplate[] = all.customPromptTemplates || []
+      if (templates.length > 0) {
+        const existingPersonas: Persona[] = all.personas || []
+        const existingNames = new Set(existingPersonas.map(p => p.name.toLowerCase()))
+        const migratedPersonas: Persona[] = []
+
+        for (let i = 0; i < templates.length; i++) {
+          const tpl = templates[i]
+          const baseName = tpl.name
+          const name = existingNames.has(baseName.toLowerCase()) ? `${baseName} (migrated)` : baseName
+          existingNames.add(name.toLowerCase())
+
+          migratedPersonas.push({
+            id: `persona-migrated-${Date.now()}-${i}`,
+            name,
+            emoji: MIGRATION_EMOJIS[i % MIGRATION_EMOJIS.length],
+            model: all.model || 'claude-sonnet-4-6',
+            systemPrompt: tpl.prompt,
+            color: MIGRATION_COLORS[i % MIGRATION_COLORS.length],
+            createdAt: tpl.createdAt || Date.now(),
+            updatedAt: Date.now(),
+          })
+        }
+
+        const merged = [...existingPersonas, ...migratedPersonas]
+        setPersonas(merged)
+        setPrefs({ personas: merged, customPromptTemplates: [] })
+        window.electronAPI.prefsSet('personas', merged)
+        window.electronAPI.prefsSet('customPromptTemplates', [])
       }
     }
     load()
@@ -82,7 +113,7 @@ export default function SettingsPanel() {
 
       {/* Tab bar */}
       <div role="tablist" style={{ display: 'flex', gap: 4, marginBottom: 14, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>
-        {(['general', 'providers', 'templates', 'personas', 'mcp', 'about'] as const).map(tab => (
+        {(['general', 'providers', 'personas', 'mcp', 'about'] as const).map(tab => (
           <button
             key={tab}
             role="tab"
@@ -111,15 +142,9 @@ export default function SettingsPanel() {
           setShowKey={setShowKey}
           saved={saved}
           onSave={save}
-          customTemplates={customTemplates}
         />
       ) : settingsTab === 'providers' ? (
         <SettingsProviders />
-      ) : settingsTab === 'templates' ? (
-        <SettingsTemplates
-          customTemplates={customTemplates}
-          setCustomTemplates={setCustomTemplates}
-        />
       ) : settingsTab === 'personas' ? (
         <SettingsPersonas
           personas={personas}

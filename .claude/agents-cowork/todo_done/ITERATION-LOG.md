@@ -2366,3 +2366,6 @@ Status: SUCCESS
 - [x] MessageErrorBoundary 已创建（前序修复，本次确认未改动）
 - [x] MessageList 中每条 Message 已包裹 MessageErrorBoundary（前序修复，本次确认未改动）
 - [x] 构建成功，无新增 TypeScript 错误
+
+### Iteration 309 (2026-03-30)
+- UX Cleanup & Feature Consolidation -- (1) Fixed MemoryPanel crash: added defensive fallback `CATEGORY_CONFIG[mem.category] || CATEGORY_CONFIG.fact` for unknown/corrupt category values, plus data validation filter for memories array (null, non-object, missing id/content), plus ErrorBoundary wrapper in Sidebar.tsx for crash isolation. (2) Merged Templates tab into Personas tab: Settings tabs reduced from 6 to 5; template-to-persona auto-migration on first load (with name conflict handling via "(migrated)" suffix); SnippetsSection moved from SettingsTemplates to SettingsPersonas; General tab retains built-in PROMPT_TEMPLATES dropdown. (3) Removed emoji features: EmojiPicker component + EMOJI_CATEGORIES (4 categories, 64 emojis) deleted from InputToolbar; message emoji reactions removed from Message.tsx, MessageActionToolbar.tsx, store/index.ts (toggleReaction), and app.types.ts (reactions field); i18n keys cleaned (addReaction, removeReaction, toolbar.emoji, settings.tabs.templates removed from both en.json and zh-CN.json). Persona emoji avatars preserved. README updated. 12 files changed; build SUCCESS

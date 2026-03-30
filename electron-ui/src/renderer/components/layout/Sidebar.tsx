@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react'
 import { useUiStore } from '../../store'
 import SessionList from '../sessions/SessionList'
+import ErrorBoundary from '../shared/ErrorBoundary'
 
 // Lazy-load heavy sidebar panels (Iteration 198 — code-splitting)
 const FileBrowser = React.lazy(() => import('../filebrowser/FileBrowser'))
@@ -70,9 +71,11 @@ export default function Sidebar() {
           </Suspense>
         )}
         {sidebarTab === 'memory' && (
+          <ErrorBoundary fallbackLabel="memory panel">
           <Suspense fallback={<PanelFallback />}>
             <MemoryPanel />
           </Suspense>
+          </ErrorBoundary>
         )}
         {sidebarTab === 'workflows' && (
           <Suspense fallback={<PanelFallback />}>

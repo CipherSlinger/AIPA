@@ -270,8 +270,6 @@
     "pinnedMessage": "\u6d88\u606f\u5df2\u7f6e\u9876",
     "unpinned": "\u6d88\u606f\u5df2\u53d6\u6d88\u7f6e\u9876",
     "pinnedMessages": "\u7f6e\u9876\u6d88\u606f",
-    "addReaction": "\u6dfb\u52a0\u8868\u60c5",
-    "removeReaction": "\u79fb\u9664\u8868\u60c5",
     "copyCodeBlocks": "\u590d\u5236\u4ee3\u7801\u5757",
     "codeBlocksCopied": "\u5df2\u590d\u5236 {{count}} \u4e2a\u4ee3\u7801\u5757",
     "noCodeBlocks": "\u672a\u627e\u5230\u4ee3\u7801\u5757",
@@ -357,7 +355,6 @@
     "tabs": {
       "general": "\u5e38\u89c4",
       "providers": "\u63d0\u4f9b\u5546",
-      "templates": "\u6a21\u677f",
       "personas": "\u89d2\u8272",
       "mcp": "MCP \u670d\u52a1\u5668",
       "about": "\u5173\u4e8e"
@@ -529,7 +526,6 @@
     "stopRecording": "\u505c\u6b62\u5f55\u97f3",
     "voiceInput": "\u8bed\u97f3\u8f93\u5165",
     "favoritePrompts": "\u6536\u85cf\u63d0\u793a\u8bcd",
-    "emoji": "\u63d2\u5165\u8868\u60c5",
     "saveAsNote": "\u4fdd\u5b58\u8f93\u5165\u4e3a\u7b14\u8bb0",
     "savedAsNote": "\u8f93\u5165\u5df2\u4fdd\u5b58\u5230\u7b14\u8bb0",
     "attachFiles": "\u9644\u52a0\u6587\u4ef6",

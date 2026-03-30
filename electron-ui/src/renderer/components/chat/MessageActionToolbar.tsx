@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { StandardChatMessage } from '../../types/app.types'
-import { Copy, Check, Bookmark, Code2, Pencil, MessageSquareQuote, NotebookPen, Volume2, VolumeX, Brain, Share2, Pin, SmilePlus, Languages, StickyNote, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { Copy, Check, Bookmark, Code2, Pencil, MessageSquareQuote, NotebookPen, Volume2, VolumeX, Brain, Share2, Pin, Languages, StickyNote, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { useT } from '../../i18n'
 
 const actionBtnStyle: React.CSSProperties = {
@@ -40,7 +40,6 @@ interface MessageActionToolbarProps {
   onRememberThis: () => void
   onShare: () => void
   onPin: () => void
-  onReaction: (emoji: string) => void
   onTranslate: () => void
   onReadAloud?: () => void
   isSpeaking?: boolean
@@ -53,14 +52,12 @@ interface MessageActionToolbarProps {
 export default function MessageActionToolbar({
   isUser, isAssistant, isPermission, isPlan, message,
   copied, showRawMarkdown, globalIsStreaming,
-  onToggleRawMarkdown, onStartEdit, onCopy, onBookmark, onQuote, onSaveAsNote, onRememberThis, onShare, onPin, onReaction, onTranslate, onReadAloud, isSpeaking,
+  onToggleRawMarkdown, onStartEdit, onCopy, onBookmark, onQuote, onSaveAsNote, onRememberThis, onShare, onPin, onTranslate, onReadAloud, isSpeaking,
   hasOnEdit,
   onAnnotate, hasAnnotation,
   onRate,
 }: MessageActionToolbarProps) {
   const t = useT()
-  const [showReactionPicker, setShowReactionPicker] = useState(false)
-  const REACTION_EMOJIS = ['\u{1F44D}', '\u{2764}\u{FE0F}', '\u{1F525}', '\u{1F602}', '\u{1F389}', '\u{1F440}', '\u{1F914}', '\u{1F4AF}']
 
   return (
     <div
@@ -226,69 +223,6 @@ export default function MessageActionToolbar({
         >
           <StickyNote size={13} style={hasAnnotation ? { fill: 'var(--accent)', opacity: 0.3 } : {}} />
         </button>
-      )}
-
-      {/* Reaction */}
-      {!isPermission && !isPlan && (
-        <div style={{ position: 'relative' }}>
-          <button
-            onClick={(e) => { e.stopPropagation(); setShowReactionPicker(!showReactionPicker) }}
-            title={t('message.addReaction')}
-            style={{
-              ...actionBtnStyle,
-              color: showReactionPicker ? 'var(--accent)' : 'var(--text-muted)',
-            }}
-            onMouseEnter={(e) => hoverIn(e, showReactionPicker)}
-            onMouseLeave={(e) => hoverOut(e, showReactionPicker)}
-          >
-            <SmilePlus size={13} />
-          </button>
-          {showReactionPicker && (
-            <div
-              className="popup-enter"
-              style={{
-                position: 'absolute',
-                top: '100%',
-                ...(isUser ? { right: 0 } : { left: 0 }),
-                marginTop: 4,
-                display: 'flex',
-                gap: 2,
-                padding: '4px 6px',
-                background: 'var(--popup-bg)',
-                border: '1px solid var(--popup-border)',
-                boxShadow: 'var(--popup-shadow)',
-                borderRadius: 8,
-                zIndex: 30,
-              }}
-            >
-              {REACTION_EMOJIS.map(emoji => (
-                <button
-                  key={emoji}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onReaction(emoji)
-                    setShowReactionPicker(false)
-                  }}
-                  style={{
-                    background: (message.reactions || []).includes(emoji) ? 'var(--accent-muted, rgba(100,108,255,0.15))' : 'transparent',
-                    border: 'none',
-                    borderRadius: 4,
-                    padding: '2px 4px',
-                    cursor: 'pointer',
-                    fontSize: 16,
-                    lineHeight: 1,
-                    transition: 'transform 0.1s ease',
-                  }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.3)' }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)' }}
-                  title={emoji}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
       )}
 
       {/* Read Aloud (assistant messages only) */}

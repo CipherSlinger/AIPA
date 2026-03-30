@@ -100,7 +100,6 @@ interface ChatState {
   rateMessage: (msgId: string, rating: 'up' | 'down' | null) => void
   toggleBookmark: (msgId: string) => void
   togglePin: (msgId: string) => void
-  toggleReaction: (msgId: string, emoji: string) => void
   toggleCollapse: (msgId: string) => void
   collapseAll: () => void
   expandAll: () => void
@@ -292,16 +291,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   togglePin: (msgId) => set((s) => ({
     messages: s.messages.map(m => m.id === msgId ? { ...m, pinned: !(m as StandardChatMessage).pinned } as StandardChatMessage : m)
-  })),
-
-  toggleReaction: (msgId, emoji) => set((s) => ({
-    messages: s.messages.map(m => {
-      if (m.id !== msgId) return m
-      const current = ((m as StandardChatMessage).reactions || [])
-      const has = current.includes(emoji)
-      const updated = has ? current.filter(r => r !== emoji) : [...current, emoji].slice(0, 8)
-      return { ...m, reactions: updated } as StandardChatMessage
-    })
   })),
 
   toggleCollapse: (msgId) => set((s) => ({

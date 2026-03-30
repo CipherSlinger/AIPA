@@ -245,7 +245,7 @@ export default function SettingsTemplates({ customTemplates, setCustomTemplates 
 
 /* ── Text Snippets Management ── */
 
-function SnippetsSection() {
+export function SnippetsSection() {
   const { t } = useI18n()
   const prefs = usePrefsStore(s => s.prefs)
   const { setPrefs } = usePrefsStore()

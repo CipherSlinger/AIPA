@@ -105,7 +105,7 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Response regeneration** — regenerate the last AI response with a single click or `Ctrl+Shift+R`; removes the previous response and re-sends your prompt
 - **Message editing** — edit any previously sent message; the conversation is truncated at that point and the edited message is re-sent for a fresh response
 - **Chat zoom** — `Ctrl+=` to zoom in, `Ctrl+-` to zoom out, `Ctrl+0` to reset; zoom level indicator appears and can be clicked to reset
-- **Prompt templates** — pre-configured system prompt roles (Writing Assistant, Research Analyst, Tutor, Code Reviewer, Creative Writer, Productivity Coach) selectable from Settings dropdown; create your own custom templates (up to 20) for reusable workflows like meeting notes, email drafts, or weekly reports
+- **Prompt templates** — pre-configured system prompt roles (Writing Assistant, Research Analyst, Tutor, Code Reviewer, Creative Writer, Productivity Coach) selectable from Settings dropdown
 - **Copy conversation** — copy the entire conversation as Markdown to clipboard with `Ctrl+Shift+X` or toolbar button; instant clipboard access without file dialogs
 - **ARIA accessibility** — landmark roles (`application`, `banner`, `main`, `complementary`, `navigation`, `status`, `log`), `aria-live` regions, `aria-label` on all interactive elements for screen reader support
 - **Zero TypeScript errors** — clean `tsc --noEmit` with full strict mode; SpeechRecognition Web API type declarations included
@@ -193,14 +193,12 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Long text paste detection** -- pasting text longer than 500 characters shows quick action chips (Summarize, Explain, Translate, Rewrite); auto-dismisses after 12 seconds; Escape to dismiss
 - **Typing speed indicator** -- real-time words-per-minute display in the compose status bar when actively typing; calculated from a 10-second rolling keystroke window; highlights in accent color when exceeding 60 WPM
 - **Date/time quick insert** -- Calendar button in the input toolbar opens a dropdown with 7 date/time formats (Today, Now, Time, Tomorrow, Yesterday, Weekday, ISO); locale-aware formatting; one-click insert at cursor
-- **Emoji picker** -- Smile button in the input toolbar opens a 4-category emoji grid (Smileys, Gestures, Hearts, Objects) with 64 frequently-used emojis; tabbed navigation; hover scale animation
 - **Message share button** -- Share button on message hover toolbar copies the message as formatted shareable text with role label and date attribution
 - **Text transform actions** -- Wand button in the input toolbar sends the current input text through 5 transform actions: Make formal, Make casual, Shorten, Expand, Fix grammar
 - **Regenerate with model picker** -- split regenerate button with dropdown to switch Claude models before regenerating; compare responses from different models easily
 - **Pinned messages** -- pin important messages to the top of the chat for quick reference; Pin button on hover toolbar and context menu; pinned messages strip at top of conversation with collapsible header; click any pinned preview to scroll to the original message
-- **Text snippets** -- define reusable text snippets with `::keyword` trigger; type `::` followed by a keyword in the chat input to expand the snippet; manage snippets in Settings > Templates tab with full CRUD (max 50); keyboard navigation for snippet popup
+- **Text snippets** -- define reusable text snippets with `::keyword` trigger; type `::` followed by a keyword in the chat input to expand the snippet; manage snippets in Settings > Personas tab with full CRUD (max 50); keyboard navigation for snippet popup
 - **Save input as note** -- StickyNote button in the input toolbar saves the current chat input text as a new note without sending it to Claude; great for preserving drafts and ideas
-- **Message emoji reactions** -- SmilePlus button on message hover toolbar opens an emoji picker with 8 reaction emojis; click to toggle reactions on/off; reactions display as small chips below the message bubble
 - **Copy code blocks** -- right-click assistant messages containing code to copy all fenced code blocks at once; shows count of blocks copied in toast notification
 - **Translate message** -- Languages button on message hover toolbar sends the full message as a translation request; auto-detects target language based on UI language (Chinese UI -> English, English UI -> Chinese)
 - **Response tone selector** -- Palette pill in the input toolbar lets you pick a response style (Default, Concise, Detailed, Professional, Casual, Creative); tone modifier injected into system prompt; persists across messages

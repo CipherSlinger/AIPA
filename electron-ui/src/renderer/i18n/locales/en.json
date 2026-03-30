@@ -270,8 +270,6 @@
     "pinnedMessage": "Message pinned",
     "unpinned": "Message unpinned",
     "pinnedMessages": "Pinned messages",
-    "addReaction": "Add reaction",
-    "removeReaction": "Remove reaction",
     "copyCodeBlocks": "Copy code blocks",
     "codeBlocksCopied": "{{count}} code block(s) copied",
     "noCodeBlocks": "No code blocks found",
@@ -357,7 +355,6 @@
     "tabs": {
       "general": "General",
       "providers": "Providers",
-      "templates": "Templates",
       "personas": "Personas",
       "mcp": "MCP Servers",
       "about": "About"
@@ -529,7 +526,6 @@
     "stopRecording": "Stop recording",
     "voiceInput": "Voice input",
     "favoritePrompts": "Favorite prompts",
-    "emoji": "Insert emoji",
     "saveAsNote": "Save input as note",
     "savedAsNote": "Input saved to Notes",
     "attachFiles": "Attach files",

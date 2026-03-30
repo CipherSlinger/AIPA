@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { AtSign, TerminalSquare, Mic, MicOff, ListPlus, Cpu, Star, Calendar, Smile, Wand2, StickyNote, Palette, Paperclip } from 'lucide-react'
+import { AtSign, TerminalSquare, Mic, MicOff, ListPlus, Cpu, Star, Calendar, Wand2, StickyNote, Palette, Paperclip } from 'lucide-react'
 import { useT } from '../../i18n'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import ClipboardActionsMenu from './ClipboardActionsMenu'
@@ -128,8 +128,6 @@ export default function InputToolbar({
       <ClipboardActionsMenu onSend={onSend} />
       {/* Date/Time insertion */}
       <DateTimeInsert onInsert={onInsertText} />
-      {/* Emoji picker */}
-      <EmojiPicker onInsert={onInsertText} />
       {/* Text transform */}
       <TextTransformMenu inputText={inputText} onSend={onSend} />
       {/* Favorite prompts */}
@@ -384,118 +382,6 @@ function DateTimeInsert({ onInsert }: { onInsert: (text: string) => void }) {
               <span style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.value}</span>
             </button>
           ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// Emoji categories with frequently used emojis
-const EMOJI_CATEGORIES = [
-  { label: 'Smileys', emojis: ['\u{1F60A}', '\u{1F602}', '\u{1F923}', '\u{1F60D}', '\u{1F970}', '\u{1F618}', '\u{1F60E}', '\u{1F914}', '\u{1F605}', '\u{1F622}', '\u{1F62D}', '\u{1F97A}', '\u{1F624}', '\u{1F917}', '\u{1F634}', '\u{1F644}'] },
-  { label: 'Gestures', emojis: ['\u{1F44D}', '\u{1F44E}', '\u{1F44F}', '\u{1F64F}', '\u{1F91D}', '\u{1F4AA}', '\u270C\uFE0F', '\u{1F91E}', '\u{1F44C}', '\u270B', '\u{1F44B}', '\u{1F590}\uFE0F', '\u{1FAE1}', '\u{1FAF6}', '\u261D\uFE0F', '\u{1F446}'] },
-  { label: 'Hearts', emojis: ['\u2764\uFE0F', '\u{1F9E1}', '\u{1F49B}', '\u{1F49A}', '\u{1F499}', '\u{1F49C}', '\u{1F90D}', '\u{1F494}', '\u2763\uFE0F', '\u{1F495}', '\u{1F497}', '\u{1F496}', '\u2728', '\u2B50', '\u{1F31F}', '\u{1F4AB}'] },
-  { label: 'Objects', emojis: ['\u{1F4DD}', '\u{1F4CE}', '\u{1F4CC}', '\u{1F4CD}', '\u{1F511}', '\u{1F4A1}', '\u{1F4CA}', '\u{1F4C8}', '\u2705', '\u274C', '\u26A0\uFE0F', '\u{1F514}', '\u{1F4C5}', '\u23F0', '\u{1F3AF}', '\u{1F3C6}'] },
-]
-
-function EmojiPicker({ onInsert }: { onInsert: (text: string) => void }) {
-  const t = useT()
-  const [show, setShow] = useState(false)
-  const [activeTab, setActiveTab] = useState(0)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!show) return
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setShow(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [show])
-
-  return (
-    <div ref={ref} style={{ position: 'relative', display: 'inline-flex' }}>
-      <button
-        onClick={() => setShow(!show)}
-        title={t('toolbar.emoji')}
-        style={{
-          ...toolbarBtnStyle,
-          color: show ? 'var(--accent)' : 'var(--input-toolbar-icon)',
-        }}
-        onMouseEnter={toolbarHoverIn}
-        onMouseLeave={(e) => { if (!show) toolbarHoverOut(e) }}
-      >
-        <Smile size={16} />
-      </button>
-      {show && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '100%',
-            left: 0,
-            marginBottom: 4,
-            background: 'var(--popup-bg)',
-            border: '1px solid var(--popup-border)',
-            borderRadius: 8,
-            boxShadow: 'var(--popup-shadow)',
-            padding: 8,
-            width: 260,
-            zIndex: 100,
-            animation: 'popup-in 0.15s ease',
-          }}
-        >
-          {/* Category tabs */}
-          <div style={{ display: 'flex', gap: 2, marginBottom: 6, borderBottom: '1px solid var(--border)', paddingBottom: 6 }}>
-            {EMOJI_CATEGORIES.map((cat, i) => (
-              <button
-                key={cat.label}
-                onClick={() => setActiveTab(i)}
-                style={{
-                  flex: 1,
-                  padding: '3px 4px',
-                  fontSize: 9,
-                  fontWeight: activeTab === i ? 600 : 400,
-                  background: activeTab === i ? 'var(--popup-item-hover)' : 'none',
-                  border: 'none',
-                  borderRadius: 4,
-                  color: activeTab === i ? 'var(--text-primary)' : 'var(--text-muted)',
-                  cursor: 'pointer',
-                  transition: 'background 100ms',
-                }}
-              >
-                {cat.emojis[0]} {cat.label}
-              </button>
-            ))}
-          </div>
-          {/* Emoji grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 2 }}>
-            {EMOJI_CATEGORIES[activeTab].emojis.map(emoji => (
-              <button
-                key={emoji}
-                onClick={() => {
-                  onInsert(emoji)
-                  setShow(false)
-                }}
-                style={{
-                  width: 28,
-                  height: 28,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 16,
-                  background: 'none',
-                  border: 'none',
-                  borderRadius: 4,
-                  cursor: 'pointer',
-                  transition: 'background 100ms, transform 100ms',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)'; e.currentTarget.style.transform = 'scale(1.2)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.transform = 'scale(1)' }}
-              >
-                {emoji}
-              </button>
-            ))}
-          </div>
         </div>
       )}
     </div>

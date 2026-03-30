@@ -36,7 +36,11 @@ export default function MemoryPanel() {
   const setPrefs = usePrefsStore(s => s.setPrefs)
   const addToast = useUiStore(s => s.addToast)
 
-  const memories: MemoryItem[] = prefs.memories || []
+  // Defensive: ensure memories is always a valid array (Iteration 309 — crash fix)
+  const rawMemories: MemoryItem[] = prefs.memories || []
+  const memories = Array.isArray(rawMemories) ? rawMemories.filter(
+    (m): m is MemoryItem => m != null && typeof m === 'object' && typeof m.id === 'string' && typeof m.content === 'string'
+  ) : []
 
   const [searchQuery, setSearchQuery] = useState('')
   const [filterCategory, setFilterCategory] = useState<MemoryCategory | 'all'>('all')
@@ -602,7 +606,9 @@ export default function MemoryPanel() {
           </div>
         ) : (
           filteredMemories.map(mem => {
-            const cfg = CATEGORY_CONFIG[mem.category]
+            // Defensive guard: if category is not in CATEGORY_CONFIG (corrupted data),
+            // fall back to 'fact' to prevent crash (Iteration 309 — MemoryPanel crash fix)
+            const cfg = CATEGORY_CONFIG[mem.category] || CATEGORY_CONFIG.fact
             const isEditing = editingId === mem.id
 
             return (
