@@ -2424,3 +2424,6 @@ Status: SUCCESS
 
 ### Iteration 326 (2026-03-30)
 - Theme-aware startup + off-screen guard -- (1) Main process now reads saved theme from electron-store at startup and sets matching `backgroundColor` and `titleBarOverlay` colors. Light theme users no longer see a dark flash before the renderer loads (bg: #f5f5f7, overlay: #f8f8f8/#1a1a1a for light; #1e1e1e, #2c2c2c/#cccccc for dark). (2) Window bounds restore now validates that the saved position is still on a visible display using `screen.getAllDisplays()`. If the user disconnects a monitor, the window opens centered instead of off-screen. Imported `screen` from electron. 1 file changed (main/index.ts); tsc --noEmit: 0 errors; build SUCCESS
+
+### Iteration 327 (2026-03-30)
+- Double-click titlebar to maximize/restore -- Added `window:toggleMaximize` IPC channel (main/ipc/index.ts handler + preload exposure as `windowToggleMaximize()`). AppShell.tsx drag-region now has `onDoubleClick` calling `window.electronAPI.windowToggleMaximize()`. This is standard desktop window behavior that was missing with the custom frameless titlebar. 3 files changed; tsc --noEmit: 0 errors; build SUCCESS

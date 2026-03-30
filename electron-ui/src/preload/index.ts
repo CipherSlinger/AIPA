@@ -119,6 +119,8 @@ const electronAPI = {
     ipcRenderer.invoke('window:flashFrame', flash),
   windowShowNotification: (opts: { title: string; body: string }) =>
     ipcRenderer.invoke('window:showNotification', opts),
+  windowToggleMaximize: () =>
+    ipcRenderer.invoke('window:toggleMaximize'),
 
   // ── Providers (multi-model support) ────
   providerListConfigs: () => ipcRenderer.invoke('provider:listConfigs'),

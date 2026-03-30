@@ -83,6 +83,7 @@ export default function AppShell() {
       <div
         className="drag-region"
         role="banner"
+        onDoubleClick={() => window.electronAPI.windowToggleMaximize()}
         style={{
           height: 32,
           background: 'var(--bg-nav)',

@@ -436,6 +436,15 @@ function registerWindowHandlers(win: BrowserWindow): void {
     })
     notif.show()
   })
+
+  ipcMain.handle('window:toggleMaximize', () => {
+    if (win.isDestroyed()) return
+    if (win.isMaximized()) {
+      win.unmaximize()
+    } else {
+      win.maximize()
+    }
+  })
 }
 
 // ────────────────────────────────────────────
