@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Send, Square, X, MessageSquareQuote, Sparkles, Link2, FileText, Calculator } from 'lucide-react'
+import { Send, Square, X, MessageSquareQuote, Sparkles, Link2, FileText, Calculator, Archive } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import AtMentionPopup from './AtMentionPopup'
 import SlashCommandPopup, { SLASH_COMMANDS, SlashCommand } from './SlashCommandPopup'
@@ -34,6 +34,7 @@ export default function ChatInput({
   const quotedText = useUiStore(s => s.quotedText)
   const setQuotedText = useUiStore(s => s.setQuotedText)
   const addToQueue = useChatStore(s => s.addToQueue)
+  const lastContextUsage = useChatStore(s => s.lastContextUsage)
 
   // Draft persistence (per-session)
   const { input, setInput, clearDraft } = useChatInputDraft({
@@ -571,6 +572,47 @@ export default function ChatInput({
         hasInput={!!input.trim()}
         inputText={input}
       />
+      {/* Context usage meter with compact button */}
+      {lastContextUsage && lastContextUsage.total > 0 && (() => {
+        const pct = Math.round((lastContextUsage.used / lastContextUsage.total) * 100)
+        if (pct < 40) return null
+        const barColor = pct >= 85 ? 'var(--error)' : pct >= 70 ? '#f97316' : pct >= 55 ? 'var(--warning)' : 'var(--accent)'
+        return (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8, padding: '2px 4px', marginBottom: 4,
+          }}>
+            <div style={{
+              flex: 1, height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden',
+            }}>
+              <div style={{
+                width: `${Math.min(pct, 100)}%`, height: '100%', background: barColor,
+                borderRadius: 2, transition: 'width 300ms ease, background 300ms ease',
+              }} />
+            </div>
+            <span style={{ fontSize: 9, color: barColor, fontWeight: 500, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+              {pct}%
+            </span>
+            {pct >= 60 && !isStreaming && (
+              <button
+                onClick={() => onSend('/compact')}
+                title={t('chat.compactHint')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 3,
+                  padding: '1px 6px', fontSize: 9, fontWeight: 500,
+                  background: 'rgba(0, 122, 204, 0.08)', border: '1px solid rgba(0, 122, 204, 0.2)',
+                  borderRadius: 8, color: 'var(--accent)', cursor: 'pointer',
+                  transition: 'background 150ms, border-color 150ms', whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0, 122, 204, 0.15)'; e.currentTarget.style.borderColor = 'var(--accent)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0, 122, 204, 0.08)'; e.currentTarget.style.borderColor = 'rgba(0, 122, 204, 0.2)' }}
+              >
+                <Archive size={9} />
+                {t('chat.compactBtn')}
+              </button>
+            )}
+          </div>
+        )
+      })()}
       {/* Quick reply chips */}
       <QuickReplyChips onInsert={(prompt) => {
         setInput(prev => {

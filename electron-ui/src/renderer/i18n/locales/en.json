@@ -129,6 +129,8 @@
     "newMessages": "{{count}} new message",
     "newMessagesPlural": "{{count}} new messages",
     "contextWarning": "Context window {{percent}}% full. Consider starting a new conversation for best results.",
+    "compactBtn": "Compact",
+    "compactHint": "Compact conversation context to free up tokens (Ctrl+Shift+C)",
     "sessionPrefix": "Session: {{id}}...",
     "emptyPreview": "(empty)",
     "workingDir": "Working directory",

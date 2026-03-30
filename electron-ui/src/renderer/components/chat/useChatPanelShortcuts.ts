@@ -44,6 +44,14 @@ export function useChatPanelShortcuts(
         }
         window.dispatchEvent(new CustomEvent('aipa:globalSearchFocus'))
       }
+      // Ctrl+Shift+C: Compact conversation context
+      if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+        e.preventDefault()
+        const state = useChatStore.getState()
+        if (!state.isStreaming) {
+          sendMessage('/compact')
+        }
+      }
       if (e.ctrlKey && e.shiftKey && e.key === 'R') {
         e.preventDefault()
         const state = useChatStore.getState()

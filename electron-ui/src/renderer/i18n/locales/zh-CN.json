@@ -129,6 +129,8 @@
     "newMessages": "{{count}} \u6761\u65b0\u6d88\u606f",
     "newMessagesPlural": "{{count}} \u6761\u65b0\u6d88\u606f",
     "contextWarning": "\u4e0a\u4e0b\u6587\u7a97\u53e3\u5df2\u4f7f\u7528 {{percent}}%\u3002\u5efa\u8bae\u5f00\u59cb\u65b0\u5bf9\u8bdd\u4ee5\u83b7\u5f97\u6700\u4f73\u6548\u679c\u3002",
+    "compactBtn": "\u538b\u7f29",
+    "compactHint": "\u538b\u7f29\u5bf9\u8bdd\u4e0a\u4e0b\u6587\u4ee5\u91ca\u653e Token (Ctrl+Shift+C)",
     "sessionPrefix": "\u4f1a\u8bdd: {{id}}...",
     "emptyPreview": "(\u65e0\u5185\u5bb9)",
     "workingDir": "\u5de5\u4f5c\u76ee\u5f55",
