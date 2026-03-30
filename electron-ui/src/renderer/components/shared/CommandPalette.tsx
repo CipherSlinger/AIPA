@@ -318,6 +318,40 @@ export default function CommandPalette({
         },
         category: 'action',
       },
+      {
+        id: 'daily-inspiration',
+        name: t('command.dailyInspiration'),
+        description: t('command.dailyInspirationDesc'),
+        icon: <Sparkles size={14} />,
+        action: () => {
+          const quotes = [
+            'The best way to predict the future is to create it. - Peter Drucker',
+            'Done is better than perfect. - Sheryl Sandberg',
+            'The only way to do great work is to love what you do. - Steve Jobs',
+            'Simplicity is the ultimate sophistication. - Leonardo da Vinci',
+            'The secret of getting ahead is getting started. - Mark Twain',
+            'What you do today can improve all your tomorrows. - Ralph Marston',
+            'It always seems impossible until it is done. - Nelson Mandela',
+            'Small progress is still progress.',
+            'Focus on being productive instead of busy. - Tim Ferriss',
+            'The way to get started is to quit talking and begin doing. - Walt Disney',
+            'Your time is limited, don\'t waste it living someone else\'s life. - Steve Jobs',
+            'Believe you can and you\'re halfway there. - Theodore Roosevelt',
+            'The mind is everything. What you think you become. - Buddha',
+            'Strive not to be a success, but rather to be of value. - Albert Einstein',
+            'The best time to plant a tree was 20 years ago. The second best time is now.',
+            'You miss 100% of the shots you don\'t take. - Wayne Gretzky',
+            'Everything you\'ve ever wanted is on the other side of fear. - George Addair',
+            'Start where you are. Use what you have. Do what you can. - Arthur Ashe',
+            'The only limit to our realization of tomorrow is our doubts of today. - FDR',
+            'Act as if what you do makes a difference. It does. - William James',
+          ]
+          const quote = quotes[Math.floor(Math.random() * quotes.length)]
+          addToast('info', quote, 8000)
+          onClose()
+        },
+        category: 'action',
+      },
       // Slash commands
       {
         id: 'slash-compact',

@@ -577,6 +577,8 @@
     "toggleThemeDesc": "Switch between dark and light theme",
     "toggleLanguage": "Toggle Language",
     "toggleLanguageDesc": "Switch between English and Chinese",
+    "dailyInspiration": "Daily Inspiration",
+    "dailyInspirationDesc": "Show a random motivational quote",
     "clipboardToNote": "Save Clipboard as Note",
     "clipboardToNoteDesc": "Create a note from clipboard text",
     "clipboardNoteSaved": "Clipboard saved as note",
