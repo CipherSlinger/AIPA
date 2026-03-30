@@ -4,7 +4,7 @@ import React from 'react'
 import {
   Plus, Download, PanelLeft, Terminal, Settings, History,
   FolderOpen, Zap, Trash2, HelpCircle, Cpu, Sparkles,
-  Brain, Workflow, Clock, ListRestart, Play, NotebookPen, ClipboardPaste,
+  Brain, Workflow, ListRestart, Play, NotebookPen, ClipboardPaste,
   Sun, Moon, Languages, Copy,
 } from 'lucide-react'
 import { useChatStore, useSessionStore, useUiStore, usePrefsStore } from '../../store'
@@ -29,9 +29,9 @@ interface CommandBuilderArgs {
   onSendSlashCommand: (cmd: string) => void
   toggleSidebar: () => void
   toggleTerminal: () => void
-  setSidebarTab: (tab: 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'schedules' | 'prompthistory') => void
+  setSidebarTab: (tab: 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory') => void
   setSidebarOpen: (open: boolean) => void
-  setActiveNavItem: (item: 'chat' | 'history' | 'files' | 'terminal' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'schedules' | 'prompthistory') => void
+  setActiveNavItem: (item: 'chat' | 'history' | 'files' | 'terminal' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory') => void
   addToQueue: (text: string) => void
   addToast: (type: 'success' | 'error' | 'info' | 'warning', msg: string, duration?: number) => void
   sessions: SessionListItem[]
@@ -133,20 +133,11 @@ export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] 
       category: 'action',
     },
     {
-      id: 'open-schedules',
-      name: t('command.openSchedules'),
-      description: t('command.openSchedulesDesc'),
-      icon: <Clock size={14} />,
-      shortcut: 'Ctrl+8',
-      action: () => { setActiveNavItem('schedules'); onClose() },
-      category: 'action',
-    },
-    {
       id: 'open-prompthistory',
       name: t('command.openPromptHistory'),
       description: t('command.openPromptHistoryDesc'),
       icon: <ListRestart size={14} />,
-      shortcut: 'Ctrl+9',
+      shortcut: 'Ctrl+8',
       action: () => { setActiveNavItem('prompthistory'); onClose() },
       category: 'action',
     },

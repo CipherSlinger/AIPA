@@ -1,5 +1,5 @@
 import React from 'react'
-import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, Clock, ListRestart, TerminalSquare, Settings, User, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, ListRestart, TerminalSquare, Settings, User, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { useUiStore, useSessionStore, useChatStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 
@@ -193,6 +193,7 @@ export default function NavRail() {
   const workflowCount = usePrefsStore(s => (s.prefs.workflows || []).length)
   const scheduleCount = usePrefsStore(s => (s.prefs.scheduledPrompts || []).filter(sp => sp.enabled).length)
   const promptHistoryCount = usePrefsStore(s => (s.prefs.promptHistory || []).length)
+
   const navExpanded = usePrefsStore(s => !!s.prefs.navExpanded)
   const activePersona = usePrefsStore(s => {
     const personas = s.prefs.personas || []
@@ -214,7 +215,6 @@ export default function NavRail() {
   const isSkillsActive = activeNavItem === 'skills' && sidebarTab === 'skills'
   const isMemoryActive = activeNavItem === 'memory' && sidebarTab === 'memory'
   const isWorkflowsActive = activeNavItem === 'workflows' && sidebarTab === 'workflows'
-  const isSchedulesActive = activeNavItem === 'schedules' && sidebarTab === 'schedules'
   const isPromptHistoryActive = activeNavItem === 'prompthistory' && sidebarTab === 'prompthistory'
   const isSettingsActive = activeNavItem === 'settings' && sidebarTab === 'settings'
 
@@ -316,25 +316,14 @@ export default function NavRail() {
         expanded={navExpanded}
       />
 
-      {/* Workflows */}
+      {/* Workflows (includes schedules tab) */}
       <NavItem
         icon={<Workflow size={iconSize} />}
         label={t('nav.workflows')}
         shortcut="Ctrl+7"
         isActive={isWorkflowsActive}
         onClick={() => setActiveNavItem('workflows')}
-        badge={workflowCount}
-        expanded={navExpanded}
-      />
-
-      {/* Schedules */}
-      <NavItem
-        icon={<Clock size={iconSize} />}
-        label={t('nav.schedules')}
-        shortcut="Ctrl+8"
-        isActive={isSchedulesActive}
-        onClick={() => setActiveNavItem('schedules')}
-        badge={scheduleCount}
+        badge={workflowCount + scheduleCount}
         expanded={navExpanded}
       />
 
@@ -342,7 +331,7 @@ export default function NavRail() {
       <NavItem
         icon={<ListRestart size={iconSize} />}
         label={t('nav.promptHistory')}
-        shortcut="Ctrl+9"
+        shortcut="Ctrl+8"
         isActive={isPromptHistoryActive}
         onClick={() => setActiveNavItem('prompthistory')}
         badge={promptHistoryCount}

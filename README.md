@@ -117,9 +117,9 @@ Most AI tools are answer machines. AIPA is built to be a *doer*.
 | **Persistent memory** | Brain icon (`Ctrl+6`): 4 categories (Preference, Fact, Instruction, Context), max 200 items |
 | **Memory injection** | Pinned + 10 most recent memories auto-injected into every conversation |
 | **Remember This** | One-click save any response as a context memory from hover toolbar |
-| **Workflow builder** | Workflow icon (`Ctrl+7`): chain multiple prompts into reusable pipelines |
-| **Scheduled prompts** | Clock icon (`Ctrl+8`): daily, weekly, monthly schedules with auto-execution |
-| **Prompt history** | ListRestart icon (`Ctrl+9`): searchable history with frequency tracking and favorites |
+| **Workflow builder** | Workflow icon (`Ctrl+7`): chain multiple prompts into reusable pipelines; includes scheduled prompts tab |
+| **Scheduled prompts** | Built into Workflows panel — daily, weekly, monthly schedules with auto-execution |
+| **Prompt history** | ListRestart icon (`Ctrl+8`): searchable history with frequency tracking and favorites |
 
 ### Multi-Model Support
 
@@ -166,7 +166,7 @@ Most AI tools are answer machines. AIPA is built to be a *doer*.
 | `Ctrl+Home/End` | Jump to first/last message |
 | `Alt+Up/Down` | Jump between user messages |
 | `Ctrl+1-5` | Switch sidebar tabs |
-| `Ctrl+6-9` | Memory, Workflows, Schedules, Prompt History |
+| `Ctrl+6-8` | Memory, Workflows, Prompt History |
 | `Ctrl+/` | Shortcut cheatsheet |
 | `Escape` | Stop streaming |
 
