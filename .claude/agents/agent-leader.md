@@ -23,7 +23,6 @@ memory: project
 [agent-leader] 调用 aipa-pm（aipa-pm 自主读取 feedback.md 并分析需求）
     ↓
 [aipa-pm] → todo/prd-[功能]-v[N].md
-              todo/MASTER-ROADMAP.md
     ↓
   ┌─────────────────────────────────────┐
   │ 纯前端功能          纯后端功能        │
@@ -51,7 +50,6 @@ memory: project
 | 文件模式 | 生产者 | 消费者 | 生命周期 |
 |----------|--------|--------|----------|
 | `.claude/agents-cowork/todo/prd-*.md` | aipa-pm | aipa-ui、aipa-backend、aipa-frontend | **测试通过后由 aipa-tester 删除** |
-| `.claude/agents-cowork/todo/MASTER-ROADMAP.md` | aipa-pm | agent-leader、aipa-frontend | 持续更新，不删除 |
 | `.claude/agents-cowork/todo/ui-spec-*.md` | aipa-ui | aipa-frontend、aipa-tester | **测试通过后由 aipa-tester 删除** |
 | `.claude/agents-cowork/todo/api-spec-*.md` | aipa-backend | aipa-frontend、aipa-tester | **测试通过后由 aipa-tester 删除** |
 | `.claude/agents-cowork/todo_done/ITERATION-LOG.md` | aipa-frontend | aipa-tester、agent-leader | 永久保留，持续追加 |
@@ -361,7 +359,7 @@ _日期：[date] | 主持：agent-leader_
 | aipa-ui 的设计规范与技术可行性冲突 | 裁定接受设计妥协还是技术妥协，更新 ui-spec |
 | aipa-frontend 认为 PRD 需求不合理 | 决定是否需要回溯到 aipa-pm 修改需求 |
 | aipa-tester 标记的 P2 问题是否需要本轮修复 | 根据进度压力决定，记录决策理由 |
-| 两个功能的 PRD 存在依赖冲突 | 调整执行顺序，更新 MASTER-ROADMAP |
+| 两个功能的 PRD 存在依赖冲突 | 调整执行顺序，优先执行无依赖项的 PRD |
 
 **决策记录**：重要决策必须在进度状态文件或回顾报告中留档，说明「决定了什么」和「为什么这样决定」。
 

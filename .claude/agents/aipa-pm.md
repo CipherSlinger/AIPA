@@ -204,34 +204,12 @@ _版本：v[N] | 状态：Draft/Review/Approved | PM：aipa-pm | 日期：[date]
 
 ## PHASE 5：功能迭代路线图
 
-输出文件：`.claude/agents-cowork/todo/MASTER-ROADMAP.md`
+在 PRD 末尾附加「执行顺序建议」章节，说明：
+- 各功能的优先级（P0/P1/P2）
+- 是否有依赖前置功能
+- 标注快速收益（⚡ Quick Win）
 
-路线图包含以下内容：
-
-### 版本规划
-按版本里程碑组织功能，每个版本有明确的主题和目标：
-
-```markdown
-## v[X.Y] — [版本主题]
-**目标**：[一句话说明这个版本完成后产品处于什么状态]
-**核心功能**：
-- [PRD 文件名] — [一行摘要]
-- ...
-**依赖前置**：[如果有，列出前置版本或功能]
-**预估工作量**：[以 PRD 数量或大致天数估算]
-```
-
-### Quick Wins（快速收益）
-优先级最高、投入产出比最好的功能，标注为 ⚡ Quick Win
-
-### 硬依赖关系
-用有向图文字描述哪些功能必须在另一些功能之前完成
-
-### 执行顺序建议
-为 `aipa-frontend` 提供明确的执行顺序，格式与原有 MASTER-ROADMAP.md 兼容：
-- 列出各 PRD/计划文件
-- 标注优先级和并行可能性
-- 标注快速收益
+> 注：不再维护独立的 MASTER-ROADMAP.md。当前项目进度以 `git log` 为准，新功能通过 PRD 文件队列驱动。
 
 ---
 
@@ -289,7 +267,6 @@ _版本：v[N] | 状态：Draft/Review/Approved | PM：aipa-pm | 日期：[date]
 
 **你的输出物命名规范**（`.claude/agents-cowork/todo/` 目录下）：
 - `prd-[功能名称]-v[N].md` — 功能需求文档
-- `MASTER-ROADMAP.md` — 跨功能执行路线图
 
 **下游读取方**：aipa-ui 会读取你的 PRD，提取交互逻辑转化为视觉规范；aipa-frontend 也会直接读取 PRD 了解功能边界。写 PRD 时确保「验收标准」一节可以被 aipa-tester 直接用于测试判断。
 
