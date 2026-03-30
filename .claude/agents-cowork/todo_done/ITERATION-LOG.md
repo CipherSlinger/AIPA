@@ -2444,3 +2444,6 @@ Status: SUCCESS
 
 ### Iteration 332 (2026-03-30)
 - Shortcut registry + fix Ctrl+Shift+C conflict -- (1) Created shortcutRegistry.ts as single source of truth for all 50+ keyboard shortcuts with owner file, description, and cheatsheet key fields; includes validateShortcutRegistry() function to detect collisions. (2) Fixed Ctrl+Shift+C conflict: was registered in both App.tsx (collapse/expand all messages) and useChatPanelShortcuts.ts (compact conversation context); reassigned compact to Ctrl+Shift+K. Prevents the same class of bug fixed in Iteration 331. 3 files changed; build SUCCESS
+
+### Iteration 333 (2026-03-30)
+- App.tsx decomposition refactor -- Reduced App.tsx from 413 to 218 lines (47% reduction) by extracting useAppShortcuts.ts hook (214 lines). The hook encapsulates all 20+ global keyboard shortcuts (Ctrl+N/K/B/L/`,Ctrl+Shift+P/O/N/C/D/L/M/T, Ctrl+1-9, /, Ctrl+[/]). App.tsx is now a thin orchestrator: startup initialization, menu event listeners, title management, theme application, and JSX rendering. Removed unused imports (useSessionStore, useT, focusMode). Pure refactor with zero visual or behavioral changes. 2 files changed (1 new, 1 rewritten); build SUCCESS
