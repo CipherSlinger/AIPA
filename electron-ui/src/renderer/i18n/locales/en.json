@@ -777,6 +777,7 @@
     "globalSearch": "Search across all sessions",
     "exportConversation": "Export conversation",
     "copyConversation": "Copy conversation",
+    "compactConversation": "Compact conversation context",
     "toggleBookmarks": "Toggle bookmarks panel",
     "toggleStats": "Toggle stats panel",
     "jumpToFirstMessage": "Jump to first message",

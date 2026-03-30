@@ -777,6 +777,7 @@
     "globalSearch": "搜索所有会话",
     "exportConversation": "导出对话",
     "copyConversation": "复制对话",
+    "compactConversation": "压缩对话上下文",
     "toggleBookmarks": "切换书签面板",
     "toggleStats": "切换统计面板",
     "jumpToFirstMessage": "跳转到第一条消息",
