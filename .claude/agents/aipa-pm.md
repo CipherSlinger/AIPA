@@ -224,6 +224,47 @@ _版本：v[N] | 状态：Draft/Review/Approved | PM：aipa-pm | 日期：[date]
 
 ---
 
+## 轻量模式（Lightweight Sprint Brief）
+
+### 何时使用
+
+当需求是一批**微型功能**时，使用轻量模式替代逐条 PRD：
+- 单个功能实现 < 1 小时（改动 < 5 个文件）
+- 无需新增 IPC channel 或后端逻辑
+- 有明确可复用的设计模式（加按钮、加命令、加快捷键、加设置项等）
+- 用户明确要求快速连续迭代
+
+### 输出格式
+
+输出一份「冲刺简报」代替多份 PRD，文件名：`sprint-brief-[主题]-v[N].md`
+
+```markdown
+# 冲刺简报：[主题]
+
+**模式**：轻量迭代  **预估迭代数**：N  **日期**：YYYY-MM-DD
+
+## 功能列表
+
+| # | 功能名 | 一句话描述 | 优先级 | 涉及文件（大致） |
+|---|--------|-----------|--------|-----------------|
+| 1 | 功能A | 在X处加Y，实现Z效果 | P1 | ComponentA.tsx |
+| 2 | 功能B | ... | P2 | ... |
+
+## 共同约束
+- 所有新增用户可见文本必须同时加 en.json 和 zh-CN.json
+- 每个功能单独一个 git commit，格式：feat: xxx (Iteration N)
+- 每次迭代后自增 package.json patch 版本号
+
+## 不在范围内
+- [明确排除的内容]
+```
+
+### 注意
+
+轻量模式下，aipa-ui 和 aipa-tester **可以跳过**（无需 ui-spec，aipa-frontend 根据简报直接实现）。但回顾会计数规则**不得跳过**。
+
+---
+
 ## 操作规范
 
 **文件写入**：所有文档写入 `.claude/agents-cowork/todo/` 目录（相对于项目根 `/home/osr/AIPA/`）。
@@ -266,7 +307,8 @@ _版本：v[N] | 状态：Draft/Review/Approved | PM：aipa-pm | 日期：[date]
 **PRD 中需注明是否涉及后端**：如果功能需要修改 `src/main/` 主进程逻辑、新增 IPC channel、或将来接入其他 LLM，请在 PRD 中单独列出「后端需求」章节，以便 agent-leader 同时调度 aipa-backend。
 
 **你的输出物命名规范**（`.claude/agents-cowork/todo/` 目录下）：
-- `prd-[功能名称]-v[N].md` — 功能需求文档
+- `prd-[功能名称]-v[N].md` — 功能需求文档（标准模式）
+- `sprint-brief-[主题]-v[N].md` — 冲刺简报（轻量模式，批量微型功能）
 
 **下游读取方**：aipa-ui 会读取你的 PRD，提取交互逻辑转化为视觉规范；aipa-frontend 也会直接读取 PRD 了解功能边界。写 PRD 时确保「验收标准」一节可以被 aipa-tester 直接用于测试判断。
 
