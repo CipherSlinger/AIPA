@@ -467,7 +467,18 @@ cd /home/osr/AIPA
 git status
 git diff --stat
 
-# 2. 暂存所有变更（排除敏感文件）
+# 2. 自增 patch 版本号（每次迭代 +1，如 1.0.0 → 1.0.1）
+# 读取当前版本，拆分，patch +1，写回
+node -e "
+const fs = require('fs');
+const pkg = JSON.parse(fs.readFileSync('electron-ui/package.json', 'utf8'));
+const [major, minor, patch] = pkg.version.split('.').map(Number);
+pkg.version = \`\${major}.\${minor}.\${patch + 1}\`;
+fs.writeFileSync('electron-ui/package.json', JSON.stringify(pkg, null, 2) + '\n');
+console.log('Version bumped to', pkg.version);
+"
+
+# 3. 暂存所有变更（排除敏感文件）
 # 注意：todo/ 中的 prd/ui-spec/api-spec 应已由 aipa-tester 删除，git 会自动追踪删除操作
 git add electron-ui/src/ electron-ui/package.json README.md README_CN.md .claude/agents-cowork/
 
@@ -477,7 +488,7 @@ git add electron-ui/src/ electron-ui/package.json README.md README_CN.md .claude
 # 4. 提交（不加 co-author-by 行）
 git commit -m "feat: [迭代功能名称] (Iteration [N])"
 
-# 4. 推送
+# 5. 推送
 git push
 ```
 
