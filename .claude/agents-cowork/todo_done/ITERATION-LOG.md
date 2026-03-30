@@ -2415,3 +2415,6 @@ Status: SUCCESS
 
 ### Iteration 323 (2026-03-30)
 - CSS cleanup + code quality -- Rewrote globals.css to remove 16 stale "NEW" and "Iteration X" comments accumulated from Iterations 54-247. Variables reorganized into semantic groups (Core palette, Three-column layout, Chat bubbles, NavRail, Session list, Avatars, Input area, Chat header, Tool cards, Popups, Action buttons, Cards, Input focus, Task queue). Light theme section cleaned similarly. All animation/utility classes kept intact. CSS output unchanged (21.73 kB gzip: 6.39 kB). File reduced from 427 to 387 lines. Pure cleanup with zero visual or behavioral changes. 1 file changed; build SUCCESS
+
+### Iteration 324 (2026-03-30)
+- Store defaults alignment -- Updated DEFAULT_PREFS.quickReplies in store/index.ts to match the new assistant-oriented defaults from Iteration 322 (Summarize, Translate, Draft Email, Brainstorm Ideas). Previously had stale code-centric defaults (Explain this, Summarize, Draft email, Translate) that could briefly flash during the pre-load render frame. 1 file changed; tsc --noEmit: 0 errors; build SUCCESS

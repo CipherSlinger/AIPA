@@ -432,10 +432,10 @@ const DEFAULT_PREFS: ClaudePrefs = {
   compactMode: false,
   desktopNotifications: true,
   quickReplies: [
-    { label: 'Explain this', prompt: 'Please explain this in detail:' },
     { label: 'Summarize', prompt: 'Please summarize the above concisely:' },
-    { label: 'Draft email', prompt: 'Please help me draft an email about:' },
-    { label: 'Translate', prompt: 'Please translate the following:' },
+    { label: 'Translate', prompt: 'Please translate the following text. If it is in Chinese, translate to English; if it is in English, translate to Chinese:' },
+    { label: 'Draft email', prompt: 'Please draft a professional email based on the following points:' },
+    { label: 'Brainstorm ideas', prompt: 'Please brainstorm creative ideas about:' },
   ],
 }
 
