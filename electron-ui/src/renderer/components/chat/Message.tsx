@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react'
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { ChatMessage, StandardChatMessage, Persona } from '../../types/app.types'
 import MessageContextMenu from './MessageContextMenu'
 import MessageActionToolbar from './MessageActionToolbar'
@@ -34,11 +34,16 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   const isPlan = message.role === 'plan'
   const isCollapsed = !isPermission && !isPlan && (message as StandardChatMessage).collapsed
   const compact = usePrefsStore(s => s.prefs.compactMode)
-  const activePersona: Persona | undefined = usePrefsStore(s => {
-    const personas = s.prefs.personas || []
-    const activeId = s.prefs.activePersonaId
-    return activeId ? personas.find(p => p.id === activeId) : undefined
-  })
+  // STABILITY (Iteration 308): Use activePersonaId + separate personas selector
+  // to avoid creating a new object reference on every store change. The old
+  // `personas.find()` inside a selector returned a new reference every render,
+  // potentially contributing to unnecessary re-render cascades during streaming.
+  const activePersonaId = usePrefsStore(s => s.prefs.activePersonaId)
+  const personas = usePrefsStore(s => s.prefs.personas)
+  const activePersona: Persona | undefined = useMemo(
+    () => activePersonaId ? (personas || []).find(p => p.id === activePersonaId) : undefined,
+    [activePersonaId, personas]
+  )
   const globalIsStreaming = useChatStore(s => s.isStreaming)
   const msgStatus: 'sending' | 'sent' | 'read' | null = isUser
     ? (globalIsStreaming && isLastUserMsg ? 'sending' : hasAssistantReply ? 'read' : 'sent')

@@ -2,6 +2,7 @@ import React, { useEffect, useCallback, useRef, useState, useMemo } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { ChatMessage, StandardChatMessage } from '../../types/app.types'
 import Message from './Message'
+import MessageErrorBoundary from './MessageErrorBoundary'
 import PermissionCard from './PermissionCard'
 import PlanCard from './PlanCard'
 import { useChatStore, useUiStore } from '../../store'
@@ -102,7 +103,12 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       )
     }
     const showAvatar = showAvatarMap.get(msgIdx) ?? true
+    // STABILITY (Iteration 308): Per-message ErrorBoundary isolates render failures.
+    // A single malformed message (e.g., bad markdown, huge content) won't crash the
+    // entire ChatPanel. PermissionCard and PlanCard are simple enough not to need it.
+    const rawContent = (msg as StandardChatMessage).content || ''
     return (
+      <MessageErrorBoundary messageContent={rawContent}>
       <Message
         message={msg}
         searchQuery={searchQuery}
@@ -127,6 +133,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
           }
         } : undefined}
       />
+      </MessageErrorBoundary>
     )
   }, [onPermission, onGrantPermission, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery, searchCaseSensitive, showAvatarMap, onEdit, t, lastUserMsgId, assistantReplyMap])
 

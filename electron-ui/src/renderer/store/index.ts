@@ -133,6 +133,9 @@ interface ChatState {
 
   // Message annotations
   setAnnotation: (msgId: string, text: string) => void
+
+  // Crash recovery (Iteration 308): Restore messages from sessionStorage backup
+  setMessages: (messages: ChatMessage[]) => void
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -388,6 +391,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
         : m
     ),
   })),
+
+  // Crash recovery (Iteration 308): Replace messages array wholesale.
+  // Used by ErrorBoundary to restore from sessionStorage backup.
+  setMessages: (messages) => set({ messages }),
 }))
 
 // ── Session store ───────────────────────────────

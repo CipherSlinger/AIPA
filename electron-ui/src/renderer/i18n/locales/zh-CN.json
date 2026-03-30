@@ -701,7 +701,12 @@
     "dismiss": "\u5173\u95ed",
     "reload": "\u91cd\u65b0\u52a0\u8f7d",
     "copyError": "\u590d\u5236\u9519\u8bef",
-    "unknownError": "\u672a\u77e5\u9519\u8bef"
+    "unknownError": "\u672a\u77e5\u9519\u8bef",
+    "messageRenderFailed": "\u6b64\u6d88\u606f\u6e32\u67d3\u5931\u8d25",
+    "copyRaw": "\u590d\u5236\u539f\u6587",
+    "retryRender": "\u91cd\u8bd5",
+    "startNewConversation": "\u5f00\u59cb\u65b0\u5bf9\u8bdd",
+    "recoveryFailed": "\u591a\u6b21\u6062\u590d\u5931\u8d25\uff0c\u5efa\u8bae\u5f00\u59cb\u65b0\u5bf9\u8bdd\u3002"
   },
   "common": {
     "ok": "\u786e\u5b9a",

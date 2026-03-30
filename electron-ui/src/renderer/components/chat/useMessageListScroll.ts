@@ -44,6 +44,12 @@ export function useMessageListScroll(
   const lastMsgIdRef = useRef<string | undefined>(undefined)
   // Throttle timer for scroll state updates
   const scrollThrottleRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null)
+  // STABILITY (Iteration 308): Keep messages.length in a ref so handleScroll
+  // callback doesn't need it in its dependency array. During streaming,
+  // messages.length changes every RAF flush, which would recreate handleScroll
+  // and potentially cause cascading re-renders.
+  const messagesLengthRef = useRef(messages.length)
+  messagesLengthRef.current = messages.length
 
   // Save scroll position when session changes, restore for new session
   useEffect(() => {
@@ -80,12 +86,13 @@ export function useMessageListScroll(
 
   // Throttled scroll handler: consolidates state updates into a single
   // requestAnimationFrame to prevent render cascade (React #185 fix)
+  // STABILITY (Iteration 308): Removed messages.length from deps, use ref instead
   const handleScroll = useCallback(() => {
     // Update refs immediately (no render)
     const nearBottom = checkIfNearBottom()
     isNearBottomRef.current = nearBottom
     if (nearBottom) {
-      lastSeenCountRef.current = messages.length
+      lastSeenCountRef.current = messagesLengthRef.current
     }
 
     // Throttle state updates to one per animation frame
@@ -109,7 +116,7 @@ export function useMessageListScroll(
         setScrollProgress(scrollable > 0 ? el.scrollTop / scrollable : 1)
       }
     })
-  }, [checkIfNearBottom, messages.length])
+  }, [checkIfNearBottom])
 
   // Cleanup throttle timer on unmount
   useEffect(() => {

@@ -1,4 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react'
+import { useChatStore } from '../../store'
 
 interface Props {
   children: ReactNode
@@ -11,25 +12,42 @@ interface State {
   errorInfo: ErrorInfo | null
   retryCount: number
   autoRetrying: boolean
+  recoveryFailed: boolean
 }
 
 const MAX_AUTO_RETRIES = 3
+const CRASH_BACKUP_KEY = 'aipa_crash_backup'
+const RECOVERY_COOLDOWN_MS = 2000
 // Exponential backoff: 500ms, 1500ms, 4500ms
 const getRetryDelay = (attempt: number) => 500 * Math.pow(3, attempt)
 
 /**
- * Error boundary with auto-recovery for transient React errors.
- * Uses exponential backoff to avoid tight retry loops.
- * FIXED (Iteration 301): Increased max retries to 3, added exponential
- * backoff to prevent rapid re-render cycles from re-triggering the
- * same "Maximum update depth exceeded" error before state settles.
+ * Error boundary with auto-recovery, state protection, and crash diagnostics.
+ *
+ * Iteration 301: Exponential backoff to avoid tight retry loops.
+ * Iteration 308: Added crash recovery (sessionStorage backup/restore),
+ *   per-message isolation (separate MessageErrorBoundary), and structured
+ *   diagnostic output in "Copy Error" for faster bug triage.
+ *
+ * NOTE: This is a class component (React requirement for error boundaries).
+ * It accesses Zustand store directly via useChatStore.getState() because
+ * hooks cannot be used in class components.
  */
 export default class ErrorBoundary extends Component<Props, State> {
   private retryTimer: ReturnType<typeof setTimeout> | null = null
+  private lastRestoreTimestamp = 0
+  private failedRestoreCount = 0
 
   constructor(props: Props) {
     super(props)
-    this.state = { hasError: false, error: null, errorInfo: null, retryCount: 0, autoRetrying: false }
+    this.state = {
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      retryCount: 0,
+      autoRetrying: false,
+      recoveryFailed: false,
+    }
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
@@ -38,8 +56,12 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     this.setState({ errorInfo })
-    // Log to console so it shows in DevTools
     console.error('[ErrorBoundary] Caught error:', error, errorInfo)
+
+    // STABILITY (Iteration 308): Back up conversation state to sessionStorage
+    // so it can be restored after recovery. This is the safety net that prevents
+    // users from losing their entire conversation when the chat panel crashes.
+    this.backupMessages()
 
     // Auto-retry for transient errors (like Maximum update depth exceeded)
     if (this.state.retryCount < MAX_AUTO_RETRIES) {
@@ -63,21 +85,122 @@ export default class ErrorBoundary extends Component<Props, State> {
     }
   }
 
+  /** Back up current messages to sessionStorage for crash recovery */
+  private backupMessages(): void {
+    try {
+      const messages = useChatStore.getState().messages
+      if (messages.length === 0) return
+      // Only keep last 100 messages to stay within sessionStorage 5MB limit
+      const toBackup = messages.length > 100 ? messages.slice(-100) : messages
+      sessionStorage.setItem(CRASH_BACKUP_KEY, JSON.stringify(toBackup))
+    } catch (e) {
+      console.warn('[ErrorBoundary] Failed to back up messages:', e)
+    }
+  }
+
+  /** Attempt to restore messages from sessionStorage backup */
+  private restoreMessages(): boolean {
+    try {
+      const backup = sessionStorage.getItem(CRASH_BACKUP_KEY)
+      if (!backup) return false
+
+      // Anti-infinite-loop: if we restored recently and crashed again, don't restore
+      const now = Date.now()
+      if (now - this.lastRestoreTimestamp < RECOVERY_COOLDOWN_MS) {
+        this.failedRestoreCount++
+        if (this.failedRestoreCount >= 3) {
+          this.setState({ recoveryFailed: true })
+          sessionStorage.removeItem(CRASH_BACKUP_KEY)
+          return false
+        }
+      }
+
+      const parsed = JSON.parse(backup)
+      if (!Array.isArray(parsed)) return false
+
+      useChatStore.getState().setMessages(parsed)
+      this.lastRestoreTimestamp = now
+      sessionStorage.removeItem(CRASH_BACKUP_KEY)
+      return true
+    } catch (e) {
+      console.warn('[ErrorBoundary] Failed to restore messages:', e)
+      return false
+    }
+  }
+
   handleReload = (): void => {
     window.location.reload()
   }
 
+  /**
+   * ENHANCED (Iteration 308): Copy structured diagnostic information.
+   * Includes context metadata but NOT user conversation content (privacy).
+   */
   handleCopyError = (): void => {
-    const text = [
-      `Error: ${this.state.error?.message}`,
-      this.state.error?.stack,
-      this.state.errorInfo?.componentStack,
-    ].filter(Boolean).join('\n\n')
-    navigator.clipboard.writeText(text).catch(() => {})
+    const store = useChatStore.getState()
+    const messages = store.messages
+    const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null
+    const isStreaming = store.isStreaming
+    const sessionId = store.currentSessionId
+
+    // Memory info (Chrome/Electron only)
+    let memoryInfo = 'N/A'
+    try {
+      const perf = (performance as any)
+      if (perf.memory) {
+        const used = (perf.memory.usedJSHeapSize / 1048576).toFixed(1)
+        const total = (perf.memory.totalJSHeapSize / 1048576).toFixed(1)
+        memoryInfo = `${used} MB / ${total} MB`
+      }
+    } catch { /* not available */ }
+
+    const diagnostic = [
+      '=== AIPA Crash Diagnostic ===',
+      `Error: ${this.state.error?.message || 'Unknown'}`,
+      '',
+      'Context:',
+      `  Messages: ${messages.length}`,
+      `  Streaming: ${isStreaming ? 'yes' : 'no'}`,
+      `  Session ID: ${sessionId || 'none'}`,
+      `  Viewport: ${window.innerWidth} x ${window.innerHeight}`,
+      `  Memory: ${memoryInfo}`,
+      `  Last Message Type: ${lastMsg?.role || 'none'}`,
+      `  Auto-retry Count: ${this.state.retryCount}/${MAX_AUTO_RETRIES}`,
+      '',
+      'Component Stack:',
+      this.state.errorInfo?.componentStack || '(not available)',
+      '',
+      'Stack Trace:',
+      this.state.error?.stack || '(not available)',
+    ].join('\n')
+
+    navigator.clipboard.writeText(diagnostic).catch(() => {})
   }
 
   handleDismiss = (): void => {
-    this.setState({ hasError: false, error: null, errorInfo: null, retryCount: 0, autoRetrying: false })
+    // Attempt to restore backed-up messages before clearing the error
+    this.restoreMessages()
+    this.setState({
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      retryCount: 0,
+      autoRetrying: false,
+    })
+  }
+
+  handleNewConversation = (): void => {
+    sessionStorage.removeItem(CRASH_BACKUP_KEY)
+    useChatStore.getState().clearMessages()
+    this.setState({
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      retryCount: 0,
+      autoRetrying: false,
+      recoveryFailed: false,
+    })
+    this.failedRestoreCount = 0
   }
 
   render(): ReactNode {
@@ -104,6 +227,7 @@ export default class ErrorBoundary extends Component<Props, State> {
 
     const label = this.props.fallbackLabel || 'component'
     const hasRetried = this.state.retryCount > 0
+    const { recoveryFailed } = this.state
 
     return (
       <div
@@ -142,22 +266,46 @@ export default class ErrorBoundary extends Component<Props, State> {
             Auto-recovery failed after {this.state.retryCount} attempt{this.state.retryCount > 1 ? 's' : ''}.
           </div>
         )}
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            onClick={this.handleDismiss}
-            style={{
-              padding: '6px 14px',
-              background: 'var(--accent, #0e639c)',
-              border: 'none',
-              borderRadius: '6px',
-              color: '#fff',
-              cursor: 'pointer',
-              fontSize: '12px',
-              fontWeight: 500,
-            }}
-          >
-            Retry
-          </button>
+        {recoveryFailed && (
+          <div style={{ fontSize: '11px', color: 'var(--warning, #cca700)', marginBottom: '8px' }}>
+            Recovery failed repeatedly. Starting a new conversation is recommended.
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {!recoveryFailed && (
+            <button
+              onClick={this.handleDismiss}
+              style={{
+                padding: '6px 14px',
+                background: 'var(--accent, #0e639c)',
+                border: 'none',
+                borderRadius: '6px',
+                color: '#fff',
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontWeight: 500,
+              }}
+            >
+              Retry
+            </button>
+          )}
+          {recoveryFailed && (
+            <button
+              onClick={this.handleNewConversation}
+              style={{
+                padding: '6px 14px',
+                background: 'var(--accent, #0e639c)',
+                border: 'none',
+                borderRadius: '6px',
+                color: '#fff',
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontWeight: 500,
+              }}
+            >
+              Start New Conversation
+            </button>
+          )}
           <button
             onClick={this.handleReload}
             style={{

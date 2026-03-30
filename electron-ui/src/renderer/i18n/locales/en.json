@@ -701,7 +701,12 @@
     "dismiss": "Dismiss",
     "reload": "Reload App",
     "copyError": "Copy Error",
-    "unknownError": "Unknown error"
+    "unknownError": "Unknown error",
+    "messageRenderFailed": "This message failed to render",
+    "copyRaw": "Copy Raw",
+    "retryRender": "Retry",
+    "startNewConversation": "Start New Conversation",
+    "recoveryFailed": "Recovery failed repeatedly. Starting a new conversation is recommended."
   },
   "common": {
     "ok": "OK",

@@ -85,14 +85,17 @@ export default function ChatPanel() {
   // Regeneration
   const canRegenerate = !isStreaming && messages.length >= 2 && messages[messages.length - 1]?.role === 'assistant'
 
+  // STABILITY (Iteration 308): Use a stable selector to avoid recomputing on every
+  // streaming RAF flush. During streaming, messages array reference changes every frame
+  // but we only need this value when streaming STOPS. Depend on isStreaming + length +
+  // last message role, NOT the full messages array, to prevent unnecessary re-renders.
+  const lastMsg = messages.length > 0 ? messages[messages.length - 1] : undefined
+  const lastMsgRole = lastMsg?.role
+  const lastMsgContent = lastMsgRole === 'assistant' ? (lastMsg as StandardChatMessage).content || '' : ''
   const lastAssistantContent = useMemo(() => {
     if (isStreaming || messages.length === 0) return ''
-    const last = messages[messages.length - 1]
-    if (last?.role === 'assistant') {
-      return (last as StandardChatMessage).content || ''
-    }
-    return ''
-  }, [messages, isStreaming])
+    return lastMsgContent
+  }, [isStreaming, messages.length, lastMsgContent])
 
   const handleRegenerate = async () => {
     if (isStreaming) return
