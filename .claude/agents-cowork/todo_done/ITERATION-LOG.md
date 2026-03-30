@@ -2462,3 +2462,6 @@ Status: SUCCESS
 
 ### Iteration 338 (2026-03-30)
 - Add missing "Open Skills" command palette entry -- The command palette had entries for all sidebar panels (History, Files, Notes, Memory, Workflows, Prompt History, Channel) except Skills (Ctrl+4). Added the missing entry with Sparkles icon, Ctrl+4 shortcut, and proper action to open the Skills panel. Added i18n keys (command.openSkills, command.openSkillsDesc) to both en.json and zh-CN.json. 3 files changed; build SUCCESS
+
+### Iteration 339 (2026-03-30)
+- Enhanced app menu bar -- (1) Added "Recent Sessions" submenu to File menu (10 most recent sessions, click to open). (2) Added "Export Conversation" (Ctrl+Shift+E) to File menu. (3) Added "Focus Mode" (Ctrl+Shift+O) and "Always on Top" (Ctrl+Shift+T) to View menu. (4) Added renderer-side menu event handlers for exportConversation, toggleFocusMode, and toggleAlwaysOnTop. The app menu now matches the tray menu in having quick session access and exposes all major view modes directly from the menu bar. 2 files changed (main/index.ts, App.tsx); build SUCCESS

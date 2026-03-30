@@ -161,12 +161,39 @@ function setupCSP(): void {
 }
 
 function createAppMenu(): void {
+  // Build recent sessions submenu
+  let recentSessionItems: Electron.MenuItemConstructorOptions[] = []
+  try {
+    const sessions = listSessions()
+    const sorted = sessions.sort((a, b) => b.timestamp - a.timestamp).slice(0, 10)
+    if (sorted.length > 0) {
+      recentSessionItems = sorted.map(s => ({
+        label: (s.title || s.lastPrompt || 'Untitled').slice(0, 60),
+        click: () => {
+          mainWindow?.show()
+          mainWindow?.focus()
+          mainWindow?.webContents.send('menu:openSession', s.sessionId)
+        },
+      }))
+    } else {
+      recentSessionItems = [{ label: 'No recent sessions', enabled: false }]
+    }
+  } catch {
+    recentSessionItems = [{ label: 'No recent sessions', enabled: false }]
+  }
+
   const template = Menu.buildFromTemplate([
     {
       label: 'File',
       submenu: [
         { label: 'New Session', accelerator: 'CmdOrCtrl+N', click: () => mainWindow?.webContents.send('menu:newSession') },
         { label: 'Open Folder...', accelerator: 'CmdOrCtrl+O', click: () => mainWindow?.webContents.send('menu:openFolder') },
+        {
+          label: 'Recent Sessions',
+          submenu: recentSessionItems,
+        },
+        { type: 'separator' },
+        { label: 'Export Conversation', accelerator: 'CmdOrCtrl+Shift+E', click: () => mainWindow?.webContents.send('menu:exportConversation') },
         { type: 'separator' },
         { label: 'Quit', accelerator: 'CmdOrCtrl+Q', click: () => app.quit() },
       ],
@@ -189,6 +216,9 @@ function createAppMenu(): void {
         { label: 'Toggle Sidebar', accelerator: 'CmdOrCtrl+B', click: () => mainWindow?.webContents.send('menu:toggleSidebar') },
         { label: 'Toggle Terminal', accelerator: 'CmdOrCtrl+`', click: () => mainWindow?.webContents.send('menu:toggleTerminal') },
         { label: 'Command Palette', accelerator: 'CmdOrCtrl+Shift+P', click: () => mainWindow?.webContents.send('menu:commandPalette') },
+        { type: 'separator' },
+        { label: 'Focus Mode', accelerator: 'CmdOrCtrl+Shift+O', click: () => mainWindow?.webContents.send('menu:toggleFocusMode') },
+        { label: 'Always on Top', accelerator: 'CmdOrCtrl+Shift+T', click: () => mainWindow?.webContents.send('menu:toggleAlwaysOnTop') },
         { type: 'separator' },
         { role: 'resetZoom' },
         { role: 'zoomIn' },

@@ -104,6 +104,20 @@ export default function App() {
           window.dispatchEvent(new CustomEvent('aipa:focusInput'))
         }
       }),
+      // Menu: export conversation (Ctrl+Shift+E via app menu)
+      window.electronAPI.onMenuEvent('exportConversation', () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, shiftKey: true, key: 'E' }))
+      }),
+      // Menu: toggle focus mode
+      window.electronAPI.onMenuEvent('toggleFocusMode', toggleFocusMode),
+      // Menu: toggle always-on-top
+      window.electronAPI.onMenuEvent('toggleAlwaysOnTop', () => {
+        const ui = useUiStore.getState()
+        const newValue = !ui.alwaysOnTop
+        window.electronAPI.windowSetAlwaysOnTop(newValue)
+        ui.setAlwaysOnTop(newValue)
+        ui.addToast('info', newValue ? 'Window pinned on top' : 'Window unpinned')
+      }),
     ]
     return () => cleanups.forEach((fn) => fn?.())
   }, [])
