@@ -90,8 +90,9 @@ function registerPtyHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
       send('pty:data', sessionId,
         '\x1b[33m[Basic Mode] ' +
         'Terminal is running in basic mode (node-pty native module not available).\x1b[0m\r\n' +
-        '\x1b[90mInteractive programs (vim, htop) may not work correctly. ' +
-        'Run "npm run rebuild-pty" to enable full terminal support.\x1b[0m\r\n\r\n'
+        '\x1b[90mClaude Code CLI and other interactive programs will not work in this mode.\r\n' +
+        'Use the Chat panel instead for AI conversations.\r\n' +
+        'To enable full terminal: run "npm run rebuild-pty" (requires C++ Build Tools on Windows).\x1b[0m\r\n\r\n'
       )
 
       return { sessionId, fallback: true }

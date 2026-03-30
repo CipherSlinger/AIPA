@@ -14,7 +14,18 @@ let pty: any = null
 let ptyLoadError: string | null = null
 
 try {
-  pty = require('node-pty')
+  // Temporarily suppress stderr to prevent Node.js module loader from
+  // printing noisy "Cannot find module '../build/Debug/pty.node'" stack traces
+  // to the console where the user launched Electron. The error is expected
+  // on systems without the compiled native binary (e.g., Windows without
+  // Visual Studio C++ Build Tools). We catch and handle it gracefully below.
+  const origStderrWrite = process.stderr.write
+  process.stderr.write = (() => true) as typeof process.stderr.write
+  try {
+    pty = require('node-pty')
+  } finally {
+    process.stderr.write = origStderrWrite
+  }
 } catch (err) {
   const msg = err instanceof Error ? err.message : String(err)
   ptyLoadError = msg
