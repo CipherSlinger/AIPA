@@ -120,6 +120,24 @@ const electronAPI = {
   windowShowNotification: (opts: { title: string; body: string }) =>
     ipcRenderer.invoke('window:showNotification', opts),
 
+  // ── Providers (multi-model support) ────
+  providerListConfigs: () => ipcRenderer.invoke('provider:listConfigs'),
+  providerListModels: () => ipcRenderer.invoke('provider:listModels'),
+  providerUpsert: (config: unknown) => ipcRenderer.invoke('provider:upsert', config),
+  providerRemove: (providerId: string) => ipcRenderer.invoke('provider:remove', providerId),
+  providerHealthCheck: () => ipcRenderer.invoke('provider:healthCheck'),
+  providerHealthStatuses: () => ipcRenderer.invoke('provider:healthStatuses'),
+  providerSetActive: (providerId: string) => ipcRenderer.invoke('provider:setActive', providerId),
+  providerGetActive: () => ipcRenderer.invoke('provider:getActive'),
+  providerSendMessage: (args: unknown) => ipcRenderer.invoke('provider:sendMessage', args),
+  providerAbort: (providerId: string) => ipcRenderer.invoke('provider:abort', providerId),
+
+  onProviderFailover: (cb: (data: { fromProvider: string; toProvider: string; reason: string }) => void): Unsubscribe => {
+    const handler = (_: unknown, data: { fromProvider: string; toProvider: string; reason: string }) => cb(data)
+    ipcRenderer.on('provider:failover', handler)
+    return () => ipcRenderer.removeListener('provider:failover', handler)
+  },
+
   // ── Version info ────────────────────────
   versions: {
     electron: process.versions.electron,

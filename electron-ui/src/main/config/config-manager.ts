@@ -17,6 +17,9 @@ interface StoreSchema {
   verbose: boolean
   theme: 'vscode' | 'modern' | 'minimal'
   onboardingDone: boolean
+  // Multi-model provider support (Iteration 301)
+  modelProviders: unknown[]
+  activeProviderId: string
 }
 
 const store = new Store<StoreSchema>({
@@ -34,6 +37,8 @@ const store = new Store<StoreSchema>({
     verbose: false,
     theme: 'vscode',
     onboardingDone: false,
+    modelProviders: [],
+    activeProviderId: 'claude-cli',
   },
   // Removed hardcoded encryptionKey — API key is now encrypted via safeStorage
 })

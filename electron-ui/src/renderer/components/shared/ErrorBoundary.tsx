@@ -13,9 +13,17 @@ interface State {
   autoRetrying: boolean
 }
 
-const MAX_AUTO_RETRIES = 2
-const AUTO_RETRY_DELAY = 800
+const MAX_AUTO_RETRIES = 3
+// Exponential backoff: 500ms, 1500ms, 4500ms
+const getRetryDelay = (attempt: number) => 500 * Math.pow(3, attempt)
 
+/**
+ * Error boundary with auto-recovery for transient React errors.
+ * Uses exponential backoff to avoid tight retry loops.
+ * FIXED (Iteration 301): Increased max retries to 3, added exponential
+ * backoff to prevent rapid re-render cycles from re-triggering the
+ * same "Maximum update depth exceeded" error before state settles.
+ */
 export default class ErrorBoundary extends Component<Props, State> {
   private retryTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -36,6 +44,7 @@ export default class ErrorBoundary extends Component<Props, State> {
     // Auto-retry for transient errors (like Maximum update depth exceeded)
     if (this.state.retryCount < MAX_AUTO_RETRIES) {
       this.setState({ autoRetrying: true })
+      const delay = getRetryDelay(this.state.retryCount)
       this.retryTimer = setTimeout(() => {
         this.setState(prev => ({
           hasError: false,
@@ -44,7 +53,7 @@ export default class ErrorBoundary extends Component<Props, State> {
           retryCount: prev.retryCount + 1,
           autoRetrying: false,
         }))
-      }, AUTO_RETRY_DELAY)
+      }, delay)
     }
   }
 
@@ -88,7 +97,7 @@ export default class ErrorBoundary extends Component<Props, State> {
             textAlign: 'center',
           }}
         >
-          Recovering...
+          Recovering... (attempt {this.state.retryCount + 1}/{MAX_AUTO_RETRIES})
         </div>
       )
     }

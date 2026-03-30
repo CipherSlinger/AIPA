@@ -13,6 +13,12 @@ import { ListItem, scrollPositionMap } from './messageListUtils'
  * - scroll progress bar (0-1)
  * - scroll lock during streaming
  * - keyboard navigation (Ctrl+Home/End, PageUp/Down, Alt+Up/Down user message jump)
+ *
+ * FIXED (Iteration 301): Consolidated scroll state updates to prevent
+ * React error #185 (Maximum update depth exceeded). Previously, handleScroll
+ * called 5 separate setState calls per scroll event, causing render cascades
+ * during streaming. Now uses refs for rapidly-changing values and throttled
+ * state updates.
  */
 export function useMessageListScroll(
   scrollContainerRef: RefObject<HTMLDivElement | null>,
@@ -31,6 +37,13 @@ export function useMessageListScroll(
   const [unreadCount, setUnreadCount] = useState(0)
   const [scrollLocked, setScrollLocked] = useState(false)
   const [scrollProgress, setScrollProgress] = useState(0)
+
+  // Guard against auto-scroll re-entrance during streaming
+  const autoScrollingRef = useRef(false)
+  // Stable ref for last message ID to avoid inline dep in useEffect
+  const lastMsgIdRef = useRef<string | undefined>(undefined)
+  // Throttle timer for scroll state updates
+  const scrollThrottleRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null)
 
   // Save scroll position when session changes, restore for new session
   useEffect(() => {
@@ -65,23 +78,47 @@ export function useMessageListScroll(
     return el.scrollHeight - el.scrollTop - el.clientHeight < 80
   }, [])
 
+  // Throttled scroll handler: consolidates state updates into a single
+  // requestAnimationFrame to prevent render cascade (React #185 fix)
   const handleScroll = useCallback(() => {
+    // Update refs immediately (no render)
     const nearBottom = checkIfNearBottom()
     isNearBottomRef.current = nearBottom
-    setShowScrollBtn(!nearBottom)
     if (nearBottom) {
       lastSeenCountRef.current = messages.length
-      setUnreadCount(0)
     }
-    const el = scrollContainerRef.current
-    setShowScrollTopBtn(el ? el.scrollTop > 400 : false)
-    if (el) {
-      const scrollable = el.scrollHeight - el.clientHeight
-      const pct = scrollable > 0 ? Math.round((el.scrollTop / scrollable) * 100) : 100
-      setScrollPct(pct)
-      setScrollProgress(scrollable > 0 ? el.scrollTop / scrollable : 1)
-    }
+
+    // Throttle state updates to one per animation frame
+    if (scrollThrottleRef.current !== null) return
+    scrollThrottleRef.current = requestAnimationFrame(() => {
+      scrollThrottleRef.current = null
+
+      const el = scrollContainerRef.current
+      const currentNearBottom = isNearBottomRef.current
+
+      // Batch all state updates together
+      setShowScrollBtn(!currentNearBottom)
+      if (currentNearBottom) {
+        setUnreadCount(0)
+      }
+      setShowScrollTopBtn(el ? el.scrollTop > 400 : false)
+      if (el) {
+        const scrollable = el.scrollHeight - el.clientHeight
+        const pct = scrollable > 0 ? Math.round((el.scrollTop / scrollable) * 100) : 100
+        setScrollPct(pct)
+        setScrollProgress(scrollable > 0 ? el.scrollTop / scrollable : 1)
+      }
+    })
   }, [checkIfNearBottom, messages.length])
+
+  // Cleanup throttle timer on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollThrottleRef.current !== null) {
+        cancelAnimationFrame(scrollThrottleRef.current)
+      }
+    }
+  }, [])
 
   const scrollToBottom = useCallback(() => {
     if (items.length > 0) {
@@ -93,12 +130,28 @@ export function useMessageListScroll(
     virtualizer.scrollToIndex(0, { align: 'start', behavior: 'smooth' })
   }, [virtualizer])
 
-  // Auto-scroll only when user is near the bottom and scroll is not locked
+  // Auto-scroll only when user is near the bottom and scroll is not locked.
+  // Uses a ref guard to prevent re-entrance during streaming when scrollToIndex
+  // triggers scroll events that update state and re-trigger this effect.
   useEffect(() => {
+    const lastMsgId = messages.length > 0 ? messages[messages.length - 1]?.id : undefined
+    // Skip if the last message hasn't actually changed
+    if (lastMsgId === lastMsgIdRef.current && messages.length === lastSeenCountRef.current) {
+      return
+    }
+    lastMsgIdRef.current = lastMsgId
+
     if (isNearBottomRef.current && !scrollLocked && items.length > 0) {
-      requestAnimationFrame(() => {
-        virtualizer.scrollToIndex(items.length - 1, { align: 'end', behavior: 'smooth' })
-      })
+      // Guard against re-entrance: scrollToIndex fires scroll events
+      // which could trigger handleScroll -> state updates -> re-render -> this effect
+      if (!autoScrollingRef.current) {
+        autoScrollingRef.current = true
+        requestAnimationFrame(() => {
+          virtualizer.scrollToIndex(items.length - 1, { align: 'end', behavior: 'smooth' })
+          // Release guard after a short delay to let the scroll settle
+          setTimeout(() => { autoScrollingRef.current = false }, 100)
+        })
+      }
       lastSeenCountRef.current = messages.length
       setUnreadCount(0)
     } else if (items.length > 0) {
@@ -108,7 +161,7 @@ export function useMessageListScroll(
         setUnreadCount(newMessages)
       }
     }
-  }, [messages.length, messages[messages.length - 1]?.id])
+  }, [messages.length, scrollLocked, items.length])
 
   // Auto-unlock scroll when streaming stops
   useEffect(() => {

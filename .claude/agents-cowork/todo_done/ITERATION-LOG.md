@@ -2302,3 +2302,21 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 - Memory fuzzy search with relevance scoring and auto-category suggestion -- memory panel now supports fuzzy search with relevance scoring and automatically suggests categories for new memories; multiple files changed; build SUCCESS
 
 [RETRO] retro-2026-03-30-iterations-228-295.md completed, covering Iteration 228-295, next forced retro after Iteration 305
+
+### Iteration 296 (2026-03-29)
+- Live code preview panel for HTML/SVG/JS blocks -- new preview panel for code blocks with live rendering; build SUCCESS
+
+### Iteration 297 (2026-03-29)
+- Response tone selector in Settings > Behavior -- users can select response tone; build SUCCESS
+
+### Iteration 298 (2026-03-29)
+- System context injection with date/time/workingDir/name -- injects system context into prompts; build SUCCESS
+
+### Iteration 299 (2026-03-29)
+- Persona quick-switcher in status bar -- quick-switch personas from status bar; build SUCCESS
+
+### Iteration 300 (2026-03-29)
+- Response tone per persona -- each persona can have its own response tone; build SUCCESS
+
+### Iteration 301 (2026-03-29)
+- Fix React #185 chat panel crash + Multi-Model Provider backend architecture -- (1) Fixed useMessageListScroll infinite re-render loop by consolidating 5 separate setState calls into a single requestAnimationFrame-throttled batch update, using refs for rapidly-changing values. (2) Improved ErrorBoundary with exponential backoff (500ms/1500ms/4500ms) and max 3 retries. (3) Built complete multi-model provider backend: ModelProvider interface, ProviderRegistry with health check and failover routing, OpenAICompatProvider (OpenAI/DeepSeek/custom), OllamaProvider (local models), 11 new IPC channels for provider CRUD/messaging/health/failover, preload bridge, config-manager extensions. Supports Claude CLI (existing), OpenAI-compat, and Ollama providers. 10 files changed (7 modified, 3 new); build SUCCESS
