@@ -44,8 +44,8 @@ export function useChatPanelShortcuts(
         }
         window.dispatchEvent(new CustomEvent('aipa:globalSearchFocus'))
       }
-      // Ctrl+Shift+C: Compact conversation context
-      if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+      // Ctrl+Shift+K: Compact conversation context
+      if (e.ctrlKey && e.shiftKey && e.key === 'K') {
         e.preventDefault()
         const state = useChatStore.getState()
         if (!state.isStreaming) {

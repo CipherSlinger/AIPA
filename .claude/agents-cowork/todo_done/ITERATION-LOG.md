@@ -2441,3 +2441,6 @@ Status: SUCCESS
 - Fix Ctrl+Shift+F shortcut conflict -- Ctrl+Shift+F was registered for both Focus Mode (App.tsx) and Global Cross-Session Search (useChatPanelShortcuts.ts), causing both handlers to fire simultaneously. Reassigned Focus Mode to Ctrl+Shift+O. Updated App.tsx handler, ShortcutCheatsheet.tsx key display, ChatHeader.tsx tooltip, and added Ctrl+Shift+O to README keyboard shortcuts table. Global search (Ctrl+Shift+F) now works without triggering focus mode. 5 files changed; build SUCCESS
 
 [RETRO] retro-2026-03-30-iterations-322-331.md completed, covering Iteration 322-331, next forced retro after Iteration 341
+
+### Iteration 332 (2026-03-30)
+- Shortcut registry + fix Ctrl+Shift+C conflict -- (1) Created shortcutRegistry.ts as single source of truth for all 50+ keyboard shortcuts with owner file, description, and cheatsheet key fields; includes validateShortcutRegistry() function to detect collisions. (2) Fixed Ctrl+Shift+C conflict: was registered in both App.tsx (collapse/expand all messages) and useChatPanelShortcuts.ts (compact conversation context); reassigned compact to Ctrl+Shift+K. Prevents the same class of bug fixed in Iteration 331. 3 files changed; build SUCCESS
