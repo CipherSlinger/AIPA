@@ -199,3 +199,24 @@ Improvements landed:
 Outstanding tech debt: ChatInput.tsx (992), WorkflowPanel.tsx (892), MemoryPanel.tsx (887), SchedulePanel.tsx (771), InputToolbar.tsx (750), StatusBar.tsx (674) all need decomposition.
 
 Next forced retro: after Iteration 305.
+
+## Retrospective: Iteration 296-305 (2026-03-29)
+
+**10 iterations. Transition from 1.0.x to 1.1.0 (multi-model).**
+
+Key stats:
+- 5 leader-managed iterations (301-305), 5 carry-over from continuous mode (296-300)
+- Major architectural feature: multi-model provider system (backend + frontend + routing)
+- React #185 fix (critical bug, 2nd occurrence)
+- 24 new i18n keys, parity maintained at 1,097
+- 0 build failures, 0 test reports, 0 sub-agents invoked
+- +2,550 / -106 lines across 24 files
+- StatusBar.tsx grew from 674 to 714 lines (approaching threshold)
+
+Improvements landed:
+1. Leader PRD cleanup rule: clean completed PRDs when tester not invoked
+2. Cleaned `prd-multi-model-v1.md` from todo/
+
+Outstanding tech debt: ChatInput.tsx (992), WorkflowPanel.tsx (892), MemoryPanel.tsx (887), SchedulePanel.tsx (771), InputToolbar.tsx (750), StatusBar.tsx (714) all need decomposition.
+
+Next forced retro: after Iteration 315.

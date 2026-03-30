@@ -2332,3 +2332,5 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 305 (2026-03-29)
 - Active provider indicator + feedback cleanup -- StatusBar model badge now handles non-Claude model names properly (no longer strips "claude-" prefix from GPT/DeepSeek models); shows provider label tag (OpenAI/DeepSeek/API) next to model name when a non-Claude model is active; cleaned up feedback.md to mark multi-model and React #185 as completed; 3 files changed; build SUCCESS
+
+[RETRO] retro-2026-03-29-iterations-296-305.md completed, covering Iteration 296-305, next forced retro after Iteration 315
