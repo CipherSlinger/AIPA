@@ -265,12 +265,15 @@ export default function StatusBar() {
 
   const dirShort = dirLabel.split(/[/\\]/).pop() || dirLabel
   const modelLabel = prefs.model || 'claude-sonnet-4-6'
-  const shortModel = modelLabel
-    .replace('claude-', '')
-    .replace(/-\d{8}$/, '')
-    .split('-')
-    .map((s: string) => s.charAt(0).toUpperCase() + s.slice(1))
-    .join(' ')
+  const isClaudeModel = modelLabel.startsWith('claude-')
+  const shortModel = isClaudeModel
+    ? modelLabel
+        .replace('claude-', '')
+        .replace(/-\d{8}$/, '')
+        .split('-')
+        .map((s: string) => s.charAt(0).toUpperCase() + s.slice(1))
+        .join(' ')
+    : modelLabel // Non-Claude models: use the model ID as-is (e.g., "gpt-4o", "deepseek-chat")
   const fmt = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n)
 
   const contextPct = lastContextUsage && lastContextUsage.total > 0
@@ -631,6 +634,11 @@ export default function StatusBar() {
             }}
             title={t('chat.switchModel')}
           >
+            {!isClaudeModel && (
+              <span style={{ fontSize: 8, opacity: 0.7, padding: '0 3px', borderRadius: 3, background: 'rgba(255,255,255,0.15)' }}>
+                {modelLabel.includes('gpt') ? 'OpenAI' : modelLabel.includes('deepseek') ? 'DeepSeek' : 'API'}
+              </span>
+            )}
             {shortModel}
             <ChevronUp size={8} style={{ opacity: 0.6, transform: showModelPicker ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
           </button>

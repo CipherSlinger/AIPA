@@ -1,6 +1,6 @@
 # AIPA — AI Personal Assistant
 
-> Your always-on desktop companion. Ask anything, automate anything, get things done — powered by Claude.
+> Your always-on desktop companion. Ask anything, automate anything, get things done — powered by Claude and multi-model AI.
 
 AIPA is a desktop AI personal assistant built with Electron + React. The goal is not merely a chat window — it is a capable agent that lives on your desktop, understands your files and environment, writes and runs code, browses the web, and handles real-world tasks end-to-end. Under the hood it drives the [Claude Code](https://claude.ai/code) CLI as its execution engine.
 
@@ -223,6 +223,9 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Daily inspiration** -- "Daily Inspiration" command in the Command Palette shows a random motivational quote as an info toast; 20 curated quotes for the personal assistant companion feel
 - **Text case cycling** -- `Ctrl+Shift+U` cycles selected text in the chat input through UPPERCASE, lowercase, and Title Case; preserves selection after transform
 - **API key pool with auto-failover** -- add multiple API keys in Settings; when one key's quota is exhausted, AIPA automatically rotates to the next enabled key; import keys from JSON/CSV/TXT files; visual status indicators (green=active, red=exhausted, gray=disabled); reset exhausted keys with one click
+- **Multi-model provider support** -- use AI models beyond Claude: OpenAI (GPT-4o, GPT-4 Turbo, o3-mini), DeepSeek (V3, R1), Ollama (local models), and any OpenAI-compatible API endpoint; manage providers in Settings > Providers tab with connection testing, health monitoring (green/yellow/red status dots), and configurable failover priority
+- **Multi-provider model picker** -- model selector in the chat header and status bar now groups models by provider with section headers; shows capability tags (Vision, Code, Reasoning) per model and provider health indicators; "Manage Providers" link for quick access to provider settings
+- **Model failover** -- when a model provider fails (rate limit, API down, quota exhausted), AIPA automatically switches to the next available provider in the failover chain; toast notification on failover; configurable cooldown timer (60s) before retrying failed providers
 
 ## Security
 
@@ -238,7 +241,8 @@ AIPA follows Electron security best practices:
 
 - Windows 10/11 x64
 - [Node.js](https://nodejs.org/) 18 or later (must be on PATH)
-- An [Anthropic API key](https://console.anthropic.com/)
+- An [Anthropic API key](https://console.anthropic.com/) for Claude models
+- Optional: OpenAI API key, DeepSeek API key, or local [Ollama](https://ollama.ai/) instance for multi-model support
 
 ## Getting Started
 

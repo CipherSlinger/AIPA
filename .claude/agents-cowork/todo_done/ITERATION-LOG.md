@@ -2326,3 +2326,11 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 303 (2026-03-29)
 - Wire chat to multi-model provider routing -- useStreamJson.ts now routes messages to the appropriate provider based on the selected model. If the model belongs to a non-Claude provider (OpenAI, Ollama, DeepSeek, custom), the message is sent via providerSendMessage IPC instead of cliSendMessage. Conversation history (last 20 messages) is passed as context. Provider failover events trigger warning toasts. This makes the multi-model feature end-to-end functional: users can now select a non-Claude model and actually chat with it. 1 file changed; build SUCCESS
+
+### Iteration 304 (2026-03-29)
+- README batch update for multi-model features (iterations 301-303) -- added 3 new feature entries to both README.md and README_CN.md: multi-model provider support (OpenAI/DeepSeek/Ollama/custom), multi-provider model picker with capability tags, model failover with toast notifications; updated tagline to "powered by Claude and multi-model AI"; updated Requirements section with optional provider keys; 3 files changed; no build needed
+
+### Iteration 305 (2026-03-29)
+- Active provider indicator + feedback cleanup -- StatusBar model badge now handles non-Claude model names properly (no longer strips "claude-" prefix from GPT/DeepSeek models); shows provider label tag (OpenAI/DeepSeek/API) next to model name when a non-Claude model is active; cleaned up feedback.md to mark multi-model and React #185 as completed; 3 files changed; build SUCCESS
+
+[RETRO] retro-2026-03-29-iterations-296-305.md completed, covering Iteration 296-305, next forced retro after Iteration 315
