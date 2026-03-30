@@ -509,7 +509,11 @@
     "savedAsNote": "Input saved to Notes",
     "startFocusTimer": "Start 25-minute focus timer",
     "stopFocusTimer": "Stop focus timer",
-    "focusTimerComplete": "Focus session complete! Time for a break."
+    "focusTimerComplete": "Focus session complete! Time for a break.",
+    "stopwatch": "Stopwatch",
+    "startStopwatch": "Start stopwatch",
+    "stopStopwatch": "Pause stopwatch",
+    "resumeStopwatch": "Resume stopwatch (double-click to reset)"
   },
   "transform": {
     "title": "Transform text",

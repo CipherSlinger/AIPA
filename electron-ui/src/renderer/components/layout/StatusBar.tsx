@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react'
-import { PanelLeft, Terminal, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Play, Square, ChevronUp, Check } from 'lucide-react'
+import { PanelLeft, Terminal, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Play, Square, ChevronUp, Check, StopCircle } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { StandardChatMessage } from '../../types/app.types'
 import { useT } from '../../i18n'
@@ -157,6 +157,51 @@ export default function StatusBar() {
       if (focusTimerRef.current) clearInterval(focusTimerRef.current)
     }
   }, [])
+
+  // Stopwatch (count-up timer)
+  const [stopwatchActive, setStopwatchActive] = useState(false)
+  const [stopwatchElapsed, setStopwatchElapsed] = useState(0)
+  const stopwatchRef = useRef<number>(0)
+  const stopwatchLastClickRef = useRef<number>(0)
+
+  const handleStopwatchClick = useCallback(() => {
+    const now = Date.now()
+    // Double-click within 400ms: reset
+    if (now - stopwatchLastClickRef.current < 400 && !stopwatchActive) {
+      setStopwatchElapsed(0)
+      stopwatchLastClickRef.current = 0
+      return
+    }
+    stopwatchLastClickRef.current = now
+
+    if (stopwatchActive) {
+      // Stop
+      if (stopwatchRef.current) clearInterval(stopwatchRef.current)
+      stopwatchRef.current = 0
+      setStopwatchActive(false)
+    } else {
+      // Start
+      setStopwatchActive(true)
+    }
+  }, [stopwatchActive])
+
+  useEffect(() => {
+    if (!stopwatchActive) return
+    stopwatchRef.current = window.setInterval(() => {
+      setStopwatchElapsed(prev => prev + 1)
+    }, 1000)
+    return () => {
+      if (stopwatchRef.current) clearInterval(stopwatchRef.current)
+    }
+  }, [stopwatchActive])
+
+  // Cleanup stopwatch on unmount
+  useEffect(() => {
+    return () => {
+      if (stopwatchRef.current) clearInterval(stopwatchRef.current)
+    }
+  }, [])
+
   const dirShort = dirLabel.split(/[/\\]/).pop() || dirLabel
   const modelLabel = prefs.model || 'claude-sonnet-4-6'
   const shortModel = modelLabel
@@ -310,6 +355,37 @@ export default function StatusBar() {
               <Timer size={10} />
               <span>25m</span>
             </>
+          )}
+        </button>
+
+        {/* Stopwatch */}
+        <button
+          onClick={handleStopwatchClick}
+          title={stopwatchActive ? t('toolbar.stopStopwatch') : stopwatchElapsed > 0 ? t('toolbar.resumeStopwatch') : t('toolbar.startStopwatch')}
+          style={{
+            background: stopwatchActive ? 'rgba(255,255,255,0.15)' : 'none',
+            border: 'none',
+            color: '#fff',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 3,
+            padding: '1px 5px',
+            borderRadius: 4,
+            fontSize: 10,
+            opacity: stopwatchActive || stopwatchElapsed > 0 ? 1 : 0.6,
+            transition: 'opacity 0.15s',
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = (stopwatchActive || stopwatchElapsed > 0) ? '1' : '0.6' }}
+        >
+          <StopCircle size={10} style={{ color: stopwatchActive ? '#f59e0b' : undefined }} />
+          {stopwatchActive || stopwatchElapsed > 0 ? (
+            <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+              {formatDuration(stopwatchElapsed * 1000)}
+            </span>
+          ) : (
+            <span>{t('toolbar.stopwatch')}</span>
           )}
         </button>
       </div>

@@ -509,7 +509,11 @@
     "savedAsNote": "\u8f93\u5165\u5df2\u4fdd\u5b58\u5230\u7b14\u8bb0",
     "startFocusTimer": "\u542f\u52a8 25 \u5206\u949f\u4e13\u6ce8\u8ba1\u65f6\u5668",
     "stopFocusTimer": "\u505c\u6b62\u4e13\u6ce8\u8ba1\u65f6\u5668",
-    "focusTimerComplete": "\u4e13\u6ce8\u65f6\u95f4\u7ed3\u675f\uff01\u4f11\u606f\u4e00\u4e0b\u5427\u3002"
+    "focusTimerComplete": "\u4e13\u6ce8\u65f6\u95f4\u7ed3\u675f\uff01\u4f11\u606f\u4e00\u4e0b\u5427\u3002",
+    "stopwatch": "\u79d2\u8868",
+    "startStopwatch": "\u542f\u52a8\u79d2\u8868",
+    "stopStopwatch": "\u6682\u505c\u79d2\u8868",
+    "resumeStopwatch": "\u7ee7\u7eed\u79d2\u8868\uff08\u53cc\u51fb\u91cd\u7f6e\uff09"
   },
   "transform": {
     "title": "\u6587\u672c\u53d8\u6362",
