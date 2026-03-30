@@ -2334,3 +2334,6 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 - Active provider indicator + feedback cleanup -- StatusBar model badge now handles non-Claude model names properly (no longer strips "claude-" prefix from GPT/DeepSeek models); shows provider label tag (OpenAI/DeepSeek/API) next to model name when a non-Claude model is active; cleaned up feedback.md to mark multi-model and React #185 as completed; 3 files changed; build SUCCESS
 
 [RETRO] retro-2026-03-29-iterations-296-305.md completed, covering Iteration 296-305, next forced retro after Iteration 315
+
+### Iteration 306 (2026-03-29)
+- ChatInput.tsx decomposition refactor -- Reduced ChatInput.tsx from 992 to 720 lines (27% reduction, below 800-line urgent threshold). Extracted 4 hooks: useTypingWpm.ts (36 lines, WPM tracking), useInputPopups.ts (218 lines, @mention/slash-command/snippet state+handlers), useInputCompletion.ts (64 lines, ghost-text autocomplete + inline calculator), usePasteDetection.ts (126 lines, URL/long-text paste detection + quote reply). Zero behavior changes, same decomposition pattern as ChatPanel (Iteration 111) and NotesPanel (Iteration 125). 5 files changed (4 new, 1 refactored); build SUCCESS

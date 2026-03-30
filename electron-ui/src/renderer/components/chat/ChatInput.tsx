@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Send, Square, X, MessageSquareQuote, Sparkles, Link2, FileText, Calculator, Archive } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import AtMentionPopup from './AtMentionPopup'
-import SlashCommandPopup, { SLASH_COMMANDS, SlashCommand } from './SlashCommandPopup'
+import SlashCommandPopup from './SlashCommandPopup'
 import QuickReplyChips from './QuickReplyChips'
 import InputToolbar from './InputToolbar'
 import { PLACEHOLDER_KEYS } from './chatInputConstants'
@@ -10,7 +10,10 @@ import { useImagePaste, ImageAttachment, FileAttachment } from '../../hooks/useI
 import { useChatInputDraft } from '../../hooks/useChatInputDraft'
 import { useChatInputHistory } from '../../hooks/useChatInputHistory'
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition'
-import { PromptHistoryItem, TextSnippet } from '../../types/app.types'
+import { useTypingWpm } from './useTypingWpm'
+import { useInputPopups } from './useInputPopups'
+import { useInputCompletion } from './useInputCompletion'
+import { usePasteDetection } from './usePasteDetection'
 import { useT } from '../../i18n'
 
 interface ChatInputProps {
@@ -31,8 +34,6 @@ export default function ChatInput({
   const t = useT()
   const prefs = usePrefsStore(s => s.prefs)
   const addToast = useUiStore(s => s.addToast)
-  const quotedText = useUiStore(s => s.quotedText)
-  const setQuotedText = useUiStore(s => s.setQuotedText)
   const addToQueue = useChatStore(s => s.addToQueue)
   const lastContextUsage = useChatStore(s => s.lastContextUsage)
 
@@ -53,44 +54,30 @@ export default function ChatInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const inputWrapRef = useRef<HTMLDivElement>(null)
 
-  // Typing speed (WPM) tracking
-  const keystrokeTimestamps = useRef<number[]>([])
-  const [typingWpm, setTypingWpm] = useState(0)
-  const wpmTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Typing WPM tracking
+  const { typingWpm, keystrokeTimestamps } = useTypingWpm()
 
-  useEffect(() => {
-    wpmTimerRef.current = setInterval(() => {
-      const now = Date.now()
-      // Keep only keystrokes within last 10 seconds
-      keystrokeTimestamps.current = keystrokeTimestamps.current.filter(t => now - t < 10000)
-      const count = keystrokeTimestamps.current.length
-      if (count < 2) { setTypingWpm(0); return }
-      // Characters per minute, then convert to words (avg 5 chars/word)
-      const span = (now - keystrokeTimestamps.current[0]) / 60000 // minutes
-      if (span < 0.001) { setTypingWpm(0); return }
-      const wpm = Math.round((count / 5) / span)
-      setTypingWpm(wpm)
-    }, 1000)
-    return () => { if (wpmTimerRef.current) clearInterval(wpmTimerRef.current) }
-  }, [])
+  // Image/file attachments
+  const { attachments, fileAttachments, handlePaste, addFiles, addFileAttachments, removeAttachment, removeFileAttachment, clearAttachments } = useImagePaste()
 
-  // @ mention state
-  const [atQuery, setAtQuery] = useState<string | null>(null)
+  // Input popups (@mention, /slash, ::snippet)
+  const popups = useInputPopups({
+    input,
+    setInput,
+    textareaRef,
+    onSend,
+    onNewConversation,
+  })
 
-  // Slash command state
-  const [slashQuery, setSlashQuery] = useState<string | null>(null)
-  const [slashIndex, setSlashIndex] = useState(0)
-  const [customCommands, setCustomCommands] = useState<{ name: string; description: string }[]>([])
+  // Ghost text autocomplete + inline calculator
+  const { ghostText, calcResult } = useInputCompletion(input, popups.slashQuery, popups.atQuery)
 
-  // Text snippet state (::keyword trigger)
-  const [snippetQuery, setSnippetQuery] = useState<string | null>(null)
-  const [snippetIndex, setSnippetIndex] = useState(0)
-  const textSnippets: TextSnippet[] = usePrefsStore(s => s.prefs.textSnippets || [])
-  const filteredSnippets = useMemo(() => {
-    if (snippetQuery === null || textSnippets.length === 0) return []
-    const q = snippetQuery.toLowerCase()
-    return textSnippets.filter(s => s.keyword.toLowerCase().startsWith(q)).slice(0, 8)
-  }, [snippetQuery, textSnippets])
+  // Paste detection (URL, long text, quote)
+  const paste = usePasteDetection({
+    setInput,
+    textareaRef,
+    handleImagePaste: handlePaste,
+  })
 
   // Rotating placeholder
   const [placeholderIdx, setPlaceholderIdx] = useState(0)
@@ -101,8 +88,6 @@ export default function ChatInput({
     }, 4000)
     return () => clearInterval(id)
   }, [input])
-
-  const { attachments, fileAttachments, handlePaste, addFiles, addFileAttachments, removeAttachment, removeFileAttachment, clearAttachments } = useImagePaste()
 
   // Expose addFiles and setInput via window events so parent drag-and-drop can use them
   useEffect(() => {
@@ -123,81 +108,7 @@ export default function ChatInput({
     return () => window.removeEventListener('aipa:dropFiles', handler)
   }, [addFiles])
 
-  // Pending quote (shown as a visual banner above input)
-  const [pendingQuote, setPendingQuote] = useState<string | null>(null)
-
-  // URL paste detection chips
-  const [pastedUrl, setPastedUrl] = useState<string | null>(null)
-  const urlChipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // Long text paste detection
-  const [pastedLongText, setPastedLongText] = useState<boolean>(false)
-  const longTextTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const URL_REGEX = /https?:\/\/[^\s<>'"]+/i
-
-  const handleTextPaste = useCallback((e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    // Let useImagePaste handle image pastes first
-    handlePaste(e)
-    // Detect URL in pasted text
-    const text = e.clipboardData.getData('text/plain')
-    if (text) {
-      const match = text.match(URL_REGEX)
-      if (match) {
-        setPastedUrl(match[0])
-        // Auto-dismiss after 8 seconds
-        if (urlChipTimerRef.current) clearTimeout(urlChipTimerRef.current)
-        urlChipTimerRef.current = setTimeout(() => setPastedUrl(null), 8000)
-      }
-      // Detect long text paste (>500 chars, no URL already shown)
-      if (text.length > 500 && !match) {
-        setPastedLongText(true)
-        if (longTextTimerRef.current) clearTimeout(longTextTimerRef.current)
-        longTextTimerRef.current = setTimeout(() => setPastedLongText(false), 12000)
-      }
-    }
-  }, [handlePaste])
-
-  const handleUrlAction = useCallback((action: string) => {
-    if (!pastedUrl) return
-    setInput(prev => {
-      // Replace the URL with "action: URL" pattern
-      const actionPrefix = `${action}: ${pastedUrl}\n`
-      if (prev.includes(pastedUrl)) {
-        return actionPrefix + prev.replace(pastedUrl, '').trim()
-      }
-      return actionPrefix + prev.trim()
-    })
-    setPastedUrl(null)
-    if (urlChipTimerRef.current) clearTimeout(urlChipTimerRef.current)
-    textareaRef.current?.focus()
-  }, [pastedUrl])
-
-  const handleLongTextAction = useCallback((action: string) => {
-    setInput(prev => {
-      return `${action}:\n\n${prev}`
-    })
-    setPastedLongText(false)
-    if (longTextTimerRef.current) clearTimeout(longTextTimerRef.current)
-    textareaRef.current?.focus()
-  }, [])
-
-  // Clean up timers on unmount
-  useEffect(() => {
-    return () => {
-      if (urlChipTimerRef.current) clearTimeout(urlChipTimerRef.current)
-      if (longTextTimerRef.current) clearTimeout(longTextTimerRef.current)
-    }
-  }, [])
-
-  // Handle quote reply: store as pending quote instead of raw markdown injection
-  useEffect(() => {
-    if (!quotedText) return
-    setPendingQuote(quotedText)
-    setQuotedText(null)
-    setTimeout(() => textareaRef.current?.focus(), 50)
-  }, [quotedText, setQuotedText])
-
+  // Textarea auto-resize
   const resizeTextarea = useCallback(() => {
     const ta = textareaRef.current
     if (!ta) return
@@ -230,14 +141,35 @@ export default function ChatInput({
     return () => window.removeEventListener('aipa:insertText', handler)
   }, [])
 
+  // Keyboard shortcut: Ctrl+Shift+Q to add to queue
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'Q') {
+        e.preventDefault()
+        const currentInput = input.trim()
+        if (currentInput) {
+          addToQueue(currentInput)
+          setInput('')
+          resizeTextarea()
+          clearDraft()
+          textareaRef.current?.focus()
+        }
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [input, addToQueue, resizeTextarea])
+
+  // --- Core handlers ---
+
   const handleSend = async () => {
     const text = input.trim()
     if (!text && attachments.length === 0 && fileAttachments.length === 0 || isStreaming) return
     let finalText = text || (attachments.length > 0 ? t('chat.describeImage') : t('chat.analyzeFiles'))
-    if (pendingQuote) {
-      const quotedLines = pendingQuote.split('\n').map((l: string) => `> ${l}`).join('\n')
+    if (paste.pendingQuote) {
+      const quotedLines = paste.pendingQuote.split('\n').map((l: string) => `> ${l}`).join('\n')
       finalText = quotedLines + '\n\n' + finalText
-      setPendingQuote(null)
+      paste.setPendingQuote(null)
     }
     // Inject file contents as context into the prompt
     if (fileAttachments.length > 0) {
@@ -254,9 +186,9 @@ export default function ChatInput({
     }
     if (text) addToHistory(text)
     setInput('')
-    setAtQuery(null)
-    setPastedUrl(null)
-    setPastedLongText(false)
+    popups.setAtQuery(null)
+    paste.setPastedUrl(null)
+    paste.setPastedLongText(false)
     clearAttachments()
     resizeTextarea()
     clearDraft()
@@ -264,24 +196,24 @@ export default function ChatInput({
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (atQuery !== null && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === 'Escape')) return
-    if (slashQuery !== null && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === 'Escape')) return
+    if (popups.atQuery !== null && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === 'Escape')) return
+    if (popups.slashQuery !== null && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === 'Escape')) return
     // Snippet popup keyboard navigation
-    if (snippetQuery !== null && filteredSnippets.length > 0) {
-      if (e.key === 'ArrowDown') { e.preventDefault(); setSnippetIndex(i => Math.min(i + 1, filteredSnippets.length - 1)); return }
-      if (e.key === 'ArrowUp') { e.preventDefault(); setSnippetIndex(i => Math.max(i - 1, 0)); return }
-      if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); handleSnippetSelect(filteredSnippets[snippetIndex]); return }
-      if (e.key === 'Escape') { e.preventDefault(); setSnippetQuery(null); return }
+    if (popups.snippetQuery !== null && popups.filteredSnippets.length > 0) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); popups.setSnippetIndex(i => Math.min(i + 1, popups.filteredSnippets.length - 1)); return }
+      if (e.key === 'ArrowUp') { e.preventDefault(); popups.setSnippetIndex(i => Math.max(i - 1, 0)); return }
+      if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); popups.handleSnippetSelect(popups.filteredSnippets[popups.snippetIndex]); return }
+      if (e.key === 'Escape') { e.preventDefault(); popups.setSnippetQuery(null); return }
     }
 
-    if (e.key === 'ArrowUp' && !e.shiftKey && atQuery === null && slashQuery === null) {
+    if (e.key === 'ArrowUp' && !e.shiftKey && popups.atQuery === null && popups.slashQuery === null) {
       const ta = textareaRef.current
       if (ta && ta.selectionStart === 0 && ta.selectionEnd === 0) {
         const result = navigateUp(input, true)
         if (result !== null) { e.preventDefault(); setInput(result) }
       }
     }
-    if (e.key === 'ArrowDown' && !e.shiftKey && atQuery === null && slashQuery === null) {
+    if (e.key === 'ArrowDown' && !e.shiftKey && popups.atQuery === null && popups.slashQuery === null) {
       const ta = textareaRef.current
       if (ta && ta.selectionStart === input.length) {
         const result = navigateDown(true)
@@ -311,16 +243,13 @@ export default function ChatInput({
       const selected = input.substring(start, end)
       const wrapper = e.key === 'b' ? '**' : '*'
       if (selected) {
-        // Wrap selection
         const newText = input.substring(0, start) + wrapper + selected + wrapper + input.substring(end)
         setInput(newText)
-        // Restore selection to include formatting
         setTimeout(() => {
           ta.selectionStart = start + wrapper.length
           ta.selectionEnd = end + wrapper.length
         }, 0)
       } else {
-        // Insert wrapper pair and place cursor in middle
         const newText = input.substring(0, start) + wrapper + wrapper + input.substring(end)
         setInput(newText)
         setTimeout(() => {
@@ -341,13 +270,10 @@ export default function ChatInput({
       if (!selected) return
       let transformed: string
       if (selected === selected.toUpperCase() && selected !== selected.toLowerCase()) {
-        // Currently UPPER -> go to lower
         transformed = selected.toLowerCase()
       } else if (selected === selected.toLowerCase() && selected !== selected.toUpperCase()) {
-        // Currently lower -> go to Title Case
         transformed = selected.replace(/\b\w/g, c => c.toUpperCase())
       } else {
-        // Title case or mixed -> go to UPPER
         transformed = selected.toUpperCase()
       }
       const newText = input.substring(0, start) + transformed + input.substring(end)
@@ -359,10 +285,10 @@ export default function ChatInput({
       return
     }
     // Escape: dismiss URL chips, long text chips, then quote preview
-    if (e.key === 'Escape' && atQuery === null && slashQuery === null) {
-      if (pastedUrl) { e.preventDefault(); setPastedUrl(null); if (urlChipTimerRef.current) clearTimeout(urlChipTimerRef.current); return }
-      if (pastedLongText) { e.preventDefault(); setPastedLongText(false); if (longTextTimerRef.current) clearTimeout(longTextTimerRef.current); return }
-      if (pendingQuote) { e.preventDefault(); setPendingQuote(null); return }
+    if (e.key === 'Escape' && popups.atQuery === null && popups.slashQuery === null) {
+      if (paste.pastedUrl) { e.preventDefault(); paste.setPastedUrl(null); if (paste.urlChipTimerRef.current) clearTimeout(paste.urlChipTimerRef.current); return }
+      if (paste.pastedLongText) { e.preventDefault(); paste.setPastedLongText(false); if (paste.longTextTimerRef.current) clearTimeout(paste.longTextTimerRef.current); return }
+      if (paste.pendingQuote) { e.preventDefault(); paste.setPendingQuote(null); return }
     }
   }
 
@@ -377,157 +303,8 @@ export default function ChatInput({
     }
     setInput(val)
     const cursor = e.target.selectionStart
-    const textBefore = val.slice(0, cursor)
-    const atMatch = textBefore.match(/@([^\s]*)$/)
-    if (atMatch) { setAtQuery(atMatch[1]) } else { setAtQuery(null) }
-    const slashMatch = textBefore.match(/(?:^|\s)(\/[^\s]*)$/)
-    if (slashMatch) { setSlashQuery(slashMatch[1].slice(1)); setSlashIndex(0); setAtQuery(null) }
-    else if (!atMatch) { setSlashQuery(null) }
-    // Detect ::keyword for text snippets
-    const snippetMatch = textBefore.match(/::(\w*)$/)
-    if (snippetMatch && !atMatch && !slashMatch) { setSnippetQuery(snippetMatch[1]); setSnippetIndex(0) }
-    else { setSnippetQuery(null) }
+    popups.parsePopupTriggers(val, cursor)
   }
-
-  const handleAtSelect = (filePath: string) => {
-    const cursor = textareaRef.current?.selectionStart ?? input.length
-    const textBefore = input.slice(0, cursor)
-    const textAfter = input.slice(cursor)
-    const atMatch = textBefore.match(/@([^\s]*)$/)
-    if (atMatch) {
-      const replaced = textBefore.slice(0, textBefore.length - atMatch[0].length) + `@${filePath}` + textAfter
-      setInput(replaced)
-    }
-    setAtQuery(null)
-    textareaRef.current?.focus()
-  }
-
-  const handleSnippetSelect = (snippet: TextSnippet) => {
-    const cursor = textareaRef.current?.selectionStart ?? input.length
-    const textBefore = input.slice(0, cursor)
-    const textAfter = input.slice(cursor)
-    const snippetMatch = textBefore.match(/::(\w*)$/)
-    if (snippetMatch) {
-      const replaced = textBefore.slice(0, textBefore.length - snippetMatch[0].length) + snippet.content + textAfter
-      setInput(replaced)
-    }
-    setSnippetQuery(null)
-    textareaRef.current?.focus()
-  }
-
-  const handleSlashSelect = async (cmd: SlashCommand) => {
-    setSlashQuery(null)
-    setInput('')
-    if (cmd.clientOnly) {
-      if (cmd.name === '/clear') onNewConversation()
-      else if (cmd.name === '/help') {
-        useChatStore.getState().addMessage({
-          id: `help-${Date.now()}`, role: 'assistant',
-          content: `**${t('command.availableCommands')}:**\n\n` + SLASH_COMMANDS.map(c => `- \`${c.name}\` — ${c.description}`).join('\n'),
-          timestamp: Date.now(),
-        } as any)
-      }
-      return
-    }
-    const isBuiltin = SLASH_COMMANDS.some(c => c.name === cmd.name)
-    if (isBuiltin) { await onSend(cmd.name) }
-    else { setInput(cmd.name + ' '); textareaRef.current?.focus() }
-  }
-
-  // Load custom slash commands once when popup opens
-  const slashPopupOpen = slashQuery !== null
-  useEffect(() => {
-    if (!slashPopupOpen) return
-    window.electronAPI.fsListCommands(prefs.workingDir || '').then((cmds: { name: string; description: string; source: string }[]) => {
-      setCustomCommands(cmds.map(c => ({
-        name: c.name,
-        description: c.description + (c.source === 'project' ? ` ${t('command.sourceProject')}` : ` ${t('command.sourceUser')}`),
-      })))
-    }).catch(() => {})
-  }, [slashPopupOpen, prefs.workingDir])
-
-  // Slash command keyboard navigation
-  useEffect(() => {
-    if (slashQuery === null) return
-    const filtered = SLASH_COMMANDS.filter(c => !slashQuery || c.name.toLowerCase().includes(slashQuery.toLowerCase()))
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowDown') { e.preventDefault(); setSlashIndex(i => Math.min(i + 1, filtered.length - 1)) }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); setSlashIndex(i => Math.max(i - 1, 0)) }
-      else if (e.key === 'Enter') { e.preventDefault(); if (filtered[slashIndex]) handleSlashSelect(filtered[slashIndex]) }
-      else if (e.key === 'Escape') { setSlashQuery(null) }
-    }
-    window.addEventListener('keydown', handler, true)
-    return () => window.removeEventListener('keydown', handler, true)
-  }, [slashQuery, slashIndex])
-
-  // Keyboard shortcut: Ctrl+Shift+Q to add to queue
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key === 'Q') {
-        e.preventDefault()
-        const currentInput = input.trim()
-        if (currentInput) {
-          addToQueue(currentInput)
-          setInput('')
-          resizeTextarea()
-          clearDraft()
-          textareaRef.current?.focus()
-        }
-      }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [input, addToQueue, resizeTextarea])
-
-  // Inline prompt autocomplete from history
-  const promptHistory: PromptHistoryItem[] = prefs.promptHistory || []
-  const ghostText = useMemo(() => {
-    const trimmed = input.trimStart()
-    if (trimmed.length < 3 || slashQuery !== null || atQuery !== null) return ''
-    const lower = trimmed.toLowerCase()
-    // Find the most-used matching history entry
-    let best: PromptHistoryItem | null = null
-    for (const item of promptHistory) {
-      const itemLower = item.text.toLowerCase()
-      if (itemLower.startsWith(lower) && itemLower !== lower) {
-        if (!best || item.count > best.count || (item.count === best.count && item.lastUsedAt > best.lastUsedAt)) {
-          best = item
-        }
-      }
-    }
-    if (!best) return ''
-    // Return only the suffix (the part after what's already typed)
-    return best.text.slice(trimmed.length)
-  }, [input, promptHistory, slashQuery, atQuery])
-
-  // Inline calculator: detect "= expression" and evaluate
-  const calcResult = useMemo(() => {
-    const trimmed = input.trim()
-    // Must start with "=" followed by a math expression
-    if (!trimmed.startsWith('=') || trimmed.length < 2) return null
-    const expr = trimmed.slice(1).trim()
-    if (!expr) return null
-    // Only allow safe math characters: digits, operators, parens, dots, spaces, and common math functions
-    if (!/^[\d\s+\-*/().,%^]+$/.test(expr)) return null
-    try {
-      // Replace ^ with ** for exponentiation, % with /100 for percent
-      let sanitized = expr
-        .replace(/\^/g, '**')
-        .replace(/(\d)%/g, '$1/100')
-        .replace(/,/g, '') // strip thousands separators
-      // Prevent empty or dangerous expressions
-      if (!sanitized.trim() || /[a-zA-Z_$]/.test(sanitized)) return null
-      // Use Function constructor for safe-ish math eval (no access to globals)
-      const fn = new Function(`"use strict"; return (${sanitized})`)
-      const result = fn()
-      if (typeof result !== 'number' || !isFinite(result)) return null
-      // Format: up to 10 decimal places, strip trailing zeros
-      const formatted = Number(result.toFixed(10)).toString()
-      return formatted
-    } catch {
-      return null
-    }
-  }, [input])
 
   // Active persona indicator
   const personas = prefs.personas || []
@@ -539,8 +316,8 @@ export default function ChatInput({
       <InputToolbar
         listening={listening}
         toggleSpeech={toggleSpeech}
-        onAtClick={() => { setInput(prev => prev + '@'); setAtQuery(''); textareaRef.current?.focus() }}
-        onSlashClick={() => { setInput('/'); setSlashQuery(''); setSlashIndex(0); textareaRef.current?.focus() }}
+        onAtClick={() => { setInput(prev => prev + '@'); popups.setAtQuery(''); textareaRef.current?.focus() }}
+        onSlashClick={() => { setInput('/'); popups.setSlashQuery(''); popups.setSlashIndex(0); textareaRef.current?.focus() }}
         onQueueClick={() => {
           const text = input.trim()
           if (!text) return
@@ -685,10 +462,10 @@ export default function ChatInput({
             </div>
           )}
           {/* URL paste quick action chips */}
-          {pastedUrl && (
+          {paste.pastedUrl && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px', marginBottom: 4, flexWrap: 'wrap' }}>
               <Link2 size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-              <span style={{ fontSize: 10, color: 'var(--text-muted)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pastedUrl}</span>
+              <span style={{ fontSize: 10, color: 'var(--text-muted)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{paste.pastedUrl}</span>
               {[
                 { key: 'summarize', label: t('chat.urlAction.summarize') },
                 { key: 'explain', label: t('chat.urlAction.explain') },
@@ -696,18 +473,12 @@ export default function ChatInput({
               ].map(action => (
                 <button
                   key={action.key}
-                  onClick={() => handleUrlAction(action.label)}
+                  onClick={() => paste.handleUrlAction(action.label)}
                   style={{
-                    padding: '2px 8px',
-                    fontSize: 10,
-                    fontWeight: 500,
-                    background: 'rgba(0, 122, 204, 0.1)',
-                    border: '1px solid rgba(0, 122, 204, 0.25)',
-                    borderRadius: 10,
-                    color: 'var(--accent)',
-                    cursor: 'pointer',
-                    transition: 'background 150ms, border-color 150ms',
-                    whiteSpace: 'nowrap',
+                    padding: '2px 8px', fontSize: 10, fontWeight: 500,
+                    background: 'rgba(0, 122, 204, 0.1)', border: '1px solid rgba(0, 122, 204, 0.25)',
+                    borderRadius: 10, color: 'var(--accent)', cursor: 'pointer',
+                    transition: 'background 150ms, border-color 150ms', whiteSpace: 'nowrap',
                   }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0, 122, 204, 0.2)'; e.currentTarget.style.borderColor = 'var(--accent)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0, 122, 204, 0.1)'; e.currentTarget.style.borderColor = 'rgba(0, 122, 204, 0.25)' }}
@@ -716,7 +487,7 @@ export default function ChatInput({
                 </button>
               ))}
               <button
-                onClick={() => { setPastedUrl(null); if (urlChipTimerRef.current) clearTimeout(urlChipTimerRef.current) }}
+                onClick={() => { paste.setPastedUrl(null); if (paste.urlChipTimerRef.current) clearTimeout(paste.urlChipTimerRef.current) }}
                 style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2, display: 'flex', opacity: 0.6 }}
               >
                 <X size={12} />
@@ -724,7 +495,7 @@ export default function ChatInput({
             </div>
           )}
           {/* Long text paste quick action chips */}
-          {pastedLongText && !pastedUrl && (
+          {paste.pastedLongText && !paste.pastedUrl && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px', marginBottom: 4, flexWrap: 'wrap' }}>
               <FileText size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
               <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
@@ -738,18 +509,12 @@ export default function ChatInput({
               ].map(action => (
                 <button
                   key={action.key}
-                  onClick={() => handleLongTextAction(action.label)}
+                  onClick={() => paste.handleLongTextAction(action.label)}
                   style={{
-                    padding: '2px 8px',
-                    fontSize: 10,
-                    fontWeight: 500,
-                    background: 'rgba(0, 122, 204, 0.1)',
-                    border: '1px solid rgba(0, 122, 204, 0.25)',
-                    borderRadius: 10,
-                    color: 'var(--accent)',
-                    cursor: 'pointer',
-                    transition: 'background 150ms, border-color 150ms',
-                    whiteSpace: 'nowrap',
+                    padding: '2px 8px', fontSize: 10, fontWeight: 500,
+                    background: 'rgba(0, 122, 204, 0.1)', border: '1px solid rgba(0, 122, 204, 0.25)',
+                    borderRadius: 10, color: 'var(--accent)', cursor: 'pointer',
+                    transition: 'background 150ms, border-color 150ms', whiteSpace: 'nowrap',
                   }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0, 122, 204, 0.2)'; e.currentTarget.style.borderColor = 'var(--accent)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0, 122, 204, 0.1)'; e.currentTarget.style.borderColor = 'rgba(0, 122, 204, 0.25)' }}
@@ -758,7 +523,7 @@ export default function ChatInput({
                 </button>
               ))}
               <button
-                onClick={() => { setPastedLongText(false); if (longTextTimerRef.current) clearTimeout(longTextTimerRef.current) }}
+                onClick={() => { paste.setPastedLongText(false); if (paste.longTextTimerRef.current) clearTimeout(paste.longTextTimerRef.current) }}
                 style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2, display: 'flex', opacity: 0.6 }}
               >
                 <X size={12} />
@@ -766,14 +531,14 @@ export default function ChatInput({
             </div>
           )}
           {/* Pending quote preview banner */}
-          {pendingQuote && (
+          {paste.pendingQuote && (
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 10px', marginBottom: 6, background: 'rgba(0, 122, 204, 0.08)', borderLeft: '3px solid var(--accent)', borderRadius: 4, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
               <MessageSquareQuote size={14} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2 }} />
               <div style={{ flex: 1, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', wordBreak: 'break-word' }}>
-                {pendingQuote.length > 150 ? pendingQuote.slice(0, 150) + '...' : pendingQuote}
+                {paste.pendingQuote.length > 150 ? paste.pendingQuote.slice(0, 150) + '...' : paste.pendingQuote}
               </div>
               <button
-                onClick={() => setPendingQuote(null)}
+                onClick={() => paste.setPendingQuote(null)}
                 style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 2, borderRadius: 4, flexShrink: 0, transition: 'color 150ms' }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--error)' }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)' }}
@@ -784,68 +549,44 @@ export default function ChatInput({
             </div>
           )}
           {/* Popups */}
-          {atQuery !== null && <AtMentionPopup query={atQuery} onSelect={handleAtSelect} onDismiss={() => setAtQuery(null)} anchorRef={inputWrapRef as React.RefObject<HTMLElement>} />}
-          {slashQuery !== null && <SlashCommandPopup query={slashQuery} onSelect={handleSlashSelect} onDismiss={() => setSlashQuery(null)} selectedIndex={slashIndex} onHover={setSlashIndex} extraCommands={customCommands} />}
+          {popups.atQuery !== null && <AtMentionPopup query={popups.atQuery} onSelect={popups.handleAtSelect} onDismiss={() => popups.setAtQuery(null)} anchorRef={inputWrapRef as React.RefObject<HTMLElement>} />}
+          {popups.slashQuery !== null && <SlashCommandPopup query={popups.slashQuery} onSelect={popups.handleSlashSelect} onDismiss={() => popups.setSlashQuery(null)} selectedIndex={popups.slashIndex} onHover={popups.setSlashIndex} extraCommands={popups.customCommands} />}
           {/* Text snippet popup */}
-          {snippetQuery !== null && filteredSnippets.length > 0 && (
+          {popups.snippetQuery !== null && popups.filteredSnippets.length > 0 && (
             <div
               className="popup-enter"
               style={{
-                position: 'absolute',
-                bottom: '100%',
-                left: 0,
-                marginBottom: 4,
-                width: 320,
-                maxHeight: 240,
-                overflowY: 'auto',
-                background: 'var(--popup-bg)',
-                border: '1px solid var(--popup-border)',
-                borderRadius: 8,
-                boxShadow: 'var(--popup-shadow)',
-                padding: '4px 0',
-                zIndex: 50,
+                position: 'absolute', bottom: '100%', left: 0, marginBottom: 4,
+                width: 320, maxHeight: 240, overflowY: 'auto',
+                background: 'var(--popup-bg)', border: '1px solid var(--popup-border)',
+                borderRadius: 8, boxShadow: 'var(--popup-shadow)', padding: '4px 0', zIndex: 50,
               }}
             >
               <div style={{ padding: '4px 10px 2px', fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, letterSpacing: 0.3 }}>
                 {t('snippet.title')}
               </div>
-              {filteredSnippets.map((snippet, idx) => (
+              {popups.filteredSnippets.map((snippet, idx) => (
                 <button
                   key={snippet.id}
-                  onClick={() => handleSnippetSelect(snippet)}
-                  onMouseEnter={() => setSnippetIndex(idx)}
+                  onClick={() => popups.handleSnippetSelect(snippet)}
+                  onMouseEnter={() => popups.setSnippetIndex(idx)}
                   style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 8,
+                    display: 'flex', alignItems: 'flex-start', gap: 8,
                     padding: '6px 10px',
-                    background: idx === snippetIndex ? 'var(--popup-item-hover)' : 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    width: '100%',
-                    textAlign: 'left',
-                    borderRadius: 0,
+                    background: idx === popups.snippetIndex ? 'var(--popup-item-hover)' : 'transparent',
+                    border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left', borderRadius: 0,
                   }}
                 >
                   <span style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: 'var(--accent)',
-                    fontFamily: 'monospace',
-                    flexShrink: 0,
-                    minWidth: 48,
+                    fontSize: 11, fontWeight: 600, color: 'var(--accent)',
+                    fontFamily: 'monospace', flexShrink: 0, minWidth: 48,
                   }}>
                     ::{snippet.keyword}
                   </span>
                   <span style={{
-                    fontSize: 11,
-                    color: 'var(--text-primary)',
-                    overflow: 'hidden',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    lineHeight: 1.4,
-                    opacity: 0.8,
+                    fontSize: 11, color: 'var(--text-primary)', overflow: 'hidden',
+                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                    lineHeight: 1.4, opacity: 0.8,
                   }}>
                     {snippet.content.length > 80 ? snippet.content.slice(0, 80) + '...' : snippet.content}
                   </span>
@@ -860,7 +601,7 @@ export default function ChatInput({
               value={input}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
-              onPaste={handleTextPaste}
+              onPaste={paste.handleTextPaste}
               onDragOver={(e) => e.preventDefault()}
               onFocus={() => { if (inputWrapRef.current) inputWrapRef.current.style.borderColor = 'var(--input-field-focus)' }}
               onBlur={() => { if (inputWrapRef.current) inputWrapRef.current.style.borderColor = 'var(--input-field-border)' }}
@@ -874,19 +615,9 @@ export default function ChatInput({
               <div
                 aria-hidden="true"
                 style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  pointerEvents: 'none',
-                  fontFamily: 'inherit',
-                  fontSize: 13,
-                  lineHeight: 1.5,
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  color: 'transparent',
-                  overflow: 'hidden',
-                  maxHeight: 160,
+                  position: 'absolute', top: 0, left: 0, right: 0, pointerEvents: 'none',
+                  fontFamily: 'inherit', fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word', color: 'transparent', overflow: 'hidden', maxHeight: 160,
                 }}
               >
                 <span style={{ visibility: 'hidden' }}>{input}</span>
@@ -904,11 +635,8 @@ export default function ChatInput({
               width={44}
               height={44}
               style={{
-                position: 'absolute',
-                top: -4,
-                left: -4,
-                transform: 'rotate(-90deg)',
-                pointerEvents: 'none',
+                position: 'absolute', top: -4, left: -4,
+                transform: 'rotate(-90deg)', pointerEvents: 'none',
               }}
             >
               <circle
