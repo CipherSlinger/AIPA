@@ -1,5 +1,5 @@
 import React from 'react'
-import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, Clock, ListRestart, TerminalSquare, Settings, User } from 'lucide-react'
+import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, Clock, ListRestart, TerminalSquare, Settings, User, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { useUiStore, useSessionStore, useChatStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 
@@ -10,16 +10,20 @@ interface NavItemProps {
   onClick: () => void
   badge?: number
   shortcut?: string
+  expanded?: boolean
 }
 
-function NavItem({ icon, label, isActive, onClick, badge, shortcut }: NavItemProps) {
+function NavItem({ icon, label, isActive, onClick, badge, shortcut, expanded }: NavItemProps) {
   const [hovered, setHovered] = React.useState(false)
   const [showTooltip, setShowTooltip] = React.useState(false)
   const tooltipTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleMouseEnter = () => {
     setHovered(true)
-    tooltipTimerRef.current = setTimeout(() => setShowTooltip(true), 400)
+    // Only show tooltip in collapsed mode
+    if (!expanded) {
+      tooltipTimerRef.current = setTimeout(() => setShowTooltip(true), 400)
+    }
   }
 
   const handleMouseLeave = () => {
@@ -40,11 +44,11 @@ function NavItem({ icon, label, isActive, onClick, badge, shortcut }: NavItemPro
       onMouseLeave={handleMouseLeave}
       className="nav-icon-btn"
       style={{
-        width: 32,
+        width: expanded ? '100%' : 32,
         height: 32,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: expanded ? 'flex-start' : 'center',
         borderRadius: 7,
         border: 'none',
         background: isActive
@@ -55,13 +59,17 @@ function NavItem({ icon, label, isActive, onClick, badge, shortcut }: NavItemPro
         cursor: 'pointer',
         position: 'relative',
         marginBottom: 1,
-        transition: 'background 0.15s ease',
+        transition: 'background 0.15s ease, width 0.2s ease',
         color: isActive
           ? 'var(--nav-icon-active)'
           : hovered
           ? 'var(--nav-icon-hover)'
           : 'var(--nav-icon-default)',
         flexShrink: 0,
+        gap: expanded ? 10 : 0,
+        paddingLeft: expanded ? 10 : 0,
+        paddingRight: expanded ? 8 : 0,
+        boxSizing: 'border-box',
       }}
     >
       {/* Left accent bar (selected indicator) */}
@@ -83,15 +91,31 @@ function NavItem({ icon, label, isActive, onClick, badge, shortcut }: NavItemPro
       )}
 
       {/* Icon */}
-      {icon}
+      <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>{icon}</span>
+
+      {/* Label (expanded mode only) */}
+      {expanded && (
+        <span style={{
+          fontSize: 12,
+          fontWeight: isActive ? 600 : 400,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          flex: 1,
+          textAlign: 'left',
+          lineHeight: 1.2,
+        }}>
+          {label}
+        </span>
+      )}
 
       {/* Badge */}
       {badge !== undefined && badge > 0 && (
         <div
           style={{
-            position: 'absolute',
-            top: 4,
-            right: 2,
+            position: expanded ? 'relative' : 'absolute',
+            top: expanded ? undefined : 4,
+            right: expanded ? undefined : 2,
             minWidth: 16,
             height: 16,
             borderRadius: 8,
@@ -104,14 +128,15 @@ function NavItem({ icon, label, isActive, onClick, badge, shortcut }: NavItemPro
             justifyContent: 'center',
             padding: '0 4px',
             lineHeight: 1,
+            flexShrink: 0,
           }}
         >
           {badge > 99 ? '99+' : badge}
         </div>
       )}
 
-      {/* Custom tooltip */}
-      {showTooltip && (
+      {/* Custom tooltip (collapsed mode only) */}
+      {showTooltip && !expanded && (
         <div
           style={{
             position: 'absolute',
@@ -168,12 +193,19 @@ export default function NavRail() {
   const workflowCount = usePrefsStore(s => (s.prefs.workflows || []).length)
   const scheduleCount = usePrefsStore(s => (s.prefs.scheduledPrompts || []).filter(sp => sp.enabled).length)
   const promptHistoryCount = usePrefsStore(s => (s.prefs.promptHistory || []).length)
+  const navExpanded = usePrefsStore(s => !!s.prefs.navExpanded)
   const activePersona = usePrefsStore(s => {
     const personas = s.prefs.personas || []
     const activeId = s.prefs.activePersonaId
     return activeId ? personas.find(p => p.id === activeId) : undefined
   })
   const t = useT()
+
+  const toggleNavExpanded = () => {
+    const next = !navExpanded
+    usePrefsStore.getState().setPrefs({ navExpanded: next })
+    window.electronAPI.prefsSet('navExpanded', next)
+  }
 
   // The active panel item (history/files/settings) matches activeNavItem
   const isHistoryActive = activeNavItem === 'history' && sidebarTab === 'history'
@@ -198,146 +230,165 @@ export default function NavRail() {
     toggleTerminal()
   }
 
+  const iconSize = navExpanded ? 18 : 16
+
   return (
     <nav
       role="navigation"
       aria-label="Main navigation"
       style={{
-        width: 44,
+        width: navExpanded ? 140 : 44,
         flexShrink: 0,
         background: 'var(--bg-nav)',
         borderRight: '1px solid var(--border)',
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center',
+        alignItems: navExpanded ? 'stretch' : 'center',
         paddingTop: 8,
         paddingBottom: 8,
+        paddingLeft: navExpanded ? 6 : 0,
+        paddingRight: navExpanded ? 6 : 0,
         userSelect: 'none',
         overflowY: 'auto',
         overflowX: 'hidden',
+        transition: 'width 0.2s ease',
       }}
     >
       {/* New Chat */}
       <NavItem
-        icon={<MessageSquarePlus size={16} />}
+        icon={<MessageSquarePlus size={iconSize} />}
         label={t('nav.newChat')}
         shortcut="Ctrl+N"
         onClick={handleNewChat}
+        expanded={navExpanded}
       />
 
       {/* History */}
       <NavItem
-        icon={<History size={16} />}
+        icon={<History size={iconSize} />}
         label={t('nav.history')}
         shortcut="Ctrl+1"
         isActive={isHistoryActive}
         onClick={() => setActiveNavItem('history')}
         badge={sessionCount}
+        expanded={navExpanded}
       />
 
       {/* Files */}
       <NavItem
-        icon={<FolderOpen size={16} />}
+        icon={<FolderOpen size={iconSize} />}
         label={t('nav.files')}
         shortcut="Ctrl+2"
         isActive={isFilesActive}
         onClick={() => setActiveNavItem('files')}
+        expanded={navExpanded}
       />
 
       {/* Notes */}
       <NavItem
-        icon={<NotebookPen size={16} />}
+        icon={<NotebookPen size={iconSize} />}
         label={t('nav.notes')}
         shortcut="Ctrl+3"
         isActive={isNotesActive}
         onClick={() => setActiveNavItem('notes')}
         badge={noteCount}
+        expanded={navExpanded}
       />
 
       {/* Skills */}
       <NavItem
-        icon={<Puzzle size={16} />}
+        icon={<Puzzle size={iconSize} />}
         label={t('nav.skills')}
         shortcut="Ctrl+4"
         isActive={isSkillsActive}
         onClick={() => setActiveNavItem('skills')}
+        expanded={navExpanded}
       />
 
       {/* Memory */}
       <NavItem
-        icon={<Brain size={16} />}
+        icon={<Brain size={iconSize} />}
         label={t('nav.memory')}
         shortcut="Ctrl+6"
         isActive={isMemoryActive}
         onClick={() => setActiveNavItem('memory')}
         badge={memoryCount}
+        expanded={navExpanded}
       />
 
       {/* Workflows */}
       <NavItem
-        icon={<Workflow size={16} />}
+        icon={<Workflow size={iconSize} />}
         label={t('nav.workflows')}
         shortcut="Ctrl+7"
         isActive={isWorkflowsActive}
         onClick={() => setActiveNavItem('workflows')}
         badge={workflowCount}
+        expanded={navExpanded}
       />
 
       {/* Schedules */}
       <NavItem
-        icon={<Clock size={16} />}
+        icon={<Clock size={iconSize} />}
         label={t('nav.schedules')}
         shortcut="Ctrl+8"
         isActive={isSchedulesActive}
         onClick={() => setActiveNavItem('schedules')}
         badge={scheduleCount}
+        expanded={navExpanded}
       />
 
       {/* Prompt History */}
       <NavItem
-        icon={<ListRestart size={16} />}
+        icon={<ListRestart size={iconSize} />}
         label={t('nav.promptHistory')}
         shortcut="Ctrl+9"
         isActive={isPromptHistoryActive}
         onClick={() => setActiveNavItem('prompthistory')}
         badge={promptHistoryCount}
+        expanded={navExpanded}
       />
 
       {/* Terminal */}
       <NavItem
-        icon={<TerminalSquare size={16} />}
+        icon={<TerminalSquare size={iconSize} />}
         label={t('nav.terminal')}
         shortcut="Ctrl+`"
         onClick={handleTerminal}
+        expanded={navExpanded}
       />
 
-      {/* Spacer — pushes settings + avatar to bottom */}
+      {/* Spacer — pushes settings + avatar + toggle to bottom */}
       <div style={{ flex: 1 }} />
 
       {/* Settings */}
       <NavItem
-        icon={<Settings size={16} />}
+        icon={<Settings size={iconSize} />}
         label={t('nav.settings')}
         shortcut="Ctrl+5"
         isActive={isSettingsActive}
         onClick={() => setActiveNavItem('settings')}
+        expanded={navExpanded}
       />
 
       {/* Avatar -- shows persona emoji when active, otherwise generic user icon */}
       <div
         style={{
-          width: 30,
+          width: navExpanded ? '100%' : 30,
           height: 30,
-          borderRadius: '50%',
+          borderRadius: navExpanded ? 7 : '50%',
           background: activePersona ? `${activePersona.color}20` : 'var(--avatar-ai)',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
+          justifyContent: navExpanded ? 'flex-start' : 'center',
           cursor: 'default',
           marginTop: 6,
           flexShrink: 0,
           border: activePersona ? `2px solid ${activePersona.color}` : '2px solid transparent',
-          transition: 'background 200ms, border-color 200ms',
+          transition: 'background 200ms, border-color 200ms, width 0.2s ease',
+          gap: navExpanded ? 8 : 0,
+          paddingLeft: navExpanded ? 8 : 0,
+          boxSizing: 'border-box',
         }}
         aria-label={activePersona ? activePersona.name : t('nav.userProfile')}
         title={activePersona ? activePersona.name : t('nav.userProfile')}
@@ -346,7 +397,55 @@ export default function NavRail() {
           ? <span style={{ fontSize: 14, lineHeight: 1 }}>{activePersona.emoji}</span>
           : <User size={14} color="#ffffff" />
         }
+        {navExpanded && (
+          <span style={{
+            fontSize: 11,
+            fontWeight: 500,
+            color: 'var(--text-muted)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}>
+            {activePersona ? activePersona.name : t('nav.userProfile')}
+          </span>
+        )}
       </div>
+
+      {/* Expand / Collapse toggle */}
+      <button
+        onClick={toggleNavExpanded}
+        aria-label={navExpanded ? t('nav.collapseNav') : t('nav.expandNav')}
+        style={{
+          width: navExpanded ? '100%' : 32,
+          height: 28,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: navExpanded ? 'flex-start' : 'center',
+          borderRadius: 7,
+          border: 'none',
+          background: 'transparent',
+          cursor: 'pointer',
+          marginTop: 4,
+          color: 'var(--nav-icon-default)',
+          gap: navExpanded ? 8 : 0,
+          paddingLeft: navExpanded ? 10 : 0,
+          paddingRight: navExpanded ? 8 : 0,
+          boxSizing: 'border-box',
+          transition: 'background 0.15s ease, width 0.2s ease',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+      >
+        {navExpanded
+          ? <PanelLeftClose size={16} />
+          : <PanelLeftOpen size={16} />
+        }
+        {navExpanded && (
+          <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)' }}>
+            {t('nav.collapseNav')}
+          </span>
+        )}
+      </button>
     </nav>
   )
 }

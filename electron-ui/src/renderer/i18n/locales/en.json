@@ -11,7 +11,9 @@
     "memory": "Memory",
     "workflows": "Workflows",
     "schedules": "Schedules",
-    "promptHistory": "Prompt History"
+    "promptHistory": "Prompt History",
+    "expandNav": "Expand sidebar",
+    "collapseNav": "Collapse"
   },
   "chat": {
     "placeholder": "Message AIPA...",

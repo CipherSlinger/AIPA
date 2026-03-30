@@ -113,6 +113,7 @@ export interface ClaudePrefs {
   scheduledPrompts?: ScheduledPrompt[]  // scheduled/recurring prompts (max 30, persisted via electron-store)
   promptHistory?: PromptHistoryItem[]   // prompt send history for analytics (max 200, persisted via electron-store)
   textSnippets?: TextSnippet[]          // user-defined text snippets triggered by ::keyword (max 50)
+  navExpanded?: boolean                 // expand NavRail to show icon + label (default false, icon-only)
 }
 
 export interface TextSnippet {
