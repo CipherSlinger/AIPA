@@ -1,9 +1,94 @@
 // CodeBlock — extracted from MessageContent.tsx (Iteration 220)
-// Sub-components: CopyButton, WrapToggleButton, CollapsiblePre, CodeBlockWithHeader
+// Sub-components: CopyButton, WrapToggleButton, CollapsiblePre, CodeBlockWithHeader, PreviewButton
 import React, { useState, useRef, useEffect } from 'react'
-import { Copy, Check, ChevronDown, ChevronUp, WrapText } from 'lucide-react'
+import { Copy, Check, ChevronDown, ChevronUp, WrapText, Play, X } from 'lucide-react'
 import { useT } from '../../i18n'
 import { CODE_COLLAPSE_THRESHOLD } from './messageContentConstants'
+
+// Languages that support live preview
+const PREVIEWABLE_LANGS = new Set(['html', 'svg', 'css', 'javascript', 'js', 'jsx', 'htm'])
+
+function wrapForPreview(code: string, lang: string): string {
+  const l = lang.toLowerCase()
+  if (l === 'svg') {
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100%;background:#1a1a2e;}</style></head><body>${code}</body></html>`
+  }
+  if (l === 'css') {
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${code}</style></head><body><div class="preview">CSS Preview</div></body></html>`
+  }
+  if (l === 'javascript' || l === 'js' || l === 'jsx') {
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:8px;font-family:system-ui,sans-serif;color:#e0e0e0;background:#1a1a2e;}</style></head><body><div id="root"></div><script>${code}<\/script></body></html>`
+  }
+  // html, htm — render as-is
+  return code
+}
+
+function PreviewButton({ active, onToggle }: { active: boolean; onToggle: () => void }) {
+  const t = useT()
+  return (
+    <button
+      onClick={onToggle}
+      title={active ? t('message.closePreview') : t('message.preview')}
+      style={{
+        background: active ? 'rgba(99,102,241,0.3)' : 'rgba(255,255,255,0.1)',
+        border: `1px solid ${active ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.2)'}`,
+        borderRadius: 3,
+        padding: '2px 6px',
+        color: active ? '#a5b4fc' : '#ccc',
+        cursor: 'pointer',
+        fontSize: 11,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 3,
+      }}
+    >
+      {active ? <X size={11} /> : <Play size={11} />}
+      {active ? t('message.closePreview') : t('message.preview')}
+    </button>
+  )
+}
+
+function PreviewPane({ code, lang }: { code: string; lang: string }) {
+  const srcDoc = wrapForPreview(code, lang)
+  return (
+    <div
+      style={{
+        border: '1px solid rgba(99,102,241,0.3)',
+        borderTop: 'none',
+        borderRadius: '0 0 4px 4px',
+        overflow: 'hidden',
+        background: '#1a1a2e',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '4px 12px',
+          background: 'rgba(99,102,241,0.1)',
+          borderBottom: '1px solid rgba(99,102,241,0.2)',
+          fontSize: 11,
+          color: '#a5b4fc',
+        }}
+      >
+        <Play size={10} />
+        Live Preview
+      </div>
+      <iframe
+        srcDoc={srcDoc}
+        sandbox="allow-scripts"
+        style={{
+          width: '100%',
+          height: 200,
+          border: 'none',
+          background: '#fff',
+        }}
+        title="Code preview"
+      />
+    </div>
+  )
+}
 
 export function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
@@ -139,6 +224,8 @@ export default function CodeBlockWithHeader({
 }) {
   const showLineNumbers = lineCount > 1
   const [wordWrap, setWordWrap] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
+  const isPreviewable = PREVIEWABLE_LANGS.has(langName.toLowerCase())
 
   return (
     <div style={{ position: 'relative', marginBottom: 12 }}>
@@ -170,6 +257,9 @@ export default function CodeBlockWithHeader({
           {lineCount > 1 && <span style={{ opacity: 0.6 }}>{lineCount} lines</span>}
         </span>
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          {isPreviewable && (
+            <PreviewButton active={showPreview} onToggle={() => setShowPreview(p => !p)} />
+          )}
           <WrapToggleButton wrapped={wordWrap} onToggle={() => setWordWrap(w => !w)} />
           <CopyButton text={codeText} />
         </div>
@@ -229,6 +319,9 @@ export default function CodeBlockWithHeader({
           </code>
         )}
       </CollapsiblePre>
+      {showPreview && isPreviewable && (
+        <PreviewPane code={codeText} lang={langName} />
+      )}
     </div>
   )
 }

@@ -278,7 +278,9 @@
     "addAnnotation": "Add annotation",
     "editAnnotation": "Edit annotation",
     "removeAnnotation": "Remove annotation",
-    "annotationPlaceholder": "Add a private note..."
+    "annotationPlaceholder": "Add a private note...",
+    "preview": "Preview",
+    "closePreview": "Close preview"
   },
   "selection": {
     "copySelection": "Copy selected text",
