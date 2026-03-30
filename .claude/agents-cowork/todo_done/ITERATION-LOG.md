@@ -2343,3 +2343,26 @@ Added a color-coded category system to the Notes panel, enabling users to organi
 
 ### Iteration 308 (2026-03-29)
 - Chat panel stability & crash resilience -- (1) Fixed React #185 re-render cascade in ChatPanel.tsx: stabilized lastAssistantContent useMemo to avoid recomputation on every streaming RAF flush by using messages.length + specific message properties instead of full array reference. (2) Fixed useMessageListScroll.ts handleScroll useCallback dependency: replaced messages.length with messagesLengthRef to avoid recreating scroll handler every frame during streaming. (3) Fixed Message.tsx activePersona selector: replaced inline object creation with useMemo to prevent new reference on every store change. (4) Created MessageErrorBoundary.tsx: per-message error isolation so a single malformed message doesn't crash the entire ChatPanel. (5) Enhanced ErrorBoundary.tsx: crash recovery via sessionStorage backup (last 100 messages), anti-infinite-loop restore with 2s cooldown and 3-failure threshold, structured diagnostic output (message count, streaming state, viewport, memory, session ID -- no user content for privacy), "Start New Conversation" when recovery fails repeatedly. (6) Added setMessages action to Zustand store for crash recovery restore. (7) i18n: 5 new error keys in en.json and zh-CN.json. 9 files changed (1 new, 8 modified); build SUCCESS
+
+## Iteration 308b — React #185 根因系统性终结（useMessageListScroll 深层修复）
+_Date: 2026-03-29 | Sprint Stability P0_
+
+### Summary
+对 useMessageListScroll.ts 进行第三轮深层审计，发现并修复了导致 React #185 的两个残余循环路径。前两次迭代（291、301）修复了 handleScroll 的 setState 频率问题，但忽略了 auto-scroll effect 内部也存在同频率 setState 调用，以及 auto-unlock effect 存在 stale closure 导致 scrollLocked 永远无法解锁的 bug。
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/useMessageListScroll.ts` — 三处关键修复：(1) scrollLocked 改为 ref 读取（scrollLockedRef），从 auto-scroll effect deps 移除，打断 messages.length→setState→scrollLocked→effect 循环；(2) auto-scroll 内部的 setUnreadCount/setShowScrollBtn 通过 autoScrollStateRAFRef 做 RAF 批处理，streaming 期间 30fps 的 messages.length 变化不再产生 30 次同步 setState；(3) auto-unlock effect 的 deps 从 [isStreaming] 改为 [isStreaming, scrollLocked]，修复 stale closure 导致 scrollLocked 永久卡住的 bug
+
+### Build
+Status: SUCCESS
+- tsc main/preload: 0 errors
+- vite build: built in 9.49s (no new TS errors introduced by this change)
+- Pre-existing unrelated TS errors in other files are not part of this iteration's scope
+
+### Acceptance Criteria
+- [x] useEffect 循环链已断开，有明确注释说明"为什么"（scrollLockedRef 注释、autoScrollStateRAFRef 注释、auto-unlock deps 注释）
+- [x] streaming 期间 messages.length 高频变化不再触发同步 setState 链
+- [x] scrollLocked auto-unlock 的 stale closure bug 已修复
+- [x] MessageErrorBoundary 已创建（前序修复，本次确认未改动）
+- [x] MessageList 中每条 Message 已包裹 MessageErrorBoundary（前序修复，本次确认未改动）
+- [x] 构建成功，无新增 TypeScript 错误
