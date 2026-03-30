@@ -2418,3 +2418,6 @@ Status: SUCCESS
 
 ### Iteration 324 (2026-03-30)
 - Store defaults alignment -- Updated DEFAULT_PREFS.quickReplies in store/index.ts to match the new assistant-oriented defaults from Iteration 322 (Summarize, Translate, Draft Email, Brainstorm Ideas). Previously had stale code-centric defaults (Explain this, Summarize, Draft email, Translate) that could briefly flash during the pre-load render frame. 1 file changed; tsc --noEmit: 0 errors; build SUCCESS
+
+### Iteration 325 (2026-03-30)
+- Window state persistence -- Window position, size, and maximized state are now saved and restored across app restarts. Added `windowBounds` field to StoreSchema in config-manager.ts (nullable object with x, y, width, height, isMaximized). createWindow() in main/index.ts now reads saved bounds from electron-store and applies them (position only if previously saved, otherwise OS-centered). Debounced (500ms) save on resize/move/maximize/unmaximize events. Uses `getNormalBounds()` when maximized to preserve the pre-maximized position for correct restore. Previously every restart opened at default 1400x900 centered. 2 files changed; tsc --noEmit: 0 errors; build SUCCESS

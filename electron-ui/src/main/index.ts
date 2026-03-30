@@ -14,9 +14,11 @@ let tray: Tray | null = null
 let isQuitting = false
 
 function createWindow(): void {
-  mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
+  // Restore saved window bounds, or use defaults
+  const savedBounds = getPref('windowBounds' as any) as { x: number; y: number; width: number; height: number; isMaximized: boolean } | null
+  const windowOptions: Electron.BrowserWindowConstructorOptions = {
+    width: savedBounds?.width || 1400,
+    height: savedBounds?.height || 900,
     minWidth: 800,
     minHeight: 600,
     title: 'AIPA',
@@ -33,7 +35,43 @@ function createWindow(): void {
       nodeIntegration: false,
       sandbox: true,
     },
-  })
+  }
+  // Only set x/y if we have saved position (otherwise let OS center the window)
+  if (savedBounds && savedBounds.x !== undefined && savedBounds.y !== undefined) {
+    windowOptions.x = savedBounds.x
+    windowOptions.y = savedBounds.y
+  }
+
+  mainWindow = new BrowserWindow(windowOptions)
+
+  // Restore maximized state after window is created
+  if (savedBounds?.isMaximized) {
+    mainWindow.maximize()
+  }
+
+  // Debounced save of window bounds
+  let boundsTimeout: ReturnType<typeof setTimeout> | null = null
+  const saveBounds = () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return
+    if (boundsTimeout) clearTimeout(boundsTimeout)
+    boundsTimeout = setTimeout(() => {
+      if (!mainWindow || mainWindow.isDestroyed()) return
+      const isMaximized = mainWindow.isMaximized()
+      // Save normal (non-maximized) bounds so restore position is correct
+      const bounds = isMaximized ? (mainWindow.getNormalBounds?.() || mainWindow.getBounds()) : mainWindow.getBounds()
+      ;(setPref as any)('windowBounds', {
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.width,
+        height: bounds.height,
+        isMaximized,
+      })
+    }, 500)
+  }
+  mainWindow.on('resize', saveBounds)
+  mainWindow.on('move', saveBounds)
+  mainWindow.on('maximize', saveBounds)
+  mainWindow.on('unmaximize', saveBounds)
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173')

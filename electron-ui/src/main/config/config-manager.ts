@@ -20,6 +20,8 @@ interface StoreSchema {
   // Multi-model provider support (Iteration 301)
   modelProviders: unknown[]
   activeProviderId: string
+  // Window state persistence (Iteration 325)
+  windowBounds: { x: number; y: number; width: number; height: number; isMaximized: boolean } | null
 }
 
 const store = new Store<StoreSchema>({
@@ -39,6 +41,7 @@ const store = new Store<StoreSchema>({
     onboardingDone: false,
     modelProviders: [],
     activeProviderId: 'claude-cli',
+    windowBounds: null,
   },
   // Removed hardcoded encryptionKey — API key is now encrypted via safeStorage
 })
