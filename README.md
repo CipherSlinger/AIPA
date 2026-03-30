@@ -213,6 +213,15 @@ The Claude Code CLI is the engine. AIPA is the cockpit.
 - **Copy conversation stats** -- Copy Stats button in the statistics panel copies all stats as formatted text to clipboard
 - **Message rating in toolbar** -- ThumbsUp/ThumbsDown buttons directly on the assistant message hover toolbar for quick one-click response rating
 - **Status bar model switcher** -- click the model badge in the status bar to open a quick-switch dropdown showing all Claude models; instant model switching without opening Settings
+- **Click-to-copy token usage & cost** -- token usage and cost displays in the status bar are now clickable; clicking tokens copies "Input: X, Output: Y" to clipboard; clicking cost copies session cost with last-turn breakdown; toast confirmation on copy
+- **Context window warning toast** -- when context window usage exceeds 85%, an automatic warning toast suggests starting a new conversation; fires once per session to avoid spam
+- **Streaming speed tokens/sec** -- streaming speed indicator in the status bar now shows estimated tokens per second alongside characters per second for better throughput awareness
+- **Inline calculator** -- type `= expression` (e.g., `= 42 * 1.18`) in the chat input to see the result instantly below; supports arithmetic, exponentiation (`^`), percent (`%`), and parentheses; press Tab to accept the calculated value
+- **Stopwatch timer** -- count-up stopwatch in the status bar next to the Pomodoro timer; click to start, click again to pause, double-click when paused to reset; amber icon when running
+- **Message word count** -- each message bubble shows word count next to the timestamp with a Type icon; useful for tracking email, report, or essay word counts in assistant responses
+- **Copy last response command** -- "Copy Last Response" in the Command Palette (`Ctrl+Shift+P`) copies the most recent assistant message to clipboard with one action
+- **Daily inspiration** -- "Daily Inspiration" command in the Command Palette shows a random motivational quote as an info toast; 20 curated quotes for the personal assistant companion feel
+- **Text case cycling** -- `Ctrl+Shift+U` cycles selected text in the chat input through UPPERCASE, lowercase, and Title Case; preserves selection after transform
 
 ## Security
 
