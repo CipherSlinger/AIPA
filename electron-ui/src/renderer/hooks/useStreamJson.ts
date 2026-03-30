@@ -148,6 +148,23 @@ export function useStreamJson() {
 
     // Build combined system prompt: user system prompt + response tone + memory context
     const systemPromptParts: string[] = []
+
+    // Inject system presence: date, time, working directory, user name
+    if (prefs.systemPresence !== false) {
+      const now = new Date()
+      const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+      const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown'
+      const presenceParts = [`Current date: ${dateStr}`, `Current time: ${timeStr} (${tz})`]
+      if (prefs.workingDir) {
+        presenceParts.push(`Working directory: ${prefs.workingDir}`)
+      }
+      if (prefs.displayName) {
+        presenceParts.push(`User name: ${prefs.displayName}`)
+      }
+      systemPromptParts.push(`<system_context>\n${presenceParts.join('\n')}\n</system_context>`)
+    }
+
     if (prefs.systemPrompt?.trim()) {
       systemPromptParts.push(prefs.systemPrompt.trim())
     }

@@ -442,6 +442,8 @@
     "desktopNotificationsHint": "Show OS notifications when AIPA finishes responding while the window is not focused",
     "responseTone": "Response Tone",
     "responseToneHint": "Set the default tone for Claude's responses. Can also be changed per-message from the input toolbar.",
+    "systemPresence": "System Context Injection",
+    "systemPresenceHint": "Inject current date, time, working directory, and user name into every conversation so Claude is aware of your context",
     "save": "Save Settings",
     "saved": "Saved",
     "unlimited": "Unlimited",
