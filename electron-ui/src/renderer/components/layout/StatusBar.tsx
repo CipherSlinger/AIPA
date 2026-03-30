@@ -47,9 +47,10 @@ export default function StatusBar() {
   const terminalOpen = useUiStore(s => s.terminalOpen)
   const t = useT()
 
-  // Model quick-picker
+  // Model quick-picker (multi-provider)
   const [showModelPicker, setShowModelPicker] = useState(false)
   const modelPickerRef = useRef<HTMLDivElement>(null)
+  const [providerModels, setProviderModels] = useState<{ providerId: string; providerName: string; healthStatus?: string; models: { id: string; name: string; provider: string }[] }[]>([])
   useEffect(() => {
     if (!showModelPicker) return
     const handler = (e: MouseEvent) => {
@@ -58,6 +59,27 @@ export default function StatusBar() {
       }
     }
     document.addEventListener('mousedown', handler)
+    // Load provider models
+    Promise.all([
+      window.electronAPI.providerListConfigs(),
+      window.electronAPI.providerListModels(),
+      window.electronAPI.providerHealthStatuses(),
+    ]).then(([configs, models, healthStatuses]: [any[], any[], any[]]) => {
+      const healthMap: Record<string, string> = {}
+      for (const s of healthStatuses) healthMap[s.providerId] = s.status
+      const configMap = new Map<string, any>()
+      for (const c of configs) if (c.enabled) configMap.set(c.id, c)
+      const byProvider = new Map<string, any[]>()
+      for (const m of models) {
+        if (!byProvider.has(m.provider)) byProvider.set(m.provider, [])
+        byProvider.get(m.provider)!.push(m)
+      }
+      const groups: typeof providerModels = []
+      for (const [pid, pModels] of byProvider) {
+        groups.push({ providerId: pid, providerName: configMap.get(pid)?.name || pid, healthStatus: healthMap[pid], models: pModels })
+      }
+      setProviderModels(groups)
+    }).catch(() => { /* fallback to MODEL_OPTIONS */ })
     return () => document.removeEventListener('mousedown', handler)
   }, [showModelPicker])
 
@@ -629,34 +651,44 @@ export default function StatusBar() {
                 zIndex: 100,
               }}
             >
-              {MODEL_OPTIONS.map(opt => {
-                const isActive = opt.id === (prefs.model || 'claude-sonnet-4-6')
-                return (
-                  <button
-                    key={opt.id}
-                    onClick={() => handleModelSelect(opt.id)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      width: '100%',
-                      padding: '5px 12px',
-                      background: isActive ? 'var(--popup-item-hover)' : 'transparent',
-                      border: 'none',
-                      color: isActive ? 'var(--accent)' : 'var(--text-primary)',
-                      cursor: 'pointer',
-                      fontSize: 11,
-                      textAlign: 'left',
-                      transition: 'background 0.1s',
-                    }}
-                    onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
-                    onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
-                  >
-                    {isActive && <Check size={11} />}
-                    <span style={{ marginLeft: isActive ? 0 : 17 }}>{t(opt.labelKey)}</span>
-                  </button>
-                )
-              })}
+              {(providerModels.length > 0 ? providerModels : [{ providerId: 'claude-cli', providerName: 'Claude', models: MODEL_OPTIONS.map(o => ({ id: o.id, name: o.id, provider: 'claude-cli' })) }]).map(group => (
+                <React.Fragment key={group.providerId}>
+                  <div style={{ padding: '5px 12px 2px', fontSize: 9, fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    {group.healthStatus && (
+                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: group.healthStatus === 'healthy' ? '#22c55e' : group.healthStatus === 'degraded' ? '#f59e0b' : '#ef4444' }} />
+                    )}
+                    {group.providerName}
+                  </div>
+                  {group.models.map(m => {
+                    const isActive = m.id === (prefs.model || 'claude-sonnet-4-6')
+                    return (
+                      <button
+                        key={m.id}
+                        onClick={() => handleModelSelect(m.id)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          width: '100%',
+                          padding: '5px 12px 5px 20px',
+                          background: isActive ? 'var(--popup-item-hover)' : 'transparent',
+                          border: 'none',
+                          color: isActive ? 'var(--accent)' : 'var(--text-primary)',
+                          cursor: 'pointer',
+                          fontSize: 11,
+                          textAlign: 'left',
+                          transition: 'background 0.1s',
+                        }}
+                        onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
+                        onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+                      >
+                        {isActive && <Check size={11} />}
+                        <span style={{ marginLeft: isActive ? 0 : 17 }}>{m.name}</span>
+                      </button>
+                    )
+                  })}
+                </React.Fragment>
+              ))}
             </div>
           )}
         </div>

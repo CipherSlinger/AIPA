@@ -3,12 +3,13 @@ import { usePrefsStore } from '../../store'
 import { useI18n } from '../../i18n'
 import type { CustomPromptTemplate, Persona } from '../../types/app.types'
 import SettingsGeneral from './SettingsGeneral'
+import SettingsProviders from './SettingsProviders'
 import SettingsTemplates from './SettingsTemplates'
 import SettingsPersonas from './SettingsPersonas'
 import SettingsMcp from './SettingsMcp'
 import SettingsAbout from './SettingsAbout'
 
-type SettingsTab = 'general' | 'templates' | 'personas' | 'mcp' | 'about'
+type SettingsTab = 'general' | 'providers' | 'templates' | 'personas' | 'mcp' | 'about'
 
 export default function SettingsPanel() {
   const { prefs, setPrefs } = usePrefsStore()
@@ -81,7 +82,7 @@ export default function SettingsPanel() {
 
       {/* Tab bar */}
       <div role="tablist" style={{ display: 'flex', gap: 4, marginBottom: 14, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>
-        {(['general', 'templates', 'personas', 'mcp', 'about'] as const).map(tab => (
+        {(['general', 'providers', 'templates', 'personas', 'mcp', 'about'] as const).map(tab => (
           <button
             key={tab}
             role="tab"
@@ -112,6 +113,8 @@ export default function SettingsPanel() {
           onSave={save}
           customTemplates={customTemplates}
         />
+      ) : settingsTab === 'providers' ? (
+        <SettingsProviders />
       ) : settingsTab === 'templates' ? (
         <SettingsTemplates
           customTemplates={customTemplates}

@@ -1,6 +1,6 @@
 {
   "name": "claude-code-ui",
-  "version": "1.0.301",
+  "version": "1.0.302",
   "description": "Desktop UI for Claude Code CLI",
   "main": "dist/main/index.js",
   "private": true,

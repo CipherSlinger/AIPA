@@ -356,6 +356,7 @@
     "title": "Settings",
     "tabs": {
       "general": "General",
+      "providers": "Providers",
       "templates": "Templates",
       "personas": "Personas",
       "mcp": "MCP Servers",
@@ -1161,5 +1162,32 @@
     "emptyHint": "Your sent prompts will appear here. Star favorites for quick re-use.",
     "noResults": "No matching prompts",
     "footer": "Prompt analytics inspired by OpenClaw"
+  },
+  "provider": {
+    "title": "Model Providers",
+    "addCustom": "Add Custom Provider",
+    "testConnection": "Test Connection",
+    "healthy": "Connected",
+    "degraded": "Degraded",
+    "down": "Disconnected",
+    "unchecked": "Not tested",
+    "apiKey": "API Key",
+    "baseUrl": "Base URL",
+    "failoverPriority": "Failover Priority",
+    "enabled": "Enabled",
+    "builtIn": "Built-in",
+    "custom": "Custom",
+    "deleteConfirm": "Click again to delete",
+    "deleted": "Provider deleted",
+    "saved": "Provider saved",
+    "save": "Save",
+    "connectionOk": "Connection successful",
+    "connectionFailed": "Connection failed",
+    "manageProviders": "Manage Providers...",
+    "capabilities": {
+      "vision": "Vision",
+      "code": "Code",
+      "reasoning": "Reasoning"
+    }
   }
 }
