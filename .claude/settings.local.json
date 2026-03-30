@@ -73,7 +73,12 @@
       "Bash(git push:*)",
       "Skill(update-config)",
       "WebFetch(domain:reactjs.org)",
-      "WebFetch(domain:legacy.reactjs.org)"
+      "WebFetch(domain:legacy.reactjs.org)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:clawhub.ai)",
+      "WebFetch(domain:docs.openclaw.ai)",
+      "WebFetch(domain:openclaw.ai)"
     ]
   }
 }
