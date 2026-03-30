@@ -2447,3 +2447,6 @@ Status: SUCCESS
 
 ### Iteration 333 (2026-03-30)
 - App.tsx decomposition refactor -- Reduced App.tsx from 413 to 218 lines (47% reduction) by extracting useAppShortcuts.ts hook (214 lines). The hook encapsulates all 20+ global keyboard shortcuts (Ctrl+N/K/B/L/`,Ctrl+Shift+P/O/N/C/D/L/M/T, Ctrl+1-9, /, Ctrl+[/]). App.tsx is now a thin orchestrator: startup initialization, menu event listeners, title management, theme application, and JSX rendering. Removed unused imports (useSessionStore, useT, focusMode). Pure refactor with zero visual or behavioral changes. 2 files changed (1 new, 1 rewritten); build SUCCESS
+
+### Iteration 334 (2026-03-30)
+- Shortcut consistency cleanup -- (1) Added missing Ctrl+Shift+K (compact conversation context) entry to ShortcutCheatsheet.tsx under the Conversation section, which was overlooked when the shortcut was reassigned from Ctrl+Shift+C in Iteration 332. (2) Updated all 19 shortcutRegistry.ts owner fields from "App.tsx" to "useAppShortcuts.ts" to reflect the Iteration 333 hook extraction. (3) Added cheatsheetKey 'compactConversation' to the Ctrl+Shift+K registry entry. (4) Added compactConversation i18n key to both en.json and zh-CN.json. 5 files changed; build SUCCESS
