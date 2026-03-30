@@ -250,6 +250,7 @@
     "hoursAgo": "{{count}}h ago",
     "daysAgo": "{{count}}d ago",
     "responseDuration": "took {{time}}",
+    "wordCount": "{{count}} words",
     "saveToNote": "Save to note",
     "readAloud": "Read aloud",
     "stopReading": "Stop reading",

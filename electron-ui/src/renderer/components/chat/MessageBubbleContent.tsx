@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { StandardChatMessage } from '../../types/app.types'
 import MessageContent from './MessageContent'
 import ToolUseBlock from './ToolUseBlock'
-import { ChevronDown, ChevronRight, Check, CheckCheck, Clock, Timer } from 'lucide-react'
+import { ChevronDown, ChevronRight, Check, CheckCheck, Clock, Timer, Type } from 'lucide-react'
 import { useT } from '../../i18n'
 import { getShowAbsoluteTime, formatAbsoluteTime, relativeTime, formatResponseDuration } from './messageUtils'
 
@@ -240,6 +240,12 @@ export default function MessageBubbleContent({
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, opacity: 0.7 }} title={t('message.responseDuration', { time: formatResponseDuration(message.responseDuration!) })}>
                   <Timer size={9} />
                   {formatResponseDuration(message.responseDuration!)}
+                </span>
+              )}
+              {message.content && message.content.length > 0 && !message.isStreaming && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, opacity: 0.5 }} title={t('message.wordCount', { count: String(message.content.trim().split(/\s+/).filter(w => w.length > 0).length) })}>
+                  <Type size={8} />
+                  {message.content.trim().split(/\s+/).filter(w => w.length > 0).length}
                 </span>
               )}
               {msgStatus === 'sending' && <Clock size={10} style={{ opacity: 0.8 }} />}
