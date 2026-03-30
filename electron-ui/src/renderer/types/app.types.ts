@@ -168,6 +168,7 @@ export interface Persona {
   model: string        // preferred model ID (e.g. 'claude-sonnet-4-6')
   systemPrompt: string // system prompt text
   color: string        // badge/accent color hex
+  responseTone?: 'default' | 'concise' | 'detailed' | 'professional' | 'casual' | 'creative'  // per-persona response tone
   createdAt: number    // epoch ms
   updatedAt: number    // epoch ms
 }

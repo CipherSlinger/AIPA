@@ -15,6 +15,8 @@ interface PersonaFormProps {
   setFormPrompt: (v: string) => void
   formColor: string
   setFormColor: (v: string) => void
+  formTone: string
+  setFormTone: (v: string) => void
   onSubmit: () => void
   onCancel: () => void
 }
@@ -22,7 +24,7 @@ interface PersonaFormProps {
 export default function PersonaForm({
   editingId, formName, setFormName, formEmoji, setFormEmoji,
   formModel, setFormModel, formPrompt, setFormPrompt,
-  formColor, setFormColor, onSubmit, onCancel,
+  formColor, setFormColor, formTone, setFormTone, onSubmit, onCancel,
 }: PersonaFormProps) {
   const { t } = useI18n()
   const canSubmit = formName.trim() && formPrompt.trim()
@@ -97,6 +99,21 @@ export default function PersonaForm({
         maxLength={2000}
         style={{ ...INPUT_STYLE, marginBottom: 10, resize: 'vertical', minHeight: 60, fontFamily: 'inherit' }}
       />
+
+      {/* Response Tone */}
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, fontWeight: 600 }}>{t('tone.title')}</div>
+      <select
+        value={formTone}
+        onChange={e => setFormTone(e.target.value)}
+        style={{ ...INPUT_STYLE, marginBottom: 10, cursor: 'pointer' }}
+      >
+        <option value="default">{t('tone.default')}</option>
+        <option value="concise">{t('tone.concise')}</option>
+        <option value="detailed">{t('tone.detailed')}</option>
+        <option value="professional">{t('tone.professional')}</option>
+        <option value="casual">{t('tone.casual')}</option>
+        <option value="creative">{t('tone.creative')}</option>
+      </select>
 
       {/* Color */}
       <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, fontWeight: 600 }}>{t('persona.color')}</div>

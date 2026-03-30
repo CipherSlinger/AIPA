@@ -220,9 +220,10 @@ export default function CommandPalette({
               description: t('persona.deactivated'),
               icon: <Sparkles size={14} />,
               action: () => {
-                usePrefsStore.getState().setPrefs({ activePersonaId: undefined, systemPrompt: '' })
+                usePrefsStore.getState().setPrefs({ activePersonaId: undefined, systemPrompt: '', responseTone: 'default' })
                 window.electronAPI.prefsSet('activePersonaId', undefined)
                 window.electronAPI.prefsSet('systemPrompt', '')
+                window.electronAPI.prefsSet('responseTone', 'default')
                 useUiStore.getState().addToast('info', t('persona.deactivated'))
                 onClose()
               },
@@ -241,10 +242,12 @@ export default function CommandPalette({
                   activePersonaId: p.id,
                   model: p.model,
                   systemPrompt: p.systemPrompt,
+                  responseTone: p.responseTone || 'default',
                 })
                 window.electronAPI.prefsSet('activePersonaId', p.id)
                 window.electronAPI.prefsSet('model', p.model)
                 window.electronAPI.prefsSet('systemPrompt', p.systemPrompt)
+                window.electronAPI.prefsSet('responseTone', p.responseTone || 'default')
                 useUiStore.getState().addToast('success', t('persona.switchedTo', { name: p.name }))
                 onClose()
               },

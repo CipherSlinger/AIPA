@@ -28,6 +28,7 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
   const [formModel, setFormModel] = useState('claude-sonnet-4-6')
   const [formPrompt, setFormPrompt] = useState('')
   const [formColor, setFormColor] = useState('#3b82f6')
+  const [formTone, setFormTone] = useState('default')
 
   const savePersonas = (updated: Persona[]) => {
     setPersonas(updated)
@@ -43,6 +44,7 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
     setFormModel('claude-sonnet-4-6')
     setFormPrompt('')
     setFormColor('#3b82f6')
+    setFormTone('default')
   }
 
   const startEdit = (p: Persona) => {
@@ -52,6 +54,7 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
     setFormModel(p.model)
     setFormPrompt(p.systemPrompt)
     setFormColor(p.color)
+    setFormTone(p.responseTone || 'default')
     setShowForm(true)
   }
 
@@ -62,7 +65,7 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
     if (editingId) {
       const updated = personas.map(p =>
         p.id === editingId
-          ? { ...p, name, emoji: formEmoji, model: formModel, systemPrompt: formPrompt.trim(), color: formColor, updatedAt: Date.now() }
+          ? { ...p, name, emoji: formEmoji, model: formModel, systemPrompt: formPrompt.trim(), color: formColor, responseTone: formTone as Persona['responseTone'], updatedAt: Date.now() }
           : p
       )
       savePersonas(updated)
@@ -79,6 +82,7 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
         model: formModel,
         systemPrompt: formPrompt.trim(),
         color: formColor,
+        responseTone: formTone as Persona['responseTone'],
         createdAt: Date.now(),
         updatedAt: Date.now(),
       }
@@ -106,15 +110,17 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
 
   const handleActivate = (persona: Persona) => {
     if (activePersonaId === persona.id) {
-      setPrefs({ activePersonaId: undefined, model: persona.model, systemPrompt: '' })
+      setPrefs({ activePersonaId: undefined, model: persona.model, systemPrompt: '', responseTone: 'default' })
       window.electronAPI.prefsSet('activePersonaId', undefined)
       window.electronAPI.prefsSet('systemPrompt', '')
+      window.electronAPI.prefsSet('responseTone', 'default')
       addToast('info', t('persona.deactivated'))
     } else {
-      setPrefs({ activePersonaId: persona.id, model: persona.model, systemPrompt: persona.systemPrompt })
+      setPrefs({ activePersonaId: persona.id, model: persona.model, systemPrompt: persona.systemPrompt, responseTone: persona.responseTone || 'default' })
       window.electronAPI.prefsSet('activePersonaId', persona.id)
       window.electronAPI.prefsSet('model', persona.model)
       window.electronAPI.prefsSet('systemPrompt', persona.systemPrompt)
+      window.electronAPI.prefsSet('responseTone', persona.responseTone || 'default')
       addToast('success', t('persona.switchedTo', { name: persona.name }))
     }
   }
@@ -226,6 +232,7 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
           formModel={formModel} setFormModel={setFormModel}
           formPrompt={formPrompt} setFormPrompt={setFormPrompt}
           formColor={formColor} setFormColor={setFormColor}
+          formTone={formTone} setFormTone={setFormTone}
           onSubmit={handleSubmit}
           onCancel={resetForm}
         />
