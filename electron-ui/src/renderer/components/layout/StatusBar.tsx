@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react'
-import { PanelLeft, Terminal, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Play, Square, ChevronUp, Check, StopCircle } from 'lucide-react'
+import { PanelLeft, Terminal, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Play, Square, ChevronUp, Check, StopCircle, User } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
-import { StandardChatMessage } from '../../types/app.types'
+import { StandardChatMessage, Persona } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { MODEL_OPTIONS } from '../settings/settingsConstants'
 
@@ -66,6 +66,41 @@ export default function StatusBar() {
     window.electronAPI.prefsSet('model', modelId)
     setShowModelPicker(false)
     useUiStore.getState().addToast('success', t('chat.modelSwitched', { model: modelId.replace('claude-', '') }))
+  }, [t])
+
+  // Persona quick-picker
+  const [showPersonaPicker, setShowPersonaPicker] = useState(false)
+  const personaPickerRef = useRef<HTMLDivElement>(null)
+  const personas: Persona[] = prefs.personas || []
+  const activePersona = personas.find(p => p.id === prefs.activePersonaId)
+
+  useEffect(() => {
+    if (!showPersonaPicker) return
+    const handler = (e: MouseEvent) => {
+      if (personaPickerRef.current && !personaPickerRef.current.contains(e.target as Node)) {
+        setShowPersonaPicker(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showPersonaPicker])
+
+  const handlePersonaSelect = useCallback((personaId: string | null) => {
+    const { setPrefs } = usePrefsStore.getState()
+    if (personaId) {
+      const persona = (usePrefsStore.getState().prefs.personas || []).find(p => p.id === personaId)
+      if (persona) {
+        setPrefs({ activePersonaId: personaId, model: persona.model })
+        window.electronAPI.prefsSet('activePersonaId', personaId)
+        window.electronAPI.prefsSet('model', persona.model)
+        useUiStore.getState().addToast('success', t('persona.switchedTo', { name: persona.name }))
+      }
+    } else {
+      setPrefs({ activePersonaId: undefined })
+      window.electronAPI.prefsSet('activePersonaId', null)
+      useUiStore.getState().addToast('info', t('persona.deactivated'))
+    }
+    setShowPersonaPicker(false)
   }, [t])
 
   // Streaming speed tracking (chars/sec)
@@ -434,6 +469,118 @@ export default function StatusBar() {
             <DollarSign size={10} />
             {totalSessionCost < 0.001 ? '<$0.001' : `$${totalSessionCost.toFixed(3)}`}
           </button>
+        )}
+
+        {/* Persona quick-switcher */}
+        {personas.length > 0 && (
+          <div style={{ position: 'relative' }} ref={personaPickerRef}>
+            <button
+              onClick={() => setShowPersonaPicker(!showPersonaPicker)}
+              style={{
+                padding: '1px 6px',
+                borderRadius: 8,
+                background: activePersona
+                  ? `${activePersona.color}33`
+                  : showPersonaPicker ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.15)',
+                fontSize: 10,
+                fontWeight: 500,
+                whiteSpace: 'nowrap',
+                opacity: 0.9,
+                border: activePersona ? `1px solid ${activePersona.color}66` : 'none',
+                color: '#fff',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 3,
+                transition: 'background 0.15s',
+              }}
+              title={activePersona ? t('persona.personaActive', { name: activePersona.name }) : t('persona.selectPersona')}
+            >
+              {activePersona ? (
+                <>
+                  <span style={{ fontSize: 11 }}>{activePersona.emoji}</span>
+                  {activePersona.name}
+                </>
+              ) : (
+                <>
+                  <User size={10} />
+                  {t('persona.selectPersona')}
+                </>
+              )}
+              <ChevronUp size={8} style={{ opacity: 0.6, transform: showPersonaPicker ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+            </button>
+            {showPersonaPicker && (
+              <div
+                className="popup-enter"
+                style={{
+                  position: 'absolute',
+                  bottom: '100%',
+                  right: 0,
+                  marginBottom: 4,
+                  background: 'var(--popup-bg)',
+                  border: '1px solid var(--popup-border)',
+                  boxShadow: 'var(--popup-shadow)',
+                  borderRadius: 8,
+                  padding: '4px 0',
+                  minWidth: 160,
+                  zIndex: 100,
+                }}
+              >
+                <button
+                  onClick={() => handlePersonaSelect(null)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    width: '100%',
+                    padding: '5px 12px',
+                    background: !prefs.activePersonaId ? 'var(--popup-item-hover)' : 'transparent',
+                    border: 'none',
+                    color: !prefs.activePersonaId ? 'var(--accent)' : 'var(--text-primary)',
+                    cursor: 'pointer',
+                    fontSize: 11,
+                    textAlign: 'left',
+                    transition: 'background 0.1s',
+                  }}
+                  onMouseEnter={e => { if (prefs.activePersonaId) (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
+                  onMouseLeave={e => { if (prefs.activePersonaId) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+                >
+                  {!prefs.activePersonaId && <Check size={11} />}
+                  <span style={{ marginLeft: !prefs.activePersonaId ? 0 : 17 }}>{t('persona.noPersona')}</span>
+                </button>
+                {personas.map(p => {
+                  const isActive = p.id === prefs.activePersonaId
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => handlePersonaSelect(p.id)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        width: '100%',
+                        padding: '5px 12px',
+                        background: isActive ? 'var(--popup-item-hover)' : 'transparent',
+                        border: 'none',
+                        color: isActive ? p.color : 'var(--text-primary)',
+                        cursor: 'pointer',
+                        fontSize: 11,
+                        textAlign: 'left',
+                        transition: 'background 0.1s',
+                      }}
+                      onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
+                      onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+                    >
+                      {isActive && <Check size={11} />}
+                      <span style={{ marginLeft: isActive ? 0 : 17 }}>
+                        {p.emoji} {p.name}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         )}
 
         {/* Model badge (clickable) */}
