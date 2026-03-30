@@ -565,7 +565,10 @@
     "explainThis": "解释说明",
     "reviewCode": "审查代码",
     "summarize": "摘要总结",
-    "fixBug": "修复错误"
+    "fixBug": "修复错误",
+    "translate": "翻译",
+    "draftEmail": "起草邮件",
+    "brainstorm": "头脑风暴"
   },
   "command": {
     "paletteTitle": "命令面板",

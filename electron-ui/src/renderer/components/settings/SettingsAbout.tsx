@@ -17,7 +17,7 @@ export default function SettingsAbout({ onResetDefaults, saved }: SettingsAboutP
       <div style={{ textAlign: 'center', padding: '12px 0' }}>
         <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-bright)', letterSpacing: 1 }}>AIPA</div>
         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{t('settings.about.aiPersonalAssistant')}</div>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{t('settings.about.version')}</div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>v{window.electronAPI.versions?.app || '1.0.0'}</div>
       </div>
 
       <div style={{ borderTop: '1px solid var(--border)' }} />
@@ -26,7 +26,7 @@ export default function SettingsAbout({ onResetDefaults, saved }: SettingsAboutP
       <div>
         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>{t('settings.about.links')}</div>
         {[
-          { label: t('settings.about.githubRepo'), url: 'https://github.com/anthropics/claude-code' },
+          { label: t('settings.about.githubRepo'), url: 'https://github.com/CipherSlinger/AIPA' },
           { label: t('settings.about.anthropicConsole'), url: 'https://console.anthropic.com/' },
           { label: t('settings.about.apiDocs'), url: 'https://docs.anthropic.com/' },
           { label: t('settings.about.getApiKey'), url: 'https://console.anthropic.com/settings/keys' },

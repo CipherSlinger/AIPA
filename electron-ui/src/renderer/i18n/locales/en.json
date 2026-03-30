@@ -565,7 +565,10 @@
     "explainThis": "Explain this",
     "reviewCode": "Review code",
     "summarize": "Summarize",
-    "fixBug": "Fix bug"
+    "fixBug": "Fix bug",
+    "translate": "Translate",
+    "draftEmail": "Draft email",
+    "brainstorm": "Brainstorm ideas"
   },
   "command": {
     "paletteTitle": "Command Palette",

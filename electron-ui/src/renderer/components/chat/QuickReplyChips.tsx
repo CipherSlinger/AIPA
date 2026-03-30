@@ -14,10 +14,10 @@ interface QuickReplyChipsProps {
 
 // Default quick reply definitions -- labels use i18n keys, prompts stay in English for Claude
 const DEFAULT_QUICK_REPLY_DEFS = [
-  { labelKey: 'quickReply.explainThis', prompt: 'Please explain this in detail:' },
-  { labelKey: 'quickReply.reviewCode', prompt: 'Please review this code for bugs, performance issues, and best practices:' },
   { labelKey: 'quickReply.summarize', prompt: 'Please summarize the above concisely:' },
-  { labelKey: 'quickReply.fixBug', prompt: 'Please identify and fix the bug in:' },
+  { labelKey: 'quickReply.translate', prompt: 'Please translate the following text. If it is in Chinese, translate to English; if it is in English, translate to Chinese:' },
+  { labelKey: 'quickReply.draftEmail', prompt: 'Please draft a professional email based on the following points:' },
+  { labelKey: 'quickReply.brainstorm', prompt: 'Please brainstorm creative ideas about:' },
 ]
 
 export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {

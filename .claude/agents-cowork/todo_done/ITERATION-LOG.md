@@ -2398,3 +2398,17 @@ Status: SUCCESS
 
 ### Iteration 318 (2026-03-30)
 - README beautification -- Complete restructure of both README.md and README_CN.md from flat 200+ bullet point lists to organized, table-based documentation. New structure: centered hero header with badges (Platform, Electron, React, TypeScript, i18n), Vision section, then feature tables grouped into 12 categories (Conversation & Chat, Input & Composition, Session Management, Notes System, AI Personas, Memory & Workflows, Multi-Model Support, Skills Marketplace, Appearance & Themes, Keyboard Shortcuts, Accessibility & i18n, Status Bar), Security section, Requirements, Getting Started, Development, Architecture with CLI mode comparison table. Addresses user feedback: "README.md 太丑了，都是功能的堆叠列表，好好美化一下". 2 files changed; no code changes; documentation only
+
+### Iteration 319 (2026-03-30)
+- Merge SchedulePanel into WorkflowPanel -- Consolidated the standalone "Schedules" sidebar tab into the existing Workflows panel. WorkflowPanel now has a Workflows/Schedules tab system. Removed the standalone nav item, updated NavRail routing, CommandPalette entries, and all related type unions. 11 files changed; build SUCCESS
+
+### Iteration 320 (2026-03-30)
+- README rewrite -- Product-forward README replacing feature table dump. Reduced from 288 lines of dry tables to a concise 160-line product-forward document. 2 files changed; documentation only
+
+### Iteration 321 (2026-03-30)
+- Channel panel (Feishu + WeChat) -- New sidebar tab (Ctrl+9) for configuring Feishu and WeChat messaging channels via OpenClaw integration. ChannelPanel.tsx (10.93 kB lazy chunk), channelConstants.ts, NavRail integration, i18n for both locales, CommandPalette entry. UI-only: Connect button simulates connection test. 8 files changed; build SUCCESS
+
+[RETRO] retro-2026-03-30-iterations-319-321.md completed, covering Iteration 319-321, next forced retro after Iteration 331
+
+### Iteration 322 (2026-03-30)
+- Personal assistant polish -- (1) **Vite bundle splitting**: Configured `rollupOptions.output.manualChunks` in vite.config.ts to split the monolithic 1,282 kB main chunk into 5 focused chunks: vendor-icons (63 kB, lucide-react), vendor-utils (169 kB, zustand + date-fns + react-virtual), vendor-terminal (295 kB, xterm), vendor-markdown (336 kB, react-markdown + highlight.js + remark/rehype). Main chunk reduced to 432 kB -- 66% reduction, Vite >500 kB warning eliminated. (2) **Quick reply chips overhaul**: Replaced code-centric defaults (Review Code, Fix Bug) with assistant-oriented ones (Translate, Draft Email, Brainstorm Ideas) while keeping Summarize. Added 3 new i18n keys to both en.json and zh-CN.json. (3) **Dynamic version display**: About page now reads app version from package.json via preload `versions.app` instead of hardcoded "v1.0.0". (4) **GitHub repo URL fix**: About page link corrected from anthropics/claude-code to CipherSlinger/AIPA. 6 files changed; tsc --noEmit: 0 errors; build SUCCESS
