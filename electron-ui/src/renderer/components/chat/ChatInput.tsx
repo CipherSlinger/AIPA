@@ -1,10 +1,16 @@
+// ChatInput — thin orchestrator after Iteration 314 decomposition
+// Sub-modules: ChatInputAttachments, ChatInputPasteChips, ChatInputComposeStatus
+
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Square, X, MessageSquareQuote, Sparkles, Link2, FileText, Calculator, Archive } from 'lucide-react'
+import { Send, Square, Sparkles, Archive } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import AtMentionPopup from './AtMentionPopup'
 import SlashCommandPopup from './SlashCommandPopup'
 import QuickReplyChips from './QuickReplyChips'
 import InputToolbar from './InputToolbar'
+import ChatInputAttachments from './ChatInputAttachments'
+import ChatInputPasteChips from './ChatInputPasteChips'
+import ChatInputComposeStatus from './ChatInputComposeStatus'
 import { PLACEHOLDER_KEYS } from './chatInputConstants'
 import { useImagePaste, ImageAttachment, FileAttachment } from '../../hooks/useImagePaste'
 import { useChatInputDraft } from '../../hooks/useChatInputDraft'
@@ -419,135 +425,15 @@ export default function ChatInput({
               <span style={{ fontWeight: 500 }}>{activePersona.emoji} {activePersona.name}</span>
             </div>
           )}
-          {/* Image attachments */}
-          {attachments.length > 0 && (
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingBottom: 8 }}>
-              {attachments.map(img => (
-                <div key={img.id} style={{ position: 'relative', flexShrink: 0 }}>
-                  <img src={img.dataUrl} alt={img.name} style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--input-field-border)' }} />
-                  <button onClick={() => removeAttachment(img.id)} style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: 'var(--error)', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, lineHeight: '1' }}>{'\u00d7'}</button>
-                </div>
-              ))}
-            </div>
-          )}
-          {/* File attachments */}
-          {fileAttachments.length > 0 && (
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingBottom: 8 }}>
-              {fileAttachments.map(file => (
-                <div key={file.id} style={{
-                  position: 'relative', display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '4px 8px', background: 'rgba(0, 122, 204, 0.06)',
-                  border: '1px solid rgba(0, 122, 204, 0.15)', borderRadius: 6,
-                  maxWidth: 200,
-                }}>
-                  <FileText size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-                  <div style={{ overflow: 'hidden', flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</div>
-                    <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>
-                      {file.content ? `${Math.ceil(file.size / 1024)}KB` : t('chat.fileRefOnly')}
-                    </div>
-                  </div>
-                  <button onClick={() => removeFileAttachment(file.id)} style={{
-                    background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', padding: 1, borderRadius: 4, flexShrink: 0,
-                    transition: 'color 150ms',
-                  }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--error)' }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)' }}
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          {/* URL paste quick action chips */}
-          {paste.pastedUrl && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px', marginBottom: 4, flexWrap: 'wrap' }}>
-              <Link2 size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-              <span style={{ fontSize: 10, color: 'var(--text-muted)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{paste.pastedUrl}</span>
-              {[
-                { key: 'summarize', label: t('chat.urlAction.summarize') },
-                { key: 'explain', label: t('chat.urlAction.explain') },
-                { key: 'translate', label: t('chat.urlAction.translate') },
-              ].map(action => (
-                <button
-                  key={action.key}
-                  onClick={() => paste.handleUrlAction(action.label)}
-                  style={{
-                    padding: '2px 8px', fontSize: 10, fontWeight: 500,
-                    background: 'rgba(0, 122, 204, 0.1)', border: '1px solid rgba(0, 122, 204, 0.25)',
-                    borderRadius: 10, color: 'var(--accent)', cursor: 'pointer',
-                    transition: 'background 150ms, border-color 150ms', whiteSpace: 'nowrap',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0, 122, 204, 0.2)'; e.currentTarget.style.borderColor = 'var(--accent)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0, 122, 204, 0.1)'; e.currentTarget.style.borderColor = 'rgba(0, 122, 204, 0.25)' }}
-                >
-                  {action.label}
-                </button>
-              ))}
-              <button
-                onClick={() => { paste.setPastedUrl(null); if (paste.urlChipTimerRef.current) clearTimeout(paste.urlChipTimerRef.current) }}
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2, display: 'flex', opacity: 0.6 }}
-              >
-                <X size={12} />
-              </button>
-            </div>
-          )}
-          {/* Long text paste quick action chips */}
-          {paste.pastedLongText && !paste.pastedUrl && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px', marginBottom: 4, flexWrap: 'wrap' }}>
-              <FileText size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-              <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                {t('chat.longPaste', { count: String(input.length) })}
-              </span>
-              {[
-                { key: 'summarize', label: t('chat.urlAction.summarize') },
-                { key: 'explain', label: t('chat.urlAction.explain') },
-                { key: 'translate', label: t('chat.urlAction.translate') },
-                { key: 'rewrite', label: t('clipboard.rewrite') },
-              ].map(action => (
-                <button
-                  key={action.key}
-                  onClick={() => paste.handleLongTextAction(action.label)}
-                  style={{
-                    padding: '2px 8px', fontSize: 10, fontWeight: 500,
-                    background: 'rgba(0, 122, 204, 0.1)', border: '1px solid rgba(0, 122, 204, 0.25)',
-                    borderRadius: 10, color: 'var(--accent)', cursor: 'pointer',
-                    transition: 'background 150ms, border-color 150ms', whiteSpace: 'nowrap',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0, 122, 204, 0.2)'; e.currentTarget.style.borderColor = 'var(--accent)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0, 122, 204, 0.1)'; e.currentTarget.style.borderColor = 'rgba(0, 122, 204, 0.25)' }}
-                >
-                  {action.label}
-                </button>
-              ))}
-              <button
-                onClick={() => { paste.setPastedLongText(false); if (paste.longTextTimerRef.current) clearTimeout(paste.longTextTimerRef.current) }}
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2, display: 'flex', opacity: 0.6 }}
-              >
-                <X size={12} />
-              </button>
-            </div>
-          )}
-          {/* Pending quote preview banner */}
-          {paste.pendingQuote && (
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 10px', marginBottom: 6, background: 'rgba(0, 122, 204, 0.08)', borderLeft: '3px solid var(--accent)', borderRadius: 4, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-              <MessageSquareQuote size={14} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2 }} />
-              <div style={{ flex: 1, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', wordBreak: 'break-word' }}>
-                {paste.pendingQuote.length > 150 ? paste.pendingQuote.slice(0, 150) + '...' : paste.pendingQuote}
-              </div>
-              <button
-                onClick={() => paste.setPendingQuote(null)}
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 2, borderRadius: 4, flexShrink: 0, transition: 'color 150ms' }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--error)' }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)' }}
-                title={t('common.close')}
-              >
-                <X size={14} />
-              </button>
-            </div>
-          )}
+          {/* Attachments (images + files) */}
+          <ChatInputAttachments
+            attachments={attachments}
+            fileAttachments={fileAttachments}
+            onRemoveImage={removeAttachment}
+            onRemoveFile={removeFileAttachment}
+          />
+          {/* Paste action chips + quote preview */}
+          <ChatInputPasteChips paste={paste} inputLength={input.length} />
           {/* Popups */}
           {popups.atQuery !== null && <AtMentionPopup query={popups.atQuery} onSelect={popups.handleAtSelect} onDismiss={() => popups.setAtQuery(null)} anchorRef={inputWrapRef as React.RefObject<HTMLElement>} />}
           {popups.slashQuery !== null && <SlashCommandPopup query={popups.slashQuery} onSelect={popups.handleSlashSelect} onDismiss={() => popups.setSlashQuery(null)} selectedIndex={popups.slashIndex} onHover={popups.setSlashIndex} extraCommands={popups.customCommands} />}
@@ -678,43 +564,13 @@ export default function ChatInput({
           </button>
         </div>
       </div>
-      {/* Compose status */}
-      {input.trim().length > 0 && (
-        <div style={{
-          display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, padding: '3px 4px 0', fontSize: 10,
-          color: input.length > 10000 ? 'var(--error)' : input.length > 5000 ? 'var(--warning)' : 'var(--text-muted)',
-          fontWeight: input.length > 10000 ? 600 : 400, opacity: 0.7, transition: 'color 200ms, opacity 200ms',
-        }}>
-          <span>{input.trim().split(/\s+/).filter(w => w.length > 0).length} {t('chat.words')}</span>
-          <span style={{ opacity: 0.4 }}>|</span>
-          <span>{input.length.toLocaleString()} {t('chat.chars')}{input.length > 10000 ? ` (${t('chat.veryLong')})` : input.length > 5000 ? ` (${t('chat.long')})` : ''}</span>
-          <span style={{ opacity: 0.4 }}>|</span>
-          <span>{t('message.approxTokens', { count: String(Math.ceil(input.length / 4)) })}</span>
-          {typingWpm > 0 && (
-            <>
-              <span style={{ opacity: 0.4 }}>|</span>
-              <span style={{ color: typingWpm > 60 ? 'var(--accent)' : 'var(--text-muted)' }}>{typingWpm} {t('chat.wpm')}</span>
-            </>
-          )}
-        </div>
-      )}
-      {/* Inline calculator result */}
-      {calcResult && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px 0', fontSize: 12,
-          color: 'var(--accent)', fontWeight: 500, opacity: 0.9,
-        }}>
-          <Calculator size={13} style={{ opacity: 0.7 }} />
-          <span style={{ fontVariantNumeric: 'tabular-nums' }}>= {calcResult}</span>
-          <span style={{ fontSize: 9, color: 'var(--text-muted)', opacity: 0.5, marginLeft: 4 }}>{t('chat.calcTabHint')}</span>
-        </div>
-      )}
-      {/* Input history hint */}
-      {input.length === 0 && inputHistoryRef.current.length > 0 && (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '2px 0 0', fontSize: 10, color: 'var(--text-muted)', opacity: 0.4 }}>
-          <span>{t('chat.inputHistoryHint')}</span>
-        </div>
-      )}
+      {/* Compose status + calculator + history hint */}
+      <ChatInputComposeStatus
+        input={input}
+        typingWpm={typingWpm}
+        calcResult={calcResult}
+        hasInputHistory={inputHistoryRef.current.length > 0}
+      />
     </div>
   )
 }
