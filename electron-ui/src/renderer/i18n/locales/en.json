@@ -1036,6 +1036,8 @@
     "emptyState": "No memories yet",
     "emptyHint": "Add memories to help AIPA personalize its responses. Memories persist across all sessions.",
     "noResults": "No matching memories",
+    "searchResults": "{{count}} matches",
+    "autoCategory": "auto",
     "pin": "Pin to top",
     "unpin": "Unpin",
     "edit": "Edit",

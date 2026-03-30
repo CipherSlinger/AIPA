@@ -1036,6 +1036,8 @@
     "emptyState": "\u6682\u65e0\u8bb0\u5fc6",
     "emptyHint": "\u6dfb\u52a0\u8bb0\u5fc6\u5e2e\u52a9 AIPA \u4e2a\u6027\u5316\u54cd\u5e94\u3002\u8bb0\u5fc6\u5728\u6240\u6709\u4f1a\u8bdd\u4e2d\u6301\u4e45\u5316\u3002",
     "noResults": "\u6ca1\u6709\u5339\u914d\u7684\u8bb0\u5fc6",
+    "searchResults": "\u627e\u5230 {{count}} \u6761",
+    "autoCategory": "\u81ea\u52a8",
     "pin": "\u7f6e\u9876",
     "unpin": "\u53d6\u6d88\u7f6e\u9876",
     "edit": "\u7f16\u8f91",

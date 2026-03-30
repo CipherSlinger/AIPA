@@ -48,6 +48,18 @@ export default function MemoryPanel() {
   const [newCategory, setNewCategory] = useState<MemoryCategory>('fact')
   const [showFilterDropdown, setShowFilterDropdown] = useState(false)
 
+  // Auto-update category suggestion as user types
+  const [autoSuggested, setAutoSuggested] = useState(false)
+
+  const handleNewContentChange = useCallback((content: string) => {
+    setNewContent(content)
+    // Auto-suggest category only if user hasn't manually picked one yet
+    if (content.trim().length > 10 && !autoSuggested) {
+      const suggested = suggestCategory(content)
+      setNewCategory(suggested)
+    }
+  }, [suggestCategory, autoSuggested])
+
   const saveMemories = useCallback((updated: MemoryItem[]) => {
     setPrefs({ memories: updated })
     window.electronAPI.prefsSet('memories', updated)
@@ -69,6 +81,7 @@ export default function MemoryPanel() {
     saveMemories([item, ...memories])
     setNewContent('')
     setShowAddForm(false)
+    setAutoSuggested(false)
     addToast('success', t('memory.added'))
   }, [newContent, newCategory, memories, saveMemories, addToast, t])
 
@@ -110,17 +123,83 @@ export default function MemoryPanel() {
     addToast('info', t('memory.clearedAll'))
   }, [memories, saveMemories, addToast, t])
 
-  // Filtered + sorted memories
+  // Fuzzy search scoring: returns 0 (no match) or positive score (higher = better)
+  const fuzzyScore = useCallback((text: string, query: string): number => {
+    const textLower = text.toLowerCase()
+    const queryLower = query.toLowerCase()
+    // Exact substring match gets highest base score
+    if (textLower.includes(queryLower)) {
+      // Bonus for match at start of word boundary
+      const wordBoundaryIdx = textLower.search(new RegExp(`\\b${queryLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`))
+      if (wordBoundaryIdx === 0) return 100  // starts with query
+      if (wordBoundaryIdx > 0) return 90     // word-boundary match
+      return 80                               // substring match
+    }
+    // Multi-word: all query words must appear (AND logic)
+    const queryWords = queryLower.split(/\s+/).filter(w => w.length > 0)
+    if (queryWords.length > 1) {
+      const allMatch = queryWords.every(w => textLower.includes(w))
+      if (allMatch) return 70
+    }
+    // Fuzzy: allow 1-char skips (for typos) — check if query chars appear in order
+    let qi = 0
+    let matched = 0
+    for (let ti = 0; ti < textLower.length && qi < queryLower.length; ti++) {
+      if (textLower[ti] === queryLower[qi]) {
+        matched++
+        qi++
+      }
+    }
+    if (qi === queryLower.length) {
+      // All query chars found in order — score based on density
+      const density = matched / text.length
+      return Math.round(30 + density * 40)  // 30-70 range
+    }
+    // Partial match: at least 70% of query chars found in order
+    if (matched >= queryLower.length * 0.7) {
+      return Math.round(10 + (matched / queryLower.length) * 20)  // 10-30 range
+    }
+    return 0
+  }, [])
+
+  // Auto-suggest category based on content keywords
+  const suggestCategory = useCallback((content: string): MemoryCategory => {
+    const lower = content.toLowerCase()
+    const preferenceWords = ['prefer', 'like', 'want', 'favorite', 'always', 'never', 'don\'t', 'please', 'style', 'format', 'tone', 'mode']
+    const instructionWords = ['should', 'must', 'rule', 'when', 'if', 'how to', 'make sure', 'remember to', 'do not', 'use']
+    const contextWords = ['project', 'team', 'company', 'working on', 'currently', 'role', 'job', 'deadline', 'using']
+
+    const prefScore = preferenceWords.filter(w => lower.includes(w)).length
+    const instrScore = instructionWords.filter(w => lower.includes(w)).length
+    const ctxScore = contextWords.filter(w => lower.includes(w)).length
+
+    if (prefScore > instrScore && prefScore > ctxScore) return 'preference'
+    if (instrScore > prefScore && instrScore > ctxScore) return 'instruction'
+    if (ctxScore > prefScore && ctxScore > instrScore) return 'context'
+    return 'fact'
+  }, [])
+
+  // Filtered + sorted memories with fuzzy search and relevance ranking
   const filteredMemories = useMemo(() => {
     let result = [...memories]
     // Filter by category
     if (filterCategory !== 'all') {
       result = result.filter(m => m.category === filterCategory)
     }
-    // Filter by search
+    // Filter and score by search
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase()
-      result = result.filter(m => m.content.toLowerCase().includes(q))
+      const scored = result.map(m => ({
+        memory: m,
+        score: fuzzyScore(m.content, searchQuery),
+      })).filter(s => s.score > 0)
+      // Sort by score descending, then by pinned, then by updatedAt
+      scored.sort((a, b) => {
+        if (a.memory.pinned && !b.memory.pinned) return -1
+        if (!a.memory.pinned && b.memory.pinned) return 1
+        if (a.score !== b.score) return b.score - a.score
+        return b.memory.updatedAt - a.memory.updatedAt
+      })
+      return scored.map(s => s.memory)
     }
     // Sort: pinned first, then by updatedAt desc
     result.sort((a, b) => {
@@ -129,7 +208,7 @@ export default function MemoryPanel() {
       return b.updatedAt - a.updatedAt
     })
     return result
-  }, [memories, filterCategory, searchQuery])
+  }, [memories, filterCategory, searchQuery, fuzzyScore])
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = { all: memories.length }
@@ -254,7 +333,7 @@ export default function MemoryPanel() {
               width: '100%',
               height: 28,
               paddingLeft: 26,
-              paddingRight: 8,
+              paddingRight: searchQuery.trim() ? 56 : 8,
               background: 'var(--input-field-bg)',
               border: '1px solid var(--input-field-border)',
               borderRadius: 6,
@@ -266,6 +345,20 @@ export default function MemoryPanel() {
             onFocus={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
             onBlur={e => (e.currentTarget.style.borderColor = 'var(--input-field-border)')}
           />
+          {searchQuery.trim() && (
+            <span style={{
+              position: 'absolute',
+              right: 8,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              fontSize: 9,
+              color: filteredMemories.length > 0 ? 'var(--accent)' : 'var(--text-muted)',
+              fontWeight: 500,
+              pointerEvents: 'none',
+            }}>
+              {t('memory.searchResults', { count: String(filteredMemories.length) })}
+            </span>
+          )}
         </div>
 
         {/* Category filter pills */}
@@ -329,7 +422,7 @@ export default function MemoryPanel() {
         }}>
           <textarea
             value={newContent}
-            onChange={e => setNewContent(e.target.value)}
+            onChange={e => handleNewContentChange(e.target.value)}
             placeholder={t('memory.addPlaceholder')}
             maxLength={MAX_CONTENT_LENGTH}
             autoFocus
@@ -357,6 +450,7 @@ export default function MemoryPanel() {
               if (e.key === 'Escape') {
                 setShowAddForm(false)
                 setNewContent('')
+                setAutoSuggested(false)
               }
             }}
           />
@@ -385,6 +479,9 @@ export default function MemoryPanel() {
               >
                 {CATEGORY_CONFIG[newCategory].icon}
                 {t(CATEGORY_CONFIG[newCategory].labelKey)}
+                {!autoSuggested && newContent.trim().length > 10 && (
+                  <span style={{ fontSize: 8, opacity: 0.7, fontStyle: 'italic' }}>({t('memory.autoCategory')})</span>
+                )}
                 <ChevronDown size={10} />
               </button>
               {showFilterDropdown && (
@@ -406,6 +503,7 @@ export default function MemoryPanel() {
                       key={cat}
                       onClick={() => {
                         setNewCategory(cat)
+                        setAutoSuggested(true)
                         setShowFilterDropdown(false)
                       }}
                       style={{
@@ -439,7 +537,7 @@ export default function MemoryPanel() {
                 {newContent.length}/{MAX_CONTENT_LENGTH}
               </span>
               <button
-                onClick={() => { setShowAddForm(false); setNewContent('') }}
+                onClick={() => { setShowAddForm(false); setNewContent(''); setAutoSuggested(false) }}
                 style={{
                   background: 'transparent',
                   border: '1px solid var(--border)',
