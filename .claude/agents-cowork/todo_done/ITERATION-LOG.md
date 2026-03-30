@@ -2450,3 +2450,9 @@ Status: SUCCESS
 
 ### Iteration 334 (2026-03-30)
 - Shortcut consistency cleanup -- (1) Added missing Ctrl+Shift+K (compact conversation context) entry to ShortcutCheatsheet.tsx under the Conversation section, which was overlooked when the shortcut was reassigned from Ctrl+Shift+C in Iteration 332. (2) Updated all 19 shortcutRegistry.ts owner fields from "App.tsx" to "useAppShortcuts.ts" to reflect the Iteration 333 hook extraction. (3) Added cheatsheetKey 'compactConversation' to the Ctrl+Shift+K registry entry. (4) Added compactConversation i18n key to both en.json and zh-CN.json. 5 files changed; build SUCCESS
+
+### Iteration 335 (2026-03-30)
+- ipc/index.ts decomposition refactor -- Reduced ipc/index.ts from 784 to 478 lines (39% reduction) by extracting 2 new files: skills-handlers.ts (170 lines, SkillInfo interface, parseSkillMd/scanSkillsDir helpers, registerSkillsHandlers with 5 IPC handlers), provider-handlers.ts (130 lines, registerProviderHandlers with 11 IPC handlers for multi-model support). ipc/index.ts now well below the 800-line red line. Pure refactor with zero visual or behavioral changes. 3 files changed (2 new, 1 rewritten); build SUCCESS
+
+### Iteration 336 (2026-03-30)
+- Enhanced system tray UX -- (1) Tray menu now rebuilds dynamically on every right-click, so "Recent Sessions" always shows the latest 5 sessions instead of being frozen at startup. (2) Added "Ask about Clipboard" entry to tray context menu, mirroring the Ctrl+Shift+G global hotkey functionality but accessible without remembering the shortcut. (3) Tray tooltip now shows session count ("AIPA - AI Personal Assistant (N sessions)") and updates on every menu rebuild. Pure main process changes, 1 file changed (main/index.ts); build SUCCESS

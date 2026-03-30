@@ -224,10 +224,15 @@ function createTray(): void {
   const trayIcon = nativeImage.createFromDataURL(dataUrl)
 
   tray = new Tray(trayIcon.resize({ width: 16, height: 16 }))
-  tray.setToolTip('AIPA - AI Personal Assistant')
+  updateTrayTooltip()
 
   // Build enhanced tray menu
   rebuildTrayMenu()
+
+  // Rebuild tray menu dynamically on right-click so recent sessions stay current
+  tray.on('right-click', () => {
+    rebuildTrayMenu()
+  })
 
   // Single click on tray icon toggles window visibility
   tray.on('click', () => {
@@ -238,6 +243,17 @@ function createTray(): void {
       mainWindow?.focus()
     }
   })
+}
+
+/** Update tray tooltip with session count */
+function updateTrayTooltip(): void {
+  if (!tray) return
+  try {
+    const sessions = listSessions()
+    tray.setToolTip(`AIPA - AI Personal Assistant (${sessions.length} sessions)`)
+  } catch {
+    tray.setToolTip('AIPA - AI Personal Assistant')
+  }
 }
 
 /** Rebuild the tray context menu with current state (recent sessions, theme) */
@@ -290,6 +306,17 @@ function rebuildTrayMenu(): void {
       },
     },
     {
+      label: 'Ask about Clipboard',
+      click: () => {
+        const clipboardText = clipboard.readText().trim()
+        mainWindow?.show()
+        mainWindow?.focus()
+        if (clipboardText) {
+          mainWindow?.webContents.send('menu:clipboardQuickAction', clipboardText)
+        }
+      },
+    },
+    {
       label: 'Recent Sessions',
       submenu: recentSessionItems,
     },
@@ -320,6 +347,7 @@ function rebuildTrayMenu(): void {
     },
   ])
   tray.setContextMenu(contextMenu)
+  updateTrayTooltip()
 }
 
 function registerGlobalHotkey(): void {
