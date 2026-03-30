@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Send, Square, X, MessageSquareQuote, Sparkles, Link2, FileText } from 'lucide-react'
+import { Send, Square, X, MessageSquareQuote, Sparkles, Link2, FileText, Calculator } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import AtMentionPopup from './AtMentionPopup'
 import SlashCommandPopup, { SLASH_COMMANDS, SlashCommand } from './SlashCommandPopup'
@@ -274,10 +274,15 @@ export default function ChatInput({
         if (result !== null) { e.preventDefault(); setInput(result) }
       }
     }
-    // Tab: accept ghost text autocomplete
+    // Tab: accept ghost text autocomplete, or accept calculator result
     if (e.key === 'Tab' && !e.shiftKey && ghostText) {
       e.preventDefault()
       setInput(prev => prev.trimStart() + ghostText)
+      return
+    }
+    if (e.key === 'Tab' && !e.shiftKey && calcResult) {
+      e.preventDefault()
+      setInput(calcResult)
       return
     }
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
@@ -452,6 +457,35 @@ export default function ChatInput({
     // Return only the suffix (the part after what's already typed)
     return best.text.slice(trimmed.length)
   }, [input, promptHistory, slashQuery, atQuery])
+
+  // Inline calculator: detect "= expression" and evaluate
+  const calcResult = useMemo(() => {
+    const trimmed = input.trim()
+    // Must start with "=" followed by a math expression
+    if (!trimmed.startsWith('=') || trimmed.length < 2) return null
+    const expr = trimmed.slice(1).trim()
+    if (!expr) return null
+    // Only allow safe math characters: digits, operators, parens, dots, spaces, and common math functions
+    if (!/^[\d\s+\-*/().,%^]+$/.test(expr)) return null
+    try {
+      // Replace ^ with ** for exponentiation, % with /100 for percent
+      let sanitized = expr
+        .replace(/\^/g, '**')
+        .replace(/(\d)%/g, '$1/100')
+        .replace(/,/g, '') // strip thousands separators
+      // Prevent empty or dangerous expressions
+      if (!sanitized.trim() || /[a-zA-Z_$]/.test(sanitized)) return null
+      // Use Function constructor for safe-ish math eval (no access to globals)
+      const fn = new Function(`"use strict"; return (${sanitized})`)
+      const result = fn()
+      if (typeof result !== 'number' || !isFinite(result)) return null
+      // Format: up to 10 decimal places, strip trailing zeros
+      const formatted = Number(result.toFixed(10)).toString()
+      return formatted
+    } catch {
+      return null
+    }
+  }, [input])
 
   // Active persona indicator
   const personas = prefs.personas || []
@@ -809,6 +843,17 @@ export default function ChatInput({
               <span style={{ color: typingWpm > 60 ? 'var(--accent)' : 'var(--text-muted)' }}>{typingWpm} {t('chat.wpm')}</span>
             </>
           )}
+        </div>
+      )}
+      {/* Inline calculator result */}
+      {calcResult && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px 0', fontSize: 12,
+          color: 'var(--accent)', fontWeight: 500, opacity: 0.9,
+        }}>
+          <Calculator size={13} style={{ opacity: 0.7 }} />
+          <span style={{ fontVariantNumeric: 'tabular-nums' }}>= {calcResult}</span>
+          <span style={{ fontSize: 9, color: 'var(--text-muted)', opacity: 0.5, marginLeft: 4 }}>{t('chat.calcTabHint')}</span>
         </div>
       )}
       {/* Input history hint */}
