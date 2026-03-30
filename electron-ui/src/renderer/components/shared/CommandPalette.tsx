@@ -3,7 +3,7 @@ import {
   Plus, Download, PanelLeft, Terminal, Settings, History,
   FolderOpen, Zap, Trash2, HelpCircle, Search, Cpu, Sparkles,
   Brain, Workflow, Clock, ListRestart, Play, NotebookPen, ClipboardPaste,
-  Sun, Moon, Languages, Palette,
+  Sun, Moon, Languages, Palette, Copy,
 } from 'lucide-react'
 import { useChatStore, useSessionStore, useUiStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
@@ -170,6 +170,25 @@ export default function CommandPalette({
             useChatStore.getState().setWorkingDir(p)
             window.electronAPI.prefsSet('workingDir', p)
           }
+        },
+        category: 'action',
+      },
+      {
+        id: 'copy-last-response',
+        name: t('command.copyLastResponse'),
+        description: t('command.copyLastResponseDesc'),
+        icon: <Copy size={14} />,
+        action: () => {
+          const msgs = useChatStore.getState().messages
+          const lastAssistant = [...msgs].reverse().find(m => m.role === 'assistant')
+          if (lastAssistant && 'content' in lastAssistant && (lastAssistant as any).content) {
+            navigator.clipboard.writeText((lastAssistant as any).content).then(() => {
+              addToast('success', t('command.lastResponseCopied'))
+            })
+          } else {
+            addToast('info', t('command.noResponseToCopy'))
+          }
+          onClose()
         },
         category: 'action',
       },
