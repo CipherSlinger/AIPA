@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 :root {
+  /* Core palette */
   --bg-primary: #1e1e1e;
   --bg-secondary: #252526;
   --bg-sidebar: #2c2c2c;
@@ -21,12 +22,12 @@
   --user-bubble: #3572a5;
   --assistant-bubble: #2d2d2d;
 
-  /* === NEW: Three-column layout backgrounds === */
+  /* Three-column layout */
   --bg-nav:               #1a1a1a;
   --bg-sessionpanel:      #212121;
   --bg-chat:              #2a2a2a;
 
-  /* === NEW: Bubble system === */
+  /* Chat bubbles */
   --bubble-ai:            #333333;
   --bubble-ai-text:       #e0e0e0;
   --bubble-ai-border:     #3d3d3d;
@@ -34,21 +35,21 @@
   --bubble-user-text:     #ffffff;
   --bubble-user-border:   #4080b8;
 
-  /* === NEW: NavRail === */
+  /* NavRail */
   --nav-icon-default:     #6b6b6b;
   --nav-icon-hover:       #a0a0a0;
   --nav-icon-active:      #ffffff;
   --nav-indicator:        #007acc;
 
-  /* === NEW: Session item === */
+  /* Session list */
   --session-active-bg:    rgba(0, 122, 204, 0.12);
   --session-hover-bg:     rgba(255, 255, 255, 0.04);
 
-  /* === NEW: Avatar === */
+  /* Avatars */
   --avatar-ai:            #5a3f8a;
   --avatar-user:          #007acc;
 
-  /* === NEW (Iteration 54): Input area === */
+  /* Input area */
   --input-bar-bg:         #2a2a2a;
   --input-field-bg:       #333333;
   --input-field-border:   #444444;
@@ -56,36 +57,36 @@
   --input-toolbar-icon:   #6b6b6b;
   --input-toolbar-hover:  #a0a0a0;
 
-  /* === NEW (Iteration 54): Chat header === */
+  /* Chat header */
   --chat-header-bg:       #1a1a1a;
   --chat-header-title:    #e0e0e0;
   --chat-header-icon:     #6b6b6b;
   --chat-header-icon-hover: #a0a0a0;
 
-  /* === NEW (Iteration 54): Tool use cards (in-bubble) === */
+  /* Tool use cards */
   --tool-card-bg:         rgba(0, 0, 0, 0.15);
   --tool-card-border:     rgba(255, 255, 255, 0.06);
   --tool-card-header-bg:  rgba(0, 0, 0, 0.08);
 
-  /* === NEW (Iteration 55): Popup / overlay surface === */
+  /* Popups and overlays */
   --popup-bg:             #2a2a2a;
   --popup-border:         #404040;
   --popup-shadow:         0 8px 24px rgba(0,0,0,0.5);
   --popup-item-hover:     rgba(255,255,255,0.06);
 
-  /* === NEW (Iteration 55): Inline action buttons === */
+  /* Action buttons */
   --action-btn-bg:        rgba(0,0,0,0.3);
   --action-btn-border:    rgba(255,255,255,0.08);
   --action-btn-hover:     rgba(255,255,255,0.1);
 
-  /* === NEW (Iteration 55): Card surface (PlanCard, PermissionCard) === */
+  /* Cards (PlanCard, PermissionCard) */
   --card-bg:              #2a2a2a;
   --card-border:          rgba(255,255,255,0.08);
 
-  /* === NEW (Iteration 55): Input focus shadow === */
+  /* Input focus */
   --input-focus-shadow:   0 0 0 2px rgba(0,122,204,0.15);
 
-  /* === NEW (Iteration 92): Task Queue === */
+  /* Task queue */
   --queue-accent:       #a78bfa;
   --queue-accent-deep:  #8b5cf6;
   --queue-accent-soft:  #c4b5fd;
@@ -96,7 +97,7 @@
   --queue-panel-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
-/* Theme: Light (soft light mode -- Iteration 165: toned down from pure white) */
+/* Light theme */
 [data-theme="light"] {
   --bg-primary: #f5f5f7;
   --bg-secondary: #eff0f2;
@@ -159,7 +160,6 @@
   --card-border:          rgba(0,0,0,0.1);
   --input-focus-shadow:   0 0 0 2px rgba(37,99,235,0.2);
 
-  /* === NEW (Iteration 92): Task Queue === */
   --queue-accent:       #7c3aed;
   --queue-accent-deep:  #6d28d9;
   --queue-accent-soft:  #8b5cf6;
@@ -296,7 +296,7 @@ code:not(pre code) {
   to { transform: rotate(360deg); }
 }
 
-/* Message entrance animations (Iteration 55: direction-aware) */
+/* Message entrance animations */
 @keyframes bubble-in-left {
   from { opacity: 0; transform: translateX(-12px) translateY(6px); }
   to   { opacity: 1; transform: translateX(0) translateY(0); }
@@ -330,7 +330,7 @@ code:not(pre code) {
   border-radius: 12px;
 }
 
-/* Popup entrance animation (Iteration 55) */
+/* Popup entrance animation */
 @keyframes popup-in {
   from { opacity: 0; transform: translateY(4px) scale(0.98); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -339,7 +339,7 @@ code:not(pre code) {
   animation: popup-in 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* NavRail icon hover micro-interaction (Iteration 55) */
+/* NavRail icon hover micro-interaction */
 .nav-icon-btn {
   transition: transform 0.15s ease, color 0.15s ease;
 }
@@ -350,12 +350,12 @@ code:not(pre code) {
   transform: scale(0.93);
 }
 
-/* NavRail scrollbar hidden (Iteration 247) */
+/* NavRail scrollbar hidden */
 nav[aria-label="Main navigation"]::-webkit-scrollbar {
   display: none;
 }
 
-/* Tool output expand/collapse animation (Iteration 55) */
+/* Tool output expand/collapse animation */
 .tool-output-wrapper {
   display: grid;
   grid-template-rows: 0fr;
@@ -369,7 +369,7 @@ nav[aria-label="Main navigation"]::-webkit-scrollbar {
   min-height: 0;
 }
 
-/* Onboarding step transition (Iteration 68) */
+/* Onboarding step transition */
 @keyframes onboard-fade-in {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -385,24 +385,22 @@ nav[aria-label="Main navigation"]::-webkit-scrollbar {
   animation: onboard-icon-in 0.3s ease-out;
 }
 
-/* === Iteration 70: Permission Card glow === */
+/* Permission Card glow */
 @keyframes permission-glow {
   0%   { box-shadow: 0 0 0 0 rgba(0,122,204,0.4); }
   70%  { box-shadow: 0 0 0 6px rgba(0,122,204,0); }
   100% { box-shadow: 0 0 0 0 rgba(0,122,204,0); }
 }
 
-/* Entry animation for all permission cards (non-pending) */
 .permission-card-enter {
   animation: popup-in 0.2s ease-out;
 }
 
-/* Pending state: entry animation + continuous glow, comma-separated so both run */
 .permission-card-pending {
   animation: popup-in 0.2s ease-out, permission-glow 2s ease-in-out 0.2s infinite;
 }
 
-/* Reduced motion (Iteration 55) */
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .message-enter,
   .message-enter-left,
