@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 import { usePrefsStore, useChatStore, useSessionStore, useUiStore } from '../store'
 import { useT } from '../i18n'
 
+type SidebarTab = 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory' | 'channel'
+
 /**
  * Global keyboard shortcuts registered at the App level.
  * These are always active regardless of which panel is focused.
@@ -12,7 +14,7 @@ export function useAppShortcuts(
   toggleCommandPalette: () => void,
   toggleFocusMode: () => void,
   setSidebarOpen: (open: boolean) => void,
-  setSidebarTab: (tab: string) => void,
+  setSidebarTab: (tab: SidebarTab) => void,
   setShowShortcuts: (fn: (prev: boolean) => boolean) => void,
   setPrefs: (prefs: Record<string, unknown>) => void,
 ) {
