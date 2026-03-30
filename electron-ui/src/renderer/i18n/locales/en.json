@@ -440,6 +440,8 @@
     "compactModeHint": "Reduce spacing between messages for a denser view",
     "desktopNotifications": "Desktop Notifications",
     "desktopNotificationsHint": "Show OS notifications when AIPA finishes responding while the window is not focused",
+    "responseTone": "Response Tone",
+    "responseToneHint": "Set the default tone for Claude's responses. Can also be changed per-message from the input toolbar.",
     "save": "Save Settings",
     "saved": "Saved",
     "unlimited": "Unlimited",

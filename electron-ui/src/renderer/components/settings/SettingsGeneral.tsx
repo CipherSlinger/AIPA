@@ -117,7 +117,7 @@ export default function SettingsGeneral({
     prompts: [t('settings.promptTemplate'), t('settings.systemPrompt'), t('settings.groups.prompts')].join(' ').toLowerCase(),
     appearance: [t('settings.language'), t('settings.displayName'), t('settings.theme'), t('settings.fontSize'), t('settings.fontFamily'), t('settings.compactMode'), t('settings.groups.appearance')].join(' ').toLowerCase(),
     workspace: [t('settings.workingFolder'), t('tags.sectionTitle'), t('settings.groups.workspace')].join(' ').toLowerCase(),
-    behavior: [t('settings.skipPermissions'), t('settings.verbose'), t('settings.completionSound'), t('settings.desktopNotifications'), t('settings.groups.behavior')].join(' ').toLowerCase(),
+    behavior: [t('settings.skipPermissions'), t('settings.verbose'), t('settings.completionSound'), t('settings.desktopNotifications'), t('settings.responseTone'), t('tone.title'), t('settings.groups.behavior')].join(' ').toLowerCase(),
   }), [t])
 
   const isGroupVisible = (groupKey: string): boolean => {
@@ -550,6 +550,27 @@ export default function SettingsGeneral({
           t('settings.desktopNotifications'),
           <Toggle value={local.desktopNotifications !== false} onChange={(v) => updateLocal({ desktopNotifications: v })} />,
           t('settings.desktopNotificationsHint')
+        )}
+
+        {field(
+          t('settings.responseTone'),
+          <select
+            value={local.responseTone || 'default'}
+            onChange={(e) => {
+              updateLocal({ responseTone: e.target.value })
+              setPrefs({ responseTone: e.target.value as any })
+              window.electronAPI.prefsSet('responseTone', e.target.value)
+            }}
+            style={{ ...INPUT_STYLE }}
+          >
+            <option value="default">{t('tone.default')}</option>
+            <option value="concise">{t('tone.concise')}</option>
+            <option value="detailed">{t('tone.detailed')}</option>
+            <option value="professional">{t('tone.professional')}</option>
+            <option value="casual">{t('tone.casual')}</option>
+            <option value="creative">{t('tone.creative')}</option>
+          </select>,
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('settings.responseToneHint')}</span>
         )}
       </SettingsGroup>
       )}
