@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, Tray, globalShortcut, nativeImage, shell, session, clipboard, Notification } from 'electron'
+import { app, BrowserWindow, Menu, Tray, globalShortcut, nativeImage, shell, session, clipboard, Notification, screen } from 'electron'
 import path from 'path'
 import { registerAllHandlers } from './ipc/index'
 import { ptyManager } from './pty/pty-manager'
@@ -16,17 +16,25 @@ let isQuitting = false
 function createWindow(): void {
   // Restore saved window bounds, or use defaults
   const savedBounds = getPref('windowBounds' as any) as { x: number; y: number; width: number; height: number; isMaximized: boolean } | null
+
+  // Theme-aware startup: read saved theme to set correct initial colors
+  const savedTheme = (getPref as any)('theme') || 'vscode'
+  const isLightTheme = savedTheme === 'light' || (savedTheme === 'system' && false) // system theme resolved in renderer
+  const bgColor = isLightTheme ? '#f5f5f7' : '#1e1e1e'
+  const overlayColor = isLightTheme ? '#f8f8f8' : '#2c2c2c'
+  const overlaySymbol = isLightTheme ? '#1a1a1a' : '#cccccc'
+
   const windowOptions: Electron.BrowserWindowConstructorOptions = {
     width: savedBounds?.width || 1400,
     height: savedBounds?.height || 900,
     minWidth: 800,
     minHeight: 600,
     title: 'AIPA',
-    backgroundColor: '#1e1e1e',
+    backgroundColor: bgColor,
     titleBarStyle: 'hidden',
     titleBarOverlay: {
-      color: '#2c2c2c',
-      symbolColor: '#cccccc',
+      color: overlayColor,
+      symbolColor: overlaySymbol,
       height: 32,
     },
     webPreferences: {
@@ -36,10 +44,24 @@ function createWindow(): void {
       sandbox: true,
     },
   }
-  // Only set x/y if we have saved position (otherwise let OS center the window)
+  // Only set x/y if we have saved position and it's still on a visible display
   if (savedBounds && savedBounds.x !== undefined && savedBounds.y !== undefined) {
-    windowOptions.x = savedBounds.x
-    windowOptions.y = savedBounds.y
+    // Validate that at least part of the window is on a visible display
+    try {
+      const displays = screen.getAllDisplays()
+      const centerX = savedBounds.x + (savedBounds.width || 1400) / 2
+      const centerY = savedBounds.y + (savedBounds.height || 900) / 2
+      const isOnScreen = displays.some(d => {
+        const { x, y, width, height } = d.workArea
+        return centerX >= x && centerX <= x + width && centerY >= y && centerY <= y + height
+      })
+      if (isOnScreen) {
+        windowOptions.x = savedBounds.x
+        windowOptions.y = savedBounds.y
+      }
+    } catch {
+      // If screen API fails, skip position restore — OS will center the window
+    }
   }
 
   mainWindow = new BrowserWindow(windowOptions)
