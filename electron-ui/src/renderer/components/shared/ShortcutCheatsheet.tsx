@@ -28,6 +28,7 @@ const SHORTCUTS = [
     { keys: 'Ctrl + Shift + C', actionKey: 'collapseExpandAll' },
     { keys: 'Ctrl + Shift + D', actionKey: 'toggleTheme' },
     { keys: 'Ctrl + Shift + L', actionKey: 'toggleLanguage' },
+    { keys: 'Ctrl + Shift + M', actionKey: 'cycleModel' },
     { keys: 'Ctrl + [ / ]', actionKey: 'prevNextSession' },
     { keys: 'Ctrl + 1-9', actionKey: 'switchSidebarTab' },
     { keys: '/', actionKey: 'quickSearch' },

@@ -747,6 +747,7 @@
     "collapseExpandAll": "全部折叠/展开",
     "toggleTheme": "切换深色/浅色主题",
     "toggleLanguage": "切换语言 (中/英)",
+    "cycleModel": "切换模型 (Sonnet/Opus/Haiku)",
     "prevNextSession": "上一个/下一个会话",
     "switchSidebarTab": "切换侧边栏面板（历史/文件/笔记/技能/设置/记忆/工作流）",
     "quickSearch": "聚焦会话搜索",

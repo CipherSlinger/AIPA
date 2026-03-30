@@ -295,6 +295,19 @@ export default function App() {
         setPrefs({ language: newLang })
         window.electronAPI.prefsSet('language', newLang)
       }
+      // Ctrl+Shift+M: Cycle through primary models (Sonnet -> Opus -> Haiku -> Sonnet)
+      if (e.ctrlKey && e.shiftKey && e.key === 'M') {
+        e.preventDefault()
+        const modelCycle = ['claude-sonnet-4-6', 'claude-opus-4-6', 'claude-haiku-4-5'] as const
+        const currentModel = usePrefsStore.getState().prefs.model || 'claude-sonnet-4-6'
+        const currentIdx = modelCycle.indexOf(currentModel as typeof modelCycle[number])
+        const nextModel = modelCycle[(currentIdx + 1) % modelCycle.length]
+        setPrefs({ model: nextModel })
+        window.electronAPI.prefsSet('model', nextModel)
+        // Show short model name in toast
+        const shortName = nextModel.replace('claude-', '').split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')
+        useUiStore.getState().addToast('info', `Model: ${shortName}`, 1500)
+      }
       // Ctrl+1-9: Switch sidebar tabs
       if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key >= '1' && e.key <= '9') {
         e.preventDefault()

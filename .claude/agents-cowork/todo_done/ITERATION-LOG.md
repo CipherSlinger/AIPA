@@ -2430,3 +2430,6 @@ Status: SUCCESS
 
 ### Iteration 328 (2026-03-30)
 - Persist sidebar tab across restarts -- The active sidebar tab (history, notes, settings, etc.) and corresponding NavRail active item are now saved to localStorage (`aipa:sidebar-tab`) and restored on next startup. Both `setSidebarTab()` and `setActiveNavItem()` now persist the tab. Validated against a whitelist of known tab names to prevent invalid state on format changes. Previously, every restart reset to the History tab. 1 file changed (store/index.ts); tsc --noEmit: 0 errors; build SUCCESS
+
+### Iteration 329 (2026-03-30)
+- Ctrl+Shift+M model cycling shortcut -- Added keyboard shortcut to cycle through the three primary Claude models (Sonnet 4.6 -> Opus 4.6 -> Haiku 4.5 -> Sonnet 4.6). Shows toast with model name on switch. Persists to electron-store. Added to ShortcutCheatsheet and README keyboard shortcuts table. i18n: 1 new key (cycleModel) in en.json and zh-CN.json. 5 files changed; build SUCCESS
