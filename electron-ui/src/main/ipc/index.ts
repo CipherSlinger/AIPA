@@ -445,6 +445,18 @@ function registerWindowHandlers(win: BrowserWindow): void {
       win.maximize()
     }
   })
+
+  // Always-on-top (pin window above all others)
+  ipcMain.handle('window:setAlwaysOnTop', (_e, onTop: boolean) => {
+    if (!win.isDestroyed()) {
+      win.setAlwaysOnTop(onTop, 'floating')
+    }
+  })
+
+  ipcMain.handle('window:isAlwaysOnTop', () => {
+    if (win.isDestroyed()) return false
+    return win.isAlwaysOnTop()
+  })
 }
 
 // ────────────────────────────────────────────

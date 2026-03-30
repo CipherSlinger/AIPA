@@ -472,6 +472,10 @@ interface UiState {
   // Quote reply: text to prefill into the input bar
   quotedText: string | null
   setQuotedText: (text: string | null) => void
+
+  // Always-on-top (pin window)
+  alwaysOnTop: boolean
+  setAlwaysOnTop: (v: boolean) => void
 }
 
 // Restore last sidebar tab from localStorage
@@ -493,6 +497,7 @@ export const useUiStore = create<UiState>((set) => ({
   toasts: [],
   activeNavItem: savedSidebarTab,
   quotedText: null,
+  alwaysOnTop: false,
   setSidebarTab: (tab) => {
     try { localStorage.setItem('aipa:sidebar-tab', tab) } catch {}
     set({ sidebarTab: tab })
@@ -524,4 +529,5 @@ export const useUiStore = create<UiState>((set) => ({
     return { activeNavItem: item }
   }),
   setQuotedText: (text) => set({ quotedText: text }),
+  setAlwaysOnTop: (v) => set({ alwaysOnTop: v }),
 }))

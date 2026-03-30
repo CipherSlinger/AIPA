@@ -5,7 +5,7 @@ import {
   Plus, Download, PanelLeft, Terminal, Settings, History,
   FolderOpen, Zap, Trash2, HelpCircle, Cpu, Sparkles,
   Brain, Workflow, ListRestart, Play, NotebookPen, ClipboardPaste, Radio,
-  Sun, Moon, Languages, Copy,
+  Sun, Moon, Languages, Copy, Pin,
 } from 'lucide-react'
 import { useChatStore, useSessionStore, useUiStore, usePrefsStore } from '../../store'
 import { MODEL_OPTIONS } from '../settings/settingsConstants'
@@ -162,6 +162,22 @@ export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] 
           useChatStore.getState().setWorkingDir(p)
           window.electronAPI.prefsSet('workingDir', p)
         }
+      },
+      category: 'action',
+    },
+    {
+      id: 'toggle-always-on-top',
+      name: t('command.toggleAlwaysOnTop'),
+      description: t('command.toggleAlwaysOnTopDesc'),
+      icon: <Pin size={14} />,
+      shortcut: 'Ctrl+Shift+T',
+      action: () => {
+        const ui = useUiStore.getState()
+        const newValue = !ui.alwaysOnTop
+        window.electronAPI.windowSetAlwaysOnTop(newValue)
+        ui.setAlwaysOnTop(newValue)
+        addToast('info', t(newValue ? 'window.pinnedOn' : 'window.pinnedOff'))
+        onClose()
       },
       category: 'action',
     },

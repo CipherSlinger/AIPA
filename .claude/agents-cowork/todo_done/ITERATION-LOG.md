@@ -2433,3 +2433,6 @@ Status: SUCCESS
 
 ### Iteration 329 (2026-03-30)
 - Ctrl+Shift+M model cycling shortcut -- Added keyboard shortcut to cycle through the three primary Claude models (Sonnet 4.6 -> Opus 4.6 -> Haiku 4.5 -> Sonnet 4.6). Shows toast with model name on switch. Persists to electron-store. Added to ShortcutCheatsheet and README keyboard shortcuts table. i18n: 1 new key (cycleModel) in en.json and zh-CN.json. 5 files changed; build SUCCESS
+
+### Iteration 330 (2026-03-30)
+- Always-on-top / Pin Window -- Added Ctrl+Shift+T keyboard shortcut and command palette entry to toggle the window always-on-top mode. When pinned, the AIPA window stays above all other windows -- a core UX pattern for personal assistant apps. Status bar shows a Pin icon (rotated 45deg when active) for quick toggle. Main process: 2 new IPC handlers (window:setAlwaysOnTop, window:isAlwaysOnTop). Preload: 2 new bridged methods. UiStore: new alwaysOnTop state. Command palette: new "Toggle Always on Top" entry with Pin icon. ShortcutCheatsheet: pinWindow entry. i18n: 6 new keys (window.pinWindow, window.pinnedOn, window.pinnedOff, command.toggleAlwaysOnTop/Desc, shortcutCheatsheet.pinWindow) in en.json and zh-CN.json. README: keyboard shortcut added. 9 files changed; build SUCCESS

@@ -308,6 +308,15 @@ export default function App() {
         const shortName = nextModel.replace('claude-', '').split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')
         useUiStore.getState().addToast('info', `Model: ${shortName}`, 1500)
       }
+      // Ctrl+Shift+T: Toggle always-on-top (pin window)
+      if (e.ctrlKey && e.shiftKey && e.key === 'T') {
+        e.preventDefault()
+        const ui = useUiStore.getState()
+        const newValue = !ui.alwaysOnTop
+        window.electronAPI.windowSetAlwaysOnTop(newValue)
+        ui.setAlwaysOnTop(newValue)
+        ui.addToast('info', t(newValue ? 'window.pinnedOn' : 'window.pinnedOff'), 1500)
+      }
       // Ctrl+1-9: Switch sidebar tabs
       if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key >= '1' && e.key <= '9') {
         e.preventDefault()

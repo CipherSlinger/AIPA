@@ -121,6 +121,10 @@ const electronAPI = {
     ipcRenderer.invoke('window:showNotification', opts),
   windowToggleMaximize: () =>
     ipcRenderer.invoke('window:toggleMaximize'),
+  windowSetAlwaysOnTop: (onTop: boolean) =>
+    ipcRenderer.invoke('window:setAlwaysOnTop', onTop),
+  windowIsAlwaysOnTop: () =>
+    ipcRenderer.invoke('window:isAlwaysOnTop') as Promise<boolean>,
 
   // ── Providers (multi-model support) ────
   providerListConfigs: () => ipcRenderer.invoke('provider:listConfigs'),

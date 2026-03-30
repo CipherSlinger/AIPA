@@ -3,7 +3,7 @@
 //              StatusBarModelPicker, StatusBarPersonaPicker
 
 import React from 'react'
-import { PanelLeft, Terminal, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Play, Square, StopCircle } from 'lucide-react'
+import { PanelLeft, Terminal, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Play, Square, StopCircle, Pin } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { StandardChatMessage } from '../../types/app.types'
 import { useT } from '../../i18n'
@@ -26,6 +26,8 @@ export default function StatusBar() {
   const toggleTerminal = useUiStore(s => s.toggleTerminal)
   const sidebarOpen = useUiStore(s => s.sidebarOpen)
   const terminalOpen = useUiStore(s => s.terminalOpen)
+  const alwaysOnTop = useUiStore(s => s.alwaysOnTop)
+  const setAlwaysOnTop = useUiStore(s => s.setAlwaysOnTop)
   const t = useT()
 
   // Hooks from extracted modules
@@ -278,6 +280,19 @@ export default function StatusBar() {
 
         {/* Model badge (clickable) */}
         <StatusBarModelPicker modelLabel={modelLabel} shortModel={shortModel} isClaudeModel={isClaudeModel} />
+
+        {/* Always-on-top pin toggle */}
+        <button
+          onClick={() => {
+            const newValue = !alwaysOnTop
+            window.electronAPI.windowSetAlwaysOnTop(newValue)
+            setAlwaysOnTop(newValue)
+          }}
+          title={t(alwaysOnTop ? 'window.pinnedOn' : 'window.pinWindow') + ' (Ctrl+Shift+T)'}
+          style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0, opacity: alwaysOnTop ? 1 : 0.6 }}
+        >
+          <Pin size={12} style={{ transform: alwaysOnTop ? 'rotate(-45deg)' : undefined, transition: 'transform 0.2s' }} />
+        </button>
 
         <button
           onClick={toggleTerminal}

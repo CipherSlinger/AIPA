@@ -630,7 +630,9 @@
     "sourceProject": "[项目]",
     "sourceUser": "[用户]",
     "openChannel": "打开通道",
-    "openChannelDesc": "连接飞书和微信消息通道"
+    "openChannelDesc": "连接飞书和微信消息通道",
+    "toggleAlwaysOnTop": "切换窗口置顶",
+    "toggleAlwaysOnTopDesc": "将窗口固定或取消固定在其他窗口上方"
   },
   "permission": {
     "allow": "允许",
@@ -748,6 +750,7 @@
     "toggleTheme": "切换深色/浅色主题",
     "toggleLanguage": "切换语言 (中/英)",
     "cycleModel": "切换模型 (Sonnet/Opus/Haiku)",
+    "pinWindow": "置顶窗口",
     "prevNextSession": "上一个/下一个会话",
     "switchSidebarTab": "切换侧边栏面板（历史/文件/笔记/技能/设置/记忆/工作流）",
     "quickSearch": "聚焦会话搜索",
@@ -1233,5 +1236,10 @@
       "aesHint": "43 位密钥，用于消息加解密（不填则为明文模式）",
       "setupHint": "注册微信公众号，开启开发者模式，将服务器 URL 设置为 AIPA 的 Webhook 地址。"
     }
+  },
+  "window": {
+    "pinWindow": "置顶窗口",
+    "pinnedOn": "窗口已置顶",
+    "pinnedOff": "窗口已取消置顶"
   }
 }

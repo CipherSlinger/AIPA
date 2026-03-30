@@ -630,7 +630,9 @@
     "sourceProject": "[Project]",
     "sourceUser": "[User]",
     "openChannel": "Open Channel",
-    "openChannelDesc": "Connect Feishu and WeChat messaging channels"
+    "openChannelDesc": "Connect Feishu and WeChat messaging channels",
+    "toggleAlwaysOnTop": "Toggle Always on Top",
+    "toggleAlwaysOnTopDesc": "Pin or unpin window above all other windows"
   },
   "permission": {
     "allow": "Allow",
@@ -748,6 +750,7 @@
     "toggleTheme": "Toggle dark/light theme",
     "toggleLanguage": "Toggle language (EN/CN)",
     "cycleModel": "Cycle model (Sonnet/Opus/Haiku)",
+    "pinWindow": "Pin window on top",
     "prevNextSession": "Previous/next session",
     "switchSidebarTab": "Switch sidebar tab (History/Files/Notes/Skills/Settings/Memory/Workflows)",
     "quickSearch": "Focus session search",
@@ -1233,5 +1236,10 @@
       "aesHint": "43-char key for message encryption (leave blank for plaintext mode)",
       "setupHint": "Register a WeChat Official Account, enable developer mode, and set the server URL to your AIPA webhook endpoint."
     }
+  },
+  "window": {
+    "pinWindow": "Pin window on top",
+    "pinnedOn": "Window pinned on top",
+    "pinnedOff": "Window unpinned"
   }
 }
