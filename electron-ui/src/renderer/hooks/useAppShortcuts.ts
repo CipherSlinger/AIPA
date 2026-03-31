@@ -162,17 +162,13 @@ export function useAppShortcuts(
         ui.setAlwaysOnTop(newValue)
         ui.addToast('info', t(newValue ? 'window.pinnedOn' : 'window.pinnedOff'), 1500)
       }
-      // Ctrl+1-9: Switch sidebar tabs (Ctrl+5 opens settings modal)
-      if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key >= '1' && e.key <= '9') {
+      // Ctrl+1-8: Switch sidebar tabs; Ctrl+, opens settings modal
+      if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key >= '1' && e.key <= '8') {
         e.preventDefault()
-        const tabs = ['history', 'files', 'notes', 'skills', 'settings', 'memory', 'workflows', 'prompthistory', 'channel'] as const
+        const tabs = ['history', 'files', 'notes', 'skills', 'memory', 'workflows', 'prompthistory', 'channel'] as const
         const idx = parseInt(e.key) - 1
         const tab = tabs[idx]
-        if (tab === 'settings') {
-          // Settings opens as a modal, not in sidebar
-          const ui = useUiStore.getState()
-          ui.setSettingsModalOpen(!ui.settingsModalOpen)
-        } else {
+        if (tab) {
           const ui = useUiStore.getState()
           if (ui.sidebarOpen && ui.sidebarTab === tab) {
             ui.setSidebarOpen(false)

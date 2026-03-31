@@ -304,7 +304,7 @@ export default function NavRail() {
       <NavItem
         icon={<Brain size={iconSize} />}
         label={t('nav.memory')}
-        shortcut="Ctrl+6"
+        shortcut="Ctrl+5"
         isActive={isMemoryActive}
         onClick={() => setActiveNavItem('memory')}
         badge={memoryCount}
@@ -315,7 +315,7 @@ export default function NavRail() {
       <NavItem
         icon={<Workflow size={iconSize} />}
         label={t('nav.workflows')}
-        shortcut="Ctrl+7"
+        shortcut="Ctrl+6"
         isActive={isWorkflowsActive}
         onClick={() => setActiveNavItem('workflows')}
         badge={workflowCount + scheduleCount}
@@ -326,7 +326,7 @@ export default function NavRail() {
       <NavItem
         icon={<ListRestart size={iconSize} />}
         label={t('nav.promptHistory')}
-        shortcut="Ctrl+8"
+        shortcut="Ctrl+7"
         isActive={isPromptHistoryActive}
         onClick={() => setActiveNavItem('prompthistory')}
         badge={promptHistoryCount}
@@ -337,7 +337,7 @@ export default function NavRail() {
       <NavItem
         icon={<Radio size={iconSize} />}
         label={t('nav.channel')}
-        shortcut="Ctrl+9"
+        shortcut="Ctrl+8"
         isActive={isChannelActive}
         onClick={() => setActiveNavItem('channel')}
         expanded={navExpanded}

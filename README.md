@@ -103,7 +103,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 | `Ctrl+`` ` `` | Toggle terminal |
 | `Ctrl+,` | Open Settings |
 | `Ctrl+1–4` | History, Files, Notes, Skills |
-| `Ctrl+5–9` | Settings (modal), Memory, Workflows, Prompt History, Channel |
+| `Ctrl+5–8` | Memory, Workflows, Prompt History, Channel |
 | `Ctrl+/` | Shortcut cheatsheet |
 | `Ctrl+Shift+Space` | Toggle AIPA window (global, works from any app) |
 | `Ctrl+Shift+G` | Clipboard quick action (global: reads clipboard, opens AIPA, sends to chat) |
