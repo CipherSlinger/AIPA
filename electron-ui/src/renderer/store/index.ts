@@ -480,6 +480,10 @@ interface UiState {
   alwaysOnTop: boolean
   setAlwaysOnTop: (v: boolean) => void
 
+  // Terminal session resumption
+  terminalResumeSessionId: string | null
+  setTerminalResumeSessionId: (id: string | null) => void
+
   // Settings modal (opens as overlay instead of sidebar panel)
   settingsModalOpen: boolean
   setSettingsModalOpen: (v: boolean) => void
@@ -543,6 +547,8 @@ export const useUiStore = create<UiState>((set) => ({
   }),
   setQuotedText: (text) => set({ quotedText: text }),
   setAlwaysOnTop: (v) => set({ alwaysOnTop: v }),
+  terminalResumeSessionId: null,
+  setTerminalResumeSessionId: (id) => set({ terminalResumeSessionId: id }),
   settingsModalOpen: false,
   setSettingsModalOpen: (v) => set({ settingsModalOpen: v }),
   openSettingsModal: () => set({ settingsModalOpen: true }),

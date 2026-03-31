@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback, useState } from 'react'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
-import { usePrefsStore } from '../store'
+import { usePrefsStore, useUiStore } from '../store'
 
 const VS_CODE_THEME = {
   background: '#1e1e1e',
@@ -65,6 +65,12 @@ export function usePty(containerRef: React.RefObject<HTMLDivElement>) {
     const cols = termRef.current.cols || 80
     const rows = termRef.current.rows || 24
 
+    // Read and consume the resume session ID (set when user opens terminal from chat header)
+    const resumeSessionId = useUiStore.getState().terminalResumeSessionId
+    if (resumeSessionId) {
+      useUiStore.getState().setTerminalResumeSessionId(null)
+    }
+
     // Generate a unique session ID for each PTY spawn
     sessionCounter++
     const newSessionId = `terminal-${Date.now()}-${sessionCounter}`
@@ -76,6 +82,7 @@ export function usePty(containerRef: React.RefObject<HTMLDivElement>) {
         cols,
         rows,
         env: prefs.apiKey ? { ANTHROPIC_API_KEY: prefs.apiKey } : {},
+        ...(resumeSessionId ? { resumeSessionId } : {}),
       })
       // Handle both old (string) and new ({ sessionId, fallback }) return formats
       const resolvedId = typeof result === 'string' ? result : result?.sessionId || newSessionId

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Search, Download, ClipboardCopy, Maximize2, Minimize2, Plus, FolderOpen, FileText } from 'lucide-react'
+import { Search, Download, ClipboardCopy, Maximize2, Minimize2, Plus, FolderOpen, FileText, TerminalSquare } from 'lucide-react'
 import { useChatStore, useSessionStore, usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import ModelPicker from './ModelPicker'
@@ -316,6 +316,29 @@ export default function ChatHeader({
         hoverIn={hoverIn}
         hoverOut={hoverOut}
       />
+
+      {/* Terminal toggle — opens PTY with current session context */}
+      <button
+        onClick={() => {
+          const ui = useUiStore.getState()
+          const chatStore = useChatStore.getState()
+          // Store the current Claude session ID so the PTY can resume it
+          if (chatStore.currentSessionId && !ui.terminalOpen) {
+            ui.setTerminalResumeSessionId(chatStore.currentSessionId)
+          }
+          ui.toggleTerminal()
+        }}
+        title={`${t('chat.openTerminal')} (Ctrl+\`)`}
+        style={{
+          ...headerBtnStyle,
+          background: useUiStore.getState().terminalOpen ? 'var(--accent)' : 'none',
+          color: useUiStore.getState().terminalOpen ? '#fff' : 'var(--chat-header-icon)',
+        }}
+        onMouseEnter={(e) => hoverIn(e, useUiStore.getState().terminalOpen)}
+        onMouseLeave={(e) => hoverOut(e, useUiStore.getState().terminalOpen)}
+      >
+        <TerminalSquare size={15} />
+      </button>
 
       {/* Focus mode toggle */}
       <button
