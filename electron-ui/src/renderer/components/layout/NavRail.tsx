@@ -217,7 +217,7 @@ export default function NavRail() {
   const isWorkflowsActive = activeNavItem === 'workflows' && sidebarTab === 'workflows'
   const isPromptHistoryActive = activeNavItem === 'prompthistory' && sidebarTab === 'prompthistory'
   const isChannelActive = activeNavItem === 'channel' && sidebarTab === 'channel'
-  const isSettingsActive = activeNavItem === 'settings' && sidebarTab === 'settings'
+  const isSettingsActive = useUiStore(s => s.settingsModalOpen)
 
   const handleNewChat = () => {
     // Same logic as Ctrl+N in App.tsx: clear messages to start fresh
@@ -365,9 +365,9 @@ export default function NavRail() {
       <NavItem
         icon={<Settings size={iconSize} />}
         label={t('nav.settings')}
-        shortcut="Ctrl+5"
+        shortcut="Ctrl+,"
         isActive={isSettingsActive}
-        onClick={() => setActiveNavItem('settings')}
+        onClick={() => useUiStore.getState().openSettingsModal()}
         expanded={navExpanded}
       />
 

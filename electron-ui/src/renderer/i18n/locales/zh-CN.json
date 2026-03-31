@@ -353,6 +353,7 @@
   },
   "settings": {
     "title": "设置",
+    "close": "关闭设置",
     "tabs": {
       "general": "常规",
       "providers": "提供商",

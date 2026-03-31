@@ -7,6 +7,8 @@ import TerminalPanel from '../terminal/TerminalPanel'
 import StatusBar from './StatusBar'
 import ErrorBoundary from '../shared/ErrorBoundary'
 
+const SettingsModal = React.lazy(() => import('../settings/SettingsModal'))
+
 const MIN_SIDEBAR = 180
 const MAX_SIDEBAR = 400
 const MIN_TERMINAL = 280
@@ -193,6 +195,11 @@ export default function AppShell() {
 
       {/* Status bar */}
       <StatusBar />
+
+      {/* Settings modal overlay */}
+      <React.Suspense fallback={null}>
+        <SettingsModal />
+      </React.Suspense>
     </div>
   )
 }

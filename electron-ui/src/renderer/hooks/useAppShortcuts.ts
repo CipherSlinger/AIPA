@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { usePrefsStore, useChatStore, useSessionStore, useUiStore } from '../store'
 import { useT } from '../i18n'
 
-type SidebarTab = 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory' | 'channel'
+type SidebarTab = 'history' | 'files' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory' | 'channel'
 
 /**
  * Global keyboard shortcuts registered at the App level.
@@ -27,11 +27,10 @@ export function useAppShortcuts(
         e.preventDefault()
         window.dispatchEvent(new CustomEvent('aipa:focusInput'))
       }
-      // Ctrl+,: Open settings
+      // Ctrl+,: Open settings modal
       if (e.ctrlKey && !e.shiftKey && e.key === ',') {
         e.preventDefault()
-        setSidebarOpen(true)
-        setSidebarTab('settings')
+        useUiStore.getState().openSettingsModal()
       }
       // Ctrl+B: Toggle sidebar
       if (e.ctrlKey && !e.shiftKey && e.key === 'b') {
@@ -158,19 +157,25 @@ export function useAppShortcuts(
         ui.setAlwaysOnTop(newValue)
         ui.addToast('info', t(newValue ? 'window.pinnedOn' : 'window.pinnedOff'), 1500)
       }
-      // Ctrl+1-9: Switch sidebar tabs
+      // Ctrl+1-9: Switch sidebar tabs (Ctrl+5 opens settings modal)
       if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key >= '1' && e.key <= '9') {
         e.preventDefault()
         const tabs = ['history', 'files', 'notes', 'skills', 'settings', 'memory', 'workflows', 'prompthistory', 'channel'] as const
         const idx = parseInt(e.key) - 1
-        const ui = useUiStore.getState()
         const tab = tabs[idx]
-        if (ui.sidebarOpen && ui.sidebarTab === tab) {
-          ui.setSidebarOpen(false)
+        if (tab === 'settings') {
+          // Settings opens as a modal, not in sidebar
+          const ui = useUiStore.getState()
+          ui.setSettingsModalOpen(!ui.settingsModalOpen)
         } else {
-          ui.setSidebarOpen(true)
-          ui.setSidebarTab(tab)
-          ui.setActiveNavItem(tab)
+          const ui = useUiStore.getState()
+          if (ui.sidebarOpen && ui.sidebarTab === tab) {
+            ui.setSidebarOpen(false)
+          } else {
+            ui.setSidebarOpen(true)
+            ui.setSidebarTab(tab as any)
+            ui.setActiveNavItem(tab)
+          }
         }
       }
       // / key: Focus session search (when not in an input)

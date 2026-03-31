@@ -29,7 +29,7 @@ interface CommandBuilderArgs {
   onSendSlashCommand: (cmd: string) => void
   toggleSidebar: () => void
   toggleTerminal: () => void
-  setSidebarTab: (tab: 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory' | 'channel') => void
+  setSidebarTab: (tab: 'history' | 'files' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory' | 'channel') => void
   setSidebarOpen: (open: boolean) => void
   setActiveNavItem: (item: 'chat' | 'history' | 'files' | 'terminal' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory' | 'channel') => void
   addToQueue: (text: string) => void
@@ -86,7 +86,7 @@ export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] 
       description: t('command.openSettingsDesc'),
       icon: <Settings size={14} />,
       shortcut: 'Ctrl+,',
-      action: () => { setSidebarOpen(true); setSidebarTab('settings'); onClose() },
+      action: () => { useUiStore.getState().openSettingsModal(); onClose() },
       category: 'action',
     },
     {

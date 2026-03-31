@@ -7,7 +7,6 @@ import ErrorBoundary from '../shared/ErrorBoundary'
 const FileBrowser = React.lazy(() => import('../filebrowser/FileBrowser'))
 const NotesPanel = React.lazy(() => import('../notes/NotesPanel'))
 const SkillsPanel = React.lazy(() => import('../skills/SkillsPanel'))
-const SettingsPanel = React.lazy(() => import('../settings/SettingsPanel'))
 const MemoryPanel = React.lazy(() => import('../memory/MemoryPanel'))
 const WorkflowPanel = React.lazy(() => import('../workflows/WorkflowPanel'))
 const ChannelPanel = React.lazy(() => import('../channel/ChannelPanel'))
@@ -63,11 +62,6 @@ export default function Sidebar() {
         {sidebarTab === 'skills' && (
           <Suspense fallback={<PanelFallback />}>
             <SkillsPanel />
-          </Suspense>
-        )}
-        {sidebarTab === 'settings' && (
-          <Suspense fallback={<PanelFallback />}>
-            <SettingsPanel />
           </Suspense>
         )}
         {sidebarTab === 'memory' && (

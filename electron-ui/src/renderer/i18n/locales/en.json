@@ -353,6 +353,7 @@
   },
   "settings": {
     "title": "Settings",
+    "close": "Close settings",
     "tabs": {
       "general": "General",
       "providers": "Providers",

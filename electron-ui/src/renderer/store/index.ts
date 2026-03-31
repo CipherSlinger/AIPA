@@ -448,12 +448,12 @@ export const usePrefsStore = create<PrefsState>((set) => ({
 
 // ── UI store ────────────────────────────────────
 interface UiState {
-  sidebarTab: 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory' | 'channel'
+  sidebarTab: 'history' | 'files' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory' | 'channel'
   sidebarOpen: boolean
   terminalOpen: boolean
   commandPaletteOpen: boolean
   toasts: ToastItem[]
-  setSidebarTab: (tab: 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory' | 'channel') => void
+  setSidebarTab: (tab: 'history' | 'files' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory' | 'channel') => void
   setSidebarOpen: (v: boolean) => void
   setTerminalOpen: (v: boolean) => void
   setCommandPaletteOpen: (v: boolean) => void
@@ -476,13 +476,19 @@ interface UiState {
   // Always-on-top (pin window)
   alwaysOnTop: boolean
   setAlwaysOnTop: (v: boolean) => void
+
+  // Settings modal (opens as overlay instead of sidebar panel)
+  settingsModalOpen: boolean
+  setSettingsModalOpen: (v: boolean) => void
+  openSettingsModal: () => void
+  closeSettingsModal: () => void
 }
 
 // Restore last sidebar tab from localStorage
 const savedSidebarTab = (() => {
   try {
     const saved = localStorage.getItem('aipa:sidebar-tab')
-    const valid = ['history', 'files', 'settings', 'notes', 'skills', 'memory', 'workflows', 'prompthistory', 'channel']
+    const valid = ['history', 'files', 'notes', 'skills', 'memory', 'workflows', 'prompthistory', 'channel']
     if (saved && valid.includes(saved)) return saved as UiState['sidebarTab']
   } catch {}
   return 'history' as const
@@ -522,7 +528,11 @@ export const useUiStore = create<UiState>((set) => ({
   },
   removeToast: (id) => set((s) => ({ toasts: s.toasts.filter(t => t.id !== id) })),
   setActiveNavItem: (item) => set((s) => {
-    if (item === 'history' || item === 'files' || item === 'settings' || item === 'notes' || item === 'skills' || item === 'memory' || item === 'workflows' || item === 'prompthistory' || item === 'channel') {
+    // Settings opens as a modal overlay, not in the sidebar
+    if (item === 'settings') {
+      return { settingsModalOpen: true }
+    }
+    if (item === 'history' || item === 'files' || item === 'notes' || item === 'skills' || item === 'memory' || item === 'workflows' || item === 'prompthistory' || item === 'channel') {
       try { localStorage.setItem('aipa:sidebar-tab', item) } catch {}
       return { activeNavItem: item, sidebarTab: item, sidebarOpen: true }
     }
@@ -530,4 +540,8 @@ export const useUiStore = create<UiState>((set) => ({
   }),
   setQuotedText: (text) => set({ quotedText: text }),
   setAlwaysOnTop: (v) => set({ alwaysOnTop: v }),
+  settingsModalOpen: false,
+  setSettingsModalOpen: (v) => set({ settingsModalOpen: v }),
+  openSettingsModal: () => set({ settingsModalOpen: true }),
+  closeSettingsModal: () => set({ settingsModalOpen: false }),
 }))
