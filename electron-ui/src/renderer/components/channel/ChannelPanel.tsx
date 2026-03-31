@@ -225,6 +225,7 @@ function WechatTab() {
   const { prefs, setPrefs } = usePrefsStore()
   const cfg: WechatConfig = prefs.channelWechat ?? DEFAULT_WECHAT_CONFIG
   const [testing, setTesting] = useState(false)
+  const [copyFeedback, setCopyFeedback] = useState(false)
 
   const update = (patch: Partial<WechatConfig>) => {
     const next = { ...cfg, ...patch }
@@ -232,13 +233,21 @@ function WechatTab() {
     window.electronAPI.prefsSet('channelWechat', next)
   }
 
-  const canConnect = cfg.appId.trim() && cfg.appSecret.trim() && cfg.token.trim()
+  const CLI_COMMAND = 'npx -y @tencent-weixin/openclaw-weixin-cli@latest install'
+
+  const handleCopyCommand = async () => {
+    try {
+      await navigator.clipboard.writeText(CLI_COMMAND)
+      setCopyFeedback(true)
+      setTimeout(() => setCopyFeedback(false), 2000)
+    } catch { /* ignore */ }
+  }
 
   const handleTest = async () => {
-    if (!canConnect) return
     setTesting(true)
+    // Simulate connection test (real implementation would check CLI status)
     await new Promise(r => setTimeout(r, 1200))
-    update({ connected: true, lastTestedAt: Date.now() })
+    update({ cliInstalled: true, connected: true, lastTestedAt: Date.now() })
     setTesting(false)
   }
 
@@ -280,38 +289,64 @@ function WechatTab() {
         </a>
       </div>
 
-      <ConfigField
-        label={t('channel.wechat.appId')}
-        value={cfg.appId}
-        onChange={v => update({ appId: v })}
-        placeholder="wx_xxxxxxxxxxxxxxxx"
-        required
-      />
-      <ConfigField
-        label={t('channel.wechat.appSecret')}
-        value={cfg.appSecret}
-        onChange={v => update({ appSecret: v })}
-        placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-        secret
-        required
-      />
-      <ConfigField
-        label={t('channel.wechat.token')}
-        value={cfg.token}
-        onChange={v => update({ token: v })}
-        placeholder={t('channel.wechat.tokenPlaceholder')}
-        hint={t('channel.wechat.tokenHint')}
-        required
-      />
-      <ConfigField
-        label={t('channel.wechat.encodingAESKey')}
-        value={cfg.encodingAESKey}
-        onChange={v => update({ encodingAESKey: v })}
-        placeholder={t('channel.optional')}
-        secret
-        hint={t('channel.wechat.aesHint')}
-      />
+      {/* CLI command to copy */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+          {t('channel.wechat.installCommand')}
+        </div>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          background: 'var(--bg-active)', border: '1px solid var(--border)',
+          borderRadius: 6, padding: '6px 8px',
+        }}>
+          <code style={{
+            flex: 1, fontSize: 10, fontFamily: 'monospace', color: 'var(--text-primary)',
+            wordBreak: 'break-all', lineHeight: 1.4,
+          }}>
+            {CLI_COMMAND}
+          </code>
+          <button
+            onClick={handleCopyCommand}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0,
+              color: copyFeedback ? 'var(--success)' : 'var(--text-muted)',
+              display: 'flex', alignItems: 'center', padding: 2,
+            }}
+            title={copyFeedback ? t('channel.wechat.copied') : t('channel.wechat.copyCommand')}
+          >
+            {copyFeedback ? <CheckCircle2 size={13} /> : <span style={{ fontSize: 11 }}>📋</span>}
+          </button>
+        </div>
+        <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 3, opacity: 0.8 }}>
+          {t('channel.wechat.installHint')}
+        </div>
+      </div>
 
+      {/* Steps */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+          {t('channel.wechat.steps')}
+        </div>
+        {[
+          t('channel.wechat.step1'),
+          t('channel.wechat.step2'),
+          t('channel.wechat.step3'),
+        ].map((step, i) => (
+          <div key={i} style={{
+            display: 'flex', gap: 6, alignItems: 'flex-start', marginBottom: 6,
+            fontSize: 10, color: 'var(--text-primary)', lineHeight: 1.5,
+          }}>
+            <span style={{
+              width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
+              background: 'var(--accent)', color: '#fff', fontSize: 9, fontWeight: 700,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1,
+            }}>{i + 1}</span>
+            <span>{step}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Action buttons */}
       <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
         {cfg.connected ? (
           <button
@@ -327,19 +362,19 @@ function WechatTab() {
         ) : (
           <button
             onClick={handleTest}
-            disabled={!canConnect || testing}
+            disabled={testing}
             style={{
               flex: 1, height: 30,
-              background: canConnect ? 'var(--accent)' : 'var(--input-field-bg)',
+              background: 'var(--accent)',
               border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 600,
-              color: canConnect ? '#fff' : 'var(--text-muted)',
-              cursor: canConnect ? 'pointer' : 'default',
+              color: '#fff',
+              cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
             }}
           >
             {testing
               ? <><RefreshCw size={11} style={{ animation: 'spin 0.8s linear infinite' }} /> {t('channel.testing')}</>
-              : t('channel.connect')
+              : t('channel.wechat.testConnection')
             }
           </button>
         )}

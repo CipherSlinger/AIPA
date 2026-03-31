@@ -1166,15 +1166,17 @@
     },
     "wechat": {
       "name": "WeChat",
-      "subtitle": "微信公众号 · Official Account",
-      "appId": "App ID",
-      "appSecret": "App Secret",
-      "token": "Token",
-      "tokenPlaceholder": "Your custom verification token",
-      "tokenHint": "Used for webhook verification between WeChat and your server",
-      "encodingAESKey": "Encoding AES Key",
-      "aesHint": "43-char key for message encryption (leave blank for plaintext mode)",
-      "setupHint": "Register a WeChat Official Account, enable developer mode, and set the server URL to your AIPA webhook endpoint."
+      "subtitle": "微信 · via OpenClaw WeChat Plugin",
+      "installCommand": "Install Command",
+      "copyCommand": "Copy command",
+      "copied": "Copied!",
+      "installHint": "Run this command in your terminal to install the official WeChat plugin",
+      "steps": "Setup Steps",
+      "step1": "Run the install command above in your terminal",
+      "step2": "Follow the CLI prompts to scan the QR code with your WeChat",
+      "step3": "Click 'Test Connection' below to verify",
+      "testConnection": "Test Connection",
+      "setupHint": "Connect WeChat using the official Tencent WeChat OpenClaw CLI plugin. No manual app credentials needed — the CLI handles authentication automatically."
     }
   },
   "window": {

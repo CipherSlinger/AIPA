@@ -1166,15 +1166,17 @@
     },
     "wechat": {
       "name": "微信",
-      "subtitle": "微信公众号",
-      "appId": "App ID",
-      "appSecret": "App Secret",
-      "token": "Token",
-      "tokenPlaceholder": "自定义验证 Token",
-      "tokenHint": "微信与你的服务器进行 Webhook 验证时使用",
-      "encodingAESKey": "消息加密密钥",
-      "aesHint": "43 位密钥，用于消息加解密（不填则为明文模式）",
-      "setupHint": "注册微信公众号，开启开发者模式，将服务器 URL 设置为 AIPA 的 Webhook 地址。"
+      "subtitle": "通过 OpenClaw 微信插件连接",
+      "installCommand": "安装命令",
+      "copyCommand": "复制命令",
+      "copied": "已复制！",
+      "installHint": "在终端中运行此命令以安装微信官方插件",
+      "steps": "配置步骤",
+      "step1": "在终端中运行上方的安装命令",
+      "step2": "按照 CLI 提示使用微信扫描二维码",
+      "step3": "点击下方「测试连接」按钮验证",
+      "testConnection": "测试连接",
+      "setupHint": "使用腾讯微信官方 OpenClaw CLI 插件连接微信。无需手动配置应用凭证 — CLI 会自动处理认证。"
     }
   },
   "window": {

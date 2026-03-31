@@ -12,10 +12,7 @@ export interface FeishuConfig {
 }
 
 export interface WechatConfig {
-  appId: string
-  appSecret: string
-  token: string
-  encodingAESKey: string
+  cliInstalled: boolean
   connected: boolean
   lastTestedAt?: number
 }
@@ -38,12 +35,9 @@ export const DEFAULT_FEISHU_CONFIG: FeishuConfig = {
 }
 
 export const DEFAULT_WECHAT_CONFIG: WechatConfig = {
-  appId: '',
-  appSecret: '',
-  token: '',
-  encodingAESKey: '',
+  cliInstalled: false,
   connected: false,
 }
 
 export const FEISHU_DOCS_URL = 'https://open.feishu.cn/document/home/index'
-export const WECHAT_DOCS_URL = 'https://developers.weixin.qq.com/doc/offiaccount/Getting_Started/Overview.html'
+export const WECHAT_DOCS_URL = 'https://www.npmjs.com/package/@tencent-weixin/openclaw-weixin-cli'
