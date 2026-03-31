@@ -238,6 +238,7 @@ export default function ChatInput({
       return
     }
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
+    if (e.key === 'Escape' && input.trim().length > 0) { e.preventDefault(); setInput(''); resizeTextarea(); return }
     if (e.ctrlKey && !e.shiftKey && e.key === 'u') { e.preventDefault(); setInput('') }
     // Markdown formatting shortcuts
     if (e.ctrlKey && !e.shiftKey && (e.key === 'b' || e.key === 'i')) {

@@ -150,6 +150,7 @@ export default function AppShell() {
               className="resizer"
               style={{ width: 4, flexShrink: 0, background: 'var(--border)', cursor: 'col-resize', transition: 'background 0.15s' }}
               onMouseDown={startDrag('sidebar')}
+              onDoubleClick={() => { setSidebarWidth(240); window.electronAPI.prefsSet('sidebarWidth', 240) }}
               onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--accent)')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--border)')}
             />
@@ -181,6 +182,7 @@ export default function AppShell() {
               className="resizer"
               style={{ width: 4, flexShrink: 0, background: 'var(--border)', cursor: 'col-resize', transition: 'background 0.15s' }}
               onMouseDown={startDrag('terminal')}
+              onDoubleClick={() => { setTerminalWidth(420); window.electronAPI.prefsSet('terminalWidth', 420) }}
               onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--accent)')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--border)')}
             />

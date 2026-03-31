@@ -41,6 +41,7 @@ export function Toast({ toast, onDismiss }: ToastProps) {
 
   return (
     <div
+      role={type === 'error' || type === 'warning' ? 'alert' : 'status'}
       style={{
         display: 'flex',
         alignItems: 'flex-start',
@@ -100,7 +101,7 @@ export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
         gap: 8,
         pointerEvents: 'none',
       }}
-      aria-live="polite"
+      aria-live="assertive"
       aria-label="Notifications"
     >
       {toasts.map(toast => (
