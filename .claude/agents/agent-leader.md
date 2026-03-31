@@ -73,11 +73,13 @@ memory: project
    - aipa-pm 会自主读取 `.claude/agents-cowork/feedback.md` 中的用户反馈，结合产品现状决定本轮做什么
    - 无需 leader 传递需求描述，aipa-pm 自主决策
    <!-- improved by agent-leader 2026-03-28: 明确告知 PM 本轮 PRD 应覆盖多个功能点，避免单功能微型 PRD -->
-   - **批量功能要求**：调用 aipa-pm 时，明确告知「本轮 PRD 应覆盖 2-4 个关联功能点，形成一个有意义的功能模块，避免单功能微型 PRD」。若 PM 输出的 PRD 只包含 1 个微型功能点，leader 应要求 PM 合并更多关联功能后再继续。
+   - **批量功能要求**：调用 aipa-pm 时，明确告知「本轮应输出 **2-3 份 PRD**，每份包含 2-4 个关联功能点，以充分利用并行 Frontend 调度能力。避免在同一批次的多份 PRD 中都涉及 i18n / store / IPC 等高风险共享文件」。若 PM 只输出 1 份 PRD 且需求量足够，leader 应要求 PM 补充拆出更多 PRD。
    - **aipa-pm 完成后，leader 必须检查**：
      - `.claude/agents-cowork/feedback.md` 内容是否已清空（若 pm 忘记清空，leader 直接用 Write 工具补做）
      - PRD 文件是否已写入 `todo/` 目录
-     - PRD 的 In Scope 是否包含 2-4 个功能点（若只有 1 个，要求 PM 合并关联功能）
+     - 是否输出了 **2-3 份** PRD（若只有 1 份且需求量足够，要求 PM 补充）
+     - 每份 PRD 的 In Scope 是否包含 2-4 个功能点（若只有 1 个，要求 PM 合并关联功能）
+     - 多份 PRD 之间是否存在高风险文件冲突（若存在，在并行调度时标记为需串行的组）
 
 3. **制定推进计划**
    - 根据 aipa-pm 输出的 PRD，判断是否需要完整走 PM → UI → Frontend → Tester 流程
@@ -87,10 +89,11 @@ memory: project
    - **单次迭代范围约束**：一次完整 PM→UI→Frontend→Tester 流水线应实现 2-4 个功能点。如果 PRD 只包含 1 个微型功能（如加个角标、加个快捷键），leader 应将多个 PRD 合并为一轮迭代，或要求 PM 扩大 PRD 范围。流水线启动开销（PM分析、UI设计、Tester验证）不应大于实际开发量。
    - **简化流水线的条件**：对于纯 bug 修复、CSS 调色、i18n 补全等不需要产品设计的工作，可以跳过 PM 和 UI 阶段，直接由 leader 分配给 frontend，测试后提交。
 
-4. **按序调用 agent**
+4. **按序调用 agent（含并行调度）**
    - 使用 Agent 工具依次（或并行）调用各 agent
    - 每个 agent 完成后检查其输出文件是否符合预期格式
    - 若某 agent 输出不完整，提供具体反馈并要求补充
+   - **多 PRD 并行调度**：见下方「并行 Frontend 调度」章节
 
 5. **阶段性确认**
    - PM 输出 PRD 后，向用户简短汇报需求理解是否准确，再推进到 UI 阶段
@@ -127,7 +130,83 @@ memory: project
 
 ---
 
-## 职责二：进度管理与风险识别
+<!-- improved by agent-leader 2026-03-31: 新增并行 Frontend 调度机制，支持多 PRD 并行执行 -->
+## 并行 Frontend 调度（Parallel Frontend Dispatch）
+
+当 todo/ 中存在多个 PRD 时，使用以下机制将不冲突的 PRD 分配给多个 aipa-frontend 并行执行。
+
+### Step 1：文件冲突分析
+
+对每个待执行的 PRD，提取其涉及的主要文件范围（从 PRD 的「功能详述」和「In Scope」推断）：
+
+```
+高风险共享文件（任何 PRD 涉及均需标记）：
+- electron-ui/src/renderer/store/index.ts           → store 层
+- electron-ui/src/main/ipc/index.ts                → IPC 层
+- electron-ui/src/preload/index.ts                  → preload 层
+- electron-ui/src/renderer/i18n/locales/en.json     → 国际化
+- electron-ui/src/renderer/i18n/locales/zh-CN.json  → 国际化
+- electron-ui/src/renderer/components/layout/       → 布局层
+- electron-ui/package.json                          → 版本号
+```
+
+**冲突判定规则**：两个 PRD 如果涉及同一高风险文件，判定为「冲突」，必须串行执行。
+
+### Step 2：分组
+
+将 PRD 分为若干「并行组」，同组内的 PRD 互不冲突：
+
+```
+示例：
+PRD-A（涉及 TerminalPanel.tsx + i18n）
+PRD-B（涉及 WorkflowPanel.tsx + i18n）  ← 与 A 冲突（都改 i18n）→ 串行
+PRD-C（涉及 SkillsPanel.tsx）           ← 与 A/B 无冲突 → 可与 A 并行
+
+分组结果：
+组 1（并行）：PRD-A + PRD-C
+组 2（串行，等组 1 完成）：PRD-B
+```
+
+**分组上限**：每组最多 **3 个** PRD 并行，超过则拆为多组串行执行，防止 API 配额耗尽。
+
+### Step 3：并行启动
+
+对同一组内的 PRD，在单次消息中发出**多个 Agent 工具调用**（不等待前一个完成）：
+
+```
+同时调用：
+- Agent(aipa-frontend, PRD-A 任务描述)
+- Agent(aipa-frontend, PRD-C 任务描述)
+→ 两者并行执行，分别输出各自的 iteration-report
+```
+
+每个 aipa-frontend 实例调用时，需在 prompt 中明确：
+- 负责的 PRD 文件路径
+- **禁止修改的文件列表**（其他并行实例负责的文件，防止误改）
+- 本次使用的迭代编号（leader 提前分配，确保全局唯一）
+
+### Step 4：合并与验证
+
+等所有并行实例完成后：
+1. 检查各实例的 iteration-report，确认无构建错误
+2. 若有冲突（实际发生了 git merge 冲突），leader 负责手动合并或要求 frontend 重做
+3. 统一执行一次构建验证：`cd electron-ui && npm run build`
+4. 构建通过后，调用 **一个** aipa-tester 验证所有并行功能
+5. 所有功能合并为 **一个** git commit，commit message 列出所有功能名
+
+### Step 5：版本号处理
+
+并行执行时，版本号只在最终合并提交时 **bump 一次**（不能每个 frontend 各自 bump，否则冲突）。leader 在 Step 3 调用 frontend 时，明确告知：「**本次不自行 bump 版本号，由 leader 统一处理**」。
+
+### 何时不用并行
+
+以下情况退回串行执行：
+- PRD 数量只有 1 个
+- 所有 PRD 都涉及 store/IPC/preload 等高风险共享文件
+- 当前有未解决的 test-report（先修复再开新并行）
+- 前一轮并行执行出现过 merge 冲突（降级为串行观察一轮）
+
+---
 
 ### 项目状态审计
 

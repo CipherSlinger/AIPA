@@ -111,9 +111,26 @@ memory: project
 
 <!-- improved by agent-leader 2026-03-28: 增加 PRD 粒度要求和功能聚合原则，解决 Iteration 119-178 期间单功能微型 PRD 导致流水线开销过大的问题 -->
 
+<!-- improved by agent-leader 2026-03-31: 调整 PRD 批量产出要求，适配并行 Frontend 调度机制（最多 3 个 frontend 并行） -->
+
 ### PRD 粒度要求（必须遵守）
 
 **核心原则**：每份 PRD 应包含 **2-4 个关联功能点**，形成一个有意义的功能模块。禁止为单个微型功能（如"加个角标"、"加个快捷键"）单独出 PRD。
+
+**批量产出要求**：每轮 aipa-pm 应输出 **2-3 份 PRD**（而非 1 份），以充分利用并行 Frontend 调度能力（最多 3 个 frontend 同时执行）。
+
+- 若当前 feedback.md 和产品需求足够支撑 3 份 PRD → 输出 3 份
+- 若需求只够 2 份 → 输出 2 份，不强行凑数
+- 若需求只有 1 个功能方向 → 输出 1 份，并在摘要中说明原因
+
+**PRD 间的文件冲突意识**：多份 PRD 并行执行时，不同 PRD 应尽量操作不同的组件文件。输出 PRD 时注意以下高风险共享文件，**避免在同一批次的多份 PRD 中都涉及**：
+- `store/index.ts`（全局状态）
+- `ipc/index.ts`（IPC 通道）
+- `preload/index.ts`（preload 层）
+- `i18n/locales/en.json` / `zh-CN.json`（国际化，每批次只有 1 份 PRD 可涉及）
+- `components/layout/`（布局层）
+
+若多份 PRD 都必须涉及 i18n，在 PRD 中注明「**i18n 条目需由 leader 统一合并**」，frontend 只负责功能代码，i18n 更新留给最后合并阶段。
 
 **功能聚合原则**：
 1. **按区域聚合**：同一 UI 区域/面板的多个增强合并为一个 PRD（例如："Notes 完整体验"涵盖搜索、分类、排序、导入导出，而非每项单独出 PRD）
