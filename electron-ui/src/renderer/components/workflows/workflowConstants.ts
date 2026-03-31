@@ -40,6 +40,30 @@ export const PRESET_WORKFLOWS: Omit<Workflow, 'id' | 'createdAt' | 'updatedAt' |
       { id: 'p3', title: 'Executive summary', prompt: 'Create a concise executive summary with: Key Takeaways (3-5 bullets), Recommendation, and Next Steps.' },
     ],
   },
+  {
+    name: 'Daily Summary',
+    description: 'End-of-day review of tasks and progress',
+    icon: '📋',
+    steps: [
+      { id: 'p1', title: 'Recap the day', prompt: 'Give me a brief summary of today\'s key tasks and progress. What should I focus on tomorrow?' },
+    ],
+  },
+  {
+    name: 'Weekly Review',
+    description: 'Reflect on the week and plan ahead',
+    icon: '📅',
+    steps: [
+      { id: 'p1', title: 'Review the week', prompt: 'Help me review this week: What went well? What could be improved? What are my priorities for next week?' },
+    ],
+  },
+  {
+    name: 'Morning Motivation',
+    description: 'Start the day with inspiration and goals',
+    icon: '🌅',
+    steps: [
+      { id: 'p1', title: 'Get inspired', prompt: 'Good morning! Give me an inspiring thought for today and suggest 3 productive things I could accomplish.' },
+    ],
+  },
 ]
 
 export const iconBtnStyle: React.CSSProperties = {

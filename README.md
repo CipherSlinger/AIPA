@@ -28,7 +28,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 | **Chat & Execute** | Full conversational AI with tool-use visualization — watch the agent read files, run code, and browse the web in real time |
 | **Terminal Access** | Built-in PTY terminal (xterm.js) accessible from the chat header — opens with `--resume` to continue the current conversation context |
 | **Memory** | Persistent memory across sessions — preferences, facts, instructions, and context automatically injected into every conversation |
-| **Workflows** | Chain prompts into reusable pipelines; schedule them to run daily, weekly, or monthly |
+| **Workflows** | Chain prompts into reusable multi-step pipelines with preset templates for common tasks |
 | **Notes** | Markdown notepad with categories, templates, and one-click save from any chat response |
 | **Multi-Model** | Switch between Claude, GPT-4, DeepSeek, or local Ollama models mid-session |
 | **Always Available** | System tray with quick actions, global hotkeys (`Ctrl+Shift+Space` toggle, `Ctrl+Shift+G` clipboard ask), and desktop notifications |
@@ -62,10 +62,9 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 - Memory auto-injected into every conversation — pinned items + 10 most recent
 - **Remember This** — one-click save any response from the hover toolbar
 
-### Workflows & Schedules
+### Workflows
 - Build multi-step prompt pipelines with the visual workflow editor
-- Schedule workflows to fire on a cron-like schedule (daily, weekly, monthly)
-- Preset workflows to get started instantly
+- 6 preset workflows to get started instantly (weekly reports, code reviews, daily summaries, and more)
 
 ### Skills Marketplace
 - 46 curated skills from Anthropic, OpenClaw, ClawhHub, and community contributors

@@ -190,7 +190,6 @@ export default function NavRail() {
   const noteCount = usePrefsStore(s => (s.prefs.notes || []).length)
   const memoryCount = usePrefsStore(s => (s.prefs.memories || []).length)
   const workflowCount = usePrefsStore(s => (s.prefs.workflows || []).length)
-  const scheduleCount = usePrefsStore(s => (s.prefs.scheduledPrompts || []).filter(sp => sp.enabled).length)
   const promptHistoryCount = usePrefsStore(s => (s.prefs.promptHistory || []).length)
 
   const navExpanded = usePrefsStore(s => !!s.prefs.navExpanded)
@@ -311,14 +310,14 @@ export default function NavRail() {
         expanded={navExpanded}
       />
 
-      {/* Workflows (includes schedules tab) */}
+      {/* Workflows */}
       <NavItem
         icon={<Workflow size={iconSize} />}
         label={t('nav.workflows')}
         shortcut="Ctrl+6"
         isActive={isWorkflowsActive}
         onClick={() => setActiveNavItem('workflows')}
-        badge={workflowCount + scheduleCount}
+        badge={workflowCount}
         expanded={navExpanded}
       />
 

@@ -1,42 +1,18 @@
-import React, { useState, Suspense } from 'react'
+import React from 'react'
 import {
   Workflow as WorkflowIcon,
-  Clock,
   Plus,
   Search,
 } from 'lucide-react'
 import { useT } from '../../i18n'
-import { usePrefsStore } from '../../store'
 import { useWorkflowCrud } from './useWorkflowCrud'
 import { WORKFLOW_ICONS, MAX_NAME_LENGTH, MAX_DESC_LENGTH, PRESET_WORKFLOWS } from './workflowConstants'
 import WorkflowStepEditor from './WorkflowStepEditor'
 import WorkflowItem from './WorkflowItem'
 
-const SchedulePanel = React.lazy(() => import('../schedules/SchedulePanel'))
-
-function PanelFallback() {
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      height: '100%', color: 'var(--text-muted)', fontSize: 12,
-    }}>
-      <div style={{
-        width: 20, height: 20, border: '2px solid var(--border)',
-        borderTopColor: 'var(--accent)', borderRadius: '50%',
-        animation: 'spin 0.8s linear infinite',
-      }} />
-    </div>
-  )
-}
-
-type ActiveTab = 'workflows' | 'schedules'
-
 export default function WorkflowPanel() {
   const t = useT()
   const crud = useWorkflowCrud()
-  const [activeTab, setActiveTab] = useState<ActiveTab>('workflows')
-  const scheduleCount = usePrefsStore(s => (s.prefs.scheduledPrompts || []).filter(sp => sp.enabled).length)
-  const totalSchedules = usePrefsStore(s => (s.prefs.scheduledPrompts || []).length)
 
   return (
     <div style={{
@@ -46,89 +22,7 @@ export default function WorkflowPanel() {
       background: 'var(--bg-sessionpanel)',
       overflow: 'hidden',
     }}>
-      {/* Tab switcher */}
-      <div style={{
-        display: 'flex',
-        borderBottom: '1px solid var(--border)',
-        flexShrink: 0,
-        background: 'linear-gradient(180deg, rgba(16, 185, 129, 0.06) 0%, transparent 100%)',
-      }}>
-        <button
-          onClick={() => setActiveTab('workflows')}
-          style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 5,
-            padding: '10px 0',
-            background: 'none',
-            border: 'none',
-            borderBottom: activeTab === 'workflows' ? '2px solid var(--accent)' : '2px solid transparent',
-            color: activeTab === 'workflows' ? 'var(--accent)' : 'var(--text-muted)',
-            fontWeight: activeTab === 'workflows' ? 600 : 400,
-            fontSize: 12,
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-          }}
-        >
-          <WorkflowIcon size={14} />
-          {t('workflow.title')}
-          {crud.workflows.length > 0 && (
-            <span style={{
-              fontSize: 9,
-              background: activeTab === 'workflows' ? 'rgba(16, 185, 129, 0.12)' : 'var(--input-field-bg)',
-              borderRadius: 8,
-              padding: '1px 5px',
-              color: activeTab === 'workflows' ? 'var(--accent)' : 'var(--text-muted)',
-            }}>
-              {crud.workflows.length}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => setActiveTab('schedules')}
-          style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 5,
-            padding: '10px 0',
-            background: 'none',
-            border: 'none',
-            borderBottom: activeTab === 'schedules' ? '2px solid var(--accent)' : '2px solid transparent',
-            color: activeTab === 'schedules' ? 'var(--accent)' : 'var(--text-muted)',
-            fontWeight: activeTab === 'schedules' ? 600 : 400,
-            fontSize: 12,
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-          }}
-        >
-          <Clock size={14} />
-          {t('schedule.title')}
-          {totalSchedules > 0 && (
-            <span style={{
-              fontSize: 9,
-              background: activeTab === 'schedules' ? 'rgba(139, 92, 246, 0.12)' : 'var(--input-field-bg)',
-              borderRadius: 8,
-              padding: '1px 5px',
-              color: activeTab === 'schedules' ? 'var(--accent)' : 'var(--text-muted)',
-            }}>
-              {scheduleCount}/{totalSchedules}
-            </span>
-          )}
-        </button>
-      </div>
-
-      {/* Tab content */}
-      {activeTab === 'workflows' ? (
-        <WorkflowTabContent crud={crud} t={t} />
-      ) : (
-        <Suspense fallback={<PanelFallback />}>
-          <SchedulePanel />
-        </Suspense>
-      )}
+      <WorkflowTabContent crud={crud} t={t} />
     </div>
   )
 }
