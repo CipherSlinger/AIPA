@@ -151,7 +151,7 @@ export function useAppShortcuts(
         window.electronAPI.prefsSet('model', nextModel)
         // Show short model name in toast
         const shortName = nextModel.replace('claude-', '').split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')
-        useUiStore.getState().addToast('info', `Model: ${shortName}`, 1500)
+        useUiStore.getState().addToast('info', t('chat.modelSwitched', { model: shortName }), 1500)
       }
       // Ctrl+Shift+T: Toggle always-on-top (pin window)
       if (e.ctrlKey && e.shiftKey && e.key === 'T') {

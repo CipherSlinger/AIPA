@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { usePrefsStore } from '../../store'
+import { usePrefsStore, useUiStore } from '../../store'
 import { useI18n } from '../../i18n'
 import type { CustomPromptTemplate, Persona } from '../../types/app.types'
 import SettingsGeneral from './SettingsGeneral'
@@ -160,6 +160,12 @@ export default function SettingsPanel() {
         <SettingsAbout
           onResetDefaults={handleResetDefaults}
           saved={saved}
+          onShowShortcuts={() => {
+            // Close settings modal and open the shortcut cheatsheet
+            const ui = useUiStore.getState()
+            ui.closeSettingsModal()
+            window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, key: '/' }))
+          }}
         />
       )}
     </div>

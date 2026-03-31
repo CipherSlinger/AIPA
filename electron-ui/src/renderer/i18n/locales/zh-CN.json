@@ -471,7 +471,8 @@
       "mentionFile": "提及文件",
       "slashCommands": "斜杠命令",
       "runtime": "运行环境",
-      "resetDefaults": "恢复默认设置"
+      "resetDefaults": "恢复默认设置",
+      "viewAllShortcuts": "查看全部快捷键"
     },
     "templates": {
       "builtIn": "内置模板",

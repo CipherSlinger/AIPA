@@ -7,6 +7,7 @@ import ShortcutCheatsheet from './components/shared/ShortcutCheatsheet'
 import { ToastContainer } from './components/ui/Toast'
 import { usePrefsStore, useChatStore, useUiStore } from './store'
 import { useAppShortcuts } from './hooks/useAppShortcuts'
+import { useT } from './i18n'
 import './styles/globals.css'
 import 'highlight.js/styles/github-dark.css'
 
@@ -25,6 +26,7 @@ export default function App() {
   const setSidebarTab = useUiStore(s => s.setSidebarTab)
   const toasts = useUiStore(s => s.toasts)
   const removeToast = useUiStore(s => s.removeToast)
+  const t = useT()
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
 
@@ -133,7 +135,7 @@ export default function App() {
         const newValue = !ui.alwaysOnTop
         window.electronAPI.windowSetAlwaysOnTop(newValue)
         ui.setAlwaysOnTop(newValue)
-        ui.addToast('info', newValue ? 'Window pinned on top' : 'Window unpinned')
+        ui.addToast('info', t(newValue ? 'window.pinnedOn' : 'window.pinnedOff'))
       }),
       // Menu: Help > About AIPA -- open Settings modal (which contains the About section)
       window.electronAPI.onMenuEvent('about', () => {

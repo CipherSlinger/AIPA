@@ -1,14 +1,14 @@
 import React from 'react'
-import { ExternalLink } from 'lucide-react'
-import { usePrefsStore } from '../../store'
+import { ExternalLink, Keyboard } from 'lucide-react'
 import { useI18n } from '../../i18n'
 
 interface SettingsAboutProps {
   onResetDefaults: () => void
   saved: boolean
+  onShowShortcuts?: () => void
 }
 
-export default function SettingsAbout({ onResetDefaults, saved }: SettingsAboutProps) {
+export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts }: SettingsAboutProps) {
   const { t } = useI18n()
 
   return (
@@ -53,33 +53,31 @@ export default function SettingsAbout({ onResetDefaults, saved }: SettingsAboutP
 
       <div style={{ borderTop: '1px solid var(--border)' }} />
 
-      {/* Keyboard shortcuts */}
+      {/* Keyboard shortcuts -- link to full cheatsheet */}
       <div>
         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>{t('settings.about.keyboardShortcuts')}</div>
-        {[
-          { keys: 'Ctrl + B', action: t('settings.about.toggleSidebar') },
-          { keys: 'Ctrl + `', action: t('settings.about.toggleTerminal') },
-          { keys: 'Ctrl + N', action: t('settings.about.newConversation') },
-          { keys: 'Ctrl + F', action: t('settings.about.searchInConversation') },
-          { keys: 'Ctrl + Shift + P', action: t('command.commandPalette') },
-          { keys: 'Ctrl + /', action: t('settings.about.shortcutCheatsheet') },
-          { keys: 'Enter', action: t('settings.about.sendMessage') },
-          { keys: 'Shift + Enter', action: t('settings.about.newLine') },
-          { keys: '@', action: t('settings.about.mentionFile') },
-          { keys: '/', action: t('settings.about.slashCommands') },
-        ].map(shortcut => (
-          <div
-            key={shortcut.keys}
-            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}
-          >
-            <span style={{ fontSize: 11, color: 'var(--text-primary)' }}>{shortcut.action}</span>
-            <kbd style={{
-              fontSize: 10, color: 'var(--text-muted)', background: 'var(--bg-input)',
-              border: '1px solid var(--border)', borderRadius: 3, padding: '1px 6px',
-              fontFamily: 'inherit',
-            }}>{shortcut.keys}</kbd>
-          </div>
-        ))}
+        <button
+          onClick={onShowShortcuts}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+            padding: '10px 12px', background: 'var(--bg-active)',
+            border: '1px solid var(--border)', borderRadius: 6,
+            color: 'var(--text-primary)', cursor: 'pointer', fontSize: 12,
+            justifyContent: 'space-between',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+          onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+        >
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Keyboard size={14} style={{ color: 'var(--accent)' }} />
+            {t('settings.about.viewAllShortcuts')}
+          </span>
+          <kbd style={{
+            fontSize: 10, color: 'var(--text-muted)', background: 'var(--bg-input)',
+            border: '1px solid var(--border)', borderRadius: 3, padding: '1px 6px',
+            fontFamily: 'inherit',
+          }}>Ctrl+/</kbd>
+        </button>
       </div>
 
       <div style={{ borderTop: '1px solid var(--border)' }} />
