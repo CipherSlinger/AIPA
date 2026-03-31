@@ -101,7 +101,7 @@ export default function SettingsProviders() {
     const id = `custom-${Date.now()}`
     const config: ProviderConfig = {
       id,
-      name: 'New Provider',
+      name: t('provider.newProviderName'),
       type: 'openai-compat',
       baseUrl: '',
       apiKey: '',

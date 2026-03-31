@@ -67,8 +67,9 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 - 6 preset workflows to get started instantly (weekly reports, code reviews, daily summaries, and more)
 
 ### Skills Marketplace
-- 46 curated skills from Anthropic, OpenClaw, ClawhHub, and community contributors
+- 47 curated skills from Anthropic, OpenClaw, ClawhHub, and community contributors
 - One-click install from the built-in marketplace; filter by source and category
+- Built-in Skill Creator for designing custom skills interactively through chat
 
 ### Channel (Feishu & WeChat)
 - Connect your **Feishu** workspace bot via webhook URL + App credentials

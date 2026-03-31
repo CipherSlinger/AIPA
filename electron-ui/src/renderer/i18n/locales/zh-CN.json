@@ -532,6 +532,7 @@
     "saveAsNote": "保存输入为笔记",
     "savedAsNote": "输入已保存到笔记",
     "attachFiles": "附加文件",
+    "allFiles": "所有文件",
     "startFocusTimer": "启动 25 分钟专注计时器",
     "stopFocusTimer": "停止专注计时器",
     "focusTimerComplete": "专注时间结束！休息一下吧。",
@@ -801,7 +802,10 @@
   "tool": {
     "input": "输入",
     "output": "输出",
-    "noOutput": "(无输出)"
+    "noOutput": "(无输出)",
+    "linesCount": "{{count}} 行",
+    "livePreview": "实时预览",
+    "codePreview": "代码预览"
   },
   "lightbox": {
     "zoomIn": "放大 (+)",
@@ -1113,6 +1117,7 @@
   "provider": {
     "title": "模型提供商",
     "addCustom": "添加自定义提供商",
+    "newProviderName": "新提供商",
     "testConnection": "测试连接",
     "healthy": "已连接",
     "degraded": "降级",

@@ -336,7 +336,7 @@ export default function ChatInput({
         onSend={onSend}
         onAttachFiles={async () => {
           const paths = await window.electronAPI.fsShowOpenFileDialog(
-            [{ name: 'All Files', extensions: ['*'] }],
+            [{ name: t('toolbar.allFiles'), extensions: ['*'] }],
             true
           )
           if (paths && paths.length > 0) {

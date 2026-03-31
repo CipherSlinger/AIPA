@@ -49,6 +49,7 @@ function PreviewButton({ active, onToggle }: { active: boolean; onToggle: () => 
 }
 
 function PreviewPane({ code, lang }: { code: string; lang: string }) {
+  const t = useT()
   const srcDoc = wrapForPreview(code, lang)
   return (
     <div
@@ -73,7 +74,7 @@ function PreviewPane({ code, lang }: { code: string; lang: string }) {
         }}
       >
         <Play size={10} />
-        Live Preview
+        {t('tool.livePreview')}
       </div>
       <iframe
         srcDoc={srcDoc}
@@ -84,7 +85,7 @@ function PreviewPane({ code, lang }: { code: string; lang: string }) {
           border: 'none',
           background: '#fff',
         }}
-        title="Code preview"
+        title={t('tool.codePreview')}
       />
     </div>
   )
@@ -222,6 +223,7 @@ export default function CodeBlockWithHeader({
   children: React.ReactNode
   props: Record<string, unknown>
 }) {
+  const t = useT()
   const showLineNumbers = lineCount > 1
   const [wordWrap, setWordWrap] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
@@ -254,7 +256,7 @@ export default function CodeBlockWithHeader({
           <span style={{ color: langColor || 'var(--text-muted)', fontWeight: langColor ? 500 : 400 }}>
             {langName}
           </span>
-          {lineCount > 1 && <span style={{ opacity: 0.6 }}>{lineCount} lines</span>}
+          {lineCount > 1 && <span style={{ opacity: 0.6 }}>{t('tool.linesCount', { count: lineCount })}</span>}
         </span>
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           {isPreviewable && (
