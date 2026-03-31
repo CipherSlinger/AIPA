@@ -155,6 +155,22 @@ export function useStreamJson() {
 
     const currentSessionId = useChatStore.getState().currentSessionId
 
+    // If this is a new conversation, add a pending session to the list immediately
+    // so the user sees it appear in the sidebar without waiting for the AI response
+    if (!currentSessionId) {
+      const sessions = useSessionStore.getState().sessions
+      const pendingSession = {
+        sessionId: `pending-${Date.now()}`,
+        lastPrompt: prompt.length > 100 ? prompt.slice(0, 100) + '...' : prompt,
+        timestamp: Date.now(),
+        project: '',
+        projectSlug: '',
+        messageCount: 1,
+        firstTimestamp: Date.now(),
+      }
+      useSessionStore.getState().setSessions([pendingSession, ...sessions])
+    }
+
     const flags: string[] = []
     if (prefs.thinkingLevel === 'adaptive') {
       flags.push('--thinking', 'adaptive')
@@ -399,7 +415,13 @@ export function useStreamJson() {
         }
         case 'cli:result': {
           const claudeSessionId = data.claudeSessionId as string | undefined
-          if (claudeSessionId) setSessionId(claudeSessionId)
+          if (claudeSessionId) {
+            setSessionId(claudeSessionId)
+            // Refresh session list so the pending placeholder is replaced with the real session
+            window.electronAPI.sessionList().then((list: any) => {
+              if (list) useSessionStore.getState().setSessions(list)
+            })
+          }
           const ev = data.event as Record<string, unknown>
           const usage = ev?.usage as Record<string, number> | undefined
           if (usage) {
