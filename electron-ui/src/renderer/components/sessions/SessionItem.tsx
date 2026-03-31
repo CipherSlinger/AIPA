@@ -326,13 +326,16 @@ export default function SessionItem({
           style={{
             display: 'flex',
             position: 'absolute',
-            right: 8,
-            bottom: 8,
+            right: 0,
+            bottom: 0,
             gap: 4,
             alignItems: 'center',
             opacity: 0,
             transform: 'translateX(4px)',
             transition: 'opacity 0.15s ease, transform 0.15s ease',
+            padding: '6px 10px 8px 20px',
+            background: 'linear-gradient(to right, transparent, var(--bg-sessionpanel) 30%)',
+            borderRadius: '0 0 0 0',
           }}
         >
           <button
