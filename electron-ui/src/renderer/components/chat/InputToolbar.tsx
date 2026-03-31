@@ -3,7 +3,6 @@ import { AtSign, TerminalSquare, Mic, MicOff, ListPlus, Cpu, Star, Paperclip } f
 import { useT } from '../../i18n'
 import { usePrefsStore, useChatStore } from '../../store'
 import ClipboardActionsMenu from './ClipboardActionsMenu'
-import InputToolbarDateInsert from './InputToolbarDateInsert'
 import InputToolbarTextTransform from './InputToolbarTextTransform'
 import InputToolbarSaveNote from './InputToolbarSaveNote'
 import InputToolbarToneSelector from './InputToolbarToneSelector'
@@ -17,7 +16,6 @@ interface InputToolbarProps {
   onSlashClick: () => void
   onQueueClick: () => void
   onSend: (text: string) => Promise<void>
-  onInsertText: (text: string) => void
   onAttachFiles: () => void
   fileAttachmentCount: number
   hasInput: boolean
@@ -31,7 +29,6 @@ export default function InputToolbar({
   onSlashClick,
   onQueueClick,
   onSend,
-  onInsertText,
   onAttachFiles,
   fileAttachmentCount,
   hasInput,
@@ -129,8 +126,6 @@ export default function InputToolbar({
       </button>
       {/* Clipboard actions */}
       <ClipboardActionsMenu onSend={onSend} />
-      {/* Date/Time insertion */}
-      <InputToolbarDateInsert onInsert={onInsertText} />
       {/* Text transform */}
       <InputToolbarTextTransform inputText={inputText} onSend={onSend} />
       {/* Favorite prompts */}

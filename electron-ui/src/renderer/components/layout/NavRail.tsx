@@ -1,5 +1,5 @@
 import React from 'react'
-import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, ListRestart, TerminalSquare, Settings, User, PanelLeftClose, PanelLeftOpen, Radio } from 'lucide-react'
+import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, ListRestart, Settings, User, PanelLeftClose, PanelLeftOpen, Radio } from 'lucide-react'
 import { useUiStore, useSessionStore, useChatStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 
@@ -183,7 +183,6 @@ export default function NavRail() {
   const {
     activeNavItem,
     setActiveNavItem,
-    toggleTerminal,
     sidebarTab,
   } = useUiStore()
 
@@ -224,11 +223,6 @@ export default function NavRail() {
     const store = useChatStore.getState()
     if (store.isStreaming) return
     store.clearMessages()
-  }
-
-  const handleTerminal = () => {
-    setActiveNavItem('terminal')
-    toggleTerminal()
   }
 
   const iconSize = navExpanded ? 20 : 18
@@ -346,15 +340,6 @@ export default function NavRail() {
         shortcut="Ctrl+9"
         isActive={isChannelActive}
         onClick={() => setActiveNavItem('channel')}
-        expanded={navExpanded}
-      />
-
-      {/* Terminal */}
-      <NavItem
-        icon={<TerminalSquare size={iconSize} />}
-        label={t('nav.terminal')}
-        shortcut="Ctrl+`"
-        onClick={handleTerminal}
         expanded={navExpanded}
       />
 

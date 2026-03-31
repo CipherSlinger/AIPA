@@ -3,7 +3,7 @@
 //              StatusBarModelPicker, StatusBarPersonaPicker
 
 import React from 'react'
-import { PanelLeft, Terminal, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Square, StopCircle, Pin, Settings } from 'lucide-react'
+import { PanelLeft, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Square, StopCircle, Pin, Settings } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { StandardChatMessage } from '../../types/app.types'
 import { useT } from '../../i18n'
@@ -23,9 +23,7 @@ export default function StatusBar() {
   const messages = useChatStore(s => s.messages)
   const prefs = usePrefsStore(s => s.prefs)
   const toggleSidebar = useUiStore(s => s.toggleSidebar)
-  const toggleTerminal = useUiStore(s => s.toggleTerminal)
   const sidebarOpen = useUiStore(s => s.sidebarOpen)
-  const terminalOpen = useUiStore(s => s.terminalOpen)
   const alwaysOnTop = useUiStore(s => s.alwaysOnTop)
   const setAlwaysOnTop = useUiStore(s => s.setAlwaysOnTop)
   const t = useT()
@@ -303,14 +301,6 @@ export default function StatusBar() {
           onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.6' }}
         >
           <Settings size={12} />
-        </button>
-
-        <button
-          onClick={toggleTerminal}
-          title={t('toolbar.toggleTerminal')}
-          style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0, opacity: terminalOpen ? 1 : 0.6 }}
-        >
-          <Terminal size={12} />
         </button>
       </div>
     </div>

@@ -73,9 +73,15 @@ export function useAppShortcuts(
           store.clearMessages()
         }
       }
-      // Ctrl+`: Toggle terminal
+      // Ctrl+`: Toggle terminal (with session context)
       if (e.ctrlKey && !e.shiftKey && e.key === '`') {
         e.preventDefault()
+        // Set resume session ID so terminal opens with current chat context
+        const chatStore = useChatStore.getState()
+        const ui = useUiStore.getState()
+        if (chatStore.currentSessionId && !ui.terminalOpen) {
+          ui.setTerminalResumeSessionId(chatStore.currentSessionId)
+        }
         toggleTerminal()
       }
       // Ctrl+Shift+P: Command palette
