@@ -1,6 +1,6 @@
 import React from 'react'
 import { MessageSquare, Globe, X } from 'lucide-react'
-import { useT } from '../../i18n'
+import { useT, useDateLocale } from '../../i18n'
 import { getSessionAvatarColor } from './sessionUtils'
 import HighlightText from './HighlightText'
 import { formatDistanceToNow } from 'date-fns'
@@ -32,6 +32,7 @@ export default function GlobalSearchResults({
   onClose,
 }: GlobalSearchResultsProps) {
   const t = useT()
+  const dateLocale = useDateLocale()
 
   return (
     <div style={{
@@ -130,7 +131,7 @@ export default function GlobalSearchResults({
                 }}>
                   {result.matchType === 'title' ? t('session.matchInTitle') : t('session.matchInContent')}
                 </span>
-                <span>{formatDistanceToNow(result.timestamp, { addSuffix: true })}</span>
+                <span>{formatDistanceToNow(result.timestamp, { addSuffix: true, locale: dateLocale })}</span>
               </div>
               {result.matchType === 'content' && result.snippet && (
                 <div style={{

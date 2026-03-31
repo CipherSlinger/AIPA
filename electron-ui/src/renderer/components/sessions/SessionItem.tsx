@@ -1,7 +1,7 @@
 import React from 'react'
 import { Trash2, Star, GitBranch, Pencil, Tag, Download, MessageSquare, CheckSquare, Square, Clock } from 'lucide-react'
 import { SessionListItem } from '../../types/app.types'
-import { useT } from '../../i18n'
+import { useT, useDateLocale } from '../../i18n'
 import { getSessionAvatarColor, formatSessionDuration, TAG_PRESETS, getMatchContext } from './sessionUtils'
 import HighlightText from './HighlightText'
 import { formatDistanceToNow } from 'date-fns'
@@ -66,6 +66,7 @@ export default function SessionItem({
   onHideTooltip,
 }: SessionItemProps) {
   const t = useT()
+  const dateLocale = useDateLocale()
   const avatarColor = getSessionAvatarColor(session.sessionId)
   const previewText = (session.lastPrompt || '').slice(0, 50) || undefined
   const getTagName = (idx: number) => tagNames[idx] || t(TAG_PRESETS[idx]?.defaultKey || 'tags.work')
@@ -234,7 +235,7 @@ export default function SessionItem({
                 </span>
               )
             })()}
-            {formatDistanceToNow(new Date(session.timestamp), { addSuffix: true })}
+            {formatDistanceToNow(new Date(session.timestamp), { addSuffix: true, locale: dateLocale })}
           </span>
         </div>
 

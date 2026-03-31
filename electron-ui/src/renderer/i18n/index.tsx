@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import en from './locales/en.json'
 import zhCN from './locales/zh-CN.json'
+import { zhCN as dateFnsZhCN } from 'date-fns/locale/zh-CN'
 
 // Supported locales
 export type Locale = 'en' | 'zh-CN' | 'system'
@@ -54,6 +55,14 @@ export function useI18n() {
 export function useT() {
   return useContext(I18nContext).t
 }
+
+// Return date-fns locale object for the current resolved locale
+export function useDateLocale(): Locale_DateFns | undefined {
+  const { resolvedLocale } = useContext(I18nContext)
+  return resolvedLocale === 'zh-CN' ? dateFnsZhCN : undefined
+}
+
+type Locale_DateFns = typeof dateFnsZhCN
 
 interface I18nProviderProps {
   children: React.ReactNode

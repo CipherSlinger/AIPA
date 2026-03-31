@@ -2508,3 +2508,6 @@ Status: SUCCESS
 
 ### Iteration 352 (2026-03-30)
 - Dead code cleanup: ClawhHub fetch remnants + README accuracy -- (1) Removed stale "live browsing from ClawhHub.ai" claim from README.md and README_CN.md Skills Marketplace section; updated to accurately describe built-in marketplace with source/category filtering. (2) Removed unused CLAWHUB_URL constant from skillMarketplace.ts (was still exported but no longer imported after It.350 cleanup). (3) Removed 7 dead i18n strings from en.json and zh-CN.json: browseOnClawhub, fetchFromClawhub, fetchingClawhub, newSkillsFound, noNewSkills, clawhubEmpty, clawhubError -- all orphaned after It.350 removed ClawhHub fetch UI. 5 files changed; tsc 0 errors; build SUCCESS
+
+### Iteration 353 (2026-03-30)
+- i18n: Localize relative timestamps in session list and global search -- Added `useDateLocale()` hook to i18n module that returns the date-fns `zhCN` locale when app language is Chinese, `undefined` (default English) otherwise. Updated `formatDistanceToNow()` calls in SessionItem.tsx and GlobalSearchResults.tsx to pass the locale option. Chinese-language users now see "3 分钟前" instead of "3 minutes ago". Bundle size impact: ~550 bytes (zh-CN date-fns locale). 3 files changed; tsc 0 errors; build SUCCESS
