@@ -1778,4 +1778,3 @@ Provide specific remediation steps with code examples.
   },
 ]
 
-export const CLAWHUB_URL = 'https://clawhub.ai/skills'

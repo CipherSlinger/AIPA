@@ -966,14 +966,7 @@
     "category_research": "研究",
     "category_creative": "创意",
     "category_devops": "运维",
-    "category_design": "设计",
-    "browseOnClawhub": "在 ClawhHub.ai 浏览更多技能",
-    "fetchFromClawhub": "从 ClawhHub 获取",
-    "fetchingClawhub": "正在从 ClawhHub 获取...",
-    "newSkillsFound": "个新技能已从 ClawhHub 加载",
-    "noNewSkills": "未发现新技能 — ClawhHub 技能均已列出",
-    "clawhubEmpty": "ClawhHub 未返回结果",
-    "clawhubError": "无法连接 ClawhHub"
+    "category_design": "设计"
   },
   "followUp": {
     "explainCode": "解释这段代码",
