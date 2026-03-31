@@ -118,6 +118,13 @@ export default function App() {
         ui.setAlwaysOnTop(newValue)
         ui.addToast('info', newValue ? 'Window pinned on top' : 'Window unpinned')
       }),
+      // Menu: Help > About AIPA -- open Settings panel (which contains the About section)
+      window.electronAPI.onMenuEvent('about', () => {
+        const ui = useUiStore.getState()
+        ui.setSidebarOpen(true)
+        ui.setSidebarTab('settings')
+        ui.setActiveNavItem('settings')
+      }),
     ]
     return () => cleanups.forEach((fn) => fn?.())
   }, [])

@@ -61,6 +61,8 @@ export default function SettingsAbout({ onResetDefaults, saved }: SettingsAboutP
           { keys: 'Ctrl + `', action: t('settings.about.toggleTerminal') },
           { keys: 'Ctrl + N', action: t('settings.about.newConversation') },
           { keys: 'Ctrl + F', action: t('settings.about.searchInConversation') },
+          { keys: 'Ctrl + Shift + P', action: t('command.commandPalette') },
+          { keys: 'Ctrl + /', action: t('settings.about.shortcutCheatsheet') },
           { keys: 'Enter', action: t('settings.about.sendMessage') },
           { keys: 'Shift + Enter', action: t('settings.about.newLine') },
           { keys: '@', action: t('settings.about.mentionFile') },

@@ -15,7 +15,7 @@ type ActiveTab = 'feishu' | 'wechat'
 // ── Shared field component ───────────────────────────────────────────────────
 
 function ConfigField({
-  label, value, onChange, placeholder, secret, hint,
+  label, value, onChange, placeholder, secret, hint, required,
 }: {
   label: string
   value: string
@@ -23,13 +23,14 @@ function ConfigField({
   placeholder?: string
   secret?: boolean
   hint?: string
+  required?: boolean
 }) {
   const [show, setShow] = useState(false)
   return (
     <div style={{ marginBottom: 10 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
         <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.4 }}>
-          {label}
+          {label}{required && <span style={{ color: '#ef4444', marginLeft: 2 }}>*</span>}
         </label>
         {secret && (
           <button
@@ -93,7 +94,7 @@ function FeishuTab() {
     window.electronAPI.prefsSet('channelFeishu', next)
   }
 
-  const canConnect = cfg.appId.trim() && cfg.appSecret.trim() && cfg.botWebhookUrl.trim()
+  const canConnect = cfg.appId.trim() && cfg.appSecret.trim()
 
   const handleTest = async () => {
     if (!canConnect) return
@@ -148,6 +149,7 @@ function FeishuTab() {
         value={cfg.appId}
         onChange={v => update({ appId: v })}
         placeholder="cli_xxxxxxxxx"
+        required
       />
       <ConfigField
         label={t('channel.feishu.appSecret')}
@@ -155,6 +157,7 @@ function FeishuTab() {
         onChange={v => update({ appSecret: v })}
         placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
         secret
+        required
       />
       <ConfigField
         label={t('channel.feishu.webhookUrl')}
@@ -282,6 +285,7 @@ function WechatTab() {
         value={cfg.appId}
         onChange={v => update({ appId: v })}
         placeholder="wx_xxxxxxxxxxxxxxxx"
+        required
       />
       <ConfigField
         label={t('channel.wechat.appSecret')}
@@ -289,6 +293,7 @@ function WechatTab() {
         onChange={v => update({ appSecret: v })}
         placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
         secret
+        required
       />
       <ConfigField
         label={t('channel.wechat.token')}
@@ -296,6 +301,7 @@ function WechatTab() {
         onChange={v => update({ token: v })}
         placeholder={t('channel.wechat.tokenPlaceholder')}
         hint={t('channel.wechat.tokenHint')}
+        required
       />
       <ConfigField
         label={t('channel.wechat.encodingAESKey')}

@@ -2465,3 +2465,6 @@ Status: SUCCESS
 
 ### Iteration 339 (2026-03-30)
 - Enhanced app menu bar -- (1) Added "Recent Sessions" submenu to File menu (10 most recent sessions, click to open). (2) Added "Export Conversation" (Ctrl+Shift+E) to File menu. (3) Added "Focus Mode" (Ctrl+Shift+O) and "Always on Top" (Ctrl+Shift+T) to View menu. (4) Added renderer-side menu event handlers for exportConversation, toggleFocusMode, and toggleAlwaysOnTop. The app menu now matches the tray menu in having quick session access and exposes all major view modes directly from the menu bar. 2 files changed (main/index.ts, App.tsx); build SUCCESS
+
+### Iteration 340 (2026-03-30)
+- Fix Feishu connect button + About menu + shortcuts polish -- (1) Bug fix: Feishu channel connect button was unclickable after filling only App ID and App Secret because canConnect also required Webhook URL. Changed validation to only require appId + appSecret (webhook is optional for connection test). (2) Required field indicators: Added required prop to ConfigField component; marked Feishu appId/appSecret and WeChat appId/appSecret/token with red asterisk to clarify mandatory vs optional fields. (3) Help > About AIPA: Menu bar Help > About now opens Settings sidebar panel. (4) About page shortcuts: Added Ctrl+Shift+P and Ctrl+/ to About page keyboard shortcuts list. 3 files changed; build SUCCESS
