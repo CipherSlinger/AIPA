@@ -2535,3 +2535,5 @@ Status: SUCCESS
 
 ### Iteration 361 (2026-03-30)
 - Built-in Skill Creator skill (user feedback) -- Added a new "Skill Creator" skill to the marketplace as a built-in Anthropic-sourced skill. The skill is a comprehensive prompt template that guides users through a 4-step process: (1) Understand the goal (purpose, input, output), (2) Define the skill (frontmatter, title, instructions, output format), (3) Review & refine (iterate on the draft), (4) Install (instructions for saving). Includes a complete SKILL.md template structure and best practices guidelines. Addresses user feedback: "内置一个 skill-creator 技能". Total marketplace skills: 47. 1 file changed; tsc 0 errors; build SUCCESS
+
+[RETRO] retro-2026-03-30-iterations-352-361.md completed, covering Iteration 352-361, next forced retro after Iteration 371

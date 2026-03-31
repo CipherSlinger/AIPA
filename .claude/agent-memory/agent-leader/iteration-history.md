@@ -78,9 +78,27 @@ type: project
 - **Next forced retro**: After Iteration 361
 - **Retro**: retro-2026-03-30-iterations-342-351.md
 
+### Iterations 352-361 (2026-03-30)
+- **It.352**: Dead code cleanup: ClawhHub fetch remnants removed from README, skillMarketplace.ts, and 7 orphaned i18n keys
+- **It.353**: i18n: Localized relative timestamps (date-fns zhCN locale) in session list and global search
+- **It.354**: Session date groups enhancement: added "This Month" category, auto-localized month names
+- **It.355**: i18n: Error boundaries localized via standalone getT() function for class components
+- **It.356**: Sequential sidebar shortcuts (removed Ctrl+5 gap from Settings modal move)
+- **It.357**: Removed Schedule tab, migrated 3 presets to Workflows (5 files deleted, 36 i18n keys removed)
+- **It.358**: Removed Prompt History feature entirely (3 files deleted, 36 i18n keys removed, 12 files modified)
+- **It.359**: New session appears immediately in sidebar on send (pending placeholder pattern)
+- **It.360**: Skills marketplace filter dropdowns (replaced pills with compact selects)
+- **It.361**: Built-in Skill Creator marketplace skill (47 total skills)
+- **Current version**: 1.1.40
+- **i18n key count**: 1125 (both en.json and zh-CN.json aligned)
+- **Build status**: Clean (tsc zero errors, build SUCCESS)
+- **Next forced retro**: After Iteration 371
+- **Retro**: retro-2026-03-30-iterations-352-361.md
+
 ### Outstanding Tech Debt
-- skillMarketplace.ts (1781 lines) is data-only, exempted from 800-line rule
-- ipc/index.ts resolved (784->478 lines in It.335)
-- Shortcut registry created in It.332 as single source of truth
+- skillMarketplace.ts (~1845 lines) is data-only, exempted from 800-line rule
 - No component files above 600 lines -- codebase is well-structured
-- i18n gap: stored prefs with translated labels don't auto-update on language change (QuickReplyChips pattern fixed in It.350 can be applied elsewhere if needed)
+- All feedback items resolved (feedback.md is empty)
+- SidebarTab type: 7 tabs (history, files, notes, skills, memory, workflows, channel)
+- Sidebar shortcuts: Ctrl+1-7 (history through channel)
+- Settings: Ctrl+, opens modal overlay (removed from sidebar)
