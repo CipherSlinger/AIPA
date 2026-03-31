@@ -2479,3 +2479,6 @@ Status: SUCCESS
 
 ### Iteration 343 (2026-03-30)
 - Menu bar polish + README shortcuts update -- (1) Added "Settings" (Ctrl+,) entry to Edit menu in the app menu bar, following standard desktop convention. (2) Added "Keyboard Shortcuts" (Ctrl+/) entry to Help menu. (3) Added renderer-side handlers for openSettings and keyboardShortcuts menu events. (4) Updated README.md and README_CN.md keyboard shortcuts tables: split Ctrl+1-5 into Ctrl+1-4 (sidebar panels) + Ctrl+, (settings modal), updated Quick Start text to reference Ctrl+, instead of sidebar gear icon. 4 files changed; tsc 0 errors; build SUCCESS
+
+### Iteration 344 (2026-03-30)
+- Status bar settings gear + code cleanup -- (1) Added Settings gear icon to status bar right zone (between pin and terminal buttons), opens settings modal on click, shows tooltip with Ctrl+, shortcut. (2) Fixed SettingsModal dialog container missing `position: relative`, so the close button is now properly positioned relative to the dialog rather than the viewport. (3) Removed unused `Play` import from StatusBar.tsx. 2 files changed; tsc 0 errors; build SUCCESS

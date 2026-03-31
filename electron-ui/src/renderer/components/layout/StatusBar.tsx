@@ -3,7 +3,7 @@
 //              StatusBarModelPicker, StatusBarPersonaPicker
 
 import React from 'react'
-import { PanelLeft, Terminal, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Play, Square, StopCircle, Pin } from 'lucide-react'
+import { PanelLeft, Terminal, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Square, StopCircle, Pin, Settings } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { StandardChatMessage } from '../../types/app.types'
 import { useT } from '../../i18n'
@@ -292,6 +292,17 @@ export default function StatusBar() {
           style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0, opacity: alwaysOnTop ? 1 : 0.6 }}
         >
           <Pin size={12} style={{ transform: alwaysOnTop ? 'rotate(-45deg)' : undefined, transition: 'transform 0.2s' }} />
+        </button>
+
+        {/* Settings gear */}
+        <button
+          onClick={() => useUiStore.getState().openSettingsModal()}
+          title={t('nav.settings') + ' (Ctrl+,)'}
+          style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0, opacity: 0.6 }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.6' }}
+        >
+          <Settings size={12} />
         </button>
 
         <button

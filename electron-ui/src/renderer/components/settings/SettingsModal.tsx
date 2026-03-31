@@ -64,6 +64,7 @@ export default function SettingsModal() {
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
+          position: 'relative',
           animation: 'settings-modal-slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
