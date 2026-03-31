@@ -64,6 +64,23 @@ export default function App() {
           setShowOnboarding(true)
         }
       }
+
+      // Resume last session on startup (if enabled and no onboarding needed)
+      if (all.resumeLastSession && all.onboardingDone) {
+        try {
+          const sessions = await window.electronAPI.sessionList()
+          if (sessions && sessions.length > 0) {
+            // Sessions are sorted by timestamp descending -- first entry is most recent
+            const mostRecent = sessions.sort((a: any, b: any) => b.timestamp - a.timestamp)[0]
+            if (mostRecent) {
+              // Dispatch after a short delay to ensure SessionList is mounted and listening
+              setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('aipa:openSession', { detail: mostRecent.sessionId }))
+              }, 300)
+            }
+          }
+        } catch { /* session resume is best-effort */ }
+      }
     }
     init()
   }, [])

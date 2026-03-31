@@ -97,6 +97,7 @@ export default function SettingsPanel() {
       notifySound: true,
       compactMode: false,
       desktopNotifications: true,
+      resumeLastSession: false,
     }
     setLocal(prev => ({ ...prev, ...defaults }))
     for (const [k, v] of Object.entries(defaults)) {

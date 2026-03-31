@@ -441,6 +441,8 @@
     "compactModeHint": "减少消息间距，显示更多内容",
     "desktopNotifications": "桌面通知",
     "desktopNotificationsHint": "当 AIPA 在窗口未聚焦时完成回复，显示系统通知",
+    "resumeLastSession": "启动时恢复上次会话",
+    "resumeLastSessionHint": "AIPA 启动时自动打开最近的对话",
     "responseTone": "回复风格",
     "responseToneHint": "设置 Claude 回复的默认风格。也可以在输入栏工具条中按消息切换。",
     "systemPresence": "系统上下文注入",

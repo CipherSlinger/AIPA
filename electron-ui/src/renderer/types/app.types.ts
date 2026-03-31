@@ -120,6 +120,7 @@ export interface ClaudePrefs {
   systemPresence?: boolean             // inject OS time, working dir, user name into system prompt (default true)
   channelFeishu?: import('../components/channel/channelConstants').FeishuConfig   // Feishu channel config
   channelWechat?: import('../components/channel/channelConstants').WechatConfig   // WeChat channel config
+  resumeLastSession?: boolean   // auto-open the most recent session on app startup (default false)
 }
 
 export interface ApiKeyEntry {

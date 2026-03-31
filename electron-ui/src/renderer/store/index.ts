@@ -431,6 +431,7 @@ const DEFAULT_PREFS: ClaudePrefs = {
   notifySound: true,
   compactMode: false,
   desktopNotifications: true,
+  resumeLastSession: false,
   quickReplies: [
     { label: 'Summarize', prompt: 'Please summarize the above concisely:' },
     { label: 'Translate', prompt: 'Please translate the following text. If it is in Chinese, translate to English; if it is in English, translate to Chinese:' },
