@@ -2,7 +2,7 @@
 // Sub-components: SkillDetail, SkillCard, MarketplaceCard, skillsShared
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import {
-  Puzzle, Search, X, RefreshCw, Store, Package,
+  Puzzle, Search, X, RefreshCw, Store, Package, Plus,
 } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useUiStore, useChatStore, usePrefsStore } from '../../store'
@@ -108,6 +108,12 @@ export default function SkillsPanel() {
     }
   }, [deletingSkillPath, addToast, t, loadSkills])
 
+  // Create skill — invoke the built-in skill-creator via chat
+  const handleCreateSkill = useCallback(() => {
+    setQuotedText('/skill-creator')
+    addToast('success', t('skills.skillCreatorLaunched'))
+  }, [setQuotedText, addToast, t])
+
   // Install marketplace skill
   const handleInstallSkill = useCallback(async (skill: MarketplaceSkill) => {
     setInstallingSkillId(skill.id)
@@ -187,6 +193,30 @@ export default function SkillsPanel() {
           {t('skills.title')}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button
+            onClick={handleCreateSkill}
+            aria-label={t('skills.createSkill')}
+            title={t('skills.createSkill')}
+            style={{
+              background: 'none',
+              border: '1px solid var(--card-border)',
+              borderRadius: 6,
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '4px 8px',
+              fontSize: 11,
+              fontWeight: 500,
+              transition: 'border-color 0.15s, color 0.15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--card-border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+          >
+            <Plus size={14} />
+            {t('skills.create')}
+          </button>
           <button
             onClick={loadSkills}
             aria-label={t('skills.refresh')}
@@ -362,29 +392,52 @@ export default function SkillsPanel() {
                 <div style={{ fontSize: 11, lineHeight: 1.5, maxWidth: 240 }}>
                   {t('skills.noSkillsHint')}
                 </div>
-                <button
-                  onClick={() => setActiveTab('marketplace')}
-                  style={{
-                    marginTop: 16,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '8px 16px',
-                    background: 'var(--accent)',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: 6,
-                    fontSize: 12,
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    transition: 'opacity 0.15s',
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
-                  onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-                >
-                  <Store size={14} />
-                  {t('skills.browseMarketplace')}
-                </button>
+                <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                  <button
+                    onClick={() => setActiveTab('marketplace')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '8px 16px',
+                      background: 'var(--accent)',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: 6,
+                      fontSize: 12,
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      transition: 'opacity 0.15s',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+                    onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                  >
+                    <Store size={14} />
+                    {t('skills.browseMarketplace')}
+                  </button>
+                  <button
+                    onClick={handleCreateSkill}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '8px 16px',
+                      background: 'none',
+                      color: 'var(--text-muted)',
+                      border: '1px solid var(--card-border)',
+                      borderRadius: 6,
+                      fontSize: 12,
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      transition: 'border-color 0.15s, color 0.15s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--card-border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+                  >
+                    <Plus size={14} />
+                    {t('skills.createOwn')}
+                  </button>
+                </div>
               </div>
             ) : (
               <>

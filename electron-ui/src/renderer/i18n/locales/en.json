@@ -964,7 +964,11 @@
     "category_research": "Research",
     "category_creative": "Creative",
     "category_devops": "DevOps",
-    "category_design": "Design"
+    "category_design": "Design",
+    "createSkill": "Create Custom Skill",
+    "create": "Create",
+    "createOwn": "Create Your Own",
+    "skillCreatorLaunched": "Skill Creator opened in chat"
   },
   "followUp": {
     "explainCode": "Explain this code",

@@ -964,7 +964,11 @@
     "category_research": "研究",
     "category_creative": "创意",
     "category_devops": "运维",
-    "category_design": "设计"
+    "category_design": "设计",
+    "createSkill": "创建自定义技能",
+    "create": "创建",
+    "createOwn": "创建自定义",
+    "skillCreatorLaunched": "技能创建器已在聊天中打开"
   },
   "followUp": {
     "explainCode": "解释这段代码",
