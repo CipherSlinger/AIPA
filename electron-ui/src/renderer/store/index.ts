@@ -447,13 +447,16 @@ export const usePrefsStore = create<PrefsState>((set) => ({
 }))
 
 // ── UI store ────────────────────────────────────
+export type SidebarTab = 'history' | 'files' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory' | 'channel'
+export type NavItem = 'chat' | 'history' | 'files' | 'terminal' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory' | 'channel'
+
 interface UiState {
-  sidebarTab: 'history' | 'files' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory' | 'channel'
+  sidebarTab: SidebarTab
   sidebarOpen: boolean
   terminalOpen: boolean
   commandPaletteOpen: boolean
   toasts: ToastItem[]
-  setSidebarTab: (tab: 'history' | 'files' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory' | 'channel') => void
+  setSidebarTab: (tab: SidebarTab) => void
   setSidebarOpen: (v: boolean) => void
   setTerminalOpen: (v: boolean) => void
   setCommandPaletteOpen: (v: boolean) => void
@@ -466,8 +469,8 @@ interface UiState {
   removeToast: (id: string) => void
 
   // NavRail active item tracking
-  activeNavItem: 'chat' | 'history' | 'files' | 'terminal' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory' | 'channel'
-  setActiveNavItem: (item: UiState['activeNavItem']) => void
+  activeNavItem: NavItem
+  setActiveNavItem: (item: NavItem) => void
 
   // Quote reply: text to prefill into the input bar
   quotedText: string | null

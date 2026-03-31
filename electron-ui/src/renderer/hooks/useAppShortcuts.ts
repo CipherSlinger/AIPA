@@ -1,8 +1,7 @@
 import { useEffect } from 'react'
 import { usePrefsStore, useChatStore, useSessionStore, useUiStore } from '../store'
+import type { SidebarTab } from '../store'
 import { useT } from '../i18n'
-
-type SidebarTab = 'history' | 'files' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory' | 'channel'
 
 /**
  * Global keyboard shortcuts registered at the App level.

@@ -8,6 +8,7 @@ import {
   Sun, Moon, Languages, Copy, Pin,
 } from 'lucide-react'
 import { useChatStore, useSessionStore, useUiStore, usePrefsStore } from '../../store'
+import type { SidebarTab, NavItem } from '../../store'
 import { MODEL_OPTIONS } from '../settings/settingsConstants'
 import type { SessionListItem } from '../../types/app.types'
 
@@ -29,9 +30,9 @@ interface CommandBuilderArgs {
   onSendSlashCommand: (cmd: string) => void
   toggleSidebar: () => void
   toggleTerminal: () => void
-  setSidebarTab: (tab: 'history' | 'files' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory' | 'channel') => void
+  setSidebarTab: (tab: SidebarTab) => void
   setSidebarOpen: (open: boolean) => void
-  setActiveNavItem: (item: 'chat' | 'history' | 'files' | 'terminal' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory' | 'channel') => void
+  setActiveNavItem: (item: NavItem) => void
   addToQueue: (text: string) => void
   addToast: (type: 'success' | 'error' | 'info' | 'warning', msg: string, duration?: number) => void
   sessions: SessionListItem[]

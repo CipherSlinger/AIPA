@@ -108,11 +108,11 @@ export default function SettingsPanel() {
   }, [setPrefs])
 
   return (
-    <div style={{ padding: 14, overflowY: 'auto', height: '100%' }}>
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>{t('settings.title')}</div>
+    <div style={{ padding: '16px 24px', overflowY: 'auto', height: '100%' }}>
+      <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14 }}>{t('settings.title')}</div>
 
       {/* Tab bar */}
-      <div role="tablist" style={{ display: 'flex', gap: 4, marginBottom: 14, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>
+      <div role="tablist" style={{ display: 'flex', gap: 4, marginBottom: 16, borderBottom: '1px solid var(--border)', paddingBottom: 10 }}>
         {(['general', 'providers', 'personas', 'mcp', 'about'] as const).map(tab => (
           <button
             key={tab}
@@ -122,11 +122,13 @@ export default function SettingsPanel() {
             style={{
               background: settingsTab === tab ? 'var(--accent)' : 'none',
               border: '1px solid ' + (settingsTab === tab ? 'var(--accent)' : 'var(--border)'),
-              borderRadius: 4,
-              padding: '3px 10px',
+              borderRadius: 6,
+              padding: '5px 14px',
               color: settingsTab === tab ? '#fff' : 'var(--text-muted)',
               cursor: 'pointer',
-              fontSize: 11,
+              fontSize: 12,
+              fontWeight: settingsTab === tab ? 600 : 400,
+              transition: 'all 0.15s ease',
             }}
           >
             {t(`settings.tabs.${tab}`)}
