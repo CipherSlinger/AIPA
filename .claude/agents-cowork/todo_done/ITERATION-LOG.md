@@ -2529,3 +2529,6 @@ Status: SUCCESS
 
 ### Iteration 359 (2026-03-30)
 - New session appears immediately in sidebar on send (user feedback) -- When starting a new conversation, the session now appears in the sidebar immediately after pressing Enter, without waiting for the AI response. (1) In useStreamJson.ts sendMessage: when currentSessionId is null (new conversation), inserts a pending SessionListItem with a `pending-{timestamp}` ID and the user's prompt text at the top of the session list. (2) On cli:result with a real claudeSessionId: triggers a session list refresh via sessionList() IPC to replace the pending placeholder with the real session data. Users no longer experience the "nothing happened" feeling after sending their first message. 1 file changed; tsc 0 errors; build SUCCESS
+
+### Iteration 360 (2026-03-30)
+- Skills marketplace filter dropdowns (user feedback) -- Replaced flat CategoryPill and SourcePill filter buttons with compact dropdown selects in SkillsPanel.tsx. Two `<select>` elements (Source filter + Category filter) replace the pill-based filter bars that occupied 3-4 rows of vertical space. Each dropdown shows count per option. Reduces filter UI from multiple rows to a single row, giving more vertical space to the skill list. Addresses user feedback: "将技能市场的筛选器从当前平铺按钮改为下拉列表". 1 file changed; tsc 0 errors; build SUCCESS

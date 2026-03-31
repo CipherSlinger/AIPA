@@ -10,13 +10,11 @@ import {
   MARKETPLACE_SKILLS,
   SKILL_CATEGORIES,
   SKILL_SOURCES,
-  CATEGORY_COLORS,
-  SOURCE_COLORS,
   type MarketplaceSkill,
   type SkillCategory,
   type SkillSource,
 } from '../../utils/skillMarketplace'
-import { TabButton, CategoryPill, type SkillInfo } from './skillsShared'
+import { TabButton, type SkillInfo } from './skillsShared'
 import SkillDetail from './SkillDetail'
 import { SkillSection } from './SkillCard'
 import MarketplaceCard from './MarketplaceCard'
@@ -287,66 +285,60 @@ export default function SkillsPanel() {
 
       {/* Marketplace filters */}
       {activeTab === 'marketplace' && (
-        <>
-        {/* Source filter */}
         <div style={{
           display: 'flex',
-          gap: 6,
-          padding: '8px 14px 0',
-          flexWrap: 'wrap',
-          flexShrink: 0,
-        }}>
-          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', alignSelf: 'center', marginRight: 4 }}>
-            {t('skills.sourceLabel')}
-          </span>
-          <CategoryPill
-            label={t('skills.allSources')}
-            isActive={marketplaceSource === null}
-            color={undefined}
-            count={MARKETPLACE_SKILLS.length}
-            onClick={() => setMarketplaceSource(null)}
-          />
-          {SKILL_SOURCES.map(src => (
-            <CategoryPill
-              key={src}
-              label={t(`skills.source_${src.toLowerCase()}`)}
-              isActive={marketplaceSource === src}
-              color={SOURCE_COLORS[src]}
-              count={MARKETPLACE_SKILLS.filter(s => s.source === src).length}
-              onClick={() => setMarketplaceSource(src === marketplaceSource ? null : src)}
-            />
-          ))}
-        </div>
-        {/* Category filter */}
-        <div style={{
-          display: 'flex',
-          gap: 6,
+          gap: 8,
           padding: '8px 14px',
-          flexWrap: 'wrap',
           flexShrink: 0,
+          alignItems: 'center',
         }}>
-          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', alignSelf: 'center', marginRight: 4 }}>
-            {t('skills.categoryLabel')}
-          </span>
-          <CategoryPill
-            label={t('skills.allCategories')}
-            isActive={marketplaceCategory === null}
-            color={undefined}
-            count={MARKETPLACE_SKILLS.length}
-            onClick={() => setMarketplaceCategory(null)}
-          />
-          {SKILL_CATEGORIES.map(cat => (
-            <CategoryPill
-              key={cat}
-              label={t(`skills.category_${cat.toLowerCase()}`)}
-              isActive={marketplaceCategory === cat}
-              color={CATEGORY_COLORS[cat]}
-              count={MARKETPLACE_SKILLS.filter(s => s.category === cat).length}
-              onClick={() => setMarketplaceCategory(cat === marketplaceCategory ? null : cat)}
-            />
-          ))}
+          {/* Source filter dropdown */}
+          <select
+            value={marketplaceSource || ''}
+            onChange={e => setMarketplaceSource((e.target.value || null) as SkillSource | null)}
+            style={{
+              flex: 1,
+              padding: '5px 8px',
+              borderRadius: 6,
+              border: '1px solid var(--border)',
+              background: 'var(--input-field-bg)',
+              color: 'var(--text-primary)',
+              fontSize: 11,
+              outline: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            <option value="">{t('skills.allSources')} ({MARKETPLACE_SKILLS.length})</option>
+            {SKILL_SOURCES.map(src => (
+              <option key={src} value={src}>
+                {t(`skills.source_${src.toLowerCase()}`)} ({MARKETPLACE_SKILLS.filter(s => s.source === src).length})
+              </option>
+            ))}
+          </select>
+          {/* Category filter dropdown */}
+          <select
+            value={marketplaceCategory || ''}
+            onChange={e => setMarketplaceCategory((e.target.value || null) as SkillCategory | null)}
+            style={{
+              flex: 1,
+              padding: '5px 8px',
+              borderRadius: 6,
+              border: '1px solid var(--border)',
+              background: 'var(--input-field-bg)',
+              color: 'var(--text-primary)',
+              fontSize: 11,
+              outline: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            <option value="">{t('skills.allCategories')} ({MARKETPLACE_SKILLS.length})</option>
+            {SKILL_CATEGORIES.map(cat => (
+              <option key={cat} value={cat}>
+                {t(`skills.category_${cat.toLowerCase()}`)} ({MARKETPLACE_SKILLS.filter(s => s.category === cat).length})
+              </option>
+            ))}
+          </select>
         </div>
-        </>
       )}
 
       {/* Content */}
