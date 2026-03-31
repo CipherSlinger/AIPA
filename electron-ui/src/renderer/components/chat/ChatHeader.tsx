@@ -88,6 +88,7 @@ export default function ChatHeader({
   const [editTitleValue, setEditTitleValue] = useState('')
   const titleInputRef = useRef<HTMLInputElement>(null)
   const workingDir = usePrefsStore(s => s.prefs.workingDir)
+  const terminalOpen = useUiStore(s => s.terminalOpen)
 
   // Focus title input when editing starts
   useEffect(() => {
@@ -331,11 +332,11 @@ export default function ChatHeader({
         title={`${t('chat.openTerminal')} (Ctrl+\`)`}
         style={{
           ...headerBtnStyle,
-          background: useUiStore.getState().terminalOpen ? 'var(--accent)' : 'none',
-          color: useUiStore.getState().terminalOpen ? '#fff' : 'var(--chat-header-icon)',
+          background: terminalOpen ? 'var(--accent)' : 'none',
+          color: terminalOpen ? '#fff' : 'var(--chat-header-icon)',
         }}
-        onMouseEnter={(e) => hoverIn(e, useUiStore.getState().terminalOpen)}
-        onMouseLeave={(e) => hoverOut(e, useUiStore.getState().terminalOpen)}
+        onMouseEnter={(e) => hoverIn(e, terminalOpen)}
+        onMouseLeave={(e) => hoverOut(e, terminalOpen)}
       >
         <TerminalSquare size={15} />
       </button>

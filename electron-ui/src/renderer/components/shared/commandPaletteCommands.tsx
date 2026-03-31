@@ -78,7 +78,16 @@ export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] 
       description: t('command.toggleTerminalDesc'),
       icon: <Terminal size={14} />,
       shortcut: 'Ctrl+`',
-      action: () => { toggleTerminal(); onClose() },
+      action: () => {
+        // Set resume session ID so terminal opens with current chat context
+        const chatStore = useChatStore.getState()
+        const ui = useUiStore.getState()
+        if (chatStore.currentSessionId && !ui.terminalOpen) {
+          ui.setTerminalResumeSessionId(chatStore.currentSessionId)
+        }
+        toggleTerminal()
+        onClose()
+      },
       category: 'action',
     },
     {

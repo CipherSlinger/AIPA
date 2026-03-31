@@ -26,7 +26,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 | | |
 |---|---|
 | **Chat & Execute** | Full conversational AI with tool-use visualization — watch the agent read files, run code, and browse the web in real time |
-| **Terminal Access** | Built-in PTY terminal (xterm.js) right next to the chat — no switching windows |
+| **Terminal Access** | Built-in PTY terminal (xterm.js) accessible from the chat header — opens with `--resume` to continue the current conversation context |
 | **Memory** | Persistent memory across sessions — preferences, facts, instructions, and context automatically injected into every conversation |
 | **Workflows** | Chain prompts into reusable pipelines; schedule them to run daily, weekly, or monthly |
 | **Notes** | Markdown notepad with categories, templates, and one-click save from any chat response |
