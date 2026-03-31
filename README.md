@@ -101,8 +101,9 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 | `Ctrl+Shift+O` | Focus mode (hide sidebar + terminal) |
 | `Ctrl+B` | Toggle sidebar |
 | `Ctrl+`` ` `` | Toggle terminal |
-| `Ctrl+1–5` | History, Files, Notes, Skills, Settings |
-| `Ctrl+6–9` | Memory, Workflows, Prompt History, Channel |
+| `Ctrl+,` | Open Settings |
+| `Ctrl+1–4` | History, Files, Notes, Skills |
+| `Ctrl+5–9` | Settings (modal), Memory, Workflows, Prompt History, Channel |
 | `Ctrl+/` | Shortcut cheatsheet |
 | `Ctrl+Shift+Space` | Toggle AIPA window (global, works from any app) |
 | `Ctrl+Shift+G` | Clipboard quick action (global: reads clipboard, opens AIPA, sends to chat) |
@@ -119,7 +120,7 @@ npm run build
 node_modules/.bin/electron dist/main/index.js
 ```
 
-Open **Settings** on first launch and enter your Anthropic API key.
+Open **Settings** (`Ctrl+,`) on first launch and enter your Anthropic API key.
 
 ### Dev Mode (Hot Reload)
 

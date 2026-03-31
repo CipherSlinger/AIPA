@@ -2476,3 +2476,6 @@ Status: SUCCESS
 
 ### Iteration 342 (2026-03-30)
 - Type centralization + settings modal polish -- (1) Extracted SidebarTab and NavItem as exported types from store/index.ts, replacing 6 inline union type duplications across store, useAppShortcuts, and commandPaletteCommands. Future sidebar tab changes now only need to update the single type definition. (2) Settings modal layout polish: increased padding (14->24px horizontal, 16px vertical), larger title (13->15px, bolder), larger tab buttons (padding 5px 14px, fontSize 12, borderRadius 6, font weight transitions). The modal now uses the space more effectively compared to the old sidebar layout. 4 files changed; tsc 0 errors; build SUCCESS
+
+### Iteration 343 (2026-03-30)
+- Menu bar polish + README shortcuts update -- (1) Added "Settings" (Ctrl+,) entry to Edit menu in the app menu bar, following standard desktop convention. (2) Added "Keyboard Shortcuts" (Ctrl+/) entry to Help menu. (3) Added renderer-side handlers for openSettings and keyboardShortcuts menu events. (4) Updated README.md and README_CN.md keyboard shortcuts tables: split Ctrl+1-5 into Ctrl+1-4 (sidebar panels) + Ctrl+, (settings modal), updated Quick Start text to reference Ctrl+, instead of sidebar gear icon. 4 files changed; tsc 0 errors; build SUCCESS

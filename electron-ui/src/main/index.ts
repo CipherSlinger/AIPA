@@ -208,6 +208,8 @@ function createAppMenu(): void {
         { role: 'copy' },
         { role: 'paste' },
         { role: 'selectAll' },
+        { type: 'separator' },
+        { label: 'Settings', accelerator: 'CmdOrCtrl+,', click: () => mainWindow?.webContents.send('menu:openSettings') },
       ],
     },
     {
@@ -231,6 +233,8 @@ function createAppMenu(): void {
     {
       label: 'Help',
       submenu: [
+        { label: 'Keyboard Shortcuts', accelerator: 'CmdOrCtrl+/', click: () => mainWindow?.webContents.send('menu:keyboardShortcuts') },
+        { type: 'separator' },
         { label: 'About AIPA', click: () => mainWindow?.webContents.send('menu:about') },
         {
           label: 'Open Config Folder',
