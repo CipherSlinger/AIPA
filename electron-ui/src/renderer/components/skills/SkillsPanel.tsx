@@ -68,7 +68,7 @@ export default function SkillsPanel() {
       if (result?.content) {
         setSkillContent(result.content)
       } else {
-        setSkillContent(result?.error || 'Could not read skill file')
+        setSkillContent(result?.error || t('skills.readError'))
       }
     } catch (err) {
       setSkillContent(String(err))

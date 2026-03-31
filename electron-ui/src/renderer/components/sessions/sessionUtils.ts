@@ -152,11 +152,14 @@ export function getDateGroup(ts: number, t: (key: string) => string): string {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const yesterday = new Date(today.getTime() - 86400000)
   const weekAgo = new Date(today.getTime() - 7 * 86400000)
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
 
   if (date >= today) return t('session.today')
   if (date >= yesterday) return t('session.yesterday')
   if (date >= weekAgo) return t('session.thisWeek')
-  return t('session.earlier')
+  if (date >= monthStart) return t('session.thisMonth')
+  // Older sessions: group by month name (auto-localizes via browser locale)
+  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long' })
 }
 
 export function getMatchContext(session: { title?: string; lastPrompt?: string; project?: string }, query: string, t: (key: string) => string): { source: string; snippet: string } | null {

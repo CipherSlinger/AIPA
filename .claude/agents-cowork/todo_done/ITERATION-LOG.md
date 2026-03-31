@@ -2511,3 +2511,6 @@ Status: SUCCESS
 
 ### Iteration 353 (2026-03-30)
 - i18n: Localize relative timestamps in session list and global search -- Added `useDateLocale()` hook to i18n module that returns the date-fns `zhCN` locale when app language is Chinese, `undefined` (default English) otherwise. Updated `formatDistanceToNow()` calls in SessionItem.tsx and GlobalSearchResults.tsx to pass the locale option. Chinese-language users now see "3 分钟前" instead of "3 minutes ago". Bundle size impact: ~550 bytes (zh-CN date-fns locale). 3 files changed; tsc 0 errors; build SUCCESS
+
+### Iteration 354 (2026-03-30)
+- Session date groups enhancement + i18n fix -- (1) Enhanced `getDateGroup()` in sessionUtils.ts to return more granular temporal groupings: added "This Month" category between "This Week" and older sessions; sessions older than current month now show auto-localized month names (e.g., "February 2026" / "2026年2月") via `Date.toLocaleDateString()` instead of the generic "Earlier" bucket. Users with many sessions can now find conversations by month. (2) Added `session.thisMonth` i18n key (EN: "This Month", ZH: "本月"). (3) Fixed hardcoded English string in SkillsPanel.tsx: "Could not read skill file" replaced with i18n key `skills.readError` (ZH: "无法读取技能文件"). 4 files changed; tsc 0 errors; build SUCCESS
