@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react'
 import { AlertTriangle, Copy, RefreshCw } from 'lucide-react'
+import { getT } from '../../i18n'
 
 interface Props {
   children: ReactNode
@@ -56,6 +57,7 @@ export default class MessageErrorBoundary extends Component<Props, State> {
   render(): ReactNode {
     if (!this.state.hasError) return this.props.children
 
+    const t = getT()
     return (
       <div
         style={{
@@ -72,7 +74,7 @@ export default class MessageErrorBoundary extends Component<Props, State> {
         }}
       >
         <AlertTriangle size={14} style={{ color: 'var(--error, #f44747)', flexShrink: 0 }} />
-        <span style={{ flex: 1 }}>This message failed to render</span>
+        <span style={{ flex: 1 }}>{t('error.messageRenderFailed')}</span>
         <button
           onClick={this.handleCopyRaw}
           style={{
@@ -90,7 +92,7 @@ export default class MessageErrorBoundary extends Component<Props, State> {
           }}
         >
           <Copy size={11} />
-          {this.state.copied ? 'Copied' : 'Copy Raw'}
+          {this.state.copied ? t('error.copied') : t('error.copyRaw')}
         </button>
         <button
           onClick={this.handleRetry}
@@ -109,7 +111,7 @@ export default class MessageErrorBoundary extends Component<Props, State> {
           }}
         >
           <RefreshCw size={11} />
-          Retry
+          {t('error.retryRender')}
         </button>
       </div>
     )

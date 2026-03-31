@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react'
 import { useChatStore } from '../../store'
+import { getT } from '../../i18n'
 
 interface Props {
   children: ReactNode
@@ -208,6 +209,7 @@ export default class ErrorBoundary extends Component<Props, State> {
 
     // During auto-retry, show a brief loading state instead of the error
     if (this.state.autoRetrying) {
+      const t = getT()
       return (
         <div
           style={{
@@ -220,11 +222,12 @@ export default class ErrorBoundary extends Component<Props, State> {
             textAlign: 'center',
           }}
         >
-          Recovering... (attempt {this.state.retryCount + 1}/{MAX_AUTO_RETRIES})
+          {t('error.recovering', { current: String(this.state.retryCount + 1), max: String(MAX_AUTO_RETRIES) })}
         </div>
       )
     }
 
+    const t = getT()
     const label = this.props.fallbackLabel || 'component'
     const hasRetried = this.state.retryCount > 0
     const { recoveryFailed } = this.state
@@ -242,7 +245,7 @@ export default class ErrorBoundary extends Component<Props, State> {
         }}
       >
         <div style={{ fontWeight: 600, marginBottom: '8px', color: 'var(--error, #f44747)' }}>
-          Something went wrong in {label}
+          {t('error.titleIn', { label })}
         </div>
         <div
           style={{
@@ -259,16 +262,16 @@ export default class ErrorBoundary extends Component<Props, State> {
             wordBreak: 'break-word',
           }}
         >
-          {this.state.error?.message || 'Unknown error'}
+          {this.state.error?.message || t('error.unknownError')}
         </div>
         {hasRetried && (
           <div style={{ fontSize: '11px', color: 'var(--text-muted, #858585)', marginBottom: '8px' }}>
-            Auto-recovery failed after {this.state.retryCount} attempt{this.state.retryCount > 1 ? 's' : ''}.
+            {t('error.autoRecoveryFailed', { count: String(this.state.retryCount) })}
           </div>
         )}
         {recoveryFailed && (
           <div style={{ fontSize: '11px', color: 'var(--warning, #cca700)', marginBottom: '8px' }}>
-            Recovery failed repeatedly. Starting a new conversation is recommended.
+            {t('error.recoveryFailed')}
           </div>
         )}
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -286,7 +289,7 @@ export default class ErrorBoundary extends Component<Props, State> {
                 fontWeight: 500,
               }}
             >
-              Retry
+              {t('error.retryRender')}
             </button>
           )}
           {recoveryFailed && (
@@ -303,7 +306,7 @@ export default class ErrorBoundary extends Component<Props, State> {
                 fontWeight: 500,
               }}
             >
-              Start New Conversation
+              {t('error.startNewConversation')}
             </button>
           )}
           <button
@@ -318,7 +321,7 @@ export default class ErrorBoundary extends Component<Props, State> {
               fontSize: '12px',
             }}
           >
-            Reload App
+            {t('error.reload')}
           </button>
           <button
             onClick={this.handleCopyError}
@@ -332,7 +335,7 @@ export default class ErrorBoundary extends Component<Props, State> {
               fontSize: '12px',
             }}
           >
-            Copy Error
+            {t('error.copyError')}
           </button>
         </div>
       </div>

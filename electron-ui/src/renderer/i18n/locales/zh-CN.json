@@ -710,15 +710,19 @@
   },
   "error": {
     "title": "出了点问题",
+    "titleIn": "{{label}}出了点问题",
     "dismiss": "关闭",
     "reload": "重新加载",
     "copyError": "复制错误",
     "unknownError": "未知错误",
     "messageRenderFailed": "此消息渲染失败",
     "copyRaw": "复制原文",
+    "copied": "已复制",
     "retryRender": "重试",
     "startNewConversation": "开始新对话",
-    "recoveryFailed": "多次恢复失败，建议开始新对话。"
+    "recoveryFailed": "多次恢复失败，建议开始新对话。",
+    "recovering": "恢复中...（第 {{current}}/{{max}} 次尝试）",
+    "autoRecoveryFailed": "自动恢复在 {{count}} 次尝试后失败。"
   },
   "common": {
     "ok": "确定",

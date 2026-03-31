@@ -64,6 +64,29 @@ export function useDateLocale(): Locale_DateFns | undefined {
 
 type Locale_DateFns = typeof dateFnsZhCN
 
+// Module-level resolved locale for non-hook access (class components, callbacks)
+let _currentResolvedLocale: 'en' | 'zh-CN' = 'en'
+
+/**
+ * Standalone translation function for class components and non-React contexts.
+ * Uses the current resolved locale from the I18nProvider.
+ * NOTE: Unlike useT(), this does NOT cause React re-renders on locale change.
+ * It reads the latest locale synchronously at call time.
+ */
+export function getT(): (key: string, params?: Record<string, string | number>) => string {
+  return (key: string, params?: Record<string, string | number>): string => {
+    let value = translations[_currentResolvedLocale]?.[key]
+      ?? translations['en']?.[key]
+      ?? key
+    if (params) {
+      for (const [paramKey, paramValue] of Object.entries(params)) {
+        value = value.replace(new RegExp(`\\{\\{${paramKey}\\}\\}`, 'g'), String(paramValue))
+      }
+    }
+    return value
+  }
+}
+
 interface I18nProviderProps {
   children: React.ReactNode
 }
@@ -93,6 +116,11 @@ export function I18nProvider({ children }: I18nProviderProps) {
   const resolvedLocale: 'en' | 'zh-CN' = locale === 'system'
     ? resolveSystemLocale(systemLocale)
     : locale
+
+  // Keep module-level resolved locale in sync for getT() callers
+  useEffect(() => {
+    _currentResolvedLocale = resolvedLocale
+  }, [resolvedLocale])
 
   const setLocale = useCallback(async (newLocale: Locale) => {
     setLocaleState(newLocale)

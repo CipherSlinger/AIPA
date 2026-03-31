@@ -710,15 +710,19 @@
   },
   "error": {
     "title": "Something went wrong",
+    "titleIn": "Something went wrong in {{label}}",
     "dismiss": "Dismiss",
     "reload": "Reload App",
     "copyError": "Copy Error",
     "unknownError": "Unknown error",
     "messageRenderFailed": "This message failed to render",
     "copyRaw": "Copy Raw",
+    "copied": "Copied",
     "retryRender": "Retry",
     "startNewConversation": "Start New Conversation",
-    "recoveryFailed": "Recovery failed repeatedly. Starting a new conversation is recommended."
+    "recoveryFailed": "Recovery failed repeatedly. Starting a new conversation is recommended.",
+    "recovering": "Recovering... (attempt {{current}}/{{max}})",
+    "autoRecoveryFailed": "Auto-recovery failed after {{count}} attempt(s)."
   },
   "common": {
     "ok": "OK",
