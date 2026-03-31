@@ -49,13 +49,38 @@ type: project
 - **It.329**: Ctrl+Shift+M model cycling shortcut
 - **It.330**: Ctrl+Shift+T always-on-top pin window
 - **It.331**: Fix Ctrl+Shift+F shortcut conflict (focus mode -> Ctrl+Shift+O)
-- **Current version**: 1.1.10
+
+### Iterations 332-341 (2026-03-30)
+- **It.332**: Shortcut registry (single source of truth for 50+ shortcuts, collision detection)
+- **It.333**: App.tsx decomposition (413->218 lines, extracted useAppShortcuts.ts)
+- **It.334**: Shortcut consistency cleanup
+- **It.335**: ipc/index.ts decomposition (784->478 lines, extracted skills + provider handlers)
+- **It.336**: Dynamic tray menu + clipboard quick-action + session count tooltip
+- **It.337**: README: tray, global hotkeys documentation
+- **It.338**: Command palette: added missing "Open Skills" entry
+- **It.339**: App menu bar: recent sessions, export, focus mode, always-on-top
+- **It.340**: Bug fix: Feishu connect button + About menu + shortcuts polish
+- **It.341**: Settings modal overlay (full-screen modal, Escape/click-outside close)
+
+### Iterations 342-351 (2026-03-30)
+- **It.342**: Type centralization (SidebarTab/NavItem extracted, 6 duplications eliminated) + settings modal polish
+- **It.343**: Menu bar polish (Settings in Edit menu, Keyboard Shortcuts in Help menu)
+- **It.344**: Status bar settings gear icon + SettingsModal position fix
+- **It.345**: Terminal entry point redesign Phase 1 (chat header button with session context)
+- **It.346**: Terminal entry point redesign Phase 2 (remove NavRail/StatusBar terminal buttons, delete date insert)
+- **It.347**: Bug fix: non-reactive terminal button store access + command palette terminal context
+- **It.348**: Resume last session on startup toggle
+- **It.349**: i18n hardcoded string fixes + Settings About streamline (single "View All Shortcuts" button)
+- **It.350**: Skills marketplace: remove dead ClawhHub fetch button (-169 lines) + quick reply chips i18n fix
+- **It.351**: Session card action buttons gradient background to prevent text overlap
+- **Current version**: 1.1.30
 - **Build status**: Clean (tsc zero errors, build SUCCESS)
-- **Next forced retro**: After Iteration 341
-- **Retro**: retro-2026-03-30-iterations-322-331.md
+- **Next forced retro**: After Iteration 361
+- **Retro**: retro-2026-03-30-iterations-342-351.md
 
 ### Outstanding Tech Debt
-- ipc/index.ts (784 lines) approaching 800-line red line -- monitor, plan decomposition if grows
-- skillMarketplace.ts (1781 lines) is data-only, fine as-is
-- No other files above 600 lines
-- Shortcut registry: shortcuts distributed across App.tsx, useChatPanelShortcuts.ts, ChatInput.tsx -- no centralized conflict detection
+- skillMarketplace.ts (1781 lines) is data-only, exempted from 800-line rule
+- ipc/index.ts resolved (784->478 lines in It.335)
+- Shortcut registry created in It.332 as single source of truth
+- No component files above 600 lines -- codebase is well-structured
+- i18n gap: stored prefs with translated labels don't auto-update on language change (QuickReplyChips pattern fixed in It.350 can be applied elsewhere if needed)

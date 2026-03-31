@@ -2503,3 +2503,5 @@ Status: SUCCESS
 
 ### Iteration 351 (2026-03-30)
 - Session card action buttons layout fix -- Fixed visual overlap between hover action buttons (pin, tag, rename, fork, export, delete) and session preview text in SessionItem.tsx. Previously buttons were positioned absolute with no background, making them unreadable when overlapping preview content. Now uses a gradient background (`linear-gradient(to right, transparent, var(--bg-sessionpanel) 30%)`) that smoothly fades from transparent to the panel background, ensuring buttons are always readable without hiding the preview text beneath. Also added left padding (20px) to give the gradient room to fade. Addresses user feedback: "会话卡片操作按钮与预览内容重叠". 1 file changed; tsc 0 errors; build SUCCESS
+
+[RETRO] retro-2026-03-30-iterations-342-351.md completed, covering Iteration 342-351, next forced retro after Iteration 361
