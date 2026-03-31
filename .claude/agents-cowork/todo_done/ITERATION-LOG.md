@@ -2532,3 +2532,6 @@ Status: SUCCESS
 
 ### Iteration 360 (2026-03-30)
 - Skills marketplace filter dropdowns (user feedback) -- Replaced flat CategoryPill and SourcePill filter buttons with compact dropdown selects in SkillsPanel.tsx. Two `<select>` elements (Source filter + Category filter) replace the pill-based filter bars that occupied 3-4 rows of vertical space. Each dropdown shows count per option. Reduces filter UI from multiple rows to a single row, giving more vertical space to the skill list. Addresses user feedback: "将技能市场的筛选器从当前平铺按钮改为下拉列表". 1 file changed; tsc 0 errors; build SUCCESS
+
+### Iteration 361 (2026-03-30)
+- Built-in Skill Creator skill (user feedback) -- Added a new "Skill Creator" skill to the marketplace as a built-in Anthropic-sourced skill. The skill is a comprehensive prompt template that guides users through a 4-step process: (1) Understand the goal (purpose, input, output), (2) Define the skill (frontmatter, title, instructions, output format), (3) Review & refine (iterate on the draft), (4) Install (instructions for saving). Includes a complete SKILL.md template structure and best practices guidelines. Addresses user feedback: "内置一个 skill-creator 技能". Total marketplace skills: 47. 1 file changed; tsc 0 errors; build SUCCESS

@@ -41,6 +41,86 @@ export const SOURCE_COLORS: Record<SkillSource, string> = {
 }
 
 export const MARKETPLACE_SKILLS: MarketplaceSkill[] = [
+  // ── Built-in: Skill Creator ──
+  {
+    id: 'skill-creator',
+    name: 'Skill Creator',
+    description: 'Create custom skills interactively. Describe what you want and this skill guides you through defining a reusable SKILL.md template.',
+    descriptionZh: '\u4ea4\u4e92\u5f0f\u521b\u5efa\u81ea\u5b9a\u4e49\u6280\u80fd\u3002\u63cf\u8ff0\u4f60\u7684\u9700\u6c42\uff0c\u6b64\u6280\u80fd\u5f15\u5bfc\u4f60\u5b8c\u6210\u53ef\u590d\u7528\u7684 SKILL.md \u6a21\u677f\u5b9a\u4e49\u3002',
+    author: 'AIPA',
+    sourceUrl: 'https://github.com/CipherSlinger/AIPA',
+    category: 'Productivity',
+    source: 'Anthropic',
+    skillContent: `---
+name: skill-creator
+description: Interactive skill builder — create custom SKILL.md templates step by step
+---
+
+# Skill Creator
+
+You are a skill creation assistant. Help users create custom Claude skills (SKILL.md files) by guiding them through a structured process.
+
+## Step 1: Understand the Goal
+Ask the user:
+- What should this skill do? (purpose and use case)
+- What kind of input does it expect? (text, code, data, questions)
+- What should the output look like? (format, structure, tone)
+
+## Step 2: Define the Skill
+Based on user answers, draft a SKILL.md with:
+1. **Frontmatter**: name (kebab-case, max 30 chars) and description (one-line summary)
+2. **Title**: H1 heading with the skill name
+3. **Context/Role**: A clear statement of what the AI should act as
+4. **Instructions**: Numbered steps for how to process the input
+5. **Output Format**: What the final output should look like (bullet list, table, code block, etc.)
+6. **Examples** (optional): 1-2 brief examples of input → output
+
+## Step 3: Review & Refine
+Present the full SKILL.md content in a code block. Ask if they want to:
+- Adjust the instructions
+- Add more examples
+- Change the output format
+- Rename the skill
+
+## Step 4: Install
+Once the user approves, tell them to:
+1. Copy the skill content
+2. Go to the Skills panel → Installed tab
+3. The skill will appear after installation
+
+## Template Structure
+\\\`\\\`\\\`markdown
+---
+name: my-skill-name
+description: One-line description of what the skill does
+---
+
+# Skill Title
+
+[Role/context statement]
+
+## Instructions
+1. Step one
+2. Step two
+3. Step three
+
+## Output Format
+- Describe expected output structure
+
+## Examples
+**Input**: [example input]
+**Output**: [example output]
+\\\`\\\`\\\`
+
+## Guidelines
+- Keep skill names short and descriptive (kebab-case)
+- Instructions should be clear and actionable
+- Include edge cases the skill should handle
+- Output format should be consistent and predictable
+- Skills work best when focused on a single task
+`,
+  },
+
   // ── Code (from anthropics/claude-code) ──
   {
     id: 'code-review',
