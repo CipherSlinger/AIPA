@@ -448,8 +448,8 @@ export const usePrefsStore = create<PrefsState>((set) => ({
 }))
 
 // ── UI store ────────────────────────────────────
-export type SidebarTab = 'history' | 'files' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory' | 'channel'
-export type NavItem = 'chat' | 'history' | 'files' | 'terminal' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'prompthistory' | 'channel'
+export type SidebarTab = 'history' | 'files' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel'
+export type NavItem = 'chat' | 'history' | 'files' | 'terminal' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel'
 
 interface UiState {
   sidebarTab: SidebarTab
@@ -496,7 +496,7 @@ interface UiState {
 const savedSidebarTab = (() => {
   try {
     const saved = localStorage.getItem('aipa:sidebar-tab')
-    const valid = ['history', 'files', 'notes', 'skills', 'memory', 'workflows', 'prompthistory', 'channel']
+    const valid = ['history', 'files', 'notes', 'skills', 'memory', 'workflows', 'channel']
     if (saved && valid.includes(saved)) return saved as UiState['sidebarTab']
   } catch {}
   return 'history' as const
@@ -540,7 +540,7 @@ export const useUiStore = create<UiState>((set) => ({
     if (item === 'settings') {
       return { settingsModalOpen: true }
     }
-    if (item === 'history' || item === 'files' || item === 'notes' || item === 'skills' || item === 'memory' || item === 'workflows' || item === 'prompthistory' || item === 'channel') {
+    if (item === 'history' || item === 'files' || item === 'notes' || item === 'skills' || item === 'memory' || item === 'workflows' || item === 'channel') {
       try { localStorage.setItem('aipa:sidebar-tab', item) } catch {}
       return { activeNavItem: item, sidebarTab: item, sidebarOpen: true }
     }

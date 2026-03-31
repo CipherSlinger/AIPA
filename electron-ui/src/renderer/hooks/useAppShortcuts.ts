@@ -162,10 +162,10 @@ export function useAppShortcuts(
         ui.setAlwaysOnTop(newValue)
         ui.addToast('info', t(newValue ? 'window.pinnedOn' : 'window.pinnedOff'), 1500)
       }
-      // Ctrl+1-8: Switch sidebar tabs; Ctrl+, opens settings modal
-      if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key >= '1' && e.key <= '8') {
+      // Ctrl+1-7: Switch sidebar tabs; Ctrl+, opens settings modal
+      if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key >= '1' && e.key <= '7') {
         e.preventDefault()
-        const tabs = ['history', 'files', 'notes', 'skills', 'memory', 'workflows', 'prompthistory', 'channel'] as const
+        const tabs = ['history', 'files', 'notes', 'skills', 'memory', 'workflows', 'channel'] as const
         const idx = parseInt(e.key) - 1
         const tab = tabs[idx]
         if (tab) {

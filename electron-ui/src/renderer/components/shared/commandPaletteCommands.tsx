@@ -4,7 +4,7 @@ import React from 'react'
 import {
   Plus, Download, PanelLeft, Terminal, Settings, History,
   FolderOpen, Zap, Trash2, HelpCircle, Cpu, Sparkles,
-  Brain, Workflow, ListRestart, Play, NotebookPen, ClipboardPaste, Radio,
+  Brain, Workflow, Play, NotebookPen, ClipboardPaste, Radio,
   Sun, Moon, Languages, Copy, Pin,
 } from 'lucide-react'
 import { useChatStore, useSessionStore, useUiStore, usePrefsStore } from '../../store'
@@ -152,20 +152,11 @@ export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] 
       category: 'action',
     },
     {
-      id: 'open-prompthistory',
-      name: t('command.openPromptHistory'),
-      description: t('command.openPromptHistoryDesc'),
-      icon: <ListRestart size={14} />,
-      shortcut: 'Ctrl+7',
-      action: () => { setActiveNavItem('prompthistory'); onClose() },
-      category: 'action',
-    },
-    {
       id: 'open-channel',
       name: t('command.openChannel'),
       description: t('command.openChannelDesc'),
       icon: <Radio size={14} />,
-      shortcut: 'Ctrl+8',
+      shortcut: 'Ctrl+7',
       action: () => { setActiveNavItem('channel'); onClose() },
       category: 'action',
     },

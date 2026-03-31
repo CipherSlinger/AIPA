@@ -3,7 +3,6 @@ import { useChatStore, usePrefsStore, useSessionStore } from '../store'
 import { PermissionMessage, PlanMessage, StandardChatMessage } from '../types/app.types'
 import { useUiStore } from '../store'
 import { useT } from '../i18n'
-import { recordPrompt } from '../utils/promptHistoryUtils'
 
 /** Check if the current model should be routed to a non-Claude provider */
 async function resolveProvider(modelId: string | undefined): Promise<{ type: 'claude-cli' } | { type: 'provider'; providerId: string }> {
@@ -153,9 +152,6 @@ export function useStreamJson() {
     useChatStore.getState().addMessage(userMsg)
     setStreaming(true)
     sendTimestampRef.current = Date.now()
-
-    // Record prompt in history for analytics
-    recordPrompt(prompt)
 
     const currentSessionId = useChatStore.getState().currentSessionId
 

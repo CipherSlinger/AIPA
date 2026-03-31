@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react'
-import { AtSign, TerminalSquare, Mic, MicOff, ListPlus, Cpu, Star, Paperclip } from 'lucide-react'
+import React from 'react'
+import { AtSign, TerminalSquare, Mic, MicOff, ListPlus, Cpu, Paperclip } from 'lucide-react'
 import { useT } from '../../i18n'
 import { usePrefsStore, useChatStore } from '../../store'
 import ClipboardActionsMenu from './ClipboardActionsMenu'
@@ -7,7 +7,6 @@ import InputToolbarTextTransform from './InputToolbarTextTransform'
 import InputToolbarSaveNote from './InputToolbarSaveNote'
 import InputToolbarToneSelector from './InputToolbarToneSelector'
 import { toolbarBtnStyle, toolbarHoverIn, toolbarHoverOut } from './chatInputConstants'
-import { PromptHistoryItem } from '../../types/app.types'
 
 interface InputToolbarProps {
   listening: boolean
@@ -37,21 +36,6 @@ export default function InputToolbar({
   const t = useT()
   const prefs = usePrefsStore(s => s.prefs)
   const taskQueue = useChatStore(s => s.taskQueue)
-
-  // Favorite prompts dropdown
-  const [showFavorites, setShowFavorites] = useState(false)
-  const favRef = useRef<HTMLDivElement>(null)
-  const promptHistory: PromptHistoryItem[] = prefs.promptHistory || []
-  const favorites = promptHistory.filter(p => p.favorite).sort((a, b) => b.lastUsedAt - a.lastUsedAt)
-
-  useEffect(() => {
-    if (!showFavorites) return
-    const handler = (e: MouseEvent) => {
-      if (favRef.current && !favRef.current.contains(e.target as Node)) setShowFavorites(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [showFavorites])
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginBottom: 6, paddingLeft: 4 }}>
@@ -129,81 +113,6 @@ export default function InputToolbar({
       {/* Text transform */}
       <InputToolbarTextTransform inputText={inputText} onSend={onSend} />
       {/* Favorite prompts */}
-      {favorites.length > 0 && (
-        <div ref={favRef} style={{ position: 'relative', display: 'inline-flex' }}>
-          <button
-            onClick={() => setShowFavorites(!showFavorites)}
-            title={t('toolbar.favoritePrompts')}
-            style={{
-              ...toolbarBtnStyle,
-              color: showFavorites ? '#f59e0b' : 'var(--input-toolbar-icon)',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = '#f59e0b'; e.currentTarget.style.background = 'rgba(245, 158, 11, 0.10)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = showFavorites ? '#f59e0b' : 'var(--input-toolbar-icon)'; e.currentTarget.style.background = 'none' }}
-          >
-            <Star size={16} fill={showFavorites ? '#f59e0b' : 'none'} />
-          </button>
-          {showFavorites && (
-            <div
-              style={{
-                position: 'absolute',
-                bottom: '100%',
-                left: 0,
-                marginBottom: 4,
-                background: 'var(--popup-bg)',
-                border: '1px solid var(--popup-border)',
-                borderRadius: 8,
-                boxShadow: 'var(--popup-shadow)',
-                padding: '4px 0',
-                minWidth: 220,
-                maxWidth: 320,
-                maxHeight: 240,
-                overflowY: 'auto',
-                zIndex: 100,
-                animation: 'popup-in 0.15s ease',
-              }}
-            >
-              <div style={{ padding: '4px 12px 6px', fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                {t('toolbar.favoritePrompts')} ({favorites.length})
-              </div>
-              {favorites.slice(0, 15).map(fav => (
-                <button
-                  key={fav.id}
-                  onClick={() => {
-                    onSend(fav.text)
-                    setShowFavorites(false)
-                  }}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '6px 12px',
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-primary)',
-                    cursor: 'pointer',
-                    fontSize: 12,
-                    lineHeight: 1.4,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    transition: 'background 100ms',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
-                  title={fav.text}
-                >
-                  <Star size={10} fill="#f59e0b" color="#f59e0b" style={{ marginRight: 6, verticalAlign: -1 }} />
-                  {fav.text.length > 60 ? fav.text.slice(0, 60) + '...' : fav.text}
-                  <span style={{ fontSize: 9, color: 'var(--text-muted)', marginLeft: 6 }}>
-                    x{fav.count}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
       {/* Save input as note */}
       <InputToolbarSaveNote inputText={inputText} />
       {/* Model indicator chip */}

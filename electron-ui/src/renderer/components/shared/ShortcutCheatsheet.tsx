@@ -31,7 +31,7 @@ const SHORTCUTS = [
     { keys: 'Ctrl + Shift + M', actionKey: 'cycleModel' },
     { keys: 'Ctrl + Shift + T', actionKey: 'pinWindow' },
     { keys: 'Ctrl + [ / ]', actionKey: 'prevNextSession' },
-    { keys: 'Ctrl + 1-8', actionKey: 'switchSidebarTab' },
+    { keys: 'Ctrl + 1-7', actionKey: 'switchSidebarTab' },
     { keys: '/', actionKey: 'quickSearch' },
   ]},
   { sectionKey: 'sessionList', items: [

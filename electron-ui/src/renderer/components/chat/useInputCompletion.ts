@@ -1,42 +1,15 @@
 import { useMemo } from 'react'
-import { PromptHistoryItem } from '../../types/app.types'
-import { usePrefsStore } from '../../store'
 
 /**
- * Provides ghost-text autocomplete from prompt history and inline calculator evaluation.
+ * Provides inline calculator evaluation for the chat input.
  */
 export function useInputCompletion(
   input: string,
   slashQuery: string | null,
   atQuery: string | null,
 ) {
-  const prefs = usePrefsStore((s) => s.prefs)
-  const promptHistory: PromptHistoryItem[] = prefs.promptHistory || []
-
-  // Ghost text autocomplete from prompt history
-  const ghostText = useMemo(() => {
-    const trimmed = input.trimStart()
-    if (trimmed.length < 3 || slashQuery !== null || atQuery !== null) return ''
-    const lower = trimmed.toLowerCase()
-    let best: PromptHistoryItem | null = null
-    for (const item of promptHistory) {
-      const itemLower = item.text.toLowerCase()
-      if (
-        itemLower.startsWith(lower) &&
-        itemLower !== lower
-      ) {
-        if (
-          !best ||
-          item.count > best.count ||
-          (item.count === best.count && item.lastUsedAt > best.lastUsedAt)
-        ) {
-          best = item
-        }
-      }
-    }
-    if (!best) return ''
-    return best.text.slice(trimmed.length)
-  }, [input, promptHistory, slashQuery, atQuery])
+  // Ghost text removed (prompt history feature removed)
+  const ghostText = ''
 
   // Inline calculator: detect "= expression" and evaluate
   const calcResult = useMemo(() => {

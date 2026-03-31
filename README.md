@@ -46,7 +46,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 - **Permission prompts** — friendly allow/deny cards before any destructive tool use
 
 ### Input Power Tools
-- **Slash commands** (`/`), **@mention** file picker, **inline autocomplete** from prompt history
+- **Slash commands** (`/`), **@mention** file picker
 - **Text snippets** — `::keyword` expands reusable blocks
 - **Text transforms** — make formal, casual, shorter, longer, or fix grammar with one click
 - **Inline calculator** — type `= 42 * 1.18`, press Tab to insert the result
@@ -102,7 +102,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 | `Ctrl+`` ` `` | Toggle terminal |
 | `Ctrl+,` | Open Settings |
 | `Ctrl+1–4` | History, Files, Notes, Skills |
-| `Ctrl+5–8` | Memory, Workflows, Prompt History, Channel |
+| `Ctrl+5–7` | Memory, Workflows, Channel |
 | `Ctrl+/` | Shortcut cheatsheet |
 | `Ctrl+Shift+Space` | Toggle AIPA window (global, works from any app) |
 | `Ctrl+Shift+G` | Clipboard quick action (global: reads clipboard, opens AIPA, sends to chat) |

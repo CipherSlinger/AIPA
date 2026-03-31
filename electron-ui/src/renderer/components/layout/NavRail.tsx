@@ -1,5 +1,5 @@
 import React from 'react'
-import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, ListRestart, Settings, User, PanelLeftClose, PanelLeftOpen, Radio } from 'lucide-react'
+import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, Settings, User, PanelLeftClose, PanelLeftOpen, Radio } from 'lucide-react'
 import { useUiStore, useSessionStore, useChatStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 
@@ -190,7 +190,6 @@ export default function NavRail() {
   const noteCount = usePrefsStore(s => (s.prefs.notes || []).length)
   const memoryCount = usePrefsStore(s => (s.prefs.memories || []).length)
   const workflowCount = usePrefsStore(s => (s.prefs.workflows || []).length)
-  const promptHistoryCount = usePrefsStore(s => (s.prefs.promptHistory || []).length)
 
   const navExpanded = usePrefsStore(s => !!s.prefs.navExpanded)
   const activePersona = usePrefsStore(s => {
@@ -213,7 +212,6 @@ export default function NavRail() {
   const isSkillsActive = activeNavItem === 'skills' && sidebarTab === 'skills'
   const isMemoryActive = activeNavItem === 'memory' && sidebarTab === 'memory'
   const isWorkflowsActive = activeNavItem === 'workflows' && sidebarTab === 'workflows'
-  const isPromptHistoryActive = activeNavItem === 'prompthistory' && sidebarTab === 'prompthistory'
   const isChannelActive = activeNavItem === 'channel' && sidebarTab === 'channel'
   const isSettingsActive = useUiStore(s => s.settingsModalOpen)
 
@@ -321,22 +319,11 @@ export default function NavRail() {
         expanded={navExpanded}
       />
 
-      {/* Prompt History */}
-      <NavItem
-        icon={<ListRestart size={iconSize} />}
-        label={t('nav.promptHistory')}
-        shortcut="Ctrl+7"
-        isActive={isPromptHistoryActive}
-        onClick={() => setActiveNavItem('prompthistory')}
-        badge={promptHistoryCount}
-        expanded={navExpanded}
-      />
-
       {/* Channel */}
       <NavItem
         icon={<Radio size={iconSize} />}
         label={t('nav.channel')}
-        shortcut="Ctrl+8"
+        shortcut="Ctrl+7"
         isActive={isChannelActive}
         onClick={() => setActiveNavItem('channel')}
         expanded={navExpanded}
