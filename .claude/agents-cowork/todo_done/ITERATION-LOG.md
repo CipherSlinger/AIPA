@@ -2471,3 +2471,5 @@ Status: SUCCESS
 
 ### Iteration 341 (2026-03-30)
 - Settings modal overlay (user feedback #2) -- Moved Settings from cramped sidebar panel to a dedicated full-screen modal overlay. (1) Created SettingsModal.tsx (centered overlay, 720px max-width, 85% height, backdrop blur, slide-up animation, Escape to close, click-outside to close). (2) Updated store: added settingsModalOpen/openSettingsModal/closeSettingsModal state; removed 'settings' from sidebar tab types; setActiveNavItem('settings') now opens modal. (3) Updated NavRail: settings button opens modal, shows active indicator when modal is open, shortcut changed from Ctrl+5 to Ctrl+,. (4) Updated all entry points: useAppShortcuts (Ctrl+, and Ctrl+5), CommandPalette, WelcomeScreen, ModelPicker "Manage Providers", Help>About menu. (5) Removed settings from Sidebar.tsx routing. (6) i18n: added settings.close key in en.json and zh-CN.json. 11 files changed (1 new); tsc 0 errors; build SUCCESS
+
+[RETRO] retro-2026-03-30-iterations-332-341.md completed, covering Iteration 332-341, next forced retro after Iteration 351
