@@ -2,7 +2,7 @@
 // Sub-components: SkillDetail, SkillCard, MarketplaceCard, skillsShared
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import {
-  Puzzle, Search, X, RefreshCw, Store, Package, ExternalLink, Globe, CloudDownload,
+  Puzzle, Search, X, RefreshCw, Store, Package,
 } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useUiStore, useChatStore, usePrefsStore } from '../../store'
@@ -12,7 +12,6 @@ import {
   SKILL_SOURCES,
   CATEGORY_COLORS,
   SOURCE_COLORS,
-  CLAWHUB_URL,
   type MarketplaceSkill,
   type SkillCategory,
   type SkillSource,
@@ -42,52 +41,6 @@ export default function SkillsPanel() {
   const [marketplaceSource, setMarketplaceSource] = useState<SkillSource | null>(null)
   const [installedSkillNames, setInstalledSkillNames] = useState<Set<string>>(new Set())
   const [installingSkillId, setInstallingSkillId] = useState<string | null>(null)
-
-  // Remote ClawhHub skills
-  const [remoteSkills, setRemoteSkills] = useState<MarketplaceSkill[]>([])
-  const [fetchingRemote, setFetchingRemote] = useState(false)
-  const [remoteFetchResult, setRemoteFetchResult] = useState<string | null>(null)
-
-  // Fetch skills from ClawhHub API
-  const fetchClawhubSkills = useCallback(async () => {
-    setFetchingRemote(true)
-    setRemoteFetchResult(null)
-    try {
-      const result = await window.electronAPI.skillsFetchClawhub()
-      if (result?.skills && Array.isArray(result.skills) && result.skills.length > 0) {
-        // Transform API response into MarketplaceSkill format
-        const transformed: MarketplaceSkill[] = result.skills
-          .filter((s: any) => s.name && s.description)
-          .map((s: any) => ({
-            id: `clawhub-live-${(s.slug || s.name || '').replace(/\s+/g, '-').toLowerCase()}`,
-            name: s.name || s.title || 'Unknown',
-            description: s.description || '',
-            descriptionZh: s.descriptionZh,
-            author: s.author || s.publisher || 'ClawhHub',
-            sourceUrl: s.url || `https://clawhub.ai/skills/${s.slug || s.name}`,
-            category: (s.category as SkillCategory) || 'Productivity',
-            source: 'ClawhHub' as SkillSource,
-            skillContent: s.content || s.skillContent || `---\nname: ${s.name}\ndescription: ${s.description}\n---\n\n# ${s.name}\n\n${s.description}\n`,
-          }))
-        // Deduplicate against existing static marketplace skills
-        const existingIds = new Set(MARKETPLACE_SKILLS.map(s => s.name.toLowerCase()))
-        const newSkills = transformed.filter(s => !existingIds.has(s.name.toLowerCase()))
-        setRemoteSkills(newSkills)
-        setRemoteFetchResult(
-          newSkills.length > 0
-            ? `${newSkills.length} ${t('skills.newSkillsFound')}`
-            : t('skills.noNewSkills')
-        )
-      } else {
-        setRemoteSkills([])
-        setRemoteFetchResult(result?.message || t('skills.clawhubEmpty'))
-      }
-    } catch (err) {
-      setRemoteFetchResult(t('skills.clawhubError'))
-    } finally {
-      setFetchingRemote(false)
-    }
-  }, [t])
 
   // Load installed skills
   const loadSkills = useCallback(async () => {
@@ -188,14 +141,9 @@ export default function SkillsPanel() {
     )
   }, [skills, searchQuery])
 
-  // Combine static and remote marketplace skills
-  const allMarketplaceSkills = useMemo(() => {
-    return [...MARKETPLACE_SKILLS, ...remoteSkills]
-  }, [remoteSkills])
-
   // Filter marketplace skills
   const filteredMarketplace = useMemo(() => {
-    let list = allMarketplaceSkills
+    let list: MarketplaceSkill[] = MARKETPLACE_SKILLS
     if (marketplaceCategory) {
       list = list.filter(s => s.category === marketplaceCategory)
     }
@@ -209,7 +157,7 @@ export default function SkillsPanel() {
       )
     }
     return list
-  }, [allMarketplaceSkills, marketplaceCategory, marketplaceSource, searchQuery])
+  }, [marketplaceCategory, marketplaceSource, searchQuery])
 
   // ── Skill Detail View ──
   if (selectedSkill) {
@@ -284,7 +232,7 @@ export default function SkillsPanel() {
           label={t('skills.marketplace')}
           icon={<Store size={14} />}
           isActive={activeTab === 'marketplace'}
-          count={allMarketplaceSkills.length}
+          count={MARKETPLACE_SKILLS.length}
           onClick={() => setActiveTab('marketplace')}
         />
       </div>
@@ -355,7 +303,7 @@ export default function SkillsPanel() {
             label={t('skills.allSources')}
             isActive={marketplaceSource === null}
             color={undefined}
-            count={allMarketplaceSkills.length}
+            count={MARKETPLACE_SKILLS.length}
             onClick={() => setMarketplaceSource(null)}
           />
           {SKILL_SOURCES.map(src => (
@@ -364,7 +312,7 @@ export default function SkillsPanel() {
               label={t(`skills.source_${src.toLowerCase()}`)}
               isActive={marketplaceSource === src}
               color={SOURCE_COLORS[src]}
-              count={allMarketplaceSkills.filter(s => s.source === src).length}
+              count={MARKETPLACE_SKILLS.filter(s => s.source === src).length}
               onClick={() => setMarketplaceSource(src === marketplaceSource ? null : src)}
             />
           ))}
@@ -384,7 +332,7 @@ export default function SkillsPanel() {
             label={t('skills.allCategories')}
             isActive={marketplaceCategory === null}
             color={undefined}
-            count={allMarketplaceSkills.length}
+            count={MARKETPLACE_SKILLS.length}
             onClick={() => setMarketplaceCategory(null)}
           />
           {SKILL_CATEGORIES.map(cat => (
@@ -393,7 +341,7 @@ export default function SkillsPanel() {
               label={t(`skills.category_${cat.toLowerCase()}`)}
               isActive={marketplaceCategory === cat}
               color={CATEGORY_COLORS[cat]}
-              count={allMarketplaceSkills.filter(s => s.category === cat).length}
+              count={MARKETPLACE_SKILLS.filter(s => s.category === cat).length}
               onClick={() => setMarketplaceCategory(cat === marketplaceCategory ? null : cat)}
             />
           ))}
@@ -501,80 +449,6 @@ export default function SkillsPanel() {
                 {t('skills.noResults')}
               </div>
             )}
-            {/* Fetch from ClawhHub + Browse link */}
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 8,
-              padding: '16px 14px',
-              borderTop: '1px solid var(--border)',
-            }}>
-              {/* Fetch from ClawhHub button */}
-              <button
-                onClick={fetchClawhubSkills}
-                disabled={fetchingRemote}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '8px 16px',
-                  borderRadius: 8,
-                  border: '1px solid var(--accent)',
-                  background: 'transparent',
-                  color: 'var(--accent)',
-                  fontSize: 12,
-                  fontWeight: 500,
-                  cursor: fetchingRemote ? 'wait' : 'pointer',
-                  transition: 'background 0.15s, color 0.15s',
-                  opacity: fetchingRemote ? 0.7 : 1,
-                }}
-                onMouseEnter={e => { if (!fetchingRemote) { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = '#fff' } }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--accent)' }}
-              >
-                {fetchingRemote ? (
-                  <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                ) : (
-                  <CloudDownload size={14} />
-                )}
-                {fetchingRemote ? t('skills.fetchingClawhub') : t('skills.fetchFromClawhub')}
-              </button>
-
-              {/* Fetch result status */}
-              {remoteFetchResult && (
-                <div style={{
-                  fontSize: 10,
-                  color: remoteSkills.length > 0 ? 'var(--success)' : 'var(--text-muted)',
-                  textAlign: 'center',
-                }}>
-                  {remoteFetchResult}
-                </div>
-              )}
-
-              {/* Browse on ClawhHub */}
-              <button
-                onClick={() => window.electronAPI.shellOpenExternal(CLAWHUB_URL)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '8px 16px',
-                  borderRadius: 8,
-                  border: '1px solid var(--card-border)',
-                  background: 'transparent',
-                  color: 'var(--text-secondary)',
-                  fontSize: 12,
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  transition: 'color 0.15s, border-color 0.15s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.color = '#e11d48'; e.currentTarget.style.borderColor = '#e11d48' }}
-                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.borderColor = 'var(--card-border)' }}
-              >
-                <ExternalLink size={14} />
-                {t('skills.browseOnClawhub')}
-              </button>
-            </div>
           </div>
         )}
       </div>

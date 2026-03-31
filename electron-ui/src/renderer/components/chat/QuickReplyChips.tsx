@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { Plus, Check, X, Trash2 } from 'lucide-react'
 import { usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
@@ -20,15 +20,37 @@ const DEFAULT_QUICK_REPLY_DEFS = [
   { labelKey: 'quickReply.brainstorm', prompt: 'Please brainstorm creative ideas about:' },
 ]
 
+// Check whether a stored chip matches a default by its prompt (language-invariant)
+const DEFAULT_PROMPTS = new Set(DEFAULT_QUICK_REPLY_DEFS.map(d => d.prompt))
+
 export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
   const t = useT()
   const prefs = usePrefsStore(s => s.prefs)
   const setPrefs = usePrefsStore(s => s.setPrefs)
+
+  // Build default chips with translated labels
   const defaultChips: QuickReply[] = DEFAULT_QUICK_REPLY_DEFS.map(d => ({
     label: t(d.labelKey),
     prompt: d.prompt,
   }))
-  const chips: QuickReply[] = prefs.quickReplies ?? defaultChips
+
+  // If user has stored quickReplies, re-translate labels for any that match default prompts
+  // so they always follow the current language, while preserving truly custom chips
+  const chips: QuickReply[] = useMemo(() => {
+    const stored = prefs.quickReplies
+    if (!stored) return defaultChips
+    // Map default prompts to their i18n label keys for re-translation
+    const promptToLabelKey = new Map(DEFAULT_QUICK_REPLY_DEFS.map(d => [d.prompt, d.labelKey]))
+    return stored.map(chip => {
+      const labelKey = promptToLabelKey.get(chip.prompt)
+      if (labelKey) {
+        // This is a default chip -- use translated label
+        return { ...chip, label: t(labelKey) }
+      }
+      // Custom chip -- keep stored label as-is
+      return chip
+    })
+  }, [prefs.quickReplies, t])
 
   const [addingNew, setAddingNew] = useState(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
