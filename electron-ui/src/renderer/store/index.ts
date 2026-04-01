@@ -106,7 +106,9 @@ interface ChatState {
   lastCost: number | null
   totalSessionCost: number
   lastContextUsage: { used: number; total: number } | null
-  setLastCost: (cost: number | null) => void
+  /** Per-model usage breakdown: model name -> { inputTokens, outputTokens, cacheTokens, costUsd, turns } */
+  modelUsage: Record<string, { inputTokens: number; outputTokens: number; cacheTokens: number; costUsd: number; turns: number }>
+  setLastCost: (cost: number | null, model?: string, usage?: { inputTokens: number; outputTokens: number; cacheTokens: number }) => void
   setLastContextUsage: (usage: { used: number; total: number } | null) => void
   currentSessionTitle: string | null
   setSessionTitle: (title: string | null) => void
@@ -153,6 +155,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   lastCost: null,
   totalSessionCost: 0,
   lastContextUsage: null,
+  modelUsage: {},
   currentSessionTitle: null,
   taskQueue: [],
   queuePaused: false,
@@ -242,7 +245,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     streamingBuffer.sessionId = null
     streamingBuffer.messageId = null
     streamingBuffer.dirty = false
-    set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false, totalSessionCost: 0, lastCost: null, lastUsage: null, lastContextUsage: null })
+    set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false, totalSessionCost: 0, lastCost: null, lastUsage: null, lastContextUsage: null, modelUsage: {} })
   },
   loadHistory: (messages) => set({ messages, isStreaming: false }),
 
@@ -254,7 +257,28 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   setLastUsage: (u) => set({ lastUsage: u }),
-  setLastCost: (cost) => set((s) => ({ lastCost: cost, totalSessionCost: s.totalSessionCost + (cost ?? 0) })),
+  setLastCost: (cost, model, usage) => set((s) => {
+    const newTotal = s.totalSessionCost + (cost ?? 0)
+    // Accumulate per-model usage
+    if (model && cost != null) {
+      const prev = s.modelUsage[model] || { inputTokens: 0, outputTokens: 0, cacheTokens: 0, costUsd: 0, turns: 0 }
+      return {
+        lastCost: cost,
+        totalSessionCost: newTotal,
+        modelUsage: {
+          ...s.modelUsage,
+          [model]: {
+            inputTokens: prev.inputTokens + (usage?.inputTokens ?? 0),
+            outputTokens: prev.outputTokens + (usage?.outputTokens ?? 0),
+            cacheTokens: prev.cacheTokens + (usage?.cacheTokens ?? 0),
+            costUsd: prev.costUsd + cost,
+            turns: prev.turns + 1,
+          },
+        },
+      }
+    }
+    return { lastCost: cost, totalSessionCost: newTotal }
+  }),
   setLastContextUsage: (usage) => set({ lastContextUsage: usage }),
   setSessionTitle: (title) => set({ currentSessionTitle: title }),
 

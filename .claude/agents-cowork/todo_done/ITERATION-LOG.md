@@ -2576,5 +2576,34 @@ Status: SUCCESS
 ### Iteration 373 (2026-03-31)
 - Idle Return Dialog (inspired by Claude Code IdleReturnDialog) -- Created useIdleReturn.ts hook that tracks user interaction time (keydown/mousedown) and detects when the window regains focus after 30+ minutes idle with an active conversation (context usage > 20%). Shows an IdleReturnDialog.tsx modal with three options: Continue conversation, Start new conversation, or Don't ask again. Dialog shows idle duration in human-readable format and current context usage percentage. Settings: idleReturnDialogEnabled in ClaudePrefs (default: true) with toggle in Settings > Behavior. 8 new i18n keys (idle.*) in both en.json and zh-CN.json. 6 files changed (3 new: useIdleReturn.ts, IdleReturnDialog.tsx, prd-idle-return-dialog-v1.md); tsc 0 errors; build SUCCESS
 
+## Iteration 376 — Migrate Personas Panel from Settings to Workflows Sidebar
+_Date: 2026-04-01 | Sprint ongoing_
+
+### Summary
+Moved the "Personas / 角色" management UI from the Settings modal (personas tab) to the Workflows sidebar panel. This surfaces the persona-switching workflow in a more accessible location, right above the workflow list. The Settings modal now has four tabs instead of five (general, providers, mcp, about). All persona business logic (create, edit, delete, activate, export, import, preset install) is preserved.
+
+### Files Changed
+- `electron-ui/src/renderer/components/workflows/WorkflowPersonasSection.tsx` — NEW: collapsible persona management block; compact PersonaSidebarCard, PersonaInlineForm, preset list, export/import buttons; syncs with Zustand prefs store
+- `electron-ui/src/renderer/components/workflows/WorkflowPanel.tsx` — add `WorkflowPersonasSection` above workflow list; import new component
+- `electron-ui/src/renderer/components/settings/SettingsPanel.tsx` — remove `personas` tab and related local state; keep one-time template migration logic; tabs: general / providers / mcp / about
+
+### Build
+Status: SUCCESS (3 files changed, 755 insertions; tsc 0 errors; Vite 2513 modules)
+
+### Acceptance Criteria
+- [x] "角色" section appears at top of Workflows sidebar panel, collapsible
+- [x] Existing personas display as compact cards with emoji, name, model, activate/edit/delete buttons
+- [x] Active persona shown with color-highlighted border and "已激活" badge
+- [x] "+" button opens inline create form; submitting creates and persists persona
+- [x] Edit persona loads existing data into inline form
+- [x] Delete requires double-click confirmation (3s timeout)
+- [x] Preset personas listed; one-click install
+- [x] Export/Import buttons visible when personas exist
+- [x] Settings modal no longer shows "角色" tab
+- [x] All existing persona data persists (written/read via prefs store and IPC)
+- [x] Build SUCCESS, tsc 0 errors
+
+---
+
 ### Iteration 374 (2026-03-31)
 - Screenshot Capture to Chat + Context Health Warnings (inspired by Claude Code `modelCost.ts` + `contextSuggestions.ts`) -- Two features: (1) Screenshot capture: Added desktopCapturer IPC handler in main process (window:captureScreen) that captures the primary screen as a 1920x1080 PNG thumbnail, returns base64 data URL. Exposed via preload (windowCaptureScreen). Added Camera icon button to InputToolbar between Attach and Slash buttons. Added addImageAttachment() method to useImagePaste hook for direct data URL injection (bypasses FileReader). ChatInput calls addImageAttachment on capture, shows success/failure toast. (2) Context health warnings: Created useContextHealth.ts hook (63 lines) that subscribes to chat store and shows one-time toast warnings when session cost exceeds $5 or context usage exceeds 80% (if auto-compact disabled) or 95% (always). StatusBar cost display now color-coded: green <$1, yellow $1-$5, red >=$5 with smooth CSS transition. Warnings reset when conversation is cleared. Hook mounted in App.tsx. 6 new i18n keys (context.almostFull, context.nearCapacity, cost.thresholdWarning, toolbar.captureScreen/screenshotAdded/screenshotFailed) in both en.json and zh-CN.json. i18n key count: 1142 (aligned). 11 files changed (1 new: useContextHealth.ts); tsc 0 errors; build SUCCESS (2517 modules)

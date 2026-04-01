@@ -353,9 +353,15 @@ export function useStreamJson() {
               cacheTokens: (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0),
             })
           }
-          // cost
+          // cost (with per-model breakdown)
           const costUsd = ev?.total_cost_usd as number | undefined
-          setLastCost(costUsd ?? null)
+          const currentModel = prefs.model || 'claude-sonnet-4-6'
+          const turnUsage = usage ? {
+            inputTokens: usage.input_tokens ?? 0,
+            outputTokens: usage.output_tokens ?? 0,
+            cacheTokens: (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0),
+          } : undefined
+          setLastCost(costUsd ?? null, currentModel, turnUsage)
 
           // context window usage
           if (usage?.context_window && usage.context_window > 0) {

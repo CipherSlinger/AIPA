@@ -1,10 +1,34 @@
 // StatusBar model picker — extracted from StatusBar.tsx (Iteration 313)
+// Enhanced with per-model pricing display (Iteration 376)
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { ChevronUp, Check } from 'lucide-react'
 import { usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import { MODEL_OPTIONS } from '../settings/settingsConstants'
+
+// Per-model pricing tiers (inspired by Claude Code modelCost.ts)
+const MODEL_PRICING: Record<string, [number, number]> = {
+  'claude-sonnet-4-6': [3, 15],
+  'claude-sonnet-4-5': [3, 15],
+  'claude-sonnet-4-0': [3, 15],
+  'claude-3-7-sonnet': [3, 15],
+  'claude-3-5-sonnet': [3, 15],
+  'claude-opus-4-6': [5, 25],
+  'claude-opus-4-5': [5, 25],
+  'claude-opus-4-1': [15, 75],
+  'claude-opus-4-0': [15, 75],
+  'claude-haiku-4-5': [1, 5],
+  'claude-3-5-haiku': [0.8, 4],
+}
+
+function getModelPricingLabel(modelId: string): string | null {
+  const costs = MODEL_PRICING[modelId]
+    || Object.entries(MODEL_PRICING).find(([k]) => modelId.includes(k))?.[1]
+  if (!costs) return null
+  const fmt = (n: number) => Number.isInteger(n) ? `$${n}` : `$${n.toFixed(2)}`
+  return `${fmt(costs[0])}/${fmt(costs[1])}`
+}
 
 interface ProviderGroup {
   providerId: string
@@ -143,7 +167,8 @@ export default function StatusBarModelPicker({ modelLabel, shortModel, isClaudeM
                     onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
                   >
                     {isActive && <Check size={11} />}
-                    <span style={{ marginLeft: isActive ? 0 : 17 }}>{m.name}</span>
+                    <span style={{ marginLeft: isActive ? 0 : 17, flex: 1 }}>{m.name}</span>
+                    {(() => { const p = getModelPricingLabel(m.id); return p ? <span style={{ fontSize: 9, opacity: 0.5, whiteSpace: 'nowrap' }}>{p}</span> : null })()}
                   </button>
                 )
               })}

@@ -2,7 +2,7 @@
 // Sub-modules: statusBarConstants, useStatusBarTimers, useStreamingSpeed,
 //              StatusBarModelPicker, StatusBarPersonaPicker
 
-import React from 'react'
+import React, { useState } from 'react'
 import { PanelLeft, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Square, StopCircle, Pin, Settings, Gauge } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { StandardChatMessage } from '../../types/app.types'
@@ -13,12 +13,38 @@ import { useStreamingSpeed } from './useStreamingSpeed'
 import StatusBarModelPicker from './StatusBarModelPicker'
 import StatusBarPersonaPicker from './StatusBarPersonaPicker'
 
+// Per-model pricing tiers (inspired by Claude Code modelCost.ts)
+// Format: [inputCostPerMtok, outputCostPerMtok]
+const MODEL_PRICING: Record<string, [number, number]> = {
+  'claude-sonnet-4-6': [3, 15],
+  'claude-sonnet-4-5': [3, 15],
+  'claude-sonnet-4-0': [3, 15],
+  'claude-3-7-sonnet': [3, 15],
+  'claude-3-5-sonnet': [3, 15],
+  'claude-opus-4-6': [5, 25],
+  'claude-opus-4-5': [5, 25],
+  'claude-opus-4-1': [15, 75],
+  'claude-opus-4-0': [15, 75],
+  'claude-haiku-4-5': [1, 5],
+  'claude-3-5-haiku': [0.8, 4],
+}
+
+function getModelPricing(modelId: string): string | null {
+  // Try exact match first, then partial
+  const costs = MODEL_PRICING[modelId]
+    || Object.entries(MODEL_PRICING).find(([k]) => modelId.includes(k))?.[1]
+  if (!costs) return null
+  const fmt = (n: number) => Number.isInteger(n) ? `$${n}` : `$${n.toFixed(2)}`
+  return `${fmt(costs[0])}/${fmt(costs[1])} per Mtok`
+}
+
 export default function StatusBar() {
   const workingDir = useChatStore(s => s.workingDir)
   const lastUsage = useChatStore(s => s.lastUsage)
   const lastCost = useChatStore(s => s.lastCost)
   const totalSessionCost = useChatStore(s => s.totalSessionCost)
   const lastContextUsage = useChatStore(s => s.lastContextUsage)
+  const modelUsage = useChatStore(s => s.modelUsage)
   const isStreaming = useChatStore(s => s.isStreaming)
   const messages = useChatStore(s => s.messages)
   const prefs = usePrefsStore(s => s.prefs)
@@ -58,6 +84,8 @@ export default function StatusBar() {
     : '#4ade80'
 
   const chatMessages = messages.filter(m => m.role !== 'permission' && m.role !== 'plan')
+  const [showCostBreakdown, setShowCostBreakdown] = useState(false)
+  const costPopupRef = React.useRef<HTMLDivElement>(null)
   const firstMsgTs = chatMessages.length > 0
     ? (chatMessages[0] as StandardChatMessage).timestamp
     : null
@@ -65,6 +93,21 @@ export default function StatusBar() {
 
   const personas = prefs.personas || []
   const activePersona = personas.find(p => p.id === prefs.activePersonaId)
+
+  // Close cost popup on outside click
+  React.useEffect(() => {
+    if (!showCostBreakdown) return
+    const handler = (e: MouseEvent) => {
+      if (costPopupRef.current && !costPopupRef.current.contains(e.target as Node)) {
+        setShowCostBreakdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showCostBreakdown])
+
+  // Model pricing for current model
+  const modelPricing = getModelPricing(prefs.model || 'claude-sonnet-4-6')
 
   // Effort level config
   const effortLevel = prefs.effortLevel || 'medium'
@@ -269,26 +312,71 @@ export default function StatusBar() {
           </button>
         )}
 
-        {/* Cost (click to copy) -- color-coded thresholds: green < $1, yellow $1-$5, red >= $5 */}
+        {/* Cost (click for per-model breakdown) -- color-coded thresholds: green < $1, yellow $1-$5, red >= $5 */}
         {totalSessionCost > 0 && (
-          <button
-            onClick={() => {
-              const text = `Session cost: $${totalSessionCost.toFixed(4)}${lastCost != null ? ` (last turn: $${lastCost.toFixed(4)})` : ''}`
-              navigator.clipboard.writeText(text).then(() => {
-                useUiStore.getState().addToast('success', t('toolbar.costCopied'))
-              })
-            }}
-            title={lastCost != null ? t('toolbar.lastTurn', { cost: lastCost.toFixed(4), total: totalSessionCost.toFixed(4) }) : t('toolbar.sessionTotal', { total: totalSessionCost.toFixed(4) })}
-            style={{
-              opacity: 0.85, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 2, fontSize: 10,
-              background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-              color: totalSessionCost >= 5 ? '#f87171' : totalSessionCost >= 1 ? '#fbbf24' : '#4ade80',
-              transition: 'color 0.3s',
-            }}
-          >
-            <DollarSign size={10} />
-            {totalSessionCost < 0.001 ? '<$0.001' : `$${totalSessionCost.toFixed(3)}`}
-          </button>
+          <div style={{ position: 'relative' }} ref={costPopupRef}>
+            <button
+              onClick={() => setShowCostBreakdown(!showCostBreakdown)}
+              title={lastCost != null ? t('toolbar.lastTurn', { cost: lastCost.toFixed(4), total: totalSessionCost.toFixed(4) }) : t('toolbar.sessionTotal', { total: totalSessionCost.toFixed(4) })}
+              style={{
+                opacity: 0.85, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 2, fontSize: 10,
+                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                color: totalSessionCost >= 5 ? '#f87171' : totalSessionCost >= 1 ? '#fbbf24' : '#4ade80',
+                transition: 'color 0.3s',
+              }}
+            >
+              <DollarSign size={10} />
+              {totalSessionCost < 0.001 ? '<$0.001' : `$${totalSessionCost.toFixed(3)}`}
+            </button>
+            {showCostBreakdown && Object.keys(modelUsage).length > 0 && (
+              <div
+                className="popup-enter"
+                style={{
+                  position: 'absolute', bottom: '100%', right: 0, marginBottom: 4,
+                  background: 'var(--popup-bg)', border: '1px solid var(--popup-border)',
+                  boxShadow: 'var(--popup-shadow)', borderRadius: 8, padding: '8px 12px',
+                  minWidth: 220, zIndex: 100,
+                }}
+              >
+                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>
+                  {t('cost.breakdownTitle')}
+                </div>
+                {Object.entries(modelUsage)
+                  .sort((a, b) => b[1].costUsd - a[1].costUsd)
+                  .map(([model, usage]) => {
+                    const shortName = model.startsWith('claude-')
+                      ? model.replace('claude-', '').replace(/-\d{8}$/, '')
+                      : model
+                    const pricing = getModelPricing(model)
+                    return (
+                      <div key={model} style={{ marginBottom: 5, borderBottom: '1px solid var(--popup-border)', paddingBottom: 5 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11 }}>
+                          <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{shortName}</span>
+                          <span style={{ color: usage.costUsd >= 1 ? '#fbbf24' : '#4ade80', fontWeight: 600 }}>
+                            ${usage.costUsd < 0.001 ? '<0.001' : usage.costUsd.toFixed(3)}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>
+                          <span>{t('cost.input')}: {fmtNumber(usage.inputTokens)}</span>
+                          <span>{t('cost.output')}: {fmtNumber(usage.outputTokens)}</span>
+                          {usage.cacheTokens > 0 && <span>{t('cost.cache')}: {fmtNumber(usage.cacheTokens)}</span>}
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: 'var(--text-muted)', marginTop: 1 }}>
+                          <span>{usage.turns} {t('cost.turns')}</span>
+                          {pricing && <span style={{ opacity: 0.7 }}>{pricing}</span>}
+                        </div>
+                      </div>
+                    )
+                  })}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 600, color: 'var(--text-primary)', marginTop: 2 }}>
+                  <span>{t('cost.total')}</span>
+                  <span style={{ color: totalSessionCost >= 5 ? '#f87171' : totalSessionCost >= 1 ? '#fbbf24' : '#4ade80' }}>
+                    ${totalSessionCost.toFixed(4)}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Persona quick-switcher */}

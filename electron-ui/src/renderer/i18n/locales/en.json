@@ -826,7 +826,13 @@
     "nearCapacity": "Context window {{pct}}% full. Enable auto-compact in Settings > Behavior."
   },
   "cost": {
-    "thresholdWarning": "Session cost exceeded $5.00. Consider starting a new conversation or compacting."
+    "thresholdWarning": "Session cost exceeded $5.00. Consider starting a new conversation or compacting.",
+    "breakdownTitle": "Cost by Model",
+    "input": "In",
+    "output": "Out",
+    "cache": "Cache",
+    "turns": "turns",
+    "total": "Total"
   },
   "compact": {
     "inProgress": "Compacting conversation...",
