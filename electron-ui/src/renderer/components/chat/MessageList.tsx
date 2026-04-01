@@ -30,8 +30,12 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   const toggleBookmark = useChatStore(s => s.toggleBookmark)
   const toggleCollapse = useChatStore(s => s.toggleCollapse)
   const addToast = useUiStore(s => s.addToast)
+  const rewindToMessage = useChatStore(s => s.rewindToMessage)
   const t = useT()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  // Rewind confirmation state
+  const [rewindTarget, setRewindTarget] = useState<{ msgId: string; ts: number; count: number } | null>(null)
 
   // Pinned messages strip
   const [pinnedExpanded, setPinnedExpanded] = useState(true)
@@ -116,6 +120,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
         searchCaseSensitive={searchCaseSensitive}
         showAvatar={showAvatar}
         isLastUserMsg={msg.role === 'user' && msg.id === lastUserMsgId}
+        isLastMessage={msgIdx === messages.length - 1}
         hasAssistantReply={msg.role === 'user' && (assistantReplyMap.get(msg.id) ?? false)}
         onRate={(msgId, rating) => {
           rateMessage(msgId, rating)
@@ -124,19 +129,18 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
         onBookmark={(msgId) => toggleBookmark(msgId)}
         onCollapse={(msgId) => toggleCollapse(msgId)}
         onEdit={onEdit}
-        onRewind={sessionId ? async (ts) => {
-          const isoTs = new Date(ts).toISOString()
-          const result = await window.electronAPI.sessionRewind(sessionId, isoTs)
-          if (result?.success) {
-            addToast('success', t('message.rewindSuccess'))
-          } else {
-            addToast('error', t('message.rewindFailed', { error: result?.error || 'Unknown error' }))
-          }
+        onRewind={sessionId ? (ts) => {
+          // Find the message index by timestamp to calculate how many messages will be removed
+          const msgIndex = messages.findIndex(m => m.role !== 'permission' && m.role !== 'plan' && (m as StandardChatMessage).timestamp === ts)
+          if (msgIndex < 0) return
+          const count = messages.length - msgIndex - 1
+          if (count <= 0) return
+          setRewindTarget({ msgId: messages[msgIndex].id, ts, count })
         } : undefined}
       />
       </MessageErrorBoundary>
     )
-  }, [onPermission, onGrantPermission, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery, searchCaseSensitive, showAvatarMap, onEdit, t, lastUserMsgId, assistantReplyMap])
+  }, [onPermission, onGrantPermission, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery, searchCaseSensitive, showAvatarMap, onEdit, t, lastUserMsgId, assistantReplyMap, messages])
 
   return (
     <div style={{ height: '100%', position: 'relative', display: 'flex', flexDirection: 'column' }}>
@@ -521,6 +525,72 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
             : <span style={{ fontSize: 10, fontFamily: 'monospace', opacity: 0.85 }}>{scrollState.scrollPct}%</span>
           }
         </button>
+      )}
+
+      {/* Rewind confirmation dialog */}
+      {rewindTarget && (
+        <div
+          style={{
+            position: 'absolute', inset: 0, zIndex: 50,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)',
+          }}
+          onClick={() => setRewindTarget(null)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'var(--popup-bg)', border: '1px solid var(--popup-border)',
+              borderRadius: 12, padding: '20px 24px', maxWidth: 360,
+              boxShadow: 'var(--popup-shadow)', textAlign: 'center',
+              animation: 'popup-in 0.15s ease-out',
+            }}
+          >
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-bright)', marginBottom: 10 }}>
+              {t('rewind.title')}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 18, lineHeight: 1.6 }}>
+              {t('rewind.confirm', { count: String(rewindTarget.count) })}
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button
+                onClick={() => setRewindTarget(null)}
+                style={{
+                  padding: '7px 18px', fontSize: 12, borderRadius: 6,
+                  background: 'none', border: '1px solid var(--border)',
+                  color: 'var(--text-primary)', cursor: 'pointer',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--popup-item-hover)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'none'}
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={async () => {
+                  const { msgId, ts, count } = rewindTarget
+                  setRewindTarget(null)
+                  // Rewind in-memory store
+                  rewindToMessage(msgId)
+                  // Also rewind the persisted session file
+                  if (sessionId) {
+                    const isoTs = new Date(ts).toISOString()
+                    await window.electronAPI.sessionRewind(sessionId, isoTs).catch(() => {})
+                  }
+                  addToast('success', t('rewind.rewound', { count: String(count) }))
+                }}
+                style={{
+                  padding: '7px 18px', fontSize: 12, borderRadius: 6,
+                  background: 'var(--error)', border: 'none',
+                  color: '#fff', cursor: 'pointer', fontWeight: 600,
+                }}
+                onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
+                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+              >
+                {t('rewind.button')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
     </div>

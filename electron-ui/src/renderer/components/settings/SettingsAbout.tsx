@@ -1,6 +1,7 @@
-import React from 'react'
-import { ExternalLink, Keyboard } from 'lucide-react'
+import React, { useState } from 'react'
+import { ExternalLink, Keyboard, Activity } from 'lucide-react'
 import { useI18n } from '../../i18n'
+import DiagnosticsPanel from './DiagnosticsPanel'
 
 interface SettingsAboutProps {
   onResetDefaults: () => void
@@ -10,6 +11,11 @@ interface SettingsAboutProps {
 
 export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts }: SettingsAboutProps) {
   const { t } = useI18n()
+  const [showDiagnostics, setShowDiagnostics] = useState(false)
+
+  if (showDiagnostics) {
+    return <DiagnosticsPanel onBack={() => setShowDiagnostics(false)} />
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -77,6 +83,30 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
             border: '1px solid var(--border)', borderRadius: 3, padding: '1px 6px',
             fontFamily: 'inherit',
           }}>Ctrl+/</kbd>
+        </button>
+      </div>
+
+      <div style={{ borderTop: '1px solid var(--border)' }} />
+
+      {/* System Diagnostics */}
+      <div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>{t('diagnostics.title')}</div>
+        <button
+          onClick={() => setShowDiagnostics(true)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+            padding: '10px 12px', background: 'var(--bg-active)',
+            border: '1px solid var(--border)', borderRadius: 6,
+            color: 'var(--text-primary)', cursor: 'pointer', fontSize: 12,
+            justifyContent: 'space-between',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+          onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+        >
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Activity size={14} style={{ color: 'var(--accent)' }} />
+            {t('diagnostics.runDiagnostics')}
+          </span>
         </button>
       </div>
 

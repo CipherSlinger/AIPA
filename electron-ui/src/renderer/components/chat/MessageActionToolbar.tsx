@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { StandardChatMessage } from '../../types/app.types'
-import { Copy, Check, Bookmark, Code2, Pencil, MessageSquareQuote, NotebookPen, Volume2, VolumeX, Brain, Share2, Pin, Languages, StickyNote, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { Copy, Check, Bookmark, Code2, Pencil, MessageSquareQuote, NotebookPen, Volume2, VolumeX, Brain, Share2, Pin, Languages, StickyNote, ThumbsUp, ThumbsDown, Undo2 } from 'lucide-react'
 import { useT } from '../../i18n'
 
 const actionBtnStyle: React.CSSProperties = {
@@ -47,6 +47,8 @@ interface MessageActionToolbarProps {
   onAnnotate?: () => void
   hasAnnotation?: boolean
   onRate?: (rating: 'up' | 'down' | null) => void
+  onRewind?: () => void
+  isLastMessage?: boolean
 }
 
 export default function MessageActionToolbar({
@@ -56,6 +58,8 @@ export default function MessageActionToolbar({
   hasOnEdit,
   onAnnotate, hasAnnotation,
   onRate,
+  onRewind,
+  isLastMessage,
 }: MessageActionToolbarProps) {
   const t = useT()
 
@@ -106,6 +110,19 @@ export default function MessageActionToolbar({
           onMouseLeave={(e) => hoverOut(e)}
         >
           <Pencil size={13} />
+        </button>
+      )}
+
+      {/* Rewind to here (not shown on last message or while streaming) */}
+      {onRewind && !isLastMessage && !globalIsStreaming && !isPermission && !isPlan && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onRewind() }}
+          title={t('rewind.button')}
+          style={actionBtnStyle}
+          onMouseEnter={(e) => hoverIn(e)}
+          onMouseLeave={(e) => hoverOut(e)}
+        >
+          <Undo2 size={13} />
         </button>
       )}
 

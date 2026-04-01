@@ -734,7 +734,8 @@
     "delete": "删除",
     "edit": "编辑",
     "add": "添加",
-    "remove": "移除"
+    "remove": "移除",
+    "back": "返回"
   },
   "shortcutCheatsheet": {
     "title": "键盘快捷键",
@@ -1272,5 +1273,22 @@
     "settingsHint": "低 = 快速/经济回复，中 = 均衡模式，高 = 深入/仔细推理",
     "preventSleep": "流式输出时阻止休眠",
     "preventSleepHint": "AI 生成回复时保持系统唤醒状态"
+  },
+  "diagnostics": {
+    "title": "系统诊断",
+    "cliStatus": "CLI 引擎",
+    "ptyStatus": "终端 (PTY)",
+    "apiKeyStatus": "API 密钥",
+    "systemInfo": "系统信息",
+    "sessionStats": "会话统计",
+    "rerun": "重新检测",
+    "runDiagnostics": "运行诊断",
+    "runDiagnosticsDesc": "检查 CLI、终端、API 密钥和系统状态"
+  },
+  "rewind": {
+    "title": "回退对话",
+    "confirm": "删除此消息之后的 {{count}} 条消息？此操作无法撤销。",
+    "button": "回退到此处",
+    "rewound": "已回退：删除了 {{count}} 条消息"
   }
 }

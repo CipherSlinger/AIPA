@@ -308,6 +308,18 @@ export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] 
       },
       category: 'action',
     },
+    {
+      id: 'run-diagnostics',
+      name: t('diagnostics.runDiagnostics'),
+      description: t('diagnostics.runDiagnosticsDesc'),
+      icon: <Zap size={14} />,
+      action: () => {
+        // Open settings modal -- diagnostics is in About tab
+        useUiStore.getState().openSettingsModal()
+        onClose()
+      },
+      category: 'action',
+    },
   ]
 }
 

@@ -279,8 +279,8 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
         </>
       )}
 
-      {/* Assistant-only: rewind */}
-      {isAssistant && onRewind && (
+      {/* Rewind to here */}
+      {onRewind && (
         <>
           {separator}
           <button
@@ -289,7 +289,7 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
             onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
           >
-            <span>{t('message.rewind')}</span>
+            <span>{t('rewind.button')}</span>
           </button>
         </>
       )}

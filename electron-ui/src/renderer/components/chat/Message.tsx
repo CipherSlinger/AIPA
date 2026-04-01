@@ -22,10 +22,11 @@ interface Props {
   searchCaseSensitive?: boolean
   showAvatar?: boolean
   isLastUserMsg?: boolean
+  isLastMessage?: boolean
   hasAssistantReply?: boolean
 }
 
-export default React.memo(function Message({ message, onRate, onRewind, onBookmark, onCollapse, onEdit, searchQuery, searchCaseSensitive, showAvatar = true, isLastUserMsg = false, hasAssistantReply = false }: Props) {
+export default React.memo(function Message({ message, onRate, onRewind, onBookmark, onCollapse, onEdit, searchQuery, searchCaseSensitive, showAvatar = true, isLastUserMsg = false, isLastMessage = false, hasAssistantReply = false }: Props) {
   const t = useT()
   const isUser = message.role === 'user'
   const isAssistant = message.role === 'assistant'
@@ -479,6 +480,11 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             onAnnotate={handleAnnotateToggle}
             hasAnnotation={!!(message as StandardChatMessage).annotation}
             onRate={onRate ? (rating) => onRate(message.id, rating) : undefined}
+            onRewind={onRewind && (message as StandardChatMessage).timestamp
+              ? () => onRewind((message as StandardChatMessage).timestamp)
+              : undefined
+            }
+            isLastMessage={isLastMessage}
           />
         )}
       </div>

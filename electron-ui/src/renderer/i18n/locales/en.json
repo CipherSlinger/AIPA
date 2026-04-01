@@ -734,7 +734,8 @@
     "delete": "Delete",
     "edit": "Edit",
     "add": "Add",
-    "remove": "Remove"
+    "remove": "Remove",
+    "back": "Back"
   },
   "shortcutCheatsheet": {
     "title": "Keyboard Shortcuts",
@@ -1272,5 +1273,22 @@
     "settingsHint": "Low = fast/cheap responses, Medium = balanced, High = thorough/careful reasoning",
     "preventSleep": "Prevent Sleep While Streaming",
     "preventSleepHint": "Keep the system awake while the AI is generating a response"
+  },
+  "diagnostics": {
+    "title": "System Diagnostics",
+    "cliStatus": "CLI Engine",
+    "ptyStatus": "Terminal (PTY)",
+    "apiKeyStatus": "API Key",
+    "systemInfo": "System Info",
+    "sessionStats": "Session Stats",
+    "rerun": "Re-run Checks",
+    "runDiagnostics": "Run Diagnostics",
+    "runDiagnosticsDesc": "Check CLI, terminal, API key, and system status"
+  },
+  "rewind": {
+    "title": "Rewind Conversation",
+    "confirm": "Remove {{count}} message(s) after this point? This cannot be undone.",
+    "button": "Rewind to here",
+    "rewound": "Rewound: {{count}} message(s) removed"
   }
 }

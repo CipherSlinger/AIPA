@@ -131,6 +131,12 @@ const electronAPI = {
   windowPreventSleep: (prevent: boolean) =>
     ipcRenderer.invoke('window:preventSleep', prevent),
 
+  // ── Diagnostics (Iteration 377) ──────
+  systemRunDiagnostics: () =>
+    ipcRenderer.invoke('system:runDiagnostics') as Promise<{
+      id: string; label: string; status: 'ok' | 'warning' | 'error'; detail: string; subDetail?: string
+    }[]>,
+
   // ── Providers (multi-model support) ────
   providerListConfigs: () => ipcRenderer.invoke('provider:listConfigs'),
   providerListModels: () => ipcRenderer.invoke('provider:listModels'),

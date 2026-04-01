@@ -143,6 +143,9 @@ interface ChatState {
   compactionCount: number
   setCompacting: (v: boolean) => void
   incrementCompactionCount: () => void
+
+  // Conversation rewind (Iteration 377): Remove all messages after the selected one
+  rewindToMessage: (messageId: string) => number
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -418,6 +421,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
   setMessages: (messages) => set({ messages }),
   setCompacting: (v) => set({ isCompacting: v }),
   incrementCompactionCount: () => set((s) => ({ compactionCount: s.compactionCount + 1 })),
+
+  rewindToMessage: (messageId) => {
+    const state = get()
+    const idx = state.messages.findIndex(m => m.id === messageId)
+    if (idx < 0) return 0
+    const removed = state.messages.length - idx - 1
+    set({ messages: state.messages.slice(0, idx + 1) })
+    return removed
+  },
 }))
 
 // ── Session store ───────────────────────────────
