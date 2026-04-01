@@ -2567,3 +2567,5 @@ Status: SUCCESS
 
 ### Iteration 371 (2026-03-31)
 - Token Usage Progress Bar -- Created TokenUsageBar.tsx component that renders a thin 3px progress bar below the ChatHeader showing context window usage percentage. Color-coded thresholds: green (<60%), yellow (60-80%), red (>80%) with smooth CSS transitions. Hover tooltip displays context usage summary and input/output/cache token breakdown. Uses existing lastContextUsage and lastUsage from chat store (no new IPC). ARIA progressbar role for accessibility. Theme-aware track background via color-mix(). Hidden when no usage data. 2 new i18n keys (context.usage, context.breakdown) in both en.json and zh-CN.json. 4 files changed (1 new); tsc 0 errors; build SUCCESS
+
+[RETRO] retro-2026-03-31-iterations-362-371.md completed, covering Iteration 362-371, next forced retro after Iteration 381

@@ -96,9 +96,25 @@ type: project
 - **Retro**: retro-2026-03-30-iterations-352-361.md
 
 ### Outstanding Tech Debt
-- skillMarketplace.ts (~1845 lines) is data-only, exempted from 800-line rule
-- No component files above 600 lines -- codebase is well-structured
-- All feedback items resolved (feedback.md is empty)
-- SidebarTab type: 7 tabs (history, files, notes, skills, memory, workflows, channel)
-- Sidebar shortcuts: Ctrl+1-7 (history through channel)
-- Settings: Ctrl+, opens modal overlay (removed from sidebar)
+- skillMarketplace.ts (~1860 lines) is data-only, exempted from 800-line rule
+- ChatInput.tsx (570) and store/index.ts (567) approaching 600-line threshold
+- useStreamJson.ts (499 lines) accumulating post-response hook integrations -- consider extracting usePostResponseEffects
+- prd-prompt-suggestions-v1.md still in todo/ queue awaiting implementation
+
+### Iterations 362-371 (2026-03-31)
+- **It.362**: Skills panel "Create Skill" button (launches Skill Creator)
+- **It.363**: i18n completeness (5 remaining hardcoded strings localized)
+- **It.364**: UX polish (resize reset, Toast ARIA, Escape clear input)
+- **It.365**: SettingsGeneral decomposition (extracted SettingsApiKeyPool)
+- **It.366**: WeChat channel: OpenClaw CLI plugin instead of Official Account
+- **It.367**: Structured Diff View -- LCS-based unified diff for file edits/writes (DiffView.tsx, 195 lines)
+- **It.368**: Auto-Compaction -- context window monitoring + auto-summary (useAutoCompact.ts)
+- **It.369**: Contextual Tips -- behavior-based feature discovery on WelcomeScreen (tipRegistry.ts, useTips.ts, 16 tips)
+- **It.370**: Auto-Memory Extraction -- background memory extraction from conversations (useAutoMemory.ts)
+- **It.371**: Token Usage Progress Bar -- 3px color-coded progress bar below ChatHeader, tooltip with token breakdown
+- **Source**: Iterations 367-371 inspired by studying Claude Code official source code
+- **Current version**: 1.1.48
+- **i18n key count**: ~1162 (both en.json and zh-CN.json aligned)
+- **Build status**: Clean (tsc zero errors, build SUCCESS)
+- **Retro**: retro-2026-03-31-iterations-362-371.md
+- **Next forced retro**: After Iteration 381
