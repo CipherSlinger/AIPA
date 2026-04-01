@@ -7,6 +7,7 @@ import { useStreamingTimer } from '../../hooks/useStreamingTimer'
 import { useChatZoom } from '../../hooks/useChatZoom'
 import { useConversationSearch } from '../../hooks/useConversationSearch'
 import { useConversationStats } from '../../hooks/useConversationStats'
+import { useSessionChanges } from '../../hooks/useSessionChanges'
 import { useConversationExport } from './useConversationExport'
 import { useDragAndDrop } from './useDragAndDrop'
 import { useChatPanelShortcuts } from './useChatPanelShortcuts'
@@ -44,6 +45,7 @@ export default function ChatPanel() {
   const { elapsedStr } = useStreamingTimer(isStreaming)
   const { chatZoom, resetZoom } = useChatZoom()
   const { bookmarkedMessages, conversationStats } = useConversationStats(messages)
+  const sessionChanges = useSessionChanges(messages)
   const {
     searchOpen, searchQuery, searchMatches, currentMatchIdx,
     caseSensitive, roleFilter,
@@ -60,7 +62,7 @@ export default function ChatPanel() {
   useChatPanelShortcuts(exportConversation, copyConversation, setSearchOpen, sendMessage, abort)
 
   // Idle return detection
-  const { showDialog: showIdleDialog, idleDuration, dismiss: dismissIdle, suppressForever: suppressIdleForever } = useIdleReturn()
+  const { showDialog: showIdleDialog, idleDuration, awaySummary, summaryLoading, dismiss: dismissIdle, suppressForever: suppressIdleForever } = useIdleReturn()
 
   // Listen for external send prompt events (from SelectionToolbar)
   useEffect(() => {
@@ -211,6 +213,7 @@ export default function ChatPanel() {
         focusMode={focusMode}
         bookmarkedMessages={bookmarkedMessages}
         conversationStats={conversationStats}
+        sessionChanges={sessionChanges}
         canRegenerate={canRegenerate}
         onToggleSearch={() => setSearchOpen(!searchOpen)}
         onExport={exportConversation}
@@ -517,6 +520,8 @@ export default function ChatPanel() {
       {showIdleDialog && (
         <IdleReturnDialog
           idleDuration={idleDuration}
+          awaySummary={awaySummary}
+          summaryLoading={summaryLoading}
           onContinue={dismissIdle}
           onNewConversation={newConversation}
           onNeverAsk={suppressIdleForever}

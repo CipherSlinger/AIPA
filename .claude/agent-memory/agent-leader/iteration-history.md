@@ -139,3 +139,12 @@ type: project
 - **Current version**: 1.1.54
 - **i18n key count**: ~1186 (both en.json and zh-CN.json aligned)
 - **Build status**: Clean (2517 modules, tsc zero errors, build SUCCESS)
+
+### Iterations 377-378 (2026-04-01)
+- **It.377**: System Diagnostics Panel + Conversation Rewind -- DiagnosticsPanel.tsx with 5 health checks; rewindToMessage() store method + session:rewind IPC
+- **It.378**: Output Styles + Extended Thinking Toggle -- Replaced responseTone (6 flat tones) with outputStyle (3 structured modes: default/explanatory/learning); InputToolbarStyleSelector.tsx popup; Extended thinking toggle with Brain icon in StatusBar, --thinking-budget 10000 to CLI
+- **Architecture**: outputStyle replaces responseTone everywhere (personas, settings, system prompt injection). Extended thinking passed via --thinking-budget CLI flag.
+- **Current version**: 1.1.57
+- **i18n key count**: 1190 (both en.json and zh-CN.json aligned)
+- **Build status**: Clean (tsc zero errors, build SUCCESS)
+- **Next forced retro**: After Iteration 381

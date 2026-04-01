@@ -347,7 +347,11 @@
     "globalSearching": "Searching...",
     "matchInTitle": "Title match",
     "matchInContent": "Content match",
-    "globalSearchHint": "Press Enter to search across all sessions"
+    "globalSearchHint": "Press Enter to search across all sessions",
+    "previewUser": "User",
+    "previewAI": "AI",
+    "previewLoading": "Loading messages...",
+    "previewEmpty": "No messages in this session"
   },
   "settings": {
     "title": "Settings",
@@ -564,22 +568,6 @@
     "shorter": "Make shorter",
     "longer": "Make longer",
     "grammar": "Fix grammar"
-  },
-  "outputStyle": {
-    "title": "Output Style",
-    "default": "Default",
-    "default.desc": "Balanced, helpful responses",
-    "explanatory": "Explanatory",
-    "explanatory.desc": "Explains reasoning with Insight callouts",
-    "learning": "Step-by-Step",
-    "learning.desc": "Breaks down topics with Practice exercises",
-    "settingsHint": "Choose how Claude structures its responses. Explanatory adds insight blocks; Learning adds practice exercises."
-  },
-  "thinking": {
-    "title": "Extended Thinking",
-    "description": "When enabled, Claude thinks longer before responding for more thorough answers. Uses more tokens.",
-    "enabled": "Extended thinking enabled",
-    "disabled": "Extended thinking disabled"
   },
   "quickReply": {
     "labelPlaceholder": "Label",
@@ -829,7 +817,24 @@
     "noOutput": "(no output)",
     "linesCount": "{{count}} lines",
     "livePreview": "Live Preview",
-    "codePreview": "Code preview"
+    "codePreview": "Code preview",
+    "summaryRan": "Ran: {{cmd}}",
+    "summaryEdited": "Edited {{file}}",
+    "summaryCreated": "Created {{file}}",
+    "summaryWrote": "Wrote {{file}}",
+    "summaryRead": "Read {{file}}",
+    "summarySearched": "Searched for '{{pattern}}'",
+    "summaryFoundFiles": "Found files matching {{pattern}}",
+    "summaryListed": "Listed {{dir}}",
+    "summaryFetched": "Fetched {{host}}",
+    "summaryWebSearch": "Web search: {{query}}",
+    "summaryMultiEdit": "Edited {{count}} sections in {{file}}",
+    "batchRead": "Read {{count}} files",
+    "batchSearched": "Searched {{count}} times",
+    "batchEdited": "Edited {{count}} files",
+    "batchRan": "Ran {{count}} commands",
+    "batchFetched": "Fetched {{count}} URLs",
+    "batchWrote": "Wrote {{count}} files"
   },
   "diff": {
     "showDiff": "Show diff",
@@ -843,6 +848,19 @@
     "breakdown": "Input: {{input}} | Output: {{output}} | Cache: {{cache}}",
     "almostFull": "Context window almost full ({{pct}}%). Consider starting a new conversation.",
     "nearCapacity": "Context window {{pct}}% full. Enable auto-compact in Settings > Behavior."
+  },
+  "changes": {
+    "title": "Session Changes",
+    "filesChanged": "{{count}} files changed",
+    "fileChanged": "1 file changed",
+    "linesAdded": "+{{count}} lines",
+    "linesRemoved": "-{{count}} lines",
+    "statusCreated": "Created",
+    "statusModified": "Modified",
+    "turn": "Turn {{num}}: \"{{prompt}}\"",
+    "noChanges": "No file changes in this session",
+    "copied": "Changes summary copied",
+    "tooltip": "Session Changes"
   },
   "cost": {
     "thresholdWarning": "Session cost exceeded $5.00. Consider starting a new conversation or compacting.",
@@ -898,6 +916,8 @@
     "continue": "Continue this conversation",
     "startNew": "Start a new conversation",
     "neverAsk": "Don't ask me again",
+    "summary": "Here's where you left off:",
+    "generatingSummary": "Generating summary...",
     "dialogEnabled": "Idle Return Dialog",
     "dialogEnabledHint": "Ask whether to continue or start fresh when returning after 30+ minutes"
   },
@@ -1095,7 +1115,7 @@
     "giveExamplePrompt": "Can you give me a practical example?"
   },
   "persona": {
-    "title": "AI Personas",
+    "title": "Agents",
     "subtitle": "Create custom assistant profiles with their own personality, model, and behavior",
     "addPersona": "New Persona",
     "editPersona": "Edit Persona",

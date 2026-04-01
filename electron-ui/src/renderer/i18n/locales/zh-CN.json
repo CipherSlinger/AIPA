@@ -347,7 +347,11 @@
     "globalSearching": "搜索中...",
     "matchInTitle": "标题匹配",
     "matchInContent": "内容匹配",
-    "globalSearchHint": "按 Enter 搜索所有会话"
+    "globalSearchHint": "按 Enter 搜索所有会话",
+    "previewUser": "用户",
+    "previewAI": "AI",
+    "previewLoading": "正在加载消息...",
+    "previewEmpty": "此会话暂无消息"
   },
   "settings": {
     "title": "设置",
@@ -564,22 +568,6 @@
     "shorter": "缩短文本",
     "longer": "扩展文本",
     "grammar": "修正语法"
-  },
-  "outputStyle": {
-    "title": "输出风格",
-    "default": "默认",
-    "default.desc": "均衡的回复方式",
-    "explanatory": "解释模式",
-    "explanatory.desc": "附带洞察说明的推理解释",
-    "learning": "逐步学习",
-    "learning.desc": "分步讲解并附带练习",
-    "settingsHint": "选择 Claude 的回复结构。解释模式会添加洞察说明；逐步学习会添加练习题。"
-  },
-  "thinking": {
-    "title": "深度思考",
-    "description": "启用后，Claude 会在回复前进行更长时间的思考以获得更深入的答案。会消耗更多 token。",
-    "enabled": "深度思考已启用",
-    "disabled": "深度思考已关闭"
   },
   "quickReply": {
     "labelPlaceholder": "标签",
@@ -829,7 +817,24 @@
     "noOutput": "(无输出)",
     "linesCount": "{{count}} 行",
     "livePreview": "实时预览",
-    "codePreview": "代码预览"
+    "codePreview": "代码预览",
+    "summaryRan": "执行: {{cmd}}",
+    "summaryEdited": "编辑了 {{file}}",
+    "summaryCreated": "创建了 {{file}}",
+    "summaryWrote": "写入了 {{file}}",
+    "summaryRead": "读取了 {{file}}",
+    "summarySearched": "搜索了 '{{pattern}}'",
+    "summaryFoundFiles": "查找匹配 {{pattern}} 的文件",
+    "summaryListed": "列出了 {{dir}}",
+    "summaryFetched": "获取了 {{host}}",
+    "summaryWebSearch": "网页搜索: {{query}}",
+    "summaryMultiEdit": "编辑了 {{file}} 的 {{count}} 处",
+    "batchRead": "读取了 {{count}} 个文件",
+    "batchSearched": "搜索了 {{count}} 次",
+    "batchEdited": "编辑了 {{count}} 个文件",
+    "batchRan": "执行了 {{count}} 条命令",
+    "batchFetched": "获取了 {{count}} 个 URL",
+    "batchWrote": "写入了 {{count}} 个文件"
   },
   "diff": {
     "showDiff": "显示差异",
@@ -843,6 +848,19 @@
     "breakdown": "输入: {{input}} | 输出: {{output}} | 缓存: {{cache}}",
     "almostFull": "上下文窗口即将满载 ({{pct}}%)。建议开始新对话。",
     "nearCapacity": "上下文窗口已使用 {{pct}}%。请在设置 > 行为中启用自动压缩。"
+  },
+  "changes": {
+    "title": "会话更改",
+    "filesChanged": "{{count}} 个文件已更改",
+    "fileChanged": "1 个文件已更改",
+    "linesAdded": "+{{count}} 行",
+    "linesRemoved": "-{{count}} 行",
+    "statusCreated": "新建",
+    "statusModified": "修改",
+    "turn": "轮次 {{num}}: \"{{prompt}}\"",
+    "noChanges": "本次会话无文件更改",
+    "copied": "更改摘要已复制",
+    "tooltip": "会话更改"
   },
   "cost": {
     "thresholdWarning": "会话费用已超过 $5.00。建议开始新对话或压缩上下文。",
@@ -898,6 +916,8 @@
     "continue": "继续当前对话",
     "startNew": "开始新对话",
     "neverAsk": "不再询问",
+    "summary": "上次对话进展：",
+    "generatingSummary": "正在生成摘要...",
     "dialogEnabled": "空闲返回对话框",
     "dialogEnabledHint": "离开 30 分钟以上后返回时，询问是否继续或重新开始"
   },
@@ -1095,7 +1115,7 @@
     "giveExamplePrompt": "请给我一个实际的例子。"
   },
   "persona": {
-    "title": "AI 角色",
+    "title": "Agents",
     "subtitle": "创建自定义助手角色，每个角色有独立的个性、模型和行为",
     "addPersona": "新建角色",
     "editPersona": "编辑角色",
@@ -1285,9 +1305,9 @@
     "lowDesc": "快速经济",
     "mediumDesc": "均衡模式",
     "highDesc": "深度思考",
-    "title": "投入度: {{level}}（点击切换）",
-    "switched": "投入度已切换: {{level}}",
-    "settingsLabel": "AI 投入度",
+    "title": "思考深度: {{level}}（点击切换）",
+    "switched": "思考深度已切换: {{level}}",
+    "settingsLabel": "AI 思考深度",
     "settingsHint": "低 = 快速/经济回复，中 = 均衡模式，高 = 深入/仔细推理",
     "preventSleep": "流式输出时阻止休眠",
     "preventSleepHint": "AI 生成回复时保持系统唤醒状态"
