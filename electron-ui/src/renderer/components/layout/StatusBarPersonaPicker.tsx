@@ -33,18 +33,18 @@ export default function StatusBarPersonaPicker({ personas, activePersona }: Stat
     if (personaId) {
       const persona = (usePrefsStore.getState().prefs.personas || []).find(p => p.id === personaId)
       if (persona) {
-        setPrefs({ activePersonaId: personaId, model: persona.model, systemPrompt: persona.systemPrompt, responseTone: persona.responseTone || 'default' })
+        setPrefs({ activePersonaId: personaId, model: persona.model, systemPrompt: persona.systemPrompt, outputStyle: persona.outputStyle || 'default' })
         window.electronAPI.prefsSet('activePersonaId', personaId)
         window.electronAPI.prefsSet('model', persona.model)
         window.electronAPI.prefsSet('systemPrompt', persona.systemPrompt)
-        window.electronAPI.prefsSet('responseTone', persona.responseTone || 'default')
+        window.electronAPI.prefsSet('outputStyle', persona.outputStyle || 'default')
         useUiStore.getState().addToast('success', t('persona.switchedTo', { name: persona.name }))
       }
     } else {
-      setPrefs({ activePersonaId: undefined, systemPrompt: '', responseTone: 'default' })
+      setPrefs({ activePersonaId: undefined, systemPrompt: '', outputStyle: 'default' })
       window.electronAPI.prefsSet('activePersonaId', null)
       window.electronAPI.prefsSet('systemPrompt', '')
-      window.electronAPI.prefsSet('responseTone', 'default')
+      window.electronAPI.prefsSet('outputStyle', 'default')
       useUiStore.getState().addToast('info', t('persona.deactivated'))
     }
     setShow(false)

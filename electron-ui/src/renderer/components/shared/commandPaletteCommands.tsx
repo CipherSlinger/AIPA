@@ -385,10 +385,10 @@ export function buildPersonaCommands(args: Pick<CommandBuilderArgs, 't' | 'onClo
       description: t('persona.deactivated'),
       icon: <Sparkles size={14} />,
       action: () => {
-        usePrefsStore.getState().setPrefs({ activePersonaId: undefined, systemPrompt: '', responseTone: 'default' })
+        usePrefsStore.getState().setPrefs({ activePersonaId: undefined, systemPrompt: '', outputStyle: 'default' })
         window.electronAPI.prefsSet('activePersonaId', undefined)
         window.electronAPI.prefsSet('systemPrompt', '')
-        window.electronAPI.prefsSet('responseTone', 'default')
+        window.electronAPI.prefsSet('outputStyle', 'default')
         useUiStore.getState().addToast('info', t('persona.deactivated'))
         onClose()
       },
@@ -407,12 +407,12 @@ export function buildPersonaCommands(args: Pick<CommandBuilderArgs, 't' | 'onClo
           activePersonaId: p.id,
           model: p.model,
           systemPrompt: p.systemPrompt,
-          responseTone: p.responseTone || 'default',
+          outputStyle: p.outputStyle || 'default',
         })
         window.electronAPI.prefsSet('activePersonaId', p.id)
         window.electronAPI.prefsSet('model', p.model)
         window.electronAPI.prefsSet('systemPrompt', p.systemPrompt)
-        window.electronAPI.prefsSet('responseTone', p.responseTone || 'default')
+        window.electronAPI.prefsSet('outputStyle', p.outputStyle || 'default')
         useUiStore.getState().addToast('success', t('persona.switchedTo', { name: p.name }))
         onClose()
       },

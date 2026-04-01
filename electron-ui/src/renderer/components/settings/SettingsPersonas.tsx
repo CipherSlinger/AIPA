@@ -55,7 +55,7 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
     setFormModel(p.model)
     setFormPrompt(p.systemPrompt)
     setFormColor(p.color)
-    setFormTone(p.responseTone || 'default')
+    setFormTone(p.outputStyle || 'default')
     setShowForm(true)
   }
 
@@ -66,7 +66,7 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
     if (editingId) {
       const updated = personas.map(p =>
         p.id === editingId
-          ? { ...p, name, emoji: formEmoji, model: formModel, systemPrompt: formPrompt.trim(), color: formColor, responseTone: formTone as Persona['responseTone'], updatedAt: Date.now() }
+          ? { ...p, name, emoji: formEmoji, model: formModel, systemPrompt: formPrompt.trim(), color: formColor, outputStyle: formTone as Persona['outputStyle'], updatedAt: Date.now() }
           : p
       )
       savePersonas(updated)
@@ -83,7 +83,7 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
         model: formModel,
         systemPrompt: formPrompt.trim(),
         color: formColor,
-        responseTone: formTone as Persona['responseTone'],
+        outputStyle: formTone as Persona['outputStyle'],
         createdAt: Date.now(),
         updatedAt: Date.now(),
       }
@@ -111,17 +111,17 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
 
   const handleActivate = (persona: Persona) => {
     if (activePersonaId === persona.id) {
-      setPrefs({ activePersonaId: undefined, model: persona.model, systemPrompt: '', responseTone: 'default' })
+      setPrefs({ activePersonaId: undefined, model: persona.model, systemPrompt: '', outputStyle: 'default' })
       window.electronAPI.prefsSet('activePersonaId', undefined)
       window.electronAPI.prefsSet('systemPrompt', '')
-      window.electronAPI.prefsSet('responseTone', 'default')
+      window.electronAPI.prefsSet('outputStyle', 'default')
       addToast('info', t('persona.deactivated'))
     } else {
-      setPrefs({ activePersonaId: persona.id, model: persona.model, systemPrompt: persona.systemPrompt, responseTone: persona.responseTone || 'default' })
+      setPrefs({ activePersonaId: persona.id, model: persona.model, systemPrompt: persona.systemPrompt, outputStyle: persona.outputStyle || 'default' })
       window.electronAPI.prefsSet('activePersonaId', persona.id)
       window.electronAPI.prefsSet('model', persona.model)
       window.electronAPI.prefsSet('systemPrompt', persona.systemPrompt)
-      window.electronAPI.prefsSet('responseTone', persona.responseTone || 'default')
+      window.electronAPI.prefsSet('outputStyle', persona.outputStyle || 'default')
       addToast('success', t('persona.switchedTo', { name: persona.name }))
     }
   }

@@ -77,8 +77,12 @@ export function useStreamJson() {
     if (prefs.thinkingLevel === 'adaptive') {
       flags.push('--thinking', 'adaptive')
     }
+    // Extended thinking toggle (Iteration 378): pass --thinking-budget when enabled
+    if (prefs.extendedThinking) {
+      flags.push('--thinking-budget', '10000')
+    }
 
-    // Build combined system prompt: user system prompt + response tone + memory context
+    // Build combined system prompt: user system prompt + output style + memory context
     const systemPromptParts: string[] = []
 
     // Inject system presence: date, time, working directory, user name
@@ -101,18 +105,23 @@ export function useStreamJson() {
       systemPromptParts.push(prefs.systemPrompt.trim())
     }
 
-    // Inject response tone modifier
-    if (prefs.responseTone && prefs.responseTone !== 'default') {
-      const toneInstructions: Record<string, string> = {
-        concise: 'Be concise and brief. Give short, direct answers without unnecessary elaboration.',
-        detailed: 'Be thorough and detailed. Provide comprehensive explanations with examples when helpful.',
-        professional: 'Use a professional, formal tone. Be precise and business-appropriate.',
-        casual: 'Use a casual, friendly tone. Be conversational and approachable.',
-        creative: 'Be creative and expressive. Use vivid language, metaphors, and an engaging style.',
+    // Inject output style modifier (Iteration 378: replaces responseTone)
+    if (prefs.outputStyle && prefs.outputStyle !== 'default') {
+      const stylePrompts: Record<string, string> = {
+        explanatory: `You are in Explanatory mode. After providing your main response, add an "Insight" callout block that explains the reasoning behind key decisions or provides deeper context. Format:
+
+> **Insight**: [Your explanatory insight here]
+
+Use this to help the user understand WHY something works a certain way, not just WHAT to do. Add 1-2 insight blocks per response when there are meaningful decision points to explain.`,
+        learning: `You are in Step-by-Step Learning mode. Break down complex topics into clear, numbered steps. After explaining a concept, add a "Practice" block that challenges the user to try something:
+
+> **Practice**: [A small exercise or challenge related to what was just explained]
+
+Keep exercises focused and achievable. The goal is active learning through doing, not passive reading.`,
       }
-      const instruction = toneInstructions[prefs.responseTone]
-      if (instruction) {
-        systemPromptParts.push(`<response_tone>\n${instruction}\n</response_tone>`)
+      const stylePrompt = stylePrompts[prefs.outputStyle]
+      if (stylePrompt) {
+        systemPromptParts.push(`<output_style>\n${stylePrompt}\n</output_style>`)
       }
     }
 

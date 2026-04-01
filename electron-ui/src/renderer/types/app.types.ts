@@ -95,7 +95,8 @@ export interface ClaudePrefs {
   systemPrompt?: string    // custom system prompt (passed via --append-system-prompt)
   maxTurns?: number        // --max-turns
   maxBudgetUsd?: number    // --max-budget-usd
-  responseTone?: 'default' | 'concise' | 'detailed' | 'professional' | 'casual' | 'creative'  // response style modifier
+  outputStyle?: 'default' | 'explanatory' | 'learning'  // output style: default (balanced), explanatory (insight blocks), learning (practice exercises)
+  extendedThinking?: boolean  // enable extended thinking (passes --thinking-budget to CLI, default false)
   notifySound?: boolean     // play sound when response completes (default true)
   compactMode?: boolean     // reduce spacing for power users (default false)
   quickReplies?: { label: string; prompt: string }[]  // quick reply template chips
@@ -178,7 +179,7 @@ export interface Persona {
   model: string        // preferred model ID (e.g. 'claude-sonnet-4-6')
   systemPrompt: string // system prompt text
   color: string        // badge/accent color hex
-  responseTone?: 'default' | 'concise' | 'detailed' | 'professional' | 'casual' | 'creative'  // per-persona response tone
+  outputStyle?: 'default' | 'explanatory' | 'learning'  // per-persona output style
   createdAt: number    // epoch ms
   updatedAt: number    // epoch ms
 }

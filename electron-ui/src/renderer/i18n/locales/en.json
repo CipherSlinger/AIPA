@@ -441,8 +441,19 @@
     "desktopNotificationsHint": "Show OS notifications when AIPA finishes responding while the window is not focused",
     "resumeLastSession": "Resume last session on startup",
     "resumeLastSessionHint": "Automatically reopen your most recent conversation when AIPA starts",
-    "responseTone": "Response Tone",
-    "responseToneHint": "Set the default tone for Claude's responses. Can also be changed per-message from the input toolbar.",
+    "outputStyle.title": "Output Style",
+    "outputStyle.default": "Default",
+    "outputStyle.default.desc": "Balanced, helpful responses",
+    "outputStyle.explanatory": "Explanatory",
+    "outputStyle.explanatory.desc": "Adds insight blocks after key decisions",
+    "outputStyle.learning": "Step-by-Step",
+    "outputStyle.learning.desc": "Includes practice exercises",
+    "outputStyle.switched": "Output style: {style}",
+    "outputStyle.settingsHint": "Choose how Claude structures responses. Explanatory adds insight blocks; Step-by-Step includes exercises.",
+    "thinking.title": "Extended Thinking",
+    "thinking.enabled": "Extended thinking enabled",
+    "thinking.disabled": "Extended thinking disabled",
+    "thinking.description": "When enabled, Claude thinks longer before responding. May increase response time and cost.",
     "systemPresence": "System Context Injection",
     "systemPresenceHint": "Inject current date, time, working directory, and user name into every conversation so Claude is aware of your context",
     "promptSuggestions": "Prompt Suggestions",
@@ -554,14 +565,21 @@
     "longer": "Make longer",
     "grammar": "Fix grammar"
   },
-  "tone": {
-    "title": "Response tone",
+  "outputStyle": {
+    "title": "Output Style",
     "default": "Default",
-    "concise": "Concise",
-    "detailed": "Detailed",
-    "professional": "Professional",
-    "casual": "Casual",
-    "creative": "Creative"
+    "default.desc": "Balanced, helpful responses",
+    "explanatory": "Explanatory",
+    "explanatory.desc": "Explains reasoning with Insight callouts",
+    "learning": "Step-by-Step",
+    "learning.desc": "Breaks down topics with Practice exercises",
+    "settingsHint": "Choose how Claude structures its responses. Explanatory adds insight blocks; Learning adds practice exercises."
+  },
+  "thinking": {
+    "title": "Extended Thinking",
+    "description": "When enabled, Claude thinks longer before responding for more thorough answers. Uses more tokens.",
+    "enabled": "Extended thinking enabled",
+    "disabled": "Extended thinking disabled"
   },
   "quickReply": {
     "labelPlaceholder": "Label",
@@ -863,7 +881,7 @@
     "tip_terminal": "Click the terminal button in the chat header to open a terminal that automatically resumes your current conversation.",
     "tip_clipboard": "Use the clipboard button in the input toolbar for one-click summarize, translate, or explain clipboard content.",
     "tip_export": "Press Ctrl+Shift+E to export any conversation as Markdown, HTML, or JSON.",
-    "tip_tone": "Set a response tone (Concise, Detailed, Professional, etc.) from the toolbar to customize how Claude responds."
+    "tip_tone": "Switch between Output Styles (Default, Explanatory, Step-by-Step) from the toolbar to change how Claude structures its responses."
   },
   "autoMemory": {
     "enabled": "Auto-extract memories",

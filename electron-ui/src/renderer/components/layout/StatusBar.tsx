@@ -3,7 +3,7 @@
 //              StatusBarModelPicker, StatusBarPersonaPicker
 
 import React, { useState } from 'react'
-import { PanelLeft, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Square, StopCircle, Pin, Settings, Gauge } from 'lucide-react'
+import { PanelLeft, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Square, StopCircle, Pin, Settings, Gauge, Brain } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { StandardChatMessage } from '../../types/app.types'
 import { useT } from '../../i18n'
@@ -119,6 +119,15 @@ export default function StatusBar() {
     setPrefs({ effortLevel: next })
     window.electronAPI.prefsSet('effortLevel', next)
     useUiStore.getState().addToast('info', t('effort.switched', { level: t(`effort.${next}`) }))
+  }
+
+  // Extended thinking toggle (Iteration 378)
+  const thinkingEnabled = prefs.extendedThinking || false
+  const toggleThinking = () => {
+    const newVal = !thinkingEnabled
+    setPrefs({ extendedThinking: newVal })
+    window.electronAPI.prefsSet('extendedThinking', newVal)
+    useUiStore.getState().addToast('info', t(newVal ? 'thinking.enabled' : 'thinking.disabled'))
   }
 
   return (
@@ -400,6 +409,23 @@ export default function StatusBar() {
         >
           <Gauge size={10} />
           <span style={{ fontFamily: 'system-ui', fontSize: 11 }}>{effortSymbols[effortLevel]}</span>
+        </button>
+
+        {/* Extended Thinking toggle (Iteration 378) */}
+        <button
+          onClick={toggleThinking}
+          title={t('thinking.title')}
+          style={{
+            background: 'none', border: 'none',
+            color: thinkingEnabled ? '#a78bfa' : '#fff',
+            cursor: 'pointer', display: 'flex', alignItems: 'center',
+            padding: '0 2px', opacity: thinkingEnabled ? 1 : 0.5,
+            transition: 'color 0.2s, opacity 0.2s',
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = thinkingEnabled ? '1' : '0.5' }}
+        >
+          <Brain size={11} />
         </button>
 
         {/* Always-on-top pin toggle */}

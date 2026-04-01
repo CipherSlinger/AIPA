@@ -5,7 +5,7 @@ import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import ClipboardActionsMenu from './ClipboardActionsMenu'
 import InputToolbarTextTransform from './InputToolbarTextTransform'
 import InputToolbarSaveNote from './InputToolbarSaveNote'
-import InputToolbarToneSelector from './InputToolbarToneSelector'
+import InputToolbarStyleSelector from './InputToolbarStyleSelector'
 import { toolbarBtnStyle, toolbarHoverIn, toolbarHoverOut } from './chatInputConstants'
 
 interface InputToolbarProps {
@@ -157,7 +157,7 @@ export default function InputToolbar({
         })()}
       </button>
       {/* Response tone selector */}
-      <InputToolbarToneSelector />
+      <InputToolbarStyleSelector />
       {/* Effort level selector (click to cycle) */}
       {(() => {
         const effortLevel = prefs.effortLevel || 'medium'

@@ -20,10 +20,10 @@ export default function PersonaPicker() {
     setShowPicker(false)
     if (!persona) {
       // Deactivate persona
-      usePrefsStore.getState().setPrefs({ activePersonaId: undefined, systemPrompt: '', responseTone: 'default' })
+      usePrefsStore.getState().setPrefs({ activePersonaId: undefined, systemPrompt: '', outputStyle: 'default' })
       window.electronAPI.prefsSet('activePersonaId', undefined)
       window.electronAPI.prefsSet('systemPrompt', '')
-      window.electronAPI.prefsSet('responseTone', 'default')
+      window.electronAPI.prefsSet('outputStyle', 'default')
       useUiStore.getState().addToast('info', t('persona.deactivated'))
     } else {
       // Activate persona
@@ -31,12 +31,12 @@ export default function PersonaPicker() {
         activePersonaId: persona.id,
         model: persona.model,
         systemPrompt: persona.systemPrompt,
-        responseTone: persona.responseTone || 'default',
+        outputStyle: persona.outputStyle || 'default',
       })
       window.electronAPI.prefsSet('activePersonaId', persona.id)
       window.electronAPI.prefsSet('model', persona.model)
       window.electronAPI.prefsSet('systemPrompt', persona.systemPrompt)
-      window.electronAPI.prefsSet('responseTone', persona.responseTone || 'default')
+      window.electronAPI.prefsSet('outputStyle', persona.outputStyle || 'default')
       useUiStore.getState().addToast('success', t('persona.switchedTo', { name: persona.name }))
     }
   }, [t])

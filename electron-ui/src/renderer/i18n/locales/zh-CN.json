@@ -441,8 +441,19 @@
     "desktopNotificationsHint": "当 AIPA 在窗口未聚焦时完成回复，显示系统通知",
     "resumeLastSession": "启动时恢复上次会话",
     "resumeLastSessionHint": "AIPA 启动时自动打开最近的对话",
-    "responseTone": "回复风格",
-    "responseToneHint": "设置 Claude 回复的默认风格。也可以在输入栏工具条中按消息切换。",
+    "outputStyle.title": "输出风格",
+    "outputStyle.default": "默认",
+    "outputStyle.default.desc": "平衡且有帮助的回复",
+    "outputStyle.explanatory": "解释性",
+    "outputStyle.explanatory.desc": "在关键决策后添加见解模块",
+    "outputStyle.learning": "步骤式",
+    "outputStyle.learning.desc": "包含练习题",
+    "outputStyle.switched": "输出风格：{style}",
+    "outputStyle.settingsHint": "选择 Claude 的回复结构方式。解释性模式添加见解模块；步骤式模式包含练习题。",
+    "thinking.title": "深度思考",
+    "thinking.enabled": "深度思考已启用",
+    "thinking.disabled": "深度思考已禁用",
+    "thinking.description": "启用后，Claude 会在回复前进行更深入的思考。可能增加响应时间和费用。",
     "systemPresence": "系统上下文注入",
     "systemPresenceHint": "在每次对话中注入当前日期、时间、工作目录和用户名称，让 Claude 了解你的环境上下文",
     "promptSuggestions": "提示建议",
@@ -554,14 +565,21 @@
     "longer": "扩展文本",
     "grammar": "修正语法"
   },
-  "tone": {
-    "title": "回复风格",
+  "outputStyle": {
+    "title": "输出风格",
     "default": "默认",
-    "concise": "简洁",
-    "detailed": "详细",
-    "professional": "专业",
-    "casual": "随意",
-    "creative": "创意"
+    "default.desc": "均衡的回复方式",
+    "explanatory": "解释模式",
+    "explanatory.desc": "附带洞察说明的推理解释",
+    "learning": "逐步学习",
+    "learning.desc": "分步讲解并附带练习",
+    "settingsHint": "选择 Claude 的回复结构。解释模式会添加洞察说明；逐步学习会添加练习题。"
+  },
+  "thinking": {
+    "title": "深度思考",
+    "description": "启用后，Claude 会在回复前进行更长时间的思考以获得更深入的答案。会消耗更多 token。",
+    "enabled": "深度思考已启用",
+    "disabled": "深度思考已关闭"
   },
   "quickReply": {
     "labelPlaceholder": "标签",
@@ -863,7 +881,7 @@
     "tip_terminal": "点击聊天顶部的终端按钮打开终端，自动恢复当前对话上下文。",
     "tip_clipboard": "使用输入工具栏的剪贴板按钮一键摘要、翻译或解释剪贴板内容。",
     "tip_export": "按 Ctrl+Shift+E 将对话导出为 Markdown、HTML 或 JSON 格式。",
-    "tip_tone": "在工具栏设置回复风格（简洁、详细、专业等）来自定义 Claude 的回复方式。"
+    "tip_tone": "在工具栏切换输出风格（默认、解释模式、逐步学习）来改变 Claude 的回复结构。"
   },
   "autoMemory": {
     "enabled": "自动提取记忆",

@@ -42,7 +42,7 @@ export default function SettingsGeneral({
     prompts: [t('settings.promptTemplate'), t('settings.systemPrompt'), t('settings.groups.prompts')].join(' ').toLowerCase(),
     appearance: [t('settings.language'), t('settings.displayName'), t('settings.theme'), t('settings.fontSize'), t('settings.fontFamily'), t('settings.compactMode'), t('settings.groups.appearance')].join(' ').toLowerCase(),
     workspace: [t('settings.workingFolder'), t('tags.sectionTitle'), t('settings.groups.workspace')].join(' ').toLowerCase(),
-    behavior: [t('settings.skipPermissions'), t('settings.verbose'), t('settings.completionSound'), t('settings.desktopNotifications'), t('settings.resumeLastSession'), t('settings.responseTone'), t('tone.title'), t('settings.systemPresence'), t('compact.autoCompact'), t('autoMemory.enabled'), t('settings.groups.behavior')].join(' ').toLowerCase(),
+    behavior: [t('settings.skipPermissions'), t('settings.verbose'), t('settings.completionSound'), t('settings.desktopNotifications'), t('settings.resumeLastSession'), t('outputStyle.title'), t('thinking.title'), t('settings.systemPresence'), t('compact.autoCompact'), t('autoMemory.enabled'), t('settings.groups.behavior')].join(' ').toLowerCase(),
   }), [t])
 
   const isGroupVisible = (groupKey: string): boolean => {
@@ -395,24 +395,21 @@ export default function SettingsGeneral({
         )}
 
         {field(
-          t('settings.responseTone'),
+          t('outputStyle.title'),
           <select
-            value={local.responseTone || 'default'}
+            value={local.outputStyle || 'default'}
             onChange={(e) => {
-              updateLocal({ responseTone: e.target.value })
-              setPrefs({ responseTone: e.target.value as any })
-              window.electronAPI.prefsSet('responseTone', e.target.value)
+              updateLocal({ outputStyle: e.target.value })
+              setPrefs({ outputStyle: e.target.value as any })
+              window.electronAPI.prefsSet('outputStyle', e.target.value)
             }}
             style={{ ...INPUT_STYLE }}
           >
-            <option value="default">{t('tone.default')}</option>
-            <option value="concise">{t('tone.concise')}</option>
-            <option value="detailed">{t('tone.detailed')}</option>
-            <option value="professional">{t('tone.professional')}</option>
-            <option value="casual">{t('tone.casual')}</option>
-            <option value="creative">{t('tone.creative')}</option>
+            <option value="default">{t('outputStyle.default')} — {t('outputStyle.default.desc')}</option>
+            <option value="explanatory">{t('outputStyle.explanatory')} — {t('outputStyle.explanatory.desc')}</option>
+            <option value="learning">{t('outputStyle.learning')} — {t('outputStyle.learning.desc')}</option>
           </select>,
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('settings.responseToneHint')}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('outputStyle.settingsHint')}</span>
         )}
 
         {field(
@@ -431,6 +428,12 @@ export default function SettingsGeneral({
             <option value="high">{t('effort.high')} — {t('effort.highDesc')}</option>
           </select>,
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('effort.settingsHint')}</span>
+        )}
+
+        {row(
+          t('thinking.title'),
+          <Toggle value={local.extendedThinking === true} onChange={(v) => updateLocal({ extendedThinking: v })} />,
+          t('thinking.description')
         )}
 
         {row(

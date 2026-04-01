@@ -100,19 +100,16 @@ export default function PersonaForm({
         style={{ ...INPUT_STYLE, marginBottom: 10, resize: 'vertical', minHeight: 60, fontFamily: 'inherit' }}
       />
 
-      {/* Response Tone */}
-      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, fontWeight: 600 }}>{t('tone.title')}</div>
+      {/* Output Style */}
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, fontWeight: 600 }}>{t('outputStyle.title')}</div>
       <select
         value={formTone}
         onChange={e => setFormTone(e.target.value)}
         style={{ ...INPUT_STYLE, marginBottom: 10, cursor: 'pointer' }}
       >
-        <option value="default">{t('tone.default')}</option>
-        <option value="concise">{t('tone.concise')}</option>
-        <option value="detailed">{t('tone.detailed')}</option>
-        <option value="professional">{t('tone.professional')}</option>
-        <option value="casual">{t('tone.casual')}</option>
-        <option value="creative">{t('tone.creative')}</option>
+        <option value="default">{t('outputStyle.default')}</option>
+        <option value="explanatory">{t('outputStyle.explanatory')}</option>
+        <option value="learning">{t('outputStyle.learning')}</option>
       </select>
 
       {/* Color */}
