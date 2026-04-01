@@ -126,6 +126,8 @@ export interface ClaudePrefs {
   promptSuggestionsEnabled?: boolean  // show AI-predicted follow-up suggestions after each response (default true)
   tipHistory?: Record<string, number>  // tipId -> last shown timestamp (for contextual tips)
   idleReturnDialogEnabled?: boolean    // show dialog when returning after idle period (default true)
+  effortLevel?: 'low' | 'medium' | 'high'  // AI effort level: low (fast/cheap), medium (balanced), high (thorough) — default medium
+  preventSleep?: boolean                    // prevent system idle sleep while AI is streaming (default true)
 }
 
 export interface ApiKeyEntry {

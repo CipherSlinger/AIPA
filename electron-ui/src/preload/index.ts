@@ -128,6 +128,8 @@ const electronAPI = {
     ipcRenderer.invoke('window:isAlwaysOnTop') as Promise<boolean>,
   windowCaptureScreen: () =>
     ipcRenderer.invoke('window:captureScreen') as Promise<string | null>,
+  windowPreventSleep: (prevent: boolean) =>
+    ipcRenderer.invoke('window:preventSleep', prevent),
 
   // ── Providers (multi-model support) ────
   providerListConfigs: () => ipcRenderer.invoke('provider:listConfigs'),

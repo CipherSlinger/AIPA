@@ -1252,5 +1252,19 @@
     "pinWindow": "置顶窗口",
     "pinnedOn": "窗口已置顶",
     "pinnedOff": "窗口已取消置顶"
+  },
+  "effort": {
+    "low": "低",
+    "medium": "中",
+    "high": "高",
+    "lowDesc": "快速经济",
+    "mediumDesc": "均衡模式",
+    "highDesc": "深度思考",
+    "title": "投入度: {{level}}（点击切换）",
+    "switched": "投入度已切换: {{level}}",
+    "settingsLabel": "AI 投入度",
+    "settingsHint": "低 = 快速/经济回复，中 = 均衡模式，高 = 深入/仔细推理",
+    "preventSleep": "流式输出时阻止休眠",
+    "preventSleepHint": "AI 生成回复时保持系统唤醒状态"
   }
 }

@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, dialog, shell, app, desktopCapturer } from 'electron'
+import { ipcMain, BrowserWindow, dialog, shell, app, desktopCapturer, powerSaveBlocker } from 'electron'
 import { ptyManager } from '../pty/pty-manager'
 import { fallbackShellManager } from '../pty/fallback-shell'
 import { streamBridgeManager } from '../pty/stream-bridge'
@@ -481,6 +481,23 @@ function registerWindowHandlers(win: BrowserWindow): void {
     } catch (err) {
       log.error('Screenshot capture failed:', err)
       return null
+    }
+  })
+
+  // Prevent system idle sleep while AI is streaming (uses Electron powerSaveBlocker)
+  let preventSleepId: number | null = null
+  ipcMain.handle('window:preventSleep', (_e, prevent: boolean) => {
+    if (prevent) {
+      if (preventSleepId === null || !powerSaveBlocker.isStarted(preventSleepId)) {
+        preventSleepId = powerSaveBlocker.start('prevent-display-sleep')
+        log.info('Prevent sleep started, id:', preventSleepId)
+      }
+    } else {
+      if (preventSleepId !== null && powerSaveBlocker.isStarted(preventSleepId)) {
+        powerSaveBlocker.stop(preventSleepId)
+        log.info('Prevent sleep stopped, id:', preventSleepId)
+        preventSleepId = null
+      }
     }
   })
 }

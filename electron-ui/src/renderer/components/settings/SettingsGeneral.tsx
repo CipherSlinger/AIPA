@@ -415,6 +415,24 @@ export default function SettingsGeneral({
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('settings.responseToneHint')}</span>
         )}
 
+        {field(
+          t('effort.settingsLabel'),
+          <select
+            value={local.effortLevel || 'medium'}
+            onChange={(e) => {
+              updateLocal({ effortLevel: e.target.value })
+              setPrefs({ effortLevel: e.target.value as any })
+              window.electronAPI.prefsSet('effortLevel', e.target.value)
+            }}
+            style={{ ...INPUT_STYLE }}
+          >
+            <option value="low">{t('effort.low')} — {t('effort.lowDesc')}</option>
+            <option value="medium">{t('effort.medium')} — {t('effort.mediumDesc')}</option>
+            <option value="high">{t('effort.high')} — {t('effort.highDesc')}</option>
+          </select>,
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('effort.settingsHint')}</span>
+        )}
+
         {row(
           t('settings.systemPresence'),
           <Toggle value={local.systemPresence !== false} onChange={(v) => updateLocal({ systemPresence: v })} />,
@@ -456,6 +474,12 @@ export default function SettingsGeneral({
           t('idle.dialogEnabled'),
           <Toggle value={local.idleReturnDialogEnabled !== false} onChange={(v) => updateLocal({ idleReturnDialogEnabled: v })} />,
           t('idle.dialogEnabledHint')
+        )}
+
+        {row(
+          t('effort.preventSleep'),
+          <Toggle value={local.preventSleep !== false} onChange={(v) => updateLocal({ preventSleep: v })} />,
+          t('effort.preventSleepHint')
         )}
       </SettingsGroup>
       )}

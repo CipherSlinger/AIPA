@@ -448,6 +448,8 @@ const DEFAULT_PREFS: ClaudePrefs = {
     { label: 'Draft email', prompt: 'Please draft a professional email based on the following points:' },
     { label: 'Brainstorm ideas', prompt: 'Please brainstorm creative ideas about:' },
   ],
+  effortLevel: 'medium',
+  preventSleep: true,
 }
 
 export const usePrefsStore = create<PrefsState>((set) => ({

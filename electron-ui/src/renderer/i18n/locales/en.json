@@ -1252,5 +1252,19 @@
     "pinWindow": "Pin window on top",
     "pinnedOn": "Window pinned on top",
     "pinnedOff": "Window unpinned"
+  },
+  "effort": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "lowDesc": "Fast & cheap",
+    "mediumDesc": "Balanced",
+    "highDesc": "Thorough",
+    "title": "Effort: {{level}} (click to cycle)",
+    "switched": "Effort level: {{level}}",
+    "settingsLabel": "AI Effort Level",
+    "settingsHint": "Low = fast/cheap responses, Medium = balanced, High = thorough/careful reasoning",
+    "preventSleep": "Prevent Sleep While Streaming",
+    "preventSleepHint": "Keep the system awake while the AI is generating a response"
   }
 }

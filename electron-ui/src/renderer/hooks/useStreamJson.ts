@@ -49,6 +49,10 @@ export function useStreamJson() {
     }
     useChatStore.getState().addMessage(userMsg)
     setStreaming(true)
+    // Prevent system idle sleep while streaming (if enabled in prefs)
+    if (prefs.preventSleep !== false && window.electronAPI?.windowPreventSleep) {
+      window.electronAPI.windowPreventSleep(true)
+    }
     sendTimestampRef.current = Date.now()
 
     const currentSessionId = useChatStore.getState().currentSessionId
@@ -109,6 +113,18 @@ export function useStreamJson() {
       const instruction = toneInstructions[prefs.responseTone]
       if (instruction) {
         systemPromptParts.push(`<response_tone>\n${instruction}\n</response_tone>`)
+      }
+    }
+
+    // Inject effort level modifier
+    if (prefs.effortLevel && prefs.effortLevel !== 'medium') {
+      const effortInstructions: Record<string, string> = {
+        low: 'Respond quickly and concisely. Skip lengthy reasoning, examples, and caveats. Prioritize speed over thoroughness.',
+        high: 'Think carefully and be thorough. Consider edge cases, provide detailed reasoning, and ensure accuracy over speed.',
+      }
+      const effortInstruction = effortInstructions[prefs.effortLevel]
+      if (effortInstruction) {
+        systemPromptParts.push(`<effort_level>\n${effortInstruction}\n</effort_level>`)
       }
     }
 
@@ -225,6 +241,14 @@ export function useStreamJson() {
   // Keep ref in sync so IPC handler can call sendMessage without stale closure
   sendMessageRef.current = sendMessage
 
+  // Helper: stop streaming + release prevent-sleep
+  const stopStreamingAndReleaseSleep = () => {
+    setStreaming(false)
+    if (window.electronAPI?.windowPreventSleep) {
+      window.electronAPI.windowPreventSleep(false)
+    }
+  }
+
   const abort = () => {
     const sid = activeBridgeIdRef.current
     if (sid) {
@@ -232,7 +256,7 @@ export function useStreamJson() {
       activeBridgeIdRef.current = null
     }
     denyPendingPermissions()
-    setStreaming(false)
+    stopStreamingAndReleaseSleep()
   }
 
   const respondPermission = (permissionId: string, allowed: boolean) => {
@@ -274,7 +298,7 @@ export function useStreamJson() {
           break
         }
         case 'cli:messageEnd':
-          setStreaming(false)
+          stopStreamingAndReleaseSleep()
           break
         case 'cli:toolUse': {
           const e = data.event as Record<string, unknown>
@@ -458,13 +482,13 @@ export function useStreamJson() {
             content: `⚠️ ${errText}`,
             timestamp: Date.now(),
           } as StandardChatMessage)
-          setStreaming(false)
+          stopStreamingAndReleaseSleep()
           break
         }
         case 'cli:processExit':
           denyPendingPermissions()
           activeBridgeIdRef.current = null
-          setStreaming(false)
+          stopStreamingAndReleaseSleep()
           break
         case 'cli:permissionRequest': {
           const d = data as { sessionId: string; requestId: string; toolName: string; toolInput: Record<string, unknown> }

@@ -3,7 +3,7 @@
 //              StatusBarModelPicker, StatusBarPersonaPicker
 
 import React from 'react'
-import { PanelLeft, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Square, StopCircle, Pin, Settings } from 'lucide-react'
+import { PanelLeft, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Square, StopCircle, Pin, Settings, Gauge } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { StandardChatMessage } from '../../types/app.types'
 import { useT } from '../../i18n'
@@ -22,6 +22,7 @@ export default function StatusBar() {
   const isStreaming = useChatStore(s => s.isStreaming)
   const messages = useChatStore(s => s.messages)
   const prefs = usePrefsStore(s => s.prefs)
+  const setPrefs = usePrefsStore(s => s.setPrefs)
   const toggleSidebar = useUiStore(s => s.toggleSidebar)
   const sidebarOpen = useUiStore(s => s.sidebarOpen)
   const alwaysOnTop = useUiStore(s => s.alwaysOnTop)
@@ -64,6 +65,18 @@ export default function StatusBar() {
 
   const personas = prefs.personas || []
   const activePersona = personas.find(p => p.id === prefs.activePersonaId)
+
+  // Effort level config
+  const effortLevel = prefs.effortLevel || 'medium'
+  const effortSymbols: Record<string, string> = { low: '\u25D4', medium: '\u25D1', high: '\u25D5' }
+  const effortColors: Record<string, string> = { low: '#4ade80', medium: '#fbbf24', high: '#f87171' }
+  const cycleEffort = () => {
+    const levels: Array<'low' | 'medium' | 'high'> = ['low', 'medium', 'high']
+    const next = levels[(levels.indexOf(effortLevel as any) + 1) % 3]
+    setPrefs({ effortLevel: next })
+    window.electronAPI.prefsSet('effortLevel', next)
+    useUiStore.getState().addToast('info', t('effort.switched', { level: t(`effort.${next}`) }))
+  }
 
   return (
     <div
@@ -283,6 +296,23 @@ export default function StatusBar() {
 
         {/* Model badge (clickable) */}
         <StatusBarModelPicker modelLabel={modelLabel} shortModel={shortModel} isClaudeModel={isClaudeModel} />
+
+        {/* Effort level indicator (click to cycle low → medium → high) */}
+        <button
+          onClick={cycleEffort}
+          title={t('effort.title', { level: t(`effort.${effortLevel}`) })}
+          style={{
+            background: 'none', border: 'none', color: effortColors[effortLevel],
+            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3,
+            padding: '0 2px', fontSize: 10, opacity: 0.9,
+            transition: 'color 0.2s',
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.9' }}
+        >
+          <Gauge size={10} />
+          <span style={{ fontFamily: 'system-ui', fontSize: 11 }}>{effortSymbols[effortLevel]}</span>
+        </button>
 
         {/* Always-on-top pin toggle */}
         <button

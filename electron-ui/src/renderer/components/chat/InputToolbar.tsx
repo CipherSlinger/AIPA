@@ -1,7 +1,7 @@
 import React from 'react'
-import { AtSign, TerminalSquare, Mic, MicOff, ListPlus, Cpu, Paperclip, Camera } from 'lucide-react'
+import { AtSign, TerminalSquare, Mic, MicOff, ListPlus, Cpu, Paperclip, Camera, Gauge } from 'lucide-react'
 import { useT } from '../../i18n'
-import { usePrefsStore, useChatStore } from '../../store'
+import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import ClipboardActionsMenu from './ClipboardActionsMenu'
 import InputToolbarTextTransform from './InputToolbarTextTransform'
 import InputToolbarSaveNote from './InputToolbarSaveNote'
@@ -158,6 +158,46 @@ export default function InputToolbar({
       </button>
       {/* Response tone selector */}
       <InputToolbarToneSelector />
+      {/* Effort level selector (click to cycle) */}
+      {(() => {
+        const effortLevel = prefs.effortLevel || 'medium'
+        const effortSymbols: Record<string, string> = { low: '\u25D4', medium: '\u25D1', high: '\u25D5' }
+        const effortColors: Record<string, string> = { low: '#4ade80', medium: '#fbbf24', high: '#f87171' }
+        return (
+          <button
+            onClick={() => {
+              const levels: Array<'low' | 'medium' | 'high'> = ['low', 'medium', 'high']
+              const next = levels[(levels.indexOf(effortLevel as any) + 1) % 3]
+              const setPrefs = usePrefsStore.getState().setPrefs
+              setPrefs({ effortLevel: next })
+              window.electronAPI.prefsSet('effortLevel', next)
+              useUiStore.getState().addToast('info', t('effort.switched', { level: t(`effort.${next}`) }))
+            }}
+            title={t('effort.title', { level: t(`effort.${effortLevel}`) })}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 3,
+              padding: '2px 8px',
+              background: 'none',
+              border: '1px solid var(--border)',
+              borderRadius: 10,
+              color: effortColors[effortLevel],
+              cursor: 'pointer',
+              fontSize: 9,
+              flexShrink: 0,
+              transition: 'border-color 150ms, color 150ms',
+              whiteSpace: 'nowrap',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = effortColors[effortLevel] }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
+          >
+            <Gauge size={9} />
+            <span style={{ fontFamily: 'system-ui' }}>{effortSymbols[effortLevel]}</span>
+            {t(`effort.${effortLevel}`)}
+          </button>
+        )
+      })()}
       <span style={{ flex: 1 }} />
       {/* Queue button */}
       <div style={{ position: 'relative', display: 'inline-flex' }}>

@@ -118,3 +118,23 @@ type: project
 - **Build status**: Clean (tsc zero errors, build SUCCESS)
 - **Retro**: retro-2026-03-31-iterations-362-371.md
 - **Next forced retro**: After Iteration 381
+
+### Iteration 372 (2026-03-31)
+- **It.372**: Prompt Suggestions -- AI-predicted ghost text after each response (usePromptSuggestion.ts + CLI --print mode)
+- **Architecture**: New IPC channel cli:generateSuggestion -> generatePromptSuggestion() in session-reader.ts
+- **Integration**: useInputCompletion.ts now accepts optional promptSuggestion param; ChatInput renders italic ghost text when input is empty
+- **Settings**: promptSuggestionsEnabled in ClaudePrefs (default: true), toggle in Settings > Behavior
+- **Current version**: 1.1.49
+- **i18n key count**: ~1164 (both en.json and zh-CN.json aligned)
+- **Build status**: Clean (2514 modules, tsc zero errors, build SUCCESS)
+- **Next forced retro**: After Iteration 381
+
+### Iterations 373-375 (2026-03-31 to 2026-04-01)
+- **It.373**: Idle Return Dialog -- welcome back UX after 30+ min inactivity (useIdleReturn.ts, IdleReturnDialog.tsx)
+- **It.374**: Screenshot Capture to Chat + Context Health Warnings -- desktopCapturer IPC, Camera button in toolbar, useContextHealth.ts
+- **It.375**: Effort Level Selector + Prevent Sleep -- effortLevel pref ('low'/'medium'/'high') with system prompt injection; Electron powerSaveBlocker prevents idle sleep during streaming
+- **Architecture**: Effort level follows same system prompt injection pattern as responseTone (useStreamJson.ts)
+- **New IPC**: window:preventSleep for powerSaveBlocker start/stop
+- **Current version**: 1.1.53
+- **i18n key count**: ~1180 (both en.json and zh-CN.json aligned)
+- **Build status**: Clean (2517 modules, tsc zero errors, build SUCCESS)
