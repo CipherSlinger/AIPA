@@ -1,15 +1,16 @@
 import { useMemo } from 'react'
 
 /**
- * Provides inline calculator evaluation for the chat input.
+ * Provides inline calculator evaluation and prompt suggestion ghost text for the chat input.
  */
 export function useInputCompletion(
   input: string,
   slashQuery: string | null,
   atQuery: string | null,
+  promptSuggestion?: string | null,
 ) {
-  // Ghost text removed (prompt history feature removed)
-  const ghostText = ''
+  // Ghost text: show prompt suggestion when input is empty and no popups are active
+  const ghostText = (!input.trim() && !slashQuery && !atQuery && promptSuggestion) ? promptSuggestion : ''
 
   // Inline calculator: detect "= expression" and evaluate
   const calcResult = useMemo(() => {

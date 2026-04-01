@@ -445,6 +445,8 @@
     "responseToneHint": "设置 Claude 回复的默认风格。也可以在输入栏工具条中按消息切换。",
     "systemPresence": "系统上下文注入",
     "systemPresenceHint": "在每次对话中注入当前日期、时间、工作目录和用户名称，让 Claude 了解你的环境上下文",
+    "promptSuggestions": "提示建议",
+    "promptSuggestionsHint": "每次回复后显示 AI 预测的后续建议（输入框中的虚影文字，按 Tab 接受）",
     "save": "保存设置",
     "saved": "已保存",
     "unlimited": "无限制",

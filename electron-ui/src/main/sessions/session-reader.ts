@@ -263,6 +263,35 @@ export function generateSessionTitle(description: string, cliPath: string): Prom
   })
 }
 
+/**
+ * Generate a prompt suggestion (predict what the user will type next)
+ * using a lightweight CLI call with --print mode.
+ * Context: last few user/assistant message pairs for prediction.
+ */
+export function generatePromptSuggestion(context: string, cliPath: string): Promise<string> {
+  return new Promise((resolve) => {
+    const nodePath = process.env.CLAUDE_NODE_PATH || 'node'
+    const systemPrompt = 'You are a prompt predictor. Given the conversation context, predict what the user would naturally type next as their follow-up message. Output ONLY the predicted prompt text (2-12 words). Match the user\'s language and style. No quotes, no explanation.'
+    const proc = spawn(nodePath, [
+      cliPath,
+      '--print',
+      '--output-format', 'text',
+      '--max-turns', '1',
+      '--append-system-prompt', systemPrompt,
+      '-p', `Conversation context:\n${context}\n\nPredict the user's next message (2-12 words):`,
+    ], { stdio: ['ignore', 'pipe', 'ignore'] })
+
+    let output = ''
+    proc.stdout.on('data', (d: Buffer) => { output += d.toString() })
+    proc.on('close', () => {
+      const suggestion = output.trim().replace(/^["']|["']$/g, '').trim()
+      resolve(suggestion.length > 0 && suggestion.length <= 120 ? suggestion : '')
+    })
+    // Timeout after 10 seconds
+    setTimeout(() => { try { proc.kill() } catch {} resolve('') }, 10000)
+  })
+}
+
 export interface SearchResult {
   sessionId: string
   title?: string

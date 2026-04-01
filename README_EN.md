@@ -65,6 +65,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 - **Auto-Memory Extraction** — optionally extracts durable memories (preferences, facts, instructions) from conversations automatically
 - **Remember This** — one-click save any response from the hover toolbar
 - **Contextual Tips** — smart feature discovery tips on the Welcome Screen, personalized to your usage patterns
+- **Prompt Suggestions** — AI-predicted follow-up suggestions after each response, shown as ghost text in the input field (Tab to accept)
 
 ### Workflows
 - Build multi-step prompt pipelines with the visual workflow editor

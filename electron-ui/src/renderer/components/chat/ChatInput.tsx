@@ -20,6 +20,7 @@ import { useTypingWpm } from './useTypingWpm'
 import { useInputPopups } from './useInputPopups'
 import { useInputCompletion } from './useInputCompletion'
 import { usePasteDetection } from './usePasteDetection'
+import { usePromptSuggestion } from '../../hooks/usePromptSuggestion'
 import { useT } from '../../i18n'
 
 interface ChatInputProps {
@@ -76,7 +77,8 @@ export default function ChatInput({
   })
 
   // Ghost text autocomplete + inline calculator
-  const { ghostText, calcResult } = useInputCompletion(input, popups.slashQuery, popups.atQuery)
+  const { suggestion, dismissSuggestion } = usePromptSuggestion(input, isStreaming)
+  const { ghostText, calcResult } = useInputCompletion(input, popups.slashQuery, popups.atQuery, suggestion)
 
   // Paste detection (URL, long text, quote)
   const paste = usePasteDetection({
@@ -229,7 +231,12 @@ export default function ChatInput({
     // Tab: accept ghost text autocomplete, or accept calculator result
     if (e.key === 'Tab' && !e.shiftKey && ghostText) {
       e.preventDefault()
-      setInput(prev => prev.trimStart() + ghostText)
+      if (input.trim()) {
+        setInput(prev => prev.trimStart() + ghostText)
+      } else {
+        setInput(ghostText)
+      }
+      dismissSuggestion()
       return
     }
     if (e.key === 'Tab' && !e.shiftKey && calcResult) {
@@ -239,6 +246,7 @@ export default function ChatInput({
     }
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
     if (e.key === 'Escape' && input.trim().length > 0) { e.preventDefault(); setInput(''); resizeTextarea(); return }
+    if (e.key === 'Escape' && ghostText && !input.trim()) { e.preventDefault(); dismissSuggestion(); return }
     if (e.ctrlKey && !e.shiftKey && e.key === 'u') { e.preventDefault(); setInput('') }
     // Markdown formatting shortcuts
     if (e.ctrlKey && !e.shiftKey && (e.key === 'b' || e.key === 'i')) {
@@ -491,18 +499,30 @@ export default function ChatInput({
               style={{ flex: 1, width: '100%', background: 'none', border: 'none', outline: 'none', color: 'var(--text-primary)', resize: 'none', fontFamily: 'inherit', fontSize: 13, lineHeight: 1.5, minHeight: 20, maxHeight: 160, overflow: 'auto' }}
             />
             {/* Ghost text autocomplete overlay */}
-            {ghostText && input.trimStart().length >= 3 && (
+            {ghostText && (input.trimStart().length >= 3 || !input.trim()) && (
               <div
                 aria-hidden="true"
                 style={{
                   position: 'absolute', top: 0, left: 0, right: 0, pointerEvents: 'none',
                   fontFamily: 'inherit', fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-wrap',
                   wordBreak: 'break-word', color: 'transparent', overflow: 'hidden', maxHeight: 160,
+                  opacity: input.trim() ? 1 : 0.45,
+                  fontStyle: input.trim() ? 'normal' : 'italic',
+                  transition: 'opacity 0.3s ease-in',
                 }}
               >
-                <span style={{ visibility: 'hidden' }}>{input}</span>
-                <span style={{ color: 'var(--text-muted)', opacity: 0.45 }}>{ghostText}</span>
-                <span style={{ fontSize: 9, color: 'var(--text-muted)', opacity: 0.35, marginLeft: 4 }}>Tab</span>
+                {input.trim() ? (
+                  <>
+                    <span style={{ visibility: 'hidden' }}>{input}</span>
+                    <span style={{ color: 'var(--text-muted)', opacity: 0.45 }}>{ghostText}</span>
+                    <span style={{ fontSize: 9, color: 'var(--text-muted)', opacity: 0.35, marginLeft: 4 }}>Tab</span>
+                  </>
+                ) : (
+                  <>
+                    <span style={{ color: 'var(--text-secondary)' }}>{ghostText}</span>
+                    <span style={{ fontSize: 9, color: 'var(--text-muted)', opacity: 0.5, marginLeft: 6 }}>Tab</span>
+                  </>
+                )}
               </div>
             )}
           </div>

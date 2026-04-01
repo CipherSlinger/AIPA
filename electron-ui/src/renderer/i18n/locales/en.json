@@ -445,6 +445,8 @@
     "responseToneHint": "Set the default tone for Claude's responses. Can also be changed per-message from the input toolbar.",
     "systemPresence": "System Context Injection",
     "systemPresenceHint": "Inject current date, time, working directory, and user name into every conversation so Claude is aware of your context",
+    "promptSuggestions": "Prompt Suggestions",
+    "promptSuggestionsHint": "Show AI-predicted follow-up suggestions after each response (ghost text in input field, Tab to accept)",
     "save": "Save Settings",
     "saved": "Saved",
     "unlimited": "Unlimited",

@@ -123,6 +123,7 @@ export interface ClaudePrefs {
   resumeLastSession?: boolean   // auto-open the most recent session on app startup (default false)
   compactThreshold?: number      // auto-compact when context usage exceeds this % (default 80, range 60-90)
   autoMemoryEnabled?: boolean    // auto-extract memories from conversations (default false)
+  promptSuggestionsEnabled?: boolean  // show AI-predicted follow-up suggestions after each response (default true)
   tipHistory?: Record<string, number>  // tipId -> last shown timestamp (for contextual tips)
 }
 

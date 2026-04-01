@@ -16,6 +16,8 @@ const electronAPI = {
     ipcRenderer.invoke('cli:respondPermission', args),
   cliEndSession: (sessionId: string) =>
     ipcRenderer.invoke('cli:endSession', sessionId),
+  cliGenerateSuggestion: (context: string) =>
+    ipcRenderer.invoke('cli:generateSuggestion', { context }) as Promise<string>,
 
   // ── Sessions ─────────────────────────────
   sessionList: () => ipcRenderer.invoke('session:list'),

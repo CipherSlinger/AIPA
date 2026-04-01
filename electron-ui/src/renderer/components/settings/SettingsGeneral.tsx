@@ -445,6 +445,12 @@ export default function SettingsGeneral({
           <Toggle value={local.autoMemoryEnabled === true} onChange={(v) => updateLocal({ autoMemoryEnabled: v })} />,
           t('autoMemory.enabledHint')
         )}
+
+        {row(
+          t('settings.promptSuggestions'),
+          <Toggle value={local.promptSuggestionsEnabled !== false} onChange={(v) => updateLocal({ promptSuggestionsEnabled: v })} />,
+          t('settings.promptSuggestionsHint')
+        )}
       </SettingsGroup>
       )}
 
