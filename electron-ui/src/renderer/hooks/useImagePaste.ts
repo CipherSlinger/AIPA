@@ -183,6 +183,16 @@ export function useImagePaste() {
     setFileAttachments([])
   }, [])
 
+  /** Add a pre-built image attachment directly (e.g., from screenshot capture) */
+  const addImageAttachment = useCallback((name: string, dataUrl: string, mimeType: string = 'image/png') => {
+    setAttachments(prev => [...prev, {
+      id: `img-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      name,
+      dataUrl,
+      mimeType,
+    }])
+  }, [])
+
   return {
     attachments,
     fileAttachments,
@@ -190,6 +200,7 @@ export function useImagePaste() {
     handleDrop,
     addFiles,
     addFileAttachments,
+    addImageAttachment,
     removeAttachment,
     removeFileAttachment,
     clearAttachments,

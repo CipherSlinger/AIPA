@@ -535,6 +535,9 @@
     "savedAsNote": "Input saved to Notes",
     "attachFiles": "Attach files",
     "allFiles": "All Files",
+    "captureScreen": "Capture screenshot",
+    "screenshotAdded": "Screenshot captured and attached",
+    "screenshotFailed": "Failed to capture screenshot",
     "startFocusTimer": "Start 25-minute focus timer",
     "stopFocusTimer": "Stop focus timer",
     "focusTimerComplete": "Focus session complete! Time for a break.",
@@ -818,7 +821,12 @@
   },
   "context": {
     "usage": "Context: {{used}} / {{total}} ({{percent}}%)",
-    "breakdown": "Input: {{input}} | Output: {{output}} | Cache: {{cache}}"
+    "breakdown": "Input: {{input}} | Output: {{output}} | Cache: {{cache}}",
+    "almostFull": "Context window almost full ({{pct}}%). Consider starting a new conversation.",
+    "nearCapacity": "Context window {{pct}}% full. Enable auto-compact in Settings > Behavior."
+  },
+  "cost": {
+    "thresholdWarning": "Session cost exceeded $5.00. Consider starting a new conversation or compacting."
   },
   "compact": {
     "inProgress": "Compacting conversation...",

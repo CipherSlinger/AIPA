@@ -7,6 +7,7 @@ import ShortcutCheatsheet from './components/shared/ShortcutCheatsheet'
 import { ToastContainer } from './components/ui/Toast'
 import { usePrefsStore, useChatStore, useUiStore } from './store'
 import { useAppShortcuts } from './hooks/useAppShortcuts'
+import { useContextHealth } from './hooks/useContextHealth'
 import { useT } from './i18n'
 import './styles/globals.css'
 import 'highlight.js/styles/github-dark.css'
@@ -224,6 +225,9 @@ export default function App() {
     toggleSidebar, toggleTerminal, toggleCommandPalette, toggleFocusMode,
     setSidebarOpen, setSidebarTab, setShowShortcuts, setPrefs,
   )
+
+  // Context health + cost threshold warnings (inspired by Claude Code)
+  useContextHealth()
 
   return (
     <ErrorBoundary fallbackLabel="application">

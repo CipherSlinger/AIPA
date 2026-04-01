@@ -256,7 +256,7 @@ export default function StatusBar() {
           </button>
         )}
 
-        {/* Cost (click to copy) */}
+        {/* Cost (click to copy) -- color-coded thresholds: green < $1, yellow $1-$5, red >= $5 */}
         {totalSessionCost > 0 && (
           <button
             onClick={() => {
@@ -266,7 +266,12 @@ export default function StatusBar() {
               })
             }}
             title={lastCost != null ? t('toolbar.lastTurn', { cost: lastCost.toFixed(4), total: totalSessionCost.toFixed(4) }) : t('toolbar.sessionTotal', { total: totalSessionCost.toFixed(4) })}
-            style={{ opacity: 0.85, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 2, fontSize: 10, background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 0 }}
+            style={{
+              opacity: 0.85, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 2, fontSize: 10,
+              background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+              color: totalSessionCost >= 5 ? '#f87171' : totalSessionCost >= 1 ? '#fbbf24' : '#4ade80',
+              transition: 'color 0.3s',
+            }}
           >
             <DollarSign size={10} />
             {totalSessionCost < 0.001 ? '<$0.001' : `$${totalSessionCost.toFixed(3)}`}

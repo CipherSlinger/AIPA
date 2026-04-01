@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, dialog, shell, app } from 'electron'
+import { ipcMain, BrowserWindow, dialog, shell, app, desktopCapturer } from 'electron'
 import { ptyManager } from '../pty/pty-manager'
 import { fallbackShellManager } from '../pty/fallback-shell'
 import { streamBridgeManager } from '../pty/stream-bridge'
@@ -461,6 +461,27 @@ function registerWindowHandlers(win: BrowserWindow): void {
   ipcMain.handle('window:isAlwaysOnTop', () => {
     if (win.isDestroyed()) return false
     return win.isAlwaysOnTop()
+  })
+
+  // Capture a screenshot of the entire screen and return as base64 PNG data URL
+  ipcMain.handle('window:captureScreen', async () => {
+    try {
+      const sources = await desktopCapturer.getSources({
+        types: ['screen'],
+        thumbnailSize: { width: 1920, height: 1080 },
+      })
+      if (sources.length === 0) return null
+      // Use the primary screen (first source)
+      const primary = sources[0]
+      const thumbnail = primary.thumbnail
+      if (thumbnail.isEmpty()) return null
+      const pngBuffer = thumbnail.toPNG()
+      const base64 = pngBuffer.toString('base64')
+      return `data:image/png;base64,${base64}`
+    } catch (err) {
+      log.error('Screenshot capture failed:', err)
+      return null
+    }
   })
 }
 

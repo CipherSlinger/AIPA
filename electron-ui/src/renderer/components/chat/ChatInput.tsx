@@ -65,7 +65,7 @@ export default function ChatInput({
   const { typingWpm, keystrokeTimestamps } = useTypingWpm()
 
   // Image/file attachments
-  const { attachments, fileAttachments, handlePaste, addFiles, addFileAttachments, removeAttachment, removeFileAttachment, clearAttachments } = useImagePaste()
+  const { attachments, fileAttachments, handlePaste, addFiles, addFileAttachments, addImageAttachment, removeAttachment, removeFileAttachment, clearAttachments } = useImagePaste()
 
   // Input popups (@mention, /slash, ::snippet)
   const popups = useInputPopups({
@@ -86,6 +86,22 @@ export default function ChatInput({
     textareaRef,
     handleImagePaste: handlePaste,
   })
+
+  // Screenshot capture
+  const handleScreenshot = useCallback(async () => {
+    try {
+      const dataUrl = await window.electronAPI.windowCaptureScreen()
+      if (!dataUrl) {
+        addToast('warning', t('toolbar.screenshotFailed'))
+        return
+      }
+      addImageAttachment(`screenshot-${Date.now()}.png`, dataUrl, 'image/png')
+      addToast('success', t('toolbar.screenshotAdded'))
+      textareaRef.current?.focus()
+    } catch {
+      addToast('warning', t('toolbar.screenshotFailed'))
+    }
+  }, [addImageAttachment, addToast, t])
 
   // Rotating placeholder
   const [placeholderIdx, setPlaceholderIdx] = useState(0)
@@ -353,6 +369,7 @@ export default function ChatInput({
           }
           textareaRef.current?.focus()
         }}
+        onScreenshot={handleScreenshot}
         fileAttachmentCount={fileAttachments.length}
         hasInput={!!input.trim()}
         inputText={input}

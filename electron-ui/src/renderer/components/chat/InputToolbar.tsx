@@ -1,5 +1,5 @@
 import React from 'react'
-import { AtSign, TerminalSquare, Mic, MicOff, ListPlus, Cpu, Paperclip } from 'lucide-react'
+import { AtSign, TerminalSquare, Mic, MicOff, ListPlus, Cpu, Paperclip, Camera } from 'lucide-react'
 import { useT } from '../../i18n'
 import { usePrefsStore, useChatStore } from '../../store'
 import ClipboardActionsMenu from './ClipboardActionsMenu'
@@ -16,6 +16,7 @@ interface InputToolbarProps {
   onQueueClick: () => void
   onSend: (text: string) => Promise<void>
   onAttachFiles: () => void
+  onScreenshot: () => void
   fileAttachmentCount: number
   hasInput: boolean
   inputText: string
@@ -29,6 +30,7 @@ export default function InputToolbar({
   onQueueClick,
   onSend,
   onAttachFiles,
+  onScreenshot,
   fileAttachmentCount,
   hasInput,
   inputText,
@@ -84,6 +86,16 @@ export default function InputToolbar({
           </span>
         )}
       </div>
+      {/* Screenshot capture */}
+      <button
+        onClick={onScreenshot}
+        title={t('toolbar.captureScreen')}
+        style={toolbarBtnStyle}
+        onMouseEnter={toolbarHoverIn}
+        onMouseLeave={toolbarHoverOut}
+      >
+        <Camera size={16} />
+      </button>
       {/* / slash command */}
       <button
         onClick={onSlashClick}
