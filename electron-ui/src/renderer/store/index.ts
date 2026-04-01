@@ -135,6 +135,12 @@ interface ChatState {
 
   // Crash recovery (Iteration 308): Restore messages from sessionStorage backup
   setMessages: (messages: ChatMessage[]) => void
+
+  // Conversation compaction (Iteration 368, inspired by Claude Code)
+  isCompacting: boolean
+  compactionCount: number
+  setCompacting: (v: boolean) => void
+  incrementCompactionCount: () => void
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -150,6 +156,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   currentSessionTitle: null,
   taskQueue: [],
   queuePaused: false,
+  isCompacting: false,
+  compactionCount: 0,
 
   addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
 
@@ -384,6 +392,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   // Crash recovery (Iteration 308): Replace messages array wholesale.
   // Used by ErrorBoundary to restore from sessionStorage backup.
   setMessages: (messages) => set({ messages }),
+  setCompacting: (v) => set({ isCompacting: v }),
+  incrementCompactionCount: () => set((s) => ({ compactionCount: s.compactionCount + 1 })),
 }))
 
 // ── Session store ───────────────────────────────

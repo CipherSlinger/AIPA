@@ -807,6 +807,51 @@
     "livePreview": "Live Preview",
     "codePreview": "Code preview"
   },
+  "diff": {
+    "showDiff": "Show diff",
+    "showRaw": "Show raw",
+    "showLines": "Show {{count}} lines",
+    "additions": "additions",
+    "deletions": "deletions"
+  },
+  "compact": {
+    "inProgress": "Compacting conversation...",
+    "complete": "Conversation compacted",
+    "summary": "{{count}} messages summarized",
+    "threshold": "Compact at {{percent}}% context usage",
+    "autoCompact": "Auto-compact conversations",
+    "autoCompactHint": "Automatically summarize older messages when context window is nearly full",
+    "failed": "Compaction failed, conversation continues normally"
+  },
+  "tips": {
+    "title": "Did you know?",
+    "dismiss": "Dismiss",
+    "nextTip": "Next tip",
+    "tip_shortcuts": "Press Ctrl+/ to see all keyboard shortcuts. AIPA has 50+ shortcuts for power users.",
+    "tip_model": "Press Ctrl+Shift+M to quickly cycle between Claude models without opening Settings.",
+    "tip_memory": "Save important information to Memory (Ctrl+5) and it will be automatically included in future conversations.",
+    "tip_workflows": "Create multi-step Workflows (Ctrl+6) to automate repetitive prompt sequences like code review or report writing.",
+    "tip_personas": "Create AI Personas in Settings to switch between different assistant personalities with custom system prompts.",
+    "tip_notes": "Use the Notes panel (Ctrl+3) to jot down ideas alongside your conversations. Notes auto-save and persist.",
+    "tip_theme": "Press Ctrl+Shift+D to instantly toggle between dark and light themes.",
+    "tip_language": "Press Ctrl+Shift+L to switch between English and Chinese instantly.",
+    "tip_search": "Press Ctrl+Shift+F for cross-session search -- find any message across all your conversations.",
+    "tip_snippets": "Create text snippets in Settings and type ::keyword to expand them instantly in the chat input.",
+    "tip_focus": "Press Ctrl+Shift+O for Focus Mode -- hides sidebar and terminal for distraction-free conversations.",
+    "tip_pin": "Press Ctrl+Shift+T to pin the AIPA window on top of all other windows.",
+    "tip_terminal": "Click the terminal button in the chat header to open a terminal that automatically resumes your current conversation.",
+    "tip_clipboard": "Use the clipboard button in the input toolbar for one-click summarize, translate, or explain clipboard content.",
+    "tip_export": "Press Ctrl+Shift+E to export any conversation as Markdown, HTML, or JSON.",
+    "tip_tone": "Set a response tone (Concise, Detailed, Professional, etc.) from the toolbar to customize how Claude responds."
+  },
+  "autoMemory": {
+    "enabled": "Auto-extract memories",
+    "enabledHint": "Automatically save important information from conversations to your memory",
+    "extracted": "Auto-saved {{count}} memories",
+    "extracting": "Extracting memories...",
+    "noNew": "No new memories to extract",
+    "badge": "Auto"
+  },
   "lightbox": {
     "zoomIn": "Zoom in (+)",
     "zoomOut": "Zoom out (-)",

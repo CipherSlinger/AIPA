@@ -42,7 +42,7 @@ export default function SettingsGeneral({
     prompts: [t('settings.promptTemplate'), t('settings.systemPrompt'), t('settings.groups.prompts')].join(' ').toLowerCase(),
     appearance: [t('settings.language'), t('settings.displayName'), t('settings.theme'), t('settings.fontSize'), t('settings.fontFamily'), t('settings.compactMode'), t('settings.groups.appearance')].join(' ').toLowerCase(),
     workspace: [t('settings.workingFolder'), t('tags.sectionTitle'), t('settings.groups.workspace')].join(' ').toLowerCase(),
-    behavior: [t('settings.skipPermissions'), t('settings.verbose'), t('settings.completionSound'), t('settings.desktopNotifications'), t('settings.resumeLastSession'), t('settings.responseTone'), t('tone.title'), t('settings.systemPresence'), t('settings.groups.behavior')].join(' ').toLowerCase(),
+    behavior: [t('settings.skipPermissions'), t('settings.verbose'), t('settings.completionSound'), t('settings.desktopNotifications'), t('settings.resumeLastSession'), t('settings.responseTone'), t('tone.title'), t('settings.systemPresence'), t('compact.autoCompact'), t('autoMemory.enabled'), t('settings.groups.behavior')].join(' ').toLowerCase(),
   }), [t])
 
   const isGroupVisible = (groupKey: string): boolean => {
@@ -419,6 +419,31 @@ export default function SettingsGeneral({
           t('settings.systemPresence'),
           <Toggle value={local.systemPresence !== false} onChange={(v) => updateLocal({ systemPresence: v })} />,
           t('settings.systemPresenceHint')
+        )}
+
+        {row(
+          t('compact.autoCompact'),
+          <Toggle value={(local.compactThreshold ?? 80) > 0} onChange={(v) => updateLocal({ compactThreshold: v ? 80 : 0 })} />,
+          t('compact.autoCompactHint')
+        )}
+
+        {(local.compactThreshold ?? 80) > 0 && field(
+          t('compact.threshold', { percent: String(local.compactThreshold ?? 80) }),
+          <input
+            type="range"
+            min={60}
+            max={90}
+            step={5}
+            value={local.compactThreshold ?? 80}
+            onChange={(e) => updateLocal({ compactThreshold: Number(e.target.value) })}
+            style={{ width: '100%', accentColor: 'var(--accent)' }}
+          />
+        )}
+
+        {row(
+          t('autoMemory.enabled'),
+          <Toggle value={local.autoMemoryEnabled === true} onChange={(v) => updateLocal({ autoMemoryEnabled: v })} />,
+          t('autoMemory.enabledHint')
         )}
       </SettingsGroup>
       )}

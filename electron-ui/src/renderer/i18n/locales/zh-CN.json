@@ -807,6 +807,51 @@
     "livePreview": "实时预览",
     "codePreview": "代码预览"
   },
+  "diff": {
+    "showDiff": "显示差异",
+    "showRaw": "显示原始内容",
+    "showLines": "显示 {{count}} 行",
+    "additions": "新增",
+    "deletions": "删除"
+  },
+  "compact": {
+    "inProgress": "正在压缩对话...",
+    "complete": "对话已压缩",
+    "summary": "{{count}} 条消息已摘要",
+    "threshold": "在 {{percent}}% 上下文使用率时压缩",
+    "autoCompact": "自动压缩对话",
+    "autoCompactHint": "当上下文窗口接近容量上限时自动摘要较早的消息",
+    "failed": "压缩失败，对话继续正常进行"
+  },
+  "tips": {
+    "title": "你知道吗？",
+    "dismiss": "关闭",
+    "nextTip": "下一条",
+    "tip_shortcuts": "按 Ctrl+/ 查看所有键盘快捷键。AIPA 有 50+ 个快捷键供高级用户使用。",
+    "tip_model": "按 Ctrl+Shift+M 快速切换 Claude 模型，无需打开设置。",
+    "tip_memory": "将重要信息保存到记忆 (Ctrl+5)，它将自动包含在未来的对话中。",
+    "tip_workflows": "创建多步骤工作流 (Ctrl+6) 来自动化重复的提示序列，如代码审查或报告撰写。",
+    "tip_personas": "在设置中创建 AI 角色，切换不同的助手个性和自定义系统提示。",
+    "tip_notes": "使用笔记面板 (Ctrl+3) 在对话旁记录想法。笔记自动保存并持久化。",
+    "tip_theme": "按 Ctrl+Shift+D 即时切换深色和浅色主题。",
+    "tip_language": "按 Ctrl+Shift+L 即时切换中英文。",
+    "tip_search": "按 Ctrl+Shift+F 进行跨会话搜索——在所有对话中查找任何消息。",
+    "tip_snippets": "在设置中创建文本片段，在输入框中输入 ::关键词 即可快速展开。",
+    "tip_focus": "按 Ctrl+Shift+O 进入专注模式——隐藏侧边栏和终端，专注于对话。",
+    "tip_pin": "按 Ctrl+Shift+T 将 AIPA 窗口置顶显示。",
+    "tip_terminal": "点击聊天顶部的终端按钮打开终端，自动恢复当前对话上下文。",
+    "tip_clipboard": "使用输入工具栏的剪贴板按钮一键摘要、翻译或解释剪贴板内容。",
+    "tip_export": "按 Ctrl+Shift+E 将对话导出为 Markdown、HTML 或 JSON 格式。",
+    "tip_tone": "在工具栏设置回复风格（简洁、详细、专业等）来自定义 Claude 的回复方式。"
+  },
+  "autoMemory": {
+    "enabled": "自动提取记忆",
+    "enabledHint": "自动从对话中保存重要信息到记忆",
+    "extracted": "自动保存了 {{count}} 条记忆",
+    "extracting": "正在提取记忆...",
+    "noNew": "没有新的记忆可提取",
+    "badge": "自动"
+  },
   "lightbox": {
     "zoomIn": "放大 (+)",
     "zoomOut": "缩小 (-)",

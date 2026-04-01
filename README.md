@@ -1,11 +1,11 @@
 <p align="center">
   <h1 align="center">AIPA</h1>
   <p align="center">
-    <strong>AI Personal Assistant — your always-on desktop agent</strong><br/>
-    Ask anything. Automate anything. Get things done.
+    <strong>AI 个人助手 — 你的全天候桌面智能代理</strong><br/>
+    随问随答，随需随做，事事搞定。
   </p>
   <p align="center">
-    <img src="https://img.shields.io/badge/platform-Windows-blue" alt="Platform" />
+    <img src="https://img.shields.io/badge/平台-Windows-blue" alt="平台" />
     <img src="https://img.shields.io/badge/Electron-39-47848F" alt="Electron" />
     <img src="https://img.shields.io/badge/React-18-61DAFB" alt="React" />
     <img src="https://img.shields.io/badge/TypeScript-strict-3178c6" alt="TypeScript" />
@@ -15,102 +15,106 @@
 
 ---
 
-AIPA is not a chat window. It's a **desktop agent** that lives alongside you — reads and writes your files, runs shell commands, browses the web, chains tasks into workflows, and remembers context across sessions. Under the hood it drives the [Claude Code](https://claude.ai/code) CLI as its execution engine, wrapped in a polished Electron + React cockpit with support for Claude, OpenAI, DeepSeek, Ollama, and any OpenAI-compatible provider.
+AIPA 不是一个聊天窗口，而是一个真正驻留在你桌面上的**智能代理** — 读写你的文件，执行 Shell 命令，浏览网页，将任务串联成工作流，并跨会话记住上下文。底层通过驱动 [Claude Code](https://claude.ai/code) CLI 作为执行引擎，外包一层精心打磨的 Electron + React 驾驶舱，支持 Claude、OpenAI、DeepSeek、Ollama 以及任意 OpenAI 兼容提供商。
 
-> **The Claude Code CLI is the engine. AIPA is the cockpit.**
+> **Claude Code CLI 是引擎，AIPA 是驾驶舱。**
 
 ---
 
-## What AIPA Can Do
+## AIPA 能做什么
 
 | | |
 |---|---|
-| **Chat & Execute** | Full conversational AI with tool-use visualization — watch the agent read files, run code, and browse the web in real time |
-| **Terminal Access** | Built-in PTY terminal (xterm.js) accessible from the chat header — opens with `--resume` to continue the current conversation context |
-| **Memory** | Persistent memory across sessions — preferences, facts, instructions, and context automatically injected into every conversation |
-| **Workflows** | Chain prompts into reusable multi-step pipelines with preset templates for common tasks |
-| **Notes** | Markdown notepad with categories, templates, and one-click save from any chat response |
-| **Multi-Model** | Switch between Claude, GPT-4, DeepSeek, or local Ollama models mid-session |
-| **Always Available** | System tray with quick actions, global hotkeys (`Ctrl+Shift+Space` toggle, `Ctrl+Shift+G` clipboard ask), and desktop notifications |
-| **Channel** | Connect Feishu and WeChat messaging channels via OpenClaw — configure, test, and manage from the sidebar |
+| **对话与执行** | 全功能对话 AI，带工具调用可视化 — 实时看到代理读取文件、运行代码、浏览网页的每一步 |
+| **终端直达** | 内置 PTY 终端（xterm.js），从聊天头部一键打开 — 自动以 `--resume` 加载当前会话上下文 |
+| **持久记忆** | 跨会话的持久记忆 — 偏好、事实、指令、上下文自动注入每次对话 |
+| **工作流** | 将提示词串联成可复用的多步骤流水线，内含常用任务的预设模板 |
+| **笔记** | Markdown 笔记本，带分类、模板和一键从聊天保存 |
+| **多模型** | 会话中途随时切换 Claude、GPT-4、DeepSeek 或本地 Ollama 模型 |
+| **随时待命** | 系统托盘快捷操作、全局快捷键（`Ctrl+Shift+Space` 唤起、`Ctrl+Shift+G` 剪贴板提问）、桌面通知 |
+| **通道** | 通过 OpenClaw 接入飞书和微信消息通道 — 从侧边栏配置、测试和管理 |
 
 ---
 
-## Highlights
+## 功能亮点
 
-### Conversation
-- **Stream-JSON chat** with live tool-use cards — see every file read, command run, and web fetch as it happens
-- **Extended thinking** blocks, collapsible and auto-expanding during generation
-- **Edit & regenerate** any message; pick a different model before regenerating
-- **Read Aloud** via Web Speech API; **Quote Reply** by selecting text
-- **Permission prompts** — friendly allow/deny cards before any destructive tool use
+### 对话
+- **Stream-JSON 聊天**，带实时工具调用卡片 — 每次文件读取、命令执行、网页请求都一目了然
+- **结构化 Diff 视图** — 文件编辑和写入操作以 LCS 统一 Diff 格式展示，色彩编码增/删行，可折叠大型差异
+- **扩展思考**块，可折叠，流式传输时自动展开
+- **自动压缩** — 上下文窗口接近容量上限时自动摘要较早消息，保持对话流畅（阈值可调 60%-90%）
+- **编辑与重新生成**任意消息；重新生成前可切换模型
+- **朗读**（Web Speech API）；**引用回复**（选中文本即可引用）
+- **权限提示** — 任何破坏性工具操作前显示友好的允许/拒绝卡片
 
-### Input Power Tools
-- **Slash commands** (`/`), **@mention** file picker
-- **Text snippets** — `::keyword` expands reusable blocks
-- **Text transforms** — make formal, casual, shorter, longer, or fix grammar with one click
-- **Inline calculator** — type `= 42 * 1.18`, press Tab to insert the result
-- **Task queue** — queue multiple prompts for sequential auto-execution
+### 输入增强工具
+- **Slash 命令**（`/`）、**@提及**文件选择器
+- **文本片段** — `::关键词` 触发展开可复用文本块
+- **文本变换** — 一键变正式、随意、更短、更长或修正语法
+- **内联计算器** — 输入 `= 42 * 1.18`，按 Tab 插入结果
+- **任务队列** — 排队多条指令依次自动执行
 
-### Session Management
-- Browse, search, tag, pin, and bulk-delete past sessions
-- **Cross-session search** (`Ctrl+Shift+F`) across all JSONL history files
-- Export conversations as Markdown, HTML, or JSON
+### 会话管理
+- 浏览、搜索、标签、置顶、批量删除历史会话
+- **跨会话搜索**（`Ctrl+Shift+F`）扫描所有 JSONL 历史文件
+- 导出为 Markdown、HTML 或 JSON
 
-### Personas & Memory
-- Up to 10 custom AI personas with name, emoji, model, system prompt, and badge color
-- Memory auto-injected into every conversation — pinned items + 10 most recent
-- **Remember This** — one-click save any response from the hover toolbar
+### 角色与记忆
+- 最多 10 个自定义 AI 角色，每个有名称、Emoji、模型、系统提示词和标记颜色
+- 记忆自动注入每次对话 — 置顶条目 + 最近 10 条
+- **自动记忆提取** — 开启后自动从对话中提取偏好、事实、指令等持久记忆
+- **记住此内容** — 从悬停工具栏一键保存任意回复
+- **情境化功能提示** — 欢迎页面智能推荐功能技巧，基于使用模式个性化展示
 
-### Workflows
-- Build multi-step prompt pipelines with the visual workflow editor
-- 6 preset workflows to get started instantly (weekly reports, code reviews, daily summaries, and more)
+### 工作流
+- 可视化工作流编辑器，构建多步提示流水线
+- 6 个内置预设工作流，开箱即用（周报、代码审查、每日总结等）
 
-### Skills Marketplace
-- 47 curated skills from Anthropic, OpenClaw, ClawhHub, and community contributors
-- One-click install from the built-in marketplace; filter by source and category
-- Built-in Skill Creator for designing custom skills interactively through chat
+### 技能市场
+- 来自 Anthropic、OpenClaw、ClawhHub 和社区的 47 个精选技能
+- 内置市场一键安装；按来源和分类筛选
+- 内置技能创建器，通过对话交互式设计自定义技能
 
-### Channel (Feishu & WeChat)
-- Connect your **Feishu** workspace bot via webhook URL + App credentials
-- Connect your **WeChat** via the official Tencent OpenClaw WeChat CLI plugin (`@tencent-weixin/openclaw-weixin-cli`)
-- Configure, test, and manage both channels from the sidebar `Radio` icon (`Ctrl+9`)
-- Powered by OpenClaw integration
+### 通道（飞书 & 微信）
+- 通过 Webhook URL + App 凭证接入**飞书**自定义机器人
+- 通过腾讯官方 OpenClaw 微信 CLI 插件（`@tencent-weixin/openclaw-weixin-cli`）接入**微信**
+- 侧边栏 `Radio` 图标（`Ctrl+9`）配置、测试和管理两个通道
+- 由 OpenClaw 集成提供支持
 
-### System Tray & Global Access
-- Minimize to system tray — AIPA stays ready in the background
-- `Ctrl+Shift+Space` toggles the window from any application
-- `Ctrl+Shift+G` reads clipboard and opens AIPA with the text pre-filled for instant analysis
-- Right-click tray icon for quick actions: new chat, recent sessions, theme toggle, clipboard ask
-- Desktop notifications when responses complete while the window is unfocused
-
----
-
-## Keyboard Shortcuts
-
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+N` | New conversation |
-| `Ctrl+Shift+P` | Command palette |
-| `Ctrl+Shift+F` | Global cross-session search |
-| `Ctrl+Shift+R` | Regenerate response |
-| `Ctrl+Shift+E` | Export conversation |
-| `Ctrl+Shift+D` | Cycle theme (Dark / Light / System) |
-| `Ctrl+Shift+M` | Cycle model (Sonnet / Opus / Haiku) |
-| `Ctrl+Shift+T` | Pin window on top (always-on-top) |
-| `Ctrl+Shift+O` | Focus mode (hide sidebar + terminal) |
-| `Ctrl+B` | Toggle sidebar |
-| `Ctrl+`` ` `` | Toggle terminal |
-| `Ctrl+,` | Open Settings |
-| `Ctrl+1–4` | History, Files, Notes, Skills |
-| `Ctrl+5–7` | Memory, Workflows, Channel |
-| `Ctrl+/` | Shortcut cheatsheet |
-| `Ctrl+Shift+Space` | Toggle AIPA window (global, works from any app) |
-| `Ctrl+Shift+G` | Clipboard quick action (global: reads clipboard, opens AIPA, sends to chat) |
+### 系统托盘与全局访问
+- 最小化到系统托盘 — AIPA 在后台随时待命
+- `Ctrl+Shift+Space` 在任意应用中切换窗口显示
+- `Ctrl+Shift+G` 读取剪贴板并打开 AIPA，自动填入文本进行即时分析
+- 右键托盘图标：新建对话、最近会话、主题切换、剪贴板提问
+- 窗口失焦时回复完成后推送桌面通知
 
 ---
 
-## Quick Start
+## 键盘快捷键
+
+| 快捷键 | 操作 |
+|--------|------|
+| `Ctrl+N` | 新建对话 |
+| `Ctrl+Shift+P` | 命令面板 |
+| `Ctrl+Shift+F` | 全局跨会话搜索 |
+| `Ctrl+Shift+R` | 重新生成回复 |
+| `Ctrl+Shift+E` | 导出对话 |
+| `Ctrl+Shift+D` | 切换主题（深色 / 浅色 / 跟随系统） |
+| `Ctrl+Shift+M` | 切换模型（Sonnet / Opus / Haiku） |
+| `Ctrl+Shift+T` | 置顶窗口（始终在最前） |
+| `Ctrl+Shift+O` | 专注模式（隐藏侧边栏和终端） |
+| `Ctrl+B` | 切换侧边栏 |
+| `Ctrl+`` ` `` | 切换终端 |
+| `Ctrl+,` | 打开设置 |
+| `Ctrl+1–4` | 历史、文件、笔记、技能 |
+| `Ctrl+5–7` | 记忆、工作流、通道 |
+| `Ctrl+/` | 快捷键速查表 |
+| `Ctrl+Shift+Space` | 切换 AIPA 窗口（全局快捷键，任意应用中可用） |
+| `Ctrl+Shift+G` | 剪贴板快捷操作（全局：读取剪贴板，打开 AIPA，发送至对话） |
+
+---
+
+## 快速开始
 
 ```bash
 git clone https://github.com/CipherSlinger/AIPA.git
@@ -120,67 +124,67 @@ npm run build
 node_modules/.bin/electron dist/main/index.js
 ```
 
-Open **Settings** (`Ctrl+,`) on first launch and enter your Anthropic API key.
+首次启动后，按 `Ctrl+,` 打开**设置**，填入你的 Anthropic API 密钥。
 
-### Dev Mode (Hot Reload)
+### 开发模式（热更新）
 
 ```bash
-# Terminal 1
+# 终端 1
 npm run build:main && npm run build:preload && npx vite
 
-# Terminal 2
+# 终端 2
 NODE_ENV=development node_modules/.bin/electron dist/main/index.js
 ```
 
-### Build Installer
+### 打包安装包
 
 ```bash
-npm run dist:win   # → release/ directory
+npm run dist:win   # → release/ 目录
 ```
 
 ---
 
-## Requirements
+## 环境要求
 
 - Windows 10/11 x64
-- Node.js 18+ on PATH
-- Anthropic API key ([console.anthropic.com](https://console.anthropic.com/))
-- _Optional:_ OpenAI key, DeepSeek key, or local [Ollama](https://ollama.ai/) instance
+- Node.js 18+（需在 PATH 中）
+- Anthropic API 密钥（[console.anthropic.com](https://console.anthropic.com/)）
+- _可选：_ OpenAI 密钥、DeepSeek 密钥，或本地 [Ollama](https://ollama.ai/) 实例
 
 ---
 
-## Architecture
+## 项目结构
 
 ```
 AIPA/
-  package/          # Bundled Claude Code CLI (vendored, read-only)
+  package/          # 内置 Claude Code CLI（只读，已打包）
   electron-ui/
     src/
-      main/         # Node.js: PTY manager, stream-bridge, IPC, sessions, config
+      main/         # Node.js：PTY 管理、stream-bridge、IPC、会话、配置
       preload/      # contextBridge → window.electronAPI
       renderer/     # React + Vite + Zustand + i18n
-    dist/           # Compiled output (not committed)
+    dist/           # 编译产物（不提交）
 ```
 
-The CLI is bridged in two modes:
+CLI 通过两种模式桥接：
 
-| Mode | Panel | Mechanism |
-|------|-------|-----------|
-| **PTY** (node-pty) | Terminal | Raw ConPTY I/O → xterm.js |
-| **Stream-JSON** | Chat | NDJSON events → typed React state |
-
----
-
-## Security
-
-- API keys encrypted with OS keychain (`electron.safeStorage` / DPAPI)
-- Strict Content Security Policy — no XSS, no unauthorized external loads
-- Sandboxed renderer — no direct Node.js access
-- IPC path validation — file system handlers check against an allowed-directory list
-- Sanitized CLI environment — child processes receive only an explicit env allowlist
+| 模式 | 面板 | 机制 |
+|------|------|------|
+| **PTY**（node-pty） | 终端 | 原始 ConPTY I/O → xterm.js |
+| **Stream-JSON** | 对话 | NDJSON 事件 → 类型化 React 状态 |
 
 ---
 
-## License
+## 安全
+
+- API 密钥通过系统密钥链加密（`electron.safeStorage` / DPAPI）
+- 严格内容安全策略 — 阻止 XSS 和未授权外部资源
+- 沙箱化渲染进程 — 无直接 Node.js 访问
+- IPC 路径验证 — 文件系统处理器检查允许目录白名单
+- 净化 CLI 环境 — 子进程仅接收显式环境变量白名单
+
+---
+
+## 许可证
 
 MIT

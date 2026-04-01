@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { ToolUseInfo } from '../../types/app.types'
 import { ChevronDown, ChevronRight, Terminal, FileEdit, Search, Globe, Loader2, Check, X, Timer } from 'lucide-react'
 import { useT } from '../../i18n'
+import DiffView from './DiffView'
 
 interface Props {
   tool: ToolUseInfo
@@ -53,25 +54,7 @@ function formatElapsed(seconds: number): string {
   return `${m}m ${s}s`
 }
 
-function DiffView({ input }: { input: Record<string, unknown> }) {
-  const oldStr = String(input.old_str ?? input.old_string ?? '')
-  const newStr = String(input.new_str ?? input.new_string ?? '')
-  if (!oldStr && !newStr) return null
-  return (
-    <div style={{ fontFamily: 'monospace', fontSize: 11 }}>
-      {oldStr && oldStr.split('\n').map((line, i) => (
-        <div key={`old-${i}`} style={{ background: 'rgba(220,38,38,0.15)', color: '#f87171', padding: '1px 6px', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-          - {line}
-        </div>
-      ))}
-      {newStr && newStr.split('\n').map((line, i) => (
-        <div key={`new-${i}`} style={{ background: 'rgba(34,197,94,0.15)', color: '#4ade80', padding: '1px 6px', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-          + {line}
-        </div>
-      ))}
-    </div>
-  )
-}
+const FILE_WRITE_TOOLS = new Set(['Write', 'create_file'])
 
 export default function ToolUseBlock({ tool, onAbort }: Props) {
   const t = useT()
@@ -236,11 +219,18 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
             <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4 }}>{t('tool.input')}</div>
             {isFileEdit && (tool.input.old_str || tool.input.new_str || tool.input.old_string || tool.input.new_string) ? (
               <>
-                {tool.input.path && (
-                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4, fontFamily: 'monospace' }}>{String(tool.input.path)}</div>
-                )}
-                <DiffView input={tool.input} />
+                <DiffView
+                  oldStr={String(tool.input.old_str ?? tool.input.old_string ?? '')}
+                  newStr={String(tool.input.new_str ?? tool.input.new_string ?? '')}
+                  filePath={tool.input.path ? String(tool.input.path) : undefined}
+                />
               </>
+            ) : FILE_WRITE_TOOLS.has(tool.name) && tool.input.content ? (
+              <DiffView
+                oldStr=""
+                newStr={String(tool.input.content)}
+                filePath={tool.input.path ? String(tool.input.path) : tool.input.file_path ? String(tool.input.file_path) : undefined}
+              />
             ) : (
               <pre style={{ fontSize: 10, margin: 0, background: 'transparent', border: 'none', padding: 0, overflow: 'auto', maxHeight: 200 }}>
                 {JSON.stringify(tool.input, null, 2)}

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { Bot, History, X, MessageSquare, Layers, Clock, ArrowRight, Sparkles } from 'lucide-react'
+import { Bot, History, X, MessageSquare, Layers, Clock, ArrowRight, Sparkles, Lightbulb } from 'lucide-react'
 import { useUiStore, useSessionStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 import { getGreetingKey, getPersonaStarters, getDefaultSuggestions, getShortcuts, getQuickActions } from './welcomeScreenConstants'
+import { useTips } from '../../hooks/useTips'
 
 interface Props {
   onSuggestion: (text: string, templateId?: string) => void
@@ -65,6 +66,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
 
   const shortcuts = useMemo(() => getShortcuts(t), [t])
   const quickActions = useMemo(() => getQuickActions(t), [t])
+  const { tip, dismissTip, nextTip } = useTips()
 
   const accentTint = activePersona ? `${activePersona.color}20` : 'rgba(0,122,204,0.1)'
   const accentColor = activePersona?.color || 'var(--accent)'
@@ -277,6 +279,51 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
           </div>
         ))}
       </div>
+
+      {/* Contextual tip */}
+      {tip && (
+        <div style={{
+          width: '100%', maxWidth: 420, padding: '10px 14px',
+          background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+          borderRadius: 10, display: 'flex', alignItems: 'flex-start', gap: 10,
+        }}>
+          <Lightbulb size={16} color="var(--warning)" style={{ flexShrink: 0, marginTop: 2 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 10, color: 'var(--warning)', fontWeight: 600, marginBottom: 4 }}>
+              {t('tips.title')}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.5 }}>
+              {t(tip.contentKey)}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+            <button
+              onClick={nextTip}
+              title={t('tips.nextTip')}
+              style={{
+                background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
+                padding: '2px 4px', borderRadius: 3, fontSize: 10,
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
+            >
+              {t('tips.nextTip')}
+            </button>
+            <button
+              onClick={dismissTip}
+              title={t('tips.dismiss')}
+              style={{
+                background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
+                padding: '2px', borderRadius: 3,
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
+            >
+              <X size={12} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Recent prompts */}
       {recentPrompts.length > 0 && (

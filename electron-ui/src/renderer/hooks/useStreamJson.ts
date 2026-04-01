@@ -4,6 +4,8 @@ import { PermissionMessage, PlanMessage, StandardChatMessage } from '../types/ap
 import { useUiStore } from '../store'
 import { useT } from '../i18n'
 import { resolveProvider, sendCompletionNotification, playCompletionSound, getActiveApiKey, rotateApiKey } from './streamJsonUtils'
+import { useAutoCompact } from './useAutoCompact'
+import { useAutoMemory } from './useAutoMemory'
 
 export function useStreamJson() {
   // Use individual selectors so this hook only re-renders when the specific
@@ -24,6 +26,8 @@ export function useStreamJson() {
   const setSessionTitle = useChatStore(s => s.setSessionTitle)
   const prefs = usePrefsStore(s => s.prefs)
   const t = useT()
+  const { tryAutoCompact } = useAutoCompact()
+  const { tryExtractMemories } = useAutoMemory()
 
   const activeBridgeIdRef = useRef<string | null>(null)
   // Keep a ref to sendMessage so it can be called from the IPC event handler without stale closure
@@ -339,6 +343,8 @@ export function useStreamJson() {
               const addToast = useUiStore.getState().addToast
               addToast('warning', t('chat.contextWarning', { percent: String(pct) }))
             }
+            // Auto-compact when context window nears capacity
+            tryAutoCompact(usage.input_tokens ?? 0, usage.context_window)
           }
           // Set response duration on the last assistant message
           if (sendTimestampRef.current > 0) {
@@ -392,6 +398,9 @@ export function useStreamJson() {
               }
             }).catch(() => {})
           }
+
+          // Auto-extract memories from conversation
+          tryExtractMemories()
 
           // ── Task Queue: auto-execute next task ──────────
           {

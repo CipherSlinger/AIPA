@@ -56,6 +56,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       if (item.type === 'dateSep') return 32
       if (item.type === 'timeGap') return 28
       if (item.type === 'responseTime') return 22
+      if (item.type === 'compactSep') return 36
       return 80
     },
     overscan: 5,
@@ -357,6 +358,35 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
                   }}>
                     {item.label}
                   </span>
+                </div>
+              </div>
+            )
+          }
+          if (item.type === 'compactSep') {
+            return (
+              <div
+                key={`csep-${virtualRow.index}`}
+                data-index={virtualRow.index}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '8px 20px',
+                }}>
+                  <div style={{ flex: 1, height: 1, background: 'var(--accent)', opacity: 0.4 }} />
+                  <span style={{ fontSize: 10, color: 'var(--accent)', whiteSpace: 'nowrap', fontWeight: 500, letterSpacing: 0.3, opacity: 0.8 }}>
+                    {item.label}
+                  </span>
+                  <div style={{ flex: 1, height: 1, background: 'var(--accent)', opacity: 0.4 }} />
                 </div>
               </div>
             )

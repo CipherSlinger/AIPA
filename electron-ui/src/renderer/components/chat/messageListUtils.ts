@@ -40,6 +40,7 @@ export type ListItem =
   | { type: 'dateSep'; label: string }
   | { type: 'timeGap'; label: string }
   | { type: 'responseTime'; label: string }
+  | { type: 'compactSep'; label: string }
 
 // Store scroll positions per session (as percentage 0-1)
 export const scrollPositionMap = new Map<string, number>()
@@ -77,6 +78,10 @@ export function useBuildItems(
         lastTimestamp = msg.timestamp
       }
       result.push({ type: 'message', msg, msgIdx: idx })
+      // Insert compaction separator after system messages that are compaction summaries
+      if (msg.id?.startsWith('compact-')) {
+        result.push({ type: 'compactSep', label: t('compact.complete') })
+      }
     })
     return result
   }, [messages, t])

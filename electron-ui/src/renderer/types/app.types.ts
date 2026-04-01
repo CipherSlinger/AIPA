@@ -121,6 +121,9 @@ export interface ClaudePrefs {
   channelFeishu?: import('../components/channel/channelConstants').FeishuConfig   // Feishu channel config
   channelWechat?: import('../components/channel/channelConstants').WechatConfig   // WeChat channel config
   resumeLastSession?: boolean   // auto-open the most recent session on app startup (default false)
+  compactThreshold?: number      // auto-compact when context usage exceeds this % (default 80, range 60-90)
+  autoMemoryEnabled?: boolean    // auto-extract memories from conversations (default false)
+  tipHistory?: Record<string, number>  // tipId -> last shown timestamp (for contextual tips)
 }
 
 export interface ApiKeyEntry {
