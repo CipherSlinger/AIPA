@@ -9,6 +9,7 @@ import { useWorkflowCrud } from './useWorkflowCrud'
 import { WORKFLOW_ICONS, MAX_NAME_LENGTH, MAX_DESC_LENGTH, PRESET_WORKFLOWS } from './workflowConstants'
 import WorkflowStepEditor from './WorkflowStepEditor'
 import WorkflowItem from './WorkflowItem'
+import WorkflowPersonasSection from './WorkflowPersonasSection'
 
 export default function WorkflowPanel() {
   const t = useT()
@@ -22,6 +23,8 @@ export default function WorkflowPanel() {
       background: 'var(--bg-sessionpanel)',
       overflow: 'hidden',
     }}>
+      {/* Personas section — collapsible, sits above workflows */}
+      <WorkflowPersonasSection />
       <WorkflowTabContent crud={crud} t={t} />
     </div>
   )

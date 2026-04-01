@@ -4,11 +4,11 @@ import { useI18n } from '../../i18n'
 import type { CustomPromptTemplate, Persona } from '../../types/app.types'
 import SettingsGeneral from './SettingsGeneral'
 import SettingsProviders from './SettingsProviders'
-import SettingsPersonas from './SettingsPersonas'
 import SettingsMcp from './SettingsMcp'
 import SettingsAbout from './SettingsAbout'
 
-type SettingsTab = 'general' | 'providers' | 'personas' | 'mcp' | 'about'
+// Personas tab has been moved to the Workflows sidebar panel (Iteration 376)
+type SettingsTab = 'general' | 'providers' | 'mcp' | 'about'
 
 // Default emojis for migrated templates (Iteration 309: merge Templates into Personas)
 const MIGRATION_EMOJIS = ['\u{1F4DD}', '\u{1F4CB}', '\u{1F4CC}', '\u{1F4D6}', '\u{1F4DA}', '\u{1F3AF}', '\u{1F4A1}', '\u{2B50}', '\u{1F680}', '\u{1F3C6}']
@@ -21,18 +21,16 @@ export default function SettingsPanel() {
   const [showKey, setShowKey] = useState(false)
   const [saved, setSaved] = useState(false)
   const [settingsTab, setSettingsTab] = useState<SettingsTab>('general')
-  const [personas, setPersonas] = useState<Persona[]>(prefs.personas || [])
 
   useEffect(() => {
     const load = async () => {
       const all = await window.electronAPI.prefsGetAll()
       const env = await window.electronAPI.configGetEnv()
       setLocal({ ...all, apiKey: all.apiKey || env.apiKey || '' })
-      if (all.personas) {
-        setPersonas(all.personas)
-      }
 
-      // Iteration 309: Migrate custom templates to personas (one-time)
+      // Iteration 309: Migrate custom templates to personas (one-time).
+      // Migration still runs from SettingsPanel so it happens automatically on
+      // first open, even though the Personas UI now lives in WorkflowPanel.
       const templates: CustomPromptTemplate[] = all.customPromptTemplates || []
       if (templates.length > 0) {
         const existingPersonas: Persona[] = all.personas || []
@@ -58,7 +56,6 @@ export default function SettingsPanel() {
         }
 
         const merged = [...existingPersonas, ...migratedPersonas]
-        setPersonas(merged)
         setPrefs({ personas: merged, customPromptTemplates: [] })
         window.electronAPI.prefsSet('personas', merged)
         window.electronAPI.prefsSet('customPromptTemplates', [])
@@ -114,7 +111,7 @@ export default function SettingsPanel() {
 
       {/* Tab bar */}
       <div role="tablist" style={{ display: 'flex', gap: 4, marginBottom: 16, borderBottom: '1px solid var(--border)', paddingBottom: 10 }}>
-        {(['general', 'providers', 'personas', 'mcp', 'about'] as const).map(tab => (
+        {(['general', 'providers', 'mcp', 'about'] as const).map(tab => (
           <button
             key={tab}
             role="tab"
@@ -148,12 +145,6 @@ export default function SettingsPanel() {
         />
       ) : settingsTab === 'providers' ? (
         <SettingsProviders />
-      ) : settingsTab === 'personas' ? (
-        <SettingsPersonas
-          personas={personas}
-          setPersonas={setPersonas}
-          activePersonaId={prefs.activePersonaId}
-        />
       ) : settingsTab === 'mcp' ? (
         <SettingsMcp />
       ) : (
