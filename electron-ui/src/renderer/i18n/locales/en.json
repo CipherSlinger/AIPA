@@ -858,6 +858,16 @@
     "noNew": "No new memories to extract",
     "badge": "Auto"
   },
+  "idle": {
+    "title": "Welcome back! You've been away {{duration}}.",
+    "description": "If you're starting a new task, creating a fresh conversation will save context and give better responses.",
+    "contextUsage": "Current context usage: {{percent}}%",
+    "continue": "Continue this conversation",
+    "startNew": "Start a new conversation",
+    "neverAsk": "Don't ask me again",
+    "dialogEnabled": "Idle Return Dialog",
+    "dialogEnabledHint": "Ask whether to continue or start fresh when returning after 30+ minutes"
+  },
   "lightbox": {
     "zoomIn": "Zoom in (+)",
     "zoomOut": "Zoom out (-)",

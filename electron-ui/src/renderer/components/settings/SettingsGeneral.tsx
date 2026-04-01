@@ -451,6 +451,12 @@ export default function SettingsGeneral({
           <Toggle value={local.promptSuggestionsEnabled !== false} onChange={(v) => updateLocal({ promptSuggestionsEnabled: v })} />,
           t('settings.promptSuggestionsHint')
         )}
+
+        {row(
+          t('idle.dialogEnabled'),
+          <Toggle value={local.idleReturnDialogEnabled !== false} onChange={(v) => updateLocal({ idleReturnDialogEnabled: v })} />,
+          t('idle.dialogEnabledHint')
+        )}
       </SettingsGroup>
       )}
 

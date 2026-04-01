@@ -125,6 +125,7 @@ export interface ClaudePrefs {
   autoMemoryEnabled?: boolean    // auto-extract memories from conversations (default false)
   promptSuggestionsEnabled?: boolean  // show AI-predicted follow-up suggestions after each response (default true)
   tipHistory?: Record<string, number>  // tipId -> last shown timestamp (for contextual tips)
+  idleReturnDialogEnabled?: boolean    // show dialog when returning after idle period (default true)
 }
 
 export interface ApiKeyEntry {

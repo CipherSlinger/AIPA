@@ -858,6 +858,16 @@
     "noNew": "没有新的记忆可提取",
     "badge": "自动"
   },
+  "idle": {
+    "title": "欢迎回来！你已经离开了 {{duration}}。",
+    "description": "如果你要开始新的任务，创建新对话可以节省上下文并获得更好的回复。",
+    "contextUsage": "当前上下文使用率: {{percent}}%",
+    "continue": "继续当前对话",
+    "startNew": "开始新对话",
+    "neverAsk": "不再询问",
+    "dialogEnabled": "空闲返回对话框",
+    "dialogEnabledHint": "离开 30 分钟以上后返回时，询问是否继续或重新开始"
+  },
   "lightbox": {
     "zoomIn": "放大 (+)",
     "zoomOut": "缩小 (-)",

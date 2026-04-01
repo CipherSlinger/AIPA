@@ -19,9 +19,11 @@ import ThinkingIndicator from './ThinkingIndicator'
 import WelcomeScreen from './WelcomeScreen'
 import FollowUpChips from './FollowUpChips'
 import TokenUsageBar from './TokenUsageBar'
+import IdleReturnDialog from './IdleReturnDialog'
 import { getTemplateById } from '../../utils/promptTemplates'
 import { MODEL_OPTIONS } from '../settings/settingsConstants'
 import { useT } from '../../i18n'
+import { useIdleReturn } from '../../hooks/useIdleReturn'
 
 export default function ChatPanel() {
   const t = useT()
@@ -56,6 +58,9 @@ export default function ChatPanel() {
   const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleFileDrop } = useDragAndDrop(addToast)
 
   useChatPanelShortcuts(exportConversation, copyConversation, setSearchOpen, sendMessage, abort)
+
+  // Idle return detection
+  const { showDialog: showIdleDialog, idleDuration, dismiss: dismissIdle, suppressForever: suppressIdleForever } = useIdleReturn()
 
   // Listen for external send prompt events (from SelectionToolbar)
   useEffect(() => {
@@ -507,6 +512,16 @@ export default function ChatPanel() {
         onAbort={abort}
         onNewConversation={newConversation}
       />
+
+      {/* Idle return dialog */}
+      {showIdleDialog && (
+        <IdleReturnDialog
+          idleDuration={idleDuration}
+          onContinue={dismissIdle}
+          onNewConversation={newConversation}
+          onNeverAsk={suppressIdleForever}
+        />
+      )}
     </div>
   )
 }
