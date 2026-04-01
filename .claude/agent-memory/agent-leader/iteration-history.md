@@ -129,12 +129,13 @@ type: project
 - **Build status**: Clean (2514 modules, tsc zero errors, build SUCCESS)
 - **Next forced retro**: After Iteration 381
 
-### Iterations 373-375 (2026-03-31 to 2026-04-01)
+### Iterations 373-376 (2026-03-31 to 2026-04-01)
 - **It.373**: Idle Return Dialog -- welcome back UX after 30+ min inactivity (useIdleReturn.ts, IdleReturnDialog.tsx)
 - **It.374**: Screenshot Capture to Chat + Context Health Warnings -- desktopCapturer IPC, Camera button in toolbar, useContextHealth.ts
 - **It.375**: Effort Level Selector + Prevent Sleep -- effortLevel pref ('low'/'medium'/'high') with system prompt injection; Electron powerSaveBlocker prevents idle sleep during streaming
-- **Architecture**: Effort level follows same system prompt injection pattern as responseTone (useStreamJson.ts)
+- **It.376**: Per-Model Cost Breakdown + Model Pricing Display -- modelUsage map in ChatStore for per-model token/cost tracking; cost popup shows breakdown by model; model picker shows pricing tiers
+- **Architecture**: Effort level follows same system prompt injection pattern as responseTone (useStreamJson.ts); modelUsage accumulates per-model data via enhanced setLastCost()
 - **New IPC**: window:preventSleep for powerSaveBlocker start/stop
-- **Current version**: 1.1.53
-- **i18n key count**: ~1180 (both en.json and zh-CN.json aligned)
+- **Current version**: 1.1.54
+- **i18n key count**: ~1186 (both en.json and zh-CN.json aligned)
 - **Build status**: Clean (2517 modules, tsc zero errors, build SUCCESS)
