@@ -814,6 +814,10 @@
     "additions": "additions",
     "deletions": "deletions"
   },
+  "context": {
+    "usage": "Context: {{used}} / {{total}} ({{percent}}%)",
+    "breakdown": "Input: {{input}} | Output: {{output}} | Cache: {{cache}}"
+  },
   "compact": {
     "inProgress": "Compacting conversation...",
     "complete": "Conversation compacted",

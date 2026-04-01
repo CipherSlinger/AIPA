@@ -814,6 +814,10 @@
     "additions": "新增",
     "deletions": "删除"
   },
+  "context": {
+    "usage": "上下文: {{used}} / {{total}} ({{percent}}%)",
+    "breakdown": "输入: {{input}} | 输出: {{output}} | 缓存: {{cache}}"
+  },
   "compact": {
     "inProgress": "正在压缩对话...",
     "complete": "对话已压缩",

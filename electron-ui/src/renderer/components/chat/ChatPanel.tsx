@@ -18,6 +18,7 @@ import TaskQueuePanel from './TaskQueuePanel'
 import ThinkingIndicator from './ThinkingIndicator'
 import WelcomeScreen from './WelcomeScreen'
 import FollowUpChips from './FollowUpChips'
+import TokenUsageBar from './TokenUsageBar'
 import { getTemplateById } from '../../utils/promptTemplates'
 import { MODEL_OPTIONS } from '../settings/settingsConstants'
 import { useT } from '../../i18n'
@@ -216,6 +217,9 @@ export default function ChatPanel() {
         onExportBookmarks={exportBookmarks}
         onSummarize={handleSummarize}
       />
+
+      {/* Token usage progress bar */}
+      <TokenUsageBar />
 
       {/* Search bar */}
       {searchOpen && (
