@@ -1,5 +1,5 @@
 // WelcomeScreen constants — extracted from WelcomeScreen.tsx (Iteration 223)
-import { Mail, FileText, ClipboardList, Lightbulb, Settings, Terminal, FolderOpen, Keyboard, LucideIcon } from 'lucide-react'
+import { Mail, FileText, ClipboardList, Lightbulb, Settings, FolderOpen, Keyboard, LucideIcon } from 'lucide-react'
 import { useUiStore } from '../../store'
 
 /** Returns a time-of-day greeting key */
@@ -147,7 +147,6 @@ export interface QuickAction {
 export function getQuickActions(t: (key: string) => string): QuickAction[] {
   return [
     { label: t('welcome.openSettings'), icon: Settings, shortcut: 'Ctrl+,', action: () => { useUiStore.getState().openSettingsModal() } },
-    { label: t('welcome.openTerminal'), icon: Terminal, shortcut: 'Ctrl+`', action: () => useUiStore.getState().toggleTerminal() },
     { label: t('welcome.openFiles'), icon: FolderOpen, shortcut: 'Ctrl+B', action: () => { useUiStore.getState().setSidebarOpen(true); useUiStore.getState().setSidebarTab('files') } },
     { label: t('welcome.showShortcuts'), icon: Keyboard, shortcut: 'Ctrl+/', action: () => window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, key: '/' })) },
   ]

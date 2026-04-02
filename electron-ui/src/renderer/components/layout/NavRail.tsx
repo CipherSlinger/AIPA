@@ -1,6 +1,6 @@
 import React from 'react'
 import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, Settings, User, PanelLeftClose, PanelLeftOpen, Radio } from 'lucide-react'
-import { useUiStore, useSessionStore, useChatStore, usePrefsStore } from '../../store'
+import { useUiStore, useChatStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 
 interface NavItemProps {
@@ -186,11 +186,6 @@ export default function NavRail() {
     sidebarTab,
   } = useUiStore()
 
-  const sessionCount = useSessionStore(s => s.sessions.length)
-  const noteCount = usePrefsStore(s => (s.prefs.notes || []).length)
-  const memoryCount = usePrefsStore(s => (s.prefs.memories || []).length)
-  const workflowCount = usePrefsStore(s => (s.prefs.workflows || []).length)
-
   const navExpanded = usePrefsStore(s => !!s.prefs.navExpanded)
   const activePersona = usePrefsStore(s => {
     const personas = s.prefs.personas || []
@@ -262,7 +257,6 @@ export default function NavRail() {
         shortcut="Ctrl+1"
         isActive={isHistoryActive}
         onClick={() => setActiveNavItem('history')}
-        badge={sessionCount}
         expanded={navExpanded}
       />
 
@@ -283,7 +277,6 @@ export default function NavRail() {
         shortcut="Ctrl+3"
         isActive={isNotesActive}
         onClick={() => setActiveNavItem('notes')}
-        badge={noteCount}
         expanded={navExpanded}
       />
 
@@ -304,7 +297,6 @@ export default function NavRail() {
         shortcut="Ctrl+5"
         isActive={isMemoryActive}
         onClick={() => setActiveNavItem('memory')}
-        badge={memoryCount}
         expanded={navExpanded}
       />
 
@@ -315,7 +307,6 @@ export default function NavRail() {
         shortcut="Ctrl+6"
         isActive={isWorkflowsActive}
         onClick={() => setActiveNavItem('workflows')}
-        badge={workflowCount}
         expanded={navExpanded}
       />
 
@@ -329,18 +320,8 @@ export default function NavRail() {
         expanded={navExpanded}
       />
 
-      {/* Spacer — pushes settings + avatar + toggle to bottom */}
+      {/* Spacer — pushes avatar + settings + toggle to bottom */}
       <div style={{ flex: 1 }} />
-
-      {/* Settings */}
-      <NavItem
-        icon={<Settings size={iconSize} />}
-        label={t('nav.settings')}
-        shortcut="Ctrl+,"
-        isActive={isSettingsActive}
-        onClick={() => useUiStore.getState().openSettingsModal()}
-        expanded={navExpanded}
-      />
 
       {/* Avatar -- shows persona emoji when active, otherwise generic user icon */}
       <div
@@ -353,7 +334,6 @@ export default function NavRail() {
           alignItems: 'center',
           justifyContent: navExpanded ? 'flex-start' : 'center',
           cursor: 'default',
-          marginTop: 6,
           flexShrink: 0,
           border: activePersona ? `2px solid ${activePersona.color}` : '2px solid transparent',
           transition: 'background 200ms, border-color 200ms, width 0.2s ease',
@@ -381,6 +361,16 @@ export default function NavRail() {
           </span>
         )}
       </div>
+
+      {/* Settings */}
+      <NavItem
+        icon={<Settings size={iconSize} />}
+        label={t('nav.settings')}
+        shortcut="Ctrl+,"
+        isActive={isSettingsActive}
+        onClick={() => useUiStore.getState().openSettingsModal()}
+        expanded={navExpanded}
+      />
 
       {/* Expand / Collapse toggle */}
       <button

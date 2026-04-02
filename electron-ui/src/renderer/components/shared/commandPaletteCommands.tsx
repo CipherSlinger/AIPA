@@ -2,7 +2,7 @@
 
 import React from 'react'
 import {
-  Plus, Download, PanelLeft, Terminal, Settings, History,
+  Plus, Download, PanelLeft, Settings, History,
   FolderOpen, Zap, Trash2, HelpCircle, Cpu, Sparkles,
   Brain, Workflow, Play, NotebookPen, ClipboardPaste, Radio,
   Sun, Moon, Languages, Copy, Pin,
@@ -29,7 +29,6 @@ interface CommandBuilderArgs {
   onNewConversation: () => void
   onSendSlashCommand: (cmd: string) => void
   toggleSidebar: () => void
-  toggleTerminal: () => void
   setSidebarTab: (tab: SidebarTab) => void
   setSidebarOpen: (open: boolean) => void
   setActiveNavItem: (item: NavItem) => void
@@ -41,7 +40,7 @@ interface CommandBuilderArgs {
 export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] {
   const {
     t, onClose, onExport, onNewConversation, onSendSlashCommand,
-    toggleSidebar, toggleTerminal, setSidebarTab, setSidebarOpen, setActiveNavItem, addToast,
+    toggleSidebar, setSidebarTab, setSidebarOpen, setActiveNavItem, addToast,
   } = args
 
   return [
@@ -70,24 +69,6 @@ export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] 
       icon: <PanelLeft size={14} />,
       shortcut: 'Ctrl+B',
       action: () => { toggleSidebar(); onClose() },
-      category: 'action',
-    },
-    {
-      id: 'toggle-terminal',
-      name: t('command.toggleTerminal'),
-      description: t('command.toggleTerminalDesc'),
-      icon: <Terminal size={14} />,
-      shortcut: 'Ctrl+`',
-      action: () => {
-        // Set resume session ID so terminal opens with current chat context
-        const chatStore = useChatStore.getState()
-        const ui = useUiStore.getState()
-        if (chatStore.currentSessionId && !ui.terminalOpen) {
-          ui.setTerminalResumeSessionId(chatStore.currentSessionId)
-        }
-        toggleTerminal()
-        onClose()
-      },
       category: 'action',
     },
     {

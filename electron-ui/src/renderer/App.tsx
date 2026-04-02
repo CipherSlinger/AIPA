@@ -18,7 +18,6 @@ export default function App() {
   const setLoaded = usePrefsStore(s => s.setLoaded)
   const setWorkingDir = useChatStore(s => s.setWorkingDir)
   const toggleSidebar = useUiStore(s => s.toggleSidebar)
-  const toggleTerminal = useUiStore(s => s.toggleTerminal)
   const commandPaletteOpen = useUiStore(s => s.commandPaletteOpen)
   const setCommandPaletteOpen = useUiStore(s => s.setCommandPaletteOpen)
   const toggleCommandPalette = useUiStore(s => s.toggleCommandPalette)
@@ -102,7 +101,6 @@ export default function App() {
         }
       }),
       window.electronAPI.onMenuEvent('toggleSidebar', toggleSidebar),
-      window.electronAPI.onMenuEvent('toggleTerminal', toggleTerminal),
       window.electronAPI.onMenuEvent('commandPalette', toggleCommandPalette),
       // Tray: open a specific session by ID
       window.electronAPI.onMenuEvent('openSession', (sessionId) => {
@@ -222,7 +220,7 @@ export default function App() {
 
   // Global keyboard shortcuts (extracted to hook)
   useAppShortcuts(
-    toggleSidebar, toggleTerminal, toggleCommandPalette, toggleFocusMode,
+    toggleSidebar, toggleCommandPalette, toggleFocusMode,
     setSidebarOpen, setSidebarTab, setShowShortcuts, setPrefs,
   )
 

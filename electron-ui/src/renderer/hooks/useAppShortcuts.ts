@@ -9,7 +9,6 @@ import { useT } from '../i18n'
  */
 export function useAppShortcuts(
   toggleSidebar: () => void,
-  toggleTerminal: () => void,
   toggleCommandPalette: () => void,
   toggleFocusMode: () => void,
   setSidebarOpen: (open: boolean) => void,
@@ -73,17 +72,7 @@ export function useAppShortcuts(
           store.clearMessages()
         }
       }
-      // Ctrl+`: Toggle terminal (with session context)
-      if (e.ctrlKey && !e.shiftKey && e.key === '`') {
-        e.preventDefault()
-        // Set resume session ID so terminal opens with current chat context
-        const chatStore = useChatStore.getState()
-        const ui = useUiStore.getState()
-        if (chatStore.currentSessionId && !ui.terminalOpen) {
-          ui.setTerminalResumeSessionId(chatStore.currentSessionId)
-        }
-        toggleTerminal()
-      }
+      // Ctrl+` was terminal toggle — removed (Iteration 404)
       // Ctrl+Shift+P: Command palette
       if (e.ctrlKey && e.shiftKey && e.key === 'P') {
         e.preventDefault()
@@ -218,5 +207,5 @@ export function useAppShortcuts(
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [setSidebarOpen, setSidebarTab, toggleSidebar, toggleTerminal, toggleCommandPalette, toggleFocusMode])
+  }, [setSidebarOpen, setSidebarTab, toggleSidebar, toggleCommandPalette, toggleFocusMode])
 }

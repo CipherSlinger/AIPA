@@ -2963,3 +2963,34 @@ _Date: 2026-04-02_
 - electron-ui/src/renderer/components/chat/MessageList.tsx (683 -> 514 lines)
 
 **Build:** SUCCESS (2527 modules)
+
+
+## Iteration 404 — UI/UX Fixes Batch (Terminal removal, badge fix, avatar swap, input toolbar)
+_Date: 2026-04-02_
+
+**Changes:**
+- **Terminal panel removed** from renderer UI (AppShell, ChatHeader, welcome screen, command palette, shortcut cheatsheet, keyboard shortcuts). Main process PTY infrastructure retained but no longer accessible from UI. Index bundle reduced by 6.2 kB, CSS by 4.6 kB.
+- **NavRail badge counts removed**: History, Notes, Memory, Workflows no longer show permanent total-count badges. Badge component retained for future unread-count use.
+- **Avatar/Settings button positions swapped**: Avatar now appears above Settings at bottom of NavRail (user requested swap).
+- **Permission skip toggle**: Shield icon in input toolbar toggles `skipPermissions` pref with warning color when active.
+- **Manual compact button**: Shrink icon in input toolbar dispatches `aipa:compact` event (same as Ctrl+Shift+K).
+- Added 6 new i18n keys (skipPermsOn/Off, skipPermsOnTitle/OffTitle, compactContext) in both en.json and zh-CN.json.
+- Updated README.md and README_EN.md to remove terminal references.
+
+**Files Modified:**
+- electron-ui/src/renderer/components/layout/AppShell.tsx (terminal panel + resize removed)
+- electron-ui/src/renderer/components/layout/NavRail.tsx (badges removed, avatar/settings swapped)
+- electron-ui/src/renderer/components/chat/ChatHeader.tsx (terminal button removed)
+- electron-ui/src/renderer/components/chat/InputToolbar.tsx (skip perms + compact buttons added)
+- electron-ui/src/renderer/components/chat/welcomeScreenConstants.ts (terminal quick action removed)
+- electron-ui/src/renderer/components/shared/commandPaletteCommands.tsx (terminal command removed)
+- electron-ui/src/renderer/components/shared/CommandPalette.tsx (toggleTerminal removed from args)
+- electron-ui/src/renderer/components/shared/ShortcutCheatsheet.tsx (terminal shortcut removed)
+- electron-ui/src/renderer/hooks/useAppShortcuts.ts (Ctrl+` handler removed)
+- electron-ui/src/renderer/utils/shortcutRegistry.ts (terminal entry removed)
+- electron-ui/src/renderer/App.tsx (toggleTerminal removed)
+- electron-ui/src/renderer/i18n/locales/en.json (+6 keys)
+- electron-ui/src/renderer/i18n/locales/zh-CN.json (+6 keys)
+- README.md, README_EN.md (terminal references removed)
+
+**Build:** SUCCESS (2524 modules, index: 503.65 kB, vendor-terminal: 0.00 kB empty)

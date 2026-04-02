@@ -18,7 +18,6 @@ const SHORTCUTS = [
     { keys: 'Ctrl + N', actionKey: 'newConversation' },
     { keys: 'Ctrl + K', actionKey: 'clearConversation' },
     { keys: 'Ctrl + B', actionKey: 'toggleSidebar' },
-    { keys: 'Ctrl + `', actionKey: 'toggleTerminal' },
     { keys: 'Ctrl + L', actionKey: 'focusChatInput' },
     { keys: 'Ctrl + ,', actionKey: 'openSettings' },
     { keys: 'Ctrl + Shift + P', actionKey: 'commandPalette' },

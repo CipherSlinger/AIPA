@@ -36,7 +36,6 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
   { keys: 'Ctrl+B', description: 'Toggle sidebar', owner: 'useAppShortcuts.ts', cheatsheetKey: 'toggleSidebar' },
   { keys: 'Ctrl+N', description: 'New conversation (double-press)', owner: 'useAppShortcuts.ts', cheatsheetKey: 'newConversation' },
   { keys: 'Ctrl+K', description: 'Clear conversation (double-press)', owner: 'useAppShortcuts.ts', cheatsheetKey: 'clearConversation' },
-  { keys: 'Ctrl+`', description: 'Toggle terminal', owner: 'useAppShortcuts.ts', cheatsheetKey: 'toggleTerminal' },
   { keys: 'Ctrl+Shift+P', description: 'Command palette', owner: 'useAppShortcuts.ts', cheatsheetKey: 'commandPalette' },
   { keys: 'Ctrl+/', description: 'Shortcut cheatsheet', owner: 'useAppShortcuts.ts', cheatsheetKey: 'thisCheatsheet' },
   { keys: 'Ctrl+Shift+O', description: 'Focus mode', owner: 'useAppShortcuts.ts', cheatsheetKey: 'focusMode' },

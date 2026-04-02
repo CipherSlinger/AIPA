@@ -1,5 +1,5 @@
 import React from 'react'
-import { AtSign, TerminalSquare, Mic, MicOff, ListPlus, Cpu, Paperclip, Camera, Gauge } from 'lucide-react'
+import { AtSign, TerminalSquare, Mic, MicOff, ListPlus, Cpu, Paperclip, Camera, Gauge, ShieldOff, Shield, Shrink } from 'lucide-react'
 import { useT } from '../../i18n'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import ClipboardActionsMenu from './ClipboardActionsMenu'
@@ -198,6 +198,43 @@ export default function InputToolbar({
           </button>
         )
       })()}
+      {/* Skip permissions toggle */}
+      {(() => {
+        const skipPerms = prefs.skipPermissions ?? false
+        return (
+          <button
+            onClick={() => {
+              const next = !skipPerms
+              usePrefsStore.getState().setPrefs({ skipPermissions: next })
+              window.electronAPI.prefsSet('skipPermissions', next)
+              useUiStore.getState().addToast(
+                next ? 'warning' : 'info',
+                next ? t('toolbar.skipPermsOn') : t('toolbar.skipPermsOff'),
+              )
+            }}
+            title={skipPerms ? t('toolbar.skipPermsOnTitle') : t('toolbar.skipPermsOffTitle')}
+            style={{
+              ...toolbarBtnStyle,
+              color: skipPerms ? 'var(--warning)' : 'var(--input-toolbar-icon)',
+              background: skipPerms ? 'rgba(234, 179, 8, 0.12)' : 'none',
+            }}
+            onMouseEnter={(e) => { if (!skipPerms) toolbarHoverIn(e) }}
+            onMouseLeave={(e) => { if (!skipPerms) toolbarHoverOut(e) }}
+          >
+            {skipPerms ? <ShieldOff size={14} /> : <Shield size={14} />}
+          </button>
+        )
+      })()}
+      {/* Manual compact button */}
+      <button
+        onClick={() => window.dispatchEvent(new CustomEvent('aipa:compact'))}
+        title={t('toolbar.compactContext')}
+        style={toolbarBtnStyle}
+        onMouseEnter={toolbarHoverIn}
+        onMouseLeave={toolbarHoverOut}
+      >
+        <Shrink size={14} />
+      </button>
       <span style={{ flex: 1 }} />
       {/* Queue button */}
       <div style={{ position: 'relative', display: 'inline-flex' }}>

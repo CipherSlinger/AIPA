@@ -38,7 +38,7 @@ export default function CommandPalette({
   const t = useT()
 
   const {
-    toggleSidebar, toggleTerminal, setSidebarTab,
+    toggleSidebar, setSidebarTab,
     setSidebarOpen, setActiveNavItem, addToast,
   } = useUiStore()
 
@@ -49,7 +49,7 @@ export default function CommandPalette({
   const commands = useMemo<PaletteCommand[]>(() => {
     const args = {
       t, onClose, onExport, onNewConversation, onSendSlashCommand,
-      toggleSidebar, toggleTerminal, setSidebarTab, setSidebarOpen, setActiveNavItem,
+      toggleSidebar, setSidebarTab, setSidebarOpen, setActiveNavItem,
       addToQueue, addToast, sessions,
     }
     return [
@@ -60,7 +60,7 @@ export default function CommandPalette({
       ...buildSessionCommands(args),
       ...buildWorkflowCommands(args),
     ]
-  }, [onClose, onExport, onNewConversation, onSendSlashCommand, toggleSidebar, toggleTerminal, setSidebarTab, setSidebarOpen, setActiveNavItem, addToQueue, addToast, sessions, t])
+  }, [onClose, onExport, onNewConversation, onSendSlashCommand, toggleSidebar, setSidebarTab, setSidebarOpen, setActiveNavItem, addToQueue, addToast, sessions, t])
 
   // Filter commands by query
   const filtered = useMemo(() => {

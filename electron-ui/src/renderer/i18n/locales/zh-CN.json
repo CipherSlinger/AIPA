@@ -566,7 +566,12 @@
     "stopwatch": "秒表",
     "startStopwatch": "启动秒表",
     "stopStopwatch": "暂停秒表",
-    "resumeStopwatch": "继续秒表（双击重置）"
+    "resumeStopwatch": "继续秒表（双击重置）",
+    "skipPermsOn": "已跳过权限检查",
+    "skipPermsOff": "已恢复权限检查",
+    "skipPermsOnTitle": "跳过权限（已开启 — 工具无需审批即可运行）",
+    "skipPermsOffTitle": "权限检查已开启（点击跳过）",
+    "compactContext": "压缩对话上下文 (Ctrl+Shift+K)"
   },
   "transform": {
     "title": "文本变换",

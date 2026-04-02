@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Search, Download, ClipboardCopy, Maximize2, Minimize2, Plus, FolderOpen, FileText, TerminalSquare, DollarSign, RefreshCw, Shrink } from 'lucide-react'
+import { Search, Download, ClipboardCopy, Maximize2, Minimize2, Plus, FolderOpen, FileText, DollarSign, RefreshCw, Shrink } from 'lucide-react'
 import { useChatStore, useSessionStore, usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import ModelPicker from './ModelPicker'
@@ -199,7 +199,7 @@ export default function ChatHeader({
   const [editTitleValue, setEditTitleValue] = useState('')
   const titleInputRef = useRef<HTMLInputElement>(null)
   const workingDir = usePrefsStore(s => s.prefs.workingDir)
-  const terminalOpen = useUiStore(s => s.terminalOpen)
+  // Terminal removed (Iteration 404)
 
   // Focus title input when editing starts
   useEffect(() => {
@@ -471,29 +471,6 @@ export default function ChatHeader({
         hoverIn={hoverIn}
         hoverOut={hoverOut}
       />
-
-      {/* Terminal toggle — opens PTY with current session context */}
-      <button
-        onClick={() => {
-          const ui = useUiStore.getState()
-          const chatStore = useChatStore.getState()
-          // Store the current Claude session ID so the PTY can resume it
-          if (chatStore.currentSessionId && !ui.terminalOpen) {
-            ui.setTerminalResumeSessionId(chatStore.currentSessionId)
-          }
-          ui.toggleTerminal()
-        }}
-        title={`${t('chat.openTerminal')} (Ctrl+\`)`}
-        style={{
-          ...headerBtnStyle,
-          background: terminalOpen ? 'var(--accent)' : 'none',
-          color: terminalOpen ? '#fff' : 'var(--chat-header-icon)',
-        }}
-        onMouseEnter={(e) => hoverIn(e, terminalOpen)}
-        onMouseLeave={(e) => hoverOut(e, terminalOpen)}
-      >
-        <TerminalSquare size={15} />
-      </button>
 
       {/* Focus mode toggle */}
       <button
