@@ -130,6 +130,15 @@ export interface ClaudePrefs {
   effortLevel?: 'low' | 'medium' | 'high'  // AI effort level: low (fast/cheap), medium (balanced), high (thorough) — default medium
   preventSleep?: boolean                    // prevent system idle sleep while AI is streaming (default true)
   avatarPreset?: string                      // selected preset avatar ID (e.g. 'xiaohei', 'xiaobai') — null/undefined = default user icon
+  sessionFolders?: SessionFolder[]            // user-defined session folders (max 10)
+  sessionFolderMap?: Record<string, string>   // sessionId -> folderId mapping
+}
+
+export interface SessionFolder {
+  id: string       // 'folder-' + timestamp
+  name: string     // folder name (max 30 chars)
+  emoji: string    // folder icon emoji
+  collapsed: boolean  // whether folder is collapsed in sidebar
 }
 
 export interface ApiKeyEntry {

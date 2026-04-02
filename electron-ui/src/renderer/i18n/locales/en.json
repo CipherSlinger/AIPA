@@ -375,7 +375,14 @@
     "previewUser": "User",
     "previewAI": "AI",
     "previewLoading": "Loading messages...",
-    "previewEmpty": "No messages in this session"
+    "previewEmpty": "No messages in this session",
+    "folders": "Folders",
+    "allSessions": "All Sessions",
+    "folderName": "Folder name",
+    "createFolder": "Create",
+    "folderMax": "Max 10 folders",
+    "newFolder": "New folder",
+    "moveToFolder": "Move to folder"
   },
   "settings": {
     "title": "Settings",

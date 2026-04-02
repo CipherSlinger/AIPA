@@ -375,7 +375,14 @@
     "previewUser": "用户",
     "previewAI": "AI",
     "previewLoading": "正在加载消息...",
-    "previewEmpty": "此会话暂无消息"
+    "previewEmpty": "此会话暂无消息",
+    "folders": "文件夹",
+    "allSessions": "全部会话",
+    "folderName": "文件夹名称",
+    "createFolder": "创建",
+    "folderMax": "最多 10 个文件夹",
+    "newFolder": "新建文件夹",
+    "moveToFolder": "移动到文件夹"
   },
   "settings": {
     "title": "设置",

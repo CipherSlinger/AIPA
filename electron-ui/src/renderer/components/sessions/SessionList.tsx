@@ -14,6 +14,7 @@ import SessionTooltip, { PreviewMessage } from './SessionTooltip'
 import GlobalSearchResults from './GlobalSearchResults'
 import TagPicker from './TagPicker'
 import BulkDeleteBar from './BulkDeleteBar'
+import SessionFolders from './SessionFolders'
 import { useSessionListActions } from './useSessionListActions'
 
 export default function SessionList() {
@@ -48,6 +49,7 @@ export default function SessionList() {
   const [tagPickerPos, setTagPickerPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
   const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null)
   const [activeProjectFilter, setActiveProjectFilter] = useState<string | null>(null)
+  const [activeFolderFilter, setActiveFolderFilter] = useState<string | null>(null)
 
   const toggleSessionTag = (sessionId: string, tagId: string) => {
     const current = sessionTags[sessionId] || []
@@ -206,13 +208,16 @@ export default function SessionList() {
 
   const sessionLoading = useSessionStore(s => s.loading)
 
+  const sessionFolderMap = prefs.sessionFolderMap || {}
+
   const filtered = actions.sessions
     .filter((s) => {
       const matchesText = !filter || (s.title || s.lastPrompt).toLowerCase().includes(filter.toLowerCase()) ||
         s.project.toLowerCase().includes(filter.toLowerCase())
       const matchesTag = !activeTagFilter || (sessionTags[s.sessionId] || []).includes(activeTagFilter)
       const matchesProject = !activeProjectFilter || s.project === activeProjectFilter
-      return matchesText && matchesTag && matchesProject
+      const matchesFolder = !activeFolderFilter || sessionFolderMap[s.sessionId] === activeFolderFilter
+      return matchesText && matchesTag && matchesProject && matchesFolder
     })
     .sort((a, b) => {
       const aPinned = pinnedIds.has(a.sessionId) ? 1 : 0
@@ -318,6 +323,14 @@ export default function SessionList() {
         >
           <Trash2 size={13} />
         </button>
+      </div>
+
+      {/* Folder filter */}
+      <div style={{ padding: '4px 10px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+        <SessionFolders
+          activeFolder={activeFolderFilter}
+          onFolderSelect={setActiveFolderFilter}
+        />
       </div>
 
       {/* Filters */}

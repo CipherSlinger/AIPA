@@ -3133,3 +3133,106 @@ _Date: 2026-04-02_
 **Build:** SUCCESS (2516 modules, 9.08s)
 
 [RETRO] retro-2026-04-02-iterations-402-411.md completed, covering Iteration 402-411, next forced retro after Iteration 421
+
+---
+
+## Iteration 412 — Settings as Right-Side Page (v1.1.89)
+**Date:** 2026-04-02
+**Commit:** 2989a93
+**PRD:** prd-rightside-content-avatars-v1.md (point 1: Settings page migration)
+
+**Changes:**
+- Replaced settings modal overlay with in-page settings view in the main content area
+- Added `mainView: 'chat' | 'settings'` state to UiStore for page-level view switching
+- Modified `openSettingsModal()` to set `mainView: 'settings'`; `closeSettingsModal()` resets to `mainView: 'chat'`
+- AppShell now conditionally renders SettingsPanel or ChatPanel based on `mainView`
+- Settings page has 44px header bar with back arrow (ArrowLeft), title, and close (X) button
+- Settings content centered with max-width 800px for readability
+- Added Escape key handler to return from settings to chat
+- Removed SettingsModal overlay rendering from AppShell (SettingsModal.tsx kept as dead code for reference)
+- Added i18n key `settings.backToChat` (en: "Back to chat", zh-CN: "返回对话")
+- Existing `settings.close` key already present in both locales
+
+**Files Modified:**
+- electron-ui/src/renderer/store/index.ts (added mainView state + setMainView + updated open/close)
+- electron-ui/src/renderer/components/layout/AppShell.tsx (replaced modal with page view, Escape handler)
+- electron-ui/src/renderer/i18n/locales/en.json (+1 key: settings.backToChat)
+- electron-ui/src/renderer/i18n/locales/zh-CN.json (+1 key: settings.backToChat)
+
+**Build:** SUCCESS (2515 modules, 9.13s)
+
+---
+
+## Iteration 413 — Luo Xiaohei Preset Avatars (v1.1.90)
+**Date:** 2026-04-02
+**Commit:** 5f4d6c6
+**PRD:** prd-rightside-content-avatars-v1.md (point 3: Luo Xiaohei avatars)
+
+**Changes:**
+- Created AvatarPicker dropdown component (lazy-loaded, 2.43KB chunk)
+- 8 Luo Xiaohei themed presets: Xiaohei, Xiaobai, Wuxian, Luozhu, Bidou, Fengxi, Argen, Tianhu
+- Each preset has unique emoji + background color + border color
+- Default option (generic user icon) included as first grid cell
+- Selected avatar highlighted with accent border ring
+- Clicking avatar circle in NavRail opens picker; click outside or Escape closes it
+- Avatar persisted via electron-store (`avatarPreset` pref)
+- NavRail displays selected preset avatar (emoji in colored circle) instead of generic User icon
+- Persona active state takes priority over preset avatar display
+- Created avatarPresets.ts constants file (shared between NavRail and AvatarPicker for clean code-splitting)
+- Added `avatarPreset` field to ClaudePrefs type
+- Added 10 i18n keys (en + zh-CN): avatar.choose, avatar.default, avatar.xiaohei..tianhu
+
+**Files Created:**
+- electron-ui/src/renderer/components/layout/AvatarPicker.tsx
+- electron-ui/src/renderer/components/layout/avatarPresets.ts
+
+**Files Modified:**
+- electron-ui/src/renderer/components/layout/NavRail.tsx (avatar click handler, preset display)
+- electron-ui/src/renderer/types/app.types.ts (+avatarPreset field)
+- electron-ui/src/renderer/i18n/locales/en.json (+10 avatar keys)
+- electron-ui/src/renderer/i18n/locales/zh-CN.json (+10 avatar keys)
+
+**Build:** SUCCESS (2517 modules, 9.24s)
+
+---
+
+## Iteration 414 — Persona/Workflow Full-Page Editors (v1.1.91)
+**Date:** 2026-04-02
+**Commit:** d32b287
+**PRD:** prd-rightside-content-avatars-v1.md (point 2: Persona/Workflow editors as right-side pages)
+
+**Changes:**
+- Created PersonaEditorPage: full-width persona form rendered in main content area
+  - 48px emoji avatar display + name input row, emoji grid, color picker, model dropdown, output style, full-height system prompt textarea with char counter
+  - Header bar with back arrow + persona name/title + Save button
+  - Save/Cancel buttons at bottom
+  - Escape key returns to settings page
+- Created WorkflowEditorPage: full-width workflow editor in main content area
+  - Workflow name + icon row, icon grid, description input, step cards with title + prompt textarea
+  - Add step button (max 20), delete step, grip handle
+  - Same header pattern as PersonaEditorPage
+- Added `mainView` states: 'persona-editor' | 'workflow-editor' to UiStore
+- Added `editingPersonaId` and `editingWorkflowId` state fields
+- Added `openPersonaEditor()` and `openWorkflowEditor()` actions
+- Updated AppShell to render PersonaEditorPage/WorkflowEditorPage via React.lazy
+- Updated Escape handler: persona/workflow editor goes back to settings, not chat
+- SettingsPersonas: "Add" button and "Edit" button now call openPersonaEditor()
+- WorkflowPanel: "Create" button now calls openWorkflowEditor(null)
+- WorkflowItem: "Edit" button now calls openWorkflowEditor(wf.id)
+- Added 6 i18n keys: workflow.name, workflow.icon, workflow.description, workflow.stepN, workflow.stepTitlePlaceholder (en + zh-CN)
+- Both editor pages properly code-split as lazy chunks (6.72KB + 7.34KB)
+
+**Files Created:**
+- electron-ui/src/renderer/components/settings/PersonaEditorPage.tsx (260 lines)
+- electron-ui/src/renderer/components/settings/WorkflowEditorPage.tsx (282 lines)
+
+**Files Modified:**
+- electron-ui/src/renderer/store/index.ts (+mainView states, +editing IDs, +openEditor actions)
+- electron-ui/src/renderer/components/layout/AppShell.tsx (+lazy imports, +conditional rendering, +Escape handler)
+- electron-ui/src/renderer/components/settings/SettingsPersonas.tsx (edit/add buttons now use openPersonaEditor)
+- electron-ui/src/renderer/components/workflows/WorkflowItem.tsx (edit button uses openWorkflowEditor)
+- electron-ui/src/renderer/components/workflows/WorkflowPanel.tsx (create button uses openWorkflowEditor)
+- electron-ui/src/renderer/i18n/locales/en.json (+6 keys)
+- electron-ui/src/renderer/i18n/locales/zh-CN.json (+6 keys)
+
+**Build:** SUCCESS (2519 modules, 9.38s)
