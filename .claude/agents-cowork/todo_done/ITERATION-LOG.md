@@ -2661,3 +2661,11 @@ Status: SUCCESS (tsc: 0 errors; vite: 2517 modules, 10.64s)
 
 ### Iteration 385 (2026-04-01)
 - Prompt Analytics + Rating Stats Completion -- Two features: (1) Prompt analytics: Added prompt history tracking to useStreamJson.ts that records every user message in promptHistory (deduped by normalized text hash, max 200 items, persisted via electron-store). Welcome Screen now shows "Most Used" prompts section (sorted by count, shown when count >= 2) with click-to-resend, usage count badge, and star/favorite toggle. (2) Rating stats: Added ratingUp/ratingDown fields to ConversationStats interface; computed in useConversationStats.ts; displayed in StatsPanel as "Helpful / Not helpful" row (only when ratings exist); included in copy stats text. 6 new i18n keys (chat.statsRatings, welcome.topPrompts/favorite/unfavorite) in both en.json and zh-CN.json. 5 files changed (useConversationStats.ts, StatsPanel.tsx, useStreamJson.ts, WelcomeScreen.tsx, en.json, zh-CN.json); build SUCCESS. Version: 1.1.62.
+
+
+## Iteration 386 — WorkflowPersonasSection Decomposition
+- **Date**: 2026-04-01
+- **Features**: Extract PersonaSidebarCard + PersonaInlineForm into PersonaSidebarComponents.tsx; reduce WorkflowPersonasSection.tsx from ~749 lines to 416 lines
+- **Files changed**: WorkflowPersonasSection.tsx (refactored), PersonaSidebarComponents.tsx (new, 334 lines)
+- **Build**: SUCCESS
+- **Version**: 1.1.63
