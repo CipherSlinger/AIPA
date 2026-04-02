@@ -2888,3 +2888,28 @@ _Date: 2026-04-02_
 - electron-ui/src/renderer/i18n/locales/zh-CN.json (+4 keys)
 
 **Build:** SUCCESS
+
+### Iterations 392-401 Summary
+- **It.392**: FileBrowser Quick Filter + Refresh + Item Count
+- **It.393**: Tool Output Copy Button + Line Count
+- **It.394**: Fix Missing i18n Keys + Hardcoded String
+- **It.395**: Tool Summary i18n Integration
+- **It.396**: Fix broken i18n keys for outputStyle and thinking (nesting bug)
+- **It.397**: i18n StatusBar pricing and token copy format
+- **It.398**: Dead Code Cleanup + Duplicate Import Fix + Aria-Label i18n (7 keys)
+- **It.399**: Complete Aria-Label i18n (zero remaining hardcoded aria-labels)
+- **It.400**: About Page Platform Info + Stale i18n Cleanup
+- **It.401**: Workflow Canvas Mode Phase 1 (nodes, edges, pan/zoom, fit-to-view)
+- **Current version**: 1.1.78
+- **i18n milestone**: Zero remaining hardcoded English aria-labels across entire component tree
+- **Build status**: Clean (all 10 builds SUCCESS)
+- **Retro**: retro-2026-04-02-iterations-392-401.md
+- **Next forced retro**: After Iteration 411
+
+### Outstanding Tech Debt
+- skillMarketplace.ts (~1860 lines) is data-only, exempted from 800-line rule
+- ChatHeader.tsx (558 lines) -- monitor, decompose at 600
+- store/index.ts (605 lines) at comfort limit
+- MessageList.tsx (683 lines) approaching 800-line threshold
+
+[RETRO] retro-2026-04-02-iterations-392-401.md completed, covering Iteration 392-401, next forced retro after Iteration 411
