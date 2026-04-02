@@ -2942,3 +2942,24 @@ _Date: 2026-04-02_
 - electron-ui/src/renderer/i18n/locales/zh-CN.json (+8 keys)
 
 **Build:** SUCCESS (2525 modules, WorkflowCanvas chunk: 13.54 kB / 4.50 kB gzip)
+
+
+## Iteration 403 — MessageList.tsx Decomposition
+_Date: 2026-04-02_
+
+**Changes:**
+- Decomposed MessageList.tsx from 683 lines to 514 lines (25% reduction)
+- Extracted useMessageNavigation.ts (106 lines): keyboard message navigation hook (Ctrl+Up/Down, Escape, Ctrl+Home/End sync)
+- Extracted PinnedMessagesStrip.tsx (120 lines): collapsible pinned messages strip component with scroll-to-message on click
+- MessageList.tsx now imports and delegates to these two extracted modules
+- No functional changes -- pure structural decomposition
+- Removed unused imports: useMemo, Pin, ChevronDown, ChevronUp from MessageList.tsx
+
+**Files Created:**
+- electron-ui/src/renderer/components/chat/useMessageNavigation.ts (106 lines)
+- electron-ui/src/renderer/components/chat/PinnedMessagesStrip.tsx (120 lines)
+
+**Files Modified:**
+- electron-ui/src/renderer/components/chat/MessageList.tsx (683 -> 514 lines)
+
+**Build:** SUCCESS (2527 modules)
