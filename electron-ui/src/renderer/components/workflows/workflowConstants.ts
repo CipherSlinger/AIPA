@@ -14,6 +14,7 @@ export const PRESET_WORKFLOWS: Omit<Workflow, 'id' | 'createdAt' | 'updatedAt' |
     name: 'Weekly Report',
     description: 'Generate a structured weekly status report',
     icon: '📊',
+    presetKey: 'weeklyReport',
     steps: [
       { id: 'p1', title: 'Gather accomplishments', prompt: 'List my key accomplishments this week based on our conversation history. Focus on concrete outcomes and deliverables.' },
       { id: 'p2', title: 'Identify blockers', prompt: 'Based on what we discussed, what blockers or challenges did I face? How were they resolved or what still needs attention?' },
@@ -24,6 +25,7 @@ export const PRESET_WORKFLOWS: Omit<Workflow, 'id' | 'createdAt' | 'updatedAt' |
     name: 'Code Review',
     description: 'Thorough code review pipeline',
     icon: '🔍',
+    presetKey: 'codeReview',
     steps: [
       { id: 'p1', title: 'Overview scan', prompt: 'Give me a high-level overview of this code. What does it do? What patterns does it use?' },
       { id: 'p2', title: 'Bug & security check', prompt: 'Now examine it for potential bugs, edge cases, and security vulnerabilities. Be thorough.' },
@@ -34,6 +36,7 @@ export const PRESET_WORKFLOWS: Omit<Workflow, 'id' | 'createdAt' | 'updatedAt' |
     name: 'Research & Summarize',
     description: 'Deep-dive research with structured output',
     icon: '📝',
+    presetKey: 'researchSummarize',
     steps: [
       { id: 'p1', title: 'Initial research', prompt: 'Research this topic thoroughly. Provide key facts, different perspectives, and recent developments.' },
       { id: 'p2', title: 'Analysis', prompt: 'Analyze the findings. What are the pros and cons? What trade-offs exist? What does the evidence suggest?' },
@@ -44,6 +47,7 @@ export const PRESET_WORKFLOWS: Omit<Workflow, 'id' | 'createdAt' | 'updatedAt' |
     name: 'Daily Summary',
     description: 'End-of-day review of tasks and progress',
     icon: '📋',
+    presetKey: 'dailySummary',
     steps: [
       { id: 'p1', title: 'Recap the day', prompt: 'Give me a brief summary of today\'s key tasks and progress. What should I focus on tomorrow?' },
     ],
@@ -52,6 +56,7 @@ export const PRESET_WORKFLOWS: Omit<Workflow, 'id' | 'createdAt' | 'updatedAt' |
     name: 'Weekly Review',
     description: 'Reflect on the week and plan ahead',
     icon: '📅',
+    presetKey: 'weeklyReview',
     steps: [
       { id: 'p1', title: 'Review the week', prompt: 'Help me review this week: What went well? What could be improved? What are my priorities for next week?' },
     ],
@@ -60,6 +65,7 @@ export const PRESET_WORKFLOWS: Omit<Workflow, 'id' | 'createdAt' | 'updatedAt' |
     name: 'Morning Motivation',
     description: 'Start the day with inspiration and goals',
     icon: '🌅',
+    presetKey: 'morningMotivation',
     steps: [
       { id: 'p1', title: 'Get inspired', prompt: 'Good morning! Give me an inspiring thought for today and suggest 3 productive things I could accomplish.' },
     ],

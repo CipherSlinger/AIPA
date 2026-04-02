@@ -37,6 +37,9 @@ function PersonaSidebarCard({ persona, isActive, isDeleting, onActivate, onEdit,
   const { t } = useI18n()
   const p = persona
 
+  // Use localized name for installed presets
+  const displayName = p.presetKey ? t(`persona.preset.${p.presetKey}`) : p.name
+
   const modelLabel = MODEL_OPTIONS.find(m => m.id === p.model)?.labelKey
     ? t(MODEL_OPTIONS.find(m => m.id === p.model)!.labelKey)
     : p.model
@@ -73,7 +76,7 @@ function PersonaSidebarCard({ persona, isActive, isDeleting, onActivate, onEdit,
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-bright)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {p.name}
+            {displayName}
           </span>
           {isActive && (
             <span style={{
@@ -461,7 +464,7 @@ export default function WorkflowPersonasSection() {
       window.electronAPI.prefsSet('activePersonaId', persona.id)
       window.electronAPI.prefsSet('model', persona.model)
       window.electronAPI.prefsSet('systemPrompt', persona.systemPrompt)
-      addToast('success', t('persona.switchedTo', { name: persona.name }))
+      addToast('success', t('persona.switchedTo', { name: persona.presetKey ? t(`persona.preset.${persona.presetKey}`) : persona.name }))
     }
   }
 
@@ -530,7 +533,7 @@ export default function WorkflowPersonasSection() {
 
   // Available presets not yet installed
   const availablePresets = PERSONA_PRESETS.filter(
-    preset => !personas.some(p => p.name === preset.name)
+    preset => !personas.some(p => p.presetKey === preset.presetKey || p.name === preset.name)
   )
 
   return (
@@ -676,7 +679,7 @@ export default function WorkflowPersonasSection() {
                     <span style={{ fontSize: 14 }}>{preset.emoji}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {preset.name}
+                        {preset.presetKey ? t(`persona.preset.${preset.presetKey}`) : preset.name}
                       </div>
                     </div>
                     <Plus size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />

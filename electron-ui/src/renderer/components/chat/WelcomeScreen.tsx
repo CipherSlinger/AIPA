@@ -61,7 +61,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
 
   // Suggestions: persona-specific starters or defaults
   const suggestions = useMemo(() => {
-    return getPersonaStarters(activePersona?.name, t) || getDefaultSuggestions(t)
+    return getPersonaStarters(activePersona?.presetKey || activePersona?.name, t) || getDefaultSuggestions(t)
   }, [activePersona, t])
 
   const shortcuts = useMemo(() => getShortcuts(t), [t])
@@ -89,7 +89,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
         </div>
         {activePersona && (
           <div style={{ fontSize: 13, color: activePersona.color, marginTop: 4, fontWeight: 500 }}>
-            {t('persona.personaGreeting', { name: activePersona.name })}
+            {t('persona.personaGreeting', { name: activePersona.presetKey ? t(`persona.preset.${activePersona.presetKey}`) : activePersona.name })}
           </div>
         )}
         <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4, opacity: 0.7 }}>
@@ -188,7 +188,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
                     window.electronAPI.prefsSet('activePersonaId', p.id)
                     window.electronAPI.prefsSet('model', p.model)
                     window.electronAPI.prefsSet('systemPrompt', p.systemPrompt)
-                    useUiStore.getState().addToast('success', t('persona.switchedTo', { name: p.name }))
+                    useUiStore.getState().addToast('success', t('persona.switchedTo', { name: p.presetKey ? t(`persona.preset.${p.presetKey}`) : p.name }))
                   }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px',

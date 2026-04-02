@@ -207,8 +207,8 @@ function WorkflowTabContent({ crud, t }: { crud: ReturnType<typeof useWorkflowCr
                     >
                       <span style={{ fontSize: 16 }}>{preset.icon}</span>
                       <div>
-                        <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-primary)' }}>{preset.name}</div>
-                        <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{preset.steps.length} steps</div>
+                        <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-primary)' }}>{preset.presetKey ? t(`workflow.preset.${preset.presetKey}`) : preset.name}</div>
+                        <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{preset.steps.length} {t('workflow.stepsLabel')}</div>
                       </div>
                     </button>
                   ))}
@@ -234,7 +234,7 @@ function WorkflowTabContent({ crud, t }: { crud: ReturnType<typeof useWorkflowCr
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>
               {t('workflow.presets')}
             </div>
-            {PRESET_WORKFLOWS.filter(p => !crud.workflows.some(w => w.name === p.name)).map((preset, i) => (
+            {PRESET_WORKFLOWS.filter(p => !crud.workflows.some(w => w.presetKey === p.presetKey || w.name === p.name)).map((preset, i) => (
               <button
                 key={i}
                 onClick={() => crud.installPreset(preset)}
@@ -249,8 +249,8 @@ function WorkflowTabContent({ crud, t }: { crud: ReturnType<typeof useWorkflowCr
               >
                 <span style={{ fontSize: 14 }}>{preset.icon}</span>
                 <div>
-                  <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)' }}>{preset.name}</div>
-                  <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{preset.steps.length} steps</div>
+                  <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)' }}>{preset.presetKey ? t(`workflow.preset.${preset.presetKey}`) : preset.name}</div>
+                  <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{preset.steps.length} {t('workflow.stepsLabel')}</div>
                 </div>
                 <Plus size={12} style={{ marginLeft: 'auto', color: 'var(--text-muted)' }} />
               </button>

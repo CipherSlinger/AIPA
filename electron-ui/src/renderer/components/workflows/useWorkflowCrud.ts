@@ -45,7 +45,7 @@ export function useWorkflowCrud() {
     saveWorkflows(workflows.map(w =>
       w.id === wf.id ? { ...w, runCount: w.runCount + 1, updatedAt: Date.now() } : w
     ))
-    addToast('success', t('workflow.running', { name: wf.name, count: String(wf.steps.length) }))
+    addToast('success', t('workflow.running', { name: wf.presetKey ? t(`workflow.preset.${wf.presetKey}`) : wf.name, count: String(wf.steps.length) }))
   }, [addToQueue, workflows, saveWorkflows, addToast, t])
 
   const createWorkflow = useCallback(() => {
@@ -133,7 +133,7 @@ export function useWorkflowCrud() {
       steps: preset.steps.map(s => ({ ...s, id: `step-${Date.now()}-${Math.random().toString(36).slice(2, 4)}` })),
     }
     saveWorkflows([wf, ...workflows])
-    addToast('success', t('workflow.installed', { name: preset.name }))
+    addToast('success', t('workflow.installed', { name: preset.presetKey ? t(`workflow.preset.${preset.presetKey}`) : preset.name }))
   }, [workflows, saveWorkflows, addToast, t])
 
   const filteredWorkflows = useMemo(() => {

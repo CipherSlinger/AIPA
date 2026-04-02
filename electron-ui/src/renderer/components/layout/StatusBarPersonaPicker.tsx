@@ -38,7 +38,7 @@ export default function StatusBarPersonaPicker({ personas, activePersona }: Stat
         window.electronAPI.prefsSet('model', persona.model)
         window.electronAPI.prefsSet('systemPrompt', persona.systemPrompt)
         window.electronAPI.prefsSet('outputStyle', persona.outputStyle || 'default')
-        useUiStore.getState().addToast('success', t('persona.switchedTo', { name: persona.name }))
+        useUiStore.getState().addToast('success', t('persona.switchedTo', { name: persona.presetKey ? t(`persona.preset.${persona.presetKey}`) : persona.name }))
       }
     } else {
       setPrefs({ activePersonaId: undefined, systemPrompt: '', outputStyle: 'default' })
@@ -153,7 +153,7 @@ export default function StatusBarPersonaPicker({ personas, activePersona }: Stat
               >
                 {isActive && <Check size={11} />}
                 <span style={{ marginLeft: isActive ? 0 : 17 }}>
-                  {p.emoji} {p.name}
+                  {p.emoji} {p.presetKey ? t(`persona.preset.${p.presetKey}`) : p.name}
                 </span>
               </button>
             )

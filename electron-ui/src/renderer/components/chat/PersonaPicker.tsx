@@ -37,7 +37,7 @@ export default function PersonaPicker() {
       window.electronAPI.prefsSet('model', persona.model)
       window.electronAPI.prefsSet('systemPrompt', persona.systemPrompt)
       window.electronAPI.prefsSet('outputStyle', persona.outputStyle || 'default')
-      useUiStore.getState().addToast('success', t('persona.switchedTo', { name: persona.name }))
+      useUiStore.getState().addToast('success', t('persona.switchedTo', { name: persona.presetKey ? t(`persona.preset.${persona.presetKey}`) : persona.name }))
     }
   }, [t])
 
@@ -164,7 +164,7 @@ export default function PersonaPicker() {
                 onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'none' }}
               >
                 <span style={{ fontSize: 14, width: 20, textAlign: 'center' }}>{p.emoji}</span>
-                <span style={{ flex: 1 }}>{p.name}</span>
+                <span style={{ flex: 1 }}>{p.presetKey ? t(`persona.preset.${p.presetKey}`) : p.name}</span>
                 {isActive && <span style={{ fontSize: 14 }}>&#10003;</span>}
               </button>
             )

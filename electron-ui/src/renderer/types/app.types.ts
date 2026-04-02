@@ -179,6 +179,7 @@ export interface Persona {
   model: string        // preferred model ID (e.g. 'claude-sonnet-4-6')
   systemPrompt: string // system prompt text
   color: string        // badge/accent color hex
+  presetKey?: string   // if this is an installed preset, the i18n key root (e.g. 'writingCoach')
   outputStyle?: 'default' | 'explanatory' | 'learning'  // per-persona output style
   createdAt: number    // epoch ms
   updatedAt: number    // epoch ms
@@ -208,6 +209,7 @@ export interface Workflow {
   description: string     // short description (max 200 chars)
   steps: WorkflowStep[]   // ordered list of steps (max 20)
   icon: string            // emoji icon
+  presetKey?: string      // if this is an installed preset, the i18n key root (e.g. 'weeklyReport')
   createdAt: number       // epoch ms
   updatedAt: number       // epoch ms
   runCount: number        // how many times this workflow has been run

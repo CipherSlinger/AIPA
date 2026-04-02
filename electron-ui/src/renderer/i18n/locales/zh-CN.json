@@ -1146,6 +1146,13 @@
     "updated": "角色已更新",
     "deleted": "角色已删除",
     "presets": "预设角色（点击添加）",
+    "preset": {
+      "writingCoach": "写作教练",
+      "researchAnalyst": "研究分析师",
+      "creativePartner": "创意伙伴",
+      "studyTutor": "学习导师",
+      "productivityCoach": "效率教练"
+    },
     "personaGreeting": "我是{{name}}，随时为你服务！",
     "exportPersonas": "导出",
     "importPersonas": "导入",
@@ -1214,7 +1221,21 @@
     "noResults": "没有匹配的工作流",
     "presets": "预设工作流",
     "footer": "多步骤任务的提示词链",
-    "inspired": "灵感来自 OpenClaw Lobster"
+    "inspired": "灵感来自 OpenClaw Lobster",
+    "preset": {
+      "weeklyReport": "周报",
+      "weeklyReportDesc": "生成结构化的每周工作状态报告",
+      "codeReview": "代码审查",
+      "codeReviewDesc": "全面的代码审查流程",
+      "researchSummarize": "调研与总结",
+      "researchSummarizeDesc": "深度调研并输出结构化报告",
+      "dailySummary": "每日总结",
+      "dailySummaryDesc": "回顾当天的任务与进展",
+      "weeklyReview": "每周回顾",
+      "weeklyReviewDesc": "反思本周并规划下周",
+      "morningMotivation": "晨间激励",
+      "morningMotivationDesc": "以灵感和目标开启新的一天"
+    }
   },
   "snippet": {
     "title": "文本片段",

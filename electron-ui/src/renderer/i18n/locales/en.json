@@ -1146,6 +1146,13 @@
     "updated": "Persona updated",
     "deleted": "Persona deleted",
     "presets": "Preset Personas (click to add)",
+    "preset": {
+      "writingCoach": "Writing Coach",
+      "researchAnalyst": "Research Analyst",
+      "creativePartner": "Creative Partner",
+      "studyTutor": "Study Tutor",
+      "productivityCoach": "Productivity Coach"
+    },
     "personaGreeting": "I'm {{name}}, ready to help!",
     "exportPersonas": "Export",
     "importPersonas": "Import",
@@ -1214,7 +1221,21 @@
     "noResults": "No matching workflows",
     "presets": "Preset Workflows",
     "footer": "Prompt chains for multi-step tasks",
-    "inspired": "Inspired by OpenClaw Lobster"
+    "inspired": "Inspired by OpenClaw Lobster",
+    "preset": {
+      "weeklyReport": "Weekly Report",
+      "weeklyReportDesc": "Generate a structured weekly status report",
+      "codeReview": "Code Review",
+      "codeReviewDesc": "Thorough code review pipeline",
+      "researchSummarize": "Research & Summarize",
+      "researchSummarizeDesc": "Deep-dive research with structured output",
+      "dailySummary": "Daily Summary",
+      "dailySummaryDesc": "End-of-day review of tasks and progress",
+      "weeklyReview": "Weekly Review",
+      "weeklyReviewDesc": "Reflect on the week and plan ahead",
+      "morningMotivation": "Morning Motivation",
+      "morningMotivationDesc": "Start the day with inspiration and goals"
+    }
   },
   "snippet": {
     "title": "Text Snippets",

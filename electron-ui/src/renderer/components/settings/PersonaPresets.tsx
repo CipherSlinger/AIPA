@@ -11,7 +11,7 @@ interface PersonaPresetsProps {
 
 export default function PersonaPresets({ personas, onInstall }: PersonaPresetsProps) {
   const { t } = useI18n()
-  const available = PERSONA_PRESETS.filter(preset => !personas.some(p => p.name === preset.name))
+  const available = PERSONA_PRESETS.filter(preset => !personas.some(p => p.presetKey === preset.presetKey || p.name === preset.name))
 
   if (personas.length >= 10 || available.length === 0) return null
 
@@ -36,7 +36,7 @@ export default function PersonaPresets({ personas, onInstall }: PersonaPresetsPr
           >
             <span style={{ fontSize: 16, width: 24, textAlign: 'center' }}>{preset.emoji}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-bright)' }}>{preset.name}</div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-bright)' }}>{preset.presetKey ? t(`persona.preset.${preset.presetKey}`) : preset.name}</div>
               <div style={{ fontSize: 9, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {preset.systemPrompt.slice(0, 60)}...
               </div>

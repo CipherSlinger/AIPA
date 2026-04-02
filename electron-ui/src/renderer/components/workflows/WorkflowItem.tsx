@@ -18,6 +18,10 @@ interface WorkflowItemProps {
 export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: WorkflowItemProps) {
   const t = useT()
 
+  // Use localized name/description for installed presets
+  const displayName = wf.presetKey ? t(`workflow.preset.${wf.presetKey}`) : wf.name
+  const displayDesc = wf.presetKey ? t(`workflow.preset.${wf.presetKey}Desc`) : wf.description
+
   return (
     <div
       style={{
@@ -41,7 +45,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
         <span style={{ fontSize: 18, flexShrink: 0 }}>{wf.icon}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {wf.name}
+            {displayName}
           </div>
           <div style={{ fontSize: 9, color: 'var(--text-muted)', display: 'flex', gap: 6, alignItems: 'center' }}>
             <span>{wf.steps.length} {t('workflow.stepsLabel')}</span>
@@ -84,9 +88,9 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
       {/* Expanded content */}
       {isExpanded && (
         <div style={{ padding: '0 12px 8px', fontSize: 10 }}>
-          {wf.description && (
+          {displayDesc && (
             <div style={{ color: 'var(--text-secondary)', marginBottom: 6 }}>
-              {wf.description}
+              {displayDesc}
             </div>
           )}
 
