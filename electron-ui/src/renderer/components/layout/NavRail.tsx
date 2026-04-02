@@ -2,6 +2,9 @@ import React from 'react'
 import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, Settings, User, PanelLeftClose, PanelLeftOpen, Radio } from 'lucide-react'
 import { useUiStore, useChatStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
+import { AVATAR_PRESETS } from './avatarPresets'
+
+const AvatarPicker = React.lazy(() => import('./AvatarPicker'))
 
 interface NavItemProps {
   icon: React.ReactNode
@@ -188,6 +191,8 @@ export default function NavRail() {
 
   const navExpanded = usePrefsStore(s => !!s.prefs.navExpanded)
   const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
+  const avatarPreset = usePrefsStore(s => s.prefs.avatarPreset)
+  const selectedAvatar = avatarPreset ? AVATAR_PRESETS.find(a => a.id === avatarPreset) : undefined
   const activePersona = usePrefsStore(s => {
     const personas = s.prefs.personas || []
     // Prefer session persona, fall back to default persona
@@ -195,6 +200,8 @@ export default function NavRail() {
     return pid ? personas.find(p => p.id === pid) : undefined
   })
   const t = useT()
+
+  const [showAvatarPicker, setShowAvatarPicker] = React.useState(false)
 
   const toggleNavExpanded = () => {
     const next = !navExpanded
@@ -325,42 +332,62 @@ export default function NavRail() {
       {/* Spacer — pushes avatar + settings + toggle to bottom */}
       <div style={{ flex: 1 }} />
 
-      {/* Avatar -- shows persona emoji when active, otherwise generic user icon */}
-      <div
-        style={{
-          width: navExpanded ? '100%' : 30,
-          height: 30,
-          borderRadius: navExpanded ? 7 : '50%',
-          background: activePersona ? `${activePersona.color}20` : 'var(--avatar-ai)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: navExpanded ? 'flex-start' : 'center',
-          cursor: 'default',
-          flexShrink: 0,
-          border: activePersona ? `2px solid ${activePersona.color}` : '2px solid transparent',
-          transition: 'background 200ms, border-color 200ms, width 0.2s ease',
-          gap: navExpanded ? 8 : 0,
-          paddingLeft: navExpanded ? 8 : 0,
-          boxSizing: 'border-box',
-        }}
-        aria-label={activePersona ? activePersona.name : t('nav.userProfile')}
-        title={activePersona ? activePersona.name : t('nav.userProfile')}
-      >
-        {activePersona
-          ? <span style={{ fontSize: 14, lineHeight: 1 }}>{activePersona.emoji}</span>
-          : <User size={14} color="#ffffff" />
-        }
-        {navExpanded && (
-          <span style={{
-            fontSize: 11,
-            fontWeight: 500,
-            color: 'var(--text-muted)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}>
-            {activePersona ? activePersona.name : t('nav.userProfile')}
-          </span>
+      {/* Avatar -- shows persona emoji, preset avatar, or generic user icon */}
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        <div
+          onClick={() => setShowAvatarPicker(!showAvatarPicker)}
+          style={{
+            width: navExpanded ? '100%' : 30,
+            height: 30,
+            borderRadius: navExpanded ? 7 : '50%',
+            background: activePersona
+              ? `${activePersona.color}20`
+              : selectedAvatar
+              ? selectedAvatar.bg
+              : 'var(--avatar-ai)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: navExpanded ? 'flex-start' : 'center',
+            cursor: 'pointer',
+            flexShrink: 0,
+            border: activePersona
+              ? `2px solid ${activePersona.color}`
+              : selectedAvatar
+              ? `2px solid ${selectedAvatar.border}`
+              : '2px solid transparent',
+            transition: 'background 200ms, border-color 200ms, width 0.2s ease',
+            gap: navExpanded ? 8 : 0,
+            paddingLeft: navExpanded ? 8 : 0,
+            boxSizing: 'border-box',
+          }}
+          aria-label={activePersona ? activePersona.name : selectedAvatar ? t(selectedAvatar.nameKey) : t('nav.userProfile')}
+          title={activePersona ? activePersona.name : selectedAvatar ? t(selectedAvatar.nameKey) : t('nav.userProfile')}
+        >
+          {activePersona
+            ? <span style={{ fontSize: 14, lineHeight: 1 }}>{activePersona.emoji}</span>
+            : selectedAvatar
+            ? <span style={{ fontSize: 14, lineHeight: 1 }}>{selectedAvatar.emoji}</span>
+            : <User size={14} color="#ffffff" />
+          }
+          {navExpanded && (
+            <span style={{
+              fontSize: 11,
+              fontWeight: 500,
+              color: 'var(--text-muted)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}>
+              {activePersona ? activePersona.name : selectedAvatar ? t(selectedAvatar.nameKey) : t('nav.userProfile')}
+            </span>
+          )}
+        </div>
+
+        {/* Avatar Picker dropdown */}
+        {showAvatarPicker && (
+          <React.Suspense fallback={null}>
+            <AvatarPicker onClose={() => setShowAvatarPicker(false)} navExpanded={navExpanded} />
+          </React.Suspense>
         )}
       </div>
 

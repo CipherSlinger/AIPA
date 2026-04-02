@@ -1407,8 +1407,19 @@
       "setupHint": "Connect WeChat using the official Tencent WeChat OpenClaw CLI plugin. No manual app credentials needed — the CLI handles authentication automatically."
     }
   },
+  "avatar": {
+    "choose": "Choose Avatar",
+    "default": "Default",
+    "xiaohei": "Xiaohei",
+    "xiaobai": "Xiaobai",
+    "wuxian": "Wuxian",
+    "luozhu": "Luozhu",
+    "bidou": "Bidou",
+    "fengxi": "Fengxi",
+    "argen": "Argen",
+    "tianhu": "Tianhu"
+  },
   "window": {
-    "pinWindow": "Pin window on top",
     "pinnedOn": "Window pinned on top",
     "pinnedOff": "Window unpinned"
   },

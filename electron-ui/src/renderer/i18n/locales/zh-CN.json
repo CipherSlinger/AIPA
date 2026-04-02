@@ -1425,8 +1425,19 @@
       "setupHint": "使用腾讯微信官方 OpenClaw CLI 插件连接微信。无需手动配置应用凭证 — CLI 会自动处理认证。"
     }
   },
+  "avatar": {
+    "choose": "选择头像",
+    "default": "默认",
+    "xiaohei": "小黑",
+    "xiaobai": "小白",
+    "wuxian": "无限",
+    "luozhu": "罗竹",
+    "bidou": "比丢",
+    "fengxi": "风息",
+    "argen": "阿根",
+    "tianhu": "天虎"
+  },
   "window": {
-    "pinWindow": "置顶窗口",
     "pinnedOn": "窗口已置顶",
     "pinnedOff": "窗口已取消置顶"
   },

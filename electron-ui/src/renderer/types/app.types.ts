@@ -129,6 +129,7 @@ export interface ClaudePrefs {
   idleReturnDialogEnabled?: boolean    // show dialog when returning after idle period (default true)
   effortLevel?: 'low' | 'medium' | 'high'  // AI effort level: low (fast/cheap), medium (balanced), high (thorough) — default medium
   preventSleep?: boolean                    // prevent system idle sleep while AI is streaming (default true)
+  avatarPreset?: string                      // selected preset avatar ID (e.g. 'xiaohei', 'xiaobai') — null/undefined = default user icon
 }
 
 export interface ApiKeyEntry {
