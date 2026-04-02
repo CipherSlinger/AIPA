@@ -1538,5 +1538,14 @@
     "maxReached": "已达到 20 个自定义模板上限",
     "noMessages": "请先发送一条消息再保存为模板",
     "customBadge": "自定义"
+  },
+  "dailySummary": {
+    "title": "今日活动",
+    "sessions": "会话",
+    "messages": "消息",
+    "topics": "主题"
+  },
+  "statusBar": {
+    "today": "今日"
   }
 }

@@ -5,6 +5,7 @@ import { useT } from '../../i18n'
 import { getGreetingKey, getPersonaStarters, getDefaultSuggestions, getShortcuts, getQuickActions } from './welcomeScreenConstants'
 import { useTips } from '../../hooks/useTips'
 import TemplatesSection from './TemplatesSection'
+import DailySummaryCard from './DailySummaryCard'
 
 interface Props {
   onSuggestion: (text: string, templateId?: string) => void
@@ -94,6 +95,9 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', gap: 24, padding: '0 20px' }}>
+      {/* Daily summary card */}
+      <DailySummaryCard />
+
       {/* Hero icon */}
       <div className="onboard-icon" style={{
         width: 80, height: 80, borderRadius: '50%', background: accentTint,

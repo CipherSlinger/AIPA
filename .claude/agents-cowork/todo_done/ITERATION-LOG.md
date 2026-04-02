@@ -3280,3 +3280,28 @@ _Date: 2026-04-02_
 - electron-ui/src/renderer/i18n/locales/zh-CN.json (+convTemplate namespace)
 
 **Build:** SUCCESS (2523 modules, 9.25s)
+
+---
+
+## Iteration 417 — Daily Summary Card & StatusBar Enhancements (v1.1.94)
+**Date:** 2026-04-02
+**PRD:** prd-daily-productivity-tools-v1.md (items 2 & 3; item 1 Focus Timer already existed)
+
+**Changes:**
+- Created DailySummaryCard.tsx: dismissible card at top of WelcomeScreen showing today's sessions count, messages count, and topic summary derived from session titles. Auto-hides after dismissal (saved to localStorage per day).
+- StatusBar: added Calendar icon + compact date display (locale-aware short month + day) and "N today" session count badge in the right zone
+- Imported useSessionStore into StatusBar for sessions-today computation
+- Added Calendar icon import to StatusBar
+- Integrated DailySummaryCard into WelcomeScreen above hero icon
+- Added i18n keys: dailySummary (title/sessions/messages/topics) + statusBar (today) in both en.json and zh-CN.json
+
+**Files Created:**
+- electron-ui/src/renderer/components/chat/DailySummaryCard.tsx (~100 lines)
+
+**Files Modified:**
+- electron-ui/src/renderer/components/chat/WelcomeScreen.tsx (+DailySummaryCard import and render)
+- electron-ui/src/renderer/components/layout/StatusBar.tsx (+Calendar icon, +useSessionStore, +sessionsToday, +date display, +today badge)
+- electron-ui/src/renderer/i18n/locales/en.json (+dailySummary, +statusBar keys)
+- electron-ui/src/renderer/i18n/locales/zh-CN.json (+dailySummary, +statusBar keys)
+
+**Build:** SUCCESS (2524 modules, 9.63s)

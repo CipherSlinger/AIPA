@@ -3,8 +3,8 @@
 //              StatusBarModelPicker, StatusBarPersonaPicker
 
 import React, { useState } from 'react'
-import { PanelLeft, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Square, StopCircle, Pin, Settings, Gauge, Brain } from 'lucide-react'
-import { useChatStore, usePrefsStore, useUiStore } from '../../store'
+import { PanelLeft, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Square, StopCircle, Pin, Settings, Gauge, Brain, Calendar } from 'lucide-react'
+import { useChatStore, usePrefsStore, useUiStore, useSessionStore } from '../../store'
 import { StandardChatMessage } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { Separator, formatDuration, fmtNumber } from './statusBarConstants'
@@ -91,6 +91,14 @@ export default function StatusBar() {
 
   const personas = prefs.personas || []
   const activePersona = personas.find(p => p.id === prefs.activePersonaId)
+
+  // Sessions today count (Iteration 417)
+  const allSessions = useSessionStore(s => s.sessions)
+  const sessionsToday = React.useMemo(() => {
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    return allSessions.filter(s => s.timestamp >= todayStart.getTime()).length
+  }, [allSessions])
 
   // Close cost popup on outside click
   React.useEffect(() => {
@@ -440,6 +448,17 @@ export default function StatusBar() {
         >
           <Pin size={12} style={{ transform: alwaysOnTop ? 'rotate(-45deg)' : undefined, transition: 'transform 0.2s' }} />
         </button>
+
+        {/* Date + sessions today (Iteration 417) */}
+        <span style={{ display: 'flex', alignItems: 'center', gap: 3, opacity: 0.7, fontSize: 10 }}>
+          <Calendar size={10} />
+          {new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+        </span>
+        {sessionsToday > 0 && (
+          <span style={{ opacity: 0.7, fontSize: 10 }}>
+            {sessionsToday} {t('statusBar.today')}
+          </span>
+        )}
 
         {/* Settings gear */}
         <button

@@ -1520,5 +1520,14 @@
     "maxReached": "Maximum 20 custom templates reached",
     "noMessages": "Send a message first to save as template",
     "customBadge": "custom"
+  },
+  "dailySummary": {
+    "title": "Today's Activity",
+    "sessions": "sessions",
+    "messages": "messages",
+    "topics": "Topics"
+  },
+  "statusBar": {
+    "today": "today"
   }
 }
