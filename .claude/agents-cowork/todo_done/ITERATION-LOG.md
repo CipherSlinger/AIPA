@@ -2763,3 +2763,11 @@ Status: SUCCESS (tsc: 0 errors; vite: 2517 modules, 10.64s)
 - **Files changed**: ToolUseBlock.tsx
 - **i18n**: Existing keys reused (tool.linesCount, message.copyCode, message.codeCopied)
 - **Build**: OK (v1.1.70)
+
+
+---
+### Iteration 394 — Fix Missing i18n Keys + Hardcoded String
+- **Bug fix**: Added missing common.copy and common.copied i18n keys (DiffView used them but they didn't exist)
+- **Bug fix**: Replaced hardcoded 'Copy' title in ChangesPanel with t('common.copy')
+- **Files changed**: en.json, zh-CN.json, ChangesPanel.tsx
+- **Build**: OK (v1.1.71)

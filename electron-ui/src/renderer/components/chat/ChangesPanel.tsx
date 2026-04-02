@@ -133,7 +133,7 @@ export default function ChangesPanel({
               {totalFilesChanged > 0 && (
                 <button
                   onClick={handleCopy}
-                  title="Copy"
+                  title={t('common.copy')}
                   style={{
                     background: 'transparent', border: 'none', cursor: 'pointer',
                     padding: 4, borderRadius: 4, color: 'var(--text-muted)',

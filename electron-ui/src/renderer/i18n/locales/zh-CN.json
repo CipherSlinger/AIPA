@@ -750,7 +750,9 @@
     "edit": "编辑",
     "add": "添加",
     "remove": "移除",
-    "back": "返回"
+    "back": "返回",
+    "copy": "复制",
+    "copied": "已复制"
   },
   "shortcutCheatsheet": {
     "title": "键盘快捷键",

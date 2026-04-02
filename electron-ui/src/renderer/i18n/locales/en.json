@@ -750,7 +750,9 @@
     "edit": "Edit",
     "add": "Add",
     "remove": "Remove",
-    "back": "Back"
+    "back": "Back",
+    "copy": "Copy",
+    "copied": "Copied"
   },
   "shortcutCheatsheet": {
     "title": "Keyboard Shortcuts",
