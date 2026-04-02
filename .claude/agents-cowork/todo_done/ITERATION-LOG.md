@@ -2734,3 +2734,5 @@ Status: SUCCESS (tsc: 0 errors; vite: 2517 modules, 10.64s)
   - zh-CN.json (fixed compactHint shortcut: C -> K)
 - **Build**: OK (v1.1.68)
 - **File sizes**: ChatHeader.tsx now 558 lines (under 800 red line)
+
+[RETRO] retro-2026-04-01-iterations-382-391.md completed, covering Iteration 382-391, next forced retro after Iteration 401

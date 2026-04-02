@@ -164,3 +164,29 @@ type: project
 - WorkflowPersonasSection.tsx (747 lines) approaching 800-line threshold -- monitor
 - store/index.ts (605 lines) approaching comfort limit
 - Orphan PRD: prd-conversation-nav-enhancements-v1.md in todo/ (references already-implemented features)
+
+
+### Iterations 382-391 (2026-04-01)
+- **It.382**: Keyboard Message Navigation with Focus Indicator (Ctrl+Up/Down, 3px accent border)
+- **It.383**: README Comprehensive Update (features It.377-382, shortcuts table expanded 15->27)
+- **It.384**: Cost Budget Warning Toasts (80%/100% of maxBudgetUsd)
+- **It.385**: Prompt Analytics + Rating Stats (top prompts in WelcomeScreen, ratings in StatsPanel)
+- **It.386**: WorkflowPersonasSection Decomposition (749->416 lines, extracted PersonaSidebarComponents.tsx)
+- **It.387**: Randomized Welcome Starters (18-item pool with icon variety)
+- **It.388**: Session Cost Badge in ChatHeader (color-coded $0.01/$1/$5 thresholds)
+- **It.389**: Regenerate Button in ChatHeader (activated unused props)
+- **It.390**: Context Window Usage Badge in ChatHeader (Ctx + progress bar + percentage)
+- **It.391**: Compact Button in ChatHeader + i18n Shortcut Fix (C->K)
+- **Current version**: 1.1.68
+- **i18n key count**: 1358 lines per locale (aligned)
+- **Build status**: Clean (tsc zero errors, build SUCCESS across all 10)
+- **Key observation**: ChatHeader grew from 410 to 558 lines across iterations 388-391 (4 new inline components)
+- **Decomposition action**: WorkflowPersonasSection successfully reduced from 749->416 in It.386
+- **Retro**: retro-2026-04-01-iterations-382-391.md
+- **Next forced retro**: After Iteration 401
+
+### Outstanding Tech Debt
+- skillMarketplace.ts (~1860 lines) is data-only, exempted from 800-line rule
+- ChatHeader.tsx (558 lines) growing steadily -- plan decomposition if it reaches 600
+- store/index.ts (605 lines) at comfort limit
+- MessageList.tsx (683 lines) approaching threshold
