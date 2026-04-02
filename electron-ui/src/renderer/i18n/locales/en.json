@@ -1377,6 +1377,9 @@
     "clearSearch": "Clear search",
     "deleteKey": "Delete key",
     "notifications": "Notifications",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "sessionList": "Session list",
+    "chatArea": "Chat",
+    "statusBar": "Status bar"
   }
 }

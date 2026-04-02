@@ -128,7 +128,7 @@ export default function StatusBar() {
   return (
     <div
       role="status"
-      aria-label="Status bar"
+      aria-label={t('a11y.statusBar')}
       style={{
         height: 24,
         background: 'var(--accent)',

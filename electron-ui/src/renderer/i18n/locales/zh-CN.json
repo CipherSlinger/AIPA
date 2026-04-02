@@ -1377,6 +1377,9 @@
     "clearSearch": "清除搜索",
     "deleteKey": "删除密钥",
     "notifications": "通知",
-    "dismiss": "关闭"
+    "dismiss": "关闭",
+    "sessionList": "会话列表",
+    "chatArea": "聊天",
+    "statusBar": "状态栏"
   }
 }

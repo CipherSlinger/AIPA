@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useChatStore, useUiStore } from '../../store'
+import { useT } from '../../i18n'
 import Sidebar from './Sidebar'
 import NavRail from './NavRail'
 import ChatPanel from '../chat/ChatPanel'
@@ -15,6 +16,7 @@ const MIN_TERMINAL = 280
 const MAX_TERMINAL = 800
 
 export default function AppShell() {
+  const t = useT()
   const sidebarOpen = useUiStore(s => s.sidebarOpen)
   const terminalOpen = useUiStore(s => s.terminalOpen)
   const setSidebarOpen = useUiStore(s => s.setSidebarOpen)
@@ -132,7 +134,7 @@ export default function AppShell() {
           <>
             <div
               role="complementary"
-              aria-label="Session list"
+              aria-label={t('a11y.sessionList')}
               style={{
                 width: sidebarOpen ? sidebarWidth : 0,
                 flexShrink: 0,
@@ -161,7 +163,7 @@ export default function AppShell() {
         {/* Chat panel -- fills remaining space */}
         <div
           role="main"
-          aria-label="Chat"
+          aria-label={t('a11y.chatArea')}
           style={{
             flex: 1,
             overflow: 'hidden',

@@ -2817,3 +2817,28 @@ _Date: 2026-04-01 23:34_
 - electron-ui/src/renderer/i18n/locales/zh-CN.json
 
 **Build:** SUCCESS
+
+
+## Iteration 399 — Complete Aria-Label i18n (Remaining Components)
+_Date: 2026-04-01 23:38_
+
+**Changes:**
+- Added 3 new a11y i18n keys (sessionList, chatArea, statusBar) in both en.json and zh-CN.json
+- Added useT() import and t() calls to Toast.tsx, AppShell.tsx
+- Converted all remaining hardcoded English aria-labels to use t() i18n:
+  - SettingsGeneral.tsx: "Clear search" -> t('a11y.clearSearch')
+  - Toast.tsx: "Dismiss" -> t('a11y.dismiss'), "Notifications" -> t('a11y.notifications')
+  - AppShell.tsx: "Session list" -> t('a11y.sessionList'), "Chat" -> t('a11y.chatArea')
+  - StatusBar.tsx: "Status bar" -> t('a11y.statusBar')
+- AppShell "AIPA" brand aria-label intentionally kept hardcoded (brand name, not translatable)
+- Zero remaining hardcoded English aria-labels across the entire component tree (except brand)
+
+**Files Modified:**
+- electron-ui/src/renderer/i18n/locales/en.json
+- electron-ui/src/renderer/i18n/locales/zh-CN.json
+- electron-ui/src/renderer/components/settings/SettingsGeneral.tsx
+- electron-ui/src/renderer/components/ui/Toast.tsx
+- electron-ui/src/renderer/components/layout/AppShell.tsx
+- electron-ui/src/renderer/components/layout/StatusBar.tsx
+
+**Build:** SUCCESS

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react'
 import { CheckCircle, XCircle, Info, AlertTriangle, X } from 'lucide-react'
+import { useT } from '../../i18n'
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning'
 
@@ -33,6 +34,7 @@ export function Toast({ toast, onDismiss }: ToastProps) {
   const { id, type, message, duration = 4000 } = toast
   const Icon = ICONS[type]
   const color = COLORS[type]
+  const t = useT()
 
   useEffect(() => {
     const timer = setTimeout(() => onDismiss(id), duration)
@@ -73,7 +75,7 @@ export function Toast({ toast, onDismiss }: ToastProps) {
           display: 'flex',
           alignItems: 'center',
         }}
-        aria-label="Dismiss"
+        aria-label={t('a11y.dismiss')}
       >
         <X size={14} />
       </button>
@@ -87,6 +89,7 @@ interface ToastContainerProps {
 }
 
 export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
+  const t = useT()
   if (toasts.length === 0) return null
 
   return (
@@ -102,7 +105,7 @@ export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
         pointerEvents: 'none',
       }}
       aria-live="assertive"
-      aria-label="Notifications"
+      aria-label={t('a11y.notifications')}
     >
       {toasts.map(toast => (
         <div key={toast.id} style={{ pointerEvents: 'all' }}>

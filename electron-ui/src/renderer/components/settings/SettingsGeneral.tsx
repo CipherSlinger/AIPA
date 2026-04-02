@@ -90,7 +90,7 @@ export default function SettingsGeneral({
         {settingsFilter && (
           <button
             onClick={() => setSettingsFilter('')}
-            aria-label="Clear search"
+            aria-label={t('a11y.clearSearch')}
             style={{ position: 'absolute', right: 8, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 2 }}
           >
             <X size={13} />
