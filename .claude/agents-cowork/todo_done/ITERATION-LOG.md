@@ -2842,3 +2842,20 @@ _Date: 2026-04-01 23:38_
 - electron-ui/src/renderer/components/layout/StatusBar.tsx
 
 **Build:** SUCCESS
+
+
+## Iteration 400 — About Page Platform Info + Stale i18n Cleanup
+_Date: 2026-04-01 23:43_
+
+**Changes:**
+- Exposed process.platform and process.arch through preload bridge (versions object)
+- About page now displays OS platform and architecture (e.g., 'linux / x64') in Runtime section
+- Removed stale 'settings.about.version' i18n key from both en.json and zh-CN.json (was 'v1.0.0 · Claude Code CLI v2.1.81' — About page already uses dynamic version from package.json)
+
+**Files Modified:**
+- electron-ui/src/preload/index.ts (added platform + arch to versions)
+- electron-ui/src/renderer/components/settings/SettingsAbout.tsx (display platform/arch)
+- electron-ui/src/renderer/i18n/locales/en.json (removed unused version key)
+- electron-ui/src/renderer/i18n/locales/zh-CN.json (removed unused version key)
+
+**Build:** SUCCESS (renderer + preload)

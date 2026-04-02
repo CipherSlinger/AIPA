@@ -118,7 +118,8 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
         <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.8 }}>
           Electron {window.electronAPI.versions?.electron || 'N/A'}<br />
           Node.js {window.electronAPI.versions?.node || 'N/A'}<br />
-          Chromium {window.electronAPI.versions?.chrome || 'N/A'}
+          Chromium {window.electronAPI.versions?.chrome || 'N/A'}<br />
+          {window.electronAPI.versions?.platform || 'unknown'} / {window.electronAPI.versions?.arch || 'unknown'}
         </div>
       </div>
 

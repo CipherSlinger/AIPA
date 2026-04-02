@@ -163,6 +163,8 @@ const electronAPI = {
     node: process.versions.node,
     chrome: process.versions.chrome,
     app: (() => { try { return require('../../package.json').version } catch { return 'unknown' } })(),
+    platform: process.platform,
+    arch: process.arch,
   },
 }
 

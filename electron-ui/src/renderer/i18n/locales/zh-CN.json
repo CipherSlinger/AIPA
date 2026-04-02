@@ -460,7 +460,6 @@
     "mcpHint": "在 ~/.claude/settings.json 中添加 mcpServers",
     "about": {
       "aiPersonalAssistant": "AI 个人助手",
-      "version": "v1.0.0 · Claude Code CLI v2.1.81",
       "links": "链接",
       "githubRepo": "GitHub 仓库",
       "anthropicConsole": "Anthropic 控制台",
