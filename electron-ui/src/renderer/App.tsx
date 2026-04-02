@@ -8,6 +8,7 @@ import { ToastContainer } from './components/ui/Toast'
 import { usePrefsStore, useChatStore, useUiStore } from './store'
 import { useAppShortcuts } from './hooks/useAppShortcuts'
 import { useContextHealth } from './hooks/useContextHealth'
+import { populateDefaultPresetsIfEmpty } from './utils/presetPopulator'
 import { useT } from './i18n'
 import './styles/globals.css'
 import 'highlight.js/styles/github-dark.css'
@@ -47,6 +48,9 @@ export default function App() {
         ...all,
         apiKey: all.apiKey || env.apiKey || '',
       })
+
+      // Auto-populate default personas and workflows on first launch (Iteration 405)
+      populateDefaultPresetsIfEmpty(all)
 
       // Default working dir: ~/claude (auto-create if not saved yet)
       const workingDir = all.workingDir || `${home}/claude`

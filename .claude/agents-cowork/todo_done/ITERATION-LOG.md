@@ -2994,3 +2994,23 @@ _Date: 2026-04-02_
 - README.md, README_EN.md (terminal references removed)
 
 **Build:** SUCCESS (2524 modules, index: 503.65 kB, vendor-terminal: 0.00 kB empty)
+
+
+## Iteration 405 — Auto-populate Default Personas and Workflows
+_Date: 2026-04-02_
+
+**Changes:**
+- On first launch (when persona/workflow lists are empty), auto-populate with 5 built-in preset personas and 6 preset workflows
+- New users see pre-built content immediately instead of empty panels
+- Created presetPopulator.ts utility that checks for empty arrays on app init and creates real entries from PERSONA_PRESETS and PRESET_WORKFLOWS constants
+- Personas get proper IDs, timestamps, and are immediately editable/deletable by users
+- Same for workflows -- they function identically to user-created ones
+- No behavioral change for existing users (only triggers when lists are empty)
+
+**Files Created:**
+- electron-ui/src/renderer/utils/presetPopulator.ts (55 lines)
+
+**Files Modified:**
+- electron-ui/src/renderer/App.tsx (import + call populateDefaultPresetsIfEmpty)
+
+**Build:** SUCCESS (2524 modules)
