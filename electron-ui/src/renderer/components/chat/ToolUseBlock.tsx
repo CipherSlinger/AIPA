@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { ToolUseInfo } from '../../types/app.types'
-import { ChevronDown, ChevronRight, Terminal, FileEdit, Search, Globe, Loader2, Check, X, Timer } from 'lucide-react'
+import { ChevronDown, ChevronRight, Terminal, FileEdit, Search, Globe, Loader2, Check, X, Timer, ClipboardCopy } from 'lucide-react'
 import { useT } from '../../i18n'
 import DiffView from './DiffView'
 import { generateToolSummary } from '../../utils/toolSummary'
@@ -39,6 +39,44 @@ function formatElapsed(seconds: number): string {
 }
 
 const FILE_WRITE_TOOLS = new Set(['Write', 'create_file'])
+
+/** Small copy button for tool output */
+function CopyOutputBtn({ text, t }: { text: string; t: (key: string) => string }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    }).catch(() => {})
+  }, [text])
+
+  return (
+    <button
+      onClick={handleCopy}
+      title={t('message.copyCode')}
+      style={{
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        padding: '1px 4px',
+        borderRadius: 3,
+        color: copied ? 'var(--success)' : 'var(--text-muted)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 3,
+        fontSize: 9,
+        transition: 'color 150ms, background 150ms',
+      }}
+      onMouseEnter={(e) => { if (!copied) e.currentTarget.style.color = 'var(--accent)' }}
+      onMouseLeave={(e) => { if (!copied) e.currentTarget.style.color = 'var(--text-muted)' }}
+    >
+      {copied ? <Check size={10} /> : <ClipboardCopy size={10} />}
+      {copied ? t('message.codeCopied') : t('message.copyCode')}
+    </button>
+  )
+}
 
 export default function ToolUseBlock({ tool, onAbort }: Props) {
   const t = useT()
@@ -215,7 +253,19 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
           {/* Output section */}
           {tool.result !== undefined && (
             <div style={{ borderTop: '1px solid var(--border)' }}>
-              <div style={{ padding: '4px 8px 0', fontSize: 10, color: 'var(--text-muted)' }}>{t('tool.output')}</div>
+              <div style={{ padding: '4px 8px 0', fontSize: 10, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {t('tool.output')}
+                  {resultText && resultText.split('\n').length > 1 && (
+                    <span style={{ fontSize: 9, opacity: 0.7 }}>
+                      {t('tool.linesCount', { count: String(resultText.split('\n').length) })}
+                    </span>
+                  )}
+                </span>
+                {resultText && (
+                  <CopyOutputBtn text={resultText} t={t} />
+                )}
+              </div>
               {isBash ? (
                 <pre style={{
                   margin: 0, padding: '4px 8px 6px',

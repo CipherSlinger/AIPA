@@ -2755,3 +2755,11 @@ Status: SUCCESS (tsc: 0 errors; vite: 2517 modules, 10.64s)
 - **Build**: OK (v1.1.69)
 - **File sizes**: FileBrowser.tsx now ~390 lines (under 800 red line)
 
+
+
+---
+### Iteration 393 — Tool Output Copy Button + Line Count
+- **Feature**: Added copy button and line count display to tool output section in ToolUseBlock
+- **Files changed**: ToolUseBlock.tsx
+- **i18n**: Existing keys reused (tool.linesCount, message.copyCode, message.codeCopied)
+- **Build**: OK (v1.1.70)
