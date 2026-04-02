@@ -2689,3 +2689,16 @@ Status: SUCCESS (tsc: 0 errors; vite: 2517 modules, 10.64s)
   - DollarSign icon from lucide-react
 - **Files modified**: ChatHeader.tsx (added CostBadge inline component + DollarSign import)
 - **Build**: OK (v1.1.65)
+
+
+## Iteration 389 — Regenerate Button in ChatHeader
+- **Date**: 2026-04-01
+- **Feature**: Added regenerate response button to ChatHeader toolbar
+- **Details**:
+  - Props onRegenerate and canRegenerate were wired but never rendered — now visible
+  - RefreshCw icon from lucide-react, disabled when streaming or no response to regenerate
+  - Keyboard shortcut hint (Ctrl+Shift+R) in tooltip
+  - Uses existing i18n key chat.regenerate
+  - Placed between Summarize and Bookmarks buttons
+- **Files modified**: ChatHeader.tsx (added RefreshCw import + regenerate button)
+- **Build**: OK (v1.1.66)

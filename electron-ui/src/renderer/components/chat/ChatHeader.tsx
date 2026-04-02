@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Search, Download, ClipboardCopy, Maximize2, Minimize2, Plus, FolderOpen, FileText, TerminalSquare, DollarSign } from 'lucide-react'
+import { Search, Download, ClipboardCopy, Maximize2, Minimize2, Plus, FolderOpen, FileText, TerminalSquare, DollarSign, RefreshCw } from 'lucide-react'
 import { useChatStore, useSessionStore, usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import ModelPicker from './ModelPicker'
@@ -351,6 +351,22 @@ export default function ChatHeader({
         onMouseLeave={(e) => hoverOut(e)}
       >
         <FileText size={15} />
+      </button>
+
+      {/* Regenerate last response */}
+      <button
+        onClick={onRegenerate}
+        disabled={!canRegenerate || isStreaming}
+        title={`${t('chat.regenerate')} (Ctrl+Shift+R)`}
+        style={{
+          ...headerBtnStyle,
+          cursor: !canRegenerate || isStreaming ? 'not-allowed' : 'pointer',
+          opacity: !canRegenerate || isStreaming ? 0.3 : 1,
+        }}
+        onMouseEnter={(e) => hoverIn(e)}
+        onMouseLeave={(e) => hoverOut(e)}
+      >
+        <RefreshCw size={15} />
       </button>
 
       {/* Bookmarks dropdown (extracted) */}
