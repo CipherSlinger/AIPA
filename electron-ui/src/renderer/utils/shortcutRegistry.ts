@@ -68,6 +68,10 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
   { keys: 'PageDown', description: 'Scroll down by page', owner: 'useChatPanelShortcuts.ts', cheatsheetKey: 'pageUpDown' },
   { keys: 'Escape', description: 'Stop streaming (when not in input/modal)', owner: 'useChatPanelShortcuts.ts' },
 
+  // ===== MessageList.tsx (message navigation with focus indicator) =====
+  { keys: 'Ctrl+Up', description: 'Focus previous message', owner: 'MessageList.tsx', cheatsheetKey: 'focusPrevMessage' },
+  { keys: 'Ctrl+Down', description: 'Focus next message', owner: 'MessageList.tsx', cheatsheetKey: 'focusNextMessage' },
+
   // ===== ChatInput.tsx (only when textarea is focused) =====
   { keys: 'Ctrl+Shift+Q', description: 'Toggle task queue', owner: 'ChatInput.tsx' },
   { keys: 'Ctrl+U', description: 'Clear input text', owner: 'ChatInput.tsx' },
