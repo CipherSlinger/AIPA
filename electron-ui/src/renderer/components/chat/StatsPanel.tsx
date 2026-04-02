@@ -32,9 +32,16 @@ export default function StatsPanel({
       `${t('chat.statsMessages')}: ${conversationStats.total}`,
       `${t('chat.statsYourMessages')}: ${conversationStats.user}`,
       `${t('chat.statsClaudeMessages')}: ${conversationStats.assistant}`,
+      ``,
+      `${t('chat.statsContentSection')}`,
+      `${t('chat.statsUserWords')}: ${conversationStats.userWords.toLocaleString()}`,
+      `${t('chat.statsAssistantWords')}: ${conversationStats.assistantWords.toLocaleString()}`,
       `${t('chat.statsTotalWords')}: ${conversationStats.totalWords.toLocaleString()}`,
       `${t('chat.statsTotalChars')}: ${conversationStats.totalChars.toLocaleString()}`,
+      `${t('chat.statsEstTokens')}: ~${conversationStats.estTokens.toLocaleString()}`,
+      `${t('chat.statsAvgWordsPerMsg')}: ${conversationStats.avgWordsPerMsg}`,
       `${t('chat.statsReadingTime')}: ${t('chat.statsReadingTimeValue', { min: String(conversationStats.readingTimeMin) })}`,
+      ``,
       `${t('chat.statsToolUses')}: ${conversationStats.toolUseCount}`,
       `${t('chat.statsDuration')}: ${t('chat.statsDurationValue', { min: String(conversationStats.durationMin) })}`,
     ]
@@ -108,9 +115,35 @@ export default function StatsPanel({
             { label: t('chat.statsMessages'), value: conversationStats.total },
             { label: t('chat.statsYourMessages'), value: conversationStats.user },
             { label: t('chat.statsClaudeMessages'), value: conversationStats.assistant },
+          ].map(({ label, value }) => (
+            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 11 }}>
+              <span style={{ color: 'var(--text-muted)' }}>{label}</span>
+              <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{value}</span>
+            </div>
+          ))}
+          {/* Content statistics section */}
+          <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', marginTop: 8, paddingTop: 6, borderTop: '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '0.04em', opacity: 0.7 }}>
+            {t('chat.statsContentSection')}
+          </div>
+          {[
+            { label: t('chat.statsUserWords'), value: conversationStats.userWords.toLocaleString() },
+            { label: t('chat.statsAssistantWords'), value: conversationStats.assistantWords.toLocaleString() },
             { label: t('chat.statsTotalWords'), value: conversationStats.totalWords.toLocaleString() },
             { label: t('chat.statsTotalChars'), value: conversationStats.totalChars.toLocaleString() },
+            { label: t('chat.statsEstTokens'), value: `~${conversationStats.estTokens.toLocaleString()}` },
+            { label: t('chat.statsAvgWordsPerMsg'), value: conversationStats.avgWordsPerMsg },
             { label: t('chat.statsReadingTime'), value: t('chat.statsReadingTimeValue', { min: String(conversationStats.readingTimeMin) }) },
+          ].map(({ label, value }) => (
+            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 11 }}>
+              <span style={{ color: 'var(--text-muted)' }}>{label}</span>
+              <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{value}</span>
+            </div>
+          ))}
+          {/* Activity statistics section */}
+          <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', marginTop: 8, paddingTop: 6, borderTop: '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '0.04em', opacity: 0.7 }}>
+            {t('chat.statsActivitySection')}
+          </div>
+          {[
             { label: t('chat.statsToolUses'), value: conversationStats.toolUseCount },
             { label: t('chat.statsDuration'), value: t('chat.statsDurationValue', { min: String(conversationStats.durationMin) }) },
             ...(conversationStats.avgResponseSec > 0 ? [{ label: t('chat.statsAvgResponse'), value: `~${conversationStats.avgResponseSec}s` }] : []),

@@ -21,12 +21,13 @@ interface Props {
   searchQuery?: string
   searchCaseSensitive?: boolean
   showAvatar?: boolean
+  showTimestamp?: boolean
   isLastUserMsg?: boolean
   isLastMessage?: boolean
   hasAssistantReply?: boolean
 }
 
-export default React.memo(function Message({ message, onRate, onRewind, onBookmark, onCollapse, onEdit, searchQuery, searchCaseSensitive, showAvatar = true, isLastUserMsg = false, isLastMessage = false, hasAssistantReply = false }: Props) {
+export default React.memo(function Message({ message, onRate, onRewind, onBookmark, onCollapse, onEdit, searchQuery, searchCaseSensitive, showAvatar = true, showTimestamp = true, isLastUserMsg = false, isLastMessage = false, hasAssistantReply = false }: Props) {
   const t = useT()
   const isUser = message.role === 'user'
   const isAssistant = message.role === 'assistant'
@@ -335,6 +336,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             onEditCancel={() => setIsEditing(false)}
             editTextareaRef={editTextareaRef as React.RefObject<HTMLTextAreaElement>}
             showRawMarkdown={showRawMarkdown}
+            showTimestamp={showTimestamp}
             onImageClick={(src, alt) => setLightboxImage({ src, alt })}
             onCollapse={onCollapse}
             onEdit={onEdit}
@@ -549,5 +551,6 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   if (prevProps.searchQuery !== nextProps.searchQuery) return false
   if (prevProps.searchCaseSensitive !== nextProps.searchCaseSensitive) return false
   if (prevProps.showAvatar !== nextProps.showAvatar) return false
+  if (prevProps.showTimestamp !== nextProps.showTimestamp) return false
   return true
 })

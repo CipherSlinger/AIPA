@@ -129,3 +129,32 @@ export function useAssistantReplyMap(messages: ChatMessage[]): Map<string, boole
     return map
   }, [messages])
 }
+
+/** Compute showTimestamp for each message index.
+ * Consecutive same-role messages within 2 minutes only show timestamp on the first.
+ */
+const TIMESTAMP_GROUP_MS = 2 * 60 * 1000 // 2 minutes
+export function useShowTimestampMap(messages: ChatMessage[]): Map<number, boolean> {
+  return useMemo(() => {
+    const map = new Map<number, boolean>()
+    messages.forEach((msg, idx) => {
+      if (idx === 0) {
+        map.set(idx, true)
+        return
+      }
+      const prev = messages[idx - 1]
+      // Different role -> always show
+      if (prev.role !== msg.role) {
+        map.set(idx, true)
+        return
+      }
+      // Same role, check time gap
+      if (msg.timestamp && prev.timestamp && msg.timestamp - prev.timestamp < TIMESTAMP_GROUP_MS) {
+        map.set(idx, false)
+      } else {
+        map.set(idx, true)
+      }
+    })
+    return map
+  }, [messages])
+}

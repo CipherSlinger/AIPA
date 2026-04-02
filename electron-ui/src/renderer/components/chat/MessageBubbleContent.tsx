@@ -27,6 +27,8 @@ interface MessageBubbleContentProps {
   editTextareaRef: React.RefObject<HTMLTextAreaElement>
   // Raw markdown (controlled by parent)
   showRawMarkdown: boolean
+  // Timestamp grouping (Iteration 409)
+  showTimestamp?: boolean
   // Image lightbox
   onImageClick: (src: string, alt: string) => void
   // Callbacks
@@ -39,7 +41,7 @@ export default function MessageBubbleContent({
   message, isUser, isAssistant, isPermission, isCollapsed, compact,
   searchQuery, searchCaseSensitive, msgStatus,
   isEditing, editContent, onEditContentChange, onEditSubmit, onEditCancel, editTextareaRef,
-  showRawMarkdown, onImageClick,
+  showRawMarkdown, showTimestamp = true, onImageClick,
   onCollapse, onEdit, onTimestampClick,
 }: MessageBubbleContentProps) {
   const t = useT()
@@ -226,8 +228,8 @@ export default function MessageBubbleContent({
             </div>
           )}
 
-          {/* Timestamp inside bubble */}
-          {message.timestamp && (
+          {/* Timestamp inside bubble (grouped: hidden for consecutive same-role messages within 2 min) */}
+          {showTimestamp && message.timestamp && (
             <div
               style={{
                 fontSize: compact ? 10 : 11,

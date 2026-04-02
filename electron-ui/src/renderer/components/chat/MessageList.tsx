@@ -9,7 +9,7 @@ import PinnedMessagesStrip from './PinnedMessagesStrip'
 import { useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import { ArrowDown, ArrowUp, Lock, Unlock } from 'lucide-react'
-import { useBuildItems, useShowAvatarMap, useLastUserMsgId, useAssistantReplyMap } from './messageListUtils'
+import { useBuildItems, useShowAvatarMap, useLastUserMsgId, useAssistantReplyMap, useShowTimestampMap } from './messageListUtils'
 import { useMessageListScroll } from './useMessageListScroll'
 import { useMessageNavigation } from './useMessageNavigation'
 
@@ -45,6 +45,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   // Pre-computed data
   const items = useBuildItems(messages, t)
   const showAvatarMap = useShowAvatarMap(messages)
+  const showTimestampMap = useShowTimestampMap(messages)
   const lastUserMsgId = useLastUserMsgId(messages)
   const assistantReplyMap = useAssistantReplyMap(messages)
 
@@ -106,6 +107,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       )
     }
     const showAvatar = showAvatarMap.get(msgIdx) ?? true
+    const showTimestamp = showTimestampMap.get(msgIdx) ?? true
     // STABILITY (Iteration 308): Per-message ErrorBoundary isolates render failures.
     // A single malformed message (e.g., bad markdown, huge content) won't crash the
     // entire ChatPanel. PermissionCard and PlanCard are simple enough not to need it.
@@ -117,6 +119,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
         searchQuery={searchQuery}
         searchCaseSensitive={searchCaseSensitive}
         showAvatar={showAvatar}
+        showTimestamp={showTimestamp}
         isLastUserMsg={msg.role === 'user' && msg.id === lastUserMsgId}
         isLastMessage={msgIdx === messages.length - 1}
         hasAssistantReply={msg.role === 'user' && (assistantReplyMap.get(msg.id) ?? false)}
@@ -138,7 +141,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       />
       </MessageErrorBoundary>
     )
-  }, [onPermission, onGrantPermission, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery, searchCaseSensitive, showAvatarMap, onEdit, t, lastUserMsgId, assistantReplyMap, messages])
+  }, [onPermission, onGrantPermission, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery, searchCaseSensitive, showAvatarMap, showTimestampMap, onEdit, t, lastUserMsgId, assistantReplyMap, messages])
 
   return (
     <div style={{ height: '100%', position: 'relative', display: 'flex', flexDirection: 'column' }}>

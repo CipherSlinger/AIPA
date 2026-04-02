@@ -6,7 +6,11 @@ export interface ConversationStats {
   user: number
   assistant: number
   totalWords: number
+  userWords: number
+  assistantWords: number
   totalChars: number
+  estTokens: number
+  avgWordsPerMsg: number
   readingTimeMin: number
   toolUseCount: number
   durationMin: number
@@ -34,15 +38,21 @@ export function useConversationStats(messages: ChatMessage[]) {
   const conversationStats = useMemo<ConversationStats>(() => {
     const userMsgs = messages.filter(m => m.role === 'user')
     const assistantMsgs = messages.filter(m => m.role === 'assistant')
+    const countWords = (text: string) => text.split(/\s+/).filter(w => w.length > 0).length
     const totalWords = messages.reduce((sum, m) => {
       if (m.role === 'permission' || m.role === 'plan') return sum
       const content = (m as StandardChatMessage).content || ''
-      return sum + content.split(/\s+/).filter(w => w.length > 0).length
+      return sum + countWords(content)
     }, 0)
+    const userWords = userMsgs.reduce((sum, m) => sum + countWords((m as StandardChatMessage).content || ''), 0)
+    const assistantWords = assistantMsgs.reduce((sum, m) => sum + countWords((m as StandardChatMessage).content || ''), 0)
     const totalChars = messages.reduce((sum, m) => {
       if (m.role === 'permission' || m.role === 'plan') return sum
       return sum + ((m as StandardChatMessage).content || '').length
     }, 0)
+    const msgCount = messages.filter(m => m.role !== 'permission' && m.role !== 'plan').length
+    const estTokens = Math.round(totalWords * 1.3)
+    const avgWordsPerMsg = msgCount > 0 ? Math.round(totalWords / msgCount) : 0
     const readingTimeMin = Math.max(1, Math.round(totalWords / 200))
     const toolUseCount = messages.reduce((sum, m) => {
       if (m.role === 'permission' || m.role === 'plan') return sum
@@ -73,7 +83,11 @@ export function useConversationStats(messages: ChatMessage[]) {
       user: userMsgs.length,
       assistant: assistantMsgs.length,
       totalWords,
+      userWords,
+      assistantWords,
       totalChars,
+      estTokens,
+      avgWordsPerMsg,
       readingTimeMin,
       toolUseCount,
       durationMin,
