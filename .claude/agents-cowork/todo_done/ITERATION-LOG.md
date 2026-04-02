@@ -2786,3 +2786,10 @@ Status: SUCCESS (tsc: 0 errors; vite: 2517 modules, 10.64s)
 - **Files changed**: en.json, zh-CN.json
 - **Build**: PASSED (v1.1.73)
 - **Status**: Complete
+
+---
+### Iteration 397 — i18n StatusBar pricing and token copy format
+- **Feature**: Internationalized two hardcoded English strings in StatusBar: (1) model pricing display 'per Mtok' now uses cost.perMtok i18n key, (2) token usage clipboard copy format now uses cost.tokenCopyFormat / cost.tokenCopyFormatWithCache i18n keys. Added 3 new keys to both en.json and zh-CN.json. Changed getModelPricing() to return raw tuple instead of formatted string.
+- **Files changed**: StatusBar.tsx, en.json, zh-CN.json
+- **Build**: PASSED (v1.1.74)
+- **Status**: Complete

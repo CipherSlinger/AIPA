@@ -29,13 +29,11 @@ const MODEL_PRICING: Record<string, [number, number]> = {
   'claude-3-5-haiku': [0.8, 4],
 }
 
-function getModelPricing(modelId: string): string | null {
+function getModelPricing(modelId: string): [number, number] | null {
   // Try exact match first, then partial
   const costs = MODEL_PRICING[modelId]
     || Object.entries(MODEL_PRICING).find(([k]) => modelId.includes(k))?.[1]
-  if (!costs) return null
-  const fmt = (n: number) => Number.isInteger(n) ? `$${n}` : `$${n.toFixed(2)}`
-  return `${fmt(costs[0])}/${fmt(costs[1])} per Mtok`
+  return costs || null
 }
 
 export default function StatusBar() {
@@ -300,7 +298,9 @@ export default function StatusBar() {
         {lastUsage && (
           <button
             onClick={() => {
-              const text = `Input: ${lastUsage.inputTokens} tokens, Output: ${lastUsage.outputTokens} tokens${lastUsage.cacheTokens > 0 ? `, Cache: ${lastUsage.cacheTokens} tokens` : ''}`
+              const text = lastUsage.cacheTokens > 0
+                ? t('cost.tokenCopyFormatWithCache', { input: String(lastUsage.inputTokens), output: String(lastUsage.outputTokens), cache: String(lastUsage.cacheTokens) })
+                : t('cost.tokenCopyFormat', { input: String(lastUsage.inputTokens), output: String(lastUsage.outputTokens) })
               navigator.clipboard.writeText(text).then(() => {
                 useUiStore.getState().addToast('success', t('toolbar.tokensCopied'))
               })
@@ -357,6 +357,9 @@ export default function StatusBar() {
                       ? model.replace('claude-', '').replace(/-\d{8}$/, '')
                       : model
                     const pricing = getModelPricing(model)
+                    const pricingLabel = pricing
+                      ? `$${Number.isInteger(pricing[0]) ? pricing[0] : pricing[0].toFixed(2)}/$${Number.isInteger(pricing[1]) ? pricing[1] : pricing[1].toFixed(2)} ${t('cost.perMtok')}`
+                      : null
                     return (
                       <div key={model} style={{ marginBottom: 5, borderBottom: '1px solid var(--popup-border)', paddingBottom: 5 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11 }}>
@@ -372,7 +375,7 @@ export default function StatusBar() {
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: 'var(--text-muted)', marginTop: 1 }}>
                           <span>{usage.turns} {t('cost.turns')}</span>
-                          {pricing && <span style={{ opacity: 0.7 }}>{pricing}</span>}
+                          {pricingLabel && <span style={{ opacity: 0.7 }}>{pricingLabel}</span>}
                         </div>
                       </div>
                     )

@@ -886,7 +886,10 @@
     "turns": "轮",
     "total": "合计",
     "budgetWarning": "会话费用已达预算 {{budget}} 的 {{percent}}%",
-    "budgetExceeded": "会话费用（{{spent}}）已超出预算 {{budget}}"
+    "budgetExceeded": "会话费用（{{spent}}）已超出预算 {{budget}}",
+    "perMtok": "每百万 Token",
+    "tokenCopyFormat": "输入: {{input}} tokens, 输出: {{output}} tokens",
+    "tokenCopyFormatWithCache": "输入: {{input}} tokens, 输出: {{output}} tokens, 缓存: {{cache}} tokens"
   },
   "compact": {
     "inProgress": "正在压缩对话...",

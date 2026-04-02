@@ -886,7 +886,10 @@
     "turns": "turns",
     "total": "Total",
     "budgetWarning": "Session cost at {{percent}}% of your {{budget}} budget",
-    "budgetExceeded": "Session cost ({{spent}}) exceeded your {{budget}} budget"
+    "budgetExceeded": "Session cost ({{spent}}) exceeded your {{budget}} budget",
+    "perMtok": "per Mtok",
+    "tokenCopyFormat": "Input: {{input}} tokens, Output: {{output}} tokens",
+    "tokenCopyFormatWithCache": "Input: {{input}} tokens, Output: {{output}} tokens, Cache: {{cache}} tokens"
   },
   "compact": {
     "inProgress": "Compacting conversation...",
