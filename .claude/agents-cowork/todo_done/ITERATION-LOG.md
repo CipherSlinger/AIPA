@@ -2642,3 +2642,10 @@ Status: SUCCESS (tsc: 0 errors; vite: 2517 modules, 10.64s)
 - [x] `npm run build` 全部通过
 - [x] git push 成功（commit f38df63）
 
+
+### Iteration 380 (2026-04-01)
+- Tool Use Summary Labels + Session Changes Panel -- Two features: (1) Tool summary labels: Created toolSummary.ts utility (231 lines) with pattern-matching to generate human-readable labels for tool uses. ToolBatchBlock.tsx groups consecutive tool uses with collapsible summary. (2) Session Changes Panel: ChangesPanel.tsx (274 lines) shows files modified during session. 21 files changed; 1643 insertions; build SUCCESS (commit 896629b)
+
+### Iteration 381 (2026-04-01)
+- i18n Preset Localization for Workflows and Agents (user feedback fix) -- Added presetKey field to Workflow and Persona types. All 6 preset workflow names/descriptions and 5 preset persona names now use i18n keys. 22 new i18n keys. i18n key count: 1229 (aligned). 15 files changed; build SUCCESS (commit 0cc2fbc). Version: 1.1.58.
+[RETRO] retro-2026-04-01-iterations-372-381.md completed, covering Iteration 372-381, next forced retro after Iteration 391

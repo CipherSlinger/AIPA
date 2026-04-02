@@ -148,3 +148,19 @@ type: project
 - **i18n key count**: 1190 (both en.json and zh-CN.json aligned)
 - **Build status**: Clean (tsc zero errors, build SUCCESS)
 - **Next forced retro**: After Iteration 381
+
+### Iterations 379-381 (2026-04-01)
+- **It.379**: Windows PTY fix verification + i18n fixes (effort -> thinking depth, Personas -> Agents)
+- **It.380**: Tool Use Summary Labels + Session Changes Panel -- toolSummary.ts (231 lines), ToolBatchBlock.tsx, ChangesPanel.tsx (274 lines)
+- **It.381**: i18n Preset Localization -- Added presetKey to Workflow and Persona types; all preset names/descriptions use i18n keys; 22 new keys per locale
+- **Current version**: 1.1.58
+- **i18n key count**: 1229 (both en.json and zh-CN.json aligned)
+- **Build status**: Clean (tsc zero errors, build SUCCESS)
+- **Retro**: retro-2026-04-01-iterations-372-381.md
+- **Next forced retro**: After Iteration 391
+
+### Outstanding Tech Debt
+- skillMarketplace.ts (~1860 lines) is data-only, exempted from 800-line rule
+- WorkflowPersonasSection.tsx (747 lines) approaching 800-line threshold -- monitor
+- store/index.ts (605 lines) approaching comfort limit
+- Orphan PRD: prd-conversation-nav-enhancements-v1.md in todo/ (references already-implemented features)
