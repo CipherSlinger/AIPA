@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Search, Download, ClipboardCopy, Maximize2, Minimize2, Plus, FolderOpen, FileText, TerminalSquare, DollarSign, RefreshCw } from 'lucide-react'
+import { Search, Download, ClipboardCopy, Maximize2, Minimize2, Plus, FolderOpen, FileText, TerminalSquare, DollarSign, RefreshCw, Shrink } from 'lucide-react'
 import { useChatStore, useSessionStore, usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import ModelPicker from './ModelPicker'
@@ -424,6 +424,25 @@ export default function ChatHeader({
         onMouseLeave={(e) => hoverOut(e)}
       >
         <RefreshCw size={15} />
+      </button>
+
+      {/* Compact conversation context */}
+      <button
+        onClick={() => {
+          // Dispatch the same keyboard shortcut event that useChatPanelShortcuts listens for
+          window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, shiftKey: true, key: 'K', bubbles: true }))
+        }}
+        disabled={messageCount < 4 || isStreaming}
+        title={`${t('chat.compactBtn')} (Ctrl+Shift+K)`}
+        style={{
+          ...headerBtnStyle,
+          cursor: messageCount < 4 || isStreaming ? 'not-allowed' : 'pointer',
+          opacity: messageCount < 4 || isStreaming ? 0.3 : 1,
+        }}
+        onMouseEnter={(e) => hoverIn(e)}
+        onMouseLeave={(e) => hoverOut(e)}
+      >
+        <Shrink size={15} />
       </button>
 
       {/* Bookmarks dropdown (extracted) */}

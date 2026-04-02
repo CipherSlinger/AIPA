@@ -130,7 +130,7 @@
     "newMessagesPlural": "{{count}} 条新消息",
     "contextWarning": "上下文窗口已使用 {{percent}}%。建议开始新对话以获得最佳效果。",
     "compactBtn": "压缩",
-    "compactHint": "压缩对话上下文以释放 Token (Ctrl+Shift+C)",
+    "compactHint": "压缩对话上下文以释放 Token (Ctrl+Shift+K)",
     "sessionPrefix": "会话: {{id}}...",
     "emptyPreview": "(无内容)",
     "workingDir": "工作目录",

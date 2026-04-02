@@ -2717,3 +2717,20 @@ Status: SUCCESS (tsc: 0 errors; vite: 2517 modules, 10.64s)
 - **Files modified**: ChatHeader.tsx (added ContextBadge component)
 - **Build**: OK (v1.1.67)
 - **File sizes**: ChatHeader.tsx now 539 lines (under 800 red line)
+
+
+## Iteration 391 — Compact Button in ChatHeader + i18n Shortcut Fix
+- **Date**: 2026-04-01
+- **Feature**: Added visible compact/compress button in ChatHeader toolbar + fixed i18n shortcut discrepancy
+- **Details**:
+  - Shrink icon from lucide-react for compact button
+  - Dispatches Ctrl+Shift+K keyboard event (same as existing shortcut handler)
+  - Disabled when fewer than 4 messages or streaming
+  - Fixed i18n keys (en.json + zh-CN.json) that incorrectly showed Ctrl+Shift+C instead of Ctrl+Shift+K
+  - Placed between Regenerate and Bookmarks buttons
+- **Files modified**: 
+  - ChatHeader.tsx (added Shrink import + compact button)
+  - en.json (fixed compactHint shortcut: C -> K)
+  - zh-CN.json (fixed compactHint shortcut: C -> K)
+- **Build**: OK (v1.1.68)
+- **File sizes**: ChatHeader.tsx now 558 lines (under 800 red line)
