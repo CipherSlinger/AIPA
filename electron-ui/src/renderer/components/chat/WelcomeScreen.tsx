@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { Bot, History, X, MessageSquare, Layers, Clock, ArrowRight, Sparkles, Lightbulb } from 'lucide-react'
+import { Bot, History, X, MessageSquare, Layers, Clock, ArrowRight, Sparkles, Lightbulb, TrendingUp, Star } from 'lucide-react'
 import { useUiStore, useSessionStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 import { getGreetingKey, getPersonaStarters, getDefaultSuggestions, getShortcuts, getQuickActions } from './welcomeScreenConstants'
@@ -67,6 +67,24 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
   const shortcuts = useMemo(() => getShortcuts(t), [t])
   const quickActions = useMemo(() => getQuickActions(t), [t])
   const { tip, dismissTip, nextTip } = useTips()
+
+  // Top prompts from prompt history (sorted by count, max 3)
+  const promptHistory = usePrefsStore(s => s.prefs.promptHistory) || []
+  const topPrompts = useMemo(() => {
+    return [...promptHistory]
+      .filter(p => p.count >= 2)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3)
+  }, [promptHistory])
+
+  const toggleFavorite = (id: string) => {
+    const history = usePrefsStore.getState().prefs.promptHistory || []
+    const updated = history.map(item =>
+      item.id === id ? { ...item, favorite: !item.favorite } : item
+    )
+    usePrefsStore.getState().setPrefs({ promptHistory: updated })
+    window.electronAPI?.prefsSet('promptHistory', updated)
+  }
 
   const accentTint = activePersona ? `${activePersona.color}20` : 'rgba(0,122,204,0.1)'
   const accentColor = activePersona?.color || 'var(--accent)'
@@ -369,6 +387,55 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
               >
                 {prompt.length > 80 ? prompt.slice(0, 80) + '...' : prompt}
               </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Top prompts (most frequently used) */}
+      {topPrompts.length > 0 && (
+        <div style={{ width: '100%', maxWidth: 420 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <TrendingUp size={11} />
+            <span>{t('welcome.topPrompts')}</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {topPrompts.map((item) => (
+              <div key={item.id} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <button
+                  onClick={() => onSuggestion(item.text)}
+                  style={{
+                    flex: 1, background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 8,
+                    padding: '8px 12px', color: 'var(--text-primary)', cursor: 'pointer', fontSize: 12,
+                    textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    transition: 'background 0.15s, border-color 0.15s',
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.background = 'var(--action-btn-hover)';
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.background = 'var(--card-bg)';
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--card-border)'
+                  }}
+                  title={item.text}
+                >
+                  {item.text.length > 70 ? item.text.slice(0, 70) + '...' : item.text}
+                </button>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap', minWidth: 20, textAlign: 'right' }}>
+                  {item.count}x
+                </span>
+                <button
+                  onClick={() => toggleFavorite(item.id)}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer', padding: 2,
+                    color: item.favorite ? 'var(--warning)' : 'var(--text-muted)', transition: 'color 0.15s',
+                  }}
+                  title={item.favorite ? t('welcome.unfavorite') : t('welcome.favorite')}
+                >
+                  <Star size={12} style={item.favorite ? { fill: 'var(--warning)' } : {}} />
+                </button>
+              </div>
             ))}
           </div>
         </div>

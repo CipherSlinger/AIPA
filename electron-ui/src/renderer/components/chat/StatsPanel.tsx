@@ -44,6 +44,9 @@ export default function StatsPanel({
     if (conversationStats.annotationCount > 0) {
       lines.push(`${t('chat.statsAnnotations')}: ${conversationStats.annotationCount}`)
     }
+    if (conversationStats.ratingUp + conversationStats.ratingDown > 0) {
+      lines.push(`${t('chat.statsRatings')}: ${conversationStats.ratingUp} / ${conversationStats.ratingDown}`)
+    }
     const cost = useChatStore.getState().totalSessionCost
     if (cost > 0) {
       lines.push(`${t('chat.statsSessionCost')}: $${cost.toFixed(4)}`)
@@ -112,6 +115,7 @@ export default function StatsPanel({
             { label: t('chat.statsDuration'), value: t('chat.statsDurationValue', { min: String(conversationStats.durationMin) }) },
             ...(conversationStats.avgResponseSec > 0 ? [{ label: t('chat.statsAvgResponse'), value: `~${conversationStats.avgResponseSec}s` }] : []),
             ...(conversationStats.annotationCount > 0 ? [{ label: t('chat.statsAnnotations'), value: conversationStats.annotationCount }] : []),
+            ...((conversationStats.ratingUp + conversationStats.ratingDown) > 0 ? [{ label: t('chat.statsRatings'), value: `${conversationStats.ratingUp} / ${conversationStats.ratingDown}` }] : []),
             ...(useChatStore.getState().compactionCount > 0 ? [{ label: t('compact.complete'), value: useChatStore.getState().compactionCount }] : []),
           ].map(({ label, value }) => (
             <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 11 }}>

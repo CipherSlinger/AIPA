@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useChatStore, usePrefsStore, useSessionStore } from '../store'
-import { PermissionMessage, PlanMessage, StandardChatMessage } from '../types/app.types'
+import { PermissionMessage, PlanMessage, StandardChatMessage, PromptHistoryItem } from '../types/app.types'
 import { useUiStore } from '../store'
 import { useT } from '../i18n'
 import { resolveProvider, sendCompletionNotification, playCompletionSound, getActiveApiKey, rotateApiKey } from './streamJsonUtils'
@@ -37,8 +37,32 @@ export function useStreamJson() {
   // Only warn once per session about context window nearing capacity
   const contextWarningShownRef = useRef<boolean>(false)
 
+  // Track prompt sends for analytics (deduped, max 200 items)
+  const trackPromptHistory = (prompt: string) => {
+    const text = prompt.trim().slice(0, 500)
+    if (!text) return
+    const normalized = text.toLowerCase().replace(/\s+/g, ' ')
+    const hash = `ph-${Array.from(normalized).reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0).toString(36)}`
+    const existing: PromptHistoryItem[] = usePrefsStore.getState().prefs.promptHistory || []
+    const idx = existing.findIndex(item => item.id === hash)
+    const now = Date.now()
+    let updated: PromptHistoryItem[]
+    if (idx >= 0) {
+      updated = [...existing]
+      updated[idx] = { ...updated[idx], count: updated[idx].count + 1, lastUsedAt: now }
+    } else {
+      const newItem: PromptHistoryItem = { id: hash, text, count: 1, lastUsedAt: now, firstUsedAt: now }
+      updated = [newItem, ...existing].slice(0, 200)
+    }
+    usePrefsStore.getState().setPrefs({ promptHistory: updated })
+    window.electronAPI?.prefsSet('promptHistory', updated)
+  }
+
   const sendMessage = async (prompt: string, attachments?: import('./useImagePaste').ImageAttachment[]) => {
     if (!prompt.trim() && (!attachments || attachments.length === 0)) return
+
+    // Track prompt in history for analytics (max 200 items, deduped by normalized text)
+    trackPromptHistory(prompt)
 
     const userMsg: StandardChatMessage = {
       id: `user-${Date.now()}`,
