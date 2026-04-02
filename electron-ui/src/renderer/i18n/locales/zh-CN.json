@@ -869,7 +869,9 @@
     "output": "输出",
     "cache": "缓存",
     "turns": "轮",
-    "total": "合计"
+    "total": "合计",
+    "budgetWarning": "会话费用已达预算 {{budget}} 的 {{percent}}%",
+    "budgetExceeded": "会话费用（{{spent}}）已超出预算 {{budget}}"
   },
   "compact": {
     "inProgress": "正在压缩对话...",

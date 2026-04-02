@@ -869,7 +869,9 @@
     "output": "Out",
     "cache": "Cache",
     "turns": "turns",
-    "total": "Total"
+    "total": "Total",
+    "budgetWarning": "Session cost at {{percent}}% of your {{budget}} budget",
+    "budgetExceeded": "Session cost ({{spent}}) exceeded your {{budget}} budget"
   },
   "compact": {
     "inProgress": "Compacting conversation...",

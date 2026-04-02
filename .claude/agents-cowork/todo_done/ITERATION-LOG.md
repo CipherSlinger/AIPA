@@ -2652,3 +2652,6 @@ Status: SUCCESS (tsc: 0 errors; vite: 2517 modules, 10.64s)
 
 ### Iteration 382 (2026-04-01)
 - Keyboard Message Navigation with Focus Indicator -- Ctrl+Up/Down navigates through ALL messages (user + assistant) with a visual 3px left border accent + subtle background tint. Ctrl+Home/End sets focus via existing CustomEvent integration (aipa:scrollToFirst/Last). Escape clears focus without conflicting with abort-streaming. Registered in shortcutRegistry.ts. 2 files changed (MessageList.tsx, shortcutRegistry.ts); build SUCCESS (commit deb7a7f). Version: 1.1.59.
+
+### Iteration 383 (2026-04-01)
+- README Comprehensive Update -- Updated both README.md and README_EN.md with features from Iterations 377-382: tool use summary labels, output styles, extended thinking toggle, conversation rewind, system diagnostics, per-model cost breakdown, thinking depth, session changes panel, preset localization, keyboard message navigation. Expanded keyboard shortcuts table from 15 to 27 entries (added Ctrl+F, Ctrl+Shift+K/C/B/S/L, Ctrl+Up/Down, Ctrl+Home/End, Alt+Up/Down, PageUp/Down). Version: 1.1.60.

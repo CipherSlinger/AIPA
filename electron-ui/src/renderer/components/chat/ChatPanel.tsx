@@ -38,6 +38,7 @@ export default function ChatPanel() {
   const toggleFocusMode = useUiStore(s => s.toggleFocusMode)
   const prepareRegeneration = useChatStore(s => s.prepareRegeneration)
   const lastContextUsage = useChatStore(s => s.lastContextUsage)
+  const totalSessionCost = useChatStore(s => s.totalSessionCost)
 
   const { sendMessage, abort, respondPermission, grantToolPermission, newConversation } = useStreamJson()
 
@@ -88,6 +89,26 @@ export default function ChatPanel() {
 
   useEffect(() => {
     setContextWarningDismissed(false)
+  }, [currentSessionId])
+
+  // Cost budget warning: toast when session cost approaches or exceeds maxBudgetUsd
+  const budgetWarningRef = React.useRef<'none' | '80' | '100'>('none')
+  useEffect(() => {
+    const budget = prefs.maxBudgetUsd
+    if (!budget || budget <= 0 || totalSessionCost <= 0) return
+    const pct = (totalSessionCost / budget) * 100
+    if (pct >= 100 && budgetWarningRef.current !== '100') {
+      budgetWarningRef.current = '100'
+      addToast('error', t('cost.budgetExceeded', { budget: `$${budget.toFixed(2)}`, spent: `$${totalSessionCost.toFixed(3)}` }))
+    } else if (pct >= 80 && pct < 100 && budgetWarningRef.current === 'none') {
+      budgetWarningRef.current = '80'
+      addToast('warning', t('cost.budgetWarning', { percent: String(Math.round(pct)), budget: `$${budget.toFixed(2)}` }))
+    }
+  }, [totalSessionCost, prefs.maxBudgetUsd, addToast, t])
+
+  // Reset budget warning when session changes
+  useEffect(() => {
+    budgetWarningRef.current = 'none'
   }, [currentSessionId])
 
   // Regeneration
