@@ -2771,3 +2771,10 @@ Status: SUCCESS (tsc: 0 errors; vite: 2517 modules, 10.64s)
 - **Bug fix**: Replaced hardcoded 'Copy' title in ChangesPanel with t('common.copy')
 - **Files changed**: en.json, zh-CN.json, ChangesPanel.tsx
 - **Build**: OK (v1.1.71)
+
+---
+### Iteration 395 — Tool Summary i18n Integration
+- **Feature**: Connected toolSummary.ts utility to the i18n translation system. All tool use summary labels (e.g. 'Edited file.tsx', 'Read 5 files', 'Searched for pattern') now use i18n keys that already existed in en.json/zh-CN.json but were never wired up. Updated generateToolSummary, generateBatchSummary, groupToolUses and flushBatch to accept optional TranslateFn. Updated ToolUseBlock, ToolBatchBlock (removed unused import), and MessageBubbleContent to pass t through.
+- **Files changed**: toolSummary.ts, ToolUseBlock.tsx, ToolBatchBlock.tsx, MessageBubbleContent.tsx
+- **Build**: PASSED (v1.1.72)
+- **Status**: Complete

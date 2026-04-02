@@ -138,7 +138,7 @@ export default function MessageBubbleContent({
 
           {/* Tool uses (inside AI bubble) -- with batch grouping */}
           {!isPermission && message.toolUses && message.toolUses.length > 0 && (() => {
-            const groups = groupToolUses(message.toolUses)
+            const groups = groupToolUses(message.toolUses, t)
             return (
               <div style={{ borderTop: '1px solid var(--bubble-ai-border)', marginTop: 8, paddingTop: 8 }}>
                 {groups.map((group, idx) => (

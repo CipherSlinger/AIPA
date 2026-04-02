@@ -133,7 +133,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
   }, [isRunning])
 
   const Icon = TOOL_ICONS[tool.name] || Terminal
-  const summaryLabel = generateToolSummary(tool)
+  const summaryLabel = generateToolSummary(tool, t)
   const isBash = BASH_TOOLS.has(tool.name)
   const isFileEdit = FILE_EDIT_TOOLS.has(tool.name)
   const showElapsed = isRunning && elapsed >= 2
