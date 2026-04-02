@@ -555,6 +555,10 @@ interface UiState {
   setSettingsModalOpen: (v: boolean) => void
   openSettingsModal: () => void
   closeSettingsModal: () => void
+
+  // Main content area view (Iteration 412: settings as page instead of modal)
+  mainView: 'chat' | 'settings'
+  setMainView: (view: 'chat' | 'settings') => void
 }
 
 // Restore last sidebar tab from localStorage
@@ -614,6 +618,8 @@ export const useUiStore = create<UiState>((set) => ({
   setTerminalResumeSessionId: (id) => set({ terminalResumeSessionId: id }),
   settingsModalOpen: false,
   setSettingsModalOpen: (v) => set({ settingsModalOpen: v }),
-  openSettingsModal: () => set({ settingsModalOpen: true }),
-  closeSettingsModal: () => set({ settingsModalOpen: false }),
+  openSettingsModal: () => set({ settingsModalOpen: true, mainView: 'settings' }),
+  closeSettingsModal: () => set({ settingsModalOpen: false, mainView: 'chat' }),
+  mainView: 'chat',
+  setMainView: (view) => set({ mainView: view }),
 }))

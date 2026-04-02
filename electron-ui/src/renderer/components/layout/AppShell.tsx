@@ -6,8 +6,9 @@ import NavRail from './NavRail'
 import ChatPanel from '../chat/ChatPanel'
 import StatusBar from './StatusBar'
 import ErrorBoundary from '../shared/ErrorBoundary'
+import { ArrowLeft, X } from 'lucide-react'
 
-const SettingsModal = React.lazy(() => import('../settings/SettingsModal'))
+const SettingsPanel = React.lazy(() => import('../settings/SettingsPanel'))
 
 const MIN_SIDEBAR = 180
 const MAX_SIDEBAR = 400
@@ -17,6 +18,8 @@ export default function AppShell() {
   const sidebarOpen = useUiStore(s => s.sidebarOpen)
   const setSidebarOpen = useUiStore(s => s.setSidebarOpen)
   const focusMode = useUiStore(s => s.focusMode)
+  const mainView = useUiStore(s => s.mainView)
+  const closeSettings = useUiStore(s => s.closeSettingsModal)
   const currentSessionTitle = useChatStore(s => s.currentSessionTitle)
   const [sidebarWidth, setSidebarWidth] = useState(240)
   const draggingRef = useRef<'sidebar' | null>(null)
@@ -41,6 +44,19 @@ export default function AppShell() {
     handleResize()
     return () => window.removeEventListener('resize', handleResize)
   }, [setSidebarOpen])
+
+  // Close settings page on Escape
+  useEffect(() => {
+    if (mainView !== 'settings') return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        closeSettings()
+      }
+    }
+    window.addEventListener('keydown', handler, true)
+    return () => window.removeEventListener('keydown', handler, true)
+  }, [mainView, closeSettings])
 
   const startDrag = (which: 'sidebar') => (e: React.MouseEvent) => {
     e.preventDefault()
@@ -146,10 +162,10 @@ export default function AppShell() {
           </>
         )}
 
-        {/* Chat panel -- fills remaining space */}
+        {/* Main content area -- ChatPanel or Settings page */}
         <div
           role="main"
-          aria-label={t('a11y.chatArea')}
+          aria-label={mainView === 'settings' ? t('settings.title') : t('a11y.chatArea')}
           style={{
             flex: 1,
             overflow: 'hidden',
@@ -158,20 +174,72 @@ export default function AppShell() {
             flexDirection: 'column',
           }}
         >
-          <ErrorBoundary fallbackLabel="chat panel">
-            <ChatPanel />
-          </ErrorBoundary>
+          {mainView === 'settings' ? (
+            <ErrorBoundary fallbackLabel="settings page">
+              {/* Settings page header */}
+              <div style={{
+                height: 44,
+                background: 'var(--chat-header-bg)',
+                borderBottom: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0 16px',
+                flexShrink: 0,
+                gap: 12,
+              }}>
+                <button
+                  onClick={closeSettings}
+                  title={t('settings.backToChat')}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
+                    padding: 4, borderRadius: 4,
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)' }}
+                >
+                  <ArrowLeft size={16} />
+                </button>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>
+                  {t('settings.title')}
+                </span>
+                <button
+                  onClick={closeSettings}
+                  title={t('settings.close')}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
+                    padding: 4, borderRadius: 4,
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)' }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              {/* Settings content */}
+              <div style={{
+                flex: 1, overflow: 'auto',
+                display: 'flex', justifyContent: 'center',
+              }}>
+                <div style={{ width: '100%', maxWidth: 800 }}>
+                  <React.Suspense fallback={<div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading...</div>}>
+                    <SettingsPanel />
+                  </React.Suspense>
+                </div>
+              </div>
+            </ErrorBoundary>
+          ) : (
+            <ErrorBoundary fallbackLabel="chat panel">
+              <ChatPanel />
+            </ErrorBoundary>
+          )}
         </div>
 
       </div>
 
       {/* Status bar */}
       <StatusBar />
-
-      {/* Settings modal overlay */}
-      <React.Suspense fallback={null}>
-        <SettingsModal />
-      </React.Suspense>
     </div>
   )
 }

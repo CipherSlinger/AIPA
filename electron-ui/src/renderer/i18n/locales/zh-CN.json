@@ -380,6 +380,7 @@
   "settings": {
     "title": "设置",
     "close": "关闭设置",
+    "backToChat": "返回对话",
     "tabs": {
       "general": "常规",
       "providers": "提供商",

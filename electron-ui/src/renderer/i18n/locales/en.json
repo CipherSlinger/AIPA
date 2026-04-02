@@ -380,6 +380,7 @@
   "settings": {
     "title": "Settings",
     "close": "Close settings",
+    "backToChat": "Back to chat",
     "tabs": {
       "general": "General",
       "providers": "Providers",
