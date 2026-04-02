@@ -83,6 +83,29 @@ export const iconBtnStyle: React.CSSProperties = {
   alignItems: 'center',
 }
 
+/**
+ * Resolve a translated step field (title or prompt) for a preset workflow.
+ * Falls back to the raw step value if no translation is found.
+ * @param presetKey - The workflow's presetKey (e.g. 'weeklyReport')
+ * @param stepIndex - 0-based step index
+ * @param field - 'title' or 'prompt'
+ * @param t - i18n translation function
+ * @param fallback - raw value to use if no translation key exists
+ */
+export function getPresetStepText(
+  presetKey: string | undefined,
+  stepIndex: number,
+  field: 'title' | 'prompt',
+  t: (key: string) => string,
+  fallback: string,
+): string {
+  if (!presetKey) return fallback
+  const key = `workflow.presetStep.${presetKey}.s${stepIndex + 1}${field === 'title' ? 'Title' : 'Prompt'}`
+  const translated = t(key)
+  // If t() returns the key itself, the translation is missing — use fallback
+  return translated === key ? fallback : translated
+}
+
 export const smallBtnStyle: React.CSSProperties = {
   background: 'transparent',
   border: '1px solid var(--border)',

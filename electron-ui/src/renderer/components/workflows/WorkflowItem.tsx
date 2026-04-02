@@ -2,7 +2,7 @@ import React from 'react'
 import { Play, Trash2, Edit3, Copy, ChevronDown } from 'lucide-react'
 import { Workflow } from '../../types/app.types'
 import { useT } from '../../i18n'
-import { smallBtnStyle, MAX_NAME_LENGTH, MAX_DESC_LENGTH } from './workflowConstants'
+import { smallBtnStyle, MAX_NAME_LENGTH, MAX_DESC_LENGTH, getPresetStepText } from './workflowConstants'
 import WorkflowStepEditor from './WorkflowStepEditor'
 import type { useWorkflowCrud } from './useWorkflowCrud'
 
@@ -163,14 +163,14 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)' }}>
-                        {step.title}
+                        {getPresetStepText(wf.presetKey, idx, 'title', t, step.title)}
                       </div>
                       <div style={{
                         fontSize: 9, color: 'var(--text-muted)', overflow: 'hidden',
                         textOverflow: 'ellipsis', display: '-webkit-box',
                         WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.4,
                       }}>
-                        {step.prompt}
+                        {getPresetStepText(wf.presetKey, idx, 'prompt', t, step.prompt)}
                       </div>
                     </div>
                   </div>

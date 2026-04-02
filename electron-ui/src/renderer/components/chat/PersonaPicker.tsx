@@ -27,15 +27,16 @@ export default function PersonaPicker() {
       useUiStore.getState().addToast('info', t('persona.deactivated'))
     } else {
       // Activate persona
+      const resolvedPrompt = persona.presetKey ? t(`persona.presetPrompt.${persona.presetKey}`) : persona.systemPrompt
       usePrefsStore.getState().setPrefs({
         activePersonaId: persona.id,
         model: persona.model,
-        systemPrompt: persona.systemPrompt,
+        systemPrompt: resolvedPrompt,
         outputStyle: persona.outputStyle || 'default',
       })
       window.electronAPI.prefsSet('activePersonaId', persona.id)
       window.electronAPI.prefsSet('model', persona.model)
-      window.electronAPI.prefsSet('systemPrompt', persona.systemPrompt)
+      window.electronAPI.prefsSet('systemPrompt', resolvedPrompt)
       window.electronAPI.prefsSet('outputStyle', persona.outputStyle || 'default')
       useUiStore.getState().addToast('success', t('persona.switchedTo', { name: persona.presetKey ? t(`persona.preset.${persona.presetKey}`) : persona.name }))
     }

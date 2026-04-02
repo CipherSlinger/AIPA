@@ -1,6 +1,8 @@
 import React, { useCallback } from 'react'
 import { Check, X, Loader } from 'lucide-react'
 import { WorkflowStep } from '../../types/app.types'
+import { useT } from '../../i18n'
+import { getPresetStepText } from './workflowConstants'
 import type { StepStatus } from './useWorkflowExecution'
 
 interface CanvasNodeProps {
@@ -11,6 +13,7 @@ interface CanvasNodeProps {
   width: number
   selected: boolean
   status?: StepStatus
+  presetKey?: string
   onSelect: (stepId: string) => void
   onDragStart: (stepId: string, e: React.MouseEvent) => void
 }
@@ -69,9 +72,11 @@ export default function CanvasNode({
   width,
   selected,
   status = 'idle',
+  presetKey,
   onSelect,
   onDragStart,
 }: CanvasNodeProps) {
+  const t = useT()
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
@@ -81,8 +86,10 @@ export default function CanvasNode({
     [step.id, onSelect, onDragStart]
   )
 
+  const displayTitle = getPresetStepText(presetKey, index, 'title', t, step.title)
+  const displayPrompt = getPresetStepText(presetKey, index, 'prompt', t, step.prompt)
   const promptPreview =
-    step.prompt.length > 60 ? step.prompt.slice(0, 60) + '...' : step.prompt
+    displayPrompt.length > 60 ? displayPrompt.slice(0, 60) + '...' : displayPrompt
 
   const statusStyle = STATUS_STYLES[status]
   const isActive = selected || status === 'running'
@@ -91,7 +98,7 @@ export default function CanvasNode({
     <div
       role="button"
       tabIndex={0}
-      aria-label={`Step ${index + 1}: ${step.title}${status !== 'idle' ? ` (${status})` : ''}`}
+      aria-label={`Step ${index + 1}: ${displayTitle}${status !== 'idle' ? ` (${status})` : ''}`}
       onMouseDown={handleMouseDown}
       onClick={(e) => {
         e.stopPropagation()
@@ -162,7 +169,7 @@ export default function CanvasNode({
           textOverflow: 'ellipsis',
         }}
       >
-        {step.title}
+        {displayTitle}
       </div>
 
       {/* Prompt preview */}

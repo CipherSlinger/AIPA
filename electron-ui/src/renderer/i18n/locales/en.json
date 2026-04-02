@@ -1177,6 +1177,13 @@
       "studyTutor": "Study Tutor",
       "productivityCoach": "Productivity Coach"
     },
+    "presetPrompt": {
+      "writingCoach": "You are an experienced writing coach. Help draft, edit, and improve any written content -- emails, reports, articles, creative pieces. Focus on clarity, tone, and impact. Offer specific suggestions, not vague feedback. Adapt your style to the audience and purpose.",
+      "researchAnalyst": "You are a thorough research analyst. Help gather, organize, and analyze information on any topic. Present findings in structured formats with clear summaries, pros/cons comparisons, and actionable conclusions. Cite sources when possible.",
+      "creativePartner": "You are a creative brainstorming partner. Help generate ideas, develop concepts, explore creative directions, and overcome creative blocks. Think divergently, offer unexpected connections, and build on ideas with enthusiasm. Be playful but practical.",
+      "studyTutor": "You are a patient and encouraging tutor. Explain concepts step by step using simple language and relatable analogies. Adapt to the learner's level. Ask questions to check understanding. Use examples and visual descriptions. Make learning engaging and build confidence.",
+      "productivityCoach": "You are a productivity and planning coach. Help organize tasks, set priorities, create action plans, and manage time effectively. Break down large goals into small steps. Suggest workflow improvements. Keep the user focused on what matters most. Be direct and structured."
+    },
     "personaGreeting": "I'm {{name}}, ready to help!",
     "exportPersonas": "Export",
     "importPersonas": "Import",
@@ -1271,6 +1278,44 @@
       "weeklyReviewDesc": "Reflect on the week and plan ahead",
       "morningMotivation": "Morning Motivation",
       "morningMotivationDesc": "Start the day with inspiration and goals"
+    },
+    "presetStep": {
+      "weeklyReport": {
+        "s1Title": "Gather accomplishments",
+        "s1Prompt": "List my key accomplishments this week based on our conversation history. Focus on concrete outcomes and deliverables.",
+        "s2Title": "Identify blockers",
+        "s2Prompt": "Based on what we discussed, what blockers or challenges did I face? How were they resolved or what still needs attention?",
+        "s3Title": "Draft the report",
+        "s3Prompt": "Now compile this into a professional weekly status report with sections: Accomplishments, Challenges, Next Week Plans. Keep it concise and actionable."
+      },
+      "codeReview": {
+        "s1Title": "Overview scan",
+        "s1Prompt": "Give me a high-level overview of this code. What does it do? What patterns does it use?",
+        "s2Title": "Bug & security check",
+        "s2Prompt": "Now examine it for potential bugs, edge cases, and security vulnerabilities. Be thorough.",
+        "s3Title": "Improvement suggestions",
+        "s3Prompt": "Suggest specific improvements for readability, performance, and maintainability. Prioritize by impact."
+      },
+      "researchSummarize": {
+        "s1Title": "Initial research",
+        "s1Prompt": "Research this topic thoroughly. Provide key facts, different perspectives, and recent developments.",
+        "s2Title": "Analysis",
+        "s2Prompt": "Analyze the findings. What are the pros and cons? What trade-offs exist? What does the evidence suggest?",
+        "s3Title": "Executive summary",
+        "s3Prompt": "Create a concise executive summary with: Key Takeaways (3-5 bullets), Recommendation, and Next Steps."
+      },
+      "dailySummary": {
+        "s1Title": "Recap the day",
+        "s1Prompt": "Give me a brief summary of today's key tasks and progress. What should I focus on tomorrow?"
+      },
+      "weeklyReview": {
+        "s1Title": "Review the week",
+        "s1Prompt": "Help me review this week: What went well? What could be improved? What are my priorities for next week?"
+      },
+      "morningMotivation": {
+        "s1Title": "Get inspired",
+        "s1Prompt": "Good morning! Give me an inspiring thought for today and suggest 3 productive things I could accomplish."
+      }
     }
   },
   "snippet": {

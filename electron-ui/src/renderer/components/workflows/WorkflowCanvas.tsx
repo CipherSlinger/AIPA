@@ -251,6 +251,9 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
   const sidebarStep = sidebarStepId && workflow
     ? workflow.steps.find(s => s.id === sidebarStepId) ?? null
     : null
+  const sidebarStepIndex = sidebarStepId && workflow
+    ? workflow.steps.findIndex(s => s.id === sidebarStepId)
+    : -1
   const sidebarStatus = sidebarStepId
     ? execution.stepStatuses[sidebarStepId] ?? 'idle'
     : 'idle'
@@ -415,6 +418,7 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
               width={pos.width}
               selected={selectedNode === step.id}
               status={execution.stepStatuses[step.id] ?? 'idle'}
+              presetKey={workflow.presetKey}
               onSelect={handleNodeSelect}
               onDragStart={handleNodeDragStart}
             />
@@ -426,6 +430,8 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
       {sidebarStep && (
         <CanvasNodeSidebar
           step={sidebarStep}
+          stepIndex={sidebarStepIndex}
+          presetKey={workflow?.presetKey}
           status={sidebarStatus}
           onClose={closeSidebar}
         />

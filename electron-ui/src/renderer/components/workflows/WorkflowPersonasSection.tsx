@@ -127,10 +127,11 @@ export default function WorkflowPersonasSection() {
       window.electronAPI.prefsSet('systemPrompt', '')
       addToast('info', t('persona.deactivated'))
     } else {
-      setPrefs({ activePersonaId: persona.id, model: persona.model, systemPrompt: persona.systemPrompt })
+      const resolvedPrompt = persona.presetKey ? t(`persona.presetPrompt.${persona.presetKey}`) : persona.systemPrompt
+      setPrefs({ activePersonaId: persona.id, model: persona.model, systemPrompt: resolvedPrompt })
       window.electronAPI.prefsSet('activePersonaId', persona.id)
       window.electronAPI.prefsSet('model', persona.model)
-      window.electronAPI.prefsSet('systemPrompt', persona.systemPrompt)
+      window.electronAPI.prefsSet('systemPrompt', resolvedPrompt)
       addToast('success', t('persona.switchedTo', { name: persona.presetKey ? t(`persona.preset.${persona.presetKey}`) : persona.name }))
     }
   }

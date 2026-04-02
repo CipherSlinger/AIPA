@@ -33,10 +33,11 @@ export default function StatusBarPersonaPicker({ personas, activePersona }: Stat
     if (personaId) {
       const persona = (usePrefsStore.getState().prefs.personas || []).find(p => p.id === personaId)
       if (persona) {
-        setPrefs({ activePersonaId: personaId, model: persona.model, systemPrompt: persona.systemPrompt, outputStyle: persona.outputStyle || 'default' })
+        const resolvedPrompt = persona.presetKey ? t(`persona.presetPrompt.${persona.presetKey}`) : persona.systemPrompt
+        setPrefs({ activePersonaId: personaId, model: persona.model, systemPrompt: resolvedPrompt, outputStyle: persona.outputStyle || 'default' })
         window.electronAPI.prefsSet('activePersonaId', personaId)
         window.electronAPI.prefsSet('model', persona.model)
-        window.electronAPI.prefsSet('systemPrompt', persona.systemPrompt)
+        window.electronAPI.prefsSet('systemPrompt', resolvedPrompt)
         window.electronAPI.prefsSet('outputStyle', persona.outputStyle || 'default')
         useUiStore.getState().addToast('success', t('persona.switchedTo', { name: persona.presetKey ? t(`persona.preset.${persona.presetKey}`) : persona.name }))
       }

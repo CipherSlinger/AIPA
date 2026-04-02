@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from 'react'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import { Workflow, WorkflowStep } from '../../types/app.types'
 import { useT } from '../../i18n'
-import { MAX_WORKFLOWS, MAX_NAME_LENGTH, MAX_DESC_LENGTH, PRESET_WORKFLOWS } from './workflowConstants'
+import { MAX_WORKFLOWS, MAX_NAME_LENGTH, MAX_DESC_LENGTH, PRESET_WORKFLOWS, getPresetStepText } from './workflowConstants'
 
 export function useWorkflowCrud() {
   const t = useT()
@@ -39,9 +39,10 @@ export function useWorkflowCrud() {
 
   const runWorkflow = useCallback((wf: Workflow) => {
     if (wf.steps.length === 0) return
-    for (const step of wf.steps) {
-      addToQueue(step.prompt)
-    }
+    wf.steps.forEach((step, idx) => {
+      const prompt = getPresetStepText(wf.presetKey, idx, 'prompt', t, step.prompt)
+      addToQueue(prompt)
+    })
     saveWorkflows(workflows.map(w =>
       w.id === wf.id ? { ...w, runCount: w.runCount + 1, updatedAt: Date.now() } : w
     ))

@@ -3014,3 +3014,33 @@ _Date: 2026-04-02_
 - electron-ui/src/renderer/App.tsx (import + call populateDefaultPresetsIfEmpty)
 
 **Build:** SUCCESS (2524 modules)
+
+
+## Iteration 406 — Preset Prompt I18n for Personas and Workflows
+_Date: 2026-04-02_
+
+**Changes:**
+- Added i18n translations for all 5 persona preset system prompts (en + zh-CN)
+- Added i18n translations for all workflow preset step titles and prompts (6 workflows, 12 steps total, en + zh-CN)
+- Persona preset system prompt previews now auto-switch with UI language in PersonaPresets panel
+- Workflow step titles and prompts now auto-switch with UI language in WorkflowItem, CanvasNode, and CanvasNodeSidebar
+- When activating a preset persona, the system prompt sent to the AI is now in the current UI language
+- When running a preset workflow, step prompts are sent to the task queue in the current UI language
+- Created `getPresetStepText()` utility in workflowConstants.ts for consistent preset step text resolution with fallback
+- Total i18n key count: 1300 per locale (both en.json and zh-CN.json match)
+
+**Files Modified:**
+- electron-ui/src/renderer/i18n/locales/en.json (+43 keys: persona.presetPrompt.*, workflow.presetStep.*)
+- electron-ui/src/renderer/i18n/locales/zh-CN.json (+43 keys: persona.presetPrompt.*, workflow.presetStep.*)
+- electron-ui/src/renderer/components/workflows/workflowConstants.ts (added getPresetStepText utility)
+- electron-ui/src/renderer/components/workflows/WorkflowItem.tsx (use translated step titles/prompts)
+- electron-ui/src/renderer/components/workflows/CanvasNode.tsx (added presetKey prop, use translated text)
+- electron-ui/src/renderer/components/workflows/CanvasNodeSidebar.tsx (added stepIndex/presetKey props, use translated text)
+- electron-ui/src/renderer/components/workflows/WorkflowCanvas.tsx (pass presetKey/stepIndex to CanvasNode and CanvasNodeSidebar)
+- electron-ui/src/renderer/components/workflows/useWorkflowCrud.ts (use translated prompts when running preset workflows)
+- electron-ui/src/renderer/components/settings/PersonaPresets.tsx (use translated prompt preview)
+- electron-ui/src/renderer/components/workflows/WorkflowPersonasSection.tsx (use translated prompt on activation)
+- electron-ui/src/renderer/components/layout/StatusBarPersonaPicker.tsx (use translated prompt on activation)
+- electron-ui/src/renderer/components/chat/PersonaPicker.tsx (use translated prompt on activation)
+
+**Build:** SUCCESS (2516 modules)

@@ -2,16 +2,21 @@ import React from 'react'
 import { X } from 'lucide-react'
 import { WorkflowStep } from '../../types/app.types'
 import { useT } from '../../i18n'
+import { getPresetStepText } from './workflowConstants'
 import type { StepStatus } from './useWorkflowExecution'
 
 interface CanvasNodeSidebarProps {
   step: WorkflowStep
+  stepIndex: number
+  presetKey?: string
   status: StepStatus
   onClose: () => void
 }
 
-export default function CanvasNodeSidebar({ step, status, onClose }: CanvasNodeSidebarProps) {
+export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, onClose }: CanvasNodeSidebarProps) {
   const t = useT()
+  const displayTitle = getPresetStepText(presetKey, stepIndex, 'title', t, step.title)
+  const displayPrompt = getPresetStepText(presetKey, stepIndex, 'prompt', t, step.prompt)
 
   return (
     <div
@@ -41,7 +46,7 @@ export default function CanvasNodeSidebar({ step, status, onClose }: CanvasNodeS
         flexShrink: 0,
       }}>
         <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)' }}>
-          {step.title}
+          {displayTitle}
         </span>
         <button
           onClick={onClose}
@@ -85,7 +90,7 @@ export default function CanvasNodeSidebar({ step, status, onClose }: CanvasNodeS
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-word',
           }}>
-            {step.prompt}
+            {displayPrompt}
           </div>
         </div>
 
