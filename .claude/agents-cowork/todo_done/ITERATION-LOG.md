@@ -2676,3 +2676,16 @@ Status: SUCCESS (tsc: 0 errors; vite: 2517 modules, 10.64s)
 - **Files changed**: welcomeScreenConstants.ts (replaced getDefaultSuggestions with randomized pool picker)
 - **Build**: SUCCESS
 - **Version**: 1.1.64
+
+
+## Iteration 388 — Session Cost Badge in ChatHeader
+- **Date**: 2026-04-01
+- **Feature**: Added inline session cost badge to ChatHeader showing total session cost
+- **Details**:
+  - Badge appears after cost exceeds $0.01
+  - Color-coded: muted (< $1), warning/yellow (>= $1), error/red (>= $5)
+  - Click to copy cost value; hover shows full session total tooltip
+  - Uses existing i18n keys (toolbar.costCopied, toolbar.sessionTotal)
+  - DollarSign icon from lucide-react
+- **Files modified**: ChatHeader.tsx (added CostBadge inline component + DollarSign import)
+- **Build**: OK (v1.1.65)

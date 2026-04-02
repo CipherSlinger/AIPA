@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Search, Download, ClipboardCopy, Maximize2, Minimize2, Plus, FolderOpen, FileText, TerminalSquare } from 'lucide-react'
+import { Search, Download, ClipboardCopy, Maximize2, Minimize2, Plus, FolderOpen, FileText, TerminalSquare, DollarSign } from 'lucide-react'
 import { useChatStore, useSessionStore, usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import ModelPicker from './ModelPicker'
@@ -62,6 +62,56 @@ const hoverOut = (e: React.MouseEvent<HTMLButtonElement>, active = false, defaul
     (e.currentTarget as HTMLButtonElement).style.color = defaultColor
     ;(e.currentTarget as HTMLButtonElement).style.background = 'none'
   }
+}
+
+/** Inline session cost badge — shows total cost with color thresholds */
+function CostBadge() {
+  const t = useT()
+  const totalCost = useChatStore(s => s.totalSessionCost)
+  const addToast = useUiStore(s => s.addToast)
+
+  if (totalCost < 0.01) return null
+
+  const costStr = totalCost < 1 ? `$${totalCost.toFixed(3)}` : `$${totalCost.toFixed(2)}`
+  const color = totalCost >= 5 ? 'var(--error)' : totalCost >= 1 ? 'var(--warning)' : 'var(--text-muted)'
+  const bgColor = totalCost >= 5 ? 'rgba(239,68,68,0.12)' : totalCost >= 1 ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.04)'
+
+  return (
+    <button
+      onClick={() => {
+        navigator.clipboard.writeText(costStr).then(() => {
+          addToast('info', t('toolbar.costCopied'))
+        }).catch(() => {})
+      }}
+      title={t('toolbar.sessionTotal', { total: totalCost.toFixed(4) })}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 3,
+        padding: '2px 8px',
+        background: bgColor,
+        border: `1px solid ${totalCost >= 5 ? 'rgba(239,68,68,0.3)' : totalCost >= 1 ? 'rgba(245,158,11,0.3)' : 'var(--card-border)'}`,
+        borderRadius: 12,
+        color,
+        cursor: 'pointer',
+        fontSize: 10,
+        fontWeight: 600,
+        fontFamily: 'monospace',
+        flexShrink: 0,
+        transition: 'background 150ms, border-color 150ms',
+        lineHeight: 1,
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLButtonElement).style.borderColor = totalCost >= 5 ? 'rgba(239,68,68,0.3)' : totalCost >= 1 ? 'rgba(245,158,11,0.3)' : 'var(--card-border)'
+      }}
+    >
+      <DollarSign size={10} />
+      {costStr}
+    </button>
+  )
 }
 
 export default function ChatHeader({
@@ -367,6 +417,9 @@ export default function ChatHeader({
       >
         {focusMode ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
       </button>
+
+      {/* Session cost badge — visible when cost > $0.01, color-coded by threshold */}
+      <CostBadge />
 
       {/* Streaming elapsed timer + spinner */}
       {elapsedStr && (
