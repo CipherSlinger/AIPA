@@ -2736,3 +2736,22 @@ Status: SUCCESS (tsc: 0 errors; vite: 2517 modules, 10.64s)
 - **File sizes**: ChatHeader.tsx now 558 lines (under 800 red line)
 
 [RETRO] retro-2026-04-01-iterations-382-391.md completed, covering Iteration 382-391, next forced retro after Iteration 401
+
+## Iteration 392 — FileBrowser Quick Filter + Refresh + Item Count
+- **Date**: 2026-04-01
+- **Feature**: Added quick filter, refresh button, and item count to FileBrowser sidebar panel
+- **Details**:
+  - Search/filter toggle button in FileBrowser header -- clicking opens a filter input bar
+  - Filter input with auto-focus, Escape to close, X button to clear, live match count indicator
+  - Case-insensitive name filtering on root entries; directories always pass through filter
+  - Filter propagated to child TreeNode entries via new filter prop
+  - Refresh button to reload current directory without changing it
+  - Item count badge showing total entries in header
+  - Full i18n: filterFiles, filterPlaceholder, noFilterResults, refresh, itemCount (en + zh-CN)
+- **Files modified**:
+  - FileBrowser.tsx (added imports: Search, RefreshCw, X, useMemo, useCallback; filter state; filtered tree rendering)
+  - en.json (added fileBrowser.filterFiles, filterPlaceholder, noFilterResults, refresh, itemCount)
+  - zh-CN.json (added corresponding Chinese translations)
+- **Build**: OK (v1.1.69)
+- **File sizes**: FileBrowser.tsx now ~390 lines (under 800 red line)
+

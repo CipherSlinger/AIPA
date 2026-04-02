@@ -714,7 +714,12 @@
     "selectDir": "选择目录",
     "chooseDir": "选择工作目录",
     "chooseHint": "点击上方图标选择工作目录",
-    "clickToMention": "点击在聊天中提及"
+    "clickToMention": "点击在聊天中提及",
+    "filterFiles": "筛选文件",
+    "filterPlaceholder": "按名称筛选...",
+    "noFilterResults": "没有匹配的文件",
+    "refresh": "刷新",
+    "itemCount": "{{dirs}} 个文件夹，{{files}} 个文件"
   },
   "error": {
     "title": "出了点问题",

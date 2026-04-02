@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   Folder, FolderOpen, File, ChevronRight, ChevronDown, FolderPlus, ArrowUp,
-  FileText, FileCode, FileImage, FileVideo, FileAudio, FileArchive, FileSpreadsheet, FileJson, Settings, Database
+  FileText, FileCode, FileImage, FileVideo, FileAudio, FileArchive, FileSpreadsheet, FileJson, Settings, Database,
+  Search, RefreshCw, X
 } from 'lucide-react'
 import { FileEntry } from '../../types/app.types'
 import { useChatStore } from '../../store'
@@ -94,9 +95,10 @@ interface TreeNodeProps {
   depth: number
   onSetCwd: (path: string) => void
   t: (key: string, params?: Record<string, string>) => string
+  filter?: string
 }
 
-function TreeNode({ entry, depth, onSetCwd, t }: TreeNodeProps) {
+function TreeNode({ entry, depth, onSetCwd, t, filter }: TreeNodeProps) {
   const [expanded, setExpanded] = useState(false)
   const [children, setChildren] = useState<FileEntry[]>([])
   const [loading, setLoading] = useState(false)
@@ -159,8 +161,10 @@ function TreeNode({ entry, depth, onSetCwd, t }: TreeNodeProps) {
           {entry.name}
         </span>
       </div>
-      {expanded && children.map((child) => (
-        <TreeNode key={child.path} entry={child} depth={depth + 1} onSetCwd={onSetCwd} t={t} />
+      {expanded && children
+        .filter(child => !filter || child.name.toLowerCase().includes(filter.toLowerCase()) || child.isDirectory)
+        .map((child) => (
+        <TreeNode key={child.path} entry={child} depth={depth + 1} onSetCwd={onSetCwd} t={t} filter={filter} />
       ))}
     </>
   )
@@ -170,6 +174,8 @@ export default function FileBrowser() {
   const { workingDir, setWorkingDir } = useChatStore()
   const [rootEntries, setRootEntries] = useState<FileEntry[]>([])
   const [currentDir, setCurrentDir] = useState(workingDir || '')
+  const [filter, setFilter] = useState('')
+  const [showFilter, setShowFilter] = useState(false)
   const t = useT()
 
   useEffect(() => {
@@ -187,6 +193,19 @@ export default function FileBrowser() {
     setRootEntries(entries || [])
     setCurrentDir(dir)
   }
+
+  const handleRefresh = useCallback(() => {
+    if (currentDir) loadDir(currentDir)
+  }, [currentDir])
+
+  const filteredEntries = useMemo(() => {
+    if (!filter) return rootEntries
+    const q = filter.toLowerCase()
+    return rootEntries.filter(e => e.name.toLowerCase().includes(q) || e.isDirectory)
+  }, [rootEntries, filter])
+
+  const fileCount = rootEntries.filter(e => !e.isDirectory).length
+  const dirCount = rootEntries.filter(e => e.isDirectory).length
 
   const openDialog = async () => {
     const selected = await window.electronAPI.fsShowOpenDialog()
@@ -261,6 +280,59 @@ export default function FileBrowser() {
         >
           {shortDir || t('fileBrowser.selectDir')}
         </span>
+        {/* File count badge */}
+        {rootEntries.length > 0 && (
+          <span
+            style={{
+              fontSize: 9,
+              color: 'var(--text-muted)',
+              opacity: 0.7,
+              flexShrink: 0,
+              fontVariantNumeric: 'tabular-nums',
+            }}
+            title={t('fileBrowser.itemCount', { dirs: String(dirCount), files: String(fileCount) })}
+          >
+            {rootEntries.length}
+          </span>
+        )}
+        {/* Search toggle */}
+        <button
+          onClick={() => { setShowFilter(!showFilter); if (showFilter) setFilter('') }}
+          title={t('fileBrowser.filterFiles')}
+          style={{
+            background: showFilter ? 'var(--accent)' : 'none',
+            border: 'none',
+            color: showFilter ? '#fff' : 'var(--text-muted)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            borderRadius: 4,
+            padding: 2,
+            transition: 'background 0.15s, color 0.15s',
+          }}
+          onMouseEnter={e => { if (!showFilter) e.currentTarget.style.color = 'var(--accent)' }}
+          onMouseLeave={e => { if (!showFilter) e.currentTarget.style.color = 'var(--text-muted)' }}
+        >
+          <Search size={13} />
+        </button>
+        {/* Refresh */}
+        <button
+          onClick={handleRefresh}
+          title={t('fileBrowser.refresh')}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--text-muted)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            transition: 'color 0.15s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+        >
+          <RefreshCw size={13} />
+        </button>
         <button
           onClick={goToParent}
           title={t('fileBrowser.parentDir')}
@@ -296,14 +368,63 @@ export default function FileBrowser() {
         </button>
       </div>
 
+      {/* Filter input */}
+      {showFilter && (
+        <div style={{
+          padding: '4px 10px',
+          borderBottom: '1px solid var(--border)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+          flexShrink: 0,
+        }}>
+          <Search size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+          <input
+            autoFocus
+            value={filter}
+            onChange={e => setFilter(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Escape') { setShowFilter(false); setFilter('') } }}
+            placeholder={t('fileBrowser.filterPlaceholder')}
+            style={{
+              flex: 1,
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              color: 'var(--text-primary)',
+              fontSize: 11,
+              fontFamily: 'inherit',
+              minWidth: 0,
+            }}
+          />
+          {filter && (
+            <>
+              <span style={{ fontSize: 9, color: 'var(--text-muted)', flexShrink: 0 }}>
+                {filteredEntries.length}/{rootEntries.length}
+              </span>
+              <button
+                onClick={() => setFilter('')}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: 0 }}
+              >
+                <X size={11} />
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Tree */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        {rootEntries.map((entry) => (
-          <TreeNode key={entry.path} entry={entry} depth={0} onSetCwd={setCwd} t={t} />
+        {filteredEntries.map((entry) => (
+          <TreeNode key={entry.path} entry={entry} depth={0} onSetCwd={setCwd} t={t} filter={filter} />
         ))}
         {rootEntries.length === 0 && (
           <div style={{ padding: '20px 12px', color: 'var(--text-muted)', fontSize: 12, textAlign: 'center' }}>
             {t('fileBrowser.chooseHint')}
+          </div>
+        )}
+        {rootEntries.length > 0 && filteredEntries.length === 0 && filter && (
+          <div style={{ padding: '20px 12px', color: 'var(--text-muted)', fontSize: 12, textAlign: 'center' }}>
+            {t('fileBrowser.noFilterResults')}
           </div>
         )}
       </div>
