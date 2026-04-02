@@ -1,5 +1,5 @@
 import React from 'react'
-import { AtSign, TerminalSquare, Mic, MicOff, ListPlus, Cpu, Paperclip, Camera, Gauge, ShieldOff, Shield, Shrink } from 'lucide-react'
+import { AtSign, TerminalSquare, Mic, MicOff, ListPlus, Cpu, Paperclip, Camera, Gauge, ShieldOff, Shield, Shrink, WrapText, AlignLeft } from 'lucide-react'
 import { useT } from '../../i18n'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import ClipboardActionsMenu from './ClipboardActionsMenu'
@@ -20,6 +20,8 @@ interface InputToolbarProps {
   fileAttachmentCount: number
   hasInput: boolean
   inputText: string
+  multiLineMode?: boolean
+  onToggleMultiLine?: () => void
 }
 
 export default function InputToolbar({
@@ -34,6 +36,8 @@ export default function InputToolbar({
   fileAttachmentCount,
   hasInput,
   inputText,
+  multiLineMode,
+  onToggleMultiLine,
 }: InputToolbarProps) {
   const t = useT()
   const prefs = usePrefsStore(s => s.prefs)
@@ -235,6 +239,22 @@ export default function InputToolbar({
       >
         <Shrink size={14} />
       </button>
+      {/* Multi-line mode toggle (Iteration 418) */}
+      {onToggleMultiLine && (
+        <button
+          onClick={onToggleMultiLine}
+          title={multiLineMode ? t('input.multiLineOn') : t('input.multiLineOff')}
+          style={{
+            ...toolbarBtnStyle,
+            color: multiLineMode ? 'var(--accent)' : 'var(--input-toolbar-icon)',
+            background: multiLineMode ? 'rgba(0, 122, 204, 0.12)' : 'none',
+          }}
+          onMouseEnter={(e) => { if (!multiLineMode) toolbarHoverIn(e) }}
+          onMouseLeave={(e) => { if (!multiLineMode) toolbarHoverOut(e) }}
+        >
+          {multiLineMode ? <AlignLeft size={14} /> : <WrapText size={14} />}
+        </button>
+      )}
       <span style={{ flex: 1 }} />
       {/* Queue button */}
       <div style={{ position: 'relative', display: 'inline-flex' }}>

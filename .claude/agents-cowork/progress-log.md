@@ -25,3 +25,13 @@
 | prd-daily-productivity-tools-v1.md | Focus Timer, Daily Summary, StatusBar enhancements | StatusBar.tsx, WelcomeScreen.tsx, i18n | Serial - Group 2 |
 
 Conflict: Both touch WelcomeScreen.tsx + i18n -> must be serial.
+
+
+## PM PRD Batch 2026-04-02 05:00
+
+| PRD | Core Features | High-Risk Files | Execution |
+|-----|--------------|----------------|-----------|
+| prd-message-enhancements-v1.md | Search highlights, Pin strip, Copy text-only | SearchBar, PinnedMessagesStrip, MessageContextMenu, i18n | Serial - Group 1 |
+| prd-smart-input-v1.md | Input history nav, Multi-line toggle, Voice indicator | ChatInput, InputToolbar, i18n | Serial - Group 2 |
+
+Conflict: Both touch i18n -> must be serial. No overlap in component files.

@@ -3305,3 +3305,24 @@ _Date: 2026-04-02_
 - electron-ui/src/renderer/i18n/locales/zh-CN.json (+dailySummary, +statusBar keys)
 
 **Build:** SUCCESS (2524 modules, 9.63s)
+
+---
+
+## Iteration 418 — Unpin All + Multi-line Input Toggle (v1.1.95)
+**Date:** 2026-04-02
+**PRD:** prd-message-enhancements-v1.md (item 2 partial) + prd-smart-input-v1.md (item 2)
+
+**Changes:**
+- PinnedMessagesStrip: added "Unpin All" button in strip header with X icon, calls togglePin for each pinned message, toast confirmation
+- ChatInput: added multi-line mode toggle state (persisted in localStorage). In multi-line mode, Enter adds newline and Ctrl+Enter sends; in single-line mode (default), Enter sends, Shift+Enter adds newline
+- InputToolbar: added WrapText/AlignLeft toggle button for multi-line mode, shows accent color when active
+- Added i18n keys: input.multiLineOn, input.multiLineOff, message.unpinAll (en + zh-CN)
+
+**Files Modified:**
+- electron-ui/src/renderer/components/chat/PinnedMessagesStrip.tsx (+useChatStore, +useUiStore, +handleUnpinAll, +Unpin All button)
+- electron-ui/src/renderer/components/chat/ChatInput.tsx (+multiLineMode state, +toggleMultiLine, +modified Enter handler, +props to InputToolbar)
+- electron-ui/src/renderer/components/chat/InputToolbar.tsx (+WrapText/AlignLeft icons, +multiLineMode/onToggleMultiLine props, +toggle button)
+- electron-ui/src/renderer/i18n/locales/en.json (+input, +message.unpinAll)
+- electron-ui/src/renderer/i18n/locales/zh-CN.json (+input, +message.unpinAll)
+
+**Build:** SUCCESS (2524 modules, 9.42s)

@@ -61,6 +61,19 @@ export default function ChatInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const inputWrapRef = useRef<HTMLDivElement>(null)
 
+  // Multi-line mode: Enter adds newline, Ctrl+Enter sends (Iteration 418)
+  const [multiLineMode, setMultiLineMode] = useState(() => {
+    try { return localStorage.getItem('aipa:multi-line-mode') === 'true' } catch { return false }
+  })
+  const toggleMultiLine = useCallback(() => {
+    setMultiLineMode(prev => {
+      const next = !prev
+      try { localStorage.setItem('aipa:multi-line-mode', String(next)) } catch { /* ignore */ }
+      addToast('info', next ? t('input.multiLineOn') : t('input.multiLineOff'))
+      return next
+    })
+  }, [addToast, t])
+
   // Typing WPM tracking
   const { typingWpm, keystrokeTimestamps } = useTypingWpm()
 
@@ -260,7 +273,15 @@ export default function ChatInput({
       setInput(calcResult)
       return
     }
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      if (multiLineMode) {
+        // In multi-line mode, Enter adds newline; Ctrl+Enter sends
+        if (e.ctrlKey) { e.preventDefault(); handleSend() }
+        // Otherwise let default textarea behavior (newline) happen
+      } else {
+        e.preventDefault(); handleSend()
+      }
+    }
     if (e.key === 'Escape' && input.trim().length > 0) { e.preventDefault(); setInput(''); resizeTextarea(); return }
     if (e.key === 'Escape' && ghostText && !input.trim()) { e.preventDefault(); dismissSuggestion(); return }
     if (e.ctrlKey && !e.shiftKey && e.key === 'u') { e.preventDefault(); setInput('') }
@@ -375,6 +396,8 @@ export default function ChatInput({
         fileAttachmentCount={fileAttachments.length}
         hasInput={!!input.trim()}
         inputText={input}
+        multiLineMode={multiLineMode}
+        onToggleMultiLine={toggleMultiLine}
       />
       {/* Context usage meter with compact button */}
       {lastContextUsage && lastContextUsage.total > 0 && (() => {

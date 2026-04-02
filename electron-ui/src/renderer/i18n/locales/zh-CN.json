@@ -285,7 +285,8 @@
     "removeAnnotation": "移除批注",
     "annotationPlaceholder": "添加私人备注...",
     "preview": "预览",
-    "closePreview": "关闭预览"
+    "closePreview": "关闭预览",
+    "unpinAll": "取消全部置顶"
   },
   "copy": {
     "moreOptions": "更多复制选项",
@@ -294,7 +295,8 @@
     "codeBlocksOnly": "仅复制代码块"
   },
   "input": {
-    "chars": "字符"
+    "multiLineOn": "多行模式：Enter = 换行，Ctrl+Enter = 发送",
+    "multiLineOff": "单行模式：Enter = 发送，Shift+Enter = 换行"
   },
   "selection": {
     "copySelection": "复制选中文本",

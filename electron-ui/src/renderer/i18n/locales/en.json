@@ -285,7 +285,8 @@
     "removeAnnotation": "Remove annotation",
     "annotationPlaceholder": "Add a private note...",
     "preview": "Preview",
-    "closePreview": "Close preview"
+    "closePreview": "Close preview",
+    "unpinAll": "Unpin All"
   },
   "copy": {
     "moreOptions": "More copy options",
@@ -294,7 +295,8 @@
     "codeBlocksOnly": "Copy Code Blocks Only"
   },
   "input": {
-    "chars": "chars"
+    "multiLineOn": "Multi-line mode: Enter = new line, Ctrl+Enter = send",
+    "multiLineOff": "Single-line mode: Enter = send, Shift+Enter = new line"
   },
   "selection": {
     "copySelection": "Copy selected text",

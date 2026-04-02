@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { ChatMessage, StandardChatMessage } from '../../types/app.types'
 import { useT } from '../../i18n'
-import { Pin, ChevronDown, ChevronUp } from 'lucide-react'
+import { Pin, ChevronDown, ChevronUp, X } from 'lucide-react'
+import { useChatStore, useUiStore } from '../../store'
 import type { Virtualizer } from '@tanstack/react-virtual'
 
 interface ListItem {
@@ -24,6 +25,7 @@ interface Props {
 export default function PinnedMessagesStrip({ messages, items, virtualizer }: Props) {
   const t = useT()
   const [pinnedExpanded, setPinnedExpanded] = useState(true)
+  const addToast = useUiStore(s => s.addToast)
 
   const pinnedMessages = useMemo(() =>
     messages
@@ -31,6 +33,14 @@ export default function PinnedMessagesStrip({ messages, items, virtualizer }: Pr
       .filter(({ msg }) => msg.role !== 'permission' && msg.role !== 'plan' && (msg as StandardChatMessage).pinned),
     [messages]
   )
+
+  const handleUnpinAll = useCallback(() => {
+    const togglePin = useChatStore.getState().togglePin
+    pinnedMessages.forEach(({ msg }) => {
+      togglePin(msg.id)
+    })
+    addToast('info', t('message.unpinAll'))
+  }, [pinnedMessages, addToast, t])
 
   if (pinnedMessages.length === 0) return null
 
@@ -58,7 +68,23 @@ export default function PinnedMessagesStrip({ messages, items, virtualizer }: Pr
       >
         <Pin size={12} style={{ transform: 'rotate(-45deg)' }} />
         <span>{t('message.pinnedMessages')} ({pinnedMessages.length})</span>
-        <span style={{ marginLeft: 'auto' }}>
+        <button
+          onClick={(e) => { e.stopPropagation(); handleUnpinAll() }}
+          title={t('message.unpinAll')}
+          style={{
+            marginLeft: 'auto', marginRight: 8,
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--text-muted)', fontSize: 10,
+            display: 'flex', alignItems: 'center', gap: 2,
+            transition: 'color 0.15s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.color = 'var(--error)' }}
+          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
+        >
+          <X size={10} />
+          {t('message.unpinAll')}
+        </button>
+        <span>
           {pinnedExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
         </span>
       </button>
