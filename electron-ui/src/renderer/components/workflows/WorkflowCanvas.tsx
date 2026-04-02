@@ -4,6 +4,9 @@ import { Workflow } from '../../types/app.types'
 import { useT } from '../../i18n'
 import CanvasNode, { NODE_WIDTH, NODE_MIN_HEIGHT, NODE_GAP_Y } from './CanvasNode'
 import CanvasEdge, { CanvasEdgeDefs } from './CanvasEdge'
+import CanvasProgressBar from './CanvasProgressBar'
+import CanvasNodeSidebar from './CanvasNodeSidebar'
+import { useWorkflowExecution } from './useWorkflowExecution'
 
 interface WorkflowCanvasProps {
   workflow: Workflow | null
@@ -23,6 +26,7 @@ const ZOOM_STEP = 0.1
 export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
   const t = useT()
   const containerRef = useRef<HTMLDivElement>(null)
+  const execution = useWorkflowExecution(workflow)
 
   // Pan & zoom state
   const [panX, setPanX] = useState(0)
@@ -32,8 +36,11 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
   // Node positions (custom overrides from dragging)
   const [customPositions, setCustomPositions] = useState<Record<string, { x: number; y: number }>>({})
 
-  // Selected node
+  // Selected node (for sidebar)
   const [selectedNode, setSelectedNode] = useState<string | null>(null)
+
+  // Sidebar open state
+  const [sidebarStepId, setSidebarStepId] = useState<string | null>(null)
 
   // Panning state
   const [isPanning, setIsPanning] = useState(false)
@@ -43,7 +50,7 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
   const [draggingNode, setDraggingNode] = useState<string | null>(null)
   const dragStartRef = useRef({ x: 0, y: 0, nodeX: 0, nodeY: 0 })
 
-  // Smooth transition flag for programmatic moves (fit-to-view)
+  // Smooth transition flag for programmatic moves (fit-to-view, auto-pan)
   const [smoothTransition, setSmoothTransition] = useState(false)
 
   // Compute default positions for all nodes (top-to-bottom layout)
@@ -79,6 +86,7 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
   useEffect(() => {
     setCustomPositions({})
     setSelectedNode(null)
+    setSidebarStepId(null)
     setZoom(1)
     setPanX(0)
     setPanY(0)
@@ -119,17 +127,67 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
   // Auto-fit on first render or workflow change
   useEffect(() => {
     if (workflow && workflow.steps.length > 0) {
-      // Small delay to let container measure
       const timer = setTimeout(fitToView, 50)
       return () => clearTimeout(timer)
     }
   }, [workflow?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // --- Auto-pan to active node during execution ---
+  const prevActiveRef = useRef(-1)
+  useEffect(() => {
+    if (
+      execution.activeStepIndex < 0 ||
+      execution.activeStepIndex === prevActiveRef.current ||
+      !workflow ||
+      !containerRef.current
+    ) return
+
+    prevActiveRef.current = execution.activeStepIndex
+    const activeStep = workflow.steps[execution.activeStepIndex]
+    if (!activeStep) return
+    const pos = nodePositions[activeStep.id]
+    if (!pos) return
+
+    const container = containerRef.current
+    const cw = container.clientWidth
+    const ch = container.clientHeight
+
+    // Check if node is visible in current viewport
+    const nodeScreenX = pos.x * zoom + panX
+    const nodeScreenY = pos.y * zoom + panY
+    const margin = 50
+    const isVisible =
+      nodeScreenX > margin &&
+      nodeScreenX + pos.width * zoom < cw - margin &&
+      nodeScreenY > margin &&
+      nodeScreenY + pos.height * zoom < ch - margin
+
+    if (!isVisible) {
+      // Pan to center the active node
+      const newPanX = cw / 2 - (pos.x + pos.width / 2) * zoom
+      const newPanY = ch / 2 - (pos.y + pos.height / 2) * zoom
+      setSmoothTransition(true)
+      setPanX(newPanX)
+      setPanY(newPanY)
+      setTimeout(() => setSmoothTransition(false), 350)
+    }
+  }, [execution.activeStepIndex, workflow, nodePositions, zoom, panX, panY])
+
+  // --- Node selection (opens sidebar) ---
+  const handleNodeSelect = useCallback((stepId: string) => {
+    setSelectedNode(stepId)
+    setSidebarStepId(stepId)
+  }, [])
+
+  const closeSidebar = useCallback(() => {
+    setSidebarStepId(null)
+  }, [])
+
   // --- Mouse handlers for pan ---
   const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
-    // Only pan on left-click on empty canvas area
     if (e.button !== 0) return
     setSelectedNode(null)
+    setSidebarStepId(null)
     setIsPanning(true)
     panStartRef.current = { x: e.clientX, y: e.clientY, panX, panY }
   }, [panX, panY])
@@ -189,6 +247,14 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
     setZoom(prev => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev + delta)))
   }, [])
 
+  // --- Sidebar step data ---
+  const sidebarStep = sidebarStepId && workflow
+    ? workflow.steps.find(s => s.id === sidebarStepId) ?? null
+    : null
+  const sidebarStatus = sidebarStepId
+    ? execution.stepStatuses[sidebarStepId] ?? 'idle'
+    : 'idle'
+
   // --- Empty state ---
   if (!workflow) {
     return (
@@ -235,7 +301,6 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
         overflow: 'hidden',
         cursor: isPanning ? 'grabbing' : 'grab',
         background: 'var(--bg-main)',
-        // Dot grid pattern
         backgroundImage:
           'radial-gradient(circle, var(--border) 1px, transparent 1px)',
         backgroundSize: '20px 20px',
@@ -243,10 +308,17 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
       onMouseDown={handleCanvasMouseDown}
       onWheel={handleWheel}
     >
+      {/* Execution progress bar */}
+      <CanvasProgressBar
+        completedCount={execution.completedCount}
+        totalSteps={execution.totalSteps}
+        isRunning={execution.isRunning}
+      />
+
       {/* Canvas toolbar */}
       <div style={{
         position: 'absolute',
-        top: 8,
+        top: execution.isRunning || execution.completedCount > 0 ? 28 : 8,
         right: 8,
         zIndex: 10,
         display: 'flex',
@@ -257,6 +329,7 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
         borderRadius: 6,
         padding: '3px 6px',
         border: '1px solid var(--border)',
+        transition: 'top 0.2s ease',
       }}>
         <button
           onClick={(e) => { e.stopPropagation(); fitToView() }}
@@ -341,12 +414,38 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
               y={pos.y}
               width={pos.width}
               selected={selectedNode === step.id}
-              onSelect={setSelectedNode}
+              status={execution.stepStatuses[step.id] ?? 'idle'}
+              onSelect={handleNodeSelect}
               onDragStart={handleNodeDragStart}
             />
           )
         })}
       </div>
+
+      {/* Node detail sidebar */}
+      {sidebarStep && (
+        <CanvasNodeSidebar
+          step={sidebarStep}
+          status={sidebarStatus}
+          onClose={closeSidebar}
+        />
+      )}
+
+      {/* CSS animations for execution states */}
+      <style>{`
+        @keyframes canvas-node-pulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb, 59, 130, 246), 0.4); }
+          50% { box-shadow: 0 0 0 6px rgba(var(--accent-rgb, 59, 130, 246), 0); }
+        }
+        @keyframes canvas-spinner {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes canvas-sidebar-in {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+      `}</style>
     </div>
   )
 }

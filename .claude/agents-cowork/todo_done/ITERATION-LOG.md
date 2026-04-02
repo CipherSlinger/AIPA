@@ -2913,3 +2913,32 @@ _Date: 2026-04-02_
 - MessageList.tsx (683 lines) approaching 800-line threshold
 
 [RETRO] retro-2026-04-02-iterations-392-401.md completed, covering Iteration 392-401, next forced retro after Iteration 411
+
+
+## Iteration 402 — Workflow Canvas Execution Monitor (Phase 2)
+_Date: 2026-04-02_
+
+**Changes:**
+- Added real-time execution visualization to the Workflow Canvas
+- Created useWorkflowExecution.ts (100 lines): observes task queue to map queue item statuses to workflow step statuses (no store modifications)
+- Enhanced CanvasNode.tsx (128 -> 184 lines): added status prop with 4 visual states (idle, pending, running, completed), status badges (checkmark/spinner), pulse animation for running nodes
+- Created CanvasProgressBar.tsx (57 lines): thin progress bar showing "Step N of M" during execution, color-coded (accent -> green on completion)
+- Created CanvasNodeSidebar.tsx (138 lines): slide-in sidebar showing step input (prompt) and output status, closable via X button
+- Enhanced WorkflowCanvas.tsx (352 -> 451 lines): integrated execution hook, progress bar, sidebar, auto-pan to active node with viewport detection
+- Auto-focus: canvas smoothly pans to center the running node when it goes off-screen
+- CSS animations: node pulse (running state), spinner rotation, sidebar slide-in
+- Added 8 i18n keys (canvasProgress, canvasComplete, canvasInput, canvasOutput, canvasRunning, canvasPending, canvasStepDone, canvasNotStarted) in both en.json and zh-CN.json
+- No store/IPC/preload changes -- execution state derived from existing taskQueue observation
+
+**Files Created:**
+- electron-ui/src/renderer/components/workflows/useWorkflowExecution.ts (100 lines)
+- electron-ui/src/renderer/components/workflows/CanvasProgressBar.tsx (57 lines)
+- electron-ui/src/renderer/components/workflows/CanvasNodeSidebar.tsx (138 lines)
+
+**Files Modified:**
+- electron-ui/src/renderer/components/workflows/WorkflowCanvas.tsx (352 -> 451 lines)
+- electron-ui/src/renderer/components/workflows/CanvasNode.tsx (128 -> 184 lines)
+- electron-ui/src/renderer/i18n/locales/en.json (+8 keys)
+- electron-ui/src/renderer/i18n/locales/zh-CN.json (+8 keys)
+
+**Build:** SUCCESS (2525 modules, WorkflowCanvas chunk: 13.54 kB / 4.50 kB gzip)
