@@ -7,6 +7,7 @@ import {
   LayoutGrid,
 } from 'lucide-react'
 import { useT } from '../../i18n'
+import { useUiStore } from '../../store'
 import { useWorkflowCrud } from './useWorkflowCrud'
 import { WORKFLOW_ICONS, MAX_NAME_LENGTH, MAX_DESC_LENGTH, PRESET_WORKFLOWS } from './workflowConstants'
 import WorkflowStepEditor from './WorkflowStepEditor'
@@ -117,15 +118,15 @@ function WorkflowTabContent({ crud, t, viewMode, setViewMode, canvasWorkflow }: 
               </button>
             </div>
             <button
-              onClick={() => crud.setShowCreateForm(!crud.showCreateForm)}
+              onClick={() => useUiStore.getState().openWorkflowEditor(null)}
               aria-label={t('workflow.create')}
               style={{
-                background: crud.showCreateForm ? 'var(--accent)' : 'transparent',
+                background: 'transparent',
                 border: 'none',
                 borderRadius: 6,
                 padding: 4,
                 cursor: 'pointer',
-                color: crud.showCreateForm ? '#fff' : 'var(--text-muted)',
+                color: 'var(--text-muted)',
                 display: 'flex',
                 transition: 'all 0.15s ease',
               }}

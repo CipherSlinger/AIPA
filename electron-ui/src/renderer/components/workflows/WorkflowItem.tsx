@@ -2,6 +2,7 @@ import React from 'react'
 import { Play, Trash2, Edit3, Copy, ChevronDown } from 'lucide-react'
 import { Workflow } from '../../types/app.types'
 import { useT } from '../../i18n'
+import { useUiStore } from '../../store'
 import { smallBtnStyle, MAX_NAME_LENGTH, MAX_DESC_LENGTH, getPresetStepText } from './workflowConstants'
 import WorkflowStepEditor from './WorkflowStepEditor'
 import type { useWorkflowCrud } from './useWorkflowCrud'
@@ -178,7 +179,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
               </div>
               {/* Action buttons */}
               <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
-                <button onClick={() => crud.startEdit(wf)} style={{ ...smallBtnStyle }}>
+                <button onClick={() => useUiStore.getState().openWorkflowEditor(wf.id)} style={{ ...smallBtnStyle }}>
                   <Edit3 size={10} /> {t('workflow.edit')}
                 </button>
                 <button onClick={() => crud.duplicateWorkflow(wf)} style={{ ...smallBtnStyle }}>

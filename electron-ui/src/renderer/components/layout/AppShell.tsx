@@ -9,6 +9,8 @@ import ErrorBoundary from '../shared/ErrorBoundary'
 import { ArrowLeft, X } from 'lucide-react'
 
 const SettingsPanel = React.lazy(() => import('../settings/SettingsPanel'))
+const PersonaEditorPage = React.lazy(() => import('../settings/PersonaEditorPage'))
+const WorkflowEditorPage = React.lazy(() => import('../settings/WorkflowEditorPage'))
 
 const MIN_SIDEBAR = 180
 const MAX_SIDEBAR = 400
@@ -45,13 +47,18 @@ export default function AppShell() {
     return () => window.removeEventListener('resize', handleResize)
   }, [setSidebarOpen])
 
-  // Close settings page on Escape
+  // Close settings/editor page on Escape
   useEffect(() => {
-    if (mainView !== 'settings') return
+    if (mainView === 'chat') return
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation()
-        closeSettings()
+        if (mainView === 'persona-editor' || mainView === 'workflow-editor') {
+          // Go back to settings, not chat
+          useUiStore.getState().setMainView('settings')
+        } else {
+          closeSettings()
+        }
       }
     }
     window.addEventListener('keydown', handler, true)
@@ -162,7 +169,7 @@ export default function AppShell() {
           </>
         )}
 
-        {/* Main content area -- ChatPanel or Settings page */}
+        {/* Main content area -- ChatPanel, Settings, or Editor pages */}
         <div
           role="main"
           aria-label={mainView === 'settings' ? t('settings.title') : t('a11y.chatArea')}
@@ -228,6 +235,18 @@ export default function AppShell() {
                   </React.Suspense>
                 </div>
               </div>
+            </ErrorBoundary>
+          ) : mainView === 'persona-editor' ? (
+            <ErrorBoundary fallbackLabel="persona editor">
+              <React.Suspense fallback={<div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading...</div>}>
+                <PersonaEditorPage />
+              </React.Suspense>
+            </ErrorBoundary>
+          ) : mainView === 'workflow-editor' ? (
+            <ErrorBoundary fallbackLabel="workflow editor">
+              <React.Suspense fallback={<div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading...</div>}>
+                <WorkflowEditorPage />
+              </React.Suspense>
             </ErrorBoundary>
           ) : (
             <ErrorBoundary fallbackLabel="chat panel">

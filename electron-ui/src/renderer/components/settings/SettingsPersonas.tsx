@@ -49,14 +49,8 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
   }
 
   const startEdit = (p: Persona) => {
-    setEditingId(p.id)
-    setFormName(p.name)
-    setFormEmoji(p.emoji)
-    setFormModel(p.model)
-    setFormPrompt(p.systemPrompt)
-    setFormColor(p.color)
-    setFormTone(p.outputStyle || 'default')
-    setShowForm(true)
+    // Open full-page persona editor (Iteration 414)
+    useUiStore.getState().openPersonaEditor(p.id)
   }
 
   const handleSubmit = () => {
@@ -201,7 +195,7 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
       {/* Add button */}
       {!showForm && (
         <button
-          onClick={() => { resetForm(); setShowForm(true) }}
+          onClick={() => useUiStore.getState().openPersonaEditor(null)}
           disabled={personas.length >= 10}
           style={{
             display: 'flex',

@@ -556,9 +556,15 @@ interface UiState {
   openSettingsModal: () => void
   closeSettingsModal: () => void
 
-  // Main content area view (Iteration 412: settings as page instead of modal)
-  mainView: 'chat' | 'settings'
-  setMainView: (view: 'chat' | 'settings') => void
+  // Main content area view (Iteration 412: settings as page; Iteration 414: persona/workflow editors)
+  mainView: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor'
+  setMainView: (view: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor') => void
+
+  // Persona/Workflow editor: ID of item being edited (null = new)
+  editingPersonaId: string | null
+  editingWorkflowId: string | null
+  openPersonaEditor: (personaId: string | null) => void
+  openWorkflowEditor: (workflowId: string | null) => void
 }
 
 // Restore last sidebar tab from localStorage
@@ -622,4 +628,8 @@ export const useUiStore = create<UiState>((set) => ({
   closeSettingsModal: () => set({ settingsModalOpen: false, mainView: 'chat' }),
   mainView: 'chat',
   setMainView: (view) => set({ mainView: view }),
+  editingPersonaId: null,
+  editingWorkflowId: null,
+  openPersonaEditor: (personaId) => set({ mainView: 'persona-editor', editingPersonaId: personaId, settingsModalOpen: false }),
+  openWorkflowEditor: (workflowId) => set({ mainView: 'workflow-editor', editingWorkflowId: workflowId, settingsModalOpen: false }),
 }))
