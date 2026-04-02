@@ -292,6 +292,34 @@ export function generatePromptSuggestion(context: string, cliPath: string): Prom
   })
 }
 
+/**
+ * Generate an "away summary" — a short 1-3 sentence recap of the conversation
+ * context for the "while you were away" dialog. Uses a lightweight CLI call.
+ */
+export function generateAwaySummary(context: string, cliPath: string): Promise<string> {
+  return new Promise((resolve) => {
+    const nodePath = process.env.CLAUDE_NODE_PATH || 'node'
+    const systemPrompt = 'You are a session recap assistant. The user stepped away and is coming back. Write exactly 1-3 short sentences. Start by stating the high-level task — what they are building or debugging, not implementation details. Next: the concrete next step. Skip status reports and commit recaps. Match the user\'s language.'
+    const proc = spawn(nodePath, [
+      cliPath,
+      '--print',
+      '--output-format', 'text',
+      '--max-turns', '1',
+      '--append-system-prompt', systemPrompt,
+      '-p', `Conversation context:\n${context}\n\nWrite a 1-3 sentence recap of where we left off:`,
+    ], { stdio: ['ignore', 'pipe', 'ignore'] })
+
+    let output = ''
+    proc.stdout.on('data', (d: Buffer) => { output += d.toString() })
+    proc.on('close', () => {
+      const summary = output.trim()
+      resolve(summary.length > 0 && summary.length <= 500 ? summary : '')
+    })
+    // Timeout after 10 seconds
+    setTimeout(() => { try { proc.kill() } catch {} resolve('') }, 10000)
+  })
+}
+
 export interface SearchResult {
   sessionId: string
   title?: string

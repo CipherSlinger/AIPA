@@ -3,6 +3,7 @@ import { ToolUseInfo } from '../../types/app.types'
 import { ChevronDown, ChevronRight, Terminal, FileEdit, Search, Globe, Loader2, Check, X, Timer } from 'lucide-react'
 import { useT } from '../../i18n'
 import DiffView from './DiffView'
+import { generateToolSummary } from '../../utils/toolSummary'
 
 interface Props {
   tool: ToolUseInfo
@@ -25,23 +26,6 @@ const TOOL_ICONS: Record<string, React.ElementType> = {
   Grep: Search,
   WebFetch: Globe,
   WebSearch: Globe,
-}
-
-const TOOL_LABELS: Record<string, string> = {
-  Bash: 'Bash',
-  Write: 'permission.toolWriteFile',
-  Edit: 'permission.toolEditFile',
-  MultiEdit: 'permission.toolMultiEdit',
-  Read: 'permission.toolReadFile',
-  str_replace_editor: 'permission.toolEditFile',
-  str_replace_based_edit_tool: 'permission.toolEditFile',
-  create_file: 'permission.toolWriteFile',
-  read_file: 'permission.toolReadFile',
-  Glob: 'permission.toolSearchFiles',
-  LS: 'permission.toolSearchFiles',
-  Grep: 'permission.toolSearchContent',
-  WebFetch: 'permission.toolWebFetch',
-  WebSearch: 'permission.toolWebSearch',
 }
 
 const BASH_TOOLS = new Set(['Bash', 'computer'])
@@ -111,8 +95,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
   }, [isRunning])
 
   const Icon = TOOL_ICONS[tool.name] || Terminal
-  const labelKey = TOOL_LABELS[tool.name]
-  const label = labelKey ? (labelKey === 'Bash' ? 'Bash' : t(labelKey)) : tool.name
+  const summaryLabel = generateToolSummary(tool)
   const isBash = BASH_TOOLS.has(tool.name)
   const isFileEdit = FILE_EDIT_TOOLS.has(tool.name)
   const showElapsed = isRunning && elapsed >= 2
@@ -123,14 +106,6 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
     : tool.status === 'done'
     ? <Check size={11} style={{ color: 'var(--success)' }} />
     : <X size={11} style={{ color: 'var(--error)' }} />
-
-  const primaryInput = (() => {
-    if (tool.input.command) return String(tool.input.command).slice(0, 80)
-    if (tool.input.path) return String(tool.input.path)
-    if (tool.input.pattern) return String(tool.input.pattern)
-    if (tool.input.url) return String(tool.input.url)
-    return JSON.stringify(tool.input).slice(0, 80)
-  })()
 
   const resultText = typeof tool.result === 'string'
     ? tool.result
@@ -164,9 +139,8 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
       >
         {expanded ? <ChevronDown size={11} style={{ color: 'var(--text-muted)' }} /> : <ChevronRight size={11} style={{ color: 'var(--text-muted)' }} />}
         <Icon size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-        <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--accent)', flexShrink: 0 }}>{label}</span>
-        <span style={{ fontSize: 10, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, fontFamily: 'monospace' }}>
-          {primaryInput}
+        <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+          {summaryLabel}
         </span>
         {showElapsed && (
           <span style={{ fontSize: 11, color: 'var(--warning)', flexShrink: 0, fontFamily: 'monospace' }}>

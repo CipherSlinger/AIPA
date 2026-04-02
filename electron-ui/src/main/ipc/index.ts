@@ -2,7 +2,7 @@ import { ipcMain, BrowserWindow, dialog, shell, app, desktopCapturer, powerSaveB
 import { ptyManager } from '../pty/pty-manager'
 import { fallbackShellManager } from '../pty/fallback-shell'
 import { streamBridgeManager } from '../pty/stream-bridge'
-import { readSettings, writeSettings, listSessions, loadSession, deleteSession, forkSession, renameSession, getMcpServers, setMcpServerEnabled, generateSessionTitle, generatePromptSuggestion, rewindSession, searchSessions } from '../sessions/session-reader'
+import { readSettings, writeSettings, listSessions, loadSession, deleteSession, forkSession, renameSession, getMcpServers, setMcpServerEnabled, generateSessionTitle, generatePromptSuggestion, generateAwaySummary, rewindSession, searchSessions } from '../sessions/session-reader'
 import { getApiKey, setApiKey, getPref, setPref, getAllPrefs } from '../config/config-manager'
 import { getCliPath } from '../utils/cli-path'
 import { safePath, validateApiKey, validateModelName, validateStringLength, validateFlags, validateDirectoryExists, getAllowedFsRoots } from '../utils/validate'
@@ -237,6 +237,11 @@ function registerSessionHandlers(): void {
   ipcMain.handle('cli:generateSuggestion', async (_e: Electron.IpcMainInvokeEvent, { context }: { context: string }) => {
     const cliPath = getCliPath()
     return generatePromptSuggestion(context, cliPath)
+  })
+
+  ipcMain.handle('cli:generateAwaySummary', async (_e: Electron.IpcMainInvokeEvent, { context }: { context: string }) => {
+    const cliPath = getCliPath()
+    return generateAwaySummary(context, cliPath)
   })
 }
 

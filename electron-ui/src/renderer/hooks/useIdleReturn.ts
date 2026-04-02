@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useChatStore, usePrefsStore } from '../store'
+import { StandardChatMessage } from '../types/app.types'
 
 const IDLE_THRESHOLD_MS = 30 * 60 * 1000 // 30 minutes
 const MIN_CONTEXT_PCT = 20 // Only show dialog if context usage > 20%
+const MIN_MESSAGES_FOR_SUMMARY = 3 // Need at least 3 messages for a meaningful summary
 
 /**
  * Formats an idle duration in minutes to a human-readable string.
@@ -21,11 +23,13 @@ function formatIdleDuration(minutes: number): string {
  * Hook that detects when the user returns after being idle and shows a dialog
  * asking whether to continue or start a new conversation.
  *
- * Tracks the last interaction time and checks on window focus events.
+ * Enhanced with AI-generated "away summary" that recaps where the conversation left off.
  */
 export function useIdleReturn() {
   const [showDialog, setShowDialog] = useState(false)
   const [idleDuration, setIdleDuration] = useState('')
+  const [awaySummary, setAwaySummary] = useState<string | null>(null)
+  const [summaryLoading, setSummaryLoading] = useState(false)
   const lastInteractionRef = useRef(Date.now())
 
   const enabled = usePrefsStore(s => s.prefs.idleReturnDialogEnabled !== false)
@@ -44,6 +48,40 @@ export function useIdleReturn() {
       window.removeEventListener('mousedown', updateInteraction)
     }
   }, [updateInteraction])
+
+  // Generate away summary using CLI
+  const generateSummary = useCallback(async () => {
+    const { messages } = useChatStore.getState()
+    if (messages.length < MIN_MESSAGES_FOR_SUMMARY) return
+
+    setSummaryLoading(true)
+    try {
+      // Build context from last 15 messages (approx 7-8 exchanges)
+      const recentMessages = messages
+        .filter(m => m.role === 'user' || m.role === 'assistant')
+        .slice(-15)
+        .map(m => {
+          const content = (m as StandardChatMessage).content || ''
+          const truncated = content.length > 300 ? content.slice(0, 300) + '...' : content
+          return `${m.role}: ${truncated}`
+        })
+        .join('\n')
+
+      if (!recentMessages) {
+        setSummaryLoading(false)
+        return
+      }
+
+      const result = await window.electronAPI.cliGenerateAwaySummary(recentMessages)
+      if (result && result.length > 0) {
+        setAwaySummary(result)
+      }
+    } catch {
+      // Silently fail - summary is non-critical
+    } finally {
+      setSummaryLoading(false)
+    }
+  }, [])
 
   // Check on window focus
   useEffect(() => {
@@ -65,24 +103,32 @@ export function useIdleReturn() {
 
       const idleMinutes = idleMs / (60 * 1000)
       setIdleDuration(formatIdleDuration(idleMinutes))
+      setAwaySummary(null) // Reset previous summary
       setShowDialog(true)
+
+      // Start generating summary in parallel with showing dialog
+      generateSummary()
     }
 
     window.addEventListener('focus', handleFocus)
     return () => window.removeEventListener('focus', handleFocus)
-  }, [enabled])
+  }, [enabled, generateSummary])
 
   const dismiss = useCallback(() => {
     setShowDialog(false)
+    setAwaySummary(null)
+    setSummaryLoading(false)
     lastInteractionRef.current = Date.now()
   }, [])
 
   const suppressForever = useCallback(() => {
     setShowDialog(false)
+    setAwaySummary(null)
+    setSummaryLoading(false)
     lastInteractionRef.current = Date.now()
     usePrefsStore.getState().setPrefs({ idleReturnDialogEnabled: false })
     window.electronAPI.prefsSet('idleReturnDialogEnabled', false)
   }, [])
 
-  return { showDialog, idleDuration, dismiss, suppressForever }
+  return { showDialog, idleDuration, awaySummary, summaryLoading, dismiss, suppressForever }
 }

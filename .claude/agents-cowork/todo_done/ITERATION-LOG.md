@@ -2619,3 +2619,26 @@ Status: SUCCESS (3 files changed, 755 insertions; tsc 0 errors; Vite 2513 module
 
 ### Iteration 378 (2026-04-01)
 - Output Styles + Extended Thinking Toggle (inspired by Claude Code `OutputStylePicker.tsx` + `ThinkingToggle.tsx` + `loadOutputStylesDir.ts`) -- Two features: (1) Output Styles: Replaced the simple `responseTone` system (6 flat tones) with a richer `outputStyle` system offering 3 structured modes: Default (balanced), Explanatory (adds Insight callout blocks after key decisions), and Step-by-Step/Learning (adds Practice exercise blocks). New InputToolbarStyleSelector.tsx component (115 lines) with popup picker showing style name + description, checkmark for active style. Output style injected via `<output_style>` XML wrapper in system prompt (useStreamJson.ts). Old tone keys removed from i18n. All persona references updated from responseTone to outputStyle (PersonaPicker, StatusBarPersonaPicker, SettingsPersonas, PersonaForm). Settings > Behavior: output style dropdown with descriptions. (2) Extended Thinking Toggle: Brain icon button in StatusBar that toggles extended thinking on/off. When enabled, passes `--thinking-budget 10000` to CLI spawn args in useStreamJson.ts. Purple highlight (#a78bfa) when active, 0.5 opacity when off. Toggle in Settings > Behavior with description. Persisted as `extendedThinking` boolean in ClaudePrefs. Tip text updated to reference new output styles. 12 new i18n keys (outputStyle.* 9 keys, thinking.* 4 keys) replacing 7 old tone keys in both en.json and zh-CN.json. i18n key count: 1190 (aligned). 11 files changed (1 new: InputToolbarStyleSelector.tsx); tsc 0 errors; build SUCCESS
+
+## Iteration 379 — Windows PTY 降级容错 + 思考深度 i18n + Personas → Agents 重命名
+_Date: 2026-04-01 | Sprint bugfix_
+
+### Summary
+三项用户反馈修复：(1) Windows 下 node-pty 原生模块缺失导致启动崩溃的问题——实际上 pty-manager.ts 和 IPC handler 已在 Iteration 118/184 期间完整实现了懒加载 + fallback shell 机制，本次确认现有代码已覆盖该场景，并修复了 ChatPanel.tsx 中 `sessionChanges` prop 缺失导致的 TypeScript 错误（与此功能相关，因 ChatHeader 的 ChangesPanel 已引入该 prop）。(2) 将 zh-CN.json 中"投入度"（effort）相关文案全部替换为"思考深度"，包括 `effort.title`、`effort.switched`、`effort.settingsLabel` 三处。(3) 将中英文 persona 标题从 "AI 角色" / "AI Personas" 统一改为 "Agents"（不翻译）；en.json 和 zh-CN.json 的 `persona.title` 均设为 "Agents"。同时修复 `useSessionChanges` hook 的参数类型，从 `StandardChatMessage[]` 扩展为 `StandardChatMessage[] | ChatMessage[]`，以便 ChatPanel 直接传入 store 的 messages 数组而无需手动过滤。
+
+### Files Changed
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` — `effort.title/switched/settingsLabel` 中"投入度"→"思考深度"；`persona.title` "AI 角色" → "Agents"
+- `electron-ui/src/renderer/i18n/locales/en.json` — `persona.title` "AI Personas" → "Agents"
+- `electron-ui/src/renderer/components/chat/ChatPanel.tsx` — 新增 `useSessionChanges` import + hook 调用；向 `<ChatHeader>` 传递 `sessionChanges` prop（修复 TS2741 错误）
+- `electron-ui/src/renderer/hooks/useSessionChanges.ts` — 参数类型从 `StandardChatMessage[]` 扩展为 `StandardChatMessage[] | ChatMessage[]`；内部用 `stdMessages` 过滤 non-standard messages
+
+### Build
+Status: SUCCESS (tsc: 0 errors; vite: 2517 modules, 10.64s)
+
+### Acceptance Criteria
+- [x] `投入度` 字样已全部替换为 `思考深度`（3 处：title/switched/settingsLabel）
+- [x] Personas 区块标题在中英文均显示 "Agents"
+- [x] `tsc --noEmit` 0 errors（修复了 ChatPanel 的 sessionChanges TS2741 错误）
+- [x] `npm run build` 全部通过
+- [x] git push 成功（commit f38df63）
+

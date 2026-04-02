@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { StandardChatMessage } from '../../types/app.types'
 import MessageContent from './MessageContent'
 import ToolUseBlock from './ToolUseBlock'
+import ToolBatchBlock from './ToolBatchBlock'
+import { groupToolUses } from '../../utils/toolSummary'
 import { ChevronDown, ChevronRight, Check, CheckCheck, Clock, Timer, Type } from 'lucide-react'
 import { useT } from '../../i18n'
 import { getShowAbsoluteTime, formatAbsoluteTime, relativeTime, formatResponseDuration } from './messageUtils'
@@ -134,16 +136,23 @@ export default function MessageBubbleContent({
             </div>
           ) : null}
 
-          {/* Tool uses (inside AI bubble) */}
-          {!isPermission && message.toolUses && message.toolUses.length > 0 && (
-            <div style={{ borderTop: '1px solid var(--bubble-ai-border)', marginTop: 8, paddingTop: 8 }}>
-              {message.toolUses.map((tool) => (
-                <div key={tool.id} style={{ background: 'rgba(0, 0, 0, 0.15)', borderRadius: 6, marginBottom: 4 }}>
-                  <ToolUseBlock tool={tool} />
-                </div>
-              ))}
-            </div>
-          )}
+          {/* Tool uses (inside AI bubble) -- with batch grouping */}
+          {!isPermission && message.toolUses && message.toolUses.length > 0 && (() => {
+            const groups = groupToolUses(message.toolUses)
+            return (
+              <div style={{ borderTop: '1px solid var(--bubble-ai-border)', marginTop: 8, paddingTop: 8 }}>
+                {groups.map((group, idx) => (
+                  group.type === 'batch' ? (
+                    <ToolBatchBlock key={`batch-${idx}`} group={group} />
+                  ) : (
+                    <div key={group.tools[0].id} style={{ background: 'rgba(0, 0, 0, 0.15)', borderRadius: 6, marginBottom: 4 }}>
+                      <ToolUseBlock tool={group.tools[0]} />
+                    </div>
+                  )
+                ))}
+              </div>
+            )
+          })()}
 
           {/* Text content */}
           {isEditing && isUser ? (

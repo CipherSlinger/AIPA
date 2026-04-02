@@ -6,7 +6,9 @@ import ModelPicker from './ModelPicker'
 import PersonaPicker from './PersonaPicker'
 import BookmarksPanel from './BookmarksPanel'
 import StatsPanel from './StatsPanel'
+import ChangesPanel from './ChangesPanel'
 import type { ConversationStats, BookmarkedMessage } from '../../hooks/useConversationStats'
+import type { SessionChanges } from '../../hooks/useSessionChanges'
 
 interface ChatHeaderProps {
   sessionTitle: string | null
@@ -19,6 +21,7 @@ interface ChatHeaderProps {
   focusMode: boolean
   bookmarkedMessages: BookmarkedMessage[]
   conversationStats: ConversationStats
+  sessionChanges: SessionChanges
   canRegenerate: boolean
   onToggleSearch: () => void
   onExport: () => void
@@ -72,6 +75,7 @@ export default function ChatHeader({
   focusMode,
   bookmarkedMessages,
   conversationStats,
+  sessionChanges,
   canRegenerate,
   onToggleSearch,
   onExport,
@@ -304,6 +308,14 @@ export default function ChatHeader({
         bookmarkedMessages={bookmarkedMessages}
         onScrollToMessage={onScrollToMessage}
         onExportBookmarks={bookmarkedMessages.length > 0 ? onExportBookmarks : undefined}
+        headerBtnStyle={headerBtnStyle}
+        hoverIn={hoverIn}
+        hoverOut={hoverOut}
+      />
+
+      {/* Session changes panel (extracted) */}
+      <ChangesPanel
+        sessionChanges={sessionChanges}
         headerBtnStyle={headerBtnStyle}
         hoverIn={hoverIn}
         hoverOut={hoverOut}

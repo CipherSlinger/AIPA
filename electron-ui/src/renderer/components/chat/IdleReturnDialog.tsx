@@ -1,10 +1,12 @@
 import React from 'react'
-import { Clock, MessageSquarePlus, X } from 'lucide-react'
+import { Clock, MessageSquarePlus, X, Sparkles, Loader } from 'lucide-react'
 import { useChatStore } from '../../store'
 import { useT } from '../../i18n'
 
 interface IdleReturnDialogProps {
   idleDuration: string
+  awaySummary?: string | null
+  summaryLoading?: boolean
   onContinue: () => void
   onNewConversation: () => void
   onNeverAsk: () => void
@@ -12,6 +14,8 @@ interface IdleReturnDialogProps {
 
 export default function IdleReturnDialog({
   idleDuration,
+  awaySummary,
+  summaryLoading,
   onContinue,
   onNewConversation,
   onNeverAsk,
@@ -62,6 +66,46 @@ export default function IdleReturnDialog({
         <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 8px 0', lineHeight: 1.5 }}>
           {t('idle.description')}
         </p>
+
+        {/* Away summary */}
+        {(summaryLoading || awaySummary) && (
+          <div style={{
+            margin: '12px 0',
+            padding: '10px 14px',
+            background: 'var(--card-bg)',
+            borderRadius: 8,
+            border: '1px solid var(--card-border)',
+          }}>
+            <div style={{
+              fontSize: 11,
+              color: 'var(--text-muted)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+            }}>
+              {summaryLoading ? (
+                <Loader size={12} style={{ color: 'var(--text-muted)', animation: 'spin 1s linear infinite' }} />
+              ) : (
+                <Sparkles size={14} style={{ color: 'var(--accent)' }} />
+              )}
+              <span>{summaryLoading ? t('idle.generatingSummary') : t('idle.summary')}</span>
+            </div>
+            {awaySummary && (
+              <div style={{
+                fontSize: 13,
+                lineHeight: 1.5,
+                color: 'var(--text-primary)',
+                marginTop: 6,
+                display: '-webkit-box',
+                WebkitLineClamp: 3,
+                WebkitBoxOrient: 'vertical' as const,
+                overflow: 'hidden',
+              }}>
+                {awaySummary}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Context usage info */}
         {contextPct !== null && (
