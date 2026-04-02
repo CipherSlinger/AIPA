@@ -529,6 +529,8 @@ export default function SessionList() {
                 onOpenTagPicker={openTagPicker}
                 onStartRename={actions.startRename}
                 onFork={actions.forkSession}
+                onDuplicate={actions.duplicateSession}
+                onRegenerateTitle={actions.regenerateTitle}
                 onExport={actions.exportSession}
                 onDelete={actions.deleteSession}
                 onRenameChange={actions.setRenameValue}

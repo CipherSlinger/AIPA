@@ -193,3 +193,56 @@ export function getMatchContext(session: { title?: string; lastPrompt?: string; 
   if (end < text.length) snippet = snippet + '...'
   return { source, snippet }
 }
+
+/** Generate a smarter session title from conversation messages (Iteration 408).
+ * Heuristic: strip filler words from first user message, capitalize, truncate to 60 chars.
+ */
+export function generateSmartTitle(messages: ChatMessage[]): string | null {
+  const firstUser = messages.find(m => m.role === 'user') as StandardChatMessage | undefined
+  if (!firstUser || !firstUser.content) return null
+
+  // Strip markdown formatting and normalize whitespace
+  let text = firstUser.content
+    .replace(/```[\s\S]*?```/g, '') // remove code blocks
+    .replace(/[#*_~`>\[\]()]/g, '') // remove markdown chars
+    .replace(/https?:\/\/\S+/g, '') // remove URLs
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (!text) return null
+
+  // Remove leading filler words/phrases (case-insensitive)
+  const fillers = [
+    /^(hey|hi|hello|yo)\s*,?\s*/i,
+    /^(please|pls|plz)\s+/i,
+    /^(can you|could you|would you|will you)\s+/i,
+    /^(help me|i need you to|i want you to|i'd like you to)\s+/i,
+    /^(i need|i want|i'd like)\s+(to|some|a|an|the)\s+/i,
+    /^(help with|assist with|assist me with)\s+/i,
+    /^(let's|let me|let us)\s+/i,
+  ]
+  for (const filler of fillers) {
+    text = text.replace(filler, '')
+  }
+
+  // Capitalize first letter
+  text = text.charAt(0).toUpperCase() + text.slice(1)
+
+  // Take first sentence or first 60 chars, whichever is shorter
+  const sentenceEnd = text.search(/[.!?\n]/)
+  if (sentenceEnd > 0 && sentenceEnd <= 60) {
+    text = text.slice(0, sentenceEnd)
+  } else {
+    text = text.slice(0, 60)
+    // Don't cut mid-word
+    const lastSpace = text.lastIndexOf(' ')
+    if (lastSpace > 30) {
+      text = text.slice(0, lastSpace)
+    }
+  }
+
+  text = text.trim()
+  if (text.length < 3) return null
+
+  return text
+}

@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { SessionListItem, StandardChatMessage, ChatMessage } from '../../types/app.types'
 import { useSessionStore, useChatStore, useUiStore, usePrefsStore } from '../../store'
-import { parseSessionMessages } from './sessionUtils'
+import { parseSessionMessages, generateSmartTitle } from './sessionUtils'
 import { useT } from '../../i18n'
 
 export function useSessionListActions() {
@@ -135,6 +135,40 @@ export function useSessionListActions() {
     }
   }
 
+  const duplicateSession = async (e: React.MouseEvent, session: SessionListItem) => {
+    e.stopPropagation()
+    try {
+      const raw = await window.electronAPI.sessionLoad(session.sessionId)
+      const chatMessages = parseSessionMessages(raw)
+      const title = session.title || session.lastPrompt || t('session.untitledSession')
+      // Load into chat as a new session (no CLI resume ID)
+      clearMessages()
+      loadHistory(chatMessages)
+      // Don't set a session ID — this creates an "unsaved" new session
+      // that will get its own ID when the user sends the first message
+      useChatStore.getState().setSessionTitle(`${title} (${t('session.copy')})`)
+      addToast('success', t('session.duplicated'))
+    } catch {
+      addToast('error', t('session.duplicateFailed'))
+    }
+  }
+
+  const regenerateTitle = async (e: React.MouseEvent, session: SessionListItem) => {
+    e.stopPropagation()
+    try {
+      const raw = await window.electronAPI.sessionLoad(session.sessionId)
+      const chatMessages = parseSessionMessages(raw)
+      const newTitle = generateSmartTitle(chatMessages)
+      if (newTitle) {
+        await window.electronAPI.sessionRename(session.sessionId, newTitle)
+        await loadSessions()
+        addToast('success', t('session.titleRegenerated'))
+      }
+    } catch {
+      addToast('error', t('session.titleRegenerateFailed'))
+    }
+  }
+
   const exportSession = async (e: React.MouseEvent, session: SessionListItem) => {
     e.stopPropagation()
     try {
@@ -246,6 +280,8 @@ export function useSessionListActions() {
     openSession,
     deleteSession,
     forkSession,
+    duplicateSession,
+    regenerateTitle,
     exportSession,
     deleteAll,
     // Passthrough

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Trash2, Star, GitBranch, Pencil, Tag, Download, MessageSquare, CheckSquare, Square, Clock } from 'lucide-react'
+import { Trash2, Star, GitBranch, Pencil, Tag, Download, MessageSquare, CheckSquare, Square, Clock, Copy, RefreshCw } from 'lucide-react'
 import { SessionListItem } from '../../types/app.types'
 import { useT, useDateLocale } from '../../i18n'
 import { getSessionAvatarColor, formatSessionDuration, TAG_PRESETS, getMatchContext } from './sessionUtils'
@@ -27,6 +27,8 @@ interface SessionItemProps {
   onOpenTagPicker: (e: React.MouseEvent, sessionId: string) => void
   onStartRename: (e: React.MouseEvent, session: SessionListItem) => void
   onFork: (e: React.MouseEvent, session: SessionListItem) => void
+  onDuplicate: (e: React.MouseEvent, session: SessionListItem) => void
+  onRegenerateTitle: (e: React.MouseEvent, session: SessionListItem) => void
   onExport: (e: React.MouseEvent, session: SessionListItem) => void
   onDelete: (e: React.MouseEvent, sessionId: string) => void
   onRenameChange: (val: string) => void
@@ -57,6 +59,8 @@ export default function SessionItem({
   onOpenTagPicker,
   onStartRename,
   onFork,
+  onDuplicate,
+  onRegenerateTitle,
   onExport,
   onDelete,
   onRenameChange,
@@ -380,6 +384,20 @@ export default function SessionItem({
             style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
           >
             <GitBranch size={11} />
+          </button>
+          <button
+            onClick={(e) => onDuplicate(e, session)}
+            title={t('session.duplicate')}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+          >
+            <Copy size={11} />
+          </button>
+          <button
+            onClick={(e) => onRegenerateTitle(e, session)}
+            title={t('session.regenerateTitle')}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+          >
+            <RefreshCw size={11} />
           </button>
           <button
             onClick={(e) => onExport(e, session)}
