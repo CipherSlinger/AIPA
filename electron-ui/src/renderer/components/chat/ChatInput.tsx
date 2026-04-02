@@ -545,6 +545,28 @@ export default function ChatInput({
               </div>
             )}
           </div>
+          {/* Character counter */}
+          {input.length > 0 && (
+            <div style={{
+              display: 'flex', justifyContent: 'flex-end',
+              padding: '2px 0 0',
+            }}>
+              <span style={{
+                fontSize: 10,
+                fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
+                color: input.length >= 50000
+                  ? 'var(--error, #d9534f)'
+                  : input.length >= 10000
+                  ? 'var(--warning, #f0ad4e)'
+                  : 'var(--text-muted)',
+                opacity: input.length >= 10000 ? 1 : 0.6,
+                transition: 'color 200ms ease',
+                userSelect: 'none',
+              }}>
+                {input.length.toLocaleString()} {t('input.chars')}
+              </span>
+            </div>
+          )}
         </div>
         {/* Send / Stop button with progress ring */}
         <div style={{ position: 'relative', flexShrink: 0, alignSelf: 'flex-end' }}>

@@ -287,6 +287,15 @@
     "preview": "Preview",
     "closePreview": "Close preview"
   },
+  "copy": {
+    "moreOptions": "More copy options",
+    "asText": "Copy as Text",
+    "asMarkdown": "Copy as Markdown",
+    "codeBlocksOnly": "Copy Code Blocks Only"
+  },
+  "input": {
+    "chars": "chars"
+  },
   "selection": {
     "copySelection": "Copy selected text",
     "copy": "Copy",

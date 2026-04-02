@@ -287,6 +287,15 @@
     "preview": "预览",
     "closePreview": "关闭预览"
   },
+  "copy": {
+    "moreOptions": "更多复制选项",
+    "asText": "复制为文本",
+    "asMarkdown": "复制为 Markdown",
+    "codeBlocksOnly": "仅复制代码块"
+  },
+  "input": {
+    "chars": "字符"
+  },
   "selection": {
     "copySelection": "复制选中文本",
     "copy": "复制",

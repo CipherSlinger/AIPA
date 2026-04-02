@@ -487,6 +487,9 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
               : undefined
             }
             isLastMessage={isLastMessage}
+            onCopyMarkdown={isAssistant ? handleCopyMarkdown : undefined}
+            onCopyCodeBlocks={isAssistant && (message as StandardChatMessage).content?.includes('```') ? handleCopyCodeBlocks : undefined}
+            hasCodeBlocks={!!(message as StandardChatMessage).content?.includes('```')}
           />
         )}
       </div>

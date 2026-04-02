@@ -3082,3 +3082,26 @@ _Date: 2026-04-02_
 - electron-ui/src/renderer/i18n/locales/zh-CN.json (+5 keys)
 
 **Build:** SUCCESS (2516 modules)
+
+## Iteration 410 — Input Character Counter + Enhanced Copy Dropdown
+
+_Date: 2026-04-02_
+
+**Changes:**
+- Added character counter to ChatInput: shows "N chars" in bottom-right of input area
+- Character counter uses color thresholds: muted (default), orange (>=10K), red (>=50K)
+- Counter uses monospace font and is only visible when input has content
+- Enhanced MessageActionToolbar copy button with split-button dropdown (assistant messages)
+- Dropdown offers: "Copy as Text", "Copy as Markdown", "Copy Code Blocks Only"
+- Code blocks option only shown when message contains triple-backtick code blocks
+- Dropdown closes on click outside
+- Added 5 i18n keys (en + zh-CN): copy.moreOptions, copy.asText, copy.asMarkdown, copy.codeBlocksOnly, input.chars
+
+**Files Modified:**
+- electron-ui/src/renderer/components/chat/ChatInput.tsx (added character counter display)
+- electron-ui/src/renderer/components/chat/MessageActionToolbar.tsx (split-button copy dropdown with 3 copy format options)
+- electron-ui/src/renderer/components/chat/Message.tsx (pass onCopyMarkdown, onCopyCodeBlocks, hasCodeBlocks props)
+- electron-ui/src/renderer/i18n/locales/en.json (+5 keys: copy.*, input.chars)
+- electron-ui/src/renderer/i18n/locales/zh-CN.json (+5 keys: copy.*, input.chars)
+
+**Build:** SUCCESS (2516 modules)
