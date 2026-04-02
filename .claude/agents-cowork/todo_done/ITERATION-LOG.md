@@ -2669,3 +2669,10 @@ Status: SUCCESS (tsc: 0 errors; vite: 2517 modules, 10.64s)
 - **Files changed**: WorkflowPersonasSection.tsx (refactored), PersonaSidebarComponents.tsx (new, 334 lines)
 - **Build**: SUCCESS
 - **Version**: 1.1.63
+
+## Iteration 387 — Randomized Welcome Starters
+- **Date**: 2026-04-01
+- **Features**: Welcome screen now shows 4 random conversation starters from a pool of 18, with icon variety enforced; starters refresh on each new conversation instead of being static
+- **Files changed**: welcomeScreenConstants.ts (replaced getDefaultSuggestions with randomized pool picker)
+- **Build**: SUCCESS
+- **Version**: 1.1.64

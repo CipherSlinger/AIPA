@@ -64,14 +64,61 @@ export function getPersonaStarters(personaName: string | undefined, t: (key: str
   return null
 }
 
-/** Default conversation starter suggestions */
+/** Full pool of conversation starters, drawn from at random */
+const ALL_STARTERS: { iconKey: 'Mail' | 'FileText' | 'ClipboardList' | 'Lightbulb'; textKey: string; templateId?: string }[] = [
+  // Writing
+  { iconKey: 'Mail', textKey: 'welcome.starter.draftEmail', templateId: 'writing-assistant' },
+  { iconKey: 'FileText', textKey: 'welcome.starter.proofread', templateId: 'writing-assistant' },
+  { iconKey: 'ClipboardList', textKey: 'welcome.starter.blogPost', templateId: 'writing-assistant' },
+  { iconKey: 'Lightbulb', textKey: 'welcome.starter.rewriteTone', templateId: 'writing-assistant' },
+  // Research
+  { iconKey: 'FileText', textKey: 'welcome.starter.analyzeTopic', templateId: 'research-analyst' },
+  { iconKey: 'ClipboardList', textKey: 'welcome.starter.compareOptions', templateId: 'research-analyst' },
+  { iconKey: 'Lightbulb', textKey: 'welcome.starter.summarizeArticle', templateId: 'research-analyst' },
+  { iconKey: 'Mail', textKey: 'welcome.starter.factCheck', templateId: 'research-analyst' },
+  // Creative
+  { iconKey: 'Lightbulb', textKey: 'welcome.starter.brainstorm' },
+  { iconKey: 'FileText', textKey: 'welcome.starter.storyIdea' },
+  { iconKey: 'ClipboardList', textKey: 'welcome.starter.namingIdeas' },
+  // Learning
+  { iconKey: 'Lightbulb', textKey: 'welcome.starter.explainSimply', templateId: 'language-tutor' },
+  { iconKey: 'FileText', textKey: 'welcome.starter.quizMe', templateId: 'language-tutor' },
+  { iconKey: 'ClipboardList', textKey: 'welcome.starter.studyPlan', templateId: 'language-tutor' },
+  // Productivity
+  { iconKey: 'ClipboardList', textKey: 'welcome.starter.planMyDay' },
+  { iconKey: 'FileText', textKey: 'welcome.starter.breakdownGoal' },
+  { iconKey: 'Lightbulb', textKey: 'welcome.starter.prioritizeTasks' },
+  { iconKey: 'Mail', textKey: 'welcome.starter.weeklyReview' },
+]
+
+const ICON_MAP: Record<string, LucideIcon> = { Mail, FileText, ClipboardList, Lightbulb }
+
+/** Default conversation starter suggestions — picks 4 random starters from the full pool */
 export function getDefaultSuggestions(t: (key: string) => string): StarterItem[] {
-  return [
-    { icon: Mail, text: t('welcome.suggestion.draftEmail'), templateId: 'writing-assistant' },
-    { icon: FileText, text: t('welcome.suggestion.summarizeDoc'), templateId: 'research-analyst' },
-    { icon: ClipboardList, text: t('welcome.suggestion.weeklyReport'), templateId: 'writing-assistant' },
-    { icon: Lightbulb, text: t('welcome.suggestion.explainConcept'), templateId: 'language-tutor' },
-  ]
+  // Shuffle and pick 4, ensuring varied icons
+  const shuffled = [...ALL_STARTERS].sort(() => Math.random() - 0.5)
+  const picked: typeof ALL_STARTERS[number][] = []
+  const usedIcons = new Set<string>()
+  // First pass: pick one per icon to ensure variety
+  for (const item of shuffled) {
+    if (picked.length >= 4) break
+    if (!usedIcons.has(item.iconKey)) {
+      usedIcons.add(item.iconKey)
+      picked.push(item)
+    }
+  }
+  // Second pass: fill remaining slots
+  for (const item of shuffled) {
+    if (picked.length >= 4) break
+    if (!picked.includes(item)) {
+      picked.push(item)
+    }
+  }
+  return picked.map(item => ({
+    icon: ICON_MAP[item.iconKey],
+    text: t(item.textKey),
+    templateId: item.templateId,
+  }))
 }
 
 export interface ShortcutDef {
