@@ -2778,3 +2778,11 @@ Status: SUCCESS (tsc: 0 errors; vite: 2517 modules, 10.64s)
 - **Files changed**: toolSummary.ts, ToolUseBlock.tsx, ToolBatchBlock.tsx, MessageBubbleContent.tsx
 - **Build**: PASSED (v1.1.72)
 - **Status**: Complete
+
+---
+### Iteration 396 — Fix broken i18n keys for outputStyle and thinking
+- **Bug**: outputStyle.* and thinking.* i18n keys were defined inside the settings JSON object with dot-notation key names. After flattening, they became settings.outputStyle.title, settings.thinking.title etc, but all code referenced them as outputStyle.title, thinking.title (without settings prefix). Result: raw key strings shown instead of translated text in Output Style selector, Extended Thinking toggle, and Settings panel.
+- **Fix**: Moved outputStyle and thinking to top-level JSON objects in both en.json and zh-CN.json. After flattening they now resolve correctly as outputStyle.title, thinking.title etc.
+- **Files changed**: en.json, zh-CN.json
+- **Build**: PASSED (v1.1.73)
+- **Status**: Complete

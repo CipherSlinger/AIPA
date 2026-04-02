@@ -449,19 +449,6 @@
     "desktopNotificationsHint": "Show OS notifications when AIPA finishes responding while the window is not focused",
     "resumeLastSession": "Resume last session on startup",
     "resumeLastSessionHint": "Automatically reopen your most recent conversation when AIPA starts",
-    "outputStyle.title": "Output Style",
-    "outputStyle.default": "Default",
-    "outputStyle.default.desc": "Balanced, helpful responses",
-    "outputStyle.explanatory": "Explanatory",
-    "outputStyle.explanatory.desc": "Adds insight blocks after key decisions",
-    "outputStyle.learning": "Step-by-Step",
-    "outputStyle.learning.desc": "Includes practice exercises",
-    "outputStyle.switched": "Output style: {style}",
-    "outputStyle.settingsHint": "Choose how Claude structures responses. Explanatory adds insight blocks; Step-by-Step includes exercises.",
-    "thinking.title": "Extended Thinking",
-    "thinking.enabled": "Extended thinking enabled",
-    "thinking.disabled": "Extended thinking disabled",
-    "thinking.description": "When enabled, Claude thinks longer before responding. May increase response time and cost.",
     "systemPresence": "System Context Injection",
     "systemPresenceHint": "Inject current date, time, working directory, and user name into every conversation so Claude is aware of your context",
     "promptSuggestions": "Prompt Suggestions",
@@ -511,6 +498,23 @@
       "limitReached": "Maximum 20 custom templates reached.",
       "customSuffix": "(Custom)"
     }
+  },
+  "outputStyle": {
+    "title": "Output Style",
+    "default": "Default",
+    "default.desc": "Balanced, helpful responses",
+    "explanatory": "Explanatory",
+    "explanatory.desc": "Adds insight blocks after key decisions",
+    "learning": "Step-by-Step",
+    "learning.desc": "Includes practice exercises",
+    "switched": "Output style: {style}",
+    "settingsHint": "Choose how Claude structures responses. Explanatory adds insight blocks; Step-by-Step includes exercises."
+  },
+  "thinking": {
+    "title": "Extended Thinking",
+    "enabled": "Extended thinking enabled",
+    "disabled": "Extended thinking disabled",
+    "description": "When enabled, Claude thinks longer before responding. May increase response time and cost."
   },
   "onboarding": {
     "step": "Step {{current}} of {{total}}",

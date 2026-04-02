@@ -449,19 +449,6 @@
     "desktopNotificationsHint": "当 AIPA 在窗口未聚焦时完成回复，显示系统通知",
     "resumeLastSession": "启动时恢复上次会话",
     "resumeLastSessionHint": "AIPA 启动时自动打开最近的对话",
-    "outputStyle.title": "输出风格",
-    "outputStyle.default": "默认",
-    "outputStyle.default.desc": "平衡且有帮助的回复",
-    "outputStyle.explanatory": "解释性",
-    "outputStyle.explanatory.desc": "在关键决策后添加见解模块",
-    "outputStyle.learning": "步骤式",
-    "outputStyle.learning.desc": "包含练习题",
-    "outputStyle.switched": "输出风格：{style}",
-    "outputStyle.settingsHint": "选择 Claude 的回复结构方式。解释性模式添加见解模块；步骤式模式包含练习题。",
-    "thinking.title": "深度思考",
-    "thinking.enabled": "深度思考已启用",
-    "thinking.disabled": "深度思考已禁用",
-    "thinking.description": "启用后，Claude 会在回复前进行更深入的思考。可能增加响应时间和费用。",
     "systemPresence": "系统上下文注入",
     "systemPresenceHint": "在每次对话中注入当前日期、时间、工作目录和用户名称，让 Claude 了解你的环境上下文",
     "promptSuggestions": "提示建议",
@@ -511,6 +498,23 @@
       "limitReached": "已达到 20 个自定义模板上限。",
       "customSuffix": "（自定义）"
     }
+  },
+  "outputStyle": {
+    "title": "输出风格",
+    "default": "默认",
+    "default.desc": "平衡且有帮助的回复",
+    "explanatory": "解释性",
+    "explanatory.desc": "在关键决策后添加见解模块",
+    "learning": "步骤式",
+    "learning.desc": "包含练习题",
+    "switched": "输出风格：{style}",
+    "settingsHint": "选择 Claude 的回复结构方式。解释性模式添加见解模块；步骤式模式包含练习题。"
+  },
+  "thinking": {
+    "title": "深度思考",
+    "enabled": "深度思考已启用",
+    "disabled": "深度思考已禁用",
+    "description": "启用后，Claude 会在回复前进行更深入的思考。可能增加响应时间和费用。"
   },
   "onboarding": {
     "step": "第 {{current}} 步，共 {{total}} 步",
