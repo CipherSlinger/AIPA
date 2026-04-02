@@ -114,6 +114,63 @@ function CostBadge() {
   )
 }
 
+/** Compact context window usage indicator */
+function ContextBadge() {
+  const t = useT()
+  const ctx = useChatStore(s => s.lastContextUsage)
+  const addToast = useUiStore(s => s.addToast)
+
+  if (!ctx || ctx.total === 0) return null
+
+  const pct = Math.round((ctx.used / ctx.total) * 100)
+  if (pct < 5) return null // Don't show when nearly empty
+
+  const color = pct >= 90 ? 'var(--error)' : pct >= 70 ? 'var(--warning)' : 'var(--text-muted)'
+  const barColor = pct >= 90 ? 'var(--error)' : pct >= 70 ? 'var(--warning)' : 'var(--accent)'
+
+  return (
+    <button
+      onClick={() => {
+        navigator.clipboard.writeText(t('toolbar.contextUsed', { percent: String(pct), used: String(ctx.used), total: String(ctx.total) })).then(() => {
+          addToast('info', t('toolbar.tokensCopied'))
+        }).catch(() => {})
+      }}
+      title={t('toolbar.contextUsed', { percent: String(pct), used: String(ctx.used), total: String(ctx.total) })}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+        padding: '2px 8px',
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid var(--card-border)',
+        borderRadius: 12,
+        color,
+        cursor: 'pointer',
+        fontSize: 10,
+        fontWeight: 600,
+        fontFamily: 'monospace',
+        flexShrink: 0,
+        transition: 'border-color 150ms',
+        lineHeight: 1,
+      }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)' }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--card-border)' }}
+    >
+      <span style={{ fontSize: 9, opacity: 0.7 }}>{t('toolbar.context')}</span>
+      <div style={{
+        width: 30, height: 4, background: 'rgba(255,255,255,0.08)',
+        borderRadius: 2, overflow: 'hidden', position: 'relative',
+      }}>
+        <div style={{
+          width: `${pct}%`, height: '100%', background: barColor,
+          borderRadius: 2, transition: 'width 0.3s ease',
+        }} />
+      </div>
+      <span>{pct}%</span>
+    </button>
+  )
+}
+
 export default function ChatHeader({
   sessionTitle,
   sessionId,
@@ -436,6 +493,9 @@ export default function ChatHeader({
 
       {/* Session cost badge — visible when cost > $0.01, color-coded by threshold */}
       <CostBadge />
+
+      {/* Context window usage indicator — visible when > 5% used */}
+      <ContextBadge />
 
       {/* Streaming elapsed timer + spinner */}
       {elapsedStr && (

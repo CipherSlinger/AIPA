@@ -2702,3 +2702,18 @@ Status: SUCCESS (tsc: 0 errors; vite: 2517 modules, 10.64s)
   - Placed between Summarize and Bookmarks buttons
 - **Files modified**: ChatHeader.tsx (added RefreshCw import + regenerate button)
 - **Build**: OK (v1.1.66)
+
+
+## Iteration 390 — Context Window Usage Badge in ChatHeader
+- **Date**: 2026-04-01
+- **Feature**: Added compact context window usage indicator in ChatHeader
+- **Details**:
+  - Shows "Ctx" label + mini progress bar + percentage
+  - Appears when context usage > 5%, hidden otherwise
+  - Color-coded: muted (< 70%), warning/yellow (>= 70%), error/red (>= 90%)
+  - Click to copy full context usage info to clipboard
+  - Uses existing i18n keys (toolbar.context, toolbar.contextUsed, toolbar.tokensCopied)
+  - Positioned between cost badge and streaming timer
+- **Files modified**: ChatHeader.tsx (added ContextBadge component)
+- **Build**: OK (v1.1.67)
+- **File sizes**: ChatHeader.tsx now 539 lines (under 800 red line)
