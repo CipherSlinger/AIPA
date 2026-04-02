@@ -3326,3 +3326,24 @@ _Date: 2026-04-02_
 - electron-ui/src/renderer/i18n/locales/zh-CN.json (+input, +message.unpinAll)
 
 **Build:** SUCCESS (2524 modules, 9.42s)
+
+---
+### Iteration 419 — Enhanced Voice Input Indicator
+- **Commit**: dfbe9bc | **Version**: 1.1.96
+- **Changes**: Pulsing red ring animation on mic button during recording, recording duration counter (M:SS), auto-stop after 2 minutes with toast notification
+- **Files**: useSpeechRecognition.ts (major rewrite: added recordingSeconds, auto-stop timer), InputToolbar.tsx (enhanced mic button with pulse ring + timer display), ChatInput.tsx (pass new props), globals.css (voicePulse + voiceFadeIn keyframes), en.json + zh-CN.json (voice.autoStopped key)
+- **Build**: PASS
+
+---
+### Iteration 420 — WelcomeScreen Scrollable Layout Fix
+- **Commit**: 8ead47e | **Version**: 1.1.97
+- **Changes**: Fixed WelcomeScreen layout overflow: replaced fixed centering with scrollable container + auto-shrinking spacers (content centers when it fits, scrolls when it overflows). Reduced hero icon (80->64), greeting font (28->24), suggestion card sizes for better viewport utilization. Addresses user feedback item #2 (new session page content overflow).
+- **Files**: WelcomeScreen.tsx (container restructure: overflowY auto, flex spacers, smaller cards/icon)
+- **Build**: PASS
+
+---
+### Iteration 421 — Non-blocking Error Overlay for App-level Crashes
+- **Commit**: 51ac844 | **Version**: 1.1.98
+- **Changes**: Modified ErrorBoundary to support an `overlay` mode. App-level ErrorBoundary now shows a floating banner instead of replacing the entire UI, letting users still access recovery actions (retry, new conversation, reload, copy error). Addresses user feedback item #3 (crash covering entire interface). Added error.appDegraded i18n key.
+- **Files**: ErrorBoundary.tsx (overlay mode: floating banner + degraded background), App.tsx (added overlay prop), en.json + zh-CN.json (error.appDegraded key)
+- **Build**: PASS
