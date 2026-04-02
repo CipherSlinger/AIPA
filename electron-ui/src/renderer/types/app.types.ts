@@ -132,6 +132,7 @@ export interface ClaudePrefs {
   avatarPreset?: string                      // selected preset avatar ID (e.g. 'xiaohei', 'xiaobai') — null/undefined = default user icon
   sessionFolders?: SessionFolder[]            // user-defined session folders (max 10)
   sessionFolderMap?: Record<string, string>   // sessionId -> folderId mapping
+  customConversationTemplates?: CustomConversationTemplate[]  // user-defined conversation templates (max 20)
 }
 
 export interface SessionFolder {
@@ -139,6 +140,16 @@ export interface SessionFolder {
   name: string     // folder name (max 30 chars)
   emoji: string    // folder icon emoji
   collapsed: boolean  // whether folder is collapsed in sidebar
+}
+
+export interface CustomConversationTemplate {
+  id: string           // 'ctpl-' + timestamp
+  emoji: string        // emoji icon
+  title: string        // template name (max 50 chars)
+  description: string  // short description (max 200 chars)
+  category: 'work' | 'writing' | 'learning' | 'personal' | 'custom'
+  initialPrompt: string  // the prompt to send when using this template
+  createdAt: number      // epoch ms
 }
 
 export interface ApiKeyEntry {

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Search, Download, ClipboardCopy, Maximize2, Minimize2, Plus, FolderOpen, FileText, DollarSign, RefreshCw, Shrink } from 'lucide-react'
+import { Search, Download, ClipboardCopy, Maximize2, Minimize2, Plus, FolderOpen, FileText, FilePlus2, DollarSign, RefreshCw, Shrink } from 'lucide-react'
 import { useChatStore, useSessionStore, usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import ModelPicker from './ModelPicker'
@@ -9,6 +9,7 @@ import StatsPanel from './StatsPanel'
 import ChangesPanel from './ChangesPanel'
 import type { ConversationStats, BookmarkedMessage } from '../../hooks/useConversationStats'
 import type { SessionChanges } from '../../hooks/useSessionChanges'
+import SaveTemplateDialog from './SaveTemplateDialog'
 
 interface ChatHeaderProps {
   sessionTitle: string | null
@@ -197,6 +198,7 @@ export default function ChatHeader({
   const t = useT()
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editTitleValue, setEditTitleValue] = useState('')
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const workingDir = usePrefsStore(s => s.prefs.workingDir)
   // Terminal removed (Iteration 404)
@@ -378,6 +380,22 @@ export default function ChatHeader({
         <Download size={15} />
       </button>
 
+      {/* Save as Template */}
+      <button
+        onClick={() => setShowSaveTemplate(true)}
+        disabled={messageCount === 0}
+        title={t('convTemplate.saveAsTemplate')}
+        style={{
+          ...headerBtnStyle,
+          cursor: messageCount === 0 ? 'not-allowed' : 'pointer',
+          opacity: messageCount === 0 ? 0.3 : 1,
+        }}
+        onMouseEnter={(e) => hoverIn(e)}
+        onMouseLeave={(e) => hoverOut(e)}
+      >
+        <FilePlus2 size={15} />
+      </button>
+
       {/* Copy conversation */}
       <button
         onClick={onCopyConversation}
@@ -530,6 +548,11 @@ export default function ChatHeader({
       >
         <Plus size={15} />
       </button>
+
+      {/* Save as Template dialog */}
+      {showSaveTemplate && (
+        <SaveTemplateDialog onClose={() => setShowSaveTemplate(false)} />
+      )}
     </div>
   )
 }

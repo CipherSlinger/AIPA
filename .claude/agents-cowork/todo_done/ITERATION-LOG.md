@@ -3236,3 +3236,47 @@ _Date: 2026-04-02_
 - electron-ui/src/renderer/i18n/locales/zh-CN.json (+6 keys)
 
 **Build:** SUCCESS (2519 modules, 9.38s)
+
+---
+
+### Iteration 415 — Session Folders
+- **Date**: 2026-04-02
+- **Version**: 1.1.92
+- **PRD**: prd-session-productivity-v1.md (item 1)
+- **Changes**:
+  - New `SessionFolders.tsx` component: folder selector dropdown, create/edit/delete folders, emoji picker (10 presets), max 10 folders
+  - `SessionList.tsx`: integrated folder filter, added `activeFolderFilter` state and `sessionFolderMap` filtering
+  - `app.types.ts`: added `SessionFolder` interface, `sessionFolders` and `sessionFolderMap` to ClaudePrefs
+  - i18n: added 7 session folder keys (folders, allSessions, folderName, createFolder, folderMax, newFolder, moveToFolder) in both en.json and zh-CN.json
+  - `assignSessionToFolder()` helper exported for reuse
+- **Build**: OK (11.25s)
+
+---
+
+## Iteration 416 — Conversation Templates (v1.1.93)
+**Date:** 2026-04-02
+**PRD:** prd-conversation-templates-v1.md
+
+**Changes:**
+- Created conversationTemplates.ts constants file: 8 built-in templates (Email Drafter, Meeting Notes, Document Summary, Weekly Report, Brainstorm, Decision Matrix, Learning Session, Travel Planner), template type definitions, category system (work/writing/learning/personal/custom), emoji presets for custom templates
+- Created TemplatesSection.tsx: 2-column template card grid on WelcomeScreen with category filter pills, supports both built-in and custom templates, delete button for custom templates on hover
+- Created SaveTemplateDialog.tsx: modal dialog for saving current conversation as a custom template (name, description, emoji picker, category selector), max 20 custom templates
+- Integrated TemplatesSection into WelcomeScreen.tsx between suggestion cards and keyboard shortcuts
+- Added FilePlus2 "Save as Template" button to ChatHeader.tsx after Export button, disabled when no messages
+- Added CustomConversationTemplate interface to app.types.ts
+- Added customConversationTemplates field to ClaudePrefs
+- Added 30+ i18n keys under convTemplate namespace (en + zh-CN): section labels, category names, 8 template titles/descriptions/prompts, dialog labels, toast messages
+
+**Files Created:**
+- electron-ui/src/renderer/components/chat/conversationTemplates.ts (119 lines)
+- electron-ui/src/renderer/components/chat/TemplatesSection.tsx (~140 lines)
+- electron-ui/src/renderer/components/chat/SaveTemplateDialog.tsx (~170 lines)
+
+**Files Modified:**
+- electron-ui/src/renderer/components/chat/WelcomeScreen.tsx (+import, +TemplatesSection)
+- electron-ui/src/renderer/components/chat/ChatHeader.tsx (+import, +FilePlus2 icon, +SaveTemplateDialog state/button/render)
+- electron-ui/src/renderer/types/app.types.ts (+CustomConversationTemplate interface, +customConversationTemplates pref)
+- electron-ui/src/renderer/i18n/locales/en.json (+convTemplate namespace)
+- electron-ui/src/renderer/i18n/locales/zh-CN.json (+convTemplate namespace)
+
+**Build:** SUCCESS (2523 modules, 9.25s)

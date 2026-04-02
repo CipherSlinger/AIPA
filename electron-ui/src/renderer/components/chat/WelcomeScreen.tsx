@@ -4,6 +4,7 @@ import { useUiStore, useSessionStore, usePrefsStore, useChatStore } from '../../
 import { useT } from '../../i18n'
 import { getGreetingKey, getPersonaStarters, getDefaultSuggestions, getShortcuts, getQuickActions } from './welcomeScreenConstants'
 import { useTips } from '../../hooks/useTips'
+import TemplatesSection from './TemplatesSection'
 
 interface Props {
   onSuggestion: (text: string, templateId?: string) => void
@@ -283,6 +284,9 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
           </button>
         ))}
       </div>
+
+      {/* Conversation templates */}
+      <TemplatesSection onUseTemplate={onSuggestion} />
 
       {/* Keyboard shortcuts */}
       <div style={{

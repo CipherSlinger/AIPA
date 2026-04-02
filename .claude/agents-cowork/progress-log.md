@@ -15,3 +15,13 @@
 
 ## Iteration 411 Completed
 - Features: Channel providers migration, Qwen support | Build: SUCCESS | Commit: pending
+
+
+## PM PRD Batch 2026-04-02 04:36
+
+| PRD | Core Features | High-Risk Files | Execution |
+|-----|--------------|----------------|-----------|
+| prd-conversation-templates-v1.md | Template system, Custom creation, Category filters | WelcomeScreen.tsx, ChatHeader.tsx, app.types.ts, i18n | Serial - Group 1 |
+| prd-daily-productivity-tools-v1.md | Focus Timer, Daily Summary, StatusBar enhancements | StatusBar.tsx, WelcomeScreen.tsx, i18n | Serial - Group 2 |
+
+Conflict: Both touch WelcomeScreen.tsx + i18n -> must be serial.
