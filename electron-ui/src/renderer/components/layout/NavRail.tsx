@@ -187,10 +187,12 @@ export default function NavRail() {
   } = useUiStore()
 
   const navExpanded = usePrefsStore(s => !!s.prefs.navExpanded)
+  const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
   const activePersona = usePrefsStore(s => {
     const personas = s.prefs.personas || []
-    const activeId = s.prefs.activePersonaId
-    return activeId ? personas.find(p => p.id === activeId) : undefined
+    // Prefer session persona, fall back to default persona
+    const pid = sessionPersonaId || s.prefs.activePersonaId
+    return pid ? personas.find(p => p.id === pid) : undefined
   })
   const t = useT()
 

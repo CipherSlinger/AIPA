@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react'
 import { ChevronDown, Sparkles } from 'lucide-react'
-import { usePrefsStore, useUiStore } from '../../store'
+import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import { useClickOutside } from '../../hooks/useClickOutside'
 import type { Persona } from '../../types/app.types'
@@ -11,30 +11,29 @@ export default function PersonaPicker() {
   const pickerRef = useRef<HTMLDivElement>(null)
 
   const personas: Persona[] = usePrefsStore(s => s.prefs.personas) || []
-  const activePersonaId = usePrefsStore(s => s.prefs.activePersonaId)
-  const activePersona = personas.find(p => p.id === activePersonaId)
+  const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
+  const sessionPersona = personas.find(p => p.id === sessionPersonaId)
 
   useClickOutside(pickerRef, showPicker, useCallback(() => setShowPicker(false), []))
 
   const handlePersonaSwitch = useCallback((persona: Persona | null) => {
     setShowPicker(false)
     if (!persona) {
-      // Deactivate persona
-      usePrefsStore.getState().setPrefs({ activePersonaId: undefined, systemPrompt: '', outputStyle: 'default' })
-      window.electronAPI.prefsSet('activePersonaId', undefined)
+      // Clear session persona
+      useChatStore.getState().setSessionPersonaId(undefined)
+      usePrefsStore.getState().setPrefs({ systemPrompt: '', outputStyle: 'default' })
       window.electronAPI.prefsSet('systemPrompt', '')
       window.electronAPI.prefsSet('outputStyle', 'default')
       useUiStore.getState().addToast('info', t('persona.deactivated'))
     } else {
-      // Activate persona
+      // Set session persona
       const resolvedPrompt = persona.presetKey ? t(`persona.presetPrompt.${persona.presetKey}`) : persona.systemPrompt
+      useChatStore.getState().setSessionPersonaId(persona.id)
       usePrefsStore.getState().setPrefs({
-        activePersonaId: persona.id,
         model: persona.model,
         systemPrompt: resolvedPrompt,
         outputStyle: persona.outputStyle || 'default',
       })
-      window.electronAPI.prefsSet('activePersonaId', persona.id)
       window.electronAPI.prefsSet('model', persona.model)
       window.electronAPI.prefsSet('systemPrompt', resolvedPrompt)
       window.electronAPI.prefsSet('outputStyle', persona.outputStyle || 'default')
@@ -48,14 +47,14 @@ export default function PersonaPicker() {
     <div style={{ position: 'relative' }} ref={pickerRef}>
       <button
         onClick={() => setShowPicker(!showPicker)}
-        title={activePersona ? t('persona.personaActive', { name: activePersona.name }) : t('persona.selectPersona')}
+        title={sessionPersona ? t('persona.personaActive', { name: sessionPersona.name }) : t('persona.selectPersona')}
         style={{
-          background: showPicker ? 'rgba(255,255,255,0.08)' : activePersona ? `${activePersona.color}18` : 'none',
-          border: `1px solid ${activePersona ? activePersona.color : 'transparent'}`,
+          background: showPicker ? 'rgba(255,255,255,0.08)' : sessionPersona ? `${sessionPersona.color}18` : 'none',
+          border: `1px solid ${sessionPersona ? sessionPersona.color : 'transparent'}`,
           borderRadius: 4,
           padding: '2px 8px',
           cursor: 'pointer',
-          color: activePersona ? activePersona.color : 'var(--text-muted)',
+          color: sessionPersona ? sessionPersona.color : 'var(--text-muted)',
           fontSize: 11,
           fontWeight: 500,
           display: 'flex',
@@ -65,20 +64,20 @@ export default function PersonaPicker() {
           transition: 'color 150ms, background 150ms, border-color 150ms',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.color = activePersona ? activePersona.color : 'var(--accent)'
-          if (!activePersona) e.currentTarget.style.borderColor = 'var(--border)'
+          e.currentTarget.style.color = sessionPersona ? sessionPersona.color : 'var(--accent)'
+          if (!sessionPersona) e.currentTarget.style.borderColor = 'var(--border)'
         }}
         onMouseLeave={(e) => {
           if (!showPicker) {
-            e.currentTarget.style.color = activePersona ? activePersona.color : 'var(--text-muted)'
-            if (!activePersona) e.currentTarget.style.borderColor = 'transparent'
+            e.currentTarget.style.color = sessionPersona ? sessionPersona.color : 'var(--text-muted)'
+            if (!sessionPersona) e.currentTarget.style.borderColor = 'transparent'
           }
         }}
       >
-        {activePersona ? (
+        {sessionPersona ? (
           <>
-            <span style={{ fontSize: 13 }}>{activePersona.emoji}</span>
-            <span>{activePersona.name}</span>
+            <span style={{ fontSize: 13 }}>{sessionPersona.emoji}</span>
+            <span>{sessionPersona.name}</span>
           </>
         ) : (
           <>
@@ -113,7 +112,7 @@ export default function PersonaPicker() {
           {/* No persona option */}
           <button
             role="option"
-            aria-selected={!activePersonaId}
+            aria-selected={!sessionPersonaId}
             onClick={() => handlePersonaSwitch(null)}
             style={{
               display: 'flex',
@@ -121,25 +120,25 @@ export default function PersonaPicker() {
               gap: 8,
               width: '100%',
               textAlign: 'left',
-              background: !activePersonaId ? 'rgba(var(--accent-rgb, 0, 122, 204), 0.12)' : 'none',
+              background: !sessionPersonaId ? 'rgba(var(--accent-rgb, 0, 122, 204), 0.12)' : 'none',
               border: 'none',
               padding: '7px 12px',
               cursor: 'pointer',
-              color: !activePersonaId ? 'var(--accent)' : 'var(--text-primary)',
+              color: !sessionPersonaId ? 'var(--accent)' : 'var(--text-primary)',
               fontSize: 12,
-              fontWeight: !activePersonaId ? 600 : 400,
+              fontWeight: !sessionPersonaId ? 600 : 400,
               transition: 'background 100ms',
             }}
-            onMouseEnter={(e) => { if (activePersonaId) e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-            onMouseLeave={(e) => { if (activePersonaId) e.currentTarget.style.background = 'none' }}
+            onMouseEnter={(e) => { if (sessionPersonaId) e.currentTarget.style.background = 'var(--popup-item-hover)' }}
+            onMouseLeave={(e) => { if (sessionPersonaId) e.currentTarget.style.background = 'none' }}
           >
             <span style={{ fontSize: 14, width: 20, textAlign: 'center' }}>-</span>
             <span>{t('persona.noPersona')}</span>
-            {!activePersonaId && <span style={{ marginLeft: 'auto', fontSize: 14 }}>&#10003;</span>}
+            {!sessionPersonaId && <span style={{ marginLeft: 'auto', fontSize: 14 }}>&#10003;</span>}
           </button>
           {/* Persona options */}
           {personas.map(p => {
-            const isActive = p.id === activePersonaId
+            const isActive = p.id === sessionPersonaId
             return (
               <button
                 key={p.id}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Bot, History, X, MessageSquare, Layers, Clock, ArrowRight, Sparkles, Lightbulb, TrendingUp, Star } from 'lucide-react'
-import { useUiStore, useSessionStore, usePrefsStore } from '../../store'
+import { useUiStore, useSessionStore, usePrefsStore, useChatStore } from '../../store'
 import { useT } from '../../i18n'
 import { getGreetingKey, getPersonaStarters, getDefaultSuggestions, getShortcuts, getQuickActions } from './welcomeScreenConstants'
 import { useTips } from '../../hooks/useTips'
@@ -15,7 +15,9 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
   const [greeting, setGreeting] = useState(getGreetingKey())
   const sessions = useSessionStore(s => s.sessions)
   const personas = usePrefsStore(s => s.prefs.personas) || []
-  const activePersonaId = usePrefsStore(s => s.prefs.activePersonaId)
+  const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
+  const defaultPersonaId = usePrefsStore(s => s.prefs.activePersonaId)
+  const activePersonaId = sessionPersonaId || defaultPersonaId
   const activePersona = personas.find(p => p.id === activePersonaId)
   const displayName = usePrefsStore(s => s.prefs.displayName)
 
@@ -198,14 +200,14 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
                   key={p.id}
                   onClick={() => {
                     if (isActive) return
+                    const resolvedPrompt = p.presetKey ? t(`persona.presetPrompt.${p.presetKey}`) : p.systemPrompt
+                    useChatStore.getState().setSessionPersonaId(p.id)
                     usePrefsStore.getState().setPrefs({
-                      activePersonaId: p.id,
                       model: p.model,
-                      systemPrompt: p.systemPrompt,
+                      systemPrompt: resolvedPrompt,
                     })
-                    window.electronAPI.prefsSet('activePersonaId', p.id)
                     window.electronAPI.prefsSet('model', p.model)
-                    window.electronAPI.prefsSet('systemPrompt', p.systemPrompt)
+                    window.electronAPI.prefsSet('systemPrompt', resolvedPrompt)
                     useUiStore.getState().addToast('success', t('persona.switchedTo', { name: p.presetKey ? t(`persona.preset.${p.presetKey}`) : p.name }))
                   }}
                   style={{

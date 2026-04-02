@@ -90,6 +90,24 @@ export function useSessionListActions() {
     clearMessages()
     loadHistory(chatMessages)
     setSessionId(session.sessionId)
+    // Restore per-session persona (Iteration 407)
+    try {
+      const savedPersonaId = localStorage.getItem(`aipa:session-persona:${session.sessionId}`)
+      if (savedPersonaId) {
+        const personas = usePrefsStore.getState().prefs.personas || []
+        const persona = personas.find(p => p.id === savedPersonaId)
+        if (persona) {
+          useChatStore.getState().setSessionPersonaId(savedPersonaId)
+          const resolvedPrompt = persona.presetKey
+            ? t(`persona.presetPrompt.${persona.presetKey}`)
+            : persona.systemPrompt
+          usePrefsStore.getState().setPrefs({ model: persona.model, systemPrompt: resolvedPrompt, outputStyle: persona.outputStyle || 'default' })
+          window.electronAPI.prefsSet('model', persona.model)
+          window.electronAPI.prefsSet('systemPrompt', resolvedPrompt)
+          window.electronAPI.prefsSet('outputStyle', persona.outputStyle || 'default')
+        }
+      }
+    } catch { /* ignore localStorage errors */ }
   }
 
   const deleteSession = async (e: React.MouseEvent, sessionId: string) => {

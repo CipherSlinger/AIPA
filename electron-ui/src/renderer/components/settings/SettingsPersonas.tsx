@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Plus, Sparkles, Download, Upload } from 'lucide-react'
-import { usePrefsStore, useUiStore } from '../../store'
+import { usePrefsStore, useUiStore, useChatStore } from '../../store'
 import { useI18n } from '../../i18n'
 import type { Persona } from '../../types/app.types'
 import PersonaForm from './PersonaForm'
@@ -101,6 +101,12 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
         setPrefs({ activePersonaId: undefined })
         window.electronAPI.prefsSet('activePersonaId', undefined)
       }
+      // Clear session persona if deleted (Iteration 407)
+      if (useChatStore.getState().sessionPersonaId === id) {
+        useChatStore.getState().setSessionPersonaId(undefined)
+        setPrefs({ systemPrompt: '' })
+        window.electronAPI.prefsSet('systemPrompt', '')
+      }
       setDeletingId(null)
       addToast('success', t('persona.deleted'))
     } else {
@@ -111,18 +117,15 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
 
   const handleActivate = (persona: Persona) => {
     if (activePersonaId === persona.id) {
-      setPrefs({ activePersonaId: undefined, model: persona.model, systemPrompt: '', outputStyle: 'default' })
+      // Remove as default
+      setPrefs({ activePersonaId: undefined })
       window.electronAPI.prefsSet('activePersonaId', undefined)
-      window.electronAPI.prefsSet('systemPrompt', '')
-      window.electronAPI.prefsSet('outputStyle', 'default')
-      addToast('info', t('persona.deactivated'))
+      addToast('info', t('persona.defaultRemoved'))
     } else {
-      setPrefs({ activePersonaId: persona.id, model: persona.model, systemPrompt: persona.systemPrompt, outputStyle: persona.outputStyle || 'default' })
+      // Set as default for new sessions
+      setPrefs({ activePersonaId: persona.id })
       window.electronAPI.prefsSet('activePersonaId', persona.id)
-      window.electronAPI.prefsSet('model', persona.model)
-      window.electronAPI.prefsSet('systemPrompt', persona.systemPrompt)
-      window.electronAPI.prefsSet('outputStyle', persona.outputStyle || 'default')
-      addToast('success', t('persona.switchedTo', { name: persona.name }))
+      addToast('success', t('persona.defaultSet', { name: persona.presetKey ? t(`persona.preset.${persona.presetKey}`) : persona.name }))
     }
   }
 
@@ -253,6 +256,7 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
               key={p.id}
               persona={p}
               isActive={activePersonaId === p.id}
+              isDefault={activePersonaId === p.id}
               isDeleting={deletingId === p.id}
               onActivate={handleActivate}
               onEdit={startEdit}

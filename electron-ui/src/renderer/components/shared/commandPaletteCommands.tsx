@@ -354,20 +354,20 @@ export function buildModelCommands(args: Pick<CommandBuilderArgs, 't' | 'onClose
 export function buildPersonaCommands(args: Pick<CommandBuilderArgs, 't' | 'onClose'>): PaletteCommand[] {
   const { t, onClose } = args
   const personas = usePrefsStore.getState().prefs.personas || []
-  const activePersonaId = usePrefsStore.getState().prefs.activePersonaId
+  const sessionPersonaId = useChatStore.getState().sessionPersonaId
   const cmds: PaletteCommand[] = []
 
   if (personas.length === 0) return cmds
 
-  if (activePersonaId) {
+  if (sessionPersonaId) {
     cmds.push({
       id: 'persona-none',
       name: `${t('persona.selectPersona')}: ${t('persona.noPersona')}`,
       description: t('persona.deactivated'),
       icon: <Sparkles size={14} />,
       action: () => {
-        usePrefsStore.getState().setPrefs({ activePersonaId: undefined, systemPrompt: '', outputStyle: 'default' })
-        window.electronAPI.prefsSet('activePersonaId', undefined)
+        useChatStore.getState().setSessionPersonaId(undefined)
+        usePrefsStore.getState().setPrefs({ systemPrompt: '', outputStyle: 'default' })
         window.electronAPI.prefsSet('systemPrompt', '')
         window.electronAPI.prefsSet('outputStyle', 'default')
         useUiStore.getState().addToast('info', t('persona.deactivated'))
@@ -384,17 +384,17 @@ export function buildPersonaCommands(args: Pick<CommandBuilderArgs, 't' | 'onClo
       description: MODEL_OPTIONS.find(m => m.id === p.model)?.labelKey ? t(MODEL_OPTIONS.find(m => m.id === p.model)!.labelKey) : p.model,
       icon: <Sparkles size={14} />,
       action: () => {
+        const resolvedPrompt = p.presetKey ? t(`persona.presetPrompt.${p.presetKey}`) : p.systemPrompt
+        useChatStore.getState().setSessionPersonaId(p.id)
         usePrefsStore.getState().setPrefs({
-          activePersonaId: p.id,
           model: p.model,
-          systemPrompt: p.systemPrompt,
+          systemPrompt: resolvedPrompt,
           outputStyle: p.outputStyle || 'default',
         })
-        window.electronAPI.prefsSet('activePersonaId', p.id)
         window.electronAPI.prefsSet('model', p.model)
-        window.electronAPI.prefsSet('systemPrompt', p.systemPrompt)
+        window.electronAPI.prefsSet('systemPrompt', resolvedPrompt)
         window.electronAPI.prefsSet('outputStyle', p.outputStyle || 'default')
-        useUiStore.getState().addToast('success', t('persona.switchedTo', { name: p.name }))
+        useUiStore.getState().addToast('success', t('persona.switchedTo', { name: p.presetKey ? t(`persona.preset.${p.presetKey}`) : p.name }))
         onClose()
       },
       category: 'persona',

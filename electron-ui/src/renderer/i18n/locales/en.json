@@ -3,7 +3,6 @@
     "newChat": "New Chat",
     "history": "History",
     "files": "Files",
-    "terminal": "Terminal",
     "settings": "Settings",
     "userProfile": "User profile",
     "notes": "Notes",
@@ -182,7 +181,6 @@
       "clipboardAction": "Clipboard quick action (global)",
       "commandPalette": "Command palette",
       "toggleSidebar": "Toggle sidebar",
-      "toggleTerminal": "Toggle terminal",
       "focusInput": "Focus input",
       "referenceFiles": "Reference files",
       "slashCommands": "Slash commands"
@@ -467,7 +465,6 @@
       "getApiKey": "Get API Key",
       "keyboardShortcuts": "Keyboard Shortcuts",
       "toggleSidebar": "Toggle sidebar",
-      "toggleTerminal": "Toggle terminal",
       "newConversation": "New conversation",
       "searchInConversation": "Search in conversation",
       "globalSearch": "Search across all sessions",
@@ -536,7 +533,6 @@
   },
   "toolbar": {
     "toggleSidebar": "Toggle sidebar (Ctrl+B)",
-    "toggleTerminal": "Toggle terminal (Ctrl+`)",
     "streaming": "Streaming",
     "charsPerSec": "c/s",
     "tokPerSec": "tok/s",
@@ -604,8 +600,6 @@
     "exportConversationDesc": "Save conversation as Markdown or JSON",
     "toggleSidebar": "Toggle Sidebar",
     "toggleSidebarDesc": "Show or hide the sidebar panel",
-    "toggleTerminal": "Toggle Terminal",
-    "toggleTerminalDesc": "Show or hide the terminal panel",
     "openSettings": "Open Settings",
     "openSettingsDesc": "Open the settings panel",
     "openHistory": "Open History",
@@ -702,18 +696,6 @@
     "addToQueueShortcut": "Add to queue (Ctrl+Shift+Q)",
     "queueComplete": "Queue complete: {{count}} tasks finished"
   },
-  "terminal": {
-    "title": "Terminal",
-    "reconnect": "Reconnect",
-    "refit": "Resize terminal",
-    "exited": "Process exited",
-    "error": "Terminal Error",
-    "nativeModuleError": "The terminal requires the node-pty native module, which is not available.",
-    "rebuildInstructions": "Run 'npm run rebuild-pty' in the electron-ui folder and restart the app.",
-    "windowsBuildTools": "On Windows, this requires Visual Studio C++ Build Tools.",
-    "basicMode": "Basic Mode",
-    "basicModeHint": "Running without native PTY support. Interactive programs may not work. Run 'npm run rebuild-pty' for full terminal features."
-  },
   "fileBrowser": {
     "title": "Files",
     "parentDir": "Parent directory",
@@ -774,7 +756,6 @@
     "newConversation": "New conversation",
     "clearConversation": "Clear conversation",
     "toggleSidebar": "Toggle sidebar",
-    "toggleTerminal": "Toggle terminal",
     "focusChatInput": "Focus chat input",
     "openSettings": "Open settings",
     "commandPalette": "Command palette",
@@ -918,9 +899,8 @@
     "tip_language": "Press Ctrl+Shift+L to switch between English and Chinese instantly.",
     "tip_search": "Press Ctrl+Shift+F for cross-session search -- find any message across all your conversations.",
     "tip_snippets": "Create text snippets in Settings and type ::keyword to expand them instantly in the chat input.",
-    "tip_focus": "Press Ctrl+Shift+O for Focus Mode -- hides sidebar and terminal for distraction-free conversations.",
+    "tip_focus": "Press Ctrl+Shift+O for Focus Mode -- hides the sidebar for distraction-free conversations.",
     "tip_pin": "Press Ctrl+Shift+T to pin the AIPA window on top of all other windows.",
-    "tip_terminal": "Click the terminal button in the chat header to open a terminal that automatically resumes your current conversation.",
     "tip_clipboard": "Use the clipboard button in the input toolbar for one-click summarize, translate, or explain clipboard content.",
     "tip_export": "Press Ctrl+Shift+E to export any conversation as Markdown, HTML, or JSON.",
     "tip_tone": "Switch between Output Styles (Default, Explanatory, Step-by-Step) from the toolbar to change how Claude structures its responses."
@@ -1190,7 +1170,12 @@
     "exportSuccess": "Personas exported",
     "importSuccess": "{{count}} personas imported",
     "importFailed": "Import failed: invalid file format",
-    "importNoDuplicates": "No new personas to import (all duplicates)"
+    "importNoDuplicates": "No new personas to import (all duplicates)",
+    "setAsDefault": "Set as Default",
+    "removeDefault": "Remove Default",
+    "defaultBadge": "Default",
+    "defaultSet": "Set {name} as default for new sessions",
+    "defaultRemoved": "Default persona removed"
   },
   "memory": {
     "title": "Memory",
@@ -1423,7 +1408,7 @@
     "sessionStats": "Session Stats",
     "rerun": "Re-run Checks",
     "runDiagnostics": "Run Diagnostics",
-    "runDiagnosticsDesc": "Check CLI, terminal, API key, and system status"
+    "runDiagnosticsDesc": "Check CLI, API key, and system status"
   },
   "rewind": {
     "title": "Rewind Conversation",

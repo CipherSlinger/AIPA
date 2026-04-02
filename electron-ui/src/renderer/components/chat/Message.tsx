@@ -35,15 +35,15 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   const isPlan = message.role === 'plan'
   const isCollapsed = !isPermission && !isPlan && (message as StandardChatMessage).collapsed
   const compact = usePrefsStore(s => s.prefs.compactMode)
-  // STABILITY (Iteration 308): Use activePersonaId + separate personas selector
-  // to avoid creating a new object reference on every store change. The old
-  // `personas.find()` inside a selector returned a new reference every render,
-  // potentially contributing to unnecessary re-render cascades during streaming.
-  const activePersonaId = usePrefsStore(s => s.prefs.activePersonaId)
+  // STABILITY (Iteration 308, updated Iteration 407 for per-session persona):
+  // Use sessionPersonaId (per-session) falling back to activePersonaId (default).
+  const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
+  const defaultPersonaId = usePrefsStore(s => s.prefs.activePersonaId)
+  const effectivePersonaId = sessionPersonaId || defaultPersonaId
   const personas = usePrefsStore(s => s.prefs.personas)
   const activePersona: Persona | undefined = useMemo(
-    () => activePersonaId ? (personas || []).find(p => p.id === activePersonaId) : undefined,
-    [activePersonaId, personas]
+    () => effectivePersonaId ? (personas || []).find(p => p.id === effectivePersonaId) : undefined,
+    [effectivePersonaId, personas]
   )
   const globalIsStreaming = useChatStore(s => s.isStreaming)
   const msgStatus: 'sending' | 'sent' | 'read' | null = isUser

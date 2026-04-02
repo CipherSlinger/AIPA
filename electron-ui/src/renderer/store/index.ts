@@ -146,6 +146,10 @@ interface ChatState {
 
   // Conversation rewind (Iteration 377): Remove all messages after the selected one
   rewindToMessage: (messageId: string) => number
+
+  // Per-session persona (Iteration 407): track which persona is active for the current session
+  sessionPersonaId: string | undefined
+  setSessionPersonaId: (personaId: string | undefined) => void
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -164,6 +168,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   queuePaused: false,
   isCompacting: false,
   compactionCount: 0,
+  sessionPersonaId: undefined,
 
   addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
 
@@ -248,7 +253,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     streamingBuffer.sessionId = null
     streamingBuffer.messageId = null
     streamingBuffer.dirty = false
-    set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false, totalSessionCost: 0, lastCost: null, lastUsage: null, lastContextUsage: null, modelUsage: {} })
+    set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false, totalSessionCost: 0, lastCost: null, lastUsage: null, lastContextUsage: null, modelUsage: {}, sessionPersonaId: undefined })
   },
   loadHistory: (messages) => set({ messages, isStreaming: false }),
 
@@ -430,6 +435,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({ messages: state.messages.slice(0, idx + 1) })
     return removed
   },
+
+  setSessionPersonaId: (personaId) => {
+    set({ sessionPersonaId: personaId })
+    // Persist session-persona mapping in localStorage
+    const sessionId = get().currentSessionId
+    if (sessionId) {
+      try {
+        if (personaId) {
+          localStorage.setItem(`aipa:session-persona:${sessionId}`, personaId)
+        } else {
+          localStorage.removeItem(`aipa:session-persona:${sessionId}`)
+        }
+      } catch { /* ignore localStorage errors */ }
+    }
+  },
 }))
 
 // ── Session store ───────────────────────────────
@@ -497,20 +517,17 @@ export const usePrefsStore = create<PrefsState>((set) => ({
 
 // ── UI store ────────────────────────────────────
 export type SidebarTab = 'history' | 'files' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel'
-export type NavItem = 'chat' | 'history' | 'files' | 'terminal' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel'
+export type NavItem = 'chat' | 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel'
 
 interface UiState {
   sidebarTab: SidebarTab
   sidebarOpen: boolean
-  terminalOpen: boolean
   commandPaletteOpen: boolean
   toasts: ToastItem[]
   setSidebarTab: (tab: SidebarTab) => void
   setSidebarOpen: (v: boolean) => void
-  setTerminalOpen: (v: boolean) => void
   setCommandPaletteOpen: (v: boolean) => void
   toggleSidebar: () => void
-  toggleTerminal: () => void
   toggleCommandPalette: () => void
   focusMode: boolean
   toggleFocusMode: () => void
@@ -553,7 +570,6 @@ const savedSidebarTab = (() => {
 export const useUiStore = create<UiState>((set) => ({
   sidebarTab: savedSidebarTab,
   sidebarOpen: true,
-  terminalOpen: false,
   commandPaletteOpen: false,
   focusMode: false,
   toasts: [],
@@ -565,15 +581,13 @@ export const useUiStore = create<UiState>((set) => ({
     set({ sidebarTab: tab })
   },
   setSidebarOpen: (v) => set({ sidebarOpen: v }),
-  setTerminalOpen: (v) => set({ terminalOpen: v }),
   setCommandPaletteOpen: (v) => set({ commandPaletteOpen: v }),
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
-  toggleTerminal: () => set((s) => ({ terminalOpen: !s.terminalOpen })),
   toggleCommandPalette: () => set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
   toggleFocusMode: () => set((s) => {
     if (!s.focusMode) {
-      // Entering focus mode: hide sidebar and terminal
-      return { focusMode: true, sidebarOpen: false, terminalOpen: false }
+      // Entering focus mode: hide sidebar
+      return { focusMode: true, sidebarOpen: false }
     }
     // Exiting focus mode: restore sidebar
     return { focusMode: false, sidebarOpen: true }

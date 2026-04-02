@@ -337,9 +337,11 @@ export default function ChatInput({
     popups.parsePopupTriggers(val, cursor)
   }
 
-  // Active persona indicator
+  // Active persona indicator (per-session, Iteration 407)
   const personas = prefs.personas || []
-  const activePersona = prefs.activePersonaId ? personas.find(p => p.id === prefs.activePersonaId) : undefined
+  const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
+  const effectivePersonaId = sessionPersonaId || prefs.activePersonaId
+  const activePersona = effectivePersonaId ? personas.find(p => p.id === effectivePersonaId) : undefined
 
   return (
     <div style={{ padding: '8px 16px 12px', background: 'var(--input-bar-bg)', flexShrink: 0 }}>

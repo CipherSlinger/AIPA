@@ -1,8 +1,9 @@
 // StatusBar persona picker — extracted from StatusBar.tsx (Iteration 313)
+// Updated to per-session persona model (Iteration 407)
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { ChevronUp, Check, User } from 'lucide-react'
-import { usePrefsStore, useUiStore } from '../../store'
+import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import type { Persona } from '../../types/app.types'
 
@@ -11,9 +12,11 @@ interface StatusBarPersonaPickerProps {
   activePersona: Persona | undefined
 }
 
-export default function StatusBarPersonaPicker({ personas, activePersona }: StatusBarPersonaPickerProps) {
+export default function StatusBarPersonaPicker({ personas, activePersona: _defaultPersona }: StatusBarPersonaPickerProps) {
   const t = useT()
-  const activePersonaId = usePrefsStore(s => s.prefs.activePersonaId)
+  const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
+  const allPersonas: Persona[] = usePrefsStore(s => s.prefs.personas) || []
+  const sessionPersona = allPersonas.find(p => p.id === sessionPersonaId)
   const [show, setShow] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -29,21 +32,20 @@ export default function StatusBarPersonaPicker({ personas, activePersona }: Stat
   }, [show])
 
   const handleSelect = useCallback((personaId: string | null) => {
-    const { setPrefs } = usePrefsStore.getState()
     if (personaId) {
       const persona = (usePrefsStore.getState().prefs.personas || []).find(p => p.id === personaId)
       if (persona) {
         const resolvedPrompt = persona.presetKey ? t(`persona.presetPrompt.${persona.presetKey}`) : persona.systemPrompt
-        setPrefs({ activePersonaId: personaId, model: persona.model, systemPrompt: resolvedPrompt, outputStyle: persona.outputStyle || 'default' })
-        window.electronAPI.prefsSet('activePersonaId', personaId)
+        useChatStore.getState().setSessionPersonaId(personaId)
+        usePrefsStore.getState().setPrefs({ model: persona.model, systemPrompt: resolvedPrompt, outputStyle: persona.outputStyle || 'default' })
         window.electronAPI.prefsSet('model', persona.model)
         window.electronAPI.prefsSet('systemPrompt', resolvedPrompt)
         window.electronAPI.prefsSet('outputStyle', persona.outputStyle || 'default')
         useUiStore.getState().addToast('success', t('persona.switchedTo', { name: persona.presetKey ? t(`persona.preset.${persona.presetKey}`) : persona.name }))
       }
     } else {
-      setPrefs({ activePersonaId: undefined, systemPrompt: '', outputStyle: 'default' })
-      window.electronAPI.prefsSet('activePersonaId', null)
+      useChatStore.getState().setSessionPersonaId(undefined)
+      usePrefsStore.getState().setPrefs({ systemPrompt: '', outputStyle: 'default' })
       window.electronAPI.prefsSet('systemPrompt', '')
       window.electronAPI.prefsSet('outputStyle', 'default')
       useUiStore.getState().addToast('info', t('persona.deactivated'))
@@ -60,14 +62,14 @@ export default function StatusBarPersonaPicker({ personas, activePersona }: Stat
         style={{
           padding: '1px 6px',
           borderRadius: 8,
-          background: activePersona
-            ? `${activePersona.color}33`
+          background: sessionPersona
+            ? `${sessionPersona.color}33`
             : show ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.15)',
           fontSize: 10,
           fontWeight: 500,
           whiteSpace: 'nowrap',
           opacity: 0.9,
-          border: activePersona ? `1px solid ${activePersona.color}66` : 'none',
+          border: sessionPersona ? `1px solid ${sessionPersona.color}66` : 'none',
           color: '#fff',
           cursor: 'pointer',
           display: 'flex',
@@ -75,12 +77,12 @@ export default function StatusBarPersonaPicker({ personas, activePersona }: Stat
           gap: 3,
           transition: 'background 0.15s',
         }}
-        title={activePersona ? t('persona.personaActive', { name: activePersona.name }) : t('persona.selectPersona')}
+        title={sessionPersona ? t('persona.personaActive', { name: sessionPersona.name }) : t('persona.selectPersona')}
       >
-        {activePersona ? (
+        {sessionPersona ? (
           <>
-            <span style={{ fontSize: 11 }}>{activePersona.emoji}</span>
-            {activePersona.name}
+            <span style={{ fontSize: 11 }}>{sessionPersona.emoji}</span>
+            {sessionPersona.name}
           </>
         ) : (
           <>
@@ -115,22 +117,22 @@ export default function StatusBarPersonaPicker({ personas, activePersona }: Stat
               gap: 6,
               width: '100%',
               padding: '5px 12px',
-              background: !activePersonaId ? 'var(--popup-item-hover)' : 'transparent',
+              background: !sessionPersonaId ? 'var(--popup-item-hover)' : 'transparent',
               border: 'none',
-              color: !activePersonaId ? 'var(--accent)' : 'var(--text-primary)',
+              color: !sessionPersonaId ? 'var(--accent)' : 'var(--text-primary)',
               cursor: 'pointer',
               fontSize: 11,
               textAlign: 'left',
               transition: 'background 0.1s',
             }}
-            onMouseEnter={e => { if (activePersonaId) (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
-            onMouseLeave={e => { if (activePersonaId) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+            onMouseEnter={e => { if (sessionPersonaId) (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
+            onMouseLeave={e => { if (sessionPersonaId) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
           >
-            {!activePersonaId && <Check size={11} />}
-            <span style={{ marginLeft: !activePersonaId ? 0 : 17 }}>{t('persona.noPersona')}</span>
+            {!sessionPersonaId && <Check size={11} />}
+            <span style={{ marginLeft: !sessionPersonaId ? 0 : 17 }}>{t('persona.noPersona')}</span>
           </button>
           {personas.map(p => {
-            const isActive = p.id === activePersonaId
+            const isActive = p.id === sessionPersonaId
             return (
               <button
                 key={p.id}

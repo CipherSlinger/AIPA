@@ -312,6 +312,20 @@ Keep exercises focused and achievable. The goal is active learning through doing
     denyPendingPermissions()
     useChatStore.getState().clearMessages()
     contextWarningShownRef.current = false
+    // Auto-apply default persona for new sessions (Iteration 407)
+    const defaultPersonaId = usePrefsStore.getState().prefs.activePersonaId
+    if (defaultPersonaId) {
+      const personas = usePrefsStore.getState().prefs.personas || []
+      const persona = personas.find(p => p.id === defaultPersonaId)
+      if (persona) {
+        useChatStore.getState().setSessionPersonaId(defaultPersonaId)
+        const resolvedPrompt = persona.presetKey ? t(`persona.presetPrompt.${persona.presetKey}`) : persona.systemPrompt
+        usePrefsStore.getState().setPrefs({ model: persona.model, systemPrompt: resolvedPrompt, outputStyle: persona.outputStyle || 'default' })
+        window.electronAPI.prefsSet('model', persona.model)
+        window.electronAPI.prefsSet('systemPrompt', resolvedPrompt)
+        window.electronAPI.prefsSet('outputStyle', persona.outputStyle || 'default')
+      }
+    }
   }
 
   useEffect(() => {

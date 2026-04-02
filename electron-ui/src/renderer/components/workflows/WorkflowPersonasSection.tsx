@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { Plus, ChevronDown, Download, Upload, Sparkles } from 'lucide-react'
-import { usePrefsStore, useUiStore } from '../../store'
+import { usePrefsStore, useUiStore, useChatStore } from '../../store'
 import { useI18n } from '../../i18n'
 import type { Persona } from '../../types/app.types'
 import { PERSONA_COLORS, EMOJI_PRESETS, PERSONA_PRESETS } from '../settings/personaConstants'
@@ -24,6 +24,8 @@ export default function WorkflowPersonasSection() {
   // Load personas from prefs — keep in sync with SettingsPanel
   const [personas, setPersonas] = useState<Persona[]>(prefs.personas || [])
   const activePersonaId = prefs.activePersonaId
+  const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
+  const effectivePersonaId = sessionPersonaId || activePersonaId
 
   // Keep local personas in sync when prefs change externally (e.g. SettingsPanel still open)
   useEffect(() => {
@@ -112,6 +114,11 @@ export default function WorkflowPersonasSection() {
         setPrefs({ activePersonaId: undefined })
         window.electronAPI.prefsSet('activePersonaId', undefined)
       }
+      if (sessionPersonaId === id) {
+        useChatStore.getState().setSessionPersonaId(undefined)
+        setPrefs({ systemPrompt: '' })
+        window.electronAPI.prefsSet('systemPrompt', '')
+      }
       setDeletingId(null)
       addToast('success', t('persona.deleted'))
     } else {
@@ -121,15 +128,16 @@ export default function WorkflowPersonasSection() {
   }
 
   const handleActivate = (persona: Persona) => {
-    if (activePersonaId === persona.id) {
-      setPrefs({ activePersonaId: undefined, systemPrompt: '' })
-      window.electronAPI.prefsSet('activePersonaId', undefined)
+    if (effectivePersonaId === persona.id) {
+      // Deactivate session persona
+      useChatStore.getState().setSessionPersonaId(undefined)
+      setPrefs({ systemPrompt: '' })
       window.electronAPI.prefsSet('systemPrompt', '')
       addToast('info', t('persona.deactivated'))
     } else {
       const resolvedPrompt = persona.presetKey ? t(`persona.presetPrompt.${persona.presetKey}`) : persona.systemPrompt
-      setPrefs({ activePersonaId: persona.id, model: persona.model, systemPrompt: resolvedPrompt })
-      window.electronAPI.prefsSet('activePersonaId', persona.id)
+      useChatStore.getState().setSessionPersonaId(persona.id)
+      setPrefs({ model: persona.model, systemPrompt: resolvedPrompt })
       window.electronAPI.prefsSet('model', persona.model)
       window.electronAPI.prefsSet('systemPrompt', resolvedPrompt)
       addToast('success', t('persona.switchedTo', { name: persona.presetKey ? t(`persona.preset.${persona.presetKey}`) : persona.name }))
@@ -227,7 +235,7 @@ export default function WorkflowPersonasSection() {
           <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
             {t('persona.title')} ({personas.length})
           </span>
-          {activePersonaId && (
+          {effectivePersonaId && (
             <span style={{
               fontSize: 8,
               background: 'var(--accent)',
@@ -236,7 +244,7 @@ export default function WorkflowPersonasSection() {
               borderRadius: 6,
               fontWeight: 700,
             }}>
-              {personas.find(p => p.id === activePersonaId)?.emoji ?? ''}
+              {personas.find(p => p.id === effectivePersonaId)?.emoji ?? ''}
             </span>
           )}
         </div>
@@ -307,7 +315,7 @@ export default function WorkflowPersonasSection() {
                 <PersonaSidebarCard
                   key={p.id}
                   persona={p}
-                  isActive={activePersonaId === p.id}
+                  isActive={effectivePersonaId === p.id}
                   isDeleting={deletingId === p.id}
                   onActivate={handleActivate}
                   onEdit={startEdit}

@@ -7,13 +7,14 @@ import type { Persona } from '../../types/app.types'
 interface PersonaCardProps {
   persona: Persona
   isActive: boolean
+  isDefault: boolean
   isDeleting: boolean
   onActivate: (p: Persona) => void
   onEdit: (p: Persona) => void
   onDelete: (id: string) => void
 }
 
-export default function PersonaCard({ persona, isActive, isDeleting, onActivate, onEdit, onDelete }: PersonaCardProps) {
+export default function PersonaCard({ persona, isActive, isDefault, isDeleting, onActivate, onEdit, onDelete }: PersonaCardProps) {
   const { t } = useI18n()
   const p = persona
 
@@ -24,8 +25,8 @@ export default function PersonaCard({ persona, isActive, isDeleting, onActivate,
         alignItems: 'center',
         gap: 10,
         padding: '8px 10px',
-        background: isActive ? `${p.color}15` : 'var(--card-bg)',
-        border: `1px solid ${isActive ? p.color : 'var(--card-border)'}`,
+        background: isActive ? `${p.color}15` : isDefault ? `${p.color}0a` : 'var(--card-bg)',
+        border: `1px solid ${isActive ? p.color : isDefault ? `${p.color}66` : 'var(--card-border)'}`,
         borderRadius: 8,
         transition: 'border-color 150ms, background 150ms',
       }}
@@ -49,7 +50,7 @@ export default function PersonaCard({ persona, isActive, isDeleting, onActivate,
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-bright)' }}>{p.name}</span>
-          {isActive && (
+          {isDefault && (
             <span style={{
               fontSize: 9,
               background: p.color,
@@ -58,7 +59,7 @@ export default function PersonaCard({ persona, isActive, isDeleting, onActivate,
               borderRadius: 8,
               fontWeight: 600,
             }}>
-              {t('persona.active')}
+              {t('persona.defaultBadge')}
             </span>
           )}
         </div>
@@ -71,22 +72,22 @@ export default function PersonaCard({ persona, isActive, isDeleting, onActivate,
       <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
         <button
           onClick={() => onActivate(p)}
-          title={isActive ? t('persona.deactivate') : t('persona.activate')}
+          title={isDefault ? t('persona.removeDefault') : t('persona.setAsDefault')}
           style={{
             width: 26,
             height: 26,
             borderRadius: 4,
             border: 'none',
-            background: isActive ? p.color : 'none',
-            color: isActive ? '#fff' : 'var(--text-muted)',
+            background: isDefault ? p.color : 'none',
+            color: isDefault ? '#fff' : 'var(--text-muted)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             transition: 'background 150ms',
           }}
-          onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
-          onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'none' }}
+          onMouseEnter={e => { if (!isDefault) e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
+          onMouseLeave={e => { if (!isDefault) e.currentTarget.style.background = 'none' }}
         >
           <Check size={13} />
         </button>

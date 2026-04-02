@@ -3044,3 +3044,41 @@ _Date: 2026-04-02_
 - electron-ui/src/renderer/components/chat/PersonaPicker.tsx (use translated prompt on activation)
 
 **Build:** SUCCESS (2516 modules)
+
+## Iteration 407 — Persona Per-Session
+_Date: 2026-04-02_
+
+**Changes:**
+- Replaced global persona activation with per-session persona model
+- Added `sessionPersonaId` to `useChatStore` with localStorage persistence keyed by session ID
+- PersonaPicker (ChatHeader) and StatusBarPersonaPicker now set session-level persona instead of global
+- Command Palette persona commands now set session persona
+- WelcomeScreen persona selection now sets session persona
+- NavRail, Message, ChatInput, ThinkingIndicator now show session persona (falling back to default)
+- WorkflowPersonasSection now sets session persona (activate) and clears on delete
+- SettingsPersonas: "Activate" renamed to "Set as Default", "Deactivate" to "Remove Default"
+- PersonaCard: "Active" badge replaced with "Default" badge
+- New session auto-applies default persona (`activePersonaId` kept as "default for new sessions")
+- Session switch restores per-session persona from localStorage
+- Edge case: deleting active persona clears both default and session persona
+- Added 5 i18n keys (en + zh-CN): setAsDefault, removeDefault, defaultBadge, defaultSet, defaultRemoved
+
+**Files Modified:**
+- electron-ui/src/renderer/store/index.ts (added sessionPersonaId, setSessionPersonaId, clearMessages reset)
+- electron-ui/src/renderer/components/chat/PersonaPicker.tsx (session persona instead of global)
+- electron-ui/src/renderer/components/layout/StatusBarPersonaPicker.tsx (session persona)
+- electron-ui/src/renderer/components/shared/commandPaletteCommands.tsx (session persona)
+- electron-ui/src/renderer/components/chat/WelcomeScreen.tsx (session persona)
+- electron-ui/src/renderer/components/layout/NavRail.tsx (session persona with fallback)
+- electron-ui/src/renderer/components/chat/Message.tsx (session persona with fallback)
+- electron-ui/src/renderer/components/chat/ChatInput.tsx (session persona with fallback)
+- electron-ui/src/renderer/components/chat/ThinkingIndicator.tsx (session persona with fallback)
+- electron-ui/src/renderer/components/settings/PersonaCard.tsx (isDefault prop, Default badge)
+- electron-ui/src/renderer/components/settings/SettingsPersonas.tsx (Set as Default/Remove Default)
+- electron-ui/src/renderer/components/workflows/WorkflowPersonasSection.tsx (session persona)
+- electron-ui/src/renderer/components/sessions/useSessionListActions.ts (restore persona on session open)
+- electron-ui/src/renderer/hooks/useStreamJson.ts (auto-apply default persona on new session)
+- electron-ui/src/renderer/i18n/locales/en.json (+5 keys)
+- electron-ui/src/renderer/i18n/locales/zh-CN.json (+5 keys)
+
+**Build:** SUCCESS (2516 modules)

@@ -33,7 +33,6 @@ export const TIPS: Tip[] = [
   { id: 'snippets',      contentKey: 'tips.tip_snippets',   minMessages: 25 },
   { id: 'focus',         contentKey: 'tips.tip_focus',      minMessages: 12 },
   { id: 'pin',           contentKey: 'tips.tip_pin',        minMessages: 6 },
-  { id: 'terminal',      contentKey: 'tips.tip_terminal',   minMessages: 10 },
   { id: 'clipboard',     contentKey: 'tips.tip_clipboard',  minMessages: 5 },
   { id: 'export',        contentKey: 'tips.tip_export',     minSessions: 3 },
   { id: 'tone',          contentKey: 'tips.tip_tone',       minMessages: 15 },

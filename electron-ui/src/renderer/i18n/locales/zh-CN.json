@@ -3,7 +3,6 @@
     "newChat": "新对话",
     "history": "历史记录",
     "files": "文件",
-    "terminal": "终端",
     "settings": "设置",
     "userProfile": "用户头像",
     "notes": "笔记",
@@ -182,7 +181,6 @@
       "clipboardAction": "剪贴板快捷操作（全局）",
       "commandPalette": "命令面板",
       "toggleSidebar": "切换侧边栏",
-      "toggleTerminal": "切换终端",
       "focusInput": "聚焦输入框",
       "referenceFiles": "引用文件",
       "slashCommands": "斜杠命令"
@@ -1190,7 +1188,12 @@
     "exportSuccess": "角色已导出",
     "importSuccess": "已导入 {{count}} 个角色",
     "importFailed": "导入失败：文件格式无效",
-    "importNoDuplicates": "没有可导入的新角色（全部重复）"
+    "importNoDuplicates": "没有可导入的新角色（全部重复）",
+    "setAsDefault": "设为默认",
+    "removeDefault": "取消默认",
+    "defaultBadge": "默认",
+    "defaultSet": "已将 {name} 设为新会话默认角色",
+    "defaultRemoved": "已取消默认角色"
   },
   "memory": {
     "title": "记忆",

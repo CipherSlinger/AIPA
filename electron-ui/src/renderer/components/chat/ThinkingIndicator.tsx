@@ -10,10 +10,12 @@ export default function ThinkingIndicator() {
   const t = useT()
   const [elapsed, setElapsed] = useState(0)
 
-  // Persona awareness
-  const activePersonaId = usePrefsStore(s => s.prefs.activePersonaId)
+  // Persona awareness (per-session, Iteration 407)
+  const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
+  const defaultPersonaId = usePrefsStore(s => s.prefs.activePersonaId)
+  const effectivePersonaId = sessionPersonaId || defaultPersonaId
   const personas = usePrefsStore(s => s.prefs.personas)
-  const activePersona = activePersonaId ? personas?.find(p => p.id === activePersonaId) : null
+  const activePersona = effectivePersonaId ? personas?.find(p => p.id === effectivePersonaId) : null
 
   // Elapsed timer
   useEffect(() => {
