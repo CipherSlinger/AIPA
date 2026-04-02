@@ -2649,3 +2649,6 @@ Status: SUCCESS (tsc: 0 errors; vite: 2517 modules, 10.64s)
 ### Iteration 381 (2026-04-01)
 - i18n Preset Localization for Workflows and Agents (user feedback fix) -- Added presetKey field to Workflow and Persona types. All 6 preset workflow names/descriptions and 5 preset persona names now use i18n keys. 22 new i18n keys. i18n key count: 1229 (aligned). 15 files changed; build SUCCESS (commit 0cc2fbc). Version: 1.1.58.
 [RETRO] retro-2026-04-01-iterations-372-381.md completed, covering Iteration 372-381, next forced retro after Iteration 391
+
+### Iteration 382 (2026-04-01)
+- Keyboard Message Navigation with Focus Indicator -- Ctrl+Up/Down navigates through ALL messages (user + assistant) with a visual 3px left border accent + subtle background tint. Ctrl+Home/End sets focus via existing CustomEvent integration (aipa:scrollToFirst/Last). Escape clears focus without conflicting with abort-streaming. Registered in shortcutRegistry.ts. 2 files changed (MessageList.tsx, shortcutRegistry.ts); build SUCCESS (commit deb7a7f). Version: 1.1.59.

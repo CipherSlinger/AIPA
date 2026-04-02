@@ -40,12 +40,17 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 
 ### Conversation
 - **Stream-JSON chat** with live tool-use cards — see every file read, command run, and web fetch as it happens
+- **Tool Use Summary Labels** — consecutive tool calls auto-grouped with human-readable operation summaries
 - **Structured Diff View** — file edits and writes shown in LCS-based unified diff format with color-coded add/delete lines and collapsible large diffs
-- **Extended thinking** blocks, collapsible and auto-expanding during generation
+- **Extended thinking** blocks, collapsible and auto-expanding during generation; one-click toggle in StatusBar
+- **Output Styles** — three response modes (default/explanatory/learning), quick-switch from toolbar
 - **Auto-Compaction** — automatically summarizes older messages when context window nears capacity, keeping conversations flowing (threshold configurable 60%-90%)
+- **Conversation Rewind** — roll back to any message, syncing both in-memory state and persisted session
+- **Keyboard message navigation** — `Ctrl+Up/Down` to step through messages, `Ctrl+Home/End` to jump to first/last, with visual focus indicator
 - **Edit & regenerate** any message; pick a different model before regenerating
 - **Read Aloud** via Web Speech API; **Quote Reply** by selecting text
 - **Permission prompts** — friendly allow/deny cards before any destructive tool use
+- **System Diagnostics** — one-click health checks for CLI, API key, network, disk space, and system load
 
 ### Input Power Tools
 - **Slash commands** (`/`), **@mention** file picker
@@ -57,19 +62,24 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 ### Session Management
 - Browse, search, tag, pin, and bulk-delete past sessions
 - **Cross-session search** (`Ctrl+Shift+F`) across all JSONL history files
+- **Session Changes Panel** — view files modified during the current session
 - Export conversations as Markdown, HTML, or JSON
 
 ### Personas & Memory
 - Up to 10 custom AI personas with name, emoji, model, system prompt, and badge color
+- **Preset localization** — 5 built-in persona names automatically switch with system language
 - Memory auto-injected into every conversation — pinned items + 10 most recent
 - **Auto-Memory Extraction** — optionally extracts durable memories (preferences, facts, instructions) from conversations automatically
 - **Remember This** — one-click save any response from the hover toolbar
 - **Contextual Tips** — smart feature discovery tips on the Welcome Screen, personalized to your usage patterns
 - **Prompt Suggestions** — AI-predicted follow-up suggestions after each response, shown as ghost text in the input field (Tab to accept)
+- **Thinking Depth** — low/medium/high effort levels controlling AI thinking investment
+- **Per-Model Cost Breakdown** — click cost in StatusBar to see token usage and cost breakdown by model
 
 ### Workflows
 - Build multi-step prompt pipelines with the visual workflow editor
 - 6 preset workflows to get started instantly (weekly reports, code reviews, daily summaries, and more)
+- **Preset localization** — workflow names and descriptions automatically switch with system language
 
 ### Skills Marketplace
 - 47 curated skills from Anthropic, OpenClaw, ClawhHub, and community contributors
@@ -97,10 +107,16 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 |----------|--------|
 | `Ctrl+N` | New conversation |
 | `Ctrl+Shift+P` | Command palette |
+| `Ctrl+F` | Search current conversation |
 | `Ctrl+Shift+F` | Global cross-session search |
 | `Ctrl+Shift+R` | Regenerate response |
 | `Ctrl+Shift+E` | Export conversation |
+| `Ctrl+Shift+K` | Compact conversation context |
+| `Ctrl+Shift+C` | Collapse/expand all messages |
+| `Ctrl+Shift+B` | Toggle bookmarks panel |
+| `Ctrl+Shift+S` | Toggle stats panel |
 | `Ctrl+Shift+D` | Cycle theme (Dark / Light / System) |
+| `Ctrl+Shift+L` | Toggle language (en/zh-CN) |
 | `Ctrl+Shift+M` | Cycle model (Sonnet / Opus / Haiku) |
 | `Ctrl+Shift+T` | Pin window on top (always-on-top) |
 | `Ctrl+Shift+O` | Focus mode (hide sidebar + terminal) |
@@ -110,6 +126,10 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 | `Ctrl+1–4` | History, Files, Notes, Skills |
 | `Ctrl+5–7` | Memory, Workflows, Channel |
 | `Ctrl+/` | Shortcut cheatsheet |
+| `Ctrl+Up/Down` | Step through messages (with focus indicator) |
+| `Ctrl+Home/End` | Jump to first/last message |
+| `Alt+Up/Down` | Jump to previous/next user message |
+| `PageUp/Down` | Page scroll in message list |
 | `Ctrl+Shift+Space` | Toggle AIPA window (global, works from any app) |
 | `Ctrl+Shift+G` | Clipboard quick action (global: reads clipboard, opens AIPA, sends to chat) |
 
