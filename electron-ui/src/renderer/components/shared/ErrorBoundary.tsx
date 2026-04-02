@@ -5,6 +5,8 @@ import { getT } from '../../i18n'
 interface Props {
   children: ReactNode
   fallbackLabel?: string
+  /** When true, error UI is shown as a floating banner instead of replacing children */
+  overlay?: boolean
 }
 
 interface State {
@@ -210,6 +212,33 @@ export default class ErrorBoundary extends Component<Props, State> {
     // During auto-retry, show a brief loading state instead of the error
     if (this.state.autoRetrying) {
       const t = getT()
+      // In overlay mode, keep children visible behind the recovery notice
+      if (this.props.overlay) {
+        return (
+          <>
+            {this.props.children}
+            <div
+              style={{
+                position: 'fixed',
+                top: 40,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                padding: '8px 20px',
+                background: 'var(--popup-bg, #252526)',
+                border: '1px solid var(--warning, #cca700)',
+                borderRadius: '8px',
+                color: 'var(--text-muted, #858585)',
+                fontSize: '12px',
+                textAlign: 'center',
+                zIndex: 10000,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+              }}
+            >
+              {t('error.recovering', { current: String(this.state.retryCount + 1), max: String(MAX_AUTO_RETRIES) })}
+            </div>
+          </>
+        )
+      }
       return (
         <div
           style={{
@@ -231,6 +260,129 @@ export default class ErrorBoundary extends Component<Props, State> {
     const label = this.props.fallbackLabel || 'component'
     const hasRetried = this.state.retryCount > 0
     const { recoveryFailed } = this.state
+
+    // Overlay mode: show a compact floating banner instead of replacing all content
+    // This lets the user still access other features (sidebar, settings, etc.)
+    if (this.props.overlay) {
+      return (
+        <>
+          {/* Render children in a degraded state — they'll be in their last good render */}
+          <div style={{ opacity: 0.3, pointerEvents: 'none', filter: 'grayscale(0.5)', height: '100%' }}>
+            {/* Can't render children (would re-trigger error), show placeholder */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted, #858585)', fontSize: 14 }}>
+              {t('error.appDegraded')}
+            </div>
+          </div>
+          {/* Floating error banner */}
+          <div
+            style={{
+              position: 'fixed',
+              top: 40,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '90%',
+              maxWidth: 480,
+              background: 'var(--popup-bg, #252526)',
+              border: '1px solid var(--error, #f44747)',
+              borderRadius: '10px',
+              color: 'var(--text-primary, #cccccc)',
+              fontSize: '13px',
+              padding: '14px 18px',
+              zIndex: 10000,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+            }}
+          >
+            <div style={{ fontWeight: 600, marginBottom: '6px', color: 'var(--error, #f44747)', fontSize: 14 }}>
+              {t('error.titleIn', { label })}
+            </div>
+            <div
+              style={{
+                fontFamily: 'monospace',
+                fontSize: '10px',
+                background: 'var(--card-bg, #1e1e1e)',
+                padding: '6px 8px',
+                borderRadius: '4px',
+                marginBottom: '10px',
+                maxHeight: '60px',
+                overflowY: 'auto',
+                color: 'var(--text-muted, #858585)',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+              }}
+            >
+              {this.state.error?.message || t('error.unknownError')}
+            </div>
+            {hasRetried && (
+              <div style={{ fontSize: '10px', color: 'var(--text-muted, #858585)', marginBottom: '6px' }}>
+                {t('error.autoRecoveryFailed', { count: String(this.state.retryCount) })}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {!recoveryFailed && (
+                <button
+                  onClick={this.handleDismiss}
+                  style={{
+                    padding: '5px 12px',
+                    background: 'var(--accent, #0e639c)',
+                    border: 'none',
+                    borderRadius: '6px',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontSize: '11px',
+                    fontWeight: 500,
+                  }}
+                >
+                  {t('error.retryRender')}
+                </button>
+              )}
+              <button
+                onClick={this.handleNewConversation}
+                style={{
+                  padding: '5px 12px',
+                  background: 'var(--accent, #0e639c)',
+                  border: 'none',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontSize: '11px',
+                  fontWeight: 500,
+                }}
+              >
+                {t('error.startNewConversation')}
+              </button>
+              <button
+                onClick={this.handleReload}
+                style={{
+                  padding: '5px 12px',
+                  background: 'var(--card-bg, #1e1e1e)',
+                  border: '1px solid var(--popup-border, #3a3a3a)',
+                  borderRadius: '6px',
+                  color: 'var(--text-primary, #ccc)',
+                  cursor: 'pointer',
+                  fontSize: '11px',
+                }}
+              >
+                {t('error.reload')}
+              </button>
+              <button
+                onClick={this.handleCopyError}
+                style={{
+                  padding: '5px 12px',
+                  background: 'var(--card-bg, #1e1e1e)',
+                  border: '1px solid var(--popup-border, #3a3a3a)',
+                  borderRadius: '6px',
+                  color: 'var(--text-primary, #ccc)',
+                  cursor: 'pointer',
+                  fontSize: '11px',
+                }}
+              >
+                {t('error.copyError')}
+              </button>
+            </div>
+          </div>
+        </>
+      )
+    }
 
     return (
       <div

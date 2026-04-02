@@ -760,7 +760,8 @@
     "startNewConversation": "Start New Conversation",
     "recoveryFailed": "Recovery failed repeatedly. Starting a new conversation is recommended.",
     "recovering": "Recovering... (attempt {{current}}/{{max}})",
-    "autoRecoveryFailed": "Auto-recovery failed after {{count}} attempt(s)."
+    "autoRecoveryFailed": "Auto-recovery failed after {{count}} attempt(s).",
+    "appDegraded": "A component crashed. Use the controls above to recover."
   },
   "common": {
     "ok": "OK",

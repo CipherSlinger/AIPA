@@ -232,7 +232,7 @@ export default function App() {
   useContextHealth()
 
   return (
-    <ErrorBoundary fallbackLabel="application">
+    <ErrorBoundary fallbackLabel="application" overlay>
       <>
         {showOnboarding && (
           <OnboardingWizard onComplete={async () => {

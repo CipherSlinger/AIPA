@@ -776,7 +776,8 @@
     "startNewConversation": "开始新对话",
     "recoveryFailed": "多次恢复失败，建议开始新对话。",
     "recovering": "恢复中...（第 {{current}}/{{max}} 次尝试）",
-    "autoRecoveryFailed": "自动恢复在 {{count}} 次尝试后失败。"
+    "autoRecoveryFailed": "自动恢复在 {{count}} 次尝试后失败。",
+    "appDegraded": "组件发生崩溃，请使用上方按钮恢复。"
   },
   "common": {
     "ok": "确定",
