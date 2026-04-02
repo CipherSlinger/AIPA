@@ -53,10 +53,14 @@ export default function ChatInput({
   // Input history navigation
   const { inputHistoryRef, addToHistory, navigateUp, navigateDown } = useChatInputHistory()
 
-  // Speech recognition
-  const { listening, toggleSpeech } = useSpeechRecognition((transcript) => {
+  // Speech recognition (with auto-stop callback)
+  const handleAutoStop = useCallback(() => {
+    addToast('info', t('voice.autoStopped'))
+  }, [addToast, t])
+
+  const { listening, recordingSeconds, toggleSpeech } = useSpeechRecognition((transcript) => {
     setInput(prev => prev + transcript)
-  })
+  }, handleAutoStop)
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const inputWrapRef = useRef<HTMLDivElement>(null)
@@ -369,6 +373,7 @@ export default function ChatInput({
       {/* Toolbar row */}
       <InputToolbar
         listening={listening}
+        recordingSeconds={recordingSeconds}
         toggleSpeech={toggleSpeech}
         onAtClick={() => { setInput(prev => prev + '@'); popups.setAtQuery(''); textareaRef.current?.focus() }}
         onSlashClick={() => { setInput('/'); popups.setSlashQuery(''); popups.setSlashIndex(0); textareaRef.current?.focus() }}

@@ -10,6 +10,7 @@ import { toolbarBtnStyle, toolbarHoverIn, toolbarHoverOut } from './chatInputCon
 
 interface InputToolbarProps {
   listening: boolean
+  recordingSeconds: number
   toggleSpeech: () => void
   onAtClick: () => void
   onSlashClick: () => void
@@ -26,6 +27,7 @@ interface InputToolbarProps {
 
 export default function InputToolbar({
   listening,
+  recordingSeconds,
   toggleSpeech,
   onAtClick,
   onSlashClick,
@@ -110,20 +112,49 @@ export default function InputToolbar({
       >
         <TerminalSquare size={16} />
       </button>
-      {/* Voice input */}
-      <button
-        onClick={toggleSpeech}
-        title={listening ? t('toolbar.stopRecording') : t('toolbar.voiceInput')}
-        style={{
-          ...toolbarBtnStyle,
-          background: listening ? 'var(--error)' : 'none',
-          color: listening ? '#fff' : 'var(--input-toolbar-icon)',
-        }}
-        onMouseEnter={(e) => { if (!listening) toolbarHoverIn(e) }}
-        onMouseLeave={(e) => { if (!listening) toolbarHoverOut(e) }}
-      >
-        {listening ? <MicOff size={16} /> : <Mic size={16} />}
-      </button>
+      {/* Voice input with enhanced recording indicator */}
+      <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+        {/* Pulsing ring animation when recording */}
+        {listening && (
+          <div
+            style={{
+              position: 'absolute',
+              top: -2, left: -2, right: -2, bottom: -2,
+              borderRadius: '50%',
+              border: '2px solid var(--error)',
+              animation: 'voicePulse 1.5s ease-in-out infinite',
+              pointerEvents: 'none',
+              width: 30, height: 30,
+            }}
+          />
+        )}
+        <button
+          onClick={toggleSpeech}
+          title={listening ? t('toolbar.stopRecording') : t('toolbar.voiceInput')}
+          style={{
+            ...toolbarBtnStyle,
+            background: listening ? 'var(--error)' : 'none',
+            color: listening ? '#fff' : 'var(--input-toolbar-icon)',
+          }}
+          onMouseEnter={(e) => { if (!listening) toolbarHoverIn(e) }}
+          onMouseLeave={(e) => { if (!listening) toolbarHoverOut(e) }}
+        >
+          {listening ? <MicOff size={16} /> : <Mic size={16} />}
+        </button>
+        {/* Recording duration counter */}
+        {listening && recordingSeconds > 0 && (
+          <span style={{
+            fontSize: 10,
+            fontWeight: 600,
+            color: 'var(--error)',
+            fontVariantNumeric: 'tabular-nums',
+            whiteSpace: 'nowrap',
+            animation: 'voiceFadeIn 0.3s ease-in',
+          }}>
+            {Math.floor(recordingSeconds / 60)}:{String(recordingSeconds % 60).padStart(2, '0')}
+          </span>
+        )}
+      </div>
       {/* Clipboard actions */}
       <ClipboardActionsMenu onSend={onSend} />
       {/* Text transform */}

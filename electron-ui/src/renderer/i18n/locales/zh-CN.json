@@ -298,6 +298,9 @@
     "multiLineOn": "多行模式：Enter = 换行，Ctrl+Enter = 发送",
     "multiLineOff": "单行模式：Enter = 发送，Shift+Enter = 换行"
   },
+  "voice": {
+    "autoStopped": "录音已自动停止（已达2分钟限制）"
+  },
   "selection": {
     "copySelection": "复制选中文本",
     "copy": "复制",

@@ -298,6 +298,9 @@
     "multiLineOn": "Multi-line mode: Enter = new line, Ctrl+Enter = send",
     "multiLineOff": "Single-line mode: Enter = send, Shift+Enter = new line"
   },
+  "voice": {
+    "autoStopped": "Recording stopped automatically (2-minute limit reached)"
+  },
   "selection": {
     "copySelection": "Copy selected text",
     "copy": "Copy",
