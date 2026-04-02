@@ -1239,6 +1239,10 @@
     "emptyHint": "将多个提示词串联成可重复使用的工作流。每个步骤会通过任务队列顺序执行。",
     "noResults": "没有匹配的工作流",
     "presets": "预设工作流",
+    "listView": "列表",
+    "canvasView": "画布",
+    "fitToView": "适应视图",
+    "canvasEmpty": "选择一个工作流以在画布上查看",
     "footer": "多步骤任务的提示词链",
     "inspired": "灵感来自 OpenClaw Lobster",
     "preset": {

@@ -2859,3 +2859,32 @@ _Date: 2026-04-01 23:43_
 - electron-ui/src/renderer/i18n/locales/zh-CN.json (removed unused version key)
 
 **Build:** SUCCESS (renderer + preload)
+
+
+## Iteration 401 — Workflow Canvas Mode (Phase 1: Foundation)
+_Date: 2026-04-02_
+
+**Changes:**
+- Added Canvas view mode to the Workflow panel with List/Canvas toggle button
+- Created WorkflowCanvas.tsx (352 lines): main canvas component with pan, zoom, fit-to-view, dot grid background
+- Created CanvasNode.tsx (128 lines): step card node with step number badge, title, prompt preview
+- Created CanvasEdge.tsx (51 lines): SVG bezier curve edges with arrowhead markers between nodes
+- Canvas features: mouse drag to pan, scroll wheel to zoom (0.5x-2x), fit-to-view button, node dragging (cosmetic repositioning)
+- WorkflowCanvas is lazy-loaded (React.lazy) and code-split into its own chunk (6.93 kB / 2.74 kB gzipped)
+- Canvas displays the expanded workflow (or first workflow if none expanded)
+- Auto-fit-to-view on workflow selection with smooth 300ms transition
+- All nodes are keyboard-accessible (Tab + Enter) with proper aria-labels
+- Added 4 i18n keys (listView, canvasView, fitToView, canvasEmpty) in both en.json and zh-CN.json
+- No store/IPC/preload changes -- canvas state is fully component-local
+
+**Files Created:**
+- electron-ui/src/renderer/components/workflows/WorkflowCanvas.tsx (352 lines)
+- electron-ui/src/renderer/components/workflows/CanvasNode.tsx (128 lines)
+- electron-ui/src/renderer/components/workflows/CanvasEdge.tsx (51 lines)
+
+**Files Modified:**
+- electron-ui/src/renderer/components/workflows/WorkflowPanel.tsx (288 -> 362 lines)
+- electron-ui/src/renderer/i18n/locales/en.json (+4 keys)
+- electron-ui/src/renderer/i18n/locales/zh-CN.json (+4 keys)
+
+**Build:** SUCCESS

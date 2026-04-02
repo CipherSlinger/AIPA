@@ -1,8 +1,10 @@
-import React from 'react'
+import React, { useState, useMemo, lazy, Suspense } from 'react'
 import {
   Workflow as WorkflowIcon,
   Plus,
   Search,
+  List,
+  LayoutGrid,
 } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useWorkflowCrud } from './useWorkflowCrud'
@@ -11,9 +13,18 @@ import WorkflowStepEditor from './WorkflowStepEditor'
 import WorkflowItem from './WorkflowItem'
 import WorkflowPersonasSection from './WorkflowPersonasSection'
 
+const WorkflowCanvas = lazy(() => import('./WorkflowCanvas'))
+
 export default function WorkflowPanel() {
   const t = useT()
   const crud = useWorkflowCrud()
+  const [viewMode, setViewMode] = useState<'list' | 'canvas'>('list')
+
+  // The workflow to display in canvas mode: the expanded one, or the first one
+  const canvasWorkflow = useMemo(() => {
+    if (crud.expandedId) return crud.workflows.find(w => w.id === crud.expandedId) || null
+    return crud.workflows.length > 0 ? crud.workflows[0] : null
+  }, [crud.expandedId, crud.workflows])
 
   return (
     <div style={{
@@ -25,13 +36,19 @@ export default function WorkflowPanel() {
     }}>
       {/* Personas section — collapsible, sits above workflows */}
       <WorkflowPersonasSection />
-      <WorkflowTabContent crud={crud} t={t} />
+      <WorkflowTabContent crud={crud} t={t} viewMode={viewMode} setViewMode={setViewMode} canvasWorkflow={canvasWorkflow} />
     </div>
   )
 }
 
 /* Workflows tab content — extracted to keep the main component clean */
-function WorkflowTabContent({ crud, t }: { crud: ReturnType<typeof useWorkflowCrud>; t: (key: string) => string }) {
+function WorkflowTabContent({ crud, t, viewMode, setViewMode, canvasWorkflow }: {
+  crud: ReturnType<typeof useWorkflowCrud>;
+  t: (key: string) => string;
+  viewMode: 'list' | 'canvas';
+  setViewMode: (mode: 'list' | 'canvas') => void;
+  canvasWorkflow: import('../../types/app.types').Workflow | null;
+}) {
   return (
     <>
       {/* Workflows sub-header with search + create */}
@@ -49,22 +66,73 @@ function WorkflowTabContent({ crud, t }: { crud: ReturnType<typeof useWorkflowCr
           <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
             {t('workflow.title')} ({crud.workflows.length})
           </span>
-          <button
-            onClick={() => crud.setShowCreateForm(!crud.showCreateForm)}
-            aria-label={t('workflow.create')}
-            style={{
-              background: crud.showCreateForm ? 'var(--accent)' : 'transparent',
-              border: 'none',
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            {/* View toggle */}
+            <div style={{
+              display: 'inline-flex',
+              background: 'var(--bg-main)',
+              border: '1px solid var(--border)',
               borderRadius: 6,
-              padding: 4,
-              cursor: 'pointer',
-              color: crud.showCreateForm ? '#fff' : 'var(--text-muted)',
-              display: 'flex',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <Plus size={14} />
-          </button>
+              padding: 2,
+            }}>
+              <button
+                onClick={() => setViewMode('list')}
+                aria-label={t('workflow.listView')}
+                title={t('workflow.listView')}
+                style={{
+                  background: viewMode === 'list' ? 'var(--bg-hover)' : 'transparent',
+                  border: 'none',
+                  borderRadius: 4,
+                  padding: '2px 6px',
+                  cursor: 'pointer',
+                  color: viewMode === 'list' ? 'var(--text)' : 'var(--text-muted)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  fontSize: 10,
+                  fontWeight: 500,
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <List size={12} />
+              </button>
+              <button
+                onClick={() => setViewMode('canvas')}
+                aria-label={t('workflow.canvasView')}
+                title={t('workflow.canvasView')}
+                style={{
+                  background: viewMode === 'canvas' ? 'var(--bg-hover)' : 'transparent',
+                  border: 'none',
+                  borderRadius: 4,
+                  padding: '2px 6px',
+                  cursor: 'pointer',
+                  color: viewMode === 'canvas' ? 'var(--text)' : 'var(--text-muted)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  fontSize: 10,
+                  fontWeight: 500,
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <LayoutGrid size={12} />
+              </button>
+            </div>
+            <button
+              onClick={() => crud.setShowCreateForm(!crud.showCreateForm)}
+              aria-label={t('workflow.create')}
+              style={{
+                background: crud.showCreateForm ? 'var(--accent)' : 'transparent',
+                border: 'none',
+                borderRadius: 6,
+                padding: 4,
+                cursor: 'pointer',
+                color: crud.showCreateForm ? '#fff' : 'var(--text-muted)',
+                display: 'flex',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <Plus size={14} />
+            </button>
+          </div>
         </div>
 
         {/* Search */}
@@ -171,9 +239,14 @@ function WorkflowTabContent({ crud, t }: { crud: ReturnType<typeof useWorkflowCr
         </div>
       )}
 
-      {/* Workflow list */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
-        {crud.filteredWorkflows.length === 0 && !crud.showCreateForm ? (
+      {/* Workflow list OR canvas */}
+      {viewMode === 'canvas' ? (
+        <Suspense fallback={<div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 11 }}>Loading canvas...</div>}>
+          <WorkflowCanvas workflow={canvasWorkflow} />
+        </Suspense>
+      ) : (
+        <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
+          {crud.filteredWorkflows.length === 0 && !crud.showCreateForm ? (
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             height: '50%', color: 'var(--text-muted)', gap: 8, padding: '0 16px',
@@ -257,7 +330,8 @@ function WorkflowTabContent({ crud, t }: { crud: ReturnType<typeof useWorkflowCr
             ))}
           </div>
         )}
-      </div>
+        </div>
+      )}
 
       {/* Footer */}
       <div style={{

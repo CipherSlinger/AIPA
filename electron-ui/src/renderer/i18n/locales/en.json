@@ -1239,6 +1239,10 @@
     "emptyHint": "Chain multiple prompts into reusable workflows. Each step runs sequentially using the task queue.",
     "noResults": "No matching workflows",
     "presets": "Preset Workflows",
+    "listView": "List",
+    "canvasView": "Canvas",
+    "fitToView": "Fit to view",
+    "canvasEmpty": "Select a workflow to view on canvas",
     "footer": "Prompt chains for multi-step tasks",
     "inspired": "Inspired by OpenClaw Lobster",
     "preset": {
