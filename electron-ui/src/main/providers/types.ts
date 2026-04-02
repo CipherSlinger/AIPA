@@ -160,6 +160,20 @@ export const DEFAULT_PROVIDER_CONFIGS: Omit<ModelProviderConfig, 'apiKey'>[] = [
     ],
   },
   {
+    id: 'qwen',
+    name: 'Qwen (Alibaba Cloud)',
+    type: 'openai-compat',
+    baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    enabled: false,
+    failoverPriority: 4,
+    models: [
+      { id: 'qwen-turbo', name: 'Qwen Turbo', provider: 'qwen', capabilities: { vision: false, code: true, reasoning: false, tools: true, streaming: true }, contextWindow: 131072 },
+      { id: 'qwen-plus', name: 'Qwen Plus', provider: 'qwen', capabilities: { vision: true, code: true, reasoning: true, tools: true, streaming: true }, contextWindow: 131072 },
+      { id: 'qwen-max', name: 'Qwen Max', provider: 'qwen', capabilities: { vision: true, code: true, reasoning: true, tools: true, streaming: true }, contextWindow: 32768 },
+      { id: 'qwen-long', name: 'Qwen Long', provider: 'qwen', capabilities: { vision: false, code: true, reasoning: true, tools: true, streaming: true }, contextWindow: 1000000 },
+    ],
+  },
+  {
     id: 'custom',
     name: 'Custom (OpenAI-compatible)',
     type: 'openai-compat',

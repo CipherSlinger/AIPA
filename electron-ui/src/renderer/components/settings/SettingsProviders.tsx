@@ -24,7 +24,7 @@ interface HealthStatus {
   lastError?: string
 }
 
-const BUILT_IN_IDS = ['claude-cli', 'openai', 'ollama', 'deepseek']
+const BUILT_IN_IDS = ['claude-cli', 'openai', 'ollama', 'deepseek', 'qwen']
 
 export default function SettingsProviders() {
   const { t } = useI18n()

@@ -1359,6 +1359,9 @@
     "connectionOk": "Connection successful",
     "connectionFailed": "Connection failed",
     "manageProviders": "Manage Providers...",
+    "movedToChannels": "Providers have moved to Channels",
+    "movedHint": "Provider configuration is now managed through the Channels panel in the sidebar.",
+    "openChannels": "Open Channels",
     "capabilities": {
       "vision": "Vision",
       "code": "Code",
@@ -1376,6 +1379,7 @@
     "lastTested": "Last tested",
     "optional": "Optional",
     "footer": "Powered by OpenClaw — connect AI to your messaging channels",
+    "providersTab": "Providers",
     "feishu": {
       "name": "Feishu",
       "subtitle": "飞书 · Enterprise collaboration",

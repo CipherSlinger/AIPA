@@ -9,3 +9,9 @@
 | prd-channel-providers-qwen-v1.md | Providers tab in Channel, Qwen provider | ChannelPanel, SettingsProviders, i18n | Serial - Group 2 |
 | prd-rightside-content-avatars-v1.md | Settings page, Persona/Workflow editors, Luo Xiaohei avatars | AppShell, NavRail, store/index.ts, i18n | Serial - Group 3 (post-retro) |
 
+
+## Iteration 410 Completed
+- Features: Input char counter, enhanced copy dropdown | Build: SUCCESS | Commit: be43abf
+
+## Iteration 411 Completed
+- Features: Channel providers migration, Qwen support | Build: SUCCESS | Commit: pending

@@ -1377,6 +1377,9 @@
     "connectionOk": "连接成功",
     "connectionFailed": "连接失败",
     "manageProviders": "管理提供商...",
+    "movedToChannels": "提供商已迁移至通道面板",
+    "movedHint": "提供商配置现已移至侧边栏的通道面板中管理。",
+    "openChannels": "打开通道面板",
     "capabilities": {
       "vision": "视觉",
       "code": "代码",
@@ -1394,6 +1397,7 @@
     "lastTested": "最后测试",
     "optional": "可选",
     "footer": "由 OpenClaw 提供支持 — 将 AI 接入你的消息通道",
+    "providersTab": "提供商",
     "feishu": {
       "name": "飞书",
       "subtitle": "企业协同平台",

@@ -1,7 +1,7 @@
-// Channel panel — Feishu & WeChat integration via OpenClaw — Iteration 321
+// Channel panel — Feishu & WeChat integration via OpenClaw + Providers — Iteration 321, updated Iteration 411
 
 import React, { useState } from 'react'
-import { Radio, MessageCircle, CheckCircle2, XCircle, ExternalLink, Eye, EyeOff, RefreshCw } from 'lucide-react'
+import { Radio, MessageCircle, CheckCircle2, XCircle, ExternalLink, Eye, EyeOff, RefreshCw, Cpu } from 'lucide-react'
 import { useT } from '../../i18n'
 import { usePrefsStore } from '../../store'
 import {
@@ -10,7 +10,9 @@ import {
   FEISHU_DOCS_URL, WECHAT_DOCS_URL,
 } from './channelConstants'
 
-type ActiveTab = 'feishu' | 'wechat'
+const SettingsProviders = React.lazy(() => import('../settings/SettingsProviders'))
+
+type ActiveTab = 'feishu' | 'wechat' | 'providers'
 
 // ── Shared field component ───────────────────────────────────────────────────
 
@@ -429,7 +431,7 @@ export default function ChannelPanel() {
 
         {/* Tabs */}
         <div style={{ display: 'flex' }}>
-          {(['feishu', 'wechat'] as ActiveTab[]).map(tab => (
+          {(['feishu', 'wechat', 'providers'] as ActiveTab[]).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -442,8 +444,8 @@ export default function ChannelPanel() {
                 transition: 'all 0.15s ease',
               }}
             >
-              {tab === 'feishu' ? '🪶' : '💬'}
-              {tab === 'feishu' ? t('channel.feishu.name') : t('channel.wechat.name')}
+              {tab === 'feishu' ? '🪶' : tab === 'wechat' ? '💬' : <Cpu size={12} />}
+              {tab === 'feishu' ? t('channel.feishu.name') : tab === 'wechat' ? t('channel.wechat.name') : t('channel.providersTab')}
               {tab === 'feishu' && feishuConnected && (
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', flexShrink: 0 }} />
               )}
@@ -457,7 +459,13 @@ export default function ChannelPanel() {
 
       {/* Tab content */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        {activeTab === 'feishu' ? <FeishuTab /> : <WechatTab />}
+        {activeTab === 'feishu' ? <FeishuTab /> : activeTab === 'wechat' ? <WechatTab /> : (
+          <div style={{ padding: '10px 12px', overflowY: 'auto', flex: 1 }}>
+            <React.Suspense fallback={<div style={{ padding: 20, color: 'var(--text-muted)', fontSize: 11 }}>Loading...</div>}>
+              <SettingsProviders />
+            </React.Suspense>
+          </div>
+        )}
       </div>
 
       {/* Footer */}

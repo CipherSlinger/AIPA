@@ -3,9 +3,9 @@ import { usePrefsStore, useUiStore } from '../../store'
 import { useI18n } from '../../i18n'
 import type { CustomPromptTemplate, Persona } from '../../types/app.types'
 import SettingsGeneral from './SettingsGeneral'
-import SettingsProviders from './SettingsProviders'
 import SettingsMcp from './SettingsMcp'
 import SettingsAbout from './SettingsAbout'
+import { Radio } from 'lucide-react'
 
 // Personas tab has been moved to the Workflows sidebar panel (Iteration 376)
 type SettingsTab = 'general' | 'providers' | 'mcp' | 'about'
@@ -144,7 +144,30 @@ export default function SettingsPanel() {
           onSave={save}
         />
       ) : settingsTab === 'providers' ? (
-        <SettingsProviders />
+        <div style={{ padding: '20px 0', textAlign: 'center' }}>
+          <Radio size={24} color="var(--text-muted)" style={{ marginBottom: 12, opacity: 0.5 }} />
+          <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500, marginBottom: 8 }}>
+            {t('provider.movedToChannels')}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 14 }}>
+            {t('provider.movedHint')}
+          </div>
+          <button
+            onClick={() => {
+              useUiStore.getState().closeSettingsModal()
+              useUiStore.getState().setActiveNavItem('channel')
+              useUiStore.getState().setSidebarTab('channel')
+              useUiStore.getState().setSidebarOpen(true)
+            }}
+            style={{
+              padding: '6px 16px', borderRadius: 6,
+              background: 'var(--accent)', border: 'none',
+              color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 500,
+            }}
+          >
+            {t('provider.openChannels')}
+          </button>
+        </div>
       ) : settingsTab === 'mcp' ? (
         <SettingsMcp />
       ) : (

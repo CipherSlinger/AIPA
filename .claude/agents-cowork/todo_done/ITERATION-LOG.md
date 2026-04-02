@@ -3105,3 +3105,29 @@ _Date: 2026-04-02_
 - electron-ui/src/renderer/i18n/locales/zh-CN.json (+5 keys: copy.*, input.chars)
 
 **Build:** SUCCESS (2516 modules)
+
+## Iteration 411 — Channel Providers Migration + Qwen Support
+
+_Date: 2026-04-02_
+
+**Changes:**
+- Added "Providers" tab to ChannelPanel (3 tabs: Feishu | WeChat | Providers)
+- SettingsProviders component now lazy-loaded in ChannelPanel via React.Suspense
+- Added Qwen (Alibaba Cloud / DashScope) as built-in provider in DEFAULT_PROVIDER_CONFIGS
+- Qwen models: qwen-turbo, qwen-plus, qwen-max, qwen-long
+- Qwen base URL: https://dashscope.aliyuncs.com/compatible-mode/v1 (OpenAI-compatible)
+- Added 'qwen' to BUILT_IN_IDS in SettingsProviders
+- Replaced Providers tab in SettingsPanel with redirect notice pointing to Channels panel
+- Redirect button calls setActiveNavItem('channel') + setSidebarTab('channel') + closeSettingsModal()
+- SettingsPanel chunk decreased from 39KB to 31KB (SettingsProviders now separate chunk)
+- Added 7 i18n keys (en + zh-CN): channel.providersTab, provider.movedToChannels, provider.movedHint, provider.openChannels
+
+**Files Modified:**
+- electron-ui/src/main/providers/types.ts (added Qwen to DEFAULT_PROVIDER_CONFIGS with 4 models)
+- electron-ui/src/renderer/components/channel/ChannelPanel.tsx (added Providers tab, lazy-load SettingsProviders)
+- electron-ui/src/renderer/components/settings/SettingsProviders.tsx (added 'qwen' to BUILT_IN_IDS)
+- electron-ui/src/renderer/components/settings/SettingsPanel.tsx (replaced Providers content with redirect notice)
+- electron-ui/src/renderer/i18n/locales/en.json (+7 keys)
+- electron-ui/src/renderer/i18n/locales/zh-CN.json (+7 keys)
+
+**Build:** SUCCESS (2516 modules, 9.08s)
