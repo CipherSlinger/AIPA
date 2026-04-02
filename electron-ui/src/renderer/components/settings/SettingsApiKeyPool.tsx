@@ -120,7 +120,7 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
                   <button
                     onClick={() => savePool(apiKeyPool.filter(k => k.id !== entry.id))}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', padding: 2 }}
-                    aria-label="Delete key"
+                    aria-label={t('a11y.deleteKey')}
                   ><Trash2 size={11} /></button>
                 </div>
               ))}

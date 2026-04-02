@@ -7,7 +7,6 @@
 import React, { useState } from 'react'
 import { ChevronDown, ChevronRight, Terminal, FileEdit, Search, Globe, Check, Loader2 } from 'lucide-react'
 import type { ToolGroup } from '../../utils/toolSummary'
-import type { ToolGroup } from '../../utils/toolSummary'
 import ToolUseBlock from './ToolUseBlock'
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {

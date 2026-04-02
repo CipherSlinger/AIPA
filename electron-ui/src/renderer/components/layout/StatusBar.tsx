@@ -104,9 +104,6 @@ export default function StatusBar() {
     return () => document.removeEventListener('mousedown', handler)
   }, [showCostBreakdown])
 
-  // Model pricing for current model
-  const modelPricing = getModelPricing(prefs.model || 'claude-sonnet-4-6')
-
   // Effort level config
   const effortLevel = prefs.effortLevel || 'medium'
   const effortSymbols: Record<string, string> = { low: '\u25D4', medium: '\u25D1', high: '\u25D5' }

@@ -66,7 +66,7 @@ export default function MessageActionToolbar({
   return (
     <div
       role="toolbar"
-      aria-label="Message actions"
+      aria-label={t('a11y.messageActions')}
       className="popup-enter"
       style={{
         position: 'absolute',

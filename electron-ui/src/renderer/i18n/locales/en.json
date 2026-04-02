@@ -1369,5 +1369,14 @@
     "confirm": "Remove {{count}} message(s) after this point? This cannot be undone.",
     "button": "Rewind to here",
     "rewound": "Rewound: {{count}} message(s) removed"
+  },
+  "a11y": {
+    "mainNavigation": "Main navigation",
+    "conversationMessages": "Conversation messages",
+    "messageActions": "Message actions",
+    "clearSearch": "Clear search",
+    "deleteKey": "Delete key",
+    "notifications": "Notifications",
+    "dismiss": "Dismiss"
   }
 }

@@ -1369,5 +1369,14 @@
     "confirm": "删除此消息之后的 {{count}} 条消息？此操作无法撤销。",
     "button": "回退到此处",
     "rewound": "已回退：删除了 {{count}} 条消息"
+  },
+  "a11y": {
+    "mainNavigation": "主导航",
+    "conversationMessages": "对话消息",
+    "messageActions": "消息操作",
+    "clearSearch": "清除搜索",
+    "deleteKey": "删除密钥",
+    "notifications": "通知",
+    "dismiss": "关闭"
   }
 }

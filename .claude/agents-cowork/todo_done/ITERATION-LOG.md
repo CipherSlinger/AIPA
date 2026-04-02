@@ -2793,3 +2793,27 @@ Status: SUCCESS (tsc: 0 errors; vite: 2517 modules, 10.64s)
 - **Files changed**: StatusBar.tsx, en.json, zh-CN.json
 - **Build**: PASSED (v1.1.74)
 - **Status**: Complete
+
+
+## Iteration 398 — Dead Code Cleanup + Duplicate Import Fix + Aria-Label i18n
+_Date: 2026-04-01 23:34_
+
+**Changes:**
+- Removed unused `modelPricing` variable from StatusBar.tsx (dead code since Iteration 397 refactor)
+- Fixed duplicate `import type { ToolGroup }` in ToolBatchBlock.tsx (two identical import lines)
+- Added `a11y` i18n namespace with 7 keys (mainNavigation, conversationMessages, messageActions, clearSearch, deleteKey, notifications, dismiss) in both en.json and zh-CN.json
+- Converted 6 hardcoded English aria-label strings to use t() i18n calls in: NavRail, MessageList, MessageActionToolbar, ShortcutCheatsheet, SettingsApiKeyPool
+- ShortcutCheatsheet close button reuses existing `common.close` key
+
+**Files Modified:**
+- electron-ui/src/renderer/components/layout/StatusBar.tsx
+- electron-ui/src/renderer/components/chat/ToolBatchBlock.tsx
+- electron-ui/src/renderer/components/layout/NavRail.tsx
+- electron-ui/src/renderer/components/chat/MessageList.tsx
+- electron-ui/src/renderer/components/chat/MessageActionToolbar.tsx
+- electron-ui/src/renderer/components/shared/ShortcutCheatsheet.tsx
+- electron-ui/src/renderer/components/settings/SettingsApiKeyPool.tsx
+- electron-ui/src/renderer/i18n/locales/en.json
+- electron-ui/src/renderer/i18n/locales/zh-CN.json
+
+**Build:** SUCCESS

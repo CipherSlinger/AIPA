@@ -341,7 +341,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       ref={scrollContainerRef}
       onScroll={scrollState.handleScroll}
       role="log"
-      aria-label="Conversation messages"
+      aria-label={t('a11y.conversationMessages')}
       aria-live="polite"
       style={{ flex: 1, overflowY: 'auto', padding: '16px 0', position: 'relative' }}
     >

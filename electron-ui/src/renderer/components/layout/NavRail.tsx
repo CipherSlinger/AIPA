@@ -227,7 +227,7 @@ export default function NavRail() {
   return (
     <nav
       role="navigation"
-      aria-label="Main navigation"
+      aria-label={t('a11y.mainNavigation')}
       style={{
         width: navExpanded ? 152 : 48,
         flexShrink: 0,

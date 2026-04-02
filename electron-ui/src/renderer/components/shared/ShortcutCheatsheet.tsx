@@ -137,7 +137,7 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
           </h2>
           <button
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t('common.close')}
             style={{
               background: 'none',
               border: 'none',
