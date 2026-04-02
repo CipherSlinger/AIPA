@@ -94,22 +94,25 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
   const accentColor = activePersona?.color || 'var(--accent)'
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', gap: 24, padding: '0 20px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', color: 'var(--text-muted)', overflowY: 'auto', overflowX: 'hidden' }}>
+      {/* Spacer that auto-shrinks: when content fits, it centers; when content overflows, it collapses */}
+      <div style={{ flex: '1 1 auto', minHeight: 16 }} />
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, padding: '0 20px', width: '100%', flexShrink: 0 }}>
       {/* Daily summary card */}
       <DailySummaryCard />
 
       {/* Hero icon */}
       <div className="onboard-icon" style={{
-        width: 80, height: 80, borderRadius: '50%', background: accentTint,
+        width: 64, height: 64, borderRadius: '50%', background: accentTint,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         {activePersona
-          ? <span style={{ fontSize: 44, lineHeight: 1 }}>{activePersona.emoji}</span>
-          : <Bot size={48} color="var(--accent)" strokeWidth={1.5} />
+          ? <span style={{ fontSize: 36, lineHeight: 1 }}>{activePersona.emoji}</span>
+          : <Bot size={38} color="var(--accent)" strokeWidth={1.5} />
         }
       </div>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 28, color: 'var(--text-bright)', fontWeight: 700, letterSpacing: '-0.02em' }}>
+        <div style={{ fontSize: 24, color: 'var(--text-bright)', fontWeight: 700, letterSpacing: '-0.02em' }}>
           {displayName ? t('welcome.greetingWithName', { greeting: t(greeting), name: displayName }) : t(greeting)}
         </div>
         {activePersona && (
@@ -261,10 +264,10 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
             key={text}
             onClick={() => onSuggestion(text, templateId)}
             style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
-              padding: '20px 16px', background: 'var(--card-bg)', border: '1px solid var(--card-border)',
-              borderRadius: 12, color: 'var(--text-primary)', cursor: 'pointer', fontSize: 13,
-              minWidth: 130, maxWidth: 150, transition: 'background 0.15s, border-color 0.15s, transform 0.15s',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+              padding: '14px 14px', background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+              borderRadius: 12, color: 'var(--text-primary)', cursor: 'pointer', fontSize: 12,
+              minWidth: 110, maxWidth: 140, transition: 'background 0.15s, border-color 0.15s, transform 0.15s',
             }}
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLButtonElement).style.background = 'var(--action-btn-hover)';
@@ -278,11 +281,11 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
             }}
           >
             <div style={{
-              width: 44, height: 44, borderRadius: '50%',
+              width: 36, height: 36, borderRadius: '50%',
               background: activePersona ? `${activePersona.color}14` : 'rgba(0,122,204,0.08)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <Icon size={24} color={accentColor} />
+              <Icon size={20} color={accentColor} />
             </div>
             <span style={{ textAlign: 'center', lineHeight: 1.4 }}>{text}</span>
           </button>
@@ -482,6 +485,9 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
           </button>
         ))}
       </div>
+      </div>
+      {/* Bottom spacer that auto-shrinks: mirrors the top spacer for centering */}
+      <div style={{ flex: '1 1 auto', minHeight: 16 }} />
     </div>
   )
 }
