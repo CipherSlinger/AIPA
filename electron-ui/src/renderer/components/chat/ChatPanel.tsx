@@ -18,6 +18,7 @@ import MessageList from './MessageList'
 import SearchBar from './SearchBar'
 import TaskQueuePanel from './TaskQueuePanel'
 import ThinkingIndicator from './ThinkingIndicator'
+import TypingStatus from './TypingStatus'
 import WelcomeScreen from './WelcomeScreen'
 import FollowUpChips from './FollowUpChips'
 import TokenUsageBar from './TokenUsageBar'
@@ -84,7 +85,7 @@ export default function ChatPanel() {
   // Event listeners + budget warning (extracted Iteration 441)
   useChatPanelEvents(
     currentSessionId, isStreaming, totalSessionCost, prefs.maxBudgetUsd,
-    sendMessage, sessionNotes, setEditingNote, setNoteText,
+    sendMessage, sessionNotes, setEditingNote, setNoteText, newConversation,
   )
 
   // Scroll-to-message state (for bookmarks panel)
@@ -501,6 +502,9 @@ export default function ChatPanel() {
 
       {/* Task Queue Panel */}
       <TaskQueuePanel />
+
+      {/* Typing status indicator (Iteration 461) — compact footer status line */}
+      {isStreaming && <TypingStatus />}
 
       {/* Input bar */}
       <ChatInput

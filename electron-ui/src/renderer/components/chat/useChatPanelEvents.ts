@@ -15,6 +15,7 @@ export function useChatPanelEvents(
   sessionNotes: Record<string, string>,
   setEditingNote: (v: boolean) => void,
   setNoteText: (v: string) => void,
+  newConversation?: () => void,
 ) {
   const addToast = useUiStore(s => s.addToast)
   const setPinnedNoteId = useUiStore(s => s.setPinnedNoteId)
@@ -56,6 +57,14 @@ export function useChatPanelEvents(
     window.addEventListener('aipa:pinNoteToChat', handler)
     return () => window.removeEventListener('aipa:pinNoteToChat', handler)
   }, [currentSessionId, setPinnedNoteId, addToast, t])
+
+  // Listen for new conversation event from SessionEmptyState (Iteration 461)
+  useEffect(() => {
+    if (!newConversation) return
+    const handler = () => newConversation()
+    window.addEventListener('aipa:newConversation', handler)
+    return () => window.removeEventListener('aipa:newConversation', handler)
+  }, [newConversation])
 
   // Cost budget warning: toast when session cost approaches or exceeds maxBudgetUsd
   const budgetWarningRef = useRef<'none' | '80' | '100'>('none')

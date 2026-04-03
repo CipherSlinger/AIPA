@@ -8,9 +8,10 @@ import PlanCard from './PlanCard'
 import PinnedMessagesStrip from './PinnedMessagesStrip'
 import VirtualSeparatorRow from './VirtualSeparatorRow'
 import RewindDialog from './RewindDialog'
+import ScrollToBottomFab from './ScrollToBottomFab'
 import { useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
-import { ArrowDown, ArrowUp, Lock, Unlock } from 'lucide-react'
+import { ArrowUp, Lock, Unlock } from 'lucide-react'
 import { useBuildItems, useShowAvatarMap, useLastUserMsgId, useAssistantReplyMap, useShowTimestampMap } from './messageListUtils'
 import { useMessageListScroll } from './useMessageListScroll'
 import { useMessageNavigation } from './useMessageNavigation'
@@ -299,44 +300,6 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
           {scrollState.scrollLocked ? <Lock size={12} /> : <Unlock size={12} />}
         </button>
       )}
-      {scrollState.showScrollBtn && (
-        <button
-          onClick={scrollState.scrollToBottom}
-          title={scrollState.unreadCount > 0 ? t(scrollState.unreadCount > 1 ? 'chat.newMessagesPlural' : 'chat.newMessages', { count: String(scrollState.unreadCount) }) : t('chat.scrollToBottom')}
-          style={{
-            position: 'sticky',
-            bottom: 12,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 4,
-            minWidth: 32,
-            height: 32,
-            borderRadius: (scrollState.unreadCount > 0 || scrollState.scrollPct < 100) ? 16 : '50%',
-            padding: (scrollState.unreadCount > 0 || scrollState.scrollPct < 100) ? '0 12px' : 0,
-            background: 'var(--accent)',
-            border: 'none',
-            color: '#fff',
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-            zIndex: 10,
-            opacity: 0.9,
-            transition: 'opacity 0.15s',
-            fontSize: 11,
-            fontWeight: 600,
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-          onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.9')}
-        >
-          <ArrowDown size={14} />
-          {scrollState.unreadCount > 0
-            ? <span>{scrollState.unreadCount}</span>
-            : <span style={{ fontSize: 10, fontFamily: 'monospace', opacity: 0.85 }}>{scrollState.scrollPct}%</span>
-          }
-        </button>
-      )}
 
       {/* Rewind confirmation dialog */}
       {rewindTarget && (
@@ -356,6 +319,12 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
         />
       )}
     </div>
+    {/* FAB: positioned absolutely relative to the outer container (Iteration 461) */}
+    <ScrollToBottomFab
+      show={scrollState.showScrollBtn}
+      unreadCount={scrollState.unreadCount}
+      onClick={scrollState.scrollToBottom}
+    />
     </div>
   )
 }

@@ -19,6 +19,7 @@ import SessionListHeader from './SessionListHeader'
 import DateGroupHeader from './DateGroupHeader'
 import SelectAllBar from './SelectAllBar'
 import BulkActionBar from './BulkActionBar'
+import SessionEmptyState from './SessionEmptyState'
 import { useSessionListActions } from './useSessionListActions'
 import { useSessionTooltip } from './useSessionTooltip'
 import { useTagPicker } from './useTagPicker'
@@ -330,7 +331,12 @@ export default function SessionList() {
             {[0, 1, 2, 3, 4].map(i => <SkeletonSessionRow key={i} />)}
           </div>
         )}
-        {!sessionLoading && filtered.length === 0 && (
+        {!sessionLoading && filtered.length === 0 && !filter && (
+          <SessionEmptyState
+            onNewChat={() => window.dispatchEvent(new CustomEvent('aipa:newConversation'))}
+          />
+        )}
+        {!sessionLoading && filtered.length === 0 && filter && (
           <div style={{
             padding: '32px 16px',
             color: 'var(--text-muted)',
@@ -343,13 +349,8 @@ export default function SessionList() {
           }}>
             <MessageSquare size={28} style={{ opacity: 0.3 }} />
             <div style={{ fontWeight: 500 }}>
-              {filter ? t('session.noResults') : t('session.noSessions')}
+              {t('session.noResults')}
             </div>
-            {!filter && (
-              <div style={{ fontSize: 11, opacity: 0.6 }}>
-                {t('session.startNew')}
-              </div>
-            )}
           </div>
         )}
         {filtered.map((session, idx) => {

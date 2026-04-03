@@ -39,10 +39,11 @@ export default function ClipboardActionsMenu({ onSend }: ClipboardActionsMenuPro
       if (!action) return
       let prompt: string
       if (actionId === 'translate') {
-        const lang = prefs.language === 'zh-CN' ? 'templateZh' : 'templateEn'
-        prompt = ((action as Record<string, unknown>)[lang] as string || '').replace('{text}', text.trim())
+        const isZh = prefs.language === 'zh-CN'
+        const tpl = isZh ? (action.templateZh ?? action.template ?? '') : (action.templateEn ?? action.template ?? '')
+        prompt = tpl.replace('{text}', text.trim())
       } else {
-        prompt = ('template' in action ? (action as Record<string, unknown>).template as string : '').replace('{text}', text.trim())
+        prompt = (action.template || '').replace('{text}', text.trim())
       }
       if (prompt) {
         await onSend(prompt)

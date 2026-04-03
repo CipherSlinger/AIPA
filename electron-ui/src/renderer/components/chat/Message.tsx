@@ -183,6 +183,19 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   const avatarSize = compact ? 28 : 36
   const iconSize = compact ? 14 : 18
 
+  // Hover timestamp (Iteration 461): show HH:mm for today, "MMM DD, HH:mm" for older messages
+  const msgTimestamp = (message as StandardChatMessage).timestamp
+  const hoverTimestampLabel = (() => {
+    if (!msgTimestamp) return null
+    const d = new Date(msgTimestamp)
+    const now = new Date()
+    const isToday = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()
+    const hhmm = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    if (isToday) return hhmm
+    const mmm = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    return `${mmm}, ${hhmm}`
+  })()
+
   return (
     <div
       onMouseEnter={() => setHovered(true)}
@@ -224,6 +237,27 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
 
       {/* Bubble wrapper + hover actions */}
       <div style={{ display: 'flex', flexDirection: 'column', maxWidth: 'min(85%, 720px)', minWidth: 60, position: 'relative' }}>
+        {/* Hover timestamp (Iteration 461) — visible on hover, fade in/out */}
+        {hoverTimestampLabel && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              [isUser ? 'right' : 'left']: 'calc(100% + 8px)',
+              fontSize: 11,
+              color: 'var(--text-tertiary, var(--text-muted))',
+              whiteSpace: 'nowrap',
+              pointerEvents: 'none',
+              opacity: hovered ? 1 : 0,
+              transition: 'opacity 150ms ease',
+              userSelect: 'none',
+            }}
+            aria-hidden="true"
+          >
+            {hoverTimestampLabel}
+          </div>
+        )}
         {/* Bubble */}
         <div
           ref={bubbleRef}

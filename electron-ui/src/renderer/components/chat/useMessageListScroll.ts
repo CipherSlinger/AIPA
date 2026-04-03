@@ -104,9 +104,9 @@ export function useMessageListScroll(
       const currentNearBottom = isNearBottomRef.current
 
       // Batch all state updates together
-      // Scroll-to-bottom button: show when scrolled up >= 200px from bottom
+      // Scroll-to-bottom button: show when scrolled up >= 300px from bottom (PRD Iteration 461)
       const distFromBottom = el ? el.scrollHeight - el.scrollTop - el.clientHeight : 0
-      setShowScrollBtn(distFromBottom >= 200)
+      setShowScrollBtn(distFromBottom >= 300)
       if (currentNearBottom) {
         setUnreadCount(0)
       }

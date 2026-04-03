@@ -72,7 +72,8 @@ export default function ChatInputPasteChips({ paste, inputLength }: ChatInputPas
       let prompt: string
       if (action.id === 'translate') {
         const isZh = prefs.language === 'zh-CN'
-        prompt = (isZh ? action.templateZh : action.templateEn || action.template || '').replace('{text}', pastedText.trim())
+        const tpl = isZh ? (action.templateZh ?? action.template ?? '') : (action.templateEn ?? action.template ?? '')
+        prompt = tpl.replace('{text}', pastedText.trim())
       } else {
         prompt = (action.template || '').replace('{text}', pastedText.trim())
       }
