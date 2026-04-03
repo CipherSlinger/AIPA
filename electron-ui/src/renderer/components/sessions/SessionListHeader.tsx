@@ -1,6 +1,6 @@
 // Session list header toolbar — extracted from SessionList.tsx (Iteration 441)
 import React from 'react'
-import { RefreshCw, ArrowUpDown, Search, CheckSquare, Trash2, Archive, BarChart3 } from 'lucide-react'
+import { RefreshCw, ArrowUpDown, Search, CheckSquare, Trash2, Archive, BarChart3, LayoutList } from 'lucide-react'
 import { useT } from '../../i18n'
 
 interface SessionListHeaderProps {
@@ -21,6 +21,8 @@ interface SessionListHeaderProps {
   onSearchKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void
   showGlobalResults: boolean
   searchInputRef: React.RefObject<HTMLInputElement | null>
+  sessionListCompact?: boolean
+  onToggleCompact?: () => void
 }
 
 export default function SessionListHeader({
@@ -41,6 +43,8 @@ export default function SessionListHeader({
   onSearchKeyDown,
   showGlobalResults,
   searchInputRef,
+  sessionListCompact,
+  onToggleCompact,
 }: SessionListHeaderProps) {
   const t = useT()
 
@@ -167,6 +171,24 @@ export default function SessionListHeader({
       >
         <BarChart3 size={13} />
       </button>
+      {onToggleCompact && (
+        <button
+          onClick={onToggleCompact}
+          title={t('session.compactViewTooltip')}
+          style={{
+            background: sessionListCompact ? 'var(--accent)' : 'none',
+            border: 'none',
+            color: sessionListCompact ? '#fff' : 'var(--text-muted)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            borderRadius: 3,
+            padding: sessionListCompact ? '1px 4px' : 0,
+          }}
+        >
+          <LayoutList size={13} />
+        </button>
+      )}
     </div>
   )
 }

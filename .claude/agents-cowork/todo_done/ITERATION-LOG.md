@@ -4150,3 +4150,34 @@ Status: SUCCESS (9.82s)
 
 ### Notes
 - ChatHeader.tsx is now 679 lines -- over the 600-line attention threshold. Consider extracting ContextBadge+ContextProgressBar into a separate `ContextIndicator.tsx` file in a future decomposition pass.
+
+---
+
+## Iteration 444 — Session Smart Grouping: Collapsible Date Groups, Tag Filter All Chip, Compact View
+
+_Date: 2026-04-03 | PRD: prd-session-smart-grouping-v1_
+
+### Summary
+Added three session list UX improvements: (1) collapsible date group headers with chevron toggle, session count per group, and localStorage-persisted collapse state; (2) "All" chip as first item in the tag filter bar; (3) compact view toggle in the session list header that reduces row height by ~40%, hides avatars, preview text, and auto-tags, showing only session titles.
+
+### Files Changed
+- `electron-ui/src/renderer/components/sessions/SessionList.tsx` (567->628 lines) -- Added collapsedGroups state with localStorage persistence, dateGroupMap for per-group session counts, compact view prop passthrough
+- `electron-ui/src/renderer/components/sessions/SessionItem.tsx` -- Added `compact` prop: hides avatar, preview line, auto-tags; reduces padding
+- `electron-ui/src/renderer/components/sessions/SessionListHeader.tsx` -- Added compact view toggle button (LayoutList icon)
+- `electron-ui/src/renderer/components/sessions/SessionFilters.tsx` -- Added "All" chip as first item in tag filter bar
+- `electron-ui/src/renderer/types/app.types.ts` -- Added `sessionListCompact?: boolean` to ClaudePrefs
+- `electron-ui/src/renderer/i18n/locales/en.json` -- Added 3 keys: `session.tagFilterAll`, `session.compactView`, `session.compactViewTooltip`
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` -- Added matching Chinese translations
+
+### Build
+Status: SUCCESS (9.65s)
+
+### Acceptance Criteria
+- [x] Date groups collapsible with chevron toggle
+- [x] Session count shown per group header
+- [x] Collapse state persisted in localStorage
+- [x] "All" chip always first in tag filter bar, resets filter
+- [x] Compact view toggle in session list header
+- [x] Compact mode reduces row height, hides subtitle/avatar/preview
+- [x] State persisted in usePrefsStore under sessionListCompact
+- [x] i18n keys for en.json and zh-CN.json

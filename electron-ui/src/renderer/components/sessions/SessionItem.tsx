@@ -40,6 +40,7 @@ interface SessionItemProps {
   onToggleArchive?: (sessionId: string) => void
   colorLabel?: string  // hex color for left border stripe
   autoTags?: string[]  // auto-generated topic tags
+  compact?: boolean    // compact view mode
 }
 
 export default function SessionItem({
@@ -76,6 +77,7 @@ export default function SessionItem({
   onToggleArchive,
   colorLabel,
   autoTags,
+  compact = false,
 }: SessionItemProps) {
   const t = useT()
   const dateLocale = useDateLocale()
@@ -94,9 +96,9 @@ export default function SessionItem({
       }}
       className="session-item"
       style={{
-        padding: '10px 12px',
+        padding: compact ? '5px 12px' : '10px 12px',
         display: 'flex',
-        gap: 10,
+        gap: compact ? 8 : 10,
         alignItems: 'center',
         cursor: 'pointer',
         borderBottom: '1px solid var(--border)',
@@ -138,6 +140,7 @@ export default function SessionItem({
       )}
 
       {/* Avatar */}
+      {!compact && (
       <div style={{ position: 'relative', flexShrink: 0 }}>
         <div
           style={{
@@ -171,6 +174,7 @@ export default function SessionItem({
           />
         )}
       </div>
+      )}
 
       {/* Text content */}
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -180,7 +184,7 @@ export default function SessionItem({
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 8,
-          marginBottom: 4,
+          marginBottom: compact ? 0 : 4,
         }}>
           {renamingId === session.sessionId ? (
             <input
@@ -251,7 +255,8 @@ export default function SessionItem({
           </span>
         </div>
 
-        {/* Preview line + tag dots */}
+        {/* Preview line + tag dots (hidden in compact mode) */}
+        {!compact && (
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -308,9 +313,10 @@ export default function SessionItem({
             )
           })()}
         </div>
+        )}
 
-        {/* Auto-tags (Iteration 436) */}
-        {autoTags && autoTags.length > 0 && (
+        {/* Auto-tags (Iteration 436) — hidden in compact mode */}
+        {!compact && autoTags && autoTags.length > 0 && (
           <div style={{ display: 'flex', gap: 4, marginTop: 2 }}>
             {autoTags.map(tag => (
               <span
