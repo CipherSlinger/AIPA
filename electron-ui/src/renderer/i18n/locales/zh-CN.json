@@ -211,7 +211,29 @@
     "statsSessions": "会话",
     "statsMessages": "消息",
     "statsToday": "今日",
-    "continueLastChat": "继续上次对话"
+    "continueLastChat": "继续上次对话",
+    "timeSuggestion": {
+      "planDay": "帮我规划今天的日程",
+      "reviewEmails": "帮我回顾和回复邮件",
+      "morningBrief": "给我一份晨间简报",
+      "summarizeMorning": "总结上午的工作内容",
+      "draftUpdate": "起草一份工作进度更新",
+      "afternoonFocus": "帮我聚焦优先事项",
+      "tomorrowAgenda": "准备明天的日程安排",
+      "dailySummary": "写一份每日工作总结",
+      "eveningReflect": "帮我回顾和反思今天"
+    },
+    "floatingBar": "快捷操作",
+    "floatingAction": {
+      "summarizeClipboard": "总结剪贴板",
+      "summarizeClipboardPrompt": "请简洁地总结以下文本：\n\n{clipboard}",
+      "translateClipboard": "翻译剪贴板",
+      "translateClipboardPrompt": "请翻译以下文本。如果是英文，翻译为中文；如果是中文或其他语言，翻译为英文：\n\n{clipboard}",
+      "quickNote": "快速笔记",
+      "quickNotePrompt": "帮我把想法整理成一篇简洁的笔记。我来描述想要记录的内容。",
+      "todaysTasks": "今日任务",
+      "todaysTasksPrompt": "帮我整理和排列今天的任务优先级。我今天需要完成哪些事？"
+    }
   },
   "message": {
     "copy": "复制文本",

@@ -211,7 +211,29 @@
     "statsSessions": "sessions",
     "statsMessages": "messages",
     "statsToday": "today",
-    "continueLastChat": "Continue last conversation"
+    "continueLastChat": "Continue last conversation",
+    "timeSuggestion": {
+      "planDay": "Help me plan today's schedule",
+      "reviewEmails": "Review and draft email responses",
+      "morningBrief": "Give me a morning briefing",
+      "summarizeMorning": "Summarize my morning work",
+      "draftUpdate": "Draft a status update",
+      "afternoonFocus": "Help me focus on priorities",
+      "tomorrowAgenda": "Prepare tomorrow's agenda",
+      "dailySummary": "Write a daily summary",
+      "eveningReflect": "Help me reflect on the day"
+    },
+    "floatingBar": "Quick Actions",
+    "floatingAction": {
+      "summarizeClipboard": "Summarize Clipboard",
+      "summarizeClipboardPrompt": "Please summarize the following text concisely:\n\n{clipboard}",
+      "translateClipboard": "Translate Clipboard",
+      "translateClipboardPrompt": "Please translate the following text. If it's in English, translate to Chinese. If it's in Chinese or another language, translate to English:\n\n{clipboard}",
+      "quickNote": "Quick Note",
+      "quickNotePrompt": "Help me organize my thoughts into a clean note. I'll describe what I want to capture.",
+      "todaysTasks": "Today's Tasks",
+      "todaysTasksPrompt": "Help me organize and prioritize my tasks for today. What do I need to accomplish?"
+    }
   },
   "message": {
     "copy": "Copy text",

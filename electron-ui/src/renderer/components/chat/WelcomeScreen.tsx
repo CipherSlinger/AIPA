@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react'
-import { Bot, History, X, MessageSquare, Layers, Clock, ArrowRight, Sparkles, Lightbulb, TrendingUp, Star } from 'lucide-react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import { Bot, History, X, MessageSquare, Layers, Clock, ArrowRight, Sparkles, Lightbulb, TrendingUp, Star, Zap } from 'lucide-react'
 import { useUiStore, useSessionStore, usePrefsStore, useChatStore } from '../../store'
 import { useT } from '../../i18n'
-import { getGreetingKey, getPersonaStarters, getDefaultSuggestions, getShortcuts, getQuickActions } from './welcomeScreenConstants'
+import { getGreetingKey, getPersonaStarters, getDefaultSuggestions, getShortcuts, getQuickActions, getTimeSuggestions, getFloatingActions } from './welcomeScreenConstants'
 import { useTips } from '../../hooks/useTips'
 import TemplatesSection from './TemplatesSection'
 import DailySummaryCard from './DailySummaryCard'
@@ -70,7 +70,29 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
 
   const shortcuts = useMemo(() => getShortcuts(t), [t])
   const quickActions = useMemo(() => getQuickActions(t), [t])
+  const timeSuggestions = useMemo(() => getTimeSuggestions(t), [t, greeting])
+  const floatingActions = useMemo(() => getFloatingActions(t), [t])
   const { tip, dismissTip, nextTip } = useTips()
+
+  // Floating action bar handler: read clipboard if action involves it, else just send prompt
+  const handleFloatingAction = useCallback(async (prompt: string) => {
+    // Check if this is a clipboard-based action
+    const isClipboardAction = prompt.includes('{clipboard}')
+    if (isClipboardAction) {
+      try {
+        const text = await navigator.clipboard.readText()
+        if (text && text.trim()) {
+          onSuggestion(prompt.replace('{clipboard}', text.trim()))
+        } else {
+          useUiStore.getState().addToast('info', t('clipboard.emptyClipboard'))
+        }
+      } catch {
+        useUiStore.getState().addToast('error', t('clipboard.clipboardError'))
+      }
+    } else {
+      onSuggestion(prompt)
+    }
+  }, [onSuggestion, t])
 
   // Top prompts from prompt history (sorted by count, max 3)
   const promptHistory = usePrefsStore(s => s.prefs.promptHistory) || []
@@ -126,6 +148,35 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
         <div style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 8, maxWidth: 360, lineHeight: 1.7 }}>
           {t('welcome.subtitle')}
         </div>
+      </div>
+
+      {/* Time-contextual suggestions */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+        {timeSuggestions.map(({ icon: TSIcon, textKey }) => (
+          <button
+            key={textKey}
+            onClick={() => onSuggestion(t(textKey))}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px',
+              background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+              borderRadius: 20, color: 'var(--text-primary)', cursor: 'pointer', fontSize: 12,
+              transition: 'background 0.15s, border-color 0.15s, transform 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'var(--action-btn-hover)';
+              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)';
+              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.03)'
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'var(--card-bg)';
+              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--card-border)';
+              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'
+            }}
+          >
+            <TSIcon size={14} color="var(--accent)" />
+            <span>{t(textKey)}</span>
+          </button>
+        ))}
       </div>
 
       {/* Usage stats bar */}
@@ -482,6 +533,45 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
               fontSize: 9, opacity: 0.5, fontFamily: 'monospace', background: 'rgba(255,255,255,0.06)',
               padding: '1px 4px', borderRadius: 3, border: '1px solid rgba(255,255,255,0.1)',
             }}>{shortcut}</kbd>
+          </button>
+        ))}
+      </div>
+
+      {/* Floating quick action bar — clipboard & task actions */}
+      <div style={{
+        display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center',
+        padding: '10px 16px', background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+        borderRadius: 12, width: '100%', maxWidth: 420,
+      }}>
+        <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
+          <Zap size={11} color="var(--accent)" />
+          <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            {t('welcome.floatingBar')}
+          </span>
+        </div>
+        {floatingActions.map(({ label, icon: FAIcon, prompt }) => (
+          <button
+            key={label}
+            onClick={() => handleFloatingAction(prompt)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px',
+              background: 'transparent', border: '1px solid var(--card-border)',
+              borderRadius: 8, color: 'var(--text-primary)', cursor: 'pointer', fontSize: 11,
+              transition: 'background 0.15s, border-color 0.15s, transform 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'var(--action-btn-hover)';
+              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)';
+              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.03)'
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--card-border)';
+              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'
+            }}
+          >
+            <FAIcon size={13} />
+            {label}
           </button>
         ))}
       </div>

@@ -3595,3 +3595,43 @@ Addressed recurring user report of app getting stuck on loading screen. Added st
 - electron-ui/src/renderer/index.html
 - electron-ui/src/main/index.ts
 - electron-ui/package.json (version bump to 1.1.106)
+
+
+---
+
+## Iteration 430 — Smart Daily Assistant Features
+
+_Date: 2026-04-02 | PRD: prd-daily-assistant-v1.md_
+
+### Summary
+Enhanced WelcomeScreen with proactive daily assistant features: time-contextual suggestion chips that adapt to morning/afternoon/evening, and a Quick Action floating bar with clipboard-based actions (Summarize Clipboard, Translate Clipboard, Quick Note, Today's Tasks). The WelcomeScreen now feels like a proactive assistant that guides users toward productive conversations with one click.
+
+#### Changes
+1. **Time-Contextual Suggestions** (welcomeScreenConstants.ts, WelcomeScreen.tsx)
+   - Added `getTimeSuggestions()` function returning 3 suggestions based on time of day
+   - Morning (5-12): Plan today, Review emails, Morning briefing
+   - Afternoon (12-18): Summarize morning, Draft update, Focus on priorities
+   - Evening (18-5): Tomorrow's agenda, Daily summary, Evening reflection
+   - Rendered as pill-shaped chips between greeting and usage stats bar
+
+2. **Quick Action Floating Bar** (welcomeScreenConstants.ts, WelcomeScreen.tsx)
+   - Added `getFloatingActions()` function with 4 clipboard-aware actions
+   - Summarize Clipboard: reads clipboard, sends with summarize prompt
+   - Translate Clipboard: reads clipboard, auto-detects language direction
+   - Quick Note: opens conversation for organizing thoughts
+   - Today's Tasks: starts task prioritization conversation
+   - Clipboard actions use `{clipboard}` placeholder pattern with `navigator.clipboard.readText()`
+   - Graceful fallback with toast notifications for empty/unreadable clipboard
+
+3. **i18n coverage** (en.json, zh-CN.json)
+   - Added `welcome.timeSuggestion.*` keys (9 time-based prompts)
+   - Added `welcome.floatingBar` label
+   - Added `welcome.floatingAction.*` keys (8 action labels + prompts)
+   - All keys have en + zh-CN translations
+
+#### Files Modified
+- electron-ui/src/renderer/components/chat/welcomeScreenConstants.ts
+- electron-ui/src/renderer/components/chat/WelcomeScreen.tsx
+- electron-ui/src/renderer/i18n/locales/en.json
+- electron-ui/src/renderer/i18n/locales/zh-CN.json
+- electron-ui/package.json (version bump to 1.1.107)

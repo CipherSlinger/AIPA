@@ -1,5 +1,5 @@
-// WelcomeScreen constants — extracted from WelcomeScreen.tsx (Iteration 223)
-import { Mail, FileText, ClipboardList, Lightbulb, Settings, FolderOpen, Keyboard, LucideIcon } from 'lucide-react'
+// WelcomeScreen constants — extracted from WelcomeScreen.tsx (Iteration 223, enhanced Iteration 430)
+import { Mail, FileText, ClipboardList, Lightbulb, Settings, FolderOpen, Keyboard, ClipboardCopy, Languages, StickyNote, CalendarCheck, LucideIcon } from 'lucide-react'
 import { useUiStore } from '../../store'
 
 /** Returns a time-of-day greeting key */
@@ -148,6 +148,51 @@ export function getQuickActions(t: (key: string) => string): QuickAction[] {
   return [
     { label: t('welcome.openSettings'), icon: Settings, shortcut: 'Ctrl+,', action: () => { useUiStore.getState().openSettingsModal() } },
     { label: t('welcome.openFiles'), icon: FolderOpen, shortcut: 'Ctrl+B', action: () => { useUiStore.getState().setSidebarOpen(true); useUiStore.getState().setSidebarTab('files') } },
-    { label: t('welcome.showShortcuts'), icon: Keyboard, shortcut: 'Ctrl+/', action: () => window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, key: '/' })) },
+    { label: t('welcome.showShortcuts'), icon: Keyboard, shortcut: 'Ctrl/', action: () => window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, key: '/' })) },
+  ]
+}
+
+/** Time-contextual suggestion prompts — adapted to time of day */
+export interface TimeSuggestion {
+  icon: LucideIcon
+  textKey: string
+}
+
+export function getTimeSuggestions(t: (key: string) => string): TimeSuggestion[] {
+  const hour = new Date().getHours()
+  if (hour >= 5 && hour < 12) {
+    return [
+      { icon: CalendarCheck, textKey: 'welcome.timeSuggestion.planDay' },
+      { icon: Mail, textKey: 'welcome.timeSuggestion.reviewEmails' },
+      { icon: FileText, textKey: 'welcome.timeSuggestion.morningBrief' },
+    ]
+  }
+  if (hour >= 12 && hour < 18) {
+    return [
+      { icon: FileText, textKey: 'welcome.timeSuggestion.summarizeMorning' },
+      { icon: Mail, textKey: 'welcome.timeSuggestion.draftUpdate' },
+      { icon: Lightbulb, textKey: 'welcome.timeSuggestion.afternoonFocus' },
+    ]
+  }
+  return [
+    { icon: CalendarCheck, textKey: 'welcome.timeSuggestion.tomorrowAgenda' },
+    { icon: FileText, textKey: 'welcome.timeSuggestion.dailySummary' },
+    { icon: Lightbulb, textKey: 'welcome.timeSuggestion.eveningReflect' },
+  ]
+}
+
+/** Clipboard-based quick actions for the floating action bar */
+export interface FloatingAction {
+  label: string
+  icon: LucideIcon
+  prompt: string
+}
+
+export function getFloatingActions(t: (key: string) => string): FloatingAction[] {
+  return [
+    { label: t('welcome.floatingAction.summarizeClipboard'), icon: ClipboardCopy, prompt: t('welcome.floatingAction.summarizeClipboardPrompt') },
+    { label: t('welcome.floatingAction.translateClipboard'), icon: Languages, prompt: t('welcome.floatingAction.translateClipboardPrompt') },
+    { label: t('welcome.floatingAction.quickNote'), icon: StickyNote, prompt: t('welcome.floatingAction.quickNotePrompt') },
+    { label: t('welcome.floatingAction.todaysTasks'), icon: CalendarCheck, prompt: t('welcome.floatingAction.todaysTasksPrompt') },
   ]
 }
