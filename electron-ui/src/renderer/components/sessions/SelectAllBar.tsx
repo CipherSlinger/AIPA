@@ -1,0 +1,68 @@
+import React from 'react'
+import { CheckSquare, Square } from 'lucide-react'
+import { SessionListItem } from '../../types/app.types'
+import { useT } from '../../i18n'
+
+/**
+ * SelectAllBar — select-all checkbox bar extracted from SessionList.tsx (Iteration 452)
+ */
+interface SelectAllBarProps {
+  filtered: SessionListItem[]
+  currentSessionId: string | null
+  selectedIds: Set<string>
+  onSetSelectedIds: (ids: Set<string>) => void
+}
+
+export default function SelectAllBar({ filtered, currentSessionId, selectedIds, onSetSelectedIds }: SelectAllBarProps) {
+  const t = useT()
+
+  const selectableIds = filtered
+    .filter(s => s.sessionId !== currentSessionId)
+    .map(s => s.sessionId)
+  const allSelected = selectableIds.length > 0 && selectableIds.every(id => selectedIds.has(id))
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      padding: '4px 12px',
+      borderBottom: '1px solid var(--border)',
+      flexShrink: 0,
+      fontSize: 11,
+      color: 'var(--text-muted)',
+    }}>
+      <button
+        onClick={() => {
+          if (allSelected) {
+            onSetSelectedIds(new Set())
+          } else {
+            onSetSelectedIds(new Set(selectableIds))
+          }
+        }}
+        style={{
+          background: 'none',
+          border: 'none',
+          color: 'var(--text-muted)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+          padding: 0,
+          fontSize: 11,
+        }}
+      >
+        {allSelected
+          ? <CheckSquare size={13} style={{ color: 'var(--accent)' }} />
+          : <Square size={13} />
+        }
+        <span>{t('session.selectAll')}</span>
+      </button>
+      {selectedIds.size > 0 && (
+        <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--accent)', fontWeight: 500 }}>
+          {t('session.selectedCount', { count: String(selectedIds.size) })}
+        </span>
+      )}
+    </div>
+  )
+}

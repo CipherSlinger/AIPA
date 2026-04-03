@@ -1,3 +1,4 @@
+// Message — decomposed (Iteration 451: extracted useReadAloud, ReactionChips, AnnotationEditor)
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { ChatMessage, StandardChatMessage, Persona } from '../../types/app.types'
 import MessageContextMenu from './MessageContextMenu'
@@ -5,10 +6,13 @@ import MessageActionToolbar from './MessageActionToolbar'
 import MessageBubbleContent from './MessageBubbleContent'
 import SelectionToolbar from './SelectionToolbar'
 import ImageLightbox from '../shared/ImageLightbox'
-import { User, Bot, Bookmark, Pin, StickyNote, X, ThumbsUp, Heart, Lightbulb, BookmarkPlus } from 'lucide-react'
-import { usePrefsStore, useChatStore, useUiStore } from '../../store'
+import ReactionChips from './ReactionChips'
+import AnnotationEditor from './AnnotationEditor'
+import { User, Bot, Bookmark, Pin } from 'lucide-react'
+import { usePrefsStore, useChatStore } from '../../store'
 import { useT } from '../../i18n'
 import { useMessageActions } from '../../hooks/useMessageActions'
+import { useReadAloud } from './useReadAloud'
 import { toggleShowAbsoluteTime } from './messageUtils'
 
 interface Props {
@@ -57,9 +61,8 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   const [, setTick] = useState(0)
   const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string } | null>(null)
 
-  // TTS state
-  const [isSpeaking, setIsSpeaking] = useState(false)
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
+  // TTS (extracted hook, Iteration 451)
+  const { isSpeaking, handleReadAloud } = useReadAloud(message)
 
   // Editing state (user messages only)
   const [isEditing, setIsEditing] = useState(false)
@@ -67,46 +70,17 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   const editTextareaRef = React.useRef<HTMLTextAreaElement>(null)
   const bubbleRef = useRef<HTMLDivElement>(null)
 
-  // Annotation state
+  // Annotation editor open state (managed here, rendering delegated to AnnotationEditor)
   const [showAnnotationEditor, setShowAnnotationEditor] = useState(false)
-  const [annotationDraft, setAnnotationDraft] = useState('')
-  const annotationRef = useRef<HTMLTextAreaElement>(null)
+  const handleAnnotateToggle = useCallback(() => {
+    setShowAnnotationEditor(prev => !prev)
+  }, [])
 
   // Extracted actions hook
   const {
     copied, handleCopy, handleQuote, handleBookmarkAction,
     handleCopyMarkdown, handleCopyRichText, handleSaveAsNote, handleRememberThis, handleShare, handlePin, handleDoubleClick, handleTranslate, handleCopyCodeBlocks,
   } = useMessageActions({ message, isPermission, isPlan })
-
-  const setAnnotation = useChatStore(s => s.setAnnotation)
-
-  const handleAnnotateToggle = useCallback(() => {
-    if (showAnnotationEditor) {
-      // Save and close
-      setAnnotation(message.id, annotationDraft.trim())
-      setShowAnnotationEditor(false)
-    } else {
-      // Open editor with current value
-      setAnnotationDraft((message as StandardChatMessage).annotation || '')
-      setShowAnnotationEditor(true)
-      setTimeout(() => annotationRef.current?.focus(), 50)
-    }
-  }, [showAnnotationEditor, annotationDraft, message.id, message, setAnnotation])
-
-  const handleAnnotationKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      setAnnotation(message.id, annotationDraft.trim())
-      setShowAnnotationEditor(false)
-    } else if (e.key === 'Escape') {
-      setShowAnnotationEditor(false)
-    }
-  }, [annotationDraft, message.id, setAnnotation])
-
-  const handleRemoveAnnotation = useCallback(() => {
-    setAnnotation(message.id, '')
-    setShowAnnotationEditor(false)
-  }, [message.id, setAnnotation])
 
   // Word info tooltip (both user and assistant messages)
   const wordInfo = (message as StandardChatMessage).content
@@ -134,64 +108,6 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   const handleTimestampClick = useCallback(() => {
     toggleShowAbsoluteTime()
     window.dispatchEvent(new CustomEvent('aipa:timestampToggle'))
-  }, [])
-
-  // TTS: Read aloud handler
-  const handleReadAloud = useCallback(() => {
-    if (!('speechSynthesis' in window)) return
-
-    if (isSpeaking) {
-      window.speechSynthesis.cancel()
-      setIsSpeaking(false)
-      utteranceRef.current = null
-      return
-    }
-
-    const content = (message as StandardChatMessage).content
-    if (!content) return
-
-    // Strip markdown formatting for cleaner speech
-    const plainText = content
-      .replace(/```[\s\S]*?```/g, ' code block omitted ')
-      .replace(/`([^`]+)`/g, '$1')
-      .replace(/\*\*([^*]+)\*\*/g, '$1')
-      .replace(/\*([^*]+)\*/g, '$1')
-      .replace(/#{1,6}\s*/g, '')
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-      .replace(/!\[([^\]]*)\]\([^)]+\)/g, 'image: $1')
-      .replace(/^[-*]\s/gm, '')
-      .replace(/^\d+\.\s/gm, '')
-      .replace(/\n{2,}/g, '. ')
-      .replace(/\n/g, ' ')
-      .trim()
-
-    if (!plainText) return
-
-    const utterance = new SpeechSynthesisUtterance(plainText)
-    utterance.rate = 1.0
-    utterance.pitch = 1.0
-
-    utterance.onend = () => {
-      setIsSpeaking(false)
-      utteranceRef.current = null
-    }
-    utterance.onerror = () => {
-      setIsSpeaking(false)
-      utteranceRef.current = null
-    }
-
-    utteranceRef.current = utterance
-    setIsSpeaking(true)
-    window.speechSynthesis.speak(utterance)
-  }, [message, isSpeaking])
-
-  // Cleanup TTS on unmount
-  useEffect(() => {
-    return () => {
-      if (utteranceRef.current) {
-        window.speechSynthesis.cancel()
-      }
-    }
   }, [])
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
@@ -344,157 +260,24 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           />
         </div>
 
-        {/* Reaction chips (assistant messages only) */}
-        {isAssistant && !isPermission && !isPlan && (() => {
-          const std = message as StandardChatMessage
-          const reactions = std.reactions || []
-          const toggleReaction = useChatStore.getState().toggleReaction
-          const REACTION_DEFS = [
-            { key: 'thumbsUp', icon: ThumbsUp, label: t('message.thumbsUp') },
-            { key: 'heart', icon: Heart, label: t('message.reactionHeart') },
-            { key: 'lightbulb', icon: Lightbulb, label: t('message.reactionInsightful') },
-            { key: 'bookmark', icon: BookmarkPlus, label: t('message.reactionSave') },
-          ]
-          const hasAny = reactions.length > 0
-          return (hasAny || hovered) ? (
-            <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
-              {REACTION_DEFS.map(({ key, icon: Icon, label }) => {
-                const active = reactions.includes(key)
-                return (
-                  <button
-                    key={key}
-                    onClick={(e) => { e.stopPropagation(); toggleReaction(message.id, key) }}
-                    title={label}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 3,
-                      padding: '2px 6px', fontSize: 10,
-                      background: active ? 'rgba(0, 122, 204, 0.12)' : 'transparent',
-                      border: active ? '1px solid rgba(0, 122, 204, 0.3)' : '1px solid transparent',
-                      borderRadius: 10, cursor: 'pointer',
-                      color: active ? 'var(--accent)' : 'var(--text-muted)',
-                      transition: 'all 0.12s ease',
-                      opacity: active ? 1 : (hovered ? 0.6 : 0),
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; if (!active) e.currentTarget.style.borderColor = 'var(--border)' }}
-                    onMouseLeave={(e) => { if (!active) { e.currentTarget.style.opacity = hovered ? '0.6' : '0'; e.currentTarget.style.borderColor = 'transparent' } }}
-                  >
-                    <Icon size={11} style={active ? { fill: 'var(--accent)', opacity: 0.3 } : {}} />
-                  </button>
-                )
-              })}
-            </div>
-          ) : null
-        })()}
+        {/* Reaction chips (extracted component, Iteration 451) */}
+        {isAssistant && !isPermission && !isPlan && (
+          <ReactionChips
+            messageId={message.id}
+            reactions={((message as StandardChatMessage).reactions || [])}
+            hovered={hovered}
+          />
+        )}
 
-        {/* Annotation display / editor */}
-        {!isPermission && !isPlan && ((message as StandardChatMessage).annotation || showAnnotationEditor) && (
-          <div style={{
-            marginTop: 4,
-            ...(isUser ? { alignSelf: 'flex-end' } : {}),
-          }}>
-            {showAnnotationEditor ? (
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 4,
-                background: 'var(--popup-bg)',
-                border: '1px solid var(--popup-border)',
-                borderRadius: 6,
-                padding: 6,
-              }}>
-                <textarea
-                  ref={annotationRef}
-                  value={annotationDraft}
-                  onChange={(e) => setAnnotationDraft(e.target.value)}
-                  onKeyDown={handleAnnotationKeyDown}
-                  placeholder={t('message.annotationPlaceholder')}
-                  maxLength={500}
-                  style={{
-                    width: '100%',
-                    minWidth: 200,
-                    minHeight: 40,
-                    maxHeight: 100,
-                    background: 'transparent',
-                    border: 'none',
-                    outline: 'none',
-                    color: 'var(--text)',
-                    fontSize: 12,
-                    fontFamily: 'inherit',
-                    resize: 'vertical',
-                    padding: 4,
-                  }}
-                />
-                <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
-                  <span style={{ fontSize: 10, color: 'var(--text-muted)', marginRight: 'auto' }}>
-                    {annotationDraft.length}/500
-                  </span>
-                  {(message as StandardChatMessage).annotation && (
-                    <button
-                      onClick={handleRemoveAnnotation}
-                      style={{
-                        background: 'transparent', border: 'none', cursor: 'pointer',
-                        color: 'var(--error, #e55)', fontSize: 11, padding: '2px 6px',
-                        borderRadius: 3,
-                      }}
-                      title={t('message.removeAnnotation')}
-                    >
-                      {t('message.removeAnnotation')}
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setShowAnnotationEditor(false)}
-                    style={{
-                      background: 'transparent', border: 'none', cursor: 'pointer',
-                      color: 'var(--text-muted)', fontSize: 11, padding: '2px 6px',
-                      borderRadius: 3,
-                    }}
-                  >
-                    {t('message.editCancel')}
-                  </button>
-                  <button
-                    onClick={() => { setAnnotation(message.id, annotationDraft.trim()); setShowAnnotationEditor(false) }}
-                    style={{
-                      background: 'var(--accent)', border: 'none', cursor: 'pointer',
-                      color: '#fff', fontSize: 11, padding: '2px 8px',
-                      borderRadius: 3,
-                    }}
-                  >
-                    {t('message.editSave').replace(' & Send', '')}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div
-                onClick={() => handleAnnotateToggle()}
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 4,
-                  padding: '3px 8px',
-                  background: 'rgba(255, 193, 7, 0.08)',
-                  border: '1px solid rgba(255, 193, 7, 0.2)',
-                  borderRadius: 6,
-                  cursor: 'pointer',
-                  maxWidth: '100%',
-                  transition: 'background 0.12s ease',
-                }}
-                title={t('message.editAnnotation')}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255, 193, 7, 0.15)' }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255, 193, 7, 0.08)' }}
-              >
-                <StickyNote size={11} style={{ color: 'var(--warning, #ffc107)', marginTop: 2, flexShrink: 0 }} />
-                <span style={{
-                  fontSize: 11,
-                  color: 'var(--text-muted)',
-                  lineHeight: 1.4,
-                  wordBreak: 'break-word',
-                  whiteSpace: 'pre-wrap',
-                }}>
-                  {(message as StandardChatMessage).annotation}
-                </span>
-              </div>
-            )}
-          </div>
+        {/* Annotation display / editor (extracted component, Iteration 451) */}
+        {!isPermission && !isPlan && (
+          <AnnotationEditor
+            messageId={message.id}
+            currentAnnotation={(message as StandardChatMessage).annotation}
+            isUser={isUser}
+            editorOpen={showAnnotationEditor}
+            onEditorOpenChange={setShowAnnotationEditor}
+          />
         )}
 
         {/* Floating action toolbar */}

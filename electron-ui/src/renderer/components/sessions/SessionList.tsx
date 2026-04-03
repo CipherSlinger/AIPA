@@ -1,8 +1,8 @@
-// SessionList — decomposed orchestrator (Iteration 221, further decomposed Iteration 441)
-// Sub-components: SessionItem, SessionFilters, SessionTooltip, GlobalSearchResults, TagPicker, BulkDeleteBar, SessionListHeader
-// Hooks: useSessionListActions, useSessionTooltip
+// SessionList — decomposed orchestrator (Iteration 221, further decomposed Iteration 441, 452)
+// Sub-components: SessionItem, SessionFilters, SessionTooltip, GlobalSearchResults, TagPicker, BulkDeleteBar, SessionListHeader, DateGroupHeader, SelectAllBar
+// Hooks: useSessionListActions, useSessionTooltip, useTagPicker, useSessionArchive
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
-import { MessageSquare, Search, CheckSquare, Square, Globe, Archive } from 'lucide-react'
+import { MessageSquare, Globe, Archive } from 'lucide-react'
 import { SessionListItem } from '../../types/app.types'
 import { usePrefsStore, useSessionStore } from '../../store'
 import { SkeletonSessionRow } from '../ui/Skeleton'
@@ -18,8 +18,11 @@ import SessionFolders from './SessionFolders'
 import SessionStats from './SessionStats'
 import SessionListHeader from './SessionListHeader'
 import DateGroupHeader from './DateGroupHeader'
+import SelectAllBar from './SelectAllBar'
 import { useSessionListActions } from './useSessionListActions'
 import { useSessionTooltip } from './useSessionTooltip'
+import { useTagPicker } from './useTagPicker'
+import { useSessionArchive } from './useSessionArchive'
 
 export default function SessionList() {
   const prefs = usePrefsStore(s => s.prefs)
@@ -46,17 +49,24 @@ export default function SessionList() {
     showSessionTooltip, hideSessionTooltip,
   } = useSessionTooltip()
 
+  // Tag picker (extracted hook, Iteration 452)
+  const {
+    sessionTags, tagPickerSessionId, tagPickerPos,
+    toggleSessionTag, openTagPicker, closeTagPicker,
+  } = useTagPicker()
+
+  // Archive (extracted hook, Iteration 452)
+  const {
+    showArchived, setShowArchived, archivedSessions,
+    toggleArchive, bulkArchive,
+  } = useSessionArchive(actions.selectedIds, actions.exitSelectMode)
+
   // ── Session Tags ──
-  const sessionTags: Record<string, string[]> = prefs.sessionTags || {}
   const tagNames: string[] = prefs.tagNames || TAG_PRESETS.map(tp => t(tp.defaultKey))
-  const [tagPickerSessionId, setTagPickerSessionId] = useState<string | null>(null)
-  const [tagPickerPos, setTagPickerPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
   const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null)
   const [activeProjectFilter, setActiveProjectFilter] = useState<string | null>(null)
   const [activeFolderFilter, setActiveFolderFilter] = useState<string | null>(null)
-  const [showArchived, setShowArchived] = useState(false)
   const [showStats, setShowStats] = useState(false)
-  const archivedSessions: string[] = prefs.archivedSessions || []
 
   // Collapsible date group state (persisted in localStorage)
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
@@ -75,61 +85,6 @@ export default function SessionList() {
     })
   }, [])
   const sessionColorLabels: Record<string, string> = (prefs as unknown as Record<string, unknown>).sessionColorLabels as Record<string, string> || {}
-
-  const toggleArchive = (sessionId: string) => {
-    const current = archivedSessions
-    const isArchived = current.includes(sessionId)
-    const updated = isArchived ? current.filter(id => id !== sessionId) : [...current, sessionId]
-    setPrefs({ archivedSessions: updated })
-    window.electronAPI.prefsSet('archivedSessions', updated)
-  }
-
-  const bulkArchive = () => {
-    const selectedArr = [...actions.selectedIds]
-    const current = archivedSessions
-    const toArchive = selectedArr.filter(id => !current.includes(id))
-    if (toArchive.length === 0) return
-    const updated = [...current, ...toArchive]
-    setPrefs({ archivedSessions: updated })
-    window.electronAPI.prefsSet('archivedSessions', updated)
-    actions.exitSelectMode()
-  }
-
-  const toggleSessionTag = (sessionId: string, tagId: string) => {
-    const current = sessionTags[sessionId] || []
-    const updated = current.includes(tagId)
-      ? current.filter(id => id !== tagId)
-      : [...current, tagId]
-    const newSessionTags = { ...sessionTags, [sessionId]: updated }
-    if (updated.length === 0) delete newSessionTags[sessionId]
-    setPrefs({ sessionTags: newSessionTags })
-    window.electronAPI.prefsSet('sessionTags', newSessionTags)
-  }
-
-  const openTagPicker = (e: React.MouseEvent, sessionId: string) => {
-    e.stopPropagation()
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    setTagPickerSessionId(sessionId)
-    setTagPickerPos({ top: rect.bottom + 4, left: rect.left })
-  }
-
-  const closeTagPicker = useCallback(() => {
-    setTagPickerSessionId(null)
-  }, [])
-
-  // Close tag picker on Escape or click outside
-  useEffect(() => {
-    if (!tagPickerSessionId) return
-    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeTagPicker() }
-    const handleClick = () => closeTagPicker()
-    window.addEventListener('keydown', handleKey)
-    const timer = setTimeout(() => window.addEventListener('click', handleClick), 50)
-    return () => {
-      window.removeEventListener('keydown', handleKey)
-      window.removeEventListener('click', handleClick)
-      clearTimeout(timer)
-    }
-  }, [tagPickerSessionId, closeTagPicker])
 
   // Compute unique project paths for project filter
   const uniqueProjects = useMemo(() => {
@@ -329,57 +284,14 @@ export default function SessionList() {
         onProjectFilterChange={setActiveProjectFilter}
       />
 
-      {/* Select All bar */}
+      {/* Select All bar (extracted component, Iteration 452) */}
       {actions.selectMode && filtered.length > 0 && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '4px 12px',
-          borderBottom: '1px solid var(--border)',
-          flexShrink: 0,
-          fontSize: 11,
-          color: 'var(--text-muted)',
-        }}>
-          <button
-            onClick={() => {
-              const selectableIds = filtered
-                .filter(s => s.sessionId !== actions.currentSessionId)
-                .map(s => s.sessionId)
-              const allSelected = selectableIds.every(id => actions.selectedIds.has(id))
-              if (allSelected) {
-                actions.setSelectedIds(new Set())
-              } else {
-                actions.setSelectedIds(new Set(selectableIds))
-              }
-            }}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              padding: 0,
-              fontSize: 11,
-            }}
-          >
-            {(() => {
-              const selectableIds = filtered.filter(s => s.sessionId !== actions.currentSessionId).map(s => s.sessionId)
-              const allSelected = selectableIds.length > 0 && selectableIds.every(id => actions.selectedIds.has(id))
-              return allSelected
-                ? <CheckSquare size={13} style={{ color: 'var(--accent)' }} />
-                : <Square size={13} />
-            })()}
-            <span>{t('session.selectAll')}</span>
-          </button>
-          {actions.selectedIds.size > 0 && (
-            <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--accent)', fontWeight: 500 }}>
-              {t('session.selectedCount', { count: String(actions.selectedIds.size) })}
-            </span>
-          )}
-        </div>
+        <SelectAllBar
+          filtered={filtered}
+          currentSessionId={actions.currentSessionId}
+          selectedIds={actions.selectedIds}
+          onSetSelectedIds={actions.setSelectedIds}
+        />
       )}
 
       {/* Global search results */}
@@ -435,7 +347,6 @@ export default function SessionList() {
             e.preventDefault()
             const session = filtered[focusedIdx]
             if (session.sessionId === actions.currentSessionId) return
-            // Simulate the double-press delete pattern via synthetic mouse event
             const fakeEvent = { stopPropagation: () => {} } as React.MouseEvent
             actions.deleteSession(fakeEvent, session.sessionId)
           }
@@ -492,7 +403,6 @@ export default function SessionList() {
                 />
               )
             } else if (isGroupCollapsed) {
-              // Skip rendering this session since its group is collapsed
               return null
             }
           }
@@ -571,7 +481,7 @@ export default function SessionList() {
         />
       )}
 
-      {/* Bulk delete floating action bar */}
+      {/* Bulk archive + delete floating action bars */}
       {actions.selectMode && actions.selectedIds.size > 0 && (
         <div style={{ display: 'flex', gap: 4, padding: '6px 10px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
           <button
