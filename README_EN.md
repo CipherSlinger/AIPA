@@ -65,8 +65,10 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 - **Session Changes Panel** -- view files modified during the current session
 - **Collapsible date groups** -- sessions auto-grouped by time period (Today/Yesterday/This Week/Older) with collapse toggles and per-group counts
 - **Compact view** -- toggle compact mode to hide avatars and previews, showing only titles for maximum density
+- **Sort dropdown** -- single-click sort selection (Newest/Oldest/A-Z/Most Messages) via dropdown popover
 - **Context window monitor** -- progress bar + percentage badge + detail popover showing token usage, with one-click "start new session" when nearing the limit
 - **Streaming cursor** -- animated blinking cursor during AI response streaming, disappears on completion
+- **Session count badge** -- History nav tab shows total session count; pulsing activity dot when AI is streaming from another tab
 - Export conversations as Markdown, HTML, or JSON
 
 ### Personas & Memory
