@@ -113,6 +113,11 @@ const electronAPI = {
   // ── Shell ───────────────────────────────
   shellOpenExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
 
+  // ── URL metadata (Iteration 462) ──────
+  urlFetchMeta: (url: string) => ipcRenderer.invoke('url:fetchMeta', url) as Promise<{
+    title: string; description: string; favicon: string; domain: string
+  } | null>,
+
   // ── Skills ─────────────────────────────
   skillsList: (workingDir?: string) => ipcRenderer.invoke('skills:list', workingDir),
   skillsRead: (dirPath: string) => ipcRenderer.invoke('skills:read', dirPath),

@@ -1661,5 +1661,13 @@
     "loadingBranches": "Loading branches...",
     "forkSuccess": "Session forked successfully",
     "forkFailed": "Failed to fork session"
+  },
+  "preview": {
+    "loadingMeta": "Loading preview...",
+    "openInBrowser": "Open in browser",
+    "imageLoadFailed": "Image could not be loaded",
+    "clickToLoad": "Click to load image",
+    "moreImages": "+{{count}} more",
+    "close": "Close preview"
   }
 }

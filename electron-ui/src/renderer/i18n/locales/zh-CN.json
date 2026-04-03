@@ -1679,5 +1679,13 @@
     "loadingBranches": "加载分支中…",
     "forkSuccess": "会话分叉成功",
     "forkFailed": "会话分叉失败"
+  },
+  "preview": {
+    "loadingMeta": "加载预览中...",
+    "openInBrowser": "在浏览器中打开",
+    "imageLoadFailed": "图片无法加载",
+    "clickToLoad": "点击加载图片",
+    "moreImages": "+{{count}} 张更多",
+    "close": "关闭预览"
   }
 }

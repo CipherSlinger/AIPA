@@ -347,4 +347,67 @@ function registerShellHandlers(): void {
       log.warn('shell:openExternal rejected invalid URL:', url)
     }
   })
+
+  // Fetch URL Open Graph metadata for link preview cards (Iteration 462)
+  safeHandle('url:fetchMeta', async (_e, url: string) => {
+    try {
+      const parsed = new URL(url)
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null
+      const https = require('https')
+      const http = require('http')
+      const mod = parsed.protocol === 'https:' ? https : http
+      return await new Promise<{ title: string; description: string; favicon: string; domain: string } | null>((resolve) => {
+        const timer = setTimeout(() => resolve(null), 3000)
+        const req = mod.get(url, { headers: { 'User-Agent': 'AIPA/1.0' } }, (res: any) => {
+          if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+            // Follow one redirect
+            clearTimeout(timer)
+            resolve(null) // Simplified: don't follow redirects, just fail gracefully
+            res.resume()
+            return
+          }
+          let body = ''
+          res.setEncoding('utf8')
+          res.on('data', (chunk: string) => {
+            body += chunk
+            if (body.length > 50000) { res.destroy(); }
+          })
+          res.on('end', () => {
+            clearTimeout(timer)
+            try {
+              const titleMatch = body.match(/<meta\s+property="og:title"\s+content="([^"]*)"/) ||
+                body.match(/<meta\s+content="([^"]*)"\s+property="og:title"/) ||
+                body.match(/<title[^>]*>([^<]*)<\/title>/)
+              const descMatch = body.match(/<meta\s+property="og:description"\s+content="([^"]*)"/) ||
+                body.match(/<meta\s+content="([^"]*)"\s+property="og:description"/) ||
+                body.match(/<meta\s+name="description"\s+content="([^"]*)"/) ||
+                body.match(/<meta\s+content="([^"]*)"\s+name="description"/)
+              const faviconMatch = body.match(/<link[^>]+rel="(?:shortcut )?icon"[^>]+href="([^"]*)"/) ||
+                body.match(/<link[^>]+href="([^"]*)"[^>]+rel="(?:shortcut )?icon"/)
+              const domain = parsed.hostname
+              let favicon = ''
+              if (faviconMatch?.[1]) {
+                favicon = faviconMatch[1].startsWith('http') ? faviconMatch[1] : `${parsed.protocol}//${domain}${faviconMatch[1].startsWith('/') ? '' : '/'}${faviconMatch[1]}`
+              } else {
+                favicon = `${parsed.protocol}//${domain}/favicon.ico`
+              }
+              resolve({
+                title: titleMatch?.[1]?.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'").replace(/&quot;/g, '"') || domain,
+                description: descMatch?.[1]?.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'").replace(/&quot;/g, '"') || '',
+                favicon,
+                domain,
+              })
+            } catch {
+              resolve(null)
+            }
+          })
+          res.on('error', () => { clearTimeout(timer); resolve(null) })
+        })
+        req.on('error', () => { clearTimeout(timer); resolve(null) })
+        req.end()
+      })
+    } catch {
+      return null
+    }
+  })
 }

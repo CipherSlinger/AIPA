@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import ReactDOM from 'react-dom'
 import { ToolUseInfo } from '../../types/app.types'
-import { ChevronDown, ChevronRight, Terminal, FileEdit, Search, Globe, Loader2, Check, X, Timer, ClipboardCopy } from 'lucide-react'
+import { ChevronDown, ChevronRight, Terminal, FileEdit, Search, Globe, Loader2, Check, X, Timer, ClipboardCopy, FileCode, FileText, Image, FileType, Palette } from 'lucide-react'
 import { useT } from '../../i18n'
 import DiffView from './DiffView'
 import { generateToolSummary } from '../../utils/toolSummary'
@@ -26,6 +27,62 @@ const TOOL_ICONS: Record<string, React.ElementType> = {
   Grep: Search,
   WebFetch: Globe,
   WebSearch: Globe,
+}
+
+// File extension to icon mapping for more specific file type icons (Iteration 462)
+const FILE_EXT_ICONS: Record<string, React.ElementType> = {
+  '.ts': FileCode, '.tsx': FileCode, '.js': FileCode, '.jsx': FileCode,
+  '.py': FileCode, '.go': FileCode, '.rs': FileCode, '.java': FileCode,
+  '.c': FileCode, '.cpp': FileCode, '.h': FileCode, '.hpp': FileCode,
+  '.rb': FileCode, '.php': FileCode, '.swift': FileCode,
+  '.md': FileText, '.txt': FileText, '.json': FileText, '.yaml': FileText,
+  '.yml': FileText, '.toml': FileText, '.xml': FileText, '.csv': FileText,
+  '.png': Image, '.jpg': Image, '.jpeg': Image, '.gif': Image,
+  '.svg': Image, '.webp': Image, '.ico': Image, '.bmp': Image,
+  '.css': Palette, '.scss': Palette, '.less': Palette, '.sass': Palette,
+  '.html': Globe, '.htm': Globe,
+}
+
+const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.bmp'])
+
+/** Extract file path from tool input */
+function extractFilePath(input: Record<string, unknown>): string | null {
+  const path = input.file_path || input.path || input.filePath
+  if (typeof path === 'string') return path
+  // Try to extract from command string (Bash)
+  if (typeof input.command === 'string') {
+    const match = input.command.match(/(?:cat|less|head|tail|vim|nano|code)\s+["']?([^\s"']+)/)
+    if (match) return match[1]
+  }
+  return null
+}
+
+/** Get file extension from path */
+function getFileExt(path: string): string {
+  const dot = path.lastIndexOf('.')
+  if (dot === -1) return ''
+  return path.slice(dot).toLowerCase()
+}
+
+/** Get the appropriate icon for a tool based on its file input */
+function getToolIcon(tool: ToolUseInfo): React.ElementType {
+  const filePath = extractFilePath(tool.input || {})
+  if (filePath) {
+    const ext = getFileExt(filePath)
+    if (ext && FILE_EXT_ICONS[ext]) return FILE_EXT_ICONS[ext]
+  }
+  return TOOL_ICONS[tool.name] || Terminal
+}
+
+/** Extract image paths from tool input/result */
+function extractImagePaths(tool: ToolUseInfo): string[] {
+  const paths: string[] = []
+  const filePath = extractFilePath(tool.input || {})
+  if (filePath) {
+    const ext = getFileExt(filePath)
+    if (IMAGE_EXTENSIONS.has(ext)) paths.push(filePath)
+  }
+  return paths.slice(0, 4) // Max 4 images
 }
 
 const BASH_TOOLS = new Set(['Bash', 'computer'])
@@ -132,12 +189,14 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
     }
   }, [isRunning])
 
-  const Icon = TOOL_ICONS[tool.name] || Terminal
+  const Icon = getToolIcon(tool)
   const summaryLabel = generateToolSummary(tool, t)
   const isBash = BASH_TOOLS.has(tool.name)
   const isFileEdit = FILE_EDIT_TOOLS.has(tool.name)
   const showElapsed = isRunning && elapsed >= 2
   const showFinalDuration = !isRunning && finalDuration !== null && finalDuration >= 1
+  const imagePaths = !isRunning ? extractImagePaths(tool) : []
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
 
   const statusIcon = isRunning
     ? <Loader2 size={11} className="animate-spin" style={{ color: 'var(--warning)' }} />
@@ -289,10 +348,78 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
               )}
             </div>
           )}
+
+          {/* Image preview thumbnails (Iteration 462) */}
+          {imagePaths.length > 0 && (
+            <div style={{ borderTop: '1px solid var(--border)', padding: '6px 8px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {imagePaths.map((imgPath, i) => (
+                <ImageThumbnail key={i} filePath={imgPath} onClick={() => setLightboxSrc(`file://${imgPath}`)} t={t} />
+              ))}
+            </div>
+          )}
         </div>
         )}
         </div>
       </div>
+
+      {/* Image Lightbox portal (Iteration 462) */}
+      {lightboxSrc && ReactDOM.createPortal(
+        <div
+          onClick={() => setLightboxSrc(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 10001,
+            background: 'rgba(0,0,0,0.85)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'zoom-out',
+            animation: 'popup-in 0.15s ease',
+          }}
+          role="dialog"
+          aria-modal="true"
+        >
+          <img
+            src={lightboxSrc}
+            alt=""
+            style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: 6 }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>,
+        document.body
+      )}
     </div>
+  )
+}
+
+/** Image thumbnail with error fallback */
+function ImageThumbnail({ filePath, onClick, t }: { filePath: string; onClick: () => void; t: (key: string) => string }) {
+  const [error, setError] = useState(false)
+  const fileName = filePath.split(/[/\\]/).pop() || filePath
+
+  if (error) {
+    return (
+      <div style={{
+        width: 80, height: 60, borderRadius: 4,
+        background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        fontSize: 9, color: 'var(--text-muted)', gap: 2,
+      }}>
+        <Image size={14} style={{ opacity: 0.5 }} />
+        <span style={{ maxWidth: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileName}</span>
+      </div>
+    )
+  }
+
+  return (
+    <img
+      src={`file://${filePath}`}
+      alt={fileName}
+      title={fileName}
+      onClick={onClick}
+      onError={() => setError(true)}
+      style={{
+        maxWidth: 300, maxHeight: 200, objectFit: 'contain',
+        borderRadius: 4, cursor: 'zoom-in',
+        border: '1px solid var(--border)',
+      }}
+    />
   )
 }

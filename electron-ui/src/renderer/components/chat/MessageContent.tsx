@@ -1,5 +1,5 @@
 // MessageContent — decomposed orchestrator (Iteration 220)
-// Sub-components: CodeBlock, MarkdownImage, messageContentConstants
+// Sub-components: CodeBlock, MarkdownImage, messageContentConstants, URLPreviewCard
 import React from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -8,6 +8,7 @@ import { useT } from '../../i18n'
 import { getLangColor } from './messageContentConstants'
 import CodeBlockWithHeader from './CodeBlock'
 import MarkdownImage from './MarkdownImage'
+import URLPreviewCard from './URLPreviewCard'
 
 interface Props {
   content: string
@@ -104,6 +105,19 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
             )
           },
           p({ children }) {
+            // Detect paragraphs that contain only a single URL — render as preview card (Iteration 462)
+            const childArray = React.Children.toArray(children)
+            if (childArray.length === 1) {
+              const child = childArray[0]
+              if (React.isValidElement(child) && (child.type as any) === 'a' && (child.props as any)?.href) {
+                const href = (child.props as any).href as string
+                const linkText = extractText((child.props as any).children)
+                // Only show card if link text IS the URL (standalone URL, not [text](url))
+                if (linkText === href && (href.startsWith('http://') || href.startsWith('https://'))) {
+                  return <URLPreviewCard url={href} />
+                }
+              }
+            }
             return <p style={{ marginBottom: 10 }}>{children}</p>
           },
           a({ href, children }) {
