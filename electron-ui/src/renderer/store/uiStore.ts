@@ -55,15 +55,16 @@ interface UiState {
   openSettingsModal: () => void
   closeSettingsModal: () => void
 
-  // Main content area view (Iteration 412: settings as page; Iteration 414: persona/workflow editors)
-  mainView: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor'
-  setMainView: (view: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor') => void
+  // Main content area view (Iteration 412: settings; Iteration 414: editors; Iteration 460: workflow-detail)
+  mainView: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor' | 'workflow-detail'
+  setMainView: (view: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor' | 'workflow-detail') => void
 
   // Persona/Workflow editor: ID of item being edited (null = new)
   editingPersonaId: string | null
   editingWorkflowId: string | null
   openPersonaEditor: (personaId: string | null) => void
   openWorkflowEditor: (workflowId: string | null) => void
+  openWorkflowDetail: (workflowId: string) => void
 
   // Session Quick Switcher (Ctrl+K)
   sessionSwitcherOpen: boolean
@@ -169,6 +170,8 @@ export const useUiStore = create<UiState>((set) => ({
   editingWorkflowId: null,
   openPersonaEditor: (personaId) => set({ mainView: 'persona-editor', editingPersonaId: personaId, settingsModalOpen: false }),
   openWorkflowEditor: (workflowId) => set({ mainView: 'workflow-editor', editingWorkflowId: workflowId, settingsModalOpen: false }),
+  // Open workflow detail view in main panel (Iteration 460)
+  openWorkflowDetail: (workflowId: string) => set({ mainView: 'workflow-detail', editingWorkflowId: workflowId, settingsModalOpen: false }),
   sessionSwitcherOpen: false,
   setSessionSwitcherOpen: (v) => set({ sessionSwitcherOpen: v }),
   toggleSessionSwitcher: () => set((s) => ({ sessionSwitcherOpen: !s.sessionSwitcherOpen })),

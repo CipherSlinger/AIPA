@@ -1,10 +1,8 @@
-import React, { useState, useMemo, lazy, Suspense } from 'react'
+import React, { useMemo } from 'react'
 import {
   Workflow as WorkflowIcon,
   Plus,
   Search,
-  List,
-  LayoutGrid,
 } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useUiStore } from '../../store'
@@ -14,18 +12,9 @@ import WorkflowStepEditor from './WorkflowStepEditor'
 import WorkflowItem from './WorkflowItem'
 import WorkflowPersonasSection from './WorkflowPersonasSection'
 
-const WorkflowCanvas = lazy(() => import('./WorkflowCanvas'))
-
 export default function WorkflowPanel() {
   const t = useT()
   const crud = useWorkflowCrud()
-  const [viewMode, setViewMode] = useState<'list' | 'canvas'>('list')
-
-  // The workflow to display in canvas mode: the expanded one, or the first one
-  const canvasWorkflow = useMemo(() => {
-    if (crud.expandedId) return crud.workflows.find(w => w.id === crud.expandedId) || null
-    return crud.workflows.length > 0 ? crud.workflows[0] : null
-  }, [crud.expandedId, crud.workflows])
 
   return (
     <div style={{
@@ -37,18 +26,15 @@ export default function WorkflowPanel() {
     }}>
       {/* Personas section — collapsible, sits above workflows */}
       <WorkflowPersonasSection />
-      <WorkflowTabContent crud={crud} t={t} viewMode={viewMode} setViewMode={setViewMode} canvasWorkflow={canvasWorkflow} />
+      <WorkflowTabContent crud={crud} t={t} />
     </div>
   )
 }
 
 /* Workflows tab content — extracted to keep the main component clean */
-function WorkflowTabContent({ crud, t, viewMode, setViewMode, canvasWorkflow }: {
+function WorkflowTabContent({ crud, t }: {
   crud: ReturnType<typeof useWorkflowCrud>;
   t: (key: string) => string;
-  viewMode: 'list' | 'canvas';
-  setViewMode: (mode: 'list' | 'canvas') => void;
-  canvasWorkflow: import('../../types/app.types').Workflow | null;
 }) {
   return (
     <>
@@ -68,55 +54,6 @@ function WorkflowTabContent({ crud, t, viewMode, setViewMode, canvasWorkflow }: 
             {t('workflow.title')} ({crud.workflows.length})
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            {/* View toggle */}
-            <div style={{
-              display: 'inline-flex',
-              background: 'var(--bg-main)',
-              border: '1px solid var(--border)',
-              borderRadius: 6,
-              padding: 2,
-            }}>
-              <button
-                onClick={() => setViewMode('list')}
-                aria-label={t('workflow.listView')}
-                title={t('workflow.listView')}
-                style={{
-                  background: viewMode === 'list' ? 'var(--bg-hover)' : 'transparent',
-                  border: 'none',
-                  borderRadius: 4,
-                  padding: '2px 6px',
-                  cursor: 'pointer',
-                  color: viewMode === 'list' ? 'var(--text)' : 'var(--text-muted)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  fontSize: 10,
-                  fontWeight: 500,
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <List size={12} />
-              </button>
-              <button
-                onClick={() => setViewMode('canvas')}
-                aria-label={t('workflow.canvasView')}
-                title={t('workflow.canvasView')}
-                style={{
-                  background: viewMode === 'canvas' ? 'var(--bg-hover)' : 'transparent',
-                  border: 'none',
-                  borderRadius: 4,
-                  padding: '2px 6px',
-                  cursor: 'pointer',
-                  color: viewMode === 'canvas' ? 'var(--text)' : 'var(--text-muted)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  fontSize: 10,
-                  fontWeight: 500,
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <LayoutGrid size={12} />
-              </button>
-            </div>
             <button
               onClick={() => useUiStore.getState().openWorkflowEditor(null)}
               aria-label={t('workflow.create')}
@@ -240,12 +177,7 @@ function WorkflowTabContent({ crud, t, viewMode, setViewMode, canvasWorkflow }: 
         </div>
       )}
 
-      {/* Workflow list OR canvas */}
-      {viewMode === 'canvas' ? (
-        <Suspense fallback={<div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 11 }}>Loading canvas...</div>}>
-          <WorkflowCanvas workflow={canvasWorkflow} />
-        </Suspense>
-      ) : (
+      {/* Workflow list (Iteration 459: canvas removed, workflows open in main panel) */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
           {crud.filteredWorkflows.length === 0 && !crud.showCreateForm ? (
           <div style={{
@@ -332,7 +264,6 @@ function WorkflowTabContent({ crud, t, viewMode, setViewMode, canvasWorkflow }: 
           </div>
         )}
         </div>
-      )}
 
       {/* Footer */}
       <div style={{

@@ -130,23 +130,26 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
-  // Thresholds: hide sections progressively as height decreases
-  const showKeyboardShortcuts = containerHeight > 650
-  const showTips = containerHeight > 550
-  const showRecentPrompts = containerHeight > 480
-  const showQuickActions = containerHeight > 400
-  const showPersonas = containerHeight > 350
-  const showUsageStats = containerHeight > 300
-  const compactGap = containerHeight < 500 ? 10 : 20
+  // Thresholds: hide sections progressively as height decreases (Iteration 459: tightened to prevent scrollbar)
+  const showKeyboardShortcuts = containerHeight > 700
+  const showTemplates = containerHeight > 650
+  const showTips = containerHeight > 600
+  const showRecentPrompts = containerHeight > 550
+  const showQuickActions = containerHeight > 480
+  const showDailySummary = containerHeight > 430
+  const showPersonas = containerHeight > 400
+  const showUsageStats = containerHeight > 370
+  const showTimeSuggestions = containerHeight > 340
+  const showContinueLastChat = containerHeight > 320
+  const compactGap = containerHeight < 500 ? 8 : containerHeight < 650 ? 12 : 20
 
   return (
     <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', color: 'var(--text-muted)', overflow: 'hidden' }}>
       {/* Spacer that auto-shrinks: when content fits, it centers; when content overflows, it collapses */}
       <div style={{ flex: '1 1 auto', minHeight: 8 }} />
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: compactGap, padding: '0 20px', width: '100%', flexShrink: 0 }}>
-      {/* Use inner scroll only when needed; outer container hidden overflow prevents ugly scrollbar on page */}
-      {/* Daily summary card */}
-      <DailySummaryCard />
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: compactGap, padding: '0 20px', width: '100%', flexShrink: 1, minHeight: 0 }}>
+      {/* Daily summary card (Iteration 459: adaptive hide) */}
+      {showDailySummary && <DailySummaryCard />}
 
       {/* Hero: icon + greeting + date + subtitle (Iteration 454) */}
       <WelcomeHero
@@ -156,7 +159,8 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
         accentTint={accentTint}
       />
 
-      {/* Time-contextual suggestions */}
+      {/* Time-contextual suggestions (Iteration 459: adaptive hide) */}
+      {showTimeSuggestions && (
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
         {timeSuggestions.map(({ icon: TSIcon, textKey }) => (
           <button
@@ -184,6 +188,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
           </button>
         ))}
       </div>
+      )}
 
       {/* Usage stats bar */}
       {showUsageStats && usageStats.totalSessions > 0 && (
@@ -213,8 +218,8 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
         </div>
       )}
 
-      {/* Continue Last Conversation card */}
-      {lastSession && onOpenSession && (
+      {/* Continue Last Conversation card (Iteration 459: adaptive hide) */}
+      {showContinueLastChat && lastSession && onOpenSession && (
         <button
           onClick={() => onOpenSession(lastSession.sessionId)}
           style={{
@@ -349,8 +354,8 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
         ))}
       </div>
 
-      {/* Conversation templates */}
-      <TemplatesSection onUseTemplate={onSuggestion} />
+      {/* Conversation templates (Iteration 459: adaptive hide) */}
+      {showTemplates && <TemplatesSection onUseTemplate={onSuggestion} />}
 
       {/* Keyboard shortcuts */}
       {showKeyboardShortcuts && (
