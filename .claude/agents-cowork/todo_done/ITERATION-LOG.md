@@ -4558,3 +4558,47 @@ Status: SUCCESS
 ### Acceptance Criteria
 - [x] `tsc --noEmit` passes with zero errors (was 1 pre-existing error)
 - [x] Conversation branching PRD archived to todo_done
+
+---
+
+## Iteration 459 — Welcome Adaptive Layout + Session Unread Badge
+
+_Date: 2026-04-03 | PRD: prd-welcome-layout-session-badge-v1_
+
+### Summary
+Three features: (1) Welcome page adaptive layout -- tightened ResizeObserver thresholds so sections hide more aggressively (DailySummary, TimeSuggestions, Templates, ContinueLastChat now participate in adaptive hiding), inner content uses flexShrink:1 instead of flexShrink:0 to prevent overflow. (2) Session unread badge -- replaced blue messageCount badge with red unread badge on session avatar, shows per-session unread count. (3) Per-session unread tracking in uiStore -- `unreadCounts: Record<string, number>` replaces simple counter, `incrementUnreadForSession(sessionId)` / `clearUnreadForSession(sessionId)`, auto-clears when opening session.
+
+### Files Changed
+- `WelcomeScreen.tsx` — tightened 8 adaptive thresholds, added 4 new conditional sections
+- `SessionItem.tsx` — red unread badge on avatar (position absolute, top-right), removed blue messageCount display
+- `uiStore.ts` — replaced `unreadSessionCount`/`incrementUnreadSessions` with per-session `unreadCounts` map + derived total
+- `SessionList.tsx` — passes `unreadCount` prop from uiStore to SessionItem
+- `useSessionListActions.ts` — clears unread when opening session
+- `useStreamJson.ts` — increments per-session unread on cli:result
+- `en.json`, `zh-CN.json` — added `session.unreadMessages` key
+
+### Build
+Status: SUCCESS
+
+---
+
+## Iteration 460 — Workflow Entry Refactor (Main Panel View)
+
+_Date: 2026-04-03 | PRD: prd-workflow-entry-refactor-v1_
+
+### Summary
+Two features: (1) Remove canvas toggle from sidebar WorkflowPanel (already done in prior iteration, confirmed clean). (2) Clicking a workflow in sidebar opens a new WorkflowDetailPage in the main content area -- shows workflow header (icon, name, description, back/edit/run buttons), steps panel (320px sidebar with numbered step cards), and full canvas visualization (lazy-loaded WorkflowCanvas). Added `'workflow-detail'` to mainView union in uiStore.
+
+### Files Changed
+- NEW: `WorkflowDetailPage.tsx` (175 lines) — full main-panel workflow view with steps + canvas
+- `uiStore.ts` — added `'workflow-detail'` to mainView union, added `openWorkflowDetail()` method
+- `AppShell.tsx` — added workflow-detail case in mainView conditional + Escape handler
+- `WorkflowItem.tsx` — click handler changed from expandInline to `openWorkflowDetail(wf.id)`
+- `en.json`, `zh-CN.json` — added workflow.back, workflow.notFound, workflow.loadingCanvas, workflow.noPrompt
+
+### Build
+Status: SUCCESS
+
+[RETRO] retro-2026-04-03-iterations-451-460.md completed, covered Iteration 451-460, next forced retro after Iteration 470
+
+---

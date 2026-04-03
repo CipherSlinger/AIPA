@@ -41,6 +41,7 @@ interface SessionItemProps {
   colorLabel?: string  // hex color for left border stripe
   autoTags?: string[]  // auto-generated topic tags
   compact?: boolean    // compact view mode
+  unreadCount?: number // per-session unread message count (Iteration 459)
 }
 
 export default function SessionItem({
@@ -78,6 +79,7 @@ export default function SessionItem({
   colorLabel,
   autoTags,
   compact = false,
+  unreadCount = 0,
 }: SessionItemProps) {
   const t = useT()
   const dateLocale = useDateLocale()
@@ -173,6 +175,32 @@ export default function SessionItem({
             }}
           />
         )}
+        {/* Unread badge (Iteration 459) */}
+        {!isActive && unreadCount > 0 && (
+          <div
+            style={{
+              position: 'absolute',
+              top: -4,
+              right: -6,
+              minWidth: 16,
+              height: 16,
+              borderRadius: 8,
+              background: '#ef4444',
+              color: '#fff',
+              fontSize: 10,
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0 4px',
+              border: '2px solid var(--bg-sessionpanel)',
+              lineHeight: 1,
+            }}
+            title={t('session.unreadMessages')}
+          >
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </div>
+        )}
       </div>
       )}
 
@@ -235,12 +263,7 @@ export default function SessionItem({
             alignItems: 'center',
             gap: 4,
           }}>
-            {session.messageCount != null && session.messageCount > 0 && (
-              <span style={{ opacity: 0.6 }} title={t('session.tooltipMessages')}>
-                {session.messageCount}
-                <MessageSquare size={8} style={{ marginLeft: 1, verticalAlign: 'middle' }} />
-              </span>
-            )}
+            {/* Message count removed in Iteration 459 -- replaced by unread badge on avatar */}
             {(() => {
               const dur = formatSessionDuration(session.firstTimestamp, session.timestamp)
               if (!dur) return null

@@ -11,6 +11,7 @@ import { ArrowLeft, X } from 'lucide-react'
 const SettingsPanel = React.lazy(() => import('../settings/SettingsPanel'))
 const PersonaEditorPage = React.lazy(() => import('../settings/PersonaEditorPage'))
 const WorkflowEditorPage = React.lazy(() => import('../settings/WorkflowEditorPage'))
+const WorkflowDetailPage = React.lazy(() => import('../workflows/WorkflowDetailPage'))
 
 const MIN_SIDEBAR = 180
 const MAX_SIDEBAR = 400
@@ -61,7 +62,10 @@ export default function AppShell() {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation()
-        if (mainView === 'persona-editor' || mainView === 'workflow-editor') {
+        if (mainView === 'workflow-detail') {
+          // Go back to chat from workflow detail
+          useUiStore.getState().setMainView('chat')
+        } else if (mainView === 'persona-editor' || mainView === 'workflow-editor') {
           // Go back to settings, not chat
           useUiStore.getState().setMainView('settings')
         } else {
@@ -257,6 +261,12 @@ export default function AppShell() {
             <ErrorBoundary fallbackLabel="workflow editor">
               <React.Suspense fallback={<div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading...</div>}>
                 <WorkflowEditorPage />
+              </React.Suspense>
+            </ErrorBoundary>
+          ) : mainView === 'workflow-detail' ? (
+            <ErrorBoundary fallbackLabel="workflow detail">
+              <React.Suspense fallback={<div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading...</div>}>
+                <WorkflowDetailPage />
               </React.Suspense>
             </ErrorBoundary>
           ) : (

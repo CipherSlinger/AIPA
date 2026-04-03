@@ -95,7 +95,7 @@ const savedSidebarTab = (() => {
     const saved = localStorage.getItem('aipa:sidebar-tab')
     const valid = ['history', 'files', 'notes', 'skills', 'memory', 'workflows', 'channel', 'notifications']
     if (saved && valid.includes(saved)) return saved as UiState['sidebarTab']
-  } catch {}
+  } catch { }
   return 'history' as const
 })()
 
@@ -109,7 +109,7 @@ export const useUiStore = create<UiState>((set) => ({
   quotedText: null,
   alwaysOnTop: false,
   setSidebarTab: (tab) => {
-    try { localStorage.setItem('aipa:sidebar-tab', tab) } catch {}
+    try { localStorage.setItem('aipa:sidebar-tab', tab) } catch { }
     set({ sidebarTab: tab })
   },
   setSidebarOpen: (v) => set({ sidebarOpen: v }),
@@ -149,7 +149,7 @@ export const useUiStore = create<UiState>((set) => ({
       return { settingsModalOpen: true }
     }
     if (item === 'history' || item === 'files' || item === 'notes' || item === 'skills' || item === 'memory' || item === 'workflows' || item === 'channel' || item === 'notifications') {
-      try { localStorage.setItem('aipa:sidebar-tab', item) } catch {}
+      try { localStorage.setItem('aipa:sidebar-tab', item) } catch { }
       // Clear all unread badges when viewing History
       const extra = item === 'history' ? { unreadCounts: {} as Record<string, number>, unreadSessionCount: 0 } : {}
       return { activeNavItem: item, sidebarTab: item, sidebarOpen: true, ...extra }
@@ -171,7 +171,7 @@ export const useUiStore = create<UiState>((set) => ({
   openPersonaEditor: (personaId) => set({ mainView: 'persona-editor', editingPersonaId: personaId, settingsModalOpen: false }),
   openWorkflowEditor: (workflowId) => set({ mainView: 'workflow-editor', editingWorkflowId: workflowId, settingsModalOpen: false }),
   // Open workflow detail view in main panel (Iteration 460)
-  openWorkflowDetail: (workflowId: string) => set({ mainView: 'workflow-detail', editingWorkflowId: workflowId, settingsModalOpen: false }),
+  openWorkflowDetail: (workflowId: string) => set({ mainView: 'workflow-detail' as const, editingWorkflowId: workflowId, settingsModalOpen: false }),
   sessionSwitcherOpen: false,
   setSessionSwitcherOpen: (v) => set({ sessionSwitcherOpen: v }),
   toggleSessionSwitcher: () => set((s) => ({ sessionSwitcherOpen: !s.sessionSwitcherOpen })),
@@ -183,13 +183,13 @@ export const useUiStore = create<UiState>((set) => ({
   })(),
   setSessionNote: (sessionId, note) => set((s) => {
     const updated = { ...s.sessionNotes, [sessionId]: note }
-    try { localStorage.setItem('aipa:session-notes', JSON.stringify(updated)) } catch {}
+    try { localStorage.setItem('aipa:session-notes', JSON.stringify(updated)) } catch { }
     return { sessionNotes: updated }
   }),
   removeSessionNote: (sessionId) => set((s) => {
     const updated = { ...s.sessionNotes }
     delete updated[sessionId]
-    try { localStorage.setItem('aipa:session-notes', JSON.stringify(updated)) } catch {}
+    try { localStorage.setItem('aipa:session-notes', JSON.stringify(updated)) } catch { }
     return { sessionNotes: updated }
   }),
 
@@ -202,13 +202,13 @@ export const useUiStore = create<UiState>((set) => ({
   })(),
   setPinnedNoteId: (sessionId, noteId) => set((s) => {
     const updated = { ...s.pinnedNoteIds, [sessionId]: noteId }
-    try { localStorage.setItem('aipa:pinned-note-ids', JSON.stringify(updated)) } catch {}
+    try { localStorage.setItem('aipa:pinned-note-ids', JSON.stringify(updated)) } catch { }
     return { pinnedNoteIds: updated }
   }),
   removePinnedNoteId: (sessionId) => set((s) => {
     const updated = { ...s.pinnedNoteIds }
     delete updated[sessionId]
-    try { localStorage.setItem('aipa:pinned-note-ids', JSON.stringify(updated)) } catch {}
+    try { localStorage.setItem('aipa:pinned-note-ids', JSON.stringify(updated)) } catch { }
     return { pinnedNoteIds: updated }
   }),
 

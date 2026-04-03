@@ -21,46 +21,41 @@ type: project
 **Why:** Track these decisions so we don't re-introduce the same bugs or reinvent communication patterns in future iterations.
 **How to apply:** When modifying ChatPanel drag-and-drop, check for handler conflicts. When adding cross-component actions, use the CustomEvent pattern established in Iteration 2.
 
-### Iterations 53-391 Summary
+### Iterations 53-441 Summary
 - Covered in ITERATION-LOG.md with full details
-- Key milestones: WeChat-style UI (53), i18n (80-97), ChatPanel decomposition (111), Notes (120-125), AI Personas (200-204), Multi-model (296-305), Decomposition sprint (306-315)
+- Key milestones: WeChat-style UI (53), i18n (80-97), ChatPanel decomposition (111), Notes (120-125), AI Personas (200-204), Multi-model (296-305), Decomposition sprint (306-315), Workflow Canvas (401-402), Store decomposition (440)
 
-### Iterations 392-401 (2026-04-01 to 2026-04-02)
-- **Retro**: retro-2026-04-02-iterations-392-401.md
-- **i18n milestone**: Zero remaining hardcoded English aria-labels (It.398-399)
-- **Major feature**: Workflow Canvas Mode Phase 1 (It.401) -- visual node graph with pan/zoom/drag
-- **Current version at retro**: 1.1.78
-- **Next forced retro**: After Iteration 411
+### Iterations 441-450 (2026-04-03)
+- **Retro**: retro-2026-04-03-iterations-441-450.md
+- **Key wins**: ChatPanel 682->492, ChatHeader 679->455, SessionList 718->607, first tester checkpoint in 55+ iterations (Iter 445)
+- **Version**: v1.1.117 -> v1.1.126
 
-### Iteration 402 (2026-04-02)
-- **Feature**: Workflow Canvas Execution Monitor (Phase 2) -- node status coloring, progress bar, auto-pan, sidebar
-- **Files created**: useWorkflowExecution.ts, CanvasProgressBar.tsx, CanvasNodeSidebar.tsx
-- **Files modified**: WorkflowCanvas.tsx (352->451), CanvasNode.tsx (128->184)
-- **Architecture**: Execution state derived from existing taskQueue observation (no store changes needed)
-- **Current version**: 1.1.79
-- **Build**: SUCCESS (2525 modules)
+### Iterations 451-460 (2026-04-03)
+- **Retro**: retro-2026-04-03-iterations-451-460.md
+- **Key wins**: All decomposition debt resolved (Message 602->416, SessionList 607->469, ChatInput 562->453, MessageList 517->359, WelcomeScreen decomposed into 3 sub-components)
+- **Major features**: Conversation branching (fork/badge/compare), Welcome adaptive layout, Per-session unread badges, Workflow detail view in main panel
+- **Issues**: Zero tester checkpoints (4th consecutive retro flagging this), concurrent agent collision on Iter 458-460
+- **Version**: v1.1.127 -> v1.1.136
+- **Next forced retro**: After Iteration 470
+- **Next mandatory tester checkpoint**: Iteration 465
 
-### Outstanding Tech Debt (as of It.440)
-- skillMarketplace.ts (~1860 lines) -- data-only, exempted from 800-line rule
-- SessionList.tsx (718 lines) -- **P1**, needs decomposition (useSessionFiltering hook, sessionAutoTags utility)
-- ChatPanel.tsx (682 lines) -- **P1**, needs decomposition (useChatPanelEvents hook, pinned note extraction)
-- Message.tsx (602 lines) -- just over 600, monitor
-- WelcomeScreen.tsx (583 lines) -- monitor
-- useStreamJson.ts (576 lines) -- monitor
-- ChatInput.tsx (562 lines) -- improved from 704 in Iter 432
-- ChatHeader.tsx (558 lines) -- monitor
+### File Size Watch List (as of Iter 460)
 
-**Resolved in this batch:**
-- ~~store/index.ts~~ (727->76, Iter 440 decomposition into chatStore.ts + uiStore.ts)
-- ~~ipc/index.ts~~ (780->350, Iter 432 decomposition into 4 handler files)
-- ~~ChatInput.tsx~~ (704->562, Iter 432 keyboard + send button extraction)
+| File | Current | Status |
+|------|---------|--------|
+| skillMarketplace.ts | 1860 | ACCEPTED (data file) |
+| useStreamJson.ts | 590 | P2 WATCH (approaching 600) |
+| ChatPanel.tsx | 542 | P2 MONITOR (grew from branching) |
+| All others | <500 | RESOLVED |
 
-### Iteration 440 Retro (2026-04-02)
-- **Retro**: retro-2026-04-02-iterations-432-440.md
-- **Covered**: Iterations 432-440 (v1.1.109 -> v1.1.117)
-- **Key wins**: 3 of 4 action items from prev retro completed, all decomposition debt cleared
-- **Chronic gap**: Tester not invoked for 50+ iterations (5th batch flagging this)
-- **New rule**: Tester checkpoint every 5 iterations (mandatory)
-- **Agent definition changes**: Updated aipa-frontend watchlist, added root cause analysis rule, added iteration log formatting rule
-- **Next forced retro**: After Iteration 450
-- **Next tester checkpoint**: Iteration 445
+### Recurring Issues (track across retros)
+
+1. **Tester non-invocation**: Flagged in retros for 432-440, 441-450, 451-460. Only 1 actual checkpoint (Iter 445) in 30 iterations. New P0 action: hard blocking gate at N % 5 === 0.
+2. **PRD archival**: Flagged 3x. Still manual.
+3. **Concurrent agent collision**: First in 451-460. Two agents modified same files.
+
+### Key Architectural Decisions (latest)
+
+- **Per-session unread tracking**: `unreadCounts: Record<string, number>` in uiStore
+- **Workflow detail view**: `mainView: 'workflow-detail'` -> WorkflowDetailPage in main panel
+- **Conversation branching**: Fork via `session:fork` IPC, metadata in `prefs.forkMap`
