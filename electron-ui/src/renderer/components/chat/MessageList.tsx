@@ -6,6 +6,8 @@ import MessageErrorBoundary from './MessageErrorBoundary'
 import PermissionCard from './PermissionCard'
 import PlanCard from './PlanCard'
 import PinnedMessagesStrip from './PinnedMessagesStrip'
+import VirtualSeparatorRow from './VirtualSeparatorRow'
+import RewindDialog from './RewindDialog'
 import { useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import { ArrowDown, ArrowUp, Lock, Unlock } from 'lucide-react'
@@ -188,127 +190,15 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       >
         {virtualizer.getVirtualItems().map((virtualRow) => {
           const item = items[virtualRow.index]
-          if (item.type === 'dateSep') {
+          if (item.type === 'dateSep' || item.type === 'timeGap' || item.type === 'responseTime' || item.type === 'compactSep') {
             return (
-              <div
-                key={`sep-${item.label}`}
-                data-index={virtualRow.index}
-                ref={virtualizer.measureElement}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  transform: `translateY(${virtualRow.start}px)`,
-                }}
-              >
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  padding: '6px 20px',
-                }}>
-                  <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                  <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap', fontWeight: 500, letterSpacing: 0.3 }}>
-                    {item.label}
-                  </span>
-                  <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                </div>
-              </div>
-            )
-          }
-          if (item.type === 'timeGap') {
-            return (
-              <div
-                key={`tgap-${virtualRow.index}`}
-                data-index={virtualRow.index}
-                ref={virtualizer.measureElement}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  transform: `translateY(${virtualRow.start}px)`,
-                }}
-              >
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '4px 20px',
-                }}>
-                  <span style={{
-                    fontSize: 9,
-                    color: 'var(--text-muted)',
-                    opacity: 0.7,
-                    fontFamily: 'monospace',
-                    letterSpacing: 0.5,
-                  }}>
-                    {item.label}
-                  </span>
-                </div>
-              </div>
-            )
-          }
-          if (item.type === 'responseTime') {
-            return (
-              <div
-                key={`rt-${virtualRow.index}`}
-                data-index={virtualRow.index}
-                ref={virtualizer.measureElement}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  transform: `translateY(${virtualRow.start}px)`,
-                }}
-              >
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '2px 20px',
-                }}>
-                  <span style={{
-                    fontSize: 9,
-                    color: 'var(--text-muted)',
-                    opacity: 0.5,
-                    fontStyle: 'italic',
-                  }}>
-                    {item.label}
-                  </span>
-                </div>
-              </div>
-            )
-          }
-          if (item.type === 'compactSep') {
-            return (
-              <div
-                key={`csep-${virtualRow.index}`}
-                data-index={virtualRow.index}
-                ref={virtualizer.measureElement}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  transform: `translateY(${virtualRow.start}px)`,
-                }}
-              >
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '8px 20px',
-                }}>
-                  <div style={{ flex: 1, height: 1, background: 'var(--accent)', opacity: 0.4 }} />
-                  <span style={{ fontSize: 10, color: 'var(--accent)', whiteSpace: 'nowrap', fontWeight: 500, letterSpacing: 0.3, opacity: 0.8 }}>
-                    {item.label}
-                  </span>
-                  <div style={{ flex: 1, height: 1, background: 'var(--accent)', opacity: 0.4 }} />
-                </div>
-              </div>
+              <VirtualSeparatorRow
+                key={item.type === 'dateSep' ? `sep-${item.label}` : `${item.type}-${virtualRow.index}`}
+                type={item.type}
+                label={item.label}
+                virtualRow={virtualRow}
+                measureElement={virtualizer.measureElement}
+              />
             )
           }
           const msg = item.msg
@@ -448,68 +338,20 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
 
       {/* Rewind confirmation dialog */}
       {rewindTarget && (
-        <div
-          style={{
-            position: 'absolute', inset: 0, zIndex: 50,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)',
+        <RewindDialog
+          count={rewindTarget.count}
+          onConfirm={async () => {
+            const { msgId, ts, count } = rewindTarget
+            setRewindTarget(null)
+            rewindToMessage(msgId)
+            if (sessionId) {
+              const isoTs = new Date(ts).toISOString()
+              await window.electronAPI.sessionRewind(sessionId, isoTs).catch(() => {})
+            }
+            addToast('success', t('rewind.rewound', { count: String(count) }))
           }}
-          onClick={() => setRewindTarget(null)}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{
-              background: 'var(--popup-bg)', border: '1px solid var(--popup-border)',
-              borderRadius: 12, padding: '20px 24px', maxWidth: 360,
-              boxShadow: 'var(--popup-shadow)', textAlign: 'center',
-              animation: 'popup-in 0.15s ease-out',
-            }}
-          >
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-bright)', marginBottom: 10 }}>
-              {t('rewind.title')}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 18, lineHeight: 1.6 }}>
-              {t('rewind.confirm', { count: String(rewindTarget.count) })}
-            </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-              <button
-                onClick={() => setRewindTarget(null)}
-                style={{
-                  padding: '7px 18px', fontSize: 12, borderRadius: 6,
-                  background: 'none', border: '1px solid var(--border)',
-                  color: 'var(--text-primary)', cursor: 'pointer',
-                }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--popup-item-hover)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'none'}
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                onClick={async () => {
-                  const { msgId, ts, count } = rewindTarget
-                  setRewindTarget(null)
-                  // Rewind in-memory store
-                  rewindToMessage(msgId)
-                  // Also rewind the persisted session file
-                  if (sessionId) {
-                    const isoTs = new Date(ts).toISOString()
-                    await window.electronAPI.sessionRewind(sessionId, isoTs).catch(() => {})
-                  }
-                  addToast('success', t('rewind.rewound', { count: String(count) }))
-                }}
-                style={{
-                  padding: '7px 18px', fontSize: 12, borderRadius: 6,
-                  background: 'var(--error)', border: 'none',
-                  color: '#fff', cursor: 'pointer', fontWeight: 600,
-                }}
-                onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
-                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-              >
-                {t('rewind.button')}
-              </button>
-            </div>
-          </div>
-        </div>
+          onCancel={() => setRewindTarget(null)}
+        />
       )}
     </div>
     </div>
