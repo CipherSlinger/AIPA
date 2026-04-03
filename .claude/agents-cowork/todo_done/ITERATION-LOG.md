@@ -3671,3 +3671,48 @@ Enhanced the chat input experience with an improved character/word counter and t
 
 
 [RETRO] retro-2026-04-03-iterations-422-431.md completed, covered Iteration 422-431, next forced retro at Iteration 441
+
+
+---
+
+## Iteration 432 — Code Decomposition (ChatInput + IPC)
+
+_Date: 2026-04-03 | Technical debt reduction_
+
+### Summary
+Mandatory decomposition iteration addressing chronic file size debt. ChatInput.tsx reduced from 704 to 559 lines (-21%). ipc/index.ts reduced from 780 to 306 lines (-61%). No new features added — pure structural improvement.
+
+#### Changes
+1. **ipc/index.ts decomposition** (780 -> 306 lines)
+   - Extracted `backup-handlers.ts` (147 lines): backup:export and backup:import IPC handlers
+   - Extracted `diagnostics-handlers.ts` (108 lines): system:runDiagnostics handler
+   - Extracted `window-handlers.ts` (94 lines): window:*, captureScreen, preventSleep handlers
+   - Extracted `fs-handlers.ts` (139 lines): fs:*, showOpenDialog, listCommands handlers
+   - ipc/index.ts retained as thin registration layer with PTY, CLI, Session, Config, Shell handlers
+
+2. **ChatInput.tsx decomposition** (704 -> 559 lines)
+   - Extracted `useChatInputKeyboard.ts` (166 lines): keyboard handler hook with all shortcuts (Enter, Tab, Escape, Ctrl+B/I, Ctrl+Shift+U, arrow navigation)
+   - Extracted `ChatInputSendButton.tsx` (70 lines): send/stop button component with SVG progress ring
+
+3. **Build verification**: All three targets (main, preload, renderer) compile successfully
+
+#### Files Created
+- `electron-ui/src/main/ipc/backup-handlers.ts` (147 lines)
+- `electron-ui/src/main/ipc/diagnostics-handlers.ts` (108 lines)
+- `electron-ui/src/main/ipc/window-handlers.ts` (94 lines)
+- `electron-ui/src/main/ipc/fs-handlers.ts` (139 lines)
+- `electron-ui/src/renderer/components/chat/useChatInputKeyboard.ts` (166 lines)
+- `electron-ui/src/renderer/components/chat/ChatInputSendButton.tsx` (70 lines)
+
+#### Files Modified
+- `electron-ui/src/main/ipc/index.ts` (780 -> 306 lines)
+- `electron-ui/src/renderer/components/chat/ChatInput.tsx` (704 -> 559 lines)
+- `electron-ui/package.json` (version bump to 1.1.109)
+
+#### File Size Report (Post-Decomposition)
+| File | Before | After | Delta |
+|------|--------|-------|-------|
+| ipc/index.ts | 780 | 306 | -474 (-61%) |
+| ChatInput.tsx | 704 | 559 | -145 (-21%) |
+| store/index.ts | 673 | 673 | unchanged |
+| WelcomeScreen.tsx | 583 | 583 | unchanged |
