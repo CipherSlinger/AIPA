@@ -46,10 +46,23 @@ export default function App() {
   // Load preferences on startup
   useEffect(() => {
     const init = async () => {
+      // Timeout guard: if init takes longer than 8 seconds, force-load with defaults
+      const initTimeout = setTimeout(() => {
+        console.warn('[AIPA] Startup init timeout (8s) — loading with default preferences')
+        setLoaded(true)
+        // Show splash error if it's still visible
+        const splashStatus = document.getElementById('aipa-splash-status')
+        if (splashStatus) splashStatus.textContent = 'Preferences load timed out — using defaults'
+      }, 8000)
+
       try {
+        console.log('[AIPA] Starting preference load...')
         const all = await window.electronAPI.prefsGetAll()
+        console.log('[AIPA] prefsGetAll complete')
         const env = await window.electronAPI.configGetEnv()
+        console.log('[AIPA] configGetEnv complete')
         const home = await window.electronAPI.fsGetHome()
+        console.log('[AIPA] fsGetHome complete')
 
         // Migrate removed themes (modern, minimal) to 'vscode' (Dark)
         if (all.theme === 'modern' || all.theme === 'minimal') {
@@ -68,11 +81,17 @@ export default function App() {
         // Default working dir: ~/claude (auto-create if not saved yet)
         const workingDir = all.workingDir || `${home}/claude`
         if (!all.workingDir) {
-          await window.electronAPI.fsEnsureDir(workingDir)
+          try {
+            await window.electronAPI.fsEnsureDir(workingDir)
+          } catch (dirErr) {
+            console.warn('[AIPA] fsEnsureDir failed (non-fatal):', dirErr)
+          }
           window.electronAPI.prefsSet('workingDir', workingDir)
         }
         setWorkingDir(workingDir)
+        clearTimeout(initTimeout)
         setLoaded(true)
+        console.log('[AIPA] Preferences loaded successfully')
 
         // First-run: show onboarding if never completed before.
         // If an API key already exists (env or store), silently mark done and skip.
@@ -102,7 +121,8 @@ export default function App() {
         }
       } catch (err: unknown) {
         // Preference loading failed -- use defaults to prevent black screen
-        console.error('Failed to load preferences:', err)
+        console.error('[AIPA] Failed to load preferences:', err)
+        clearTimeout(initTimeout)
         setLoaded(true)
         useUiStore.getState().addToast('error', t('startup.prefsLoadFailed'))
       }

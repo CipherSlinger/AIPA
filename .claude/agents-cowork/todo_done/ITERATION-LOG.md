@@ -3563,3 +3563,35 @@ Three session management improvements: folder colors with color picker, faster s
 - electron-ui/src/renderer/i18n/locales/en.json
 - electron-ui/src/renderer/i18n/locales/zh-CN.json
 - electron-ui/package.json (version bump to 1.1.105)
+
+---
+
+## Iteration 429 — Startup Resilience (Loading Screen Fix)
+
+_Date: 2026-04-02 | Bug fix from feedback.md_
+
+### Summary
+Addressed recurring user report of app getting stuck on loading screen. Added startup timeout guard, non-blocking fsEnsureDir, console diagnostics logging, and reduced fallback timeouts.
+
+#### Changes
+1. **Init Timeout Guard** (App.tsx)
+   - Added 8-second timeout around the init() async function
+   - If prefs/env/home IPC calls hang, app proceeds with defaults instead of staying stuck
+   - Console logs at each init step for user-reportable diagnostics
+   - fsEnsureDir wrapped in try/catch so directory creation failure is non-fatal
+
+2. **Splash Screen Timeout Reduction** (index.html)
+   - Reduced splash screen fallback timeout from 10s to 8s
+   - Improved error message text for clarity
+
+3. **Renderer Load Timeout Reduction** (main/index.ts)
+   - Reduced renderer load timeout from 15s to 10s for faster recovery
+
+4. **Feedback Cleared** (feedback.md)
+   - Processed the loading screen bug report and cleared feedback
+
+#### Files Modified
+- electron-ui/src/renderer/App.tsx
+- electron-ui/src/renderer/index.html
+- electron-ui/src/main/index.ts
+- electron-ui/package.json (version bump to 1.1.106)

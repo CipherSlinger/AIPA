@@ -24,16 +24,16 @@
       <style>@keyframes aipaPulse{0%,80%,100%{opacity:.3;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}</style>
     </div>
     <script>
-      // Fallback: if React does not mount within 10 seconds, show error state
+      // Fallback: if React does not mount within 8 seconds, show error state
       window.__aipaSplashTimer = setTimeout(function() {
         var splash = document.getElementById('aipa-splash');
         var status = document.getElementById('aipa-splash-status');
         var error = document.getElementById('aipa-splash-error');
         if (splash && splash.style.display !== 'none') {
-          if (status) status.textContent = 'App did not load in time.';
+          if (status) status.textContent = 'App did not load in time. Try reloading or resetting preferences.';
           if (error) error.style.display = 'block';
         }
-      }, 10000);
+      }, 8000);
     </script>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>

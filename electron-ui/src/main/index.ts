@@ -117,13 +117,13 @@ function createWindow(): void {
       mainWindow.webContents.reload()
     }
   })
-  // Timeout: if renderer hasn't loaded in 15 seconds, attempt reload
+  // Timeout: if renderer hasn't loaded in 10 seconds, attempt reload
   setTimeout(() => {
     if (!loadResolved && mainWindow && !mainWindow.isDestroyed()) {
-      log.warn('Renderer load timeout (15s), attempting reload...')
+      log.warn('Renderer load timeout (10s), attempting reload...')
       mainWindow.webContents.reload()
     }
-  }, 15000)
+  }, 10000)
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url)
