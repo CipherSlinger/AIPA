@@ -3347,3 +3347,5 @@ _Date: 2026-04-02_
 - **Changes**: Modified ErrorBoundary to support an `overlay` mode. App-level ErrorBoundary now shows a floating banner instead of replacing the entire UI, letting users still access recovery actions (retry, new conversation, reload, copy error). Addresses user feedback item #3 (crash covering entire interface). Added error.appDegraded i18n key.
 - **Files**: ErrorBoundary.tsx (overlay mode: floating banner + degraded background), App.tsx (added overlay prop), en.json + zh-CN.json (error.appDegraded key)
 - **Build**: PASS
+
+[RETRO] retro-2026-04-03-iterations-412-421.md completed, covering Iteration 412-421, next forced retro after Iteration 431
