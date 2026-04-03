@@ -1,5 +1,5 @@
 import React from 'react'
-import { ArrowLeft, Trash2, Download, Pin, Loader2, Copy, Check } from 'lucide-react'
+import { ArrowLeft, Trash2, Download, Pin, Loader2, Copy, Check, MessageSquare } from 'lucide-react'
 import { useT } from '../../i18n'
 import { Note } from '../../types/app.types'
 import { MAX_CONTENT_LENGTH } from './notesConstants'
@@ -179,6 +179,28 @@ export default function NoteEditorHeader({
         onMouseLeave={e => e.currentTarget.style.color = note.pinned ? 'var(--accent)' : 'var(--text-muted)'}
       >
         <Pin size={14} style={{ fill: note.pinned ? 'var(--accent)' : 'none' }} />
+      </button>
+
+      {/* Pin to Chat (Iteration 439) */}
+      <button
+        onClick={() => window.dispatchEvent(new CustomEvent('aipa:pinNoteToChat', { detail: note.id }))}
+        aria-label={t('notes.pinToChat')}
+        title={t('notes.pinToChat')}
+        style={{
+          background: 'none',
+          border: 'none',
+          color: 'var(--text-muted)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          padding: 4,
+          borderRadius: 4,
+          transition: 'color 0.15s',
+        }}
+        onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
+        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+      >
+        <MessageSquare size={14} />
       </button>
 
       <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', gap: 8, alignItems: 'center' }}>

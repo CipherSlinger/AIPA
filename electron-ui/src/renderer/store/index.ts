@@ -599,6 +599,11 @@ interface UiState {
   sessionNotes: Record<string, string>
   setSessionNote: (sessionId: string, note: string) => void
   removeSessionNote: (sessionId: string) => void
+
+  // Pinned Note ID per session (Iteration 439) — max 1 note pinned to chat header
+  pinnedNoteIds: Record<string, string>
+  setPinnedNoteId: (sessionId: string, noteId: string) => void
+  removePinnedNoteId: (sessionId: string) => void
 }
 
 // Restore last sidebar tab from localStorage
@@ -699,5 +704,24 @@ export const useUiStore = create<UiState>((set) => ({
     delete updated[sessionId]
     try { localStorage.setItem('aipa:session-notes', JSON.stringify(updated)) } catch {}
     return { sessionNotes: updated }
+  }),
+
+  // Pinned Note ID per session (Iteration 439)
+  pinnedNoteIds: (() => {
+    try {
+      const saved = localStorage.getItem('aipa:pinned-note-ids')
+      return saved ? JSON.parse(saved) : {}
+    } catch { return {} }
+  })(),
+  setPinnedNoteId: (sessionId, noteId) => set((s) => {
+    const updated = { ...s.pinnedNoteIds, [sessionId]: noteId }
+    try { localStorage.setItem('aipa:pinned-note-ids', JSON.stringify(updated)) } catch {}
+    return { pinnedNoteIds: updated }
+  }),
+  removePinnedNoteId: (sessionId) => set((s) => {
+    const updated = { ...s.pinnedNoteIds }
+    delete updated[sessionId]
+    try { localStorage.setItem('aipa:pinned-note-ids', JSON.stringify(updated)) } catch {}
+    return { pinnedNoteIds: updated }
   }),
 }))

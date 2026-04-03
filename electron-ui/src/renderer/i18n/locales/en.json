@@ -1126,7 +1126,10 @@
     "jotDown": "Jot down a thought...",
     "noCategory": "No category",
     "save": "Save",
-    "noteRefHint": "Type @note: to insert a note"
+    "noteRefHint": "Type @note: to insert a note",
+    "pinToChat": "Pin to chat",
+    "unpinFromChat": "Unpin from chat",
+    "pinnedToChat": "Note pinned to chat"
   },
   "clipboard": {
     "pasteAndAsk": "Paste & Ask",

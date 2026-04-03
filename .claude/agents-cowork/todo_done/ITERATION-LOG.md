@@ -3990,3 +3990,43 @@ Added a floating quick capture button for rapid note-taking during conversations
 - `electron-ui/src/renderer/i18n/locales/en.json` (+1 key)
 - `electron-ui/src/renderer/i18n/locales/zh-CN.json` (+1 key)
 - `electron-ui/package.json` (version bump to 1.1.115)
+
+---
+
+### Iteration 439 — Pin Note to Chat Header (v1.1.116)
+_Date: 2026-04-02_
+
+**PRD**: prd-notes-integration-v1.md (Feature 3: Pin Note to Chat Header)
+
+#### What was done
+
+1. **PinnedNoteStrip Component** (PinnedNoteStrip.tsx — NEW)
+   - Expandable strip below ChatHeader showing a pinned note
+   - Header row: Pin icon + StickyNote icon + note title (with category emoji) + expand/collapse chevron + unpin (X) button
+   - Expanded view: full note content, max 200px scrollable, read-only
+   - Smooth animation on mount
+
+2. **Store Extension** (store/index.ts)
+   - Added `pinnedNoteIds: Record<string, string>` to UiState
+   - `setPinnedNoteId(sessionId, noteId)` and `removePinnedNoteId(sessionId)` with localStorage persistence at key `aipa:pinned-note-ids`
+
+3. **ChatPanel Integration** (ChatPanel.tsx)
+   - PinnedNoteStrip rendered after session note banner, before context warning
+   - Listens for `aipa:pinNoteToChat` custom event to set pinned note
+   - Shows toast on pin
+
+4. **NoteEditorHeader Pin-to-Chat Button** (NoteEditorHeader.tsx)
+   - Added MessageSquare icon button that dispatches `aipa:pinNoteToChat` custom event
+   - Follows established codebase pattern for cross-component communication
+
+5. **i18n** (en.json, zh-CN.json)
+   - 3 new keys: pinToChat, unpinFromChat, pinnedToChat
+
+#### Files Modified
+- `electron-ui/src/renderer/components/chat/PinnedNoteStrip.tsx` (new, ~95 lines)
+- `electron-ui/src/renderer/store/index.ts` (pinnedNoteIds state)
+- `electron-ui/src/renderer/components/chat/ChatPanel.tsx` (PinnedNoteStrip rendering + event listener)
+- `electron-ui/src/renderer/components/notes/NoteEditorHeader.tsx` (Pin to Chat button)
+- `electron-ui/src/renderer/i18n/locales/en.json` (+3 keys)
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` (+3 keys)
+- `electron-ui/package.json` (version bump to 1.1.116)

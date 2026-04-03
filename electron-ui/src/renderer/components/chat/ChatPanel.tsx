@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { Upload, RefreshCw, AlertTriangle, ChevronDown, StickyNote, X, Check } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
-import { StandardChatMessage } from '../../types/app.types'
+import { StandardChatMessage, Note, NoteCategory } from '../../types/app.types'
 import { useStreamJson } from '../../hooks/useStreamJson'
 import { useStreamingTimer } from '../../hooks/useStreamingTimer'
 import { useChatZoom } from '../../hooks/useChatZoom'
@@ -22,6 +22,7 @@ import FollowUpChips from './FollowUpChips'
 import TokenUsageBar from './TokenUsageBar'
 import IdleReturnDialog from './IdleReturnDialog'
 import QuickCapture from './QuickCapture'
+import PinnedNoteStrip from './PinnedNoteStrip'
 import { getTemplateById } from '../../utils/promptTemplates'
 import { MODEL_OPTIONS } from '../settings/settingsConstants'
 import { useT } from '../../i18n'
@@ -40,6 +41,9 @@ export default function ChatPanel() {
   const sessionNotes = useUiStore(s => s.sessionNotes)
   const setSessionNote = useUiStore(s => s.setSessionNote)
   const removeSessionNote = useUiStore(s => s.removeSessionNote)
+  const pinnedNoteIds = useUiStore(s => s.pinnedNoteIds)
+  const setPinnedNoteId = useUiStore(s => s.setPinnedNoteId)
+  const removePinnedNoteId = useUiStore(s => s.removePinnedNoteId)
   const prepareRegeneration = useChatStore(s => s.prepareRegeneration)
   const lastContextUsage = useChatStore(s => s.lastContextUsage)
   const totalSessionCost = useChatStore(s => s.totalSessionCost)
@@ -93,6 +97,19 @@ export default function ChatPanel() {
     return () => window.removeEventListener('aipa:editSessionNote', handler)
   }, [currentSessionId, sessionNotes])
 
+  // Listen for "Pin note to chat" events from notes panel (Iteration 439)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const noteId = (e as CustomEvent).detail as string
+      if (noteId && currentSessionId) {
+        setPinnedNoteId(currentSessionId, noteId)
+        addToast('info', t('notes.pinnedToChat'))
+      }
+    }
+    window.addEventListener('aipa:pinNoteToChat', handler)
+    return () => window.removeEventListener('aipa:pinNoteToChat', handler)
+  }, [currentSessionId, setPinnedNoteId, addToast, t])
+
   // Scroll-to-message state (for bookmarks panel)
   const [scrollToMessageIdx, setScrollToMessageIdx] = useState<number | undefined>(undefined)
   const [contextWarningDismissed, setContextWarningDismissed] = useState(false)
@@ -101,6 +118,12 @@ export default function ChatPanel() {
   const [editingNote, setEditingNote] = useState(false)
   const [noteText, setNoteText] = useState('')
   const currentNote = currentSessionId ? sessionNotes[currentSessionId] : undefined
+
+  // Pinned note from Notes panel (Iteration 439)
+  const pinnedNoteId = currentSessionId ? pinnedNoteIds[currentSessionId] : undefined
+  const allNotes: Note[] = prefs.notes || []
+  const noteCategories: NoteCategory[] = prefs.noteCategories || []
+  const pinnedNote = pinnedNoteId ? allNotes.find(n => n.id === pinnedNoteId) : undefined
 
   // Context window usage warning
   const contextPct = lastContextUsage && lastContextUsage.total > 0
@@ -357,6 +380,15 @@ export default function ChatPanel() {
             <X size={10} />
           </button>
         </div>
+      )}
+
+      {/* Pinned note strip (Iteration 439) */}
+      {pinnedNote && currentSessionId && (
+        <PinnedNoteStrip
+          note={pinnedNote}
+          categories={noteCategories}
+          onUnpin={() => removePinnedNoteId(currentSessionId)}
+        />
       )}
 
       {/* Context window warning banner */}

@@ -1144,7 +1144,10 @@
     "jotDown": "随手记下想法...",
     "noCategory": "无分类",
     "save": "保存",
-    "noteRefHint": "输入 @note: 引用笔记"
+    "noteRefHint": "输入 @note: 引用笔记",
+    "pinToChat": "固定到聊天",
+    "unpinFromChat": "从聊天取消固定",
+    "pinnedToChat": "笔记已固定到聊天"
   },
   "clipboard": {
     "pasteAndAsk": "粘贴并提问",
