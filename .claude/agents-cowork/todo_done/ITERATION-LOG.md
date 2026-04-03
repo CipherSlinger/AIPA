@@ -3418,3 +3418,30 @@ _Date: 2026-04-02_
   - electron-ui/src/renderer/i18n/locales/en.json (+nav.notifications, +notifications section, +statusBar.connected/idle)
   - electron-ui/src/renderer/i18n/locales/zh-CN.json (+nav.notifications, +notifications section, +statusBar.connected/idle)
 - **Build**: PASS (2527 modules)
+
+---
+
+### Iteration 425 — Message Interaction Enhancements
+**Date:** 2026-04-02
+**PRD:** prd-message-interaction-v1.md
+**Version:** 1.1.102
+
+#### Changes
+1. **Auto-collapse long messages** (MessageBubbleContent.tsx)
+   - Messages > 2000 chars auto-collapse with gradient fade preview (500 chars shown)
+   - "Show full message (X chars)" expand button, "Show less" collapse button
+   - Smooth UX with gradient overlay matching bubble background
+
+2. **Enhanced message stats in timestamp** (MessageBubbleContent.tsx)
+   - Word count + char count displayed inline in timestamp area
+   - Tooltip shows words, chars, and estimated token count
+   - Type icon indicator for stats
+
+3. **i18n coverage** (en.json, zh-CN.json)
+   - Added `message.messageStats` and `message.showFullMessage` keys
+
+#### Files Modified
+- `electron-ui/src/renderer/components/chat/MessageBubbleContent.tsx`
+- `electron-ui/src/renderer/i18n/locales/en.json`
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json`
+- `electron-ui/package.json` (version bump to 1.1.102)

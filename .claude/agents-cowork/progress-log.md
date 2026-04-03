@@ -70,3 +70,16 @@ Note: prd-session-list-ux-v1.md skipped -- all 4 features already implemented in
 
 ## Iteration 424 completed
 - Feature: Notification Center panel with history, Bell badge in NavRail, connection status dot in StatusBar | Build: PASS | Commit: fba28f6
+
+
+## PM PRD Batch 2026-04-03 (auto, no user feedback)
+
+Note: Initial PRDs (session-management-v2 + chat-ux-polish-v2) were scrapped -- features already implemented.
+
+| PRD | Core Features | High-Risk Files | Execution |
+|-----|--------------|----------------|-----------|
+| prd-message-interaction-v1.md | Enhanced code copy, word/char count, auto-collapse long messages | CodeBlock.tsx, MessageBubbleContent.tsx, MessageActionToolbar.tsx, i18n | Group 1 |
+| prd-data-backup-v1.md | Full data export/import zip, auto-backup reminder | SettingsAbout.tsx, main/ipc, preload, config-manager.ts, i18n | Group 2 |
+
+Conflict: Both touch i18n. Group 2 also touches ipc/preload (main process).
+Decision: Serial execution. Group 1 (message interaction, renderer-only) first, then Group 2 (data backup, requires main process changes).

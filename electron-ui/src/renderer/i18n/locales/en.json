@@ -265,6 +265,8 @@
     "daysAgo": "{{count}}d ago",
     "responseDuration": "took {{time}}",
     "wordCount": "{{count}} words",
+    "messageStats": "{{words}} words, {{chars}} chars (~{{tokens}} tokens)",
+    "showFullMessage": "Show full message ({{chars}} chars)",
     "saveToNote": "Save to note",
     "readAloud": "Read aloud",
     "stopReading": "Stop reading",

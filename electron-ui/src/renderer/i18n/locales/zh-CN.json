@@ -265,6 +265,8 @@
     "daysAgo": "{{count}}天前",
     "responseDuration": "耗时 {{time}}",
     "wordCount": "{{count}} 个字",
+    "messageStats": "{{words}} 词, {{chars}} 字符 (~{{tokens}} tokens)",
+    "showFullMessage": "展开完整消息 ({{chars}} 字符)",
     "saveToNote": "保存到笔记",
     "readAloud": "朗读",
     "stopReading": "停止朗读",

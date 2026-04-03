@@ -4,7 +4,7 @@ import MessageContent from './MessageContent'
 import ToolUseBlock from './ToolUseBlock'
 import ToolBatchBlock from './ToolBatchBlock'
 import { groupToolUses } from '../../utils/toolSummary'
-import { ChevronDown, ChevronRight, Check, CheckCheck, Clock, Timer, Type } from 'lucide-react'
+import { ChevronDown, ChevronRight, ChevronUp, Check, CheckCheck, Clock, Timer, Type } from 'lucide-react'
 import { useT } from '../../i18n'
 import { getShowAbsoluteTime, formatAbsoluteTime, relativeTime, formatResponseDuration } from './messageUtils'
 
@@ -48,6 +48,12 @@ export default function MessageBubbleContent({
   const thinking = message.thinking
   const isMessageStreaming = message.isStreaming
   const [thinkingExpanded, setThinkingExpanded] = useState(false)
+  // Auto-collapse long messages (> 2000 chars) — user can expand/collapse individually
+  const LONG_MESSAGE_THRESHOLD = 2000
+  const LONG_MESSAGE_PREVIEW = 500
+  const contentLength = (message.content || '').length
+  const isLongMessage = contentLength > LONG_MESSAGE_THRESHOLD && !isMessageStreaming
+  const [longMessageExpanded, setLongMessageExpanded] = useState(false)
 
   // Auto-expand thinking block while streaming, auto-collapse when done
   const prevStreamingRef = useRef(false)
@@ -222,8 +228,81 @@ export default function MessageBubbleContent({
                 }}>
                   {message.content}
                 </pre>
+              ) : isLongMessage && !longMessageExpanded ? (
+                /* Auto-collapsed long message: show truncated preview */
+                <div style={{ position: 'relative' }}>
+                  <div style={{ overflow: 'hidden', maxHeight: 200 }}>
+                    <MessageContent
+                      content={message.content.slice(0, LONG_MESSAGE_PREVIEW) + '...'}
+                      isUser={isUser}
+                      searchQuery={searchQuery}
+                      searchCaseSensitive={searchCaseSensitive}
+                    />
+                  </div>
+                  {/* Gradient fade overlay */}
+                  <div style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 40,
+                    background: isUser
+                      ? 'linear-gradient(transparent, var(--bubble-user-bg, #2563eb))'
+                      : 'linear-gradient(transparent, var(--bubble-ai-bg, #2d2d2d))',
+                    pointerEvents: 'none',
+                  }} />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setLongMessageExpanded(true) }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 4,
+                      width: '100%',
+                      padding: '6px 0',
+                      background: 'none',
+                      border: 'none',
+                      borderTop: '1px solid var(--border)',
+                      color: 'var(--accent)',
+                      cursor: 'pointer',
+                      fontSize: 11,
+                      fontWeight: 500,
+                      marginTop: 4,
+                    }}
+                  >
+                    <ChevronDown size={12} />
+                    {t('message.showFullMessage', { chars: String(contentLength) })}
+                  </button>
+                </div>
               ) : (
-                <MessageContent content={message.content} isUser={isUser} searchQuery={searchQuery} searchCaseSensitive={searchCaseSensitive} />
+                <div>
+                  <MessageContent content={message.content} isUser={isUser} searchQuery={searchQuery} searchCaseSensitive={searchCaseSensitive} />
+                  {/* Show "Show less" button for expanded long messages */}
+                  {isLongMessage && longMessageExpanded && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setLongMessageExpanded(false) }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 4,
+                        width: '100%',
+                        padding: '6px 0',
+                        background: 'none',
+                        border: 'none',
+                        borderTop: '1px solid var(--border)',
+                        color: 'var(--accent)',
+                        cursor: 'pointer',
+                        fontSize: 11,
+                        fontWeight: 500,
+                        marginTop: 4,
+                      }}
+                    >
+                      <ChevronUp size={12} />
+                      {t('message.showLess')}
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           )}
@@ -253,12 +332,21 @@ export default function MessageBubbleContent({
                   {formatResponseDuration(message.responseDuration!)}
                 </span>
               )}
-              {message.content && message.content.length > 0 && !message.isStreaming && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, opacity: 0.5 }} title={t('message.wordCount', { count: String(message.content.trim().split(/\s+/).filter(w => w.length > 0).length) })}>
-                  <Type size={8} />
-                  {message.content.trim().split(/\s+/).filter(w => w.length > 0).length}
-                </span>
-              )}
+              {message.content && message.content.length > 0 && !message.isStreaming && (() => {
+                const words = message.content.trim().split(/\s+/).filter(w => w.length > 0).length
+                const chars = message.content.length
+                const estTokens = Math.round(chars / 4)
+                return (
+                  <span
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 2, opacity: 0.5 }}
+                    title={t('message.messageStats', { words: String(words), chars: String(chars), tokens: String(estTokens) })}
+                  >
+                    <Type size={8} />
+                    {words}
+                    <span style={{ opacity: 0.6, fontSize: 9 }}>({chars}c)</span>
+                  </span>
+                )
+              })()}
               {msgStatus === 'sending' && <Clock size={10} style={{ opacity: 0.8 }} />}
               {msgStatus === 'sent' && <Check size={12} style={{ opacity: 0.9 }} />}
               {msgStatus === 'read' && <CheckCheck size={12} style={{ color: 'var(--accent)', opacity: 1 }} />}
