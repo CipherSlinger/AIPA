@@ -39,7 +39,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
           padding: '8px 12px',
           cursor: 'pointer',
         }}
-        onClick={() => crud.setExpandedId(isExpanded ? null : wf.id)}
+        onClick={() => useUiStore.getState().openWorkflowDetail(wf.id)}
         onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')}
         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
       >

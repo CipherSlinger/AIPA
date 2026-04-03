@@ -448,6 +448,19 @@ Keep exercises focused and achievable. The goal is active learning through doing
           }
           // Completion notification
           sendCompletionNotification('AIPA', resultText || t('chat.responseComplete'))
+          // Increment per-session unread badge (Iteration 459)
+          {
+            const uiState = useUiStore.getState()
+            const activeSessionId = useChatStore.getState().currentSessionId
+            const resultSessionId = claudeSessionId || activeSessionId
+            // Only mark unread if the result session is NOT the one currently being viewed
+            if (resultSessionId && resultSessionId !== activeSessionId) {
+              uiState.incrementUnreadForSession(resultSessionId)
+            } else if (uiState.sidebarTab !== 'history' || !uiState.sidebarOpen) {
+              // Even for the active session, if history tab isn't visible, increment
+              if (resultSessionId) uiState.incrementUnreadForSession(resultSessionId)
+            }
+          }
           // Sound notification
           if (usePrefsStore.getState().prefs.notifySound !== false) {
             playCompletionSound()

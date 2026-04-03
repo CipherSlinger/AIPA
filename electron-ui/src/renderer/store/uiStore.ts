@@ -55,15 +55,16 @@ interface UiState {
   openSettingsModal: () => void
   closeSettingsModal: () => void
 
-  // Main content area view (Iteration 412: settings as page; Iteration 414: persona/workflow editors)
-  mainView: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor'
-  setMainView: (view: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor') => void
+  // Main content area view (Iteration 412: settings; Iteration 414: editors; Iteration 460: workflow-detail)
+  mainView: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor' | 'workflow-detail'
+  setMainView: (view: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor' | 'workflow-detail') => void
 
   // Persona/Workflow editor: ID of item being edited (null = new)
   editingPersonaId: string | null
   editingWorkflowId: string | null
   openPersonaEditor: (personaId: string | null) => void
   openWorkflowEditor: (workflowId: string | null) => void
+  openWorkflowDetail: (workflowId: string) => void
 
   // Session Quick Switcher (Ctrl+K)
   sessionSwitcherOpen: boolean
@@ -79,6 +80,13 @@ interface UiState {
   pinnedNoteIds: Record<string, string>
   setPinnedNoteId: (sessionId: string, noteId: string) => void
   removePinnedNoteId: (sessionId: string) => void
+
+  // Per-session unread message counts (Iteration 459): maps sessionId -> unread count
+  unreadCounts: Record<string, number>
+  unreadSessionCount: number  // derived: total sessions with unread > 0
+  incrementUnreadForSession: (sessionId: string) => void
+  clearUnreadForSession: (sessionId: string) => void
+  clearUnreadSessions: () => void
 }
 
 // Restore last sidebar tab from localStorage
@@ -142,7 +150,9 @@ export const useUiStore = create<UiState>((set) => ({
     }
     if (item === 'history' || item === 'files' || item === 'notes' || item === 'skills' || item === 'memory' || item === 'workflows' || item === 'channel' || item === 'notifications') {
       try { localStorage.setItem('aipa:sidebar-tab', item) } catch {}
-      return { activeNavItem: item, sidebarTab: item, sidebarOpen: true }
+      // Clear all unread badges when viewing History
+      const extra = item === 'history' ? { unreadCounts: {} as Record<string, number>, unreadSessionCount: 0 } : {}
+      return { activeNavItem: item, sidebarTab: item, sidebarOpen: true, ...extra }
     }
     return { activeNavItem: item }
   }),
@@ -160,6 +170,8 @@ export const useUiStore = create<UiState>((set) => ({
   editingWorkflowId: null,
   openPersonaEditor: (personaId) => set({ mainView: 'persona-editor', editingPersonaId: personaId, settingsModalOpen: false }),
   openWorkflowEditor: (workflowId) => set({ mainView: 'workflow-editor', editingWorkflowId: workflowId, settingsModalOpen: false }),
+  // Open workflow detail view in main panel (Iteration 460)
+  openWorkflowDetail: (workflowId: string) => set({ mainView: 'workflow-detail' as const, editingWorkflowId: workflowId, settingsModalOpen: false }),
   sessionSwitcherOpen: false,
   setSessionSwitcherOpen: (v) => set({ sessionSwitcherOpen: v }),
   toggleSessionSwitcher: () => set((s) => ({ sessionSwitcherOpen: !s.sessionSwitcherOpen })),
@@ -199,4 +211,20 @@ export const useUiStore = create<UiState>((set) => ({
     try { localStorage.setItem('aipa:pinned-note-ids', JSON.stringify(updated)) } catch {}
     return { pinnedNoteIds: updated }
   }),
+
+  // Per-session unread counts (Iteration 458)
+  unreadCounts: {},
+  unreadSessionCount: 0,
+  incrementUnreadForSession: (sessionId) => set((s) => {
+    const updated = { ...s.unreadCounts, [sessionId]: (s.unreadCounts[sessionId] || 0) + 1 }
+    const total = Object.values(updated).reduce((sum, c) => sum + (c > 0 ? 1 : 0), 0)
+    return { unreadCounts: updated, unreadSessionCount: total }
+  }),
+  clearUnreadForSession: (sessionId) => set((s) => {
+    const updated = { ...s.unreadCounts }
+    delete updated[sessionId]
+    const total = Object.values(updated).reduce((sum, c) => sum + (c > 0 ? 1 : 0), 0)
+    return { unreadCounts: updated, unreadSessionCount: total }
+  }),
+  clearUnreadSessions: () => set({ unreadCounts: {}, unreadSessionCount: 0 }),
 }))

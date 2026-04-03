@@ -95,6 +95,8 @@ export function useSessionListActions() {
     clearMessages()
     loadHistory(chatMessages)
     setSessionId(session.sessionId)
+    // Clear unread badge for this session (Iteration 459)
+    useUiStore.getState().clearUnreadForSession(session.sessionId)
     // Restore per-session persona (Iteration 407)
     try {
       const savedPersonaId = localStorage.getItem(`aipa:session-persona:${session.sessionId}`)

@@ -1,6 +1,6 @@
 import React from 'react'
 import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, Settings, User, PanelLeftClose, PanelLeftOpen, Radio, Bell } from 'lucide-react'
-import { useUiStore, useChatStore, usePrefsStore, useSessionStore } from '../../store'
+import { useUiStore, useChatStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 import { AVATAR_PRESETS } from './avatarPresets'
 
@@ -12,12 +12,13 @@ interface NavItemProps {
   isActive?: boolean
   onClick: () => void
   badge?: number
+  badgeColor?: string
   shortcut?: string
   expanded?: boolean
   pulseDot?: boolean  // Show a pulsing activity dot (e.g., streaming indicator)
 }
 
-function NavItem({ icon, label, isActive, onClick, badge, shortcut, expanded, pulseDot }: NavItemProps) {
+function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, expanded, pulseDot }: NavItemProps) {
   const [hovered, setHovered] = React.useState(false)
   const [showTooltip, setShowTooltip] = React.useState(false)
   const tooltipTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -123,7 +124,7 @@ function NavItem({ icon, label, isActive, onClick, badge, shortcut, expanded, pu
             minWidth: 16,
             height: 16,
             borderRadius: 8,
-            background: 'var(--accent)',
+            background: badgeColor || 'var(--accent)',
             color: '#ffffff',
             fontSize: 9,
             fontWeight: 600,
@@ -239,8 +240,9 @@ export default function NavRail() {
   const isNotificationsActive = activeNavItem === 'notifications' && sidebarTab === 'notifications'
   const unreadNotificationCount = useUiStore(s => s.unreadNotificationCount)
   const isStreaming = useChatStore(s => s.isStreaming)
-  const sessionCount = useSessionStore(s => s.sessions.length)
   const isSettingsActive = useUiStore(s => s.settingsModalOpen)
+  // Unread session count: sessions that received new messages while not being the active session
+  const unreadSessionCount = useUiStore(s => s.unreadSessionCount)
 
   const handleNewChat = () => {
     // Same logic as Ctrl+N in App.tsx: clear messages to start fresh
@@ -289,7 +291,8 @@ export default function NavRail() {
         shortcut="Ctrl+1"
         isActive={isHistoryActive}
         onClick={() => setActiveNavItem('history')}
-        badge={sessionCount > 0 ? sessionCount : undefined}
+        badge={unreadSessionCount > 0 ? unreadSessionCount : undefined}
+        badgeColor="#ef4444"
         pulseDot={isStreaming && !isHistoryActive}
         expanded={navExpanded}
       />

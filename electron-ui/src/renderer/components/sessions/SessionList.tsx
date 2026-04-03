@@ -4,7 +4,7 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { MessageSquare, Globe } from 'lucide-react'
 import { SessionListItem } from '../../types/app.types'
-import { usePrefsStore, useSessionStore } from '../../store'
+import { usePrefsStore, useSessionStore, useUiStore } from '../../store'
 import { SkeletonSessionRow } from '../ui/Skeleton'
 import { useT } from '../../i18n'
 import { TAG_PRESETS, getDateGroup, generateAutoTags, SESSION_COLOR_LABELS } from './sessionUtils'
@@ -44,6 +44,9 @@ export default function SessionList() {
   const [focusedIdx, setFocusedIdx] = useState(-1)
   const listRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  // Per-session unread counts (Iteration 459)
+  const unreadCounts = useUiStore(s => s.unreadCounts)
+  const clearUnreadForSession = useUiStore(s => s.clearUnreadForSession)
 
   // Session preview tooltip (extracted hook, Iteration 441)
   const {
@@ -420,6 +423,7 @@ export default function SessionList() {
                 colorLabel={sessionColorLabels[session.sessionId]}
                 autoTags={sessionAutoTags[session.sessionId]}
                 compact={sessionListCompact}
+                unreadCount={unreadCounts[session.sessionId] || 0}
               />
               )}
             </React.Fragment>

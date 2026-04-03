@@ -374,6 +374,7 @@
     "tooltipLastActive": "最后活跃",
     "tooltipMessages": "消息数",
     "tooltipDuration": "时长",
+    "unreadMessages": "未读消息",
     "refresh": "刷新",
     "deleteAll": "删除所有会话",
     "deleteAllConfirm": "删除所有 {{count}} 个会话？此操作不可撤销。",
@@ -1391,6 +1392,10 @@
     "canvasPending": "等待执行",
     "canvasStepDone": "已完成",
     "canvasNotStarted": "尚未开始",
+    "back": "返回聊天",
+    "notFound": "未找到工作流",
+    "loadingCanvas": "正在加载画布...",
+    "noPrompt": "（未定义提示词）",
     "footer": "多步骤任务的提示词链",
     "inspired": "灵感来自 OpenClaw Lobster",
     "preset": {

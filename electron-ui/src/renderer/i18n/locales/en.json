@@ -374,6 +374,7 @@
     "tooltipLastActive": "Last active",
     "tooltipMessages": "Messages",
     "tooltipDuration": "Duration",
+    "unreadMessages": "Unread messages",
     "refresh": "Refresh",
     "deleteAll": "Delete all sessions",
     "deleteAllConfirm": "Delete all {{count}} sessions? This cannot be undone.",
@@ -1373,6 +1374,10 @@
     "canvasPending": "Waiting to execute",
     "canvasStepDone": "Completed",
     "canvasNotStarted": "Not started yet",
+    "back": "Back to chat",
+    "notFound": "Workflow not found",
+    "loadingCanvas": "Loading canvas...",
+    "noPrompt": "(No prompt defined)",
     "footer": "Prompt chains for multi-step tasks",
     "inspired": "Inspired by OpenClaw Lobster",
     "preset": {
