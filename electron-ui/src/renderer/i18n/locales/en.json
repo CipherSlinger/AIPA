@@ -1125,7 +1125,8 @@
     "savedTo": "Note saved to {{category}}",
     "jotDown": "Jot down a thought...",
     "noCategory": "No category",
-    "save": "Save"
+    "save": "Save",
+    "noteRefHint": "Type @note: to insert a note"
   },
   "clipboard": {
     "pasteAndAsk": "Paste & Ask",

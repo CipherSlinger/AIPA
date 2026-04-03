@@ -3949,3 +3949,44 @@ Added a floating quick capture button for rapid note-taking during conversations
 - `electron-ui/src/renderer/i18n/locales/en.json` (+7 keys)
 - `electron-ui/src/renderer/i18n/locales/zh-CN.json` (+7 keys)
 - `electron-ui/package.json` (version bump to 1.1.114)
+
+---
+
+### Iteration 438 — @note: Reference in Chat Input
+**Date:** 2026-04-02
+**PRD:** prd-notes-integration-v1.md (item 2)
+**Status:** DONE
+**Build:** PASS
+
+#### Changes
+
+1. **@note: Reference Popup** (useInputPopups.ts, NotePopup.tsx)
+   - Detects `@note:` trigger in chat input (case-insensitive)
+   - Shows popup with filtered notes matching typed query
+   - Each entry shows: category emoji, title (max 140px), content preview (first 40 chars)
+   - Arrow keys + Enter keyboard navigation
+   - Selecting a note inserts content as markdown blockquote: `> **Title**\n> content...`
+   - Replaces the `@note:query` text with the blockquote insertion
+
+2. **useInputPopups Extension** (useInputPopups.ts)
+   - Added noteQuery, noteIndex, filteredNotes, noteCategories state
+   - Note detection runs before generic @ handler to avoid conflicts
+   - handleNoteSelect builds blockquote from note title + content
+   - Keyboard navigation effect for ArrowUp/Down/Enter/Escape
+   - Ghost text suppressed during note popup via useInputCompletion integration
+
+3. **ChatInput Integration** (ChatInput.tsx)
+   - NotePopup rendered between AtMentionPopup and SlashCommandPopup
+   - noteQuery cleared on send
+   - Ghost text suppression includes noteQuery
+
+4. **i18n** (en.json, zh-CN.json)
+   - 1 new key: noteRefHint
+
+#### Files Modified
+- `electron-ui/src/renderer/components/chat/useInputPopups.ts` (note state + detection + handler)
+- `electron-ui/src/renderer/components/chat/NotePopup.tsx` (new, ~100 lines)
+- `electron-ui/src/renderer/components/chat/ChatInput.tsx` (import + render + send cleanup)
+- `electron-ui/src/renderer/i18n/locales/en.json` (+1 key)
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` (+1 key)
+- `electron-ui/package.json` (version bump to 1.1.115)

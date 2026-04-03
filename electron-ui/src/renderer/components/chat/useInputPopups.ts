@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { SlashCommand, SLASH_COMMANDS } from './SlashCommandPopup'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
-import { TextSnippet } from '../../types/app.types'
+import { TextSnippet, Note, NoteCategory } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { Terminal } from 'lucide-react'
 
@@ -26,6 +26,10 @@ export function useInputPopups({
   // @mention state
   const [atQuery, setAtQuery] = useState<string | null>(null)
 
+  // @note: reference state (Iteration 438)
+  const [noteQuery, setNoteQuery] = useState<string | null>(null)
+  const [noteIndex, setNoteIndex] = useState(0)
+
   // Slash command state
   const [slashQuery, setSlashQuery] = useState<string | null>(null)
   const [slashIndex, setSlashIndex] = useState(0)
@@ -46,10 +50,36 @@ export function useInputPopups({
           .slice(0, 8)
       : []
 
+  // Filtered notes for @note: popup (Iteration 438)
+  const allNotes: Note[] = prefs.notes || []
+  const noteCategories: NoteCategory[] = prefs.noteCategories || []
+  const filteredNotes = useMemo(() => {
+    if (noteQuery === null || allNotes.length === 0) return []
+    const q = noteQuery.toLowerCase()
+    return allNotes
+      .filter((n) =>
+        !q || n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q),
+      )
+      .slice(0, 8)
+  }, [noteQuery, allNotes])
+
   // Parse popup triggers from input change
   const parsePopupTriggers = useCallback(
     (val: string, cursor: number) => {
       const textBefore = val.slice(0, cursor)
+
+      // Detect @note: trigger before generic @ (Iteration 438)
+      const noteMatch = textBefore.match(/@note:([^\s]*)$/i)
+      if (noteMatch) {
+        setNoteQuery(noteMatch[1])
+        setNoteIndex(0)
+        setAtQuery(null)
+        setSlashQuery(null)
+        setSnippetQuery(null)
+        return
+      }
+      setNoteQuery(null)
+
       const atMatch = textBefore.match(/@([^\s]*)$/)
       if (atMatch) {
         setAtQuery(atMatch[1])
@@ -111,6 +141,32 @@ export function useInputPopups({
         setInput(replaced)
       }
       setSnippetQuery(null)
+      textareaRef.current?.focus()
+    },
+    [input, setInput, textareaRef],
+  )
+
+  // Handle note reference selection (Iteration 438)
+  const handleNoteSelect = useCallback(
+    (note: Note) => {
+      const cursor = textareaRef.current?.selectionStart ?? input.length
+      const textBefore = input.slice(0, cursor)
+      const textAfter = input.slice(cursor)
+      const noteMatch = textBefore.match(/@note:[^\s]*$/i)
+      if (noteMatch) {
+        // Build blockquote from note content
+        const quotedContent = note.content
+          .split('\n')
+          .map((l) => `> ${l}`)
+          .join('\n')
+        const insertion = `> **${note.title}**\n${quotedContent}\n`
+        const replaced =
+          textBefore.slice(0, textBefore.length - noteMatch[0].length) +
+          insertion +
+          textAfter
+        setInput(replaced)
+      }
+      setNoteQuery(null)
       textareaRef.current?.focus()
     },
     [input, setInput, textareaRef],
@@ -195,11 +251,40 @@ export function useInputPopups({
     return () => window.removeEventListener('keydown', handler, true)
   }, [slashQuery, slashIndex])
 
+  // Note popup keyboard navigation (Iteration 438)
+  useEffect(() => {
+    if (noteQuery === null || filteredNotes.length === 0) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setNoteIndex((i) => Math.min(i + 1, filteredNotes.length - 1))
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setNoteIndex((i) => Math.max(i - 1, 0))
+      } else if (e.key === 'Enter') {
+        e.preventDefault()
+        if (filteredNotes[noteIndex]) handleNoteSelect(filteredNotes[noteIndex])
+      } else if (e.key === 'Escape') {
+        setNoteQuery(null)
+      }
+    }
+    window.addEventListener('keydown', handler, true)
+    return () => window.removeEventListener('keydown', handler, true)
+  }, [noteQuery, noteIndex, filteredNotes, handleNoteSelect])
+
   return {
     // @mention
     atQuery,
     setAtQuery,
     handleAtSelect,
+    // @note: reference (Iteration 438)
+    noteQuery,
+    setNoteQuery,
+    noteIndex,
+    setNoteIndex,
+    filteredNotes,
+    noteCategories,
+    handleNoteSelect,
     // Slash commands
     slashQuery,
     setSlashQuery,

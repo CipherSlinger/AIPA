@@ -1143,7 +1143,8 @@
     "savedTo": "笔记已保存到 {{category}}",
     "jotDown": "随手记下想法...",
     "noCategory": "无分类",
-    "save": "保存"
+    "save": "保存",
+    "noteRefHint": "输入 @note: 引用笔记"
   },
   "clipboard": {
     "pasteAndAsk": "粘贴并提问",

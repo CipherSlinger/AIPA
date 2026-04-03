@@ -6,6 +6,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Sparkles, Archive } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import AtMentionPopup from './AtMentionPopup'
+import NotePopup from './NotePopup'
 import SlashCommandPopup from './SlashCommandPopup'
 import QuickReplyChips from './QuickReplyChips'
 import InputToolbar from './InputToolbar'
@@ -101,7 +102,7 @@ export default function ChatInput({
 
   // Ghost text autocomplete + inline calculator
   const { suggestion, dismissSuggestion } = usePromptSuggestion(input, isStreaming)
-  const { ghostText, calcResult } = useInputCompletion(input, popups.slashQuery, popups.atQuery, suggestion)
+  const { ghostText, calcResult } = useInputCompletion(input, popups.slashQuery, popups.atQuery ?? popups.noteQuery, suggestion)
 
   // Paste detection (URL, long text, quote)
   const paste = usePasteDetection({
@@ -234,6 +235,7 @@ export default function ChatInput({
     if (text) addToHistory(text)
     setInput('')
     popups.setAtQuery(null)
+    popups.setNoteQuery(null)
     paste.setPastedUrl(null)
     paste.setPastedLongText(false)
     clearAttachments()
@@ -389,6 +391,7 @@ export default function ChatInput({
           <ChatInputPasteChips paste={{ ...paste, onWrapAsBlock: input.length > 500 ? () => { setInput(prev => '```\n' + prev + '\n```'); paste.setPastedLongText(false) } : undefined }} inputLength={input.length} />
           {/* Popups */}
           {popups.atQuery !== null && <AtMentionPopup query={popups.atQuery} onSelect={popups.handleAtSelect} onDismiss={() => popups.setAtQuery(null)} anchorRef={inputWrapRef as React.RefObject<HTMLElement>} />}
+          {popups.noteQuery !== null && <NotePopup query={popups.noteQuery} notes={popups.filteredNotes} categories={popups.noteCategories} selectedIndex={popups.noteIndex} onSelect={popups.handleNoteSelect} onDismiss={() => popups.setNoteQuery(null)} onHover={popups.setNoteIndex} />}
           {popups.slashQuery !== null && <SlashCommandPopup query={popups.slashQuery} onSelect={popups.handleSlashSelect} onDismiss={() => popups.setSlashQuery(null)} selectedIndex={popups.slashIndex} onHover={popups.setSlashIndex} extraCommands={popups.customCommands} />}
           {/* Text snippet popup */}
           {popups.snippetQuery !== null && popups.filteredSnippets.length > 0 && (
