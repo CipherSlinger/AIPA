@@ -2,8 +2,8 @@
 import { create } from 'zustand'
 import { ToastItem, ToastType } from '../components/ui/Toast'
 
-export type SidebarTab = 'history' | 'files' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel' | 'notifications'
-export type NavItem = 'chat' | 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel' | 'notifications'
+export type SidebarTab = 'history' | 'files' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel' | 'notifications' | 'tasks'
+export type NavItem = 'chat' | 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel' | 'notifications' | 'tasks'
 
 export interface NotificationEntry {
   id: string

@@ -1,5 +1,5 @@
 import React from 'react'
-import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, Settings, User, PanelLeftClose, PanelLeftOpen, Radio, Bell } from 'lucide-react'
+import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, Settings, User, PanelLeftClose, PanelLeftOpen, Radio, Bell, CheckSquare } from 'lucide-react'
 import { useUiStore, useChatStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 import { AVATAR_PRESETS } from './avatarPresets'
@@ -239,6 +239,7 @@ export default function NavRail() {
   const isWorkflowsActive = activeNavItem === 'workflows' && sidebarTab === 'workflows'
   const isChannelActive = activeNavItem === 'channel' && sidebarTab === 'channel'
   const isNotificationsActive = activeNavItem === 'notifications' && sidebarTab === 'notifications'
+  const isTasksActive = activeNavItem === 'tasks' && sidebarTab === 'tasks'
   const unreadNotificationCount = useUiStore(s => s.unreadNotificationCount)
   const isStreaming = useChatStore(s => s.isStreaming)
   const isSettingsActive = useUiStore(s => s.settingsModalOpen)
@@ -366,6 +367,16 @@ export default function NavRail() {
         isActive={isNotificationsActive}
         badge={unreadNotificationCount}
         onClick={() => setActiveNavItem('notifications')}
+        expanded={navExpanded}
+      />
+
+      {/* Tasks (Iteration 465) */}
+      <NavItem
+        icon={<CheckSquare size={iconSize} />}
+        label={t('nav.tasks')}
+        shortcut="Ctrl+9"
+        isActive={isTasksActive}
+        onClick={() => setActiveNavItem('tasks')}
         expanded={navExpanded}
       />
 

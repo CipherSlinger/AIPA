@@ -12,7 +12,8 @@
     "expandNav": "展开侧边栏",
     "collapseNav": "收起",
     "channel": "通道",
-    "notifications": "通知"
+    "notifications": "通知",
+    "tasks": "任务"
   },
   "chat": {
     "placeholder": "给 AIPA 发消息...",
@@ -1665,6 +1666,15 @@
     "title": "通知",
     "clearAll": "全部清除",
     "empty": "暂无通知"
+  },
+  "tasks": {
+    "title": "任务",
+    "count": "{{count}} 个任务",
+    "addPlaceholder": "添加任务...",
+    "empty": "还没有任务，在上方添加一个吧！",
+    "completed": "已完成 ({{count}})",
+    "clearCompleted": "清除已完成",
+    "limitWarning": "接近任务上限 ({{count}}/100)"
   },
   "backup": {
     "title": "数据备份与恢复",

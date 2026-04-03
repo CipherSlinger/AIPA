@@ -4713,3 +4713,61 @@ Status: SUCCESS (tsc --noEmit: 0 errors, vite build: ✓ 10.12s, 11 files change
 - [x] Session empty state shows icon + title + subtitle + CTA button
 - [x] "Start a new chat" triggers newConversation() via aipa:newConversation event
 - [x] i18n keys added to both en.json and zh-CN.json
+
+- [x] i18n keys present in both en.json and zh-CN.json
+
+---
+
+## Iteration 461 — Chat UX Polish Re-validation (Build Confirmation Pass)
+
+_Date: 2026-04-03 | PRD: prd-chat-ux-polish-v1_
+
+### Summary
+Re-validation pass confirming all 4 Chat UX Polish features from prd-chat-ux-polish-v1 are implemented, integrated, and i18n-complete. ScrollToBottomFab, hover timestamp in Message.tsx, TypingStatus, and SessionEmptyState are all present, wired, and i18n-complete in both en.json and zh-CN.json.
+
+### Files Changed
+- Verified present (no new changes needed):
+  - ScrollToBottomFab.tsx (84 lines), TypingStatus.tsx (78 lines), SessionEmptyState.tsx (88 lines)
+  - Message.tsx (hover timestamp), MessageList.tsx (FAB overlay), ChatPanel.tsx (TypingStatus), SessionList.tsx (empty state)
+
+### Build
+Status: SUCCESS (tsc main/preload: 0 errors, tsc --noEmit: 0 errors, vite build: 15.29s)
+
+### Acceptance Criteria
+- [x] All 4 PRD features implemented and integrated
+- [x] Build passes (tsc + vite) — zero errors
+- [x] i18n complete for both en.json and zh-CN.json
+
+---
+
+## Iteration 465 — Daily Planner: Quick Todo List
+
+_Date: 2026-04-03 | PRD: prd-daily-planner-v1 (Feature 1 of 3)_
+
+### Summary
+Implemented Quick Todo List sidebar panel. Completed partial implementation: wired TasksPanel into Sidebar.tsx via lazy import, added `tasks` to keyboard shortcuts (Ctrl+9), and added all i18n keys for both en.json and zh-CN.json. Tasks persist via electron-store prefs, support add/toggle/delete/clear-completed, with empty state and 100-task soft limit warning.
+
+### Files Changed
+- `Sidebar.tsx` — Added lazy import for TasksPanel, added `sidebarTab === 'tasks'` rendering block
+- `useAppShortcuts.ts` — Extended Ctrl+1-7 to Ctrl+1-9, adding 'notifications' and 'tasks' to tab array
+- `en.json` — Added `nav.tasks` key, added `tasks.*` namespace (7 keys)
+- `zh-CN.json` — Added `nav.tasks` key, added `tasks.*` namespace (7 keys)
+- (Pre-existing) `TasksPanel.tsx` — 236 lines, task CRUD with persistence
+- (Pre-existing) `NavRail.tsx` — CheckSquare icon, tasks NavItem with Ctrl+9
+- (Pre-existing) `uiStore.ts` — 'tasks' in SidebarTab and NavItem types
+
+### Build
+Status: SUCCESS (tsc main/preload: 0 errors, vite build: 9.92s)
+
+### Acceptance Criteria
+- [x] Tasks tab accessible from NavRail with CheckSquare icon
+- [x] Ctrl+9 shortcut toggles Tasks panel
+- [x] Add task via Enter key
+- [x] Toggle task completion (checkbox)
+- [x] Delete task on hover (X button)
+- [x] Completed tasks move to bottom with strikethrough
+- [x] Clear completed button
+- [x] Empty state with icon and text
+- [x] 100-task soft limit with warning at 90+
+- [x] Tasks persist via electron-store (prefs key)
+- [x] i18n complete for both en.json and zh-CN.json

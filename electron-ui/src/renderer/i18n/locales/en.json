@@ -12,7 +12,8 @@
     "channel": "Channel",
     "expandNav": "Expand sidebar",
     "collapseNav": "Collapse",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "tasks": "Tasks"
   },
   "chat": {
     "placeholder": "Message AIPA...",
@@ -1647,6 +1648,15 @@
     "title": "Notifications",
     "clearAll": "Clear all",
     "empty": "No notifications yet"
+  },
+  "tasks": {
+    "title": "Tasks",
+    "count": "{{count}} tasks",
+    "addPlaceholder": "Add a task...",
+    "empty": "No tasks yet. Add one above!",
+    "completed": "Completed ({{count}})",
+    "clearCompleted": "Clear completed",
+    "limitWarning": "Approaching task limit ({{count}}/100)"
   },
   "backup": {
     "title": "Data Backup & Restore",
