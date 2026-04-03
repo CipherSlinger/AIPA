@@ -24,16 +24,26 @@
       <style>@keyframes aipaPulse{0%,80%,100%{opacity:.3;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}</style>
     </div>
     <script>
-      // Fallback: if React does not mount within 8 seconds, show error state
+      // Fallback: if React does not mount within 5 seconds, show error state
       window.__aipaSplashTimer = setTimeout(function() {
         var splash = document.getElementById('aipa-splash');
         var status = document.getElementById('aipa-splash-status');
         var error = document.getElementById('aipa-splash-error');
         if (splash && splash.style.display !== 'none') {
-          if (status) status.textContent = 'App did not load in time. Try reloading or resetting preferences.';
+          if (status) status.textContent = 'App is taking too long to load. Try reloading or resetting preferences.';
           if (error) error.style.display = 'block';
         }
-      }, 8000);
+      }, 5000);
+      // Global error handler to catch module-level import failures
+      window.addEventListener('error', function(e) {
+        var splash = document.getElementById('aipa-splash');
+        var status = document.getElementById('aipa-splash-status');
+        var error = document.getElementById('aipa-splash-error');
+        if (splash && splash.style.display !== 'none') {
+          if (status) status.textContent = 'Error: ' + (e.message || 'Unknown error');
+          if (error) error.style.display = 'block';
+        }
+      });
     </script>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>

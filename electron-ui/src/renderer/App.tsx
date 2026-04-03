@@ -33,6 +33,7 @@ export default function App() {
 
   // Remove splash screen once React has mounted
   useEffect(() => {
+    console.log('[AIPA] React mounted — removing splash screen')
     const splash = document.getElementById('aipa-splash')
     if (splash) {
       splash.style.opacity = '0'
@@ -46,23 +47,22 @@ export default function App() {
   // Load preferences on startup
   useEffect(() => {
     const init = async () => {
-      // Timeout guard: if init takes longer than 8 seconds, force-load with defaults
-      const initTimeout = setTimeout(() => {
-        console.warn('[AIPA] Startup init timeout (8s) — loading with default preferences')
-        setLoaded(true)
-        // Show splash error if it's still visible
-        const splashStatus = document.getElementById('aipa-splash-status')
-        if (splashStatus) splashStatus.textContent = 'Preferences load timed out — using defaults'
-      }, 8000)
+      // Helper: wrap an IPC call with a per-call timeout (3s per call, avoids total-hang)
+      const withTimeout = <T,>(promise: Promise<T>, label: string, timeoutMs = 3000): Promise<T | null> => {
+        return Promise.race([
+          promise.then(v => { console.log(`[AIPA] ${label} OK`); return v }),
+          new Promise<null>(resolve => setTimeout(() => {
+            console.warn(`[AIPA] ${label} timed out (${timeoutMs}ms)`)
+            resolve(null)
+          }, timeoutMs)),
+        ])
+      }
 
       try {
         console.log('[AIPA] Starting preference load...')
-        const all = await window.electronAPI.prefsGetAll()
-        console.log('[AIPA] prefsGetAll complete')
-        const env = await window.electronAPI.configGetEnv()
-        console.log('[AIPA] configGetEnv complete')
-        const home = await window.electronAPI.fsGetHome()
-        console.log('[AIPA] fsGetHome complete')
+        const all = await withTimeout(window.electronAPI.prefsGetAll(), 'prefsGetAll') || {} as any
+        const env = await withTimeout(window.electronAPI.configGetEnv(), 'configGetEnv') || { apiKey: '', hasApiKey: false }
+        const home = await withTimeout(window.electronAPI.fsGetHome(), 'fsGetHome') || '/home'
 
         // Migrate removed themes (modern, minimal) to 'vscode' (Dark)
         if (all.theme === 'modern' || all.theme === 'minimal') {
@@ -89,7 +89,6 @@ export default function App() {
           window.electronAPI.prefsSet('workingDir', workingDir)
         }
         setWorkingDir(workingDir)
-        clearTimeout(initTimeout)
         setLoaded(true)
         console.log('[AIPA] Preferences loaded successfully')
 
@@ -122,7 +121,6 @@ export default function App() {
       } catch (err: unknown) {
         // Preference loading failed -- use defaults to prevent black screen
         console.error('[AIPA] Failed to load preferences:', err)
-        clearTimeout(initTimeout)
         setLoaded(true)
         useUiStore.getState().addToast('error', t('startup.prefsLoadFailed'))
       }

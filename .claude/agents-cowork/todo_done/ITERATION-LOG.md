@@ -3716,3 +3716,44 @@ Mandatory decomposition iteration addressing chronic file size debt. ChatInput.t
 | ChatInput.tsx | 704 | 559 | -145 (-21%) |
 | store/index.ts | 673 | 673 | unchanged |
 | WelcomeScreen.tsx | 583 | 583 | unchanged |
+
+
+---
+
+## Iteration 433 — Startup Loading Fix (Third Attempt)
+
+_Date: 2026-04-03 | Bug fix from feedback.md_
+
+### Summary
+User reported (with frustration) that the app is still stuck on loading screen despite two previous fix attempts (Iterations 422 and 429). Root cause analysis: individual IPC calls (prefsGetAll, configGetEnv, fsGetHome) can hang indefinitely if electron-store or safeStorage encounters errors. The 8-second timeout guard from Iteration 429 only covered the total init, not individual calls, and it set `loaded=true` but the splash screen was already hidden by then (no visible effect).
+
+#### Changes
+1. **Per-call IPC timeouts** (App.tsx)
+   - Replaced monolithic 8s timeout with per-call 3s timeouts using `Promise.race()`
+   - Each IPC call (prefsGetAll, configGetEnv, fsGetHome) times out independently
+   - If any call times out, it returns null/defaults instead of blocking the entire init
+   - Init completes even if all three calls fail — app starts with default preferences
+
+2. **Splash screen improvements** (index.html)
+   - Reduced fallback timer from 8s to 5s for faster error recovery
+   - Added global `window.addEventListener('error')` to catch module-level import failures
+   - Error message displayed on splash screen alongside Reload/Reset buttons
+
+3. **Main process IPC error handling** (ipc/index.ts)
+   - Wrapped prefs:get, prefs:set, prefs:getAll, config:getEnv handlers in try/catch
+   - If electron-store.store throws, returns empty/default values instead of crashing IPC
+   - Prevents the renderer from hanging on a rejected IPC promise
+
+4. **Console diagnostics** (index.tsx, App.tsx)
+   - Added `[AIPA] index.tsx module loaded` log at module evaluation time
+   - Added `[AIPA] React mounted` log when splash is removed
+   - Each IPC call logs success/timeout individually for user-reportable diagnostics
+
+5. **Cleared feedback** (feedback.md)
+
+#### Files Modified
+- `electron-ui/src/renderer/App.tsx` (per-call timeouts, console diagnostics)
+- `electron-ui/src/renderer/index.html` (5s timer, global error handler)
+- `electron-ui/src/renderer/index.tsx` (module load diagnostic log)
+- `electron-ui/src/main/ipc/index.ts` (try/catch on prefs/config handlers)
+- `electron-ui/package.json` (version bump to 1.1.110)

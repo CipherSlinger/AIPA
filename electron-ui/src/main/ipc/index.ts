@@ -253,10 +253,17 @@ function registerSessionHandlers(): void {
 function registerConfigHandlers(): void {
   ipcMain.handle('config:read', () => readSettings())
   ipcMain.handle('config:write', (_e, patch) => writeSettings(patch))
-  ipcMain.handle('config:getEnv', () => ({
-    apiKey: getApiKey(),
-    hasApiKey: Boolean(getApiKey()),
-  }))
+  ipcMain.handle('config:getEnv', () => {
+    try {
+      return {
+        apiKey: getApiKey(),
+        hasApiKey: Boolean(getApiKey()),
+      }
+    } catch (err) {
+      log.warn('config:getEnv error:', String(err))
+      return { apiKey: '', hasApiKey: false }
+    }
+  })
   ipcMain.handle('config:setApiKey', (_e, key) => {
     try {
       const validated = validateApiKey(key)
@@ -267,9 +274,15 @@ function registerConfigHandlers(): void {
     }
   })
 
-  ipcMain.handle('prefs:get', (_e, key) => getPref(key))
-  ipcMain.handle('prefs:set', (_e, key, value) => setPref(key, value))
-  ipcMain.handle('prefs:getAll', () => getAllPrefs())
+  ipcMain.handle('prefs:get', (_e, key) => {
+    try { return getPref(key) } catch (err) { log.warn('prefs:get error:', String(err)); return null }
+  })
+  ipcMain.handle('prefs:set', (_e, key, value) => {
+    try { setPref(key, value) } catch (err) { log.warn('prefs:set error:', String(err)) }
+  })
+  ipcMain.handle('prefs:getAll', () => {
+    try { return getAllPrefs() } catch (err) { log.warn('prefs:getAll error:', String(err)); return {} }
+  })
   ipcMain.handle('prefs:resetAll', () => {
     resetAllPrefs()
     return true

@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client'
 import { I18nProvider } from './i18n'
 import App from './App'
 
+console.log('[AIPA] index.tsx module loaded — mounting React')
+
 try {
   const root = createRoot(document.getElementById('root')!)
   root.render(
