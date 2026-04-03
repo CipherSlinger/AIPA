@@ -39,6 +39,16 @@ type: project
 - **Next forced retro**: After Iteration 470
 - **Next mandatory tester checkpoint**: Iteration 465
 
+### Iterations 461-464 (2026-04-03)
+- **Iteration 461**: AvatarPicker Portal fix (z-index/occlusion bug), v1.1.137
+- **Iteration 462**: Rich content preview (file type icons in ToolUseBlock, image inline preview with Lightbox, URL preview cards via new `url:fetchMeta` IPC), v1.1.138
+- **Iteration 463**: Clipboard instant actions (content type detection engine, unified PASTE_ACTIONS registry, type-aware paste chips for code/url/long-text), v1.1.139
+- **Iteration 464**: Chat UX polish (ScrollToBottomFab, TypingStatus, SessionEmptyState), v1.1.139 (no version bump, committed by concurrent agent)
+- **Completed PRDs**: prd-avatar-picker-fix-v1, prd-rich-content-preview-v1, prd-clipboard-instant-actions-v1, prd-chat-ux-polish-v1
+- **Remaining PRDs in todo/**: prd-daily-planner-v1, prd-smart-quick-actions-v1
+- **Next forced retro**: After Iteration 470 (6 more iterations)
+- **Tester**: Not invoked yet in this batch. Mandatory at Iteration 465.
+
 ### File Size Watch List (as of Iter 460)
 
 | File | Current | Status |

@@ -4656,3 +4656,60 @@ Three features: (1) Content type detection engine in chatInputConstants.ts — c
 Status: SUCCESS
 
 ---
+
+## Iteration 464 — Chat UX Polish (FAB, Typing Status, Session Empty State)
+
+_Date: 2026-04-03 | PRD: prd-chat-ux-polish-v1_
+
+### Summary
+Four UX polish features: (1) ScrollToBottomFab — floating action button with unread badge when user scrolls up. (2) Message timestamp on hover — shows exact time next to message. (3) TypingStatus — contextual AI activity indicator ("Thinking...", "Using [tool]...", "Writing...") between message list and input. (4) SessionEmptyState — friendly empty state for session list sidebar.
+
+### Files Changed
+- NEW: `ScrollToBottomFab.tsx` — FAB component with unread badge and entrance/exit animation
+- NEW: `TypingStatus.tsx` — Contextual typing status with animated dots
+- NEW: `SessionEmptyState.tsx` — Empty state with illustration and CTA button
+- `MessageList.tsx` — Integrated ScrollToBottomFab with scroll detection
+- `ChatPanel.tsx` — Integrated TypingStatus
+- `SessionList.tsx` — Integrated SessionEmptyState
+
+### Build
+Status: SUCCESS
+
+---
+
+## Iteration 461 — Chat UX Polish (Scroll FAB, Hover Timestamp, Typing Status, Empty State)
+
+_Date: 2026-04-03 | PRD: prd-chat-ux-polish-v1_
+
+### Summary
+Four micro-interaction polish features: (1) Redesigned scroll-to-bottom FAB with fade+slide animation at 300px threshold. (2) Message timestamp on hover — shows exact time at message edge. (3) Compact TypingStatus indicator above the input showing contextual AI activity label. (4) Friendly SessionEmptyState replacing the basic placeholder when no conversations exist. Also fixed 3 pre-existing TypeScript errors in ChatInputPasteChips/ClipboardActionsMenu.
+
+### Files Changed
+- `ScrollToBottomFab.tsx` (new, 85 lines) — FAB with fade+slide animation, unread badge, pulsing dot attention indicator
+- `TypingStatus.tsx` (new, 73 lines) — Compact AI status line: toolUse→tool name, textDelta→Writing, default→Thinking; dot-wave animation; persona-color aware
+- `SessionEmptyState.tsx` (new, 83 lines) — Friendly empty state with chat bubble icon, title, subtitle, CTA dispatching aipa:newConversation
+- `MessageList.tsx` — Import ScrollToBottomFab; remove inline scroll button; FAB positioned outside scrollable div as absolute overlay
+- `Message.tsx` — Added hoverTimestampLabel + hover timestamp overlay (opacity 150ms transition, right for user, left for assistant)
+- `ChatPanel.tsx` — Import TypingStatus; added `{isStreaming && <TypingStatus />}` above ChatInput; pass newConversation to events hook
+- `useChatPanelEvents.ts` — Added optional newConversation param; added aipa:newConversation listener
+- `useMessageListScroll.ts` — FAB threshold raised 200px→300px per PRD
+- `SessionList.tsx` — Import SessionEmptyState; use SessionEmptyState when no sessions+no filter; simple text when filter active
+- `ChatInputPasteChips.tsx` — Fixed TS2352 type error (PasteAction templateZh/En nullable chain)
+- `ClipboardActionsMenu.tsx` — Fixed TS2352 type error (PasteAction nullable chain)
+- `en.json`, `zh-CN.json` — Added chat.typingStatus.{thinking,writing,usingTool} + session.emptyState.{noConversations,subtitle,startNewChat}
+
+### Build
+Status: SUCCESS (tsc --noEmit: 0 errors, vite build: ✓ 10.12s, 11 files changed)
+
+### Acceptance Criteria
+- [x] FAB appears when user scrolls >300px from bottom with unread count badge
+- [x] FAB has fade+slide entrance/exit animation (150ms)
+- [x] FAB positioned outside scroll container — does not auto-scroll away
+- [x] Message timestamp appears on hover (HH:mm today / MMM DD HH:mm older)
+- [x] Timestamp uses 11px muted font with 150ms fade transition
+- [x] Timestamp right-aligned for user messages, left-aligned for assistant
+- [x] TypingStatus shows contextual label (tool name / Writing / Thinking)
+- [x] TypingStatus has animated dot-wave, compact single-line, disappears when done
+- [x] Session empty state shows icon + title + subtitle + CTA button
+- [x] "Start a new chat" triggers newConversation() via aipa:newConversation event
+- [x] i18n keys added to both en.json and zh-CN.json
