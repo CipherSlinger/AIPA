@@ -2,7 +2,7 @@
 // Sub-components: SessionItem, SessionFilters, SessionTooltip, GlobalSearchResults, TagPicker, BulkDeleteBar, SessionListHeader
 // Hooks: useSessionListActions, useSessionTooltip
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
-import { MessageSquare, Search, CheckSquare, Square, Globe } from 'lucide-react'
+import { MessageSquare, Search, CheckSquare, Square, Globe, ChevronRight, ChevronDown, Archive } from 'lucide-react'
 import { SessionListItem } from '../../types/app.types'
 import { usePrefsStore, useSessionStore } from '../../store'
 import { SkeletonSessionRow } from '../ui/Skeleton'
@@ -56,7 +56,24 @@ export default function SessionList() {
   const [showArchived, setShowArchived] = useState(false)
   const [showStats, setShowStats] = useState(false)
   const archivedSessions: string[] = prefs.archivedSessions || []
-  const sessionColorLabels: Record<string, string> = (prefs as Record<string, unknown>).sessionColorLabels as Record<string, string> || {}
+
+  // Collapsible date group state (persisted in localStorage)
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem('aipa:collapsed-session-groups')
+      return stored ? new Set(JSON.parse(stored)) : new Set()
+    } catch { return new Set() }
+  })
+  const toggleGroupCollapse = useCallback((group: string) => {
+    setCollapsedGroups(prev => {
+      const next = new Set(prev)
+      if (next.has(group)) next.delete(group)
+      else next.add(group)
+      try { localStorage.setItem('aipa:collapsed-session-groups', JSON.stringify([...next])) } catch {}
+      return next
+    })
+  }, [])
+  const sessionColorLabels: Record<string, string> = (prefs as unknown as Record<string, unknown>).sessionColorLabels as Record<string, string> || {}
 
   const toggleArchive = (sessionId: string) => {
     const current = archivedSessions
@@ -231,6 +248,21 @@ export default function SessionList() {
 
   const showDateGroups = sortBy !== 'alpha' && sortBy !== 'messages' && !filter
 
+  // Pre-compute date groups for session count display and collapsing
+  const dateGroupMap = useMemo(() => {
+    if (!showDateGroups) return new Map<string, number>()
+    const counts = new Map<string, number>()
+    for (const s of filtered) {
+      if (pinnedIds.has(s.sessionId)) continue
+      const group = getDateGroup(s.timestamp, t)
+      counts.set(group, (counts.get(group) || 0) + 1)
+    }
+    return counts
+  }, [filtered, showDateGroups, pinnedIds, t])
+
+  // Compact view mode from prefs
+  const sessionListCompact = prefs.sessionListCompact || false
+
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Search bar + toolbar (extracted Iteration 441) */}
@@ -239,11 +271,10 @@ export default function SessionList() {
         onFilterChange={(value) => { setFilter(value); if (!value) actions.setShowGlobalResults(false) }}
         filteredCount={filtered.length}
         sortBy={sortBy}
-        onSortChange={() => setSortBy(prev => {
-          const next = prev === 'newest' ? 'oldest' : prev === 'oldest' ? 'alpha' : prev === 'alpha' ? 'messages' : 'newest'
-          try { localStorage.setItem('aipa:session-sort', next) } catch {}
-          return next
-        })}
+        onSortChange={(newSort) => {
+          setSortBy(newSort)
+          try { localStorage.setItem('aipa:session-sort', newSort) } catch {}
+        }}
         selectMode={actions.selectMode}
         onToggleSelectMode={() => {
           if (actions.selectMode) {
@@ -263,6 +294,12 @@ export default function SessionList() {
         onSearchKeyDown={handleSearchKeyDown}
         showGlobalResults={actions.showGlobalResults}
         searchInputRef={searchInputRef}
+        sessionListCompact={sessionListCompact}
+        onToggleCompact={() => {
+          const next = !sessionListCompact
+          setPrefs({ sessionListCompact: next })
+          window.electronAPI.prefsSet('sessionListCompact', next)
+        }}
       />
 
       {/* Folder filter */}
@@ -436,14 +473,18 @@ export default function SessionList() {
 
           // Date group header
           let dateHeader: React.ReactNode = null
+          let isGroupCollapsed = false
           if (showDateGroups && !isPinned) {
             const group = getDateGroup(session.timestamp, t)
+            isGroupCollapsed = collapsedGroups.has(group)
             const prevSession = filtered[idx - 1]
             const prevGroup = prevSession ? (pinnedIds.has(prevSession.sessionId) ? null : getDateGroup(prevSession.timestamp, t)) : null
             if (group !== prevGroup) {
+              const groupCount = dateGroupMap.get(group) || 0
               dateHeader = (
                 <div
                   key={`date-${group}`}
+                  onClick={() => toggleGroupCollapse(group)}
                   style={{
                     padding: '6px 14px 4px',
                     fontSize: 10,
@@ -457,17 +498,34 @@ export default function SessionList() {
                     position: 'sticky',
                     top: 0,
                     zIndex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    transition: 'background 0.1s ease',
                   }}
                 >
-                  {group}
+                  {isGroupCollapsed ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
+                  <span style={{ flex: 1 }}>{group}</span>
+                  <span style={{ fontSize: 9, opacity: 0.6 }}>{groupCount}</span>
                 </div>
               )
+            } else if (isGroupCollapsed) {
+              // Skip rendering this session since its group is collapsed
+              return null
             }
+          }
+
+          // Skip sessions in collapsed groups (but show the header)
+          if (showDateGroups && !isPinned && isGroupCollapsed && !dateHeader) {
+            return null
           }
 
           return (
             <React.Fragment key={session.sessionId}>
               {dateHeader}
+              {!isGroupCollapsed && (
               <SessionItem
                 session={session}
                 isActive={actions.currentSessionId === session.sessionId}
@@ -502,7 +560,9 @@ export default function SessionList() {
                 onToggleArchive={toggleArchive}
                 colorLabel={sessionColorLabels[session.sessionId]}
                 autoTags={sessionAutoTags[session.sessionId]}
+                compact={sessionListCompact}
               />
+              )}
             </React.Fragment>
           )
         })}

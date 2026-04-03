@@ -50,6 +50,31 @@ export default function SessionFilters({
             scrollbarWidth: 'none',
           }}
         >
+          {/* "All" chip — always first */}
+          <button
+            role="radio"
+            aria-checked={!activeTagFilter}
+            onClick={() => onTagFilterChange(null)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              height: 20,
+              borderRadius: 10,
+              padding: '0 8px',
+              background: !activeTagFilter ? 'rgba(100,100,100,0.3)' : 'rgba(100,100,100,0.1)',
+              border: `1px solid ${!activeTagFilter ? 'rgba(100,100,100,0.6)' : 'rgba(100,100,100,0.3)'}`,
+              cursor: 'pointer',
+              fontSize: 10,
+              color: !activeTagFilter ? 'var(--text-primary)' : 'var(--text-secondary)',
+              fontWeight: !activeTagFilter ? 600 : 400,
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+              transition: 'background 0.15s ease, border-color 0.15s ease',
+            }}
+          >
+            {t('session.tagFilterAll')}
+          </button>
           {TAG_PRESETS.map((tag, idx) => {
             const count = tagCounts[tag.id] || 0
             if (count === 0) return null

@@ -446,7 +446,11 @@
     "activityStreak": "连续使用",
     "topTags": "常用标签",
     "colorLabel": "颜色标记",
-    "removeColor": "移除颜色"
+    "removeColor": "移除颜色",
+    "tagFilterAll": "全部",
+    "compactView": "紧凑视图",
+    "compactViewTooltip": "切换紧凑会话列表",
+    "groupCount": "{{count}}"
   },
   "settings": {
     "title": "设置",
@@ -1583,7 +1587,8 @@
     "dismiss": "关闭",
     "sessionList": "会话列表",
     "chatArea": "聊天",
-    "statusBar": "状态栏"
+    "statusBar": "状态栏",
+    "skipToContent": "跳至内容"
   },
   "convTemplate": {
     "section": "模板",

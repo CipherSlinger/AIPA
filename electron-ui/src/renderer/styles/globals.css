@@ -462,3 +462,24 @@ nav[aria-label="Main navigation"]::-webkit-scrollbar {
   outline: 2px solid var(--accent, #007acc);
   outline-offset: 2px;
 }
+
+/* Skip-to-content link for keyboard navigation */
+.skip-link {
+  position: fixed;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  padding: 8px 20px;
+  background: var(--accent, #007acc);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 0 0 8px 8px;
+  text-decoration: none;
+  transition: top 0.15s ease;
+}
+.skip-link:focus {
+  top: 0;
+  outline: none;
+}

@@ -135,6 +135,7 @@ export interface ClaudePrefs {
   customConversationTemplates?: CustomConversationTemplate[]  // user-defined conversation templates (max 20)
   archivedSessions?: string[]  // array of archived session IDs (hidden from main list)
   sessionColorLabels?: Record<string, string>  // sessionId -> hex color for left border stripe (Iteration 436)
+  sessionListCompact?: boolean  // compact session list mode: reduced row height, title only (Iteration 444)
 }
 
 export interface SessionFolder {
@@ -185,6 +186,7 @@ export interface NoteCategory {
   id: string           // 'notecat-' + timestamp + random
   name: string         // max 20 characters
   color: string        // preset hex color
+  emoji?: string       // optional emoji for category display
   createdAt: number    // epoch ms
 }
 

@@ -24,7 +24,7 @@ export default function SaveTemplateDialog({ onClose }: Props) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const nameRef = useRef<HTMLInputElement>(null)
 
-  useClickOutside(dialogRef, onClose)
+  useClickOutside(dialogRef, true, onClose)
 
   useEffect(() => {
     nameRef.current?.focus()

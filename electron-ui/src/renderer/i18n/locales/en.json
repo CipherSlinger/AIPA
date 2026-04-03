@@ -446,7 +446,11 @@
     "activityStreak": "Activity streak",
     "topTags": "Top Tags",
     "colorLabel": "Color label",
-    "removeColor": "Remove color"
+    "removeColor": "Remove color",
+    "tagFilterAll": "All",
+    "compactView": "Compact view",
+    "compactViewTooltip": "Toggle compact session list",
+    "groupCount": "{{count}}"
   },
   "settings": {
     "title": "Settings",
@@ -1565,7 +1569,8 @@
     "dismiss": "Dismiss",
     "sessionList": "Session list",
     "chatArea": "Chat",
-    "statusBar": "Status bar"
+    "statusBar": "Status bar",
+    "skipToContent": "Skip to content"
   },
   "convTemplate": {
     "section": "Templates",

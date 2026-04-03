@@ -100,6 +100,8 @@ export default function AppShell() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden" style={{ background: 'var(--bg-primary)' }} role="application" aria-label="AIPA">
+      {/* Skip-to-content link for keyboard accessibility */}
+      <a href="#main-content" className="skip-link">{t('a11y.skipToContent')}</a>
       {/* Title bar drag region -- spans all three columns */}
       <div
         className="drag-region"
@@ -179,6 +181,7 @@ export default function AppShell() {
 
         {/* Main content area -- ChatPanel, Settings, or Editor pages */}
         <div
+          id="main-content"
           role="main"
           aria-label={mainView === 'settings' ? t('settings.title') : t('a11y.chatArea')}
           style={{
