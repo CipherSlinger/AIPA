@@ -4120,3 +4120,33 @@ Status: SUCCESS (9.58s)
 - [x] Smooth auto-scroll with `behavior: 'smooth'` (already existed)
 - [x] Auto-scroll only follows within 100px of bottom
 - [x] Scroll-to-bottom button at 200px from bottom
+
+---
+
+## Iteration 443 — AI Context Awareness: Progress Bar, Badge Enhancement, Detail Popover
+
+_Date: 2026-04-03 | PRD: prd-ai-context-awareness-v1_
+
+### Summary
+Enhanced the context window usage indicator with three improvements: (1) a 3px progress bar at the bottom edge of ChatHeader with green/amber/red color thresholds, (2) upgraded the ContextBadge to open a detail popover instead of copying to clipboard, and (3) a popover showing tokens used/remaining, estimated messages remaining, and a "Start new session" button. Adjusted thresholds to 80%/95% per PRD spec.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/ChatHeader.tsx` -- Added `ContextProgressBar` component (3px bar below header), refactored `ContextBadge` to include click-to-open popover with context detail breakdown and "Start new session" action. File now 679 lines (P1 attention threshold).
+- `electron-ui/src/renderer/i18n/locales/en.json` -- Added 6 new keys: `toolbar.contextBarTooltip`, `toolbar.contextPopover*`
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` -- Added matching Chinese translations
+
+### Build
+Status: SUCCESS (9.82s)
+
+### Acceptance Criteria
+- [x] 3px progress bar at bottom edge of ChatHeader, green/amber/red
+- [x] Tooltip on hover showing context used percentage and token counts
+- [x] Badge shows percentage, amber at 80%, red at 95%
+- [x] Clicking badge opens context detail popover
+- [x] Popover shows tokens used, remaining, estimated messages remaining
+- [x] "Start new session" button inside popover
+- [x] Popover closes on outside click
+- [x] i18n keys for en.json and zh-CN.json
+
+### Notes
+- ChatHeader.tsx is now 679 lines -- over the 600-line attention threshold. Consider extracting ContextBadge+ContextProgressBar into a separate `ContextIndicator.tsx` file in a future decomposition pass.

@@ -663,7 +663,13 @@
     "skipPermsOff": "已恢复权限检查",
     "skipPermsOnTitle": "跳过权限（已开启 — 工具无需审批即可运行）",
     "skipPermsOffTitle": "权限检查已开启（点击跳过）",
-    "compactContext": "压缩对话上下文 (Ctrl+Shift+K)"
+    "compactContext": "压缩对话上下文 (Ctrl+Shift+K)",
+    "contextBarTooltip": "上下文已用: {{percent}}% ({{used}} / {{total}} tokens)",
+    "contextPopoverTitle": "上下文窗口使用情况",
+    "contextPopoverUsed": "已用 Tokens",
+    "contextPopoverRemaining": "剩余 Tokens",
+    "contextPopoverEstMsgs": "约 {{count}} 条消息可用",
+    "contextPopoverNewSession": "开始新会话"
   },
   "transform": {
     "title": "文本变换",

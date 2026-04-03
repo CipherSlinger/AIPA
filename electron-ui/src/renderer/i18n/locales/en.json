@@ -661,7 +661,13 @@
     "skipPermsOff": "Permission checks enabled",
     "skipPermsOnTitle": "Skip permissions (ON — tools run without approval)",
     "skipPermsOffTitle": "Permissions enabled (click to skip)",
-    "compactContext": "Compact conversation context (Ctrl+Shift+K)"
+    "compactContext": "Compact conversation context (Ctrl+Shift+K)",
+    "contextBarTooltip": "Context used: {{percent}}% ({{used}} / {{total}} tokens)",
+    "contextPopoverTitle": "Context Window Usage",
+    "contextPopoverUsed": "Tokens used",
+    "contextPopoverRemaining": "Tokens remaining",
+    "contextPopoverEstMsgs": "~{{count}} messages remaining",
+    "contextPopoverNewSession": "Start new session"
   },
   "transform": {
     "title": "Transform text",

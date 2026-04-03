@@ -115,60 +115,178 @@ function CostBadge() {
   )
 }
 
-/** Compact context window usage indicator */
-function ContextBadge() {
+/** Compact context window usage indicator with detail popover */
+function ContextBadge({ onNewConversation }: { onNewConversation: () => void }) {
   const t = useT()
   const ctx = useChatStore(s => s.lastContextUsage)
-  const addToast = useUiStore(s => s.addToast)
+  const [popoverOpen, setPopoverOpen] = useState(false)
+  const badgeRef = useRef<HTMLButtonElement>(null)
+  const popoverRef = useRef<HTMLDivElement>(null)
+
+  // Close popover on outside click
+  useEffect(() => {
+    if (!popoverOpen) return
+    const handleClick = (e: MouseEvent) => {
+      if (
+        popoverRef.current && !popoverRef.current.contains(e.target as Node) &&
+        badgeRef.current && !badgeRef.current.contains(e.target as Node)
+      ) {
+        setPopoverOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [popoverOpen])
 
   if (!ctx || ctx.total === 0) return null
 
   const pct = Math.round((ctx.used / ctx.total) * 100)
   if (pct < 5) return null // Don't show when nearly empty
 
-  const color = pct >= 90 ? 'var(--error)' : pct >= 70 ? 'var(--warning)' : 'var(--text-muted)'
-  const barColor = pct >= 90 ? 'var(--error)' : pct >= 70 ? 'var(--warning)' : 'var(--accent)'
+  const color = pct >= 95 ? 'var(--error)' : pct >= 80 ? 'var(--warning)' : 'var(--text-muted)'
+  const barColor = pct >= 95 ? 'var(--error)' : pct >= 80 ? 'var(--warning)' : 'var(--accent)'
+  const remaining = ctx.total - ctx.used
+  // Rough estimate: avg ~800 tokens per exchange (user+assistant)
+  const estMsgsRemaining = Math.max(0, Math.floor(remaining / 800))
 
   return (
-    <button
-      onClick={() => {
-        navigator.clipboard.writeText(t('toolbar.contextUsed', { percent: String(pct), used: String(ctx.used), total: String(ctx.total) })).then(() => {
-          addToast('info', t('toolbar.tokensCopied'))
-        }).catch(() => {})
-      }}
-      title={t('toolbar.contextUsed', { percent: String(pct), used: String(ctx.used), total: String(ctx.total) })}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 4,
-        padding: '2px 8px',
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid var(--card-border)',
-        borderRadius: 12,
-        color,
-        cursor: 'pointer',
-        fontSize: 10,
-        fontWeight: 600,
-        fontFamily: 'monospace',
-        flexShrink: 0,
-        transition: 'border-color 150ms',
-        lineHeight: 1,
-      }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)' }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--card-border)' }}
-    >
-      <span style={{ fontSize: 9, opacity: 0.7 }}>{t('toolbar.context')}</span>
-      <div style={{
-        width: 30, height: 4, background: 'rgba(255,255,255,0.08)',
-        borderRadius: 2, overflow: 'hidden', position: 'relative',
-      }}>
+    <div style={{ position: 'relative', flexShrink: 0 }}>
+      <button
+        ref={badgeRef}
+        onClick={() => setPopoverOpen(!popoverOpen)}
+        title={t('toolbar.contextUsed', { percent: String(pct), used: String(ctx.used), total: String(ctx.total) })}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+          padding: '2px 8px',
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid var(--card-border)',
+          borderRadius: 12,
+          color,
+          cursor: 'pointer',
+          fontSize: 10,
+          fontWeight: 600,
+          fontFamily: 'monospace',
+          flexShrink: 0,
+          transition: 'border-color 150ms',
+          lineHeight: 1,
+        }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--card-border)' }}
+      >
+        <span style={{ fontSize: 9, opacity: 0.7 }}>{t('toolbar.context')}</span>
         <div style={{
-          width: `${pct}%`, height: '100%', background: barColor,
-          borderRadius: 2, transition: 'width 0.3s ease',
-        }} />
-      </div>
-      <span>{pct}%</span>
-    </button>
+          width: 30, height: 4, background: 'rgba(255,255,255,0.08)',
+          borderRadius: 2, overflow: 'hidden', position: 'relative',
+        }}>
+          <div style={{
+            width: `${pct}%`, height: '100%', background: barColor,
+            borderRadius: 2, transition: 'width 0.3s ease',
+          }} />
+        </div>
+        <span>{pct}%</span>
+      </button>
+
+      {/* Context Detail Popover */}
+      {popoverOpen && (
+        <div
+          ref={popoverRef}
+          className="popup-enter"
+          style={{
+            position: 'absolute',
+            top: '100%',
+            right: 0,
+            marginTop: 6,
+            width: 260,
+            background: 'var(--popup-bg)',
+            border: '1px solid var(--popup-border)',
+            borderRadius: 10,
+            boxShadow: 'var(--popup-shadow)',
+            padding: '14px 16px',
+            zIndex: 100,
+          }}
+        >
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-bright)', marginBottom: 10 }}>
+            {t('toolbar.contextPopoverTitle')}
+          </div>
+
+          {/* Usage bar */}
+          <div style={{
+            width: '100%', height: 6, background: 'rgba(255,255,255,0.08)',
+            borderRadius: 3, overflow: 'hidden', marginBottom: 12,
+          }}>
+            <div style={{
+              width: `${pct}%`, height: '100%', background: barColor,
+              borderRadius: 3, transition: 'width 0.3s ease',
+            }} />
+          </div>
+
+          {/* Stats rows */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
+            <span>{t('toolbar.contextPopoverUsed')}</span>
+            <span style={{ color, fontWeight: 600, fontFamily: 'monospace' }}>{ctx.used.toLocaleString()}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
+            <span>{t('toolbar.contextPopoverRemaining')}</span>
+            <span style={{ fontWeight: 600, fontFamily: 'monospace' }}>{remaining.toLocaleString()}</span>
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 12, opacity: 0.8 }}>
+            {t('toolbar.contextPopoverEstMsgs', { count: String(estMsgsRemaining) })}
+          </div>
+
+          {/* Start new session button */}
+          <button
+            onClick={() => { setPopoverOpen(false); onNewConversation() }}
+            style={{
+              width: '100%',
+              padding: '7px 0',
+              fontSize: 11,
+              fontWeight: 600,
+              background: pct >= 80 ? 'var(--accent)' : 'rgba(255,255,255,0.06)',
+              border: pct >= 80 ? 'none' : '1px solid var(--border)',
+              borderRadius: 6,
+              color: pct >= 80 ? '#fff' : 'var(--text-primary)',
+              cursor: 'pointer',
+              transition: 'background 150ms, opacity 150ms',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.85' }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
+          >
+            {t('toolbar.contextPopoverNewSession')}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Context window progress bar — 3px at bottom edge of header */
+function ContextProgressBar() {
+  const ctx = useChatStore(s => s.lastContextUsage)
+  const t = useT()
+  if (!ctx || ctx.total === 0) return null
+  const pct = Math.round((ctx.used / ctx.total) * 100)
+  if (pct < 5) return null
+  const barColor = pct >= 95 ? 'var(--error)' : pct >= 80 ? 'var(--warning)' : 'var(--success)'
+  return (
+    <div
+      title={t('toolbar.contextBarTooltip', { percent: String(pct), used: String(ctx.used), total: String(ctx.total) })}
+      style={{
+        height: 3,
+        width: '100%',
+        background: 'rgba(255,255,255,0.04)',
+        flexShrink: 0,
+      }}
+    >
+      <div style={{
+        height: '100%',
+        width: `${pct}%`,
+        background: barColor,
+        transition: 'width 0.4s ease, background 0.3s ease',
+        borderRadius: '0 1px 1px 0',
+      }} />
+    </div>
   )
 }
 
@@ -254,6 +372,7 @@ export default function ChatHeader({
   }, [])
 
   return (
+    <div style={{ flexShrink: 0 }}>
     <div
       style={{
         height: 44,
@@ -261,9 +380,8 @@ export default function ChatHeader({
         alignItems: 'center',
         padding: '0 16px',
         gap: 8,
-        borderBottom: '1px solid var(--border)',
+        borderBottom: 'none',
         background: 'var(--chat-header-bg)',
-        flexShrink: 0,
       }}
     >
       {/* Title + working dir column */}
@@ -509,7 +627,7 @@ export default function ChatHeader({
       <CostBadge />
 
       {/* Context window usage indicator — visible when > 5% used */}
-      <ContextBadge />
+      <ContextBadge onNewConversation={onNewConversation} />
 
       {/* Streaming elapsed timer + spinner */}
       {elapsedStr && (
@@ -553,6 +671,9 @@ export default function ChatHeader({
       {showSaveTemplate && (
         <SaveTemplateDialog onClose={() => setShowSaveTemplate(false)} />
       )}
+    </div>
+    <ContextProgressBar />
+    <div style={{ height: 1, background: 'var(--border)' }} />
     </div>
   )
 }
