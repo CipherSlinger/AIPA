@@ -4867,3 +4867,35 @@ Status: SUCCESS (tsc main/preload: 0 errors, vite build: 9.90s)
 - [x] i18n keys cleaned up (nav.notifications and notifications.* section removed)
 - [x] README shortcuts table updated
 - [x] Desktop notifications setting in Settings preserved (different feature)
+
+---
+
+## Iteration 469 — Workflow Editor+Canvas Integrated View
+
+_Date: 2026-04-03 | Source: User feedback (feedback.md item 2: Workflow UI optimization)_
+
+### Summary
+Rewrote WorkflowDetailPage from a read-only detail view into a full integrated editor+canvas view. Clicking a workflow in the sidebar now opens an all-in-one view: left panel with inline-editable steps (title + prompt inputs, add/remove steps), right panel with live canvas visualization that updates as you edit. Header includes editable name, clickable icon picker, Run/Save/Duplicate buttons, and unsaved changes indicator. Supports Ctrl+S to save, double-press-back to discard unsaved changes. The separate WorkflowEditorPage (from Settings) is preserved for backwards compatibility.
+
+### Files Changed
+- `WorkflowDetailPage.tsx` — Complete rewrite: inline step editor (add/remove/edit title+prompt), icon picker dropdown, editable workflow name in header, live preview workflow for canvas, save with Ctrl+S, unsaved changes warning, duplicate button, metadata footer
+- `en.json` — Added 7 workflow i18n keys: unsavedWarning, unsavedChanges, nameRequired, stepsRequired, changeIcon, saved, removeStep
+- `zh-CN.json` — Added same 7 keys in Chinese
+
+### Build
+Status: SUCCESS (tsc main/preload: 0 errors, vite build: 9.76s)
+
+### Acceptance Criteria
+- [x] Clicking workflow in sidebar opens integrated editor+canvas view
+- [x] Step titles and prompts are inline-editable
+- [x] Add Step button adds new step card (max 20)
+- [x] Remove Step button removes step (min 1)
+- [x] Canvas updates live as steps are edited (preview workflow)
+- [x] Ctrl+S saves changes
+- [x] Save button shows green checkmark after successful save
+- [x] Unsaved changes indicator in footer
+- [x] Double-press back to discard unsaved changes (safety pattern)
+- [x] Icon picker dropdown in header
+- [x] Workflow name editable in header
+- [x] Duplicate button creates copy and opens it
+- [x] i18n complete for both en.json and zh-CN.json

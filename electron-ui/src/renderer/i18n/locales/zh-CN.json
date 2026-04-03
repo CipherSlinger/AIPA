@@ -1407,6 +1407,13 @@
     "notFound": "未找到工作流",
     "loadingCanvas": "正在加载画布...",
     "noPrompt": "（未定义提示词）",
+    "unsavedWarning": "有未保存的更改，再次点击返回以放弃更改。",
+    "unsavedChanges": "未保存的更改",
+    "nameRequired": "工作流名称不能为空",
+    "stepsRequired": "至少需要一个包含提示词的步骤",
+    "changeIcon": "更换图标",
+    "saved": "已保存",
+    "removeStep": "删除步骤",
     "footer": "多步骤任务的提示词链",
     "inspired": "灵感来自 OpenClaw Lobster",
     "preset": {
