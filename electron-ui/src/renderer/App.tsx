@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import AppShell from './components/layout/AppShell'
 import OnboardingWizard from './components/onboarding/OnboardingWizard'
 import ErrorBoundary from './components/shared/ErrorBoundary'
@@ -33,6 +33,7 @@ export default function App() {
   const t = useT()
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
+  const initCalledRef = useRef(false)
 
   // Remove splash screen once React has mounted
   useEffect(() => {
@@ -53,6 +54,8 @@ export default function App() {
   // Load preferences on startup
   useEffect(() => {
     const init = async () => {
+      if (initCalledRef.current) return
+      initCalledRef.current = true
       // Helper: wrap an IPC call with a per-call timeout (3s per call, avoids total-hang)
       const withTimeout = <T,>(promise: Promise<T>, label: string, timeoutMs = 3000): Promise<T | null> => {
         return Promise.race([
