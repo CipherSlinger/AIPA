@@ -65,3 +65,8 @@ Decision: Serial execution. Group 2 (P0 bug fix) goes first, then Group 1.
 Conflict analysis: Group 1 touches SessionList.tsx + i18n. Group 2 touches NavRail.tsx + StatusBar.tsx + Toast.tsx + store + i18n.
 Both touch i18n -> must be serial. No component file overlap otherwise.
 Decision: Serial execution. Group 1 (session list) first, then Group 2 (notifications).
+
+Note: prd-session-list-ux-v1.md skipped -- all 4 features already implemented in SessionItem.tsx. Moved directly to todo_done.
+
+## Iteration 424 completed
+- Feature: Notification Center panel with history, Bell badge in NavRail, connection status dot in StatusBar | Build: PASS | Commit: fba28f6
