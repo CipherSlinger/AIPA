@@ -2,7 +2,7 @@
 // Sub-components: SessionItem, SessionFilters, SessionTooltip, GlobalSearchResults, TagPicker, BulkDeleteBar, SessionListHeader
 // Hooks: useSessionListActions, useSessionTooltip
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
-import { MessageSquare, Search, CheckSquare, Square, Globe, ChevronRight, ChevronDown } from 'lucide-react'
+import { MessageSquare, Search, CheckSquare, Square, Globe, ChevronRight, ChevronDown, Archive } from 'lucide-react'
 import { SessionListItem } from '../../types/app.types'
 import { usePrefsStore, useSessionStore } from '../../store'
 import { SkeletonSessionRow } from '../ui/Skeleton'
@@ -72,7 +72,7 @@ export default function SessionList() {
       return next
     })
   }, [])
-  const sessionColorLabels: Record<string, string> = (prefs as Record<string, unknown>).sessionColorLabels as Record<string, string> || {}
+  const sessionColorLabels: Record<string, string> = (prefs as unknown as Record<string, unknown>).sessionColorLabels as Record<string, string> || {}
 
   const toggleArchive = (sessionId: string) => {
     const current = archivedSessions

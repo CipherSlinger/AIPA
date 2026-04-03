@@ -27,8 +27,8 @@ interface KeyboardDeps {
     urlChipTimerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>
     longTextTimerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>
   }
-  ghostText: string
-  calcResult: string
+  ghostText: string | null
+  calcResult: string | null
   dismissSuggestion: () => void
   multiLineMode: boolean
   navigateUp: (current: string, fromEmpty: boolean) => string | null

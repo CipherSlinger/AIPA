@@ -186,6 +186,7 @@ export interface NoteCategory {
   id: string           // 'notecat-' + timestamp + random
   name: string         // max 20 characters
   color: string        // preset hex color
+  emoji?: string       // optional emoji for category display
   createdAt: number    // epoch ms
 }
 

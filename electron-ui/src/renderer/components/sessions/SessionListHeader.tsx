@@ -20,7 +20,7 @@ interface SessionListHeaderProps {
   onDeleteAll: () => void
   onSearchKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void
   showGlobalResults: boolean
-  searchInputRef: React.RefObject<HTMLInputElement | null>
+  searchInputRef: React.RefObject<HTMLInputElement>
   sessionListCompact?: boolean
   onToggleCompact?: () => void
 }
