@@ -132,6 +132,7 @@
     "pressAgainToClear": "Press {{key}} again to clear conversation",
     "responseComplete": "Response complete",
     "scrollToBottom": "Scroll to bottom",
+    "noMessagesYet": "No messages yet",
     "scrollToTop": "Scroll to top",
     "scrollLock": "Lock scroll position",
     "scrollUnlock": "Unlock auto-scroll",
