@@ -50,7 +50,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 - **Read Aloud** via Web Speech API; **Quote Reply** by selecting text
 - **Permission prompts** — friendly allow/deny cards before any destructive tool use
 - **System Diagnostics** — one-click health checks for CLI, API key, network, disk space, and system load
-- **Startup Protection** — native HTML splash + renderer error recovery + preferences reset, no more black screens
+- **Startup Protection** — IPC pre-registration eliminates race conditions, non-blocking menu construction, 10s hard splash timeout, renderer error recovery, preferences reset for bulletproof launches
 
 ### Input Power Tools
 - **Slash commands** (`/`), **@mention** file picker

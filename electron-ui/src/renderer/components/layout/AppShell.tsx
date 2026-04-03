@@ -28,8 +28,16 @@ export default function AppShell() {
 
   useEffect(() => {
     const loadWidths = async () => {
-      const prefs = await window.electronAPI.prefsGetAll()
-      if (prefs?.sidebarWidth) setSidebarWidth(Math.min(Math.max(prefs.sidebarWidth, MIN_SIDEBAR), MAX_SIDEBAR))
+      try {
+        // Use timeout to prevent hanging if IPC is not ready
+        const prefs = await Promise.race([
+          window.electronAPI.prefsGetAll(),
+          new Promise<null>(resolve => setTimeout(() => resolve(null), 3000)),
+        ])
+        if (prefs?.sidebarWidth) setSidebarWidth(Math.min(Math.max(prefs.sidebarWidth, MIN_SIDEBAR), MAX_SIDEBAR))
+      } catch {
+        // Ignore -- use default sidebar width
+      }
     }
     loadWidths()
   }, [])

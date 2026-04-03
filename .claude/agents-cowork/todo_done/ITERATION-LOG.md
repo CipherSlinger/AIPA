@@ -3803,3 +3803,69 @@ Implemented session productivity enhancements: a dedicated Session Quick Switche
 - `electron-ui/src/renderer/i18n/locales/en.json` (i18n keys)
 - `electron-ui/src/renderer/i18n/locales/zh-CN.json` (i18n keys)
 - `electron-ui/package.json` (version bump to 1.1.111)
+- `electron-ui/package.json` (version bump to 1.1.111)
+
+---
+
+## Iteration 435 -- Definitive Loading Screen Fix (P0 Bug)
+
+_Date: 2026-04-02 | Version: 1.1.112_
+
+### Summary
+Structural fix for the recurring loading screen stuck bug (reported in Iterations 421, 422, 429, 433). Previous attempts added surface-level mitigations (timeouts, console logs, error handlers) but failed to address the root causes. This iteration eliminates the structural issues.
+
+### Root Causes Identified
+
+1. **IPC Handler Registration Race Condition**: `registerAllHandlers(mainWindow)` was called AFTER `mainWindow.loadFile()`. The renderer could load from cache and call IPC before handlers were registered. In Electron, `ipcRenderer.invoke()` on an unregistered channel returns a Promise that never resolves or rejects -- it hangs forever.
+
+2. **Blocking `listSessions()` in `createAppMenu()`**: Called synchronously during startup, reading ALL session `.jsonl` files. With hundreds of sessions, this blocks the main process event loop for seconds, delaying IPC handler responses.
+
+3. **Double-Registration Crash**: If `createWindow()` was called twice (macOS `activate` event), `ipcMain.handle()` throws "Attempted to register a second handler" for each channel, crashing handler registration midway. Some handlers would be registered, others not.
+
+4. **No Hard Splash Removal**: The 5s splash fallback showed reload buttons but never actually removed the splash overlay (`z-index:99999`), so even if the app rendered behind it, the user saw a permanently stuck splash.
+
+5. **Unprotected IPC calls in sub-components**: `AppShell.tsx` and `I18nProvider` called IPC without timeouts, so even if `App.tsx` recovered, child components could hang.
+
+### Changes
+
+1. **IPC Pre-Registration** (main/index.ts)
+   - Moved `registerAllHandlers(mainWindow)` to BEFORE `loadFile()/loadURL()` in `createWindow()`
+   - IPC handlers are guaranteed to be ready before the renderer's JS can execute
+
+2. **Double-Registration Guard** (main/ipc/index.ts)
+   - Added `handlersRegistered` boolean flag to prevent duplicate registration
+   - Added `safeHandle()` helper that removes previous handler before registering
+   - Added `ipc:ping` channel for renderer-side readiness verification
+   - Wrapped entire registration in try-catch so partial failure does not prevent app from loading
+
+3. **Non-Blocking Menu Construction** (main/index.ts)
+   - `createAppMenu()` no longer calls `listSessions()` synchronously
+   - Sessions are loaded via `setImmediate()` callback, then menu is rebuilt
+   - Extracted `rebuildAppMenu()` as a reusable function
+   - `createTray()` initial tooltip set without `listSessions()` call
+
+4. **Startup Fault Isolation** (main/index.ts)
+   - Each startup step (`setupCSP`, `createAppMenu`, `createTray`, `registerGlobalHotkey`) wrapped in individual try-catch blocks
+   - Failure of non-critical steps does not prevent the window from loading
+
+5. **Hard Splash Removal** (renderer/index.html)
+   - Added 10-second hard deadline timer that forcefully removes the splash overlay regardless of React mount status
+   - After 5s: shows error text + reload/reset buttons (existing)
+   - After 10s: splash fades out and is removed
+
+6. **Renderer Resilience** (App.tsx, AppShell.tsx)
+   - Added `window.electronAPI` existence guard before any IPC calls
+   - `AppShell.tsx` prefsGetAll call wrapped with 3s timeout and try-catch
+   - Splash removal also clears the new hard timer
+
+7. **IPC Readiness Ping** (preload/index.ts)
+   - New `ipcPing()` method exposed to renderer for verifying IPC connectivity
+
+#### Files Modified
+- `electron-ui/src/main/index.ts` (IPC pre-registration, non-blocking menu, startup fault isolation)
+- `electron-ui/src/main/ipc/index.ts` (double-registration guard, safeHandle, ipc:ping)
+- `electron-ui/src/preload/index.ts` (ipcPing method)
+- `electron-ui/src/renderer/index.html` (hard splash removal timer)
+- `electron-ui/src/renderer/App.tsx` (electronAPI guard, hard timer cleanup)
+- `electron-ui/src/renderer/components/layout/AppShell.tsx` (IPC timeout protection)
+- `electron-ui/package.json` (version bump to 1.1.112)

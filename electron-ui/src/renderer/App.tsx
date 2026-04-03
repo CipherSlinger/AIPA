@@ -45,6 +45,9 @@ export default function App() {
     if ((window as any).__aipaSplashTimer) {
       clearTimeout((window as any).__aipaSplashTimer)
     }
+    if ((window as any).__aipaSplashHardTimer) {
+      clearTimeout((window as any).__aipaSplashHardTimer)
+    }
   }, [])
 
   // Load preferences on startup
@@ -62,6 +65,13 @@ export default function App() {
       }
 
       try {
+        // Guard: verify electronAPI is available (preload might have failed)
+        if (!window.electronAPI) {
+          console.error('[AIPA] window.electronAPI is undefined — preload script may have failed')
+          setLoaded(true)
+          return
+        }
+
         console.log('[AIPA] Starting preference load...')
         const all = await withTimeout(window.electronAPI.prefsGetAll(), 'prefsGetAll') || {} as any
         const env = await withTimeout(window.electronAPI.configGetEnv(), 'configGetEnv') || { apiKey: '', hasApiKey: false }

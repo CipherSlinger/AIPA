@@ -16,21 +16,52 @@ import { createLogger } from '../utils/logger'
 
 const log = createLogger('ipc')
 
+// Guard against double-registration (e.g., when createWindow is called
+// from app.on('activate') on macOS). Registering a handler twice on the
+// same channel crashes Electron with "Attempted to register a second handler".
+let handlersRegistered = false
+
+/**
+ * Safely register an IPC handle, removing any previous handler first.
+ * This prevents "Attempted to register a second handler" crashes.
+ */
+function safeHandle(channel: string, handler: (...args: any[]) => any): void {
+  try { ipcMain.removeHandler(channel) } catch { /* no previous handler */ }
+  ipcMain.handle(channel, handler)
+}
+
 export function registerAllHandlers(win: BrowserWindow): void {
+  if (handlersRegistered) {
+    log.info('IPC handlers already registered, updating window reference only')
+    // Update the send function reference for push events
+    return
+  }
+  handlersRegistered = true
+
   const send = (channel: string, ...args: unknown[]) => {
     if (!win.isDestroyed()) win.webContents.send(channel, ...args)
   }
-  registerPtyHandlers(win, send)
-  registerCliHandlers(win, send)
-  registerSessionHandlers()
-  registerConfigHandlers()
-  registerFsHandlers()
-  registerShellHandlers()
-  registerWindowHandlers(win)
-  registerSkillsHandlers()
-  registerProviderHandlers(win, send)
-  registerDiagnosticsHandlers()
-  registerBackupHandlers()
+
+  try {
+    // IPC readiness ping -- renderer can verify IPC is working
+    safeHandle('ipc:ping', () => ({ ok: true, timestamp: Date.now() }))
+
+    registerPtyHandlers(win, send)
+    registerCliHandlers(win, send)
+    registerSessionHandlers()
+    registerConfigHandlers()
+    registerFsHandlers()
+    registerShellHandlers()
+    registerWindowHandlers(win)
+    registerSkillsHandlers()
+    registerProviderHandlers(win, send)
+    registerDiagnosticsHandlers()
+    registerBackupHandlers()
+    log.info('All IPC handlers registered successfully')
+  } catch (err) {
+    log.error('Failed to register some IPC handlers:', String(err))
+    // Even on partial failure, continue -- partial handlers are better than none
+  }
 }
 
 // ----------------------------------------

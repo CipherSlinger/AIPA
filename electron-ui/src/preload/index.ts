@@ -3,6 +3,9 @@ import { contextBridge, ipcRenderer } from 'electron'
 type Unsubscribe = () => void
 
 const electronAPI = {
+  // ── IPC readiness check ────────────────────
+  ipcPing: () => ipcRenderer.invoke('ipc:ping') as Promise<{ ok: boolean; timestamp: number }>,
+
   // ── PTY ──────────────────────────────────
   ptyCreate: (args: unknown) => ipcRenderer.invoke('pty:create', args),
   ptyWrite: (args: unknown) => ipcRenderer.invoke('pty:write', args),

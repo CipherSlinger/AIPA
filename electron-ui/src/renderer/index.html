@@ -34,6 +34,18 @@
           if (error) error.style.display = 'block';
         }
       }, 5000);
+      // Hard deadline: forcefully remove splash after 10 seconds regardless.
+      // Even if React fails to mount, the user should not be stuck on the splash
+      // screen forever. If the app rendered behind the splash, it becomes usable.
+      // If not, the reload/reset buttons are already visible from the 5s timer.
+      window.__aipaSplashHardTimer = setTimeout(function() {
+        var splash = document.getElementById('aipa-splash');
+        if (splash && splash.style.display !== 'none') {
+          console.warn('[AIPA] Hard splash removal at 10s -- React may not have mounted');
+          splash.style.opacity = '0';
+          setTimeout(function() { splash.style.display = 'none'; }, 300);
+        }
+      }, 10000);
       // Global error handler to catch module-level import failures
       window.addEventListener('error', function(e) {
         var splash = document.getElementById('aipa-splash');

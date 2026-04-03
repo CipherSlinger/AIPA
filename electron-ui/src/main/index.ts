@@ -95,6 +95,12 @@ function createWindow(): void {
   mainWindow.on('maximize', saveBounds)
   mainWindow.on('unmaximize', saveBounds)
 
+  // Register IPC handlers BEFORE loading the renderer to eliminate race conditions.
+  // Previously, handlers were registered AFTER loadFile(), which could cause
+  // ipcRenderer.invoke() to hang indefinitely if the renderer loaded from cache
+  // faster than the main process could register handlers.
+  registerAllHandlers(mainWindow)
+
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173')
     mainWindow.webContents.openDevTools()
@@ -129,9 +135,6 @@ function createWindow(): void {
     shell.openExternal(url)
     return { action: 'deny' }
   })
-
-  // Register IPC handlers, passing the window for push events
-  registerAllHandlers(mainWindow)
 
   mainWindow.on('closed', () => {
     mainWindow = null
@@ -184,27 +187,40 @@ function setupCSP(): void {
 }
 
 function createAppMenu(): void {
-  // Build recent sessions submenu
-  let recentSessionItems: Electron.MenuItemConstructorOptions[] = []
-  try {
-    const sessions = listSessions()
-    const sorted = sessions.sort((a, b) => b.timestamp - a.timestamp).slice(0, 10)
-    if (sorted.length > 0) {
-      recentSessionItems = sorted.map(s => ({
-        label: (s.title || s.lastPrompt || 'Untitled').slice(0, 60),
-        click: () => {
-          mainWindow?.show()
-          mainWindow?.focus()
-          mainWindow?.webContents.send('menu:openSession', s.sessionId)
-        },
-      }))
-    } else {
+  // Build recent sessions submenu -- deferred to avoid blocking startup.
+  // listSessions() reads ALL .jsonl files synchronously, which can take seconds
+  // with hundreds of sessions. We start with a placeholder and rebuild async.
+  let recentSessionItems: Electron.MenuItemConstructorOptions[] = [{ label: 'Loading...', enabled: false }]
+
+  // Defer session loading to avoid blocking the main process event loop during startup
+  setImmediate(() => {
+    try {
+      const sessions = listSessions()
+      const sorted = sessions.sort((a, b) => b.timestamp - a.timestamp).slice(0, 10)
+      if (sorted.length > 0) {
+        recentSessionItems = sorted.map(s => ({
+          label: (s.title || s.lastPrompt || 'Untitled').slice(0, 60),
+          click: () => {
+            mainWindow?.show()
+            mainWindow?.focus()
+            mainWindow?.webContents.send('menu:openSession', s.sessionId)
+          },
+        }))
+      } else {
+        recentSessionItems = [{ label: 'No recent sessions', enabled: false }]
+      }
+    } catch {
       recentSessionItems = [{ label: 'No recent sessions', enabled: false }]
     }
-  } catch {
-    recentSessionItems = [{ label: 'No recent sessions', enabled: false }]
-  }
+    // Rebuild the menu with actual session data
+    rebuildAppMenu(recentSessionItems)
+  })
 
+  // Build initial menu with placeholder sessions (deferred load will rebuild)
+  rebuildAppMenu(recentSessionItems)
+}
+
+function rebuildAppMenu(recentSessionItems: Electron.MenuItemConstructorOptions[]): void {
   const template = Menu.buildFromTemplate([
     {
       label: 'File',
@@ -281,9 +297,9 @@ function createTray(): void {
   const trayIcon = nativeImage.createFromDataURL(dataUrl)
 
   tray = new Tray(trayIcon.resize({ width: 16, height: 16 }))
-  updateTrayTooltip()
+  tray.setToolTip('AIPA - AI Personal Assistant')
 
-  // Build enhanced tray menu
+  // Build tray menu with placeholder, then rebuild async with real session data
   rebuildTrayMenu()
 
   // Rebuild tray menu dynamically on right-click so recent sessions stay current
@@ -440,11 +456,28 @@ function registerGlobalHotkey(): void {
 }
 
 app.whenReady().then(() => {
-  setupCSP()
-  createAppMenu()
+  try {
+    setupCSP()
+  } catch (err) {
+    log.warn('setupCSP failed (non-fatal):', String(err))
+  }
+  try {
+    createAppMenu()
+  } catch (err) {
+    log.warn('createAppMenu failed (non-fatal):', String(err))
+  }
+  // createWindow is critical -- if this fails, the app is unusable
   createWindow()
-  createTray()
-  registerGlobalHotkey()
+  try {
+    createTray()
+  } catch (err) {
+    log.warn('createTray failed (non-fatal):', String(err))
+  }
+  try {
+    registerGlobalHotkey()
+  } catch (err) {
+    log.warn('registerGlobalHotkey failed (non-fatal):', String(err))
+  }
   log.info('AIPA started')
 
   app.on('activate', () => {
