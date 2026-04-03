@@ -3394,3 +3394,27 @@ _Date: 2026-04-02_
   - electron-ui/src/renderer/i18n/locales/en.json (+4 provider keys)
   - electron-ui/src/renderer/i18n/locales/zh-CN.json (+4 provider keys)
 - **Build**: PASS (2526 modules, 10.05s)
+
+---
+### Iteration 424 --- Notification Center and Connection Status Indicator
+- **Date**: 2026-04-03
+- **Version**: 1.1.101
+- **PRD**: prd-notification-center-v1.md
+- **Changes**:
+  - Added notification history system: toasts now dual-write to a persistent notification list (max 50 entries) in UiStore with unread count tracking
+  - Created NotificationPanel.tsx: sidebar panel showing notification history with type-colored icons, relative timestamps, and Clear All action. Auto-marks notifications as read when panel opens.
+  - Added Bell icon to NavRail with unread badge between Channel and spacer (Ctrl+8 shortcut)
+  - Added notifications to SidebarTab/NavItem union types and localStorage tab restoration valid list
+  - Modified addToast to also push to notifications history; error toasts now default to 8s duration (was 4s)
+  - Added connection status dot to StatusBar left zone: green pulsing dot during streaming, grey dot when idle
+  - Added i18n keys: nav.notifications, notifications.title, notifications.clearAll, notifications.empty, statusBar.connected, statusBar.idle (en + zh-CN)
+- **Files Created**:
+  - electron-ui/src/renderer/components/layout/NotificationPanel.tsx (~134 lines)
+- **Files Modified**:
+  - electron-ui/src/renderer/store/index.ts (+NotificationEntry type, +notifications state, +unreadNotificationCount, +markNotificationsRead/clearNotifications, modified addToast, +notifications in SidebarTab/NavItem/valid list)
+  - electron-ui/src/renderer/components/layout/NavRail.tsx (+Bell icon, +notifications nav item with badge)
+  - electron-ui/src/renderer/components/layout/Sidebar.tsx (+lazy NotificationPanel import, +notifications tab render)
+  - electron-ui/src/renderer/components/layout/StatusBar.tsx (+Wifi import, +connection status dot)
+  - electron-ui/src/renderer/i18n/locales/en.json (+nav.notifications, +notifications section, +statusBar.connected/idle)
+  - electron-ui/src/renderer/i18n/locales/zh-CN.json (+nav.notifications, +notifications section, +statusBar.connected/idle)
+- **Build**: PASS (2527 modules)

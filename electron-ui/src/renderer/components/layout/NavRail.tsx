@@ -1,5 +1,5 @@
 import React from 'react'
-import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, Settings, User, PanelLeftClose, PanelLeftOpen, Radio } from 'lucide-react'
+import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, Settings, User, PanelLeftClose, PanelLeftOpen, Radio, Bell } from 'lucide-react'
 import { useUiStore, useChatStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 import { AVATAR_PRESETS } from './avatarPresets'
@@ -217,6 +217,8 @@ export default function NavRail() {
   const isMemoryActive = activeNavItem === 'memory' && sidebarTab === 'memory'
   const isWorkflowsActive = activeNavItem === 'workflows' && sidebarTab === 'workflows'
   const isChannelActive = activeNavItem === 'channel' && sidebarTab === 'channel'
+  const isNotificationsActive = activeNavItem === 'notifications' && sidebarTab === 'notifications'
+  const unreadNotificationCount = useUiStore(s => s.unreadNotificationCount)
   const isSettingsActive = useUiStore(s => s.settingsModalOpen)
 
   const handleNewChat = () => {
@@ -326,6 +328,17 @@ export default function NavRail() {
         shortcut="Ctrl+7"
         isActive={isChannelActive}
         onClick={() => setActiveNavItem('channel')}
+        expanded={navExpanded}
+      />
+
+      {/* Notifications */}
+      <NavItem
+        icon={<Bell size={iconSize} />}
+        label={t('nav.notifications')}
+        shortcut="Ctrl+8"
+        isActive={isNotificationsActive}
+        badge={unreadNotificationCount}
+        onClick={() => setActiveNavItem('notifications')}
         expanded={navExpanded}
       />
 

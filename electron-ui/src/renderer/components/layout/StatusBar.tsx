@@ -3,7 +3,7 @@
 //              StatusBarModelPicker, StatusBarPersonaPicker
 
 import React, { useState } from 'react'
-import { PanelLeft, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Square, StopCircle, Pin, Settings, Gauge, Brain, Calendar } from 'lucide-react'
+import { PanelLeft, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Square, StopCircle, Pin, Settings, Gauge, Brain, Calendar, Wifi } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore, useSessionStore } from '../../store'
 import { StandardChatMessage } from '../../types/app.types'
 import { useT } from '../../i18n'
@@ -162,6 +162,28 @@ export default function StatusBar() {
           title={dirLabel}
         >
           {dirShort}
+        </span>
+
+        {/* Connection status indicator */}
+        <span
+          title={isStreaming ? t('statusBar.connected') : t('statusBar.idle')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 3,
+            opacity: 0.8,
+          }}
+        >
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: isStreaming ? '#4ade80' : '#a0a0a0',
+              transition: 'background 0.3s',
+              animation: isStreaming ? 'pulse 1.2s ease-in-out infinite' : undefined,
+            }}
+          />
         </span>
       </div>
 

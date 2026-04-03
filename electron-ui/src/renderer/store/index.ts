@@ -516,8 +516,15 @@ export const usePrefsStore = create<PrefsState>((set) => ({
 }))
 
 // ── UI store ────────────────────────────────────
-export type SidebarTab = 'history' | 'files' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel'
-export type NavItem = 'chat' | 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel'
+export type SidebarTab = 'history' | 'files' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel' | 'notifications'
+export type NavItem = 'chat' | 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel' | 'notifications'
+
+export interface NotificationEntry {
+  id: string
+  type: ToastType
+  message: string
+  timestamp: number
+}
 
 interface UiState {
   sidebarTab: SidebarTab
@@ -533,6 +540,12 @@ interface UiState {
   toggleFocusMode: () => void
   addToast: (type: ToastType, message: string, duration?: number) => void
   removeToast: (id: string) => void
+
+  // Notification history
+  notifications: NotificationEntry[]
+  unreadNotificationCount: number
+  markNotificationsRead: () => void
+  clearNotifications: () => void
 
   // NavRail active item tracking
   activeNavItem: NavItem
@@ -571,7 +584,7 @@ interface UiState {
 const savedSidebarTab = (() => {
   try {
     const saved = localStorage.getItem('aipa:sidebar-tab')
-    const valid = ['history', 'files', 'notes', 'skills', 'memory', 'workflows', 'channel']
+    const valid = ['history', 'files', 'notes', 'skills', 'memory', 'workflows', 'channel', 'notifications']
     if (saved && valid.includes(saved)) return saved as UiState['sidebarTab']
   } catch {}
   return 'history' as const
@@ -604,15 +617,29 @@ export const useUiStore = create<UiState>((set) => ({
   }),
   addToast: (type, message, duration) => {
     const id = `toast-${Date.now()}-${Math.random()}`
-    set((s) => ({ toasts: [...s.toasts, { id, type, message, duration }] }))
+    // Error toasts persist longer (8s default vs 4s)
+    const effectiveDuration = duration ?? (type === 'error' ? 8000 : 4000)
+    set((s) => ({
+      toasts: [...s.toasts, { id, type, message, duration: effectiveDuration }],
+      // Also add to notification history (max 50)
+      notifications: [
+        { id, type, message, timestamp: Date.now() },
+        ...s.notifications,
+      ].slice(0, 50),
+      unreadNotificationCount: s.unreadNotificationCount + 1,
+    }))
   },
   removeToast: (id) => set((s) => ({ toasts: s.toasts.filter(t => t.id !== id) })),
+  notifications: [],
+  unreadNotificationCount: 0,
+  markNotificationsRead: () => set({ unreadNotificationCount: 0 }),
+  clearNotifications: () => set({ notifications: [], unreadNotificationCount: 0 }),
   setActiveNavItem: (item) => set((s) => {
     // Settings opens as a modal overlay, not in the sidebar
     if (item === 'settings') {
       return { settingsModalOpen: true }
     }
-    if (item === 'history' || item === 'files' || item === 'notes' || item === 'skills' || item === 'memory' || item === 'workflows' || item === 'channel') {
+    if (item === 'history' || item === 'files' || item === 'notes' || item === 'skills' || item === 'memory' || item === 'workflows' || item === 'channel' || item === 'notifications') {
       try { localStorage.setItem('aipa:sidebar-tab', item) } catch {}
       return { activeNavItem: item, sidebarTab: item, sidebarOpen: true }
     }

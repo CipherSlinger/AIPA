@@ -11,7 +11,8 @@
     "workflows": "Workflows",
     "channel": "Channel",
     "expandNav": "Expand sidebar",
-    "collapseNav": "Collapse"
+    "collapseNav": "Collapse",
+    "notifications": "Notifications"
   },
   "chat": {
     "placeholder": "Message AIPA...",
@@ -1541,6 +1542,13 @@
     "topics": "Topics"
   },
   "statusBar": {
-    "today": "today"
+    "today": "today",
+    "connected": "Connected",
+    "idle": "Idle"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "clearAll": "Clear all",
+    "empty": "No notifications yet"
   }
 }

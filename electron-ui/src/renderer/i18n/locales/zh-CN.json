@@ -11,7 +11,8 @@
     "workflows": "工作流",
     "expandNav": "展开侧边栏",
     "collapseNav": "收起",
-    "channel": "通道"
+    "channel": "通道",
+    "notifications": "通知"
   },
   "chat": {
     "placeholder": "给 AIPA 发消息...",
@@ -1559,6 +1560,13 @@
     "topics": "主题"
   },
   "statusBar": {
-    "today": "今日"
+    "today": "今日",
+    "connected": "已连接",
+    "idle": "空闲"
+  },
+  "notifications": {
+    "title": "通知",
+    "clearAll": "全部清除",
+    "empty": "暂无通知"
   }
 }

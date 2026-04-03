@@ -10,6 +10,7 @@ const SkillsPanel = React.lazy(() => import('../skills/SkillsPanel'))
 const MemoryPanel = React.lazy(() => import('../memory/MemoryPanel'))
 const WorkflowPanel = React.lazy(() => import('../workflows/WorkflowPanel'))
 const ChannelPanel = React.lazy(() => import('../channel/ChannelPanel'))
+const NotificationPanel = React.lazy(() => import('./NotificationPanel'))
 
 function PanelFallback() {
   return (
@@ -78,6 +79,11 @@ export default function Sidebar() {
         {sidebarTab === 'channel' && (
           <Suspense fallback={<PanelFallback />}>
             <ChannelPanel />
+          </Suspense>
+        )}
+        {sidebarTab === 'notifications' && (
+          <Suspense fallback={<PanelFallback />}>
+            <NotificationPanel />
           </Suspense>
         )}
       </div>

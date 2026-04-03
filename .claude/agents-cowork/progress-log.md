@@ -50,3 +50,18 @@ Decision: Serial execution. Group 2 (P0 bug fix) goes first, then Group 1.
 
 ## Iteration 422 completed
 - Feature: Startup Resilience - Splash Screen, Error Recovery, Pref Reset | Build: SUCCESS | Commit: 67d2047
+
+## Iteration 423 completed
+- Feature: Qwen QR Code Quick Setup, Provider API Key Links, Auto-enable | Build: SUCCESS | Commit: 899f496
+
+
+## PM PRD Batch 2026-04-02 20:38
+
+| PRD | Core Features | High-Risk Files | Execution |
+|-----|--------------|----------------|-----------|
+| prd-session-list-ux-v1.md | Message count badge, relative time, context menu, inline rename | SessionList.tsx, i18n | Group 1 |
+| prd-notification-center-v1.md | Notification history panel, connection status dot, toast improvements | NavRail.tsx, StatusBar.tsx, Toast.tsx, store/index.ts, i18n | Group 2 |
+
+Conflict analysis: Group 1 touches SessionList.tsx + i18n. Group 2 touches NavRail.tsx + StatusBar.tsx + Toast.tsx + store + i18n.
+Both touch i18n -> must be serial. No component file overlap otherwise.
+Decision: Serial execution. Group 1 (session list) first, then Group 2 (notifications).
