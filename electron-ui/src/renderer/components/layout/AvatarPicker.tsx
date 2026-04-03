@@ -1,7 +1,8 @@
 // AvatarPicker — dropdown for selecting preset avatars (Luo Xiaohei theme)
-// Iteration 413
+// Iteration 413 → Portal refactor Iteration 461
 
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState, useCallback } from 'react'
+import ReactDOM from 'react-dom'
 import { usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 import { AVATAR_PRESETS } from './avatarPresets'
@@ -10,12 +11,32 @@ export type { AvatarPreset } from './avatarPresets'
 interface AvatarPickerProps {
   onClose: () => void
   navExpanded: boolean
+  anchorRef: React.RefObject<HTMLDivElement>
 }
 
-export default function AvatarPicker({ onClose, navExpanded }: AvatarPickerProps) {
+export default function AvatarPicker({ onClose, navExpanded, anchorRef }: AvatarPickerProps) {
   const t = useT()
   const ref = useRef<HTMLDivElement>(null)
   const currentPreset = usePrefsStore(s => s.prefs.avatarPreset)
+
+  // Calculate position based on anchor element
+  const getPosition = useCallback(() => {
+    if (!anchorRef.current) return { left: 0, bottom: 0 }
+    const rect = anchorRef.current.getBoundingClientRect()
+    return {
+      left: rect.left,
+      bottom: window.innerHeight - rect.top + 6,
+    }
+  }, [anchorRef])
+
+  const [pos, setPos] = useState(getPosition)
+
+  // Recalculate on resize
+  useEffect(() => {
+    const handleResize = () => setPos(getPosition())
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [getPosition])
 
   // Close on click outside
   useEffect(() => {
@@ -53,21 +74,20 @@ export default function AvatarPicker({ onClose, navExpanded }: AvatarPickerProps
     onClose()
   }
 
-  return (
+  return ReactDOM.createPortal(
     <div
       ref={ref}
       style={{
-        position: 'absolute',
-        bottom: '100%',
-        left: navExpanded ? 0 : -4,
-        marginBottom: 6,
+        position: 'fixed',
+        left: pos.left,
+        bottom: pos.bottom,
         width: 200,
         background: 'var(--popup-bg)',
         border: '1px solid var(--popup-border)',
         borderRadius: 8,
         boxShadow: 'var(--popup-shadow)',
         padding: 8,
-        zIndex: 200,
+        zIndex: 10000,
         animation: 'popup-in 0.12s ease',
       }}
     >
@@ -138,6 +158,7 @@ export default function AvatarPicker({ onClose, navExpanded }: AvatarPickerProps
           </button>
         ))}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

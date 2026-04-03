@@ -222,6 +222,7 @@ export default function NavRail() {
   const t = useT()
 
   const [showAvatarPicker, setShowAvatarPicker] = React.useState(false)
+  const avatarAnchorRef = React.useRef<HTMLDivElement>(null)
 
   const toggleNavExpanded = () => {
     const next = !navExpanded
@@ -374,6 +375,7 @@ export default function NavRail() {
       {/* Avatar -- shows persona emoji, preset avatar, or generic user icon */}
       <div style={{ position: 'relative', flexShrink: 0 }}>
         <div
+          ref={avatarAnchorRef}
           onClick={() => setShowAvatarPicker(!showAvatarPicker)}
           style={{
             width: navExpanded ? '100%' : 30,
@@ -425,7 +427,7 @@ export default function NavRail() {
         {/* Avatar Picker dropdown */}
         {showAvatarPicker && (
           <React.Suspense fallback={null}>
-            <AvatarPicker onClose={() => setShowAvatarPicker(false)} navExpanded={navExpanded} />
+            <AvatarPicker onClose={() => setShowAvatarPicker(false)} navExpanded={navExpanded} anchorRef={avatarAnchorRef} />
           </React.Suspense>
         )}
       </div>
