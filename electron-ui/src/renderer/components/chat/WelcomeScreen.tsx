@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { History, X, MessageSquare, Layers, Clock, ArrowRight, Sparkles, Lightbulb } from 'lucide-react'
 import { useUiStore, useSessionStore, usePrefsStore, useChatStore } from '../../store'
 import { useT } from '../../i18n'
@@ -117,11 +117,34 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
   const accentTint = activePersona ? `${activePersona.color}20` : 'rgba(0,122,204,0.1)'
   const accentColor = activePersona?.color || 'var(--accent)'
 
+  // Adaptive layout: measure container height and hide low-priority sections when space is tight
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [containerHeight, setContainerHeight] = useState(800)
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(entries => {
+      const h = entries[0]?.contentRect?.height ?? 800
+      setContainerHeight(h)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  // Thresholds: hide sections progressively as height decreases
+  const showKeyboardShortcuts = containerHeight > 650
+  const showTips = containerHeight > 550
+  const showRecentPrompts = containerHeight > 480
+  const showQuickActions = containerHeight > 400
+  const showPersonas = containerHeight > 350
+  const showUsageStats = containerHeight > 300
+  const compactGap = containerHeight < 500 ? 10 : 20
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', color: 'var(--text-muted)', overflowY: 'auto', overflowX: 'hidden' }}>
+    <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', color: 'var(--text-muted)', overflow: 'hidden' }}>
       {/* Spacer that auto-shrinks: when content fits, it centers; when content overflows, it collapses */}
-      <div style={{ flex: '1 1 auto', minHeight: 16 }} />
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, padding: '0 20px', width: '100%', flexShrink: 0 }}>
+      <div style={{ flex: '1 1 auto', minHeight: 8 }} />
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: compactGap, padding: '0 20px', width: '100%', flexShrink: 0 }}>
+      {/* Use inner scroll only when needed; outer container hidden overflow prevents ugly scrollbar on page */}
       {/* Daily summary card */}
       <DailySummaryCard />
 
@@ -163,7 +186,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
       </div>
 
       {/* Usage stats bar */}
-      {usageStats.totalSessions > 0 && (
+      {showUsageStats && usageStats.totalSessions > 0 && (
         <div style={{
           display: 'flex', gap: 20, justifyContent: 'center', alignItems: 'center',
           padding: '8px 16px', background: 'var(--card-bg)', border: '1px solid var(--card-border)',
@@ -228,7 +251,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
       )}
 
       {/* Persona quick-start cards */}
-      {personas.length > 0 && (
+      {showPersonas && personas.length > 0 && (
         <div style={{ width: '100%', maxWidth: 420 }}>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
             <Sparkles size={11} />
@@ -330,6 +353,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
       <TemplatesSection onUseTemplate={onSuggestion} />
 
       {/* Keyboard shortcuts */}
+      {showKeyboardShortcuts && (
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(3, auto)', gap: '8px 20px',
         padding: '14px 20px', background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 10,
@@ -344,9 +368,10 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
           </div>
         ))}
       </div>
+      )}
 
       {/* Contextual tip */}
-      {tip && (
+      {showTips && tip && (
         <div style={{
           width: '100%', maxWidth: 420, padding: '10px 14px',
           background: 'var(--card-bg)', border: '1px solid var(--card-border)',
@@ -391,6 +416,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
       )}
 
       {/* Recent & top prompts (Iteration 454) */}
+      {showRecentPrompts && (
       <WelcomeRecentPrompts
         recentPrompts={recentPrompts}
         topPrompts={topPrompts}
@@ -398,16 +424,19 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
         onClearHistory={clearRecentPrompts}
         onToggleFavorite={toggleFavorite}
       />
+      )}
 
       {/* Quick actions + floating bar (Iteration 454) */}
+      {showQuickActions && (
       <WelcomeQuickActions
         quickActions={quickActions}
         floatingActions={floatingActions}
         onFloatingAction={handleFloatingAction}
       />
+      )}
       </div>
       {/* Bottom spacer that auto-shrinks: mirrors the top spacer for centering */}
-      <div style={{ flex: '1 1 auto', minHeight: 16 }} />
+      <div style={{ flex: '1 1 auto', minHeight: 8 }} />
     </div>
   )
 }
