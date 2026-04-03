@@ -1,4 +1,5 @@
 // Message — decomposed (Iteration 451: extracted useReadAloud, ReactionChips, AnnotationEditor)
+// Iteration 453: copy flash feedback on bubble
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { ChatMessage, StandardChatMessage, Persona } from '../../types/app.types'
 import MessageContextMenu from './MessageContextMenu'
@@ -81,6 +82,31 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
     copied, handleCopy, handleQuote, handleBookmarkAction,
     handleCopyMarkdown, handleCopyRichText, handleSaveAsNote, handleRememberThis, handleShare, handlePin, handleDoubleClick, handleTranslate, handleCopyCodeBlocks,
   } = useMessageActions({ message, isPermission, isPlan })
+
+  // Copy flash effect: briefly highlight bubble border after copy (Iteration 453)
+  const [copyFlash, setCopyFlash] = useState(false)
+  const prevCopiedRef = useRef(false)
+  useEffect(() => {
+    if (copied && !prevCopiedRef.current) {
+      setCopyFlash(true)
+      const timer = setTimeout(() => setCopyFlash(false), 350)
+      return () => clearTimeout(timer)
+    }
+    prevCopiedRef.current = copied
+  }, [copied])
+
+  // Listen for keyboard copy event (Ctrl+C on focused message, Iteration 453)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const msgId = (e as CustomEvent).detail as string
+      if (msgId === message.id) {
+        setCopyFlash(true)
+        setTimeout(() => setCopyFlash(false), 350)
+      }
+    }
+    window.addEventListener('aipa:messageCopiedByKeyboard', handler)
+    return () => window.removeEventListener('aipa:messageCopiedByKeyboard', handler)
+  }, [message.id])
 
   // Word info tooltip (both user and assistant messages)
   const wordInfo = (message as StandardChatMessage).content
@@ -205,11 +231,13 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             borderRadius: isUser ? '12px 2px 12px 12px' : '2px 12px 12px 12px',
             padding: compact ? '8px 12px' : '10px 14px',
             color: isUser ? 'var(--bubble-user-text)' : 'var(--bubble-ai-text)',
-            border: isUser ? '1px solid var(--bubble-user-border)' : '1px solid var(--bubble-ai-border)',
+            border: copyFlash
+              ? '1.5px solid var(--accent)'
+              : isUser ? '1px solid var(--bubble-user-border)' : '1px solid var(--bubble-ai-border)',
             wordBreak: 'break-word',
             position: 'relative',
             boxShadow: hovered ? '0 2px 6px rgba(0,0,0,0.18)' : '0 1px 3px rgba(0,0,0,0.12)',
-            transition: 'box-shadow 0.15s ease',
+            transition: 'box-shadow 0.15s ease, border-color 0.15s ease',
           }}
           title={wordInfo || undefined}
         >

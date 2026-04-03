@@ -4450,3 +4450,30 @@ Status: SUCCESS (10.14s)
 - [x] SessionList.tsx reduced from 607 to 517 lines (close to 500 target, remaining code is tightly coupled orchestration)
 - [x] All tag, archive, and select-all functionality preserved
 - [x] `npm run build` succeeds
+
+---
+
+## Iteration 453 — Copy Flash Feedback & Keyboard Copy
+
+_Date: 2026-04-03 | PRD: prd-chat-ux-polish-v1_
+
+### Summary
+Two UX improvements to message interaction:
+1. Copy flash feedback: message bubble border briefly flashes accent color (350ms) when content is copied, providing clear visual confirmation
+2. Keyboard copy: Ctrl+C copies the focused message content when navigating with Ctrl+Up/Down and no text is selected; shows toast notification
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/Message.tsx` — Added copyFlash state + keyboard copy listener, accent border on flash
+- `electron-ui/src/renderer/components/chat/useMessageNavigation.ts` — Added Ctrl+C handler for focused message copy with toast
+- `electron-ui/src/renderer/i18n/locales/en.json` — Added `message.copiedViaKeyboard` key
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` — Added `message.copiedViaKeyboard` key
+
+### Build
+Status: SUCCESS (9.82s)
+
+### Acceptance Criteria
+- [x] Message bubble border flashes accent color briefly (350ms) after copy
+- [x] Ctrl+C copies focused message when no text selection exists
+- [x] Toast notification confirms keyboard copy
+- [x] i18n keys added for both en and zh-CN
+- [x] `npm run build` succeeds

@@ -277,6 +277,7 @@
     "rawMarkdown": "Raw markdown",
     "formattedView": "Formatted view",
     "copied": "Copied!",
+    "copiedViaKeyboard": "Message copied to clipboard",
     "copyCode": "Copy",
     "codeCopied": "Copied",
     "enableWordWrap": "Enable word wrap",

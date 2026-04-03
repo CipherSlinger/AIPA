@@ -1,5 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
-import { ChatMessage } from '../../types/app.types'
+import { ChatMessage, StandardChatMessage } from '../../types/app.types'
+import { useUiStore } from '../../store'
+import { useT } from '../../i18n'
 import type { Virtualizer } from '@tanstack/react-virtual'
 
 interface ListItem {
@@ -12,6 +14,7 @@ interface ListItem {
  *
  * Handles:
  * - Ctrl+Up/Down to step through messages
+ * - Ctrl+C to copy focused message (when no text selection)
  * - Escape to clear focus indicator
  * - Sync focus when Ctrl+Home/End fires via CustomEvent
  * - Clear focus when messages change (new message sent)
@@ -22,6 +25,7 @@ export function useMessageNavigation(
   virtualizer: Virtualizer<HTMLDivElement, Element>,
 ) {
   const [focusedMsgIdx, setFocusedMsgIdx] = useState<number | null>(null)
+  const t = useT()
 
   const messageIndices = useMemo(() =>
     messages.reduce<number[]>((acc, m, i) => {
@@ -47,6 +51,22 @@ export function useMessageNavigation(
 
       if (!e.ctrlKey || e.shiftKey || e.altKey) return
       if (messageIndices.length === 0) return
+
+      // Ctrl+C: copy focused message content when no text is selected (Iteration 453)
+      if (e.key === 'c' && focusedMsgIdx !== null) {
+        const selection = window.getSelection()?.toString()
+        if (!selection) {
+          e.preventDefault()
+          const msg = messages[focusedMsgIdx] as StandardChatMessage
+          if (msg?.content) {
+            navigator.clipboard.writeText(msg.content).catch(() => {})
+            // Dispatch event so Message component can show copy flash
+            window.dispatchEvent(new CustomEvent('aipa:messageCopiedByKeyboard', { detail: msg.id }))
+            useUiStore.getState().addToast('success', t('message.copiedViaKeyboard'))
+          }
+          return
+        }
+      }
 
       let nextIdx: number | null = null
 

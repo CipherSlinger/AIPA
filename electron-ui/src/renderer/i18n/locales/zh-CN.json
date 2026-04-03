@@ -277,6 +277,7 @@
     "rawMarkdown": "原始 Markdown",
     "formattedView": "格式化视图",
     "copied": "已复制！",
+    "copiedViaKeyboard": "消息已复制到剪贴板",
     "copyCode": "复制",
     "codeCopied": "已复制",
     "enableWordWrap": "启用自动换行",
