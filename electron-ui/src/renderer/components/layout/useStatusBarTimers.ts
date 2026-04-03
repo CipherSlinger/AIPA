@@ -1,29 +1,58 @@
-// StatusBar timer hooks — extracted from StatusBar.tsx (Iteration 313)
+// StatusBar timer hooks — extracted from StatusBar.tsx (Iteration 313, enhanced Iteration 467)
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 
-const POMODORO_DURATION = 25 * 60 // 25 minutes in seconds
+const DEFAULT_DURATION = 25 * 60 // 25 minutes in seconds
+
+export const FOCUS_PRESETS = [
+  { label: '5m', seconds: 5 * 60 },
+  { label: '15m', seconds: 15 * 60 },
+  { label: '25m', seconds: 25 * 60 },
+  { label: '45m', seconds: 45 * 60 },
+  { label: '60m', seconds: 60 * 60 },
+] as const
 
 export function useFocusTimer() {
   const t = useT()
   const notifySound = usePrefsStore(s => s.prefs.notifySound)
   const [active, setActive] = useState(false)
-  const [remaining, setRemaining] = useState(POMODORO_DURATION)
+  const [duration, setDuration] = useState(DEFAULT_DURATION)
+  const [remaining, setRemaining] = useState(DEFAULT_DURATION)
+  const [showPresets, setShowPresets] = useState(false)
   const intervalRef = useRef<number>(0)
+
+  const start = useCallback((secs?: number) => {
+    const dur = secs ?? duration
+    setDuration(dur)
+    setRemaining(dur)
+    setActive(true)
+    setShowPresets(false)
+  }, [duration])
+
+  const stop = useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current)
+    intervalRef.current = 0
+    setActive(false)
+    setRemaining(duration)
+  }, [duration])
 
   const toggle = useCallback(() => {
     if (active) {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-      intervalRef.current = 0
-      setActive(false)
-      setRemaining(POMODORO_DURATION)
+      stop()
     } else {
-      setRemaining(POMODORO_DURATION)
-      setActive(true)
+      start()
     }
-  }, [active])
+  }, [active, start, stop])
+
+  const togglePresets = useCallback(() => {
+    if (active) {
+      stop()
+    } else {
+      setShowPresets(prev => !prev)
+    }
+  }, [active, stop])
 
   useEffect(() => {
     if (!active) return
@@ -40,8 +69,12 @@ export function useFocusTimer() {
               audio.play().catch(() => {})
             } catch {}
           }
+          // Desktop notification
+          try {
+            new Notification('AIPA Focus Timer', { body: t('toolbar.focusTimerComplete') })
+          } catch { /* notification permission may not be granted */ }
           useUiStore.getState().addToast('success', t('toolbar.focusTimerComplete'))
-          return POMODORO_DURATION
+          return DEFAULT_DURATION
         }
         return prev - 1
       })
@@ -57,7 +90,7 @@ export function useFocusTimer() {
     }
   }, [])
 
-  return { active, remaining, toggle }
+  return { active, remaining, duration, showPresets, toggle, togglePresets, start, stop, setShowPresets }
 }
 
 export function useStopwatch() {

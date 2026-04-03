@@ -8,7 +8,7 @@ import { useChatStore, usePrefsStore, useUiStore, useSessionStore } from '../../
 import { StandardChatMessage } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { Separator, formatDuration, fmtNumber } from './statusBarConstants'
-import { useFocusTimer, useStopwatch } from './useStatusBarTimers'
+import { useFocusTimer, useStopwatch, FOCUS_PRESETS } from './useStatusBarTimers'
 import { useStreamingSpeed } from './useStreamingSpeed'
 import StatusBarModelPicker from './StatusBarModelPicker'
 import StatusBarPersonaPicker from './StatusBarPersonaPicker'
@@ -111,6 +111,14 @@ export default function StatusBar() {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [showCostBreakdown])
+
+  // Close timer presets on outside click
+  React.useEffect(() => {
+    if (!focusTimer.showPresets) return
+    const handler = () => focusTimer.setShowPresets(false)
+    const timeout = setTimeout(() => document.addEventListener('mousedown', handler), 0)
+    return () => { clearTimeout(timeout); document.removeEventListener('mousedown', handler) }
+  }, [focusTimer.showPresets])
 
   // Effort level config
   const effortLevel = prefs.effortLevel || 'medium'
@@ -248,42 +256,76 @@ export default function StatusBar() {
           </span>
         )}
 
-        {/* Focus timer */}
-        <button
-          onClick={focusTimer.toggle}
-          title={focusTimer.active ? t('toolbar.stopFocusTimer') : t('toolbar.startFocusTimer')}
-          style={{
-            background: focusTimer.active ? 'rgba(255,255,255,0.15)' : 'none',
-            border: 'none',
-            color: '#fff',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 3,
-            padding: '1px 5px',
-            borderRadius: 4,
-            fontSize: 10,
-            opacity: focusTimer.active ? 1 : 0.6,
-            transition: 'opacity 0.15s',
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = focusTimer.active ? '1' : '0.6' }}
-        >
-          {focusTimer.active ? (
-            <>
-              <Timer size={10} style={{ color: '#4ade80' }} />
-              <span style={{ fontVariantNumeric: 'tabular-nums' }}>
-                {Math.floor(focusTimer.remaining / 60)}:{String(focusTimer.remaining % 60).padStart(2, '0')}
-              </span>
-              <Square size={8} />
-            </>
-          ) : (
-            <>
-              <Timer size={10} />
-              <span>25m</span>
-            </>
+        {/* Focus timer with duration presets (enhanced Iteration 467) */}
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={focusTimer.toggle}
+            onContextMenu={(e) => { e.preventDefault(); focusTimer.togglePresets() }}
+            title={focusTimer.active
+              ? t('toolbar.stopFocusTimer')
+              : t('toolbar.startFocusTimer') + ' (right-click for presets)'}
+            style={{
+              background: focusTimer.active ? 'rgba(255,255,255,0.15)' : 'none',
+              border: 'none',
+              color: '#fff',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 3,
+              padding: '1px 5px',
+              borderRadius: 4,
+              fontSize: 10,
+              opacity: focusTimer.active ? 1 : 0.6,
+              transition: 'opacity 0.15s',
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = focusTimer.active ? '1' : '0.6' }}
+          >
+            {focusTimer.active ? (
+              <>
+                <Timer size={10} style={{ color: '#4ade80' }} />
+                <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+                  {Math.floor(focusTimer.remaining / 60)}:{String(focusTimer.remaining % 60).padStart(2, '0')}
+                </span>
+                <Square size={8} />
+              </>
+            ) : (
+              <>
+                <Timer size={10} />
+                <span>{Math.floor(focusTimer.duration / 60)}m</span>
+              </>
+            )}
+          </button>
+          {/* Preset duration dropdown */}
+          {focusTimer.showPresets && (
+            <div
+              className="popup-enter"
+              style={{
+                position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)',
+                marginBottom: 4, background: 'var(--popup-bg)', border: '1px solid var(--popup-border)',
+                boxShadow: 'var(--popup-shadow)', borderRadius: 8, padding: '4px',
+                display: 'flex', gap: 2, zIndex: 100, whiteSpace: 'nowrap',
+              }}
+            >
+              {FOCUS_PRESETS.map(preset => (
+                <button
+                  key={preset.seconds}
+                  onClick={() => focusTimer.start(preset.seconds)}
+                  style={{
+                    padding: '4px 8px', borderRadius: 6,
+                    border: 'none', background: 'transparent',
+                    color: 'var(--text-primary)', fontSize: 11, cursor: 'pointer',
+                    transition: 'background 100ms',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
           )}
-        </button>
+        </div>
 
         {/* Stopwatch */}
         <button

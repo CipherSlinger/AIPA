@@ -4805,3 +4805,28 @@ Status: SUCCESS (tsc main/preload: 0 errors, vite build: 10.16s)
 - [x] "View tasks" link navigates to Tasks panel
 - [x] "All clear" message when no tasks/reminders
 - [x] i18n complete for both en.json and zh-CN.json
+
+---
+
+## Iteration 467 — Enhanced Focus Timer with Presets + Desktop Notifications
+
+_Date: 2026-04-03 | PRD: prd-smart-quick-actions-v1 (Feature 3: Pomodoro Enhancement)_
+
+### Summary
+Enhanced existing focus timer in StatusBar: added preset duration picker (5/15/25/45/60 min) via right-click dropdown, desktop Notification on completion, configurable duration display, close-on-outside-click for presets popup. Exported FOCUS_PRESETS for reuse. Note: PRD Feature 2 (Smart Clipboard Pipeline) already covered by Iteration 463 (clipboard instant actions with content type detection). Feature 1 (Quick Answer Popover) deferred -- requires new BrowserWindow and separate renderer entry.
+
+### Files Changed
+- `useStatusBarTimers.ts` — Enhanced useFocusTimer: added configurable duration, FOCUS_PRESETS export, showPresets state, start(secs) method, togglePresets method, desktop Notification on completion
+- `StatusBar.tsx` — Enhanced focus timer button: right-click opens preset dropdown, display shows current duration, added presets popup component, added close-on-outside-click effect
+
+### Build
+Status: SUCCESS (tsc main/preload: 0 errors, vite build: 10.08s)
+
+### Acceptance Criteria
+- [x] Right-click timer icon opens preset duration dropdown (5/15/25/45/60 min)
+- [x] Click preset starts timer with selected duration
+- [x] Timer countdown displayed in StatusBar (mm:ss)
+- [x] Timer completion triggers desktop notification + toast + sound
+- [x] Click timer while running stops it
+- [x] Dropdown closes on outside click
+- [x] Default duration is 25 min (preserved from existing behavior)
