@@ -4477,3 +4477,84 @@ Status: SUCCESS (9.82s)
 - [x] Toast notification confirms keyboard copy
 - [x] i18n keys added for both en and zh-CN
 - [x] `npm run build` succeeds
+
+---
+
+## Iteration 454 — WelcomeScreen Decomposition
+
+_Date: 2026-04-03 | PRD: prd-welcomescreen-decomposition-v1_
+
+### Summary
+Decomposed WelcomeScreen.tsx into 3 sub-components: WelcomeHero, WelcomeRecentPrompts, WelcomeQuickActions.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/WelcomeHero.tsx` — NEW
+- `electron-ui/src/renderer/components/chat/WelcomeRecentPrompts.tsx` — NEW
+- `electron-ui/src/renderer/components/chat/WelcomeQuickActions.tsx` — NEW
+- `electron-ui/src/renderer/components/chat/WelcomeScreen.tsx` — MODIFIED
+
+### Build
+Status: SUCCESS
+
+---
+
+## Iteration 455 — ChatInput & SessionList Decomposition
+
+_Date: 2026-04-03 | PRD: component decomposition_
+
+### Summary
+Extracted sub-components: ContextUsageMeter, SnippetPopup, GhostTextOverlay, CharWordCounter (ChatInput 562->453), usePinnedSessions, useCollapsedGroups, BulkActionBar (SessionList 518->469).
+
+### Build
+Status: SUCCESS
+
+---
+
+## Iteration 456 — MessageList Decomposition
+
+_Date: 2026-04-03 | PRD: component decomposition_
+
+### Summary
+Extracted VirtualSeparatorRow and RewindDialog from MessageList (517->359 lines).
+
+### Build
+Status: SUCCESS
+
+---
+
+## Iteration 457 — Conversation Branching (Fork, Branch Badge, Compare View)
+
+_Date: 2026-04-03 | PRD: prd-conversation-branching-v1_
+
+### Summary
+All 3 features: Fork from any user message (context menu + toolbar), BranchBadge on fork points, CompareView side-by-side.
+
+### Files Changed
+- `BranchBadge.tsx` — NEW (141 lines)
+- `CompareView.tsx` — NEW (259 lines)
+- `ChatPanel.tsx`, `Message.tsx`, `MessageActionToolbar.tsx`, `MessageContextMenu.tsx`, `MessageList.tsx` — MODIFIED
+- `app.types.ts` — added forkMap
+- `en.json`, `zh-CN.json` — added fork.* namespace (14 keys each)
+
+### Build
+Status: SUCCESS
+
+---
+
+## Iteration 458 — WelcomeHero TS Fix + PRD Archive
+
+_Date: 2026-04-03 | Sprint cleanup_
+
+### Summary
+Conversation branching (Iteration 456 task) was already implemented under Iteration 457 by a prior agent run. This iteration fixes the pre-existing TypeScript error in WelcomeHero.tsx (displayName type was string but prefs.displayName is string | undefined) and archives the branching PRD to todo_done.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/WelcomeHero.tsx` — fix displayName prop type: string -> string | undefined (eliminates pre-existing TS2322 error)
+- `.claude/agents-cowork/todo_done/prd-conversation-branching-v1.md` — archived (all acceptance criteria marked done)
+
+### Build
+Status: SUCCESS
+
+### Acceptance Criteria
+- [x] `tsc --noEmit` passes with zero errors (was 1 pre-existing error)
+- [x] Conversation branching PRD archived to todo_done

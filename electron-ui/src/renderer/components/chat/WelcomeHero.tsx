@@ -11,7 +11,7 @@ interface Persona {
 
 interface WelcomeHeroProps {
   greeting: string
-  displayName: string
+  displayName: string | undefined
   activePersona: Persona | undefined
   accentTint: string
 }
