@@ -4030,3 +4030,32 @@ _Date: 2026-04-02_
 - `electron-ui/src/renderer/i18n/locales/en.json` (+3 keys)
 - `electron-ui/src/renderer/i18n/locales/zh-CN.json` (+3 keys)
 - `electron-ui/package.json` (version bump to 1.1.116)
+
+---
+
+## Iteration 440 — Store Decomposition (chatStore + uiStore)
+
+_Date: 2026-04-02 | Tech Debt / Decomposition_
+
+### Summary
+`store/index.ts` had grown to 727 lines, approaching the 800-line decomposition threshold. Extracted two large stores into dedicated sub-modules while keeping the barrel re-export pattern so all 82 consumer files continue to import from `store/index.ts` without changes.
+
+### Changes
+
+1. **`store/chatStore.ts`** (new, 471 lines)
+   - Extracted ChatState interface, TaskQueueItem type, streaming buffer (RAF-throttled delta accumulation), and all chat actions
+   - Used forward-reference pattern (`let useChatStoreRef`) to solve circular dependency between module-level `flushStreamingBuffer()` and the store instance
+
+2. **`store/uiStore.ts`** (new, 202 lines)
+   - Extracted UiState interface, SidebarTab/NavItem/NotificationEntry types, and all UI actions
+   - Includes localStorage persistence for sidebar tab, session notes, pinned note IDs
+
+3. **`store/index.ts`** (rewritten to 76 lines)
+   - Thin barrel file re-exporting `useChatStore`, `TaskQueueItem`, `useUiStore`, `SidebarTab`, `NavItem`, `NotificationEntry` from sub-modules
+   - SessionStore (~30 lines) and PrefsStore (~40 lines) remain inline (both tiny)
+
+### Files Modified
+- `electron-ui/src/renderer/store/chatStore.ts` (new, 471 lines)
+- `electron-ui/src/renderer/store/uiStore.ts` (new, 202 lines)
+- `electron-ui/src/renderer/store/index.ts` (rewritten from 727 to 76 lines)
+- `electron-ui/package.json` (version bump to 1.1.117)

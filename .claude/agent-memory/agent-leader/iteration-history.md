@@ -43,6 +43,24 @@ type: project
 ### Outstanding Tech Debt (as of It.402)
 - skillMarketplace.ts (~1860 lines) -- data-only, exempted from 800-line rule
 - ChatHeader.tsx (558 lines) -- monitor, decompose at 600
-- store/index.ts (605 lines) at comfort limit
-- MessageList.tsx (683 lines) approaching 800-line threshold
+- store/index.ts (703 lines as of It.435) approaching 800-line threshold
+- MessageList.tsx (517 lines as of It.435) -- healthy after prior decomposition
 - WorkflowCanvas.tsx (451 lines) -- healthy
+
+### Iteration 435 (2026-04-02)
+- **P0 Bug Fix**: Definitive loading screen fix
+- **Root causes identified and eliminated**:
+  1. IPC handler registration race condition (registerAllHandlers called after loadFile)
+  2. Blocking listSessions() in createAppMenu() during startup
+  3. No double-registration guard (crashes on macOS activate)
+  4. Splash overlay never auto-removed (z-index:99999 blocks app forever)
+  5. Unprotected IPC calls in child components (AppShell, I18nProvider)
+- **Structural fixes** (not surface-level patches like previous attempts):
+  - IPC handlers register BEFORE renderer loads
+  - Non-blocking deferred menu construction
+  - handlersRegistered guard + safeHandle helper
+  - 10s hard splash removal timer
+  - Startup fault isolation (try-catch per step)
+- **Version**: 1.1.112, Commit: ad74b7f
+- **Note**: prd-conversation-templates-v1.md in todo/ is a duplicate -- feature already shipped in Iteration 416
+- **Next forced retro**: After Iteration 441 (6 more iterations)
