@@ -12,6 +12,8 @@ const FOLDER_EMOJIS = [
   '\u{1F4BB}', '\u{1F680}', '\u{1F3AF}', '\u2764\uFE0F', '\u2699\uFE0F',
 ]
 
+const EMPTY_FOLDERS: SessionFolder[] = []
+
 const FOLDER_COLORS = [
   '#3b82f6', // blue
   '#8b5cf6', // violet
@@ -31,7 +33,7 @@ interface SessionFoldersProps {
 
 export default function SessionFolders({ activeFolder, onFolderSelect, folderCounts = {} }: SessionFoldersProps) {
   const t = useT()
-  const folders = usePrefsStore(s => s.prefs.sessionFolders || [])
+  const folders = usePrefsStore(s => s.prefs.sessionFolders || EMPTY_FOLDERS)
   const [showMenu, setShowMenu] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [newName, setNewName] = useState('')

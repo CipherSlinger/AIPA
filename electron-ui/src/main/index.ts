@@ -105,6 +105,10 @@ function createWindow(): void {
     mainWindow.loadURL('http://localhost:5173')
     mainWindow.webContents.openDevTools()
   } else {
+    mainWindow.webContents.on('console-message', (_e, level, message, line, sourceId) => {
+      const prefix = ['verbose', 'info', 'warning', 'error'][level] || 'log'
+      console.log(`[RENDERER:${prefix}] ${message}  (${sourceId}:${line})`)
+    })
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
   }
 

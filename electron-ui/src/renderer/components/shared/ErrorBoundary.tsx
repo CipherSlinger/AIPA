@@ -60,6 +60,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     this.setState({ errorInfo })
     console.error('[ErrorBoundary] Caught error:', error.message)
+    console.error('[ErrorBoundary] Stack:', errorInfo.componentStack)
 
     // STABILITY (Iteration 308): Back up conversation state to sessionStorage
     // so it can be restored after recovery. This is the safety net that prevents

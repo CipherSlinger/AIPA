@@ -20,7 +20,9 @@
       "Bash(npm run:*)",
       "Bash(__NEW_LINE_385b9b1c549ed2a7__ mkdir:*)",
       "Bash(echo \"exit: $?\")",
-      "Bash(node_modules/.bin/electron --version)"
+      "Bash(node_modules/.bin/electron --version)",
+      "Bash(C:/Users/osr/Desktop/AIPA/electron-ui/node_modules/.bin/electron --version 2>&1)",
+      "Skill(commit-commands:commit)"
     ]
   }
 }
