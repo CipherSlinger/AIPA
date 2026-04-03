@@ -21,6 +21,7 @@ import WelcomeScreen from './WelcomeScreen'
 import FollowUpChips from './FollowUpChips'
 import TokenUsageBar from './TokenUsageBar'
 import IdleReturnDialog from './IdleReturnDialog'
+import QuickCapture from './QuickCapture'
 import { getTemplateById } from '../../utils/promptTemplates'
 import { MODEL_OPTIONS } from '../settings/settingsConstants'
 import { useT } from '../../i18n'
@@ -641,6 +642,9 @@ export default function ChatPanel() {
           onNeverAsk={suppressIdleForever}
         />
       )}
+
+      {/* Quick note capture (Iteration 437) */}
+      {messages.length > 0 && <QuickCapture />}
     </div>
   )
 }

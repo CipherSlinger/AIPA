@@ -3914,3 +3914,38 @@ Three session management intelligence features: auto-tagging, session statistics
 - `electron-ui/src/renderer/i18n/locales/en.json` (+12 keys)
 - `electron-ui/src/renderer/i18n/locales/zh-CN.json` (+12 keys)
 - `electron-ui/package.json` (version bump to 1.1.113)
+
+---
+
+## Iteration 437 — Quick Note Capture Widget
+
+_Date: 2026-04-02 | Version: 1.1.114_
+_PRD: prd-notes-integration-v1.md (item 1)_
+
+### Summary
+Added a floating quick capture button for rapid note-taking during conversations. Appears in the bottom-right corner of the chat area when a conversation is active.
+
+### Changes
+
+1. **QuickCapture Component** (new QuickCapture.tsx)
+   - Floating "+" button, bottom-right of chat area, above StatusBar
+   - Opens inline card with textarea, category selector, and save button
+   - Ctrl+Shift+N keyboard shortcut to open/close
+   - Enter saves (when text present), Escape dismisses
+   - Auto-generates note title from first 30 chars of content
+   - Toast confirmation on save with category name
+   - Slide-up animation on open
+
+2. **ChatPanel Integration** (ChatPanel.tsx)
+   - QuickCapture rendered when conversation has messages
+   - Import and render after IdleReturnDialog
+
+3. **i18n** (en.json, zh-CN.json)
+   - 7 new keys: quickCapture, quickCaptureSaved, savedTo, jotDown, noCategory, save
+
+#### Files Modified
+- `electron-ui/src/renderer/components/chat/QuickCapture.tsx` (new, 188 lines)
+- `electron-ui/src/renderer/components/chat/ChatPanel.tsx` (import + render)
+- `electron-ui/src/renderer/i18n/locales/en.json` (+7 keys)
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` (+7 keys)
+- `electron-ui/package.json` (version bump to 1.1.114)

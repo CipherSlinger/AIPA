@@ -1137,7 +1137,13 @@
     "formatBulletList": "无序列表",
     "formatNumberedList": "有序列表",
     "formatCode": "代码",
-    "formatLink": "链接"
+    "formatLink": "链接",
+    "quickCapture": "快速笔记",
+    "quickCaptureSaved": "笔记已保存",
+    "savedTo": "笔记已保存到 {{category}}",
+    "jotDown": "随手记下想法...",
+    "noCategory": "无分类",
+    "save": "保存"
   },
   "clipboard": {
     "pasteAndAsk": "粘贴并提问",
