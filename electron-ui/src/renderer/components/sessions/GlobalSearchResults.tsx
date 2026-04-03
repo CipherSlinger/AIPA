@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { MessageSquare, Globe, X } from 'lucide-react'
 import { useT, useDateLocale } from '../../i18n'
 import { getSessionAvatarColor } from './sessionUtils'
@@ -33,6 +33,34 @@ export default function GlobalSearchResults({
 }: GlobalSearchResultsProps) {
   const t = useT()
   const dateLocale = useDateLocale()
+  const [focusedIdx, setFocusedIdx] = useState(-1)
+
+  // Reset focused index when results change
+  useEffect(() => { setFocusedIdx(-1) }, [results])
+
+  // Keyboard navigation: ArrowUp/Down to navigate, Enter to open, Escape to close
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (results.length === 0) return
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setFocusedIdx(prev => Math.min(prev + 1, results.length - 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setFocusedIdx(prev => Math.max(prev - 1, 0))
+    } else if (e.key === 'Enter' && focusedIdx >= 0 && focusedIdx < results.length) {
+      e.preventDefault()
+      onOpenSession(results[focusedIdx].sessionId)
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      onClose()
+    }
+  }, [results, focusedIdx, onOpenSession, onClose])
+
+  useEffect(() => {
+    if (results.length === 0) return
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [results.length, handleKeyDown])
 
   return (
     <div style={{
@@ -69,8 +97,9 @@ export default function GlobalSearchResults({
           <X size={12} />
         </button>
       </div>
-      {results.map(result => {
+      {results.map((result, idx) => {
         const isActive = result.sessionId === currentSessionId
+        const isFocused = idx === focusedIdx
         return (
           <div
             key={result.sessionId}
@@ -82,10 +111,12 @@ export default function GlobalSearchResults({
               padding: '8px 12px',
               cursor: 'pointer',
               borderBottom: '1px solid rgba(255,255,255,0.04)',
-              background: isActive ? 'var(--bg-active)' : 'transparent',
+              background: isFocused ? 'var(--popup-item-hover)' : isActive ? 'var(--bg-active)' : 'transparent',
+              outline: isFocused ? '1px solid var(--accent)' : 'none',
+              outlineOffset: -1,
               transition: 'background 0.15s ease',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = isActive ? 'var(--bg-active)' : 'var(--popup-item-hover)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = isActive ? 'var(--bg-active)' : 'var(--popup-item-hover)'; setFocusedIdx(idx) }}
             onMouseLeave={(e) => { e.currentTarget.style.background = isActive ? 'var(--bg-active)' : 'transparent' }}
           >
             <div style={{

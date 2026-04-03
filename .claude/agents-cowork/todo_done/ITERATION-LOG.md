@@ -4335,3 +4335,32 @@ Status: SUCCESS (9.69s)
 - [x] Sidebar resize deprioritized (toggle mechanism already exists) — skipped
 - [x] No new i18n keys needed
 - [x] `npm run build` succeeds
+
+---
+
+## Iteration 449 — Keyboard Accessibility Polish
+
+_Date: 2026-04-03 | PRD: prd-keyboard-accessibility-polish-v1_
+
+### Summary
+Added skip-to-content keyboard navigation link (hidden until focused via Tab, then slides into view at top), added Escape key handlers to all popover/dropdown components that were missing them (sort dropdown in SessionListHeader, context detail popover in ContextIndicator), and added `:focus-visible` CSS for consistent focus rings across the app.
+
+### Files Changed
+- `electron-ui/src/renderer/styles/globals.css` — Added `.skip-link` CSS class with animated slide-in on focus
+- `electron-ui/src/renderer/components/layout/AppShell.tsx` — Added skip-to-content `<a>` link, added `id="main-content"` to main content div
+- `electron-ui/src/renderer/components/chat/ContextIndicator.tsx` — Added Escape key handler to context detail popover (was only outside-click)
+- `electron-ui/src/renderer/components/sessions/SessionListHeader.tsx` — Added Escape key handler to sort dropdown (was only outside-click)
+- `electron-ui/src/renderer/i18n/locales/en.json` — Added `a11y.skipToContent` key
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` — Added `a11y.skipToContent` key
+
+### Build
+Status: SUCCESS (9.83s)
+
+### Acceptance Criteria
+- [x] Skip-to-content link appears on Tab focus, hidden otherwise
+- [x] Skip link scrolls to main content area
+- [x] Sort dropdown closes on Escape key
+- [x] Context detail popover closes on Escape key
+- [x] `:focus-visible` focus rings present in globals.css
+- [x] i18n keys added for both en and zh-CN
+- [x] `npm run build` succeeds

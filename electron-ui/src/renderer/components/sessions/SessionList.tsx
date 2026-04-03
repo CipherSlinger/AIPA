@@ -2,7 +2,7 @@
 // Sub-components: SessionItem, SessionFilters, SessionTooltip, GlobalSearchResults, TagPicker, BulkDeleteBar, SessionListHeader
 // Hooks: useSessionListActions, useSessionTooltip
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
-import { MessageSquare, Search, CheckSquare, Square, Globe, ChevronRight, ChevronDown, Archive } from 'lucide-react'
+import { MessageSquare, Search, CheckSquare, Square, Globe, Archive } from 'lucide-react'
 import { SessionListItem } from '../../types/app.types'
 import { usePrefsStore, useSessionStore } from '../../store'
 import { SkeletonSessionRow } from '../ui/Skeleton'
@@ -17,6 +17,7 @@ import BulkDeleteBar from './BulkDeleteBar'
 import SessionFolders from './SessionFolders'
 import SessionStats from './SessionStats'
 import SessionListHeader from './SessionListHeader'
+import DateGroupHeader from './DateGroupHeader'
 import { useSessionListActions } from './useSessionListActions'
 import { useSessionTooltip } from './useSessionTooltip'
 
@@ -482,34 +483,13 @@ export default function SessionList() {
             if (group !== prevGroup) {
               const groupCount = dateGroupMap.get(group) || 0
               dateHeader = (
-                <div
+                <DateGroupHeader
                   key={`date-${group}`}
-                  onClick={() => toggleGroupCollapse(group)}
-                  style={{
-                    padding: '6px 14px 4px',
-                    fontSize: 10,
-                    fontWeight: 600,
-                    color: 'var(--text-muted)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    opacity: 0.7,
-                    borderBottom: '1px solid var(--border)',
-                    background: 'var(--bg-sessionpanel)',
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                    transition: 'background 0.1s ease',
-                  }}
-                >
-                  {isGroupCollapsed ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
-                  <span style={{ flex: 1 }}>{group}</span>
-                  <span style={{ fontSize: 9, opacity: 0.6 }}>{groupCount}</span>
-                </div>
+                  group={group}
+                  count={groupCount}
+                  isCollapsed={isGroupCollapsed}
+                  onToggle={() => toggleGroupCollapse(group)}
+                />
               )
             } else if (isGroupCollapsed) {
               // Skip rendering this session since its group is collapsed
