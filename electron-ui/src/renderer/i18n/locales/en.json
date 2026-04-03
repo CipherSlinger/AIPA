@@ -1569,7 +1569,8 @@
     "dismiss": "Dismiss",
     "sessionList": "Session list",
     "chatArea": "Chat",
-    "statusBar": "Status bar"
+    "statusBar": "Status bar",
+    "skipToContent": "Skip to content"
   },
   "convTemplate": {
     "section": "Templates",

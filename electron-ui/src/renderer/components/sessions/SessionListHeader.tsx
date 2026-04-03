@@ -53,10 +53,10 @@ export default function SessionListHeader({
   const sortBtnRef = useRef<HTMLButtonElement>(null)
   const sortDropdownRef = useRef<HTMLDivElement>(null)
 
-  // Close sort dropdown on outside click
+  // Close sort dropdown on outside click or Escape
   useEffect(() => {
     if (!showSortDropdown) return
-    const handler = (e: MouseEvent) => {
+    const mouseHandler = (e: MouseEvent) => {
       if (
         sortDropdownRef.current && !sortDropdownRef.current.contains(e.target as Node) &&
         sortBtnRef.current && !sortBtnRef.current.contains(e.target as Node)
@@ -64,8 +64,12 @@ export default function SessionListHeader({
         setShowSortDropdown(false)
       }
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    const keyHandler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.stopPropagation(); setShowSortDropdown(false) }
+    }
+    document.addEventListener('mousedown', mouseHandler)
+    document.addEventListener('keydown', keyHandler)
+    return () => { document.removeEventListener('mousedown', mouseHandler); document.removeEventListener('keydown', keyHandler) }
   }, [showSortDropdown])
 
   const sortOptions: { id: SortOption; labelKey: string; shortKey: string }[] = [

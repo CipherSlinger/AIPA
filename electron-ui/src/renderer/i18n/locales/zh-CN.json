@@ -1587,7 +1587,8 @@
     "dismiss": "关闭",
     "sessionList": "会话列表",
     "chatArea": "聊天",
-    "statusBar": "状态栏"
+    "statusBar": "状态栏",
+    "skipToContent": "跳至内容"
   },
   "convTemplate": {
     "section": "模板",

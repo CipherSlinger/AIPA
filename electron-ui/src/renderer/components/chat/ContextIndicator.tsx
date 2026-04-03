@@ -63,7 +63,7 @@ export function ContextBadge({ onNewConversation }: { onNewConversation: () => v
   const badgeRef = useRef<HTMLButtonElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
 
-  // Close popover on outside click
+  // Close popover on outside click or Escape
   useEffect(() => {
     if (!popoverOpen) return
     const handleClick = (e: MouseEvent) => {
@@ -74,8 +74,12 @@ export function ContextBadge({ onNewConversation }: { onNewConversation: () => v
         setPopoverOpen(false)
       }
     }
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.stopPropagation(); setPopoverOpen(false) }
+    }
     document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
+    document.addEventListener('keydown', handleKey)
+    return () => { document.removeEventListener('mousedown', handleClick); document.removeEventListener('keydown', handleKey) }
   }, [popoverOpen])
 
   if (!ctx || ctx.total === 0) return null
