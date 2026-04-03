@@ -83,3 +83,10 @@ Note: Initial PRDs (session-management-v2 + chat-ux-polish-v2) were scrapped -- 
 
 Conflict: Both touch i18n. Group 2 also touches ipc/preload (main process).
 Decision: Serial execution. Group 1 (message interaction, renderer-only) first, then Group 2 (data backup, requires main process changes).
+
+## Iteration 425 completed
+- Feature: Auto-collapse long messages (>2000 chars with gradient preview), enhanced message stats (word/char count + token estimate tooltip) | Build: PASS | Commit: 65bf5a6
+
+## Iteration 426 completed
+- Feature: Data Backup & Restore - export/import all user data as JSON, backup/restore buttons in Settings > About | Build: PASS | Commit: pending
+

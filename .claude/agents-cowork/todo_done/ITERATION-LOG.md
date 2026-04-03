@@ -3445,3 +3445,38 @@ _Date: 2026-04-02_
 - `electron-ui/src/renderer/i18n/locales/en.json`
 - `electron-ui/src/renderer/i18n/locales/zh-CN.json`
 - `electron-ui/package.json` (version bump to 1.1.102)
+
+---
+
+### Iteration 426 — Data Backup & Restore
+**Date:** 2026-04-02
+**PRD:** prd-data-backup-v1.md
+**Version:** 1.1.103
+
+#### Changes
+1. **Full Data Export (Backup)** (SettingsAbout.tsx, main/ipc/index.ts)
+   - "Backup" button in Settings > About exports all user data as JSON
+   - Exports: personas, workflows, notes, memories, snippets, quick replies, templates, settings
+   - API keys are excluded for security
+   - Native save dialog, toast notification with item counts and file size
+
+2. **Data Import (Restore)** (SettingsAbout.tsx, main/ipc/index.ts)
+   - "Restore" button opens native file dialog to select backup JSON
+   - Validates backup format, merges with existing data (no duplicates by ID)
+   - Settings are overwritten, arrays are merged
+   - App reloads after successful import to apply all changes
+
+3. **IPC & Preload** (main/ipc/index.ts, preload/index.ts)
+   - Added `backup:export` and `backup:import` IPC handlers
+   - Added `backupExport()` and `backupImport()` preload API methods
+
+4. **i18n coverage** (en.json, zh-CN.json)
+   - Added `backup.title`, `backup.export`, `backup.import`, `backup.hint`, `backup.exportSuccess`, `backup.importSuccess`, `backup.invalidFormat`
+
+#### Files Modified
+- `electron-ui/src/main/ipc/index.ts`
+- `electron-ui/src/preload/index.ts`
+- `electron-ui/src/renderer/components/settings/SettingsAbout.tsx`
+- `electron-ui/src/renderer/i18n/locales/en.json`
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json`
+- `electron-ui/package.json` (version bump to 1.1.103)

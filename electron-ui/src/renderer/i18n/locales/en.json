@@ -1552,5 +1552,14 @@
     "title": "Notifications",
     "clearAll": "Clear all",
     "empty": "No notifications yet"
+  },
+  "backup": {
+    "title": "Data Backup & Restore",
+    "export": "Backup",
+    "import": "Restore",
+    "hint": "Export all your data (personas, workflows, notes, memories, snippets, settings) to a file. API keys are never exported.",
+    "exportSuccess": "Backup saved ({{size}} KB): {{items}}",
+    "importSuccess": "Restored: {{items}}",
+    "invalidFormat": "Invalid backup file format"
   }
 }

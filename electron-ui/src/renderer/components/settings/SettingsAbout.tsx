@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
-import { ExternalLink, Keyboard, Activity } from 'lucide-react'
+import { ExternalLink, Keyboard, Activity, Download, Upload, Loader } from 'lucide-react'
 import { useI18n } from '../../i18n'
+import { useUiStore } from '../../store'
 import DiagnosticsPanel from './DiagnosticsPanel'
 
 interface SettingsAboutProps {
@@ -12,6 +13,54 @@ interface SettingsAboutProps {
 export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts }: SettingsAboutProps) {
   const { t } = useI18n()
   const [showDiagnostics, setShowDiagnostics] = useState(false)
+  const [backupLoading, setBackupLoading] = useState(false)
+  const [restoreLoading, setRestoreLoading] = useState(false)
+  const addToast = useUiStore(s => s.addToast)
+
+  const handleBackup = async () => {
+    setBackupLoading(true)
+    try {
+      const result = await window.electronAPI.backupExport()
+      if (result.success && result.counts) {
+        const parts: string[] = []
+        if (result.counts.personas > 0) parts.push(`${result.counts.personas} personas`)
+        if (result.counts.workflows > 0) parts.push(`${result.counts.workflows} workflows`)
+        if (result.counts.notes > 0) parts.push(`${result.counts.notes} notes`)
+        if (result.counts.memories > 0) parts.push(`${result.counts.memories} memories`)
+        if (result.counts.snippets > 0) parts.push(`${result.counts.snippets} snippets`)
+        addToast('success', t('backup.exportSuccess', { size: String(result.sizeKB), items: parts.join(', ') || 'settings' }))
+      } else if (result.error) {
+        addToast('error', result.error)
+      }
+    } catch (err) {
+      addToast('error', String(err))
+    }
+    setBackupLoading(false)
+  }
+
+  const handleRestore = async () => {
+    setRestoreLoading(true)
+    try {
+      const result = await window.electronAPI.backupImport()
+      if (result.success && result.imported) {
+        const parts: string[] = []
+        for (const [key, count] of Object.entries(result.imported)) {
+          if (key !== 'settings' && count > 0) parts.push(`${count} ${key}`)
+        }
+        addToast('success', t('backup.importSuccess', { items: parts.join(', ') || 'settings' }))
+        // Reload prefs from store after import
+        const allPrefs = await window.electronAPI.prefsGetAll()
+        if (allPrefs) {
+          window.location.reload()
+        }
+      } else if (result.error) {
+        addToast('error', result.error)
+      }
+    } catch (err) {
+      addToast('error', String(err))
+    }
+    setRestoreLoading(false)
+  }
 
   if (showDiagnostics) {
     return <DiagnosticsPanel onBack={() => setShowDiagnostics(false)} />
@@ -84,6 +133,50 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
             fontFamily: 'inherit',
           }}>Ctrl+/</kbd>
         </button>
+      </div>
+
+      <div style={{ borderTop: '1px solid var(--border)' }} />
+
+      {/* Data Backup & Restore */}
+      <div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>{t('backup.title')}</div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={handleBackup}
+            disabled={backupLoading}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8, flex: 1,
+              padding: '10px 12px', background: 'var(--bg-active)',
+              border: '1px solid var(--border)', borderRadius: 6,
+              color: 'var(--text-primary)', cursor: backupLoading ? 'wait' : 'pointer', fontSize: 12,
+              justifyContent: 'center', opacity: backupLoading ? 0.6 : 1,
+            }}
+            onMouseEnter={(e) => { if (!backupLoading) e.currentTarget.style.borderColor = 'var(--accent)' }}
+            onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+          >
+            {backupLoading ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={14} style={{ color: 'var(--accent)' }} />}
+            {t('backup.export')}
+          </button>
+          <button
+            onClick={handleRestore}
+            disabled={restoreLoading}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8, flex: 1,
+              padding: '10px 12px', background: 'var(--bg-active)',
+              border: '1px solid var(--border)', borderRadius: 6,
+              color: 'var(--text-primary)', cursor: restoreLoading ? 'wait' : 'pointer', fontSize: 12,
+              justifyContent: 'center', opacity: restoreLoading ? 0.6 : 1,
+            }}
+            onMouseEnter={(e) => { if (!restoreLoading) e.currentTarget.style.borderColor = 'var(--accent)' }}
+            onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+          >
+            {restoreLoading ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Upload size={14} style={{ color: 'var(--accent)' }} />}
+            {t('backup.import')}
+          </button>
+        </div>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5 }}>
+          {t('backup.hint')}
+        </div>
       </div>
 
       <div style={{ borderTop: '1px solid var(--border)' }} />

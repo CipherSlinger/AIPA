@@ -1570,5 +1570,14 @@
     "title": "通知",
     "clearAll": "全部清除",
     "empty": "暂无通知"
+  },
+  "backup": {
+    "title": "数据备份与恢复",
+    "export": "备份",
+    "import": "恢复",
+    "hint": "导出所有数据（角色、工作流、笔记、记忆、文本片段、设置）到文件。API 密钥不会被导出。",
+    "exportSuccess": "备份已保存 ({{size}} KB): {{items}}",
+    "importSuccess": "已恢复: {{items}}",
+    "invalidFormat": "无效的备份文件格式"
   }
 }

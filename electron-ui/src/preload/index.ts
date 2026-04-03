@@ -140,6 +140,19 @@ const electronAPI = {
       id: string; label: string; status: 'ok' | 'warning' | 'error'; detail: string; subDetail?: string
     }[]>,
 
+  // ── Backup & Restore (Iteration 426) ──────
+  backupExport: () =>
+    ipcRenderer.invoke('backup:export') as Promise<{
+      success?: boolean; canceled?: boolean; error?: string;
+      filePath?: string; sizeKB?: number;
+      counts?: { personas: number; workflows: number; notes: number; memories: number; snippets: number }
+    }>,
+  backupImport: () =>
+    ipcRenderer.invoke('backup:import') as Promise<{
+      success?: boolean; canceled?: boolean; error?: string;
+      imported?: Record<string, number>; backupDate?: string
+    }>,
+
   // ── Providers (multi-model support) ────
   providerListConfigs: () => ipcRenderer.invoke('provider:listConfigs'),
   providerListModels: () => ipcRenderer.invoke('provider:listModels'),
