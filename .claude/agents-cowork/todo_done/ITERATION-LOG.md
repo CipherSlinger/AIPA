@@ -4061,3 +4061,34 @@ _Date: 2026-04-02 | Tech Debt / Decomposition_
 - `electron-ui/package.json` (version bump to 1.1.117)
 
 [RETRO] retro-2026-04-02-iterations-432-440.md completed, covered Iteration 432-440, next forced retro at Iteration 450
+
+---
+
+## Iteration 441 — Component decomposition: ChatPanel + SessionList
+
+_Date: 2026-04-03 | Decomposition_
+
+### Summary
+Completed interrupted Iteration 441 decomposition. Extracted 4 sub-modules from ChatPanel.tsx (682->492 lines) and SessionList.tsx (718->567 lines), bringing both under the 800-line red line.
+
+Extracted components:
+- **RegenerateButton.tsx** (~157 lines) -- Regenerate button with model picker dropdown, extracted from ChatPanel
+- **useChatPanelEvents.ts** (~79 lines) -- Custom event listeners (sendPrompt, editSessionNote, pinNoteToChat) and budget warning logic, extracted from ChatPanel
+- **SessionListHeader.tsx** (~172 lines) -- Session list toolbar with search, sort, select, archive, stats buttons, extracted from SessionList
+- **useSessionTooltip.ts** (~69 lines) -- Session hover tooltip with preview message loading, extracted from SessionList
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/ChatPanel.tsx` (682->492 lines, -190)
+- `electron-ui/src/renderer/components/chat/RegenerateButton.tsx` (new, 157 lines)
+- `electron-ui/src/renderer/components/chat/useChatPanelEvents.ts` (new, 79 lines)
+- `electron-ui/src/renderer/components/sessions/SessionList.tsx` (718->567 lines, -151)
+- `electron-ui/src/renderer/components/sessions/SessionListHeader.tsx` (new, 172 lines)
+- `electron-ui/src/renderer/components/sessions/useSessionTooltip.ts` (new, 69 lines)
+- `electron-ui/package.json` (version bump to 1.1.118)
+
+### Build
+Status: SUCCESS (2540 modules, 9.85s)
+
+### Cleanup
+- Cleared feedback.md (P0 loading screen bug already resolved via stash + rebuild)
+- Deleted orphaned ui-spec-conversation-templates-v1.md (no matching PRD)

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { Upload, RefreshCw, AlertTriangle, ChevronDown, StickyNote, X, Check } from 'lucide-react'
+import { Upload, AlertTriangle, StickyNote, X, Check } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { StandardChatMessage, Note, NoteCategory } from '../../types/app.types'
 import { useStreamJson } from '../../hooks/useStreamJson'
@@ -11,6 +11,7 @@ import { useSessionChanges } from '../../hooks/useSessionChanges'
 import { useConversationExport } from './useConversationExport'
 import { useDragAndDrop } from './useDragAndDrop'
 import { useChatPanelShortcuts } from './useChatPanelShortcuts'
+import { useChatPanelEvents } from './useChatPanelEvents'
 import ChatHeader from './ChatHeader'
 import ChatInput from './ChatInput'
 import MessageList from './MessageList'
@@ -23,8 +24,8 @@ import TokenUsageBar from './TokenUsageBar'
 import IdleReturnDialog from './IdleReturnDialog'
 import QuickCapture from './QuickCapture'
 import PinnedNoteStrip from './PinnedNoteStrip'
+import RegenerateButton from './RegenerateButton'
 import { getTemplateById } from '../../utils/promptTemplates'
-import { MODEL_OPTIONS } from '../settings/settingsConstants'
 import { useT } from '../../i18n'
 import { useIdleReturn } from '../../hooks/useIdleReturn'
 
@@ -42,7 +43,6 @@ export default function ChatPanel() {
   const setSessionNote = useUiStore(s => s.setSessionNote)
   const removeSessionNote = useUiStore(s => s.removeSessionNote)
   const pinnedNoteIds = useUiStore(s => s.pinnedNoteIds)
-  const setPinnedNoteId = useUiStore(s => s.setPinnedNoteId)
   const removePinnedNoteId = useUiStore(s => s.removePinnedNoteId)
   const prepareRegeneration = useChatStore(s => s.prepareRegeneration)
   const lastContextUsage = useChatStore(s => s.lastContextUsage)
@@ -73,50 +73,20 @@ export default function ChatPanel() {
   // Idle return detection
   const { showDialog: showIdleDialog, idleDuration, awaySummary, summaryLoading, dismiss: dismissIdle, suppressForever: suppressIdleForever } = useIdleReturn()
 
-  // Listen for external send prompt events (from SelectionToolbar)
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const prompt = (e as CustomEvent).detail as string
-      if (prompt && !isStreaming) {
-        sendMessage(prompt)
-      }
-    }
-    window.addEventListener('aipa:sendPrompt', handler)
-    return () => window.removeEventListener('aipa:sendPrompt', handler)
-  }, [sendMessage, isStreaming])
+  // Pinned note editing state (Iteration 434)
+  const [editingNote, setEditingNote] = useState(false)
+  const [noteText, setNoteText] = useState('')
 
-  // Listen for "Pin note to session" events from command palette (Iteration 434)
-  useEffect(() => {
-    const handler = () => {
-      if (currentSessionId) {
-        setNoteText(sessionNotes[currentSessionId] || '')
-        setEditingNote(true)
-      }
-    }
-    window.addEventListener('aipa:editSessionNote', handler)
-    return () => window.removeEventListener('aipa:editSessionNote', handler)
-  }, [currentSessionId, sessionNotes])
-
-  // Listen for "Pin note to chat" events from notes panel (Iteration 439)
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const noteId = (e as CustomEvent).detail as string
-      if (noteId && currentSessionId) {
-        setPinnedNoteId(currentSessionId, noteId)
-        addToast('info', t('notes.pinnedToChat'))
-      }
-    }
-    window.addEventListener('aipa:pinNoteToChat', handler)
-    return () => window.removeEventListener('aipa:pinNoteToChat', handler)
-  }, [currentSessionId, setPinnedNoteId, addToast, t])
+  // Event listeners + budget warning (extracted Iteration 441)
+  useChatPanelEvents(
+    currentSessionId, isStreaming, totalSessionCost, prefs.maxBudgetUsd,
+    sendMessage, sessionNotes, setEditingNote, setNoteText,
+  )
 
   // Scroll-to-message state (for bookmarks panel)
   const [scrollToMessageIdx, setScrollToMessageIdx] = useState<number | undefined>(undefined)
   const [contextWarningDismissed, setContextWarningDismissed] = useState(false)
 
-  // Pinned note editing state (Iteration 434)
-  const [editingNote, setEditingNote] = useState(false)
-  const [noteText, setNoteText] = useState('')
   const currentNote = currentSessionId ? sessionNotes[currentSessionId] : undefined
 
   // Pinned note from Notes panel (Iteration 439)
@@ -133,26 +103,6 @@ export default function ChatPanel() {
 
   useEffect(() => {
     setContextWarningDismissed(false)
-  }, [currentSessionId])
-
-  // Cost budget warning: toast when session cost approaches or exceeds maxBudgetUsd
-  const budgetWarningRef = React.useRef<'none' | '80' | '100'>('none')
-  useEffect(() => {
-    const budget = prefs.maxBudgetUsd
-    if (!budget || budget <= 0 || totalSessionCost <= 0) return
-    const pct = (totalSessionCost / budget) * 100
-    if (pct >= 100 && budgetWarningRef.current !== '100') {
-      budgetWarningRef.current = '100'
-      addToast('error', t('cost.budgetExceeded', { budget: `$${budget.toFixed(2)}`, spent: `$${totalSessionCost.toFixed(3)}` }))
-    } else if (pct >= 80 && pct < 100 && budgetWarningRef.current === 'none') {
-      budgetWarningRef.current = '80'
-      addToast('warning', t('cost.budgetWarning', { percent: String(Math.round(pct)), budget: `$${budget.toFixed(2)}` }))
-    }
-  }, [totalSessionCost, prefs.maxBudgetUsd, addToast, t])
-
-  // Reset budget warning when session changes
-  useEffect(() => {
-    budgetWarningRef.current = 'none'
   }, [currentSessionId])
 
   // Regeneration
@@ -178,31 +128,15 @@ export default function ChatPanel() {
     }
   }
 
-  const [showRegenModels, setShowRegenModels] = useState(false)
-  const regenModelRef = React.useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!showRegenModels) return
-    const handler = (e: MouseEvent) => {
-      if (regenModelRef.current && !regenModelRef.current.contains(e.target as Node)) setShowRegenModels(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [showRegenModels])
-
   const handleRegenerateWithModel = async (modelId: string) => {
     if (isStreaming) return
-    setShowRegenModels(false)
     // Temporarily set model
-    const prevModel = usePrefsStore.getState().prefs.model
     usePrefsStore.getState().setPrefs({ model: modelId })
     window.electronAPI.prefsSet('model', modelId)
     const prompt = prepareRegeneration()
     if (prompt) {
       await sendMessage(prompt)
     }
-    // Note: model stays as the new model after regeneration (intentional -- user chose it)
-    void prevModel // suppress unused warning
   }
 
   const handleScrollToMessage = useCallback((idx: number) => {
@@ -478,136 +412,12 @@ export default function ChatPanel() {
         {isStreaming && <ThinkingIndicator />}
       </div>
 
-      {/* Regenerate button with model picker */}
+      {/* Regenerate button with model picker (extracted Iteration 441) */}
       {canRegenerate && (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 16px 8px' }}>
-          <div ref={regenModelRef} style={{ position: 'relative', display: 'inline-flex' }}>
-            <button
-              onClick={handleRegenerate}
-              title={`${t('chat.regenerate')} (Ctrl+Shift+R)`}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '6px 12px 6px 16px',
-                background: 'var(--action-btn-bg)',
-                border: '1px solid var(--action-btn-border)',
-                borderRight: 'none',
-                borderRadius: '20px 0 0 20px',
-                cursor: 'pointer',
-                color: 'var(--text-muted)',
-                fontSize: 12,
-                fontWeight: 500,
-                transition: 'color 150ms ease, border-color 150ms ease, background 150ms ease',
-              }}
-              onMouseEnter={(e) => {
-                const el = e.currentTarget
-                el.style.color = 'var(--accent)'
-                el.style.borderColor = 'var(--accent)'
-                el.style.background = 'var(--popup-item-hover)'
-              }}
-              onMouseLeave={(e) => {
-                const el = e.currentTarget
-                el.style.color = 'var(--text-muted)'
-                el.style.borderColor = 'var(--action-btn-border)'
-                el.style.background = 'var(--action-btn-bg)'
-              }}
-            >
-              <RefreshCw size={14} />
-              <span>{t('chat.regenerate')}</span>
-              <kbd style={{
-                fontSize: 9,
-                opacity: 0.5,
-                fontFamily: 'monospace',
-                background: 'rgba(255,255,255,0.06)',
-                padding: '1px 5px',
-                borderRadius: 3,
-                border: '1px solid rgba(255,255,255,0.1)',
-                marginLeft: 2,
-              }}>Ctrl+Shift+R</kbd>
-            </button>
-            <button
-              onClick={() => setShowRegenModels(!showRegenModels)}
-              title={t('chat.regenerateWithModel')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '6px 8px',
-                background: showRegenModels ? 'var(--popup-item-hover)' : 'var(--action-btn-bg)',
-                border: '1px solid var(--action-btn-border)',
-                borderLeft: '1px solid var(--popup-border)',
-                borderRadius: '0 20px 20px 0',
-                cursor: 'pointer',
-                color: showRegenModels ? 'var(--accent)' : 'var(--text-muted)',
-                fontSize: 12,
-                transition: 'color 150ms ease, background 150ms ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = 'var(--accent)'
-                e.currentTarget.style.background = 'var(--popup-item-hover)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = showRegenModels ? 'var(--accent)' : 'var(--text-muted)'
-                e.currentTarget.style.background = showRegenModels ? 'var(--popup-item-hover)' : 'var(--action-btn-bg)'
-              }}
-            >
-              <ChevronDown size={12} />
-            </button>
-            {showRegenModels && (
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: '100%',
-                  right: 0,
-                  marginBottom: 4,
-                  background: 'var(--popup-bg)',
-                  border: '1px solid var(--popup-border)',
-                  borderRadius: 8,
-                  boxShadow: 'var(--popup-shadow)',
-                  padding: '4px 0',
-                  minWidth: 200,
-                  zIndex: 100,
-                  animation: 'popup-in 0.15s ease',
-                }}
-              >
-                <div style={{ padding: '4px 12px 6px', fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  {t('chat.regenerateWithModel')}
-                </div>
-                {MODEL_OPTIONS.map(m => {
-                  const currentModel = usePrefsStore.getState().prefs.model || 'claude-sonnet-4-6'
-                  const isCurrent = m.id === currentModel
-                  return (
-                    <button
-                      key={m.id}
-                      onClick={() => handleRegenerateWithModel(m.id)}
-                      style={{
-                        display: 'flex',
-                        width: '100%',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        textAlign: 'left',
-                        padding: '6px 12px',
-                        background: 'none',
-                        border: 'none',
-                        color: isCurrent ? 'var(--accent)' : 'var(--text-primary)',
-                        cursor: 'pointer',
-                        fontSize: 12,
-                        fontWeight: isCurrent ? 600 : 400,
-                        lineHeight: 1.4,
-                        transition: 'background 100ms',
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
-                    >
-                      <span>{t(m.labelKey)}</span>
-                      {isCurrent && <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{t('chat.currentModel')}</span>}
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </div>
+        <RegenerateButton
+          onRegenerate={handleRegenerate}
+          onRegenerateWithModel={handleRegenerateWithModel}
+        />
       )}
 
       {/* Follow-up suggestion chips */}

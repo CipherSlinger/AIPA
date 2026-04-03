@@ -1,8 +1,8 @@
-// SessionList — decomposed orchestrator (Iteration 221)
-// Sub-components: SessionItem, SessionFilters, SessionTooltip, GlobalSearchResults, TagPicker, BulkDeleteBar
-// Hook: useSessionListActions
+// SessionList — decomposed orchestrator (Iteration 221, further decomposed Iteration 441)
+// Sub-components: SessionItem, SessionFilters, SessionTooltip, GlobalSearchResults, TagPicker, BulkDeleteBar, SessionListHeader
+// Hooks: useSessionListActions, useSessionTooltip
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
-import { RefreshCw, MessageSquare, ArrowUpDown, Search, CheckSquare, Square, Globe, Trash2, Archive, ArchiveRestore, BarChart3 } from 'lucide-react'
+import { MessageSquare, Search, CheckSquare, Square, Globe } from 'lucide-react'
 import { SessionListItem } from '../../types/app.types'
 import { usePrefsStore, useSessionStore } from '../../store'
 import { SkeletonSessionRow } from '../ui/Skeleton'
@@ -10,13 +10,15 @@ import { useT } from '../../i18n'
 import { TAG_PRESETS, getDateGroup, generateAutoTags, SESSION_COLOR_LABELS } from './sessionUtils'
 import SessionItem from './SessionItem'
 import SessionFilters from './SessionFilters'
-import SessionTooltip, { PreviewMessage } from './SessionTooltip'
+import SessionTooltip from './SessionTooltip'
 import GlobalSearchResults from './GlobalSearchResults'
 import TagPicker from './TagPicker'
 import BulkDeleteBar from './BulkDeleteBar'
 import SessionFolders from './SessionFolders'
 import SessionStats from './SessionStats'
+import SessionListHeader from './SessionListHeader'
 import { useSessionListActions } from './useSessionListActions'
+import { useSessionTooltip } from './useSessionTooltip'
 
 export default function SessionList() {
   const { prefs, setPrefs } = usePrefsStore()
@@ -36,12 +38,11 @@ export default function SessionList() {
   const listRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  // Session preview tooltip state
-  const [tooltipSession, setTooltipSession] = useState<SessionListItem | null>(null)
-  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
-  const tooltipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [previewMessages, setPreviewMessages] = useState<PreviewMessage[] | null>(null)
-  const [previewLoading, setPreviewLoading] = useState(false)
+  // Session preview tooltip (extracted hook, Iteration 441)
+  const {
+    tooltipSession, tooltipPos, previewMessages, previewLoading,
+    showSessionTooltip, hideSessionTooltip,
+  } = useSessionTooltip()
 
   // ── Session Tags ──
   const sessionTags: Record<string, string[]> = prefs.sessionTags || {}
@@ -171,54 +172,6 @@ export default function SessionList() {
     return () => window.removeEventListener('aipa:openSession', handler)
   }, [])
 
-  const showSessionTooltip = useCallback((session: SessionListItem, e: React.MouseEvent) => {
-    if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current)
-    const rect = e.currentTarget.getBoundingClientRect()
-    tooltipTimerRef.current = setTimeout(() => {
-      setTooltipSession(session)
-      setTooltipPos({ top: rect.top, left: rect.right + 8 })
-      // Load preview messages asynchronously
-      setPreviewMessages(null)
-      setPreviewLoading(true)
-      window.electronAPI.sessionLoad(session.sessionId).then((rawMessages: Array<Record<string, unknown>>) => {
-        const msgs: PreviewMessage[] = []
-        for (const entry of rawMessages) {
-          if (entry.type !== 'user' && entry.type !== 'assistant') continue
-          let content = ''
-          const msg = entry.message as Record<string, unknown> | undefined
-          if (msg?.content) {
-            if (typeof msg.content === 'string') content = msg.content
-            else if (Array.isArray(msg.content)) {
-              const textPart = (msg.content as Array<Record<string, unknown>>).find(c => c.type === 'text')
-              if (textPart?.text) content = String(textPart.text)
-            }
-          }
-          if (content) {
-            msgs.push({
-              role: entry.type as 'user' | 'assistant',
-              content: content.slice(0, 300),
-              timestamp: entry.timestamp ? new Date(entry.timestamp as string).getTime() : undefined,
-            })
-          }
-        }
-        setPreviewMessages(msgs.slice(-5))
-        setPreviewLoading(false)
-      }).catch(() => {
-        setPreviewLoading(false)
-      })
-    }, 400)
-  }, [])
-
-  const hideSessionTooltip = useCallback(() => {
-    if (tooltipTimerRef.current) {
-      clearTimeout(tooltipTimerRef.current)
-      tooltipTimerRef.current = null
-    }
-    setTooltipSession(null)
-    setPreviewMessages(null)
-    setPreviewLoading(false)
-  }, [])
-
   const handleSearchKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && filter.trim().length >= 2) {
       e.preventDefault()
@@ -279,141 +232,37 @@ export default function SessionList() {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Search bar */}
-      <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
-        <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
-          <Search size={14} style={{ position: 'absolute', left: 8, color: 'var(--text-muted)', pointerEvents: 'none' }} />
-          <input
-            ref={searchInputRef}
-            value={filter}
-            onChange={(e) => { setFilter(e.target.value); if (!e.target.value) actions.setShowGlobalResults(false) }}
-            onKeyDown={handleSearchKeyDown}
-            placeholder={t('session.search')}
-            style={{
-              flex: 1,
-              width: '100%',
-              background: 'var(--bg-input)',
-              border: '1px solid transparent',
-              borderRadius: 6,
-              padding: '6px 10px 6px 28px',
-              color: 'var(--text-primary)',
-              fontSize: 12,
-              outline: 'none',
-              transition: 'border-color 0.15s ease',
-            }}
-            onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
-            onBlur={(e) => (e.currentTarget.style.borderColor = 'transparent')}
-          />
-          {filter && (
-            <span style={{
-              position: 'absolute',
-              right: 8,
-              fontSize: 10,
-              color: filtered.length === 0 ? 'var(--error)' : 'var(--text-muted)',
-              pointerEvents: 'none',
-              whiteSpace: 'nowrap',
-            }}>
-              {filtered.length === 0 ? t('session.noResults') : t('session.results', { count: filtered.length })}
-            </span>
-          )}
-        </div>
-        <button
-          onClick={actions.loadSessions}
-          title={t('session.refresh')}
-          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-        >
-          <RefreshCw size={13} />
-        </button>
-        <button
-          onClick={() => setSortBy(prev => {
-            const next = prev === 'newest' ? 'oldest' : prev === 'oldest' ? 'alpha' : prev === 'alpha' ? 'messages' : 'newest'
-            try { localStorage.setItem('aipa:session-sort', next) } catch {}
-            return next
-          })}
-          title={`${t('session.sort')}: ${sortBy === 'newest' ? t('session.sortNewest') : sortBy === 'oldest' ? t('session.sortOldest') : sortBy === 'messages' ? t('session.sortMessages') : t('session.sortAlpha')}`}
-          style={{
-            background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 2, fontSize: 10,
-          }}
-        >
-          <ArrowUpDown size={11} />
-          <span>{sortBy === 'newest' ? t('session.sortNew') : sortBy === 'oldest' ? t('session.sortOld') : sortBy === 'messages' ? t('session.sortMsgs') : 'A-Z'}</span>
-        </button>
-        <button
-          onClick={() => {
-            if (actions.selectMode) {
-              actions.exitSelectMode()
-            } else {
-              actions.setSelectMode(true)
-              actions.setSelectedIds(new Set())
-            }
-          }}
-          title={actions.selectMode ? t('session.exitSelect') : t('session.selectMode')}
-          style={{
-            background: actions.selectMode ? 'var(--accent)' : 'none',
-            border: 'none',
-            color: actions.selectMode ? '#fff' : 'var(--text-muted)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            borderRadius: 3,
-            padding: actions.selectMode ? '1px 4px' : 0,
-          }}
-        >
-          <CheckSquare size={13} />
-        </button>
-        <button
-          onClick={actions.deleteAll}
-          title={t('session.deleteAll')}
-          style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-        >
-          <Trash2 size={13} />
-        </button>
-        <button
-          onClick={() => setShowArchived(!showArchived)}
-          title={showArchived ? t('session.hideArchived') : `${t('session.showArchived')}${archivedSessions.length > 0 ? ` (${archivedSessions.length})` : ''}`}
-          style={{
-            background: showArchived ? 'var(--accent)' : 'none',
-            border: 'none',
-            color: showArchived ? '#fff' : 'var(--text-muted)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            borderRadius: 3,
-            padding: showArchived ? '1px 4px' : 0,
-            position: 'relative',
-          }}
-        >
-          <Archive size={13} />
-          {!showArchived && archivedSessions.length > 0 && (
-            <span style={{
-              position: 'absolute', top: -4, right: -6,
-              background: 'var(--accent)', color: '#fff',
-              fontSize: 8, fontWeight: 700,
-              width: 14, height: 14, borderRadius: '50%',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              {archivedSessions.length > 99 ? '99' : archivedSessions.length}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => setShowStats(!showStats)}
-          title={t('session.statsTitle')}
-          style={{
-            background: showStats ? 'var(--accent)' : 'none',
-            border: 'none',
-            color: showStats ? '#fff' : 'var(--text-muted)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            borderRadius: 3,
-            padding: showStats ? '1px 4px' : 0,
-          }}
-        >
-          <BarChart3 size={13} />
-        </button>
-      </div>
+      {/* Search bar + toolbar (extracted Iteration 441) */}
+      <SessionListHeader
+        filter={filter}
+        onFilterChange={(value) => { setFilter(value); if (!value) actions.setShowGlobalResults(false) }}
+        filteredCount={filtered.length}
+        sortBy={sortBy}
+        onSortChange={() => setSortBy(prev => {
+          const next = prev === 'newest' ? 'oldest' : prev === 'oldest' ? 'alpha' : prev === 'alpha' ? 'messages' : 'newest'
+          try { localStorage.setItem('aipa:session-sort', next) } catch {}
+          return next
+        })}
+        selectMode={actions.selectMode}
+        onToggleSelectMode={() => {
+          if (actions.selectMode) {
+            actions.exitSelectMode()
+          } else {
+            actions.setSelectMode(true)
+            actions.setSelectedIds(new Set())
+          }
+        }}
+        showArchived={showArchived}
+        archivedCount={archivedSessions.length}
+        onToggleArchived={() => setShowArchived(!showArchived)}
+        showStats={showStats}
+        onToggleStats={() => setShowStats(!showStats)}
+        onRefresh={actions.loadSessions}
+        onDeleteAll={actions.deleteAll}
+        onSearchKeyDown={handleSearchKeyDown}
+        showGlobalResults={actions.showGlobalResults}
+        searchInputRef={searchInputRef}
+      />
 
       {/* Folder filter */}
       <div style={{ padding: '4px 10px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
