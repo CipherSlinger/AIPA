@@ -12,7 +12,6 @@
     "channel": "Channel",
     "expandNav": "Expand sidebar",
     "collapseNav": "Collapse",
-    "notifications": "Notifications",
     "tasks": "Tasks"
   },
   "chat": {
@@ -1643,11 +1642,6 @@
     "today": "today",
     "connected": "Connected",
     "idle": "Idle"
-  },
-  "notifications": {
-    "title": "Notifications",
-    "clearAll": "Clear all",
-    "empty": "No notifications yet"
   },
   "tasks": {
     "title": "Tasks",

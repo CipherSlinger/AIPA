@@ -4830,3 +4830,40 @@ Status: SUCCESS (tsc main/preload: 0 errors, vite build: 10.08s)
 - [x] Click timer while running stops it
 - [x] Dropdown closes on outside click
 - [x] Default duration is 25 min (preserved from existing behavior)
+
+---
+
+## Iteration 468 — Remove Notifications Tab & Splash Screen Cleanup
+
+_Date: 2026-04-03 | Source: User feedback (feedback.md items 1 & 3)_
+
+### Summary
+Removed the sidebar Notifications tab (unused feature with no meaningful content) and cleaned up the startup splash screen (replaced by instant React mount). Sidebar tabs now end at Ctrl+8 (Tasks). The NotificationPanel.tsx file remains as dead code (no imports reference it).
+
+### Files Changed
+- `uiStore.ts` — Removed 'notifications' from SidebarTab and NavItem types; removed NotificationEntry interface, notifications state array, unreadNotificationCount, markNotificationsRead, clearNotifications; removed notification history accumulation from addToast; updated setActiveNavItem sidebar check; updated savedSidebarTab valid list
+- `store/index.ts` — Removed NotificationEntry re-export
+- `NavRail.tsx` — Removed Bell icon import, removed Notifications NavItem, renumbered Tasks to Ctrl+8
+- `Sidebar.tsx` — Removed NotificationPanel lazy import and rendering block
+- `useAppShortcuts.ts` — Changed Ctrl+1-9 to Ctrl+1-8, removed 'notifications' from tabs array
+- `index.html` — Removed entire splash screen (#aipa-splash div, timeout scripts, error handler)
+- `App.tsx` — Removed splash screen cleanup useEffect
+- `en.json` — Removed nav.notifications key and notifications section (kept a11y.notifications for Toast)
+- `zh-CN.json` — Removed nav.notifications key and notifications section
+- `README.md` — Updated Ctrl+9 -> Ctrl+7 for Channel, removed Ctrl+8 Notifications row, Tasks is now Ctrl+8
+- `README_EN.md` — Same shortcut table corrections
+
+### Build
+Status: SUCCESS (tsc main/preload: 0 errors, vite build: 9.90s)
+
+### Acceptance Criteria
+- [x] Notifications tab removed from NavRail
+- [x] Notifications panel removed from Sidebar
+- [x] 'notifications' removed from SidebarTab and NavItem types
+- [x] Notification history accumulation removed from addToast (toasts still work)
+- [x] Splash screen div and scripts removed from index.html
+- [x] Splash cleanup useEffect removed from App.tsx
+- [x] Keyboard shortcuts renumbered (Tasks = Ctrl+8)
+- [x] i18n keys cleaned up (nav.notifications and notifications.* section removed)
+- [x] README shortcuts table updated
+- [x] Desktop notifications setting in Settings preserved (different feature)

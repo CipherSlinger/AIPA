@@ -97,7 +97,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 ### Channel (Feishu & WeChat)
 - Connect your **Feishu** workspace bot via webhook URL + App credentials
 - Connect your **WeChat** via the official Tencent OpenClaw WeChat CLI plugin (`@tencent-weixin/openclaw-weixin-cli`)
-- Configure, test, and manage both channels from the sidebar `Radio` icon (`Ctrl+9`)
+- Configure, test, and manage both channels from the sidebar `Radio` icon (`Ctrl+7`)
 - Powered by OpenClaw integration
 
 ### System Tray & Global Access
@@ -132,8 +132,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 | `Ctrl+,` | Open Settings |
 | `Ctrl+1–4` | History, Files, Notes, Skills |
 | `Ctrl+5–7` | Memory, Workflows, Channel |
-| `Ctrl+8` | Notifications |
-| `Ctrl+9` | Tasks |
+| `Ctrl+8` | Tasks |
 | `Ctrl+/` | Shortcut cheatsheet |
 | `Ctrl+Up/Down` | Step through messages (with focus indicator) |
 | `Ctrl+Home/End` | Jump to first/last message |

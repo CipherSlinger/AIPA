@@ -35,22 +35,6 @@ export default function App() {
   const [showShortcuts, setShowShortcuts] = useState(false)
   const initCalledRef = useRef(false)
 
-  // Remove splash screen once React has mounted
-  useEffect(() => {
-    console.log('[AIPA] React mounted — removing splash screen')
-    const splash = document.getElementById('aipa-splash')
-    if (splash) {
-      splash.style.opacity = '0'
-      setTimeout(() => { splash.style.display = 'none' }, 300)
-    }
-    if ((window as any).__aipaSplashTimer) {
-      clearTimeout((window as any).__aipaSplashTimer)
-    }
-    if ((window as any).__aipaSplashHardTimer) {
-      clearTimeout((window as any).__aipaSplashHardTimer)
-    }
-  }, [])
-
   // Load preferences on startup
   useEffect(() => {
     const init = async () => {

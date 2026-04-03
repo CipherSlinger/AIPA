@@ -10,7 +10,7 @@ export { useChatStore } from './chatStore'
 export type { TaskQueueItem } from './chatStore'
 
 export { useUiStore } from './uiStore'
-export type { SidebarTab, NavItem, NotificationEntry } from './uiStore'
+export type { SidebarTab, NavItem } from './uiStore'
 
 // ── Session store ───────────────────────────────
 interface SessionState {

@@ -1,5 +1,5 @@
 import React from 'react'
-import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, Settings, User, PanelLeftClose, PanelLeftOpen, Radio, Bell, CheckSquare } from 'lucide-react'
+import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, Settings, User, PanelLeftClose, PanelLeftOpen, Radio, CheckSquare } from 'lucide-react'
 import { useUiStore, useChatStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 import { AVATAR_PRESETS } from './avatarPresets'
@@ -238,9 +238,7 @@ export default function NavRail() {
   const isMemoryActive = activeNavItem === 'memory' && sidebarTab === 'memory'
   const isWorkflowsActive = activeNavItem === 'workflows' && sidebarTab === 'workflows'
   const isChannelActive = activeNavItem === 'channel' && sidebarTab === 'channel'
-  const isNotificationsActive = activeNavItem === 'notifications' && sidebarTab === 'notifications'
   const isTasksActive = activeNavItem === 'tasks' && sidebarTab === 'tasks'
-  const unreadNotificationCount = useUiStore(s => s.unreadNotificationCount)
   const isStreaming = useChatStore(s => s.isStreaming)
   const isSettingsActive = useUiStore(s => s.settingsModalOpen)
   // Unread session count: sessions that received new messages while not being the active session
@@ -359,22 +357,11 @@ export default function NavRail() {
         expanded={navExpanded}
       />
 
-      {/* Notifications */}
-      <NavItem
-        icon={<Bell size={iconSize} />}
-        label={t('nav.notifications')}
-        shortcut="Ctrl+8"
-        isActive={isNotificationsActive}
-        badge={unreadNotificationCount}
-        onClick={() => setActiveNavItem('notifications')}
-        expanded={navExpanded}
-      />
-
       {/* Tasks (Iteration 465) */}
       <NavItem
         icon={<CheckSquare size={iconSize} />}
         label={t('nav.tasks')}
-        shortcut="Ctrl+9"
+        shortcut="Ctrl+8"
         isActive={isTasksActive}
         onClick={() => setActiveNavItem('tasks')}
         expanded={navExpanded}
