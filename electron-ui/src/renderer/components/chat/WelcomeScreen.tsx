@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
-import { Bot, History, X, MessageSquare, Layers, Clock, ArrowRight, Sparkles, Lightbulb, TrendingUp, Star, Zap } from 'lucide-react'
+import { History, X, MessageSquare, Layers, Clock, ArrowRight, Sparkles, Lightbulb } from 'lucide-react'
 import { useUiStore, useSessionStore, usePrefsStore, useChatStore } from '../../store'
 import { useT } from '../../i18n'
 import { getGreetingKey, getPersonaStarters, getDefaultSuggestions, getShortcuts, getQuickActions, getTimeSuggestions, getFloatingActions } from './welcomeScreenConstants'
 import { useTips } from '../../hooks/useTips'
 import TemplatesSection from './TemplatesSection'
 import DailySummaryCard from './DailySummaryCard'
+import WelcomeHero from './WelcomeHero'
+import WelcomeRecentPrompts from './WelcomeRecentPrompts'
+import WelcomeQuickActions from './WelcomeQuickActions'
 
 interface Props {
   onSuggestion: (text: string, templateId?: string) => void
@@ -76,7 +79,6 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
 
   // Floating action bar handler: read clipboard if action involves it, else just send prompt
   const handleFloatingAction = useCallback(async (prompt: string) => {
-    // Check if this is a clipboard-based action
     const isClipboardAction = prompt.includes('{clipboard}')
     if (isClipboardAction) {
       try {
@@ -123,32 +125,13 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
       {/* Daily summary card */}
       <DailySummaryCard />
 
-      {/* Hero icon */}
-      <div className="onboard-icon" style={{
-        width: 64, height: 64, borderRadius: '50%', background: accentTint,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        {activePersona
-          ? <span style={{ fontSize: 36, lineHeight: 1 }}>{activePersona.emoji}</span>
-          : <Bot size={38} color="var(--accent)" strokeWidth={1.5} />
-        }
-      </div>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 24, color: 'var(--text-bright)', fontWeight: 700, letterSpacing: '-0.02em' }}>
-          {displayName ? t('welcome.greetingWithName', { greeting: t(greeting), name: displayName }) : t(greeting)}
-        </div>
-        {activePersona && (
-          <div style={{ fontSize: 13, color: activePersona.color, marginTop: 4, fontWeight: 500 }}>
-            {t('persona.personaGreeting', { name: activePersona.presetKey ? t(`persona.preset.${activePersona.presetKey}`) : activePersona.name })}
-          </div>
-        )}
-        <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4, opacity: 0.7 }}>
-          {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
-        </div>
-        <div style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 8, maxWidth: 360, lineHeight: 1.7 }}>
-          {t('welcome.subtitle')}
-        </div>
-      </div>
+      {/* Hero: icon + greeting + date + subtitle (Iteration 454) */}
+      <WelcomeHero
+        greeting={greeting}
+        displayName={displayName}
+        activePersona={activePersona}
+        accentTint={accentTint}
+      />
 
       {/* Time-contextual suggestions */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -407,174 +390,21 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
         </div>
       )}
 
-      {/* Recent prompts */}
-      {recentPrompts.length > 0 && (
-        <div style={{ width: '100%', maxWidth: 420 }}>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <History size={11} />
-            <span style={{ flex: 1 }}>{t('welcome.recentPrompts')}</span>
-            <button
-              onClick={clearRecentPrompts}
-              title={t('welcome.clearHistory')}
-              style={{
-                background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', padding: '1px 3px', borderRadius: 3,
-                fontSize: 10, gap: 2, opacity: 0.7, transition: 'color 150ms, opacity 150ms',
-              }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--error)'; (e.currentTarget as HTMLElement).style.opacity = '1' }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'; (e.currentTarget as HTMLElement).style.opacity = '0.7' }}
-            >
-              <X size={10} />
-              {t('welcome.clearHistory')}
-            </button>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {recentPrompts.map((prompt, i) => (
-              <button
-                key={i}
-                onClick={() => onSuggestion(prompt)}
-                style={{
-                  background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 8,
-                  padding: '8px 12px', color: 'var(--text-primary)', cursor: 'pointer', fontSize: 12,
-                  textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  transition: 'background 0.15s, border-color 0.15s',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = 'var(--action-btn-hover)';
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = 'var(--card-bg)';
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--card-border)'
-                }}
-                title={prompt}
-              >
-                {prompt.length > 80 ? prompt.slice(0, 80) + '...' : prompt}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Recent & top prompts (Iteration 454) */}
+      <WelcomeRecentPrompts
+        recentPrompts={recentPrompts}
+        topPrompts={topPrompts}
+        onSuggestion={onSuggestion}
+        onClearHistory={clearRecentPrompts}
+        onToggleFavorite={toggleFavorite}
+      />
 
-      {/* Top prompts (most frequently used) */}
-      {topPrompts.length > 0 && (
-        <div style={{ width: '100%', maxWidth: 420 }}>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <TrendingUp size={11} />
-            <span>{t('welcome.topPrompts')}</span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {topPrompts.map((item) => (
-              <div key={item.id} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <button
-                  onClick={() => onSuggestion(item.text)}
-                  style={{
-                    flex: 1, background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 8,
-                    padding: '8px 12px', color: 'var(--text-primary)', cursor: 'pointer', fontSize: 12,
-                    textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    transition: 'background 0.15s, border-color 0.15s',
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.background = 'var(--action-btn-hover)';
-                    (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.background = 'var(--card-bg)';
-                    (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--card-border)'
-                  }}
-                  title={item.text}
-                >
-                  {item.text.length > 70 ? item.text.slice(0, 70) + '...' : item.text}
-                </button>
-                <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap', minWidth: 20, textAlign: 'right' }}>
-                  {item.count}x
-                </span>
-                <button
-                  onClick={() => toggleFavorite(item.id)}
-                  style={{
-                    background: 'none', border: 'none', cursor: 'pointer', padding: 2,
-                    color: item.favorite ? 'var(--warning)' : 'var(--text-muted)', transition: 'color 0.15s',
-                  }}
-                  title={item.favorite ? t('welcome.unfavorite') : t('welcome.favorite')}
-                >
-                  <Star size={12} style={item.favorite ? { fill: 'var(--warning)' } : {}} />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Quick action buttons */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-        {quickActions.map(({ label, icon: QIcon, shortcut, action }) => (
-          <button
-            key={label}
-            onClick={action}
-            title={`${label} (${shortcut})`}
-            style={{
-              background: 'none', border: '1px solid var(--card-border)', borderRadius: 6,
-              padding: '5px 14px', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 12,
-              display: 'inline-flex', alignItems: 'center', gap: 5,
-              transition: 'border-color 0.15s, color 0.15s',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)';
-              (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)'
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--card-border)';
-              (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'
-            }}
-          >
-            <QIcon size={12} />
-            {label}
-            <kbd style={{
-              fontSize: 9, opacity: 0.5, fontFamily: 'monospace', background: 'rgba(255,255,255,0.06)',
-              padding: '1px 4px', borderRadius: 3, border: '1px solid rgba(255,255,255,0.1)',
-            }}>{shortcut}</kbd>
-          </button>
-        ))}
-      </div>
-
-      {/* Floating quick action bar — clipboard & task actions */}
-      <div style={{
-        display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center',
-        padding: '10px 16px', background: 'var(--card-bg)', border: '1px solid var(--card-border)',
-        borderRadius: 12, width: '100%', maxWidth: 420,
-      }}>
-        <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
-          <Zap size={11} color="var(--accent)" />
-          <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            {t('welcome.floatingBar')}
-          </span>
-        </div>
-        {floatingActions.map(({ label, icon: FAIcon, prompt }) => (
-          <button
-            key={label}
-            onClick={() => handleFloatingAction(prompt)}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px',
-              background: 'transparent', border: '1px solid var(--card-border)',
-              borderRadius: 8, color: 'var(--text-primary)', cursor: 'pointer', fontSize: 11,
-              transition: 'background 0.15s, border-color 0.15s, transform 0.15s',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'var(--action-btn-hover)';
-              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)';
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.03)'
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--card-border)';
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'
-            }}
-          >
-            <FAIcon size={13} />
-            {label}
-          </button>
-        ))}
-      </div>
+      {/* Quick actions + floating bar (Iteration 454) */}
+      <WelcomeQuickActions
+        quickActions={quickActions}
+        floatingActions={floatingActions}
+        onFloatingAction={handleFloatingAction}
+      />
       </div>
       {/* Bottom spacer that auto-shrinks: mirrors the top spacer for centering */}
       <div style={{ flex: '1 1 auto', minHeight: 16 }} />
