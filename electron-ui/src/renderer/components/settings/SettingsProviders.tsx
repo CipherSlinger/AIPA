@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { useI18n } from '../../i18n'
 import { useUiStore } from '../../store'
 import Toggle from '../ui/Toggle'
-import { Plus, Trash2, RefreshCw, ChevronDown, ChevronRight, Eye, EyeOff } from 'lucide-react'
+import { Plus, Trash2, RefreshCw, ChevronDown, ChevronRight, Eye, EyeOff, ExternalLink } from 'lucide-react'
+
+const QRCodeDisplay = lazy(() => import('../ui/QRCodeDisplay'))
 
 /** Mirrors ModelProviderConfig from main/providers/types.ts */
 interface ProviderConfig {
@@ -25,6 +27,15 @@ interface HealthStatus {
 }
 
 const BUILT_IN_IDS = ['claude-cli', 'openai', 'ollama', 'deepseek', 'qwen']
+
+/** Links to get API keys for each built-in provider */
+const PROVIDER_KEY_LINKS: Record<string, string> = {
+  'claude-cli': 'https://console.anthropic.com/settings/keys',
+  'openai': 'https://platform.openai.com/api-keys',
+  'deepseek': 'https://platform.deepseek.com/api_keys',
+  'qwen': 'https://dashscope.console.aliyun.com/apiKey',
+  'ollama': 'https://ollama.ai/download',
+}
 
 export default function SettingsProviders() {
   const { t } = useI18n()
@@ -80,6 +91,10 @@ export default function SettingsProviders() {
     const current = providers.find(p => p.id === providerId)
     if (!current) return
     const updated = { ...current, ...draft }
+    // Auto-enable when API key is set for the first time
+    if (draft.apiKey && draft.apiKey.trim() && !current.enabled) {
+      updated.enabled = true
+    }
     await window.electronAPI.providerUpsert(updated)
     setProviders(prev => prev.map(p => p.id === providerId ? updated : p))
     setEditDraft(prev => {
@@ -88,7 +103,11 @@ export default function SettingsProviders() {
       return next
     })
     useUiStore.getState().addToast('success', t('provider.saved'))
-  }, [editDraft, providers, t])
+    // Auto health check after enabling with new API key
+    if (updated.enabled && draft.apiKey) {
+      handleTestConnection(providerId)
+    }
+  }, [editDraft, providers, t, handleTestConnection])
 
   const handleDeleteProvider = useCallback(async (providerId: string) => {
     await window.electronAPI.providerRemove(providerId)
@@ -285,6 +304,50 @@ export default function SettingsProviders() {
                       >
                         {showKeyMap[provider.id] ? <EyeOff size={14} /> : <Eye size={14} />}
                       </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Get API Key link for built-in providers */}
+                {isBuiltIn && PROVIDER_KEY_LINKS[provider.id] && (
+                  <div>
+                    <button
+                      onClick={() => window.electronAPI.shellOpenExternal(PROVIDER_KEY_LINKS[provider.id])}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        padding: '4px 10px', borderRadius: 6,
+                        background: 'none', border: '1px solid var(--border)',
+                        color: 'var(--accent)', cursor: 'pointer', fontSize: 11,
+                      }}
+                    >
+                      <ExternalLink size={12} />
+                      {t('provider.getApiKey')}
+                    </button>
+                  </div>
+                )}
+
+                {/* Qwen QR Code quick setup */}
+                {provider.id === 'qwen' && (
+                  <div style={{
+                    background: 'var(--bg-hover)',
+                    borderRadius: 8,
+                    padding: 12,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 16,
+                  }}>
+                    <Suspense fallback={<div style={{ width: 120, height: 120 }} />}>
+                      <QRCodeDisplay
+                        url="https://dashscope.console.aliyun.com/apiKey"
+                        size={120}
+                        label={t('provider.qrScanLabel')}
+                      />
+                    </Suspense>
+                    <div style={{ flex: 1, fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4, fontSize: 12 }}>
+                        {t('provider.qwenQuickSetup')}
+                      </div>
+                      {t('provider.qwenQuickSetupDesc')}
                     </div>
                   </div>
                 )}

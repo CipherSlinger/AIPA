@@ -47,3 +47,6 @@ Conflict: Both touch i18n -> must be serial. No overlap in component files.
 Conflict analysis: Group 1 touches SettingsProviders.tsx + i18n. Group 2 touches index.html + main.tsx + App.tsx + main/index.ts + i18n.
 Both touch i18n -> must be serial. No component file overlap.
 Decision: Serial execution. Group 2 (P0 bug fix) goes first, then Group 1.
+
+## Iteration 422 completed
+- Feature: Startup Resilience - Splash Screen, Error Recovery, Pref Reset | Build: SUCCESS | Commit: 67d2047

@@ -3375,3 +3375,22 @@ _Date: 2026-04-02_
   - electron-ui/src/renderer/i18n/locales/en.json (+startup.prefsLoadFailed)
   - electron-ui/src/renderer/i18n/locales/zh-CN.json (+startup.prefsLoadFailed)
 - **Build**: PASS (2525 modules, 9.48s)
+
+---
+### Iteration 423 --- Qwen QR Code Authentication and Provider Quick Setup
+- **Date**: 2026-04-03
+- **Version**: 1.1.100
+- **PRD**: prd-qwen-qrcode-auth-v1.md
+- **Changes**:
+  - Created QRCodeDisplay.tsx: reusable pure-JS QR code renderer component (canvas-based, no npm dependency, lazy-loaded 4.43KB chunk). Supports arbitrary URL encoding with configurable size and label.
+  - SettingsProviders.tsx: added "Get API Key" link button for all 5 built-in providers (Claude, OpenAI, DeepSeek, Qwen, Ollama) opening the respective API key management pages in system browser
+  - SettingsProviders.tsx: added Qwen-specific "Quick Setup" card with QR code displaying the DashScope API key URL, scannable from phone
+  - SettingsProviders.tsx: auto-enable provider when API key is saved for the first time, with automatic health check on enable
+  - Added i18n keys: provider.getApiKey, provider.qwenQuickSetup, provider.qwenQuickSetupDesc, provider.qrScanLabel (en + zh-CN)
+- **Files Created**:
+  - electron-ui/src/renderer/components/ui/QRCodeDisplay.tsx (~250 lines)
+- **Files Modified**:
+  - electron-ui/src/renderer/components/settings/SettingsProviders.tsx (+QR code, +Get API Key links, +auto-enable on save, +ExternalLink import, +Suspense/lazy)
+  - electron-ui/src/renderer/i18n/locales/en.json (+4 provider keys)
+  - electron-ui/src/renderer/i18n/locales/zh-CN.json (+4 provider keys)
+- **Build**: PASS (2526 modules, 10.05s)

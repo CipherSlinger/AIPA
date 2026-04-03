@@ -29,7 +29,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 | **Memory** | Persistent memory across sessions — preferences, facts, instructions, and context automatically injected into every conversation |
 | **Workflows** | Chain prompts into reusable multi-step pipelines with preset templates for common tasks |
 | **Notes** | Markdown notepad with categories, templates, and one-click save from any chat response |
-| **Multi-Model** | Switch between Claude, GPT-4, DeepSeek, or local Ollama models mid-session |
+| **Multi-Model** | Switch between Claude, GPT-4, DeepSeek, or local Ollama models mid-session; Qwen via QR code quick setup |
 | **Always Available** | System tray with quick actions, global hotkeys (`Ctrl+Shift+Space` toggle, `Ctrl+Shift+G` clipboard ask), and desktop notifications |
 | **Channel** | Connect Feishu and WeChat messaging channels via OpenClaw — configure, test, and manage from the sidebar |
 
@@ -50,6 +50,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 - **Read Aloud** via Web Speech API; **Quote Reply** by selecting text
 - **Permission prompts** — friendly allow/deny cards before any destructive tool use
 - **System Diagnostics** — one-click health checks for CLI, API key, network, disk space, and system load
+- **Startup Protection** — native HTML splash + renderer error recovery + preferences reset, no more black screens
 
 ### Input Power Tools
 - **Slash commands** (`/`), **@mention** file picker
