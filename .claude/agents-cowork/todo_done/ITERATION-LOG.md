@@ -4771,3 +4771,37 @@ Status: SUCCESS (tsc main/preload: 0 errors, vite build: 9.92s)
 - [x] 100-task soft limit with warning at 90+
 - [x] Tasks persist via electron-store (prefs key)
 - [x] i18n complete for both en.json and zh-CN.json
+
+---
+
+## Iteration 466 — Daily Planner: Reminders + AI Daily Briefing
+
+_Date: 2026-04-03 | PRD: prd-daily-planner-v1 (Features 2 & 3)_
+
+### Summary
+Two features: (1) Quick Reminders — integrated into TasksPanel with collapsible reminders section, preset duration buttons (5/15/30/60/120 min), active reminder list with time-left display, 10-second polling for fired reminders with toast + desktop Notification API. (2) AI Daily Briefing — enhanced DailySummaryCard with time-aware greeting, pending task count, next reminder display, 20 rotating productivity tips, "View tasks" navigation link, and "all clear" empty state. Card now shows even without sessions.
+
+### Files Changed
+- `TasksPanel.tsx` — Expanded from 236 to ~350 lines: added ReminderItem interface, REMINDER_PRESETS, reminders CRUD, collapsible reminders section with badge, ReminderRow component, auto-firing with toast + Notification, 60s display refresh
+- `DailySummaryCard.tsx` — Rewritten: time-aware greeting, tasks/reminders stats integration, 20 rotating tips from TIPS constant array, "View tasks" navigation, "all clear" empty state
+- `en.json` — Added `reminders.*` namespace (15 keys), `dailyBriefing.*` namespace (24 keys including 20 tips)
+- `zh-CN.json` — Corresponding Chinese translations for all new keys
+
+### Build
+Status: SUCCESS (tsc main/preload: 0 errors, vite build: 10.16s)
+
+### Acceptance Criteria
+- [x] Reminders section in Tasks panel with collapsible header
+- [x] "Set reminder" button (plus icon) opens inline form
+- [x] Preset duration buttons: 5min, 15min, 30min, 1hr, 2hr
+- [x] Active reminders shown with time-left countdown
+- [x] Fired reminders trigger toast + desktop notification
+- [x] Reminders persist in electron-store
+- [x] Cancel/delete reminder via X button
+- [x] DailySummaryCard shows time-aware greeting
+- [x] Pending task count displayed in stats row
+- [x] Next upcoming reminder shown
+- [x] Rotating productivity tip (daily rotation from 20+ tips)
+- [x] "View tasks" link navigates to Tasks panel
+- [x] "All clear" message when no tasks/reminders
+- [x] i18n complete for both en.json and zh-CN.json

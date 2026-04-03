@@ -1,12 +1,39 @@
-// DailySummaryCard — shows daily usage stats on WelcomeScreen (Iteration 417)
+// DailySummaryCard — shows daily usage stats + tasks/reminders briefing on WelcomeScreen (Iteration 417, 466)
 import React, { useState, useMemo } from 'react'
-import { Calendar, X, MessageSquare, Layers, Zap } from 'lucide-react'
-import { useSessionStore } from '../../store'
+import { Calendar, X, MessageSquare, Layers, Zap, CheckSquare, Bell, ArrowRight } from 'lucide-react'
+import { useSessionStore, usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
+import type { TaskItem, ReminderItem } from '../sidebar/TasksPanel'
+
+// Rotating productivity tips (20+)
+const TIPS = [
+  'dailyBriefing.tips.breakTasks',
+  'dailyBriefing.tips.twoMinRule',
+  'dailyBriefing.tips.deepWork',
+  'dailyBriefing.tips.singleTask',
+  'dailyBriefing.tips.timeBlock',
+  'dailyBriefing.tips.eatTheFrog',
+  'dailyBriefing.tips.batchSimilar',
+  'dailyBriefing.tips.reviewDaily',
+  'dailyBriefing.tips.takeBreaks',
+  'dailyBriefing.tips.limitWIP',
+  'dailyBriefing.tips.setDeadlines',
+  'dailyBriefing.tips.useTemplates',
+  'dailyBriefing.tips.automate',
+  'dailyBriefing.tips.delegateOrDrop',
+  'dailyBriefing.tips.morningRoutine',
+  'dailyBriefing.tips.endOfDay',
+  'dailyBriefing.tips.energyManagement',
+  'dailyBriefing.tips.progressNotPerfection',
+  'dailyBriefing.tips.contextSwitch',
+  'dailyBriefing.tips.celebrateWins',
+]
 
 export default function DailySummaryCard() {
   const t = useT()
   const sessions = useSessionStore(s => s.sessions)
+  const tasks: TaskItem[] = usePrefsStore(s => (s.prefs as any).tasks || [])
+  const reminders: ReminderItem[] = usePrefsStore(s => (s.prefs as any).reminders || [])
 
   // Check if we should show the card
   const [dismissed, setDismissed] = useState(() => {
@@ -33,12 +60,32 @@ export default function DailySummaryCard() {
       .slice(0, 3)
       .map(t => t.length > 25 ? t.slice(0, 25) + '...' : t)
 
+    // Tasks stats
+    const pendingTasks = tasks.filter(tk => !tk.done).length
+    const completedToday = tasks.filter(tk => tk.done && tk.createdAt >= todayTs).length
+
+    // Next upcoming reminder
+    const now = Date.now()
+    const futureReminders = reminders
+      .filter(r => r.fireAt > now)
+      .sort((a, b) => a.fireAt - b.fireAt)
+    const nextReminder = futureReminders[0] || null
+
     return {
       sessionsToday: todaySessions.length,
       messagesToday: todayMessages,
       topics,
+      pendingTasks,
+      completedToday,
+      nextReminder,
     }
-  }, [sessions])
+  }, [sessions, tasks, reminders])
+
+  // Rotate tip daily based on day of year
+  const tipKey = useMemo(() => {
+    const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000)
+    return TIPS[dayOfYear % TIPS.length]
+  }, [])
 
   const handleDismiss = () => {
     setDismissed(true)
@@ -47,8 +94,26 @@ export default function DailySummaryCard() {
     } catch { /* ignore */ }
   }
 
-  // Don't show if dismissed today or no sessions exist
-  if (dismissed || stats.sessionsToday === 0) return null
+  const navigateToTasks = () => {
+    const ui = useUiStore.getState()
+    ui.setSidebarOpen(true)
+    ui.setSidebarTab('tasks')
+    ui.setActiveNavItem('tasks')
+  }
+
+  // Time-aware greeting
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours()
+    if (hour < 12) return t('dailyBriefing.goodMorning')
+    if (hour < 17) return t('dailyBriefing.goodAfternoon')
+    return t('dailyBriefing.goodEvening')
+  }, [t])
+
+  // Don't show if dismissed today
+  if (dismissed) return null
+
+  // Show briefing even when no sessions — now has tasks/reminders content
+  const hasContent = stats.sessionsToday > 0 || stats.pendingTasks > 0 || stats.nextReminder
 
   return (
     <div style={{
@@ -71,42 +136,105 @@ export default function DailySummaryCard() {
         <X size={14} />
       </button>
 
-      {/* Title */}
+      {/* Title with greeting */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
         <Calendar size={13} color="var(--accent)" />
         <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
-          {t('dailySummary.title')}
+          {greeting}
         </span>
       </div>
 
       {/* Stats row */}
-      <div style={{ display: 'flex', gap: 20, marginBottom: stats.topics.length > 0 ? 8 : 0 }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent)' }}>
-            {stats.sessionsToday}
-          </div>
-          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-            <Layers size={9} style={{ marginRight: 3, verticalAlign: 'middle' }} />
-            {t('dailySummary.sessions')}
-          </div>
+      {hasContent && (
+        <div style={{ display: 'flex', gap: 16, marginBottom: 8, flexWrap: 'wrap' }}>
+          {stats.sessionsToday > 0 && (
+            <>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent)' }}>
+                  {stats.sessionsToday}
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                  <Layers size={9} style={{ marginRight: 3, verticalAlign: 'middle' }} />
+                  {t('dailySummary.sessions')}
+                </div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent)' }}>
+                  {stats.messagesToday}
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                  <MessageSquare size={9} style={{ marginRight: 3, verticalAlign: 'middle' }} />
+                  {t('dailySummary.messages')}
+                </div>
+              </div>
+            </>
+          )}
+          {stats.pendingTasks > 0 && (
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--warning, #e8a838)' }}>
+                {stats.pendingTasks}
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                <CheckSquare size={9} style={{ marginRight: 3, verticalAlign: 'middle' }} />
+                {t('dailyBriefing.pendingTasks')}
+              </div>
+            </div>
+          )}
         </div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent)' }}>
-            {stats.messagesToday}
-          </div>
-          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-            <MessageSquare size={9} style={{ marginRight: 3, verticalAlign: 'middle' }} />
-            {t('dailySummary.messages')}
-          </div>
+      )}
+
+      {/* Next reminder */}
+      {stats.nextReminder && (
+        <div style={{
+          fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5,
+          display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4,
+        }}>
+          <Bell size={9} color="var(--accent)" />
+          <span>
+            {t('dailyBriefing.nextReminder')}: {stats.nextReminder.text}
+            {' '}({new Date(stats.nextReminder.fireAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
+          </span>
         </div>
-      </div>
+      )}
 
       {/* Topics */}
       {stats.topics.length > 0 && (
-        <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: 4 }}>
           <Zap size={9} style={{ marginRight: 3, verticalAlign: 'middle' }} />
           {t('dailySummary.topics')}: {stats.topics.join(', ')}
         </div>
+      )}
+
+      {/* No content state */}
+      {!hasContent && (
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
+          {t('dailyBriefing.allClear')}
+        </div>
+      )}
+
+      {/* Productivity tip */}
+      <div style={{
+        fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5,
+        padding: '6px 8px', background: 'rgba(0,122,204,0.04)',
+        borderRadius: 6, marginTop: 4,
+      }}>
+        <Zap size={9} style={{ marginRight: 3, verticalAlign: 'middle', color: 'var(--accent)' }} />
+        {t(tipKey)}
+      </div>
+
+      {/* View tasks link */}
+      {stats.pendingTasks > 0 && (
+        <button
+          onClick={navigateToTasks}
+          style={{
+            marginTop: 8, background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--accent)', fontSize: 10, display: 'flex', alignItems: 'center', gap: 3,
+            padding: 0,
+          }}
+        >
+          {t('dailyBriefing.viewTasks')}
+          <ArrowRight size={10} />
+        </button>
       )}
     </div>
   )
