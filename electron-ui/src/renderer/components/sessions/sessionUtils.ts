@@ -162,6 +162,56 @@ export function getDateGroup(ts: number, t: (key: string) => string): string {
   return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long' })
 }
 
+// ── Session Auto-Tagging (Iteration 436) ──
+// Keyword-based topic classification for sessions
+
+const AUTO_TAG_KEYWORDS: Record<string, string[]> = {
+  coding: ['function', 'component', 'import', 'class', 'interface', 'const', 'let', 'var', 'tsx', 'jsx', 'css', 'html', 'api', 'endpoint', 'react', 'typescript', 'javascript', 'python', 'rust', 'golang'],
+  writing: ['write', 'draft', 'email', 'letter', 'essay', 'blog', 'article', 'document', 'report', 'summary', 'paragraph', 'proofread'],
+  research: ['research', 'study', 'paper', 'journal', 'analyze', 'compare', 'survey', 'literature', 'findings', 'hypothesis'],
+  debug: ['error', 'bug', 'fix', 'crash', 'fail', 'broken', 'issue', 'stack trace', 'exception', 'debug', 'troubleshoot', 'undefined', 'null pointer'],
+  design: ['design', 'layout', 'color', 'font', 'ui', 'ux', 'mockup', 'wireframe', 'figma', 'prototype'],
+  data: ['database', 'sql', 'query', 'table', 'schema', 'csv', 'json', 'data', 'dataset', 'analytics', 'visualization'],
+  devops: ['deploy', 'docker', 'ci', 'cd', 'pipeline', 'kubernetes', 'nginx', 'server', 'aws', 'cloud', 'terraform', 'yaml'],
+  learning: ['learn', 'tutorial', 'explain', 'understand', 'how does', 'what is', 'teach', 'example', 'concept', 'beginner'],
+  planning: ['plan', 'roadmap', 'timeline', 'milestone', 'sprint', 'task', 'priority', 'schedule', 'agenda', 'meeting', 'todo'],
+}
+
+/** Generate 1-2 auto-tags for a session based on title and content keywords */
+export function generateAutoTags(title: string, lastPrompt: string): string[] {
+  const text = `${title} ${lastPrompt}`.toLowerCase()
+  const scores: Record<string, number> = {}
+
+  for (const [tag, keywords] of Object.entries(AUTO_TAG_KEYWORDS)) {
+    let score = 0
+    for (const kw of keywords) {
+      if (text.includes(kw)) score++
+    }
+    if (score > 0) scores[tag] = score
+  }
+
+  // Sort by score descending, take top 2
+  const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1])
+  const result: string[] = []
+  for (const [tag, score] of sorted) {
+    if (score >= 1 && result.length < 2) {
+      result.push(tag)
+    }
+  }
+
+  return result.length > 0 ? result : ['general']
+}
+
+// ── Session Color Labels ──
+export const SESSION_COLOR_LABELS = [
+  { id: 'red', color: '#ef4444' },
+  { id: 'orange', color: '#f97316' },
+  { id: 'yellow', color: '#eab308' },
+  { id: 'green', color: '#22c55e' },
+  { id: 'blue', color: '#3b82f6' },
+  { id: 'purple', color: '#a855f7' },
+]
+
 export function getMatchContext(session: { title?: string; lastPrompt?: string; project?: string }, query: string, t: (key: string) => string): { source: string; snippet: string } | null {
   if (!query.trim()) return null
   const q = query.toLowerCase()

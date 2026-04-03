@@ -2,12 +2,12 @@
 // Sub-components: SessionItem, SessionFilters, SessionTooltip, GlobalSearchResults, TagPicker, BulkDeleteBar
 // Hook: useSessionListActions
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
-import { RefreshCw, MessageSquare, ArrowUpDown, Search, CheckSquare, Square, Globe, Trash2, Archive, ArchiveRestore } from 'lucide-react'
+import { RefreshCw, MessageSquare, ArrowUpDown, Search, CheckSquare, Square, Globe, Trash2, Archive, ArchiveRestore, BarChart3 } from 'lucide-react'
 import { SessionListItem } from '../../types/app.types'
 import { usePrefsStore, useSessionStore } from '../../store'
 import { SkeletonSessionRow } from '../ui/Skeleton'
 import { useT } from '../../i18n'
-import { TAG_PRESETS, getDateGroup } from './sessionUtils'
+import { TAG_PRESETS, getDateGroup, generateAutoTags, SESSION_COLOR_LABELS } from './sessionUtils'
 import SessionItem from './SessionItem'
 import SessionFilters from './SessionFilters'
 import SessionTooltip, { PreviewMessage } from './SessionTooltip'
@@ -15,6 +15,7 @@ import GlobalSearchResults from './GlobalSearchResults'
 import TagPicker from './TagPicker'
 import BulkDeleteBar from './BulkDeleteBar'
 import SessionFolders from './SessionFolders'
+import SessionStats from './SessionStats'
 import { useSessionListActions } from './useSessionListActions'
 
 export default function SessionList() {
@@ -51,7 +52,9 @@ export default function SessionList() {
   const [activeProjectFilter, setActiveProjectFilter] = useState<string | null>(null)
   const [activeFolderFilter, setActiveFolderFilter] = useState<string | null>(null)
   const [showArchived, setShowArchived] = useState(false)
+  const [showStats, setShowStats] = useState(false)
   const archivedSessions: string[] = prefs.archivedSessions || []
+  const sessionColorLabels: Record<string, string> = (prefs as Record<string, unknown>).sessionColorLabels as Record<string, string> || {}
 
   const toggleArchive = (sessionId: string) => {
     const current = archivedSessions
@@ -231,6 +234,17 @@ export default function SessionList() {
 
   const sessionFolderMap = prefs.sessionFolderMap || {}
 
+  // Compute auto-tags for sessions (Iteration 436)
+  const sessionAutoTags = useMemo(() => {
+    const map: Record<string, string[]> = {}
+    for (const s of actions.sessions) {
+      if ((s.messageCount || 0) >= 3) {
+        map[s.sessionId] = generateAutoTags(s.title || '', s.lastPrompt || '')
+      }
+    }
+    return map
+  }, [actions.sessions])
+
   // Compute folder session counts
   const folderCounts = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -383,6 +397,22 @@ export default function SessionList() {
             </span>
           )}
         </button>
+        <button
+          onClick={() => setShowStats(!showStats)}
+          title={t('session.statsTitle')}
+          style={{
+            background: showStats ? 'var(--accent)' : 'none',
+            border: 'none',
+            color: showStats ? '#fff' : 'var(--text-muted)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            borderRadius: 3,
+            padding: showStats ? '1px 4px' : 0,
+          }}
+        >
+          <BarChart3 size={13} />
+        </button>
       </div>
 
       {/* Folder filter */}
@@ -393,6 +423,12 @@ export default function SessionList() {
           folderCounts={folderCounts}
         />
       </div>
+
+      {/* Stats view (Iteration 436) */}
+      {showStats ? (
+        <SessionStats onBack={() => setShowStats(false)} />
+      ) : (
+      <>
 
       {/* Filters */}
       <SessionFilters
@@ -614,6 +650,8 @@ export default function SessionList() {
                 onHideTooltip={hideSessionTooltip}
                 isArchived={archivedSessions.includes(session.sessionId)}
                 onToggleArchive={toggleArchive}
+                colorLabel={sessionColorLabels[session.sessionId]}
+                autoTags={sessionAutoTags[session.sessionId]}
               />
             </React.Fragment>
           )
@@ -671,6 +709,9 @@ export default function SessionList() {
           onDelete={actions.bulkDelete}
           onConfirm={() => actions.setConfirmBulkDelete(true)}
         />
+      )}
+
+      </>
       )}
     </div>
   )

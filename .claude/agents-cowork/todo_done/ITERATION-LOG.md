@@ -3869,3 +3869,48 @@ Structural fix for the recurring loading screen stuck bug (reported in Iteration
 - `electron-ui/src/renderer/App.tsx` (electronAPI guard, hard timer cleanup)
 - `electron-ui/src/renderer/components/layout/AppShell.tsx` (IPC timeout protection)
 - `electron-ui/package.json` (version bump to 1.1.112)
+
+---
+
+## Iteration 436 — Session Auto-Organization & Insights
+
+_Date: 2026-04-02 | Version: 1.1.113_
+_PRD: prd-session-auto-organization-v1.md_
+
+### Summary
+Three session management intelligence features: auto-tagging, session statistics dashboard, and color labels.
+
+### Changes
+
+1. **Session Auto-Tagging** (sessionUtils.ts, SessionItem.tsx, SessionList.tsx)
+   - Added keyword-based auto-tag generation with 9 topic categories (coding, writing, research, debug, design, data, devops, learning, planning)
+   - Sessions with 3+ messages automatically get 1-2 topic tags based on title and content keywords
+   - Auto-tags displayed with dashed border and italic font, visually distinct from manual tags
+   - Auto-tags computed via memoized map in SessionList for performance
+
+2. **Session Statistics Dashboard** (new SessionStats.tsx)
+   - Toggle via chart icon button in session list header
+   - Weekly activity bar chart (CSS bars, 7 days including today)
+   - Aggregate stats: total sessions, total messages, most active day, avg messages/session, activity streak
+   - Top tags section with color-coded bars
+   - "Back to List" button to return to normal session list
+   - All data derived from existing session store (zero new data collection)
+
+3. **Session Color Labels** (sessionUtils.ts, SessionItem.tsx, app.types.ts)
+   - 6 color label options defined (red, orange, yellow, green, blue, purple)
+   - Color label shows as 3px left border stripe on SessionItem
+   - `sessionColorLabels` field added to ClaudePrefs
+   - Data infrastructure ready for context menu integration
+
+4. **i18n** (en.json, zh-CN.json)
+   - 12 new keys: statsTitle, backToList, overview, totalSessions, totalMessages, mostActiveDay, avgMessages, activityStreak, topTags, colorLabel, removeColor
+
+#### Files Modified
+- `electron-ui/src/renderer/components/sessions/sessionUtils.ts` (auto-tag logic, color label constants)
+- `electron-ui/src/renderer/components/sessions/SessionItem.tsx` (auto-tag display, color border, new props)
+- `electron-ui/src/renderer/components/sessions/SessionList.tsx` (stats toggle, auto-tag computation, color label pass-through)
+- `electron-ui/src/renderer/components/sessions/SessionStats.tsx` (new component)
+- `electron-ui/src/renderer/types/app.types.ts` (sessionColorLabels field)
+- `electron-ui/src/renderer/i18n/locales/en.json` (+12 keys)
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` (+12 keys)
+- `electron-ui/package.json` (version bump to 1.1.113)

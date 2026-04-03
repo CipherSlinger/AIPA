@@ -435,7 +435,18 @@
     "addNote": "给此会话添加备注",
     "addNoteDesc": "在聊天顶部添加固定备注",
     "editNote": "点击编辑备注",
-    "removeNote": "移除固定备注"
+    "removeNote": "移除固定备注",
+    "statsTitle": "会话统计",
+    "backToList": "返回列表",
+    "overview": "概览",
+    "totalSessions": "总会话数",
+    "totalMessages": "总消息数",
+    "mostActiveDay": "最活跃日",
+    "avgMessages": "平均消息/会话",
+    "activityStreak": "连续使用",
+    "topTags": "常用标签",
+    "colorLabel": "颜色标记",
+    "removeColor": "移除颜色"
   },
   "settings": {
     "title": "设置",

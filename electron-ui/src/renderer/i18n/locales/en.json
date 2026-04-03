@@ -435,7 +435,18 @@
     "addNote": "Pin a note to this session",
     "addNoteDesc": "Add a pinned note visible at the top of the chat",
     "editNote": "Click to edit note",
-    "removeNote": "Remove pinned note"
+    "removeNote": "Remove pinned note",
+    "statsTitle": "Session Stats",
+    "backToList": "Back to List",
+    "overview": "Overview",
+    "totalSessions": "Total sessions",
+    "totalMessages": "Total messages",
+    "mostActiveDay": "Most active day",
+    "avgMessages": "Avg msgs/session",
+    "activityStreak": "Activity streak",
+    "topTags": "Top Tags",
+    "colorLabel": "Color label",
+    "removeColor": "Remove color"
   },
   "settings": {
     "title": "Settings",

@@ -134,6 +134,7 @@ export interface ClaudePrefs {
   sessionFolderMap?: Record<string, string>   // sessionId -> folderId mapping
   customConversationTemplates?: CustomConversationTemplate[]  // user-defined conversation templates (max 20)
   archivedSessions?: string[]  // array of archived session IDs (hidden from main list)
+  sessionColorLabels?: Record<string, string>  // sessionId -> hex color for left border stripe (Iteration 436)
 }
 
 export interface SessionFolder {

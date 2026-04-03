@@ -38,6 +38,8 @@ interface SessionItemProps {
   onHideTooltip: () => void
   isArchived?: boolean
   onToggleArchive?: (sessionId: string) => void
+  colorLabel?: string  // hex color for left border stripe
+  autoTags?: string[]  // auto-generated topic tags
 }
 
 export default function SessionItem({
@@ -72,6 +74,8 @@ export default function SessionItem({
   onHideTooltip,
   isArchived = false,
   onToggleArchive,
+  colorLabel,
+  autoTags,
 }: SessionItemProps) {
   const t = useT()
   const dateLocale = useDateLocale()
@@ -96,7 +100,7 @@ export default function SessionItem({
         alignItems: 'center',
         cursor: 'pointer',
         borderBottom: '1px solid var(--border)',
-        borderLeft: isActive ? '3px solid var(--accent)' : isFocused ? '3px solid var(--text-muted)' : '3px solid transparent',
+        borderLeft: colorLabel ? `3px solid ${colorLabel}` : isActive ? '3px solid var(--accent)' : isFocused ? '3px solid var(--text-muted)' : '3px solid transparent',
         background: isActive ? 'var(--session-active-bg)' : isFocused ? 'var(--session-hover-bg)' : 'transparent',
         position: 'relative',
         transition: 'background 0.15s ease, transform 0.15s ease, border-left-color 0.15s ease',
@@ -304,6 +308,30 @@ export default function SessionItem({
             )
           })()}
         </div>
+
+        {/* Auto-tags (Iteration 436) */}
+        {autoTags && autoTags.length > 0 && (
+          <div style={{ display: 'flex', gap: 4, marginTop: 2 }}>
+            {autoTags.map(tag => (
+              <span
+                key={tag}
+                style={{
+                  fontSize: 9,
+                  fontStyle: 'italic',
+                  color: 'var(--text-muted)',
+                  opacity: 0.7,
+                  background: 'var(--tag-bg, rgba(128,128,128,0.1))',
+                  border: '1px dashed var(--border)',
+                  borderRadius: 8,
+                  padding: '0px 5px',
+                  lineHeight: '16px',
+                }}
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Search match context line */}
         {filter && (() => {
