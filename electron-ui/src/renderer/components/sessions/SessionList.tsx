@@ -1,8 +1,8 @@
-// SessionList — decomposed orchestrator (Iteration 221, further decomposed Iteration 441, 452)
-// Sub-components: SessionItem, SessionFilters, SessionTooltip, GlobalSearchResults, TagPicker, BulkDeleteBar, SessionListHeader, DateGroupHeader, SelectAllBar
-// Hooks: useSessionListActions, useSessionTooltip, useTagPicker, useSessionArchive
+// SessionList — decomposed orchestrator (Iteration 221, further decomposed Iteration 441, 452, 455)
+// Sub-components: SessionItem, SessionFilters, SessionTooltip, GlobalSearchResults, TagPicker, BulkDeleteBar, SessionListHeader, DateGroupHeader, SelectAllBar, BulkActionBar
+// Hooks: useSessionListActions, useSessionTooltip, useTagPicker, useSessionArchive, usePinnedSessions, useCollapsedGroups
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
-import { MessageSquare, Globe, Archive } from 'lucide-react'
+import { MessageSquare, Globe } from 'lucide-react'
 import { SessionListItem } from '../../types/app.types'
 import { usePrefsStore, useSessionStore } from '../../store'
 import { SkeletonSessionRow } from '../ui/Skeleton'
@@ -13,16 +13,18 @@ import SessionFilters from './SessionFilters'
 import SessionTooltip from './SessionTooltip'
 import GlobalSearchResults from './GlobalSearchResults'
 import TagPicker from './TagPicker'
-import BulkDeleteBar from './BulkDeleteBar'
 import SessionFolders from './SessionFolders'
 import SessionStats from './SessionStats'
 import SessionListHeader from './SessionListHeader'
 import DateGroupHeader from './DateGroupHeader'
 import SelectAllBar from './SelectAllBar'
+import BulkActionBar from './BulkActionBar'
 import { useSessionListActions } from './useSessionListActions'
 import { useSessionTooltip } from './useSessionTooltip'
 import { useTagPicker } from './useTagPicker'
 import { useSessionArchive } from './useSessionArchive'
+import { usePinnedSessions } from './usePinnedSessions'
+import { useCollapsedGroups } from './useCollapsedGroups'
 
 export default function SessionList() {
   const prefs = usePrefsStore(s => s.prefs)
@@ -68,22 +70,8 @@ export default function SessionList() {
   const [activeFolderFilter, setActiveFolderFilter] = useState<string | null>(null)
   const [showStats, setShowStats] = useState(false)
 
-  // Collapsible date group state (persisted in localStorage)
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
-    try {
-      const stored = localStorage.getItem('aipa:collapsed-session-groups')
-      return stored ? new Set(JSON.parse(stored)) : new Set()
-    } catch { return new Set() }
-  })
-  const toggleGroupCollapse = useCallback((group: string) => {
-    setCollapsedGroups(prev => {
-      const next = new Set(prev)
-      if (next.has(group)) next.delete(group)
-      else next.add(group)
-      try { localStorage.setItem('aipa:collapsed-session-groups', JSON.stringify([...next])) } catch {}
-      return next
-    })
-  }, [])
+  // Collapsible date groups (extracted hook, Iteration 455)
+  const { collapsedGroups, toggleGroupCollapse } = useCollapsedGroups()
   const sessionColorLabels: Record<string, string> = (prefs as unknown as Record<string, unknown>).sessionColorLabels as Record<string, string> || {}
 
   // Compute unique project paths for project filter
@@ -99,27 +87,8 @@ export default function SessionList() {
       .map(([name, count]) => ({ name, count }))
   }, [actions.sessions])
 
-  // Pinned sessions
-  const [pinnedIds, setPinnedIds] = useState<Set<string>>(() => {
-    try {
-      const stored = localStorage.getItem('aipa:pinned-sessions')
-      return stored ? new Set(JSON.parse(stored)) : new Set()
-    } catch { return new Set() }
-  })
-
-  const togglePin = (e: React.MouseEvent, sessionId: string) => {
-    e.stopPropagation()
-    setPinnedIds(prev => {
-      const next = new Set(prev)
-      if (next.has(sessionId)) {
-        next.delete(sessionId)
-      } else {
-        next.add(sessionId)
-      }
-      try { localStorage.setItem('aipa:pinned-sessions', JSON.stringify([...next])) } catch { /* ignore */ }
-      return next
-    })
-  }
+  // Pinned sessions (extracted hook, Iteration 455)
+  const { pinnedIds, togglePin } = usePinnedSessions()
 
   useEffect(() => { actions.loadSessions() }, [])
 
@@ -483,31 +452,13 @@ export default function SessionList() {
 
       {/* Bulk archive + delete floating action bars */}
       {actions.selectMode && actions.selectedIds.size > 0 && (
-        <div style={{ display: 'flex', gap: 4, padding: '6px 10px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
-          <button
-            onClick={bulkArchive}
-            title={t('session.archiveSelected')}
-            style={{
-              flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border)',
-              borderRadius: 4, padding: '5px 0', color: 'var(--text-muted)',
-              cursor: 'pointer', fontSize: 10, display: 'flex', alignItems: 'center',
-              justifyContent: 'center', gap: 4,
-            }}
-            onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
-            onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
-          >
-            <Archive size={11} />
-            {t('session.archiveSelected')}
-          </button>
-        </div>
-      )}
-      {actions.selectMode && actions.selectedIds.size > 0 && (
-        <BulkDeleteBar
+        <BulkActionBar
           selectedCount={actions.selectedIds.size}
+          onBulkArchive={bulkArchive}
           confirmBulkDelete={actions.confirmBulkDelete}
-          onCancel={actions.exitSelectMode}
-          onDelete={actions.bulkDelete}
-          onConfirm={() => actions.setConfirmBulkDelete(true)}
+          onCancelSelect={actions.exitSelectMode}
+          onBulkDelete={actions.bulkDelete}
+          onConfirmDelete={() => actions.setConfirmBulkDelete(true)}
         />
       )}
 

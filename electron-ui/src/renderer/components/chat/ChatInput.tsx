@@ -1,9 +1,10 @@
-// ChatInput — thin orchestrator after Iteration 432 decomposition
+// ChatInput — thin orchestrator after Iteration 432 decomposition (further decomposed Iteration 455)
 // Sub-modules: ChatInputAttachments, ChatInputPasteChips, ChatInputComposeStatus,
-//              ChatInputSendButton, useChatInputKeyboard
+//              ChatInputSendButton, useChatInputKeyboard, ContextUsageMeter,
+//              SnippetPopup, GhostTextOverlay, CharWordCounter
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Sparkles, Archive } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import AtMentionPopup from './AtMentionPopup'
 import NotePopup from './NotePopup'
@@ -14,6 +15,10 @@ import ChatInputAttachments from './ChatInputAttachments'
 import ChatInputPasteChips from './ChatInputPasteChips'
 import ChatInputComposeStatus from './ChatInputComposeStatus'
 import ChatInputSendButton from './ChatInputSendButton'
+import ContextUsageMeter from './ContextUsageMeter'
+import SnippetPopup from './SnippetPopup'
+import GhostTextOverlay from './GhostTextOverlay'
+import CharWordCounter from './CharWordCounter'
 import { PLACEHOLDER_KEYS } from './chatInputConstants'
 import { useImagePaste, ImageAttachment, FileAttachment } from '../../hooks/useImagePaste'
 import { useChatInputDraft } from '../../hooks/useChatInputDraft'
@@ -311,46 +316,14 @@ export default function ChatInput({
         onToggleMultiLine={toggleMultiLine}
       />
       {/* Context usage meter with compact button */}
-      {lastContextUsage && lastContextUsage.total > 0 && (() => {
-        const pct = Math.round((lastContextUsage.used / lastContextUsage.total) * 100)
-        if (pct < 40) return null
-        const barColor = pct >= 85 ? 'var(--error)' : pct >= 70 ? '#f97316' : pct >= 55 ? 'var(--warning)' : 'var(--accent)'
-        return (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 8, padding: '2px 4px', marginBottom: 4,
-          }}>
-            <div style={{
-              flex: 1, height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden',
-            }}>
-              <div style={{
-                width: `${Math.min(pct, 100)}%`, height: '100%', background: barColor,
-                borderRadius: 2, transition: 'width 300ms ease, background 300ms ease',
-              }} />
-            </div>
-            <span style={{ fontSize: 9, color: barColor, fontWeight: 500, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-              {pct}%
-            </span>
-            {pct >= 60 && !isStreaming && (
-              <button
-                onClick={() => onSend('/compact')}
-                title={t('chat.compactHint')}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 3,
-                  padding: '1px 6px', fontSize: 9, fontWeight: 500,
-                  background: 'rgba(0, 122, 204, 0.08)', border: '1px solid rgba(0, 122, 204, 0.2)',
-                  borderRadius: 8, color: 'var(--accent)', cursor: 'pointer',
-                  transition: 'background 150ms, border-color 150ms', whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0, 122, 204, 0.15)'; e.currentTarget.style.borderColor = 'var(--accent)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0, 122, 204, 0.08)'; e.currentTarget.style.borderColor = 'rgba(0, 122, 204, 0.2)' }}
-              >
-                <Archive size={9} />
-                {t('chat.compactBtn')}
-              </button>
-            )}
-          </div>
-        )
-      })()}
+      {lastContextUsage && lastContextUsage.total > 0 && (
+        <ContextUsageMeter
+          used={lastContextUsage.used}
+          total={lastContextUsage.total}
+          isStreaming={isStreaming}
+          onCompact={() => onSend('/compact')}
+        />
+      )}
       {/* Quick reply chips */}
       <QuickReplyChips onInsert={(prompt) => {
         setInput(prev => {
@@ -394,47 +367,13 @@ export default function ChatInput({
           {popups.noteQuery !== null && <NotePopup query={popups.noteQuery} notes={popups.filteredNotes} categories={popups.noteCategories} selectedIndex={popups.noteIndex} onSelect={popups.handleNoteSelect} onDismiss={() => popups.setNoteQuery(null)} onHover={popups.setNoteIndex} />}
           {popups.slashQuery !== null && <SlashCommandPopup query={popups.slashQuery} onSelect={popups.handleSlashSelect} onDismiss={() => popups.setSlashQuery(null)} selectedIndex={popups.slashIndex} onHover={popups.setSlashIndex} extraCommands={popups.customCommands} />}
           {/* Text snippet popup */}
-          {popups.snippetQuery !== null && popups.filteredSnippets.length > 0 && (
-            <div
-              className="popup-enter"
-              style={{
-                position: 'absolute', bottom: '100%', left: 0, marginBottom: 4,
-                width: 320, maxHeight: 240, overflowY: 'auto',
-                background: 'var(--popup-bg)', border: '1px solid var(--popup-border)',
-                borderRadius: 8, boxShadow: 'var(--popup-shadow)', padding: '4px 0', zIndex: 50,
-              }}
-            >
-              <div style={{ padding: '4px 10px 2px', fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, letterSpacing: 0.3 }}>
-                {t('snippet.title')}
-              </div>
-              {popups.filteredSnippets.map((snippet, idx) => (
-                <button
-                  key={snippet.id}
-                  onClick={() => popups.handleSnippetSelect(snippet)}
-                  onMouseEnter={() => popups.setSnippetIndex(idx)}
-                  style={{
-                    display: 'flex', alignItems: 'flex-start', gap: 8,
-                    padding: '6px 10px',
-                    background: idx === popups.snippetIndex ? 'var(--popup-item-hover)' : 'transparent',
-                    border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left', borderRadius: 0,
-                  }}
-                >
-                  <span style={{
-                    fontSize: 11, fontWeight: 600, color: 'var(--accent)',
-                    fontFamily: 'monospace', flexShrink: 0, minWidth: 48,
-                  }}>
-                    ::{snippet.keyword}
-                  </span>
-                  <span style={{
-                    fontSize: 11, color: 'var(--text-primary)', overflow: 'hidden',
-                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                    lineHeight: 1.4, opacity: 0.8,
-                  }}>
-                    {snippet.content.length > 80 ? snippet.content.slice(0, 80) + '...' : snippet.content}
-                  </span>
-                </button>
-              ))}
-            </div>
+          {popups.snippetQuery !== null && (
+            <SnippetPopup
+              snippets={popups.filteredSnippets}
+              selectedIndex={popups.snippetIndex}
+              onSelect={popups.handleSnippetSelect}
+              onHover={popups.setSnippetIndex}
+            />
           )}
           {/* Textarea */}
           <div style={{ position: 'relative', flex: 1 }}>
@@ -488,58 +427,10 @@ export default function ChatInput({
               style={{ flex: 1, width: '100%', background: 'none', border: 'none', outline: 'none', color: 'var(--text-primary)', resize: 'none', fontFamily: 'inherit', fontSize: 13, lineHeight: 1.5, minHeight: 20, maxHeight: 160, overflow: 'auto' }}
             />
             {/* Ghost text autocomplete overlay */}
-            {ghostText && (input.trimStart().length >= 3 || !input.trim()) && (
-              <div
-                aria-hidden="true"
-                style={{
-                  position: 'absolute', top: 0, left: 0, right: 0, pointerEvents: 'none',
-                  fontFamily: 'inherit', fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word', color: 'transparent', overflow: 'hidden', maxHeight: 160,
-                  opacity: input.trim() ? 1 : 0.45,
-                  fontStyle: input.trim() ? 'normal' : 'italic',
-                  transition: 'opacity 0.3s ease-in',
-                }}
-              >
-                {input.trim() ? (
-                  <>
-                    <span style={{ visibility: 'hidden' }}>{input}</span>
-                    <span style={{ color: 'var(--text-muted)', opacity: 0.45 }}>{ghostText}</span>
-                    <span style={{ fontSize: 9, color: 'var(--text-muted)', opacity: 0.35, marginLeft: 4 }}>Tab</span>
-                  </>
-                ) : (
-                  <>
-                    <span style={{ color: 'var(--text-secondary)' }}>{ghostText}</span>
-                    <span style={{ fontSize: 9, color: 'var(--text-muted)', opacity: 0.5, marginLeft: 6 }}>Tab</span>
-                  </>
-                )}
-              </div>
-            )}
+            <GhostTextOverlay input={input} ghostText={ghostText} />
           </div>
-          {/* Character & word counter -- visible when input > 50 chars (Iteration 431) */}
-          {input.length > 50 && (() => {
-            const wordCount = input.trim().split(/\s+/).filter(Boolean).length
-            return (
-            <div style={{
-              display: 'flex', justifyContent: 'flex-end',
-              padding: '2px 0 0',
-            }}>
-              <span style={{
-                fontSize: 10,
-                fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
-                color: input.length >= 50000
-                  ? 'var(--error, #d9534f)'
-                  : input.length >= 10000
-                  ? 'var(--warning, #f0ad4e)'
-                  : 'var(--text-muted)',
-                opacity: input.length >= 10000 ? 1 : 0.6,
-                transition: 'color 200ms ease',
-                userSelect: 'none',
-              }}>
-                {wordCount} {t('chat.words')} | {input.length.toLocaleString()} {t('chat.chars')}
-              </span>
-            </div>
-            )
-          })()}
+          {/* Character & word counter */}
+          <CharWordCounter input={input} />
         </div>
         {/* Send / Stop button with progress ring */}
         <ChatInputSendButton
