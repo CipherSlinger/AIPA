@@ -78,6 +78,9 @@ export default function ChatInput({
     })
   }, [addToast, t])
 
+  // Text drag-and-drop state (Iteration 431)
+  const [textDragOver, setTextDragOver] = useState(false)
+
   // Typing WPM tracking
   const { typingWpm, keystrokeTimestamps } = useTypingWpm()
 
@@ -531,15 +534,54 @@ export default function ChatInput({
           )}
           {/* Textarea */}
           <div style={{ position: 'relative', flex: 1 }}>
+            {/* Text drop zone indicator (Iteration 431) */}
+            {textDragOver && (
+              <div style={{
+                position: 'absolute', inset: 0, zIndex: 10,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'rgba(0, 122, 204, 0.06)', border: '2px dashed var(--accent)',
+                borderRadius: 8, pointerEvents: 'none',
+              }}>
+                <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 500 }}>
+                  {t('input.dropTextHere')}
+                </span>
+              </div>
+            )}
             <textarea
               ref={textareaRef}
               value={input}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               onPaste={paste.handleTextPaste}
-              onDragOver={(e) => e.preventDefault()}
+              onDragOver={(e) => {
+                e.preventDefault()
+                // Show text drop indicator if dragging text (not files)
+                if (e.dataTransfer.types.includes('text/plain')) {
+                  setTextDragOver(true)
+                }
+              }}
+              onDragLeave={() => setTextDragOver(false)}
+              onDrop={(e) => {
+                setTextDragOver(false)
+                const droppedText = e.dataTransfer.getData('text/plain')
+                if (droppedText && droppedText.trim()) {
+                  e.preventDefault()
+                  const trimmed = droppedText.trim()
+                  setInput(prev => {
+                    const sep = prev.length > 0 && !prev.endsWith('\n') ? '\n' : ''
+                    return prev + sep + trimmed
+                  })
+                  // Auto-trigger wrap-as-block if dropped text is long
+                  if (trimmed.length > 500) {
+                    setTimeout(() => {
+                      paste.setPastedLongText(true)
+                    }, 50)
+                  }
+                  setTimeout(() => textareaRef.current?.focus(), 0)
+                }
+              }}
               onFocus={() => { if (inputWrapRef.current) inputWrapRef.current.style.borderColor = 'var(--input-field-focus)' }}
-              onBlur={() => { if (inputWrapRef.current) inputWrapRef.current.style.borderColor = 'var(--input-field-border)' }}
+              onBlur={() => { setTextDragOver(false); if (inputWrapRef.current) inputWrapRef.current.style.borderColor = 'var(--input-field-border)' }}
               placeholder={t(PLACEHOLDER_KEYS[placeholderIdx])}
               aria-label={t('chat.placeholder')}
               rows={1}
@@ -573,8 +615,10 @@ export default function ChatInput({
               </div>
             )}
           </div>
-          {/* Character counter */}
-          {input.length > 0 && (
+          {/* Character & word counter — visible when input > 50 chars (Iteration 431) */}
+          {input.length > 50 && (() => {
+            const wordCount = input.trim().split(/\s+/).filter(Boolean).length
+            return (
             <div style={{
               display: 'flex', justifyContent: 'flex-end',
               padding: '2px 0 0',
@@ -591,10 +635,11 @@ export default function ChatInput({
                 transition: 'color 200ms ease',
                 userSelect: 'none',
               }}>
-                {input.length.toLocaleString()} {t('input.chars')}
+                {wordCount} {t('chat.words')} | {input.length.toLocaleString()} {t('chat.chars')}
               </span>
             </div>
-          )}
+            )
+          })()}
         </div>
         {/* Send / Stop button with progress ring */}
         <div style={{ position: 'relative', flexShrink: 0, alignSelf: 'flex-end' }}>

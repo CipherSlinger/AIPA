@@ -330,7 +330,9 @@
   },
   "input": {
     "multiLineOn": "Multi-line mode: Enter = new line, Ctrl+Enter = send",
-    "multiLineOff": "Single-line mode: Enter = send, Shift+Enter = new line"
+    "multiLineOff": "Single-line mode: Enter = send, Shift+Enter = new line",
+    "dropTextHere": "Drop text here",
+    "chars": "chars"
   },
   "voice": {
     "autoStopped": "Recording stopped automatically (2-minute limit reached)"

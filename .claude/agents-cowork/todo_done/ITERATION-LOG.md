@@ -3635,3 +3635,36 @@ Enhanced WelcomeScreen with proactive daily assistant features: time-contextual 
 - electron-ui/src/renderer/i18n/locales/en.json
 - electron-ui/src/renderer/i18n/locales/zh-CN.json
 - electron-ui/package.json (version bump to 1.1.107)
+
+---
+
+## Iteration 431 — Input Experience Improvements
+
+_Date: 2026-04-02 | PRD: prd-input-experience-v1.md_
+
+### Summary
+Enhanced the chat input experience with an improved character/word counter and text drag-and-drop support. The character counter now shows "X words | Y chars" format and only appears when input exceeds 50 characters (previously showed for any input). Text drag-and-drop now has a visual drop zone indicator and auto-triggers the "wrap as code block" chip for long pasted text (> 500 chars). Voice input visual feedback was already implemented in Iteration 419 (pulse ring + timer), so that feature was skipped.
+
+#### Changes
+1. **Enhanced Character/Word Counter** (ChatInput.tsx)
+   - Changed threshold from 0 to 50 characters (subtle, not distracting)
+   - Now shows format: "42 words | 256 chars" instead of just "X chars"
+   - Fixed i18n key from `input.chars` (non-existent) to `chat.chars` and `chat.words`
+   - Color coding preserved: normal → warning at 10K → error at 50K chars
+
+2. **Text Drag-and-Drop Enhancement** (ChatInput.tsx)
+   - Added `textDragOver` state tracking for visual feedback
+   - onDragOver detects `text/plain` type and shows blue dashed drop zone
+   - onDrop appends dropped text to current input with line separator
+   - Auto-triggers `setPastedLongText(true)` for text > 500 chars (shows "Wrap as code block" chip)
+   - onDragLeave and onBlur clear the drop indicator
+
+3. **i18n coverage** (en.json, zh-CN.json)
+   - Added `input.dropTextHere` / `input.chars` keys
+   - Both en and zh-CN translations
+
+#### Files Modified
+- electron-ui/src/renderer/components/chat/ChatInput.tsx
+- electron-ui/src/renderer/i18n/locales/en.json
+- electron-ui/src/renderer/i18n/locales/zh-CN.json
+- electron-ui/package.json (version bump to 1.1.108)

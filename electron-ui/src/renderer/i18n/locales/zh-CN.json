@@ -330,7 +330,9 @@
   },
   "input": {
     "multiLineOn": "多行模式：Enter = 换行，Ctrl+Enter = 发送",
-    "multiLineOff": "单行模式：Enter = 发送，Shift+Enter = 换行"
+    "multiLineOff": "单行模式：Enter = 发送，Shift+Enter = 换行",
+    "dropTextHere": "拖放文本到此处",
+    "chars": "字符"
   },
   "voice": {
     "autoStopped": "录音已自动停止（已达2分钟限制）"
