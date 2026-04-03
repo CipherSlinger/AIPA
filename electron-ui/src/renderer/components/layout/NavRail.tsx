@@ -1,6 +1,6 @@
 import React from 'react'
 import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, Settings, User, PanelLeftClose, PanelLeftOpen, Radio, Bell } from 'lucide-react'
-import { useUiStore, useChatStore, usePrefsStore } from '../../store'
+import { useUiStore, useChatStore, usePrefsStore, useSessionStore } from '../../store'
 import { useT } from '../../i18n'
 import { AVATAR_PRESETS } from './avatarPresets'
 
@@ -14,9 +14,10 @@ interface NavItemProps {
   badge?: number
   shortcut?: string
   expanded?: boolean
+  pulseDot?: boolean  // Show a pulsing activity dot (e.g., streaming indicator)
 }
 
-function NavItem({ icon, label, isActive, onClick, badge, shortcut, expanded }: NavItemProps) {
+function NavItem({ icon, label, isActive, onClick, badge, shortcut, expanded, pulseDot }: NavItemProps) {
   const [hovered, setHovered] = React.useState(false)
   const [showTooltip, setShowTooltip] = React.useState(false)
   const tooltipTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -138,6 +139,24 @@ function NavItem({ icon, label, isActive, onClick, badge, shortcut, expanded }: 
         </div>
       )}
 
+      {/* Streaming activity dot */}
+      {pulseDot && (
+        <div
+          style={{
+            position: 'absolute',
+            top: expanded ? 6 : 4,
+            right: expanded ? 6 : 2,
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            background: '#4ade80',
+            border: '1.5px solid var(--bg-nav)',
+            animation: 'pulse 1.2s ease-in-out infinite',
+            zIndex: 2,
+          }}
+        />
+      )}
+
       {/* Custom tooltip (collapsed mode only) */}
       {showTooltip && !expanded && (
         <div
@@ -219,6 +238,8 @@ export default function NavRail() {
   const isChannelActive = activeNavItem === 'channel' && sidebarTab === 'channel'
   const isNotificationsActive = activeNavItem === 'notifications' && sidebarTab === 'notifications'
   const unreadNotificationCount = useUiStore(s => s.unreadNotificationCount)
+  const isStreaming = useChatStore(s => s.isStreaming)
+  const sessionCount = useSessionStore(s => s.sessions.length)
   const isSettingsActive = useUiStore(s => s.settingsModalOpen)
 
   const handleNewChat = () => {
@@ -268,6 +289,8 @@ export default function NavRail() {
         shortcut="Ctrl+1"
         isActive={isHistoryActive}
         onClick={() => setActiveNavItem('history')}
+        badge={sessionCount > 0 ? sessionCount : undefined}
+        pulseDot={isStreaming && !isHistoryActive}
         expanded={navExpanded}
       />
 
