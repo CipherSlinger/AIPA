@@ -138,3 +138,7 @@ export function getOnboardingDone(): boolean {
 export function setOnboardingDone(value: boolean): void {
   store.set('onboardingDone', value)
 }
+
+export function resetAllPrefs(): void {
+  store.clear()
+}

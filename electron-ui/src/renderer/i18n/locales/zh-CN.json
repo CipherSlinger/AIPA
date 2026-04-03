@@ -779,6 +779,9 @@
     "autoRecoveryFailed": "自动恢复在 {{count}} 次尝试后失败。",
     "appDegraded": "组件发生崩溃，请使用上方按钮恢复。"
   },
+  "startup": {
+    "prefsLoadFailed": "偏好设置加载失败，已使用默认值。"
+  },
   "common": {
     "ok": "确定",
     "cancel": "取消",

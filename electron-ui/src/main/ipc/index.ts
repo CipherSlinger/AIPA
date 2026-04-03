@@ -3,7 +3,7 @@ import { ptyManager } from '../pty/pty-manager'
 import { fallbackShellManager } from '../pty/fallback-shell'
 import { streamBridgeManager } from '../pty/stream-bridge'
 import { readSettings, writeSettings, listSessions, loadSession, deleteSession, forkSession, renameSession, getMcpServers, setMcpServerEnabled, generateSessionTitle, generatePromptSuggestion, generateAwaySummary, rewindSession, searchSessions } from '../sessions/session-reader'
-import { getApiKey, setApiKey, getPref, setPref, getAllPrefs } from '../config/config-manager'
+import { getApiKey, setApiKey, getPref, setPref, getAllPrefs, resetAllPrefs } from '../config/config-manager'
 import { getCliPath } from '../utils/cli-path'
 import { safePath, validateApiKey, validateModelName, validateStringLength, validateFlags, validateDirectoryExists, getAllowedFsRoots } from '../utils/validate'
 import { registerSkillsHandlers } from './skills-handlers'
@@ -268,6 +268,10 @@ function registerConfigHandlers(): void {
   ipcMain.handle('prefs:get', (_e, key) => getPref(key))
   ipcMain.handle('prefs:set', (_e, key, value) => setPref(key, value))
   ipcMain.handle('prefs:getAll', () => getAllPrefs())
+  ipcMain.handle('prefs:resetAll', () => {
+    resetAllPrefs()
+    return true
+  })
 
   // Locale detection for i18n
   ipcMain.handle('config:getLocale', () => app.getLocale())

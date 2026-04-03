@@ -102,6 +102,29 @@ function createWindow(): void {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
   }
 
+  // Detect renderer load failure and attempt recovery
+  let loadResolved = false
+  mainWindow.webContents.once('did-finish-load', () => {
+    loadResolved = true
+    log.debug('Renderer did-finish-load fired successfully')
+  })
+  mainWindow.webContents.once('did-fail-load', (_e: any, errorCode: number, errorDescription: string) => {
+    loadResolved = true
+    log.warn(`Renderer did-fail-load: ${errorCode} ${errorDescription}`)
+    // Attempt a single reload
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      log.debug('Attempting renderer reload after did-fail-load...')
+      mainWindow.webContents.reload()
+    }
+  })
+  // Timeout: if renderer hasn't loaded in 15 seconds, attempt reload
+  setTimeout(() => {
+    if (!loadResolved && mainWindow && !mainWindow.isDestroyed()) {
+      log.warn('Renderer load timeout (15s), attempting reload...')
+      mainWindow.webContents.reload()
+    }
+  }, 15000)
+
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url)
     return { action: 'deny' }

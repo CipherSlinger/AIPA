@@ -35,3 +35,15 @@ Conflict: Both touch WelcomeScreen.tsx + i18n -> must be serial.
 | prd-smart-input-v1.md | Input history nav, Multi-line toggle, Voice indicator | ChatInput, InputToolbar, i18n | Serial - Group 2 |
 
 Conflict: Both touch i18n -> must be serial. No overlap in component files.
+
+
+## PM PRD Batch 2026-04-02 20:22
+
+| PRD | Core Features | High-Risk Files | Execution |
+|-----|--------------|----------------|-----------|
+| prd-qwen-qrcode-auth-v1.md | QR code for Qwen setup, provider API key links, auto-enable on save | SettingsProviders.tsx, new QRCodeDisplay.tsx, i18n | Group 1 |
+| prd-startup-resilience-v1.md | HTML splash screen, renderer error catching, pref resilience, main process recovery | index.html, main.tsx, App.tsx, main/index.ts, i18n | Group 2 |
+
+Conflict analysis: Group 1 touches SettingsProviders.tsx + i18n. Group 2 touches index.html + main.tsx + App.tsx + main/index.ts + i18n.
+Both touch i18n -> must be serial. No component file overlap.
+Decision: Serial execution. Group 2 (P0 bug fix) goes first, then Group 1.

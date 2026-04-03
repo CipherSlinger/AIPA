@@ -31,61 +31,80 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
 
+  // Remove splash screen once React has mounted
+  useEffect(() => {
+    const splash = document.getElementById('aipa-splash')
+    if (splash) {
+      splash.style.opacity = '0'
+      setTimeout(() => { splash.style.display = 'none' }, 300)
+    }
+    if ((window as any).__aipaSplashTimer) {
+      clearTimeout((window as any).__aipaSplashTimer)
+    }
+  }, [])
+
   // Load preferences on startup
   useEffect(() => {
     const init = async () => {
-      const all = await window.electronAPI.prefsGetAll()
-      const env = await window.electronAPI.configGetEnv()
-      const home = await window.electronAPI.fsGetHome()
+      try {
+        const all = await window.electronAPI.prefsGetAll()
+        const env = await window.electronAPI.configGetEnv()
+        const home = await window.electronAPI.fsGetHome()
 
-      // Migrate removed themes (modern, minimal) to 'vscode' (Dark)
-      if (all.theme === 'modern' || all.theme === 'minimal') {
-        all.theme = 'vscode'
-        window.electronAPI.prefsSet('theme', 'vscode')
-      }
-
-      setPrefs({
-        ...all,
-        apiKey: all.apiKey || env.apiKey || '',
-      })
-
-      // Auto-populate default personas and workflows on first launch (Iteration 405)
-      populateDefaultPresetsIfEmpty(all)
-
-      // Default working dir: ~/claude (auto-create if not saved yet)
-      const workingDir = all.workingDir || `${home}/claude`
-      if (!all.workingDir) {
-        await window.electronAPI.fsEnsureDir(workingDir)
-        window.electronAPI.prefsSet('workingDir', workingDir)
-      }
-      setWorkingDir(workingDir)
-      setLoaded(true)
-
-      // First-run: show onboarding if never completed before.
-      // If an API key already exists (env or store), silently mark done and skip.
-      if (!all.onboardingDone) {
-        if (all.apiKey || env.apiKey) {
-          window.electronAPI.prefsSet('onboardingDone', true)
-        } else {
-          setShowOnboarding(true)
+        // Migrate removed themes (modern, minimal) to 'vscode' (Dark)
+        if (all.theme === 'modern' || all.theme === 'minimal') {
+          all.theme = 'vscode'
+          window.electronAPI.prefsSet('theme', 'vscode')
         }
-      }
 
-      // Resume last session on startup (if enabled and no onboarding needed)
-      if (all.resumeLastSession && all.onboardingDone) {
-        try {
-          const sessions = await window.electronAPI.sessionList()
-          if (sessions && sessions.length > 0) {
-            // Sessions are sorted by timestamp descending -- first entry is most recent
-            const mostRecent = sessions.sort((a: any, b: any) => b.timestamp - a.timestamp)[0]
-            if (mostRecent) {
-              // Dispatch after a short delay to ensure SessionList is mounted and listening
-              setTimeout(() => {
-                window.dispatchEvent(new CustomEvent('aipa:openSession', { detail: mostRecent.sessionId }))
-              }, 300)
-            }
+        setPrefs({
+          ...all,
+          apiKey: all.apiKey || env.apiKey || '',
+        })
+
+        // Auto-populate default personas and workflows on first launch (Iteration 405)
+        populateDefaultPresetsIfEmpty(all)
+
+        // Default working dir: ~/claude (auto-create if not saved yet)
+        const workingDir = all.workingDir || `${home}/claude`
+        if (!all.workingDir) {
+          await window.electronAPI.fsEnsureDir(workingDir)
+          window.electronAPI.prefsSet('workingDir', workingDir)
+        }
+        setWorkingDir(workingDir)
+        setLoaded(true)
+
+        // First-run: show onboarding if never completed before.
+        // If an API key already exists (env or store), silently mark done and skip.
+        if (!all.onboardingDone) {
+          if (all.apiKey || env.apiKey) {
+            window.electronAPI.prefsSet('onboardingDone', true)
+          } else {
+            setShowOnboarding(true)
           }
-        } catch { /* session resume is best-effort */ }
+        }
+
+        // Resume last session on startup (if enabled and no onboarding needed)
+        if (all.resumeLastSession && all.onboardingDone) {
+          try {
+            const sessions = await window.electronAPI.sessionList()
+            if (sessions && sessions.length > 0) {
+              // Sessions are sorted by timestamp descending -- first entry is most recent
+              const mostRecent = sessions.sort((a: any, b: any) => b.timestamp - a.timestamp)[0]
+              if (mostRecent) {
+                // Dispatch after a short delay to ensure SessionList is mounted and listening
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent('aipa:openSession', { detail: mostRecent.sessionId }))
+                }, 300)
+              }
+            }
+          } catch { /* session resume is best-effort */ }
+        }
+      } catch (err: unknown) {
+        // Preference loading failed -- use defaults to prevent black screen
+        console.error('Failed to load preferences:', err)
+        setLoaded(true)
+        useUiStore.getState().addToast('error', t('startup.prefsLoadFailed'))
       }
     }
     init()

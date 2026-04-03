@@ -763,6 +763,9 @@
     "autoRecoveryFailed": "Auto-recovery failed after {{count}} attempt(s).",
     "appDegraded": "A component crashed. Use the controls above to recover."
   },
+  "startup": {
+    "prefsLoadFailed": "Preferences could not be loaded. Using defaults."
+  },
   "common": {
     "ok": "OK",
     "cancel": "Cancel",

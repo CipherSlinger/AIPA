@@ -3349,3 +3349,29 @@ _Date: 2026-04-02_
 - **Build**: PASS
 
 [RETRO] retro-2026-04-03-iterations-412-421.md completed, covering Iteration 412-421, next forced retro after Iteration 431
+
+---
+### Iteration 422 --- Startup Resilience and Black Screen Prevention
+- **Date**: 2026-04-03
+- **Version**: 1.1.99
+- **PRD**: prd-startup-resilience-v1.md
+- **Changes**:
+  - Added HTML-level loading splash screen in index.html (pure CSS animation, no React dependency) with 10-second timeout fallback showing reload/reset buttons
+  - Wrapped React root render in try-catch (index.tsx) -- on failure shows minimal error page with reload, reset preferences, and error details
+  - Added preference loading resilience in App.tsx -- try-catch around prefsGetAll(), uses defaults on failure with toast notification
+  - Added main process renderer load detection -- did-finish-load / did-fail-load listeners with 15-second timeout auto-reload
+  - Added prefs:resetAll IPC handler (config-manager.ts + ipc/index.ts + preload) to clear corrupted preferences
+  - Splash screen auto-removed with fade-out animation when React App mounts
+  - Updated page title from "Claude Code UI" to "AIPA"
+  - Added i18n keys: startup.prefsLoadFailed (en + zh-CN)
+- **Files Modified**:
+  - electron-ui/src/renderer/index.html (splash screen, fallback timer)
+  - electron-ui/src/renderer/index.tsx (try-catch around createRoot/render)
+  - electron-ui/src/renderer/App.tsx (splash removal, pref loading resilience)
+  - electron-ui/src/main/index.ts (did-finish-load timeout, reload recovery)
+  - electron-ui/src/main/config/config-manager.ts (+resetAllPrefs)
+  - electron-ui/src/main/ipc/index.ts (+prefs:resetAll handler, +import resetAllPrefs)
+  - electron-ui/src/preload/index.ts (+prefsResetAll)
+  - electron-ui/src/renderer/i18n/locales/en.json (+startup.prefsLoadFailed)
+  - electron-ui/src/renderer/i18n/locales/zh-CN.json (+startup.prefsLoadFailed)
+- **Build**: PASS (2525 modules, 9.48s)

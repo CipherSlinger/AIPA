@@ -40,6 +40,7 @@ const electronAPI = {
   prefsGet: (key: string) => ipcRenderer.invoke('prefs:get', key),
   prefsSet: (key: string, value: unknown) => ipcRenderer.invoke('prefs:set', key, value),
   prefsGetAll: () => ipcRenderer.invoke('prefs:getAll'),
+  prefsResetAll: () => ipcRenderer.invoke('prefs:resetAll'),
 
   // ── File system ──────────────────────────
   fsListDir: (dirPath: string) => ipcRenderer.invoke('fs:listDir', dirPath),
