@@ -1658,5 +1658,21 @@
     "exportSuccess": "备份已保存 ({{size}} KB): {{items}}",
     "importSuccess": "已恢复: {{items}}",
     "invalidFormat": "无效的备份文件格式"
+  },
+  "fork": {
+    "forkFromHere": "从此处分叉",
+    "badge": "分支",
+    "badgeLabel": "此消息是分叉点",
+    "forkedTo": "已分叉至",
+    "openFork": "打开分叉会话",
+    "compareWithFork": "与分叉对比",
+    "compareTitle": "分支对比",
+    "originalBranch": "原始分支",
+    "forkedBranch": "分叉分支",
+    "sharedPrefix": "共享历史",
+    "noMessages": "暂无分歧消息",
+    "loadingBranches": "加载分支中…",
+    "forkSuccess": "会话分叉成功",
+    "forkFailed": "会话分叉失败"
   }
 }

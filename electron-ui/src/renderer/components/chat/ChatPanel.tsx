@@ -25,6 +25,7 @@ import IdleReturnDialog from './IdleReturnDialog'
 import QuickCapture from './QuickCapture'
 import PinnedNoteStrip from './PinnedNoteStrip'
 import RegenerateButton from './RegenerateButton'
+import CompareView from './CompareView'
 import { getTemplateById } from '../../utils/promptTemplates'
 import { useT } from '../../i18n'
 import { useIdleReturn } from '../../hooks/useIdleReturn'
@@ -76,6 +77,9 @@ export default function ChatPanel() {
   // Pinned note editing state (Iteration 434)
   const [editingNote, setEditingNote] = useState(false)
   const [noteText, setNoteText] = useState('')
+
+  // Compare mode (Iteration 456): shows two branches side by side
+  const [compareMode, setCompareMode] = useState<{ sessionA: string; sessionB: string; forkMessageIndex?: number; titleA?: string; titleB?: string } | null>(null)
 
   // Event listeners + budget warning (extracted Iteration 441)
   useChatPanelEvents(
@@ -161,6 +165,39 @@ export default function ChatPanel() {
     if (isStreaming || messages.length < 2) return
     await sendMessage(t('chat.summarizePrompt'))
   }, [isStreaming, messages.length, sendMessage, t])
+
+  // Fork handler (Iteration 456)
+  const handleFork = useCallback(async (msgIdx: number) => {
+    if (!currentSessionId || isStreaming) return
+    try {
+      const result = await window.electronAPI.sessionFork(currentSessionId, msgIdx) as { sessionId?: string } | string | null
+      const newSessionId = typeof result === 'string' ? result : (result as { sessionId?: string })?.sessionId
+      if (!newSessionId) {
+        addToast('error', t('fork.forkFailed'))
+        return
+      }
+      // Record fork metadata in prefs
+      const forkingMsg = messages[msgIdx] as StandardChatMessage
+      const forkKey = `${currentSessionId}:${forkingMsg?.id || msgIdx}`
+      const existingForkMap = prefs.forkMap || {}
+      const updatedForkMap = {
+        ...existingForkMap,
+        [forkKey]: {
+          sourceSessionId: currentSessionId,
+          forkMessageIndex: msgIdx,
+          forkedSessionId: newSessionId,
+          forkedSessionTitle: `(Fork from ${currentSessionTitle || currentSessionId.slice(0, 8)})`,
+        },
+      }
+      usePrefsStore.getState().setPrefs({ forkMap: updatedForkMap })
+      window.electronAPI.prefsSet('forkMap', updatedForkMap)
+      addToast('success', t('fork.forkSuccess'))
+      // Open the forked session
+      window.dispatchEvent(new CustomEvent('aipa:openSession', { detail: newSessionId }))
+    } catch {
+      addToast('error', t('fork.forkFailed'))
+    }
+  }, [currentSessionId, currentSessionTitle, isStreaming, messages, prefs.forkMap, addToast, t])
 
   return (
     <div
@@ -406,6 +443,7 @@ export default function ChatPanel() {
               useChatStore.getState().editMessageAndTruncate(msgId, newContent)
               await sendMessage(newContent)
             }}
+            onFork={handleFork}
           />
           )}
         </div>
@@ -487,6 +525,18 @@ export default function ChatPanel() {
 
       {/* Quick note capture (Iteration 437) */}
       {messages.length > 0 && <QuickCapture />}
+
+      {/* Compare View (Iteration 456) */}
+      {compareMode && (
+        <CompareView
+          sessionA={compareMode.sessionA}
+          sessionB={compareMode.sessionB}
+          titleA={compareMode.titleA}
+          titleB={compareMode.titleB}
+          forkMessageIndex={compareMode.forkMessageIndex}
+          onClose={() => setCompareMode(null)}
+        />
+      )}
     </div>
   )
 }

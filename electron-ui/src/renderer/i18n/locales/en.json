@@ -1640,5 +1640,21 @@
     "exportSuccess": "Backup saved ({{size}} KB): {{items}}",
     "importSuccess": "Restored: {{items}}",
     "invalidFormat": "Invalid backup file format"
+  },
+  "fork": {
+    "forkFromHere": "Fork from here",
+    "badge": "Branch",
+    "badgeLabel": "This message was a fork point",
+    "forkedTo": "Forked to",
+    "openFork": "Open forked session",
+    "compareWithFork": "Compare with fork",
+    "compareTitle": "Compare Branches",
+    "originalBranch": "Original Branch",
+    "forkedBranch": "Forked Branch",
+    "sharedPrefix": "Shared history",
+    "noMessages": "No diverging messages yet",
+    "loadingBranches": "Loading branches...",
+    "forkSuccess": "Session forked successfully",
+    "forkFailed": "Failed to fork session"
   }
 }

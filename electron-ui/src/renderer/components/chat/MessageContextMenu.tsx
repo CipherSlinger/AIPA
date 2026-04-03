@@ -23,9 +23,10 @@ interface ContextMenuProps {
   onAnnotate?: () => void
   hasAnnotation?: boolean
   onClose: () => void
+  onFork?: () => void
 }
 
-export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdown, onCopyRichText, onCopyCodeBlocks, onSaveAsNote, onRememberThis, onQuoteReply, onEditMessage, onRate, onRewind, onBookmark, onPin, onCollapse, onAnnotate, hasAnnotation, onClose }: ContextMenuProps) {
+export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdown, onCopyRichText, onCopyCodeBlocks, onSaveAsNote, onRememberThis, onQuoteReply, onEditMessage, onRate, onRewind, onBookmark, onPin, onCollapse, onAnnotate, hasAnnotation, onClose, onFork }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Clamp position to viewport
@@ -196,6 +197,19 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
           onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
         >
           <span>{t('message.editMessage')}</span>
+        </button>
+      )}
+
+      {/* Fork from here (user messages only) */}
+      {onFork && message.role === 'user' && (
+        <button
+          style={itemStyle}
+          onClick={() => { onFork(); onClose() }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+        >
+          <span>{t('fork.forkFromHere')}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>⑂</span>
         </button>
       )}
 

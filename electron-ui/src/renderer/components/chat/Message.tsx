@@ -23,6 +23,7 @@ interface Props {
   onBookmark?: (msgId: string) => void
   onCollapse?: (msgId: string) => void
   onEdit?: (msgId: string, newContent: string) => void
+  onFork?: () => void
   searchQuery?: string
   searchCaseSensitive?: boolean
   showAvatar?: boolean
@@ -32,7 +33,7 @@ interface Props {
   hasAssistantReply?: boolean
 }
 
-export default React.memo(function Message({ message, onRate, onRewind, onBookmark, onCollapse, onEdit, searchQuery, searchCaseSensitive, showAvatar = true, showTimestamp = true, isLastUserMsg = false, isLastMessage = false, hasAssistantReply = false }: Props) {
+export default React.memo(function Message({ message, onRate, onRewind, onBookmark, onCollapse, onEdit, onFork, searchQuery, searchCaseSensitive, showAvatar = true, showTimestamp = true, isLastUserMsg = false, isLastMessage = false, hasAssistantReply = false }: Props) {
   const t = useT()
   const isUser = message.role === 'user'
   const isAssistant = message.role === 'assistant'
@@ -343,6 +344,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             onCopyMarkdown={isAssistant ? handleCopyMarkdown : undefined}
             onCopyCodeBlocks={isAssistant && (message as StandardChatMessage).content?.includes('```') ? handleCopyCodeBlocks : undefined}
             hasCodeBlocks={!!(message as StandardChatMessage).content?.includes('```')}
+            onFork={isUser && onFork ? onFork : undefined}
           />
         )}
       </div>
@@ -376,6 +378,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             ? () => onRewind((message as StandardChatMessage).timestamp)
             : undefined
           }
+          onFork={onFork}
           onClose={() => setContextMenu(null)}
         />
       )}

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { StandardChatMessage } from '../../types/app.types'
-import { Copy, Check, Bookmark, Code2, Pencil, MessageSquareQuote, NotebookPen, Volume2, VolumeX, Brain, Share2, Pin, Languages, StickyNote, ThumbsUp, ThumbsDown, Undo2, ChevronDown, FileText, Braces } from 'lucide-react'
+import { Copy, Check, Bookmark, Code2, Pencil, MessageSquareQuote, NotebookPen, Volume2, VolumeX, Brain, Share2, Pin, Languages, StickyNote, ThumbsUp, ThumbsDown, Undo2, ChevronDown, FileText, Braces, GitBranch } from 'lucide-react'
 import { useT } from '../../i18n'
 
 const actionBtnStyle: React.CSSProperties = {
@@ -52,6 +52,7 @@ interface MessageActionToolbarProps {
   onCopyMarkdown?: () => void
   onCopyCodeBlocks?: () => void
   hasCodeBlocks?: boolean
+  onFork?: () => void
 }
 
 export default function MessageActionToolbar({
@@ -66,6 +67,7 @@ export default function MessageActionToolbar({
   onCopyMarkdown,
   onCopyCodeBlocks,
   hasCodeBlocks,
+  onFork,
 }: MessageActionToolbarProps) {
   const t = useT()
   const [showCopyMenu, setShowCopyMenu] = useState(false)
@@ -130,6 +132,19 @@ export default function MessageActionToolbar({
           onMouseLeave={(e) => hoverOut(e)}
         >
           <Pencil size={13} />
+        </button>
+      )}
+
+      {/* Fork from here (user messages only) */}
+      {isUser && onFork && !globalIsStreaming && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onFork() }}
+          title={t('fork.forkFromHere')}
+          style={actionBtnStyle}
+          onMouseEnter={(e) => hoverIn(e)}
+          onMouseLeave={(e) => hoverOut(e)}
+        >
+          <GitBranch size={13} />
         </button>
       )}
 

@@ -26,9 +26,10 @@ interface Props {
   highlightedMessageIdx?: number
   scrollToMessageIdx?: number
   onEdit?: (msgId: string, newContent: string) => void
+  onFork?: (msgIdx: number) => void
 }
 
-export default function MessageList({ messages, onPermission, onGrantPermission, sessionId, isStreaming, searchQuery, searchCaseSensitive, highlightedMessageIdx, scrollToMessageIdx, onEdit }: Props) {
+export default function MessageList({ messages, onPermission, onGrantPermission, sessionId, isStreaming, searchQuery, searchCaseSensitive, highlightedMessageIdx, scrollToMessageIdx, onEdit, onFork }: Props) {
   const resolvePlan = useChatStore(s => s.resolvePlan)
   const rateMessage = useChatStore(s => s.rateMessage)
   const toggleBookmark = useChatStore(s => s.toggleBookmark)
@@ -132,6 +133,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
         onBookmark={(msgId) => toggleBookmark(msgId)}
         onCollapse={(msgId) => toggleCollapse(msgId)}
         onEdit={onEdit}
+        onFork={onFork && msg.role === 'user' ? () => onFork(msgIdx) : undefined}
         onRewind={sessionId ? (ts) => {
           // Find the message index by timestamp to calculate how many messages will be removed
           const msgIndex = messages.findIndex(m => m.role !== 'permission' && m.role !== 'plan' && (m as StandardChatMessage).timestamp === ts)
@@ -143,7 +145,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       />
       </MessageErrorBoundary>
     )
-  }, [onPermission, onGrantPermission, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery, searchCaseSensitive, showAvatarMap, showTimestampMap, onEdit, t, lastUserMsgId, assistantReplyMap, messages])
+  }, [onPermission, onGrantPermission, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery, searchCaseSensitive, showAvatarMap, showTimestampMap, onEdit, onFork, t, lastUserMsgId, assistantReplyMap, messages])
 
   return (
     <div style={{ height: '100%', position: 'relative', display: 'flex', flexDirection: 'column' }}>
