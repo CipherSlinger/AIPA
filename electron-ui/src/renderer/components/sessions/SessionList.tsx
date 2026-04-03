@@ -2,7 +2,7 @@
 // Sub-components: SessionItem, SessionFilters, SessionTooltip, GlobalSearchResults, TagPicker, BulkDeleteBar
 // Hook: useSessionListActions
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
-import { RefreshCw, MessageSquare, ArrowUpDown, Search, CheckSquare, Square, Globe, Trash2 } from 'lucide-react'
+import { RefreshCw, MessageSquare, ArrowUpDown, Search, CheckSquare, Square, Globe, Trash2, Archive, ArchiveRestore } from 'lucide-react'
 import { SessionListItem } from '../../types/app.types'
 import { usePrefsStore, useSessionStore } from '../../store'
 import { SkeletonSessionRow } from '../ui/Skeleton'
@@ -50,6 +50,27 @@ export default function SessionList() {
   const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null)
   const [activeProjectFilter, setActiveProjectFilter] = useState<string | null>(null)
   const [activeFolderFilter, setActiveFolderFilter] = useState<string | null>(null)
+  const [showArchived, setShowArchived] = useState(false)
+  const archivedSessions: string[] = prefs.archivedSessions || []
+
+  const toggleArchive = (sessionId: string) => {
+    const current = archivedSessions
+    const isArchived = current.includes(sessionId)
+    const updated = isArchived ? current.filter(id => id !== sessionId) : [...current, sessionId]
+    setPrefs({ archivedSessions: updated })
+    window.electronAPI.prefsSet('archivedSessions', updated)
+  }
+
+  const bulkArchive = () => {
+    const selectedArr = [...actions.selectedIds]
+    const current = archivedSessions
+    const toArchive = selectedArr.filter(id => !current.includes(id))
+    if (toArchive.length === 0) return
+    const updated = [...current, ...toArchive]
+    setPrefs({ archivedSessions: updated })
+    window.electronAPI.prefsSet('archivedSessions', updated)
+    actions.exitSelectMode()
+  }
 
   const toggleSessionTag = (sessionId: string, tagId: string) => {
     const current = sessionTags[sessionId] || []
@@ -182,7 +203,7 @@ export default function SessionList() {
       }).catch(() => {
         setPreviewLoading(false)
       })
-    }, 1000)
+    }, 400)
   }, [])
 
   const hideSessionTooltip = useCallback(() => {
@@ -210,6 +231,15 @@ export default function SessionList() {
 
   const sessionFolderMap = prefs.sessionFolderMap || {}
 
+  // Compute folder session counts
+  const folderCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const [sid, fid] of Object.entries(sessionFolderMap)) {
+      if (fid) counts[fid] = (counts[fid] || 0) + 1
+    }
+    return counts
+  }, [sessionFolderMap])
+
   const filtered = actions.sessions
     .filter((s) => {
       const matchesText = !filter || (s.title || s.lastPrompt).toLowerCase().includes(filter.toLowerCase()) ||
@@ -217,7 +247,9 @@ export default function SessionList() {
       const matchesTag = !activeTagFilter || (sessionTags[s.sessionId] || []).includes(activeTagFilter)
       const matchesProject = !activeProjectFilter || s.project === activeProjectFilter
       const matchesFolder = !activeFolderFilter || sessionFolderMap[s.sessionId] === activeFolderFilter
-      return matchesText && matchesTag && matchesProject && matchesFolder
+      const isArchived = archivedSessions.includes(s.sessionId)
+      const matchesArchive = showArchived ? isArchived : !isArchived
+      return matchesText && matchesTag && matchesProject && matchesFolder && matchesArchive
     })
     .sort((a, b) => {
       const aPinned = pinnedIds.has(a.sessionId) ? 1 : 0
@@ -323,6 +355,34 @@ export default function SessionList() {
         >
           <Trash2 size={13} />
         </button>
+        <button
+          onClick={() => setShowArchived(!showArchived)}
+          title={showArchived ? t('session.hideArchived') : `${t('session.showArchived')}${archivedSessions.length > 0 ? ` (${archivedSessions.length})` : ''}`}
+          style={{
+            background: showArchived ? 'var(--accent)' : 'none',
+            border: 'none',
+            color: showArchived ? '#fff' : 'var(--text-muted)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            borderRadius: 3,
+            padding: showArchived ? '1px 4px' : 0,
+            position: 'relative',
+          }}
+        >
+          <Archive size={13} />
+          {!showArchived && archivedSessions.length > 0 && (
+            <span style={{
+              position: 'absolute', top: -4, right: -6,
+              background: 'var(--accent)', color: '#fff',
+              fontSize: 8, fontWeight: 700,
+              width: 14, height: 14, borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {archivedSessions.length > 99 ? '99' : archivedSessions.length}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* Folder filter */}
@@ -330,6 +390,7 @@ export default function SessionList() {
         <SessionFolders
           activeFolder={activeFolderFilter}
           onFolderSelect={setActiveFolderFilter}
+          folderCounts={folderCounts}
         />
       </div>
 
@@ -551,6 +612,8 @@ export default function SessionList() {
                 onRenameCancel={() => actions.setRenamingId(null)}
                 onShowTooltip={showSessionTooltip}
                 onHideTooltip={hideSessionTooltip}
+                isArchived={archivedSessions.includes(session.sessionId)}
+                onToggleArchive={toggleArchive}
               />
             </React.Fragment>
           )
@@ -581,6 +644,25 @@ export default function SessionList() {
       )}
 
       {/* Bulk delete floating action bar */}
+      {actions.selectMode && actions.selectedIds.size > 0 && (
+        <div style={{ display: 'flex', gap: 4, padding: '6px 10px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
+          <button
+            onClick={bulkArchive}
+            title={t('session.archiveSelected')}
+            style={{
+              flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border)',
+              borderRadius: 4, padding: '5px 0', color: 'var(--text-muted)',
+              cursor: 'pointer', fontSize: 10, display: 'flex', alignItems: 'center',
+              justifyContent: 'center', gap: 4,
+            }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+          >
+            <Archive size={11} />
+            {t('session.archiveSelected')}
+          </button>
+        </div>
+      )}
       {actions.selectMode && actions.selectedIds.size > 0 && (
         <BulkDeleteBar
           selectedCount={actions.selectedIds.size}

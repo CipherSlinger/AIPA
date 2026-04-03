@@ -1,5 +1,5 @@
 import React from 'react'
-import { Trash2, Star, GitBranch, Pencil, Tag, Download, MessageSquare, CheckSquare, Square, Clock, Copy, RefreshCw } from 'lucide-react'
+import { Trash2, Star, GitBranch, Pencil, Tag, Download, MessageSquare, CheckSquare, Square, Clock, Copy, RefreshCw, Archive, ArchiveRestore } from 'lucide-react'
 import { SessionListItem } from '../../types/app.types'
 import { useT, useDateLocale } from '../../i18n'
 import { getSessionAvatarColor, formatSessionDuration, TAG_PRESETS, getMatchContext } from './sessionUtils'
@@ -36,6 +36,8 @@ interface SessionItemProps {
   onRenameCancel: () => void
   onShowTooltip: (session: SessionListItem, e: React.MouseEvent) => void
   onHideTooltip: () => void
+  isArchived?: boolean
+  onToggleArchive?: (sessionId: string) => void
 }
 
 export default function SessionItem({
@@ -68,6 +70,8 @@ export default function SessionItem({
   onRenameCancel,
   onShowTooltip,
   onHideTooltip,
+  isArchived = false,
+  onToggleArchive,
 }: SessionItemProps) {
   const t = useT()
   const dateLocale = useDateLocale()
@@ -406,6 +410,15 @@ export default function SessionItem({
           >
             <Download size={11} />
           </button>
+          {onToggleArchive && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleArchive(session.sessionId) }}
+              title={isArchived ? t('session.unarchive') : t('session.archive')}
+              style={{ background: 'none', border: 'none', color: isArchived ? 'var(--accent)' : 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+            >
+              {isArchived ? <ArchiveRestore size={11} /> : <Archive size={11} />}
+            </button>
+          )}
           <button
             onClick={(e) => onDelete(e, session.sessionId)}
             title={confirmDeleteId === session.sessionId ? t('session.confirmDelete') : t('session.delete')}

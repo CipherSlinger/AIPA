@@ -133,12 +133,14 @@ export interface ClaudePrefs {
   sessionFolders?: SessionFolder[]            // user-defined session folders (max 10)
   sessionFolderMap?: Record<string, string>   // sessionId -> folderId mapping
   customConversationTemplates?: CustomConversationTemplate[]  // user-defined conversation templates (max 20)
+  archivedSessions?: string[]  // array of archived session IDs (hidden from main list)
 }
 
 export interface SessionFolder {
   id: string       // 'folder-' + timestamp
   name: string     // folder name (max 30 chars)
   emoji: string    // folder icon emoji
+  color: string    // folder accent color hex (e.g. '#3b82f6')
   collapsed: boolean  // whether folder is collapsed in sidebar
 }
 

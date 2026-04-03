@@ -12,18 +12,31 @@ const FOLDER_EMOJIS = [
   '\u{1F4BB}', '\u{1F680}', '\u{1F3AF}', '\u2764\uFE0F', '\u2699\uFE0F',
 ]
 
+const FOLDER_COLORS = [
+  '#3b82f6', // blue
+  '#8b5cf6', // violet
+  '#ec4899', // pink
+  '#ef4444', // red
+  '#f97316', // orange
+  '#eab308', // yellow
+  '#22c55e', // green
+  '#06b6d4', // cyan
+]
+
 interface SessionFoldersProps {
   activeFolder: string | null  // null = all sessions
   onFolderSelect: (folderId: string | null) => void
+  folderCounts?: Record<string, number>  // folderId -> session count
 }
 
-export default function SessionFolders({ activeFolder, onFolderSelect }: SessionFoldersProps) {
+export default function SessionFolders({ activeFolder, onFolderSelect, folderCounts = {} }: SessionFoldersProps) {
   const t = useT()
   const folders = usePrefsStore(s => s.prefs.sessionFolders || [])
   const [showMenu, setShowMenu] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [newName, setNewName] = useState('')
   const [newEmoji, setNewEmoji] = useState('\u{1F4C1}')
+  const [newColor, setNewColor] = useState(FOLDER_COLORS[0])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const menuRef = useRef<HTMLDivElement>(null)
@@ -54,11 +67,13 @@ export default function SessionFolders({ activeFolder, onFolderSelect }: Session
       id: `folder-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       name,
       emoji: newEmoji,
+      color: newColor,
       collapsed: false,
     }
     saveFolders([...folders, newFolder])
     setNewName('')
     setNewEmoji('\u{1F4C1}')
+    setNewColor(FOLDER_COLORS[0])
     setShowCreate(false)
   }
 
@@ -93,11 +108,11 @@ export default function SessionFolders({ activeFolder, onFolderSelect }: Session
           alignItems: 'center',
           gap: 4,
           padding: '3px 8px',
-          background: activeFolder ? 'rgba(var(--accent-rgb, 0, 122, 204), 0.1)' : 'transparent',
-          border: '1px solid var(--border)',
+          background: activeFolder && activeFolderObj?.color ? `${activeFolderObj.color}18` : activeFolder ? 'rgba(var(--accent-rgb, 0, 122, 204), 0.1)' : 'transparent',
+          border: `1px solid ${activeFolder && activeFolderObj?.color ? activeFolderObj.color + '40' : 'var(--border)'}`,
           borderRadius: 5,
           cursor: 'pointer',
-          color: activeFolder ? 'var(--accent)' : 'var(--text-muted)',
+          color: activeFolder && activeFolderObj?.color ? activeFolderObj.color : activeFolder ? 'var(--accent)' : 'var(--text-muted)',
           fontSize: 11,
           fontWeight: 500,
           transition: 'background 100ms',
@@ -175,15 +190,21 @@ export default function SessionFolders({ activeFolder, onFolderSelect }: Session
                     flex: 1,
                     display: 'flex', alignItems: 'center', gap: 8,
                     padding: '6px 8px', borderRadius: 5,
-                    background: activeFolder === f.id ? 'rgba(var(--accent-rgb, 0, 122, 204), 0.1)' : 'transparent',
+                    background: activeFolder === f.id ? (f.color ? `${f.color}18` : 'rgba(var(--accent-rgb, 0, 122, 204), 0.1)') : 'transparent',
                     border: 'none', cursor: 'pointer',
-                    color: activeFolder === f.id ? 'var(--accent)' : 'var(--text-primary)',
+                    color: activeFolder === f.id ? (f.color || 'var(--accent)') : 'var(--text-primary)',
                     fontSize: 11, fontWeight: activeFolder === f.id ? 600 : 400,
                     textAlign: 'left',
                   }}
                 >
+                  {f.color && <span style={{ width: 6, height: 6, borderRadius: '50%', background: f.color, flexShrink: 0 }} />}
                   <span style={{ fontSize: 12 }}>{f.emoji}</span>
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{f.name}</span>
+                  {(folderCounts[f.id] ?? 0) > 0 && (
+                    <span style={{ fontSize: 9, color: f.color || 'var(--text-muted)', opacity: 0.7, flexShrink: 0 }}>
+                      {folderCounts[f.id]}
+                    </span>
+                  )}
                 </button>
               )}
               <button
@@ -223,6 +244,23 @@ export default function SessionFolders({ activeFolder, onFolderSelect }: Session
                   >
                     {emoji}
                   </button>
+                ))}
+              </div>
+              {/* Color picker */}
+              <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+                {FOLDER_COLORS.map(color => (
+                  <button
+                    key={color}
+                    onClick={() => setNewColor(color)}
+                    style={{
+                      width: 16, height: 16, borderRadius: '50%',
+                      background: color, cursor: 'pointer',
+                      border: newColor === color ? '2px solid var(--text-primary)' : '2px solid transparent',
+                      outline: newColor === color ? `1px solid ${color}` : 'none',
+                      padding: 0,
+                    }}
+                    title={color}
+                  />
                 ))}
               </div>
               <div style={{ display: 'flex', gap: 4 }}>

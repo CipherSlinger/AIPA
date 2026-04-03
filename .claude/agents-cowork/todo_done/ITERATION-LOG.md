@@ -3524,3 +3524,42 @@ Three chat UX enhancements: message reaction chips, conversation summary export,
 - electron-ui/src/renderer/i18n/locales/en.json
 - electron-ui/src/renderer/i18n/locales/zh-CN.json
 - electron-ui/package.json (version bump to 1.1.104)
+
+---
+
+## Iteration 428 — Enhanced Session Management
+
+_Date: 2026-04-02 | PRD: prd-session-management-v3.md_
+
+### Summary
+Three session management improvements: folder colors with color picker, faster session hover preview (1000ms to 400ms), and session archive mode.
+
+#### Changes
+1. **Folder Colors** (SessionFolders.tsx, app.types.ts)
+   - Added color field to SessionFolder type
+   - 8 preset color picker (blue, violet, pink, red, orange, yellow, green, cyan)
+   - Folder button shows accent color when filtered by a colored folder
+   - Color dots next to folder names in dropdown
+   - Session count badge per folder in dropdown
+
+2. **Session Preview Optimization** (SessionList.tsx)
+   - Reduced tooltip hover delay from 1000ms to 400ms for faster preview
+
+3. **Session Archive Mode** (SessionList.tsx, SessionItem.tsx, app.types.ts)
+   - Added archivedSessions array to ClaudePrefs
+   - Archive/Unarchive button in session action toolbar
+   - Show Archived toggle button in session list header with count badge
+   - Archived sessions hidden by default, shown when toggle is active
+   - Bulk archive for selected sessions in select mode
+
+4. **i18n coverage** (en.json, zh-CN.json)
+   - Added archive keys: session.archive, session.unarchive, session.showArchived, session.hideArchived, session.archiveSelected
+
+#### Files Modified
+- electron-ui/src/renderer/types/app.types.ts
+- electron-ui/src/renderer/components/sessions/SessionFolders.tsx
+- electron-ui/src/renderer/components/sessions/SessionList.tsx
+- electron-ui/src/renderer/components/sessions/SessionItem.tsx
+- electron-ui/src/renderer/i18n/locales/en.json
+- electron-ui/src/renderer/i18n/locales/zh-CN.json
+- electron-ui/package.json (version bump to 1.1.105)
