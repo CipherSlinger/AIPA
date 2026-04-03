@@ -31,6 +31,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 | **Notes** | Markdown notepad with categories, templates, and one-click save from any chat response |
 | **Multi-Model** | Switch between Claude, GPT-4, DeepSeek, or local Ollama models mid-session; Qwen via QR code quick setup |
 | **Always Available** | System tray with quick actions, global hotkeys (`Ctrl+Shift+Space` toggle, `Ctrl+Shift+G` clipboard ask), and desktop notifications |
+| **Tasks & Reminders** | Quick todo list, timed reminders (5/15/30/60/120 min), daily briefing (task stats + next reminder + rotating productivity tips) |
 | **Channel** | Connect Feishu and WeChat messaging channels via OpenClaw — configure, test, and manage from the sidebar |
 
 ---
@@ -131,6 +132,8 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 | `Ctrl+,` | Open Settings |
 | `Ctrl+1–4` | History, Files, Notes, Skills |
 | `Ctrl+5–7` | Memory, Workflows, Channel |
+| `Ctrl+8` | Notifications |
+| `Ctrl+9` | Tasks |
 | `Ctrl+/` | Shortcut cheatsheet |
 | `Ctrl+Up/Down` | Step through messages (with focus indicator) |
 | `Ctrl+Home/End` | Jump to first/last message |
