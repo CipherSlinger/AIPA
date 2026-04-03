@@ -4092,3 +4092,31 @@ Status: SUCCESS (2540 modules, 9.85s)
 ### Cleanup
 - Cleared feedback.md (P0 loading screen bug already resolved via stash + rebuild)
 - Deleted orphaned ui-spec-conversation-templates-v1.md (no matching PRD)
+
+---
+
+## Iteration 442 — Conversation Flow Polish: Streaming Cursor + Scroll Refinements
+
+_Date: 2026-04-03 | PRD: prd-conversation-flow-polish-v1_
+
+### Summary
+Added streaming cursor (blinking `|`) to assistant messages during streaming, refined auto-scroll threshold from 80px to 100px for auto-follow, and separated scroll-to-bottom button visibility to 200px from bottom. Message entrance animations and smooth scrolling were already implemented in prior iterations.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/MessageBubbleContent.tsx` -- Added `.streaming-cursor` span after text content during streaming (both raw markdown and rendered views)
+- `electron-ui/src/renderer/components/chat/useMessageListScroll.ts` -- Updated near-bottom threshold from 80px to 100px; scroll-to-bottom button now shows at 200px from bottom
+- `electron-ui/src/renderer/styles/globals.css` -- Added `@keyframes streaming-blink` and `.streaming-cursor` class; added to `prefers-reduced-motion` section
+
+### Build
+Status: SUCCESS (9.58s)
+
+### Acceptance Criteria
+- [x] Blinking `|` cursor appended to last streamed text while `isStreaming === true`
+- [x] Cursor disappears immediately when streaming ends
+- [x] CSS animation only (no JS timers), 1s blink cycle
+- [x] Does not affect copy/paste (uses separate span element)
+- [x] Message entrance animations (already existed: `.message-enter-left`, `.message-enter-right`)
+- [x] Respects `prefers-reduced-motion` media query
+- [x] Smooth auto-scroll with `behavior: 'smooth'` (already existed)
+- [x] Auto-scroll only follows within 100px of bottom
+- [x] Scroll-to-bottom button at 200px from bottom

@@ -426,7 +426,8 @@ nav[aria-label="Main navigation"]::-webkit-scrollbar {
   .onboard-step-content,
   .onboard-icon,
   .permission-card-enter,
-  .permission-card-pending {
+  .permission-card-pending,
+  .streaming-cursor {
     animation: none !important;
     transition: none !important;
   }
@@ -442,6 +443,18 @@ nav[aria-label="Main navigation"]::-webkit-scrollbar {
 @keyframes voiceFadeIn {
   from { opacity: 0; transform: translateX(-4px); }
   to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Streaming cursor blink */
+@keyframes streaming-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.streaming-cursor {
+  display: inline;
+  color: var(--accent);
+  font-weight: 600;
+  animation: streaming-blink 1s step-end infinite;
 }
 
 /* Focus rings for accessibility */

@@ -71,7 +71,7 @@ export function useMessageListScroll(
           const scrollable = el.scrollHeight - el.clientHeight
           const targetScroll = Math.round(savedPct * scrollable)
           el.scrollTop = targetScroll
-          isNearBottomRef.current = el.scrollHeight - targetScroll - el.clientHeight < 80
+          isNearBottomRef.current = el.scrollHeight - targetScroll - el.clientHeight < 100
           setShowScrollBtn(!isNearBottomRef.current)
         }
       })
@@ -81,7 +81,7 @@ export function useMessageListScroll(
   const checkIfNearBottom = useCallback(() => {
     const el = scrollContainerRef.current
     if (!el) return true
-    return el.scrollHeight - el.scrollTop - el.clientHeight < 80
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 100
   }, [])
 
   // Throttled scroll handler: consolidates state updates into a single
@@ -104,7 +104,9 @@ export function useMessageListScroll(
       const currentNearBottom = isNearBottomRef.current
 
       // Batch all state updates together
-      setShowScrollBtn(!currentNearBottom)
+      // Scroll-to-bottom button: show when scrolled up >= 200px from bottom
+      const distFromBottom = el ? el.scrollHeight - el.scrollTop - el.clientHeight : 0
+      setShowScrollBtn(distFromBottom >= 200)
       if (currentNearBottom) {
         setUnreadCount(0)
       }

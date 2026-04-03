@@ -227,6 +227,7 @@ export default function MessageBubbleContent({
                   fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
                 }}>
                   {message.content}
+                  {isMessageStreaming && <span className="streaming-cursor">|</span>}
                 </pre>
               ) : isLongMessage && !longMessageExpanded ? (
                 /* Auto-collapsed long message: show truncated preview */
@@ -277,6 +278,7 @@ export default function MessageBubbleContent({
               ) : (
                 <div>
                   <MessageContent content={message.content} isUser={isUser} searchQuery={searchQuery} searchCaseSensitive={searchCaseSensitive} />
+                  {isMessageStreaming && isAssistant && <span className="streaming-cursor">|</span>}
                   {/* Show "Show less" button for expanded long messages */}
                   {isLongMessage && longMessageExpanded && (
                     <button
