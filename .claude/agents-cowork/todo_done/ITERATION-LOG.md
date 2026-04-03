@@ -4899,3 +4899,27 @@ Status: SUCCESS (tsc main/preload: 0 errors, vite build: 9.76s)
 - [x] Workflow name editable in header
 - [x] Duplicate button creates copy and opens it
 - [x] i18n complete for both en.json and zh-CN.json
+
+---
+
+## Iteration 470 — Housekeeping: Dead Code Cleanup, Bug Fixes, Shortcut Updates
+
+_Date: 2026-04-03 | Source: Post-feedback cleanup_
+
+### Summary
+Housekeeping iteration: (1) Cleaned up dead NotificationPanel.tsx to a no-op stub (was importing deleted NotificationEntry type), (2) Fixed workflow running toast params bug in WorkflowDetailPage (was calling t('workflow.running') without name/count params), (3) Added Ctrl+Shift+E export shortcut to useAppShortcuts (was only available via synthetic keyboard event from menu), (4) Updated ShortcutCheatsheet sidebar tab range from Ctrl+1-7 to Ctrl+1-8.
+
+### Files Changed
+- `NotificationPanel.tsx` — Replaced dead code with no-op stub (exports empty component)
+- `WorkflowDetailPage.tsx` — Fixed runWorkflow toast: now passes name and count params to t('workflow.running')
+- `useAppShortcuts.ts` — Added Ctrl+Shift+E handler to dispatch 'aipa:export' custom event
+- `ShortcutCheatsheet.tsx` — Updated sidebar tab shortcut range from Ctrl+1-7 to Ctrl+1-8
+
+### Build
+Status: SUCCESS (tsc main/preload: 0 errors, vite build: 9.84s)
+
+### Acceptance Criteria
+- [x] NotificationPanel.tsx is a no-op stub (no broken imports)
+- [x] Workflow running toast shows correct name and step count
+- [x] Ctrl+Shift+E triggers export from any panel (not just chat)
+- [x] ShortcutCheatsheet shows Ctrl+1-8 for sidebar tabs

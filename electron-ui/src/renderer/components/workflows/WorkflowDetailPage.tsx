@@ -109,8 +109,9 @@ export default function WorkflowDetailPage() {
 
   const runWorkflow = () => {
     if (!workflow) return
+    const displayName = workflow.presetKey ? t(`workflow.preset.${workflow.presetKey}`) : workflow.name
     window.dispatchEvent(new CustomEvent('aipa:runWorkflow', { detail: { workflowId: workflow.id } }))
-    addToast('info', t('workflow.running'))
+    addToast('info', t('workflow.running', { name: displayName, count: String(workflow.steps.length) }))
   }
 
   const handleSave = () => {

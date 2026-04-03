@@ -98,6 +98,11 @@ export function useAppShortcuts(
           store.collapseAll()
         }
       }
+      // Ctrl+Shift+E: Export conversation
+      if (e.ctrlKey && e.shiftKey && e.key === 'E') {
+        e.preventDefault()
+        window.dispatchEvent(new CustomEvent('aipa:export'))
+      }
       // Ctrl+Shift+D: Cycle theme (System -> Dark -> Light -> System)
       if (e.ctrlKey && e.shiftKey && e.key === 'D') {
         e.preventDefault()
