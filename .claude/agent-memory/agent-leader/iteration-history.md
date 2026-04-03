@@ -40,27 +40,27 @@ type: project
 - **Current version**: 1.1.79
 - **Build**: SUCCESS (2525 modules)
 
-### Outstanding Tech Debt (as of It.402)
+### Outstanding Tech Debt (as of It.440)
 - skillMarketplace.ts (~1860 lines) -- data-only, exempted from 800-line rule
-- ChatHeader.tsx (558 lines) -- monitor, decompose at 600
-- store/index.ts (703 lines as of It.435) approaching 800-line threshold
-- MessageList.tsx (517 lines as of It.435) -- healthy after prior decomposition
-- WorkflowCanvas.tsx (451 lines) -- healthy
+- SessionList.tsx (718 lines) -- **P1**, needs decomposition (useSessionFiltering hook, sessionAutoTags utility)
+- ChatPanel.tsx (682 lines) -- **P1**, needs decomposition (useChatPanelEvents hook, pinned note extraction)
+- Message.tsx (602 lines) -- just over 600, monitor
+- WelcomeScreen.tsx (583 lines) -- monitor
+- useStreamJson.ts (576 lines) -- monitor
+- ChatInput.tsx (562 lines) -- improved from 704 in Iter 432
+- ChatHeader.tsx (558 lines) -- monitor
 
-### Iteration 435 (2026-04-02)
-- **P0 Bug Fix**: Definitive loading screen fix
-- **Root causes identified and eliminated**:
-  1. IPC handler registration race condition (registerAllHandlers called after loadFile)
-  2. Blocking listSessions() in createAppMenu() during startup
-  3. No double-registration guard (crashes on macOS activate)
-  4. Splash overlay never auto-removed (z-index:99999 blocks app forever)
-  5. Unprotected IPC calls in child components (AppShell, I18nProvider)
-- **Structural fixes** (not surface-level patches like previous attempts):
-  - IPC handlers register BEFORE renderer loads
-  - Non-blocking deferred menu construction
-  - handlersRegistered guard + safeHandle helper
-  - 10s hard splash removal timer
-  - Startup fault isolation (try-catch per step)
-- **Version**: 1.1.112, Commit: ad74b7f
-- **Note**: prd-conversation-templates-v1.md in todo/ is a duplicate -- feature already shipped in Iteration 416
-- **Next forced retro**: After Iteration 441 (6 more iterations)
+**Resolved in this batch:**
+- ~~store/index.ts~~ (727->76, Iter 440 decomposition into chatStore.ts + uiStore.ts)
+- ~~ipc/index.ts~~ (780->350, Iter 432 decomposition into 4 handler files)
+- ~~ChatInput.tsx~~ (704->562, Iter 432 keyboard + send button extraction)
+
+### Iteration 440 Retro (2026-04-02)
+- **Retro**: retro-2026-04-02-iterations-432-440.md
+- **Covered**: Iterations 432-440 (v1.1.109 -> v1.1.117)
+- **Key wins**: 3 of 4 action items from prev retro completed, all decomposition debt cleared
+- **Chronic gap**: Tester not invoked for 50+ iterations (5th batch flagging this)
+- **New rule**: Tester checkpoint every 5 iterations (mandatory)
+- **Agent definition changes**: Updated aipa-frontend watchlist, added root cause analysis rule, added iteration log formatting rule
+- **Next forced retro**: After Iteration 450
+- **Next tester checkpoint**: Iteration 445

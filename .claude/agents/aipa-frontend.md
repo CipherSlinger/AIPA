@@ -194,9 +194,20 @@ const messages = useChatStore(s => s.messages)
 - ~~`NotesPanel.tsx`~~ (511→206 lines, Iter 226)
 - ~~`MessageList.tsx`~~ (666→395 lines, Iter 227)
 
-当前关注列表（截至 Iteration 227）：
-- `ChatPanel.tsx` (621 lines) -- 最大组件，待分解
-- `SessionList.tsx` (532 lines) -- 仍高于 400 行阈值，可进一步分解
+<!-- improved by agent-leader 2026-04-02: 更新关注列表至 Iteration 440，新增 decomposition 目标 -->
+当前关注列表（截至 Iteration 440）：
+- `SessionList.tsx` (718 lines) -- **P1 超阈值**，需提取 useSessionFiltering hook 和 sessionAutoTags 工具函数
+- `ChatPanel.tsx` (682 lines) -- **P1 超阈值**，需提取 useChatPanelEvents hook 和 pinned note 逻辑
+- `Message.tsx` (602 lines) -- 刚过 600 线，关注
+- `WelcomeScreen.tsx` (583 lines) -- 接近阈值，关注
+- `useStreamJson.ts` (576 lines) -- 接近阈值，关注
+- `ChatInput.tsx` (562 lines) -- 已从 704 降至 562 (Iter 432)，继续观察
+- `ChatHeader.tsx` (558 lines) -- 接近阈值，关注
+
+已完成分解（Iteration 432-440 期间）：
+- ~~`store/index.ts`~~ (727→76 lines, Iter 440, 拆分为 chatStore.ts + uiStore.ts)
+- ~~`ipc/index.ts`~~ (780→350 lines, Iter 432, 拆分为 4 个 handler 文件)
+- ~~`ChatInput.tsx`~~ (704→562 lines, Iter 432, 提取 useChatInputKeyboard + ChatInputSendButton)
 
 ---
 
@@ -220,6 +231,20 @@ const messages = useChatStore(s => s.messages)
 ```
 
 **缺失 ITERATION-LOG 条目是流水线事故**。回顾会将此作为严重流程违规记录。
+
+<!-- improved by agent-leader 2026-04-02: 强制顶级标题格式 -->
+**格式要求**：每个迭代必须使用顶级 `## Iteration N` 标题，不得作为其他迭代的子标题（`###`）。这确保 grep 工具和回顾会自动计数能正确识别每个迭代。
+
+<!-- improved by agent-leader 2026-04-02: bug 修复前必须做根因分析 -->
+### Bug 修复根因分析（必须遵守）
+
+修复 bug 时，**在写代码之前**必须先完成根因分析：
+1. 描述 bug 现象
+2. 列出可能的根因（至少 2 个假设）
+3. 验证哪个假设是真正的根因
+4. 只在确认根因后才编写修复代码
+
+**禁止"创可贴式修复"**：添加 timeout、retry、fallback 等缓解措施不算修复。必须消除根因。如果同一个 bug 在之前的迭代中已经被"修复"过但复发了，说明前一次是创可贴式修复——这次必须找到并消除真正的根因。
 
 ---
 
