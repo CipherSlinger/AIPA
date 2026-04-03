@@ -151,7 +151,12 @@
     "switchModel": "切换模型",
     "modelSwitched": "已切换到 {{model}}",
     "repliedIn": "{{time}} 后回复",
-    "draftRestored": "草稿已恢复"
+    "draftRestored": "草稿已恢复",
+    "typingStatus": {
+      "thinking": "思考中",
+      "writing": "写作中",
+      "usingTool": "正在使用 {{tool}}"
+    }
   },
   "welcome": {
     "title": "你好！我是 AIPA",
@@ -360,6 +365,11 @@
     "thisMonth": "本月",
     "inTitle": "在标题中",
     "inContent": "在内容中",
+    "emptyState": {
+      "noConversations": "暂无对话",
+      "subtitle": "您的对话记录将显示在这里",
+      "startNewChat": "开始新对话"
+    },
     "inProject": "在项目中",
     "pinSession": "置顶",
     "unpinSession": "取消置顶",
@@ -1687,5 +1697,18 @@
     "clickToLoad": "点击加载图片",
     "moreImages": "+{{count}} 张更多",
     "close": "关闭预览"
+  },
+  "paste": {
+    "codeDetected": "检测到代码",
+    "urlDetected": "检测到链接",
+    "longTextDetected": "检测到长文本",
+    "imageDetected": "检测到图片",
+    "review": "审查",
+    "explain": "解释",
+    "refactor": "重构",
+    "findBugs": "查找Bug",
+    "keyPoints": "提取要点",
+    "describe": "描述",
+    "extractText": "提取文字"
   }
 }

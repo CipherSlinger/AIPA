@@ -4602,3 +4602,57 @@ Status: SUCCESS
 [RETRO] retro-2026-04-03-iterations-451-460.md completed, covered Iteration 451-460, next forced retro after Iteration 470
 
 ---
+
+## Iteration 461 — AvatarPicker Portal Fix
+
+_Date: 2026-04-03 | PRD: prd-avatar-picker-fix-v1_
+
+### Summary
+Fixed AvatarPicker dropdown being occluded by Sidebar. Migrated from `position: absolute` (inside NavRail's stacking context) to `ReactDOM.createPortal()` rendering to `document.body` with `position: fixed` and `zIndex: 10000`. Added `anchorRef` prop for dynamic positioning via `getBoundingClientRect()`, plus resize listener to keep the popup aligned.
+
+### Files Changed
+- `AvatarPicker.tsx` — Portal rendering, fixed positioning, anchorRef-based position calculation, resize listener
+- `NavRail.tsx` — Added `avatarAnchorRef` on the avatar button div, passed `anchorRef` prop to AvatarPicker
+
+### Build
+Status: SUCCESS
+
+---
+
+## Iteration 462 — Rich Content Preview (File Icons, Image Preview, URL Cards)
+
+_Date: 2026-04-03 | PRD: prd-rich-content-preview-v1_
+
+### Summary
+Three features: (1) File type-specific icons in ToolUseBlock headers (code/doc/image/style/web icons). (2) Image inline preview with click-to-zoom Lightbox via Portal. (3) URL preview cards for standalone URLs with OG metadata via new `url:fetchMeta` IPC channel.
+
+### Files Changed
+- `ToolUseBlock.tsx` — FILE_EXT_ICONS map, image preview, Lightbox portal
+- NEW: `URLPreviewCard.tsx` — OG metadata card with cache and shimmer loading
+- `MessageContent.tsx` — Standalone URL detection in `p` renderer
+- `ipc/index.ts` — `url:fetchMeta` IPC handler
+- `preload/index.ts` — `urlFetchMeta` bridge
+- `en.json`, `zh-CN.json` — `preview.*` namespace (6 keys)
+
+### Build
+Status: SUCCESS
+
+---
+
+## Iteration 463 — Clipboard Instant Actions (Content Type Detection + Type-Aware Chips)
+
+_Date: 2026-04-03 | PRD: prd-clipboard-instant-actions-v1_
+
+### Summary
+Three features: (1) Content type detection engine in chatInputConstants.ts — classifies pasted text as code/url/long-text/short-text using heuristic scoring (keywords, symbols, indentation, line endings). (2) Unified PASTE_ACTIONS registry replacing separate CLIPBOARD_ACTIONS — 11 actions across 5 content types with prompt templates. (3) Type-aware paste chips in ChatInputPasteChips — shows content type label + relevant actions (code: Review/Explain/Refactor/Find Bugs; url: Summarize/Explain/Translate; long-text: Summarize/Rewrite/Key Points).
+
+### Files Changed
+- `chatInputConstants.ts` — Added PasteContentType, PASTE_ACTIONS registry, detectContentType(), getActionsForType(); backward-compat CLIPBOARD_ACTIONS alias
+- `usePasteDetection.ts` — Added pastedContentType/pastedText state, handleTypedAction/clearPasteState, integrated detectContentType
+- `ChatInputPasteChips.tsx` — New unified type-aware chip rendering with fallback to legacy chips
+- `en.json`, `zh-CN.json` — Added `paste.*` namespace (13 keys)
+
+### Build
+Status: SUCCESS
+
+---

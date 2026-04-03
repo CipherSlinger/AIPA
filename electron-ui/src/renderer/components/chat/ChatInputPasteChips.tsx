@@ -1,9 +1,11 @@
-// ChatInput paste action chips — extracted from ChatInput.tsx (Iteration 314)
-// Displays URL paste actions, long text paste actions, and quote preview banner.
+// ChatInput paste action chips — type-aware paste detection (Iteration 463)
+// Displays content-type-specific action chips based on paste detection.
 
 import React from 'react'
-import { X, Link2, FileText, MessageSquareQuote, Code2 } from 'lucide-react'
+import { X, Link2, FileText, MessageSquareQuote, Code2, Image } from 'lucide-react'
 import { useT } from '../../i18n'
+import { usePrefsStore } from '../../store'
+import { PasteContentType, getActionsForType, PasteAction } from './chatInputConstants'
 
 interface PasteState {
   pastedUrl: string | null
@@ -16,7 +18,11 @@ interface PasteState {
   handleLongTextAction: (label: string) => void
   urlChipTimerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>
   longTextTimerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>
-  onWrapAsBlock?: () => void  // wrap pasted text in a code/collapse block
+  onWrapAsBlock?: () => void
+  // New typed paste state (Iteration 463)
+  pastedContentType?: PasteContentType | null
+  pastedText?: string | null
+  handleTypedAction?: (prompt: string) => void
 }
 
 interface ChatInputPasteChipsProps {
@@ -40,9 +46,95 @@ function chipHoverOff(e: React.MouseEvent<HTMLButtonElement>) {
   e.currentTarget.style.borderColor = 'rgba(0, 122, 204, 0.25)'
 }
 
+// Content type label and icon
+const TYPE_CONFIG: Record<string, { icon: React.ElementType; labelKey: string }> = {
+  code: { icon: Code2, labelKey: 'paste.codeDetected' },
+  url: { icon: Link2, labelKey: 'paste.urlDetected' },
+  'long-text': { icon: FileText, labelKey: 'paste.longTextDetected' },
+  image: { icon: Image, labelKey: 'paste.imageDetected' },
+}
+
 export default function ChatInputPasteChips({ paste, inputLength }: ChatInputPasteChipsProps) {
   const t = useT()
+  const prefs = usePrefsStore(s => s.prefs)
+  const contentType = paste.pastedContentType
+  const pastedText = paste.pastedText
 
+  // If we have a typed content type, use the new unified chip system
+  if (contentType && pastedText && paste.handleTypedAction) {
+    const typeConfig = TYPE_CONFIG[contentType]
+    if (!typeConfig) return null
+
+    const TypeIcon = typeConfig.icon
+    const actions = getActionsForType(contentType)
+
+    const handleAction = (action: PasteAction) => {
+      let prompt: string
+      if (action.id === 'translate') {
+        const isZh = prefs.language === 'zh-CN'
+        prompt = (isZh ? action.templateZh : action.templateEn || action.template || '').replace('{text}', pastedText.trim())
+      } else {
+        prompt = (action.template || '').replace('{text}', pastedText.trim())
+      }
+      paste.handleTypedAction!(prompt)
+    }
+
+    const dismissAll = () => {
+      paste.handleTypedAction!('') // Clear
+      // Actually just clear the state without changing input
+      if (paste.pastedContentType) {
+        // Use the paste object's clear methods
+        paste.setPastedUrl(null)
+        paste.setPastedLongText(false)
+      }
+    }
+
+    return (
+      <>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px', marginBottom: 4, flexWrap: 'wrap' }}>
+          <TypeIcon size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+          <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap', fontWeight: 500 }}>
+            {t(typeConfig.labelKey)}
+          </span>
+          {actions.map(action => (
+            <button
+              key={action.id}
+              onClick={() => handleAction(action)}
+              style={chipStyle}
+              onMouseEnter={chipHoverOn}
+              onMouseLeave={chipHoverOff}
+            >
+              {t(action.labelKey)}
+            </button>
+          ))}
+          {contentType === 'long-text' && paste.onWrapAsBlock && (
+            <button
+              onClick={() => { paste.onWrapAsBlock?.(); paste.setPastedLongText(false) }}
+              style={{ ...chipStyle, display: 'flex', alignItems: 'center', gap: 3 }}
+              onMouseEnter={chipHoverOn}
+              onMouseLeave={chipHoverOff}
+              title={t('chat.wrapAsBlock')}
+            >
+              <Code2 size={10} />
+              {t('chat.wrapAsBlock')}
+            </button>
+          )}
+          <button
+            onClick={dismissAll}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2, display: 'flex', opacity: 0.6 }}
+          >
+            <X size={12} />
+          </button>
+        </div>
+        {/* Pending quote preview banner */}
+        {paste.pendingQuote && (
+          <QuoteBanner quote={paste.pendingQuote} onClose={() => paste.setPendingQuote(null)} t={t} />
+        )}
+      </>
+    )
+  }
+
+  // Fallback to legacy chip rendering when unified type is not available
   return (
     <>
       {/* URL paste quick action chips */}
@@ -118,22 +210,28 @@ export default function ChatInputPasteChips({ paste, inputLength }: ChatInputPas
       )}
       {/* Pending quote preview banner */}
       {paste.pendingQuote && (
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 10px', marginBottom: 6, background: 'rgba(0, 122, 204, 0.08)', borderLeft: '3px solid var(--accent)', borderRadius: 4, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-          <MessageSquareQuote size={14} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2 }} />
-          <div style={{ flex: 1, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', wordBreak: 'break-word' }}>
-            {paste.pendingQuote.length > 150 ? paste.pendingQuote.slice(0, 150) + '...' : paste.pendingQuote}
-          </div>
-          <button
-            onClick={() => paste.setPendingQuote(null)}
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 2, borderRadius: 4, flexShrink: 0, transition: 'color 150ms' }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--error)' }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)' }}
-            title={t('common.close')}
-          >
-            <X size={14} />
-          </button>
-        </div>
+        <QuoteBanner quote={paste.pendingQuote} onClose={() => paste.setPendingQuote(null)} t={t} />
       )}
     </>
+  )
+}
+
+function QuoteBanner({ quote, onClose, t }: { quote: string; onClose: () => void; t: (key: string) => string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 10px', marginBottom: 6, background: 'rgba(0, 122, 204, 0.08)', borderLeft: '3px solid var(--accent)', borderRadius: 4, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+      <MessageSquareQuote size={14} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2 }} />
+      <div style={{ flex: 1, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', wordBreak: 'break-word' }}>
+        {quote.length > 150 ? quote.slice(0, 150) + '...' : quote}
+      </div>
+      <button
+        onClick={onClose}
+        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 2, borderRadius: 4, flexShrink: 0, transition: 'color 150ms' }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--error)' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)' }}
+        title={t('common.close')}
+      >
+        <X size={14} />
+      </button>
+    </div>
   )
 }

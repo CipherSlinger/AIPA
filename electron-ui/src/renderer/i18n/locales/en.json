@@ -151,7 +151,12 @@
     "switchModel": "Switch model",
     "modelSwitched": "Model switched to {{model}}",
     "repliedIn": "replied in {{time}}",
-    "draftRestored": "Draft restored"
+    "draftRestored": "Draft restored",
+    "typingStatus": {
+      "thinking": "Thinking",
+      "writing": "Writing",
+      "usingTool": "Using {{tool}}"
+    }
   },
   "welcome": {
     "title": "Hello! I'm AIPA",
@@ -355,6 +360,11 @@
     "results": "{{count}} results",
     "noResults": "No results",
     "today": "Today",
+    "emptyState": {
+      "noConversations": "No conversations yet",
+      "subtitle": "Your conversation history will appear here",
+      "startNewChat": "Start a new chat"
+    },
     "yesterday": "Yesterday",
     "thisWeek": "This Week",
     "thisMonth": "This Month",
@@ -1669,5 +1679,18 @@
     "clickToLoad": "Click to load image",
     "moreImages": "+{{count}} more",
     "close": "Close preview"
+  },
+  "paste": {
+    "codeDetected": "Code detected",
+    "urlDetected": "URL detected",
+    "longTextDetected": "Long text detected",
+    "imageDetected": "Image detected",
+    "review": "Review",
+    "explain": "Explain",
+    "refactor": "Refactor",
+    "findBugs": "Find Bugs",
+    "keyPoints": "Key Points",
+    "describe": "Describe",
+    "extractText": "Extract Text"
   }
 }
