@@ -589,6 +589,16 @@ interface UiState {
   editingWorkflowId: string | null
   openPersonaEditor: (personaId: string | null) => void
   openWorkflowEditor: (workflowId: string | null) => void
+
+  // Session Quick Switcher (Ctrl+K)
+  sessionSwitcherOpen: boolean
+  setSessionSwitcherOpen: (v: boolean) => void
+  toggleSessionSwitcher: () => void
+
+  // Session Pinned Notes (keyed by session ID)
+  sessionNotes: Record<string, string>
+  setSessionNote: (sessionId: string, note: string) => void
+  removeSessionNote: (sessionId: string) => void
 }
 
 // Restore last sidebar tab from localStorage
@@ -670,4 +680,24 @@ export const useUiStore = create<UiState>((set) => ({
   editingWorkflowId: null,
   openPersonaEditor: (personaId) => set({ mainView: 'persona-editor', editingPersonaId: personaId, settingsModalOpen: false }),
   openWorkflowEditor: (workflowId) => set({ mainView: 'workflow-editor', editingWorkflowId: workflowId, settingsModalOpen: false }),
+  sessionSwitcherOpen: false,
+  setSessionSwitcherOpen: (v) => set({ sessionSwitcherOpen: v }),
+  toggleSessionSwitcher: () => set((s) => ({ sessionSwitcherOpen: !s.sessionSwitcherOpen })),
+  sessionNotes: (() => {
+    try {
+      const saved = localStorage.getItem('aipa:session-notes')
+      return saved ? JSON.parse(saved) : {}
+    } catch { return {} }
+  })(),
+  setSessionNote: (sessionId, note) => set((s) => {
+    const updated = { ...s.sessionNotes, [sessionId]: note }
+    try { localStorage.setItem('aipa:session-notes', JSON.stringify(updated)) } catch {}
+    return { sessionNotes: updated }
+  }),
+  removeSessionNote: (sessionId) => set((s) => {
+    const updated = { ...s.sessionNotes }
+    delete updated[sessionId]
+    try { localStorage.setItem('aipa:session-notes', JSON.stringify(updated)) } catch {}
+    return { sessionNotes: updated }
+  }),
 }))

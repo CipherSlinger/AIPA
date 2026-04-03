@@ -5,7 +5,7 @@ import {
   Plus, Download, PanelLeft, Settings, History,
   FolderOpen, Zap, Trash2, HelpCircle, Cpu, Sparkles,
   Brain, Workflow, Play, NotebookPen, ClipboardPaste, Radio,
-  Sun, Moon, Languages, Copy, Pin,
+  Sun, Moon, Languages, Copy, Pin, StickyNote, ArrowUpDown,
 } from 'lucide-react'
 import { useChatStore, useSessionStore, useUiStore, usePrefsStore } from '../../store'
 import type { SidebarTab, NavItem } from '../../store'
@@ -220,6 +220,31 @@ export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] 
         } catch {
           addToast('error', t('command.clipboardReadFailed'))
         }
+        onClose()
+      },
+      category: 'action',
+    },
+    // Session Quick Switcher (Iteration 434)
+    {
+      id: 'session-quick-switcher',
+      name: t('session.quickSwitcher'),
+      description: t('session.quickSwitcherDesc'),
+      icon: <ArrowUpDown size={14} />,
+      shortcut: 'Ctrl+K',
+      action: () => {
+        useUiStore.getState().setSessionSwitcherOpen(true)
+        onClose()
+      },
+      category: 'action',
+    },
+    // Pin a note to current session (Iteration 434)
+    {
+      id: 'pin-session-note',
+      name: t('session.addNote'),
+      description: t('session.addNoteDesc'),
+      icon: <StickyNote size={14} />,
+      action: () => {
+        window.dispatchEvent(new CustomEvent('aipa:editSessionNote'))
         onClose()
       },
       category: 'action',

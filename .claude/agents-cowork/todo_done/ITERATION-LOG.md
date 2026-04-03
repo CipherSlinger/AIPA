@@ -3757,3 +3757,49 @@ User reported (with frustration) that the app is still stuck on loading screen d
 - `electron-ui/src/renderer/index.tsx` (module load diagnostic log)
 - `electron-ui/src/main/ipc/index.ts` (try/catch on prefs/config handlers)
 - `electron-ui/package.json` (version bump to 1.1.110)
+
+---
+
+## Iteration 434 — Session Quick Switcher & Pinned Notes
+
+_Date: 2026-04-03 | Version: 1.1.111_
+
+### Summary
+Implemented session productivity enhancements: a dedicated Session Quick Switcher (Ctrl+K) overlay and per-session Pinned Notes.
+
+### Changes
+
+1. **Session Quick Switcher** (Ctrl+K)
+   - New overlay component at `components/shared/SessionQuickSwitcher.tsx`
+   - Fuzzy search across session titles, last prompts, and pinned notes
+   - Shows 15 most recent sessions with relative timestamps
+   - Arrow keys navigate, Enter opens, Escape dismisses
+   - Repurposed Ctrl+K from "clear conversation" (Ctrl+N still available for that)
+   - Added to command palette and keyboard shortcut cheatsheet
+
+2. **Session Pinned Notes**
+   - Per-session notes stored in localStorage via UiStore
+   - Thin banner appears at top of ChatPanel below search bar
+   - Click to edit, max 200 chars, Enter to save, Escape to cancel
+   - Notes visible in Quick Switcher results (italic, warning color)
+   - Triggerable from command palette ("Pin a note to this session")
+   - Custom event `aipa:editSessionNote` bridges command palette to ChatPanel
+
+3. **Store additions** (store/index.ts)
+   - `sessionSwitcherOpen`, `setSessionSwitcherOpen`, `toggleSessionSwitcher`
+   - `sessionNotes`, `setSessionNote`, `removeSessionNote` with localStorage persistence
+
+4. **i18n** (en.json + zh-CN.json)
+   - Added: quickSwitcher, quickSwitcherPlaceholder, quickSwitcherDesc, addNote, addNoteDesc, editNote, removeNote, sessionQuickSwitcher
+
+#### Files Modified
+- `electron-ui/src/renderer/components/shared/SessionQuickSwitcher.tsx` (NEW)
+- `electron-ui/src/renderer/store/index.ts` (session switcher + pinned notes state)
+- `electron-ui/src/renderer/App.tsx` (wired SessionQuickSwitcher)
+- `electron-ui/src/renderer/hooks/useAppShortcuts.ts` (Ctrl+K -> session switcher)
+- `electron-ui/src/renderer/components/chat/ChatPanel.tsx` (pinned note banner + editing)
+- `electron-ui/src/renderer/components/shared/commandPaletteCommands.tsx` (new commands)
+- `electron-ui/src/renderer/components/shared/ShortcutCheatsheet.tsx` (Ctrl+K entry)
+- `electron-ui/src/renderer/i18n/locales/en.json` (i18n keys)
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` (i18n keys)
+- `electron-ui/package.json` (version bump to 1.1.111)

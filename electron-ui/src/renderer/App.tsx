@@ -3,6 +3,7 @@ import AppShell from './components/layout/AppShell'
 import OnboardingWizard from './components/onboarding/OnboardingWizard'
 import ErrorBoundary from './components/shared/ErrorBoundary'
 import CommandPalette from './components/shared/CommandPalette'
+import SessionQuickSwitcher from './components/shared/SessionQuickSwitcher'
 import ShortcutCheatsheet from './components/shared/ShortcutCheatsheet'
 import { ToastContainer } from './components/ui/Toast'
 import { usePrefsStore, useChatStore, useUiStore } from './store'
@@ -22,6 +23,8 @@ export default function App() {
   const commandPaletteOpen = useUiStore(s => s.commandPaletteOpen)
   const setCommandPaletteOpen = useUiStore(s => s.setCommandPaletteOpen)
   const toggleCommandPalette = useUiStore(s => s.toggleCommandPalette)
+  const sessionSwitcherOpen = useUiStore(s => s.sessionSwitcherOpen)
+  const setSessionSwitcherOpen = useUiStore(s => s.setSessionSwitcherOpen)
   const toggleFocusMode = useUiStore(s => s.toggleFocusMode)
   const setSidebarOpen = useUiStore(s => s.setSidebarOpen)
   const setSidebarTab = useUiStore(s => s.setSidebarTab)
@@ -299,6 +302,9 @@ export default function App() {
         )}
         {showShortcuts && (
           <ShortcutCheatsheet onClose={() => setShowShortcuts(false)} />
+        )}
+        {sessionSwitcherOpen && (
+          <SessionQuickSwitcher onClose={() => setSessionSwitcherOpen(false)} />
         )}
       </>
     </ErrorBoundary>

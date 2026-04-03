@@ -428,7 +428,14 @@
     "createFolder": "Create",
     "folderMax": "Max 10 folders",
     "newFolder": "New folder",
-    "moveToFolder": "Move to folder"
+    "moveToFolder": "Move to folder",
+    "quickSwitcher": "Session Switcher",
+    "quickSwitcherPlaceholder": "Search sessions by title or content...",
+    "quickSwitcherDesc": "Quick switch between recent sessions",
+    "addNote": "Pin a note to this session",
+    "addNoteDesc": "Add a pinned note visible at the top of the chat",
+    "editNote": "Click to edit note",
+    "removeNote": "Remove pinned note"
   },
   "settings": {
     "title": "Settings",
@@ -847,6 +854,7 @@
     "toggleLanguage": "Toggle language (EN/CN)",
     "cycleModel": "Cycle model (Sonnet/Opus/Haiku)",
     "pinWindow": "Pin window on top",
+    "sessionQuickSwitcher": "Session quick switcher",
     "prevNextSession": "Previous/next session",
     "switchSidebarTab": "Switch sidebar tab (History/Files/Notes/Skills/Settings/Memory/Workflows)",
     "quickSearch": "Focus session search",

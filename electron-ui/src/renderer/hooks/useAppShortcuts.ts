@@ -54,23 +54,10 @@ export function useAppShortcuts(
           store.clearMessages()
         }
       }
-      // Ctrl+K: Clear conversation (alternative, terminal-style)
+      // Ctrl+K: Session Quick Switcher (Iteration 434)
       if (e.ctrlKey && !e.shiftKey && e.key === 'k') {
         e.preventDefault()
-        const store = useChatStore.getState()
-        if (store.messages.length > 0 && store.isStreaming) return
-        if (store.messages.length > 2) {
-          const now = Date.now()
-          if ((window as any).__lastClearPress && now - (window as any).__lastClearPress < 1500) {
-            store.clearMessages()
-            ;(window as any).__lastClearPress = 0
-          } else {
-            (window as any).__lastClearPress = now
-            useUiStore.getState().addToast('warning', t('chat.pressAgainToClear', { key: 'Ctrl+K' }), 1500)
-          }
-        } else {
-          store.clearMessages()
-        }
+        useUiStore.getState().toggleSessionSwitcher()
       }
       // Ctrl+` was terminal toggle — removed (Iteration 404)
       // Ctrl+Shift+P: Command palette

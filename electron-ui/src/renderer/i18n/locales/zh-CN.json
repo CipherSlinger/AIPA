@@ -428,7 +428,14 @@
     "createFolder": "创建",
     "folderMax": "最多 10 个文件夹",
     "newFolder": "新建文件夹",
-    "moveToFolder": "移动到文件夹"
+    "moveToFolder": "移动到文件夹",
+    "quickSwitcher": "会话切换器",
+    "quickSwitcherPlaceholder": "按标题或内容搜索会话...",
+    "quickSwitcherDesc": "快速切换最近的会话",
+    "addNote": "给此会话添加备注",
+    "addNoteDesc": "在聊天顶部添加固定备注",
+    "editNote": "点击编辑备注",
+    "removeNote": "移除固定备注"
   },
   "settings": {
     "title": "设置",
@@ -864,6 +871,7 @@
     "toggleLanguage": "切换语言 (中/英)",
     "cycleModel": "切换模型 (Sonnet/Opus/Haiku)",
     "pinWindow": "置顶窗口",
+    "sessionQuickSwitcher": "快速切换会话",
     "prevNextSession": "上一个/下一个会话",
     "switchSidebarTab": "切换侧边栏面板（历史/文件/笔记/技能/设置/记忆/工作流）",
     "quickSearch": "聚焦会话搜索",

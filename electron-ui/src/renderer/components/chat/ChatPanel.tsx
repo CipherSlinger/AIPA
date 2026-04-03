@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { Upload, RefreshCw, AlertTriangle, ChevronDown } from 'lucide-react'
+import { Upload, RefreshCw, AlertTriangle, ChevronDown, StickyNote, X, Check } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { StandardChatMessage } from '../../types/app.types'
 import { useStreamJson } from '../../hooks/useStreamJson'
@@ -36,6 +36,9 @@ export default function ChatPanel() {
   const addToast = useUiStore(s => s.addToast)
   const focusMode = useUiStore(s => s.focusMode)
   const toggleFocusMode = useUiStore(s => s.toggleFocusMode)
+  const sessionNotes = useUiStore(s => s.sessionNotes)
+  const setSessionNote = useUiStore(s => s.setSessionNote)
+  const removeSessionNote = useUiStore(s => s.removeSessionNote)
   const prepareRegeneration = useChatStore(s => s.prepareRegeneration)
   const lastContextUsage = useChatStore(s => s.lastContextUsage)
   const totalSessionCost = useChatStore(s => s.totalSessionCost)
@@ -77,9 +80,26 @@ export default function ChatPanel() {
     return () => window.removeEventListener('aipa:sendPrompt', handler)
   }, [sendMessage, isStreaming])
 
+  // Listen for "Pin note to session" events from command palette (Iteration 434)
+  useEffect(() => {
+    const handler = () => {
+      if (currentSessionId) {
+        setNoteText(sessionNotes[currentSessionId] || '')
+        setEditingNote(true)
+      }
+    }
+    window.addEventListener('aipa:editSessionNote', handler)
+    return () => window.removeEventListener('aipa:editSessionNote', handler)
+  }, [currentSessionId, sessionNotes])
+
   // Scroll-to-message state (for bookmarks panel)
   const [scrollToMessageIdx, setScrollToMessageIdx] = useState<number | undefined>(undefined)
   const [contextWarningDismissed, setContextWarningDismissed] = useState(false)
+
+  // Pinned note editing state (Iteration 434)
+  const [editingNote, setEditingNote] = useState(false)
+  const [noteText, setNoteText] = useState('')
+  const currentNote = currentSessionId ? sessionNotes[currentSessionId] : undefined
 
   // Context window usage warning
   const contextPct = lastContextUsage && lastContextUsage.total > 0
@@ -263,6 +283,79 @@ export default function ChatPanel() {
           roleFilter={roleFilter}
           onChangeRoleFilter={changeRoleFilter}
         />
+      )}
+
+      {/* Pinned Note banner (Iteration 434) */}
+      {currentSessionId && editingNote && !currentNote && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '4px 12px',
+          background: 'rgba(251, 191, 36, 0.08)',
+          borderBottom: '1px solid rgba(251, 191, 36, 0.15)',
+          fontSize: 12,
+          flexShrink: 0,
+          minHeight: 28,
+        }}>
+          <StickyNote size={12} style={{ color: 'var(--warning)', flexShrink: 0 }} />
+          <input
+            autoFocus
+            value={noteText}
+            onChange={e => setNoteText(e.target.value.slice(0, 200))}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                if (noteText.trim()) setSessionNote(currentSessionId, noteText.trim())
+                setEditingNote(false)
+              }
+              if (e.key === 'Escape') setEditingNote(false)
+            }}
+            placeholder={t('session.addNote')}
+            maxLength={200}
+            style={{
+              flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border)',
+              borderRadius: 3, padding: '2px 6px', fontSize: 12, color: 'var(--text-primary)', outline: 'none',
+            }}
+          />
+          <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>{noteText.length}/200</span>
+          <button onClick={() => { if (noteText.trim()) setSessionNote(currentSessionId, noteText.trim()); setEditingNote(false) }}
+            style={{ background: 'none', border: 'none', color: 'var(--success)', cursor: 'pointer', display: 'flex', padding: 2 }}>
+            <Check size={12} />
+          </button>
+          <button onClick={() => setEditingNote(false)}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: 2 }}>
+            <X size={12} />
+          </button>
+        </div>
+      )}
+      {currentSessionId && currentNote && !editingNote && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '4px 12px',
+          background: 'rgba(251, 191, 36, 0.08)',
+          borderBottom: '1px solid rgba(251, 191, 36, 0.15)',
+          fontSize: 12,
+          flexShrink: 0,
+          minHeight: 28,
+        }}>
+          <StickyNote size={12} style={{ color: 'var(--warning)', flexShrink: 0 }} />
+          <span
+            style={{ flex: 1, color: 'var(--text-secondary)', fontStyle: 'italic', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            onClick={() => { setNoteText(currentNote || ''); setEditingNote(true) }}
+            title={t('session.editNote')}
+          >
+            {currentNote}
+          </span>
+          <button
+            onClick={() => { removeSessionNote(currentSessionId); setEditingNote(false) }}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: 2, opacity: 0.5 }}
+            title={t('session.removeNote')}
+          >
+            <X size={10} />
+          </button>
+        </div>
       )}
 
       {/* Context window warning banner */}

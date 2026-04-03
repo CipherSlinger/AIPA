@@ -29,6 +29,7 @@ const SHORTCUTS = [
     { keys: 'Ctrl + Shift + L', actionKey: 'toggleLanguage' },
     { keys: 'Ctrl + Shift + M', actionKey: 'cycleModel' },
     { keys: 'Ctrl + Shift + T', actionKey: 'pinWindow' },
+    { keys: 'Ctrl + K', actionKey: 'sessionQuickSwitcher' },
     { keys: 'Ctrl + [ / ]', actionKey: 'prevNextSession' },
     { keys: 'Ctrl + 1-7', actionKey: 'switchSidebarTab' },
     { keys: '/', actionKey: 'quickSearch' },
