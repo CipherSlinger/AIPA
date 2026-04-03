@@ -59,7 +59,7 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     this.setState({ errorInfo })
-    console.error('[ErrorBoundary] Caught error:', error, errorInfo)
+    console.error('[ErrorBoundary] Caught error:', error.message)
 
     // STABILITY (Iteration 308): Back up conversation state to sessionStorage
     // so it can be restored after recovery. This is the safety net that prevents
@@ -212,31 +212,29 @@ export default class ErrorBoundary extends Component<Props, State> {
     // During auto-retry, show a brief loading state instead of the error
     if (this.state.autoRetrying) {
       const t = getT()
-      // In overlay mode, keep children visible behind the recovery notice
+      // In overlay mode, show a placeholder instead of children during retry
+      // (rendering children would immediately re-throw the same error, creating an infinite loop)
       if (this.props.overlay) {
         return (
-          <>
-            {this.props.children}
-            <div
-              style={{
-                position: 'fixed',
-                top: 40,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                padding: '8px 20px',
-                background: 'var(--popup-bg, #252526)',
-                border: '1px solid var(--warning, #cca700)',
-                borderRadius: '8px',
-                color: 'var(--text-muted, #858585)',
-                fontSize: '12px',
-                textAlign: 'center',
-                zIndex: 10000,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-              }}
-            >
-              {t('error.recovering', { current: String(this.state.retryCount + 1), max: String(MAX_AUTO_RETRIES) })}
-            </div>
-          </>
+          <div
+            style={{
+              position: 'fixed',
+              top: 40,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              padding: '8px 20px',
+              background: 'var(--popup-bg, #252526)',
+              border: '1px solid var(--warning, #cca700)',
+              borderRadius: '8px',
+              color: 'var(--text-muted, #858585)',
+              fontSize: '12px',
+              textAlign: 'center',
+              zIndex: 10000,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            }}
+          >
+            {t('error.recovering', { current: String(this.state.retryCount + 1), max: String(MAX_AUTO_RETRIES) })}
+          </div>
         )
       }
       return (

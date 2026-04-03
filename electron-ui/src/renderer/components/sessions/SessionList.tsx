@@ -21,7 +21,8 @@ import { useSessionListActions } from './useSessionListActions'
 import { useSessionTooltip } from './useSessionTooltip'
 
 export default function SessionList() {
-  const { prefs, setPrefs } = usePrefsStore()
+  const prefs = usePrefsStore(s => s.prefs)
+  const setPrefs = usePrefsStore(s => s.setPrefs)
   const t = useT()
   const actions = useSessionListActions()
 

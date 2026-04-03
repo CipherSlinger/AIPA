@@ -41,7 +41,7 @@ function createWindow(): void {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true,
+      sandbox: false,
     },
   }
   // Only set x/y if we have saved position and it's still on a visible display
@@ -153,7 +153,7 @@ function setupCSP(): void {
   // Content Security Policy prevents XSS and unauthorized resource loading
   const prodCSP = [
     "default-src 'self'",
-    "script-src 'self'",
+    "script-src 'self' 'unsafe-inline'",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "connect-src 'self'",

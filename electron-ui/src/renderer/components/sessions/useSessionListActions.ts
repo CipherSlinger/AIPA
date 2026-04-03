@@ -7,10 +7,15 @@ import { parseSessionMessages, generateSmartTitle } from './sessionUtils'
 import { useT } from '../../i18n'
 
 export function useSessionListActions() {
-  const { sessions, setSessions, setLoading } = useSessionStore()
-  const { clearMessages, loadHistory, setSessionId, currentSessionId } = useChatStore()
+  const sessions = useSessionStore(s => s.sessions)
+  const setSessions = useSessionStore(s => s.setSessions)
+  const setLoading = useSessionStore(s => s.setLoading)
+  const clearMessages = useChatStore(s => s.clearMessages)
+  const loadHistory = useChatStore(s => s.loadHistory)
+  const setSessionId = useChatStore(s => s.setSessionId)
+  const currentSessionId = useChatStore(s => s.currentSessionId)
   const isStreaming = useChatStore(s => s.isStreaming)
-  const { addToast } = useUiStore()
+  const addToast = useUiStore(s => s.addToast)
   const t = useT()
 
   // ── Multi-select mode ──
