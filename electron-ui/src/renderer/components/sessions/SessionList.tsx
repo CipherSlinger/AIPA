@@ -270,11 +270,10 @@ export default function SessionList() {
         onFilterChange={(value) => { setFilter(value); if (!value) actions.setShowGlobalResults(false) }}
         filteredCount={filtered.length}
         sortBy={sortBy}
-        onSortChange={() => setSortBy(prev => {
-          const next = prev === 'newest' ? 'oldest' : prev === 'oldest' ? 'alpha' : prev === 'alpha' ? 'messages' : 'newest'
-          try { localStorage.setItem('aipa:session-sort', next) } catch {}
-          return next
-        })}
+        onSortChange={(newSort) => {
+          setSortBy(newSort)
+          try { localStorage.setItem('aipa:session-sort', newSort) } catch {}
+        }}
         selectMode={actions.selectMode}
         onToggleSelectMode={() => {
           if (actions.selectMode) {

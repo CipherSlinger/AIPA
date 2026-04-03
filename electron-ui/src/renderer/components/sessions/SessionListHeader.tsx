@@ -1,14 +1,16 @@
 // Session list header toolbar — extracted from SessionList.tsx (Iteration 441)
-import React from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { RefreshCw, ArrowUpDown, Search, CheckSquare, Trash2, Archive, BarChart3, LayoutList } from 'lucide-react'
 import { useT } from '../../i18n'
+
+type SortOption = 'newest' | 'oldest' | 'alpha' | 'messages'
 
 interface SessionListHeaderProps {
   filter: string
   onFilterChange: (value: string) => void
   filteredCount: number
-  sortBy: 'newest' | 'oldest' | 'alpha' | 'messages'
-  onSortChange: () => void
+  sortBy: SortOption
+  onSortChange: (sortBy: SortOption) => void
   selectMode: boolean
   onToggleSelectMode: () => void
   showArchived: boolean
@@ -47,6 +49,31 @@ export default function SessionListHeader({
   onToggleCompact,
 }: SessionListHeaderProps) {
   const t = useT()
+  const [showSortDropdown, setShowSortDropdown] = useState(false)
+  const sortBtnRef = useRef<HTMLButtonElement>(null)
+  const sortDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Close sort dropdown on outside click
+  useEffect(() => {
+    if (!showSortDropdown) return
+    const handler = (e: MouseEvent) => {
+      if (
+        sortDropdownRef.current && !sortDropdownRef.current.contains(e.target as Node) &&
+        sortBtnRef.current && !sortBtnRef.current.contains(e.target as Node)
+      ) {
+        setShowSortDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showSortDropdown])
+
+  const sortOptions: { id: SortOption; labelKey: string; shortKey: string }[] = [
+    { id: 'newest', labelKey: 'session.sortNewest', shortKey: 'session.sortNew' },
+    { id: 'oldest', labelKey: 'session.sortOldest', shortKey: 'session.sortOld' },
+    { id: 'alpha', labelKey: 'session.sortAlpha', shortKey: 'A-Z' },
+    { id: 'messages', labelKey: 'session.sortMessages', shortKey: 'session.sortMsgs' },
+  ]
 
   return (
     <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
@@ -93,17 +120,75 @@ export default function SessionListHeader({
       >
         <RefreshCw size={13} />
       </button>
-      <button
-        onClick={onSortChange}
-        title={`${t('session.sort')}: ${sortBy === 'newest' ? t('session.sortNewest') : sortBy === 'oldest' ? t('session.sortOldest') : sortBy === 'messages' ? t('session.sortMessages') : t('session.sortAlpha')}`}
-        style={{
-          background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', gap: 2, fontSize: 10,
-        }}
-      >
-        <ArrowUpDown size={11} />
-        <span>{sortBy === 'newest' ? t('session.sortNew') : sortBy === 'oldest' ? t('session.sortOld') : sortBy === 'messages' ? t('session.sortMsgs') : 'A-Z'}</span>
-      </button>
+      <div style={{ position: 'relative' }}>
+        <button
+          ref={sortBtnRef}
+          onClick={() => setShowSortDropdown(!showSortDropdown)}
+          title={`${t('session.sort')}: ${sortBy === 'newest' ? t('session.sortNewest') : sortBy === 'oldest' ? t('session.sortOldest') : sortBy === 'messages' ? t('session.sortMessages') : t('session.sortAlpha')}`}
+          style={{
+            background: showSortDropdown ? 'rgba(255,255,255,0.08)' : 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 2, fontSize: 10, borderRadius: 4,
+          }}
+        >
+          <ArrowUpDown size={11} />
+          <span>{sortBy === 'newest' ? t('session.sortNew') : sortBy === 'oldest' ? t('session.sortOld') : sortBy === 'messages' ? t('session.sortMsgs') : 'A-Z'}</span>
+        </button>
+        {showSortDropdown && (
+          <div
+            ref={sortDropdownRef}
+            className="popup-enter"
+            style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              marginTop: 4,
+              background: 'var(--popup-bg)',
+              border: '1px solid var(--popup-border)',
+              borderRadius: 8,
+              boxShadow: 'var(--popup-shadow)',
+              padding: '4px 0',
+              zIndex: 100,
+              minWidth: 130,
+            }}
+          >
+            {sortOptions.map(opt => {
+              const isActive = sortBy === opt.id
+              return (
+                <button
+                  key={opt.id}
+                  onClick={() => { onSortChange(opt.id); setShowSortDropdown(false) }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    width: '100%',
+                    padding: '5px 12px',
+                    background: isActive ? 'var(--popup-item-hover)' : 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: 11,
+                    color: isActive ? 'var(--accent)' : 'var(--text-primary)',
+                    fontWeight: isActive ? 600 : 400,
+                    textAlign: 'left',
+                    borderRadius: 0,
+                    transition: 'background 0.1s ease',
+                  }}
+                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'var(--popup-item-hover)' }}
+                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
+                >
+                  <span style={{
+                    width: 6, height: 6, borderRadius: '50%',
+                    background: isActive ? 'var(--accent)' : 'transparent',
+                    border: `1.5px solid ${isActive ? 'var(--accent)' : 'var(--text-muted)'}`,
+                    flexShrink: 0,
+                  }} />
+                  {opt.id === 'alpha' ? 'A-Z' : t(opt.labelKey)}
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
       <button
         onClick={onToggleSelectMode}
         title={selectMode ? t('session.exitSelect') : t('session.selectMode')}
