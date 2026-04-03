@@ -2,7 +2,7 @@
 // Displays URL paste actions, long text paste actions, and quote preview banner.
 
 import React from 'react'
-import { X, Link2, FileText, MessageSquareQuote } from 'lucide-react'
+import { X, Link2, FileText, MessageSquareQuote, Code2 } from 'lucide-react'
 import { useT } from '../../i18n'
 
 interface PasteState {
@@ -16,6 +16,7 @@ interface PasteState {
   handleLongTextAction: (label: string) => void
   urlChipTimerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>
   longTextTimerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>
+  onWrapAsBlock?: () => void  // wrap pasted text in a code/collapse block
 }
 
 interface ChatInputPasteChipsProps {
@@ -95,6 +96,18 @@ export default function ChatInputPasteChips({ paste, inputLength }: ChatInputPas
               {action.label}
             </button>
           ))}
+          {paste.onWrapAsBlock && (
+            <button
+              onClick={() => { paste.onWrapAsBlock?.(); paste.setPastedLongText(false) }}
+              style={{ ...chipStyle, display: 'flex', alignItems: 'center', gap: 3 }}
+              onMouseEnter={chipHoverOn}
+              onMouseLeave={chipHoverOff}
+              title={t('chat.wrapAsBlock')}
+            >
+              <Code2 size={10} />
+              {t('chat.wrapAsBlock')}
+            </button>
+          )}
           <button
             onClick={() => { paste.setPastedLongText(false); if (paste.longTextTimerRef.current) clearTimeout(paste.longTextTimerRef.current) }}
             style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2, display: 'flex', opacity: 0.6 }}

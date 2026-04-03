@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
-import { BarChart3, ClipboardCopy, Check } from 'lucide-react'
+import { BarChart3, ClipboardCopy, Check, FileText } from 'lucide-react'
 import { useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import { useClickOutside } from '../../hooks/useClickOutside'
@@ -24,6 +24,7 @@ export default function StatsPanel({
   const addToast = useUiStore(s => s.addToast)
   const [showStats, setShowStats] = useState(false)
   const [statsCopied, setStatsCopied] = useState(false)
+  const [summaryCopied, setSummaryCopied] = useState(false)
   const statsRef = useRef<HTMLDivElement>(null)
 
   const handleCopyStats = useCallback(() => {
@@ -62,6 +63,45 @@ export default function StatsPanel({
       setStatsCopied(true)
       addToast('success', t('chat.statsCopied'))
       setTimeout(() => setStatsCopied(false), 2000)
+    })
+  }, [conversationStats, addToast, t])
+
+  const handleCopySummary = useCallback(() => {
+    const messages = useChatStore.getState().messages
+    const userMsgs = messages.filter(m => m.role === 'user')
+    const assistantMsgs = messages.filter(m => m.role === 'assistant')
+    const topics: string[] = []
+    // Extract key topics from user messages (first line of each)
+    userMsgs.forEach(m => {
+      const content = (m as import('../../types/app.types').StandardChatMessage).content || ''
+      const firstLine = content.split('\n')[0].trim().slice(0, 80)
+      if (firstLine) topics.push(firstLine)
+    })
+    const lines: string[] = [
+      `## ${t('chat.conversationStats')}`,
+      ``,
+      `**${t('chat.statsMessages')}**: ${conversationStats.total} (${conversationStats.user} ${t('chat.you').toLowerCase()}, ${conversationStats.assistant} Claude)`,
+      `**${t('chat.statsTotalWords')}**: ${conversationStats.totalWords.toLocaleString()}`,
+      `**${t('chat.statsDuration')}**: ${t('chat.statsDurationValue', { min: String(conversationStats.durationMin) })}`,
+      ``,
+      `### ${t('chat.copySummaryTopics')}`,
+      ...topics.slice(0, 10).map((topic, i) => `${i + 1}. ${topic}`),
+    ]
+    if (topics.length > 10) lines.push(`... ${t('chat.copySummaryMore', { count: String(topics.length - 10) })}`)
+
+    const lastAssistant = assistantMsgs[assistantMsgs.length - 1]
+    if (lastAssistant) {
+      const lastContent = (lastAssistant as import('../../types/app.types').StandardChatMessage).content || ''
+      const lastSnippet = lastContent.slice(0, 200).trim()
+      if (lastSnippet) {
+        lines.push(``, `### ${t('chat.copySummaryLastResponse')}`, `> ${lastSnippet}${lastContent.length > 200 ? '...' : ''}`)
+      }
+    }
+
+    navigator.clipboard.writeText(lines.join('\n')).then(() => {
+      setSummaryCopied(true)
+      addToast('success', t('chat.copySummaryCopied'))
+      setTimeout(() => setSummaryCopied(false), 2000)
     })
   }, [conversationStats, addToast, t])
 
@@ -201,6 +241,21 @@ export default function StatsPanel({
           >
             {statsCopied ? <Check size={10} /> : <ClipboardCopy size={10} />}
             {statsCopied ? t('chat.statsCopied') : t('chat.copyStats')}
+          </button>
+          {/* Copy Summary */}
+          <button
+            onClick={handleCopySummary}
+            style={{
+              width: '100%', marginTop: 4, background: 'var(--bg-input)', border: '1px solid var(--border)',
+              borderRadius: 4, padding: '4px 0', color: summaryCopied ? 'var(--success)' : 'var(--text-muted)',
+              cursor: 'pointer', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+              transition: 'color 0.15s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+            onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+          >
+            {summaryCopied ? <Check size={10} /> : <FileText size={10} />}
+            {summaryCopied ? t('chat.copySummaryCopied') : t('chat.copySummary')}
           </button>
         </div>
       )}

@@ -5,7 +5,7 @@ import MessageActionToolbar from './MessageActionToolbar'
 import MessageBubbleContent from './MessageBubbleContent'
 import SelectionToolbar from './SelectionToolbar'
 import ImageLightbox from '../shared/ImageLightbox'
-import { User, Bot, Bookmark, Pin, StickyNote, X } from 'lucide-react'
+import { User, Bot, Bookmark, Pin, StickyNote, X, ThumbsUp, Heart, Lightbulb, BookmarkPlus } from 'lucide-react'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import { useMessageActions } from '../../hooks/useMessageActions'
@@ -344,6 +344,48 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           />
         </div>
 
+        {/* Reaction chips (assistant messages only) */}
+        {isAssistant && !isPermission && !isPlan && (() => {
+          const std = message as StandardChatMessage
+          const reactions = std.reactions || []
+          const toggleReaction = useChatStore.getState().toggleReaction
+          const REACTION_DEFS = [
+            { key: 'thumbsUp', icon: ThumbsUp, label: t('message.thumbsUp') },
+            { key: 'heart', icon: Heart, label: t('message.reactionHeart') },
+            { key: 'lightbulb', icon: Lightbulb, label: t('message.reactionInsightful') },
+            { key: 'bookmark', icon: BookmarkPlus, label: t('message.reactionSave') },
+          ]
+          const hasAny = reactions.length > 0
+          return (hasAny || hovered) ? (
+            <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
+              {REACTION_DEFS.map(({ key, icon: Icon, label }) => {
+                const active = reactions.includes(key)
+                return (
+                  <button
+                    key={key}
+                    onClick={(e) => { e.stopPropagation(); toggleReaction(message.id, key) }}
+                    title={label}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 3,
+                      padding: '2px 6px', fontSize: 10,
+                      background: active ? 'rgba(0, 122, 204, 0.12)' : 'transparent',
+                      border: active ? '1px solid rgba(0, 122, 204, 0.3)' : '1px solid transparent',
+                      borderRadius: 10, cursor: 'pointer',
+                      color: active ? 'var(--accent)' : 'var(--text-muted)',
+                      transition: 'all 0.12s ease',
+                      opacity: active ? 1 : (hovered ? 0.6 : 0),
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; if (!active) e.currentTarget.style.borderColor = 'var(--border)' }}
+                    onMouseLeave={(e) => { if (!active) { e.currentTarget.style.opacity = hovered ? '0.6' : '0'; e.currentTarget.style.borderColor = 'transparent' } }}
+                  >
+                    <Icon size={11} style={active ? { fill: 'var(--accent)', opacity: 0.3 } : {}} />
+                  </button>
+                )
+              })}
+            </div>
+          ) : null
+        })()}
+
         {/* Annotation display / editor */}
         {!isPermission && !isPlan && ((message as StandardChatMessage).annotation || showAnnotationEditor) && (
           <div style={{
@@ -550,6 +592,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   if (pm.collapsed !== nm.collapsed) return false
   if (pm.annotation !== nm.annotation) return false
   if (pm.thinking !== nm.thinking) return false
+  if (JSON.stringify(pm.reactions) !== JSON.stringify(nm.reactions)) return false
   if ((pm.toolUses?.length ?? 0) !== (nm.toolUses?.length ?? 0)) return false
   if (prevProps.searchQuery !== nextProps.searchQuery) return false
   if (prevProps.searchCaseSensitive !== nextProps.searchCaseSensitive) return false

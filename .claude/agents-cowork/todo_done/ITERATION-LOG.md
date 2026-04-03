@@ -3480,3 +3480,47 @@ _Date: 2026-04-02_
 - `electron-ui/src/renderer/i18n/locales/en.json`
 - `electron-ui/src/renderer/i18n/locales/zh-CN.json`
 - `electron-ui/package.json` (version bump to 1.1.103)
+
+---
+
+## Iteration 427 — Chat Experience Polish
+
+_Date: 2026-04-02 | PRD: prd-chat-polish-v1.md_
+
+### Summary
+Three chat UX enhancements: message reaction chips, conversation summary export, and smart paste wrap as code block action.
+
+#### Changes
+1. **Message Reaction Chips** (Message.tsx, store/index.ts, app.types.ts)
+   - Re-added reactions field to StandardChatMessage (removed in Iteration 309)
+   - Added toggleReaction action to chat store
+   - 4 reaction presets on assistant messages: thumbs up, heart, lightbulb, bookmark
+   - Chips appear on hover, persist when active, pill-shaped with subtle accent styling
+   - Updated React.memo comparison to include reactions field
+
+2. **Copy Conversation Summary** (StatsPanel.tsx)
+   - New Copy Summary button in stats dropdown panel
+   - Generates markdown-formatted summary with message counts, topics discussed, and last response snippet
+   - Extracts first line of each user message as topic (max 10)
+   - Includes word count and duration stats
+
+3. **Smart Paste Wrap as Block** (ChatInputPasteChips.tsx, ChatInput.tsx)
+   - New Wrap as code block chip in long text paste actions (shown when input > 500 chars)
+   - Wraps pasted text in triple backtick fences for cleaner presentation
+   - Code2 icon with i18n label
+
+4. **i18n coverage** (en.json, zh-CN.json)
+   - Added reaction labels: message.reactionHeart, message.reactionInsightful, message.reactionSave
+   - Added summary keys: chat.copySummary, chat.copySummaryCopied, chat.copySummaryTopics, chat.copySummaryMore, chat.copySummaryLastResponse
+   - Added paste key: chat.wrapAsBlock
+
+#### Files Modified
+- electron-ui/src/renderer/types/app.types.ts
+- electron-ui/src/renderer/store/index.ts
+- electron-ui/src/renderer/components/chat/Message.tsx
+- electron-ui/src/renderer/components/chat/StatsPanel.tsx
+- electron-ui/src/renderer/components/chat/ChatInputPasteChips.tsx
+- electron-ui/src/renderer/components/chat/ChatInput.tsx
+- electron-ui/src/renderer/i18n/locales/en.json
+- electron-ui/src/renderer/i18n/locales/zh-CN.json
+- electron-ui/package.json (version bump to 1.1.104)

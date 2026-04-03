@@ -42,7 +42,7 @@ export interface StandardChatMessage {
   bookmarked?: boolean
   collapsed?: boolean
   pinned?: boolean
-  // reactions field removed in Iteration 309 (emoji cleanup)
+  reactions?: string[]  // emoji reaction tokens: 'thumbsUp' | 'heart' | 'lightbulb' | 'bookmark'
   annotation?: string  // private user annotation/note attached to this message
   /** Duration in ms from when the user sent the prompt to when the result arrived */
   responseDuration?: number
