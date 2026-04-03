@@ -4364,3 +4364,31 @@ Status: SUCCESS (9.83s)
 - [x] `:focus-visible` focus rings present in globals.css
 - [x] i18n keys added for both en and zh-CN
 - [x] `npm run build` succeeds
+
+---
+
+## Iteration 450 — SessionList Decomposition & Search Polish
+
+_Date: 2026-04-03 | PRD: prd-sessionlist-decomp-search-polish-v1_
+
+### Summary
+Extracted DateGroupHeader component from SessionList.tsx (reducing it from 627 to 607 lines) and added keyboard navigation (ArrowUp/Down/Enter/Escape) to GlobalSearchResults for search result traversal.
+
+### Files Changed
+- `electron-ui/src/renderer/components/sessions/DateGroupHeader.tsx` — NEW: extracted collapsible date group header with chevron, count, click handler
+- `electron-ui/src/renderer/components/sessions/SessionList.tsx` — Replaced inline date header JSX with DateGroupHeader component, removed ChevronRight/ChevronDown imports
+- `electron-ui/src/renderer/components/sessions/GlobalSearchResults.tsx` — Added keyboard navigation (focusedIdx state, ArrowUp/Down/Enter/Escape handlers, focus highlight styling)
+
+### Build
+Status: SUCCESS (9.76s)
+
+### Acceptance Criteria
+- [x] DateGroupHeader.tsx extracted and working
+- [x] SessionList.tsx reduced from 627 to 607 lines
+- [ ] SessionList.tsx <= 550 lines (607 achieved -- further decomposition needed in future iteration)
+- [x] Global search results navigable with arrow keys
+- [x] Enter opens focused search result
+- [x] Escape closes global search results
+- [x] `npm run build` succeeds
+
+[RETRO] retro-2026-04-03-iterations-441-450.md completed, covered Iteration 441-450, next forced retro after Iteration 460
