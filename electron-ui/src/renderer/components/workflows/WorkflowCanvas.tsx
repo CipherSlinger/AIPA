@@ -53,6 +53,9 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
   // Smooth transition flag for programmatic moves (fit-to-view, auto-pan)
   const [smoothTransition, setSmoothTransition] = useState(false)
 
+  // Hover state for keyboard shortcut scope
+  const [isHovered, setIsHovered] = useState(false)
+
   // Compute default positions for all nodes (top-to-bottom layout)
   const defaultPositions = useMemo(() => {
     if (!workflow) return {}
@@ -258,6 +261,47 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
     })
   }, [])
 
+  // --- Zoom in/out helpers (zoom toward canvas center) ---
+  const zoomIn = useCallback(() => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const cx = rect.width / 2
+    const cy = rect.height / 2
+    setZoom(prev => {
+      const newZoom = Math.min(MAX_ZOOM, prev + ZOOM_STEP)
+      setPanX(px => cx - (cx - px) * (newZoom / prev))
+      setPanY(py => cy - (cy - py) * (newZoom / prev))
+      return newZoom
+    })
+  }, [])
+
+  const zoomOut = useCallback(() => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const cx = rect.width / 2
+    const cy = rect.height / 2
+    setZoom(prev => {
+      const newZoom = Math.max(MIN_ZOOM, prev - ZOOM_STEP)
+      setPanX(px => cx - (cx - px) * (newZoom / prev))
+      setPanY(py => cy - (cy - py) * (newZoom / prev))
+      return newZoom
+    })
+  }, [])
+
+  // --- Keyboard shortcuts (when canvas is hovered) ---
+  useEffect(() => {
+    if (!isHovered) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't fire if typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomIn() }
+      else if (e.key === '-') { e.preventDefault(); zoomOut() }
+      else if (e.key === '0') { e.preventDefault(); fitToView() }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isHovered, zoomIn, zoomOut, fitToView])
+
   // --- Sidebar step data ---
   const sidebarStep = sidebarStepId && workflow
     ? workflow.steps.find(s => s.id === sidebarStepId) ?? null
@@ -321,6 +365,8 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
       }}
       onMouseDown={handleCanvasMouseDown}
       onWheel={handleWheel}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       {/* Execution progress bar */}
       <CanvasProgressBar
@@ -348,7 +394,7 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
         <button
           onClick={(e) => { e.stopPropagation(); fitToView() }}
           aria-label={t('workflow.fitToView')}
-          title={t('workflow.fitToView')}
+          title={t('workflow.fitToView') + ' (0)'}
           style={{
             background: 'transparent',
             border: 'none',
@@ -364,6 +410,26 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
         >
           <Maximize2 size={14} />
         </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); zoomOut() }}
+          aria-label="Zoom out"
+          title="Zoom out (−)"
+          style={{
+            background: 'transparent',
+            border: 'none',
+            borderRadius: 4,
+            padding: '1px 5px',
+            cursor: 'pointer',
+            color: 'var(--text-muted)',
+            fontSize: 14,
+            lineHeight: 1,
+            fontWeight: 600,
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
+        >
+          −
+        </button>
         <span style={{
           fontSize: 10,
           color: 'var(--text-muted)',
@@ -373,6 +439,26 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
         }}>
           {zoomPercent}%
         </span>
+        <button
+          onClick={(e) => { e.stopPropagation(); zoomIn() }}
+          aria-label="Zoom in"
+          title="Zoom in (+)"
+          style={{
+            background: 'transparent',
+            border: 'none',
+            borderRadius: 4,
+            padding: '1px 5px',
+            cursor: 'pointer',
+            color: 'var(--text-muted)',
+            fontSize: 14,
+            lineHeight: 1,
+            fontWeight: 600,
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
+        >
+          +
+        </button>
       </div>
 
       {/* SVG edge layer */}
