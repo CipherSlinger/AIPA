@@ -27,14 +27,29 @@ export default function CanvasEdge({ from, to, status = 'idle' }: CanvasEdgeProp
   const markerId = `canvas-arrowhead-${status}`
 
   return (
-    <path
-      d={d}
-      fill="none"
-      stroke={color}
-      strokeWidth={status === 'active' ? 2 : 1.5}
-      strokeOpacity={status === 'idle' ? 0.4 : 0.8}
-      markerEnd={`url(#${markerId})`}
-    />
+    <g>
+      {/* Base path */}
+      <path
+        d={d}
+        fill="none"
+        stroke={color}
+        strokeWidth={status === 'active' ? 2 : 1.5}
+        strokeOpacity={status === 'idle' ? 0.4 : 0.8}
+        markerEnd={`url(#${markerId})`}
+      />
+      {/* Flowing dash animation for active edges */}
+      {status === 'active' && (
+        <path
+          d={d}
+          fill="none"
+          stroke="rgba(255,255,255,0.6)"
+          strokeWidth={2}
+          strokeDasharray="6 12"
+          strokeLinecap="round"
+          style={{ animation: 'canvas-edge-flow 0.8s linear infinite' }}
+        />
+      )}
+    </g>
   )
 }
 

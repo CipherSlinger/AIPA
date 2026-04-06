@@ -642,6 +642,10 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
           from { transform: translateX(100%); opacity: 0; }
           to { transform: translateX(0); opacity: 1; }
         }
+        @keyframes canvas-edge-flow {
+          from { stroke-dashoffset: 18; }
+          to { stroke-dashoffset: 0; }
+        }
       `}</style>
     </div>
   )
