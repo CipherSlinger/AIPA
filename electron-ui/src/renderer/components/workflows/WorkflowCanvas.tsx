@@ -240,11 +240,22 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
     }
   }, [draggingNode, zoom])
 
-  // --- Wheel zoom ---
+  // --- Wheel zoom (toward cursor position) ---
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault()
     const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP
-    setZoom(prev => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev + delta)))
+    const container = containerRef.current
+    if (!container) return
+    const rect = container.getBoundingClientRect()
+    const mouseX = e.clientX - rect.left
+    const mouseY = e.clientY - rect.top
+    setZoom(prev => {
+      const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev + delta))
+      // Zoom toward mouse position: adjust pan so the point under cursor stays fixed
+      setPanX(px => mouseX - (mouseX - px) * (newZoom / prev))
+      setPanY(py => mouseY - (mouseY - py) * (newZoom / prev))
+      return newZoom
+    })
   }, [])
 
   // --- Sidebar step data ---
