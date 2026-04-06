@@ -607,6 +607,7 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
               status={execution.stepStatuses[step.id] ?? 'idle'}
               presetKey={workflow.presetKey}
               collapsed={collapsedNodes.has(step.id)}
+              outputText={execution.stepOutputs[step.id]}
               onSelect={handleNodeSelect}
               onDragStart={handleNodeDragStart}
               onToggleCollapse={handleToggleCollapse}
