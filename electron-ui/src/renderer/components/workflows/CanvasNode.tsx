@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react'
-import { Check, X, Loader } from 'lucide-react'
+import React, { useCallback, useState } from 'react'
+import { Check, X, Loader, ChevronUp, ChevronDown } from 'lucide-react'
 import { WorkflowStep } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { getPresetStepText } from './workflowConstants'
@@ -14,12 +14,15 @@ interface CanvasNodeProps {
   selected: boolean
   status?: StepStatus
   presetKey?: string
+  collapsed?: boolean
   onSelect: (stepId: string) => void
   onDragStart: (stepId: string, e: React.MouseEvent) => void
+  onToggleCollapse?: (stepId: string) => void
 }
 
 export const NODE_WIDTH = 220
 export const NODE_MIN_HEIGHT = 70
+export const NODE_COLLAPSED_HEIGHT = 36
 export const NODE_GAP_Y = 120
 
 const STATUS_STYLES: Record<StepStatus, {
@@ -27,7 +30,6 @@ const STATUS_STYLES: Record<StepStatus, {
   borderLeft?: string
   opacity?: number
   animation?: string
-  badgeBg?: string
 }> = {
   idle: { borderColor: 'var(--border)' },
   pending: { borderColor: 'var(--border)', opacity: 0.6 },
@@ -73,8 +75,10 @@ export default function CanvasNode({
   selected,
   status = 'idle',
   presetKey,
+  collapsed = false,
   onSelect,
   onDragStart,
+  onToggleCollapse,
 }: CanvasNodeProps) {
   const t = useT()
   const handleMouseDown = useCallback(
@@ -86,6 +90,11 @@ export default function CanvasNode({
     [step.id, onSelect, onDragStart]
   )
 
+  const handleCollapseClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    onToggleCollapse?.(step.id)
+  }, [step.id, onToggleCollapse])
+
   const displayTitle = getPresetStepText(presetKey, index, 'title', t, step.title)
   const displayPrompt = getPresetStepText(presetKey, index, 'prompt', t, step.prompt)
   const promptPreview =
@@ -93,6 +102,7 @@ export default function CanvasNode({
 
   const statusStyle = STATUS_STYLES[status]
   const isActive = selected || status === 'running'
+  const nodeHeight = collapsed ? NODE_COLLAPSED_HEIGHT : NODE_MIN_HEIGHT
 
   return (
     <div
@@ -112,23 +122,28 @@ export default function CanvasNode({
         left: x,
         top: y,
         width: width,
-        minHeight: NODE_MIN_HEIGHT,
+        height: nodeHeight,
         background: 'var(--bg-card, var(--bg-sessionpanel))',
         border: isActive
           ? '1.5px solid var(--accent)'
           : `1.5px solid ${statusStyle.borderColor}`,
         borderLeft: statusStyle.borderLeft || undefined,
         borderRadius: 8,
-        padding: '10px 12px',
+        padding: collapsed ? '0 12px' : '10px 12px',
         cursor: 'grab',
         boxShadow: isActive
           ? '0 2px 8px rgba(0,0,0,0.2)'
           : '0 1px 3px rgba(0,0,0,0.12)',
-        transition: 'border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease',
+        transition: 'border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, height 0.2s ease',
         userSelect: 'none',
         boxSizing: 'border-box',
         opacity: statusStyle.opacity ?? 1,
         animation: statusStyle.animation || 'none',
+        overflow: 'hidden',
+        display: 'flex',
+        alignItems: collapsed ? 'center' : 'flex-start',
+        flexDirection: 'column',
+        justifyContent: collapsed ? 'center' : 'flex-start',
       }}
     >
       {/* Step number badge */}
@@ -157,35 +172,66 @@ export default function CanvasNode({
       {/* Status badge (top-right) */}
       <StatusBadge status={status} />
 
+      {/* Collapse toggle button */}
+      {onToggleCollapse && (
+        <button
+          onClick={handleCollapseClick}
+          onMouseDown={e => e.stopPropagation()}
+          style={{
+            position: 'absolute',
+            bottom: collapsed ? undefined : 4,
+            top: collapsed ? '50%' : undefined,
+            right: 6,
+            transform: collapsed ? 'translateY(-50%)' : undefined,
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            color: 'var(--text-muted)',
+            padding: 2,
+            borderRadius: 3,
+            display: 'flex',
+            alignItems: 'center',
+            opacity: 0.6,
+          }}
+          title={collapsed ? 'Expand' : 'Collapse'}
+        >
+          {collapsed ? <ChevronDown size={11} /> : <ChevronUp size={11} />}
+        </button>
+      )}
+
       {/* Step title */}
       <div
         style={{
           fontSize: 12,
           fontWeight: 600,
           color: 'var(--text)',
-          marginBottom: 4,
+          marginBottom: collapsed ? 0 : 4,
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
+          paddingRight: 18,
+          width: '100%',
         }}
       >
         {displayTitle}
       </div>
 
-      {/* Prompt preview */}
-      <div
-        style={{
-          fontSize: 10,
-          color: 'var(--text-muted)',
-          lineHeight: 1.4,
-          display: '-webkit-box',
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: 'vertical',
-          overflow: 'hidden',
-        }}
-      >
-        {promptPreview}
-      </div>
+      {/* Prompt preview — hidden when collapsed */}
+      {!collapsed && (
+        <div
+          style={{
+            fontSize: 10,
+            color: 'var(--text-muted)',
+            lineHeight: 1.4,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
+        >
+          {promptPreview}
+        </div>
+      )}
     </div>
   )
 }

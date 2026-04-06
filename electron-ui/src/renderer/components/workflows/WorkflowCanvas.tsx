@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { Maximize2, Workflow as WorkflowIcon } from 'lucide-react'
 import { Workflow } from '../../types/app.types'
 import { useT } from '../../i18n'
-import CanvasNode, { NODE_WIDTH, NODE_MIN_HEIGHT, NODE_GAP_Y } from './CanvasNode'
+import CanvasNode, { NODE_WIDTH, NODE_MIN_HEIGHT, NODE_COLLAPSED_HEIGHT, NODE_GAP_Y } from './CanvasNode'
 import CanvasEdge, { CanvasEdgeDefs } from './CanvasEdge'
 import CanvasProgressBar from './CanvasProgressBar'
 import CanvasNodeSidebar from './CanvasNodeSidebar'
@@ -56,21 +56,37 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
   // Hover state for keyboard shortcut scope
   const [isHovered, setIsHovered] = useState(false)
 
-  // Compute default positions for all nodes (top-to-bottom layout)
+  // Collapsed nodes (compact mode)
+  const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set())
+
+  const handleToggleCollapse = useCallback((stepId: string) => {
+    setCollapsedNodes(prev => {
+      const next = new Set(prev)
+      if (next.has(stepId)) next.delete(stepId)
+      else next.add(stepId)
+      return next
+    })
+  }, [])
+
+  // Compute default positions for all nodes (top-to-bottom layout, respects collapsed height)
   const defaultPositions = useMemo(() => {
     if (!workflow) return {}
     const positions: Record<string, NodePosition> = {}
     const startX = 0
-    workflow.steps.forEach((step, idx) => {
+    let yOffset = 0
+    workflow.steps.forEach((step) => {
+      const isCollapsed = collapsedNodes.has(step.id)
+      const h = isCollapsed ? NODE_COLLAPSED_HEIGHT : NODE_MIN_HEIGHT
       positions[step.id] = {
         x: startX,
-        y: idx * NODE_GAP_Y,
+        y: yOffset,
         width: NODE_WIDTH,
-        height: NODE_MIN_HEIGHT,
+        height: h,
       }
+      yOffset += h + (NODE_GAP_Y - NODE_MIN_HEIGHT)
     })
     return positions
-  }, [workflow])
+  }, [workflow, collapsedNodes])
 
   // Merged positions: default + custom overrides
   const nodePositions = useMemo(() => {
@@ -93,6 +109,7 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
     setZoom(1)
     setPanX(0)
     setPanY(0)
+    setCollapsedNodes(new Set())
   }, [workflow?.id])
 
   // Fit to view
@@ -548,8 +565,10 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
               selected={selectedNode === step.id}
               status={execution.stepStatuses[step.id] ?? 'idle'}
               presetKey={workflow.presetKey}
+              collapsed={collapsedNodes.has(step.id)}
               onSelect={handleNodeSelect}
               onDragStart={handleNodeDragStart}
+              onToggleCollapse={handleToggleCollapse}
             />
           )
         })}
