@@ -17,6 +17,7 @@ interface CanvasNodeProps {
   collapsed?: boolean
   outputText?: string
   dimmed?: boolean
+  durationMs?: number
   onSelect: (stepId: string) => void
   onDragStart: (stepId: string, e: React.MouseEvent) => void
   onToggleCollapse?: (stepId: string) => void
@@ -161,6 +162,7 @@ export default function CanvasNode({
   collapsed = false,
   outputText,
   dimmed = false,
+  durationMs,
   onSelect,
   onDragStart,
   onToggleCollapse,
@@ -325,6 +327,19 @@ export default function CanvasNode({
             }}
           >
             {promptPreview}
+          </div>
+        )}
+
+        {/* Duration chip — shown on completed nodes when not collapsed */}
+        {!collapsed && status === 'completed' && durationMs !== undefined && (
+          <div style={{
+            marginTop: 4,
+            fontSize: 9,
+            color: '#22c55e',
+            opacity: 0.8,
+            fontWeight: 500,
+          }}>
+            {durationMs < 1000 ? `${durationMs}ms` : `${(durationMs / 1000).toFixed(1)}s`}
           </div>
         )}
       </div>

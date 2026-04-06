@@ -610,6 +610,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
               collapsed={collapsedNodes.has(step.id)}
               outputText={execution.stepOutputs[step.id]}
               dimmed={highlightStepIds !== null && highlightStepIds !== undefined && !highlightStepIds.has(step.id)}
+              durationMs={execution.stepDurations[step.id]}
               onSelect={handleNodeSelect}
               onDragStart={handleNodeDragStart}
               onToggleCollapse={handleToggleCollapse}
@@ -626,6 +627,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
           presetKey={workflow?.presetKey}
           status={sidebarStatus}
           outputText={sidebarStepId ? execution.stepOutputs[sidebarStepId] : undefined}
+          durationMs={sidebarStepId ? execution.stepDurations[sidebarStepId] : undefined}
           onClose={closeSidebar}
         />
       )}
