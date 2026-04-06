@@ -59,10 +59,13 @@ export function useAutoMemory() {
         .join('\n\n')
 
       // Use CLI in print mode for extraction
-      const result = await window.electronAPI.cliSendMessage({
+      await window.electronAPI.cliSendMessage({
         prompt: `${conversationText}\n\n${EXTRACT_PROMPT}`,
         cwd: prefs.workingDir || await window.electronAPI.fsGetHome(),
         model: prefs.advisorModel || prefs.model,
+        env: {},
+        flags: ['--print', '--max-turns', '1'],
+      })
 
       // The result will be streamed back but we use --print mode
       // so we wait for the response; however since stream-bridge fires events,

@@ -98,30 +98,127 @@ export function nextFireTime(expr: string, after: Date = new Date()): Date | nul
   candidate.setSeconds(0, 0)
   candidate.setMinutes(candidate.getMinutes() + 1)
 
-  // Search up to 2 years (366 * 24 * 60 * 2 = ~1,051,920 minutes)
-  const maxIterations = 366 * 24 * 60 * 2
+  // Search up to 2 years
+  const deadline = new Date(after.getTime() + 366 * 2 * 24 * 60 * 60 * 1000)
 
-  for (let i = 0; i < maxIterations; i++) {
+  while (candidate < deadline) {
     const month = candidate.getMonth() + 1  // 1-based
+
+    // Skip to next valid month if current month not in list
+    if (!months.includes(month)) {
+      candidate.setMonth(candidate.getMonth() + 1, 1)
+      candidate.setHours(0, 0, 0, 0)
+      continue
+    }
+
     const dom = candidate.getDate()
     const dow = candidate.getDay()           // 0=Sun
+
+    // Skip to next day if dom or dow doesn't match
+    if (!doms.includes(dom) || !dows.includes(dow)) {
+      candidate.setDate(candidate.getDate() + 1)
+      candidate.setHours(0, 0, 0, 0)
+      continue
+    }
+
     const hour = candidate.getHours()
+
+    // Skip to next hour if hour doesn't match
+    if (!hours.includes(hour)) {
+      candidate.setHours(candidate.getHours() + 1, 0, 0, 0)
+      continue
+    }
+
     const min = candidate.getMinutes()
 
-    if (
-      months.includes(month) &&
-      doms.includes(dom) &&
-      dows.includes(dow) &&
-      hours.includes(hour) &&
-      minutes.includes(min)
-    ) {
+    if (minutes.includes(min)) {
       return new Date(candidate)
     }
 
-    // Advance by 1 minute
+    // Advance by 1 minute within the valid hour
     candidate.setMinutes(candidate.getMinutes() + 1)
   }
 
+  return null
+}
+
+/**
+ * Convert a cron expression to a human-readable frequency string.
+ * E.g. "*/5 * * * *" → "Every 5 minutes", "0 9 * * 1-5" → "Weekdays at 9:00 AM"
+ * Inspired by Claude Code's utils/cronScheduler.ts cronToHuman().
+ */
+export function cronToHuman(expr: string): string | null {
+  const parts = expr.trim().split(/\s+/)
+  if (parts.length !== 5) return null
+  const [min, hr, dom, mon, dow] = parts
+
+  // Every minute
+  if (min === '*' && hr === '*' && dom === '*' && mon === '*' && dow === '*') return 'Every minute'
+
+  // Every N minutes (*/N * * * *)
+  if (min.startsWith('*/') && hr === '*' && dom === '*' && mon === '*' && dow === '*') {
+    const n = parseInt(min.slice(2), 10)
+    if (!isNaN(n) && n > 1) return `Every ${n} minutes`
+    return 'Every minute'
+  }
+
+  // Hourly (0 * * * *)
+  if (min === '0' && hr === '*' && dom === '*' && mon === '*' && dow === '*') return 'Every hour'
+
+  // Every N hours (0 */N * * *)
+  if (min === '0' && hr.startsWith('*/') && dom === '*' && mon === '*' && dow === '*') {
+    const n = parseInt(hr.slice(2), 10)
+    if (!isNaN(n)) return `Every ${n} hours`
+  }
+
+  // Helper: format hour/minute as "9:00 AM"
+  const fmtTime = (h: number, m: number) => {
+    const period = h < 12 ? 'AM' : 'PM'
+    const displayH = h === 0 ? 12 : h > 12 ? h - 12 : h
+    return `${displayH}:${String(m).padStart(2, '0')} ${period}`
+  }
+
+  // Daily at specific time (M H * * *)
+  if (dom === '*' && mon === '*' && dow === '*' && !min.includes('*') && !hr.includes('*')) {
+    const h = parseInt(hr, 10)
+    const m = parseInt(min, 10)
+    if (!isNaN(h) && !isNaN(m)) return `Every day at ${fmtTime(h, m)}`
+  }
+
+  // Weekdays (M H * * 1-5)
+  if (dom === '*' && mon === '*' && dow === '1-5' && !min.includes('*') && !hr.includes('*')) {
+    const h = parseInt(hr, 10)
+    const m = parseInt(min, 10)
+    if (!isNaN(h) && !isNaN(m)) return `Weekdays at ${fmtTime(h, m)}`
+  }
+
+  // Weekends (M H * * 0,6 or 6,0)
+  if (dom === '*' && mon === '*' && (dow === '0,6' || dow === '6,0' || dow === '0-6') && !min.includes('*') && !hr.includes('*')) {
+    const h = parseInt(hr, 10)
+    const m = parseInt(min, 10)
+    if (!isNaN(h) && !isNaN(m)) return `Weekends at ${fmtTime(h, m)}`
+  }
+
+  // Specific day of week (M H * * N)
+  const DOW_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  if (dom === '*' && mon === '*' && !dow.includes('*') && !dow.includes('-') && !dow.includes(',')) {
+    const d = parseInt(dow, 10)
+    const h = parseInt(hr, 10)
+    const m = parseInt(min, 10)
+    if (!isNaN(d) && d >= 0 && d <= 6 && !isNaN(h) && !isNaN(m)) {
+      return `Every ${DOW_NAMES[d]} at ${fmtTime(h, m)}`
+    }
+  }
+
+  // Monthly (M H D * *)
+  if (dom !== '*' && mon === '*' && dow === '*' && !min.includes('*') && !hr.includes('*') && !dom.includes('*')) {
+    const h = parseInt(hr, 10)
+    const m = parseInt(min, 10)
+    const d = parseInt(dom, 10)
+    if (!isNaN(h) && !isNaN(m) && !isNaN(d)) return `Monthly on day ${d} at ${fmtTime(h, m)}`
+  }
+
+  // Fall back to next-fire description
   return null
 }
 

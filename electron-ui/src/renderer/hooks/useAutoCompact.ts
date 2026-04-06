@@ -9,6 +9,11 @@
  * Iteration 483: Added microcompact pre-processing step.
  * Microcompact trims long tool results and assistant outputs before
  * full compaction — reducing the input size to the summarizer.
+ *
+ * Iteration 488: Added time-gap triggered microcompact.
+ * If time gap between consecutive messages exceeds TIME_GAP_THRESHOLD_MS (30 min),
+ * treat the old messages before the gap as stale and clear their tool results inline
+ * (inspired by Claude Code's microCompact.ts evaluateTimeBasedTrigger).
  */
 import { useRef, useCallback } from 'react'
 import { useChatStore, usePrefsStore, useUiStore } from '../store'
@@ -26,6 +31,43 @@ const COMPACT_PROMPT = `You are a conversation summarizer. Analyze the conversat
 Format your summary as a clear, structured note. Use bullet points for key facts.
 Start with "## Conversation Summary" as a header.
 Be thorough but concise -- capture everything needed to continue the conversation without the original messages.`
+
+/** Time-gap threshold: messages older than this before a gap are treated as stale */
+const TIME_GAP_THRESHOLD_MS = 30 * 60 * 1000  // 30 minutes
+
+/**
+ * Time-gap microcompact: if there's a large time gap between consecutive messages,
+ * strip tool results from messages before the gap to reduce token count.
+ * Inspired by Claude Code's microCompact.ts evaluateTimeBasedTrigger().
+ */
+function applyTimeGapMicrocompact(messages: StandardChatMessage[]): { messages: StandardChatMessage[]; gapFound: boolean } {
+  if (messages.length < 2) return { messages, gapFound: false }
+
+  // Find the most recent large time gap (scan backward)
+  let gapIndex = -1
+  for (let i = messages.length - 1; i > 0; i--) {
+    const curr = messages[i].timestamp || 0
+    const prev = messages[i - 1].timestamp || 0
+    if (curr - prev > TIME_GAP_THRESHOLD_MS) {
+      gapIndex = i
+      break
+    }
+  }
+
+  if (gapIndex < 0) return { messages, gapFound: false }
+
+  // Clear tool results from all messages before the gap
+  const processed = messages.map((msg, idx) => {
+    if (idx >= gapIndex) return msg
+    if (!msg.toolUses || msg.toolUses.length === 0) return msg
+    return {
+      ...msg,
+      toolUses: msg.toolUses.map(tu => ({ ...tu, result: '[cleared by time-gap microcompact]' })),
+    }
+  })
+
+  return { messages: processed, gapFound: true }
+}
 
 /**
  * Microcompact: trim messages before sending to the full summarizer.
@@ -119,7 +161,9 @@ export function useAutoCompact() {
       const toKeep = chatMessages.slice(chatMessages.length - keepCount)
 
       // Iteration 483: Run microcompact on messages before summarization
-      const microcompacted = microcompactMessages(toSummarize)
+      // Iteration 488: Apply time-gap microcompact first, then size-based microcompact
+      const { messages: timeGapProcessed, gapFound } = applyTimeGapMicrocompact(toSummarize)
+      const microcompacted = microcompactMessages(timeGapProcessed)
       const tokenSavingsEst = toSummarize.reduce((sum, m) => sum + m.content.length, 0) -
                               microcompacted.reduce((sum, m) => sum + m.content.length, 0)
 
@@ -142,7 +186,7 @@ export function useAutoCompact() {
       const summaryContent = `## Conversation Summary\n\nThis conversation was automatically compacted at ${new Date().toLocaleTimeString()}.\n\n**Topics discussed:**\n${toSummarize
         .filter(m => m.role === 'user')
         .map(m => `- ${m.content.slice(0, 100)}`)
-        .join('\n')}\n\n**${toSummarize.length} messages were summarized to free context space.**${tokenSavingsEst > 0 ? `\n*(Microcompact saved ~${Math.round(tokenSavingsEst / 4)} tokens before summarization)*` : ''}`
+        .join('\n')}\n\n**${toSummarize.length} messages were summarized to free context space.**${tokenSavingsEst > 0 ? `\n*(Microcompact saved ~${Math.round(tokenSavingsEst / 4)} tokens before summarization${gapFound ? '; time-gap detected' : ''})*` : ''}`
 
       // Replace messages: summary + kept messages
       const summaryMsg: StandardChatMessage = {

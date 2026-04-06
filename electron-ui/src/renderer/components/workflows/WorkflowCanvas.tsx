@@ -60,6 +60,47 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
   // Collapsed nodes (compact mode)
   const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set())
 
+  // Iteration 488: 30s periodic agent summary during execution
+  // Inspired by Claude Code's services/AgentSummary/agentSummary.ts
+  const [agentSummary, setAgentSummary] = useState<string | null>(null)
+  const summaryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const lastSummaryStepRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    const isRunning = execution.isRunning
+    if (!isRunning || !workflow) {
+      if (summaryIntervalRef.current) {
+        clearInterval(summaryIntervalRef.current)
+        summaryIntervalRef.current = null
+      }
+      if (!isRunning) setAgentSummary(null)
+      return
+    }
+
+    const generateSummary = () => {
+      const activeIdx = execution.activeStepIndex
+      const activeStep = activeIdx >= 0 ? workflow.steps[activeIdx] : null
+      if (!activeStep) return
+      if (activeStep.id === lastSummaryStepRef.current) return
+      lastSummaryStepRef.current = activeStep.id
+
+      const completedOutputs = workflow.steps
+        .filter((_, i) => i < activeIdx)
+        .map(s => `Step "${s.name}": ${(execution.stepOutputs[s.id] || '').slice(0, 200)}`)
+        .join('\n')
+
+      const summaryText = `Running "${activeStep.name}"${completedOutputs ? ` — ${workflow.steps.filter((_, i) => i < activeIdx).length} steps done` : ''}`
+      setAgentSummary(summaryText)
+    }
+
+    generateSummary()
+    summaryIntervalRef.current = setInterval(generateSummary, 30_000)
+
+    return () => {
+      if (summaryIntervalRef.current) clearInterval(summaryIntervalRef.current)
+    }
+  }, [execution.isRunning, execution.activeStepIndex, workflow, execution.stepOutputs])
+
   const handleToggleCollapse = useCallback((stepId: string) => {
     setCollapsedNodes(prev => {
       const next = new Set(prev)
@@ -398,6 +439,22 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
         totalSteps={execution.totalSteps}
         isRunning={execution.isRunning}
       />
+
+      {/* 30s agent summary banner during execution (Iteration 488) */}
+      {agentSummary && execution.isRunning && (
+        <div style={{
+          position: 'absolute', top: 32, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 50, pointerEvents: 'none',
+          background: 'rgba(var(--accent-rgb,59,130,246),0.12)',
+          border: '1px solid rgba(var(--accent-rgb,59,130,246),0.25)',
+          borderRadius: 8, padding: '4px 12px',
+          fontSize: 11, color: 'var(--text-primary)',
+          whiteSpace: 'nowrap', maxWidth: '60%',
+          overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>
+          {agentSummary}
+        </div>
+      )}
 
       {/* Dot grid background — moves with pan/zoom */}
       <svg

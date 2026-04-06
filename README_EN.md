@@ -31,7 +31,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 | **Notes** | Markdown notepad with categories, templates, and one-click save from any chat response |
 | **Multi-Model** | Switch between Claude, GPT-4, DeepSeek, or local Ollama models mid-session; Qwen via QR code quick setup |
 | **Always Available** | System tray with quick actions, global hotkeys (`Ctrl+Shift+Space` toggle, `Ctrl+Shift+G` clipboard ask), and desktop notifications |
-| **Tasks & Reminders** | Quick todo list, one-shot timed reminders + **cron recurring reminders** (5-field expressions with preset picker and live preview), daily briefing |
+| **Tasks & Reminders** | Quick todo list with **3-state status** (pending/in_progress/completed) + 5s hide-delay, one-shot timed reminders + **cron recurring reminders** (5-field expressions, human-readable frequency labels, preset picker), daily briefing |
 | **Channel** | Connect Feishu and WeChat messaging channels via OpenClaw — configure, test, and manage from the sidebar |
 
 ---
@@ -44,7 +44,8 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 - **Structured Diff View** — file edits and writes shown in LCS-based unified diff format with color-coded add/delete lines and collapsible large diffs
 - **Extended thinking** blocks, collapsible and auto-expanding during generation; one-click toggle in StatusBar
 - **Output Styles** — three response modes (default/explanatory/learning), quick-switch from toolbar
-- **Auto-Compaction** — automatically summarizes older messages when context window nears capacity (threshold configurable 60%-90%); **Microcompact** pre-processing trims long messages before summarization to reduce input tokens
+- **Auto-Compaction** — automatically summarizes older messages when context window nears capacity (threshold configurable 60%-90%); **Microcompact** pre-processing trims long messages before summarization to reduce input tokens; **Time-gap microcompact** clears stale tool results across sessions idle for 30+ minutes
+- **Context Suggestions** — when context usage exceeds 70%, shows per-tool optimization tips (bash output, file reads, web fetches) with estimated token savings in a lightbulb popover
 - **Away Summary** — when you return after 5+ minutes away, automatically injects a purple summary card into the conversation showing what was happening
 - **Conversation Rewind** — roll back to any message, syncing both in-memory state and persisted session
 - **Keyboard message navigation** — `Ctrl+Up/Down` to step through messages, `Ctrl+Home/End` to jump to first/last, with visual focus indicator

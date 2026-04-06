@@ -33,6 +33,7 @@ const electronAPI = {
   sessionGenerateTitle: (description: string) => ipcRenderer.invoke('session:generateTitle', { description }),
   sessionRewind: (sessionId: string, beforeTimestamp: string) => ipcRenderer.invoke('session:rewind', { sessionId, beforeTimestamp }),
   sessionSearch: (query: string, limit?: number) => ipcRenderer.invoke('session:search', { query, limit }),
+  sessionDetectInterruption: (sessionId: string) => ipcRenderer.invoke('session:detectInterruption', { sessionId }),
 
   // ── Config / prefs ───────────────────────
   configRead: () => ipcRenderer.invoke('config:read'),
