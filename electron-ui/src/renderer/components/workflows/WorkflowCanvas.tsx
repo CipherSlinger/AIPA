@@ -359,9 +359,6 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
         overflow: 'hidden',
         cursor: isPanning ? 'grabbing' : 'grab',
         background: 'var(--bg-main)',
-        backgroundImage:
-          'radial-gradient(circle, var(--border) 1px, transparent 1px)',
-        backgroundSize: '20px 20px',
       }}
       onMouseDown={handleCanvasMouseDown}
       onWheel={handleWheel}
@@ -374,6 +371,38 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
         totalSteps={execution.totalSteps}
         isRunning={execution.isRunning}
       />
+
+      {/* Dot grid background — moves with pan/zoom */}
+      <svg
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      >
+        <defs>
+          <pattern
+            id="canvas-dot-grid"
+            x={panX % (20 * zoom)}
+            y={panY % (20 * zoom)}
+            width={20 * zoom}
+            height={20 * zoom}
+            patternUnits="userSpaceOnUse"
+          >
+            <circle
+              cx={20 * zoom / 2}
+              cy={20 * zoom / 2}
+              r={Math.max(0.5, zoom * 0.8)}
+              fill="var(--border)"
+              fillOpacity={0.6}
+            />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#canvas-dot-grid)" />
+      </svg>
 
       {/* Canvas toolbar */}
       <div style={{
