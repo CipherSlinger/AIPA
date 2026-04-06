@@ -85,7 +85,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 
 ### Workflows
 - Build multi-step prompt pipelines with the visual workflow editor
-- **Canvas Mode** — workflow steps displayed as a node graph with drag, pan, and zoom; real-time execution highlighting shows active/completed/pending nodes with a progress bar; zoom toward cursor, +/- buttons with keyboard shortcuts (+/−/0), status-colored edges (green=done, accent=active, muted=idle), moving dot-grid background, real AI output text in node sidebar; flowing dash animation on active edges; collapsible nodes (per-node or collapse-all/expand-all); right-click context menu with copy prompt/output; step list syncs live execution status; Run button disabled during execution
+- **Canvas Mode** — workflow steps displayed as a node graph with drag, pan, and zoom; real-time execution highlighting shows active/completed/pending nodes with a progress bar; zoom toward cursor, +/- buttons with keyboard shortcuts (+/−/0), status-colored edges (green=done, accent=active, muted=idle), moving dot-grid background, real AI output text in node sidebar; flowing dash animation on active edges; collapsible nodes (per-node or collapse-all/expand-all); right-click context menu with copy prompt/output; step list syncs live execution status; Run button disabled during execution; step search filter with canvas dim for non-matching nodes; per-step execution duration shown on nodes and sidebar
 - 6 preset workflows to get started instantly (weekly reports, code reviews, daily summaries, and more)
 - **Preset localization** — workflow names and descriptions automatically switch with system language
 
