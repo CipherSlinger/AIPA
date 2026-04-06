@@ -10,6 +10,7 @@ import { useWorkflowExecution } from './useWorkflowExecution'
 
 interface WorkflowCanvasProps {
   workflow: Workflow | null
+  highlightStepIds?: Set<string> | null  // null = no filter, Set = show only these
 }
 
 interface NodePosition {
@@ -23,7 +24,7 @@ const MIN_ZOOM = 0.5
 const MAX_ZOOM = 2.0
 const ZOOM_STEP = 0.1
 
-export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
+export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowCanvasProps) {
   const t = useT()
   const containerRef = useRef<HTMLDivElement>(null)
   const execution = useWorkflowExecution(workflow)
@@ -608,6 +609,7 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
               presetKey={workflow.presetKey}
               collapsed={collapsedNodes.has(step.id)}
               outputText={execution.stepOutputs[step.id]}
+              dimmed={highlightStepIds !== null && highlightStepIds !== undefined && !highlightStepIds.has(step.id)}
               onSelect={handleNodeSelect}
               onDragStart={handleNodeDragStart}
               onToggleCollapse={handleToggleCollapse}

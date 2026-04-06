@@ -16,6 +16,7 @@ interface CanvasNodeProps {
   presetKey?: string
   collapsed?: boolean
   outputText?: string
+  dimmed?: boolean
   onSelect: (stepId: string) => void
   onDragStart: (stepId: string, e: React.MouseEvent) => void
   onToggleCollapse?: (stepId: string) => void
@@ -159,6 +160,7 @@ export default function CanvasNode({
   presetKey,
   collapsed = false,
   outputText,
+  dimmed = false,
   onSelect,
   onDragStart,
   onToggleCollapse,
@@ -230,7 +232,7 @@ export default function CanvasNode({
           transition: 'border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, height 0.2s ease',
           userSelect: 'none',
           boxSizing: 'border-box',
-          opacity: statusStyle.opacity ?? 1,
+          opacity: dimmed ? 0.25 : (statusStyle.opacity ?? 1),
           animation: statusStyle.animation || 'none',
           overflow: 'hidden',
           display: 'flex',

@@ -1,8 +1,8 @@
-// WorkflowDetailPage — main panel view for a workflow (Iteration 473)
-// Shows workflow header, step list with live status, and canvas visualization
+// WorkflowDetailPage — main panel view for a workflow (Iteration 478)
+// Shows workflow header, step list with live status + search, and canvas visualization
 
-import React, { useMemo, useEffect, lazy, Suspense } from 'react'
-import { ArrowLeft, Play, Edit3, Check, Loader } from 'lucide-react'
+import React, { useMemo, useEffect, useState, lazy, Suspense } from 'react'
+import { ArrowLeft, Play, Edit3, Check, Loader, Search, X as XIcon } from 'lucide-react'
 import { usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import type { Workflow } from '../../types/app.types'
@@ -61,6 +61,21 @@ export default function WorkflowDetailPage() {
   const workflows = usePrefsStore(s => s.prefs.workflows || [])
   const workflow = useMemo(() => workflows.find(w => w.id === workflowId) || null, [workflows, workflowId])
   const execution = useWorkflowExecution(workflow)
+  const [searchQuery, setSearchQuery] = useState('')
+
+  // Compute matching step IDs for search filter
+  const matchingStepIds = useMemo(() => {
+    if (!workflow || !searchQuery.trim()) return null
+    const q = searchQuery.toLowerCase()
+    return new Set(
+      workflow.steps
+        .filter(s =>
+          (s.title || '').toLowerCase().includes(q) ||
+          (s.prompt || '').toLowerCase().includes(q)
+        )
+        .map(s => s.id)
+    )
+  }, [workflow, searchQuery])
 
   const goBack = () => {
     useUiStore.getState().setMainView('chat')
@@ -184,13 +199,50 @@ export default function WorkflowDetailPage() {
           flexShrink: 0,
           borderRight: '1px solid var(--border)',
           overflowY: 'auto',
-          padding: '16px 20px',
+          padding: '12px 16px',
+          display: 'flex',
+          flexDirection: 'column',
         }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 }}>
-            {t('workflow.steps')} ({workflow.steps.length})
+          {/* Steps header + search */}
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
+              {t('workflow.steps')} ({workflow.steps.length}){matchingStepIds ? ` — ${matchingStepIds.size} match` : ''}
+            </div>
+            <div style={{ position: 'relative' }}>
+              <Search size={11} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+              <input
+                type="text"
+                placeholder="Filter steps..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  padding: '5px 28px 5px 26px',
+                  fontSize: 11,
+                  background: 'var(--input-field-bg)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 6,
+                  color: 'var(--text)',
+                  outline: 'none',
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0, display: 'flex' }}
+                >
+                  <XIcon size={11} />
+                </button>
+              )}
+            </div>
           </div>
+
+          {/* Step list */}
+          <div style={{ flex: 1 }}>
           {workflow.steps.map((step, idx) => {
             const status: StepStatus = execution.stepStatuses[step.id] ?? 'idle'
+            const isFiltered = matchingStepIds !== null && !matchingStepIds.has(step.id)
             return (
               <div
                 key={step.id}
@@ -207,7 +259,8 @@ export default function WorkflowDetailPage() {
                     ? '3px solid var(--accent)'
                     : '1px solid var(--card-border)',
                   borderRadius: 8,
-                  transition: 'border-color 0.2s ease, background 0.2s ease',
+                  transition: 'border-color 0.2s ease, background 0.2s ease, opacity 0.2s ease',
+                  opacity: isFiltered ? 0.3 : 1,
                 }}
               >
                 <div style={{
@@ -249,6 +302,7 @@ export default function WorkflowDetailPage() {
             )}
             <span>{t('workflow.stepsLabel')}: {workflow.steps.length}</span>
           </div>
+          </div>
         </div>
 
         {/* Canvas area */}
@@ -258,7 +312,7 @@ export default function WorkflowDetailPage() {
               {t('workflow.loadingCanvas')}
             </div>
           }>
-            <WorkflowCanvas workflow={workflow} />
+            <WorkflowCanvas workflow={workflow} highlightStepIds={matchingStepIds} />
           </Suspense>
         </div>
       </div>
