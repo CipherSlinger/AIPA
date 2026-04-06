@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
-import { Maximize2, Workflow as WorkflowIcon } from 'lucide-react'
+import { Maximize2, Workflow as WorkflowIcon, ChevronsDownUp, ChevronsUpDown } from 'lucide-react'
 import { Workflow } from '../../types/app.types'
 import { useT } from '../../i18n'
 import CanvasNode, { NODE_WIDTH, NODE_MIN_HEIGHT, NODE_COLLAPSED_HEIGHT, NODE_GAP_Y } from './CanvasNode'
@@ -66,6 +66,15 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
       else next.add(stepId)
       return next
     })
+  }, [])
+
+  const handleCollapseAll = useCallback(() => {
+    if (!workflow) return
+    setCollapsedNodes(new Set(workflow.steps.map(s => s.id)))
+  }, [workflow])
+
+  const handleExpandAll = useCallback(() => {
+    setCollapsedNodes(new Set())
   }, [])
 
   // Compute default positions for all nodes (top-to-bottom layout, respects collapsed height)
@@ -504,6 +513,38 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
         >
           +
+        </button>
+        {/* Separator */}
+        <div style={{ width: 1, height: 14, background: 'var(--border)', margin: '0 2px' }} />
+        {/* Collapse all */}
+        <button
+          onClick={(e) => { e.stopPropagation(); handleCollapseAll() }}
+          aria-label="Collapse all nodes"
+          title="Collapse all"
+          style={{
+            background: 'transparent', border: 'none', borderRadius: 4,
+            padding: 3, cursor: 'pointer', color: 'var(--text-muted)',
+            display: 'flex', alignItems: 'center',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
+        >
+          <ChevronsDownUp size={13} />
+        </button>
+        {/* Expand all */}
+        <button
+          onClick={(e) => { e.stopPropagation(); handleExpandAll() }}
+          aria-label="Expand all nodes"
+          title="Expand all"
+          style={{
+            background: 'transparent', border: 'none', borderRadius: 4,
+            padding: 3, cursor: 'pointer', color: 'var(--text-muted)',
+            display: 'flex', alignItems: 'center',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
+        >
+          <ChevronsUpDown size={13} />
         </button>
       </div>
 
