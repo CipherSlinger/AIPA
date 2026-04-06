@@ -1,12 +1,20 @@
 import React from 'react'
-import { WorkflowStep } from '../../types/app.types'
+
+type EdgeStatus = 'idle' | 'active' | 'done'
 
 interface CanvasEdgeProps {
   from: { x: number; y: number; width: number; height: number }
   to: { x: number; y: number; width: number; height: number }
+  status?: EdgeStatus
 }
 
-export default function CanvasEdge({ from, to }: CanvasEdgeProps) {
+function edgeColor(status: EdgeStatus): string {
+  if (status === 'done') return '#22c55e'
+  if (status === 'active') return 'var(--accent)'
+  return 'var(--text-muted)'
+}
+
+export default function CanvasEdge({ from, to, status = 'idle' }: CanvasEdgeProps) {
   const startX = from.x + from.width / 2
   const startY = from.y + from.height
   const endX = to.x + to.width / 2
@@ -15,15 +23,17 @@ export default function CanvasEdge({ from, to }: CanvasEdgeProps) {
   const midY = (startY + endY) / 2
 
   const d = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`
+  const color = edgeColor(status)
+  const markerId = `canvas-arrowhead-${status}`
 
   return (
     <path
       d={d}
       fill="none"
-      stroke="var(--text-muted)"
-      strokeWidth={1.5}
-      strokeOpacity={0.5}
-      markerEnd="url(#canvas-arrowhead)"
+      stroke={color}
+      strokeWidth={status === 'active' ? 2 : 1.5}
+      strokeOpacity={status === 'idle' ? 0.4 : 0.8}
+      markerEnd={`url(#${markerId})`}
     />
   )
 }
@@ -31,21 +41,24 @@ export default function CanvasEdge({ from, to }: CanvasEdgeProps) {
 export function CanvasEdgeDefs() {
   return (
     <defs>
-      <marker
-        id="canvas-arrowhead"
-        markerWidth="8"
-        markerHeight="6"
-        refX="8"
-        refY="3"
-        orient="auto"
-        markerUnits="strokeWidth"
-      >
-        <path
-          d="M 0 0 L 8 3 L 0 6 Z"
-          fill="var(--text-muted)"
-          fillOpacity={0.5}
-        />
-      </marker>
+      {(['idle', 'active', 'done'] as EdgeStatus[]).map(status => (
+        <marker
+          key={status}
+          id={`canvas-arrowhead-${status}`}
+          markerWidth="8"
+          markerHeight="6"
+          refX="8"
+          refY="3"
+          orient="auto"
+          markerUnits="strokeWidth"
+        >
+          <path
+            d="M 0 0 L 8 3 L 0 6 Z"
+            fill={edgeColor(status)}
+            fillOpacity={status === 'idle' ? 0.4 : 0.8}
+          />
+        </marker>
+      ))}
     </defs>
   )
 }

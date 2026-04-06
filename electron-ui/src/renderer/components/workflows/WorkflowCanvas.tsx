@@ -480,11 +480,14 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
             const fromPos = nodePositions[prevStep.id]
             const toPos = nodePositions[step.id]
             if (!fromPos || !toPos) return null
+            const srcStatus = execution.stepStatuses[prevStep.id] ?? 'idle'
+            const edgeStatus = srcStatus === 'completed' ? 'done' : srcStatus === 'running' ? 'active' : 'idle'
             return (
               <CanvasEdge
                 key={`edge-${prevStep.id}-${step.id}`}
                 from={fromPos}
                 to={toPos}
+                status={edgeStatus}
               />
             )
           })}
