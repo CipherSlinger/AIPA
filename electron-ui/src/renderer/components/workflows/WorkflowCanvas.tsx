@@ -562,6 +562,7 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
           stepIndex={sidebarStepIndex}
           presetKey={workflow?.presetKey}
           status={sidebarStatus}
+          outputText={sidebarStepId ? execution.stepOutputs[sidebarStepId] : undefined}
           onClose={closeSidebar}
         />
       )}

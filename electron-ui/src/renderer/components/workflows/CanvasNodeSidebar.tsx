@@ -10,10 +10,11 @@ interface CanvasNodeSidebarProps {
   stepIndex: number
   presetKey?: string
   status: StepStatus
+  outputText?: string
   onClose: () => void
 }
 
-export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, onClose }: CanvasNodeSidebarProps) {
+export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, outputText, onClose }: CanvasNodeSidebarProps) {
   const t = useT()
   const displayTitle = getPresetStepText(presetKey, stepIndex, 'title', t, step.title)
   const displayPrompt = getPresetStepText(presetKey, stepIndex, 'prompt', t, step.prompt)
@@ -108,18 +109,24 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
           </div>
           <div style={{
             fontSize: 10,
-            color: status === 'running' ? 'var(--text-muted)' : 'var(--text-secondary)',
+            color: outputText ? 'var(--text-secondary)' : (status === 'running' ? 'var(--text-muted)' : 'var(--text-secondary)'),
             lineHeight: 1.5,
             padding: '6px 8px',
             background: 'var(--input-field-bg)',
             borderRadius: 4,
             border: '1px solid var(--border)',
-            fontStyle: status === 'running' ? 'italic' : 'normal',
+            fontStyle: outputText ? 'normal' : (status === 'running' ? 'italic' : 'normal'),
+            whiteSpace: outputText ? 'pre-wrap' : 'normal',
+            wordBreak: 'break-word',
+            maxHeight: 300,
+            overflowY: outputText ? 'auto' : 'hidden',
           }}>
-            {status === 'running' && t('workflow.canvasRunning')}
-            {status === 'pending' && t('workflow.canvasPending')}
-            {status === 'completed' && t('workflow.canvasStepDone')}
-            {status === 'idle' && t('workflow.canvasNotStarted')}
+            {outputText
+              ? outputText
+              : status === 'running' ? t('workflow.canvasRunning')
+              : status === 'pending' ? t('workflow.canvasPending')
+              : status === 'completed' ? t('workflow.canvasStepDone')
+              : t('workflow.canvasNotStarted')}
           </div>
         </div>
       </div>

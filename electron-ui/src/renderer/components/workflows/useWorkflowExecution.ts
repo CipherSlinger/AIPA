@@ -1,12 +1,14 @@
 import { useMemo } from 'react'
 import { useChatStore } from '../../store'
 import { Workflow } from '../../types/app.types'
+import { StandardChatMessage } from '../../types/app.types'
 
 export type StepStatus = 'idle' | 'pending' | 'running' | 'completed'
 
 export interface WorkflowExecutionState {
   isRunning: boolean
   stepStatuses: Record<string, StepStatus>
+  stepOutputs: Record<string, string>  // step id → AI response text
   activeStepIndex: number // -1 if not running
   completedCount: number
   totalSteps: number
@@ -19,11 +21,13 @@ export interface WorkflowExecutionState {
  */
 export function useWorkflowExecution(workflow: Workflow | null): WorkflowExecutionState {
   const taskQueue = useChatStore(s => s.taskQueue)
+  const messages = useChatStore(s => s.messages)
 
   return useMemo(() => {
     const defaultState: WorkflowExecutionState = {
       isRunning: false,
       stepStatuses: {},
+      stepOutputs: {},
       activeStepIndex: -1,
       completedCount: 0,
       totalSteps: workflow?.steps.length ?? 0,
@@ -59,9 +63,16 @@ export function useWorkflowExecution(workflow: Workflow | null): WorkflowExecuti
 
     // Map queue item statuses to step statuses
     const stepStatuses: Record<string, StepStatus> = {}
+    const stepOutputs: Record<string, string> = {}
     let activeStepIndex = -1
     let completedCount = 0
     let hasRunningOrPending = false
+
+    // Build a simple list of (role, content) from messages for output correlation
+    // We look for user messages matching step prompts, then grab the next assistant message
+    const stdMessages = messages.filter(
+      m => m.role === 'user' || m.role === 'assistant'
+    ) as StandardChatMessage[]
 
     workflow.steps.forEach((step, idx) => {
       const queueItem = taskQueue[queueStartIdx + idx]
@@ -87,14 +98,39 @@ export function useWorkflowExecution(workflow: Workflow | null): WorkflowExecuti
         default:
           stepStatuses[step.id] = 'idle'
       }
+
+      // Try to find the AI output for this step from the messages array
+      // Strategy: find the idx-th user message matching this step's prompt,
+      // then take the next assistant message after it.
+      let matchCount = 0
+      for (let mi = 0; mi < stdMessages.length; mi++) {
+        const msg = stdMessages[mi]
+        if (msg.role === 'user' && msg.content === step.prompt) {
+          if (matchCount === idx) {
+            // Look for the assistant message immediately following
+            for (let ai = mi + 1; ai < stdMessages.length; ai++) {
+              if (stdMessages[ai].role === 'assistant') {
+                stepOutputs[step.id] = stdMessages[ai].content
+                break
+              } else if (stdMessages[ai].role === 'user') {
+                // Another user message before an assistant — no output yet
+                break
+              }
+            }
+            break
+          }
+          matchCount++
+        }
+      }
     })
 
     return {
       isRunning: hasRunningOrPending,
       stepStatuses,
+      stepOutputs,
       activeStepIndex,
       completedCount,
       totalSteps: workflow.steps.length,
     }
-  }, [workflow, taskQueue])
+  }, [workflow, taskQueue, messages])
 }
