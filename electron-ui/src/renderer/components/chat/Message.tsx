@@ -158,13 +158,42 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
 
   // --- System message ---
   if (isSystem) {
+    const content = (message as StandardChatMessage).content || ''
+    // Away summary card (Iteration 481) — special collapsible card with moon icon
+    if (content.startsWith('[AWAY_SUMMARY]')) {
+      const summaryText = content.replace('[AWAY_SUMMARY]', '').trim()
+      return (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 20px' }}>
+          <div style={{
+            background: 'rgba(139, 92, 246, 0.06)',
+            border: '1px solid rgba(139, 92, 246, 0.15)',
+            borderRadius: 8,
+            padding: '8px 14px',
+            fontSize: 11,
+            color: 'var(--text-muted)',
+            maxWidth: 480,
+            display: 'flex',
+            gap: 8,
+            alignItems: 'flex-start',
+          }}>
+            <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>🌙</span>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3, color: '#8b5cf6' }}>
+                {t('awaySummary.title')}
+              </div>
+              <div style={{ lineHeight: 1.5 }}>{summaryText}</div>
+            </div>
+          </div>
+        </div>
+      )
+    }
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 20px' }}>
         <span style={{
           background: 'rgba(244, 71, 71, 0.08)', borderRadius: 4,
           padding: '4px 12px', fontSize: 12, color: 'var(--text-muted)',
         }}>
-          {(message as StandardChatMessage).content}
+          {content}
         </span>
       </div>
     )

@@ -38,7 +38,7 @@ export default function SettingsGeneral({
   const [settingsFilter, setSettingsFilter] = useState('')
 
   const groupKeywords = useMemo(() => ({
-    aiEngine: [t('settings.apiKey'), t('settings.model'), t('settings.thinkingMode'), t('settings.maxTurns'), t('settings.budgetLimit'), 'API', 'Claude', 'Opus', 'Sonnet', 'Haiku', t('settings.groups.aiEngine')].join(' ').toLowerCase(),
+    aiEngine: [t('settings.apiKey'), t('settings.model'), t('settings.advisorModel'), t('settings.thinkingMode'), t('settings.maxTurns'), t('settings.budgetLimit'), 'API', 'Claude', 'Opus', 'Sonnet', 'Haiku', t('settings.groups.aiEngine'), 'advisor'].join(' ').toLowerCase(),
     prompts: [t('settings.promptTemplate'), t('settings.systemPrompt'), t('settings.groups.prompts')].join(' ').toLowerCase(),
     appearance: [t('settings.language'), t('settings.displayName'), t('settings.theme'), t('settings.fontSize'), t('settings.fontFamily'), t('settings.compactMode'), t('settings.groups.appearance')].join(' ').toLowerCase(),
     workspace: [t('settings.workingFolder'), t('tags.sectionTitle'), t('settings.groups.workspace')].join(' ').toLowerCase(),
@@ -128,6 +128,19 @@ export default function SettingsGeneral({
             {MODEL_OPTIONS.map((m) => <option key={m.id} value={m.id}>{t(m.labelKey)}</option>)}
           </select>
         ))}
+
+        {field(t('settings.advisorModel'), (
+          <select
+            value={local.advisorModel ?? ''}
+            onChange={(e) => updateLocal({ advisorModel: e.target.value || undefined })}
+            style={{ ...INPUT_STYLE }}
+          >
+            <option value="">{t('settings.advisorModelSame')}</option>
+            {MODEL_OPTIONS.map((m) => <option key={m.id} value={m.id}>{t(m.labelKey)}</option>)}
+          </select>
+        ),
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('settings.advisorModelHint')}</span>
+        )}
 
         {field(t('settings.thinkingMode'), (
           <select

@@ -4,14 +4,54 @@ import {
   BookOpen,
   Lightbulb,
   Info,
+  User,
+  MessageSquare,
+  FolderOpen,
+  Link,
 } from 'lucide-react'
-import { MemoryCategory } from '../../types/app.types'
+import { MemoryCategory, MemoryType } from '../../types/app.types'
 
 export const CATEGORY_CONFIG: Record<MemoryCategory, { icon: React.ReactNode; color: string; labelKey: string }> = {
   preference: { icon: React.createElement(Star, { size: 12 }), color: '#f59e0b', labelKey: 'memory.catPreference' },
   fact:       { icon: React.createElement(BookOpen, { size: 12 }), color: '#3b82f6', labelKey: 'memory.catFact' },
   instruction:{ icon: React.createElement(Lightbulb, { size: 12 }), color: '#10b981', labelKey: 'memory.catInstruction' },
   context:    { icon: React.createElement(Info, { size: 12 }), color: '#8b5cf6', labelKey: 'memory.catContext' },
+}
+
+/**
+ * Claude Code-aligned memory type config (Iteration 480).
+ * Maps semantic type to display properties for the type badge shown below the content.
+ */
+export const MEMORY_TYPE_CONFIG: Record<MemoryType, { icon: React.ReactNode; color: string; labelKey: string; description: string }> = {
+  user:      { icon: React.createElement(User, { size: 10 }), color: '#3b82f6', labelKey: 'memory.typeUser', description: "About the user's role, goals, and preferences" },
+  feedback:  { icon: React.createElement(MessageSquare, { size: 10 }), color: '#f59e0b', labelKey: 'memory.typeFeedback', description: 'Guidance on how to approach work (corrections + confirmations)' },
+  project:   { icon: React.createElement(FolderOpen, { size: 10 }), color: '#8b5cf6', labelKey: 'memory.typeProject', description: 'Ongoing work, goals, decisions, deadlines' },
+  reference: { icon: React.createElement(Link, { size: 10 }), color: '#10b981', labelKey: 'memory.typeReference', description: 'Pointers to external systems and resources' },
+}
+
+export const MEMORY_TYPES: MemoryType[] = ['user', 'feedback', 'project', 'reference']
+
+/**
+ * Suggest a MemoryType based on content keywords (Iteration 480).
+ * Mirrors Claude Code's memory type taxonomy.
+ */
+export function suggestMemoryType(content: string): MemoryType {
+  const lower = content.toLowerCase()
+  const userWords = ['i am', 'i\'m', 'my role', 'i work', 'i use', 'i prefer', 'i like', 'i want', 'my background', 'expertise', 'years of']
+  const feedbackWords = ['don\'t', 'do not', 'stop', 'never', 'always', 'please', 'prefer', 'instead', 'avoid', 'keep doing', 'yes exactly', 'perfect']
+  const projectWords = ['project', 'deadline', 'working on', 'we are', 'sprint', 'release', 'team', 'goal', 'milestone', 'by', 'until', 'freeze']
+  const referenceWords = ['http', 'url', 'board', 'dashboard', 'jira', 'linear', 'slack', 'github', 'repo', 'wiki', 'docs', 'at ', 'tracker', 'channel']
+
+  const scores = {
+    user: userWords.filter(w => lower.includes(w)).length,
+    feedback: feedbackWords.filter(w => lower.includes(w)).length,
+    project: projectWords.filter(w => lower.includes(w)).length,
+    reference: referenceWords.filter(w => lower.includes(w)).length,
+  }
+
+  const max = Math.max(...Object.values(scores))
+  if (max === 0) return 'user'
+  return (Object.entries(scores).find(([, v]) => v === max)?.[0] as MemoryType) ?? 'user'
 }
 
 export const CATEGORIES: MemoryCategory[] = ['preference', 'fact', 'instruction', 'context']

@@ -123,6 +123,7 @@ export interface ClaudePrefs {
   channelWechat?: import('../components/channel/channelConstants').WechatConfig   // WeChat channel config
   resumeLastSession?: boolean   // auto-open the most recent session on app startup (default false)
   compactThreshold?: number      // auto-compact when context usage exceeds this % (default 80, range 60-90)
+  advisorModel?: string          // secondary model for background tasks (compaction, auto-memory, away summary) — Iteration 488
   autoMemoryEnabled?: boolean    // auto-extract memories from conversations (default false)
   promptSuggestionsEnabled?: boolean  // show AI-predicted follow-up suggestions after each response (default true)
   tipHistory?: Record<string, number>  // tipId -> last shown timestamp (for contextual tips)
@@ -214,10 +215,21 @@ export interface Persona {
 
 export type MemoryCategory = 'preference' | 'fact' | 'instruction' | 'context'
 
+/**
+ * Claude Code-aligned memory type taxonomy (Iteration 480).
+ * Maps to the 4 canonical types from Claude Code's memoryTypes.ts:
+ * - user: about the user's role/goals/knowledge
+ * - feedback: guidance on how to approach work (corrections + validations)
+ * - project: ongoing work, goals, deadlines, decisions
+ * - reference: pointers to external systems/resources
+ */
+export type MemoryType = 'user' | 'feedback' | 'project' | 'reference'
+
 export interface MemoryItem {
   id: string              // 'mem-' + timestamp + random
   content: string         // the memory content text (max 500 chars)
-  category: MemoryCategory // memory type
+  category: MemoryCategory // legacy display category
+  memoryType?: MemoryType  // Claude Code-aligned semantic type (optional, new in Iteration 480)
   pinned?: boolean        // pinned memories stay at top
   createdAt: number       // epoch ms
   updatedAt: number       // epoch ms

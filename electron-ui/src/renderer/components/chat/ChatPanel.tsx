@@ -30,6 +30,7 @@ import CompareView from './CompareView'
 import { getTemplateById } from '../../utils/promptTemplates'
 import { useT } from '../../i18n'
 import { useIdleReturn } from '../../hooks/useIdleReturn'
+import { useAwaySummary } from '../../hooks/useAwaySummary'
 
 export default function ChatPanel() {
   const t = useT()
@@ -74,6 +75,9 @@ export default function ChatPanel() {
 
   // Idle return detection
   const { showDialog: showIdleDialog, idleDuration, awaySummary, summaryLoading, dismiss: dismissIdle, suppressForever: suppressIdleForever } = useIdleReturn()
+
+  // Away summary — injects summary card into chat after 5min of window blur (Iteration 481)
+  useAwaySummary(isStreaming)
 
   // Pinned note editing state (Iteration 434)
   const [editingNote, setEditingNote] = useState(false)
