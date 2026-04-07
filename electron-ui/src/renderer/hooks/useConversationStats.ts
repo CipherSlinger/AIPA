@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { ChatMessage, StandardChatMessage } from '../types/app.types'
+import { count } from '../utils/arrayUtils'
 
 export interface ConversationStats {
   total: number
@@ -50,7 +51,7 @@ export function useConversationStats(messages: ChatMessage[]) {
       if (m.role === 'permission' || m.role === 'plan') return sum
       return sum + ((m as StandardChatMessage).content || '').length
     }, 0)
-    const msgCount = messages.filter(m => m.role !== 'permission' && m.role !== 'plan').length
+    const msgCount = count(messages, m => m.role !== 'permission' && m.role !== 'plan')
     const estTokens = Math.round(totalWords * 1.3)
     const avgWordsPerMsg = msgCount > 0 ? Math.round(totalWords / msgCount) : 0
     const readingTimeMin = Math.max(1, Math.round(totalWords / 200))
