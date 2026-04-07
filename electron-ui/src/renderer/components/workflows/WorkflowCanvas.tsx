@@ -1,41 +1,27 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
-import { Maximize2, Workflow as WorkflowIcon, ChevronsDownUp, ChevronsUpDown } from 'lucide-react'
+import React, { useState, useCallback, useRef, useEffect } from 'react'
+import { Workflow as WorkflowIcon } from 'lucide-react'
 import { Workflow } from '../../types/app.types'
 import { useT } from '../../i18n'
-import CanvasNode, { NODE_WIDTH, NODE_MIN_HEIGHT, NODE_COLLAPSED_HEIGHT, NODE_GAP_Y } from './CanvasNode'
+import CanvasNode from './CanvasNode'
 import CanvasEdge, { CanvasEdgeDefs } from './CanvasEdge'
 import CanvasProgressBar from './CanvasProgressBar'
 import CanvasNodeSidebar from './CanvasNodeSidebar'
+import CanvasToolbar from './CanvasToolbar'
 import { useWorkflowExecution } from './useWorkflowExecution'
+import { useCanvasLayout } from './useCanvasLayout'
 
 interface WorkflowCanvasProps {
   workflow: Workflow | null
   highlightStepIds?: Set<string> | null  // null = no filter, Set = show only these
 }
 
-interface NodePosition {
-  x: number
-  y: number
-  width: number
-  height: number
-}
-
-const MIN_ZOOM = 0.5
-const MAX_ZOOM = 2.0
-const ZOOM_STEP = 0.1
-
 export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowCanvasProps) {
   const t = useT()
   const containerRef = useRef<HTMLDivElement>(null)
   const execution = useWorkflowExecution(workflow)
 
-  // Pan & zoom state
-  const [panX, setPanX] = useState(0)
-  const [panY, setPanY] = useState(0)
-  const [zoom, setZoom] = useState(1)
-
-  // Node positions (custom overrides from dragging)
-  const [customPositions, setCustomPositions] = useState<Record<string, { x: number; y: number }>>({})
+  // Layout hook (pan, zoom, node positions, drag, collapse)
+  const layout = useCanvasLayout(workflow, containerRef)
 
   // Selected node (for sidebar)
   const [selectedNode, setSelectedNode] = useState<string | null>(null)
@@ -43,25 +29,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
   // Sidebar open state
   const [sidebarStepId, setSidebarStepId] = useState<string | null>(null)
 
-  // Panning state
-  const [isPanning, setIsPanning] = useState(false)
-  const panStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 })
-
-  // Dragging node state
-  const [draggingNode, setDraggingNode] = useState<string | null>(null)
-  const dragStartRef = useRef({ x: 0, y: 0, nodeX: 0, nodeY: 0 })
-
-  // Smooth transition flag for programmatic moves (fit-to-view, auto-pan)
-  const [smoothTransition, setSmoothTransition] = useState(false)
-
-  // Hover state for keyboard shortcut scope
-  const [isHovered, setIsHovered] = useState(false)
-
-  // Collapsed nodes (compact mode)
-  const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set())
-
   // Iteration 488: 30s periodic agent summary during execution
-  // Inspired by Claude Code's services/AgentSummary/agentSummary.ts
   const [agentSummary, setAgentSummary] = useState<string | null>(null)
   const summaryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const lastSummaryStepRef = useRef<string | null>(null)
@@ -101,107 +69,11 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
     }
   }, [execution.isRunning, execution.activeStepIndex, workflow, execution.stepOutputs])
 
-  const handleToggleCollapse = useCallback((stepId: string) => {
-    setCollapsedNodes(prev => {
-      const next = new Set(prev)
-      if (next.has(stepId)) next.delete(stepId)
-      else next.add(stepId)
-      return next
-    })
-  }, [])
-
-  const handleCollapseAll = useCallback(() => {
-    if (!workflow) return
-    setCollapsedNodes(new Set(workflow.steps.map(s => s.id)))
-  }, [workflow])
-
-  const handleExpandAll = useCallback(() => {
-    setCollapsedNodes(new Set())
-  }, [])
-
-  // Compute default positions for all nodes (top-to-bottom layout, respects collapsed height)
-  const defaultPositions = useMemo(() => {
-    if (!workflow) return {}
-    const positions: Record<string, NodePosition> = {}
-    const startX = 0
-    let yOffset = 0
-    workflow.steps.forEach((step) => {
-      const isCollapsed = collapsedNodes.has(step.id)
-      const h = isCollapsed ? NODE_COLLAPSED_HEIGHT : NODE_MIN_HEIGHT
-      positions[step.id] = {
-        x: startX,
-        y: yOffset,
-        width: NODE_WIDTH,
-        height: h,
-      }
-      yOffset += h + (NODE_GAP_Y - NODE_MIN_HEIGHT)
-    })
-    return positions
-  }, [workflow, collapsedNodes])
-
-  // Merged positions: default + custom overrides
-  const nodePositions = useMemo(() => {
-    const merged: Record<string, NodePosition> = {}
-    for (const [id, pos] of Object.entries(defaultPositions)) {
-      if (customPositions[id]) {
-        merged[id] = { ...pos, x: customPositions[id].x, y: customPositions[id].y }
-      } else {
-        merged[id] = pos
-      }
-    }
-    return merged
-  }, [defaultPositions, customPositions])
-
-  // Reset custom positions when workflow changes
+  // Reset selection when workflow changes
   useEffect(() => {
-    setCustomPositions({})
     setSelectedNode(null)
     setSidebarStepId(null)
-    setZoom(1)
-    setPanX(0)
-    setPanY(0)
-    setCollapsedNodes(new Set())
   }, [workflow?.id])
-
-  // Fit to view
-  const fitToView = useCallback(() => {
-    if (!workflow || workflow.steps.length === 0 || !containerRef.current) return
-    const container = containerRef.current
-    const cw = container.clientWidth
-    const ch = container.clientHeight
-
-    // Find bounding box of all nodes
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
-    for (const pos of Object.values(nodePositions)) {
-      minX = Math.min(minX, pos.x)
-      minY = Math.min(minY, pos.y)
-      maxX = Math.max(maxX, pos.x + pos.width)
-      maxY = Math.max(maxY, pos.y + pos.height)
-    }
-
-    const contentW = maxX - minX + 60 // padding
-    const contentH = maxY - minY + 60
-    const scaleX = cw / contentW
-    const scaleY = ch / contentH
-    const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.min(scaleX, scaleY)))
-
-    const newPanX = (cw - contentW * newZoom) / 2 - minX * newZoom + 30 * newZoom
-    const newPanY = (ch - contentH * newZoom) / 2 - minY * newZoom + 30 * newZoom
-
-    setSmoothTransition(true)
-    setZoom(newZoom)
-    setPanX(newPanX)
-    setPanY(newPanY)
-    setTimeout(() => setSmoothTransition(false), 350)
-  }, [workflow, nodePositions])
-
-  // Auto-fit on first render or workflow change
-  useEffect(() => {
-    if (workflow && workflow.steps.length > 0) {
-      const timer = setTimeout(fitToView, 50)
-      return () => clearTimeout(timer)
-    }
-  }, [workflow?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Auto-pan to active node during execution ---
   const prevActiveRef = useRef(-1)
@@ -209,40 +81,14 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
     if (
       execution.activeStepIndex < 0 ||
       execution.activeStepIndex === prevActiveRef.current ||
-      !workflow ||
-      !containerRef.current
+      !workflow
     ) return
 
     prevActiveRef.current = execution.activeStepIndex
     const activeStep = workflow.steps[execution.activeStepIndex]
     if (!activeStep) return
-    const pos = nodePositions[activeStep.id]
-    if (!pos) return
-
-    const container = containerRef.current
-    const cw = container.clientWidth
-    const ch = container.clientHeight
-
-    // Check if node is visible in current viewport
-    const nodeScreenX = pos.x * zoom + panX
-    const nodeScreenY = pos.y * zoom + panY
-    const margin = 50
-    const isVisible =
-      nodeScreenX > margin &&
-      nodeScreenX + pos.width * zoom < cw - margin &&
-      nodeScreenY > margin &&
-      nodeScreenY + pos.height * zoom < ch - margin
-
-    if (!isVisible) {
-      // Pan to center the active node
-      const newPanX = cw / 2 - (pos.x + pos.width / 2) * zoom
-      const newPanY = ch / 2 - (pos.y + pos.height / 2) * zoom
-      setSmoothTransition(true)
-      setPanX(newPanX)
-      setPanY(newPanY)
-      setTimeout(() => setSmoothTransition(false), 350)
-    }
-  }, [execution.activeStepIndex, workflow, nodePositions, zoom, panX, panY])
+    layout.autoPanToNode(activeStep.id)
+  }, [execution.activeStepIndex, workflow, layout])
 
   // --- Node selection (opens sidebar) ---
   const handleNodeSelect = useCallback((stepId: string) => {
@@ -254,121 +100,13 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
     setSidebarStepId(null)
   }, [])
 
-  // --- Mouse handlers for pan ---
+  // --- Canvas mouse down: deselect + start pan ---
   const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return
     setSelectedNode(null)
     setSidebarStepId(null)
-    setIsPanning(true)
-    panStartRef.current = { x: e.clientX, y: e.clientY, panX, panY }
-  }, [panX, panY])
-
-  useEffect(() => {
-    if (!isPanning) return
-    const handleMove = (e: MouseEvent) => {
-      const dx = e.clientX - panStartRef.current.x
-      const dy = e.clientY - panStartRef.current.y
-      setPanX(panStartRef.current.panX + dx)
-      setPanY(panStartRef.current.panY + dy)
-    }
-    const handleUp = () => setIsPanning(false)
-    window.addEventListener('mousemove', handleMove)
-    window.addEventListener('mouseup', handleUp)
-    return () => {
-      window.removeEventListener('mousemove', handleMove)
-      window.removeEventListener('mouseup', handleUp)
-    }
-  }, [isPanning])
-
-  // --- Mouse handlers for node drag ---
-  const handleNodeDragStart = useCallback((stepId: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    const pos = nodePositions[stepId]
-    if (!pos) return
-    setDraggingNode(stepId)
-    dragStartRef.current = { x: e.clientX, y: e.clientY, nodeX: pos.x, nodeY: pos.y }
-  }, [nodePositions])
-
-  useEffect(() => {
-    if (!draggingNode) return
-    const handleMove = (e: MouseEvent) => {
-      const dx = (e.clientX - dragStartRef.current.x) / zoom
-      const dy = (e.clientY - dragStartRef.current.y) / zoom
-      setCustomPositions(prev => ({
-        ...prev,
-        [draggingNode]: {
-          x: dragStartRef.current.nodeX + dx,
-          y: dragStartRef.current.nodeY + dy,
-        },
-      }))
-    }
-    const handleUp = () => setDraggingNode(null)
-    window.addEventListener('mousemove', handleMove)
-    window.addEventListener('mouseup', handleUp)
-    return () => {
-      window.removeEventListener('mousemove', handleMove)
-      window.removeEventListener('mouseup', handleUp)
-    }
-  }, [draggingNode, zoom])
-
-  // --- Wheel zoom (toward cursor position) ---
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault()
-    const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP
-    const container = containerRef.current
-    if (!container) return
-    const rect = container.getBoundingClientRect()
-    const mouseX = e.clientX - rect.left
-    const mouseY = e.clientY - rect.top
-    setZoom(prev => {
-      const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev + delta))
-      // Zoom toward mouse position: adjust pan so the point under cursor stays fixed
-      setPanX(px => mouseX - (mouseX - px) * (newZoom / prev))
-      setPanY(py => mouseY - (mouseY - py) * (newZoom / prev))
-      return newZoom
-    })
-  }, [])
-
-  // --- Zoom in/out helpers (zoom toward canvas center) ---
-  const zoomIn = useCallback(() => {
-    if (!containerRef.current) return
-    const rect = containerRef.current.getBoundingClientRect()
-    const cx = rect.width / 2
-    const cy = rect.height / 2
-    setZoom(prev => {
-      const newZoom = Math.min(MAX_ZOOM, prev + ZOOM_STEP)
-      setPanX(px => cx - (cx - px) * (newZoom / prev))
-      setPanY(py => cy - (cy - py) * (newZoom / prev))
-      return newZoom
-    })
-  }, [])
-
-  const zoomOut = useCallback(() => {
-    if (!containerRef.current) return
-    const rect = containerRef.current.getBoundingClientRect()
-    const cx = rect.width / 2
-    const cy = rect.height / 2
-    setZoom(prev => {
-      const newZoom = Math.max(MIN_ZOOM, prev - ZOOM_STEP)
-      setPanX(px => cx - (cx - px) * (newZoom / prev))
-      setPanY(py => cy - (cy - py) * (newZoom / prev))
-      return newZoom
-    })
-  }, [])
-
-  // --- Keyboard shortcuts (when canvas is hovered) ---
-  useEffect(() => {
-    if (!isHovered) return
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't fire if typing in an input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
-      if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomIn() }
-      else if (e.key === '-') { e.preventDefault(); zoomOut() }
-      else if (e.key === '0') { e.preventDefault(); fitToView() }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isHovered, zoomIn, zoomOut, fitToView])
+    layout.handleCanvasMouseDown(e)
+  }, [layout])
 
   // --- Sidebar step data ---
   const sidebarStep = sidebarStepId && workflow
@@ -416,7 +154,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
     )
   }
 
-  const zoomPercent = Math.round(zoom * 100)
+  const zoomPercent = Math.round(layout.zoom * 100)
 
   return (
     <div
@@ -425,13 +163,13 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
         flex: 1,
         position: 'relative',
         overflow: 'hidden',
-        cursor: isPanning ? 'grabbing' : 'grab',
+        cursor: layout.isPanning ? 'grabbing' : 'grab',
         background: 'var(--bg-main)',
       }}
       onMouseDown={handleCanvasMouseDown}
-      onWheel={handleWheel}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onWheel={layout.handleWheel}
+      onMouseEnter={() => layout.setIsHovered(true)}
+      onMouseLeave={() => layout.setIsHovered(false)}
     >
       {/* Execution progress bar */}
       <CanvasProgressBar
@@ -470,16 +208,16 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
         <defs>
           <pattern
             id="canvas-dot-grid"
-            x={panX % (20 * zoom)}
-            y={panY % (20 * zoom)}
-            width={20 * zoom}
-            height={20 * zoom}
+            x={layout.panX % (20 * layout.zoom)}
+            y={layout.panY % (20 * layout.zoom)}
+            width={20 * layout.zoom}
+            height={20 * layout.zoom}
             patternUnits="userSpaceOnUse"
           >
             <circle
-              cx={20 * zoom / 2}
-              cy={20 * zoom / 2}
-              r={Math.max(0.5, zoom * 0.8)}
+              cx={20 * layout.zoom / 2}
+              cy={20 * layout.zoom / 2}
+              r={Math.max(0.5, layout.zoom * 0.8)}
               fill="var(--border)"
               fillOpacity={0.6}
             />
@@ -489,122 +227,16 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
       </svg>
 
       {/* Canvas toolbar */}
-      <div style={{
-        position: 'absolute',
-        top: execution.isRunning || execution.completedCount > 0 ? 28 : 8,
-        right: 8,
-        zIndex: 10,
-        display: 'flex',
-        gap: 4,
-        alignItems: 'center',
-        background: 'rgba(var(--bg-card-rgb, 30, 30, 30), 0.8)',
-        backdropFilter: 'blur(8px)',
-        borderRadius: 6,
-        padding: '3px 6px',
-        border: '1px solid var(--border)',
-        transition: 'top 0.2s ease',
-      }}>
-        <button
-          onClick={(e) => { e.stopPropagation(); fitToView() }}
-          aria-label={t('workflow.fitToView')}
-          title={t('workflow.fitToView') + ' (0)'}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            borderRadius: 4,
-            padding: 3,
-            cursor: 'pointer',
-            color: 'var(--text-muted)',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
-        >
-          <Maximize2 size={14} />
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); zoomOut() }}
-          aria-label="Zoom out"
-          title="Zoom out (−)"
-          style={{
-            background: 'transparent',
-            border: 'none',
-            borderRadius: 4,
-            padding: '1px 5px',
-            cursor: 'pointer',
-            color: 'var(--text-muted)',
-            fontSize: 14,
-            lineHeight: 1,
-            fontWeight: 600,
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
-        >
-          −
-        </button>
-        <span style={{
-          fontSize: 10,
-          color: 'var(--text-muted)',
-          minWidth: 36,
-          textAlign: 'center',
-          userSelect: 'none',
-        }}>
-          {zoomPercent}%
-        </span>
-        <button
-          onClick={(e) => { e.stopPropagation(); zoomIn() }}
-          aria-label="Zoom in"
-          title="Zoom in (+)"
-          style={{
-            background: 'transparent',
-            border: 'none',
-            borderRadius: 4,
-            padding: '1px 5px',
-            cursor: 'pointer',
-            color: 'var(--text-muted)',
-            fontSize: 14,
-            lineHeight: 1,
-            fontWeight: 600,
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
-        >
-          +
-        </button>
-        {/* Separator */}
-        <div style={{ width: 1, height: 14, background: 'var(--border)', margin: '0 2px' }} />
-        {/* Collapse all */}
-        <button
-          onClick={(e) => { e.stopPropagation(); handleCollapseAll() }}
-          aria-label="Collapse all nodes"
-          title="Collapse all"
-          style={{
-            background: 'transparent', border: 'none', borderRadius: 4,
-            padding: 3, cursor: 'pointer', color: 'var(--text-muted)',
-            display: 'flex', alignItems: 'center',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
-        >
-          <ChevronsDownUp size={13} />
-        </button>
-        {/* Expand all */}
-        <button
-          onClick={(e) => { e.stopPropagation(); handleExpandAll() }}
-          aria-label="Expand all nodes"
-          title="Expand all"
-          style={{
-            background: 'transparent', border: 'none', borderRadius: 4,
-            padding: 3, cursor: 'pointer', color: 'var(--text-muted)',
-            display: 'flex', alignItems: 'center',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
-        >
-          <ChevronsUpDown size={13} />
-        </button>
-      </div>
+      <CanvasToolbar
+        zoomPercent={zoomPercent}
+        offsetTop={execution.isRunning || execution.completedCount > 0}
+        fitToViewLabel={t('workflow.fitToView')}
+        onFitToView={layout.fitToView}
+        onZoomIn={layout.zoomIn}
+        onZoomOut={layout.zoomOut}
+        onCollapseAll={layout.handleCollapseAll}
+        onExpandAll={layout.handleExpandAll}
+      />
 
       {/* SVG edge layer */}
       <svg
@@ -617,13 +249,13 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
           zIndex: 1,
         }}
       >
-        <g transform={`translate(${panX}, ${panY}) scale(${zoom})`}>
+        <g transform={`translate(${layout.panX}, ${layout.panY}) scale(${layout.zoom})`}>
           <CanvasEdgeDefs />
           {workflow.steps.map((step, idx) => {
             if (idx === 0) return null
             const prevStep = workflow.steps[idx - 1]
-            const fromPos = nodePositions[prevStep.id]
-            const toPos = nodePositions[step.id]
+            const fromPos = layout.nodePositions[prevStep.id]
+            const toPos = layout.nodePositions[step.id]
             if (!fromPos || !toPos) return null
             const srcStatus = execution.stepStatuses[prevStep.id] ?? 'idle'
             const edgeStatus = srcStatus === 'completed' ? 'done' : srcStatus === 'running' ? 'active' : 'idle'
@@ -645,13 +277,13 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
           position: 'absolute',
           inset: 0,
           zIndex: 2,
-          transform: `translate(${panX}px, ${panY}px) scale(${zoom})`,
+          transform: `translate(${layout.panX}px, ${layout.panY}px) scale(${layout.zoom})`,
           transformOrigin: '0 0',
-          transition: smoothTransition ? 'transform 0.3s ease-out' : 'none',
+          transition: layout.smoothTransition ? 'transform 0.3s ease-out' : 'none',
         }}
       >
         {workflow.steps.map((step, idx) => {
-          const pos = nodePositions[step.id]
+          const pos = layout.nodePositions[step.id]
           if (!pos) return null
           return (
             <CanvasNode
@@ -664,13 +296,13 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
               selected={selectedNode === step.id}
               status={execution.stepStatuses[step.id] ?? 'idle'}
               presetKey={workflow.presetKey}
-              collapsed={collapsedNodes.has(step.id)}
+              collapsed={layout.collapsedNodes.has(step.id)}
               outputText={execution.stepOutputs[step.id]}
               dimmed={highlightStepIds !== null && highlightStepIds !== undefined && !highlightStepIds.has(step.id)}
               durationMs={execution.stepDurations[step.id]}
               onSelect={handleNodeSelect}
-              onDragStart={handleNodeDragStart}
-              onToggleCollapse={handleToggleCollapse}
+              onDragStart={layout.handleNodeDragStart}
+              onToggleCollapse={layout.handleToggleCollapse}
             />
           )
         })}
@@ -711,3 +343,4 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
     </div>
   )
 }
+

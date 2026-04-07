@@ -2,8 +2,7 @@
 // Shows workflow header, step list with live status + search, and canvas visualization
 
 import React, { useMemo, useEffect, useState, useCallback, lazy, Suspense } from 'react'
-import { Check, Loader, Search, X as XIcon, Trash2 } from 'lucide-react'
-import { ArrowLeft } from 'lucide-react'
+import { Check, Loader, Search, X as XIcon, Trash2, ArrowLeft } from 'lucide-react'
 import { usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import type { Workflow, WorkflowStep } from '../../types/app.types'
@@ -27,32 +26,15 @@ const STEP_STATUS_BG: Record<StepStatus, string> = {
   completed: 'rgba(34,197,94, 0.06)',
 }
 
+const stepIconStyle = (bg: string, anim?: string): React.CSSProperties => ({
+  width: 16, height: 16, borderRadius: '50%', background: bg, color: '#fff',
+  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  ...(anim ? { animation: anim } : {}),
+})
+
 function StepStatusIcon({ status }: { status: StepStatus }) {
-  if (status === 'completed') {
-    return (
-      <div style={{
-        width: 16, height: 16, borderRadius: '50%',
-        background: '#22c55e', color: '#fff',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        flexShrink: 0,
-      }}>
-        <Check size={10} strokeWidth={3} />
-      </div>
-    )
-  }
-  if (status === 'running') {
-    return (
-      <div style={{
-        width: 16, height: 16, borderRadius: '50%',
-        background: 'var(--accent)', color: '#fff',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        flexShrink: 0,
-        animation: 'wdp-spin 1s linear infinite',
-      }}>
-        <Loader size={10} strokeWidth={2.5} />
-      </div>
-    )
-  }
+  if (status === 'completed') return <div style={stepIconStyle('#22c55e')}><Check size={10} strokeWidth={3} /></div>
+  if (status === 'running') return <div style={stepIconStyle('var(--accent)', 'wdp-spin 1s linear infinite')}><Loader size={10} strokeWidth={2.5} /></div>
   return null
 }
 
