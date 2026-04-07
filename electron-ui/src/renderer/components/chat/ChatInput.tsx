@@ -35,6 +35,7 @@ import { estimateToolBreakdown } from '../../utils/tokenUtils'
 import { StandardChatMessage } from '../../types/app.types'
 import { matchesKeepGoingKeyword, matchesNegativeKeyword } from '../../hooks/usePromptKeywords'
 import { useDoublePress } from '../../hooks/useDoublePress'
+import { normalizeFullWidthDigits, normalizeFullWidthSpace } from '../../utils/stringUtils'
 
 interface ChatInputProps {
   isStreaming: boolean
@@ -263,7 +264,9 @@ export default function ChatInput({
   })
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const val = e.target.value
+    // Normalize full-width CJK digits/spaces to ASCII equivalents (sourcemap stringUtils)
+    let val = normalizeFullWidthDigits(e.target.value)
+    val = normalizeFullWidthSpace(val)
     // Track keystrokes for WPM calculation
     if (val.length > input.length) {
       const now = Date.now()
