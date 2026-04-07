@@ -1,13 +1,19 @@
 // WorkflowDetailPage — main panel view for a workflow (Iteration 478)
 // Shows workflow header, step list with live status + search, and canvas visualization
 
-import React, { useMemo, useEffect, useState, lazy, Suspense } from 'react'
-import { ArrowLeft, Play, Edit3, Check, Loader, Search, X as XIcon } from 'lucide-react'
+import React, { useMemo, useEffect, useState, useCallback, lazy, Suspense } from 'react'
+import { ArrowLeft, Play, Edit3, Check, Loader, Search, X as XIcon, Save, Trash2 } from 'lucide-react'
 import { usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
-import type { Workflow } from '../../types/app.types'
+import type { Workflow, WorkflowStep } from '../../types/app.types'
 import { useWorkflowExecution } from './useWorkflowExecution'
 import type { StepStatus } from './useWorkflowExecution'
+
+const WORKFLOW_EMOJIS = [
+  '\u{1F4CB}', '\u{1F4CA}', '\u{1F4DD}', '\u2728', '\u{1F680}',
+  '\u{1F9E0}', '\u{1F3AF}', '\u{1F50D}', '\u{1F4A1}', '\u{1F4E7}',
+  '\u{1F30D}', '\u2699\uFE0F',
+]
 
 const WorkflowCanvas = lazy(() => import('./WorkflowCanvas'))
 
@@ -62,6 +68,24 @@ export default function WorkflowDetailPage() {
   const workflow = useMemo(() => workflows.find(w => w.id === workflowId) || null, [workflows, workflowId])
   const execution = useWorkflowExecution(workflow)
   const [searchQuery, setSearchQuery] = useState('')
+  const [editName, setEditName] = useState('')
+  const [editDesc, setEditDesc] = useState('')
+  const [editIcon, setEditIcon] = useState('\u{1F4CB}')
+  const [editSteps, setEditSteps] = useState<{id: string; title: string; prompt: string}[]>([])
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [justSaved, setJustSaved] = useState(false)
+  const [showIconPicker, setShowIconPicker] = useState(false)
+
+  // Display name: use translated preset name if available, else workflow name
+  const displayName = workflow
+    ? (workflow.presetKey ? t(`workflow.preset.${workflow.presetKey}`) : workflow.name)
+    : ''
+
+  // Open the workflow editor page
+  const openEditor = useCallback(() => {
+    if (!workflow) return
+    useUiStore.getState().openWorkflowEditor(workflow.id)
+  }, [workflow])
 
   // Compute matching step IDs for search filter
   const matchingStepIds = useMemo(() => {

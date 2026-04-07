@@ -86,10 +86,10 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
 
       const completedOutputs = workflow.steps
         .filter((_, i) => i < activeIdx)
-        .map(s => `Step "${s.name}": ${(execution.stepOutputs[s.id] || '').slice(0, 200)}`)
+        .map(s => `Step "${s.title}": ${(execution.stepOutputs[s.id] || '').slice(0, 200)}`)
         .join('\n')
 
-      const summaryText = `Running "${activeStep.name}"${completedOutputs ? ` — ${workflow.steps.filter((_, i) => i < activeIdx).length} steps done` : ''}`
+      const summaryText = `Running "${activeStep.title}"${completedOutputs ? ` — ${workflow.steps.filter((_, i) => i < activeIdx).length} steps done` : ''}`
       setAgentSummary(summaryText)
     }
 

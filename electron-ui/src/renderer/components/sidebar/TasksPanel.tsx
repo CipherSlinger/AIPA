@@ -85,7 +85,7 @@ export default function TasksPanel() {
   useEffect(() => {
     const checkReminders = () => {
       const now = Date.now()
-      const currentReminders: ReminderItem[] = usePrefsStore.getState().prefs.reminders as any || []
+      const currentReminders: ReminderItem[] = (usePrefsStore.getState().prefs as any).reminders || []
       const fired = currentReminders.filter(r => r.fireAt <= now)
       if (fired.length > 0) {
         // Fire notifications
