@@ -18,9 +18,12 @@ interface CanvasNodeProps {
   outputText?: string
   dimmed?: boolean
   durationMs?: number
+  isFirst?: boolean
+  isLast?: boolean
   onSelect: (stepId: string) => void
   onDragStart: (stepId: string, e: React.MouseEvent) => void
   onToggleCollapse?: (stepId: string) => void
+  onTitleChange?: (stepId: string, newTitle: string) => void
 }
 
 export const NODE_WIDTH = 220
@@ -71,6 +74,19 @@ function StatusBadge({ status }: { status: StepStatus }) {
         boxShadow: '0 0 0 2px var(--bg-card, #1e1e1e)',
       }}>
         <Loader size={11} strokeWidth={2.5} />
+      </div>
+    )
+  }
+  if (status === 'error') {
+    return (
+      <div style={{
+        position: 'absolute', top: -6, right: -6,
+        width: 18, height: 18, borderRadius: '50%',
+        background: '#ef4444', color: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: '0 0 0 2px var(--bg-card, #1e1e1e)',
+      }}>
+        <AlertCircle size={11} strokeWidth={2.5} />
       </div>
     )
   }
@@ -171,18 +187,55 @@ export default function CanvasNode({
   outputText,
   dimmed = false,
   durationMs,
+  isFirst = false,
+  isLast = false,
   onSelect,
   onDragStart,
   onToggleCollapse,
+  onTitleChange,
 }: CanvasNodeProps) {
   const t = useT()
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null)
   const [outputExpanded, setOutputExpanded] = useState(false)
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [editTitleValue, setEditTitleValue] = useState('')
+  const titleInputRef = useRef<HTMLInputElement>(null)
 
   // Reset output expansion when node changes status
   useEffect(() => {
     if (status !== 'completed') setOutputExpanded(false)
   }, [status])
+
+  // Auto-focus title input when entering edit mode
+  useEffect(() => {
+    if (isEditingTitle && titleInputRef.current) {
+      titleInputRef.current.focus()
+      titleInputRef.current.select()
+    }
+  }, [isEditingTitle])
+
+  const handleTitleDoubleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEditTitleValue(step.title || '')
+    setIsEditingTitle(true)
+  }, [step.title])
+
+  const commitTitleEdit = useCallback(() => {
+    const trimmed = editTitleValue.trim()
+    if (trimmed && trimmed !== step.title) {
+      onTitleChange?.(step.id, trimmed)
+    }
+    setIsEditingTitle(false)
+  }, [editTitleValue, step.id, step.title, onTitleChange])
+
+  const cancelTitleEdit = useCallback(() => {
+    setIsEditingTitle(false)
+  }, [])
+
+  const handleTitleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') { e.preventDefault(); commitTitleEdit() }
+    if (e.key === 'Escape') { e.preventDefault(); cancelTitleEdit() }
+  }, [commitTitleEdit, cancelTitleEdit])
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -253,7 +306,13 @@ export default function CanvasNode({
           border: isActive
             ? '1.5px solid var(--accent)'
             : `1.5px solid ${statusStyle.borderColor}`,
-          borderLeft: (!isActive && statusStyle.borderLeft) ? statusStyle.borderLeft : undefined,
+          borderLeft: (() => {
+            if (isActive) return undefined
+            if (statusStyle.borderLeft) return statusStyle.borderLeft
+            if (isFirst) return '3px solid #6366f1'
+            if (isLast) return '3px solid #f59e0b'
+            return undefined
+          })(),
           borderRadius: 8,
           padding: collapsed ? '0 12px' : '10px 12px 8px',
           cursor: 'grab',
@@ -282,7 +341,7 @@ export default function CanvasNode({
             left: -8,
             width: 20,
             height: 20,
-            background: status === 'completed' ? '#22c55e' : status === 'running' ? 'var(--accent)' : 'var(--text-muted)',
+            background: status === 'completed' ? '#22c55e' : status === 'running' ? 'var(--accent)' : status === 'error' ? '#ef4444' : 'var(--text-muted)',
             color: '#fff',
             fontSize: 10,
             fontWeight: 700,
@@ -328,22 +387,61 @@ export default function CanvasNode({
           </button>
         )}
 
-        {/* Step title */}
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            color: 'var(--text)',
-            marginBottom: collapsed ? 0 : 4,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            paddingRight: 20,
-            width: '100%',
-          }}
-        >
-          {displayTitle}
-        </div>
+        {/* Step title — double-click to inline edit */}
+        {isEditingTitle ? (
+          <input
+            ref={titleInputRef}
+            value={editTitleValue}
+            onChange={e => setEditTitleValue(e.target.value)}
+            onBlur={commitTitleEdit}
+            onKeyDown={handleTitleKeyDown}
+            onMouseDown={e => e.stopPropagation()}
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: 'var(--text)',
+              marginBottom: collapsed ? 0 : 4,
+              width: '100%',
+              paddingRight: 20,
+              background: 'var(--input-field-bg, rgba(255,255,255,0.06))',
+              border: '1px solid var(--accent)',
+              borderRadius: 3,
+              outline: 'none',
+              padding: '1px 4px',
+              boxSizing: 'border-box',
+              fontFamily: 'inherit',
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: 'var(--text)',
+              marginBottom: collapsed ? 0 : 4,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              paddingRight: 20,
+              width: '100%',
+              cursor: 'text',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+            }}
+            onDoubleClick={handleTitleDoubleClick}
+          >
+            {isFirst && (
+              <span style={{ color: '#6366f1', fontSize: 10, flexShrink: 0 }}>▶</span>
+            )}
+            {isLast && !isFirst && (
+              <span style={{ color: '#f59e0b', fontSize: 10, flexShrink: 0 }}>⚑</span>
+            )}
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {displayTitle}
+            </span>
+          </div>
+        )}
 
         {/* Prompt preview or output preview — hidden when collapsed */}
         {!collapsed && (

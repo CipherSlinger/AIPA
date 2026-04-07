@@ -3,10 +3,11 @@ import { useChatStore } from '../../store'
 import { Workflow } from '../../types/app.types'
 import { StandardChatMessage } from '../../types/app.types'
 
-export type StepStatus = 'idle' | 'pending' | 'running' | 'completed'
+export type StepStatus = 'idle' | 'pending' | 'running' | 'completed' | 'error'
 
 export interface WorkflowExecutionState {
   isRunning: boolean
+  hasError: boolean
   stepStatuses: Record<string, StepStatus>
   stepOutputs: Record<string, string>  // step id → AI response text
   stepDurations: Record<string, number> // step id → ms elapsed (for completed steps)
@@ -41,6 +42,7 @@ export function useWorkflowExecution(workflow: Workflow | null): WorkflowExecuti
   const base = useMemo(() => {
     const defaultState: Omit<WorkflowExecutionState, 'stepDurations'> = {
       isRunning: false,
+      hasError: false,
       stepStatuses: {},
       stepOutputs: {},
       activeStepIndex: -1,
@@ -76,6 +78,7 @@ export function useWorkflowExecution(workflow: Workflow | null): WorkflowExecuti
     let activeStepIndex = -1
     let completedCount = 0
     let hasRunningOrPending = false
+    let hasError = false
 
     const stdMessages = messages.filter(
       m => m.role === 'user' || m.role === 'assistant'
@@ -101,6 +104,12 @@ export function useWorkflowExecution(workflow: Workflow | null): WorkflowExecuti
         case 'pending':
           stepStatuses[step.id] = 'pending'
           hasRunningOrPending = true
+          break
+        case 'error':
+        case 'failed':
+        case 'aborted':
+          stepStatuses[step.id] = 'error'
+          hasError = true
           break
         default:
           stepStatuses[step.id] = 'idle'
@@ -128,6 +137,7 @@ export function useWorkflowExecution(workflow: Workflow | null): WorkflowExecuti
 
     return {
       isRunning: hasRunningOrPending,
+      hasError,
       stepStatuses,
       stepOutputs,
       activeStepIndex,
@@ -145,7 +155,7 @@ export function useWorkflowExecution(workflow: Workflow | null): WorkflowExecuti
       if (status === 'running' && !stepStartTimes.current[step.id]) {
         stepStartTimes.current[step.id] = now
       }
-      if (status === 'completed' && stepStartTimes.current[step.id]) {
+      if ((status === 'completed' || status === 'error') && stepStartTimes.current[step.id]) {
         const duration = now - stepStartTimes.current[step.id]
         setStepDurations(prev => {
           if (prev[step.id]) return prev // already recorded

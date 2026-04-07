@@ -263,11 +263,13 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           {status === 'completed' && <Check size={10} strokeWidth={3} />}
+          {status === 'error' && <AlertCircle size={10} strokeWidth={2.5} />}
           <span>
             {status === 'completed' && t('workflow.canvasStepDone')}
             {status === 'running' && t('workflow.canvasRunning')}
             {status === 'pending' && t('workflow.canvasPending')}
             {status === 'idle' && t('workflow.canvasNotStarted')}
+            {status === 'error' && <span style={{ color: '#ef4444' }}>执行失败</span>}
           </span>
         </div>
         {durationMs !== undefined && status === 'completed' && (
