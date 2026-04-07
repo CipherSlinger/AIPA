@@ -5073,3 +5073,83 @@ Created `setUtils.ts` with `difference`, `intersects`, `every`, `union` — hot-
 
 ### Build
 Status: SUCCESS
+
+---
+
+## Iteration 499 — formatBriefTimestamp from Sourcemap
+
+_Date: 2026-04-07 | Source: claude-code-sourcemap-main_
+
+### Summary
+Created `formatBriefTimestamp.ts` — context-sensitive timestamp formatter ported from sourcemap, adapted for browser (`navigator.language` instead of `process.env`). Applied to Message.tsx to replace 12-line inline timestamp IIFE with a single `formatBriefTimestamp(msgTimestamp)` call. Timestamps now show: same-day → HH:mm, within-week → weekday + time, older → weekday + date + time.
+
+### Files Changed
+- `formatBriefTimestamp.ts` — New utility
+- `Message.tsx` — Replaced inline timestamp logic
+
+### Build
+Status: SUCCESS
+
+---
+
+## Iteration 500 — objectGroupBy + escapeRegExp Application
+
+_Date: 2026-04-07 | Source: claude-code-sourcemap-main_
+
+### Summary
+(1) Created `objectGroupBy.ts` — polyfill for `Object.groupBy` (ES2024) grouping iterables by computed key. (2) Applied `escapeRegExp` from stringUtils to replace inline `/[.*+?^${}()|[\]\\]/g` regex escape in `HighlightText.tsx` and `memoryConstants.ts` — both now import the shared utility.
+
+### Files Changed
+- `objectGroupBy.ts` — New utility
+- `HighlightText.tsx` — Replaced inline regex escape
+- `memoryConstants.ts` — Replaced inline regex escape
+
+### Build
+Status: SUCCESS
+
+---
+
+## Iteration 501 — sequential from Sourcemap
+
+_Date: 2026-04-07 | Source: claude-code-sourcemap-main_
+
+### Summary
+Created `sequential.ts` — async execution wrapper porting sourcemap's `sequential.ts`. Wraps an async function so concurrent calls execute one-at-a-time in arrival order, each caller getting their own result. Useful for protecting IPC calls, writes, or any operation that would conflict if concurrent.
+
+### Files Changed
+- `sequential.ts` — New utility
+
+### Build
+Status: SUCCESS
+
+---
+
+## Iteration 502 — hashUtils from Sourcemap + sessionUtils Refactor
+
+_Date: 2026-04-07 | Source: claude-code-sourcemap-main_
+
+### Summary
+(1) Created `hashUtils.ts` — djb2 string hash + `hashIndex` for stable non-cryptographic string→number mapping, ported from sourcemap hash.ts. (2) Refactored `sessionUtils.ts`: removed inline djb2 hash implementation in favour of `hashIndex` from hashUtils; replaced inline `capitalize` call with `capitalize` from stringUtils. sessionUtils is now leaner and delegates to shared utilities.
+
+### Files Changed
+- `hashUtils.ts` — New utility (djb2Hash + hashIndex)
+- `sessionUtils.ts` — Replaced inline djb2 with hashIndex, capitalize with stringUtils
+
+### Build
+Status: SUCCESS
+
+---
+
+## Iteration 503 — withResolvers Polyfill + sequential Refactor
+
+_Date: 2026-04-07 | Source: claude-code-sourcemap-main_
+
+### Summary
+(1) Created `withResolvers.ts` — polyfill for `Promise.withResolvers()` (ES2024/Node 22+), ported from sourcemap. Returns `{ promise, resolve, reject }` for deferred promise patterns. (2) Applied to `sequential.ts`: replaced `new Promise((resolve, reject) => { queue.push(...) })` with the cleaner `withResolvers<R>()` destructuring pattern.
+
+### Files Changed
+- `withResolvers.ts` — New utility
+- `sequential.ts` — Refactored to use withResolvers
+
+### Build
+Status: SUCCESS
