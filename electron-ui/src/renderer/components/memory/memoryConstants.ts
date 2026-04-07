@@ -66,7 +66,7 @@ export function fuzzyScore(text: string, query: string): number {
   // Exact substring match gets highest base score
   if (textLower.includes(queryLower)) {
     // Bonus for match at start of word boundary
-    const wordBoundaryIdx = textLower.search(new RegExp(`\\b${queryLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`))
+    const wordBoundaryIdx = textLower.search(new RegExp(`\\b${escapeRegExp(queryLower)}`))
     if (wordBoundaryIdx === 0) return 100  // starts with query
     if (wordBoundaryIdx > 0) return 90     // word-boundary match
     return 80                               // substring match
