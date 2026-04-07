@@ -3,6 +3,12 @@ import { useChatStore, usePrefsStore } from '../store'
 import { StandardChatMessage } from '../types/app.types'
 
 /**
+ * Module-level ref so useSpeculation can read the latest suggestion
+ * without prop drilling through ChatPanel → ChatInput → back up.
+ */
+export const latestSuggestionRef = { current: null as string | null }
+
+/**
  * Hook that generates AI-predicted follow-up suggestions after each assistant response.
  * Returns ghost text to display in the chat input as a faded placeholder.
  *
@@ -70,6 +76,7 @@ export function usePromptSuggestion(input: string, isStreaming: boolean) {
       lifecycleRef.current.dismissed = true
     }
     setSuggestion(null)
+    latestSuggestionRef.current = null
     abortRef.current = true
   }, [])
 
@@ -133,6 +140,7 @@ export function usePromptSuggestion(input: string, isStreaming: boolean) {
             // Keep log bounded to last 50 events
             if (suggestionLog.length > 50) suggestionLog.shift()
             setSuggestion(result)
+            latestSuggestionRef.current = result
           }
         }
       } catch {

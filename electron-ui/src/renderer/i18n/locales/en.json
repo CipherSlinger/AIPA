@@ -566,6 +566,8 @@
     "systemPresenceHint": "Inject current date, time, working directory, and user name into every conversation so Claude is aware of your context",
     "promptSuggestions": "Prompt Suggestions",
     "promptSuggestionsHint": "Show AI-predicted follow-up suggestions after each response (ghost text in input field, Tab to accept)",
+    "speculation": "Speculative Execution",
+    "speculationHint": "Pre-execute the predicted next prompt in an isolated sandbox — accept to inject the result, reject to discard. Requires Prompt Suggestions to be on.",
     "save": "Save Settings",
     "saved": "Saved",
     "unlimited": "Unlimited",

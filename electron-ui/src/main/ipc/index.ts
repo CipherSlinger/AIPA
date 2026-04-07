@@ -2,6 +2,7 @@ import { ipcMain, BrowserWindow, shell, app } from 'electron'
 import { ptyManager } from '../pty/pty-manager'
 import { fallbackShellManager } from '../pty/fallback-shell'
 import { streamBridgeManager } from '../pty/stream-bridge'
+import { speculationManager, isSafeToSpeculate } from '../pty/speculation-bridge'
 import { readSettings, writeSettings, listSessions, loadSession, deleteSession, forkSession, renameSession, getMcpServers, setMcpServerEnabled, generateSessionTitle, generatePromptSuggestion, generateAwaySummary, rewindSession, searchSessions, detectTurnInterruption } from '../sessions/session-reader'
 import { getApiKey, setApiKey, getPref, setPref, getAllPrefs, resetAllPrefs } from '../config/config-manager'
 import { getCliPath } from '../utils/cli-path'
@@ -57,6 +58,7 @@ export function registerAllHandlers(win: BrowserWindow): void {
     registerProviderHandlers(win, send)
     registerDiagnosticsHandlers()
     registerBackupHandlers()
+    registerSpeculationHandlers()
     log.info('All IPC handlers registered successfully')
   } catch (err) {
     log.error('Failed to register some IPC handlers:', String(err))
@@ -412,5 +414,64 @@ function registerShellHandlers(): void {
     } catch {
       return null
     }
+  })
+}
+
+// ----------------------------------------
+// Speculation handlers (Iteration 489)
+// ----------------------------------------
+function registerSpeculationHandlers(): void {
+  // Check if a prompt is safe to speculate on
+  safeHandle('speculation:isSafe', (_e, { prompt }: { prompt: string }) => {
+    return isSafeToSpeculate(prompt)
+  })
+
+  // Start a speculation turn — resolves with SpeculationResult when done
+  safeHandle('speculation:run', async (
+    _e,
+    { id, prompt, cwd, model, env }: {
+      id: string
+      prompt: string
+      cwd: string
+      model: string
+      env: Record<string, string>
+    }
+  ) => {
+    if (!isSafeToSpeculate(prompt)) {
+      return { id, error: 'unsafe_prompt' }
+    }
+    // Abort any previous speculation with the same id
+    speculationManager.abort(id)
+    const bridge = speculationManager.create(id)
+    try {
+      const result = await bridge.run(prompt, cwd, model, env || {})
+      speculationManager.remove(id)
+      return result
+    } catch (err) {
+      speculationManager.remove(id)
+      log.warn('Speculation run error:', String(err))
+      return { id, error: String(err) }
+    }
+  })
+
+  // Accept: merge overlay files back to real cwd
+  safeHandle('speculation:accept', (_e, { id, cwd }: { id: string; cwd: string }) => {
+    const bridge = speculationManager.get(id)
+    if (!bridge) return { merged: [] }
+    const merged = bridge.mergeToReal(cwd)
+    speculationManager.remove(id)
+    return { merged }
+  })
+
+  // Reject: discard overlay
+  safeHandle('speculation:reject', (_e, { id }: { id: string }) => {
+    speculationManager.abort(id)
+    return { ok: true }
+  })
+
+  // Abort a running speculation
+  safeHandle('speculation:abort', (_e, { id }: { id: string }) => {
+    speculationManager.abort(id)
+    return { ok: true }
   })
 }

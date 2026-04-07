@@ -487,6 +487,12 @@ export default function SettingsGeneral({
         )}
 
         {row(
+          t('settings.speculation'),
+          <Toggle value={local.speculationEnabled === true} onChange={(v) => updateLocal({ speculationEnabled: v })} />,
+          t('settings.speculationHint')
+        )}
+
+        {row(
           t('idle.dialogEnabled'),
           <Toggle value={local.idleReturnDialogEnabled !== false} onChange={(v) => updateLocal({ idleReturnDialogEnabled: v })} />,
           t('idle.dialogEnabledHint')

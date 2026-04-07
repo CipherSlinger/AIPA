@@ -85,6 +85,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 - **Remember This** — one-click save any response from the hover toolbar
 - **Contextual Tips** — smart feature discovery tips on the Welcome Screen, personalized to your usage patterns
 - **Prompt Suggestions** — AI-predicted follow-up suggestions after each response, shown as ghost text in the input field (Tab to accept)
+- **Speculative Execution** — pre-executes the predicted next prompt in an isolated sandbox; shows a collapsible preview card with response content, tool actions, and changed files; accept to inject the result into the conversation, reject to silently discard — the main session is never touched (opt-in in Settings)
 - **Thinking Depth** — low/medium/high effort levels controlling AI thinking investment
 - **Per-Model Cost Breakdown** — click cost in StatusBar to see token usage and cost breakdown by model
 

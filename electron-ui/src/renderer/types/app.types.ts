@@ -126,6 +126,7 @@ export interface ClaudePrefs {
   advisorModel?: string          // secondary model for background tasks (compaction, auto-memory, away summary) — Iteration 488
   autoMemoryEnabled?: boolean    // auto-extract memories from conversations (default false)
   promptSuggestionsEnabled?: boolean  // show AI-predicted follow-up suggestions after each response (default true)
+  speculationEnabled?: boolean        // pre-execute prompt suggestion in sandbox, accept/reject (default false, opt-in)
   tipHistory?: Record<string, number>  // tipId -> last shown timestamp (for contextual tips)
   idleReturnDialogEnabled?: boolean    // show dialog when returning after idle period (default true)
   effortLevel?: 'low' | 'medium' | 'high'  // AI effort level: low (fast/cheap), medium (balanced), high (thorough) — default medium
