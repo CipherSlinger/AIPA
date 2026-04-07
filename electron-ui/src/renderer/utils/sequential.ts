@@ -1,6 +1,7 @@
 // sequential — Sequential async execution wrapper (Iteration 501)
 // Ported from Claude Code sourcemap: src/utils/sequential.ts
 // Ensures concurrent calls to an async function run one at a time in order.
+// Updated (Iteration 503): use withResolvers for deferred promise pattern.
 
 /**
  * Wraps an async function so concurrent calls are executed sequentially
@@ -16,6 +17,8 @@
  * void safeSave(a)  // starts immediately
  * void safeSave(b)  // waits for a to finish
  */
+import { withResolvers } from './withResolvers'
+
 export function sequential<T extends unknown[], R>(
   fn: (...args: T) => Promise<R>,
 ): (...args: T) => Promise<R> {
@@ -49,9 +52,9 @@ export function sequential<T extends unknown[], R>(
   }
 
   return function (this: unknown, ...args: T): Promise<R> {
-    return new Promise((resolve, reject) => {
-      queue.push({ args, resolve, reject, context: this })
-      void processQueue()
-    })
+    const { promise, resolve, reject } = withResolvers<R>()
+    queue.push({ args, resolve, reject, context: this })
+    void processQueue()
+    return promise
   }
 }
