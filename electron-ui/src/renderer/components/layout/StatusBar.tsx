@@ -10,6 +10,7 @@ import { useT } from '../../i18n'
 import { Separator, formatDuration, fmtNumber } from './statusBarConstants'
 import { useFocusTimer, useStopwatch, FOCUS_PRESETS } from './useStatusBarTimers'
 import { useStreamingSpeed } from './useStreamingSpeed'
+import { useMemoryUsage } from '../../hooks/useMemoryUsage'
 import StatusBarModelPicker from './StatusBarModelPicker'
 import StatusBarPersonaPicker from './StatusBarPersonaPicker'
 
@@ -57,6 +58,7 @@ export default function StatusBar() {
   const streamingSpeed = useStreamingSpeed()
   const focusTimer = useFocusTimer()
   const stopwatch = useStopwatch()
+  const memoryUsage = useMemoryUsage()
 
   // Derived values
   const dirLabel = workingDir || prefs.workingDir || '~'
@@ -524,6 +526,20 @@ export default function StatusBar() {
           </span>
         )}
 
+        {/* Memory usage warning (Iteration 491) — only shown when >= 1.5GB */}
+        {memoryUsage && (
+          <span
+            title={`Memory: ${(memoryUsage.heapUsed / 1024 / 1024).toFixed(0)} MB — ${memoryUsage.status === 'critical' ? 'Critical' : 'High'}`}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 3, fontSize: 10,
+              color: memoryUsage.status === 'critical' ? '#f87171' : '#fbbf24',
+              fontWeight: 600,
+            }}
+          >
+            <span style={{ fontSize: 9 }}>RAM</span>
+            {(memoryUsage.heapUsed / 1024 / 1024).toFixed(0)}MB
+          </span>
+        )}
         {/* Settings gear */}
         <button
           onClick={() => useUiStore.getState().openSettingsModal()}

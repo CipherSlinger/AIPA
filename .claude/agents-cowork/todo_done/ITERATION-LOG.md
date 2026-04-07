@@ -4925,3 +4925,31 @@ Status: SUCCESS (tsc main/preload: 0 errors, vite build: 9.84s)
 - [x] ShortcutCheatsheet shows Ctrl+1-8 for sidebar tabs
 
 [RETRO] retro-2026-04-03-iterations-461-470.md completed, covering Iterations 461-470. Next forced retro after Iteration 480.
+
+---
+
+## Iteration 490 — Prompt Keyword Detection (Keep-Going Banner + Negative Hint)
+
+_Date: 2026-04-07 | Source: claude-code-sourcemap-main/userPromptKeywords.ts_
+
+### Summary
+Ported prompt keyword detection from Claude Code sourcemap. (1) `usePromptKeywords.ts` implements `matchesKeepGoingKeyword()` (detects "continue/继续/keep going/go on") and `matchesNegativeKeyword()` (detects frustration phrases). (2) ChatInput shows a keep-going banner with one-click Continue button when user types a continuation signal. (3) Friendly info toast on frustration keyword detection. Also fixed 3 pre-existing build-breaking bugs: duplicate code block in `useMemoryCrud.ts`, JSDoc `*/N` patterns in `cronScheduler.ts` misinterpreted by esbuild, and invalid embedded quotes in `zh-CN.json`.
+
+### Files Changed
+- `usePromptKeywords.ts` — New hook with keyword detection utilities
+- `ChatInput.tsx` — Keep-going banner + negative hint toast integration
+- `en.json` / `zh-CN.json` — New i18n keys: input.keepGoingHint/keepGoingSend/negativeHint
+- `useMemoryCrud.ts` — Removed duplicate orphaned code (lines 170-303)
+- `cronScheduler.ts` — Fixed JSDoc comments with */N patterns
+- `zh-CN.json` — Fixed embedded quote chars in JSON strings
+
+### Build
+Status: SUCCESS (tsc main/preload: 0 errors, vite build: 10.44s)
+
+### Acceptance Criteria
+- [x] matchesKeepGoingKeyword("continue") → true; ("keep going") → true; ("继续") → true
+- [x] matchesNegativeKeyword("this doesn't work") → true; ("broken") → true
+- [x] Keep-going banner appears when input matches and AI is not streaming
+- [x] Clicking Continue button sends the message
+- [x] Negative hint toast shows once per frustration event (throttled via ref)
+- [x] Build: 0 errors (3 pre-existing bugs fixed)
