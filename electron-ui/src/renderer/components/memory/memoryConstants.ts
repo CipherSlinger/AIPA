@@ -10,6 +10,7 @@ import {
   Link,
 } from 'lucide-react'
 import { MemoryCategory, MemoryType } from '../../types/app.types'
+import { escapeRegExp } from '../../utils/stringUtils'
 
 export const CATEGORY_CONFIG: Record<MemoryCategory, { icon: React.ReactNode; color: string; labelKey: string }> = {
   preference: { icon: React.createElement(Star, { size: 12 }), color: '#f59e0b', labelKey: 'memory.catPreference' },
@@ -118,7 +119,7 @@ export function suggestCategory(content: string): MemoryCategory {
 export function highlightText(text: string, query: string): React.ReactNode {
   if (!query.trim()) return text
   try {
-    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const escaped = escapeRegExp(query)
     const regex = new RegExp(`(${escaped})`, 'gi')
     const parts = text.split(regex)
     return parts.map((part, i) =>

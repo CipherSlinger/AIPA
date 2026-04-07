@@ -5025,3 +5025,51 @@ _Date: 2026-04-07 | Source: claude-code-sourcemap-main_
 
 ### Build
 Status: SUCCESS
+
+---
+
+## Iteration 496 — CharWordCounter Token Estimate
+
+_Date: 2026-04-07 | Source: claude-code-sourcemap-main roughTokenCountEstimation_
+
+### Summary
+Added `~token estimate` to CharWordCounter display. Uses `Math.round(content.length / 4)` formula from sourcemap's `roughTokenCountEstimation` (4 bytes per token heuristic). Counter now shows: `{words} words | {chars} chars | ~{tokens} tokens`. Added `chat.tokens` i18n key.
+
+### Files Changed
+- `CharWordCounter.tsx` — Token estimate display
+- `en.json` / `zh-CN.json` — chat.tokens key
+
+### Build
+Status: SUCCESS
+
+---
+
+## Iteration 497 — stringUtils + useTimeout + CJK IME Normalization
+
+_Date: 2026-04-07 | Source: claude-code-sourcemap-main_
+
+### Summary
+(1) Created `stringUtils.ts` with `escapeRegExp`, `capitalize`, `plural`, `firstLineOf`, `countCharInString`, `normalizeFullWidthDigits`, `normalizeFullWidthSpace`, `truncateToLines` — ported from sourcemap stringUtils.ts. (2) Created `useTimeout` hook — returns true after N ms, useful for anti-flash delayed rendering. (3) Applied `normalizeFullWidthDigits` + `normalizeFullWidthSpace` to ChatInput `handleInputChange` — CJK IME users' full-width characters now auto-normalize to ASCII equivalents.
+
+### Files Changed
+- `stringUtils.ts` — New utility
+- `useTimeout.ts` — New hook
+- `ChatInput.tsx` — CJK normalization in handleInputChange
+
+### Build
+Status: SUCCESS
+
+---
+
+## Iteration 498 — setUtils from Sourcemap
+
+_Date: 2026-04-07 | Source: claude-code-sourcemap-main_
+
+### Summary
+Created `setUtils.ts` with `difference`, `intersects`, `every`, `union` — hot-path optimized Set operations ported from sourcemap set.ts. Available for use throughout the renderer (pendingToolUses tracking, search filtering, etc.).
+
+### Files Changed
+- `setUtils.ts` — New utility (difference/intersects/every/union)
+
+### Build
+Status: SUCCESS
