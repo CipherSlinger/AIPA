@@ -6,3 +6,5 @@
 - [Iteration 461+ Product Direction](project_iteration461_direction.md) -- 3 PRDs for personal assistant pivot: clipboard actions, scheduled tasks, rich content preview
 - [Iteration 462+ Product Direction](project_iteration462_direction.md) -- 3 PRDs for interaction depth: actionable responses, input efficiency, project workspaces
 - [Iteration 512+ Product Direction](project_iteration512_direction.md) -- 2 PRDs for cockpit differentiation: conversation tabs, actionable code blocks. React #185 crash in TasksPanel still recurring.
+- [Superpower Phase 1-2 PRDs](project_superpower_phase1_2.md) -- 4 PRDs for CLI integration: effort control, token usage, compact, plan mode. Serial execution required. User feedback for agents/workflow UX pending.
+- [Superpower Phase 2.3-2.6 PRDs](project_superpower_phase2_prds.md) -- 3 PRDs: permissions UI, hooks UI, diff/changes view. Permissions→Hooks serial, Diff parallel.

@@ -587,9 +587,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const closingTab = state.tabs[tabIdx]
     const isActive = state.activeTabId === tabId
 
-    // If the closing tab is streaming, abort first
-    if (isActive && state.isStreaming && closingTab.sessionId) {
-      window.electronAPI?.cliAbort?.(closingTab.sessionId)
+    // If the closing tab is streaming, dispatch abort event
+    // (useStreamJson hook will handle the actual abort via bridge ID)
+    if (isActive && state.isStreaming) {
+      window.dispatchEvent(new CustomEvent('aipa:abortStream'))
     }
 
     const remainingTabs = state.tabs.filter(t => t.id !== tabId)

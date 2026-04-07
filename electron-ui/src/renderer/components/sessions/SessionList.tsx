@@ -4,7 +4,7 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { MessageSquare, Globe } from 'lucide-react'
 import { SessionListItem } from '../../types/app.types'
-import { usePrefsStore, useSessionStore, useUiStore } from '../../store'
+import { usePrefsStore, useSessionStore, useUiStore, useChatStore } from '../../store'
 import { SkeletonSessionRow } from '../ui/Skeleton'
 import { useT } from '../../i18n'
 import { TAG_PRESETS, getDateGroup, generateAutoTags, SESSION_COLOR_LABELS } from './sessionUtils'
@@ -93,6 +93,31 @@ export default function SessionList() {
 
   // Pinned sessions (extracted hook, Iteration 455)
   const { pinnedIds, togglePin } = usePinnedSessions()
+
+  // Open session in new tab — middle-click handler (Iteration 515)
+  const addToast = useUiStore(s => s.addToast)
+  const handleOpenInNewTab = useCallback(async (session: SessionListItem) => {
+    const store = useChatStore.getState()
+    // Check if already open in a tab
+    const existingTabId = store.findTabBySessionId(session.sessionId)
+    if (existingTabId) {
+      store.switchTab(existingTabId)
+      return
+    }
+    if (store.tabs.length >= 8) {
+      addToast('warning', t('tabs.maxReached'))
+      return
+    }
+    try {
+      const raw = await window.electronAPI.sessionLoad(session.sessionId)
+      const { parseSessionMessages } = await import('./sessionUtils')
+      const chatMessages = parseSessionMessages(raw)
+      const title = session.title || session.lastPrompt || t('session.untitledSession')
+      store.openTab(session.sessionId, title, chatMessages)
+    } catch {
+      addToast('error', t('session.loadFailed'))
+    }
+  }, [addToast, t])
 
   useEffect(() => { actions.loadSessions() }, [])
 
@@ -405,6 +430,7 @@ export default function SessionList() {
                 sessionTags={sessionTags}
                 tagNames={tagNames}
                 onOpen={actions.openSession}
+                onOpenInNewTab={handleOpenInNewTab}
                 onToggleSelect={actions.toggleSelectId}
                 onTogglePin={togglePin}
                 onOpenTagPicker={openTagPicker}

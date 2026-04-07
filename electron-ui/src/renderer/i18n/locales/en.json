@@ -432,6 +432,7 @@
     "duplicate": "Duplicate session",
     "duplicated": "Session duplicated",
     "duplicateFailed": "Failed to duplicate session",
+    "loadFailed": "Failed to load session",
     "copy": "Copy",
     "regenerateTitle": "Regenerate title",
     "titleRegenerated": "Title regenerated",

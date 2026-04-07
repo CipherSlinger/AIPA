@@ -196,6 +196,26 @@ export function useAppShortcuts(
           window.dispatchEvent(new CustomEvent('aipa:openSession', { detail: target.sessionId }))
         }
       }
+      // Ctrl+Tab / Ctrl+Shift+Tab: Switch between tabs (Iteration 515)
+      if (e.ctrlKey && e.key === 'Tab') {
+        e.preventDefault()
+        const chatState = useChatStore.getState()
+        if (chatState.tabs.length >= 2) {
+          if (e.shiftKey) {
+            chatState.prevTab()
+          } else {
+            chatState.nextTab()
+          }
+        }
+      }
+      // Ctrl+W: Close current tab (Iteration 515)
+      if (e.ctrlKey && !e.shiftKey && e.key === 'w') {
+        e.preventDefault()
+        const chatState = useChatStore.getState()
+        if (chatState.tabs.length >= 2 && chatState.activeTabId) {
+          chatState.closeTab(chatState.activeTabId)
+        }
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)

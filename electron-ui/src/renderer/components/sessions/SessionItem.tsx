@@ -23,6 +23,7 @@ interface SessionItemProps {
   sessionTags: Record<string, string[]>
   tagNames: string[]
   onOpen: (session: SessionListItem) => void
+  onOpenInNewTab?: (session: SessionListItem) => void  // Iteration 515: middle-click opens in new tab
   onToggleSelect: (sessionId: string) => void
   onTogglePin: (e: React.MouseEvent, sessionId: string) => void
   onOpenTagPicker: (e: React.MouseEvent, sessionId: string) => void
@@ -61,6 +62,7 @@ export default function SessionItem({
   sessionTags,
   tagNames,
   onOpen,
+  onOpenInNewTab,
   onToggleSelect,
   onTogglePin,
   onOpenTagPicker,
@@ -95,6 +97,13 @@ export default function SessionItem({
           if (!isSelectDisabled) onToggleSelect(session.sessionId)
         } else {
           onOpen(session)
+        }
+      }}
+      onAuxClick={(e) => {
+        // Middle-click opens in new tab (Iteration 515)
+        if (e.button === 1 && onOpenInNewTab && !selectMode) {
+          e.preventDefault()
+          onOpenInNewTab(session)
         }
       }}
       className="session-item"

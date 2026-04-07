@@ -584,9 +584,22 @@ Keep exercises focused and achievable. The goal is active learning through doing
       )
     })
 
+    // Listen for tab-close abort event (Iteration 515)
+    const handleAbortStream = () => {
+      const sid = activeBridgeIdRef.current
+      if (sid) {
+        window.electronAPI.cliAbort(sid)
+        activeBridgeIdRef.current = null
+      }
+      useChatStore.getState().denyPendingPermissions()
+      stopStreamingAndReleaseSleep()
+    }
+    window.addEventListener('aipa:abortStream', handleAbortStream)
+
     return () => {
       unsub()
       unsubFailover()
+      window.removeEventListener('aipa:abortStream', handleAbortStream)
     }
   }, [])
 

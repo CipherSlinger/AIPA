@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { Upload, AlertTriangle, StickyNote, X, Check } from 'lucide-react'
-import { useChatStore, usePrefsStore, useUiStore } from '../../store'
+import { useChatStore, usePrefsStore, useUiStore, getTabScrollTop } from '../../store'
 import { StandardChatMessage, Note, NoteCategory } from '../../types/app.types'
 import { useStreamJson } from '../../hooks/useStreamJson'
 import { useStreamingTimer } from '../../hooks/useStreamingTimer'
@@ -28,6 +28,7 @@ import PinnedNoteStrip from './PinnedNoteStrip'
 import RegenerateButton from './RegenerateButton'
 import CompareView from './CompareView'
 import SpeculationCard from './SpeculationCard'
+import TabBar from './TabBar'
 import { getTemplateById } from '../../utils/promptTemplates'
 import { useT } from '../../i18n'
 import { useIdleReturn } from '../../hooks/useIdleReturn'
@@ -52,6 +53,18 @@ export default function ChatPanel() {
   const prepareRegeneration = useChatStore(s => s.prepareRegeneration)
   const lastContextUsage = useChatStore(s => s.lastContextUsage)
   const totalSessionCost = useChatStore(s => s.totalSessionCost)
+  // Tab state (Iteration 515)
+  const activeTabId = useChatStore(s => s.activeTabId)
+  const setTabScrollTop = useChatStore(s => s.setTabScrollTop)
+  const tabCount = useChatStore(s => s.tabs.length)
+
+  // Keep the active tab title in sync with session title changes
+  const updateTabTitle = useChatStore(s => s.updateTabTitle)
+  useEffect(() => {
+    if (activeTabId && currentSessionTitle) {
+      updateTabTitle(activeTabId, currentSessionTitle)
+    }
+  }, [activeTabId, currentSessionTitle, updateTabTitle])
 
   const { sendMessage, abort, respondPermission, grantToolPermission, newConversation } = useStreamJson()
 
@@ -250,6 +263,9 @@ export default function ChatPanel() {
           </div>
         </div>
       )}
+
+      {/* Tab Bar (Iteration 515) — only visible with 2+ tabs */}
+      <TabBar />
 
       {/* Chat Header */}
       <ChatHeader
