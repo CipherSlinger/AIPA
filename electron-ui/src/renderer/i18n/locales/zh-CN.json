@@ -1613,16 +1613,25 @@
     "pinnedOff": "窗口已取消置顶"
   },
   "effort": {
+    "auto": "自动",
     "low": "低",
     "medium": "中",
     "high": "高",
+    "max": "最大",
+    "autoHint": "由 CLI 自动决定最佳推理深度",
+    "lowHint": "快速简洁回答",
     "lowDesc": "快速经济",
+    "mediumHint": "速度与深度兼顾",
     "mediumDesc": "均衡模式",
+    "highHint": "详细推理的深入分析",
     "highDesc": "深度思考",
+    "maxHint": "最深层推理，最全面的分析",
     "title": "思考深度: {{level}}（点击切换）",
     "switched": "思考深度已切换: {{level}}",
     "settingsLabel": "AI 思考深度",
-    "settingsHint": "低 = 快速/经济回复，中 = 均衡模式，高 = 深入/仔细推理",
+    "settingsHint": "控制 AI 推理深度。自动让 CLI 自行决定；低 = 快速，最大 = 最深度分析",
+    "pickerTitle": "思考深度",
+    "pickerHint": "控制 AI 推理深度",
     "preventSleep": "流式输出时阻止休眠",
     "preventSleepHint": "AI 生成回复时保持系统唤醒状态"
   },
@@ -1830,5 +1839,11 @@
     "typeFeedback": "反馈",
     "typeProject": "项目",
     "typeReference": "参考"
+  },
+  "tabs": {
+    "close": "关闭标签页",
+    "maxReached": "最多允许 8 个标签页。请先关闭一个现有标签页。",
+    "newTab": "新标签页",
+    "closeOthers": "关闭其他标签页"
   }
 }

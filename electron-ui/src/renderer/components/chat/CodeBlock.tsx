@@ -329,7 +329,7 @@ export default function CodeBlockWithHeader({
   const isPreviewable = PREVIEWABLE_LANGS.has(langName.toLowerCase())
   const isShellLang = SHELL_LANGS.has(langName.toLowerCase())
   const addToast = useUiStore(s => s.addToast)
-  const workingDir = usePrefsStore(s => s.prefs.workingFolder)
+  const workingDir = usePrefsStore(s => s.prefs.workingDir)
 
   const handleRunConfirm = useCallback(async () => {
     setShowRunConfirm(false)

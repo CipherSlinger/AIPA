@@ -150,16 +150,9 @@ Keep exercises focused and achievable. The goal is active learning through doing
       }
     }
 
-    // Inject effort level modifier
-    if (prefs.effortLevel && prefs.effortLevel !== 'medium') {
-      const effortInstructions: Record<string, string> = {
-        low: 'Respond quickly and concisely. Skip lengthy reasoning, examples, and caveats. Prioritize speed over thoroughness.',
-        high: 'Think carefully and be thorough. Consider edge cases, provide detailed reasoning, and ensure accuracy over speed.',
-      }
-      const effortInstruction = effortInstructions[prefs.effortLevel]
-      if (effortInstruction) {
-        systemPromptParts.push(`<effort_level>\n${effortInstruction}\n</effort_level>`)
-      }
+    // Inject effort level via CLI --effort flag (replaces system prompt hack)
+    if (prefs.effortLevel && prefs.effortLevel !== 'auto') {
+      flags.push('--effort', prefs.effortLevel)
     }
 
     // Inject persistent memories as context

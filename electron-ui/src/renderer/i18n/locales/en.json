@@ -1595,16 +1595,25 @@
     "pinnedOff": "Window unpinned"
   },
   "effort": {
+    "auto": "Auto",
     "low": "Low",
     "medium": "Medium",
     "high": "High",
+    "max": "Max",
+    "autoHint": "Let CLI decide the best effort level",
+    "lowHint": "Quick and concise responses",
     "lowDesc": "Fast & cheap",
+    "mediumHint": "Balanced speed and depth",
     "mediumDesc": "Balanced",
+    "highHint": "Thorough analysis with detailed reasoning",
     "highDesc": "Thorough",
+    "maxHint": "Deepest reasoning, most thorough analysis",
     "title": "Effort: {{level}} (click to cycle)",
     "switched": "Effort level: {{level}}",
     "settingsLabel": "AI Effort Level",
-    "settingsHint": "Low = fast/cheap responses, Medium = balanced, High = thorough/careful reasoning",
+    "settingsHint": "Controls AI reasoning depth. Auto lets the CLI decide; Low = fast, Max = deepest analysis",
+    "pickerTitle": "Effort Level",
+    "pickerHint": "Controls AI reasoning depth",
     "preventSleep": "Prevent Sleep While Streaming",
     "preventSleepHint": "Keep the system awake while the AI is generating a response"
   },
@@ -1812,5 +1821,11 @@
     "typeFeedback": "feedback",
     "typeProject": "project",
     "typeReference": "reference"
+  },
+  "tabs": {
+    "close": "Close tab",
+    "maxReached": "Maximum 8 tabs allowed. Close an existing tab first.",
+    "newTab": "New tab",
+    "closeOthers": "Close other tabs"
   }
 }

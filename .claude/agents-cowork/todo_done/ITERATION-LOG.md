@@ -5358,3 +5358,46 @@ Status: SUCCESS (0 TypeScript errors, tsc --noEmit clean, 2588 modules)
 - [x] All existing workflow functionality preserved
 
 ---
+
+## Iteration 516 -- Effort Level Control (CLI --effort flag)
+
+_Date: 2026-04-07 | Sprint: Feature (PRD-effort-control-v1)_
+
+### Summary
+Replaced the system prompt effort hack with native CLI `--effort` flag injection. Expanded effort levels from 3 (low/medium/high) to 5 (auto/low/medium/high/max) with 'auto' as the new default. Created a new EffortPicker dropdown component in InputToolbar replacing the old cycle button. StatusBar effort indicator updated to display-only mode (no click cycling) with 5-level color coding. Added `--effort` to the CLI flag whitelist in `validate.ts`. Also fixed 2 pre-existing TypeScript errors from Iteration 514-515 (CodeBlock.tsx `workingFolder` typo, chatStore.ts `cliAbort` missing argument).
+
+### Files Changed
+- `src/renderer/components/chat/EffortPicker.tsx` -- NEW: 170 lines, dropdown picker with 5 effort levels, color-coded dots, keyboard nav, outside-click dismiss
+- `src/renderer/components/chat/InputToolbar.tsx` -- Replaced 40-line effort cycle button IIFE with single `<EffortPicker />` component import (340->302 lines)
+- `src/renderer/hooks/useStreamJson.ts` -- Removed 10-line effortInstructions system prompt hack, replaced with 3-line `--effort` CLI flag injection (601->594 lines)
+- `src/renderer/store/index.ts` -- Default effortLevel changed from 'medium' to 'auto'
+- `src/renderer/types/app.types.ts` -- ClaudePrefs.effortLevel expanded to 'auto'|'low'|'medium'|'high'|'max'
+- `src/renderer/components/layout/StatusBar.tsx` -- Effort display updated: 5-level colors (blue/green/yellow/orange/red), read-only span replacing clickable button, hidden when 'auto' (556->547 lines)
+- `src/renderer/components/settings/SettingsGeneral.tsx` -- Effort settings dropdown: 5 options with hint text, default 'auto'
+- `src/main/utils/validate.ts` -- Added '--effort' to KNOWN_FLAGS whitelist
+- `src/renderer/i18n/locales/en.json` -- Added 6 new keys: effort.auto, effort.max, effort.autoHint, effort.lowHint, effort.mediumHint, effort.highHint, effort.maxHint, effort.pickerTitle, effort.pickerHint
+- `src/renderer/i18n/locales/zh-CN.json` -- Chinese translations for all 9 new effort keys
+- `src/renderer/components/chat/CodeBlock.tsx` -- Fix: workingFolder -> workingDir (pre-existing Iter 514 typo)
+- `src/renderer/store/chatStore.ts` -- Fix: pass closingTab.sessionId to cliAbort() (pre-existing Iter 515 missing arg)
+
+### Build
+Status: SUCCESS (0 TypeScript errors, tsc --noEmit clean, 2590 modules)
+
+### Acceptance Criteria
+- [x] InputToolbar displays EffortPicker dropdown selector
+- [x] 5 effort levels supported: auto / low / medium / high / max
+- [x] Selection triggers toast notification with current level
+- [x] Selection persisted to prefsStore and electron-store
+- [x] CLI receives correct --effort flag (non-auto only)
+- [x] System prompt effort hack completely removed from useStreamJson.ts
+- [x] Auto mode sends no --effort flag (CLI default behavior)
+- [x] prefsStore default effort is 'auto'
+- [x] Settings page effort dropdown expanded to 5 options
+- [x] Old 'low'/'medium'/'high' values remain forward-compatible
+- [x] StatusBar displays 5-level effort with correct color coding
+- [x] StatusBar effort indicator is display-only (no click cycling)
+- [x] '--effort' added to validateFlags() whitelist
+- [x] Zero TypeScript errors (including 2 pre-existing fixes)
+- [x] Build succeeds
+
+---

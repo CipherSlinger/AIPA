@@ -122,17 +122,10 @@ export default function StatusBar() {
     return () => { clearTimeout(timeout); document.removeEventListener('mousedown', handler) }
   }, [focusTimer.showPresets])
 
-  // Effort level config
-  const effortLevel = prefs.effortLevel || 'medium'
-  const effortSymbols: Record<string, string> = { low: '\u25D4', medium: '\u25D1', high: '\u25D5' }
-  const effortColors: Record<string, string> = { low: '#4ade80', medium: '#fbbf24', high: '#f87171' }
-  const cycleEffort = () => {
-    const levels: Array<'low' | 'medium' | 'high'> = ['low', 'medium', 'high']
-    const next = levels[(levels.indexOf(effortLevel as any) + 1) % 3]
-    setPrefs({ effortLevel: next })
-    window.electronAPI.prefsSet('effortLevel', next)
-    useUiStore.getState().addToast('info', t('effort.switched', { level: t(`effort.${next}`) }))
-  }
+  // Effort level config (5 levels: auto/low/medium/high/max)
+  const effortLevel = prefs.effortLevel || 'auto'
+  const effortColors: Record<string, string> = { auto: '#60a5fa', low: '#4ade80', medium: '#fbbf24', high: '#fb923c', max: '#f87171' }
+  const effortAbbr: Record<string, string> = { auto: 'A', low: 'L', medium: 'M', high: 'H', max: 'X' }
 
   // Extended thinking toggle (Iteration 378)
   const thinkingEnabled = prefs.extendedThinking || false
@@ -468,22 +461,20 @@ export default function StatusBar() {
         {/* Model badge (clickable) */}
         <StatusBarModelPicker modelLabel={modelLabel} shortModel={shortModel} isClaudeModel={isClaudeModel} />
 
-        {/* Effort level indicator (click to cycle low → medium → high) */}
-        <button
-          onClick={cycleEffort}
-          title={t('effort.title', { level: t(`effort.${effortLevel}`) })}
-          style={{
-            background: 'none', border: 'none', color: effortColors[effortLevel],
-            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3,
-            padding: '0 2px', fontSize: 10, opacity: 0.9,
-            transition: 'color 0.2s',
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.9' }}
-        >
-          <Gauge size={10} />
-          <span style={{ fontFamily: 'system-ui', fontSize: 11 }}>{effortSymbols[effortLevel]}</span>
-        </button>
+        {/* Effort level indicator (display only, non-auto levels) */}
+        {effortLevel !== 'auto' && (
+          <span
+            title={t('effort.title', { level: t(`effort.${effortLevel}`) })}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 3,
+              color: effortColors[effortLevel] || '#fff',
+              fontSize: 10, opacity: 0.9,
+            }}
+          >
+            <Gauge size={10} />
+            <span style={{ fontWeight: 600, fontSize: 10 }}>{effortAbbr[effortLevel] || '?'}</span>
+          </span>
+        )}
 
         {/* Extended Thinking toggle (Iteration 378) */}
         <button

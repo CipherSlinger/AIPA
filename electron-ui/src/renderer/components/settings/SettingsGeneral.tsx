@@ -428,7 +428,7 @@ export default function SettingsGeneral({
         {field(
           t('effort.settingsLabel'),
           <select
-            value={local.effortLevel || 'medium'}
+            value={local.effortLevel || 'auto'}
             onChange={(e) => {
               updateLocal({ effortLevel: e.target.value })
               setPrefs({ effortLevel: e.target.value as any })
@@ -436,9 +436,11 @@ export default function SettingsGeneral({
             }}
             style={{ ...INPUT_STYLE }}
           >
-            <option value="low">{t('effort.low')} — {t('effort.lowDesc')}</option>
-            <option value="medium">{t('effort.medium')} — {t('effort.mediumDesc')}</option>
-            <option value="high">{t('effort.high')} — {t('effort.highDesc')}</option>
+            <option value="auto">{t('effort.auto')} — {t('effort.autoHint')}</option>
+            <option value="low">{t('effort.low')} — {t('effort.lowHint')}</option>
+            <option value="medium">{t('effort.medium')} — {t('effort.mediumHint')}</option>
+            <option value="high">{t('effort.high')} — {t('effort.highHint')}</option>
+            <option value="max">{t('effort.max')} — {t('effort.maxHint')}</option>
           </select>,
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('effort.settingsHint')}</span>
         )}
