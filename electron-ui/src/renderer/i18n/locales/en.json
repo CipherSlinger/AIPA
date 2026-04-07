@@ -339,7 +339,10 @@
     "multiLineOn": "Multi-line mode: Enter = new line, Ctrl+Enter = send",
     "multiLineOff": "Single-line mode: Enter = send, Shift+Enter = new line",
     "dropTextHere": "Drop text here",
-    "chars": "chars"
+    "chars": "chars",
+    "keepGoingHint": "Looks like you want to continue — send to resume?",
+    "keepGoingSend": "Continue",
+    "negativeHint": "Hang tight — let me know how I can help better!"
   },
   "voice": {
     "autoStopped": "Recording stopped automatically (2-minute limit reached)"

@@ -33,6 +33,7 @@ import { useChatInputKeyboard } from './useChatInputKeyboard'
 import { useT } from '../../i18n'
 import { estimateToolBreakdown } from '../../utils/tokenUtils'
 import { StandardChatMessage } from '../../types/app.types'
+import { matchesKeepGoingKeyword, matchesNegativeKeyword } from '../../hooks/usePromptKeywords'
 
 interface ChatInputProps {
   isStreaming: boolean
@@ -282,6 +283,24 @@ export default function ChatInput({
 
   const hasContent = !!input.trim() || attachments.length > 0 || fileAttachments.length > 0
 
+  // Keep-going detection (Iteration 490): detect "continue/继续/keep going" input
+  const isKeepGoing = !isStreaming && input.trim().length > 0 && matchesKeepGoingKeyword(input)
+
+  // Negative keyword detection (Iteration 490): show friendly toast once per frustration event
+  const negativeShownRef = React.useRef(false)
+  React.useEffect(() => {
+    if (!input.trim() || isStreaming) {
+      negativeShownRef.current = false
+      return
+    }
+    if (!negativeShownRef.current && matchesNegativeKeyword(input)) {
+      negativeShownRef.current = true
+      setTimeout(() => {
+        addToast('info', t('input.negativeHint'))
+      }, 800)
+    }
+  }, [input, isStreaming])
+
   return (
     <div style={{ padding: '8px 16px 12px', background: 'var(--input-bar-bg)', flexShrink: 0 }}>
       {/* Toolbar row */}
@@ -366,6 +385,18 @@ export default function ChatInput({
           />
           {/* Paste action chips + quote preview */}
           <ChatInputPasteChips paste={{ ...paste, onWrapAsBlock: input.length > 500 ? () => { setInput(prev => '```\n' + prev + '\n```'); paste.setPastedLongText(false) } : undefined }} inputLength={input.length} />
+          {/* Keep-going banner (Iteration 490) */}
+          {isKeepGoing && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 6px', marginBottom: 4, fontSize: 11, color: 'var(--accent)', background: 'rgba(0,122,204,0.07)', borderRadius: 6 }}>
+              <span style={{ flex: 1, opacity: 0.85 }}>{t('input.keepGoingHint')}</span>
+              <button
+                onClick={() => { handleSend() }}
+                style={{ padding: '2px 8px', fontSize: 11, fontWeight: 500, background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}
+              >
+                {t('input.keepGoingSend')}
+              </button>
+            </div>
+          )}
           {/* Popups */}
           {popups.atQuery !== null && <AtMentionPopup query={popups.atQuery} onSelect={popups.handleAtSelect} onDismiss={() => popups.setAtQuery(null)} anchorRef={inputWrapRef as React.RefObject<HTMLElement>} />}
           {popups.noteQuery !== null && <NotePopup query={popups.noteQuery} notes={popups.filteredNotes} categories={popups.noteCategories} selectedIndex={popups.noteIndex} onSelect={popups.handleNoteSelect} onDismiss={() => popups.setNoteQuery(null)} onHover={popups.setNoteIndex} />}

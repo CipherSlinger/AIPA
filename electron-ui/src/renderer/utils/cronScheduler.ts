@@ -23,10 +23,8 @@ export interface CronJob {
   nextFireAt: number   // pre-computed epoch ms (for display)
 }
 
-/**
- * Parse a single cron field into an array of valid values.
- * Supports: *, n, n-m, n/step, */step, lists (comma-separated)
- */
+// Parse a single cron field into an array of valid values.
+// Supports: *, n, n-m, n/step, star/step, lists (comma-separated)
 function parseField(field: string, min: number, max: number): number[] {
   const results = new Set<number>()
 
@@ -142,11 +140,9 @@ export function nextFireTime(expr: string, after: Date = new Date()): Date | nul
   return null
 }
 
-/**
- * Convert a cron expression to a human-readable frequency string.
- * E.g. "*/5 * * * *" → "Every 5 minutes", "0 9 * * 1-5" → "Weekdays at 9:00 AM"
- * Inspired by Claude Code's utils/cronScheduler.ts cronToHuman().
- */
+// Convert a cron expression to a human-readable frequency string.
+// E.g. "star/5 * * * *" -> "Every 5 minutes", "0 9 * * 1-5" -> "Weekdays at 9:00 AM"
+// Inspired by Claude Code's utils/cronScheduler.ts cronToHuman().
 export function cronToHuman(expr: string): string | null {
   const parts = expr.trim().split(/\s+/)
   if (parts.length !== 5) return null

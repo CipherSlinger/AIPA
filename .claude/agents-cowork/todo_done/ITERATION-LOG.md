@@ -4923,3 +4923,5 @@ Status: SUCCESS (tsc main/preload: 0 errors, vite build: 9.84s)
 - [x] Workflow running toast shows correct name and step count
 - [x] Ctrl+Shift+E triggers export from any panel (not just chat)
 - [x] ShortcutCheatsheet shows Ctrl+1-8 for sidebar tabs
+
+[RETRO] retro-2026-04-03-iterations-461-470.md completed, covering Iterations 461-470. Next forced retro after Iteration 480.

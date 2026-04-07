@@ -49,6 +49,19 @@ type: project
 - **Next forced retro**: After Iteration 470 (6 more iterations)
 - **Tester**: Not invoked yet in this batch. Mandatory at Iteration 465.
 
+### Iterations 465-470 (2026-04-03)
+- **Retro**: retro-2026-04-03-iterations-461-470.md
+- **Iteration 465**: Quick Todo List sidebar panel (TasksPanel.tsx, Ctrl+8, persistence via prefsStore), v1.1.141
+- **Iteration 466**: Quick Reminders + AI Daily Briefing (DailySummaryCard, REMINDER_PRESETS, 20 rotating tips), v1.1.142
+- **Iteration 467**: Enhanced Focus Timer (preset durations, desktop notification on completion), v1.1.143
+- **Iteration 468**: Remove Notifications tab + Splash screen cleanup (removed NotificationPanel, splash div/scripts), v1.1.144
+- **Iteration 469**: Workflow integrated editor+canvas view (WorkflowDetailPage rewrite: inline editing, live canvas preview), v1.1.145
+- **Iteration 470**: Dead code cleanup, shortcut fixes (NotificationPanel stub, toast params fix, Ctrl+Shift+E export, cheatsheet update), v1.1.146
+- **Key wins**: Strong personal-assistant alignment (tasks, reminders, daily briefing, focus timer), user feedback items all resolved
+- **Issues**: Zero tester checkpoints (5th consecutive retro flagging), workflow toast params bug, PRD files not cleaned up due to permission restrictions
+- **Version**: v1.1.141 -> v1.1.146
+- **Next forced retro**: After Iteration 480
+
 ### File Size Watch List (as of Iter 460)
 
 | File | Current | Status |
