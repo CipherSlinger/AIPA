@@ -139,6 +139,7 @@ export interface ClaudePrefs {
   sessionColorLabels?: Record<string, string>  // sessionId -> hex color for left border stripe (Iteration 436)
   sessionListCompact?: boolean  // compact session list mode: reduced row height, title only (Iteration 444)
   forkMap?: Record<string, { sourceSessionId: string; forkMessageIndex: number; forkedSessionId: string; forkedSessionTitle?: string }>  // messageId -> fork metadata (Iteration 456)
+  appendSystemPrompt?: string  // persistent appended system prompt (passed via --append-system-prompt, Iteration 523)
 }
 
 export interface SessionFolder {

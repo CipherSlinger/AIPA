@@ -8,6 +8,7 @@ import PlanCard from './PlanCard'
 import PinnedMessagesStrip from './PinnedMessagesStrip'
 import VirtualSeparatorRow from './VirtualSeparatorRow'
 import RewindDialog from './RewindDialog'
+import ForkDialog from './ForkDialog'
 import ScrollToBottomFab from './ScrollToBottomFab'
 import { useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
@@ -44,6 +45,9 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
 
   // Rewind confirmation state
   const [rewindTarget, setRewindTarget] = useState<{ msgId: string; ts: number; count: number } | null>(null)
+
+  // Fork dialog state
+  const [forkTarget, setForkTarget] = useState<{ msgIdx: number } | null>(null)
 
   // Keyboard message navigation (extracted to useMessageNavigation — Iteration 403)
   // Pinned messages strip (extracted to PinnedMessagesStrip — Iteration 403)
@@ -144,7 +148,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
         onBookmark={(msgId) => toggleBookmark(msgId)}
         onCollapse={(msgId) => toggleCollapse(msgId)}
         onEdit={onEdit}
-        onFork={onFork && msg.role === 'user' ? () => onFork(msgIdx) : undefined}
+        onFork={onFork && msg.role !== 'permission' && msg.role !== 'plan' ? () => setForkTarget({ msgIdx }) : undefined}
         onRewind={sessionId ? (ts) => {
           // Find the message index by timestamp to calculate how many messages will be removed
           const msgIndex = messages.findIndex(m => m.role !== 'permission' && m.role !== 'plan' && (m as StandardChatMessage).timestamp === ts)
@@ -156,7 +160,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       />
       </MessageErrorBoundary>
     )
-  }, [onPermission, onGrantPermission, onAlwaysAllow, onAlwaysDeny, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery, searchCaseSensitive, showAvatarMap, showTimestampMap, onEdit, onFork, t, lastUserMsgId, assistantReplyMap, messages])
+  }, [onPermission, onGrantPermission, onAlwaysAllow, onAlwaysDeny, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery, searchCaseSensitive, showAvatarMap, showTimestampMap, onEdit, onFork, setForkTarget, t, lastUserMsgId, assistantReplyMap, messages])
 
   return (
     <div style={{ height: '100%', position: 'relative', display: 'flex', flexDirection: 'column' }}>
@@ -326,6 +330,19 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
             addToast('success', t('rewind.rewound', { count: String(count) }))
           }}
           onCancel={() => setRewindTarget(null)}
+        />
+      )}
+
+      {/* Fork dialog */}
+      {forkTarget && onFork && (
+        <ForkDialog
+          msgIdx={forkTarget.msgIdx}
+          sessionId={sessionId || null}
+          onConfirm={(msgIdx) => {
+            setForkTarget(null)
+            onFork(msgIdx)
+          }}
+          onCancel={() => setForkTarget(null)}
         />
       )}
     </div>

@@ -218,7 +218,7 @@ export default function ChatPanel() {
       }
       usePrefsStore.getState().setPrefs({ forkMap: updatedForkMap })
       window.electronAPI.prefsSet('forkMap', updatedForkMap)
-      addToast('success', t('fork.forkSuccess'))
+      addToast('success', t('fork.switchingToast'))
       // Open the forked session
       window.dispatchEvent(new CustomEvent('aipa:openSession', { detail: newSessionId }))
     } catch {

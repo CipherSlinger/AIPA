@@ -5546,3 +5546,58 @@ Stats settings tab with aggregated usage data from ~/.claude/projects/ JSONL fil
 - [x] Build: SUCCESS, 0 TypeScript errors
 
 ---
+
+## Iteration 523 -- Custom System Prompt (Append)
+
+_Date: 2026-04-07 | Sprint: Superpower Phase 4.4_
+
+### Summary
+Persistent and per-session append-system-prompt support. Settings → Advanced tab with multi-line textarea (2000 char limit), 6 one-click presets (Concise, Code Review, Teaching, Chinese, Analyze Only, Security). ChatHeader gains a MessageSquarePlus button for per-session temp prompt override (clears on new conversation). The effective prompt (temp > persistent) is injected into the existing `systemPromptParts` array in useStreamJson.ts before the `--append-system-prompt` flag is assembled.
+
+### Files Changed
+- `src/renderer/components/settings/SettingsAdvanced.tsx` -- NEW: preset chips + textarea + save
+- `src/renderer/components/settings/SettingsPanel.tsx` -- Added Advanced tab
+- `src/renderer/components/chat/ChatHeader.tsx` -- Temp prompt button + popover
+- `src/renderer/store/chatStore.ts` -- Added `setTempSystemPrompt` impl; reset on clearMessages/tab-close
+- `src/renderer/hooks/useStreamJson.ts` -- Inject effectiveAppend into systemPromptParts
+- `src/renderer/types/app.types.ts` -- appendSystemPrompt already in ClaudePrefs
+- `src/renderer/store/index.ts` -- appendSystemPrompt already in DEFAULT_PREFS
+- `src/renderer/i18n/locales/en.json` + `zh-CN.json` -- systemPrompt.* i18n keys; settings.tabs.advanced
+
+### Acceptance Criteria
+- [x] Settings → Advanced tab with system prompt textarea
+- [x] 6 preset chips fill textarea
+- [x] Persistent prompt saved to electron-store
+- [x] ChatHeader shows temp prompt button (blue when active)
+- [x] Temp prompt cleared on new conversation
+- [x] CLI receives --append-system-prompt with effective value
+- [x] Build: SUCCESS, 0 TypeScript errors
+
+---
+
+## Iteration 524 -- Session Fork / Branch
+
+_Date: 2026-04-07 | Sprint: Superpower Phase 4.5_
+
+### Summary
+Session forking from any message. Right-click a message → "Fork from here" → ForkDialog modal (name input, Enter to confirm). Fork creates a new session with messages up to that point copied. Forked session appears in sidebar. Fork badge shown on source message. CompareWithFork panel shows original vs forked branches side-by-side.
+
+### Files Changed
+- `src/renderer/components/chat/ForkDialog.tsx` -- NEW: fork confirmation modal
+- `src/renderer/components/chat/MessageContextMenu.tsx` -- Fork menu item
+- `src/renderer/components/chat/Message.tsx` -- Fork badge rendering
+- `src/renderer/components/chat/MessageList.tsx` -- Pass fork props
+- `src/renderer/components/chat/ChatPanel.tsx` -- Fork action handler
+- `src/renderer/store/chatStore.ts` -- Fork state
+- `src/renderer/store/index.ts` -- forkMap in prefs
+- `src/renderer/types/app.types.ts` -- Fork types
+- `src/renderer/i18n/locales/en.json` + `zh-CN.json` -- fork.* i18n keys
+
+### Acceptance Criteria
+- [x] Right-click message → Fork from here
+- [x] ForkDialog with name input
+- [x] Forked session appears in sidebar
+- [x] Fork badge on source message
+- [x] Build: SUCCESS, 0 TypeScript errors
+
+---

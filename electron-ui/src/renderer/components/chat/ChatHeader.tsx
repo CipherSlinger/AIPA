@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Search, Download, ClipboardCopy, Maximize2, Minimize2, Plus, FolderOpen, FileText, FilePlus2, RefreshCw } from 'lucide-react'
+import { Search, Download, ClipboardCopy, Maximize2, Minimize2, Plus, FolderOpen, FileText, FilePlus2, RefreshCw, MessageSquarePlus, X } from 'lucide-react'
 import { useChatStore, useSessionStore, usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import ModelPicker from './ModelPicker'
@@ -96,7 +96,40 @@ export default function ChatHeader({
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editTitleValue, setEditTitleValue] = useState('')
   const [showSaveTemplate, setShowSaveTemplate] = useState(false)
+  const [showTempPrompt, setShowTempPrompt] = useState(false)
+  const [tempDraft, setTempDraft] = useState('')
+  const tempPromptRef = useRef<HTMLDivElement>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
+  const tempSystemPrompt = useChatStore(s => s.tempSystemPrompt)
+  const setTempSystemPrompt = useChatStore(s => s.setTempSystemPrompt)
+
+  // Close temp prompt popover on outside click
+  useEffect(() => {
+    if (!showTempPrompt) return
+    const handler = (e: MouseEvent) => {
+      if (tempPromptRef.current && !tempPromptRef.current.contains(e.target as Node)) {
+        setShowTempPrompt(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showTempPrompt])
+
+  const openTempPrompt = useCallback(() => {
+    setTempDraft(tempSystemPrompt || '')
+    setShowTempPrompt(true)
+  }, [tempSystemPrompt])
+
+  const applyTempPrompt = useCallback(() => {
+    setTempSystemPrompt(tempDraft.trim() || null)
+    setShowTempPrompt(false)
+  }, [tempDraft, setTempSystemPrompt])
+
+  const clearTempPrompt = useCallback(() => {
+    setTempSystemPrompt(null)
+    setTempDraft('')
+    setShowTempPrompt(false)
+  }, [setTempSystemPrompt])
   const workingDir = usePrefsStore(s => s.prefs.workingDir)
   // Terminal removed (Iteration 404)
 
@@ -245,6 +278,76 @@ export default function ChatHeader({
 
       {/* Persona quick-switcher (extracted) */}
       <PersonaPicker />
+
+      {/* Temp system prompt button (Iteration 523) */}
+      <div ref={tempPromptRef} style={{ position: 'relative', display: 'inline-flex' }}>
+        <button
+          onClick={openTempPrompt}
+          title={tempSystemPrompt ? t('systemPrompt.tempActive') : t('systemPrompt.tempButton')}
+          style={{
+            ...headerBtnStyle,
+            color: tempSystemPrompt ? 'var(--accent)' : 'var(--chat-header-icon)',
+            background: tempSystemPrompt ? 'rgba(59,130,246,0.12)' : 'none',
+          }}
+          onMouseEnter={(e) => hoverIn(e, !!tempSystemPrompt)}
+          onMouseLeave={(e) => hoverOut(e, !!tempSystemPrompt)}
+        >
+          <MessageSquarePlus size={15} />
+        </button>
+        {showTempPrompt && (
+          <div style={{
+            position: 'absolute', top: '100%', right: 0, marginTop: 6,
+            background: 'var(--popup-bg)', border: '1px solid var(--border)',
+            borderRadius: 8, padding: 12, width: 300, zIndex: 200,
+            boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+              {t('systemPrompt.tempPopoverTitle')}
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 8 }}>
+              {t('systemPrompt.tempPopoverHint')}
+            </div>
+            <textarea
+              autoFocus
+              value={tempDraft}
+              onChange={(e) => setTempDraft(e.target.value.slice(0, 2000))}
+              onKeyDown={(e) => { if (e.key === 'Escape') setShowTempPrompt(false) }}
+              placeholder={t('systemPrompt.tempPlaceholder')}
+              rows={4}
+              style={{
+                width: '100%', fontSize: 11, padding: '6px 8px',
+                background: 'var(--bg-input)', border: '1px solid var(--border)',
+                borderRadius: 5, color: 'var(--text-primary)', resize: 'vertical',
+                outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+              }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 8 }}>
+              {tempSystemPrompt && (
+                <button
+                  onClick={clearTempPrompt}
+                  style={{
+                    fontSize: 11, padding: '4px 10px', background: 'none',
+                    border: '1px solid var(--border)', borderRadius: 4,
+                    color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                  }}
+                >
+                  <X size={10} />{t('systemPrompt.tempClear')}
+                </button>
+              )}
+              <button
+                onClick={applyTempPrompt}
+                style={{
+                  fontSize: 11, padding: '4px 12px',
+                  background: 'var(--accent)', border: 'none', borderRadius: 4,
+                  color: '#fff', cursor: 'pointer',
+                }}
+              >
+                {t('systemPrompt.tempSet')}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Search toggle */}
       <button

@@ -180,6 +180,13 @@ Keep exercises focused and achievable. The goal is active learning through doing
       }
     }
 
+    // Inject custom append-system-prompt (Iteration 523)
+    // tempSystemPrompt (per-session) overrides the persistent appendSystemPrompt pref
+    const effectiveAppend = useChatStore.getState().tempSystemPrompt || prefs.appendSystemPrompt
+    if (effectiveAppend?.trim()) {
+      systemPromptParts.push(effectiveAppend.trim())
+    }
+
     if (systemPromptParts.length > 0) {
       flags.push('--append-system-prompt', systemPromptParts.join('\n\n'))
     }

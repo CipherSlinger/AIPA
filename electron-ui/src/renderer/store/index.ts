@@ -67,6 +67,7 @@ const DEFAULT_PREFS: ClaudePrefs = {
   ],
   effortLevel: 'auto',
   preventSleep: true,
+  appendSystemPrompt: '',
 }
 
 export const usePrefsStore = create<PrefsState>((set) => ({

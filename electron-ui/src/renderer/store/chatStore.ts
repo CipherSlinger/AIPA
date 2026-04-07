@@ -198,6 +198,10 @@ interface ChatState {
   addChangedFile: (filePath: string, toolName: string) => void
   clearChangedFiles: () => void
 
+  // Temporary system prompt override (Iteration 523): set per-session, cleared on new conversation
+  tempSystemPrompt: string | null
+  setTempSystemPrompt: (prompt: string | null) => void
+
   // ── Tabs (Iteration 515) ──────────────────────────
   tabs: TabInfo[]
   activeTabId: string | null
@@ -233,6 +237,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   sessionPersonaId: undefined,
   isPlanMode: false,
   changedFiles: [],
+  tempSystemPrompt: null,
 
   addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
 
@@ -317,7 +322,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     streamingBuffer.sessionId = null
     streamingBuffer.messageId = null
     streamingBuffer.dirty = false
-    set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false, totalSessionCost: 0, lastCost: null, lastUsage: null, lastContextUsage: null, modelUsage: {}, sessionPersonaId: undefined, isPlanMode: false, changedFiles: [] })
+    set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false, totalSessionCost: 0, lastCost: null, lastUsage: null, lastContextUsage: null, modelUsage: {}, sessionPersonaId: undefined, isPlanMode: false, changedFiles: [], tempSystemPrompt: null })
   },
   loadHistory: (messages) => set({ messages, isStreaming: false }),
 
@@ -541,6 +546,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   }),
   clearChangedFiles: () => set({ changedFiles: [] }),
 
+  // Temp system prompt override (Iteration 523)
+  setTempSystemPrompt: (prompt) => set({ tempSystemPrompt: prompt }),
+
   // ── Tab actions (Iteration 515) ────────────────────
   tabs: [],
   activeTabId: null,
@@ -652,6 +660,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         modelUsage: {},
         sessionPersonaId: undefined,
         isPlanMode: false,
+        tempSystemPrompt: null,
       })
       return
     }

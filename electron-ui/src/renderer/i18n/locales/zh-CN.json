@@ -502,6 +502,7 @@
       "personas": "角色",
       "mcp": "MCP 服务器",
       "stats": "统计",
+      "advanced": "高级",
       "about": "关于"
     },
     "groups": {
@@ -1845,7 +1846,15 @@
     "noMessages": "暂无分歧消息",
     "loadingBranches": "加载分支中…",
     "forkSuccess": "会话分叉成功",
-    "forkFailed": "会话分叉失败"
+    "forkFailed": "会话分叉失败",
+    "dialogTitle": "分叉会话",
+    "dialogInfo": "从第 #{{index}} 条消息处创建新分支，分叉将包含此处之前的所有消息。",
+    "nameLabel": "新会话名称",
+    "namePlaceholder": "输入分叉会话的名称",
+    "forkSuffix": "分叉",
+    "defaultName": "分叉会话",
+    "confirm": "分叉",
+    "switchingToast": "已分叉！正在切换到新会话。"
   },
   "preview": {
     "loadingMeta": "加载预览中...",
@@ -1905,6 +1914,20 @@
     "noDiff": "无 diff 输出",
     "gitDiffTitle": "Git Diff（HEAD）",
     "close": "关闭"
+  },
+  "systemPrompt": {
+    "title": "追加系统提示词",
+    "hint": "添加到每次对话系统提示词末尾的文本，用于持久化调整 Claude 的行为风格。留空则使用 Claude 默认行为。",
+    "placeholder": "例如：始终简洁回复。使用中文。",
+    "preset": "预设",
+    "replaceConfirm": "用此预设替换当前提示词？",
+    "tempButton": "临时系统提示词",
+    "tempActive": "临时提示词已启用",
+    "tempPopoverTitle": "本次会话系统提示词",
+    "tempPopoverHint": "仅在本次会话中生效，优先于持久化系统提示词。",
+    "tempPlaceholder": "输入本次会话的临时提示词...",
+    "tempClear": "清除",
+    "tempSet": "设置"
   },
   "stats": {
     "loading": "加载统计中...",

@@ -399,7 +399,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             onCopyMarkdown={isAssistant ? handleCopyMarkdown : undefined}
             onCopyCodeBlocks={isAssistant && (message as StandardChatMessage).content?.includes('```') ? handleCopyCodeBlocks : undefined}
             hasCodeBlocks={!!(message as StandardChatMessage).content?.includes('```')}
-            onFork={isUser && onFork ? onFork : undefined}
+            onFork={!isPermission && !isPlan && onFork ? onFork : undefined}
           />
         )}
       </div>

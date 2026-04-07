@@ -502,6 +502,7 @@
       "personas": "Personas",
       "mcp": "MCP Servers",
       "stats": "Stats",
+      "advanced": "Advanced",
       "about": "About"
     },
     "groups": {
@@ -1827,7 +1828,15 @@
     "noMessages": "No diverging messages yet",
     "loadingBranches": "Loading branches...",
     "forkSuccess": "Session forked successfully",
-    "forkFailed": "Failed to fork session"
+    "forkFailed": "Failed to fork session",
+    "dialogTitle": "Fork Session",
+    "dialogInfo": "Create a new branch from message #{{index}}. The fork will include all messages up to this point.",
+    "nameLabel": "New session name",
+    "namePlaceholder": "Enter a name for the forked session",
+    "forkSuffix": "Fork",
+    "defaultName": "Forked Session",
+    "confirm": "Fork",
+    "switchingToast": "Forked! Switching to new session."
   },
   "preview": {
     "loadingMeta": "Loading preview...",
@@ -1887,6 +1896,20 @@
     "noDiff": "No diff output",
     "gitDiffTitle": "Git Diff (HEAD)",
     "close": "Close"
+  },
+  "systemPrompt": {
+    "title": "Append System Prompt",
+    "hint": "Text added to every conversation's system prompt. Useful for persistent behavior adjustments (style, language, role). Leave empty to use Claude's default behavior.",
+    "placeholder": "e.g. Always be concise. Respond in English.",
+    "preset": "Preset",
+    "replaceConfirm": "Replace current prompt with this preset?",
+    "tempButton": "Temporary system prompt",
+    "tempActive": "Temp prompt active",
+    "tempPopoverTitle": "Session System Prompt",
+    "tempPopoverHint": "Active only for this session. Overrides the persistent system prompt.",
+    "tempPlaceholder": "Enter a temporary prompt for this session...",
+    "tempClear": "Clear",
+    "tempSet": "Set"
   },
   "stats": {
     "loading": "Loading stats...",
