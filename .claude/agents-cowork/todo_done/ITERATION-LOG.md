@@ -5270,3 +5270,30 @@ Fixed critical runtime crash (React error #185) caused by missing state declarat
 Status: SUCCESS (0 TypeScript errors, 2582 modules transformed)
 
 ---
+
+## Iteration 511 — Component Decomposition + Dead Code Cleanup
+
+_Date: 2026-04-06 | Sprint: Technical Health (PRD-decomposition-deadcode-v1)_
+
+### Summary
+Decomposed WorkflowDetailPage.tsx by extracting WorkflowDetailHeader.tsx (header bar, icon picker, execution badge, action buttons). Also deleted 4 dead code files with zero consumers (setUtils.ts, objectGroupBy.ts, sequential.ts, useTimeout.ts). These utility files were ported from Claude Code sourcemap in Iterations 497-501 but never imported by any other file.
+
+### Files Changed
+- `WorkflowDetailPage.tsx` — Reduced from 657 to 404 lines by extracting header
+- `WorkflowDetailHeader.tsx` — NEW: 194 lines, extracted header/icon picker/action buttons
+- `utils/setUtils.ts` — DELETED (zero consumers)
+- `utils/objectGroupBy.ts` — DELETED (zero consumers)
+- `utils/sequential.ts` — DELETED (zero consumers)
+- `hooks/useTimeout.ts` — DELETED (zero consumers)
+
+### Build
+Status: SUCCESS (0 TypeScript errors, 2583 modules)
+
+### Acceptance Criteria
+- [x] WorkflowDetailPage.tsx < 500 lines (was 657, now 404)
+- [x] 4 dead code files deleted
+- [x] Zero TypeScript errors
+- [x] Build succeeds
+- [x] No behavioral changes
+
+---
