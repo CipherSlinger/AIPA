@@ -5,6 +5,7 @@ import { useT, useDateLocale } from '../../i18n'
 import { getSessionAvatarColor, formatSessionDuration, TAG_PRESETS, getMatchContext } from './sessionUtils'
 import HighlightText from './HighlightText'
 import { formatDistanceToNow } from 'date-fns'
+import { firstLineOf } from '../../utils/stringUtils'
 
 interface SessionItemProps {
   session: SessionListItem
@@ -84,7 +85,7 @@ export default function SessionItem({
   const t = useT()
   const dateLocale = useDateLocale()
   const avatarColor = getSessionAvatarColor(session.sessionId)
-  const previewText = (session.lastPrompt || '').slice(0, 50) || undefined
+  const previewText = firstLineOf((session.lastPrompt || '').slice(0, 150)).slice(0, 50) || undefined
   const getTagName = (idx: number) => tagNames[idx] || t(TAG_PRESETS[idx]?.defaultKey || 'tags.work')
 
   return (
