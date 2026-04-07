@@ -34,6 +34,7 @@ import { useT } from '../../i18n'
 import { estimateToolBreakdown } from '../../utils/tokenUtils'
 import { StandardChatMessage } from '../../types/app.types'
 import { matchesKeepGoingKeyword, matchesNegativeKeyword } from '../../hooks/usePromptKeywords'
+import { useDoublePress } from '../../hooks/useDoublePress'
 
 interface ChatInputProps {
   isStreaming: boolean
@@ -286,6 +287,13 @@ export default function ChatInput({
   // Keep-going detection (Iteration 490): detect "continue/继续/keep going" input
   const isKeepGoing = !isStreaming && input.trim().length > 0 && matchesKeepGoingKeyword(input)
 
+  // Double-Escape on empty input = start new conversation (Iteration 493)
+  const [escPending, setEscPending] = React.useState(false)
+  const handleDoubleEscape = useDoublePress(
+    setEscPending,
+    () => { if (!input.trim() && !isStreaming) onNewConversation() },
+  )
+
   // Negative keyword detection (Iteration 490): show friendly toast once per frustration event
   const negativeShownRef = React.useRef(false)
   React.useEffect(() => {
@@ -397,6 +405,12 @@ export default function ChatInput({
               </button>
             </div>
           )}
+          {/* Double-Escape hint: press Esc again to start new chat (Iteration 493) */}
+          {escPending && !input.trim() && !isStreaming && (
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', padding: '2px 6px', marginBottom: 4, opacity: 0.8 }}>
+              {t('input.escAgainNewChat')}
+            </div>
+          )}
           {/* Popups */}
           {popups.atQuery !== null && <AtMentionPopup query={popups.atQuery} onSelect={popups.handleAtSelect} onDismiss={() => popups.setAtQuery(null)} anchorRef={inputWrapRef as React.RefObject<HTMLElement>} />}
           {popups.noteQuery !== null && <NotePopup query={popups.noteQuery} notes={popups.filteredNotes} categories={popups.noteCategories} selectedIndex={popups.noteIndex} onSelect={popups.handleNoteSelect} onDismiss={() => popups.setNoteQuery(null)} onHover={popups.setNoteIndex} />}
@@ -429,7 +443,10 @@ export default function ChatInput({
               ref={textareaRef}
               value={input}
               onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape' && !input.trim()) handleDoubleEscape()
+                handleKeyDown(e)
+              }}
               onPaste={paste.handleTextPaste}
               onDragOver={(e) => {
                 e.preventDefault()

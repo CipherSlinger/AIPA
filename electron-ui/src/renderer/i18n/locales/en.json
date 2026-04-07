@@ -342,7 +342,8 @@
     "chars": "chars",
     "keepGoingHint": "Looks like you want to continue — send to resume?",
     "keepGoingSend": "Continue",
-    "negativeHint": "Hang tight — let me know how I can help better!"
+    "negativeHint": "Hang tight — let me know how I can help better!",
+    "escAgainNewChat": "Press Esc again to start a new conversation"
   },
   "voice": {
     "autoStopped": "Recording stopped automatically (2-minute limit reached)"

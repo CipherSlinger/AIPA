@@ -4,6 +4,7 @@ import React from 'react'
 import { X, FileText } from 'lucide-react'
 import type { ImageAttachment, FileAttachment } from '../../hooks/useImagePaste'
 import { useT } from '../../i18n'
+import { formatFileSize } from '../../utils/formatUtils'
 
 interface ChatInputAttachmentsProps {
   attachments: ImageAttachment[]
@@ -42,7 +43,7 @@ export default function ChatInputAttachments({ attachments, fileAttachments, onR
               <div style={{ overflow: 'hidden', flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</div>
                 <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>
-                  {file.content ? `${Math.ceil(file.size / 1024)}KB` : t('chat.fileRefOnly')}
+                  {file.content ? formatFileSize(file.size) : t('chat.fileRefOnly')}
                 </div>
               </div>
               <button onClick={() => onRemoveFile(file.id)} style={{
