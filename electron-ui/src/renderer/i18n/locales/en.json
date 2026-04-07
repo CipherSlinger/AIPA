@@ -330,6 +330,25 @@
     "closePreview": "Close preview",
     "unpinAll": "Unpin All"
   },
+  "codeAction": {
+    "run": "Run",
+    "runInTerminal": "Run in Terminal",
+    "save": "Save",
+    "saveToFile": "Save to file",
+    "confirmRunTitle": "Execute Command",
+    "confirmRunMessage": "This command will be executed in the terminal:",
+    "workingDirectory": "Working directory",
+    "dangerWarning": "This command may be destructive. Please review carefully before executing.",
+    "executing": "Executing...",
+    "executed": "Executed",
+    "executeFailed": "Execution failed",
+    "noWorkingDir": "No working directory set. Please configure one in Settings first.",
+    "savedToFile": "Saved to {{path}}",
+    "saveFailed": "Failed to save: {{error}}",
+    "saveCanceled": "Save canceled",
+    "openInFileManager": "Open in file manager",
+    "fileNotFound": "File or path does not exist"
+  },
   "copy": {
     "moreOptions": "More copy options",
     "asText": "Copy as Text",

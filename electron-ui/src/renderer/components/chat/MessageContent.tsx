@@ -1,14 +1,65 @@
 // MessageContent — decomposed orchestrator (Iteration 220)
 // Sub-components: CodeBlock, MarkdownImage, messageContentConstants, URLPreviewCard
-import React from 'react'
+// Iteration 510: Added ClickableFilePath for P1 file path links
+import React, { useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
+import { ExternalLink } from 'lucide-react'
 import { useT } from '../../i18n'
+import { useUiStore } from '../../store'
 import { getLangColor } from './messageContentConstants'
 import CodeBlockWithHeader from './CodeBlock'
 import MarkdownImage from './MarkdownImage'
 import URLPreviewCard from './URLPreviewCard'
+
+// Detect file path patterns: absolute paths (/home/... or C:\...) and relative paths (./... or ../...)
+const FILE_PATH_RE = /^(?:\/[\w.@\-]+(?:\/[\w.@\-]*)*|[A-Z]:\\[\w.@\-\\]+|\.\.?\/[\w.@\-/]*)$/
+
+function isLikelyFilePath(text: string): boolean {
+  return FILE_PATH_RE.test(text.trim())
+}
+
+function ClickableFilePath({ path }: { path: string }) {
+  const t = useT()
+  const addToast = useUiStore(s => s.addToast)
+
+  const handleClick = useCallback(async () => {
+    if (!window.electronAPI) return
+    const exists = await window.electronAPI.fsPathExists(path)
+    if (exists) {
+      const result = await window.electronAPI.shellShowItemInFolder(path)
+      if (result && !result.success) {
+        addToast('error', result.error || t('codeAction.fileNotFound'))
+      }
+    } else {
+      addToast('error', t('codeAction.fileNotFound'))
+    }
+  }, [path, addToast, t])
+
+  return (
+    <code
+      onClick={handleClick}
+      title={t('codeAction.openInFileManager')}
+      style={{
+        background: 'var(--bg-active, rgba(255,255,255,0.08))',
+        border: '1px solid var(--border)',
+        borderRadius: 3,
+        padding: '1px 5px',
+        fontSize: '0.9em',
+        fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
+        color: 'var(--accent)',
+        cursor: 'pointer',
+        textDecoration: 'underline',
+        textDecorationStyle: 'dotted' as const,
+        textUnderlineOffset: 2,
+      }}
+    >
+      {path}
+      <ExternalLink size={10} style={{ marginLeft: 3, verticalAlign: 'middle', opacity: 0.6 }} />
+    </code>
+  )
+}
 
 interface Props {
   content: string
@@ -70,6 +121,10 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
             const lineCount = codeText.split('\n').length
 
             if (isInline) {
+              // Detect file paths in inline code and make them clickable (Iteration 510)
+              if (isLikelyFilePath(codeText)) {
+                return <ClickableFilePath path={codeText} />
+              }
               return (
                 <code
                   className={className as string}

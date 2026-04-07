@@ -72,6 +72,13 @@ const electronAPI = {
   fsGetHome: () => ipcRenderer.invoke('fs:getHome'),
   fsEnsureDir: (dirPath: string) => ipcRenderer.invoke('fs:ensureDir', dirPath),
   fsListCommands: (workingDir: string) => ipcRenderer.invoke('fs:listCommands', workingDir),
+  fsPathExists: (filePath: string) =>
+    ipcRenderer.invoke('fs:pathExists', { filePath }) as Promise<boolean>,
+
+  // ── Shell ───────────────────────────────
+  shellOpenExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
+  shellShowItemInFolder: (filePath: string) =>
+    ipcRenderer.invoke('shell:showItemInFolder', filePath) as Promise<{ success: boolean; error?: string }>,
 
   // ── Push event listeners ─────────────────
   onPtyData: (sessionId: string, cb: (data: string) => void): Unsubscribe => {
@@ -122,9 +129,6 @@ const electronAPI = {
   // ── Feedback ─────────────────────────────
   feedbackRate: (messageId: string, rating: 'up' | 'down' | null) =>
     ipcRenderer.invoke('feedback:rate', { messageId, rating }),
-
-  // ── Shell ───────────────────────────────
-  shellOpenExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
 
   // ── URL metadata (Iteration 462) ──────
   urlFetchMeta: (url: string) => ipcRenderer.invoke('url:fetchMeta', url) as Promise<{

@@ -330,6 +330,25 @@
     "closePreview": "关闭预览",
     "unpinAll": "取消全部置顶"
   },
+  "codeAction": {
+    "run": "运行",
+    "runInTerminal": "在终端中运行",
+    "save": "保存",
+    "saveToFile": "保存到文件",
+    "confirmRunTitle": "执行命令",
+    "confirmRunMessage": "此命令将在终端中执行：",
+    "workingDirectory": "工作目录",
+    "dangerWarning": "此命令可能具有破坏性，请在执行前仔细检查。",
+    "executing": "执行中...",
+    "executed": "已执行",
+    "executeFailed": "执行失败",
+    "noWorkingDir": "未设置工作目录，请先在设置中配置。",
+    "savedToFile": "已保存到 {{path}}",
+    "saveFailed": "保存失败: {{error}}",
+    "saveCanceled": "已取消保存",
+    "openInFileManager": "在文件管理器中打开",
+    "fileNotFound": "文件或路径不存在"
+  },
   "copy": {
     "moreOptions": "更多复制选项",
     "asText": "复制为文本",

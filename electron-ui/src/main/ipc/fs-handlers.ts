@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, dialog } from 'electron'
+import { ipcMain, BrowserWindow, dialog, shell } from 'electron'
 import { getPref } from '../config/config-manager'
 import { safePath, getAllowedFsRoots } from '../utils/validate'
 import { createLogger } from '../utils/logger'
@@ -135,5 +135,28 @@ export function registerFsHandlers(): void {
       }
     }
     return commands
+  })
+
+  // Check if a file/directory path exists (Iteration 510: actionable codeblocks)
+  ipcMain.handle('fs:pathExists', (_e, { filePath }: { filePath: string }) => {
+    try {
+      return fs.existsSync(filePath)
+    } catch {
+      return false
+    }
+  })
+
+  // Show item in system file manager (Iteration 510: clickable file paths)
+  ipcMain.handle('shell:showItemInFolder', (_e, filePath: string) => {
+    try {
+      if (fs.existsSync(filePath)) {
+        shell.showItemInFolder(filePath)
+        return { success: true }
+      }
+      return { success: false, error: 'Path does not exist' }
+    } catch (err) {
+      log.warn('shell:showItemInFolder error:', String(err))
+      return { success: false, error: String(err) }
+    }
   })
 }

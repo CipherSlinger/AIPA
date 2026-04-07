@@ -36,19 +36,31 @@ type: project
 - **488**: Mega-bundle of 12 sourcemap features (BAD: violated one-feature-per-iteration)
 - **489**: Speculative execution
 - **490-509**: Sourcemap utility porting + application sprint (prompt keywords, memory monitor, circular buffer, formatUtils, stringUtils, arrayUtils, hashUtils, setUtils, objectGroupBy, sequential, withResolvers)
-- **Dead code**: setUtils.ts, objectGroupBy.ts, sequential.ts, useTimeout.ts (zero consumers)
+- **Dead code**: setUtils.ts, objectGroupBy.ts, sequential.ts, useTimeout.ts (zero consumers) -- CLEANED in Iter 511
 - **Issues**: 39 iterations without retro (4x limit), 8 skipped iteration numbers (480-487), zero tester checkpoints (6th consecutive retro flagging)
 - **Version**: v1.1.146 -> v1.1.158 (estimated)
 - **Next forced retro**: After Iteration 519
 
-### File Size Watch List (as of Iter 509)
+### Iteration 510 (2026-04-06) -- P0 BUG FIX
+- **Bug**: WorkflowDetailPage crash (editName is not defined, React error #185)
+- **Root cause**: Missing useState declarations for editName, editDesc, editIcon, editSteps, hasUnsavedChanges, justSaved, showIconPicker; missing imports (useCallback, Save, Trash2, WorkflowStep); missing constants (WORKFLOW_EMOJIS, displayName, openEditor)
+- **Also fixed**: TasksPanel.tsx (prefs.reminders type cast), WorkflowCanvas.tsx (step.name -> step.title), withResolvers.ts (PromiseWithResolvers type)
+- **88 TypeScript errors resolved**
+- Version: v1.1.147
+
+### Iteration 511 (2026-04-06) -- DECOMPOSITION + DEAD CODE
+- Extracted WorkflowDetailHeader.tsx from WorkflowDetailPage.tsx (657 -> 404 lines)
+- Deleted 4 dead code files: setUtils.ts, objectGroupBy.ts, sequential.ts, useTimeout.ts
+- Version: v1.1.148
+
+### File Size Watch List (as of Iter 511)
 
 | File | Current | Status |
 |------|---------|--------|
 | skillMarketplace.ts | 1860 | ACCEPTED (data file) |
 | WorkflowCanvas.tsx | 713 | P1 DECOMPOSE |
 | TasksPanel.tsx | 689 | P1 DECOMPOSE |
-| WorkflowDetailPage.tsx | 633 | P1 DECOMPOSE |
+| WorkflowDetailPage.tsx | 404 | OK (was 657, decomposed Iter 511) |
 | useStreamJson.ts | 601 | P2 WATCH |
 | MemoryPanel.tsx | 591 | P2 WATCH |
 | ChatPanel.tsx | 575 | P2 WATCH |
@@ -60,7 +72,7 @@ type: project
 1. **Tester non-invocation**: Flagged in 6 consecutive retros (432-509). Only 1 actual checkpoint (Iter 445) in 70+ iterations. The structural fix (hard gate at leader level) has never been enforced because leader was not invoked.
 2. **PRD archival**: Historically flagged. Cleaned up manually by leader in retro-2026-04-06.
 3. **Iteration number discipline**: New issue in 471-509. 8 numbers skipped, mega-bundle at 488.
-4. **Dead code from utility porting**: New issue. 4 files with zero consumers shipped.
+4. **Dead code from utility porting**: RESOLVED in Iteration 511. 4 files deleted.
 
 ### Key Architectural Decisions (latest)
 
@@ -70,3 +82,4 @@ type: project
 - **Utility library**: stringUtils, formatUtils, arrayUtils, hashUtils, CircularBuffer, wordSlug, formatBriefTimestamp
 - **Speculative execution**: Isolated sandbox for predicted prompts
 - **Prompt keyword detection**: Keep-going banner + negative hint toast
+- **WorkflowDetailPage decomposition (Iter 511)**: Header extracted to WorkflowDetailHeader.tsx
