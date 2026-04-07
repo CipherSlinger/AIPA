@@ -173,11 +173,14 @@ interface ChatState {
   // Crash recovery (Iteration 308): Restore messages from sessionStorage backup
   setMessages: (messages: ChatMessage[]) => void
 
-  // Conversation compaction (Iteration 368, inspired by Claude Code)
+  // Conversation compaction (Iteration 368, inspired by Claude Code; enhanced Iteration 519)
   isCompacting: boolean
   compactionCount: number
+  /** Snapshot of context usage before compact for before/after comparison (Iteration 519) */
+  contextBeforeCompact: { used: number; total: number } | null
   setCompacting: (v: boolean) => void
   incrementCompactionCount: () => void
+  setContextBeforeCompact: (usage: { used: number; total: number } | null) => void
 
   // Conversation rewind (Iteration 377): Remove all messages after the selected one
   rewindToMessage: (messageId: string) => number
@@ -185,6 +188,10 @@ interface ChatState {
   // Per-session persona (Iteration 407): track which persona is active for the current session
   sessionPersonaId: string | undefined
   setSessionPersonaId: (personaId: string | undefined) => void
+
+  // Plan Mode (Iteration 520): Claude only plans, does not execute tools
+  isPlanMode: boolean
+  setPlanMode: (v: boolean) => void
 
   // ── Tabs (Iteration 515) ──────────────────────────
   tabs: TabInfo[]
@@ -217,7 +224,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   queuePaused: false,
   isCompacting: false,
   compactionCount: 0,
+  contextBeforeCompact: null,
   sessionPersonaId: undefined,
+  isPlanMode: false,
 
   addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
 
@@ -302,7 +311,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     streamingBuffer.sessionId = null
     streamingBuffer.messageId = null
     streamingBuffer.dirty = false
-    set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false, totalSessionCost: 0, lastCost: null, lastUsage: null, lastContextUsage: null, modelUsage: {}, sessionPersonaId: undefined })
+    set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false, totalSessionCost: 0, lastCost: null, lastUsage: null, lastContextUsage: null, modelUsage: {}, sessionPersonaId: undefined, isPlanMode: false })
   },
   loadHistory: (messages) => set({ messages, isStreaming: false }),
 
@@ -485,6 +494,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   setMessages: (messages) => set({ messages }),
   setCompacting: (v) => set({ isCompacting: v }),
   incrementCompactionCount: () => set((s) => ({ compactionCount: s.compactionCount + 1 })),
+  setContextBeforeCompact: (usage) => set({ contextBeforeCompact: usage }),
 
   rewindToMessage: (messageId) => {
     const state = get()
@@ -509,6 +519,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
       } catch { /* ignore localStorage errors */ }
     }
   },
+
+  // Plan Mode toggle (Iteration 520)
+  setPlanMode: (v) => set({ isPlanMode: v }),
 
   // ── Tab actions (Iteration 515) ────────────────────
   tabs: [],
@@ -620,6 +633,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         lastContextUsage: null,
         modelUsage: {},
         sessionPersonaId: undefined,
+        isPlanMode: false,
       })
       return
     }

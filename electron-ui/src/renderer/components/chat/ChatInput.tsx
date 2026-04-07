@@ -11,6 +11,7 @@ import NotePopup from './NotePopup'
 import SlashCommandPopup from './SlashCommandPopup'
 import QuickReplyChips from './QuickReplyChips'
 import InputToolbar from './InputToolbar'
+import PlanModeBanner from './PlanModeBanner'
 import ChatInputAttachments from './ChatInputAttachments'
 import ChatInputPasteChips from './ChatInputPasteChips'
 import ChatInputComposeStatus from './ChatInputComposeStatus'
@@ -58,6 +59,17 @@ export default function ChatInput({
   const addToQueue = useChatStore(s => s.addToQueue)
   const lastContextUsage = useChatStore(s => s.lastContextUsage)
   const messages = useChatStore(s => s.messages)
+  const isPlanMode = useChatStore(s => s.isPlanMode)
+  const setPlanMode = useChatStore(s => s.setPlanMode)
+
+  // Plan Mode toggle: send /plan to CLI and flip local state (Iteration 520)
+  const handleTogglePlanMode = useCallback(async () => {
+    if (isStreaming) return
+    const next = !isPlanMode
+    setPlanMode(next)
+    addToast('info', t(next ? 'plan.enabled' : 'plan.disabled'))
+    await onSend('/plan')
+  }, [isPlanMode, isStreaming, setPlanMode, onSend, addToast, t])
 
   // Draft persistence (per-session)
   const { input, setInput, clearDraft } = useChatInputDraft({
@@ -347,6 +359,9 @@ export default function ChatInput({
         inputText={input}
         multiLineMode={multiLineMode}
         onToggleMultiLine={toggleMultiLine}
+        isPlanMode={isPlanMode}
+        onTogglePlanMode={handleTogglePlanMode}
+        isStreaming={isStreaming}
       />
       {/* Context usage meter with compact button */}
       {lastContextUsage && lastContextUsage.total > 0 && (
@@ -377,9 +392,13 @@ export default function ChatInput({
           style={{
             flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', gap: 0,
             background: 'var(--input-field-bg)', borderRadius: 10, padding: '8px 14px',
-            border: '1px solid var(--input-field-border)', transition: 'border-color 200ms',
+            border: isPlanMode ? '1px solid #a78bfa' : '1px solid var(--input-field-border)', transition: 'border-color 200ms',
           }}
         >
+          {/* Plan Mode banner (Iteration 520) */}
+          {isPlanMode && (
+            <PlanModeBanner onExit={handleTogglePlanMode} />
+          )}
           {/* Active persona indicator */}
           {activePersona && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 8px', marginBottom: 4, fontSize: 11, color: activePersona.color, opacity: 0.8 }}>
@@ -474,8 +493,8 @@ export default function ChatInput({
                   setTimeout(() => textareaRef.current?.focus(), 0)
                 }
               }}
-              onFocus={() => { if (inputWrapRef.current) inputWrapRef.current.style.borderColor = 'var(--input-field-focus)' }}
-              onBlur={() => { setTextDragOver(false); if (inputWrapRef.current) inputWrapRef.current.style.borderColor = 'var(--input-field-border)' }}
+              onFocus={() => { if (inputWrapRef.current) inputWrapRef.current.style.borderColor = isPlanMode ? '#a78bfa' : 'var(--input-field-focus)' }}
+              onBlur={() => { setTextDragOver(false); if (inputWrapRef.current) inputWrapRef.current.style.borderColor = isPlanMode ? '#a78bfa' : 'var(--input-field-border)' }}
               placeholder={t(PLACEHOLDER_KEYS[placeholderIdx])}
               aria-label={t('chat.placeholder')}
               rows={1}

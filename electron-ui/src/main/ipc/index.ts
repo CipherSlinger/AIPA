@@ -5,6 +5,7 @@ import { streamBridgeManager } from '../pty/stream-bridge'
 import { speculationManager, isSafeToSpeculate } from '../pty/speculation-bridge'
 import { readSettings, writeSettings, listSessions, loadSession, deleteSession, forkSession, renameSession, getMcpServers, setMcpServerEnabled, generateSessionTitle, generatePromptSuggestion, generateAwaySummary, rewindSession, searchSessions, detectTurnInterruption } from '../sessions/session-reader'
 import { getApiKey, setApiKey, getPref, setPref, getAllPrefs, resetAllPrefs } from '../config/config-manager'
+import { readCLISettings, writeCLISettings } from '../config/cli-settings-manager'
 import { getCliPath } from '../utils/cli-path'
 import { validateApiKey, validateModelName, validateFlags } from '../utils/validate'
 import { registerSkillsHandlers } from './skills-handlers'
@@ -328,6 +329,25 @@ function registerConfigHandlers(): void {
   ipcMain.handle('config:getLocale', () => app.getLocale())
 
   ipcMain.handle('mcp:list', () => getMcpServers())
+
+  // ── CLI settings.json read/write (Iteration 518) ─────
+  safeHandle('config:readCLISettings', () => {
+    try {
+      return readCLISettings()
+    } catch (err) {
+      log.warn('config:readCLISettings error:', String(err))
+      return { error: String(err) }
+    }
+  })
+  safeHandle('config:writeCLISettings', (_e, patch: Record<string, unknown>) => {
+    try {
+      writeCLISettings(patch)
+      return { success: true }
+    } catch (err) {
+      log.warn('config:writeCLISettings error:', String(err))
+      return { error: String(err) }
+    }
+  })
   ipcMain.handle('mcp:setEnabled', (_e: Electron.IpcMainInvokeEvent, { serverName, enabled }: { serverName: string; enabled: boolean }) => setMcpServerEnabled(serverName, enabled))
 
   ipcMain.handle('feedback:rate', (_e: Electron.IpcMainInvokeEvent, { messageId, rating }: { messageId: string; rating: 'up' | 'down' | null }) => {

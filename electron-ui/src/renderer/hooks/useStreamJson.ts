@@ -308,6 +308,46 @@ Keep exercises focused and achievable. The goal is active learning through doing
     respondPermission(permissionId, true)
   }
 
+  // Build a CLI permission rule string from tool name + input
+  const buildPermissionRule = (toolName: string, toolInput: Record<string, unknown>): string => {
+    if ((toolName === 'Bash' || toolName === 'computer') && toolInput.command) {
+      const cmd = String(toolInput.command).trim()
+      const firstWord = cmd.split(/\s+/)[0]
+      if (firstWord) return `Bash(${firstWord} *)`
+    }
+    return toolName
+  }
+
+  // Write a permanent allow/deny rule to ~/.claude/settings.json
+  const writePermissionRule = async (type: 'allow' | 'deny', toolName: string, toolInput: Record<string, unknown>) => {
+    const rule = buildPermissionRule(toolName, toolInput)
+    try {
+      const settings = await window.electronAPI.configReadCLISettings()
+      const perms = (settings.permissions || {}) as { allow?: string[]; deny?: string[] }
+      const list = Array.isArray(perms[type]) ? perms[type]! : []
+      if (!list.includes(rule)) {
+        list.push(rule)
+      }
+      await window.electronAPI.configWriteCLISettings({
+        permissions: { ...perms, [type]: list },
+      })
+      const toastMsg = type === 'allow'
+        ? t('permission.ruleAddedAllow', { rule })
+        : t('permission.ruleAddedDeny', { rule })
+      useUiStore.getState().addToast('success', toastMsg)
+    } catch {
+      useUiStore.getState().addToast('warning', t('permissions.saveFailed'))
+    }
+  }
+
+  const alwaysAllowTool = (toolName: string, toolInput: Record<string, unknown>) => {
+    writePermissionRule('allow', toolName, toolInput)
+  }
+
+  const alwaysDenyTool = (toolName: string, toolInput: Record<string, unknown>) => {
+    writePermissionRule('deny', toolName, toolInput)
+  }
+
   const newConversation = async () => {
     const bridgeId = activeBridgeIdRef.current
     if (bridgeId) {
@@ -423,10 +463,44 @@ Keep exercises focused and achievable. The goal is active learning through doing
             if (pct >= 85 && !contextWarningShownRef.current) {
               contextWarningShownRef.current = true
               const addToast = useUiStore.getState().addToast
-              addToast('warning', t('chat.contextWarning', { percent: String(pct) }))
+              addToast('warning', t('token.warningThreshold', { pct: String(pct) }), 8000)
+            }
+            // Reset warning flag if usage drops below 85% (e.g. after compaction)
+            if (pct < 85 && contextWarningShownRef.current) {
+              contextWarningShownRef.current = false
             }
             // Auto-compact when context window nears capacity
             tryAutoCompact(usage.input_tokens ?? 0, usage.context_window)
+
+            // Compact completion detection (Iteration 519)
+            // When isCompacting is true and we get a result with context data, the compact is done
+            const chatState = useChatStore.getState()
+            if (chatState.isCompacting) {
+              chatState.setCompacting(false)
+              chatState.incrementCompactionCount()
+              const before = chatState.contextBeforeCompact
+              const afterPct = pct
+              if (before && before.total > 0) {
+                const beforePct = Math.round((before.used / before.total) * 100)
+                useUiStore.getState().addToast('success',
+                  t('compact.success', { before: String(beforePct), after: String(afterPct) })
+                )
+              } else {
+                useUiStore.getState().addToast('success', t('compact.complete'))
+              }
+              chatState.setContextBeforeCompact(null)
+            }
+          }
+
+          // Compact completion fallback: if isCompacting but no context_window data in result
+          {
+            const chatState = useChatStore.getState()
+            if (chatState.isCompacting && !(usage?.context_window && usage.context_window > 0)) {
+              chatState.setCompacting(false)
+              chatState.incrementCompactionCount()
+              useUiStore.getState().addToast('success', t('compact.complete'))
+              chatState.setContextBeforeCompact(null)
+            }
           }
           // Set response duration on the last assistant message
           if (sendTimestampRef.current > 0) {
@@ -553,12 +627,27 @@ Keep exercises focused and achievable. The goal is active learning through doing
             content: `⚠️ ${errText}`,
             timestamp: Date.now(),
           } as StandardChatMessage)
+          // Compact failure detection (Iteration 519)
+          const chatStateErr = useChatStore.getState()
+          if (chatStateErr.isCompacting) {
+            chatStateErr.setCompacting(false)
+            chatStateErr.setContextBeforeCompact(null)
+            useUiStore.getState().addToast('error', t('compact.failed'))
+          }
           stopStreamingAndReleaseSleep()
           break
         }
         case 'cli:processExit':
           denyPendingPermissions()
           activeBridgeIdRef.current = null
+          // Reset compact state if process exits mid-compact (Iteration 519)
+          {
+            const chatStateExit = useChatStore.getState()
+            if (chatStateExit.isCompacting) {
+              chatStateExit.setCompacting(false)
+              chatStateExit.setContextBeforeCompact(null)
+            }
+          }
           stopStreamingAndReleaseSleep()
           break
         case 'cli:permissionRequest': {
@@ -603,5 +692,5 @@ Keep exercises focused and achievable. The goal is active learning through doing
     }
   }, [])
 
-  return { sendMessage, abort, respondPermission, grantToolPermission, newConversation }
+  return { sendMessage, abort, respondPermission, grantToolPermission, alwaysAllowTool, alwaysDenyTool, newConversation }
 }

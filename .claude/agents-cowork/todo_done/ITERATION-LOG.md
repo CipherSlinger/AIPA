@@ -5401,3 +5401,96 @@ Status: SUCCESS (0 TypeScript errors, tsc --noEmit clean, 2590 modules)
 - [x] Build succeeds
 
 ---
+
+## Iteration 517 -- Token Context Usage Meter
+
+_Date: 2026-04-07 | Sprint: Superpower Phase 1.2_
+
+### Summary
+Real-time token usage bar in StatusBar. Parses `usage` fields from CLI result events and emits `contextUsage` updates. StatusBar shows a compact progress bar (green→yellow→red at 70%/90%) with click-to-expand popup showing input/output/cache token breakdown and estimated cost.
+
+### Files Changed
+- `src/renderer/components/layout/StatusBarTokenPopup.tsx` -- NEW: token detail popup with input/output/cache breakdown
+- `src/renderer/components/chat/ContextUsageMeter.tsx` -- Updated to emit tokenUsage events from stream result
+- `src/renderer/components/layout/StatusBar.tsx` -- Added token progress bar + popup integration
+- `src/renderer/store/chatStore.ts` -- Added tokenUsage state
+- `src/renderer/hooks/useStreamJson.ts` -- Parse usage from result events, emit contextUsage
+- `src/renderer/i18n/locales/en.json` -- Token usage i18n keys
+- `src/renderer/i18n/locales/zh-CN.json` -- Chinese translations
+
+### Acceptance Criteria
+- [x] Token usage bar visible in StatusBar after each AI reply
+- [x] Color changes green→yellow→red at 70%/90% thresholds
+- [x] Click opens popup with input/output/cache breakdown
+
+---
+
+## Iteration 518 -- Permissions Rules Management UI
+
+_Date: 2026-04-07 | Sprint: Superpower Phase 2.3_
+
+### Summary
+Settings page Permissions tab for managing `~/.claude/settings.json` allow/deny rules. New IPC layer (`config:readCLISettings` / `config:writeCLISettings`) reads/writes the CLI settings file. UI shows allow/deny rule lists with add/delete operations.
+
+### Files Changed
+- `src/main/config/cli-settings-manager.ts` -- NEW: read/write ~/.claude/settings.json
+- `src/renderer/components/settings/PermissionsSettingsPanel.tsx` -- NEW: Permissions tab UI
+- `src/main/ipc/index.ts` -- Added config:readCLISettings / config:writeCLISettings handlers
+- `src/preload/index.ts` -- Exposed new IPC channels
+- `src/renderer/components/settings/SettingsPanel.tsx` -- Added Permissions tab
+- `src/renderer/i18n/locales/en.json` -- Permissions i18n keys
+- `src/renderer/i18n/locales/zh-CN.json` -- Chinese translations
+
+### Acceptance Criteria
+- [x] Permissions tab shows allow/deny rule lists
+- [x] Add/delete rules persist to ~/.claude/settings.json
+- [x] Rules take effect for next CLI session
+
+---
+
+## Iteration 519 -- Compact Context Compression
+
+_Date: 2026-04-07 | Sprint: Superpower Phase 2.1_
+
+### Summary
+One-click context compression via `/compact` CLI command. CompactButton in ChatHeader sends the command through the active stream bridge. Shows loading state during compression and displays token savings via toast after completion. Auto-prompt at 85% context usage.
+
+### Files Changed
+- `src/renderer/components/chat/CompactButton.tsx` -- NEW: compact button with custom instruction popover
+- `src/renderer/components/chat/ChatHeader.tsx` -- Added CompactButton to toolbar
+- `src/renderer/components/chat/ChatInput.tsx` -- Compact integration
+- `src/renderer/components/chat/ChatPanel.tsx` -- Compact state plumbing
+- `src/renderer/hooks/useStreamJson.ts` -- Handle compact_result events
+- `src/renderer/store/chatStore.ts` -- Compact state
+- `src/renderer/i18n/locales/en.json` -- Compact i18n keys
+- `src/renderer/i18n/locales/zh-CN.json` -- Chinese translations
+
+### Acceptance Criteria
+- [x] Compact button in ChatHeader toolbar
+- [x] Sends /compact to active CLI session
+- [x] Shows token savings after completion
+
+---
+
+## Iteration 520 -- Plan Mode Toggle
+
+_Date: 2026-04-07 | Sprint: Superpower Phase 2.2_
+
+### Summary
+Plan Mode UI integration. PlanModeBanner appears above input when active. Toggling Plan Mode sends `/plan` command through active CLI session. Banner shows visual indicator with exit button. PermissionCard updated for better clarity. useChatPanelShortcuts updated.
+
+### Files Changed
+- `src/renderer/components/chat/PlanModeBanner.tsx` -- NEW: banner shown above textarea when Plan Mode active
+- `src/renderer/components/chat/MessageList.tsx` -- Plan Mode indicator
+- `src/renderer/components/chat/PermissionCard.tsx` -- Updated permission display
+- `src/renderer/components/chat/useChatPanelShortcuts.ts` -- Plan Mode shortcut
+- `src/renderer/store/chatStore.ts` -- isPlanMode state
+- `src/renderer/i18n/locales/en.json` -- Plan mode i18n keys
+- `src/renderer/i18n/locales/zh-CN.json` -- Chinese translations
+
+### Acceptance Criteria
+- [x] Plan Mode banner visible when active
+- [x] Toggle sends /plan command to CLI
+- [x] Visual indicator in chat area
+
+---

@@ -1,9 +1,9 @@
 // StatusBar — thin orchestrator after Iteration 313 decomposition
 // Sub-modules: statusBarConstants, useStatusBarTimers, useStreamingSpeed,
-//              StatusBarModelPicker, StatusBarPersonaPicker
+//              StatusBarModelPicker, StatusBarPersonaPicker, StatusBarTokenPopup
 
 import React, { useState } from 'react'
-import { PanelLeft, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Square, StopCircle, Pin, Settings, Gauge, Brain, Calendar, Wifi } from 'lucide-react'
+import { PanelLeft, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Square, StopCircle, Pin, Settings, Gauge, Brain, Calendar, Wifi, Archive, ClipboardList } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore, useSessionStore } from '../../store'
 import { StandardChatMessage } from '../../types/app.types'
 import { useT } from '../../i18n'
@@ -13,6 +13,7 @@ import { useStreamingSpeed } from './useStreamingSpeed'
 import { useMemoryUsage } from '../../hooks/useMemoryUsage'
 import StatusBarModelPicker from './StatusBarModelPicker'
 import StatusBarPersonaPicker from './StatusBarPersonaPicker'
+import StatusBarTokenPopup from './StatusBarTokenPopup'
 
 // Per-model pricing tiers (inspired by Claude Code modelCost.ts)
 // Format: [inputCostPerMtok, outputCostPerMtok]
@@ -48,6 +49,7 @@ export default function StatusBar() {
   const messages = useChatStore(s => s.messages)
   const prefs = usePrefsStore(s => s.prefs)
   const setPrefs = usePrefsStore(s => s.setPrefs)
+  const isPlanMode = useChatStore(s => s.isPlanMode)
   const toggleSidebar = useUiStore(s => s.toggleSidebar)
   const sidebarOpen = useUiStore(s => s.sidebarOpen)
   const alwaysOnTop = useUiStore(s => s.alwaysOnTop)
@@ -85,7 +87,9 @@ export default function StatusBar() {
 
   const chatMessages = messages.filter(m => m.role !== 'permission' && m.role !== 'plan')
   const [showCostBreakdown, setShowCostBreakdown] = useState(false)
+  const [showTokenPopup, setShowTokenPopup] = useState(false)
   const costPopupRef = React.useRef<HTMLDivElement>(null)
+  const tokenPopupRef = React.useRef<HTMLDivElement>(null)
   const firstMsgTs = chatMessages.length > 0
     ? (chatMessages[0] as StandardChatMessage).timestamp
     : null
@@ -114,6 +118,18 @@ export default function StatusBar() {
     return () => document.removeEventListener('mousedown', handler)
   }, [showCostBreakdown])
 
+  // Close token popup on outside click
+  React.useEffect(() => {
+    if (!showTokenPopup) return
+    const handler = (e: MouseEvent) => {
+      if (tokenPopupRef.current && !tokenPopupRef.current.contains(e.target as Node)) {
+        setShowTokenPopup(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showTokenPopup])
+
   // Close timer presets on outside click
   React.useEffect(() => {
     if (!focusTimer.showPresets) return
@@ -134,6 +150,12 @@ export default function StatusBar() {
     setPrefs({ extendedThinking: newVal })
     window.electronAPI.prefsSet('extendedThinking', newVal)
     useUiStore.getState().addToast('info', t(newVal ? 'thinking.enabled' : 'thinking.disabled'))
+  }
+
+  // Compact handler for token popup (Iteration 517)
+  const handleCompactFromTokenPopup = () => {
+    setShowTokenPopup(false)
+    window.dispatchEvent(new CustomEvent('aipa:compactRequest'))
   }
 
   return (
@@ -229,17 +251,80 @@ export default function StatusBar() {
           </span>
         )}
 
-        {/* Context window usage bar */}
-        {contextPct !== null && (
-          <div
-            style={{ display: 'flex', alignItems: 'center', gap: 4, opacity: 0.9 }}
-            title={t('toolbar.contextUsed', { percent: String(contextPct), used: fmtNumber(lastContextUsage!.used), total: fmtNumber(lastContextUsage!.total) })}
+        {/* Plan Mode badge (Iteration 520) */}
+        {isPlanMode && (
+          <button
+            onClick={() => {
+              useChatStore.getState().setPlanMode(false)
+              useUiStore.getState().addToast('info', t('plan.disabled'))
+            }}
+            title={t('plan.exitHint')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 3,
+              padding: '1px 6px', borderRadius: 4,
+              background: 'rgba(167, 139, 250, 0.25)', border: 'none',
+              color: '#e9d5ff', cursor: 'pointer',
+              fontSize: 9, fontWeight: 600, letterSpacing: 0.5,
+              transition: 'background 150ms',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(167, 139, 250, 0.4)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(167, 139, 250, 0.25)' }}
           >
-            <span style={{ fontSize: 9, opacity: 0.7 }}>{t('toolbar.context')}</span>
-            <div style={{ width: 60, height: 6, background: 'rgba(255,255,255,0.25)', borderRadius: 3, overflow: 'hidden' }}>
-              <div style={{ width: `${contextPct}%`, height: '100%', background: ctxColor, transition: 'width 0.3s', borderRadius: 3 }} />
-            </div>
-            <span style={{ fontSize: 10, opacity: 0.8 }}>{contextPct}%</span>
+            <ClipboardList size={9} />
+            {t('plan.statusLabel')}
+          </button>
+        )}
+
+        {/* Context window usage bar — clickable for token detail popup (Iteration 517) */}
+        {contextPct !== null && (
+          <div style={{ position: 'relative' }} ref={tokenPopupRef}>
+            <button
+              onClick={() => setShowTokenPopup(!showTokenPopup)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4, opacity: 0.9,
+                background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 0,
+              }}
+              title={t('toolbar.contextUsed', { percent: String(contextPct), used: fmtNumber(lastContextUsage!.used), total: fmtNumber(lastContextUsage!.total) })}
+            >
+              <span style={{ fontSize: 9, opacity: 0.7 }}>{t('toolbar.context')}</span>
+              <div
+                role="progressbar"
+                aria-valuenow={contextPct}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                style={{ width: 60, height: 4, background: 'rgba(255,255,255,0.25)', borderRadius: 3, overflow: 'hidden' }}
+              >
+                <div style={{ width: `${contextPct}%`, height: '100%', background: ctxColor, transition: 'width 0.3s ease, background 0.3s ease', borderRadius: 3 }} />
+              </div>
+              <span style={{ fontSize: 10, opacity: 0.8, fontVariantNumeric: 'tabular-nums' }}>
+                {fmtNumber(lastContextUsage!.used)}/{fmtNumber(lastContextUsage!.total)}
+              </span>
+              {contextPct >= 85 && !isStreaming && (
+                <span
+                  onClick={(e) => { e.stopPropagation(); handleCompactFromTokenPopup() }}
+                  title={t('chat.compactHint')}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 2,
+                    padding: '0 3px', fontSize: 9, fontWeight: 500,
+                    background: 'rgba(248,113,113,0.15)', borderRadius: 4,
+                    color: '#f87171', cursor: 'pointer',
+                  }}
+                >
+                  <Archive size={8} />
+                </span>
+              )}
+            </button>
+            {showTokenPopup && (
+              <StatusBarTokenPopup
+                lastUsage={lastUsage}
+                lastContextUsage={lastContextUsage}
+                contextPct={contextPct}
+                ctxColor={ctxColor}
+                totalSessionCost={totalSessionCost}
+                isStreaming={isStreaming}
+                onCompact={handleCompactFromTokenPopup}
+              />
+            )}
           </div>
         )}
 

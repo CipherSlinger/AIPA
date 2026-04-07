@@ -58,6 +58,12 @@ const electronAPI = {
   prefsGetAll: () => ipcRenderer.invoke('prefs:getAll'),
   prefsResetAll: () => ipcRenderer.invoke('prefs:resetAll'),
 
+  // ── CLI settings.json (Iteration 518) ──────
+  configReadCLISettings: () =>
+    ipcRenderer.invoke('config:readCLISettings') as Promise<Record<string, unknown>>,
+  configWriteCLISettings: (patch: Record<string, unknown>) =>
+    ipcRenderer.invoke('config:writeCLISettings', patch) as Promise<{ success?: boolean; error?: string }>,
+
   // ── File system ──────────────────────────
   fsListDir: (dirPath: string) => ipcRenderer.invoke('fs:listDir', dirPath),
   fsShowOpenDialog: () => ipcRenderer.invoke('fs:showOpenDialog'),

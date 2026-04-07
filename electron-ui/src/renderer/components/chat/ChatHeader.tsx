@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Search, Download, ClipboardCopy, Maximize2, Minimize2, Plus, FolderOpen, FileText, FilePlus2, RefreshCw, Shrink } from 'lucide-react'
+import { Search, Download, ClipboardCopy, Maximize2, Minimize2, Plus, FolderOpen, FileText, FilePlus2, RefreshCw } from 'lucide-react'
 import { useChatStore, useSessionStore, usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import ModelPicker from './ModelPicker'
@@ -11,6 +11,7 @@ import { CostBadge, ContextBadge, ContextProgressBar } from './ContextIndicator'
 import type { ConversationStats, BookmarkedMessage } from '../../hooks/useConversationStats'
 import type { SessionChanges } from '../../hooks/useSessionChanges'
 import SaveTemplateDialog from './SaveTemplateDialog'
+import CompactButton from './CompactButton'
 
 interface ChatHeaderProps {
   sessionTitle: string | null
@@ -34,6 +35,7 @@ interface ChatHeaderProps {
   onScrollToMessage: (idx: number) => void
   onExportBookmarks: () => void
   onSummarize: () => void
+  onCompact: (prompt: string) => void
 }
 
 /** Shared header button styling */
@@ -88,6 +90,7 @@ export default function ChatHeader({
   onScrollToMessage,
   onExportBookmarks,
   onSummarize,
+  onCompact,
 }: ChatHeaderProps) {
   const t = useT()
   const [isEditingTitle, setIsEditingTitle] = useState(false)
@@ -338,24 +341,15 @@ export default function ChatHeader({
         <RefreshCw size={15} />
       </button>
 
-      {/* Compact conversation context */}
-      <button
-        onClick={() => {
-          // Dispatch the same keyboard shortcut event that useChatPanelShortcuts listens for
-          window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, shiftKey: true, key: 'K', bubbles: true }))
-        }}
-        disabled={messageCount < 4 || isStreaming}
-        title={`${t('chat.compactBtn')} (Ctrl+Shift+K)`}
-        style={{
-          ...headerBtnStyle,
-          cursor: messageCount < 4 || isStreaming ? 'not-allowed' : 'pointer',
-          opacity: messageCount < 4 || isStreaming ? 0.3 : 1,
-        }}
-        onMouseEnter={(e) => hoverIn(e)}
-        onMouseLeave={(e) => hoverOut(e)}
-      >
-        <Shrink size={15} />
-      </button>
+      {/* Compact conversation context (Iteration 519: CompactButton with custom instruction popover) */}
+      <CompactButton
+        style={headerBtnStyle}
+        onSend={onCompact}
+        isStreaming={isStreaming}
+        messageCount={messageCount}
+        hoverIn={(e) => hoverIn(e)}
+        hoverOut={(e) => hoverOut(e)}
+      />
 
       {/* Bookmarks dropdown (extracted) */}
       <BookmarksPanel

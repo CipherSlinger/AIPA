@@ -66,7 +66,7 @@ export default function ChatPanel() {
     }
   }, [activeTabId, currentSessionTitle, updateTabTitle])
 
-  const { sendMessage, abort, respondPermission, grantToolPermission, newConversation } = useStreamJson()
+  const { sendMessage, abort, respondPermission, grantToolPermission, alwaysAllowTool, alwaysDenyTool, newConversation } = useStreamJson()
 
   // Extracted hooks
   const { elapsedStr } = useStreamingTimer(isStreaming)
@@ -290,6 +290,7 @@ export default function ChatPanel() {
         onScrollToMessage={handleScrollToMessage}
         onExportBookmarks={exportBookmarks}
         onSummarize={handleSummarize}
+        onCompact={sendMessage}
       />
 
       {/* Token usage progress bar */}
@@ -462,6 +463,8 @@ export default function ChatPanel() {
             messages={messages}
             onPermission={respondPermission}
             onGrantPermission={grantToolPermission}
+            onAlwaysAllow={alwaysAllowTool}
+            onAlwaysDeny={alwaysDenyTool}
             sessionId={currentSessionId}
             isStreaming={isStreaming}
             searchQuery={searchQuery}

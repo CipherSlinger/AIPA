@@ -1,5 +1,5 @@
 import React from 'react'
-import { AtSign, TerminalSquare, Mic, MicOff, ListPlus, Cpu, Paperclip, Camera, ShieldOff, Shield, Shrink, WrapText, AlignLeft } from 'lucide-react'
+import { AtSign, TerminalSquare, Mic, MicOff, ListPlus, Cpu, Paperclip, Camera, ShieldOff, Shield, Shrink, WrapText, AlignLeft, ClipboardList } from 'lucide-react'
 import { useT } from '../../i18n'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import ClipboardActionsMenu from './ClipboardActionsMenu'
@@ -24,6 +24,9 @@ interface InputToolbarProps {
   inputText: string
   multiLineMode?: boolean
   onToggleMultiLine?: () => void
+  isPlanMode?: boolean
+  onTogglePlanMode?: () => void
+  isStreaming?: boolean
 }
 
 export default function InputToolbar({
@@ -41,6 +44,9 @@ export default function InputToolbar({
   inputText,
   multiLineMode,
   onToggleMultiLine,
+  isPlanMode,
+  onTogglePlanMode,
+  isStreaming: isStreamingProp,
 }: InputToolbarProps) {
   const t = useT()
   const prefs = usePrefsStore(s => s.prefs)
@@ -223,6 +229,26 @@ export default function InputToolbar({
           </button>
         )
       })()}
+      {/* Plan Mode toggle (Iteration 520) */}
+      {onTogglePlanMode && (
+        <button
+          onClick={onTogglePlanMode}
+          disabled={isStreamingProp}
+          aria-pressed={isPlanMode}
+          title={isPlanMode ? t('plan.exitHint') : t('plan.enterHint')}
+          style={{
+            ...toolbarBtnStyle,
+            color: isPlanMode ? '#a78bfa' : 'var(--input-toolbar-icon)',
+            background: isPlanMode ? 'rgba(167, 139, 250, 0.15)' : 'none',
+            opacity: isStreamingProp ? 0.4 : 1,
+            cursor: isStreamingProp ? 'not-allowed' : 'pointer',
+          }}
+          onMouseEnter={(e) => { if (!isPlanMode && !isStreamingProp) toolbarHoverIn(e) }}
+          onMouseLeave={(e) => { if (!isPlanMode && !isStreamingProp) toolbarHoverOut(e) }}
+        >
+          <ClipboardList size={14} />
+        </button>
+      )}
       {/* Manual compact button */}
       <button
         onClick={() => window.dispatchEvent(new CustomEvent('aipa:compact'))}

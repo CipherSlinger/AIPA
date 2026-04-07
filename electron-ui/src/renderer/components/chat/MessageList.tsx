@@ -20,6 +20,8 @@ interface Props {
   messages: ChatMessage[]
   onPermission: (permissionId: string, allowed: boolean) => void
   onGrantPermission: (permissionId: string, toolName: string) => void
+  onAlwaysAllow?: (toolName: string, toolInput: Record<string, unknown>) => void
+  onAlwaysDeny?: (toolName: string, toolInput: Record<string, unknown>) => void
   sessionId?: string | null
   isStreaming?: boolean
   searchQuery?: string
@@ -30,7 +32,7 @@ interface Props {
   onFork?: (msgIdx: number) => void
 }
 
-export default function MessageList({ messages, onPermission, onGrantPermission, sessionId, isStreaming, searchQuery, searchCaseSensitive, highlightedMessageIdx, scrollToMessageIdx, onEdit, onFork }: Props) {
+export default function MessageList({ messages, onPermission, onGrantPermission, onAlwaysAllow, onAlwaysDeny, sessionId, isStreaming, searchQuery, searchCaseSensitive, highlightedMessageIdx, scrollToMessageIdx, onEdit, onFork }: Props) {
   const resolvePlan = useChatStore(s => s.resolvePlan)
   const rateMessage = useChatStore(s => s.rateMessage)
   const toggleBookmark = useChatStore(s => s.toggleBookmark)
@@ -98,6 +100,14 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
           message={msg}
           onAllow={() => onGrantPermission(msg.permissionId, msg.toolName)}
           onDeny={() => onPermission(msg.permissionId, false)}
+          onAlwaysAllow={onAlwaysAllow ? () => {
+            onAlwaysAllow(msg.toolName, msg.toolInput)
+            onGrantPermission(msg.permissionId, msg.toolName)
+          } : undefined}
+          onAlwaysDeny={onAlwaysDeny ? () => {
+            onAlwaysDeny(msg.toolName, msg.toolInput)
+            onPermission(msg.permissionId, false)
+          } : undefined}
         />
       )
     }
@@ -146,7 +156,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       />
       </MessageErrorBoundary>
     )
-  }, [onPermission, onGrantPermission, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery, searchCaseSensitive, showAvatarMap, showTimestampMap, onEdit, onFork, t, lastUserMsgId, assistantReplyMap, messages])
+  }, [onPermission, onGrantPermission, onAlwaysAllow, onAlwaysDeny, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery, searchCaseSensitive, showAvatarMap, showTimestampMap, onEdit, onFork, t, lastUserMsgId, assistantReplyMap, messages])
 
   return (
     <div style={{ height: '100%', position: 'relative', display: 'flex', flexDirection: 'column' }}>

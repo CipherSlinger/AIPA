@@ -497,6 +497,7 @@
     "tabs": {
       "general": "常规",
       "providers": "提供商",
+      "permissions": "权限",
       "personas": "角色",
       "mcp": "MCP 服务器",
       "about": "关于"
@@ -828,7 +829,26 @@
     "toolWebFetchDetail": "从互联网获取信息",
     "toolWebSearch": "网络搜索",
     "toolWebSearchDetail": "搜索网络",
-    "toolPerformAction": "执行操作"
+    "toolPerformAction": "执行操作",
+    "alwaysAllowTool": "始终允许",
+    "alwaysDenyTool": "始终拒绝",
+    "ruleAddedAllow": "规则已添加: {{rule}} -> 始终允许",
+    "ruleAddedDeny": "规则已添加: {{rule}} -> 始终拒绝"
+  },
+  "permissions": {
+    "allowRules": "允许规则",
+    "denyRules": "拒绝规则",
+    "addRule": "添加规则",
+    "noRules": "暂无规则",
+    "emptyState": "暂无权限规则。规则可以自动允许或拒绝特定工具操作。",
+    "rulePlaceholder": "例如 Bash(git *), Read, Write(**/*.ts)",
+    "formatHelp": "格式: 工具名 或 工具名(模式)。示例: Bash(git *), Read(**/*.ts), Write",
+    "ruleExists": "规则已存在",
+    "ruleAdded": "规则已添加: {{rule}}",
+    "ruleRemoved": "规则已移除: {{rule}}",
+    "loadError": "加载权限规则失败",
+    "saveFailed": "保存权限规则失败",
+    "conflictHint": "此规则同时出现在对立列表中"
   },
   "taskQueue": {
     "title": "任务队列",
@@ -983,7 +1003,15 @@
     "approved": "已批准",
     "rejected": "已拒绝",
     "approve": "批准并继续",
-    "reject": "拒绝"
+    "reject": "拒绝",
+    "toggle": "规划模式",
+    "enterHint": "进入规划模式 — Claude 仅规划不执行工具",
+    "exitHint": "退出规划模式 — 恢复正常执行",
+    "banner": "规划模式 — Claude 仅规划不执行",
+    "bannerExit": "退出",
+    "statusLabel": "规划",
+    "enabled": "规划模式已启用",
+    "disabled": "规划模式已禁用"
   },
   "tool": {
     "input": "输入",
@@ -1051,13 +1079,19 @@
     "tokenCopyFormatWithCache": "输入: {{input}} tokens, 输出: {{output}} tokens, 缓存: {{cache}} tokens"
   },
   "compact": {
+    "button": "压缩",
+    "buttonHint": "压缩对话上下文以释放 token 空间",
     "inProgress": "正在压缩对话...",
     "complete": "对话已压缩",
+    "success": "压缩完成。使用率: {{before}}% -> {{after}}%",
     "summary": "{{count}} 条消息已摘要",
     "threshold": "在 {{percent}}% 上下文使用率时压缩",
     "autoCompact": "自动压缩对话",
     "autoCompactHint": "当上下文窗口接近容量上限时自动摘要较早的消息",
-    "failed": "压缩失败，对话继续正常进行"
+    "customPlaceholder": "可选：输入压缩侧重指令",
+    "customHint": "Shift+点击输入自定义压缩指令",
+    "failed": "压缩失败，对话继续正常进行",
+    "count": "已压缩 {{count}} 次"
   },
   "tips": {
     "title": "你知道吗？",
@@ -1846,5 +1880,16 @@
     "maxReached": "最多允许 8 个标签页。请先关闭一个现有标签页。",
     "newTab": "新标签页",
     "closeOthers": "关闭其他标签页"
+  },
+  "token": {
+    "contextWindow": "上下文窗口",
+    "inputTokens": "输入 Tokens",
+    "outputTokens": "输出 Tokens",
+    "cacheTokens": "缓存 Tokens",
+    "estimatedCost": "预估费用",
+    "sessionTotal": "会话累计",
+    "warningThreshold": "上下文使用率已达 {{pct}}%，建议压缩对话或开启新会话。",
+    "compactAction": "压缩",
+    "dismiss": "忽略"
   }
 }

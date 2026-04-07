@@ -497,6 +497,7 @@
     "tabs": {
       "general": "General",
       "providers": "Providers",
+      "permissions": "Permissions",
       "personas": "Personas",
       "mcp": "MCP Servers",
       "about": "About"
@@ -824,7 +825,26 @@
     "toolWebFetchDetail": "Retrieve information from the internet",
     "toolWebSearch": "Web Search",
     "toolWebSearchDetail": "Search the web",
-    "toolPerformAction": "Perform an action"
+    "toolPerformAction": "Perform an action",
+    "alwaysAllowTool": "Always Allow",
+    "alwaysDenyTool": "Always Deny",
+    "ruleAddedAllow": "Rule added: {{rule}} -> always allow",
+    "ruleAddedDeny": "Rule added: {{rule}} -> always deny"
+  },
+  "permissions": {
+    "allowRules": "Allow Rules",
+    "denyRules": "Deny Rules",
+    "addRule": "Add Rule",
+    "noRules": "No rules configured",
+    "emptyState": "No permission rules configured. Rules let you auto-allow or deny specific tool actions.",
+    "rulePlaceholder": "e.g. Bash(git *), Read, Write(**/*.ts)",
+    "formatHelp": "Format: ToolName or ToolName(pattern). Examples: Bash(git *), Read(**/*.ts), Write",
+    "ruleExists": "Rule already exists",
+    "ruleAdded": "Rule added: {{rule}}",
+    "ruleRemoved": "Rule removed: {{rule}}",
+    "loadError": "Failed to load permission rules",
+    "saveFailed": "Failed to save permission rules",
+    "conflictHint": "This rule also appears in the opposite list"
   },
   "taskQueue": {
     "title": "Task Queue",
@@ -966,7 +986,15 @@
     "approved": "Approved",
     "rejected": "Rejected",
     "approve": "Approve & Continue",
-    "reject": "Reject"
+    "reject": "Reject",
+    "toggle": "Plan Mode",
+    "enterHint": "Enter Plan Mode — Claude will only plan, not execute tools",
+    "exitHint": "Exit Plan Mode — Resume normal execution",
+    "banner": "Plan Mode — Claude will only plan, not execute",
+    "bannerExit": "Exit",
+    "statusLabel": "PLAN",
+    "enabled": "Plan Mode enabled",
+    "disabled": "Plan Mode disabled"
   },
   "tool": {
     "input": "INPUT",
@@ -1034,13 +1062,19 @@
     "tokenCopyFormatWithCache": "Input: {{input}} tokens, Output: {{output}} tokens, Cache: {{cache}} tokens"
   },
   "compact": {
+    "button": "Compact",
+    "buttonHint": "Compress conversation context to free token space",
     "inProgress": "Compacting conversation...",
     "complete": "Conversation compacted",
+    "success": "Compact complete. Usage: {{before}}% -> {{after}}%",
     "summary": "{{count}} messages summarized",
     "threshold": "Compact at {{percent}}% context usage",
     "autoCompact": "Auto-compact conversations",
     "autoCompactHint": "Automatically summarize older messages when context window is nearly full",
-    "failed": "Compaction failed, conversation continues normally"
+    "customPlaceholder": "Optional: enter custom compact instruction",
+    "customHint": "Shift+click for custom compact instruction",
+    "failed": "Compaction failed, conversation continues normally",
+    "count": "Compacted {{count}} time(s)"
   },
   "tips": {
     "title": "Did you know?",
@@ -1828,5 +1862,16 @@
     "maxReached": "Maximum 8 tabs allowed. Close an existing tab first.",
     "newTab": "New tab",
     "closeOthers": "Close other tabs"
+  },
+  "token": {
+    "contextWindow": "Context Window",
+    "inputTokens": "Input Tokens",
+    "outputTokens": "Output Tokens",
+    "cacheTokens": "Cache Tokens",
+    "estimatedCost": "Estimated Cost",
+    "sessionTotal": "Session Total",
+    "warningThreshold": "Context usage at {{pct}}%. Consider compacting or starting a new session.",
+    "compactAction": "Compact",
+    "dismiss": "Dismiss"
   }
 }
