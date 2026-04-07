@@ -25,60 +25,48 @@ type: project
 - Covered in ITERATION-LOG.md with full details
 - Key milestones: WeChat-style UI (53), i18n (80-97), ChatPanel decomposition (111), Notes (120-125), AI Personas (200-204), Multi-model (296-305), Decomposition sprint (306-315), Workflow Canvas (401-402), Store decomposition (440)
 
-### Iterations 441-450 (2026-04-03)
-- **Retro**: retro-2026-04-03-iterations-441-450.md
-- **Key wins**: ChatPanel 682->492, ChatHeader 679->455, SessionList 718->607, first tester checkpoint in 55+ iterations (Iter 445)
-- **Version**: v1.1.117 -> v1.1.126
+### Iterations 441-470 Summary
+- Covered by retros: retro-2026-04-03-iterations-441-450.md through retro-2026-04-03-iterations-461-470.md
+- Key wins: All decomposition debt resolved, conversation branching, welcome adaptive layout, daily planner, focus timer, workflow editor+canvas
+- Version: v1.1.117 -> v1.1.146
 
-### Iterations 451-460 (2026-04-03)
-- **Retro**: retro-2026-04-03-iterations-451-460.md
-- **Key wins**: All decomposition debt resolved (Message 602->416, SessionList 607->469, ChatInput 562->453, MessageList 517->359, WelcomeScreen decomposed into 3 sub-components)
-- **Major features**: Conversation branching (fork/badge/compare), Welcome adaptive layout, Per-session unread badges, Workflow detail view in main panel
-- **Issues**: Zero tester checkpoints (4th consecutive retro flagging this), concurrent agent collision on Iter 458-460
-- **Version**: v1.1.127 -> v1.1.136
-- **Next forced retro**: After Iteration 470
-- **Next mandatory tester checkpoint**: Iteration 465
+### Iterations 471-509 (2026-04-06) -- COMPENSATORY RETRO
+- **Retro**: retro-2026-04-06-iterations-471-509.md
+- **471-479**: Workflow canvas polish (dot-grid bg, collapsible nodes, context menu, dash animation, step search, duration tracking)
+- **488**: Mega-bundle of 12 sourcemap features (BAD: violated one-feature-per-iteration)
+- **489**: Speculative execution
+- **490-509**: Sourcemap utility porting + application sprint (prompt keywords, memory monitor, circular buffer, formatUtils, stringUtils, arrayUtils, hashUtils, setUtils, objectGroupBy, sequential, withResolvers)
+- **Dead code**: setUtils.ts, objectGroupBy.ts, sequential.ts, useTimeout.ts (zero consumers)
+- **Issues**: 39 iterations without retro (4x limit), 8 skipped iteration numbers (480-487), zero tester checkpoints (6th consecutive retro flagging)
+- **Version**: v1.1.146 -> v1.1.158 (estimated)
+- **Next forced retro**: After Iteration 519
 
-### Iterations 461-464 (2026-04-03)
-- **Iteration 461**: AvatarPicker Portal fix (z-index/occlusion bug), v1.1.137
-- **Iteration 462**: Rich content preview (file type icons in ToolUseBlock, image inline preview with Lightbox, URL preview cards via new `url:fetchMeta` IPC), v1.1.138
-- **Iteration 463**: Clipboard instant actions (content type detection engine, unified PASTE_ACTIONS registry, type-aware paste chips for code/url/long-text), v1.1.139
-- **Iteration 464**: Chat UX polish (ScrollToBottomFab, TypingStatus, SessionEmptyState), v1.1.139 (no version bump, committed by concurrent agent)
-- **Completed PRDs**: prd-avatar-picker-fix-v1, prd-rich-content-preview-v1, prd-clipboard-instant-actions-v1, prd-chat-ux-polish-v1
-- **Remaining PRDs in todo/**: prd-daily-planner-v1, prd-smart-quick-actions-v1
-- **Next forced retro**: After Iteration 470 (6 more iterations)
-- **Tester**: Not invoked yet in this batch. Mandatory at Iteration 465.
-
-### Iterations 465-470 (2026-04-03)
-- **Retro**: retro-2026-04-03-iterations-461-470.md
-- **Iteration 465**: Quick Todo List sidebar panel (TasksPanel.tsx, Ctrl+8, persistence via prefsStore), v1.1.141
-- **Iteration 466**: Quick Reminders + AI Daily Briefing (DailySummaryCard, REMINDER_PRESETS, 20 rotating tips), v1.1.142
-- **Iteration 467**: Enhanced Focus Timer (preset durations, desktop notification on completion), v1.1.143
-- **Iteration 468**: Remove Notifications tab + Splash screen cleanup (removed NotificationPanel, splash div/scripts), v1.1.144
-- **Iteration 469**: Workflow integrated editor+canvas view (WorkflowDetailPage rewrite: inline editing, live canvas preview), v1.1.145
-- **Iteration 470**: Dead code cleanup, shortcut fixes (NotificationPanel stub, toast params fix, Ctrl+Shift+E export, cheatsheet update), v1.1.146
-- **Key wins**: Strong personal-assistant alignment (tasks, reminders, daily briefing, focus timer), user feedback items all resolved
-- **Issues**: Zero tester checkpoints (5th consecutive retro flagging), workflow toast params bug, PRD files not cleaned up due to permission restrictions
-- **Version**: v1.1.141 -> v1.1.146
-- **Next forced retro**: After Iteration 480
-
-### File Size Watch List (as of Iter 460)
+### File Size Watch List (as of Iter 509)
 
 | File | Current | Status |
 |------|---------|--------|
 | skillMarketplace.ts | 1860 | ACCEPTED (data file) |
-| useStreamJson.ts | 590 | P2 WATCH (approaching 600) |
-| ChatPanel.tsx | 542 | P2 MONITOR (grew from branching) |
-| All others | <500 | RESOLVED |
+| WorkflowCanvas.tsx | 713 | P1 DECOMPOSE |
+| TasksPanel.tsx | 689 | P1 DECOMPOSE |
+| WorkflowDetailPage.tsx | 633 | P1 DECOMPOSE |
+| useStreamJson.ts | 601 | P2 WATCH |
+| MemoryPanel.tsx | 591 | P2 WATCH |
+| ChatPanel.tsx | 575 | P2 WATCH |
+| StatusBar.tsx | 556 | P2 MONITOR |
+| ChatInput.tsx | 508 | OK |
 
 ### Recurring Issues (track across retros)
 
-1. **Tester non-invocation**: Flagged in retros for 432-440, 441-450, 451-460. Only 1 actual checkpoint (Iter 445) in 30 iterations. New P0 action: hard blocking gate at N % 5 === 0.
-2. **PRD archival**: Flagged 3x. Still manual.
-3. **Concurrent agent collision**: First in 451-460. Two agents modified same files.
+1. **Tester non-invocation**: Flagged in 6 consecutive retros (432-509). Only 1 actual checkpoint (Iter 445) in 70+ iterations. The structural fix (hard gate at leader level) has never been enforced because leader was not invoked.
+2. **PRD archival**: Historically flagged. Cleaned up manually by leader in retro-2026-04-06.
+3. **Iteration number discipline**: New issue in 471-509. 8 numbers skipped, mega-bundle at 488.
+4. **Dead code from utility porting**: New issue. 4 files with zero consumers shipped.
 
 ### Key Architectural Decisions (latest)
 
 - **Per-session unread tracking**: `unreadCounts: Record<string, number>` in uiStore
 - **Workflow detail view**: `mainView: 'workflow-detail'` -> WorkflowDetailPage in main panel
 - **Conversation branching**: Fork via `session:fork` IPC, metadata in `prefs.forkMap`
+- **Utility library**: stringUtils, formatUtils, arrayUtils, hashUtils, CircularBuffer, wordSlug, formatBriefTimestamp
+- **Speculative execution**: Isolated sandbox for predicted prompts
+- **Prompt keyword detection**: Keep-going banner + negative hint toast

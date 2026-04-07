@@ -5232,3 +5232,23 @@ Applied `count()` from arrayUtils to `useConversationStats.ts` to replace `filte
 
 ### Build
 Status: SUCCESS
+
+---
+
+## Iteration 509 — Apply count to sessionUtils and memoryConstants
+
+_Date: 2026-04-07 | Source: arrayUtils application_
+
+### Summary
+Applied `count()` from arrayUtils to `sessionUtils.ts` (session filtering) and `memoryConstants.ts` (memory matching), replacing `filter(...).length` patterns with the count utility for consistency across the codebase.
+
+### Files Changed
+- `sessionUtils.ts` — count() for session filtering
+- `memoryConstants.ts` — count() for memory matching
+
+### Build
+Status: SUCCESS
+
+---
+
+[RETRO] retro-2026-04-06-iterations-471-509.md completed (compensatory retro), covered Iterations 471-509 (39 iterations, gap 480-487 skipped). Next forced retro after Iteration 519.
