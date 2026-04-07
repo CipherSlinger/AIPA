@@ -1,6 +1,7 @@
 import { SessionMessage, StandardChatMessage, ToolUseInfo, ChatMessage } from '../../types/app.types'
 import { hashIndex } from '../../utils/hashUtils'
 import { capitalize } from '../../utils/stringUtils'
+import { count } from '../../utils/arrayUtils'
 
 // ── Tag preset colors ──
 export const TAG_PRESETS = [
@@ -181,10 +182,7 @@ export function generateAutoTags(title: string, lastPrompt: string): string[] {
   const scores: Record<string, number> = {}
 
   for (const [tag, keywords] of Object.entries(AUTO_TAG_KEYWORDS)) {
-    let score = 0
-    for (const kw of keywords) {
-      if (text.includes(kw)) score++
-    }
+    const score = count(keywords, kw => text.includes(kw))
     if (score > 0) scores[tag] = score
   }
 
