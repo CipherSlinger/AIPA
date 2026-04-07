@@ -20,9 +20,19 @@ export default function CanvasEdge({ from, to, status = 'idle' }: CanvasEdgeProp
   const endX = to.x + to.width / 2
   const endY = to.y
 
-  const midY = (startY + endY) / 2
+  // Use orthogonal path: down → across → down (avoids crossing node bodies)
+  const vertGap = endY - startY
+  const midY = startY + vertGap * 0.5
 
-  const d = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`
+  let d: string
+  if (Math.abs(endX - startX) < 2) {
+    // Straight vertical line
+    d = `M ${startX} ${startY} L ${endX} ${endY}`
+  } else {
+    // Smooth bezier elbow
+    d = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`
+  }
+
   const color = edgeColor(status)
   const markerId = `canvas-arrowhead-${status}`
 
@@ -34,7 +44,7 @@ export default function CanvasEdge({ from, to, status = 'idle' }: CanvasEdgeProp
         fill="none"
         stroke={color}
         strokeWidth={status === 'active' ? 2 : 1.5}
-        strokeOpacity={status === 'idle' ? 0.4 : 0.8}
+        strokeOpacity={status === 'idle' ? 0.35 : 0.85}
         markerEnd={`url(#${markerId})`}
       />
       {/* Flowing dash animation for active edges */}
@@ -42,11 +52,22 @@ export default function CanvasEdge({ from, to, status = 'idle' }: CanvasEdgeProp
         <path
           d={d}
           fill="none"
-          stroke="rgba(255,255,255,0.6)"
+          stroke="rgba(255,255,255,0.55)"
           strokeWidth={2}
           strokeDasharray="6 12"
           strokeLinecap="round"
-          style={{ animation: 'canvas-edge-flow 0.8s linear infinite' }}
+          style={{ animation: 'canvas-edge-flow 0.7s linear infinite' }}
+        />
+      )}
+      {/* Done checkmark glow */}
+      {status === 'done' && (
+        <path
+          d={d}
+          fill="none"
+          stroke="#22c55e"
+          strokeWidth={1.5}
+          strokeOpacity={0.15}
+          style={{ filter: 'blur(2px)' }}
         />
       )}
     </g>
@@ -62,7 +83,7 @@ export function CanvasEdgeDefs() {
           id={`canvas-arrowhead-${status}`}
           markerWidth="8"
           markerHeight="6"
-          refX="8"
+          refX="7"
           refY="3"
           orient="auto"
           markerUnits="strokeWidth"
@@ -70,7 +91,7 @@ export function CanvasEdgeDefs() {
           <path
             d="M 0 0 L 8 3 L 0 6 Z"
             fill={edgeColor(status)}
-            fillOpacity={status === 'idle' ? 0.4 : 0.8}
+            fillOpacity={status === 'idle' ? 0.35 : 0.85}
           />
         </marker>
       ))}

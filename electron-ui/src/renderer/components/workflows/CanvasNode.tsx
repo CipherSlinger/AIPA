@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useRef, useEffect } from 'react'
-import { Check, Loader, ChevronUp, ChevronDown, Copy, MessageSquare } from 'lucide-react'
+import { Check, Loader, ChevronUp, ChevronDown, Copy, MessageSquare, AlertCircle } from 'lucide-react'
 import { WorkflowStep } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { getPresetStepText } from './workflowConstants'
@@ -28,16 +28,22 @@ export const NODE_MIN_HEIGHT = 70
 export const NODE_COLLAPSED_HEIGHT = 36
 export const NODE_GAP_Y = 120
 
-const STATUS_STYLES: Record<StepStatus, {
+const STATUS_STYLES: Record<string, {
   borderColor: string
   borderLeft?: string
   opacity?: number
   animation?: string
+  glowColor?: string
 }> = {
   idle: { borderColor: 'var(--border)' },
-  pending: { borderColor: 'var(--border)', opacity: 0.6 },
-  running: { borderColor: 'var(--accent)', animation: 'canvas-node-pulse 1.5s ease-in-out infinite' },
-  completed: { borderColor: 'var(--border)', borderLeft: '3px solid #22c55e' },
+  pending: { borderColor: 'var(--border)', opacity: 0.55 },
+  running: {
+    borderColor: 'var(--accent)',
+    animation: 'canvas-node-pulse 1.5s ease-in-out infinite',
+    glowColor: 'rgba(var(--accent-rgb, 59,130,246), 0.08)',
+  },
+  completed: { borderColor: '#22c55e', borderLeft: '3px solid #22c55e' },
+  error: { borderColor: '#ef4444', borderLeft: '3px solid #ef4444' },
 }
 
 function StatusBadge({ status }: { status: StepStatus }) {
@@ -48,6 +54,7 @@ function StatusBadge({ status }: { status: StepStatus }) {
         width: 18, height: 18, borderRadius: '50%',
         background: '#22c55e', color: '#fff',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: '0 0 0 2px var(--bg-card, #1e1e1e)',
       }}>
         <Check size={11} strokeWidth={3} />
       </div>
@@ -61,6 +68,7 @@ function StatusBadge({ status }: { status: StepStatus }) {
         background: 'var(--accent)', color: '#fff',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         animation: 'canvas-spinner 1s linear infinite',
+        boxShadow: '0 0 0 2px var(--bg-card, #1e1e1e)',
       }}>
         <Loader size={11} strokeWidth={2.5} />
       </div>
@@ -100,7 +108,7 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, onCollapse, onClose, onCo
     background: 'var(--bg-card, #1e1e1e)',
     border: '1px solid var(--border)',
     borderRadius: 6,
-    boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+    boxShadow: '0 6px 20px rgba(0,0,0,0.35)',
     minWidth: 160,
     padding: '3px 0',
     userSelect: 'none',
@@ -169,6 +177,12 @@ export default function CanvasNode({
 }: CanvasNodeProps) {
   const t = useT()
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null)
+  const [outputExpanded, setOutputExpanded] = useState(false)
+
+  // Reset output expansion when node changes status
+  useEffect(() => {
+    if (status !== 'completed') setOutputExpanded(false)
+  }, [status])
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -193,11 +207,24 @@ export default function CanvasNode({
   const displayTitle = getPresetStepText(presetKey, index, 'title', t, step.title)
   const displayPrompt = getPresetStepText(presetKey, index, 'prompt', t, step.prompt)
   const promptPreview =
-    displayPrompt.length > 60 ? displayPrompt.slice(0, 60) + '...' : displayPrompt
+    displayPrompt.length > 60 ? displayPrompt.slice(0, 60) + '…' : displayPrompt
 
-  const statusStyle = STATUS_STYLES[status]
+  // Truncated output inline preview (shows on completed nodes)
+  const outputPreview = outputText
+    ? (outputText.length > 80 ? outputText.slice(0, 80) + '…' : outputText)
+    : null
+
+  const statusStyle = STATUS_STYLES[status] ?? STATUS_STYLES.idle
   const isActive = selected || status === 'running'
-  const nodeHeight = collapsed ? NODE_COLLAPSED_HEIGHT : NODE_MIN_HEIGHT
+
+  // Dynamic height: expand when showing output preview
+  const nodeHeight = collapsed
+    ? NODE_COLLAPSED_HEIGHT
+    : (status === 'completed' && outputExpanded && outputText)
+      ? NODE_MIN_HEIGHT + 56
+      : NODE_MIN_HEIGHT
+
+  const badgeColor = status === 'completed' ? '#22c55e' : status === 'running' ? 'var(--accent)' : 'var(--text-muted)'
 
   return (
     <>
@@ -220,21 +247,25 @@ export default function CanvasNode({
           top: y,
           width: width,
           height: nodeHeight,
-          background: 'var(--bg-card, var(--bg-sessionpanel))',
+          background: status === 'running'
+            ? (statusStyle.glowColor || 'var(--bg-card, var(--bg-sessionpanel))')
+            : 'var(--bg-card, var(--bg-sessionpanel))',
           border: isActive
             ? '1.5px solid var(--accent)'
             : `1.5px solid ${statusStyle.borderColor}`,
-          borderLeft: statusStyle.borderLeft || undefined,
+          borderLeft: (!isActive && statusStyle.borderLeft) ? statusStyle.borderLeft : undefined,
           borderRadius: 8,
-          padding: collapsed ? '0 12px' : '10px 12px',
+          padding: collapsed ? '0 12px' : '10px 12px 8px',
           cursor: 'grab',
           boxShadow: isActive
-            ? '0 2px 8px rgba(0,0,0,0.2)'
-            : '0 1px 3px rgba(0,0,0,0.12)',
-          transition: 'border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, height 0.2s ease',
+            ? '0 4px 16px rgba(0,0,0,0.25)'
+            : status === 'completed'
+              ? '0 2px 8px rgba(34,197,94,0.08)'
+              : '0 1px 3px rgba(0,0,0,0.12)',
+          transition: 'border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, height 0.2s ease, background 0.2s ease',
           userSelect: 'none',
           boxSizing: 'border-box',
-          opacity: dimmed ? 0.25 : (statusStyle.opacity ?? 1),
+          opacity: dimmed ? 0.2 : (statusStyle.opacity ?? 1),
           animation: statusStyle.animation || 'none',
           overflow: 'hidden',
           display: 'flex',
@@ -251,7 +282,7 @@ export default function CanvasNode({
             left: -8,
             width: 20,
             height: 20,
-            background: status === 'completed' ? '#22c55e' : 'var(--accent)',
+            background: status === 'completed' ? '#22c55e' : status === 'running' ? 'var(--accent)' : 'var(--text-muted)',
             color: '#fff',
             fontSize: 10,
             fontWeight: 700,
@@ -261,6 +292,7 @@ export default function CanvasNode({
             justifyContent: 'center',
             lineHeight: 1,
             transition: 'background 0.2s ease',
+            boxShadow: '0 0 0 2px var(--bg-main, #141414)',
           }}
         >
           {index + 1}
@@ -288,7 +320,7 @@ export default function CanvasNode({
               borderRadius: 3,
               display: 'flex',
               alignItems: 'center',
-              opacity: 0.6,
+              opacity: 0.5,
             }}
             title={collapsed ? 'Expand' : 'Collapse'}
           >
@@ -306,45 +338,99 @@ export default function CanvasNode({
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            paddingRight: 18,
+            paddingRight: 20,
             width: '100%',
           }}
         >
           {displayTitle}
         </div>
 
-        {/* Prompt preview — hidden when collapsed */}
+        {/* Prompt preview or output preview — hidden when collapsed */}
         {!collapsed && (
-          <div
-            style={{
-              fontSize: 10,
-              color: 'var(--text-muted)',
-              lineHeight: 1.4,
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-            }}
-          >
-            {promptPreview}
-          </div>
+          <>
+            {/* Show output preview on completed nodes (replaces prompt preview) */}
+            {status === 'completed' && outputText ? (
+              <div
+                style={{
+                  fontSize: 10,
+                  color: 'var(--text-secondary)',
+                  lineHeight: 1.45,
+                  width: '100%',
+                }}
+              >
+                <div style={{
+                  display: outputExpanded ? 'block' : '-webkit-box',
+                  WebkitLineClamp: outputExpanded ? undefined : 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  whiteSpace: outputExpanded ? 'pre-wrap' : undefined,
+                  wordBreak: 'break-word',
+                }}>
+                  {outputText}
+                </div>
+                {outputText.length > 80 && (
+                  <button
+                    onMouseDown={e => e.stopPropagation()}
+                    onClick={(e) => { e.stopPropagation(); setOutputExpanded(v => !v) }}
+                    style={{
+                      background: 'none', border: 'none', padding: 0,
+                      cursor: 'pointer', fontSize: 9, color: 'var(--accent)',
+                      marginTop: 2,
+                    }}
+                  >
+                    {outputExpanded ? 'Show less' : 'Show more'}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div
+                style={{
+                  fontSize: 10,
+                  color: 'var(--text-muted)',
+                  lineHeight: 1.4,
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                }}
+              >
+                {promptPreview}
+              </div>
+            )}
+          </>
         )}
 
-        {/* Duration chip — shown on completed nodes when not collapsed */}
+        {/* Duration chip */}
         {!collapsed && status === 'completed' && durationMs !== undefined && (
           <div style={{
-            marginTop: 4,
+            marginTop: 'auto',
+            paddingTop: 4,
             fontSize: 9,
             color: '#22c55e',
-            opacity: 0.8,
+            opacity: 0.75,
             fontWeight: 500,
+            alignSelf: 'flex-end',
           }}>
             {durationMs < 1000 ? `${durationMs}ms` : `${(durationMs / 1000).toFixed(1)}s`}
           </div>
         )}
+
+        {/* Running shimmer line */}
+        {status === 'running' && (
+          <div style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 2,
+            borderRadius: '0 0 8px 8px',
+            background: 'linear-gradient(90deg, transparent, var(--accent), transparent)',
+            animation: 'canvas-shimmer 1.6s ease-in-out infinite',
+          }} />
+        )}
       </div>
 
-      {/* Context menu (rendered outside transform div via portal-like positioning) */}
+      {/* Context menu */}
       {ctxMenu && (
         <NodeContextMenu
           x={ctxMenu.x}

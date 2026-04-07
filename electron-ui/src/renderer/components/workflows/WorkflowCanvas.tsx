@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
-import { Maximize2, Workflow as WorkflowIcon, ChevronsDownUp, ChevronsUpDown } from 'lucide-react'
+import { Maximize2, Workflow as WorkflowIcon, ChevronsDownUp, ChevronsUpDown, Map } from 'lucide-react'
 import { Workflow } from '../../types/app.types'
 import { useT } from '../../i18n'
 import CanvasNode, { NODE_WIDTH, NODE_MIN_HEIGHT, NODE_COLLAPSED_HEIGHT, NODE_GAP_Y } from './CanvasNode'
@@ -20,14 +20,118 @@ interface NodePosition {
   height: number
 }
 
-const MIN_ZOOM = 0.5
-const MAX_ZOOM = 2.0
+const MIN_ZOOM = 0.3
+const MAX_ZOOM = 2.5
 const ZOOM_STEP = 0.1
+
+// --- Minimap ---
+interface MinimapProps {
+  nodePositions: Record<string, NodePosition>
+  stepIds: string[]
+  stepStatuses: Record<string, string>
+  panX: number
+  panY: number
+  zoom: number
+  containerW: number
+  containerH: number
+}
+
+const MINIMAP_W = 120
+const MINIMAP_H = 80
+
+function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, containerW, containerH }: MinimapProps) {
+  if (stepIds.length === 0) return null
+
+  // Content bounds
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+  for (const id of stepIds) {
+    const p = nodePositions[id]
+    if (!p) continue
+    minX = Math.min(minX, p.x); minY = Math.min(minY, p.y)
+    maxX = Math.max(maxX, p.x + p.width); maxY = Math.max(maxY, p.y + p.height)
+  }
+  if (!isFinite(minX)) return null
+
+  const pad = 10
+  const contentW = maxX - minX + pad * 2
+  const contentH = maxY - minY + pad * 2
+
+  const scaleX = MINIMAP_W / contentW
+  const scaleY = MINIMAP_H / contentH
+  const scale = Math.min(scaleX, scaleY)
+
+  // Viewport rect in minimap coords
+  const vpX = (-panX / zoom - minX + pad) * scale
+  const vpY = (-panY / zoom - minY + pad) * scale
+  const vpW = (containerW / zoom) * scale
+  const vpH = (containerH / zoom) * scale
+
+  return (
+    <div style={{
+      position: 'absolute',
+      bottom: 36,
+      right: 8,
+      zIndex: 10,
+      background: 'rgba(var(--bg-card-rgb, 30,30,30), 0.85)',
+      backdropFilter: 'blur(6px)',
+      border: '1px solid var(--border)',
+      borderRadius: 5,
+      overflow: 'hidden',
+      width: MINIMAP_W,
+      height: MINIMAP_H,
+    }}>
+      <svg width={MINIMAP_W} height={MINIMAP_H} style={{ display: 'block' }}>
+        {stepIds.map(id => {
+          const p = nodePositions[id]
+          if (!p) return null
+          const st = stepStatuses[id] ?? 'idle'
+          const fill = st === 'completed' ? '#22c55e'
+            : st === 'running' ? 'var(--accent)'
+            : st === 'pending' ? 'rgba(120,120,120,0.4)'
+            : 'rgba(100,100,100,0.3)'
+          return (
+            <rect
+              key={id}
+              x={(p.x - minX + pad) * scale}
+              y={(p.y - minY + pad) * scale}
+              width={Math.max(2, p.width * scale)}
+              height={Math.max(2, p.height * scale)}
+              rx={2}
+              fill={fill}
+              fillOpacity={0.9}
+            />
+          )
+        })}
+        {/* Viewport indicator */}
+        <rect
+          x={vpX}
+          y={vpY}
+          width={Math.max(4, vpW)}
+          height={Math.max(4, vpH)}
+          fill="rgba(255,255,255,0.06)"
+          stroke="rgba(255,255,255,0.3)"
+          strokeWidth={0.8}
+          rx={1}
+        />
+      </svg>
+    </div>
+  )
+}
 
 export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowCanvasProps) {
   const t = useT()
   const containerRef = useRef<HTMLDivElement>(null)
   const execution = useWorkflowExecution(workflow)
+
+  // Track when execution started for ETA
+  const executionStartRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (execution.isRunning && executionStartRef.current === null) {
+      executionStartRef.current = Date.now()
+    } else if (!execution.isRunning) {
+      executionStartRef.current = null
+    }
+  }, [execution.isRunning])
 
   // Pan & zoom state
   const [panX, setPanX] = useState(0)
@@ -47,6 +151,10 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
   const [isPanning, setIsPanning] = useState(false)
   const panStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 })
 
+  // Space-key temporary pan mode
+  const [spaceDown, setSpaceDown] = useState(false)
+  const spaceRef = useRef(false)
+
   // Dragging node state
   const [draggingNode, setDraggingNode] = useState<string | null>(null)
   const dragStartRef = useRef({ x: 0, y: 0, nodeX: 0, nodeY: 0 })
@@ -60,8 +168,25 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
   // Collapsed nodes (compact mode)
   const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set())
 
-  // Iteration 488: 30s periodic agent summary during execution
-  // Inspired by Claude Code's services/AgentSummary/agentSummary.ts
+  // Minimap visibility
+  const [showMinimap, setShowMinimap] = useState(true)
+
+  // Container size for minimap viewport
+  const [containerSize, setContainerSize] = useState({ w: 0, h: 0 })
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(entries => {
+      for (const e of entries) {
+        setContainerSize({ w: e.contentRect.width, h: e.contentRect.height })
+      }
+    })
+    ro.observe(el)
+    setContainerSize({ w: el.clientWidth, h: el.clientHeight })
+    return () => ro.disconnect()
+  }, [])
+
+  // 30s periodic agent summary during execution
   const [agentSummary, setAgentSummary] = useState<string | null>(null)
   const summaryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const lastSummaryStepRef = useRef<string | null>(null)
@@ -84,12 +209,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
       if (activeStep.id === lastSummaryStepRef.current) return
       lastSummaryStepRef.current = activeStep.id
 
-      const completedOutputs = workflow.steps
-        .filter((_, i) => i < activeIdx)
-        .map(s => `Step "${s.name}": ${(execution.stepOutputs[s.id] || '').slice(0, 200)}`)
-        .join('\n')
-
-      const summaryText = `Running "${activeStep.name}"${completedOutputs ? ` — ${workflow.steps.filter((_, i) => i < activeIdx).length} steps done` : ''}`
+      const doneCount = workflow.steps.filter((_, i) => i < activeIdx).length
+      const summaryText = `Running "${activeStep.name}"${doneCount > 0 ? ` — ${doneCount} step${doneCount > 1 ? 's' : ''} done` : ''}`
       setAgentSummary(summaryText)
     }
 
@@ -223,7 +344,6 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
     const cw = container.clientWidth
     const ch = container.clientHeight
 
-    // Check if node is visible in current viewport
     const nodeScreenX = pos.x * zoom + panX
     const nodeScreenY = pos.y * zoom + panY
     const margin = 50
@@ -234,7 +354,6 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
       nodeScreenY + pos.height * zoom < ch - margin
 
     if (!isVisible) {
-      // Pan to center the active node
       const newPanX = cw / 2 - (pos.x + pos.width / 2) * zoom
       const newPanY = ch / 2 - (pos.y + pos.height / 2) * zoom
       setSmoothTransition(true)
@@ -311,22 +430,31 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
     }
   }, [draggingNode, zoom])
 
-  // --- Wheel zoom (toward cursor position) ---
+  // --- Wheel zoom (toward cursor position) — supports trackpad pinch via ctrlKey ---
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault()
-    const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP
     const container = containerRef.current
     if (!container) return
     const rect = container.getBoundingClientRect()
     const mouseX = e.clientX - rect.left
     const mouseY = e.clientY - rect.top
-    setZoom(prev => {
-      const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev + delta))
-      // Zoom toward mouse position: adjust pan so the point under cursor stays fixed
-      setPanX(px => mouseX - (mouseX - px) * (newZoom / prev))
-      setPanY(py => mouseY - (mouseY - py) * (newZoom / prev))
-      return newZoom
-    })
+
+    if (e.ctrlKey) {
+      // Trackpad pinch-to-zoom: deltaY is in pixels, use finer sensitivity
+      const sensitivity = 0.005
+      const delta = -e.deltaY * sensitivity
+      setZoom(prev => {
+        const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev * (1 + delta)))
+        setPanX(px => mouseX - (mouseX - px) * (newZoom / prev))
+        setPanY(py => mouseY - (mouseY - py) * (newZoom / prev))
+        return newZoom
+      })
+    } else {
+      // Mouse wheel or trackpad scroll (pan)
+      const scrollSensitivity = e.deltaMode === 0 ? 1 : 20 // pixel vs line mode
+      setPanX(px => px - e.deltaX * scrollSensitivity)
+      setPanY(py => py - e.deltaY * scrollSensitivity)
+    }
   }, [])
 
   // --- Zoom in/out helpers (zoom toward canvas center) ---
@@ -356,18 +484,34 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
     })
   }, [])
 
-  // --- Keyboard shortcuts (when canvas is hovered) ---
+  // --- Keyboard shortcuts ---
   useEffect(() => {
-    if (!isHovered) return
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't fire if typing in an input
+      if (e.key === ' ' && !spaceRef.current) {
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+        e.preventDefault()
+        spaceRef.current = true
+        setSpaceDown(true)
+      }
+      if (!isHovered) return
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
       if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomIn() }
       else if (e.key === '-') { e.preventDefault(); zoomOut() }
       else if (e.key === '0') { e.preventDefault(); fitToView() }
+      else if (e.key === 'm' || e.key === 'M') { setShowMinimap(v => !v) }
+    }
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === ' ') {
+        spaceRef.current = false
+        setSpaceDown(false)
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
   }, [isHovered, zoomIn, zoomOut, fitToView])
 
   // --- Sidebar step data ---
@@ -380,6 +524,13 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
   const sidebarStatus = sidebarStepId
     ? execution.stepStatuses[sidebarStepId] ?? 'idle'
     : 'idle'
+
+  // Cursor
+  const cursor = spaceDown
+    ? (isPanning ? 'grabbing' : 'grab')
+    : draggingNode
+      ? 'grabbing'
+      : 'default'
 
   // --- Empty state ---
   if (!workflow) {
@@ -425,10 +576,17 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
         flex: 1,
         position: 'relative',
         overflow: 'hidden',
-        cursor: isPanning ? 'grabbing' : 'grab',
+        cursor,
         background: 'var(--bg-main)',
       }}
-      onMouseDown={handleCanvasMouseDown}
+      onMouseDown={spaceDown ? handleCanvasMouseDown : undefined}
+      onClick={spaceDown ? undefined : (e => {
+        // Only deselect if clicking canvas background (not a node)
+        if (e.target === containerRef.current) {
+          setSelectedNode(null)
+          setSidebarStepId(null)
+        }
+      })}
       onWheel={handleWheel}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -438,15 +596,16 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
         completedCount={execution.completedCount}
         totalSteps={execution.totalSteps}
         isRunning={execution.isRunning}
+        startedAt={executionStartRef.current}
       />
 
-      {/* 30s agent summary banner during execution (Iteration 488) */}
+      {/* 30s agent summary banner during execution */}
       {agentSummary && execution.isRunning && (
         <div style={{
           position: 'absolute', top: 32, left: '50%', transform: 'translateX(-50%)',
           zIndex: 50, pointerEvents: 'none',
-          background: 'rgba(var(--accent-rgb,59,130,246),0.12)',
-          border: '1px solid rgba(var(--accent-rgb,59,130,246),0.25)',
+          background: 'rgba(var(--accent-rgb,59,130,246),0.1)',
+          border: '1px solid rgba(var(--accent-rgb,59,130,246),0.22)',
           borderRadius: 8, padding: '4px 12px',
           fontSize: 11, color: 'var(--text-primary)',
           whiteSpace: 'nowrap', maxWidth: '60%',
@@ -479,9 +638,9 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
             <circle
               cx={20 * zoom / 2}
               cy={20 * zoom / 2}
-              r={Math.max(0.5, zoom * 0.8)}
+              r={Math.max(0.5, zoom * 0.7)}
               fill="var(--border)"
-              fillOpacity={0.6}
+              fillOpacity={0.5}
             />
           </pattern>
         </defs>
@@ -495,116 +654,72 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
         right: 8,
         zIndex: 10,
         display: 'flex',
-        gap: 4,
+        gap: 3,
         alignItems: 'center',
-        background: 'rgba(var(--bg-card-rgb, 30, 30, 30), 0.8)',
+        background: 'rgba(var(--bg-card-rgb, 30, 30, 30), 0.85)',
         backdropFilter: 'blur(8px)',
         borderRadius: 6,
-        padding: '3px 6px',
+        padding: '3px 5px',
         border: '1px solid var(--border)',
         transition: 'top 0.2s ease',
       }}>
-        <button
-          onClick={(e) => { e.stopPropagation(); fitToView() }}
-          aria-label={t('workflow.fitToView')}
-          title={t('workflow.fitToView') + ' (0)'}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            borderRadius: 4,
-            padding: 3,
-            cursor: 'pointer',
-            color: 'var(--text-muted)',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
-        >
-          <Maximize2 size={14} />
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); zoomOut() }}
-          aria-label="Zoom out"
-          title="Zoom out (−)"
-          style={{
-            background: 'transparent',
-            border: 'none',
-            borderRadius: 4,
-            padding: '1px 5px',
-            cursor: 'pointer',
-            color: 'var(--text-muted)',
-            fontSize: 14,
-            lineHeight: 1,
-            fontWeight: 600,
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
-        >
-          −
-        </button>
+        {/* Fit to view */}
+        <ToolbarButton onClick={fitToView} title={t('workflow.fitToView') + ' (0)'} aria={t('workflow.fitToView')}>
+          <Maximize2 size={13} />
+        </ToolbarButton>
+        {/* Zoom out */}
+        <ToolbarButton onClick={zoomOut} title="Zoom out (−)" aria="Zoom out">
+          <span style={{ fontSize: 14, fontWeight: 600, lineHeight: 1 }}>−</span>
+        </ToolbarButton>
+        {/* Zoom % */}
         <span style={{
-          fontSize: 10,
-          color: 'var(--text-muted)',
-          minWidth: 36,
-          textAlign: 'center',
-          userSelect: 'none',
+          fontSize: 10, color: 'var(--text-muted)',
+          minWidth: 34, textAlign: 'center', userSelect: 'none',
         }}>
           {zoomPercent}%
         </span>
-        <button
-          onClick={(e) => { e.stopPropagation(); zoomIn() }}
-          aria-label="Zoom in"
-          title="Zoom in (+)"
-          style={{
-            background: 'transparent',
-            border: 'none',
-            borderRadius: 4,
-            padding: '1px 5px',
-            cursor: 'pointer',
-            color: 'var(--text-muted)',
-            fontSize: 14,
-            lineHeight: 1,
-            fontWeight: 600,
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
-        >
-          +
-        </button>
+        {/* Zoom in */}
+        <ToolbarButton onClick={zoomIn} title="Zoom in (+)" aria="Zoom in">
+          <span style={{ fontSize: 14, fontWeight: 600, lineHeight: 1 }}>+</span>
+        </ToolbarButton>
+
         {/* Separator */}
-        <div style={{ width: 1, height: 14, background: 'var(--border)', margin: '0 2px' }} />
+        <div style={{ width: 1, height: 14, background: 'var(--border)', margin: '0 1px' }} />
+
         {/* Collapse all */}
-        <button
-          onClick={(e) => { e.stopPropagation(); handleCollapseAll() }}
-          aria-label="Collapse all nodes"
-          title="Collapse all"
-          style={{
-            background: 'transparent', border: 'none', borderRadius: 4,
-            padding: 3, cursor: 'pointer', color: 'var(--text-muted)',
-            display: 'flex', alignItems: 'center',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
-        >
+        <ToolbarButton onClick={handleCollapseAll} title="Collapse all" aria="Collapse all nodes">
           <ChevronsDownUp size={13} />
-        </button>
+        </ToolbarButton>
         {/* Expand all */}
-        <button
-          onClick={(e) => { e.stopPropagation(); handleExpandAll() }}
-          aria-label="Expand all nodes"
-          title="Expand all"
-          style={{
-            background: 'transparent', border: 'none', borderRadius: 4,
-            padding: 3, cursor: 'pointer', color: 'var(--text-muted)',
-            display: 'flex', alignItems: 'center',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
-        >
+        <ToolbarButton onClick={handleExpandAll} title="Expand all" aria="Expand all nodes">
           <ChevronsUpDown size={13} />
-        </button>
+        </ToolbarButton>
+
+        {/* Separator */}
+        <div style={{ width: 1, height: 14, background: 'var(--border)', margin: '0 1px' }} />
+
+        {/* Minimap toggle */}
+        <ToolbarButton
+          onClick={() => setShowMinimap(v => !v)}
+          title="Toggle minimap (M)"
+          aria="Toggle minimap"
+          active={showMinimap}
+        >
+          <Map size={13} />
+        </ToolbarButton>
       </div>
+
+      {/* Space-key hint */}
+      {spaceDown && !isPanning && (
+        <div style={{
+          position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 20, pointerEvents: 'none',
+          background: 'rgba(0,0,0,0.5)', borderRadius: 4,
+          padding: '2px 8px', fontSize: 9, color: 'rgba(255,255,255,0.6)',
+        }}>
+          Hold & drag to pan
+        </div>
+      )}
 
       {/* SVG edge layer */}
       <svg
@@ -641,6 +756,15 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
 
       {/* Node layer */}
       <div
+        onMouseDown={!spaceDown ? (e => {
+          // Canvas background drag — only fire if no node was clicked
+          if (e.target === e.currentTarget) {
+            setSelectedNode(null)
+            setSidebarStepId(null)
+            setIsPanning(true)
+            panStartRef.current = { x: e.clientX, y: e.clientY, panX, panY }
+          }
+        }) : undefined}
         style={{
           position: 'absolute',
           inset: 0,
@@ -676,6 +800,20 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
         })}
       </div>
 
+      {/* Minimap */}
+      {showMinimap && (
+        <Minimap
+          nodePositions={nodePositions}
+          stepIds={workflow.steps.map(s => s.id)}
+          stepStatuses={execution.stepStatuses}
+          panX={panX}
+          panY={panY}
+          zoom={zoom}
+          containerW={containerSize.w}
+          containerH={containerSize.h}
+        />
+      )}
+
       {/* Node detail sidebar */}
       {sidebarStep && (
         <CanvasNodeSidebar
@@ -689,11 +827,11 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
         />
       )}
 
-      {/* CSS animations for execution states */}
+      {/* CSS animations */}
       <style>{`
         @keyframes canvas-node-pulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb, 59, 130, 246), 0.4); }
-          50% { box-shadow: 0 0 0 6px rgba(var(--accent-rgb, 59, 130, 246), 0); }
+          0%, 100% { box-shadow: 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0 rgba(var(--accent-rgb, 59, 130, 246), 0.4); }
+          50% { box-shadow: 0 4px 16px rgba(0,0,0,0.2), 0 0 0 6px rgba(var(--accent-rgb, 59, 130, 246), 0); }
         }
         @keyframes canvas-spinner {
           from { transform: rotate(0deg); }
@@ -707,7 +845,55 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
           from { stroke-dashoffset: 18; }
           to { stroke-dashoffset: 0; }
         }
+        @keyframes canvas-shimmer {
+          0%, 100% { left: -60%; width: 40%; }
+          50% { left: 120%; width: 40%; }
+        }
+        @keyframes canvas-bar-shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(300%); }
+        }
+        @keyframes canvas-progress-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(0.7); }
+        }
       `}</style>
     </div>
+  )
+}
+
+// Shared toolbar button component
+function ToolbarButton({
+  onClick, title, aria, children, active,
+}: {
+  onClick: () => void
+  title: string
+  aria: string
+  children: React.ReactNode
+  active?: boolean
+}) {
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onClick() }}
+      aria-label={aria}
+      title={title}
+      style={{
+        background: active ? 'var(--bg-hover)' : 'transparent',
+        border: 'none',
+        borderRadius: 4,
+        padding: '3px 4px',
+        cursor: 'pointer',
+        color: active ? 'var(--text)' : 'var(--text-muted)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: 22,
+        transition: 'background 0.15s, color 0.15s',
+      }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text)' }}
+      onMouseLeave={e => { e.currentTarget.style.background = active ? 'var(--bg-hover)' : 'transparent'; e.currentTarget.style.color = active ? 'var(--text)' : 'var(--text-muted)' }}
+    >
+      {children}
+    </button>
   )
 }
