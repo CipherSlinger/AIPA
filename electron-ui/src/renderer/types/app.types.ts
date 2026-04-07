@@ -243,6 +243,7 @@ export interface WorkflowStep {
   id: string              // 'step-' + timestamp + random
   title: string           // step display name (max 50 chars)
   prompt: string          // the prompt text to send (max 2000 chars)
+  canvasPos?: { x: number; y: number }   // user-dragged position override
 }
 
 export interface Workflow {

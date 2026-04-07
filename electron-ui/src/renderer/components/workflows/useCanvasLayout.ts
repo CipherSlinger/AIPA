@@ -17,14 +17,28 @@ export const MIN_ZOOM = 0.3
 export const MAX_ZOOM = 2.5
 const ZOOM_STEP = 0.1
 
-export function useCanvasLayout(workflow: Workflow | null, containerRef: React.RefObject<HTMLDivElement | null>) {
+export function useCanvasLayout(
+  workflow: Workflow | null,
+  containerRef: React.RefObject<HTMLDivElement | null>,
+  onPositionsChange?: (positions: Record<string, { x: number; y: number }>) => void,
+) {
   // Pan & zoom state
   const [panX, setPanX] = useState(0)
   const [panY, setPanY] = useState(0)
   const [zoom, setZoom] = useState(1)
 
-  // Node positions (custom overrides from dragging)
-  const [customPositions, setCustomPositions] = useState<Record<string, { x: number; y: number }>>({})
+  // Node positions (custom overrides from dragging) — seeded from step.canvasPos on mount
+  const [customPositions, setCustomPositions] = useState<Record<string, { x: number; y: number }>>(() => {
+    if (!workflow) return {}
+    const initial: Record<string, { x: number; y: number }> = {}
+    for (const step of workflow.steps) {
+      if (step.canvasPos) initial[step.id] = step.canvasPos
+    }
+    return initial
+  })
+
+  // Focused node for keyboard navigation (Direction 3)
+  const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null)
 
   // Panning state
   const [isPanning, setIsPanning] = useState(false)
@@ -116,13 +130,20 @@ export function useCanvasLayout(workflow: Workflow | null, containerRef: React.R
     return merged
   }, [defaultPositions, customPositions])
 
-  // Reset custom positions when workflow changes
+  // Reset custom positions when workflow changes — seed from step.canvasPos
   useEffect(() => {
-    setCustomPositions({})
+    const initial: Record<string, { x: number; y: number }> = {}
+    if (workflow) {
+      for (const step of workflow.steps) {
+        if (step.canvasPos) initial[step.id] = step.canvasPos
+      }
+    }
+    setCustomPositions(initial)
     setZoom(1)
     setPanX(0)
     setPanY(0)
     setCollapsedNodes(new Set())
+    setFocusedNodeId(null)
   }, [workflow?.id])
 
   // Fit to view
@@ -231,13 +252,17 @@ export function useCanvasLayout(workflow: Workflow | null, containerRef: React.R
     const handleMove = (e: MouseEvent) => {
       const dx = (e.clientX - dragStartRef.current.x) / zoom
       const dy = (e.clientY - dragStartRef.current.y) / zoom
-      setCustomPositions(prev => ({
-        ...prev,
-        [draggingNode]: {
-          x: dragStartRef.current.nodeX + dx,
-          y: dragStartRef.current.nodeY + dy,
-        },
-      }))
+      setCustomPositions(prev => {
+        const next = {
+          ...prev,
+          [draggingNode]: {
+            x: dragStartRef.current.nodeX + dx,
+            y: dragStartRef.current.nodeY + dy,
+          },
+        }
+        onPositionsChange?.(next)
+        return next
+      })
     }
     const handleUp = () => setDraggingNode(null)
     window.addEventListener('mousemove', handleMove)
@@ -246,7 +271,7 @@ export function useCanvasLayout(workflow: Workflow | null, containerRef: React.R
       window.removeEventListener('mousemove', handleMove)
       window.removeEventListener('mouseup', handleUp)
     }
-  }, [draggingNode, zoom])
+  }, [draggingNode, zoom, onPositionsChange])
 
   // --- Wheel zoom (toward cursor) — ctrlKey = trackpad pinch, else zoom ---
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -320,6 +345,30 @@ export function useCanvasLayout(workflow: Workflow | null, containerRef: React.R
       else if (e.key === '-') { e.preventDefault(); zoomOut() }
       else if (e.key === '0') { e.preventDefault(); fitToView() }
       else if (e.key === 'm' || e.key === 'M') { setShowMinimap(v => !v) }
+      else if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
+        if (!workflow || workflow.steps.length === 0) return
+        e.preventDefault()
+        setFocusedNodeId(prev => {
+          const steps = workflow.steps
+          const idx = steps.findIndex(s => s.id === prev)
+          const nextIdx = idx < 0 ? 0 : Math.min(idx + 1, steps.length - 1)
+          const nextId = steps[nextIdx].id
+          autoPanToNode(nextId)
+          return nextId
+        })
+      }
+      else if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
+        if (!workflow || workflow.steps.length === 0) return
+        e.preventDefault()
+        setFocusedNodeId(prev => {
+          const steps = workflow.steps
+          const idx = steps.findIndex(s => s.id === prev)
+          const prevIdx = idx < 0 ? steps.length - 1 : Math.max(idx - 1, 0)
+          const prevId = steps[prevIdx].id
+          autoPanToNode(prevId)
+          return prevId
+        })
+      }
     }
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.key === ' ') {
@@ -333,7 +382,14 @@ export function useCanvasLayout(workflow: Workflow | null, containerRef: React.R
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [isHovered, zoomIn, zoomOut, fitToView])
+  }, [isHovered, zoomIn, zoomOut, fitToView, workflow, autoPanToNode])
+
+  // --- Reset layout: clear all custom positions and notify store ---
+  const resetLayout = useCallback(() => {
+    setCustomPositions({})
+    onPositionsChange?.({})
+    setFocusedNodeId(null)
+  }, [onPositionsChange])
 
   return {
     // State
@@ -347,6 +403,7 @@ export function useCanvasLayout(workflow: Workflow | null, containerRef: React.R
     nodePositions,
     showMinimap,
     containerSize,
+    focusedNodeId,
 
     // Actions
     fitToView,
@@ -361,5 +418,7 @@ export function useCanvasLayout(workflow: Workflow | null, containerRef: React.R
     autoPanToNode,
     setIsHovered,
     setShowMinimap,
+    setFocusedNodeId,
+    resetLayout,
   }
 }

@@ -137,6 +137,20 @@ export function useWorkflowCrud() {
     addToast('success', t('workflow.installed', { name: preset.presetKey ? t(`workflow.preset.${preset.presetKey}`) : preset.name }))
   }, [workflows, saveWorkflows, addToast, t])
 
+  const updateStepPositions = useCallback((workflowId: string, positions: Record<string, { x: number; y: number }>) => {
+    saveWorkflows(workflows.map(w => {
+      if (w.id !== workflowId) return w
+      return {
+        ...w,
+        steps: w.steps.map(step => ({
+          ...step,
+          canvasPos: positions[step.id] ?? step.canvasPos,
+        })),
+        updatedAt: Date.now(),
+      }
+    }))
+  }, [workflows, saveWorkflows])
+
   const filteredWorkflows = useMemo(() => {
     if (!searchQuery.trim()) return workflows
     const q = searchQuery.toLowerCase()
@@ -174,5 +188,6 @@ export function useWorkflowCrud() {
     startEdit,
     saveEdit,
     installPreset,
+    updateStepPositions,
   }
 }
