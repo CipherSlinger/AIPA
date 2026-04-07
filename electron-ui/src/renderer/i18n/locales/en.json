@@ -124,6 +124,7 @@
     "statsCopied": "Stats copied",
     "words": "words",
     "chars": "chars",
+    "tokens": "tokens",
     "long": "long",
     "veryLong": "very long",
     "wpm": "WPM",

@@ -124,6 +124,7 @@
     "statsCopied": "统计已复制",
     "words": "词",
     "chars": "字符",
+    "tokens": "tokens",
     "long": "较长",
     "veryLong": "过长",
     "wpm": "字/分",
