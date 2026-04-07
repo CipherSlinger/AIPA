@@ -27,6 +27,10 @@ export interface ReminderItem {
   recurring?: boolean      // true if cron-based and fires more than once
 }
 
+// Module-level stable empty arrays — prevent new reference on every render when prefs key is absent
+const EMPTY_TASKS: TaskItem[] = []
+const EMPTY_REMINDERS: ReminderItem[] = []
+
 export function useTasksCrud() {
   const t = useT()
   const [showCompleted, setShowCompleted] = useState(true) // Iteration 488: 5s hide-delay
@@ -34,7 +38,7 @@ export function useTasksCrud() {
   const [, forceUpdate] = useState(0)
 
   // Load tasks from prefs — migrate legacy `done: boolean` to `status`
-  const rawTasks: TaskItem[] = usePrefsStore(s => (s.prefs as any).tasks || [])
+  const rawTasks: TaskItem[] = usePrefsStore(s => (s.prefs as any).tasks ?? EMPTY_TASKS)
   const tasks: TaskItem[] = useMemo(() =>
     rawTasks.map(t => ({
       ...t,
@@ -48,7 +52,7 @@ export function useTasksCrud() {
   }, [])
 
   // Load reminders from prefs
-  const reminders: ReminderItem[] = usePrefsStore(s => (s.prefs as any).reminders || [])
+  const reminders: ReminderItem[] = usePrefsStore(s => (s.prefs as any).reminders ?? EMPTY_REMINDERS)
   const setReminders = useCallback((newReminders: ReminderItem[]) => {
     usePrefsStore.getState().setPrefs({ reminders: newReminders } as any)
     window.electronAPI.prefsSet('reminders', newReminders)

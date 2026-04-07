@@ -5,6 +5,10 @@ import { useSessionStore, usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import type { TaskItem, ReminderItem } from '../sidebar/TasksPanel'
 
+// Stable empty arrays — prevent new reference when prefs key is absent
+const EMPTY_TASKS: TaskItem[] = []
+const EMPTY_REMINDERS: ReminderItem[] = []
+
 // Rotating productivity tips (20+)
 const TIPS = [
   'dailyBriefing.tips.breakTasks',
@@ -32,8 +36,8 @@ const TIPS = [
 export default function DailySummaryCard() {
   const t = useT()
   const sessions = useSessionStore(s => s.sessions)
-  const tasks: TaskItem[] = usePrefsStore(s => (s.prefs as any).tasks || [])
-  const reminders: ReminderItem[] = usePrefsStore(s => (s.prefs as any).reminders || [])
+  const tasks: TaskItem[] = usePrefsStore(s => (s.prefs as any).tasks ?? EMPTY_TASKS)
+  const reminders: ReminderItem[] = usePrefsStore(s => (s.prefs as any).reminders ?? EMPTY_REMINDERS)
 
   // Check if we should show the card
   const [dismissed, setDismissed] = useState(() => {

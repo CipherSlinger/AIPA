@@ -14,11 +14,13 @@ const WORKFLOW_EMOJIS = [
   '\u{1F30D}', '\u2699\uFE0F',
 ]
 
+const EMPTY_WORKFLOWS: Workflow[] = []
+
 export default function WorkflowEditorPage() {
   const { t } = useI18n()
   const editingId = useUiStore(s => s.editingWorkflowId)
   const addToast = useUiStore(s => s.addToast)
-  const workflows = usePrefsStore(s => s.prefs.workflows || [])
+  const workflows = usePrefsStore(s => s.prefs.workflows ?? EMPTY_WORKFLOWS)
   const existing = editingId ? workflows.find(w => w.id === editingId) : null
 
   const [formName, setFormName] = useState('')

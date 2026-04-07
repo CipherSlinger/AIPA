@@ -6,12 +6,15 @@ import React, { useMemo, useEffect, useState, useCallback, useRef, lazy, Suspens
 import { Check, Loader, Search, X as XIcon, Trash2, ArrowLeft } from 'lucide-react'
 import { usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
-import type { WorkflowStep } from '../../types/app.types'
+import type { WorkflowStep, Workflow } from '../../types/app.types'
 import { useWorkflowExecution } from './useWorkflowExecution'
 import type { StepStatus } from './useWorkflowExecution'
 import WorkflowDetailHeader from './WorkflowDetailHeader'
 
 const WorkflowCanvas = lazy(() => import('./WorkflowCanvas'))
+
+// Stable empty array — prevents new reference when workflows pref is absent
+const EMPTY_WORKFLOWS: Workflow[] = []
 
 const STEP_STATUS_BORDER: Record<StepStatus, string> = {
   idle: 'var(--card-border)',
@@ -43,7 +46,7 @@ export default function WorkflowDetailPage() {
   const t = useT()
   const workflowId = useUiStore(s => s.editingWorkflowId)
   const addToast = useUiStore(s => s.addToast)
-  const workflows = usePrefsStore(s => s.prefs.workflows || [])
+  const workflows = usePrefsStore(s => s.prefs.workflows ?? EMPTY_WORKFLOWS)
   const workflow = useMemo(() => workflows.find(w => w.id === workflowId) || null, [workflows, workflowId])
   const execution = useWorkflowExecution(workflow)
   const [searchQuery, setSearchQuery] = useState('')
