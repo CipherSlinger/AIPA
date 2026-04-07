@@ -1,9 +1,10 @@
 import React from 'react'
-import { Check, Copy } from 'lucide-react'
-import { WorkflowStep } from '../../types/app.types'
+import { Check, Copy, AlertCircle } from 'lucide-react'
+import { WorkflowStep, StandardChatMessage } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { getPresetStepText } from './workflowConstants'
 import type { StepStatus } from './useWorkflowExecution'
+import { useChatStore } from '../../store'
 
 interface CanvasNodeSidebarProps {
   step: WorkflowStep
@@ -12,6 +13,7 @@ interface CanvasNodeSidebarProps {
   status: StepStatus
   outputText?: string
   durationMs?: number
+  historyOutput?: string
   onClose: () => void
 }
 
@@ -48,7 +50,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
   )
 }
 
-export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, outputText, durationMs, onClose }: CanvasNodeSidebarProps) {
+export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, outputText, durationMs, historyOutput, onClose }: CanvasNodeSidebarProps) {
   const t = useT()
   const displayTitle = getPresetStepText(presetKey, stepIndex, 'title', t, step.title)
   const displayPrompt = getPresetStepText(presetKey, stepIndex, 'prompt', t, step.prompt)
@@ -64,7 +66,21 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
 
   const statusColor = status === 'completed' ? '#22c55e'
     : status === 'running' ? 'var(--accent)'
+    : status === 'error' ? '#ef4444'
     : 'var(--text-muted)'
+
+  // Derive streaming text from last streaming message in the chat store
+  const streamingText = useChatStore(s => {
+    if (status !== 'running') return ''
+    const msgs = s.messages
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const m = msgs[i]
+      if (m.role === 'assistant' && (m as StandardChatMessage).isStreaming) {
+        return (m as StandardChatMessage).content || ''
+      }
+    }
+    return ''
+  })
 
   return (
     <div
@@ -99,7 +115,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
           <div style={{
             flexShrink: 0,
             width: 18, height: 18, borderRadius: '50%',
-            background: status === 'completed' ? '#22c55e' : 'var(--accent)',
+            background: status === 'completed' ? '#22c55e' : status === 'error' ? '#ef4444' : 'var(--accent)',
             color: '#fff', fontSize: 9, fontWeight: 700,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
@@ -170,34 +186,64 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             marginBottom: 4,
           }}>
-            <div style={{
-              fontSize: 9, fontWeight: 600,
-              color: 'var(--text-muted)',
-              textTransform: 'uppercase', letterSpacing: 0.5,
-            }}>
-              {t('workflow.canvasOutput')}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <div style={{
+                fontSize: 9, fontWeight: 600,
+                color: 'var(--text-muted)',
+                textTransform: 'uppercase', letterSpacing: 0.5,
+              }}>
+                {t('workflow.canvasOutput')}
+              </div>
+              {historyOutput && (
+                <span style={{
+                  fontSize: 8, fontWeight: 600,
+                  color: 'var(--accent)',
+                  background: 'rgba(var(--accent-rgb,59,130,246),0.12)',
+                  border: '1px solid rgba(var(--accent-rgb,59,130,246),0.25)',
+                  borderRadius: 3,
+                  padding: '0px 4px',
+                  letterSpacing: 0.3,
+                }}>
+                  历史
+                </span>
+              )}
             </div>
-            {outputText && <CopyButton text={outputText} label="Copy output" />}
+            {(historyOutput || outputText) && (
+              <CopyButton text={historyOutput ?? outputText ?? ''} label="Copy output" />
+            )}
           </div>
           <div style={{
             fontSize: 10,
-            color: outputText ? 'var(--text-secondary)' : (status === 'running' ? 'var(--text-muted)' : 'var(--text-secondary)'),
+            color: (historyOutput || outputText) ? 'var(--text-secondary)' : (status === 'running' ? 'var(--text-muted)' : status === 'error' ? '#ef4444' : 'var(--text-secondary)'),
             lineHeight: 1.55,
             padding: '6px 8px',
-            background: 'var(--input-field-bg)',
+            background: historyOutput
+              ? 'rgba(var(--accent-rgb,59,130,246),0.04)'
+              : status === 'error'
+                ? 'rgba(239,68,68,0.06)'
+                : 'var(--input-field-bg)',
             borderRadius: 4,
-            border: outputText ? `1px solid ${status === 'completed' ? 'rgba(34,197,94,0.2)' : 'var(--border)'}` : '1px solid var(--border)',
-            fontStyle: outputText ? 'normal' : (status === 'running' ? 'italic' : 'normal'),
-            whiteSpace: outputText ? 'pre-wrap' : 'normal',
+            border: historyOutput
+              ? '1px solid rgba(var(--accent-rgb,59,130,246),0.2)'
+              : status === 'error'
+                ? '1px solid rgba(239,68,68,0.25)'
+                : outputText ? `1px solid ${status === 'completed' ? 'rgba(34,197,94,0.2)' : 'var(--border)'}` : '1px solid var(--border)',
+            fontStyle: (historyOutput || outputText || streamingText) ? 'normal' : (status === 'running' ? 'italic' : 'normal'),
+            whiteSpace: (historyOutput || outputText || streamingText) ? 'pre-wrap' : 'normal',
             wordBreak: 'break-word',
             maxHeight: 340,
-            overflowY: outputText ? 'auto' : 'hidden',
+            overflowY: (historyOutput || outputText || streamingText) ? 'auto' : 'hidden',
           }}>
-            {outputText
+            {historyOutput
+              ? historyOutput
+              : outputText
               ? outputText
+              : status === 'running' && streamingText
+              ? <>{streamingText}<span style={{ display: 'inline-block', animation: 'canvas-blink 1s step-end infinite', opacity: 1, color: 'var(--accent)' }}>▋</span></>
               : status === 'running' ? t('workflow.canvasRunning')
               : status === 'pending' ? t('workflow.canvasPending')
               : status === 'completed' ? t('workflow.canvasStepDone')
+              : status === 'error' ? '执行失败'
               : t('workflow.canvasNotStarted')}
           </div>
         </div>

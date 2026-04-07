@@ -11,6 +11,8 @@ import CanvasToolbar from './CanvasToolbar'
 import { useWorkflowExecution } from './useWorkflowExecution'
 import { useCanvasLayout } from './useCanvasLayout'
 import type { NodePosition } from './useCanvasLayout'
+import { useWorkflowHistory } from './useWorkflowHistory'
+import WorkflowRunHistory from './WorkflowRunHistory'
 
 interface WorkflowCanvasProps {
   workflow: Workflow | null
@@ -117,15 +119,51 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
   // Layout hook (pan, zoom, node positions, drag, collapse, minimap, Space key)
   const layout = useCanvasLayout(workflow, containerRef)
 
+  // Direction 6: execution history
+  const { runs, saveRun, clearHistory } = useWorkflowHistory(workflow?.id ?? null)
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(null)
+
   // Track when execution started for ETA
   const executionStartRef = useRef<number | null>(null)
+  const executionStartedAtRef = useRef<number | null>(null)
   useEffect(() => {
     if (execution.isRunning && executionStartRef.current === null) {
       executionStartRef.current = Date.now()
+      executionStartedAtRef.current = Date.now()
     } else if (!execution.isRunning) {
       executionStartRef.current = null
     }
   }, [execution.isRunning])
+
+  // Direction 6: save run when execution finishes
+  const prevIsRunningRef = useRef(false)
+  useEffect(() => {
+    const justFinished = prevIsRunningRef.current && !execution.isRunning
+    prevIsRunningRef.current = execution.isRunning
+    if (
+      justFinished &&
+      workflow &&
+      execution.completedCount > 0 &&
+      executionStartedAtRef.current !== null
+    ) {
+      const success = execution.completedCount === execution.totalSteps
+      saveRun({
+        workflowId: workflow.id,
+        startedAt: executionStartedAtRef.current,
+        finishedAt: Date.now(),
+        stepOutputs: { ...execution.stepOutputs },
+        stepDurations: { ...execution.stepDurations },
+        success,
+      })
+      executionStartedAtRef.current = null
+    }
+  }, [execution.isRunning, execution.completedCount, execution.totalSteps,
+      execution.stepOutputs, execution.stepDurations, workflow, saveRun])
+
+  // Direction 6: resolve historical data for display
+  const selectedRun = selectedRunId ? runs.find(r => r.runId === selectedRunId) : null
+  const historyStepOutputs = selectedRun ? selectedRun.stepOutputs : null
+  const historyStepDurations = selectedRun ? selectedRun.stepDurations : null
 
   // Selected node (for sidebar)
   const [selectedNode, setSelectedNode] = useState<string | null>(null)
@@ -177,6 +215,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
   useEffect(() => {
     setSelectedNode(null)
     setSidebarStepId(null)
+    setSelectedRunId(null)
   }, [workflow?.id])
 
   // --- Auto-pan to active node during execution ---
@@ -451,9 +490,9 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
               status={execution.stepStatuses[step.id] ?? 'idle'}
               presetKey={workflow.presetKey}
               collapsed={layout.collapsedNodes.has(step.id)}
-              outputText={execution.stepOutputs[step.id]}
+              outputText={historyStepOutputs ? (historyStepOutputs[step.id] ?? execution.stepOutputs[step.id]) : execution.stepOutputs[step.id]}
               dimmed={highlightStepIds !== null && highlightStepIds !== undefined && !highlightStepIds.has(step.id)}
-              durationMs={execution.stepDurations[step.id]}
+              durationMs={historyStepDurations ? (historyStepDurations[step.id] ?? execution.stepDurations[step.id]) : execution.stepDurations[step.id]}
               isFirst={idx === 0}
               isLast={idx === workflow.steps.length - 1}
               onSelect={handleNodeSelect}
@@ -487,9 +526,23 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
           status={sidebarStatus}
           outputText={sidebarStepId ? execution.stepOutputs[sidebarStepId] : undefined}
           durationMs={sidebarStepId ? execution.stepDurations[sidebarStepId] : undefined}
+          historyOutput={selectedRun && sidebarStepId ? (selectedRun.stepOutputs[sidebarStepId] ?? undefined) : undefined}
           onClose={closeSidebar}
         />
       )}
+
+      {/* Direction 6: History replay panel — bottom left */}
+      <div
+        style={{ position: 'absolute', bottom: 8, left: 8, zIndex: 15 }}
+        onClick={e => e.stopPropagation()}
+      >
+        <WorkflowRunHistory
+          runs={runs}
+          selectedRunId={selectedRunId}
+          onSelect={setSelectedRunId}
+          onClear={clearHistory}
+        />
+      </div>
 
       {/* CSS animations for execution states */}
       <style>{`
