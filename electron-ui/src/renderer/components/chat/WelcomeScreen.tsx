@@ -10,6 +10,9 @@ import WelcomeHero from './WelcomeHero'
 import WelcomeRecentPrompts from './WelcomeRecentPrompts'
 import WelcomeQuickActions from './WelcomeQuickActions'
 
+const EMPTY_PERSONAS: never[] = []
+const EMPTY_HISTORY: never[] = []
+
 interface Props {
   onSuggestion: (text: string, templateId?: string) => void
   onOpenSession?: (sessionId: string) => void
@@ -19,7 +22,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
   const t = useT()
   const [greeting, setGreeting] = useState(getGreetingKey())
   const sessions = useSessionStore(s => s.sessions)
-  const personas = usePrefsStore(s => s.prefs.personas) || []
+  const personas = usePrefsStore(s => s.prefs.personas ?? EMPTY_PERSONAS)
   const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
   const defaultPersonaId = usePrefsStore(s => s.prefs.activePersonaId)
   const activePersonaId = sessionPersonaId || defaultPersonaId
@@ -97,7 +100,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
   }, [onSuggestion, t])
 
   // Top prompts from prompt history (sorted by count, max 3)
-  const promptHistory = usePrefsStore(s => s.prefs.promptHistory) || []
+  const promptHistory = usePrefsStore(s => s.prefs.promptHistory ?? EMPTY_HISTORY)
   const topPrompts = useMemo(() => {
     return [...promptHistory]
       .filter(p => p.count >= 2)

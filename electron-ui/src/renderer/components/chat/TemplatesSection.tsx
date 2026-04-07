@@ -16,10 +16,12 @@ interface Props {
   onUseTemplate: (prompt: string) => void
 }
 
+const EMPTY_TEMPLATES: never[] = []
+
 export default function TemplatesSection({ onUseTemplate }: Props) {
   const t = useT()
   const addToast = useUiStore(s => s.addToast)
-  const customTemplates = usePrefsStore(s => s.prefs.customConversationTemplates) || []
+  const customTemplates = usePrefsStore(s => s.prefs.customConversationTemplates ?? EMPTY_TEMPLATES)
   const [activeCategory, setActiveCategory] = useState<'all' | TemplateCategory>('all')
 
   const allTemplates = useMemo(() => {

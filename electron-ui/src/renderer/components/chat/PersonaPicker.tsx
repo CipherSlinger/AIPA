@@ -5,12 +5,14 @@ import { useT } from '../../i18n'
 import { useClickOutside } from '../../hooks/useClickOutside'
 import type { Persona } from '../../types/app.types'
 
+const EMPTY_PERSONAS: Persona[] = []
+
 export default function PersonaPicker() {
   const t = useT()
   const [showPicker, setShowPicker] = useState(false)
   const pickerRef = useRef<HTMLDivElement>(null)
 
-  const personas: Persona[] = usePrefsStore(s => s.prefs.personas) || []
+  const personas = usePrefsStore(s => s.prefs.personas ?? EMPTY_PERSONAS)
   const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
   const sessionPersona = personas.find(p => p.id === sessionPersonaId)
 

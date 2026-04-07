@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, Settings, User, PanelLeftClose, PanelLeftOpen, Radio, CheckSquare, GitBranch } from 'lucide-react'
 import { useUiStore, useChatStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
@@ -240,7 +240,8 @@ export default function NavRail() {
   const isChannelActive = activeNavItem === 'channel' && sidebarTab === 'channel'
   const isTasksActive = activeNavItem === 'tasks' && sidebarTab === 'tasks'
   const isChangesActive = activeNavItem === 'changes' && sidebarTab === 'changes'
-  const changedFilesCount = useChatStore(s => new Set(s.changedFiles.map(f => f.filePath)).size)
+  const changedFiles = useChatStore(s => s.changedFiles)
+  const changedFilesCount = useMemo(() => new Set(changedFiles.map(f => f.filePath)).size, [changedFiles])
   const isStreaming = useChatStore(s => s.isStreaming)
   const isSettingsActive = useUiStore(s => s.settingsModalOpen)
   // Unread session count: sessions that received new messages while not being the active session

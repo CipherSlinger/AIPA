@@ -11,11 +11,13 @@ interface Props {
   onClose: () => void
 }
 
+const EMPTY_TEMPLATES: never[] = []
+
 export default function SaveTemplateDialog({ onClose }: Props) {
   const t = useT()
   const addToast = useUiStore(s => s.addToast)
   const messages = useChatStore(s => s.messages)
-  const customTemplates = usePrefsStore(s => s.prefs.customConversationTemplates) || []
+  const customTemplates = usePrefsStore(s => s.prefs.customConversationTemplates ?? EMPTY_TEMPLATES)
 
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
