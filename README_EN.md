@@ -94,6 +94,15 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 ### Workflows
 - Build multi-step prompt pipelines with the visual workflow editor
 - **Canvas Mode** — workflow steps displayed as a node graph with drag, pan, and zoom; real-time execution highlighting shows active/completed/pending nodes with a progress bar; zoom toward cursor, +/- buttons with keyboard shortcuts (+/−/0), status-colored edges (green=done, accent=active, muted=idle), moving dot-grid background, real AI output text in node sidebar; flowing dash animation on active edges; collapsible nodes (per-node or collapse-all/expand-all); right-click context menu with copy prompt/output; step list syncs live execution status; Run button disabled during execution; step search filter with canvas dim for non-matching nodes; per-step execution duration shown on nodes and sidebar
+  - **Error Awareness** — failed/aborted steps show a red badge and red left border on the node; sidebar displays "Execution Failed" with error details; inspect any failed step after abort
+  - **Node Position Persistence** — dragged node positions are saved to the workflow store (`canvasPos` field) and restored on next open — no need to re-arrange layouts
+  - **Keyboard Navigation** — use ↑↓ / Tab / Shift+Tab to move focus between nodes without clicking; review execution results step by step from the keyboard
+  - **Real-time Streaming Output in Sidebar** — click a running node to see live AI streaming text with a blinking cursor; automatically switches to final output on completion
+  - **Inline Title Editing** — double-click any node title to rename it in place; Enter to confirm, Escape to cancel; no editor required
+  - **Execution History Replay** — every run is auto-saved locally (up to 10 per workflow); the 🕐 button at the bottom-left lets you pick a past run and instantly replay all node outputs and durations
+  - **First/Last Node Visual Differentiation** — the first node gets an indigo left border + ▶ marker; the last node gets an amber border + ⚑ marker, making pipeline flow immediately clear
+  - **Viewport Culling** — off-screen nodes render as lightweight placeholders instead of full components, significantly improving frame rate when scrolling large workflows (50+ steps)
+  - **Context-Aware Toolbar** — a red "⏹ Abort" button appears on the left of the toolbar during execution; a green "▶ Rerun" button appears when all steps complete; both buttons auto-show/hide based on execution state
 - 6 preset workflows to get started instantly (weekly reports, code reviews, daily summaries, and more)
 - **Preset localization** — workflow names and descriptions automatically switch with system language
 
