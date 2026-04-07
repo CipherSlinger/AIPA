@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
-import { Maximize2, Workflow as WorkflowIcon } from 'lucide-react'
+import { Maximize2, Workflow as WorkflowIcon, ChevronsDownUp, ChevronsUpDown } from 'lucide-react'
 import { Workflow } from '../../types/app.types'
 import { useT } from '../../i18n'
-import CanvasNode, { NODE_WIDTH, NODE_MIN_HEIGHT, NODE_GAP_Y } from './CanvasNode'
+import CanvasNode, { NODE_WIDTH, NODE_MIN_HEIGHT, NODE_COLLAPSED_HEIGHT, NODE_GAP_Y } from './CanvasNode'
 import CanvasEdge, { CanvasEdgeDefs } from './CanvasEdge'
 import CanvasProgressBar from './CanvasProgressBar'
 import CanvasNodeSidebar from './CanvasNodeSidebar'
@@ -10,6 +10,7 @@ import { useWorkflowExecution } from './useWorkflowExecution'
 
 interface WorkflowCanvasProps {
   workflow: Workflow | null
+  highlightStepIds?: Set<string> | null  // null = no filter, Set = show only these
 }
 
 interface NodePosition {
@@ -23,7 +24,7 @@ const MIN_ZOOM = 0.5
 const MAX_ZOOM = 2.0
 const ZOOM_STEP = 0.1
 
-export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
+export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowCanvasProps) {
   const t = useT()
   const containerRef = useRef<HTMLDivElement>(null)
   const execution = useWorkflowExecution(workflow)
@@ -53,21 +54,90 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
   // Smooth transition flag for programmatic moves (fit-to-view, auto-pan)
   const [smoothTransition, setSmoothTransition] = useState(false)
 
-  // Compute default positions for all nodes (top-to-bottom layout)
+  // Hover state for keyboard shortcut scope
+  const [isHovered, setIsHovered] = useState(false)
+
+  // Collapsed nodes (compact mode)
+  const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set())
+
+  // Iteration 488: 30s periodic agent summary during execution
+  // Inspired by Claude Code's services/AgentSummary/agentSummary.ts
+  const [agentSummary, setAgentSummary] = useState<string | null>(null)
+  const summaryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const lastSummaryStepRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    const isRunning = execution.isRunning
+    if (!isRunning || !workflow) {
+      if (summaryIntervalRef.current) {
+        clearInterval(summaryIntervalRef.current)
+        summaryIntervalRef.current = null
+      }
+      if (!isRunning) setAgentSummary(null)
+      return
+    }
+
+    const generateSummary = () => {
+      const activeIdx = execution.activeStepIndex
+      const activeStep = activeIdx >= 0 ? workflow.steps[activeIdx] : null
+      if (!activeStep) return
+      if (activeStep.id === lastSummaryStepRef.current) return
+      lastSummaryStepRef.current = activeStep.id
+
+      const completedOutputs = workflow.steps
+        .filter((_, i) => i < activeIdx)
+        .map(s => `Step "${s.name}": ${(execution.stepOutputs[s.id] || '').slice(0, 200)}`)
+        .join('\n')
+
+      const summaryText = `Running "${activeStep.name}"${completedOutputs ? ` — ${workflow.steps.filter((_, i) => i < activeIdx).length} steps done` : ''}`
+      setAgentSummary(summaryText)
+    }
+
+    generateSummary()
+    summaryIntervalRef.current = setInterval(generateSummary, 30_000)
+
+    return () => {
+      if (summaryIntervalRef.current) clearInterval(summaryIntervalRef.current)
+    }
+  }, [execution.isRunning, execution.activeStepIndex, workflow, execution.stepOutputs])
+
+  const handleToggleCollapse = useCallback((stepId: string) => {
+    setCollapsedNodes(prev => {
+      const next = new Set(prev)
+      if (next.has(stepId)) next.delete(stepId)
+      else next.add(stepId)
+      return next
+    })
+  }, [])
+
+  const handleCollapseAll = useCallback(() => {
+    if (!workflow) return
+    setCollapsedNodes(new Set(workflow.steps.map(s => s.id)))
+  }, [workflow])
+
+  const handleExpandAll = useCallback(() => {
+    setCollapsedNodes(new Set())
+  }, [])
+
+  // Compute default positions for all nodes (top-to-bottom layout, respects collapsed height)
   const defaultPositions = useMemo(() => {
     if (!workflow) return {}
     const positions: Record<string, NodePosition> = {}
     const startX = 0
-    workflow.steps.forEach((step, idx) => {
+    let yOffset = 0
+    workflow.steps.forEach((step) => {
+      const isCollapsed = collapsedNodes.has(step.id)
+      const h = isCollapsed ? NODE_COLLAPSED_HEIGHT : NODE_MIN_HEIGHT
       positions[step.id] = {
         x: startX,
-        y: idx * NODE_GAP_Y,
+        y: yOffset,
         width: NODE_WIDTH,
-        height: NODE_MIN_HEIGHT,
+        height: h,
       }
+      yOffset += h + (NODE_GAP_Y - NODE_MIN_HEIGHT)
     })
     return positions
-  }, [workflow])
+  }, [workflow, collapsedNodes])
 
   // Merged positions: default + custom overrides
   const nodePositions = useMemo(() => {
@@ -90,6 +160,7 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
     setZoom(1)
     setPanX(0)
     setPanY(0)
+    setCollapsedNodes(new Set())
   }, [workflow?.id])
 
   // Fit to view
@@ -240,12 +311,64 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
     }
   }, [draggingNode, zoom])
 
-  // --- Wheel zoom ---
+  // --- Wheel zoom (toward cursor position) ---
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault()
     const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP
-    setZoom(prev => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev + delta)))
+    const container = containerRef.current
+    if (!container) return
+    const rect = container.getBoundingClientRect()
+    const mouseX = e.clientX - rect.left
+    const mouseY = e.clientY - rect.top
+    setZoom(prev => {
+      const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev + delta))
+      // Zoom toward mouse position: adjust pan so the point under cursor stays fixed
+      setPanX(px => mouseX - (mouseX - px) * (newZoom / prev))
+      setPanY(py => mouseY - (mouseY - py) * (newZoom / prev))
+      return newZoom
+    })
   }, [])
+
+  // --- Zoom in/out helpers (zoom toward canvas center) ---
+  const zoomIn = useCallback(() => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const cx = rect.width / 2
+    const cy = rect.height / 2
+    setZoom(prev => {
+      const newZoom = Math.min(MAX_ZOOM, prev + ZOOM_STEP)
+      setPanX(px => cx - (cx - px) * (newZoom / prev))
+      setPanY(py => cy - (cy - py) * (newZoom / prev))
+      return newZoom
+    })
+  }, [])
+
+  const zoomOut = useCallback(() => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const cx = rect.width / 2
+    const cy = rect.height / 2
+    setZoom(prev => {
+      const newZoom = Math.max(MIN_ZOOM, prev - ZOOM_STEP)
+      setPanX(px => cx - (cx - px) * (newZoom / prev))
+      setPanY(py => cy - (cy - py) * (newZoom / prev))
+      return newZoom
+    })
+  }, [])
+
+  // --- Keyboard shortcuts (when canvas is hovered) ---
+  useEffect(() => {
+    if (!isHovered) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't fire if typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomIn() }
+      else if (e.key === '-') { e.preventDefault(); zoomOut() }
+      else if (e.key === '0') { e.preventDefault(); fitToView() }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isHovered, zoomIn, zoomOut, fitToView])
 
   // --- Sidebar step data ---
   const sidebarStep = sidebarStepId && workflow
@@ -304,12 +427,11 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
         overflow: 'hidden',
         cursor: isPanning ? 'grabbing' : 'grab',
         background: 'var(--bg-main)',
-        backgroundImage:
-          'radial-gradient(circle, var(--border) 1px, transparent 1px)',
-        backgroundSize: '20px 20px',
       }}
       onMouseDown={handleCanvasMouseDown}
       onWheel={handleWheel}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       {/* Execution progress bar */}
       <CanvasProgressBar
@@ -317,6 +439,54 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
         totalSteps={execution.totalSteps}
         isRunning={execution.isRunning}
       />
+
+      {/* 30s agent summary banner during execution (Iteration 488) */}
+      {agentSummary && execution.isRunning && (
+        <div style={{
+          position: 'absolute', top: 32, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 50, pointerEvents: 'none',
+          background: 'rgba(var(--accent-rgb,59,130,246),0.12)',
+          border: '1px solid rgba(var(--accent-rgb,59,130,246),0.25)',
+          borderRadius: 8, padding: '4px 12px',
+          fontSize: 11, color: 'var(--text-primary)',
+          whiteSpace: 'nowrap', maxWidth: '60%',
+          overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>
+          {agentSummary}
+        </div>
+      )}
+
+      {/* Dot grid background — moves with pan/zoom */}
+      <svg
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      >
+        <defs>
+          <pattern
+            id="canvas-dot-grid"
+            x={panX % (20 * zoom)}
+            y={panY % (20 * zoom)}
+            width={20 * zoom}
+            height={20 * zoom}
+            patternUnits="userSpaceOnUse"
+          >
+            <circle
+              cx={20 * zoom / 2}
+              cy={20 * zoom / 2}
+              r={Math.max(0.5, zoom * 0.8)}
+              fill="var(--border)"
+              fillOpacity={0.6}
+            />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#canvas-dot-grid)" />
+      </svg>
 
       {/* Canvas toolbar */}
       <div style={{
@@ -337,7 +507,7 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
         <button
           onClick={(e) => { e.stopPropagation(); fitToView() }}
           aria-label={t('workflow.fitToView')}
-          title={t('workflow.fitToView')}
+          title={t('workflow.fitToView') + ' (0)'}
           style={{
             background: 'transparent',
             border: 'none',
@@ -353,6 +523,26 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
         >
           <Maximize2 size={14} />
         </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); zoomOut() }}
+          aria-label="Zoom out"
+          title="Zoom out (−)"
+          style={{
+            background: 'transparent',
+            border: 'none',
+            borderRadius: 4,
+            padding: '1px 5px',
+            cursor: 'pointer',
+            color: 'var(--text-muted)',
+            fontSize: 14,
+            lineHeight: 1,
+            fontWeight: 600,
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
+        >
+          −
+        </button>
         <span style={{
           fontSize: 10,
           color: 'var(--text-muted)',
@@ -362,6 +552,58 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
         }}>
           {zoomPercent}%
         </span>
+        <button
+          onClick={(e) => { e.stopPropagation(); zoomIn() }}
+          aria-label="Zoom in"
+          title="Zoom in (+)"
+          style={{
+            background: 'transparent',
+            border: 'none',
+            borderRadius: 4,
+            padding: '1px 5px',
+            cursor: 'pointer',
+            color: 'var(--text-muted)',
+            fontSize: 14,
+            lineHeight: 1,
+            fontWeight: 600,
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
+        >
+          +
+        </button>
+        {/* Separator */}
+        <div style={{ width: 1, height: 14, background: 'var(--border)', margin: '0 2px' }} />
+        {/* Collapse all */}
+        <button
+          onClick={(e) => { e.stopPropagation(); handleCollapseAll() }}
+          aria-label="Collapse all nodes"
+          title="Collapse all"
+          style={{
+            background: 'transparent', border: 'none', borderRadius: 4,
+            padding: 3, cursor: 'pointer', color: 'var(--text-muted)',
+            display: 'flex', alignItems: 'center',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
+        >
+          <ChevronsDownUp size={13} />
+        </button>
+        {/* Expand all */}
+        <button
+          onClick={(e) => { e.stopPropagation(); handleExpandAll() }}
+          aria-label="Expand all nodes"
+          title="Expand all"
+          style={{
+            background: 'transparent', border: 'none', borderRadius: 4,
+            padding: 3, cursor: 'pointer', color: 'var(--text-muted)',
+            display: 'flex', alignItems: 'center',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
+        >
+          <ChevronsUpDown size={13} />
+        </button>
       </div>
 
       {/* SVG edge layer */}
@@ -383,11 +625,14 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
             const fromPos = nodePositions[prevStep.id]
             const toPos = nodePositions[step.id]
             if (!fromPos || !toPos) return null
+            const srcStatus = execution.stepStatuses[prevStep.id] ?? 'idle'
+            const edgeStatus = srcStatus === 'completed' ? 'done' : srcStatus === 'running' ? 'active' : 'idle'
             return (
               <CanvasEdge
                 key={`edge-${prevStep.id}-${step.id}`}
                 from={fromPos}
                 to={toPos}
+                status={edgeStatus}
               />
             )
           })}
@@ -419,8 +664,13 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
               selected={selectedNode === step.id}
               status={execution.stepStatuses[step.id] ?? 'idle'}
               presetKey={workflow.presetKey}
+              collapsed={collapsedNodes.has(step.id)}
+              outputText={execution.stepOutputs[step.id]}
+              dimmed={highlightStepIds !== null && highlightStepIds !== undefined && !highlightStepIds.has(step.id)}
+              durationMs={execution.stepDurations[step.id]}
               onSelect={handleNodeSelect}
               onDragStart={handleNodeDragStart}
+              onToggleCollapse={handleToggleCollapse}
             />
           )
         })}
@@ -433,6 +683,8 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
           stepIndex={sidebarStepIndex}
           presetKey={workflow?.presetKey}
           status={sidebarStatus}
+          outputText={sidebarStepId ? execution.stepOutputs[sidebarStepId] : undefined}
+          durationMs={sidebarStepId ? execution.stepDurations[sidebarStepId] : undefined}
           onClose={closeSidebar}
         />
       )}
@@ -450,6 +702,10 @@ export default function WorkflowCanvas({ workflow }: WorkflowCanvasProps) {
         @keyframes canvas-sidebar-in {
           from { transform: translateX(100%); opacity: 0; }
           to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes canvas-edge-flow {
+          from { stroke-dashoffset: 18; }
+          to { stroke-dashoffset: 0; }
         }
       `}</style>
     </div>

@@ -31,7 +31,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 | **Notes** | Markdown notepad with categories, templates, and one-click save from any chat response |
 | **Multi-Model** | Switch between Claude, GPT-4, DeepSeek, or local Ollama models mid-session; Qwen via QR code quick setup |
 | **Always Available** | System tray with quick actions, global hotkeys (`Ctrl+Shift+Space` toggle, `Ctrl+Shift+G` clipboard ask), and desktop notifications |
-| **Tasks & Reminders** | Quick todo list, timed reminders (5/15/30/60/120 min), daily briefing (task stats + next reminder + rotating productivity tips) |
+| **Tasks & Reminders** | Quick todo list with **3-state status** (pending/in_progress/completed) + 5s hide-delay, one-shot timed reminders + **cron recurring reminders** (5-field expressions, human-readable frequency labels, preset picker), daily briefing |
 | **Channel** | Connect Feishu and WeChat messaging channels via OpenClaw — configure, test, and manage from the sidebar |
 
 ---
@@ -44,7 +44,9 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 - **Structured Diff View** — file edits and writes shown in LCS-based unified diff format with color-coded add/delete lines and collapsible large diffs
 - **Extended thinking** blocks, collapsible and auto-expanding during generation; one-click toggle in StatusBar
 - **Output Styles** — three response modes (default/explanatory/learning), quick-switch from toolbar
-- **Auto-Compaction** — automatically summarizes older messages when context window nears capacity, keeping conversations flowing (threshold configurable 60%-90%)
+- **Auto-Compaction** — automatically summarizes older messages when context window nears capacity (threshold configurable 60%-90%); **Microcompact** pre-processing trims long messages before summarization to reduce input tokens; **Time-gap microcompact** clears stale tool results across sessions idle for 30+ minutes
+- **Context Suggestions** — when context usage exceeds 70%, shows per-tool optimization tips (bash output, file reads, web fetches) with estimated token savings in a lightbulb popover
+- **Away Summary** — when you return after 5+ minutes away, automatically injects a purple summary card into the conversation showing what was happening
 - **Conversation Rewind** — roll back to any message, syncing both in-memory state and persisted session
 - **Keyboard message navigation** — `Ctrl+Up/Down` to step through messages, `Ctrl+Home/End` to jump to first/last, with visual focus indicator
 - **Edit & regenerate** any message; pick a different model before regenerating
@@ -77,15 +79,19 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 - **Preset localization** — 5 built-in persona names automatically switch with system language
 - Memory auto-injected into every conversation — pinned items + 10 most recent
 - **Auto-Memory Extraction** — optionally extracts durable memories (preferences, facts, instructions) from conversations automatically
+- **Memory Type Tags** — 4 semantic types (user/feedback/project/reference) with color badges, aligned with Claude Code's memory taxonomy
+- **Project Memory Partition** — Memory panel "Project" tab reads/writes `.claude/MEMORY.md` directly, syncing with Claude Code's project memory system
+- **Advisor Model** — configure a separate lighter model for background tasks (auto-compaction, memory extraction, away summaries) to keep costs low
 - **Remember This** — one-click save any response from the hover toolbar
 - **Contextual Tips** — smart feature discovery tips on the Welcome Screen, personalized to your usage patterns
 - **Prompt Suggestions** — AI-predicted follow-up suggestions after each response, shown as ghost text in the input field (Tab to accept)
+- **Speculative Execution** — pre-executes the predicted next prompt in an isolated sandbox; shows a collapsible preview card with response content, tool actions, and changed files; accept to inject the result into the conversation, reject to silently discard — the main session is never touched (opt-in in Settings)
 - **Thinking Depth** — low/medium/high effort levels controlling AI thinking investment
 - **Per-Model Cost Breakdown** — click cost in StatusBar to see token usage and cost breakdown by model
 
 ### Workflows
 - Build multi-step prompt pipelines with the visual workflow editor
-- **Canvas Mode** — workflow steps displayed as a node graph with drag, pan, and zoom; real-time execution highlighting shows active/completed/pending nodes with a progress bar
+- **Canvas Mode** — workflow steps displayed as a node graph with drag, pan, and zoom; real-time execution highlighting shows active/completed/pending nodes with a progress bar; zoom toward cursor, +/- buttons with keyboard shortcuts (+/−/0), status-colored edges (green=done, accent=active, muted=idle), moving dot-grid background, real AI output text in node sidebar; flowing dash animation on active edges; collapsible nodes (per-node or collapse-all/expand-all); right-click context menu with copy prompt/output; step list syncs live execution status; Run button disabled during execution; step search filter with canvas dim for non-matching nodes; per-step execution duration shown on nodes and sidebar
 - 6 preset workflows to get started instantly (weekly reports, code reviews, daily summaries, and more)
 - **Preset localization** — workflow names and descriptions automatically switch with system language
 

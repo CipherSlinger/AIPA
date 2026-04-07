@@ -7,8 +7,8 @@ import {
   Check,
   X,
 } from 'lucide-react'
-import { MemoryItem, MemoryCategory } from '../../types/app.types'
-import { CATEGORY_CONFIG, CATEGORIES, MAX_CONTENT_LENGTH } from './memoryConstants'
+import { MemoryItem, MemoryCategory, MemoryType } from '../../types/app.types'
+import { CATEGORY_CONFIG, CATEGORIES, MAX_CONTENT_LENGTH, MEMORY_TYPE_CONFIG, MEMORY_TYPES } from './memoryConstants'
 import { highlightText, formatRelativeTime } from './memoryConstants'
 
 interface MemoryItemCardProps {
@@ -19,8 +19,10 @@ interface MemoryItemCardProps {
   isEditing: boolean
   editContent: string
   editCategory: MemoryCategory
+  editMemoryType?: MemoryType
   onEditContentChange: (v: string) => void
   onEditCategoryChange: (cat: MemoryCategory) => void
+  onEditMemoryTypeChange?: (type: MemoryType) => void
   onStartEdit: () => void
   onSaveEdit: () => void
   onCancelEdit: () => void
@@ -31,14 +33,15 @@ interface MemoryItemCardProps {
 
 export default function MemoryItemCard({
   mem, t, searchQuery,
-  isEditing, editContent, editCategory,
-  onEditContentChange, onEditCategoryChange,
+  isEditing, editContent, editCategory, editMemoryType,
+  onEditContentChange, onEditCategoryChange, onEditMemoryTypeChange,
   onStartEdit, onSaveEdit, onCancelEdit,
   onTogglePin, onDelete,
 }: MemoryItemCardProps) {
   // Defensive guard: if category is not in CATEGORY_CONFIG (corrupted data),
   // fall back to 'fact' to prevent crash (Iteration 309 -- MemoryPanel crash fix)
   const cfg = CATEGORY_CONFIG[mem.category] || CATEGORY_CONFIG.fact
+  const typeCfg = mem.memoryType ? MEMORY_TYPE_CONFIG[mem.memoryType] : null
 
   return (
     <div
@@ -82,25 +85,60 @@ export default function MemoryItemCard({
             }}
           />
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-            <div style={{ display: 'flex', gap: 2 }}>
-              {CATEGORIES.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => onEditCategoryChange(cat)}
-                  style={{
-                    background: editCategory === cat ? `${CATEGORY_CONFIG[cat].color}20` : 'transparent',
-                    border: editCategory === cat ? `1px solid ${CATEGORY_CONFIG[cat].color}40` : '1px solid transparent',
-                    borderRadius: 4,
-                    padding: '1px 4px',
-                    cursor: 'pointer',
-                    color: CATEGORY_CONFIG[cat].color,
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  {CATEGORY_CONFIG[cat].icon}
-                </button>
-              ))}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {/* Category selector */}
+              <div style={{ display: 'flex', gap: 2 }}>
+                {CATEGORIES.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => onEditCategoryChange(cat)}
+                    style={{
+                      background: editCategory === cat ? `${CATEGORY_CONFIG[cat].color}20` : 'transparent',
+                      border: editCategory === cat ? `1px solid ${CATEGORY_CONFIG[cat].color}40` : '1px solid transparent',
+                      borderRadius: 4,
+                      padding: '1px 4px',
+                      cursor: 'pointer',
+                      color: CATEGORY_CONFIG[cat].color,
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    {CATEGORY_CONFIG[cat].icon}
+                  </button>
+                ))}
+              </div>
+              {/* Memory type selector (Iteration 480) */}
+              {onEditMemoryTypeChange && (
+                <div style={{ display: 'flex', gap: 2 }}>
+                  {MEMORY_TYPES.map(type => {
+                    const tc = MEMORY_TYPE_CONFIG[type]
+                    const isActive = editMemoryType === type
+                    return (
+                      <button
+                        key={type}
+                        onClick={() => onEditMemoryTypeChange(type)}
+                        title={tc.description}
+                        style={{
+                          background: isActive ? `${tc.color}20` : 'transparent',
+                          border: isActive ? `1px solid ${tc.color}40` : '1px solid transparent',
+                          borderRadius: 4,
+                          padding: '1px 5px',
+                          cursor: 'pointer',
+                          color: isActive ? tc.color : 'var(--text-muted)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 2,
+                          fontSize: 9,
+                          fontWeight: isActive ? 600 : 400,
+                        }}
+                      >
+                        {tc.icon}
+                        {type}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
             <div style={{ display: 'flex', gap: 4 }}>
               <button
@@ -187,6 +225,25 @@ export default function MemoryItemCard({
                 }}>
                   {t(cfg.labelKey)}
                 </span>
+                {/* Memory type badge (Iteration 480) */}
+                {typeCfg && (
+                  <span style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2,
+                    fontSize: 9,
+                    color: typeCfg.color,
+                    background: `${typeCfg.color}10`,
+                    borderRadius: 6,
+                    padding: '0 5px',
+                    fontWeight: 500,
+                  }}
+                  title={typeCfg.description}
+                  >
+                    {typeCfg.icon}
+                    {mem.memoryType}
+                  </span>
+                )}
                 <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>
                   {formatRelativeTime(mem.updatedAt, t)}
                 </span>

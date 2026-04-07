@@ -6,6 +6,7 @@ import { useT } from '../i18n'
 import { resolveProvider, sendCompletionNotification, playCompletionSound, getActiveApiKey, rotateApiKey } from './streamJsonUtils'
 import { useAutoCompact } from './useAutoCompact'
 import { useAutoMemory } from './useAutoMemory'
+import { parseTokenBudget } from '../utils/tokenUtils'
 
 export function useStreamJson() {
   // Use individual selectors so this hook only re-renders when the specific
@@ -195,6 +196,17 @@ Keep exercises focused and achievable. The goal is active learning through doing
     }
     if (prefs.maxBudgetUsd && prefs.maxBudgetUsd > 0) {
       flags.push('--max-budget-usd', String(prefs.maxBudgetUsd))
+    }
+
+    // Token budget shorthand parsing (#10): detect "+500k" / "use 2M tokens" in the prompt
+    // Inspired by Claude Code's utils/tokenBudget.ts
+    const tokenBudgetPattern = /(?:use\s+[\d.]+\s*[km]?\s*tokens?|[+][\d.]+\s*[km])/gi
+    const budgetMatch = prompt.match(tokenBudgetPattern)
+    if (budgetMatch) {
+      const tokens = parseTokenBudget(budgetMatch[0])
+      if (tokens && tokens >= 1000) {
+        flags.push('--max-tokens', String(tokens))
+      }
     }
 
     // Build actual prompt — if images attached, encode as JSON content array

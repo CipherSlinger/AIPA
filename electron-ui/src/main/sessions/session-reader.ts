@@ -216,6 +216,63 @@ export interface McpServerEntry {
   type?: string
 }
 
+/**
+ * Detect turn interruption in a session's JSONL file.
+ * Inspired by Claude Code's utils/conversationRecovery.ts detectTurnInterruption().
+ *
+ * Returns:
+ * - 'none'                 — session completed normally
+ * - 'interrupted_prompt'   — user sent a message but AI never responded
+ * - 'interrupted_turn'     — AI was mid-response when the session ended
+ */
+export type TurnInterruptionResult = 'none' | 'interrupted_prompt' | 'interrupted_turn'
+
+export function detectTurnInterruption(sessionId: string): TurnInterruptionResult {
+  if (!fs.existsSync(PROJECTS_DIR)) return 'none'
+
+  const projectDirs = fs.readdirSync(PROJECTS_DIR, { withFileTypes: true })
+    .filter(d => d.isDirectory())
+
+  for (const dir of projectDirs) {
+    const filePath = path.join(PROJECTS_DIR, dir.name, `${sessionId}.jsonl`)
+    if (!fs.existsSync(filePath)) continue
+
+    const lines = fs.readFileSync(filePath, 'utf-8')
+      .split('\n')
+      .filter(l => l.trim())
+      .map(l => { try { return JSON.parse(l) } catch { return null } })
+      .filter(Boolean)
+
+    if (lines.length === 0) return 'none'
+
+    // Walk backward from end to find the last meaningful event
+    let lastUserIdx = -1
+    let lastAssistantIdx = -1
+    let lastResultIdx = -1
+
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const entry = lines[i] as Record<string, unknown>
+      if (lastUserIdx < 0 && entry.type === 'user') lastUserIdx = i
+      if (lastAssistantIdx < 0 && (entry.type === 'assistant' || entry.role === 'assistant')) lastAssistantIdx = i
+      if (lastResultIdx < 0 && entry.type === 'result') lastResultIdx = i
+      if (lastUserIdx >= 0 && lastAssistantIdx >= 0 && lastResultIdx >= 0) break
+    }
+
+    // If we have a result event, the session completed normally
+    if (lastResultIdx >= 0 && lastResultIdx > lastUserIdx) return 'none'
+
+    // User sent message but no assistant response followed
+    if (lastUserIdx >= 0 && lastAssistantIdx < lastUserIdx) return 'interrupted_prompt'
+
+    // Assistant was responding but no result event after the last assistant message
+    if (lastAssistantIdx >= 0 && lastResultIdx < lastAssistantIdx) return 'interrupted_turn'
+
+    return 'none'
+  }
+
+  return 'none'
+}
+
 export function getMcpServers(): McpServerEntry[] {
   const settings = readSettings() as Record<string, unknown>
   const mcpServers = settings.mcpServers as Record<string, Record<string, unknown>> | undefined

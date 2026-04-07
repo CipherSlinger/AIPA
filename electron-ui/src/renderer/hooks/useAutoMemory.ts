@@ -8,8 +8,9 @@
  */
 import { useCallback, useRef } from 'react'
 import { useChatStore, usePrefsStore, useUiStore } from '../store'
-import { StandardChatMessage, MemoryItem, MemoryCategory } from '../types/app.types'
+import { StandardChatMessage, MemoryItem, MemoryCategory, MemoryType } from '../types/app.types'
 import { useT } from '../i18n'
+import { suggestMemoryType } from '../components/memory/memoryConstants'
 
 const EXTRACT_PROMPT = `Analyze the conversation below and extract any durable memories worth saving for future conversations. Focus on:
 
@@ -21,6 +22,7 @@ const EXTRACT_PROMPT = `Analyze the conversation below and extract any durable m
 Return a JSON array of objects with these fields:
 - "content": the memory text (max 200 chars, self-contained)
 - "category": one of "preference", "fact", "instruction", "context"
+- "memoryType": one of "user", "feedback", "project", "reference" — map as: user=about the person, feedback=correction/style guidance, project=ongoing work/deadline, reference=external link/tool
 
 If nothing worth remembering, return an empty array: []
 Return ONLY the JSON array, no other text.`
@@ -57,10 +59,10 @@ export function useAutoMemory() {
         .join('\n\n')
 
       // Use CLI in print mode for extraction
-      const result = await window.electronAPI.cliSendMessage({
+      await window.electronAPI.cliSendMessage({
         prompt: `${conversationText}\n\n${EXTRACT_PROMPT}`,
         cwd: prefs.workingDir || await window.electronAPI.fsGetHome(),
-        model: prefs.model,
+        model: prefs.advisorModel || prefs.model,
         env: {},
         flags: ['--print', '--max-turns', '1'],
       })
@@ -79,7 +81,7 @@ export function useAutoMemory() {
       const jsonMatch = lastAssistant.content.match(/\[[\s\S]*\]/)
       if (!jsonMatch) return
 
-      let extracted: { content: string; category: MemoryCategory }[]
+      let extracted: { content: string; category: MemoryCategory; memoryType?: string }[]
       try {
         extracted = JSON.parse(jsonMatch[0])
       } catch {
@@ -92,6 +94,7 @@ export function useAutoMemory() {
       const existingMemories = prefs.memories || []
       const existingContents = new Set(existingMemories.map(m => m.content.toLowerCase()))
 
+      const VALID_MEMORY_TYPES: MemoryType[] = ['user', 'feedback', 'project', 'reference']
       const newMemories: MemoryItem[] = extracted
         .filter(e => e.content && e.category && !existingContents.has(e.content.toLowerCase()))
         .slice(0, 3) // Max 3 new memories per extraction
@@ -101,6 +104,10 @@ export function useAutoMemory() {
           category: (['preference', 'fact', 'instruction', 'context'].includes(e.category)
             ? e.category
             : 'context') as MemoryCategory,
+          // Use AI-provided memoryType if valid, else auto-suggest from content (Iteration 480)
+          memoryType: (e.memoryType && VALID_MEMORY_TYPES.includes(e.memoryType as MemoryType)
+            ? e.memoryType as MemoryType
+            : suggestMemoryType(e.content)),
           pinned: false,
           createdAt: Date.now(),
           updatedAt: Date.now(),

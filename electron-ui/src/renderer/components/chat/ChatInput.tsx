@@ -31,6 +31,8 @@ import { usePasteDetection } from './usePasteDetection'
 import { usePromptSuggestion } from '../../hooks/usePromptSuggestion'
 import { useChatInputKeyboard } from './useChatInputKeyboard'
 import { useT } from '../../i18n'
+import { estimateToolBreakdown } from '../../utils/tokenUtils'
+import { StandardChatMessage } from '../../types/app.types'
 
 interface ChatInputProps {
   isStreaming: boolean
@@ -52,6 +54,7 @@ export default function ChatInput({
   const addToast = useUiStore(s => s.addToast)
   const addToQueue = useChatStore(s => s.addToQueue)
   const lastContextUsage = useChatStore(s => s.lastContextUsage)
+  const messages = useChatStore(s => s.messages)
 
   // Draft persistence (per-session)
   const { input, setInput, clearDraft } = useChatInputDraft({
@@ -322,6 +325,7 @@ export default function ChatInput({
           total={lastContextUsage.total}
           isStreaming={isStreaming}
           onCompact={() => onSend('/compact')}
+          toolBreakdown={estimateToolBreakdown(messages as StandardChatMessage[])}
         />
       )}
       {/* Quick reply chips */}

@@ -1,23 +1,34 @@
-// TasksPanel — Quick todo list + reminders with persistence via electron-store (Iteration 465-466)
+// TasksPanel — Quick todo list + reminders with persistence via electron-store (Iteration 465-466, 482, 488)
 // Accessible from NavRail 'tasks' tab. Tasks stored in prefs key 'tasks', reminders in 'reminders'.
+// Iteration 482: Added cron expression support for recurring reminders.
+// Iteration 488: TaskItem upgraded to 3-state status (pending/in_progress/completed) + activeForm
+//                5s hide-delay after all tasks complete, inspired by Claude Code's useTasksV2.ts
 
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
-import { Plus, Trash2, CheckSquare, Square, X, Bell, Clock, ChevronDown, ChevronRight } from 'lucide-react'
+import { Plus, Trash2, CheckSquare, Square, X, Bell, Clock, ChevronDown, ChevronRight, RefreshCw, Loader } from 'lucide-react'
 import { usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
+import { nextFireTime, describeCron, cronToHuman, CRON_PRESETS } from '../../utils/cronScheduler'
+
+export type TaskStatus = 'pending' | 'in_progress' | 'completed'
 
 export interface TaskItem {
   id: string
   text: string
-  done: boolean
+  /** @deprecated use status instead */
+  done?: boolean
+  status: TaskStatus
+  activeForm?: string   // present-continuous label shown when in_progress (e.g. "Running tests")
   createdAt: number
 }
 
 export interface ReminderItem {
   id: string
   text: string
-  fireAt: number  // timestamp
+  fireAt: number  // timestamp of next fire
   createdAt: number
+  cronExpression?: string  // if set, this is a recurring cron reminder (Iteration 482)
+  recurring?: boolean      // true if cron-based and fires more than once
 }
 
 // Preset reminder durations
@@ -36,10 +47,22 @@ export default function TasksPanel() {
   const [remindersExpanded, setRemindersExpanded] = useState(true)
   const [showReminderForm, setShowReminderForm] = useState(false)
   const [reminderText, setReminderText] = useState('')
+  const [cronMode, setCronMode] = useState(false)          // Iteration 482: toggle cron mode
+  const [cronExpr, setCronExpr] = useState('')             // cron expression input
+  const [cronPreview, setCronPreview] = useState<string | null>(null)
+  const [showCompleted, setShowCompleted] = useState(true) // Iteration 488: 5s hide-delay
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [, forceUpdate] = useState(0)
 
-  // Load tasks from prefs
-  const tasks: TaskItem[] = usePrefsStore(s => (s.prefs as any).tasks || [])
+  // Load tasks from prefs — migrate legacy `done: boolean` to `status`
+  const rawTasks: TaskItem[] = usePrefsStore(s => (s.prefs as any).tasks || [])
+  const tasks: TaskItem[] = useMemo(() =>
+    rawTasks.map(t => ({
+      ...t,
+      status: t.status ?? (t.done ? 'completed' : 'pending'),
+    })),
+    [rawTasks]
+  )
   const setTasks = useCallback((newTasks: TaskItem[]) => {
     usePrefsStore.getState().setPrefs({ tasks: newTasks } as any)
     window.electronAPI.prefsSet('tasks', newTasks)
@@ -73,8 +96,20 @@ export default function TasksPanel() {
             new Notification('AIPA Reminder', { body: r.text, icon: undefined })
           } catch { /* notification permission may not be granted */ }
         })
-        // Remove fired reminders
-        const remaining = currentReminders.filter(r => r.fireAt > now)
+        // Iteration 482: For recurring cron reminders, reschedule; for one-shot, remove
+        const rescheduled: ReminderItem[] = fired
+          .filter(r => r.recurring && r.cronExpression)
+          .map(r => {
+            const nextFire = nextFireTime(r.cronExpression!, new Date())
+            if (!nextFire) return null
+            return { ...r, fireAt: nextFire.getTime(), lastFiredAt: now } as ReminderItem
+          })
+          .filter((r): r is ReminderItem => r !== null)
+
+        const remaining = [
+          ...currentReminders.filter(r => r.fireAt > now),
+          ...rescheduled,
+        ]
         usePrefsStore.getState().setPrefs({ reminders: remaining } as any)
         window.electronAPI.prefsSet('reminders', remaining)
       }
@@ -91,8 +126,26 @@ export default function TasksPanel() {
   }, [])
 
   // Split into active and completed
-  const activeTasks = tasks.filter(t => !t.done)
-  const completedTasks = tasks.filter(t => t.done)
+  const activeTasks = tasks.filter(t => t.status !== 'completed')
+  const completedTasks = tasks.filter(t => t.status === 'completed')
+
+  // Iteration 488: 5s hide-delay after all tasks complete — inspired by Claude Code's useTasksV2.ts
+  useEffect(() => {
+    if (tasks.length > 0 && activeTasks.length === 0) {
+      // All tasks done — start 5s timer to hide completed section
+      hideTimerRef.current = setTimeout(() => setShowCompleted(false), 5000)
+    } else {
+      // Still have active tasks — keep showing
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current)
+        hideTimerRef.current = null
+      }
+      setShowCompleted(true)
+    }
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
+    }
+  }, [activeTasks.length, tasks.length])
 
   const addTask = useCallback(() => {
     const text = inputValue.trim()
@@ -101,7 +154,7 @@ export default function TasksPanel() {
     const newTask: TaskItem = {
       id: `task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       text,
-      done: false,
+      status: 'pending',
       createdAt: Date.now(),
     }
     setTasks([newTask, ...tasks])
@@ -109,8 +162,15 @@ export default function TasksPanel() {
     inputRef.current?.focus()
   }, [inputValue, tasks, setTasks])
 
-  const toggleTask = useCallback((id: string) => {
-    setTasks(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t))
+  // Cycle through status: pending → in_progress → completed → pending
+  const cycleTaskStatus = useCallback((id: string) => {
+    setTasks(tasks.map(task => {
+      if (task.id !== id) return task
+      const next: TaskStatus =
+        task.status === 'pending' ? 'in_progress' :
+        task.status === 'in_progress' ? 'completed' : 'pending'
+      return { ...task, status: next }
+    }))
   }, [tasks, setTasks])
 
   const deleteTask = useCallback((id: string) => {
@@ -118,7 +178,7 @@ export default function TasksPanel() {
   }, [tasks, setTasks])
 
   const clearCompleted = useCallback(() => {
-    setTasks(tasks.filter(t => !t.done))
+    setTasks(tasks.filter(t => t.status !== 'completed'))
   }, [tasks, setTasks])
 
   const addReminder = useCallback((minutes: number) => {
@@ -134,6 +194,28 @@ export default function TasksPanel() {
     setReminderText('')
     setShowReminderForm(false)
   }, [reminderText, reminders, setReminders])
+
+  // Iteration 482: Add cron-based recurring reminder
+  const addCronReminder = useCallback(() => {
+    const text = reminderText.trim()
+    const expr = cronExpr.trim()
+    if (!text || !expr) return
+    const nextFire = nextFireTime(expr)
+    if (!nextFire) return
+    const newReminder: ReminderItem = {
+      id: `rem-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      text,
+      fireAt: nextFire.getTime(),
+      createdAt: Date.now(),
+      cronExpression: expr,
+      recurring: true,
+    }
+    setReminders([...reminders, newReminder])
+    setReminderText('')
+    setCronExpr('')
+    setCronMode(false)
+    setShowReminderForm(false)
+  }, [reminderText, cronExpr, reminders, setReminders])
 
   const deleteReminder = useCallback((id: string) => {
     setReminders(reminders.filter(r => r.id !== id))
@@ -225,11 +307,11 @@ export default function TasksPanel() {
 
         {/* Active tasks */}
         {activeTasks.map(task => (
-          <TaskRow key={task.id} task={task} onToggle={toggleTask} onDelete={deleteTask} />
+          <TaskRow key={task.id} task={task} onCycle={cycleTaskStatus} onDelete={deleteTask} />
         ))}
 
-        {/* Completed tasks */}
-        {completedTasks.length > 0 && (
+        {/* Completed tasks — shown until 5s after all complete */}
+        {completedTasks.length > 0 && showCompleted && (
           <>
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -254,7 +336,7 @@ export default function TasksPanel() {
               </button>
             </div>
             {completedTasks.map(task => (
-              <TaskRow key={task.id} task={task} onToggle={toggleTask} onDelete={deleteTask} />
+              <TaskRow key={task.id} task={task} onCycle={cycleTaskStatus} onDelete={deleteTask} />
             ))}
           </>
         )}
@@ -313,42 +395,138 @@ export default function TasksPanel() {
                     maxLength={200}
                   />
                   {reminderText.trim() && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                      {REMINDER_PRESETS.map(preset => (
+                    <>
+                      {/* Mode toggle: quick presets vs cron expression (Iteration 482) */}
+                      <div style={{ display: 'flex', gap: 4, marginBottom: 2 }}>
                         <button
-                          key={preset.minutes}
-                          onClick={() => addReminder(preset.minutes)}
+                          onClick={() => setCronMode(false)}
                           style={{
-                            padding: '3px 8px', borderRadius: 10,
-                            border: '1px solid var(--border)', background: 'var(--bg-active)',
-                            color: 'var(--text-primary)', fontSize: 10, cursor: 'pointer',
-                            transition: 'background 100ms, border-color 100ms',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'var(--accent)'
-                            e.currentTarget.style.color = '#fff'
-                            e.currentTarget.style.borderColor = 'var(--accent)'
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'var(--bg-active)'
-                            e.currentTarget.style.color = 'var(--text-primary)'
-                            e.currentTarget.style.borderColor = 'var(--border)'
+                            padding: '2px 8px', borderRadius: 8, fontSize: 9, cursor: 'pointer',
+                            border: '1px solid var(--border)',
+                            background: !cronMode ? 'var(--accent)' : 'transparent',
+                            color: !cronMode ? '#fff' : 'var(--text-muted)',
                           }}
                         >
-                          {t(preset.labelKey)}
+                          {t('reminders.quickPresets')}
                         </button>
-                      ))}
-                      <button
-                        onClick={() => setShowReminderForm(false)}
-                        style={{
-                          padding: '3px 8px', borderRadius: 10,
-                          border: '1px solid var(--border)', background: 'transparent',
-                          color: 'var(--text-muted)', fontSize: 10, cursor: 'pointer',
-                        }}
-                      >
-                        {t('reminders.cancel')}
-                      </button>
-                    </div>
+                        <button
+                          onClick={() => setCronMode(true)}
+                          style={{
+                            padding: '2px 8px', borderRadius: 8, fontSize: 9, cursor: 'pointer',
+                            border: '1px solid var(--border)',
+                            background: cronMode ? 'var(--accent)' : 'transparent',
+                            color: cronMode ? '#fff' : 'var(--text-muted)',
+                            display: 'flex', alignItems: 'center', gap: 3,
+                          }}
+                        >
+                          <RefreshCw size={9} />
+                          {t('reminders.recurring')}
+                        </button>
+                      </div>
+
+                      {!cronMode ? (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                          {REMINDER_PRESETS.map(preset => (
+                            <button
+                              key={preset.minutes}
+                              onClick={() => addReminder(preset.minutes)}
+                              style={{
+                                padding: '3px 8px', borderRadius: 10,
+                                border: '1px solid var(--border)', background: 'var(--bg-active)',
+                                color: 'var(--text-primary)', fontSize: 10, cursor: 'pointer',
+                                transition: 'background 100ms, border-color 100ms',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = 'var(--accent)'
+                                e.currentTarget.style.color = '#fff'
+                                e.currentTarget.style.borderColor = 'var(--accent)'
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'var(--bg-active)'
+                                e.currentTarget.style.color = 'var(--text-primary)'
+                                e.currentTarget.style.borderColor = 'var(--border)'
+                              }}
+                            >
+                              {t(preset.labelKey)}
+                            </button>
+                          ))}
+                          <button
+                            onClick={() => setShowReminderForm(false)}
+                            style={{
+                              padding: '3px 8px', borderRadius: 10,
+                              border: '1px solid var(--border)', background: 'transparent',
+                              color: 'var(--text-muted)', fontSize: 10, cursor: 'pointer',
+                            }}
+                          >
+                            {t('reminders.cancel')}
+                          </button>
+                        </div>
+                      ) : (
+                        /* Cron expression input (Iteration 482) */
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {/* Cron presets */}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                            {CRON_PRESETS.map(p => (
+                              <button
+                                key={p.cron}
+                                onClick={() => { setCronExpr(p.cron); setCronPreview(cronToHuman(p.cron) || describeCron(p.cron)) }}
+                                style={{
+                                  padding: '2px 6px', borderRadius: 8, fontSize: 9, cursor: 'pointer',
+                                  border: cronExpr === p.cron ? '1px solid var(--accent)' : '1px solid var(--border)',
+                                  background: cronExpr === p.cron ? 'rgba(var(--accent-rgb,59,130,246),0.1)' : 'transparent',
+                                  color: cronExpr === p.cron ? 'var(--accent)' : 'var(--text-muted)',
+                                }}
+                              >
+                                {p.label}
+                              </button>
+                            ))}
+                          </div>
+                          {/* Manual cron input */}
+                          <input
+                            value={cronExpr}
+                            onChange={e => {
+                              setCronExpr(e.target.value)
+                              setCronPreview(cronToHuman(e.target.value) || describeCron(e.target.value))
+                            }}
+                            placeholder="* * * * * (min hr dom mon dow)"
+                            style={{
+                              padding: '4px 8px', borderRadius: 6, fontSize: 10,
+                              border: '1px solid var(--border)', background: 'var(--bg-active)',
+                              color: 'var(--text-primary)', outline: 'none', fontFamily: 'monospace',
+                            }}
+                          />
+                          {cronPreview && (
+                            <div style={{ fontSize: 9, color: 'var(--text-muted)', paddingLeft: 2 }}>
+                              {cronPreview}
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            <button
+                              onClick={addCronReminder}
+                              disabled={!cronExpr.trim() || !cronPreview}
+                              style={{
+                                padding: '3px 10px', borderRadius: 8, fontSize: 10, cursor: 'pointer',
+                                border: 'none',
+                                background: cronExpr.trim() && cronPreview ? 'var(--accent)' : 'var(--bg-active)',
+                                color: cronExpr.trim() && cronPreview ? '#fff' : 'var(--text-muted)',
+                              }}
+                            >
+                              {t('reminders.setRecurring')}
+                            </button>
+                            <button
+                              onClick={() => setShowReminderForm(false)}
+                              style={{
+                                padding: '3px 8px', borderRadius: 8, fontSize: 10, cursor: 'pointer',
+                                border: '1px solid var(--border)', background: 'transparent',
+                                color: 'var(--text-muted)',
+                              }}
+                            >
+                              {t('reminders.cancel')}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
@@ -385,8 +563,22 @@ export default function TasksPanel() {
   )
 }
 
-function TaskRow({ task, onToggle, onDelete }: { task: TaskItem; onToggle: (id: string) => void; onDelete: (id: string) => void }) {
+function TaskRow({ task, onCycle, onDelete }: { task: TaskItem; onCycle: (id: string) => void; onDelete: (id: string) => void }) {
   const [hovered, setHovered] = useState(false)
+
+  const statusIcon = task.status === 'completed'
+    ? <CheckSquare size={14} />
+    : task.status === 'in_progress'
+    ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
+    : <Square size={14} />
+
+  const statusColor = task.status === 'completed'
+    ? 'var(--success)'
+    : task.status === 'in_progress'
+    ? 'var(--accent)'
+    : 'var(--text-muted)'
+
+  const displayText = task.status === 'in_progress' && task.activeForm ? task.activeForm : task.text
 
   return (
     <div
@@ -404,24 +596,25 @@ function TaskRow({ task, onToggle, onDelete }: { task: TaskItem; onToggle: (id: 
       }}
     >
       <button
-        onClick={() => onToggle(task.id)}
+        onClick={() => onCycle(task.id)}
+        title={task.status === 'pending' ? 'Start' : task.status === 'in_progress' ? 'Complete' : 'Reopen'}
         style={{
           background: 'none', border: 'none', cursor: 'pointer',
-          color: task.done ? 'var(--success)' : 'var(--text-muted)',
+          color: statusColor,
           display: 'flex', alignItems: 'center', padding: 0,
           marginTop: 1, flexShrink: 0,
         }}
       >
-        {task.done ? <CheckSquare size={14} /> : <Square size={14} />}
+        {statusIcon}
       </button>
       <span style={{
         flex: 1, fontSize: 12, lineHeight: 1.4,
-        color: task.done ? 'var(--text-muted)' : 'var(--text-primary)',
-        textDecoration: task.done ? 'line-through' : 'none',
-        opacity: task.done ? 0.6 : 1,
+        color: task.status === 'completed' ? 'var(--text-muted)' : 'var(--text-primary)',
+        textDecoration: task.status === 'completed' ? 'line-through' : 'none',
+        opacity: task.status === 'completed' ? 0.6 : 1,
         wordBreak: 'break-word',
       }}>
-        {task.text}
+        {displayText}
       </span>
       {hovered && (
         <button
@@ -447,6 +640,9 @@ function ReminderRow({ reminder, onDelete, formatTimeLeft }: {
   formatTimeLeft: (fireAt: number) => string
 }) {
   const [hovered, setHovered] = useState(false)
+  const humanFreq = reminder.recurring && reminder.cronExpression
+    ? cronToHuman(reminder.cronExpression)
+    : null
 
   return (
     <div
@@ -459,10 +655,18 @@ function ReminderRow({ reminder, onDelete, formatTimeLeft }: {
         transition: 'background 100ms',
       }}
     >
-      <Clock size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-      <span style={{ flex: 1, fontSize: 11, color: 'var(--text-primary)', wordBreak: 'break-word' }}>
-        {reminder.text}
-      </span>
+      <Clock size={12} style={{ color: reminder.recurring ? '#8b5cf6' : 'var(--accent)', flexShrink: 0 }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ fontSize: 11, color: 'var(--text-primary)', wordBreak: 'break-word' }}>
+          {reminder.text}
+          {reminder.recurring && (
+            <RefreshCw size={9} style={{ display: 'inline', marginLeft: 4, color: '#8b5cf6', verticalAlign: 'middle' }} />
+          )}
+        </span>
+        {humanFreq && (
+          <div style={{ fontSize: 9, color: '#8b5cf6', marginTop: 1 }}>{humanFreq}</div>
+        )}
+      </div>
       <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0, whiteSpace: 'nowrap' }}>
         {formatTimeLeft(reminder.fireAt)}
       </span>

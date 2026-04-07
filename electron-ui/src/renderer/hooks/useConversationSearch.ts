@@ -4,8 +4,27 @@ import { ChatMessage, StandardChatMessage } from '../types/app.types'
 export type SearchRoleFilter = 'all' | 'user' | 'assistant'
 
 /**
+ * WeakMap cache for lowercased search text per message.
+ * Inspired by Claude Code's utils/transcriptSearch.ts — avoids recomputing
+ * on every keystroke by caching the lowercased text per message object.
+ * WeakMap ensures entries are GC'd when the message object is no longer referenced.
+ */
+const messageSearchTextCache = new WeakMap<object, string>()
+
+function getMessageSearchText(msg: ChatMessage): string {
+  const key = msg as object
+  if (messageSearchTextCache.has(key)) return messageSearchTextCache.get(key)!
+  const content = (msg as StandardChatMessage).content || ''
+  const annotation = (msg as StandardChatMessage).annotation || ''
+  const text = (content + (annotation ? '\n' + annotation : '')).toLowerCase()
+  messageSearchTextCache.set(key, text)
+  return text
+}
+
+/**
  * Manages conversation search state: open/close, query, matches, navigation.
  * Supports case-sensitive toggle and role-based filtering.
+ * Iteration 488: Added WeakMap cache for lowercased message text to reduce keystroke lag.
  */
 export function useConversationSearch(messages: ChatMessage[]) {
   const [searchOpen, setSearchOpen] = useState(false)
@@ -28,17 +47,17 @@ export function useConversationSearch(messages: ChatMessage[]) {
       setCurrentMatchIdx(0)
       return
     }
+    const queryLower = query.toLowerCase()
     const matches: number[] = []
     messages.forEach((msg, idx) => {
       if (msg.role === 'permission' || msg.role === 'plan') return
       if (role === 'user' && msg.role !== 'user') return
       if (role === 'assistant' && msg.role !== 'assistant') return
-      const content = (msg as StandardChatMessage).content || ''
-      const annotation = (msg as StandardChatMessage).annotation || ''
-      const searchText = content + (annotation ? '\n' + annotation : '')
       const found = cs
-        ? searchText.includes(query)
-        : searchText.toLowerCase().includes(query.toLowerCase())
+        // Case-sensitive: build text on the fly (no cache for this path)
+        ? ((msg as StandardChatMessage).content || '').includes(query)
+        // Case-insensitive: use WeakMap cache to avoid repeated .toLowerCase() per keystroke
+        : getMessageSearchText(msg).includes(queryLower)
       if (found) {
         matches.push(idx)
       }

@@ -504,6 +504,9 @@
     "noKeysInPool": "密钥池为空",
     "keyExhausted": "已耗尽",
     "model": "模型",
+    "advisorModel": "辅助模型",
+    "advisorModelSame": "与主模型相同",
+    "advisorModelHint": "用于后台任务的轻量模型：自动压缩、记忆提取、离开摘要。默认与主模型相同。",
     "models": {
       "opus46": "Claude Opus（最强性能）",
       "sonnet46": "Claude Sonnet（推荐）",
@@ -562,6 +565,8 @@
     "systemPresenceHint": "在每次对话中注入当前日期、时间、工作目录和用户名称，让 Claude 了解你的环境上下文",
     "promptSuggestions": "提示建议",
     "promptSuggestionsHint": "每次回复后显示 AI 预测的后续建议（输入框中的虚影文字，按 Tab 接受）",
+    "speculation": "投机执行",
+    "speculationHint": "在隔离沙箱中预执行预测的下一条提示词 — 接受即注入结果，拒绝即丢弃。需开启"提示建议"。",
     "save": "保存设置",
     "saved": "已保存",
     "unlimited": "无限制",
@@ -1690,7 +1695,18 @@
     "fired": "提醒",
     "now": "现在",
     "inMinutes": "{{count}} 分钟后",
-    "inHours": "{{count}} 小时后"
+    "inHours": "{{count}} 小时后",
+    "quickPresets": "快速",
+    "recurring": "定期重复",
+    "setRecurring": "设置"
+  },
+  "cronPresets": {
+    "every5min": "每5分钟",
+    "everyHour": "每小时",
+    "everyMorning": "每天早9点",
+    "weekdayMorning": "工作日早9点",
+    "everyNoon": "每天中午12点",
+    "everyEvening": "每天晚6点"
   },
   "dailyBriefing": {
     "goodMorning": "早上好!",
@@ -1768,5 +1784,14 @@
     "keyPoints": "提取要点",
     "describe": "描述",
     "extractText": "提取文字"
+  },
+  "awaySummary": {
+    "title": "离开期间"
+  },
+  "memoryType": {
+    "typeUser": "用户",
+    "typeFeedback": "反馈",
+    "typeProject": "项目",
+    "typeReference": "参考"
   }
 }

@@ -24,6 +24,18 @@ const electronAPI = {
   cliGenerateAwaySummary: (context: string) =>
     ipcRenderer.invoke('cli:generateAwaySummary', { context }) as Promise<string>,
 
+  // ── Speculation ───────────────────────────
+  speculationIsSafe: (prompt: string) =>
+    ipcRenderer.invoke('speculation:isSafe', { prompt }) as Promise<boolean>,
+  speculationRun: (args: { id: string; prompt: string; cwd: string; model: string; env: Record<string, string> }) =>
+    ipcRenderer.invoke('speculation:run', args),
+  speculationAccept: (id: string, cwd: string) =>
+    ipcRenderer.invoke('speculation:accept', { id, cwd }) as Promise<{ merged: string[] }>,
+  speculationReject: (id: string) =>
+    ipcRenderer.invoke('speculation:reject', { id }),
+  speculationAbort: (id: string) =>
+    ipcRenderer.invoke('speculation:abort', { id }),
+
   // ── Sessions ─────────────────────────────
   sessionList: () => ipcRenderer.invoke('session:list'),
   sessionLoad: (id: string) => ipcRenderer.invoke('session:load', id),
@@ -33,6 +45,7 @@ const electronAPI = {
   sessionGenerateTitle: (description: string) => ipcRenderer.invoke('session:generateTitle', { description }),
   sessionRewind: (sessionId: string, beforeTimestamp: string) => ipcRenderer.invoke('session:rewind', { sessionId, beforeTimestamp }),
   sessionSearch: (query: string, limit?: number) => ipcRenderer.invoke('session:search', { query, limit }),
+  sessionDetectInterruption: (sessionId: string) => ipcRenderer.invoke('session:detectInterruption', { sessionId }),
 
   // ── Config / prefs ───────────────────────
   configRead: () => ipcRenderer.invoke('config:read'),

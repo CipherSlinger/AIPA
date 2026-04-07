@@ -504,6 +504,9 @@
     "noKeysInPool": "No keys in pool",
     "keyExhausted": "Exhausted",
     "model": "Model",
+    "advisorModel": "Advisor Model",
+    "advisorModelSame": "Same as main model",
+    "advisorModelHint": "Lighter model used for background tasks: auto-compaction, memory extraction, away summaries. Defaults to main model.",
     "models": {
       "opus46": "Claude Opus (Most Powerful)",
       "sonnet46": "Claude Sonnet (Recommended)",
@@ -562,6 +565,8 @@
     "systemPresenceHint": "Inject current date, time, working directory, and user name into every conversation so Claude is aware of your context",
     "promptSuggestions": "Prompt Suggestions",
     "promptSuggestionsHint": "Show AI-predicted follow-up suggestions after each response (ghost text in input field, Tab to accept)",
+    "speculation": "Speculative Execution",
+    "speculationHint": "Pre-execute the predicted next prompt in an isolated sandbox — accept to inject the result, reject to discard. Requires Prompt Suggestions to be on.",
     "save": "Save Settings",
     "saved": "Saved",
     "unlimited": "Unlimited",
@@ -1672,7 +1677,18 @@
     "fired": "Reminder",
     "now": "Now",
     "inMinutes": "in {{count}} min",
-    "inHours": "in {{count}} hr"
+    "inHours": "in {{count}} hr",
+    "quickPresets": "Quick",
+    "recurring": "Recurring",
+    "setRecurring": "Set"
+  },
+  "cronPresets": {
+    "every5min": "Every 5 minutes",
+    "everyHour": "Every hour",
+    "everyMorning": "Every morning (9am)",
+    "weekdayMorning": "Weekdays at 9am",
+    "everyNoon": "Every day at noon",
+    "everyEvening": "Every evening (6pm)"
   },
   "dailyBriefing": {
     "goodMorning": "Good morning!",
@@ -1750,5 +1766,14 @@
     "keyPoints": "Key Points",
     "describe": "Describe",
     "extractText": "Extract Text"
+  },
+  "awaySummary": {
+    "title": "While you were away"
+  },
+  "memoryType": {
+    "typeUser": "user",
+    "typeFeedback": "feedback",
+    "typeProject": "project",
+    "typeReference": "reference"
   }
 }

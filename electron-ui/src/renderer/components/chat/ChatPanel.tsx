@@ -27,9 +27,12 @@ import QuickCapture from './QuickCapture'
 import PinnedNoteStrip from './PinnedNoteStrip'
 import RegenerateButton from './RegenerateButton'
 import CompareView from './CompareView'
+import SpeculationCard from './SpeculationCard'
 import { getTemplateById } from '../../utils/promptTemplates'
 import { useT } from '../../i18n'
 import { useIdleReturn } from '../../hooks/useIdleReturn'
+import { useAwaySummary } from '../../hooks/useAwaySummary'
+import { useSpeculation } from '../../hooks/useSpeculation'
 
 export default function ChatPanel() {
   const t = useT()
@@ -74,6 +77,16 @@ export default function ChatPanel() {
 
   // Idle return detection
   const { showDialog: showIdleDialog, idleDuration, awaySummary, summaryLoading, dismiss: dismissIdle, suppressForever: suppressIdleForever } = useIdleReturn()
+
+  // Away summary — injects summary card into chat after 5min of window blur (Iteration 481)
+  useAwaySummary(isStreaming)
+
+  // Speculation — pre-executes prompt suggestions in an isolated sandbox (Iteration 489)
+  const speculationCwd = prefs.workingDir || ''
+  const { status: specStatus, result: specResult, accept: specAccept, reject: specReject } = useSpeculation(
+    isStreaming,
+    speculationCwd,
+  )
 
   // Pinned note editing state (Iteration 434)
   const [editingNote, setEditingNote] = useState(false)
@@ -456,6 +469,22 @@ export default function ChatPanel() {
         <RegenerateButton
           onRegenerate={handleRegenerate}
           onRegenerateWithModel={handleRegenerateWithModel}
+        />
+      )}
+
+      {/* Speculative preview card — shows pre-executed result for next likely prompt (Iteration 489) */}
+      {(specStatus === 'running' || specStatus === 'ready') && !isStreaming && (
+        <SpeculationCard
+          status={specStatus}
+          result={specResult}
+          onAccept={async () => {
+            const accepted = await specAccept()
+            if (accepted) {
+              // Inject the speculated exchange into the main session as if the user sent it
+              sendMessage(accepted.prompt)
+            }
+          }}
+          onReject={specReject}
         />
       )}
 
