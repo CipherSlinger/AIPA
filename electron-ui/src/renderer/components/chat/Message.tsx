@@ -15,6 +15,7 @@ import { useT } from '../../i18n'
 import { useMessageActions } from '../../hooks/useMessageActions'
 import { useReadAloud } from './useReadAloud'
 import { toggleShowAbsoluteTime } from './messageUtils'
+import { formatBriefTimestamp } from '../../utils/formatBriefTimestamp'
 
 interface Props {
   message: ChatMessage
@@ -212,18 +213,9 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   const avatarSize = compact ? 28 : 36
   const iconSize = compact ? 14 : 18
 
-  // Hover timestamp (Iteration 461): show HH:mm for today, "MMM DD, HH:mm" for older messages
+  // Hover timestamp (Iteration 461, 499): formatBriefTimestamp from sourcemap — same-day HH:mm, week "Sunday 4:15 PM", older "Sun, Feb 20, 4:30 PM"
   const msgTimestamp = (message as StandardChatMessage).timestamp
-  const hoverTimestampLabel = (() => {
-    if (!msgTimestamp) return null
-    const d = new Date(msgTimestamp)
-    const now = new Date()
-    const isToday = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()
-    const hhmm = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    if (isToday) return hhmm
-    const mmm = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-    return `${mmm}, ${hhmm}`
-  })()
+  const hoverTimestampLabel = msgTimestamp ? formatBriefTimestamp(msgTimestamp) : null
 
   return (
     <div
