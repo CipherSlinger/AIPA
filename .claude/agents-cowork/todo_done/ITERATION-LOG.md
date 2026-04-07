@@ -4953,3 +4953,75 @@ Status: SUCCESS (tsc main/preload: 0 errors, vite build: 10.44s)
 - [x] Clicking Continue button sends the message
 - [x] Negative hint toast shows once per frustration event (throttled via ref)
 - [x] Build: 0 errors (3 pre-existing bugs fixed)
+
+---
+
+## Iteration 491 — Memory Monitor + Anti-Flicker useMinDisplayTime
+
+_Date: 2026-04-07 | Source: claude-code-sourcemap-main_
+
+### Summary
+(1) Ported `useMemoryUsage` hook — polls JS heap via `performance.memory` every 10s, returns null when normal, `{heapUsed, status}` when ≥1.5GB (high) or ≥2.5GB (critical). RAM badge shown in StatusBar. (2) Ported `useMinDisplayTime` anti-flicker hook — each distinct value stays visible for at least N ms, preventing rapid label cycling in TypingStatus.
+
+### Files Changed
+- `useMemoryUsage.ts` — New hook
+- `useMinDisplayTime.ts` — New hook
+- `StatusBar.tsx` — RAM badge (shown only when ≥1.5GB)
+- `TypingStatus.tsx` — useMinDisplayTime(rawLabel, 400)
+
+### Build
+Status: SUCCESS
+
+---
+
+## Iteration 492 — CircularBuffer + Rolling Streaming Speed + Word Slug
+
+_Date: 2026-04-07 | Source: claude-code-sourcemap-main_
+
+### Summary
+(1) Ported `CircularBuffer<T>` — fixed-size buffer with auto eviction, used for rolling stats. (2) Enhanced `useStreamingSpeed` to use CircularBuffer for rolling 6-sample window (more accurate than total-elapsed average). (3) Ported `generateShortWordSlug`/`generateWordSlug` from sourcemap words.ts — adjective-noun friendly identifiers used for export filenames instead of timestamps.
+
+### Files Changed
+- `CircularBuffer.ts` — New utility
+- `wordSlug.ts` — New utility (generateShortWordSlug/generateWordSlug)
+- `useStreamingSpeed.ts` — Rolling window via CircularBuffer
+- `useConversationExport.ts` — Friendly word slug export filenames
+
+### Build
+Status: SUCCESS
+
+---
+
+## Iteration 493 — useDoublePress + formatUtils + Double-Escape New Chat
+
+_Date: 2026-04-07 | Source: claude-code-sourcemap-main_
+
+### Summary
+(1) Ported `useDoublePress` hook — detects double-press within 800ms timeout. Integrated in ChatInput: double-Escape on empty input starts a new conversation, with a "Press Esc again..." hint shown while pending. (2) Created `formatUtils.ts` with `formatFileSize`, `formatNumber`, `formatTokens`, `formatSecondsShort` — ported from sourcemap format.ts. Applied `formatFileSize` to ChatInputAttachments (replaced manual `Math.ceil/1024` calculation).
+
+### Files Changed
+- `useDoublePress.ts` — New hook
+- `formatUtils.ts` — New utility (formatFileSize/Number/Tokens/SecondsShort)
+- `ChatInput.tsx` — Double-Escape integration + escPending hint
+- `ChatInputAttachments.tsx` — formatFileSize for file size display
+- `en.json` / `zh-CN.json` — input.escAgainNewChat key
+
+### Build
+Status: SUCCESS
+
+---
+
+## Iteration 494 — useElapsedTime + arrayUtils + Live Elapsed in TypingStatus
+
+_Date: 2026-04-07 | Source: claude-code-sourcemap-main_
+
+### Summary
+(1) Ported `useElapsedTime` hook — uses `useSyncExternalStore` with interval subscription for efficient live-updating elapsed time. (2) Applied to TypingStatus: shows elapsed time (e.g., "14s") after 3 seconds of streaming. (3) Created `arrayUtils.ts` with `intersperse`, `count`, `uniq` — ported from sourcemap array.ts.
+
+### Files Changed
+- `useElapsedTime.ts` — New hook
+- `arrayUtils.ts` — New utility (intersperse/count/uniq)
+- `TypingStatus.tsx` — Live elapsed time display after 3s of streaming
+
+### Build
+Status: SUCCESS
