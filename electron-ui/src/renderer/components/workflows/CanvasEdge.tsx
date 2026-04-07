@@ -20,19 +20,9 @@ export default function CanvasEdge({ from, to, status = 'idle' }: CanvasEdgeProp
   const endX = to.x + to.width / 2
   const endY = to.y
 
-  // Use orthogonal path: down → across → down (avoids crossing node bodies)
-  const vertGap = endY - startY
-  const midY = startY + vertGap * 0.5
+  const midY = (startY + endY) / 2
 
-  let d: string
-  if (Math.abs(endX - startX) < 2) {
-    // Straight vertical line
-    d = `M ${startX} ${startY} L ${endX} ${endY}`
-  } else {
-    // Smooth bezier elbow
-    d = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`
-  }
-
+  const d = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`
   const color = edgeColor(status)
   const markerId = `canvas-arrowhead-${status}`
 
@@ -59,7 +49,7 @@ export default function CanvasEdge({ from, to, status = 'idle' }: CanvasEdgeProp
           style={{ animation: 'canvas-edge-flow 0.7s linear infinite' }}
         />
       )}
-      {/* Done checkmark glow */}
+      {/* Done glow */}
       {status === 'done' && (
         <path
           d={d}

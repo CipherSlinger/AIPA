@@ -46,6 +46,7 @@ const electronAPI = {
   sessionRewind: (sessionId: string, beforeTimestamp: string) => ipcRenderer.invoke('session:rewind', { sessionId, beforeTimestamp }),
   sessionSearch: (query: string, limit?: number) => ipcRenderer.invoke('session:search', { query, limit }),
   sessionDetectInterruption: (sessionId: string) => ipcRenderer.invoke('session:detectInterruption', { sessionId }),
+  sessionGetStats: () => ipcRenderer.invoke('session:getStats'),
 
   // ── Config / prefs ───────────────────────
   configRead: () => ipcRenderer.invoke('config:read'),
@@ -57,6 +58,12 @@ const electronAPI = {
   prefsSet: (key: string, value: unknown) => ipcRenderer.invoke('prefs:set', key, value),
   prefsGetAll: () => ipcRenderer.invoke('prefs:getAll'),
   prefsResetAll: () => ipcRenderer.invoke('prefs:resetAll'),
+
+  // ── CLI settings.json (Iteration 518) ──────
+  configReadCLISettings: () =>
+    ipcRenderer.invoke('config:readCLISettings') as Promise<Record<string, unknown>>,
+  configWriteCLISettings: (patch: Record<string, unknown>) =>
+    ipcRenderer.invoke('config:writeCLISettings', patch) as Promise<{ success?: boolean; error?: string }>,
 
   // ── File system ──────────────────────────
   fsListDir: (dirPath: string) => ipcRenderer.invoke('fs:listDir', dirPath),
@@ -72,6 +79,17 @@ const electronAPI = {
   fsGetHome: () => ipcRenderer.invoke('fs:getHome'),
   fsEnsureDir: (dirPath: string) => ipcRenderer.invoke('fs:ensureDir', dirPath),
   fsListCommands: (workingDir: string) => ipcRenderer.invoke('fs:listCommands', workingDir),
+  fsPathExists: (filePath: string) =>
+    ipcRenderer.invoke('fs:pathExists', { filePath }) as Promise<boolean>,
+  fsGitDiff: (filePath?: string) =>
+    ipcRenderer.invoke('fs:gitDiff', { filePath }) as Promise<string | { error: string }>,
+  fsGitStatus: () =>
+    ipcRenderer.invoke('fs:gitStatus') as Promise<string | { error: string }>,
+
+  // ── Shell ───────────────────────────────
+  shellOpenExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
+  shellShowItemInFolder: (filePath: string) =>
+    ipcRenderer.invoke('shell:showItemInFolder', filePath) as Promise<{ success: boolean; error?: string }>,
 
   // ── Push event listeners ─────────────────
   onPtyData: (sessionId: string, cb: (data: string) => void): Unsubscribe => {
@@ -97,6 +115,7 @@ const electronAPI = {
       'cli:toolResult', 'cli:messageEnd', 'cli:result',
       'cli:error', 'cli:processExit',
       'cli:permissionRequest',
+      'cli:hookEvent',
     ]
     const handlers = channels.map((ch) => {
       const h = (_: unknown, d: Record<string, unknown>) => {
@@ -118,13 +137,18 @@ const electronAPI = {
   // ── MCP ──────────────────────────────────
   mcpList: () => ipcRenderer.invoke('mcp:list'),
   mcpSetEnabled: (serverName: string, enabled: boolean) => ipcRenderer.invoke('mcp:setEnabled', { serverName, enabled }),
+  mcpAdd: (name: string, type: string, config: Record<string, unknown>) =>
+    ipcRenderer.invoke('mcp:add', { name, type, config }) as Promise<{ success: boolean; error?: string }>,
+  mcpRemove: (name: string) =>
+    ipcRenderer.invoke('mcp:remove', { name }) as Promise<{ success: boolean; error?: string }>,
+  mcpGetTools: (serverName: string) =>
+    ipcRenderer.invoke('mcp:getTools', { serverName }) as Promise<{ tools: { name: string; description?: string }[] }>,
+  mcpReconnect: (serverName: string) =>
+    ipcRenderer.invoke('mcp:reconnect', { serverName }) as Promise<{ success: boolean; error?: string }>,
 
   // ── Feedback ─────────────────────────────
   feedbackRate: (messageId: string, rating: 'up' | 'down' | null) =>
     ipcRenderer.invoke('feedback:rate', { messageId, rating }),
-
-  // ── Shell ───────────────────────────────
-  shellOpenExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
 
   // ── URL metadata (Iteration 462) ──────
   urlFetchMeta: (url: string) => ipcRenderer.invoke('url:fetchMeta', url) as Promise<{

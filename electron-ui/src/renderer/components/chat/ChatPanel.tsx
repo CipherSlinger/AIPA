@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { Upload, AlertTriangle, StickyNote, X, Check } from 'lucide-react'
-import { useChatStore, usePrefsStore, useUiStore } from '../../store'
+import { useChatStore, usePrefsStore, useUiStore, getTabScrollTop } from '../../store'
 import { StandardChatMessage, Note, NoteCategory } from '../../types/app.types'
 import { useStreamJson } from '../../hooks/useStreamJson'
 import { useStreamingTimer } from '../../hooks/useStreamingTimer'
@@ -28,6 +28,7 @@ import PinnedNoteStrip from './PinnedNoteStrip'
 import RegenerateButton from './RegenerateButton'
 import CompareView from './CompareView'
 import SpeculationCard from './SpeculationCard'
+import TabBar from './TabBar'
 import { getTemplateById } from '../../utils/promptTemplates'
 import { useT } from '../../i18n'
 import { useIdleReturn } from '../../hooks/useIdleReturn'
@@ -52,8 +53,20 @@ export default function ChatPanel() {
   const prepareRegeneration = useChatStore(s => s.prepareRegeneration)
   const lastContextUsage = useChatStore(s => s.lastContextUsage)
   const totalSessionCost = useChatStore(s => s.totalSessionCost)
+  // Tab state (Iteration 515)
+  const activeTabId = useChatStore(s => s.activeTabId)
+  const setTabScrollTop = useChatStore(s => s.setTabScrollTop)
+  const tabCount = useChatStore(s => s.tabs.length)
 
-  const { sendMessage, abort, respondPermission, grantToolPermission, newConversation } = useStreamJson()
+  // Keep the active tab title in sync with session title changes
+  const updateTabTitle = useChatStore(s => s.updateTabTitle)
+  useEffect(() => {
+    if (activeTabId && currentSessionTitle) {
+      updateTabTitle(activeTabId, currentSessionTitle)
+    }
+  }, [activeTabId, currentSessionTitle, updateTabTitle])
+
+  const { sendMessage, abort, respondPermission, grantToolPermission, alwaysAllowTool, alwaysDenyTool, newConversation } = useStreamJson()
 
   // Extracted hooks
   const { elapsedStr } = useStreamingTimer(isStreaming)
@@ -205,7 +218,7 @@ export default function ChatPanel() {
       }
       usePrefsStore.getState().setPrefs({ forkMap: updatedForkMap })
       window.electronAPI.prefsSet('forkMap', updatedForkMap)
-      addToast('success', t('fork.forkSuccess'))
+      addToast('success', t('fork.switchingToast'))
       // Open the forked session
       window.dispatchEvent(new CustomEvent('aipa:openSession', { detail: newSessionId }))
     } catch {
@@ -251,6 +264,9 @@ export default function ChatPanel() {
         </div>
       )}
 
+      {/* Tab Bar (Iteration 515) — only visible with 2+ tabs */}
+      <TabBar />
+
       {/* Chat Header */}
       <ChatHeader
         sessionTitle={currentSessionTitle}
@@ -274,6 +290,7 @@ export default function ChatPanel() {
         onScrollToMessage={handleScrollToMessage}
         onExportBookmarks={exportBookmarks}
         onSummarize={handleSummarize}
+        onCompact={sendMessage}
       />
 
       {/* Token usage progress bar */}
@@ -446,6 +463,8 @@ export default function ChatPanel() {
             messages={messages}
             onPermission={respondPermission}
             onGrantPermission={grantToolPermission}
+            onAlwaysAllow={alwaysAllowTool}
+            onAlwaysDeny={alwaysDenyTool}
             sessionId={currentSessionId}
             isStreaming={isStreaming}
             searchQuery={searchQuery}

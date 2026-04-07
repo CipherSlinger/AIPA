@@ -7,10 +7,11 @@ import { ClaudePrefs, SessionListItem } from '../types/app.types'
 
 // ── Re-exports from sub-modules ──────────────────
 export { useChatStore } from './chatStore'
-export type { TaskQueueItem } from './chatStore'
+export type { TaskQueueItem, TabInfo, TabSnapshot } from './chatStore'
+export { getTabScrollTop } from './chatStore'
 
 export { useUiStore } from './uiStore'
-export type { SidebarTab, NavItem, NotificationEntry } from './uiStore'
+export type { SidebarTab, NavItem } from './uiStore'
 
 // ── Session store ───────────────────────────────
 interface SessionState {
@@ -64,8 +65,10 @@ const DEFAULT_PREFS: ClaudePrefs = {
     { label: 'Draft email', prompt: 'Please draft a professional email based on the following points:' },
     { label: 'Brainstorm ideas', prompt: 'Please brainstorm creative ideas about:' },
   ],
-  effortLevel: 'medium',
+  effortLevel: 'auto',
   preventSleep: true,
+  appendSystemPrompt: '',
+  disallowedTools: [],
 }
 
 export const usePrefsStore = create<PrefsState>((set) => ({

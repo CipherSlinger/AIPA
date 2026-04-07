@@ -5,6 +5,7 @@ import { useT, useDateLocale } from '../../i18n'
 import { getSessionAvatarColor, formatSessionDuration, TAG_PRESETS, getMatchContext } from './sessionUtils'
 import HighlightText from './HighlightText'
 import { formatDistanceToNow } from 'date-fns'
+import { firstLineOf } from '../../utils/stringUtils'
 
 interface SessionItemProps {
   session: SessionListItem
@@ -22,6 +23,7 @@ interface SessionItemProps {
   sessionTags: Record<string, string[]>
   tagNames: string[]
   onOpen: (session: SessionListItem) => void
+  onOpenInNewTab?: (session: SessionListItem) => void  // Iteration 515: middle-click opens in new tab
   onToggleSelect: (sessionId: string) => void
   onTogglePin: (e: React.MouseEvent, sessionId: string) => void
   onOpenTagPicker: (e: React.MouseEvent, sessionId: string) => void
@@ -60,6 +62,7 @@ export default function SessionItem({
   sessionTags,
   tagNames,
   onOpen,
+  onOpenInNewTab,
   onToggleSelect,
   onTogglePin,
   onOpenTagPicker,
@@ -84,7 +87,7 @@ export default function SessionItem({
   const t = useT()
   const dateLocale = useDateLocale()
   const avatarColor = getSessionAvatarColor(session.sessionId)
-  const previewText = (session.lastPrompt || '').slice(0, 50) || undefined
+  const previewText = firstLineOf((session.lastPrompt || '').slice(0, 150)).slice(0, 50) || undefined
   const getTagName = (idx: number) => tagNames[idx] || t(TAG_PRESETS[idx]?.defaultKey || 'tags.work')
 
   return (
@@ -94,6 +97,13 @@ export default function SessionItem({
           if (!isSelectDisabled) onToggleSelect(session.sessionId)
         } else {
           onOpen(session)
+        }
+      }}
+      onAuxClick={(e) => {
+        // Middle-click opens in new tab (Iteration 515)
+        if (e.button === 1 && onOpenInNewTab && !selectMode) {
+          e.preventDefault()
+          onOpenInNewTab(session)
         }
       }}
       className="session-item"

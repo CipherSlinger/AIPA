@@ -3,6 +3,7 @@ import { usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import { Note, NoteCategory } from '../../types/app.types'
 import { MAX_NOTES, MAX_CONTENT_LENGTH, MAX_CATEGORIES, MAX_CATEGORY_NAME, CATEGORY_COLORS, generateId } from './notesConstants'
+import { firstLineOf } from '../../utils/stringUtils'
 
 export function useNotesCRUD() {
   const t = useT()
@@ -120,7 +121,7 @@ export function useNotesCRUD() {
     setContent(val)
     // Auto-generate title from first Markdown heading if title is empty
     if (!title) {
-      const firstLine = val.split('\n')[0] || ''
+      const firstLine = firstLineOf(val)
       const headingMatch = firstLine.match(/^#{1,3}\s+(.+)/)
       if (headingMatch) {
         setTitle(headingMatch[1].trim())

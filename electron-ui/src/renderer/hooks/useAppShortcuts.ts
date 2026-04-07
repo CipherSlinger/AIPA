@@ -98,6 +98,11 @@ export function useAppShortcuts(
           store.collapseAll()
         }
       }
+      // Ctrl+Shift+E: Export conversation
+      if (e.ctrlKey && e.shiftKey && e.key === 'E') {
+        e.preventDefault()
+        window.dispatchEvent(new CustomEvent('aipa:export'))
+      }
       // Ctrl+Shift+D: Cycle theme (System -> Dark -> Light -> System)
       if (e.ctrlKey && e.shiftKey && e.key === 'D') {
         e.preventDefault()
@@ -138,10 +143,10 @@ export function useAppShortcuts(
         ui.setAlwaysOnTop(newValue)
         ui.addToast('info', t(newValue ? 'window.pinnedOn' : 'window.pinnedOff'), 1500)
       }
-      // Ctrl+1-9: Switch sidebar tabs; Ctrl+, opens settings modal
-      if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key >= '1' && e.key <= '9') {
+      // Ctrl+1-8: Switch sidebar tabs
+      if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key >= '1' && e.key <= '8') {
         e.preventDefault()
-        const tabs = ['history', 'files', 'notes', 'skills', 'memory', 'workflows', 'channel', 'notifications', 'tasks'] as const
+        const tabs = ['history', 'files', 'notes', 'skills', 'memory', 'workflows', 'channel', 'tasks'] as const
         const idx = parseInt(e.key) - 1
         const tab = tabs[idx]
         if (tab) {
@@ -189,6 +194,26 @@ export function useAppShortcuts(
         const target = sorted[targetIdx]
         if (target) {
           window.dispatchEvent(new CustomEvent('aipa:openSession', { detail: target.sessionId }))
+        }
+      }
+      // Ctrl+Tab / Ctrl+Shift+Tab: Switch between tabs (Iteration 515)
+      if (e.ctrlKey && e.key === 'Tab') {
+        e.preventDefault()
+        const chatState = useChatStore.getState()
+        if (chatState.tabs.length >= 2) {
+          if (e.shiftKey) {
+            chatState.prevTab()
+          } else {
+            chatState.nextTab()
+          }
+        }
+      }
+      // Ctrl+W: Close current tab (Iteration 515)
+      if (e.ctrlKey && !e.shiftKey && e.key === 'w') {
+        e.preventDefault()
+        const chatState = useChatStore.getState()
+        if (chatState.tabs.length >= 2 && chatState.activeTabId) {
+          chatState.closeTab(chatState.activeTabId)
         }
       }
     }

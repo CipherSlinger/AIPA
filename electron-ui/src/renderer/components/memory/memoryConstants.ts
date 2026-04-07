@@ -10,6 +10,8 @@ import {
   Link,
 } from 'lucide-react'
 import { MemoryCategory, MemoryType } from '../../types/app.types'
+import { escapeRegExp } from '../../utils/stringUtils'
+import { count } from '../../utils/arrayUtils'
 
 export const CATEGORY_CONFIG: Record<MemoryCategory, { icon: React.ReactNode; color: string; labelKey: string }> = {
   preference: { icon: React.createElement(Star, { size: 12 }), color: '#f59e0b', labelKey: 'memory.catPreference' },
@@ -43,10 +45,10 @@ export function suggestMemoryType(content: string): MemoryType {
   const referenceWords = ['http', 'url', 'board', 'dashboard', 'jira', 'linear', 'slack', 'github', 'repo', 'wiki', 'docs', 'at ', 'tracker', 'channel']
 
   const scores = {
-    user: userWords.filter(w => lower.includes(w)).length,
-    feedback: feedbackWords.filter(w => lower.includes(w)).length,
-    project: projectWords.filter(w => lower.includes(w)).length,
-    reference: referenceWords.filter(w => lower.includes(w)).length,
+    user: count(userWords, w => lower.includes(w)),
+    feedback: count(feedbackWords, w => lower.includes(w)),
+    project: count(projectWords, w => lower.includes(w)),
+    reference: count(referenceWords, w => lower.includes(w)),
   }
 
   const max = Math.max(...Object.values(scores))
@@ -65,7 +67,7 @@ export function fuzzyScore(text: string, query: string): number {
   // Exact substring match gets highest base score
   if (textLower.includes(queryLower)) {
     // Bonus for match at start of word boundary
-    const wordBoundaryIdx = textLower.search(new RegExp(`\\b${queryLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`))
+    const wordBoundaryIdx = textLower.search(new RegExp(`\\b${escapeRegExp(queryLower)}`))
     if (wordBoundaryIdx === 0) return 100  // starts with query
     if (wordBoundaryIdx > 0) return 90     // word-boundary match
     return 80                               // substring match
@@ -104,9 +106,9 @@ export function suggestCategory(content: string): MemoryCategory {
   const instructionWords = ['should', 'must', 'rule', 'when', 'if', 'how to', 'make sure', 'remember to', 'do not', 'use']
   const contextWords = ['project', 'team', 'company', 'working on', 'currently', 'role', 'job', 'deadline', 'using']
 
-  const prefScore = preferenceWords.filter(w => lower.includes(w)).length
-  const instrScore = instructionWords.filter(w => lower.includes(w)).length
-  const ctxScore = contextWords.filter(w => lower.includes(w)).length
+  const prefScore = count(preferenceWords, w => lower.includes(w))
+  const instrScore = count(instructionWords, w => lower.includes(w))
+  const ctxScore = count(contextWords, w => lower.includes(w))
 
   if (prefScore > instrScore && prefScore > ctxScore) return 'preference'
   if (instrScore > prefScore && instrScore > ctxScore) return 'instruction'
@@ -118,7 +120,7 @@ export function suggestCategory(content: string): MemoryCategory {
 export function highlightText(text: string, query: string): React.ReactNode {
   if (!query.trim()) return text
   try {
-    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const escaped = escapeRegExp(query)
     const regex = new RegExp(`(${escaped})`, 'gi')
     const parts = text.split(regex)
     return parts.map((part, i) =>

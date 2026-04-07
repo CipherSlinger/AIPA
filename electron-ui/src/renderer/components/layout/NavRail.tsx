@@ -1,5 +1,5 @@
-import React from 'react'
-import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, Settings, User, PanelLeftClose, PanelLeftOpen, Radio, Bell, CheckSquare } from 'lucide-react'
+import React, { useMemo } from 'react'
+import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, Settings, User, PanelLeftClose, PanelLeftOpen, Radio, CheckSquare, GitBranch } from 'lucide-react'
 import { useUiStore, useChatStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 import { AVATAR_PRESETS } from './avatarPresets'
@@ -238,9 +238,10 @@ export default function NavRail() {
   const isMemoryActive = activeNavItem === 'memory' && sidebarTab === 'memory'
   const isWorkflowsActive = activeNavItem === 'workflows' && sidebarTab === 'workflows'
   const isChannelActive = activeNavItem === 'channel' && sidebarTab === 'channel'
-  const isNotificationsActive = activeNavItem === 'notifications' && sidebarTab === 'notifications'
   const isTasksActive = activeNavItem === 'tasks' && sidebarTab === 'tasks'
-  const unreadNotificationCount = useUiStore(s => s.unreadNotificationCount)
+  const isChangesActive = activeNavItem === 'changes' && sidebarTab === 'changes'
+  const changedFiles = useChatStore(s => s.changedFiles)
+  const changedFilesCount = useMemo(() => new Set(changedFiles.map(f => f.filePath)).size, [changedFiles])
   const isStreaming = useChatStore(s => s.isStreaming)
   const isSettingsActive = useUiStore(s => s.settingsModalOpen)
   // Unread session count: sessions that received new messages while not being the active session
@@ -359,24 +360,25 @@ export default function NavRail() {
         expanded={navExpanded}
       />
 
-      {/* Notifications */}
-      <NavItem
-        icon={<Bell size={iconSize} />}
-        label={t('nav.notifications')}
-        shortcut="Ctrl+8"
-        isActive={isNotificationsActive}
-        badge={unreadNotificationCount}
-        onClick={() => setActiveNavItem('notifications')}
-        expanded={navExpanded}
-      />
-
       {/* Tasks (Iteration 465) */}
       <NavItem
         icon={<CheckSquare size={iconSize} />}
         label={t('nav.tasks')}
-        shortcut="Ctrl+9"
+        shortcut="Ctrl+8"
         isActive={isTasksActive}
         onClick={() => setActiveNavItem('tasks')}
+        expanded={navExpanded}
+      />
+
+      {/* Changes (Iteration 521) */}
+      <NavItem
+        icon={<GitBranch size={iconSize} />}
+        label={t('nav.changes')}
+        shortcut="Ctrl+9"
+        isActive={isChangesActive}
+        onClick={() => setActiveNavItem('changes')}
+        badge={changedFilesCount > 0 ? changedFilesCount : undefined}
+        badgeColor="var(--accent)"
         expanded={navExpanded}
       />
 

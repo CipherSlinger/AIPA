@@ -9,6 +9,7 @@
 
 import { useMemo } from 'react'
 import type { StandardChatMessage, ToolUseInfo, ChatMessage } from '../types/app.types'
+import { countCharInString } from '../utils/stringUtils'
 
 export interface FileChange {
   filePath: string
@@ -65,8 +66,8 @@ function estimateLineChanges(tool: ToolUseInfo): { added: number; removed: numbe
   if (FILE_EDIT_TOOLS.has(tool.name)) {
     const oldStr = String(input.old_str || input.old_string || '')
     const newStr = String(input.new_str || input.new_string || '')
-    const oldLines = oldStr ? oldStr.split('\n').length : 0
-    const newLines = newStr ? newStr.split('\n').length : 0
+    const oldLines = oldStr ? countCharInString(oldStr, '\n') + 1 : 0
+    const newLines = newStr ? countCharInString(newStr, '\n') + 1 : 0
     return {
       added: Math.max(0, newLines - oldLines),
       removed: Math.max(0, oldLines - newLines),
@@ -76,7 +77,7 @@ function estimateLineChanges(tool: ToolUseInfo): { added: number; removed: numbe
   // For Write/create tools: all lines are "added"
   if (FILE_WRITE_TOOLS.has(tool.name)) {
     const content = String(input.content || '')
-    const lines = content ? content.split('\n').length : 0
+    const lines = content ? countCharInString(content, '\n') + 1 : 0
     return { added: lines, removed: 0 }
   }
 

@@ -236,6 +236,10 @@ export class StreamBridge extends EventEmitter {
         })
         break
       }
+      case 'hook_event': {
+        this.emit('hookEvent', { sessionId: sid, data: event })
+        break
+      }
       default:
         this.emit('unknown', { sessionId: sid, event })
     }

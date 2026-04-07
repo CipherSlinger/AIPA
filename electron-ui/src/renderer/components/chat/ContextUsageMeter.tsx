@@ -1,7 +1,8 @@
 // ContextUsageMeter — shows context window usage bar in ChatInput (Iteration 455, 488)
 // Iteration 488: Added context suggestions popover inspired by Claude Code's contextSuggestions.ts
 import React, { useState } from 'react'
-import { Archive, Lightbulb, X } from 'lucide-react'
+import { Archive, Lightbulb, Loader2, X } from 'lucide-react'
+import { useChatStore } from '../../store'
 import { useT } from '../../i18n'
 
 interface ContextUsageMeterProps {
@@ -77,6 +78,7 @@ function generateSuggestions(used: number, total: number, toolBreakdown?: Record
 
 export default function ContextUsageMeter({ used, total, isStreaming, onCompact, toolBreakdown }: ContextUsageMeterProps) {
   const t = useT()
+  const isCompacting = useChatStore(s => s.isCompacting)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const pct = Math.round((used / total) * 100)
   if (pct < 40) return null
@@ -121,19 +123,22 @@ export default function ContextUsageMeter({ used, total, isStreaming, onCompact,
         {pct >= 60 && !isStreaming && (
           <button
             onClick={onCompact}
-            title={t('chat.compactHint')}
+            disabled={isCompacting}
+            title={isCompacting ? t('compact.inProgress') : t('compact.buttonHint')}
+            aria-label={isCompacting ? t('compact.inProgress') : t('compact.buttonHint')}
             style={{
               display: 'flex', alignItems: 'center', gap: 3,
               padding: '1px 6px', fontSize: 9, fontWeight: 500,
               background: 'rgba(0, 122, 204, 0.08)', border: '1px solid rgba(0, 122, 204, 0.2)',
-              borderRadius: 8, color: 'var(--accent)', cursor: 'pointer',
+              borderRadius: 8, color: 'var(--accent)', cursor: isCompacting ? 'not-allowed' : 'pointer',
               transition: 'background 150ms, border-color 150ms', whiteSpace: 'nowrap',
+              opacity: isCompacting ? 0.7 : 1,
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0, 122, 204, 0.15)'; e.currentTarget.style.borderColor = 'var(--accent)' }}
+            onMouseEnter={(e) => { if (!isCompacting) { e.currentTarget.style.background = 'rgba(0, 122, 204, 0.15)'; e.currentTarget.style.borderColor = 'var(--accent)' } }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0, 122, 204, 0.08)'; e.currentTarget.style.borderColor = 'rgba(0, 122, 204, 0.2)' }}
           >
-            <Archive size={9} />
-            {t('chat.compactBtn')}
+            {isCompacting ? <Loader2 size={9} style={{ animation: 'spin 1s linear infinite' }} /> : <Archive size={9} />}
+            {isCompacting ? t('compact.inProgress') : t('compact.button')}
           </button>
         )}
       </div>

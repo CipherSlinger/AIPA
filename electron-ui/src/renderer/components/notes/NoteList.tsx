@@ -3,11 +3,12 @@ import { Trash2, NotebookPen, MessageSquareShare, Search, Pin } from 'lucide-rea
 import { useT } from '../../i18n'
 import { Note, NoteCategory } from '../../types/app.types'
 import { formatRelativeTime } from './notesConstants'
+import { escapeRegExp, firstLineOf } from '../../utils/stringUtils'
 
 /** Highlight matching text with accent background */
 function HighlightText({ text, query }: { text: string; query: string }) {
   if (!query.trim() || !text) return <>{text}</>
-  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+  const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi')
   const parts = text.split(regex)
   return (
     <>
@@ -133,7 +134,7 @@ export default function NoteList({
                   <Pin size={11} style={{ flexShrink: 0, color: 'var(--accent)', transform: 'rotate(45deg)' }} />
                 )}
                 <HighlightText
-                  text={note.title || note.content.slice(0, 30) || t('notes.untitled')}
+                  text={note.title || firstLineOf(note.content).slice(0, 30) || t('notes.untitled')}
                   query={searchQuery}
                 />
               </div>

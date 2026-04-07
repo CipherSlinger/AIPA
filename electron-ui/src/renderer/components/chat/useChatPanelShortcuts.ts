@@ -48,7 +48,12 @@ export function useChatPanelShortcuts(
       if (e.ctrlKey && e.shiftKey && e.key === 'K') {
         e.preventDefault()
         const state = useChatStore.getState()
-        if (!state.isStreaming) {
+        if (!state.isStreaming && !state.isCompacting) {
+          // Snapshot context usage before compact for before/after comparison
+          if (state.lastContextUsage) {
+            state.setContextBeforeCompact({ used: state.lastContextUsage.used, total: state.lastContextUsage.total })
+          }
+          state.setCompacting(true)
           sendMessage('/compact')
         }
       }

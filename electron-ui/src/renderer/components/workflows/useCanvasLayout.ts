@@ -1,0 +1,365 @@
+// useCanvasLayout — pan/zoom/layout logic extracted from WorkflowCanvas (Iteration 510)
+// Manages: node positions, pan, zoom, fit-to-view, node drag, collapse state, keyboard shortcuts
+// Iteration 490: added trackpad pinch-to-zoom, Space-key pan, minimap toggle
+
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
+import { NODE_WIDTH, NODE_MIN_HEIGHT, NODE_COLLAPSED_HEIGHT, NODE_GAP_Y } from './CanvasNode'
+import type { Workflow } from '../../types/app.types'
+
+export interface NodePosition {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export const MIN_ZOOM = 0.3
+export const MAX_ZOOM = 2.5
+const ZOOM_STEP = 0.1
+
+export function useCanvasLayout(workflow: Workflow | null, containerRef: React.RefObject<HTMLDivElement | null>) {
+  // Pan & zoom state
+  const [panX, setPanX] = useState(0)
+  const [panY, setPanY] = useState(0)
+  const [zoom, setZoom] = useState(1)
+
+  // Node positions (custom overrides from dragging)
+  const [customPositions, setCustomPositions] = useState<Record<string, { x: number; y: number }>>({})
+
+  // Panning state
+  const [isPanning, setIsPanning] = useState(false)
+  const panStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 })
+
+  // Space-key temporary pan mode
+  const [spaceDown, setSpaceDown] = useState(false)
+  const spaceRef = useRef(false)
+
+  // Dragging node state
+  const [draggingNode, setDraggingNode] = useState<string | null>(null)
+  const dragStartRef = useRef({ x: 0, y: 0, nodeX: 0, nodeY: 0 })
+
+  // Smooth transition flag for programmatic moves (fit-to-view, auto-pan)
+  const [smoothTransition, setSmoothTransition] = useState(false)
+
+  // Hover state for keyboard shortcut scope
+  const [isHovered, setIsHovered] = useState(false)
+
+  // Collapsed nodes (compact mode)
+  const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set())
+
+  // Minimap visibility
+  const [showMinimap, setShowMinimap] = useState(true)
+
+  // Container size for minimap viewport rect
+  const [containerSize, setContainerSize] = useState({ w: 0, h: 0 })
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(entries => {
+      for (const e of entries) {
+        setContainerSize({ w: e.contentRect.width, h: e.contentRect.height })
+      }
+    })
+    ro.observe(el)
+    setContainerSize({ w: el.clientWidth, h: el.clientHeight })
+    return () => ro.disconnect()
+  }, [containerRef])
+
+  const handleToggleCollapse = useCallback((stepId: string) => {
+    setCollapsedNodes(prev => {
+      const next = new Set(prev)
+      if (next.has(stepId)) next.delete(stepId)
+      else next.add(stepId)
+      return next
+    })
+  }, [])
+
+  const handleCollapseAll = useCallback(() => {
+    if (!workflow) return
+    setCollapsedNodes(new Set(workflow.steps.map(s => s.id)))
+  }, [workflow])
+
+  const handleExpandAll = useCallback(() => {
+    setCollapsedNodes(new Set())
+  }, [])
+
+  // Compute default positions for all nodes (top-to-bottom layout, respects collapsed height)
+  const defaultPositions = useMemo(() => {
+    if (!workflow) return {}
+    const positions: Record<string, NodePosition> = {}
+    const startX = 0
+    let yOffset = 0
+    workflow.steps.forEach((step) => {
+      const isCollapsed = collapsedNodes.has(step.id)
+      const h = isCollapsed ? NODE_COLLAPSED_HEIGHT : NODE_MIN_HEIGHT
+      positions[step.id] = {
+        x: startX,
+        y: yOffset,
+        width: NODE_WIDTH,
+        height: h,
+      }
+      yOffset += h + (NODE_GAP_Y - NODE_MIN_HEIGHT)
+    })
+    return positions
+  }, [workflow, collapsedNodes])
+
+  // Merged positions: default + custom overrides
+  const nodePositions = useMemo(() => {
+    const merged: Record<string, NodePosition> = {}
+    for (const [id, pos] of Object.entries(defaultPositions)) {
+      if (customPositions[id]) {
+        merged[id] = { ...pos, x: customPositions[id].x, y: customPositions[id].y }
+      } else {
+        merged[id] = pos
+      }
+    }
+    return merged
+  }, [defaultPositions, customPositions])
+
+  // Reset custom positions when workflow changes
+  useEffect(() => {
+    setCustomPositions({})
+    setZoom(1)
+    setPanX(0)
+    setPanY(0)
+    setCollapsedNodes(new Set())
+  }, [workflow?.id])
+
+  // Fit to view
+  const fitToView = useCallback(() => {
+    if (!workflow || workflow.steps.length === 0 || !containerRef.current) return
+    const container = containerRef.current
+    const cw = container.clientWidth
+    const ch = container.clientHeight
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    for (const pos of Object.values(nodePositions)) {
+      minX = Math.min(minX, pos.x)
+      minY = Math.min(minY, pos.y)
+      maxX = Math.max(maxX, pos.x + pos.width)
+      maxY = Math.max(maxY, pos.y + pos.height)
+    }
+
+    const contentW = maxX - minX + 60
+    const contentH = maxY - minY + 60
+    const scaleX = cw / contentW
+    const scaleY = ch / contentH
+    const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.min(scaleX, scaleY)))
+
+    const newPanX = (cw - contentW * newZoom) / 2 - minX * newZoom + 30 * newZoom
+    const newPanY = (ch - contentH * newZoom) / 2 - minY * newZoom + 30 * newZoom
+
+    setSmoothTransition(true)
+    setZoom(newZoom)
+    setPanX(newPanX)
+    setPanY(newPanY)
+    setTimeout(() => setSmoothTransition(false), 350)
+  }, [workflow, nodePositions, containerRef])
+
+  // Auto-fit on first render or workflow change
+  useEffect(() => {
+    if (workflow && workflow.steps.length > 0) {
+      const timer = setTimeout(fitToView, 50)
+      return () => clearTimeout(timer)
+    }
+  }, [workflow?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // --- Auto-pan to active node during execution ---
+  const autoPanToNode = useCallback((stepId: string) => {
+    if (!workflow || !containerRef.current) return
+    const pos = nodePositions[stepId]
+    if (!pos) return
+
+    const container = containerRef.current
+    const cw = container.clientWidth
+    const ch = container.clientHeight
+
+    const nodeScreenX = pos.x * zoom + panX
+    const nodeScreenY = pos.y * zoom + panY
+    const margin = 50
+    const isVisible =
+      nodeScreenX > margin &&
+      nodeScreenX + pos.width * zoom < cw - margin &&
+      nodeScreenY > margin &&
+      nodeScreenY + pos.height * zoom < ch - margin
+
+    if (!isVisible) {
+      const newPanX = cw / 2 - (pos.x + pos.width / 2) * zoom
+      const newPanY = ch / 2 - (pos.y + pos.height / 2) * zoom
+      setSmoothTransition(true)
+      setPanX(newPanX)
+      setPanY(newPanY)
+      setTimeout(() => setSmoothTransition(false), 350)
+    }
+  }, [workflow, containerRef, nodePositions, zoom, panX, panY])
+
+  // --- Mouse handlers for pan ---
+  const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return
+    setIsPanning(true)
+    panStartRef.current = { x: e.clientX, y: e.clientY, panX, panY }
+  }, [panX, panY])
+
+  useEffect(() => {
+    if (!isPanning) return
+    const handleMove = (e: MouseEvent) => {
+      const dx = e.clientX - panStartRef.current.x
+      const dy = e.clientY - panStartRef.current.y
+      setPanX(panStartRef.current.panX + dx)
+      setPanY(panStartRef.current.panY + dy)
+    }
+    const handleUp = () => setIsPanning(false)
+    window.addEventListener('mousemove', handleMove)
+    window.addEventListener('mouseup', handleUp)
+    return () => {
+      window.removeEventListener('mousemove', handleMove)
+      window.removeEventListener('mouseup', handleUp)
+    }
+  }, [isPanning])
+
+  // --- Mouse handlers for node drag ---
+  const handleNodeDragStart = useCallback((stepId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const pos = nodePositions[stepId]
+    if (!pos) return
+    setDraggingNode(stepId)
+    dragStartRef.current = { x: e.clientX, y: e.clientY, nodeX: pos.x, nodeY: pos.y }
+  }, [nodePositions])
+
+  useEffect(() => {
+    if (!draggingNode) return
+    const handleMove = (e: MouseEvent) => {
+      const dx = (e.clientX - dragStartRef.current.x) / zoom
+      const dy = (e.clientY - dragStartRef.current.y) / zoom
+      setCustomPositions(prev => ({
+        ...prev,
+        [draggingNode]: {
+          x: dragStartRef.current.nodeX + dx,
+          y: dragStartRef.current.nodeY + dy,
+        },
+      }))
+    }
+    const handleUp = () => setDraggingNode(null)
+    window.addEventListener('mousemove', handleMove)
+    window.addEventListener('mouseup', handleUp)
+    return () => {
+      window.removeEventListener('mousemove', handleMove)
+      window.removeEventListener('mouseup', handleUp)
+    }
+  }, [draggingNode, zoom])
+
+  // --- Wheel zoom (toward cursor) — ctrlKey = trackpad pinch, else zoom ---
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault()
+    const container = containerRef.current
+    if (!container) return
+    const rect = container.getBoundingClientRect()
+    const mouseX = e.clientX - rect.left
+    const mouseY = e.clientY - rect.top
+
+    if (e.ctrlKey) {
+      // Trackpad pinch-to-zoom
+      const sensitivity = 0.005
+      const delta = -e.deltaY * sensitivity
+      setZoom(prev => {
+        const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev * (1 + delta)))
+        setPanX(px => mouseX - (mouseX - px) * (newZoom / prev))
+        setPanY(py => mouseY - (mouseY - py) * (newZoom / prev))
+        return newZoom
+      })
+    } else {
+      const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP
+      setZoom(prev => {
+        const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev + delta))
+        setPanX(px => mouseX - (mouseX - px) * (newZoom / prev))
+        setPanY(py => mouseY - (mouseY - py) * (newZoom / prev))
+        return newZoom
+      })
+    }
+  }, [containerRef])
+
+  // --- Zoom in/out helpers (zoom toward canvas center) ---
+  const zoomIn = useCallback(() => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const cx = rect.width / 2
+    const cy = rect.height / 2
+    setZoom(prev => {
+      const newZoom = Math.min(MAX_ZOOM, prev + ZOOM_STEP)
+      setPanX(px => cx - (cx - px) * (newZoom / prev))
+      setPanY(py => cy - (cy - py) * (newZoom / prev))
+      return newZoom
+    })
+  }, [containerRef])
+
+  const zoomOut = useCallback(() => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const cx = rect.width / 2
+    const cy = rect.height / 2
+    setZoom(prev => {
+      const newZoom = Math.max(MIN_ZOOM, prev - ZOOM_STEP)
+      setPanX(px => cx - (cx - px) * (newZoom / prev))
+      setPanY(py => cy - (cy - py) * (newZoom / prev))
+      return newZoom
+    })
+  }, [containerRef])
+
+  // --- Keyboard shortcuts ---
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === ' ' && !spaceRef.current) {
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+        e.preventDefault()
+        spaceRef.current = true
+        setSpaceDown(true)
+      }
+      if (!isHovered) return
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomIn() }
+      else if (e.key === '-') { e.preventDefault(); zoomOut() }
+      else if (e.key === '0') { e.preventDefault(); fitToView() }
+      else if (e.key === 'm' || e.key === 'M') { setShowMinimap(v => !v) }
+    }
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === ' ') {
+        spaceRef.current = false
+        setSpaceDown(false)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [isHovered, zoomIn, zoomOut, fitToView])
+
+  return {
+    // State
+    panX,
+    panY,
+    zoom,
+    isPanning,
+    spaceDown,
+    smoothTransition,
+    collapsedNodes,
+    nodePositions,
+    showMinimap,
+    containerSize,
+
+    // Actions
+    fitToView,
+    zoomIn,
+    zoomOut,
+    handleCollapseAll,
+    handleExpandAll,
+    handleToggleCollapse,
+    handleCanvasMouseDown,
+    handleNodeDragStart,
+    handleWheel,
+    autoPanToNode,
+    setIsHovered,
+    setShowMinimap,
+  }
+}

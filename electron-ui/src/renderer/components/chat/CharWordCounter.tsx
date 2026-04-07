@@ -1,4 +1,5 @@
 // CharWordCounter — input character/word counter display (extracted Iteration 455)
+// Iteration 496: added ~token estimate (content.length / 4, from sourcemap roughTokenCountEstimation)
 import React from 'react'
 import { useT } from '../../i18n'
 
@@ -12,6 +13,8 @@ export default function CharWordCounter({ input }: CharWordCounterProps) {
   if (input.length <= 50) return null
 
   const wordCount = input.trim().split(/\s+/).filter(Boolean).length
+  // Rough token estimate: ~4 chars per token (sourcemap roughTokenCountEstimation)
+  const tokenEst = Math.round(input.length / 4)
 
   return (
     <div style={{
@@ -30,8 +33,9 @@ export default function CharWordCounter({ input }: CharWordCounterProps) {
         transition: 'color 200ms ease',
         userSelect: 'none',
       }}>
-        {wordCount} {t('chat.words')} | {input.length.toLocaleString()} {t('chat.chars')}
+        {wordCount} {t('chat.words')} | {input.length.toLocaleString()} {t('chat.chars')} | ~{tokenEst.toLocaleString()} {t('chat.tokens')}
       </span>
     </div>
   )
 }
+

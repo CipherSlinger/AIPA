@@ -5,14 +5,13 @@ interface CanvasProgressBarProps {
   completedCount: number
   totalSteps: number
   isRunning: boolean
-  startedAt?: number | null  // ms timestamp when execution began (for ETA)
+  startedAt?: number | null
 }
 
 export default function CanvasProgressBar({ completedCount, totalSteps, isRunning, startedAt }: CanvasProgressBarProps) {
   const t = useT()
   const [now, setNow] = React.useState(() => Date.now())
 
-  // Update clock every second while running
   React.useEffect(() => {
     if (!isRunning) return
     const id = setInterval(() => setNow(Date.now()), 1000)
@@ -25,7 +24,7 @@ export default function CanvasProgressBar({ completedCount, totalSteps, isRunnin
   const currentStep = Math.min(completedCount + 1, totalSteps)
   const allDone = completedCount === totalSteps && !isRunning
 
-  // ETA estimation based on average step duration so far
+  // ETA estimation
   let etaText: string | null = null
   if (isRunning && startedAt && completedCount > 0) {
     const elapsed = now - startedAt
@@ -56,12 +55,10 @@ export default function CanvasProgressBar({ completedCount, totalSteps, isRunnin
         gap: 8,
         marginBottom: 3,
       }}>
-        {/* Running pulse dot */}
         {isRunning && !allDone && (
           <div style={{
             width: 6, height: 6, borderRadius: '50%',
-            background: 'var(--accent)',
-            flexShrink: 0,
+            background: 'var(--accent)', flexShrink: 0,
             animation: 'canvas-progress-pulse 1.2s ease-in-out infinite',
           }} />
         )}
@@ -76,11 +73,7 @@ export default function CanvasProgressBar({ completedCount, totalSteps, isRunnin
             : t('workflow.canvasProgress', { current: String(currentStep), total: String(totalSteps) })}
         </span>
         {etaText && (
-          <span style={{
-            fontSize: 9,
-            color: 'var(--text-muted)',
-            opacity: 0.7,
-          }}>
+          <span style={{ fontSize: 9, color: 'var(--text-muted)', opacity: 0.7 }}>
             {etaText}
           </span>
         )}
@@ -99,7 +92,6 @@ export default function CanvasProgressBar({ completedCount, totalSteps, isRunnin
           transition: 'width 0.4s ease-out, background 0.3s ease',
           position: 'relative',
         }}>
-          {/* Shimmer on running bar */}
           {isRunning && !allDone && (
             <div style={{
               position: 'absolute',

@@ -200,8 +200,8 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
         </button>
       )}
 
-      {/* Fork from here (user messages only) */}
-      {onFork && message.role === 'user' && (
+      {/* Fork from here (all message types) */}
+      {onFork && message.role !== 'permission' && message.role !== 'plan' && (
         <button
           style={itemStyle}
           onClick={() => { onFork(); onClose() }}

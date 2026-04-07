@@ -1,4 +1,7 @@
 import { SessionMessage, StandardChatMessage, ToolUseInfo, ChatMessage } from '../../types/app.types'
+import { hashIndex } from '../../utils/hashUtils'
+import { capitalize } from '../../utils/stringUtils'
+import { count } from '../../utils/arrayUtils'
 
 // ── Tag preset colors ──
 export const TAG_PRESETS = [
@@ -22,17 +25,13 @@ export const SESSION_AVATAR_COLORS = [
   '#34495e',  // slate
 ]
 
+// hashSessionId kept for backward compat; delegates to hashUtils.djb2Hash
 export function hashSessionId(id: string): number {
-  let hash = 0
-  for (let i = 0; i < id.length; i++) {
-    hash = ((hash << 5) - hash) + id.charCodeAt(i)
-    hash |= 0
-  }
-  return Math.abs(hash)
+  return hashIndex(id, 2 ** 31)
 }
 
 export function getSessionAvatarColor(sessionId: string): string {
-  return SESSION_AVATAR_COLORS[hashSessionId(sessionId) % SESSION_AVATAR_COLORS.length]
+  return SESSION_AVATAR_COLORS[hashIndex(sessionId, SESSION_AVATAR_COLORS.length)]
 }
 
 export function formatSessionDuration(firstTs: number | undefined, lastTs: number): string | null {
@@ -183,10 +182,7 @@ export function generateAutoTags(title: string, lastPrompt: string): string[] {
   const scores: Record<string, number> = {}
 
   for (const [tag, keywords] of Object.entries(AUTO_TAG_KEYWORDS)) {
-    let score = 0
-    for (const kw of keywords) {
-      if (text.includes(kw)) score++
-    }
+    const score = count(keywords, kw => text.includes(kw))
     if (score > 0) scores[tag] = score
   }
 
@@ -275,8 +271,8 @@ export function generateSmartTitle(messages: ChatMessage[]): string | null {
     text = text.replace(filler, '')
   }
 
-  // Capitalize first letter
-  text = text.charAt(0).toUpperCase() + text.slice(1)
+  // Capitalize first letter using stringUtils.capitalize
+  text = capitalize(text)
 
   // Take first sentence or first 60 chars, whichever is shorter
   const sentenceEnd = text.search(/[.!?\n]/)

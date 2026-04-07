@@ -12,8 +12,8 @@
     "expandNav": "展开侧边栏",
     "collapseNav": "收起",
     "channel": "通道",
-    "notifications": "通知",
-    "tasks": "任务"
+    "tasks": "任务",
+    "changes": "变更"
   },
   "chat": {
     "placeholder": "给 AIPA 发消息...",
@@ -125,6 +125,7 @@
     "statsCopied": "统计已复制",
     "words": "词",
     "chars": "字符",
+    "tokens": "tokens",
     "long": "较长",
     "veryLong": "过长",
     "wpm": "字/分",
@@ -330,6 +331,25 @@
     "closePreview": "关闭预览",
     "unpinAll": "取消全部置顶"
   },
+  "codeAction": {
+    "run": "运行",
+    "runInTerminal": "在终端中运行",
+    "save": "保存",
+    "saveToFile": "保存到文件",
+    "confirmRunTitle": "执行命令",
+    "confirmRunMessage": "此命令将在终端中执行：",
+    "workingDirectory": "工作目录",
+    "dangerWarning": "此命令可能具有破坏性，请在执行前仔细检查。",
+    "executing": "执行中...",
+    "executed": "已执行",
+    "executeFailed": "执行失败",
+    "noWorkingDir": "未设置工作目录，请先在设置中配置。",
+    "savedToFile": "已保存到 {{path}}",
+    "saveFailed": "保存失败: {{error}}",
+    "saveCanceled": "已取消保存",
+    "openInFileManager": "在文件管理器中打开",
+    "fileNotFound": "文件或路径不存在"
+  },
   "copy": {
     "moreOptions": "更多复制选项",
     "asText": "复制为文本",
@@ -340,7 +360,11 @@
     "multiLineOn": "多行模式：Enter = 换行，Ctrl+Enter = 发送",
     "multiLineOff": "单行模式：Enter = 发送，Shift+Enter = 换行",
     "dropTextHere": "拖放文本到此处",
-    "chars": "字符"
+    "chars": "字符",
+    "keepGoingHint": "检测到继续指令 — 点击发送可继续上次对话",
+    "keepGoingSend": "继续",
+    "negativeHint": "别担心，告诉我哪里出了问题，我来帮你解决！",
+    "escAgainNewChat": "再次按 Esc 开始新对话"
   },
   "voice": {
     "autoStopped": "录音已自动停止（已达2分钟限制）"
@@ -409,6 +433,7 @@
     "duplicate": "复制会话",
     "duplicated": "会话已复制",
     "duplicateFailed": "复制会话失败",
+    "loadFailed": "加载会话失败",
     "copy": "副本",
     "regenerateTitle": "重新生成标题",
     "titleRegenerated": "标题已重新生成",
@@ -473,8 +498,12 @@
     "tabs": {
       "general": "常规",
       "providers": "提供商",
+      "permissions": "权限",
       "personas": "角色",
       "mcp": "MCP 服务器",
+      "stats": "统计",
+      "hooks": "钩子",
+      "advanced": "高级",
       "about": "关于"
     },
     "groups": {
@@ -567,7 +596,7 @@
     "promptSuggestions": "提示建议",
     "promptSuggestionsHint": "每次回复后显示 AI 预测的后续建议（输入框中的虚影文字，按 Tab 接受）",
     "speculation": "投机执行",
-    "speculationHint": "在隔离沙箱中预执行预测的下一条提示词 — 接受即注入结果，拒绝即丢弃。需开启"提示建议"。",
+    "speculationHint": "在隔离沙箱中预执行预测的下一条提示词 — 接受即注入结果，拒绝即丢弃。需开启提示建议功能。",
     "save": "保存设置",
     "saved": "已保存",
     "unlimited": "无限制",
@@ -804,7 +833,26 @@
     "toolWebFetchDetail": "从互联网获取信息",
     "toolWebSearch": "网络搜索",
     "toolWebSearchDetail": "搜索网络",
-    "toolPerformAction": "执行操作"
+    "toolPerformAction": "执行操作",
+    "alwaysAllowTool": "始终允许",
+    "alwaysDenyTool": "始终拒绝",
+    "ruleAddedAllow": "规则已添加: {{rule}} -> 始终允许",
+    "ruleAddedDeny": "规则已添加: {{rule}} -> 始终拒绝"
+  },
+  "permissions": {
+    "allowRules": "允许规则",
+    "denyRules": "拒绝规则",
+    "addRule": "添加规则",
+    "noRules": "暂无规则",
+    "emptyState": "暂无权限规则。规则可以自动允许或拒绝特定工具操作。",
+    "rulePlaceholder": "例如 Bash(git *), Read, Write(**/*.ts)",
+    "formatHelp": "格式: 工具名 或 工具名(模式)。示例: Bash(git *), Read(**/*.ts), Write",
+    "ruleExists": "规则已存在",
+    "ruleAdded": "规则已添加: {{rule}}",
+    "ruleRemoved": "规则已移除: {{rule}}",
+    "loadError": "加载权限规则失败",
+    "saveFailed": "保存权限规则失败",
+    "conflictHint": "此规则同时出现在对立列表中"
   },
   "taskQueue": {
     "title": "任务队列",
@@ -861,11 +909,16 @@
     "copyRaw": "复制原文",
     "copied": "已复制",
     "retryRender": "重试",
+    "tryAgain": "再试一次",
     "startNewConversation": "开始新对话",
     "recoveryFailed": "多次恢复失败，建议开始新对话。",
     "recovering": "恢复中...（第 {{current}}/{{max}} 次尝试）",
     "autoRecoveryFailed": "自动恢复在 {{count}} 次尝试后失败。",
-    "appDegraded": "组件发生崩溃，请使用上方按钮恢复。"
+    "appDegraded": "组件发生崩溃，请使用上方按钮恢复。",
+    "permanentDesc": "此错误由代码问题引起，重试无法修复。",
+    "showDetails": "发生了什么？",
+    "hideDetails": "隐藏详情",
+    "reportBug": "报告 Bug"
   },
   "startup": {
     "prefsLoadFailed": "偏好设置加载失败，已使用默认值。"
@@ -954,7 +1007,15 @@
     "approved": "已批准",
     "rejected": "已拒绝",
     "approve": "批准并继续",
-    "reject": "拒绝"
+    "reject": "拒绝",
+    "toggle": "规划模式",
+    "enterHint": "进入规划模式 — Claude 仅规划不执行工具",
+    "exitHint": "退出规划模式 — 恢复正常执行",
+    "banner": "规划模式 — Claude 仅规划不执行",
+    "bannerExit": "退出",
+    "statusLabel": "规划",
+    "enabled": "规划模式已启用",
+    "disabled": "规划模式已禁用"
   },
   "tool": {
     "input": "输入",
@@ -1022,13 +1083,19 @@
     "tokenCopyFormatWithCache": "输入: {{input}} tokens, 输出: {{output}} tokens, 缓存: {{cache}} tokens"
   },
   "compact": {
+    "button": "压缩",
+    "buttonHint": "压缩对话上下文以释放 token 空间",
     "inProgress": "正在压缩对话...",
     "complete": "对话已压缩",
+    "success": "压缩完成。使用率: {{before}}% -> {{after}}%",
     "summary": "{{count}} 条消息已摘要",
     "threshold": "在 {{percent}}% 上下文使用率时压缩",
     "autoCompact": "自动压缩对话",
     "autoCompactHint": "当上下文窗口接近容量上限时自动摘要较早的消息",
-    "failed": "压缩失败，对话继续正常进行"
+    "customPlaceholder": "可选：输入压缩侧重指令",
+    "customHint": "Shift+点击输入自定义压缩指令",
+    "failed": "压缩失败，对话继续正常进行",
+    "count": "已压缩 {{count}} 次"
   },
   "tips": {
     "title": "你知道吗？",
@@ -1413,6 +1480,21 @@
     "notFound": "未找到工作流",
     "loadingCanvas": "正在加载画布...",
     "noPrompt": "（未定义提示词）",
+    "unsavedWarning": "有未保存的更改，再次点击返回以放弃更改。",
+    "unsavedChanges": "未保存的更改",
+    "nameRequired": "工作流名称不能为空",
+    "stepsRequired": "至少需要一个包含提示词的步骤",
+    "changeIcon": "更换图标",
+    "saved": "已保存",
+    "removeStep": "删除步骤",
+    "editModeLabel": "编辑中",
+    "viewMode": "查看",
+    "exitEditMode": "退出编辑模式",
+    "unsavedDialogTitle": "未保存的更改",
+    "unsavedDialogDesc": "此工作流有未保存的更改，您希望如何处理？",
+    "unsavedSaveLeave": "保存并离开",
+    "unsavedDiscard": "放弃更改",
+    "unsavedStay": "留下",
     "footer": "多步骤任务的提示词链",
     "inspired": "灵感来自 OpenClaw Lobster",
     "preset": {
@@ -1570,16 +1652,25 @@
     "pinnedOff": "窗口已取消置顶"
   },
   "effort": {
+    "auto": "自动",
     "low": "低",
     "medium": "中",
     "high": "高",
+    "max": "最大",
+    "autoHint": "由 CLI 自动决定最佳推理深度",
+    "lowHint": "快速简洁回答",
     "lowDesc": "快速经济",
+    "mediumHint": "速度与深度兼顾",
     "mediumDesc": "均衡模式",
+    "highHint": "详细推理的深入分析",
     "highDesc": "深度思考",
+    "maxHint": "最深层推理，最全面的分析",
     "title": "思考深度: {{level}}（点击切换）",
     "switched": "思考深度已切换: {{level}}",
     "settingsLabel": "AI 思考深度",
-    "settingsHint": "低 = 快速/经济回复，中 = 均衡模式，高 = 深入/仔细推理",
+    "settingsHint": "控制 AI 推理深度。自动让 CLI 自行决定；低 = 快速，最大 = 最深度分析",
+    "pickerTitle": "思考深度",
+    "pickerHint": "控制 AI 推理深度",
     "preventSleep": "流式输出时阻止休眠",
     "preventSleepHint": "AI 生成回复时保持系统唤醒状态"
   },
@@ -1666,11 +1757,6 @@
     "today": "今日",
     "connected": "已连接",
     "idle": "空闲"
-  },
-  "notifications": {
-    "title": "通知",
-    "clearAll": "全部清除",
-    "empty": "暂无通知"
   },
   "tasks": {
     "title": "任务",
@@ -1761,7 +1847,15 @@
     "noMessages": "暂无分歧消息",
     "loadingBranches": "加载分支中…",
     "forkSuccess": "会话分叉成功",
-    "forkFailed": "会话分叉失败"
+    "forkFailed": "会话分叉失败",
+    "dialogTitle": "分叉会话",
+    "dialogInfo": "从第 #{{index}} 条消息处创建新分支，分叉将包含此处之前的所有消息。",
+    "nameLabel": "新会话名称",
+    "namePlaceholder": "输入分叉会话的名称",
+    "forkSuffix": "分叉",
+    "defaultName": "分叉会话",
+    "confirm": "分叉",
+    "switchingToast": "已分叉！正在切换到新会话。"
   },
   "preview": {
     "loadingMeta": "加载预览中...",
@@ -1792,5 +1886,69 @@
     "typeFeedback": "反馈",
     "typeProject": "项目",
     "typeReference": "参考"
+  },
+  "tabs": {
+    "close": "关闭标签页",
+    "maxReached": "最多允许 8 个标签页。请先关闭一个现有标签页。",
+    "newTab": "新标签页",
+    "closeOthers": "关闭其他标签页"
+  },
+  "token": {
+    "contextWindow": "上下文窗口",
+    "inputTokens": "输入 Tokens",
+    "outputTokens": "输出 Tokens",
+    "cacheTokens": "缓存 Tokens",
+    "estimatedCost": "预估费用",
+    "sessionTotal": "会话累计",
+    "warningThreshold": "上下文使用率已达 {{pct}}%，建议压缩对话或开启新会话。",
+    "compactAction": "压缩",
+    "dismiss": "忽略"
+  },
+  "changes": {
+    "title": "变更",
+    "noChanges": "本会话中没有记录到文件变更",
+    "noChangesHint": "Claude 编辑或创建文件时将自动追踪",
+    "viewAllChanges": "查看全部变更 (git diff HEAD)",
+    "turnLabel": "第 {{turn}} 轮",
+    "diffLoading": "加载 diff 中...",
+    "diffError": "加载 diff 失败",
+    "noDiff": "无 diff 输出",
+    "gitDiffTitle": "Git Diff（HEAD）",
+    "close": "关闭"
+  },
+  "systemPrompt": {
+    "title": "追加系统提示词",
+    "hint": "添加到每次对话系统提示词末尾的文本，用于持久化调整 Claude 的行为风格。留空则使用 Claude 默认行为。",
+    "placeholder": "例如：始终简洁回复。使用中文。",
+    "preset": "预设",
+    "replaceConfirm": "用此预设替换当前提示词？",
+    "tempButton": "临时系统提示词",
+    "tempActive": "临时提示词已启用",
+    "tempPopoverTitle": "本次会话系统提示词",
+    "tempPopoverHint": "仅在本次会话中生效，优先于持久化系统提示词。",
+    "tempPlaceholder": "输入本次会话的临时提示词...",
+    "tempClear": "清除",
+    "tempSet": "设置"
+  },
+  "stats": {
+    "loading": "加载统计中...",
+    "error": "加载统计失败，请重试。",
+    "overview": "总览",
+    "totalSessions": "总会话数",
+    "totalMessages": "总消息数",
+    "totalTokens": "总 Token 消耗",
+    "avgSessionLength": "平均会话长度",
+    "sessions": "次会话",
+    "userMsgs": "用户",
+    "assistantMsgs": "助手",
+    "msgsPerSession": "条消息 / 会话",
+    "noTokenData": "暂无 Token 数据",
+    "topTools": "工具使用排行",
+    "uses": "次",
+    "activityTrend": "活跃趋势",
+    "days7": "7 天",
+    "days30": "30 天",
+    "noActivity": "该时间段内无活动",
+    "dataRange": "数据范围"
   }
 }

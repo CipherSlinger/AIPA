@@ -86,6 +86,15 @@ Renderer (React/Vite)  ←→  Preload (contextBridge)  ←→  Main (Node.js)
 
 ## 工作流程
 
+<!-- improved by agent-leader 2026-04-06: 回顾会触发自检 + 迭代编号顺序检查，retro-2026-04-06-iterations-471-509 -->
+### 0. 开始前自检（每次迭代必须执行，不得跳过）
+
+**在开始任何新迭代之前**，必须执行以下检查：
+
+1. **回顾会触发检查**：读取 `ITERATION-LOG.md` 末尾的 `[RETRO]` 标记。如果距上次 `[RETRO]` 已有 10+ 个 `## Iteration` 条目，**立即停止**，通知调用者必须先由 agent-leader 执行回顾会，然后才能继续新迭代。
+2. **迭代编号检查**：读取 `ITERATION-LOG.md` 最后一个 `## Iteration N` 的编号 N。本次迭代编号必须为 N+1。**禁止跳号**（如 479 -> 488）。**禁止将多个功能合并为一个迭代编号**（每个迭代最多 3 个逻辑相关的变更）。
+3. **死代码检查**：如果本次迭代新建了 utility/hook 文件，**同一次迭代中必须至少有 1 个现有文件导入该 utility/hook**。不允许创建零消费者的文件。
+
 ### 1. 理解需求
 
 拿到任务后，先明确：
@@ -194,15 +203,18 @@ const messages = useChatStore(s => s.messages)
 - ~~`NotesPanel.tsx`~~ (511→206 lines, Iter 226)
 - ~~`MessageList.tsx`~~ (666→395 lines, Iter 227)
 
-<!-- improved by agent-leader 2026-04-02: 更新关注列表至 Iteration 440，新增 decomposition 目标 -->
-当前关注列表（截至 Iteration 440）：
-- `SessionList.tsx` (718 lines) -- **P1 超阈值**，需提取 useSessionFiltering hook 和 sessionAutoTags 工具函数
-- `ChatPanel.tsx` (682 lines) -- **P1 超阈值**，需提取 useChatPanelEvents hook 和 pinned note 逻辑
-- `Message.tsx` (602 lines) -- 刚过 600 线，关注
-- `WelcomeScreen.tsx` (583 lines) -- 接近阈值，关注
-- `useStreamJson.ts` (576 lines) -- 接近阈值，关注
-- `ChatInput.tsx` (562 lines) -- 已从 704 降至 562 (Iter 432)，继续观察
-- `ChatHeader.tsx` (558 lines) -- 接近阈值，关注
+<!-- improved by agent-leader 2026-04-06: 更新关注列表至 Iteration 509 -->
+当前关注列表（截至 Iteration 509）：
+- `WorkflowCanvas.tsx` (713 lines) -- **P1 超阈值**，471-479 连续迭代导致膨胀
+- `TasksPanel.tsx` (689 lines) -- **P1 超阈值**，Iter 465 新建时即偏大
+- `WorkflowDetailPage.tsx` (633 lines) -- **P1 超阈值**
+- `useStreamJson.ts` (601 lines) -- **刚过 600 线**
+- `MemoryPanel.tsx` (591 lines) -- 接近阈值
+- `ChatPanel.tsx` (575 lines) -- 接近阈值
+- `StatusBar.tsx` (556 lines) -- 接近阈值
+- `SettingsGeneral.tsx` (526 lines) -- 关注
+- `ChatInput.tsx` (508 lines) -- 关注
+- `SessionItem.tsx` (503 lines) -- 关注
 
 已完成分解（Iteration 432-440 期间）：
 - ~~`store/index.ts`~~ (727→76 lines, Iter 440, 拆分为 chatStore.ts + uiStore.ts)

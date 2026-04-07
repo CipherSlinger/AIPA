@@ -1,10 +1,15 @@
 import { ipcMain, BrowserWindow, shell, app } from 'electron'
+import * as fs from 'fs'
+import * as os from 'os'
+import * as path from 'path'
 import { ptyManager } from '../pty/pty-manager'
 import { fallbackShellManager } from '../pty/fallback-shell'
 import { streamBridgeManager } from '../pty/stream-bridge'
 import { speculationManager, isSafeToSpeculate } from '../pty/speculation-bridge'
 import { readSettings, writeSettings, listSessions, loadSession, deleteSession, forkSession, renameSession, getMcpServers, setMcpServerEnabled, generateSessionTitle, generatePromptSuggestion, generateAwaySummary, rewindSession, searchSessions, detectTurnInterruption } from '../sessions/session-reader'
+import { getSessionStats } from '../sessions/session-stats'
 import { getApiKey, setApiKey, getPref, setPref, getAllPrefs, resetAllPrefs } from '../config/config-manager'
+import { readCLISettings, writeCLISettings } from '../config/cli-settings-manager'
 import { getCliPath } from '../utils/cli-path'
 import { validateApiKey, validateModelName, validateFlags } from '../utils/validate'
 import { registerSkillsHandlers } from './skills-handlers'
@@ -205,6 +210,10 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
     })
     bridge.on('stderr', (d) => send('cli:error', { sessionId: bridgeId, error: d }))
     bridge.on('permissionRequest', (d) => send('cli:permissionRequest', d))
+    bridge.on('hookEvent', (d: unknown) => {
+      const w = BrowserWindow.getAllWindows()[0]
+      if (w && !w.isDestroyed()) w.webContents.send('cli:hookEvent', d)
+    })
 
     // Inject API key from prefs if not in env
     if (!args.env?.ANTHROPIC_API_KEY) {
@@ -281,6 +290,10 @@ function registerSessionHandlers(): void {
   ipcMain.handle('session:detectInterruption', (_e: Electron.IpcMainInvokeEvent, { sessionId }: { sessionId: string }) => {
     return detectTurnInterruption(sessionId)
   })
+
+  ipcMain.handle('session:getStats', async () => {
+    return getSessionStats()
+  })
 }
 
 // ----------------------------------------
@@ -328,7 +341,82 @@ function registerConfigHandlers(): void {
   ipcMain.handle('config:getLocale', () => app.getLocale())
 
   ipcMain.handle('mcp:list', () => getMcpServers())
+
+  // ── CLI settings.json read/write (Iteration 518) ─────
+  safeHandle('config:readCLISettings', () => {
+    try {
+      return readCLISettings()
+    } catch (err) {
+      log.warn('config:readCLISettings error:', String(err))
+      return { error: String(err) }
+    }
+  })
+  safeHandle('config:writeCLISettings', (_e, patch: Record<string, unknown>) => {
+    try {
+      writeCLISettings(patch)
+      return { success: true }
+    } catch (err) {
+      log.warn('config:writeCLISettings error:', String(err))
+      return { error: String(err) }
+    }
+  })
   ipcMain.handle('mcp:setEnabled', (_e: Electron.IpcMainInvokeEvent, { serverName, enabled }: { serverName: string; enabled: boolean }) => setMcpServerEnabled(serverName, enabled))
+
+  safeHandle('mcp:add', async (_e, { name, config }: { name: string; type: string; config: Record<string, unknown> }) => {
+    try {
+      const settingsPath = path.join(os.homedir(), '.claude', 'settings.json')
+      let settings: Record<string, unknown> = {}
+      try {
+        const raw = fs.readFileSync(settingsPath, 'utf-8')
+        settings = JSON.parse(raw)
+      } catch {
+        // file may not exist yet
+      }
+      if (!settings.mcpServers || typeof settings.mcpServers !== 'object') {
+        settings.mcpServers = {}
+      }
+      ;(settings.mcpServers as Record<string, unknown>)[name] = config
+      const tmpPath = settingsPath + '.tmp'
+      fs.writeFileSync(tmpPath, JSON.stringify(settings, null, 2), 'utf-8')
+      fs.renameSync(tmpPath, settingsPath)
+      return { success: true }
+    } catch (err) {
+      log.warn('mcp:add error:', String(err))
+      return { success: false, error: String(err) }
+    }
+  })
+
+  safeHandle('mcp:remove', async (_e, { name }: { name: string }) => {
+    try {
+      const settingsPath = path.join(os.homedir(), '.claude', 'settings.json')
+      let settings: Record<string, unknown> = {}
+      try {
+        const raw = fs.readFileSync(settingsPath, 'utf-8')
+        settings = JSON.parse(raw)
+      } catch {
+        return { success: false, error: 'settings.json not found' }
+      }
+      if (settings.mcpServers && typeof settings.mcpServers === 'object') {
+        delete (settings.mcpServers as Record<string, unknown>)[name]
+      }
+      const tmpPath = settingsPath + '.tmp'
+      fs.writeFileSync(tmpPath, JSON.stringify(settings, null, 2), 'utf-8')
+      fs.renameSync(tmpPath, settingsPath)
+      return { success: true }
+    } catch (err) {
+      log.warn('mcp:remove error:', String(err))
+      return { success: false, error: String(err) }
+    }
+  })
+
+  safeHandle('mcp:getTools', async (_e, { serverName: _serverName }: { serverName: string }) => {
+    // Real tool enumeration requires MCP protocol integration; return empty for now
+    return { tools: [] }
+  })
+
+  safeHandle('mcp:reconnect', async (_e, { serverName: _serverName }: { serverName: string }) => {
+    return { success: false, error: 'Reconnect not supported in this version' }
+  })
 
   ipcMain.handle('feedback:rate', (_e: Electron.IpcMainInvokeEvent, { messageId, rating }: { messageId: string; rating: 'up' | 'down' | null }) => {
     const key = `feedback.${messageId}`

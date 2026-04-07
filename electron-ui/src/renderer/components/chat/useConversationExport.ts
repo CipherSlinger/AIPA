@@ -3,6 +3,7 @@ import { ChatMessage } from '../../types/app.types'
 import { formatMarkdown } from '../../utils/formatMarkdown'
 import { formatHtml } from '../../utils/formatHtml'
 import { useT } from '../../i18n'
+import { generateShortWordSlug } from '../../utils/wordSlug'
 import { ToastType } from '../ui/Toast'
 
 interface BookmarkedMsg {
@@ -26,8 +27,8 @@ export function useConversationExport(
   const exportConversation = useCallback(async () => {
     if (messages.length === 0) return
     const now = new Date()
-    const ts = now.toISOString().replace(/[:.]/g, '-').slice(0, 19)
-    const defaultName = `aipa-export-${ts}`
+    const slug = generateShortWordSlug()
+    const defaultName = `aipa-${slug}`
     const filePath = await window.electronAPI.fsShowSaveDialog(defaultName, [
       { name: 'Markdown', extensions: ['md'] },
       { name: 'HTML', extensions: ['html'] },

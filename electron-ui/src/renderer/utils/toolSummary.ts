@@ -8,6 +8,7 @@
  */
 
 import type { ToolUseInfo } from '../types/app.types'
+import { firstLineOf } from './stringUtils'
 
 /** Translation function type -- accepts a key and optional params */
 export type TranslateFn = (key: string, params?: Record<string, string>) => string
@@ -35,8 +36,7 @@ function truncate(s: string, max: number): string {
 
 /** Get first meaningful line from a multi-line command */
 function firstLine(cmd: string): string {
-  const lines = cmd.split('\n').filter(l => l.trim())
-  return lines[0]?.trim() || cmd.trim()
+  return firstLineOf(cmd.trim()) || cmd.trim()
 }
 
 /** Strip leading $, >, or # from shell commands */

@@ -11,6 +11,7 @@ import NotePopup from './NotePopup'
 import SlashCommandPopup from './SlashCommandPopup'
 import QuickReplyChips from './QuickReplyChips'
 import InputToolbar from './InputToolbar'
+import PlanModeBanner from './PlanModeBanner'
 import ChatInputAttachments from './ChatInputAttachments'
 import ChatInputPasteChips from './ChatInputPasteChips'
 import ChatInputComposeStatus from './ChatInputComposeStatus'
@@ -33,6 +34,9 @@ import { useChatInputKeyboard } from './useChatInputKeyboard'
 import { useT } from '../../i18n'
 import { estimateToolBreakdown } from '../../utils/tokenUtils'
 import { StandardChatMessage } from '../../types/app.types'
+import { matchesKeepGoingKeyword, matchesNegativeKeyword } from '../../hooks/usePromptKeywords'
+import { useDoublePress } from '../../hooks/useDoublePress'
+import { normalizeFullWidthDigits, normalizeFullWidthSpace } from '../../utils/stringUtils'
 
 interface ChatInputProps {
   isStreaming: boolean
@@ -55,6 +59,17 @@ export default function ChatInput({
   const addToQueue = useChatStore(s => s.addToQueue)
   const lastContextUsage = useChatStore(s => s.lastContextUsage)
   const messages = useChatStore(s => s.messages)
+  const isPlanMode = useChatStore(s => s.isPlanMode)
+  const setPlanMode = useChatStore(s => s.setPlanMode)
+
+  // Plan Mode toggle: send /plan to CLI and flip local state (Iteration 520)
+  const handleTogglePlanMode = useCallback(async () => {
+    if (isStreaming) return
+    const next = !isPlanMode
+    setPlanMode(next)
+    addToast('info', t(next ? 'plan.enabled' : 'plan.disabled'))
+    await onSend('/plan')
+  }, [isPlanMode, isStreaming, setPlanMode, onSend, addToast, t])
 
   // Draft persistence (per-session)
   const { input, setInput, clearDraft } = useChatInputDraft({
@@ -261,7 +276,9 @@ export default function ChatInput({
   })
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const val = e.target.value
+    // Normalize full-width CJK digits/spaces to ASCII equivalents (sourcemap stringUtils)
+    let val = normalizeFullWidthDigits(e.target.value)
+    val = normalizeFullWidthSpace(val)
     // Track keystrokes for WPM calculation
     if (val.length > input.length) {
       const now = Date.now()
@@ -281,6 +298,31 @@ export default function ChatInput({
   const activePersona = effectivePersonaId ? personas.find(p => p.id === effectivePersonaId) : undefined
 
   const hasContent = !!input.trim() || attachments.length > 0 || fileAttachments.length > 0
+
+  // Keep-going detection (Iteration 490): detect "continue/继续/keep going" input
+  const isKeepGoing = !isStreaming && input.trim().length > 0 && matchesKeepGoingKeyword(input)
+
+  // Double-Escape on empty input = start new conversation (Iteration 493)
+  const [escPending, setEscPending] = React.useState(false)
+  const handleDoubleEscape = useDoublePress(
+    setEscPending,
+    () => { if (!input.trim() && !isStreaming) onNewConversation() },
+  )
+
+  // Negative keyword detection (Iteration 490): show friendly toast once per frustration event
+  const negativeShownRef = React.useRef(false)
+  React.useEffect(() => {
+    if (!input.trim() || isStreaming) {
+      negativeShownRef.current = false
+      return
+    }
+    if (!negativeShownRef.current && matchesNegativeKeyword(input)) {
+      negativeShownRef.current = true
+      setTimeout(() => {
+        addToast('info', t('input.negativeHint'))
+      }, 800)
+    }
+  }, [input, isStreaming])
 
   return (
     <div style={{ padding: '8px 16px 12px', background: 'var(--input-bar-bg)', flexShrink: 0 }}>
@@ -317,6 +359,9 @@ export default function ChatInput({
         inputText={input}
         multiLineMode={multiLineMode}
         onToggleMultiLine={toggleMultiLine}
+        isPlanMode={isPlanMode}
+        onTogglePlanMode={handleTogglePlanMode}
+        isStreaming={isStreaming}
       />
       {/* Context usage meter with compact button */}
       {lastContextUsage && lastContextUsage.total > 0 && (
@@ -347,9 +392,13 @@ export default function ChatInput({
           style={{
             flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', gap: 0,
             background: 'var(--input-field-bg)', borderRadius: 10, padding: '8px 14px',
-            border: '1px solid var(--input-field-border)', transition: 'border-color 200ms',
+            border: isPlanMode ? '1px solid #a78bfa' : '1px solid var(--input-field-border)', transition: 'border-color 200ms',
           }}
         >
+          {/* Plan Mode banner (Iteration 520) */}
+          {isPlanMode && (
+            <PlanModeBanner onExit={handleTogglePlanMode} />
+          )}
           {/* Active persona indicator */}
           {activePersona && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 8px', marginBottom: 4, fontSize: 11, color: activePersona.color, opacity: 0.8 }}>
@@ -366,6 +415,24 @@ export default function ChatInput({
           />
           {/* Paste action chips + quote preview */}
           <ChatInputPasteChips paste={{ ...paste, onWrapAsBlock: input.length > 500 ? () => { setInput(prev => '```\n' + prev + '\n```'); paste.setPastedLongText(false) } : undefined }} inputLength={input.length} />
+          {/* Keep-going banner (Iteration 490) */}
+          {isKeepGoing && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 6px', marginBottom: 4, fontSize: 11, color: 'var(--accent)', background: 'rgba(0,122,204,0.07)', borderRadius: 6 }}>
+              <span style={{ flex: 1, opacity: 0.85 }}>{t('input.keepGoingHint')}</span>
+              <button
+                onClick={() => { handleSend() }}
+                style={{ padding: '2px 8px', fontSize: 11, fontWeight: 500, background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}
+              >
+                {t('input.keepGoingSend')}
+              </button>
+            </div>
+          )}
+          {/* Double-Escape hint: press Esc again to start new chat (Iteration 493) */}
+          {escPending && !input.trim() && !isStreaming && (
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', padding: '2px 6px', marginBottom: 4, opacity: 0.8 }}>
+              {t('input.escAgainNewChat')}
+            </div>
+          )}
           {/* Popups */}
           {popups.atQuery !== null && <AtMentionPopup query={popups.atQuery} onSelect={popups.handleAtSelect} onDismiss={() => popups.setAtQuery(null)} anchorRef={inputWrapRef as React.RefObject<HTMLElement>} />}
           {popups.noteQuery !== null && <NotePopup query={popups.noteQuery} notes={popups.filteredNotes} categories={popups.noteCategories} selectedIndex={popups.noteIndex} onSelect={popups.handleNoteSelect} onDismiss={() => popups.setNoteQuery(null)} onHover={popups.setNoteIndex} />}
@@ -398,7 +465,10 @@ export default function ChatInput({
               ref={textareaRef}
               value={input}
               onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape' && !input.trim()) handleDoubleEscape()
+                handleKeyDown(e)
+              }}
               onPaste={paste.handleTextPaste}
               onDragOver={(e) => {
                 e.preventDefault()
@@ -423,8 +493,8 @@ export default function ChatInput({
                   setTimeout(() => textareaRef.current?.focus(), 0)
                 }
               }}
-              onFocus={() => { if (inputWrapRef.current) inputWrapRef.current.style.borderColor = 'var(--input-field-focus)' }}
-              onBlur={() => { setTextDragOver(false); if (inputWrapRef.current) inputWrapRef.current.style.borderColor = 'var(--input-field-border)' }}
+              onFocus={() => { if (inputWrapRef.current) inputWrapRef.current.style.borderColor = isPlanMode ? '#a78bfa' : 'var(--input-field-focus)' }}
+              onBlur={() => { setTextDragOver(false); if (inputWrapRef.current) inputWrapRef.current.style.borderColor = isPlanMode ? '#a78bfa' : 'var(--input-field-border)' }}
               placeholder={t(PLACEHOLDER_KEYS[placeholderIdx])}
               aria-label={t('chat.placeholder')}
               rows={1}

@@ -46,6 +46,7 @@ const KNOWN_FLAGS = new Set([
   '--no-color',
   '--output-format',
   '--input-format',
+  '--effort',
 ])
 
 /**

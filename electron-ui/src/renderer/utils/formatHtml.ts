@@ -1,4 +1,5 @@
 import { ChatMessage, StandardChatMessage } from '../types/app.types'
+import { count } from './arrayUtils'
 
 /**
  * Escapes HTML special characters.
@@ -72,8 +73,8 @@ export function formatHtml(
 ): string {
   const dateStr = exportDate.toISOString().replace('T', ' ').slice(0, 19)
   const contentMessages = messages.filter(m => m.role !== 'permission' && m.role !== 'plan')
-  const userCount = contentMessages.filter(m => m.role === 'user').length
-  const assistantCount = contentMessages.filter(m => m.role === 'assistant').length
+  const userCount = count(contentMessages, m => m.role === 'user')
+  const assistantCount = count(contentMessages, m => m.role === 'assistant')
   const title = escapeHtml(sessionTitle || 'AIPA Conversation')
 
   const messageBlocks: string[] = []

@@ -42,6 +42,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 - **Stream-JSON chat** with live tool-use cards — see every file read, command run, and web fetch as it happens
 - **Tool Use Summary Labels** — consecutive tool calls auto-grouped with human-readable operation summaries
 - **Structured Diff View** — file edits and writes shown in LCS-based unified diff format with color-coded add/delete lines and collapsible large diffs
+- **Custom System Prompt** — Settings → Advanced tab to configure a persistent append prompt (2000-char limit, 6 presets); ChatHeader button for per-session temporary override; effective prompt priority: temp > persistent, injected via `--append-system-prompt`
 - **Extended thinking** blocks, collapsible and auto-expanding during generation; one-click toggle in StatusBar
 - **Output Styles** — three response modes (default/explanatory/learning), quick-switch from toolbar
 - **Auto-Compaction** — automatically summarizes older messages when context window nears capacity (threshold configurable 60%-90%); **Microcompact** pre-processing trims long messages before summarization to reduce input tokens; **Time-gap microcompact** clears stale tool results across sessions idle for 30+ minutes
@@ -72,6 +73,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 - **Context window monitor** -- progress bar + percentage badge + detail popover showing token usage, with one-click "start new session" when nearing the limit
 - **Streaming cursor** -- animated blinking cursor during AI response streaming, disappears on completion
 - **Session count badge** -- History nav tab shows total session count; pulsing activity dot when AI is streaming from another tab
+- **Session Fork** — right-click any message → "Fork from here", name the branch, new session starts with history up to that point; fork appears in sidebar
 - Export conversations as Markdown, HTML, or JSON
 
 ### Personas & Memory
@@ -103,8 +105,13 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 ### Channel (Feishu & WeChat)
 - Connect your **Feishu** workspace bot via webhook URL + App credentials
 - Connect your **WeChat** via the official Tencent OpenClaw WeChat CLI plugin (`@tencent-weixin/openclaw-weixin-cli`)
-- Configure, test, and manage both channels from the sidebar `Radio` icon (`Ctrl+9`)
+- Configure, test, and manage both channels from the sidebar `Radio` icon (`Ctrl+7`)
 - Powered by OpenClaw integration
+
+### CLI Integration & Automation
+- **Hooks Configuration** — Settings → Hooks tab to visually manage all Claude Code CLI hooks (28 event types: PreToolUse, PostToolUse, Stop, etc.); multi-step add wizard supporting command/prompt/HTTP hook types; live hook execution progress shown in the chat panel
+- **MCP Server Manager** — Settings → MCP tab for full MCP server management (stdio/http/sse); add/delete/reconnect servers; expand tool lists per server; tool-use blocks auto-badge MCP-sourced tools with `[serverName]`
+- **Tool Access Control** — Settings → Advanced tab with 4 preset modes (All Tools / Read Only / No Network / Analysis Only); per-tool checkboxes grouped by category; disabled tools injected via `--disallowedTools`
 
 ### System Tray & Global Access
 - Minimize to system tray — AIPA stays ready in the background
@@ -138,8 +145,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 | `Ctrl+,` | Open Settings |
 | `Ctrl+1–4` | History, Files, Notes, Skills |
 | `Ctrl+5–7` | Memory, Workflows, Channel |
-| `Ctrl+8` | Notifications |
-| `Ctrl+9` | Tasks |
+| `Ctrl+8` | Tasks |
 | `Ctrl+/` | Shortcut cheatsheet |
 | `Ctrl+Up/Down` | Step through messages (with focus indicator) |
 | `Ctrl+Home/End` | Jump to first/last message |

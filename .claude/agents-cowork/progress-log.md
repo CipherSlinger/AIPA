@@ -90,3 +90,24 @@ Decision: Serial execution. Group 1 (message interaction, renderer-only) first, 
 ## Iteration 426 completed
 - Feature: Data Backup & Restore - export/import all user data as JSON, backup/restore buttons in Settings > About | Build: PASS | Commit: pending
 
+
+## PM PRD Batch 2026-04-06
+
+**Context**: React #185 crash still recurring (user feedback). Two crash sources identified: chat panel component + TasksPanel.tsx. Already have prd-decomposition-deadcode-v1 (partially done) and prd-workflow-edit-ux-polish-v1 (ErrorBoundary improvements) in queue. Added 2 new feature PRDs.
+
+**CRITICAL**: feedback.md contains new P0 crash report -- TasksPanel.tsx is crashing with React #185 in a loop, IPC calls timing out. The prd-workflow-edit-ux-polish-v1 ErrorBoundary items will help contain the crash, but the root cause in TasksPanel needs investigation (likely same class of missing state/props as I510 WorkflowDetailPage fix).
+
+| PRD | Core Features | High-Risk Files | Execution |
+|-----|--------------|----------------|-----------|
+| prd-decomposition-deadcode-v1.md | Component decomposition (WC/TP/WDP), dead code removal | WorkflowCanvas, TasksPanel, WorkflowDetailPage | Group 1 (already in queue) |
+| prd-workflow-edit-ux-polish-v1.md | ErrorBoundary smart recovery, view/edit mode split, unsaved changes | ErrorBoundary, WorkflowDetailPage | Group 2 (already in queue) |
+| prd-conversation-tabs-v1.md | Multi-tab conversations, tab bar, state isolation, keyboard shortcuts | ChatPanel, chatStore (HIGH), new TabBar.tsx | Group 3 |
+| prd-actionable-codeblocks-v1.md | Shell Run button, Save to file, clickable file paths | CodeBlock, MessageContent, ipc, preload | Group 4 |
+
+Conflict analysis:
+- Group 1 + 2: Both touch WorkflowDetailPage -> must be serial (Group 1 first for decomposition, then Group 2 for UX)
+- Group 3: Touches chatStore (unique) + ChatPanel -> no conflict with Groups 1/2
+- Group 4: Touches CodeBlock + ipc/preload -> no conflict with Groups 1/2/3
+- Groups 3 + 4 both touch i18n -> serial between them, or i18n by leader merge
+- **Recommended**: Group 1 -> Group 2 (serial, same files) -> Group 3 + Group 4 (parallel, different files, i18n by leader merge)
+

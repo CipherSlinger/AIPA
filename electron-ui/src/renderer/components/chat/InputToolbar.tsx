@@ -1,11 +1,12 @@
 import React from 'react'
-import { AtSign, TerminalSquare, Mic, MicOff, ListPlus, Cpu, Paperclip, Camera, Gauge, ShieldOff, Shield, Shrink, WrapText, AlignLeft } from 'lucide-react'
+import { AtSign, TerminalSquare, Mic, MicOff, ListPlus, Cpu, Paperclip, Camera, ShieldOff, Shield, Shrink, WrapText, AlignLeft, ClipboardList } from 'lucide-react'
 import { useT } from '../../i18n'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import ClipboardActionsMenu from './ClipboardActionsMenu'
 import InputToolbarTextTransform from './InputToolbarTextTransform'
 import InputToolbarSaveNote from './InputToolbarSaveNote'
 import InputToolbarStyleSelector from './InputToolbarStyleSelector'
+import EffortPicker from './EffortPicker'
 import { toolbarBtnStyle, toolbarHoverIn, toolbarHoverOut } from './chatInputConstants'
 
 interface InputToolbarProps {
@@ -23,6 +24,9 @@ interface InputToolbarProps {
   inputText: string
   multiLineMode?: boolean
   onToggleMultiLine?: () => void
+  isPlanMode?: boolean
+  onTogglePlanMode?: () => void
+  isStreaming?: boolean
 }
 
 export default function InputToolbar({
@@ -40,6 +44,9 @@ export default function InputToolbar({
   inputText,
   multiLineMode,
   onToggleMultiLine,
+  isPlanMode,
+  onTogglePlanMode,
+  isStreaming: isStreamingProp,
 }: InputToolbarProps) {
   const t = useT()
   const prefs = usePrefsStore(s => s.prefs)
@@ -193,46 +200,8 @@ export default function InputToolbar({
       </button>
       {/* Response tone selector */}
       <InputToolbarStyleSelector />
-      {/* Effort level selector (click to cycle) */}
-      {(() => {
-        const effortLevel = prefs.effortLevel || 'medium'
-        const effortSymbols: Record<string, string> = { low: '\u25D4', medium: '\u25D1', high: '\u25D5' }
-        const effortColors: Record<string, string> = { low: '#4ade80', medium: '#fbbf24', high: '#f87171' }
-        return (
-          <button
-            onClick={() => {
-              const levels: Array<'low' | 'medium' | 'high'> = ['low', 'medium', 'high']
-              const next = levels[(levels.indexOf(effortLevel as any) + 1) % 3]
-              const setPrefs = usePrefsStore.getState().setPrefs
-              setPrefs({ effortLevel: next })
-              window.electronAPI.prefsSet('effortLevel', next)
-              useUiStore.getState().addToast('info', t('effort.switched', { level: t(`effort.${next}`) }))
-            }}
-            title={t('effort.title', { level: t(`effort.${effortLevel}`) })}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 3,
-              padding: '2px 8px',
-              background: 'none',
-              border: '1px solid var(--border)',
-              borderRadius: 10,
-              color: effortColors[effortLevel],
-              cursor: 'pointer',
-              fontSize: 9,
-              flexShrink: 0,
-              transition: 'border-color 150ms, color 150ms',
-              whiteSpace: 'nowrap',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = effortColors[effortLevel] }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
-          >
-            <Gauge size={9} />
-            <span style={{ fontFamily: 'system-ui' }}>{effortSymbols[effortLevel]}</span>
-            {t(`effort.${effortLevel}`)}
-          </button>
-        )
-      })()}
+      {/* Effort level dropdown picker */}
+      <EffortPicker />
       {/* Skip permissions toggle */}
       {(() => {
         const skipPerms = prefs.skipPermissions ?? false
@@ -260,6 +229,26 @@ export default function InputToolbar({
           </button>
         )
       })()}
+      {/* Plan Mode toggle (Iteration 520) */}
+      {onTogglePlanMode && (
+        <button
+          onClick={onTogglePlanMode}
+          disabled={isStreamingProp}
+          aria-pressed={isPlanMode}
+          title={isPlanMode ? t('plan.exitHint') : t('plan.enterHint')}
+          style={{
+            ...toolbarBtnStyle,
+            color: isPlanMode ? '#a78bfa' : 'var(--input-toolbar-icon)',
+            background: isPlanMode ? 'rgba(167, 139, 250, 0.15)' : 'none',
+            opacity: isStreamingProp ? 0.4 : 1,
+            cursor: isStreamingProp ? 'not-allowed' : 'pointer',
+          }}
+          onMouseEnter={(e) => { if (!isPlanMode && !isStreamingProp) toolbarHoverIn(e) }}
+          onMouseLeave={(e) => { if (!isPlanMode && !isStreamingProp) toolbarHoverOut(e) }}
+        >
+          <ClipboardList size={14} />
+        </button>
+      )}
       {/* Manual compact button */}
       <button
         onClick={() => window.dispatchEvent(new CustomEvent('aipa:compact'))}

@@ -1,12 +1,33 @@
 // CodeBlock — extracted from MessageContent.tsx (Iteration 220)
 // Sub-components: CopyButton, WrapToggleButton, CollapsiblePre, CodeBlockWithHeader, PreviewButton
-import React, { useState, useRef, useEffect } from 'react'
-import { Copy, Check, ChevronDown, ChevronUp, WrapText, Play, X } from 'lucide-react'
+// Iteration 510: Added RunButton + SaveButton for actionable code blocks
+import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { Copy, Check, ChevronDown, ChevronUp, WrapText, Play, X, Download, Loader2 } from 'lucide-react'
 import { useT } from '../../i18n'
+import { usePrefsStore, useUiStore } from '../../store'
 import { CODE_COLLAPSE_THRESHOLD } from './messageContentConstants'
+import RunConfirmDialog from './RunConfirmDialog'
 
 // Languages that support live preview
 const PREVIEWABLE_LANGS = new Set(['html', 'svg', 'css', 'javascript', 'js', 'jsx', 'htm'])
+
+// Languages that represent shell commands (show Run button)
+const SHELL_LANGS = new Set(['bash', 'sh', 'zsh', 'shell', 'powershell', 'cmd', 'bat', 'ps1'])
+
+// Map language names to default file extensions for Save dialog
+const LANG_EXTENSIONS: Record<string, string> = {
+  javascript: 'js', typescript: 'ts', python: 'py', ruby: 'rb', java: 'java',
+  kotlin: 'kt', swift: 'swift', go: 'go', rust: 'rs', c: 'c', cpp: 'cpp',
+  csharp: 'cs', php: 'php', html: 'html', htm: 'html', css: 'css', scss: 'scss',
+  less: 'less', json: 'json', yaml: 'yaml', yml: 'yml', xml: 'xml',
+  markdown: 'md', sql: 'sql', bash: 'sh', sh: 'sh', zsh: 'zsh',
+  powershell: 'ps1', cmd: 'bat', bat: 'bat', dockerfile: 'Dockerfile',
+  makefile: 'Makefile', toml: 'toml', ini: 'ini', lua: 'lua', perl: 'pl',
+  r: 'r', dart: 'dart', scala: 'scala', elixir: 'ex', haskell: 'hs',
+  jsx: 'jsx', tsx: 'tsx', vue: 'vue', svelte: 'svelte',
+  graphql: 'graphql', proto: 'proto', text: 'txt', txt: 'txt',
+  svg: 'svg', ps1: 'ps1', shell: 'sh', code: 'txt',
+}
 
 function wrapForPreview(code: string, lang: string): string {
   const l = lang.toLowerCase()
@@ -124,6 +145,82 @@ export function CopyButton({ text }: { text: string }) {
   )
 }
 
+function RunButton({ code, onRun }: { code: string; onRun: () => void }) {
+  const t = useT()
+  return (
+    <button
+      onClick={onRun}
+      aria-label={t('codeAction.runInTerminal')}
+      title={t('codeAction.runInTerminal')}
+      style={{
+        background: 'rgba(63,185,80,0.15)',
+        border: '1px solid rgba(63,185,80,0.3)',
+        borderRadius: 3,
+        padding: '2px 6px',
+        color: '#3fb950',
+        cursor: 'pointer',
+        fontSize: 11,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+      }}
+    >
+      <Play size={11} />
+      {t('codeAction.run')}
+    </button>
+  )
+}
+
+function SaveButton({ code, langName }: { code: string; langName: string }) {
+  const t = useT()
+  const addToast = useUiStore(s => s.addToast)
+
+  const handleSave = useCallback(async () => {
+    if (!window.electronAPI) return
+    const ext = LANG_EXTENSIONS[langName.toLowerCase()] || 'txt'
+    const defaultName = `untitled.${ext}`
+    const filters = [
+      { name: ext.toUpperCase() + ' File', extensions: [ext] },
+      { name: 'All Files', extensions: ['*'] },
+    ]
+    try {
+      const filePath = await window.electronAPI.fsShowSaveDialog(defaultName, filters)
+      if (!filePath) return // user canceled
+      const result = await window.electronAPI.fsWriteFile(filePath, code)
+      if (result && (result as any).error) {
+        addToast('error', t('codeAction.saveFailed', { error: (result as any).error }))
+      } else {
+        addToast('success', t('codeAction.savedToFile', { path: filePath }))
+      }
+    } catch (err) {
+      addToast('error', t('codeAction.saveFailed', { error: String(err) }))
+    }
+  }, [code, langName, addToast, t])
+
+  return (
+    <button
+      onClick={handleSave}
+      aria-label={t('codeAction.saveToFile')}
+      title={t('codeAction.saveToFile')}
+      style={{
+        background: 'rgba(255,255,255,0.1)',
+        border: '1px solid rgba(255,255,255,0.2)',
+        borderRadius: 3,
+        padding: '2px 6px',
+        color: '#ccc',
+        cursor: 'pointer',
+        fontSize: 11,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+      }}
+    >
+      <Download size={11} />
+      {t('codeAction.save')}
+    </button>
+  )
+}
+
 function WrapToggleButton({ wrapped, onToggle }: { wrapped: boolean; onToggle: () => void }) {
   const t = useT()
   return (
@@ -227,7 +324,36 @@ export default function CodeBlockWithHeader({
   const showLineNumbers = lineCount > 1
   const [wordWrap, setWordWrap] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [showRunConfirm, setShowRunConfirm] = useState(false)
+  const [runStatus, setRunStatus] = useState<'idle' | 'executing' | 'done' | 'error'>('idle')
   const isPreviewable = PREVIEWABLE_LANGS.has(langName.toLowerCase())
+  const isShellLang = SHELL_LANGS.has(langName.toLowerCase())
+  const addToast = useUiStore(s => s.addToast)
+  const workingDir = usePrefsStore(s => s.prefs.workingDir)
+
+  const handleRunConfirm = useCallback(async () => {
+    setShowRunConfirm(false)
+    if (!window.electronAPI) return
+    const cwd = workingDir || undefined
+    if (!cwd) {
+      addToast('error', t('codeAction.noWorkingDir'))
+      return
+    }
+    setRunStatus('executing')
+    try {
+      const { sessionId } = await window.electronAPI.ptyCreate({ cwd }) as { sessionId: string }
+      // Write command + Enter to the PTY
+      await window.electronAPI.ptyWrite({ sessionId, data: codeText.trim() + '\n' })
+      setRunStatus('done')
+      addToast('success', t('codeAction.executed'))
+      // Auto-reset status after 3 seconds
+      setTimeout(() => setRunStatus('idle'), 3000)
+    } catch (err) {
+      setRunStatus('error')
+      addToast('error', t('codeAction.executeFailed'))
+      setTimeout(() => setRunStatus('idle'), 3000)
+    }
+  }, [codeText, workingDir, addToast, t])
 
   return (
     <div style={{ position: 'relative', marginBottom: 12 }}>
@@ -259,6 +385,17 @@ export default function CodeBlockWithHeader({
           {lineCount > 1 && <span style={{ opacity: 0.6 }}>{t('tool.linesCount', { count: lineCount })}</span>}
         </span>
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          {isShellLang && (
+            runStatus === 'executing' ? (
+              <span style={{ fontSize: 11, color: '#3fb950', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} />
+                {t('codeAction.executing')}
+              </span>
+            ) : (
+              <RunButton code={codeText} onRun={() => setShowRunConfirm(true)} />
+            )
+          )}
+          <SaveButton code={codeText} langName={langName} />
           {isPreviewable && (
             <PreviewButton active={showPreview} onToggle={() => setShowPreview(p => !p)} />
           )}
@@ -266,6 +403,14 @@ export default function CodeBlockWithHeader({
           <CopyButton text={codeText} />
         </div>
       </div>
+      {showRunConfirm && (
+        <RunConfirmDialog
+          command={codeText.trim()}
+          workingDir={workingDir || '~'}
+          onConfirm={handleRunConfirm}
+          onCancel={() => setShowRunConfirm(false)}
+        />
+      )}
       <CollapsiblePre>
         {showLineNumbers ? (
           <div style={{ display: 'flex' }}>

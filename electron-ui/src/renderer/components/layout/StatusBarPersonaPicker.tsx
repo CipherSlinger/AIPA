@@ -12,10 +12,12 @@ interface StatusBarPersonaPickerProps {
   activePersona: Persona | undefined
 }
 
+const EMPTY_PERSONAS: Persona[] = []
+
 export default function StatusBarPersonaPicker({ personas, activePersona: _defaultPersona }: StatusBarPersonaPickerProps) {
   const t = useT()
   const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
-  const allPersonas: Persona[] = usePrefsStore(s => s.prefs.personas) || []
+  const allPersonas = usePrefsStore(s => s.prefs.personas ?? EMPTY_PERSONAS)
   const sessionPersona = allPersonas.find(p => p.id === sessionPersonaId)
   const [show, setShow] = useState(false)
   const ref = useRef<HTMLDivElement>(null)

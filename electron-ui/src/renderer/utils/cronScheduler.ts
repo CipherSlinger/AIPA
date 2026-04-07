@@ -1,6 +1,7 @@
 /**
  * cronScheduler.ts — Lightweight cron expression parser and scheduler (Iteration 482).
  * Inspired by Claude Code's utils/cronScheduler.ts.
+ * Iteration 495: Fixed dom/dow OR semantics (POSIX cron standard).
  *
  * Supports standard 5-field cron: "minute hour day-of-month month day-of-week"
  * - Wildcards: *
@@ -23,10 +24,8 @@ export interface CronJob {
   nextFireAt: number   // pre-computed epoch ms (for display)
 }
 
-/**
- * Parse a single cron field into an array of valid values.
- * Supports: *, n, n-m, n/step, */step, lists (comma-separated)
- */
+// Parse a single cron field into an array of valid values.
+// Supports: *, n, n-m, n/step, star/step, lists (comma-separated)
 function parseField(field: string, min: number, max: number): number[] {
   const results = new Set<number>()
 
@@ -85,6 +84,8 @@ export function parseCron(expr: string): {
 /**
  * Compute the next fire time (epoch ms) for a cron expression after `after`.
  * Returns null if no next time can be found within 2 years.
+ * Uses POSIX cron OR semantics for dom/dow: when both are constrained (neither
+ * is wildcarded), a day matches if EITHER dom OR dow matches.
  */
 export function nextFireTime(expr: string, after: Date = new Date()): Date | null {
   const parsed = parseCron(expr)
@@ -92,6 +93,10 @@ export function nextFireTime(expr: string, after: Date = new Date()): Date | nul
 
   const { minutes, hours, doms, months, dows } = parsed
   if (!minutes.length || !hours.length || !doms.length || !months.length || !dows.length) return null
+
+  // Detect wildcarded fields (full range = wildcard)
+  const domWild = doms.length === 31  // all days 1-31
+  const dowWild = dows.length === 7   // all days 0-6
 
   // Start checking from 1 minute after `after`
   const candidate = new Date(after.getTime())
@@ -114,8 +119,18 @@ export function nextFireTime(expr: string, after: Date = new Date()): Date | nul
     const dom = candidate.getDate()
     const dow = candidate.getDay()           // 0=Sun
 
-    // Skip to next day if dom or dow doesn't match
-    if (!doms.includes(dom) || !dows.includes(dow)) {
+    // POSIX cron OR semantics for dom/dow:
+    // - Both wildcarded: always match
+    // - Only dom wildcarded: check dow
+    // - Only dow wildcarded: check dom
+    // - Neither wildcarded: match if EITHER matches
+    const dayMatches =
+      domWild && dowWild ? true
+      : domWild ? dows.includes(dow)
+      : dowWild ? doms.includes(dom)
+      : doms.includes(dom) || dows.includes(dow)
+
+    if (!dayMatches) {
       candidate.setDate(candidate.getDate() + 1)
       candidate.setHours(0, 0, 0, 0)
       continue
@@ -142,11 +157,9 @@ export function nextFireTime(expr: string, after: Date = new Date()): Date | nul
   return null
 }
 
-/**
- * Convert a cron expression to a human-readable frequency string.
- * E.g. "*/5 * * * *" → "Every 5 minutes", "0 9 * * 1-5" → "Weekdays at 9:00 AM"
- * Inspired by Claude Code's utils/cronScheduler.ts cronToHuman().
- */
+// Convert a cron expression to a human-readable frequency string.
+// E.g. "star/5 * * * *" -> "Every 5 minutes", "0 9 * * 1-5" -> "Weekdays at 9:00 AM"
+// Inspired by Claude Code's utils/cronScheduler.ts cronToHuman().
 export function cronToHuman(expr: string): string | null {
   const parts = expr.trim().split(/\s+/)
   if (parts.length !== 5) return null

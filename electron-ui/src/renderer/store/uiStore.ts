@@ -2,15 +2,8 @@
 import { create } from 'zustand'
 import { ToastItem, ToastType } from '../components/ui/Toast'
 
-export type SidebarTab = 'history' | 'files' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel' | 'notifications' | 'tasks'
-export type NavItem = 'chat' | 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel' | 'notifications' | 'tasks'
-
-export interface NotificationEntry {
-  id: string
-  type: ToastType
-  message: string
-  timestamp: number
-}
+export type SidebarTab = 'history' | 'files' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel' | 'tasks' | 'changes'
+export type NavItem = 'chat' | 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel' | 'tasks' | 'changes'
 
 interface UiState {
   sidebarTab: SidebarTab
@@ -26,12 +19,6 @@ interface UiState {
   toggleFocusMode: () => void
   addToast: (type: ToastType, message: string, duration?: number) => void
   removeToast: (id: string) => void
-
-  // Notification history
-  notifications: NotificationEntry[]
-  unreadNotificationCount: number
-  markNotificationsRead: () => void
-  clearNotifications: () => void
 
   // NavRail active item tracking
   activeNavItem: NavItem
@@ -93,7 +80,7 @@ interface UiState {
 const savedSidebarTab = (() => {
   try {
     const saved = localStorage.getItem('aipa:sidebar-tab')
-    const valid = ['history', 'files', 'notes', 'skills', 'memory', 'workflows', 'channel', 'notifications']
+    const valid = ['history', 'files', 'notes', 'skills', 'memory', 'workflows', 'channel', 'tasks', 'changes']
     if (saved && valid.includes(saved)) return saved as UiState['sidebarTab']
   } catch { }
   return 'history' as const
@@ -130,25 +117,15 @@ export const useUiStore = create<UiState>((set) => ({
     const effectiveDuration = duration ?? (type === 'error' ? 8000 : 4000)
     set((s) => ({
       toasts: [...s.toasts, { id, type, message, duration: effectiveDuration }],
-      // Also add to notification history (max 50)
-      notifications: [
-        { id, type, message, timestamp: Date.now() },
-        ...s.notifications,
-      ].slice(0, 50),
-      unreadNotificationCount: s.unreadNotificationCount + 1,
     }))
   },
   removeToast: (id) => set((s) => ({ toasts: s.toasts.filter(t => t.id !== id) })),
-  notifications: [],
-  unreadNotificationCount: 0,
-  markNotificationsRead: () => set({ unreadNotificationCount: 0 }),
-  clearNotifications: () => set({ notifications: [], unreadNotificationCount: 0 }),
   setActiveNavItem: (item) => set((s) => {
     // Settings opens as a modal overlay, not in the sidebar
     if (item === 'settings') {
       return { settingsModalOpen: true }
     }
-    if (item === 'history' || item === 'files' || item === 'notes' || item === 'skills' || item === 'memory' || item === 'workflows' || item === 'channel' || item === 'notifications') {
+    if (item === 'history' || item === 'files' || item === 'notes' || item === 'skills' || item === 'memory' || item === 'workflows' || item === 'channel' || item === 'tasks' || item === 'changes') {
       try { localStorage.setItem('aipa:sidebar-tab', item) } catch { }
       // Clear all unread badges when viewing History
       const extra = item === 'history' ? { unreadCounts: {} as Record<string, number>, unreadSessionCount: 0 } : {}

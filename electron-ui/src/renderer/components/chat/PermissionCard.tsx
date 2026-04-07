@@ -1,7 +1,7 @@
 import React from 'react'
 import { PermissionMessage } from '../../types/app.types'
 import {
-  ShieldCheck, Check, X,
+  ShieldCheck, Check, X, ShieldPlus, ShieldOff,
   Terminal, FilePlus, FileEdit, FileSearch,
   FolderSearch, Search, Globe
 } from 'lucide-react'
@@ -11,6 +11,8 @@ interface Props {
   message: PermissionMessage
   onAllow: () => void
   onDeny: () => void
+  onAlwaysAllow?: () => void
+  onAlwaysDeny?: () => void
 }
 
 // Map tool names to lucide icons + tint colors
@@ -125,7 +127,7 @@ function describeAction(toolName: string, toolInput: Record<string, unknown>, t:
   }
 }
 
-export default function PermissionCard({ message, onAllow, onDeny }: Props) {
+export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow, onAlwaysDeny }: Props) {
   const t = useT()
   const isPending = message.decision === 'pending'
   const { title, detail } = describeAction(message.toolName, message.toolInput, t)
@@ -196,66 +198,132 @@ export default function PermissionCard({ message, onAllow, onDeny }: Props) {
 
       {/* Actions or result */}
       {isPending ? (
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            onClick={onAllow}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.02)'
-              e.currentTarget.style.filter = 'brightness(1.1)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)'
-              e.currentTarget.style.filter = 'brightness(1)'
-            }}
-            style={{
-              flex: 1,
-              background: 'var(--accent)',
-              border: 'none',
-              borderRadius: 8,
-              padding: '0',
-              height: 36,
-              color: '#fff',
-              cursor: 'pointer',
-              fontSize: 13,
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              transition: 'transform 0.15s ease, filter 0.15s ease',
-            }}
-          >
-            <Check size={14} /> {t('permission.allow')}
-          </button>
-          <button
-            onClick={onDeny}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--popup-item-hover)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent'
-            }}
-            style={{
-              flex: 1,
-              background: 'transparent',
-              border: '1px solid var(--border)',
-              borderRadius: 8,
-              padding: '0',
-              height: 36,
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              fontSize: 13,
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              transition: 'background 0.15s ease',
-            }}
-          >
-            <X size={14} /> {t('permission.deny')}
-          </button>
-        </div>
+        <>
+          {/* Primary actions */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={onAllow}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.02)'
+                e.currentTarget.style.filter = 'brightness(1.1)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)'
+                e.currentTarget.style.filter = 'brightness(1)'
+              }}
+              style={{
+                flex: 1,
+                background: 'var(--accent)',
+                border: 'none',
+                borderRadius: 8,
+                padding: '0',
+                height: 36,
+                color: '#fff',
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                transition: 'transform 0.15s ease, filter 0.15s ease',
+              }}
+            >
+              <Check size={14} /> {t('permission.allow')}
+            </button>
+            <button
+              onClick={onDeny}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--popup-item-hover)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent'
+              }}
+              style={{
+                flex: 1,
+                background: 'transparent',
+                border: '1px solid var(--border)',
+                borderRadius: 8,
+                padding: '0',
+                height: 36,
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                transition: 'background 0.15s ease',
+              }}
+            >
+              <X size={14} /> {t('permission.deny')}
+            </button>
+          </div>
+
+          {/* Secondary actions: Always Allow / Always Deny */}
+          {(onAlwaysAllow || onAlwaysDeny) && (
+            <div style={{
+              display: 'flex', gap: 8,
+              borderTop: '1px solid var(--border)', paddingTop: 8,
+            }}>
+              {onAlwaysAllow && (
+                <button
+                  onClick={onAlwaysAllow}
+                  aria-label={t('permission.alwaysAllowTool')}
+                  style={{
+                    flex: 1,
+                    background: 'none',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '4px 0',
+                    color: '#10b981',
+                    cursor: 'pointer',
+                    fontSize: 11,
+                    fontWeight: 500,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 4,
+                    opacity: 0.8,
+                    transition: 'opacity 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.opacity = '1' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.8' }}
+                >
+                  <ShieldPlus size={12} /> {t('permission.alwaysAllowTool')}
+                </button>
+              )}
+              {onAlwaysDeny && (
+                <button
+                  onClick={onAlwaysDeny}
+                  aria-label={t('permission.alwaysDenyTool')}
+                  style={{
+                    flex: 1,
+                    background: 'none',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '4px 0',
+                    color: '#ef4444',
+                    cursor: 'pointer',
+                    fontSize: 11,
+                    fontWeight: 500,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 4,
+                    opacity: 0.8,
+                    transition: 'opacity 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.opacity = '1' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.8' }}
+                >
+                  <ShieldOff size={12} /> {t('permission.alwaysDenyTool')}
+                </button>
+              )}
+            </div>
+          )}
+        </>
       ) : (
         <div
           style={{

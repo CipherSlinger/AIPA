@@ -9,11 +9,13 @@ import type { Persona } from '../../types/app.types'
 import { PERSONA_COLORS, EMOJI_PRESETS } from './personaConstants'
 import { MODEL_OPTIONS, INPUT_STYLE } from './settingsConstants'
 
+const EMPTY_PERSONAS: Persona[] = []
+
 export default function PersonaEditorPage() {
   const { t } = useI18n()
   const editingId = useUiStore(s => s.editingPersonaId)
   const addToast = useUiStore(s => s.addToast)
-  const personas = usePrefsStore(s => s.prefs.personas || [])
+  const personas = usePrefsStore(s => s.prefs.personas ?? EMPTY_PERSONAS)
   const existing = editingId ? personas.find(p => p.id === editingId) : null
 
   const [formName, setFormName] = useState('')

@@ -1,4 +1,5 @@
 // Chat store — extracted from store/index.ts (Iteration 440)
+// Tab support added in Iteration 515
 import { create } from 'zustand'
 import { ChatMessage, PermissionMessage, PlanMessage, StandardChatMessage } from '../types/app.types'
 
@@ -7,6 +8,27 @@ export interface TaskQueueItem {
   id: string
   content: string
   status: 'pending' | 'running' | 'done'
+}
+
+// ── Tab types (Iteration 515) ────────────────────
+export interface TabSnapshot {
+  messages: ChatMessage[]
+  sessionId: string | null
+  sessionTitle: string | null
+  scrollTop: number
+  totalSessionCost: number
+  lastCost: number | null
+  lastUsage: { inputTokens: number; outputTokens: number; cacheTokens: number } | null
+  lastContextUsage: { used: number; total: number } | null
+  modelUsage: Record<string, { inputTokens: number; outputTokens: number; cacheTokens: number; costUsd: number; turns: number }>
+  sessionPersonaId: string | undefined
+}
+
+export interface TabInfo {
+  id: string
+  sessionId: string | null
+  title: string
+  snapshot: TabSnapshot | null  // null = this tab's state is "live" (in the flat chatStore fields)
 }
 
 // ── Streaming buffer for throttled delta accumulation ──
@@ -77,6 +99,14 @@ function scheduleFlush() {
 }
 
 // ── Chat store ──────────────────────────────────
+
+// Module-level cache for scroll positions — avoids Zustand re-renders on every scroll event
+const tabScrollTopCache = new Map<string, number>()
+/** Read the cached scrollTop for a tab (used by TabBar/ChatPanel to restore scroll) */
+export function getTabScrollTop(tabId: string): number {
+  return tabScrollTopCache.get(tabId) ?? 0
+}
+
 interface ChatState {
   messages: ChatMessage[]
   isStreaming: boolean
@@ -143,11 +173,14 @@ interface ChatState {
   // Crash recovery (Iteration 308): Restore messages from sessionStorage backup
   setMessages: (messages: ChatMessage[]) => void
 
-  // Conversation compaction (Iteration 368, inspired by Claude Code)
+  // Conversation compaction (Iteration 368, inspired by Claude Code; enhanced Iteration 519)
   isCompacting: boolean
   compactionCount: number
+  /** Snapshot of context usage before compact for before/after comparison (Iteration 519) */
+  contextBeforeCompact: { used: number; total: number } | null
   setCompacting: (v: boolean) => void
   incrementCompactionCount: () => void
+  setContextBeforeCompact: (usage: { used: number; total: number } | null) => void
 
   // Conversation rewind (Iteration 377): Remove all messages after the selected one
   rewindToMessage: (messageId: string) => number
@@ -155,6 +188,39 @@ interface ChatState {
   // Per-session persona (Iteration 407): track which persona is active for the current session
   sessionPersonaId: string | undefined
   setSessionPersonaId: (personaId: string | undefined) => void
+
+  // Plan Mode (Iteration 520): Claude only plans, does not execute tools
+  isPlanMode: boolean
+  setPlanMode: (v: boolean) => void
+
+  // Changed files tracking (Iteration 521: code changes view)
+  changedFiles: Array<{ filePath: string; turnIndex: number; toolName: string; timestamp: number }>
+  addChangedFile: (filePath: string, toolName: string) => void
+  clearChangedFiles: () => void
+
+  // Temporary system prompt override (Iteration 523): set per-session, cleared on new conversation
+  tempSystemPrompt: string | null
+  setTempSystemPrompt: (prompt: string | null) => void
+
+  // Hook events (Iteration 525): live hook execution status in chat
+  hookEvents: Array<{ id: string; hookEvent: string; hookType: string; status: 'running' | 'success' | 'error'; output?: string; timestamp: number }>
+  addHookEvent: (event: { id: string; hookEvent: string; hookType: string; status: 'running' | 'success' | 'error'; output?: string; timestamp: number }) => void
+  updateHookEvent: (id: string, update: Partial<{ id: string; hookEvent: string; hookType: string; status: 'running' | 'success' | 'error'; output?: string; timestamp: number }>) => void
+  clearHookEvents: () => void
+
+  // ── Tabs (Iteration 515) ──────────────────────────
+  tabs: TabInfo[]
+  activeTabId: string | null
+  openTab: (sessionId: string, title: string, messages: ChatMessage[]) => string  // returns tabId
+  closeTab: (tabId: string) => void
+  switchTab: (tabId: string) => void
+  nextTab: () => void
+  prevTab: () => void
+  setTabScrollTop: (tabId: string, scrollTop: number) => void
+  /** Find tab by session ID; returns tabId or null */
+  findTabBySessionId: (sessionId: string) => string | null
+  /** Update the title of a tab (e.g. when session title changes) */
+  updateTabTitle: (tabId: string, title: string) => void
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -173,7 +239,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
   queuePaused: false,
   isCompacting: false,
   compactionCount: 0,
+  contextBeforeCompact: null,
   sessionPersonaId: undefined,
+  isPlanMode: false,
+  changedFiles: [],
+  tempSystemPrompt: null,
+  hookEvents: [],
 
   addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
 
@@ -258,7 +329,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     streamingBuffer.sessionId = null
     streamingBuffer.messageId = null
     streamingBuffer.dirty = false
-    set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false, totalSessionCost: 0, lastCost: null, lastUsage: null, lastContextUsage: null, modelUsage: {}, sessionPersonaId: undefined })
+    set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false, totalSessionCost: 0, lastCost: null, lastUsage: null, lastContextUsage: null, modelUsage: {}, sessionPersonaId: undefined, isPlanMode: false, changedFiles: [], tempSystemPrompt: null, hookEvents: [] })
   },
   loadHistory: (messages) => set({ messages, isStreaming: false }),
 
@@ -441,6 +512,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   setMessages: (messages) => set({ messages }),
   setCompacting: (v) => set({ isCompacting: v }),
   incrementCompactionCount: () => set((s) => ({ compactionCount: s.compactionCount + 1 })),
+  setContextBeforeCompact: (usage) => set({ contextBeforeCompact: usage }),
 
   rewindToMessage: (messageId) => {
     const state = get()
@@ -464,6 +536,288 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }
       } catch { /* ignore localStorage errors */ }
     }
+  },
+
+  // Plan Mode toggle (Iteration 520)
+  setPlanMode: (v) => set({ isPlanMode: v }),
+
+  // Changed files tracking (Iteration 521)
+  addChangedFile: (filePath, toolName) => set((s) => {
+    const turnIndex = s.messages.filter(m => m.role === 'user').length
+    return {
+      changedFiles: [
+        ...s.changedFiles,
+        { filePath, turnIndex, toolName, timestamp: Date.now() },
+      ],
+    }
+  }),
+  clearChangedFiles: () => set({ changedFiles: [] }),
+
+  // Temp system prompt override (Iteration 523)
+  setTempSystemPrompt: (prompt) => set({ tempSystemPrompt: prompt }),
+
+  // Hook events (Iteration 525)
+  addHookEvent: (event) => set((s) => ({ hookEvents: [...s.hookEvents, event] })),
+  updateHookEvent: (id, update) => set((s) => ({
+    hookEvents: s.hookEvents.map(e => e.id === id ? { ...e, ...update } : e),
+  })),
+  clearHookEvents: () => set({ hookEvents: [] }),
+
+  // ── Tab actions (Iteration 515) ────────────────────
+  tabs: [],
+  activeTabId: null,
+
+  findTabBySessionId: (sessionId) => {
+    const tab = get().tabs.find(t => t.sessionId === sessionId)
+    return tab ? tab.id : null
+  },
+
+  updateTabTitle: (tabId, title) => {
+    set((s) => ({
+      tabs: s.tabs.map(t => t.id === tabId ? { ...t, title } : t),
+    }))
+  },
+
+  openTab: (sessionId, title, messages) => {
+    const state = get()
+    // Check if already open in a tab
+    const existing = state.tabs.find(t => t.sessionId === sessionId)
+    if (existing) {
+      // Just switch to it
+      state.switchTab(existing.id)
+      return existing.id
+    }
+    // Max 8 tabs
+    if (state.tabs.length >= 8) {
+      return ''  // caller should show toast
+    }
+    const tabId = `tab-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+    const newTab: TabInfo = {
+      id: tabId,
+      sessionId,
+      title: title || 'Untitled',
+      snapshot: {
+        messages,
+        sessionId,
+        sessionTitle: title,
+        scrollTop: 0,
+        totalSessionCost: 0,
+        lastCost: null,
+        lastUsage: null,
+        lastContextUsage: null,
+        modelUsage: {},
+        sessionPersonaId: undefined,
+      },
+    }
+    // If there's a current session in the store with no tab, snapshot it first as the "initial" tab
+    if (state.tabs.length === 0 && (state.messages.length > 0 || state.currentSessionId)) {
+      const initialTabId = `tab-${Date.now()}-init`
+      const initialTab: TabInfo = {
+        id: initialTabId,
+        sessionId: state.currentSessionId,
+        title: state.currentSessionTitle || 'Chat',
+        snapshot: null,  // live — its data is already in the flat store fields
+      }
+      set((s) => ({
+        tabs: [initialTab, newTab],
+        activeTabId: initialTabId,  // will be switched immediately below
+      }))
+    } else {
+      set((s) => ({
+        tabs: [...s.tabs, newTab],
+      }))
+    }
+    // Now switch to the new tab
+    get().switchTab(tabId)
+    return tabId
+  },
+
+  closeTab: (tabId) => {
+    const state = get()
+    const tabIdx = state.tabs.findIndex(t => t.id === tabId)
+    if (tabIdx < 0) return
+
+    const closingTab = state.tabs[tabIdx]
+    const isActive = state.activeTabId === tabId
+
+    // If the closing tab is streaming, dispatch abort event
+    // (useStreamJson hook will handle the actual abort via bridge ID)
+    if (isActive && state.isStreaming) {
+      window.dispatchEvent(new CustomEvent('aipa:abortStream'))
+    }
+
+    const remainingTabs = state.tabs.filter(t => t.id !== tabId)
+
+    if (remainingTabs.length === 0) {
+      // Last tab — clear everything, back to welcome screen
+      // Cancel any pending streaming flush
+      if (streamingBuffer.rafId) {
+        cancelAnimationFrame(streamingBuffer.rafId)
+        streamingBuffer.rafId = 0
+      }
+      streamingBuffer.contentChunks = []
+      streamingBuffer.thinkingChunks = []
+      streamingBuffer.sessionId = null
+      streamingBuffer.messageId = null
+      streamingBuffer.dirty = false
+      set({
+        tabs: [],
+        activeTabId: null,
+        messages: [],
+        currentSessionId: null,
+        currentSessionTitle: null,
+        isStreaming: false,
+        totalSessionCost: 0,
+        lastCost: null,
+        lastUsage: null,
+        lastContextUsage: null,
+        modelUsage: {},
+        sessionPersonaId: undefined,
+        isPlanMode: false,
+        tempSystemPrompt: null,
+      })
+      return
+    }
+
+    if (remainingTabs.length === 1) {
+      // Going back to single-tab mode — ensure the remaining tab's state is live
+      const sole = remainingTabs[0]
+      if (isActive) {
+        // The closing tab was active, so we need to restore the remaining tab
+        if (sole.snapshot) {
+          set({
+            tabs: [{ ...sole, snapshot: null }],
+            activeTabId: sole.id,
+            messages: sole.snapshot.messages,
+            currentSessionId: sole.snapshot.sessionId,
+            currentSessionTitle: sole.snapshot.sessionTitle,
+            totalSessionCost: sole.snapshot.totalSessionCost,
+            lastCost: sole.snapshot.lastCost,
+            lastUsage: sole.snapshot.lastUsage,
+            lastContextUsage: sole.snapshot.lastContextUsage,
+            modelUsage: sole.snapshot.modelUsage,
+            sessionPersonaId: sole.snapshot.sessionPersonaId,
+            isStreaming: false,
+          })
+        } else {
+          // Remaining tab was already live? Shouldn't happen but just update tabs list
+          set({ tabs: remainingTabs, activeTabId: sole.id })
+        }
+      } else {
+        // The closing tab was inactive (had a snapshot), just remove it
+        set({ tabs: remainingTabs })
+      }
+      return
+    }
+
+    // Multiple tabs remain
+    if (isActive) {
+      // Switch to adjacent tab
+      const newIdx = tabIdx >= remainingTabs.length ? remainingTabs.length - 1 : tabIdx
+      const newActive = remainingTabs[newIdx]
+      // Restore the new active tab's snapshot
+      if (newActive.snapshot) {
+        set({
+          tabs: remainingTabs.map(t =>
+            t.id === newActive.id ? { ...t, snapshot: null } : t
+          ),
+          activeTabId: newActive.id,
+          messages: newActive.snapshot.messages,
+          currentSessionId: newActive.snapshot.sessionId,
+          currentSessionTitle: newActive.snapshot.sessionTitle,
+          totalSessionCost: newActive.snapshot.totalSessionCost,
+          lastCost: newActive.snapshot.lastCost,
+          lastUsage: newActive.snapshot.lastUsage,
+          lastContextUsage: newActive.snapshot.lastContextUsage,
+          modelUsage: newActive.snapshot.modelUsage,
+          sessionPersonaId: newActive.snapshot.sessionPersonaId,
+          isStreaming: false,
+        })
+      } else {
+        set({ tabs: remainingTabs, activeTabId: newActive.id })
+      }
+    } else {
+      // Just remove the inactive tab
+      set({ tabs: remainingTabs })
+    }
+  },
+
+  switchTab: (tabId) => {
+    const state = get()
+    if (state.activeTabId === tabId) return
+    const targetTab = state.tabs.find(t => t.id === tabId)
+    if (!targetTab) return
+
+    // Snapshot the current active tab
+    const currentTabId = state.activeTabId
+    const updatedTabs = state.tabs.map(t => {
+      if (t.id === currentTabId) {
+        return {
+          ...t,
+          snapshot: {
+            messages: state.messages,
+            sessionId: state.currentSessionId,
+            sessionTitle: state.currentSessionTitle,
+            scrollTop: tabScrollTopCache.get(currentTabId!) ?? 0,
+            totalSessionCost: state.totalSessionCost,
+            lastCost: state.lastCost,
+            lastUsage: state.lastUsage,
+            lastContextUsage: state.lastContextUsage,
+            modelUsage: state.modelUsage,
+            sessionPersonaId: state.sessionPersonaId,
+          },
+        }
+      }
+      if (t.id === tabId) {
+        return { ...t, snapshot: null }  // this tab becomes "live"
+      }
+      return t
+    })
+
+    // Restore target tab's state
+    if (targetTab.snapshot) {
+      // Pre-cache scrollTop so ChatPanel can read it on mount
+      tabScrollTopCache.set(tabId, targetTab.snapshot.scrollTop)
+      set({
+        tabs: updatedTabs,
+        activeTabId: tabId,
+        messages: targetTab.snapshot.messages,
+        currentSessionId: targetTab.snapshot.sessionId,
+        currentSessionTitle: targetTab.snapshot.sessionTitle,
+        totalSessionCost: targetTab.snapshot.totalSessionCost,
+        lastCost: targetTab.snapshot.lastCost,
+        lastUsage: targetTab.snapshot.lastUsage,
+        lastContextUsage: targetTab.snapshot.lastContextUsage,
+        modelUsage: targetTab.snapshot.modelUsage,
+        sessionPersonaId: targetTab.snapshot.sessionPersonaId,
+        isStreaming: false,
+      })
+    } else {
+      // Tab has no snapshot (already live) — just update tabs & activeTabId
+      set({ tabs: updatedTabs, activeTabId: tabId })
+    }
+  },
+
+  nextTab: () => {
+    const state = get()
+    if (state.tabs.length < 2) return
+    const idx = state.tabs.findIndex(t => t.id === state.activeTabId)
+    const nextIdx = (idx + 1) % state.tabs.length
+    state.switchTab(state.tabs[nextIdx].id)
+  },
+
+  prevTab: () => {
+    const state = get()
+    if (state.tabs.length < 2) return
+    const idx = state.tabs.findIndex(t => t.id === state.activeTabId)
+    const prevIdx = (idx - 1 + state.tabs.length) % state.tabs.length
+    state.switchTab(state.tabs[prevIdx].id)
+  },
+
+  setTabScrollTop: (tabId, scrollTop) => {
+    // Store scrollTop in a module-level map so switchTab can pick it up.
+    // We don't put it in Zustand state to avoid re-renders on every scroll event.
+    tabScrollTopCache.set(tabId, scrollTop)
   },
 }))
 

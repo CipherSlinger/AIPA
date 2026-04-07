@@ -129,7 +129,7 @@ export interface ClaudePrefs {
   speculationEnabled?: boolean        // pre-execute prompt suggestion in sandbox, accept/reject (default false, opt-in)
   tipHistory?: Record<string, number>  // tipId -> last shown timestamp (for contextual tips)
   idleReturnDialogEnabled?: boolean    // show dialog when returning after idle period (default true)
-  effortLevel?: 'low' | 'medium' | 'high'  // AI effort level: low (fast/cheap), medium (balanced), high (thorough) — default medium
+  effortLevel?: 'auto' | 'low' | 'medium' | 'high' | 'max'  // AI effort level: auto (CLI default), low (fast/cheap), medium (balanced), high (thorough), max (deepest reasoning)
   preventSleep?: boolean                    // prevent system idle sleep while AI is streaming (default true)
   avatarPreset?: string                      // selected preset avatar ID (e.g. 'xiaohei', 'xiaobai') — null/undefined = default user icon
   sessionFolders?: SessionFolder[]            // user-defined session folders (max 10)
@@ -139,6 +139,8 @@ export interface ClaudePrefs {
   sessionColorLabels?: Record<string, string>  // sessionId -> hex color for left border stripe (Iteration 436)
   sessionListCompact?: boolean  // compact session list mode: reduced row height, title only (Iteration 444)
   forkMap?: Record<string, { sourceSessionId: string; forkMessageIndex: number; forkedSessionId: string; forkedSessionTitle?: string }>  // messageId -> fork metadata (Iteration 456)
+  appendSystemPrompt?: string  // persistent appended system prompt (passed via --append-system-prompt, Iteration 523)
+  disallowedTools?: string[]   // tools blocked from CLI via --disallowedTools (Iteration 527)
 }
 
 export interface SessionFolder {

@@ -16,13 +16,43 @@ interface State {
   retryCount: number
   autoRetrying: boolean
   recoveryFailed: boolean
+  detailsExpanded: boolean
+  isPermanent: boolean
 }
 
 const MAX_AUTO_RETRIES = 3
 const CRASH_BACKUP_KEY = 'aipa_crash_backup'
 const RECOVERY_COOLDOWN_MS = 2000
+const GITHUB_ISSUES_URL = 'https://github.com/anthropics/claude-code/issues/new'
 // Exponential backoff: 500ms, 1500ms, 4500ms
 const getRetryDelay = (attempt: number) => 500 * Math.pow(3, attempt)
+
+/**
+ * Determine whether an error is permanent (code bug) vs transient (runtime glitch).
+ * Permanent errors skip auto-retry because they will always fail.
+ *
+ * Iteration 513: Added classification to avoid 6.5s of wasted retry time
+ * for errors that are clearly caused by code bugs.
+ */
+function isPermanentError(error: Error): boolean {
+  // ReferenceError: X is not defined — code bug, retry won't help
+  if (error instanceof ReferenceError) return true
+  // SyntaxError — code corruption, retry won't help
+  if (error instanceof SyntaxError) return true
+  // TypeError with common patterns indicating code bugs
+  if (error instanceof TypeError) {
+    const msg = error.message
+    if (
+      msg.includes('Cannot read properties of undefined') ||
+      msg.includes('Cannot read properties of null') ||
+      msg.includes('is not a function') ||
+      msg.includes('is not defined')
+    ) {
+      return true
+    }
+  }
+  return false
+}
 
 /**
  * Error boundary with auto-recovery, state protection, and crash diagnostics.
@@ -31,6 +61,8 @@ const getRetryDelay = (attempt: number) => 500 * Math.pow(3, attempt)
  * Iteration 308: Added crash recovery (sessionStorage backup/restore),
  *   per-message isolation (separate MessageErrorBoundary), and structured
  *   diagnostic output in "Copy Error" for faster bug triage.
+ * Iteration 513: Permanent error classification (skip retry for ReferenceError/
+ *   TypeError/SyntaxError), expandable technical details, and Report Bug button.
  *
  * NOTE: This is a class component (React requirement for error boundaries).
  * It accesses Zustand store directly via useChatStore.getState() because
@@ -50,22 +82,31 @@ export default class ErrorBoundary extends Component<Props, State> {
       retryCount: 0,
       autoRetrying: false,
       recoveryFailed: false,
+      detailsExpanded: false,
+      isPermanent: false,
     }
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
-    return { hasError: true, error }
+    return { hasError: true, error, isPermanent: isPermanentError(error) }
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     this.setState({ errorInfo })
-    console.error('[ErrorBoundary] Caught error:', error.message)
+    const permanent = isPermanentError(error)
+    console.error('[ErrorBoundary] Caught error:', error.message, permanent ? '(permanent)' : '(transient)')
     console.error('[ErrorBoundary] Stack:', errorInfo.componentStack)
 
     // STABILITY (Iteration 308): Back up conversation state to sessionStorage
     // so it can be restored after recovery. This is the safety net that prevents
     // users from losing their entire conversation when the chat panel crashes.
     this.backupMessages()
+
+    // Iteration 513: Skip auto-retry for permanent errors (code bugs).
+    // These will always fail, so retrying wastes 6.5s of user time.
+    if (permanent) {
+      return
+    }
 
     // Auto-retry for transient errors (like Maximum update depth exceeded)
     if (this.state.retryCount < MAX_AUTO_RETRIES) {
@@ -78,6 +119,7 @@ export default class ErrorBoundary extends Component<Props, State> {
           errorInfo: null,
           retryCount: prev.retryCount + 1,
           autoRetrying: false,
+          isPermanent: false,
         }))
       }, delay)
     }
@@ -136,11 +178,8 @@ export default class ErrorBoundary extends Component<Props, State> {
     window.location.reload()
   }
 
-  /**
-   * ENHANCED (Iteration 308): Copy structured diagnostic information.
-   * Includes context metadata but NOT user conversation content (privacy).
-   */
-  handleCopyError = (): void => {
+  /** Build structured diagnostic text for bug reports */
+  private buildDiagnosticText(): string {
     const store = useChatStore.getState()
     const messages = store.messages
     const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null
@@ -158,9 +197,11 @@ export default class ErrorBoundary extends Component<Props, State> {
       }
     } catch { /* not available */ }
 
-    const diagnostic = [
+    return [
       '=== AIPA Crash Diagnostic ===',
       `Error: ${this.state.error?.message || 'Unknown'}`,
+      `Error Type: ${this.state.error?.constructor?.name || 'Error'}`,
+      `Classification: ${this.state.isPermanent ? 'Permanent (code bug)' : 'Transient'}`,
       '',
       'Context:',
       `  Messages: ${messages.length}`,
@@ -177,8 +218,25 @@ export default class ErrorBoundary extends Component<Props, State> {
       'Stack Trace:',
       this.state.error?.stack || '(not available)',
     ].join('\n')
+  }
 
+  /**
+   * ENHANCED (Iteration 308, 513): Copy structured diagnostic information.
+   * Includes context metadata but NOT user conversation content (privacy).
+   */
+  handleCopyError = (): void => {
+    navigator.clipboard.writeText(this.buildDiagnosticText()).catch(() => {})
+  }
+
+  /** Copy diagnostic info to clipboard and open GitHub issues page */
+  handleReportBug = (): void => {
+    const diagnostic = this.buildDiagnosticText()
     navigator.clipboard.writeText(diagnostic).catch(() => {})
+    const title = encodeURIComponent(`[Crash] ${this.state.error?.message || 'Unknown error'}`)
+    const body = encodeURIComponent(
+      `## Crash Report\n\nPlease paste the diagnostic info from your clipboard below:\n\n\`\`\`\n(paste diagnostic info here)\n\`\`\`\n\n## Steps to reproduce\n\n1. \n2. \n3. \n`
+    )
+    window.open(`${GITHUB_ISSUES_URL}?title=${title}&body=${body}`, '_blank')
   }
 
   handleDismiss = (): void => {
@@ -190,6 +248,8 @@ export default class ErrorBoundary extends Component<Props, State> {
       errorInfo: null,
       retryCount: 0,
       autoRetrying: false,
+      detailsExpanded: false,
+      isPermanent: false,
     })
   }
 
@@ -203,8 +263,14 @@ export default class ErrorBoundary extends Component<Props, State> {
       retryCount: 0,
       autoRetrying: false,
       recoveryFailed: false,
+      detailsExpanded: false,
+      isPermanent: false,
     })
     this.failedRestoreCount = 0
+  }
+
+  toggleDetails = (): void => {
+    this.setState(prev => ({ detailsExpanded: !prev.detailsExpanded }))
   }
 
   render(): ReactNode {
@@ -258,14 +324,133 @@ export default class ErrorBoundary extends Component<Props, State> {
     const t = getT()
     const label = this.props.fallbackLabel || 'component'
     const hasRetried = this.state.retryCount > 0
-    const { recoveryFailed } = this.state
+    const { recoveryFailed, isPermanent, detailsExpanded } = this.state
+
+    // Human-readable error description
+    const errorSummary = isPermanent
+      ? t('error.permanentDesc')
+      : hasRetried
+        ? t('error.autoRecoveryFailed', { count: String(this.state.retryCount) })
+        : ''
+    const retryLabel = hasRetried ? t('error.tryAgain') : t('error.retryRender')
+
+    // --- Shared sections used in both overlay and inline modes ---
+    const errorMessageBlock = (fontSize: string, maxHeight: string, marginBottom: string) => (
+      <div
+        style={{
+          fontFamily: 'monospace',
+          fontSize,
+          background: 'var(--card-bg, #1e1e1e)',
+          padding: '6px 8px',
+          borderRadius: '4px',
+          marginBottom,
+          maxHeight,
+          overflowY: 'auto' as const,
+          color: 'var(--text-muted, #858585)',
+          whiteSpace: 'pre-wrap' as const,
+          wordBreak: 'break-word' as const,
+        }}
+      >
+        {this.state.error?.message || t('error.unknownError')}
+      </div>
+    )
+
+    const statusLine = (fontSize: string) => (
+      <>
+        {errorSummary && (
+          <div style={{ fontSize, color: isPermanent ? 'var(--warning, #cca700)' : 'var(--text-muted, #858585)', marginBottom: '6px' }}>
+            {errorSummary}
+          </div>
+        )}
+        {recoveryFailed && (
+          <div style={{ fontSize, color: 'var(--warning, #cca700)', marginBottom: '6px' }}>
+            {t('error.recoveryFailed')}
+          </div>
+        )}
+      </>
+    )
+
+    const detailsSection = (fontSize: string) => (
+      <div style={{ marginBottom: '8px' }}>
+        <button
+          onClick={this.toggleDetails}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: 'var(--text-muted, #858585)',
+            fontSize,
+            padding: 0,
+            textDecoration: 'underline',
+            marginBottom: '4px',
+          }}
+        >
+          {detailsExpanded ? t('error.hideDetails') : t('error.showDetails')}
+        </button>
+        {detailsExpanded && (
+          <div
+            style={{
+              fontFamily: 'monospace',
+              fontSize: '10px',
+              background: 'var(--card-bg, #1e1e1e)',
+              padding: '8px',
+              borderRadius: '4px',
+              marginTop: '4px',
+              maxHeight: '150px',
+              overflowY: 'auto',
+              color: 'var(--text-muted, #858585)',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+            }}
+          >
+            <div style={{ marginBottom: '4px', fontWeight: 600, color: 'var(--text-primary, #ccc)' }}>
+              {this.state.error?.constructor?.name || 'Error'}
+            </div>
+            {this.state.errorInfo?.componentStack || '(no component stack)'}
+          </div>
+        )}
+      </div>
+    )
+
+    const btnStyle = (bg: string, border?: string): React.CSSProperties => ({
+      padding: '5px 12px',
+      background: bg,
+      border: border || 'none',
+      borderRadius: '6px',
+      color: border ? 'var(--text-primary, #ccc)' : '#fff',
+      cursor: 'pointer',
+      fontSize: '11px',
+      fontWeight: border ? 400 : 500,
+    })
+
+    const actionButtons = (gap: string) => (
+      <div style={{ display: 'flex', gap, flexWrap: 'wrap' }}>
+        {!recoveryFailed && (
+          <button onClick={this.handleDismiss} style={btnStyle('var(--accent, #0e639c)')}>
+            {retryLabel}
+          </button>
+        )}
+        <button onClick={this.handleNewConversation} style={btnStyle('var(--accent, #0e639c)')}>
+          {t('error.startNewConversation')}
+        </button>
+        <button onClick={this.handleReportBug} style={btnStyle('var(--card-bg, #1e1e1e)', '1px solid var(--popup-border, #3a3a3a)')}>
+          {t('error.reportBug')}
+        </button>
+        <button onClick={this.handleReload} style={btnStyle('var(--card-bg, #1e1e1e)', '1px solid var(--popup-border, #3a3a3a)')}>
+          {t('error.reload')}
+        </button>
+        <button onClick={this.handleCopyError} style={btnStyle('var(--card-bg, #1e1e1e)', '1px solid var(--popup-border, #3a3a3a)')}>
+          {t('error.copyError')}
+        </button>
+      </div>
+    )
 
     // Overlay mode: show a compact floating banner instead of replacing all content
     // This lets the user still access other features (sidebar, settings, etc.)
     if (this.props.overlay) {
       return (
         <>
-          {/* Render children in a degraded state — they'll be in their last good render */}
+          {/* Render children in a degraded state -- they'll be in their last good render */}
           <div style={{ opacity: 0.3, pointerEvents: 'none', filter: 'grayscale(0.5)', height: '100%' }}>
             {/* Can't render children (would re-trigger error), show placeholder */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted, #858585)', fontSize: 14 }}>
@@ -294,90 +479,10 @@ export default class ErrorBoundary extends Component<Props, State> {
             <div style={{ fontWeight: 600, marginBottom: '6px', color: 'var(--error, #f44747)', fontSize: 14 }}>
               {t('error.titleIn', { label })}
             </div>
-            <div
-              style={{
-                fontFamily: 'monospace',
-                fontSize: '10px',
-                background: 'var(--card-bg, #1e1e1e)',
-                padding: '6px 8px',
-                borderRadius: '4px',
-                marginBottom: '10px',
-                maxHeight: '60px',
-                overflowY: 'auto',
-                color: 'var(--text-muted, #858585)',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-              }}
-            >
-              {this.state.error?.message || t('error.unknownError')}
-            </div>
-            {hasRetried && (
-              <div style={{ fontSize: '10px', color: 'var(--text-muted, #858585)', marginBottom: '6px' }}>
-                {t('error.autoRecoveryFailed', { count: String(this.state.retryCount) })}
-              </div>
-            )}
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              {!recoveryFailed && (
-                <button
-                  onClick={this.handleDismiss}
-                  style={{
-                    padding: '5px 12px',
-                    background: 'var(--accent, #0e639c)',
-                    border: 'none',
-                    borderRadius: '6px',
-                    color: '#fff',
-                    cursor: 'pointer',
-                    fontSize: '11px',
-                    fontWeight: 500,
-                  }}
-                >
-                  {t('error.retryRender')}
-                </button>
-              )}
-              <button
-                onClick={this.handleNewConversation}
-                style={{
-                  padding: '5px 12px',
-                  background: 'var(--accent, #0e639c)',
-                  border: 'none',
-                  borderRadius: '6px',
-                  color: '#fff',
-                  cursor: 'pointer',
-                  fontSize: '11px',
-                  fontWeight: 500,
-                }}
-              >
-                {t('error.startNewConversation')}
-              </button>
-              <button
-                onClick={this.handleReload}
-                style={{
-                  padding: '5px 12px',
-                  background: 'var(--card-bg, #1e1e1e)',
-                  border: '1px solid var(--popup-border, #3a3a3a)',
-                  borderRadius: '6px',
-                  color: 'var(--text-primary, #ccc)',
-                  cursor: 'pointer',
-                  fontSize: '11px',
-                }}
-              >
-                {t('error.reload')}
-              </button>
-              <button
-                onClick={this.handleCopyError}
-                style={{
-                  padding: '5px 12px',
-                  background: 'var(--card-bg, #1e1e1e)',
-                  border: '1px solid var(--popup-border, #3a3a3a)',
-                  borderRadius: '6px',
-                  color: 'var(--text-primary, #ccc)',
-                  cursor: 'pointer',
-                  fontSize: '11px',
-                }}
-              >
-                {t('error.copyError')}
-              </button>
-            </div>
+            {errorMessageBlock('10px', '60px', '8px')}
+            {statusLine('10px')}
+            {detailsSection('10px')}
+            {actionButtons('6px')}
           </div>
         </>
       )
@@ -398,97 +503,10 @@ export default class ErrorBoundary extends Component<Props, State> {
         <div style={{ fontWeight: 600, marginBottom: '8px', color: 'var(--error, #f44747)' }}>
           {t('error.titleIn', { label })}
         </div>
-        <div
-          style={{
-            fontFamily: 'monospace',
-            fontSize: '11px',
-            background: 'var(--card-bg, #1e1e1e)',
-            padding: '8px',
-            borderRadius: '4px',
-            marginBottom: '12px',
-            maxHeight: '120px',
-            overflowY: 'auto',
-            color: 'var(--text-muted, #858585)',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
-          }}
-        >
-          {this.state.error?.message || t('error.unknownError')}
-        </div>
-        {hasRetried && (
-          <div style={{ fontSize: '11px', color: 'var(--text-muted, #858585)', marginBottom: '8px' }}>
-            {t('error.autoRecoveryFailed', { count: String(this.state.retryCount) })}
-          </div>
-        )}
-        {recoveryFailed && (
-          <div style={{ fontSize: '11px', color: 'var(--warning, #cca700)', marginBottom: '8px' }}>
-            {t('error.recoveryFailed')}
-          </div>
-        )}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {!recoveryFailed && (
-            <button
-              onClick={this.handleDismiss}
-              style={{
-                padding: '6px 14px',
-                background: 'var(--accent, #0e639c)',
-                border: 'none',
-                borderRadius: '6px',
-                color: '#fff',
-                cursor: 'pointer',
-                fontSize: '12px',
-                fontWeight: 500,
-              }}
-            >
-              {t('error.retryRender')}
-            </button>
-          )}
-          {recoveryFailed && (
-            <button
-              onClick={this.handleNewConversation}
-              style={{
-                padding: '6px 14px',
-                background: 'var(--accent, #0e639c)',
-                border: 'none',
-                borderRadius: '6px',
-                color: '#fff',
-                cursor: 'pointer',
-                fontSize: '12px',
-                fontWeight: 500,
-              }}
-            >
-              {t('error.startNewConversation')}
-            </button>
-          )}
-          <button
-            onClick={this.handleReload}
-            style={{
-              padding: '6px 14px',
-              background: 'var(--card-bg, #1e1e1e)',
-              border: '1px solid var(--popup-border, #3a3a3a)',
-              borderRadius: '6px',
-              color: 'var(--text-primary, #ccc)',
-              cursor: 'pointer',
-              fontSize: '12px',
-            }}
-          >
-            {t('error.reload')}
-          </button>
-          <button
-            onClick={this.handleCopyError}
-            style={{
-              padding: '6px 14px',
-              background: 'var(--card-bg, #1e1e1e)',
-              border: '1px solid var(--popup-border, #3a3a3a)',
-              borderRadius: '6px',
-              color: 'var(--text-primary, #ccc)',
-              cursor: 'pointer',
-              fontSize: '12px',
-            }}
-          >
-            {t('error.copyError')}
-          </button>
-        </div>
+        {errorMessageBlock('11px', '120px', '10px')}
+        {statusLine('11px')}
+        {detailsSection('11px')}
+        {actionButtons('8px')}
       </div>
     )
   }

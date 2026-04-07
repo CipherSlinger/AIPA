@@ -1,10 +1,11 @@
-import { ipcMain, BrowserWindow, dialog } from 'electron'
+import { ipcMain, BrowserWindow, dialog, shell } from 'electron'
 import { getPref } from '../config/config-manager'
 import { safePath, getAllowedFsRoots } from '../utils/validate'
 import { createLogger } from '../utils/logger'
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
+import { execSync } from 'child_process'
 
 const log = createLogger('ipc:fs')
 
@@ -135,5 +136,64 @@ export function registerFsHandlers(): void {
       }
     }
     return commands
+  })
+
+  // Check if a file/directory path exists (Iteration 510: actionable codeblocks)
+  ipcMain.handle('fs:pathExists', (_e, { filePath }: { filePath: string }) => {
+    try {
+      return fs.existsSync(filePath)
+    } catch {
+      return false
+    }
+  })
+
+  // Show item in system file manager (Iteration 510: clickable file paths)
+  ipcMain.handle('shell:showItemInFolder', (_e, filePath: string) => {
+    try {
+      if (fs.existsSync(filePath)) {
+        shell.showItemInFolder(filePath)
+        return { success: true }
+      }
+      return { success: false, error: 'Path does not exist' }
+    } catch (err) {
+      log.warn('shell:showItemInFolder error:', String(err))
+      return { success: false, error: String(err) }
+    }
+  })
+
+  // Git diff (Iteration 521: code changes view)
+  ipcMain.handle('fs:gitDiff', (_e, { filePath }: { filePath?: string } = {}) => {
+    try {
+      const workingDir = getPref('workingDir') as string || os.homedir()
+      const args = filePath ? `HEAD -- "${filePath}"` : 'HEAD'
+      const output = execSync(`git diff ${args}`, {
+        cwd: workingDir,
+        timeout: 5000,
+        maxBuffer: 100 * 1024,
+      })
+      return output.toString('utf-8')
+    } catch (err: any) {
+      // git diff exits with code 1 when there are differences — that's normal
+      if (err.stdout) return err.stdout.toString('utf-8')
+      log.debug('fs:gitDiff error:', String(err))
+      return { error: String(err.message || err) }
+    }
+  })
+
+  // Git status (Iteration 521: code changes view)
+  ipcMain.handle('fs:gitStatus', (_e) => {
+    try {
+      const workingDir = getPref('workingDir') as string || os.homedir()
+      const output = execSync('git status --porcelain', {
+        cwd: workingDir,
+        timeout: 5000,
+        maxBuffer: 100 * 1024,
+      })
+      return output.toString('utf-8')
+    } catch (err: any) {
+      if (err.stdout) return err.stdout.toString('utf-8')
+      log.debug('fs:gitStatus error:', String(err))
+      return { error: String(err.message || err) }
+    }
   })
 }

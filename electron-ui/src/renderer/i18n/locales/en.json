@@ -12,8 +12,8 @@
     "channel": "Channel",
     "expandNav": "Expand sidebar",
     "collapseNav": "Collapse",
-    "notifications": "Notifications",
-    "tasks": "Tasks"
+    "tasks": "Tasks",
+    "changes": "Changes"
   },
   "chat": {
     "placeholder": "Message AIPA...",
@@ -125,6 +125,7 @@
     "statsCopied": "Stats copied",
     "words": "words",
     "chars": "chars",
+    "tokens": "tokens",
     "long": "long",
     "veryLong": "very long",
     "wpm": "WPM",
@@ -330,6 +331,25 @@
     "closePreview": "Close preview",
     "unpinAll": "Unpin All"
   },
+  "codeAction": {
+    "run": "Run",
+    "runInTerminal": "Run in Terminal",
+    "save": "Save",
+    "saveToFile": "Save to file",
+    "confirmRunTitle": "Execute Command",
+    "confirmRunMessage": "This command will be executed in the terminal:",
+    "workingDirectory": "Working directory",
+    "dangerWarning": "This command may be destructive. Please review carefully before executing.",
+    "executing": "Executing...",
+    "executed": "Executed",
+    "executeFailed": "Execution failed",
+    "noWorkingDir": "No working directory set. Please configure one in Settings first.",
+    "savedToFile": "Saved to {{path}}",
+    "saveFailed": "Failed to save: {{error}}",
+    "saveCanceled": "Save canceled",
+    "openInFileManager": "Open in file manager",
+    "fileNotFound": "File or path does not exist"
+  },
   "copy": {
     "moreOptions": "More copy options",
     "asText": "Copy as Text",
@@ -340,7 +360,11 @@
     "multiLineOn": "Multi-line mode: Enter = new line, Ctrl+Enter = send",
     "multiLineOff": "Single-line mode: Enter = send, Shift+Enter = new line",
     "dropTextHere": "Drop text here",
-    "chars": "chars"
+    "chars": "chars",
+    "keepGoingHint": "Looks like you want to continue — send to resume?",
+    "keepGoingSend": "Continue",
+    "negativeHint": "Hang tight — let me know how I can help better!",
+    "escAgainNewChat": "Press Esc again to start a new conversation"
   },
   "voice": {
     "autoStopped": "Recording stopped automatically (2-minute limit reached)"
@@ -409,6 +433,7 @@
     "duplicate": "Duplicate session",
     "duplicated": "Session duplicated",
     "duplicateFailed": "Failed to duplicate session",
+    "loadFailed": "Failed to load session",
     "copy": "Copy",
     "regenerateTitle": "Regenerate title",
     "titleRegenerated": "Title regenerated",
@@ -473,8 +498,12 @@
     "tabs": {
       "general": "General",
       "providers": "Providers",
+      "permissions": "Permissions",
       "personas": "Personas",
       "mcp": "MCP Servers",
+      "stats": "Stats",
+      "hooks": "Hooks",
+      "advanced": "Advanced",
       "about": "About"
     },
     "groups": {
@@ -800,7 +829,26 @@
     "toolWebFetchDetail": "Retrieve information from the internet",
     "toolWebSearch": "Web Search",
     "toolWebSearchDetail": "Search the web",
-    "toolPerformAction": "Perform an action"
+    "toolPerformAction": "Perform an action",
+    "alwaysAllowTool": "Always Allow",
+    "alwaysDenyTool": "Always Deny",
+    "ruleAddedAllow": "Rule added: {{rule}} -> always allow",
+    "ruleAddedDeny": "Rule added: {{rule}} -> always deny"
+  },
+  "permissions": {
+    "allowRules": "Allow Rules",
+    "denyRules": "Deny Rules",
+    "addRule": "Add Rule",
+    "noRules": "No rules configured",
+    "emptyState": "No permission rules configured. Rules let you auto-allow or deny specific tool actions.",
+    "rulePlaceholder": "e.g. Bash(git *), Read, Write(**/*.ts)",
+    "formatHelp": "Format: ToolName or ToolName(pattern). Examples: Bash(git *), Read(**/*.ts), Write",
+    "ruleExists": "Rule already exists",
+    "ruleAdded": "Rule added: {{rule}}",
+    "ruleRemoved": "Rule removed: {{rule}}",
+    "loadError": "Failed to load permission rules",
+    "saveFailed": "Failed to save permission rules",
+    "conflictHint": "This rule also appears in the opposite list"
   },
   "taskQueue": {
     "title": "Task Queue",
@@ -845,11 +893,16 @@
     "copyRaw": "Copy Raw",
     "copied": "Copied",
     "retryRender": "Retry",
+    "tryAgain": "Try Again",
     "startNewConversation": "Start New Conversation",
     "recoveryFailed": "Recovery failed repeatedly. Starting a new conversation is recommended.",
     "recovering": "Recovering... (attempt {{current}}/{{max}})",
     "autoRecoveryFailed": "Auto-recovery failed after {{count}} attempt(s).",
-    "appDegraded": "A component crashed. Use the controls above to recover."
+    "appDegraded": "A component crashed. Use the controls above to recover.",
+    "permanentDesc": "This error is caused by a code issue and cannot be fixed by retrying.",
+    "showDetails": "What happened?",
+    "hideDetails": "Hide details",
+    "reportBug": "Report Bug"
   },
   "startup": {
     "prefsLoadFailed": "Preferences could not be loaded. Using defaults."
@@ -937,7 +990,15 @@
     "approved": "Approved",
     "rejected": "Rejected",
     "approve": "Approve & Continue",
-    "reject": "Reject"
+    "reject": "Reject",
+    "toggle": "Plan Mode",
+    "enterHint": "Enter Plan Mode — Claude will only plan, not execute tools",
+    "exitHint": "Exit Plan Mode — Resume normal execution",
+    "banner": "Plan Mode — Claude will only plan, not execute",
+    "bannerExit": "Exit",
+    "statusLabel": "PLAN",
+    "enabled": "Plan Mode enabled",
+    "disabled": "Plan Mode disabled"
   },
   "tool": {
     "input": "INPUT",
@@ -1005,13 +1066,19 @@
     "tokenCopyFormatWithCache": "Input: {{input}} tokens, Output: {{output}} tokens, Cache: {{cache}} tokens"
   },
   "compact": {
+    "button": "Compact",
+    "buttonHint": "Compress conversation context to free token space",
     "inProgress": "Compacting conversation...",
     "complete": "Conversation compacted",
+    "success": "Compact complete. Usage: {{before}}% -> {{after}}%",
     "summary": "{{count}} messages summarized",
     "threshold": "Compact at {{percent}}% context usage",
     "autoCompact": "Auto-compact conversations",
     "autoCompactHint": "Automatically summarize older messages when context window is nearly full",
-    "failed": "Compaction failed, conversation continues normally"
+    "customPlaceholder": "Optional: enter custom compact instruction",
+    "customHint": "Shift+click for custom compact instruction",
+    "failed": "Compaction failed, conversation continues normally",
+    "count": "Compacted {{count}} time(s)"
   },
   "tips": {
     "title": "Did you know?",
@@ -1395,6 +1462,21 @@
     "notFound": "Workflow not found",
     "loadingCanvas": "Loading canvas...",
     "noPrompt": "(No prompt defined)",
+    "unsavedWarning": "You have unsaved changes. Press back again to discard.",
+    "unsavedChanges": "Unsaved changes",
+    "nameRequired": "Workflow name is required",
+    "stepsRequired": "At least one step with a prompt is required",
+    "changeIcon": "Change icon",
+    "saved": "Saved",
+    "removeStep": "Remove step",
+    "editModeLabel": "Editing",
+    "viewMode": "View",
+    "exitEditMode": "Exit edit mode",
+    "unsavedDialogTitle": "Unsaved Changes",
+    "unsavedDialogDesc": "You have unsaved changes to this workflow. What would you like to do?",
+    "unsavedSaveLeave": "Save & Leave",
+    "unsavedDiscard": "Discard Changes",
+    "unsavedStay": "Stay",
     "footer": "Prompt chains for multi-step tasks",
     "inspired": "Inspired by OpenClaw Lobster",
     "preset": {
@@ -1552,16 +1634,25 @@
     "pinnedOff": "Window unpinned"
   },
   "effort": {
+    "auto": "Auto",
     "low": "Low",
     "medium": "Medium",
     "high": "High",
+    "max": "Max",
+    "autoHint": "Let CLI decide the best effort level",
+    "lowHint": "Quick and concise responses",
     "lowDesc": "Fast & cheap",
+    "mediumHint": "Balanced speed and depth",
     "mediumDesc": "Balanced",
+    "highHint": "Thorough analysis with detailed reasoning",
     "highDesc": "Thorough",
+    "maxHint": "Deepest reasoning, most thorough analysis",
     "title": "Effort: {{level}} (click to cycle)",
     "switched": "Effort level: {{level}}",
     "settingsLabel": "AI Effort Level",
-    "settingsHint": "Low = fast/cheap responses, Medium = balanced, High = thorough/careful reasoning",
+    "settingsHint": "Controls AI reasoning depth. Auto lets the CLI decide; Low = fast, Max = deepest analysis",
+    "pickerTitle": "Effort Level",
+    "pickerHint": "Controls AI reasoning depth",
     "preventSleep": "Prevent Sleep While Streaming",
     "preventSleepHint": "Keep the system awake while the AI is generating a response"
   },
@@ -1648,11 +1739,6 @@
     "today": "today",
     "connected": "Connected",
     "idle": "Idle"
-  },
-  "notifications": {
-    "title": "Notifications",
-    "clearAll": "Clear all",
-    "empty": "No notifications yet"
   },
   "tasks": {
     "title": "Tasks",
@@ -1743,7 +1829,15 @@
     "noMessages": "No diverging messages yet",
     "loadingBranches": "Loading branches...",
     "forkSuccess": "Session forked successfully",
-    "forkFailed": "Failed to fork session"
+    "forkFailed": "Failed to fork session",
+    "dialogTitle": "Fork Session",
+    "dialogInfo": "Create a new branch from message #{{index}}. The fork will include all messages up to this point.",
+    "nameLabel": "New session name",
+    "namePlaceholder": "Enter a name for the forked session",
+    "forkSuffix": "Fork",
+    "defaultName": "Forked Session",
+    "confirm": "Fork",
+    "switchingToast": "Forked! Switching to new session."
   },
   "preview": {
     "loadingMeta": "Loading preview...",
@@ -1774,5 +1868,69 @@
     "typeFeedback": "feedback",
     "typeProject": "project",
     "typeReference": "reference"
+  },
+  "tabs": {
+    "close": "Close tab",
+    "maxReached": "Maximum 8 tabs allowed. Close an existing tab first.",
+    "newTab": "New tab",
+    "closeOthers": "Close other tabs"
+  },
+  "token": {
+    "contextWindow": "Context Window",
+    "inputTokens": "Input Tokens",
+    "outputTokens": "Output Tokens",
+    "cacheTokens": "Cache Tokens",
+    "estimatedCost": "Estimated Cost",
+    "sessionTotal": "Session Total",
+    "warningThreshold": "Context usage at {{pct}}%. Consider compacting or starting a new session.",
+    "compactAction": "Compact",
+    "dismiss": "Dismiss"
+  },
+  "changes": {
+    "title": "Changes",
+    "noChanges": "No file changes recorded in this session",
+    "noChangesHint": "Claude will track files it edits or creates",
+    "viewAllChanges": "View All Changes (git diff HEAD)",
+    "turnLabel": "Turn {{turn}}",
+    "diffLoading": "Loading diff...",
+    "diffError": "Failed to load diff",
+    "noDiff": "No diff output",
+    "gitDiffTitle": "Git Diff (HEAD)",
+    "close": "Close"
+  },
+  "systemPrompt": {
+    "title": "Append System Prompt",
+    "hint": "Text added to every conversation's system prompt. Useful for persistent behavior adjustments (style, language, role). Leave empty to use Claude's default behavior.",
+    "placeholder": "e.g. Always be concise. Respond in English.",
+    "preset": "Preset",
+    "replaceConfirm": "Replace current prompt with this preset?",
+    "tempButton": "Temporary system prompt",
+    "tempActive": "Temp prompt active",
+    "tempPopoverTitle": "Session System Prompt",
+    "tempPopoverHint": "Active only for this session. Overrides the persistent system prompt.",
+    "tempPlaceholder": "Enter a temporary prompt for this session...",
+    "tempClear": "Clear",
+    "tempSet": "Set"
+  },
+  "stats": {
+    "loading": "Loading stats...",
+    "error": "Failed to load stats. Please try again.",
+    "overview": "Overview",
+    "totalSessions": "Total Sessions",
+    "totalMessages": "Total Messages",
+    "totalTokens": "Total Tokens",
+    "avgSessionLength": "Avg Session Length",
+    "sessions": "sessions",
+    "userMsgs": "user",
+    "assistantMsgs": "assistant",
+    "msgsPerSession": "messages / session",
+    "noTokenData": "No token data available",
+    "topTools": "Top Tools",
+    "uses": "uses",
+    "activityTrend": "Activity Trend",
+    "days7": "7 Days",
+    "days30": "30 Days",
+    "noActivity": "No activity in this period",
+    "dataRange": "Data range"
   }
 }
