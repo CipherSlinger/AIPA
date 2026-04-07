@@ -849,11 +849,16 @@
     "copyRaw": "Copy Raw",
     "copied": "Copied",
     "retryRender": "Retry",
+    "tryAgain": "Try Again",
     "startNewConversation": "Start New Conversation",
     "recoveryFailed": "Recovery failed repeatedly. Starting a new conversation is recommended.",
     "recovering": "Recovering... (attempt {{current}}/{{max}})",
     "autoRecoveryFailed": "Auto-recovery failed after {{count}} attempt(s).",
-    "appDegraded": "A component crashed. Use the controls above to recover."
+    "appDegraded": "A component crashed. Use the controls above to recover.",
+    "permanentDesc": "This error is caused by a code issue and cannot be fixed by retrying.",
+    "showDetails": "What happened?",
+    "hideDetails": "Hide details",
+    "reportBug": "Report Bug"
   },
   "startup": {
     "prefsLoadFailed": "Preferences could not be loaded. Using defaults."
@@ -1406,6 +1411,14 @@
     "changeIcon": "Change icon",
     "saved": "Saved",
     "removeStep": "Remove step",
+    "editModeLabel": "Editing",
+    "viewMode": "View",
+    "exitEditMode": "Exit edit mode",
+    "unsavedDialogTitle": "Unsaved Changes",
+    "unsavedDialogDesc": "You have unsaved changes to this workflow. What would you like to do?",
+    "unsavedSaveLeave": "Save & Leave",
+    "unsavedDiscard": "Discard Changes",
+    "unsavedStay": "Stay",
     "footer": "Prompt chains for multi-step tasks",
     "inspired": "Inspired by OpenClaw Lobster",
     "preset": {

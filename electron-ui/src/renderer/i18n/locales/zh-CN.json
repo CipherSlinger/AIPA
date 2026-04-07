@@ -865,11 +865,16 @@
     "copyRaw": "复制原文",
     "copied": "已复制",
     "retryRender": "重试",
+    "tryAgain": "再试一次",
     "startNewConversation": "开始新对话",
     "recoveryFailed": "多次恢复失败，建议开始新对话。",
     "recovering": "恢复中...（第 {{current}}/{{max}} 次尝试）",
     "autoRecoveryFailed": "自动恢复在 {{count}} 次尝试后失败。",
-    "appDegraded": "组件发生崩溃，请使用上方按钮恢复。"
+    "appDegraded": "组件发生崩溃，请使用上方按钮恢复。",
+    "permanentDesc": "此错误由代码问题引起，重试无法修复。",
+    "showDetails": "发生了什么？",
+    "hideDetails": "隐藏详情",
+    "reportBug": "报告 Bug"
   },
   "startup": {
     "prefsLoadFailed": "偏好设置加载失败，已使用默认值。"
@@ -1424,6 +1429,14 @@
     "changeIcon": "更换图标",
     "saved": "已保存",
     "removeStep": "删除步骤",
+    "editModeLabel": "编辑中",
+    "viewMode": "查看",
+    "exitEditMode": "退出编辑模式",
+    "unsavedDialogTitle": "未保存的更改",
+    "unsavedDialogDesc": "此工作流有未保存的更改，您希望如何处理？",
+    "unsavedSaveLeave": "保存并离开",
+    "unsavedDiscard": "放弃更改",
+    "unsavedStay": "留下",
     "footer": "多步骤任务的提示词链",
     "inspired": "灵感来自 OpenClaw Lobster",
     "preset": {
