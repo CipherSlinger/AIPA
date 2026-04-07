@@ -5327,3 +5327,34 @@ Status: SUCCESS (0 TypeScript errors, tsc --noEmit clean, 2588 modules)
 - [x] No behavioral changes (pure refactoring)
 
 ---
+
+## Iteration 513 -- Workflow Edit UX Polish + ErrorBoundary Smart Recovery
+
+_Date: 2026-04-06 | Sprint: UX Polish (PRD-workflow-edit-ux-polish-v1)_
+
+### Summary
+Four improvements targeting workflow editing UX and error recovery. ErrorBoundary now classifies permanent errors (ReferenceError/TypeError/SyntaxError) to skip futile auto-retry and show recovery UI immediately, saving users 6.5s of wasted wait time. Added expandable "What happened?" technical details and a "Report Bug" button that copies diagnostics and opens GitHub issues. WorkflowDetailPage now has distinct view/edit modes -- default is read-only with execution status, toggling Edit enters inline editing mode. Replaced the confusing double-press-back unsaved changes pattern with a proper 3-option modal dialog (Save & Leave / Discard Changes / Stay).
+
+### Files Changed
+- `components/shared/ErrorBoundary.tsx` -- Added isPermanentError() classifier, expandable details, Report Bug button, refactored render with shared section helpers (496 -> 513 lines)
+- `components/workflows/WorkflowDetailPage.tsx` -- View/edit mode separation, unsaved changes modal dialog, saveFlash indicator (387 -> 532 lines)
+- `components/workflows/WorkflowDetailHeader.tsx` -- New props for isEditMode/saveFlash, mode-specific button rendering, green flash on save (195 -> 241 lines)
+- `i18n/locales/en.json` -- Added 12 new keys: error.permanentDesc, error.showDetails, error.hideDetails, error.reportBug, error.tryAgain, workflow.editModeLabel, workflow.viewMode, workflow.exitEditMode, workflow.unsavedDialogTitle, workflow.unsavedDialogDesc, workflow.unsavedSaveLeave, workflow.unsavedDiscard, workflow.unsavedStay
+- `i18n/locales/zh-CN.json` -- Chinese translations for all 12 new keys
+
+### Build
+Status: SUCCESS (0 TypeScript errors, tsc --noEmit clean, 2588 modules)
+
+### Acceptance Criteria
+- [x] ErrorBoundary skips retry for ReferenceError/TypeError/SyntaxError -- immediately shows recovery UI
+- [x] ErrorBoundary recovery UI has expandable technical details section
+- [x] ErrorBoundary has "Report Bug" button (copies diagnostics + opens GitHub issues)
+- [x] "Retry" changes to "Try Again" after failed retries
+- [x] WorkflowDetailPage has distinct view/edit modes (view default)
+- [x] Unsaved changes protection uses a modal dialog with 3 options
+- [x] Ctrl+S triggers green flash on header as save confirmation
+- [x] Zero TypeScript errors
+- [x] Build succeeds
+- [x] All existing workflow functionality preserved
+
+---
