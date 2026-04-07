@@ -5153,3 +5153,82 @@ _Date: 2026-04-07 | Source: claude-code-sourcemap-main_
 
 ### Build
 Status: SUCCESS
+
+---
+
+## Iteration 504 — Apply firstLineOf to Session and Note Previews
+
+_Date: 2026-04-07 | Source: UI polish + stringUtils application_
+
+### Summary
+Applied `firstLineOf` from stringUtils to two key preview areas: (1) `SessionItem.tsx` — the session list preview text now strips leading newlines before slicing to 50 chars, so multi-line prompts display the first meaningful line. (2) `NoteList.tsx` — note title fallback now uses `firstLineOf(content)` instead of raw `content.slice(0, 30)`. Also replaced the remaining inline regex escape in `NoteList.tsx` with `escapeRegExp` from stringUtils.
+
+### Files Changed
+- `SessionItem.tsx` — firstLineOf for preview text
+- `NoteList.tsx` — firstLineOf + escapeRegExp from stringUtils
+
+### Build
+Status: SUCCESS
+
+---
+
+## Iteration 505 — Complete escapeRegExp + firstLineOf Rollout
+
+_Date: 2026-04-07 | Source: stringUtils application_
+
+### Summary
+Completed the rollout of shared utilities to remaining files: (1) `memoryConstants.ts` — replaced the last inline regex escape in `fuzzyScore()` word boundary search with `escapeRegExp`. (2) `useNotesCRUD.ts` — replaced `val.split('\n')[0]` with `firstLineOf(val)` for auto-title extraction from note content, using the shared utility for consistency.
+
+### Files Changed
+- `memoryConstants.ts` — escapeRegExp in fuzzyScore word-boundary search
+- `useNotesCRUD.ts` — firstLineOf for auto-title extraction
+
+### Build
+Status: SUCCESS
+
+---
+
+## Iteration 506 — Apply countCharInString+count to Data Utilities
+
+_Date: 2026-04-07 | Source: arrayUtils + stringUtils application_
+
+### Summary
+Applied shared utilities to replace manual patterns: (1) `useSessionChanges.ts` — replaced `str.split('\n').length` with `countCharInString(str, '\n') + 1` for O(n) line counting without creating an intermediate array. (2) `formatHtml.ts` and `formatMarkdown.ts` — replaced `filter(...).length` with `count()` from arrayUtils for counting user/assistant messages in export formatters.
+
+### Files Changed
+- `useSessionChanges.ts` — countCharInString for line counting
+- `formatHtml.ts` — count() for role counting
+- `formatMarkdown.ts` — count() for role counting
+
+### Build
+Status: SUCCESS
+
+---
+
+## Iteration 507 — Apply firstLineOf to toolSummary
+
+_Date: 2026-04-07 | Source: stringUtils application_
+
+### Summary
+Replaced `toolSummary.ts`'s internal `firstLine()` helper (which did `split('\n').filter(l => l.trim())[0]`) with the shared `firstLineOf` from stringUtils. Reduces local utility duplication.
+
+### Files Changed
+- `toolSummary.ts` — firstLineOf from stringUtils replaces local helper
+
+### Build
+Status: SUCCESS
+
+---
+
+## Iteration 508 — Apply count to useConversationStats
+
+_Date: 2026-04-07 | Source: arrayUtils application_
+
+### Summary
+Applied `count()` from arrayUtils to `useConversationStats.ts` to replace `filter(...).length` for the content message count calculation, eliminating an intermediate array allocation in the critical stats memoization path.
+
+### Files Changed
+- `useConversationStats.ts` — count() for msgCount calculation
+
+### Build
+Status: SUCCESS
