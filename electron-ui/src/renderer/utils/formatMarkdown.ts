@@ -1,4 +1,5 @@
 import { ChatMessage, StandardChatMessage } from '../types/app.types'
+import { count } from './arrayUtils'
 
 /**
  * Formats a list of chat messages as a Markdown document for export.
@@ -12,8 +13,8 @@ export function formatMarkdown(
 ): string {
   const dateStr = exportDate.toISOString().replace('T', ' ').slice(0, 19)
   const contentMessages = messages.filter(m => m.role !== 'permission' && m.role !== 'plan')
-  const userCount = contentMessages.filter(m => m.role === 'user').length
-  const assistantCount = contentMessages.filter(m => m.role === 'assistant').length
+  const userCount = count(contentMessages, m => m.role === 'user')
+  const assistantCount = count(contentMessages, m => m.role === 'assistant')
 
   const lines: string[] = [
     `# ${sessionTitle || 'AIPA Conversation'}`,
