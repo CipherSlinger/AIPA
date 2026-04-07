@@ -236,8 +236,27 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
       >
         {expanded ? <ChevronDown size={11} style={{ color: 'var(--text-muted)' }} /> : <ChevronRight size={11} style={{ color: 'var(--text-muted)' }} />}
         <Icon size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-        <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+        <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, display: 'flex', alignItems: 'center', gap: 5 }}>
           {summaryLabel}
+          {tool.name.startsWith('mcp__') && (() => {
+            const parts = tool.name.split('__')
+            const serverName = parts[1]
+            return serverName ? (
+              <span style={{
+                fontSize: 9,
+                fontWeight: 700,
+                background: 'rgba(var(--accent-rgb,99,102,241),0.15)',
+                color: 'var(--accent)',
+                borderRadius: 3,
+                padding: '1px 4px',
+                flexShrink: 0,
+                letterSpacing: '0.02em',
+                border: '1px solid rgba(var(--accent-rgb,99,102,241),0.3)',
+              }}>
+                {serverName}
+              </span>
+            ) : null
+          })()}
         </span>
         {showElapsed && (
           <span style={{ fontSize: 11, color: 'var(--warning)', flexShrink: 0, fontFamily: 'monospace' }}>

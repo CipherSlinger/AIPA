@@ -5601,3 +5601,73 @@ Session forking from any message. Right-click a message → "Fork from here" →
 - [x] Build: SUCCESS, 0 TypeScript errors
 
 ---
+
+## Iteration 525 -- Hooks UI
+
+_Date: 2026-04-07 | Sprint: Superpower Phase 4.5_
+
+### Summary
+Hooks configuration panel in Settings → Hooks tab. Reads/writes hooks from `~/.claude/settings.json` via `configReadCLISettings`/`configWriteCLISettings`. Lists existing hooks grouped by event type (accordion collapsible). HookAddWizard multi-step wizard (event → type → command/prompt/http params). Live hook execution status shown in chat via HookProgressCard. stream-bridge.ts forwards `hook_event` stream events to renderer.
+
+### Files Changed
+- `src/renderer/components/settings/HooksSettingsPanel.tsx` -- NEW: hook list grouped by event
+- `src/renderer/components/settings/HookAddWizard.tsx` -- NEW: multi-step add wizard
+- `src/renderer/components/chat/HookProgressCard.tsx` -- NEW: live hook status card in chat
+- `src/renderer/components/settings/SettingsPanel.tsx` -- Added Hooks tab
+- `src/renderer/store/chatStore.ts` -- hookEvents array + addHookEvent/updateHookEvent/clearHookEvents
+- `src/main/pty/stream-bridge.ts` -- Added hook_event case, emits hookEvent
+- `src/main/ipc/index.ts` -- hookEvent forwarding to renderer
+- `src/renderer/i18n/locales/en.json` + `zh-CN.json` -- settings.tabs.hooks i18n key
+
+### Acceptance Criteria
+- [x] Settings → Hooks tab lists configured hooks
+- [x] HookAddWizard creates hooks in settings.json
+- [x] Hook events forwarded from CLI stream to renderer
+- [x] Build: SUCCESS
+
+---
+
+## Iteration 526 -- MCP Server Manager
+
+_Date: 2026-04-07 | Sprint: Superpower Phase 4.5_
+
+### Summary
+Full MCP server management in Settings → MCP tab. Add Server wizard (stdio/http/sse), delete with confirmation, reconnect button, tool list expansion per server. Tool use blocks in chat show `[serverName]` badge for MCP-sourced tools (detected via `mcp__serverName__toolName` naming pattern). New IPC handlers: `mcp:add`, `mcp:remove`, `mcp:getTools`, `mcp:reconnect`.
+
+### Files Changed
+- `src/renderer/components/settings/SettingsMcp.tsx` -- Full rewrite: add/delete/reconnect/tools
+- `src/renderer/components/chat/ToolUseBlock.tsx` -- MCP source badge
+- `src/main/ipc/index.ts` -- mcp:add, mcp:remove, mcp:getTools, mcp:reconnect handlers
+- `src/preload/index.ts` -- mcpAdd, mcpRemove, mcpGetTools, mcpReconnect API; cli:hookEvent channel
+
+### Acceptance Criteria
+- [x] Add MCP server (stdio/http/sse) via wizard
+- [x] Delete server with confirm
+- [x] Reconnect button per server
+- [x] Tool use blocks show MCP server badge
+- [x] Build: SUCCESS
+
+---
+
+## Iteration 527 -- Tool Access Control (Tool Filter)
+
+_Date: 2026-04-07 | Sprint: Superpower Phase 4.5_
+
+### Summary
+Per-tool enable/disable in Settings → Advanced tab (below system prompt). Tools grouped by category (Execution, File Write, File Read, Network, Other). Four preset modes: All Tools, Read Only, No Network, Analysis Only. Disabled tools passed to CLI via `--disallowedTools` flag. Changes persist immediately to electron-store. Warning shown when all tools are disabled.
+
+### Files Changed
+- `src/renderer/components/settings/SettingsAdvanced.tsx` -- Added Tool Access Control section
+- `src/renderer/hooks/useStreamJson.ts` -- Inject --disallowedTools flag
+- `src/renderer/types/app.types.ts` -- disallowedTools?: string[] in ClaudePrefs
+- `src/renderer/store/index.ts` -- disallowedTools: [] in DEFAULT_PREFS
+
+### Acceptance Criteria
+- [x] Settings → Advanced → Tool Access Control section
+- [x] 4 preset chips (All Tools, Read Only, No Network, Analysis Only)
+- [x] Per-tool checkboxes with immediate persistence
+- [x] Warning banner when all tools disabled
+- [x] CLI receives --disallowedTools flag with disabled tools list
+- [x] Build: SUCCESS
+
+---

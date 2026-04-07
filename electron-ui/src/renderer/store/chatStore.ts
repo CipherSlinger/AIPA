@@ -202,6 +202,12 @@ interface ChatState {
   tempSystemPrompt: string | null
   setTempSystemPrompt: (prompt: string | null) => void
 
+  // Hook events (Iteration 525): live hook execution status in chat
+  hookEvents: Array<{ id: string; hookEvent: string; hookType: string; status: 'running' | 'success' | 'error'; output?: string; timestamp: number }>
+  addHookEvent: (event: { id: string; hookEvent: string; hookType: string; status: 'running' | 'success' | 'error'; output?: string; timestamp: number }) => void
+  updateHookEvent: (id: string, update: Partial<{ id: string; hookEvent: string; hookType: string; status: 'running' | 'success' | 'error'; output?: string; timestamp: number }>) => void
+  clearHookEvents: () => void
+
   // ── Tabs (Iteration 515) ──────────────────────────
   tabs: TabInfo[]
   activeTabId: string | null
@@ -238,6 +244,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   isPlanMode: false,
   changedFiles: [],
   tempSystemPrompt: null,
+  hookEvents: [],
 
   addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
 
@@ -322,7 +329,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     streamingBuffer.sessionId = null
     streamingBuffer.messageId = null
     streamingBuffer.dirty = false
-    set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false, totalSessionCost: 0, lastCost: null, lastUsage: null, lastContextUsage: null, modelUsage: {}, sessionPersonaId: undefined, isPlanMode: false, changedFiles: [], tempSystemPrompt: null })
+    set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false, totalSessionCost: 0, lastCost: null, lastUsage: null, lastContextUsage: null, modelUsage: {}, sessionPersonaId: undefined, isPlanMode: false, changedFiles: [], tempSystemPrompt: null, hookEvents: [] })
   },
   loadHistory: (messages) => set({ messages, isStreaming: false }),
 
@@ -548,6 +555,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   // Temp system prompt override (Iteration 523)
   setTempSystemPrompt: (prompt) => set({ tempSystemPrompt: prompt }),
+
+  // Hook events (Iteration 525)
+  addHookEvent: (event) => set((s) => ({ hookEvents: [...s.hookEvents, event] })),
+  updateHookEvent: (id, update) => set((s) => ({
+    hookEvents: s.hookEvents.map(e => e.id === id ? { ...e, ...update } : e),
+  })),
+  clearHookEvents: () => set({ hookEvents: [] }),
 
   // ── Tab actions (Iteration 515) ────────────────────
   tabs: [],

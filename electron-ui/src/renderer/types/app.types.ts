@@ -140,6 +140,7 @@ export interface ClaudePrefs {
   sessionListCompact?: boolean  // compact session list mode: reduced row height, title only (Iteration 444)
   forkMap?: Record<string, { sourceSessionId: string; forkMessageIndex: number; forkedSessionId: string; forkedSessionTitle?: string }>  // messageId -> fork metadata (Iteration 456)
   appendSystemPrompt?: string  // persistent appended system prompt (passed via --append-system-prompt, Iteration 523)
+  disallowedTools?: string[]   // tools blocked from CLI via --disallowedTools (Iteration 527)
 }
 
 export interface SessionFolder {

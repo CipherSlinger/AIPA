@@ -115,6 +115,7 @@ const electronAPI = {
       'cli:toolResult', 'cli:messageEnd', 'cli:result',
       'cli:error', 'cli:processExit',
       'cli:permissionRequest',
+      'cli:hookEvent',
     ]
     const handlers = channels.map((ch) => {
       const h = (_: unknown, d: Record<string, unknown>) => {
@@ -136,6 +137,14 @@ const electronAPI = {
   // ── MCP ──────────────────────────────────
   mcpList: () => ipcRenderer.invoke('mcp:list'),
   mcpSetEnabled: (serverName: string, enabled: boolean) => ipcRenderer.invoke('mcp:setEnabled', { serverName, enabled }),
+  mcpAdd: (name: string, type: string, config: Record<string, unknown>) =>
+    ipcRenderer.invoke('mcp:add', { name, type, config }) as Promise<{ success: boolean; error?: string }>,
+  mcpRemove: (name: string) =>
+    ipcRenderer.invoke('mcp:remove', { name }) as Promise<{ success: boolean; error?: string }>,
+  mcpGetTools: (serverName: string) =>
+    ipcRenderer.invoke('mcp:getTools', { serverName }) as Promise<{ tools: { name: string; description?: string }[] }>,
+  mcpReconnect: (serverName: string) =>
+    ipcRenderer.invoke('mcp:reconnect', { serverName }) as Promise<{ success: boolean; error?: string }>,
 
   // ── Feedback ─────────────────────────────
   feedbackRate: (messageId: string, rating: 'up' | 'down' | null) =>

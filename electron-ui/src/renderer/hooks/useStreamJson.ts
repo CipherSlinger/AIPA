@@ -191,6 +191,11 @@ Keep exercises focused and achievable. The goal is active learning through doing
       flags.push('--append-system-prompt', systemPromptParts.join('\n\n'))
     }
 
+    // Inject disallowed tools (Iteration 527: tool access control)
+    if (prefs.disallowedTools && prefs.disallowedTools.length > 0) {
+      flags.push('--disallowedTools', prefs.disallowedTools.join(','))
+    }
+
     if (prefs.maxTurns && prefs.maxTurns > 0) {
       flags.push('--max-turns', String(prefs.maxTurns))
     }
