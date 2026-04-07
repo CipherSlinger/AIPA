@@ -193,6 +193,11 @@ interface ChatState {
   isPlanMode: boolean
   setPlanMode: (v: boolean) => void
 
+  // Changed files tracking (Iteration 521: code changes view)
+  changedFiles: Array<{ filePath: string; turnIndex: number; toolName: string; timestamp: number }>
+  addChangedFile: (filePath: string, toolName: string) => void
+  clearChangedFiles: () => void
+
   // ── Tabs (Iteration 515) ──────────────────────────
   tabs: TabInfo[]
   activeTabId: string | null
@@ -227,6 +232,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   contextBeforeCompact: null,
   sessionPersonaId: undefined,
   isPlanMode: false,
+  changedFiles: [],
 
   addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
 
@@ -311,7 +317,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     streamingBuffer.sessionId = null
     streamingBuffer.messageId = null
     streamingBuffer.dirty = false
-    set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false, totalSessionCost: 0, lastCost: null, lastUsage: null, lastContextUsage: null, modelUsage: {}, sessionPersonaId: undefined, isPlanMode: false })
+    set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false, totalSessionCost: 0, lastCost: null, lastUsage: null, lastContextUsage: null, modelUsage: {}, sessionPersonaId: undefined, isPlanMode: false, changedFiles: [] })
   },
   loadHistory: (messages) => set({ messages, isStreaming: false }),
 
@@ -522,6 +528,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   // Plan Mode toggle (Iteration 520)
   setPlanMode: (v) => set({ isPlanMode: v }),
+
+  // Changed files tracking (Iteration 521)
+  addChangedFile: (filePath, toolName) => set((s) => {
+    const turnIndex = s.messages.filter(m => m.role === 'user').length
+    return {
+      changedFiles: [
+        ...s.changedFiles,
+        { filePath, turnIndex, toolName, timestamp: Date.now() },
+      ],
+    }
+  }),
+  clearChangedFiles: () => set({ changedFiles: [] }),
 
   // ── Tab actions (Iteration 515) ────────────────────
   tabs: [],

@@ -12,7 +12,8 @@
     "expandNav": "展开侧边栏",
     "collapseNav": "收起",
     "channel": "通道",
-    "tasks": "任务"
+    "tasks": "任务",
+    "changes": "变更"
   },
   "chat": {
     "placeholder": "给 AIPA 发消息...",
@@ -500,6 +501,7 @@
       "permissions": "权限",
       "personas": "角色",
       "mcp": "MCP 服务器",
+      "stats": "统计",
       "about": "关于"
     },
     "groups": {
@@ -1891,5 +1893,38 @@
     "warningThreshold": "上下文使用率已达 {{pct}}%，建议压缩对话或开启新会话。",
     "compactAction": "压缩",
     "dismiss": "忽略"
+  },
+  "changes": {
+    "title": "变更",
+    "noChanges": "本会话中没有记录到文件变更",
+    "noChangesHint": "Claude 编辑或创建文件时将自动追踪",
+    "viewAllChanges": "查看全部变更 (git diff HEAD)",
+    "turnLabel": "第 {{turn}} 轮",
+    "diffLoading": "加载 diff 中...",
+    "diffError": "加载 diff 失败",
+    "noDiff": "无 diff 输出",
+    "gitDiffTitle": "Git Diff（HEAD）",
+    "close": "关闭"
+  },
+  "stats": {
+    "loading": "加载统计中...",
+    "error": "加载统计失败，请重试。",
+    "overview": "总览",
+    "totalSessions": "总会话数",
+    "totalMessages": "总消息数",
+    "totalTokens": "总 Token 消耗",
+    "avgSessionLength": "平均会话长度",
+    "sessions": "次会话",
+    "userMsgs": "用户",
+    "assistantMsgs": "助手",
+    "msgsPerSession": "条消息 / 会话",
+    "noTokenData": "暂无 Token 数据",
+    "topTools": "工具使用排行",
+    "uses": "次",
+    "activityTrend": "活跃趋势",
+    "days7": "7 天",
+    "days30": "30 天",
+    "noActivity": "该时间段内无活动",
+    "dataRange": "数据范围"
   }
 }

@@ -2,8 +2,8 @@
 import { create } from 'zustand'
 import { ToastItem, ToastType } from '../components/ui/Toast'
 
-export type SidebarTab = 'history' | 'files' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel' | 'tasks'
-export type NavItem = 'chat' | 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel' | 'tasks'
+export type SidebarTab = 'history' | 'files' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel' | 'tasks' | 'changes'
+export type NavItem = 'chat' | 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel' | 'tasks' | 'changes'
 
 interface UiState {
   sidebarTab: SidebarTab
@@ -80,7 +80,7 @@ interface UiState {
 const savedSidebarTab = (() => {
   try {
     const saved = localStorage.getItem('aipa:sidebar-tab')
-    const valid = ['history', 'files', 'notes', 'skills', 'memory', 'workflows', 'channel', 'tasks']
+    const valid = ['history', 'files', 'notes', 'skills', 'memory', 'workflows', 'channel', 'tasks', 'changes']
     if (saved && valid.includes(saved)) return saved as UiState['sidebarTab']
   } catch { }
   return 'history' as const
@@ -125,7 +125,7 @@ export const useUiStore = create<UiState>((set) => ({
     if (item === 'settings') {
       return { settingsModalOpen: true }
     }
-    if (item === 'history' || item === 'files' || item === 'notes' || item === 'skills' || item === 'memory' || item === 'workflows' || item === 'channel' || item === 'tasks') {
+    if (item === 'history' || item === 'files' || item === 'notes' || item === 'skills' || item === 'memory' || item === 'workflows' || item === 'channel' || item === 'tasks' || item === 'changes') {
       try { localStorage.setItem('aipa:sidebar-tab', item) } catch { }
       // Clear all unread badges when viewing History
       const extra = item === 'history' ? { unreadCounts: {} as Record<string, number>, unreadSessionCount: 0 } : {}

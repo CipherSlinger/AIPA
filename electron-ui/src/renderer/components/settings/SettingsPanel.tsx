@@ -5,11 +5,12 @@ import type { CustomPromptTemplate, Persona } from '../../types/app.types'
 import SettingsGeneral from './SettingsGeneral'
 import SettingsMcp from './SettingsMcp'
 import SettingsAbout from './SettingsAbout'
+import SettingsStats from './SettingsStats'
 import PermissionsSettingsPanel from './PermissionsSettingsPanel'
 import { Radio } from 'lucide-react'
 
 // Personas tab has been moved to the Workflows sidebar panel (Iteration 376)
-type SettingsTab = 'general' | 'providers' | 'permissions' | 'mcp' | 'about'
+type SettingsTab = 'general' | 'providers' | 'permissions' | 'mcp' | 'stats' | 'about'
 
 // Default emojis for migrated templates (Iteration 309: merge Templates into Personas)
 const MIGRATION_EMOJIS = ['\u{1F4DD}', '\u{1F4CB}', '\u{1F4CC}', '\u{1F4D6}', '\u{1F4DA}', '\u{1F3AF}', '\u{1F4A1}', '\u{2B50}', '\u{1F680}', '\u{1F3C6}']
@@ -112,7 +113,7 @@ export default function SettingsPanel() {
 
       {/* Tab bar */}
       <div role="tablist" style={{ display: 'flex', gap: 4, marginBottom: 16, borderBottom: '1px solid var(--border)', paddingBottom: 10 }}>
-        {(['general', 'providers', 'permissions', 'mcp', 'about'] as const).map(tab => (
+        {(['general', 'providers', 'permissions', 'mcp', 'stats', 'about'] as const).map(tab => (
           <button
             key={tab}
             role="tab"
@@ -173,6 +174,8 @@ export default function SettingsPanel() {
         <PermissionsSettingsPanel />
       ) : settingsTab === 'mcp' ? (
         <SettingsMcp />
+      ) : settingsTab === 'stats' ? (
+        <SettingsStats />
       ) : (
         <SettingsAbout
           onResetDefaults={handleResetDefaults}

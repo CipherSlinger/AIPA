@@ -46,6 +46,7 @@ const electronAPI = {
   sessionRewind: (sessionId: string, beforeTimestamp: string) => ipcRenderer.invoke('session:rewind', { sessionId, beforeTimestamp }),
   sessionSearch: (query: string, limit?: number) => ipcRenderer.invoke('session:search', { query, limit }),
   sessionDetectInterruption: (sessionId: string) => ipcRenderer.invoke('session:detectInterruption', { sessionId }),
+  sessionGetStats: () => ipcRenderer.invoke('session:getStats'),
 
   // ── Config / prefs ───────────────────────
   configRead: () => ipcRenderer.invoke('config:read'),
@@ -80,6 +81,10 @@ const electronAPI = {
   fsListCommands: (workingDir: string) => ipcRenderer.invoke('fs:listCommands', workingDir),
   fsPathExists: (filePath: string) =>
     ipcRenderer.invoke('fs:pathExists', { filePath }) as Promise<boolean>,
+  fsGitDiff: (filePath?: string) =>
+    ipcRenderer.invoke('fs:gitDiff', { filePath }) as Promise<string | { error: string }>,
+  fsGitStatus: () =>
+    ipcRenderer.invoke('fs:gitStatus') as Promise<string | { error: string }>,
 
   // ── Shell ───────────────────────────────
   shellOpenExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),

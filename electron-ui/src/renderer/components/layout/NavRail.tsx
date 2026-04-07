@@ -1,5 +1,5 @@
 import React from 'react'
-import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, Settings, User, PanelLeftClose, PanelLeftOpen, Radio, CheckSquare } from 'lucide-react'
+import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, Settings, User, PanelLeftClose, PanelLeftOpen, Radio, CheckSquare, GitBranch } from 'lucide-react'
 import { useUiStore, useChatStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 import { AVATAR_PRESETS } from './avatarPresets'
@@ -239,6 +239,8 @@ export default function NavRail() {
   const isWorkflowsActive = activeNavItem === 'workflows' && sidebarTab === 'workflows'
   const isChannelActive = activeNavItem === 'channel' && sidebarTab === 'channel'
   const isTasksActive = activeNavItem === 'tasks' && sidebarTab === 'tasks'
+  const isChangesActive = activeNavItem === 'changes' && sidebarTab === 'changes'
+  const changedFilesCount = useChatStore(s => new Set(s.changedFiles.map(f => f.filePath)).size)
   const isStreaming = useChatStore(s => s.isStreaming)
   const isSettingsActive = useUiStore(s => s.settingsModalOpen)
   // Unread session count: sessions that received new messages while not being the active session
@@ -364,6 +366,18 @@ export default function NavRail() {
         shortcut="Ctrl+8"
         isActive={isTasksActive}
         onClick={() => setActiveNavItem('tasks')}
+        expanded={navExpanded}
+      />
+
+      {/* Changes (Iteration 521) */}
+      <NavItem
+        icon={<GitBranch size={iconSize} />}
+        label={t('nav.changes')}
+        shortcut="Ctrl+9"
+        isActive={isChangesActive}
+        onClick={() => setActiveNavItem('changes')}
+        badge={changedFilesCount > 0 ? changedFilesCount : undefined}
+        badgeColor="var(--accent)"
         expanded={navExpanded}
       />
 

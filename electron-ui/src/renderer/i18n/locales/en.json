@@ -12,7 +12,8 @@
     "channel": "Channel",
     "expandNav": "Expand sidebar",
     "collapseNav": "Collapse",
-    "tasks": "Tasks"
+    "tasks": "Tasks",
+    "changes": "Changes"
   },
   "chat": {
     "placeholder": "Message AIPA...",
@@ -500,6 +501,7 @@
       "permissions": "Permissions",
       "personas": "Personas",
       "mcp": "MCP Servers",
+      "stats": "Stats",
       "about": "About"
     },
     "groups": {
@@ -1873,5 +1875,38 @@
     "warningThreshold": "Context usage at {{pct}}%. Consider compacting or starting a new session.",
     "compactAction": "Compact",
     "dismiss": "Dismiss"
+  },
+  "changes": {
+    "title": "Changes",
+    "noChanges": "No file changes recorded in this session",
+    "noChangesHint": "Claude will track files it edits or creates",
+    "viewAllChanges": "View All Changes (git diff HEAD)",
+    "turnLabel": "Turn {{turn}}",
+    "diffLoading": "Loading diff...",
+    "diffError": "Failed to load diff",
+    "noDiff": "No diff output",
+    "gitDiffTitle": "Git Diff (HEAD)",
+    "close": "Close"
+  },
+  "stats": {
+    "loading": "Loading stats...",
+    "error": "Failed to load stats. Please try again.",
+    "overview": "Overview",
+    "totalSessions": "Total Sessions",
+    "totalMessages": "Total Messages",
+    "totalTokens": "Total Tokens",
+    "avgSessionLength": "Avg Session Length",
+    "sessions": "sessions",
+    "userMsgs": "user",
+    "assistantMsgs": "assistant",
+    "msgsPerSession": "messages / session",
+    "noTokenData": "No token data available",
+    "topTools": "Top Tools",
+    "uses": "uses",
+    "activityTrend": "Activity Trend",
+    "days7": "7 Days",
+    "days30": "30 Days",
+    "noActivity": "No activity in this period",
+    "dataRange": "Data range"
   }
 }

@@ -407,6 +407,19 @@ Keep exercises focused and achievable. The goal is active learning through doing
             } as PlanMessage)
             break
           }
+          // Track file changes (Iteration 521: code changes view)
+          {
+            const toolName = e.name as string
+            const input = (e.input as Record<string, unknown>) ?? {}
+            const filePath = (input.file_path || input.path) as string | undefined
+            const isFileModifyingTool =
+              /Edit|Write|Create/i.test(toolName) ||
+              toolName === 'str_replace_editor' ||
+              toolName === 'str_replace_based_edit_tool'
+            if (filePath && isFileModifyingTool) {
+              useChatStore.getState().addChangedFile(filePath, toolName)
+            }
+          }
           const lastMsg = useChatStore.getState().messages.at(-1)
           if (lastMsg && lastMsg.role === 'assistant') {
             useChatStore.getState().addToolUse(

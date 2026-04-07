@@ -5494,3 +5494,55 @@ Plan Mode UI integration. PlanModeBanner appears above input when active. Toggli
 - [x] Visual indicator in chat area
 
 ---
+
+## Iteration 521 -- Diff Changes View
+
+_Date: 2026-04-07 | Sprint: Superpower Phase 2.6_
+
+### Summary
+Changes Panel in sidebar showing files Claude modified during the session. NavRail gets a Changes tab (GitBranch icon, Ctrl+9) with a badge count of unique modified files. ChangesPanel groups files by turn with expandable unified diff per file. DiffViewer is a pure-CSS unified diff renderer (green +, red -, blue @@ hunks). "View All Changes" shows full `git diff HEAD`. Backend adds `fs:gitDiff` and `fs:gitStatus` IPC handlers.
+
+### Files Changed
+- `src/main/ipc/fs-handlers.ts` -- Added fs:gitDiff and fs:gitStatus handlers (execSync git commands)
+- `src/preload/index.ts` -- Exposed fsGitDiff / fsGitStatus
+- `src/renderer/store/chatStore.ts` -- Added changedFiles state + addChangedFile / clearChangedFiles actions
+- `src/renderer/store/uiStore.ts` -- Added 'changes' to SidebarTab union
+- `src/renderer/hooks/useStreamJson.ts` -- Detects file-modifying toolUse events, calls addChangedFile
+- `src/renderer/components/layout/NavRail.tsx` -- Added Changes tab with badge
+- `src/renderer/components/layout/Sidebar.tsx` -- Added ChangesPanel lazy render
+- `src/renderer/components/sidebar/ChangesPanel.tsx` -- NEW: file list grouped by turn + View All Changes
+- `src/renderer/components/sidebar/DiffViewer.tsx` -- NEW: pure CSS unified diff renderer
+- `src/renderer/i18n/locales/en.json` + `zh-CN.json` -- changes.* i18n keys
+
+### Acceptance Criteria
+- [x] NavRail Changes tab with file count badge
+- [x] Changed files listed per turn in sidebar
+- [x] Click file to expand unified diff
+- [x] View All Changes shows git diff HEAD
+- [x] Build: SUCCESS, 0 TypeScript errors
+
+---
+
+## Iteration 522 -- Usage Stats Dashboard
+
+_Date: 2026-04-07 | Sprint: Superpower Phase 4.1_
+
+### Summary
+Stats settings tab with aggregated usage data from ~/.claude/projects/ JSONL files. Backend session-stats.ts scans files (90-day window, 5-min cache), aggregates total sessions/messages/tokens and tool usage. UI shows 4 overview cards, horizontal bar chart for top-5 tools, vertical bar chart for 7/30-day activity trend. Pure CSS charts, no third-party chart library.
+
+### Files Changed
+- `src/main/sessions/session-stats.ts` -- NEW: JSONL scanner + aggregation with caching
+- `src/main/ipc/index.ts` -- Registered session:getStats handler
+- `src/preload/index.ts` -- Exposed sessionGetStats()
+- `src/renderer/components/settings/SettingsStats.tsx` -- NEW: stats UI (cards + bar charts)
+- `src/renderer/components/settings/SettingsPanel.tsx` -- Added Stats tab
+- `src/renderer/i18n/locales/en.json` + `zh-CN.json` -- stats.* i18n keys (17 keys each)
+
+### Acceptance Criteria
+- [x] Stats tab in Settings with 4 overview cards
+- [x] Top-5 tool usage horizontal bar chart
+- [x] Activity trend 7/30-day toggle
+- [x] Backend scans JSONL with caching
+- [x] Build: SUCCESS, 0 TypeScript errors
+
+---
