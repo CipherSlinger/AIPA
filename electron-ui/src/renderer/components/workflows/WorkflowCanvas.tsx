@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react'
 import { Workflow as WorkflowIcon } from 'lucide-react'
 import { Workflow } from '../../types/app.types'
 import { useT } from '../../i18n'
+import { useChatStore } from '../../store'
 import CanvasNode from './CanvasNode'
 import CanvasEdge, { CanvasEdgeDefs } from './CanvasEdge'
 import CanvasProgressBar from './CanvasProgressBar'
@@ -110,6 +111,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
   const t = useT()
   const containerRef = useRef<HTMLDivElement>(null)
   const execution = useWorkflowExecution(workflow)
+  // Direction 9: get abort from chat store
+  const abort = useChatStore(s => s.abort)
 
   // Layout hook (pan, zoom, node positions, drag, collapse, minimap, Space key)
   const layout = useCanvasLayout(workflow, containerRef)
@@ -261,6 +264,22 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
 
   const zoomPercent = Math.round(layout.zoom * 100)
 
+  // Direction 8: viewport culling helpers
+  const viewLeft = -layout.panX / layout.zoom
+  const viewTop = -layout.panY / layout.zoom
+  const viewRight = viewLeft + layout.containerSize.w / layout.zoom
+  const viewBottom = viewTop + layout.containerSize.h / layout.zoom
+  const CULL_MARGIN = 100
+
+  function isInViewport(pos: { x: number; y: number; width: number; height: number }) {
+    return (
+      pos.x + pos.width > viewLeft - CULL_MARGIN &&
+      pos.x < viewRight + CULL_MARGIN &&
+      pos.y + pos.height > viewTop - CULL_MARGIN &&
+      pos.y < viewBottom + CULL_MARGIN
+    )
+  }
+
   return (
     <div
       ref={containerRef}
@@ -344,6 +363,10 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
         onCollapseAll={layout.handleCollapseAll}
         onExpandAll={layout.handleExpandAll}
         onToggleMinimap={() => layout.setShowMinimap(v => !v)}
+        isRunning={execution.isRunning}
+        allDone={execution.completedCount === execution.totalSteps && execution.totalSteps > 0 && !execution.isRunning}
+        onAbort={abort ? () => abort() : undefined}
+        onRerun={() => { console.log('[WorkflowCanvas] onRerun: please trigger from workflow detail page') }}
       />
 
       {/* Space-key hint */}
@@ -377,6 +400,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
             const fromPos = layout.nodePositions[prevStep.id]
             const toPos = layout.nodePositions[step.id]
             if (!fromPos || !toPos) return null
+            // Direction 8: skip edge if both endpoints are outside viewport
+            if (!isInViewport(fromPos) && !isInViewport(toPos)) return null
             const srcStatus = execution.stepStatuses[prevStep.id] ?? 'idle'
             const edgeStatus = srcStatus === 'completed' ? 'done' : srcStatus === 'running' ? 'active' : 'idle'
             return (
@@ -405,6 +430,15 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
         {workflow.steps.map((step, idx) => {
           const pos = layout.nodePositions[step.id]
           if (!pos) return null
+          // Direction 8: render lightweight placeholder for off-screen nodes
+          if (!isInViewport(pos)) {
+            return (
+              <div
+                key={step.id}
+                style={{ position: 'absolute', left: pos.x, top: pos.y, width: pos.width, height: pos.height }}
+              />
+            )
+          }
           return (
             <CanvasNode
               key={step.id}
@@ -420,6 +454,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
               outputText={execution.stepOutputs[step.id]}
               dimmed={highlightStepIds !== null && highlightStepIds !== undefined && !highlightStepIds.has(step.id)}
               durationMs={execution.stepDurations[step.id]}
+              isFirst={idx === 0}
+              isLast={idx === workflow.steps.length - 1}
               onSelect={handleNodeSelect}
               onDragStart={layout.handleNodeDragStart}
               onToggleCollapse={layout.handleToggleCollapse}
