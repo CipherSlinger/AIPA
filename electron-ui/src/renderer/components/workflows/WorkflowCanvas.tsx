@@ -17,6 +17,12 @@ import WorkflowRunHistory from './WorkflowRunHistory'
 interface WorkflowCanvasProps {
   workflow: Workflow | null
   highlightStepIds?: Set<string> | null  // null = no filter, Set = show only these
+  // Direction A: retry a failed step
+  onRetryStep?: (stepId: string) => void
+  // Direction A+9: rerun entire workflow
+  onRerun?: () => void
+  // Direction B: update a step's title or prompt
+  onStepUpdate?: (stepId: string, changes: { title?: string; prompt?: string }) => void
 }
 
 // --- Minimap ---
@@ -32,9 +38,11 @@ interface MinimapProps {
   zoom: number
   containerW: number
   containerH: number
+  // Direction C: click to jump
+  onClickNode?: (stepId: string) => void
 }
 
-function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, containerW, containerH }: MinimapProps) {
+function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, containerW, containerH, onClickNode }: MinimapProps) {
   if (stepIds.length === 0) return null
 
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
@@ -59,19 +67,23 @@ function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, conta
   const vpH = (containerH / zoom) * scale
 
   return (
-    <div style={{
-      position: 'absolute',
-      bottom: 36,
-      right: 8,
-      zIndex: 10,
-      background: 'rgba(var(--bg-card-rgb, 30,30,30), 0.85)',
-      backdropFilter: 'blur(6px)',
-      border: '1px solid var(--border)',
-      borderRadius: 5,
-      overflow: 'hidden',
-      width: MINIMAP_W,
-      height: MINIMAP_H,
-    }}>
+    <div
+      style={{
+        position: 'absolute',
+        bottom: 36,
+        right: 8,
+        zIndex: 10,
+        background: 'rgba(var(--bg-card-rgb, 30,30,30), 0.85)',
+        backdropFilter: 'blur(6px)',
+        border: '1px solid var(--border)',
+        borderRadius: 5,
+        overflow: 'hidden',
+        width: MINIMAP_W,
+        height: MINIMAP_H,
+      }}
+      onMouseDown={e => e.stopPropagation()}
+      onClick={e => e.stopPropagation()}
+    >
       <svg width={MINIMAP_W} height={MINIMAP_H} style={{ display: 'block' }}>
         {stepIds.map(id => {
           const p = nodePositions[id]
@@ -91,6 +103,8 @@ function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, conta
               rx={2}
               fill={fill}
               fillOpacity={0.9}
+              style={{ cursor: onClickNode ? 'pointer' : 'default' }}
+              onClick={onClickNode ? (e) => { e.stopPropagation(); onClickNode(id) } : undefined}
             />
           )
         })}
@@ -103,13 +117,14 @@ function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, conta
           stroke="rgba(255,255,255,0.3)"
           strokeWidth={0.8}
           rx={1}
+          style={{ pointerEvents: 'none' }}
         />
       </svg>
     </div>
   )
 }
 
-export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowCanvasProps) {
+export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep, onRerun, onStepUpdate }: WorkflowCanvasProps) {
   const t = useT()
   const containerRef = useRef<HTMLDivElement>(null)
   const execution = useWorkflowExecution(workflow)
@@ -239,6 +254,12 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
     setSidebarStepId(stepId)
   }, [])
 
+  // Direction C: minimap click handler
+  const handleMinimapClickNode = useCallback((stepId: string) => {
+    layout.autoPanToNode(stepId)
+    handleNodeSelect(stepId)
+  }, [layout, handleNodeSelect])
+
   const closeSidebar = useCallback(() => {
     setSidebarStepId(null)
   }, [])
@@ -248,6 +269,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
     if (e.button !== 0) return
     setSelectedNode(null)
     setSidebarStepId(null)
+    layout.clearSelection()
     layout.handleCanvasMouseDown(e)
   }, [layout])
 
@@ -265,6 +287,34 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
   const cursor = layout.spaceDown
     ? (layout.isPanning ? 'grabbing' : 'grab')
     : layout.isPanning ? 'grabbing' : 'default'
+
+  // Direction B: sidebar prompt change
+  const handlePromptChange = useCallback((stepId: string, newPrompt: string) => {
+    onStepUpdate?.(stepId, { prompt: newPrompt })
+  }, [onStepUpdate])
+
+  // Direction B: node title change (from CanvasNode inline edit)
+  const handleTitleChange = useCallback((stepId: string, newTitle: string) => {
+    onStepUpdate?.(stepId, { title: newTitle })
+  }, [onStepUpdate])
+
+  // Direction G: JSON export
+  const handleExport = useCallback(() => {
+    if (!workflow) return
+    const data = {
+      name: workflow.name,
+      steps: workflow.steps,
+      nodePositions: layout.nodePositions,
+      exportedAt: Date.now(),
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${workflow.name.replace(/[^a-z0-9]/gi, '_')}-export.json`
+    a.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }, [workflow, layout.nodePositions])
 
   // --- Empty state ---
   if (!workflow) {
@@ -318,6 +368,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
       pos.y < viewBottom + CULL_MARGIN
     )
   }
+
+  const showRerunOrError = (execution.completedCount === execution.totalSteps && execution.totalSteps > 0 && !execution.isRunning) || (execution.hasError && !execution.isRunning)
 
   return (
     <div
@@ -404,8 +456,12 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
         onToggleMinimap={() => layout.setShowMinimap(v => !v)}
         isRunning={execution.isRunning}
         allDone={execution.completedCount === execution.totalSteps && execution.totalSteps > 0 && !execution.isRunning}
+        hasError={execution.hasError && !execution.isRunning}
         onAbort={abort ? () => abort() : undefined}
-        onRerun={() => { console.log('[WorkflowCanvas] onRerun: please trigger from workflow detail page') }}
+        onRerun={onRerun}
+        layoutDirection={layout.layoutDirection}
+        onToggleLayout={layout.toggleLayoutDirection}
+        onExport={handleExport}
       />
 
       {/* Space-key hint */}
@@ -417,6 +473,21 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
           padding: '2px 8px', fontSize: 9, color: 'rgba(255,255,255,0.6)',
         }}>
           Hold & drag to pan
+        </div>
+      )}
+
+      {/* Multi-select hint */}
+      {layout.selectedNodes.size > 1 && (
+        <div style={{
+          position: 'absolute', top: execution.isRunning || execution.completedCount > 0 ? 60 : 40,
+          left: '50%', transform: 'translateX(-50%)',
+          zIndex: 20, pointerEvents: 'none',
+          background: 'rgba(var(--accent-rgb,59,130,246),0.12)',
+          border: '1px solid rgba(var(--accent-rgb,59,130,246),0.3)',
+          borderRadius: 4,
+          padding: '2px 10px', fontSize: 9, color: 'var(--accent)',
+        }}>
+          {layout.selectedNodes.size} nodes selected · drag to move
         </div>
       )}
 
@@ -487,6 +558,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
               y={pos.y}
               width={pos.width}
               selected={selectedNode === step.id}
+              multiSelected={layout.selectedNodes.has(step.id)}
               status={execution.stepStatuses[step.id] ?? 'idle'}
               presetKey={workflow.presetKey}
               collapsed={layout.collapsedNodes.has(step.id)}
@@ -496,8 +568,17 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
               isFirst={idx === 0}
               isLast={idx === workflow.steps.length - 1}
               onSelect={handleNodeSelect}
-              onDragStart={layout.handleNodeDragStart}
+              onDragStart={(stepId, e) => {
+                // Direction F: if this node is part of multi-selection, drag all
+                if (layout.selectedNodes.size > 1 && layout.selectedNodes.has(stepId)) {
+                  layout.handleMultiNodeDragStart(layout.selectedNodes, e)
+                } else {
+                  layout.handleNodeDragStart(stepId, e)
+                }
+              }}
               onToggleCollapse={layout.handleToggleCollapse}
+              onTitleChange={handleTitleChange}
+              onMultiSelect={(id, shiftKey) => layout.selectNode(id, shiftKey)}
             />
           )
         })}
@@ -514,6 +595,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
           zoom={layout.zoom}
           containerW={layout.containerSize.w}
           containerH={layout.containerSize.h}
+          onClickNode={handleMinimapClickNode}
         />
       )}
 
@@ -528,6 +610,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds }: WorkflowC
           durationMs={sidebarStepId ? execution.stepDurations[sidebarStepId] : undefined}
           historyOutput={selectedRun && sidebarStepId ? (selectedRun.stepOutputs[sidebarStepId] ?? undefined) : undefined}
           onClose={closeSidebar}
+          onRetryStep={onRetryStep}
+          onPromptChange={handlePromptChange}
         />
       )}
 

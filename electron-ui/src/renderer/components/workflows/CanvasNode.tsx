@@ -20,10 +20,12 @@ interface CanvasNodeProps {
   durationMs?: number
   isFirst?: boolean
   isLast?: boolean
+  multiSelected?: boolean
   onSelect: (stepId: string) => void
   onDragStart: (stepId: string, e: React.MouseEvent) => void
   onToggleCollapse?: (stepId: string) => void
   onTitleChange?: (stepId: string, newTitle: string) => void
+  onMultiSelect?: (stepId: string, shiftKey: boolean) => void
 }
 
 export const NODE_WIDTH = 220
@@ -189,10 +191,12 @@ export default function CanvasNode({
   durationMs,
   isFirst = false,
   isLast = false,
+  multiSelected = false,
   onSelect,
   onDragStart,
   onToggleCollapse,
   onTitleChange,
+  onMultiSelect,
 }: CanvasNodeProps) {
   const t = useT()
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null)
@@ -240,10 +244,14 @@ export default function CanvasNode({
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
+      if (e.shiftKey && onMultiSelect) {
+        onMultiSelect(step.id, true)
+        return
+      }
       onSelect(step.id)
       onDragStart(step.id, e)
     },
-    [step.id, onSelect, onDragStart]
+    [step.id, onSelect, onDragStart, onMultiSelect]
   )
 
   const handleCollapseClick = useCallback((e: React.MouseEvent) => {
@@ -269,6 +277,7 @@ export default function CanvasNode({
 
   const statusStyle = STATUS_STYLES[status] ?? STATUS_STYLES.idle
   const isActive = selected || status === 'running'
+  const isMulti = multiSelected && !selected
 
   // Dynamic height: expand when showing output preview
   const nodeHeight = collapsed
@@ -302,10 +311,14 @@ export default function CanvasNode({
           height: nodeHeight,
           background: status === 'running'
             ? (statusStyle.glowColor || 'var(--bg-card, var(--bg-sessionpanel))')
-            : 'var(--bg-card, var(--bg-sessionpanel))',
+            : isMulti
+              ? 'rgba(var(--accent-rgb, 59,130,246), 0.06)'
+              : 'var(--bg-card, var(--bg-sessionpanel))',
           border: isActive
             ? '1.5px solid var(--accent)'
-            : `1.5px solid ${statusStyle.borderColor}`,
+            : isMulti
+              ? '2px solid var(--accent)'
+              : `1.5px solid ${statusStyle.borderColor}`,
           borderLeft: (() => {
             if (isActive) return undefined
             if (statusStyle.borderLeft) return statusStyle.borderLeft

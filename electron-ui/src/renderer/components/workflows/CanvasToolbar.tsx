@@ -1,9 +1,10 @@
 // CanvasToolbar — zoom + collapse controls for WorkflowCanvas (extracted Iteration 510)
 // Iteration 490: added minimap toggle button
 // Direction 9: context-aware abort/rerun buttons
+// Iteration 528: Direction G (export), E (layout toggle), A (restart on error)
 
 import React from 'react'
-import { Maximize2, ChevronsDownUp, ChevronsUpDown, Map } from 'lucide-react'
+import { Maximize2, ChevronsDownUp, ChevronsUpDown, Map, Download, ArrowDownUp, ArrowLeftRight } from 'lucide-react'
 
 const toolbarBtnStyle: React.CSSProperties = {
   background: 'transparent',
@@ -51,8 +52,14 @@ interface CanvasToolbarProps {
   // Direction 9: execution state props
   isRunning?: boolean
   allDone?: boolean
+  hasError?: boolean
   onAbort?: () => void
   onRerun?: () => void
+  // Direction E: layout direction
+  layoutDirection?: 'vertical' | 'horizontal'
+  onToggleLayout?: () => void
+  // Direction G: export
+  onExport?: () => void
 }
 
 export default function CanvasToolbar({
@@ -61,8 +68,12 @@ export default function CanvasToolbar({
   onFitToView, onZoomIn, onZoomOut, onCollapseAll, onExpandAll, onToggleMinimap,
   isRunning = false,
   allDone = false,
+  hasError = false,
   onAbort,
   onRerun,
+  layoutDirection = 'vertical',
+  onToggleLayout,
+  onExport,
 }: CanvasToolbarProps) {
   return (
     <div style={{
@@ -116,7 +127,8 @@ export default function CanvasToolbar({
       )}
 
       {/* Direction 9: Rerun button — shown when all done and not running */}
-      {allDone && !isRunning && onRerun && (
+      {/* Direction A: also show when hasError */}
+      {(allDone || hasError) && !isRunning && onRerun && (
         <>
           <button
             onClick={(e) => { e.stopPropagation(); onRerun() }}
@@ -143,7 +155,7 @@ export default function CanvasToolbar({
             }}
           >
             <span style={{ fontSize: 10 }}>▶</span>
-            <span>再次运行</span>
+            <span>{hasError && !allDone ? '重新开始' : '再次运行'}</span>
           </button>
           {/* Separator */}
           <div style={{ width: 1, height: 14, background: 'var(--border)', margin: '0 2px' }} />
@@ -226,6 +238,35 @@ export default function CanvasToolbar({
       >
         <Map size={13} />
       </button>
+      {/* Direction E: Layout toggle */}
+      {onToggleLayout && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggleLayout() }}
+          aria-label="Toggle layout direction"
+          title={`Toggle layout (L) — currently ${layoutDirection}`}
+          style={toolbarBtnStyle}
+          onMouseEnter={hoverIn}
+          onMouseLeave={hoverOut}
+        >
+          {layoutDirection === 'vertical' ? <ArrowDownUp size={13} /> : <ArrowLeftRight size={13} />}
+        </button>
+      )}
+      {/* Direction G: Export */}
+      {onExport && (
+        <>
+          <div style={{ width: 1, height: 14, background: 'var(--border)', margin: '0 2px' }} />
+          <button
+            onClick={(e) => { e.stopPropagation(); onExport() }}
+            aria-label="Export workflow"
+            title="Export JSON"
+            style={toolbarBtnStyle}
+            onMouseEnter={hoverIn}
+            onMouseLeave={hoverOut}
+          >
+            <Download size={13} />
+          </button>
+        </>
+      )}
     </div>
   )
 }

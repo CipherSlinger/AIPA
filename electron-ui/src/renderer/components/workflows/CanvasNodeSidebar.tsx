@@ -1,5 +1,5 @@
-import React from 'react'
-import { Check, Copy, AlertCircle } from 'lucide-react'
+import React, { useCallback, useRef } from 'react'
+import { Check, Copy, AlertCircle, Pencil, RefreshCw } from 'lucide-react'
 import { WorkflowStep, StandardChatMessage } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { getPresetStepText } from './workflowConstants'
@@ -15,6 +15,10 @@ interface CanvasNodeSidebarProps {
   durationMs?: number
   historyOutput?: string
   onClose: () => void
+  // Direction A: retry failed step
+  onRetryStep?: (stepId: string) => void
+  // Direction B: prompt inline edit
+  onPromptChange?: (stepId: string, newPrompt: string) => void
 }
 
 function CopyButton({ text, label }: { text: string; label: string }) {
@@ -50,19 +54,50 @@ function CopyButton({ text, label }: { text: string; label: string }) {
   )
 }
 
-export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, outputText, durationMs, historyOutput, onClose }: CanvasNodeSidebarProps) {
+export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, outputText, durationMs, historyOutput, onClose, onRetryStep, onPromptChange }: CanvasNodeSidebarProps) {
   const t = useT()
   const displayTitle = getPresetStepText(presetKey, stepIndex, 'title', t, step.title)
   const displayPrompt = getPresetStepText(presetKey, stepIndex, 'prompt', t, step.prompt)
 
-  // Esc key closes sidebar
+  // Direction B: prompt edit state
+  const [isEditingPrompt, setIsEditingPrompt] = React.useState(false)
+  const [editPromptValue, setEditPromptValue] = React.useState('')
+  const promptTextareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const startEditPrompt = useCallback(() => {
+    setEditPromptValue(step.prompt)
+    setIsEditingPrompt(true)
+    setTimeout(() => {
+      promptTextareaRef.current?.focus()
+      promptTextareaRef.current?.select()
+    }, 0)
+  }, [step.prompt])
+
+  const commitPromptEdit = useCallback(() => {
+    const trimmed = editPromptValue.trim()
+    if (trimmed && trimmed !== step.prompt) {
+      onPromptChange?.(step.id, trimmed)
+    }
+    setIsEditingPrompt(false)
+  }, [editPromptValue, step.id, step.prompt, onPromptChange])
+
+  const cancelPromptEdit = useCallback(() => {
+    setIsEditingPrompt(false)
+  }, [])
+
+  const handlePromptKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); commitPromptEdit() }
+    if (e.key === 'Escape') { e.preventDefault(); cancelPromptEdit() }
+  }, [commitPromptEdit, cancelPromptEdit])
+
+  // Esc key closes sidebar (but not when editing prompt)
   React.useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape' && !isEditingPrompt) onClose()
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [onClose])
+  }, [onClose, isEditingPrompt])
 
   const statusColor = status === 'completed' ? '#22c55e'
     : status === 'running' ? 'var(--accent)'
@@ -163,21 +198,80 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
             }}>
               {t('workflow.canvasInput')}
             </div>
-            <CopyButton text={displayPrompt} label="Copy prompt" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {/* Direction B: edit prompt button */}
+              {onPromptChange && !presetKey && (
+                <button
+                  onClick={isEditingPrompt ? commitPromptEdit : startEditPrompt}
+                  title={isEditingPrompt ? 'Save (Ctrl+Enter)' : 'Edit prompt'}
+                  style={{
+                    background: isEditingPrompt ? 'rgba(var(--accent-rgb,59,130,246),0.15)' : 'transparent',
+                    border: 'none',
+                    borderRadius: 3,
+                    padding: '2px 4px',
+                    cursor: 'pointer',
+                    color: isEditingPrompt ? 'var(--accent)' : 'var(--text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    fontSize: 9,
+                  }}
+                >
+                  <Pencil size={10} />
+                  {isEditingPrompt ? 'Save' : 'Edit'}
+                </button>
+              )}
+              <CopyButton text={displayPrompt} label="Copy prompt" />
+            </div>
           </div>
-          <div style={{
-            fontSize: 10,
-            color: 'var(--text-secondary)',
-            lineHeight: 1.55,
-            padding: '6px 8px',
-            background: 'var(--input-field-bg)',
-            borderRadius: 4,
-            border: '1px solid var(--border)',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
-          }}>
-            {displayPrompt}
-          </div>
+
+          {/* Direction B: textarea when editing, read-only div otherwise */}
+          {isEditingPrompt ? (
+            <div>
+              <textarea
+                ref={promptTextareaRef}
+                value={editPromptValue}
+                onChange={e => setEditPromptValue(e.target.value)}
+                onKeyDown={handlePromptKeyDown}
+                onBlur={commitPromptEdit}
+                onMouseDown={e => e.stopPropagation()}
+                rows={4}
+                style={{
+                  width: '100%',
+                  fontSize: 10,
+                  color: 'var(--text-secondary)',
+                  lineHeight: 1.55,
+                  padding: '6px 8px',
+                  background: 'var(--input-field-bg)',
+                  borderRadius: 4,
+                  border: '1px solid var(--accent)',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  outline: 'none',
+                  resize: 'vertical',
+                  fontFamily: 'inherit',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 3 }}>
+                Ctrl+Enter to save · Esc to cancel
+              </div>
+            </div>
+          ) : (
+            <div style={{
+              fontSize: 10,
+              color: 'var(--text-secondary)',
+              lineHeight: 1.55,
+              padding: '6px 8px',
+              background: 'var(--input-field-bg)',
+              borderRadius: 4,
+              border: '1px solid var(--border)',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+            }}>
+              {displayPrompt}
+            </div>
+          )}
         </div>
 
         {/* Output section */}
@@ -246,6 +340,34 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
               : status === 'error' ? '执行失败'
               : t('workflow.canvasNotStarted')}
           </div>
+
+          {/* Direction A: retry button for error state */}
+          {status === 'error' && onRetryStep && (
+            <button
+              onClick={() => onRetryStep(step.id)}
+              style={{
+                marginTop: 8,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                background: 'rgba(239,68,68,0.12)',
+                border: '1px solid rgba(239,68,68,0.35)',
+                color: '#ef4444',
+                borderRadius: 5,
+                padding: '4px 10px',
+                fontSize: 10,
+                cursor: 'pointer',
+                fontWeight: 500,
+                width: '100%',
+                justifyContent: 'center',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.22)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)' }}
+            >
+              <RefreshCw size={11} />
+              重试此步骤
+            </button>
+          )}
         </div>
       </div>
 

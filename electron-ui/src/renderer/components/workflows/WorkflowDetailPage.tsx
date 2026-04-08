@@ -4,12 +4,13 @@
 
 import React, { useMemo, useEffect, useState, useCallback, useRef, lazy, Suspense } from 'react'
 import { Check, Loader, Search, X as XIcon, Trash2, ArrowLeft } from 'lucide-react'
-import { usePrefsStore, useUiStore } from '../../store'
+import { usePrefsStore, useUiStore, useChatStore } from '../../store'
 import { useT } from '../../i18n'
 import type { WorkflowStep, Workflow } from '../../types/app.types'
 import { useWorkflowExecution } from './useWorkflowExecution'
 import type { StepStatus } from './useWorkflowExecution'
 import WorkflowDetailHeader from './WorkflowDetailHeader'
+import { getPresetStepText } from './workflowConstants'
 
 const WorkflowCanvas = lazy(() => import('./WorkflowCanvas'))
 
@@ -202,6 +203,44 @@ export default function WorkflowDetailPage() {
     window.dispatchEvent(new CustomEvent('aipa:runWorkflow', { detail: { workflowId: workflow.id } }))
     addToast('info', t('workflow.running', { name: displayName, count: String(workflow.steps.length) }))
   }
+
+  // Direction A: retry a single failed step by re-queuing its prompt
+  const handleRetryStep = useCallback((stepId: string) => {
+    if (!workflow) return
+    const stepIdx = workflow.steps.findIndex(s => s.id === stepId)
+    if (stepIdx < 0) return
+    const step = workflow.steps[stepIdx]
+    const prompt = getPresetStepText(workflow.presetKey, stepIdx, 'prompt', t, step.prompt)
+    useChatStore.getState().addToQueue(prompt)
+    addToast('info', `重试步骤: ${step.title || `Step ${stepIdx + 1}`}`)
+  }, [workflow, t, addToast])
+
+  // Direction A: rerun the entire workflow
+  const handleRerun = useCallback(() => {
+    if (!workflow) return
+    runWorkflow()
+  }, [workflow, runWorkflow])
+
+  // Direction B: update a step's title or prompt directly (without entering edit mode)
+  const handleStepUpdate = useCallback((stepId: string, changes: { title?: string; prompt?: string }) => {
+    if (!workflow) return
+    const currentPrefs = usePrefsStore.getState()
+    const currentWorkflows = currentPrefs.prefs.workflows || []
+    const updated = currentWorkflows.map(w => {
+      if (w.id !== workflow.id) return w
+      return {
+        ...w,
+        steps: w.steps.map(s => {
+          if (s.id !== stepId) return s
+          return { ...s, ...(changes.title !== undefined ? { title: changes.title } : {}), ...(changes.prompt !== undefined ? { prompt: changes.prompt } : {}) }
+        }),
+        updatedAt: Date.now(),
+      }
+    })
+    currentPrefs.setPrefs({ workflows: updated })
+    window.electronAPI.prefsSet('workflows', updated)
+    addToast('success', t('workflow.updated'))
+  }, [workflow, addToast, t])
 
   const handleSave = () => {
     if (!workflow) return
@@ -455,7 +494,13 @@ export default function WorkflowDetailPage() {
               {t('workflow.loadingCanvas')}
             </div>
           }>
-            <WorkflowCanvas workflow={workflow} highlightStepIds={matchingStepIds} />
+            <WorkflowCanvas
+              workflow={workflow}
+              highlightStepIds={matchingStepIds}
+              onRetryStep={handleRetryStep}
+              onRerun={handleRerun}
+              onStepUpdate={handleStepUpdate}
+            />
           </Suspense>
         </div>
       </div>

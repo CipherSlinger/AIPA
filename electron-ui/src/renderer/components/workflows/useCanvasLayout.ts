@@ -1,6 +1,8 @@
 // useCanvasLayout — pan/zoom/layout logic extracted from WorkflowCanvas (Iteration 510)
 // Manages: node positions, pan, zoom, fit-to-view, node drag, collapse state, keyboard shortcuts
 // Iteration 490: added trackpad pinch-to-zoom, Space-key pan, minimap toggle
+// Direction E: horizontal/vertical layout toggle (L key)
+// Direction F: multi-select nodes (Shift+click, clearSelection)
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { NODE_WIDTH, NODE_MIN_HEIGHT, NODE_COLLAPSED_HEIGHT, NODE_GAP_Y } from './CanvasNode'
@@ -27,6 +29,9 @@ export function useCanvasLayout(
   const [panY, setPanY] = useState(0)
   const [zoom, setZoom] = useState(1)
 
+  // Direction E: layout direction
+  const [layoutDirection, setLayoutDirection] = useState<'vertical' | 'horizontal'>('vertical')
+
   // Node positions (custom overrides from dragging) — seeded from step.canvasPos on mount
   const [customPositions, setCustomPositions] = useState<Record<string, { x: number; y: number }>>(() => {
     if (!workflow) return {}
@@ -40,6 +45,9 @@ export function useCanvasLayout(
   // Focused node for keyboard navigation (Direction 3)
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null)
 
+  // Direction F: multi-selected nodes
+  const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set())
+
   // Panning state
   const [isPanning, setIsPanning] = useState(false)
   const panStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 })
@@ -51,6 +59,12 @@ export function useCanvasLayout(
   // Dragging node state
   const [draggingNode, setDraggingNode] = useState<string | null>(null)
   const dragStartRef = useRef({ x: 0, y: 0, nodeX: 0, nodeY: 0 })
+
+  // Direction F: multi-node drag — records per-node start positions
+  const [draggingMulti, setDraggingMulti] = useState(false)
+  const multiDragStartRef = useRef<{ mouseX: number; mouseY: number; nodeStarts: Record<string, { x: number; y: number }> }>({
+    mouseX: 0, mouseY: 0, nodeStarts: {},
+  })
 
   // Smooth transition flag for programmatic moves (fit-to-view, auto-pan)
   const [smoothTransition, setSmoothTransition] = useState(false)
@@ -97,25 +111,34 @@ export function useCanvasLayout(
     setCollapsedNodes(new Set())
   }, [])
 
-  // Compute default positions for all nodes (top-to-bottom layout, respects collapsed height)
+  // Compute default positions for all nodes — supports vertical and horizontal layouts
   const defaultPositions = useMemo(() => {
     if (!workflow) return {}
     const positions: Record<string, NodePosition> = {}
-    const startX = 0
-    let yOffset = 0
+    let offset = 0
     workflow.steps.forEach((step) => {
       const isCollapsed = collapsedNodes.has(step.id)
       const h = isCollapsed ? NODE_COLLAPSED_HEIGHT : NODE_MIN_HEIGHT
-      positions[step.id] = {
-        x: startX,
-        y: yOffset,
-        width: NODE_WIDTH,
-        height: h,
+      if (layoutDirection === 'horizontal') {
+        positions[step.id] = {
+          x: offset,
+          y: 0,
+          width: NODE_WIDTH,
+          height: h,
+        }
+        offset += NODE_WIDTH + (NODE_GAP_Y - NODE_MIN_HEIGHT)
+      } else {
+        positions[step.id] = {
+          x: 0,
+          y: offset,
+          width: NODE_WIDTH,
+          height: h,
+        }
+        offset += h + (NODE_GAP_Y - NODE_MIN_HEIGHT)
       }
-      yOffset += h + (NODE_GAP_Y - NODE_MIN_HEIGHT)
     })
     return positions
-  }, [workflow, collapsedNodes])
+  }, [workflow, collapsedNodes, layoutDirection])
 
   // Merged positions: default + custom overrides
   const nodePositions = useMemo(() => {
@@ -144,6 +167,7 @@ export function useCanvasLayout(
     setPanY(0)
     setCollapsedNodes(new Set())
     setFocusedNodeId(null)
+    setSelectedNodes(new Set())
   }, [workflow?.id])
 
   // Fit to view
@@ -184,6 +208,14 @@ export function useCanvasLayout(
       return () => clearTimeout(timer)
     }
   }, [workflow?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Direction E: toggle layout direction, clear custom positions, re-fit
+  const toggleLayoutDirection = useCallback(() => {
+    setCustomPositions({})
+    onPositionsChange?.({})
+    setLayoutDirection(prev => prev === 'vertical' ? 'horizontal' : 'vertical')
+    setTimeout(fitToView, 80)
+  }, [fitToView, onPositionsChange])
 
   // --- Auto-pan to active node during execution ---
   const autoPanToNode = useCallback((stepId: string) => {
@@ -273,6 +305,58 @@ export function useCanvasLayout(
     }
   }, [draggingNode, zoom, onPositionsChange])
 
+  // Direction F: multi-node drag
+  const handleMultiNodeDragStart = useCallback((ids: Set<string>, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const nodeStarts: Record<string, { x: number; y: number }> = {}
+    ids.forEach(id => {
+      const pos = nodePositions[id]
+      if (pos) nodeStarts[id] = { x: pos.x, y: pos.y }
+    })
+    multiDragStartRef.current = { mouseX: e.clientX, mouseY: e.clientY, nodeStarts }
+    setDraggingMulti(true)
+  }, [nodePositions])
+
+  useEffect(() => {
+    if (!draggingMulti) return
+    const handleMove = (e: MouseEvent) => {
+      const dx = (e.clientX - multiDragStartRef.current.mouseX) / zoom
+      const dy = (e.clientY - multiDragStartRef.current.mouseY) / zoom
+      setCustomPositions(prev => {
+        const next = { ...prev }
+        Object.entries(multiDragStartRef.current.nodeStarts).forEach(([id, start]) => {
+          next[id] = { x: start.x + dx, y: start.y + dy }
+        })
+        onPositionsChange?.(next)
+        return next
+      })
+    }
+    const handleUp = () => setDraggingMulti(false)
+    window.addEventListener('mousemove', handleMove)
+    window.addEventListener('mouseup', handleUp)
+    return () => {
+      window.removeEventListener('mousemove', handleMove)
+      window.removeEventListener('mouseup', handleUp)
+    }
+  }, [draggingMulti, zoom, onPositionsChange])
+
+  // Direction F: select node (single or add to selection with shift)
+  const selectNode = useCallback((id: string, addToSelection: boolean) => {
+    setSelectedNodes(prev => {
+      if (addToSelection) {
+        const next = new Set(prev)
+        if (next.has(id)) next.delete(id)
+        else next.add(id)
+        return next
+      }
+      return new Set([id])
+    })
+  }, [])
+
+  const clearSelection = useCallback(() => {
+    setSelectedNodes(new Set())
+  }, [])
+
   // --- Wheel zoom (toward cursor) — ctrlKey = trackpad pinch, else zoom ---
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault()
@@ -345,6 +429,7 @@ export function useCanvasLayout(
       else if (e.key === '-') { e.preventDefault(); zoomOut() }
       else if (e.key === '0') { e.preventDefault(); fitToView() }
       else if (e.key === 'm' || e.key === 'M') { setShowMinimap(v => !v) }
+      else if (e.key === 'l' || e.key === 'L') { e.preventDefault(); toggleLayoutDirection() }
       else if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
         if (!workflow || workflow.steps.length === 0) return
         e.preventDefault()
@@ -382,7 +467,7 @@ export function useCanvasLayout(
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [isHovered, zoomIn, zoomOut, fitToView, workflow, autoPanToNode])
+  }, [isHovered, zoomIn, zoomOut, fitToView, workflow, autoPanToNode, toggleLayoutDirection])
 
   // --- Reset layout: clear all custom positions and notify store ---
   const resetLayout = useCallback(() => {
@@ -404,6 +489,8 @@ export function useCanvasLayout(
     showMinimap,
     containerSize,
     focusedNodeId,
+    layoutDirection,
+    selectedNodes,
 
     // Actions
     fitToView,
@@ -414,11 +501,15 @@ export function useCanvasLayout(
     handleToggleCollapse,
     handleCanvasMouseDown,
     handleNodeDragStart,
+    handleMultiNodeDragStart,
     handleWheel,
     autoPanToNode,
     setIsHovered,
     setShowMinimap,
     setFocusedNodeId,
     resetLayout,
+    toggleLayoutDirection,
+    selectNode,
+    clearSelection,
   }
 }
