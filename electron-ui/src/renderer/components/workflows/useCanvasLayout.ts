@@ -284,12 +284,16 @@ export function useCanvasLayout(
     const handleMove = (e: MouseEvent) => {
       const dx = (e.clientX - dragStartRef.current.x) / zoom
       const dy = (e.clientY - dragStartRef.current.y) / zoom
+      const rawX = dragStartRef.current.nodeX + dx
+      const rawY = dragStartRef.current.nodeY + dy
+      // Shift 键临时禁用吸附
+      const snap = !e.shiftKey
       setCustomPositions(prev => {
         const next = {
           ...prev,
           [draggingNode]: {
-            x: dragStartRef.current.nodeX + dx,
-            y: dragStartRef.current.nodeY + dy,
+            x: snap ? Math.round(rawX / 20) * 20 : rawX,
+            y: snap ? Math.round(rawY / 20) * 20 : rawY,
           },
         }
         onPositionsChange?.(next)
@@ -325,7 +329,11 @@ export function useCanvasLayout(
       setCustomPositions(prev => {
         const next = { ...prev }
         Object.entries(multiDragStartRef.current.nodeStarts).forEach(([id, start]) => {
-          next[id] = { x: start.x + dx, y: start.y + dy }
+          const snap = !e.shiftKey
+          next[id] = {
+            x: snap ? Math.round((start.x + dx) / 20) * 20 : start.x + dx,
+            y: snap ? Math.round((start.y + dy) / 20) * 20 : start.y + dy,
+          }
         })
         onPositionsChange?.(next)
         return next
@@ -430,6 +438,8 @@ export function useCanvasLayout(
       else if (e.key === '0') { e.preventDefault(); fitToView() }
       else if (e.key === 'm' || e.key === 'M') { setShowMinimap(v => !v) }
       else if (e.key === 'l' || e.key === 'L') { e.preventDefault(); toggleLayoutDirection() }
+      else if (e.key === 'c' || e.key === 'C') { e.preventDefault(); handleCollapseAll() }
+      else if (e.key === 'e' || e.key === 'E') { e.preventDefault(); handleExpandAll() }
       else if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
         if (!workflow || workflow.steps.length === 0) return
         e.preventDefault()
@@ -467,7 +477,7 @@ export function useCanvasLayout(
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [isHovered, zoomIn, zoomOut, fitToView, workflow, autoPanToNode, toggleLayoutDirection])
+  }, [isHovered, zoomIn, zoomOut, fitToView, workflow, autoPanToNode, toggleLayoutDirection, handleCollapseAll, handleExpandAll])
 
   // --- Reset layout: clear all custom positions and notify store ---
   const resetLayout = useCallback(() => {

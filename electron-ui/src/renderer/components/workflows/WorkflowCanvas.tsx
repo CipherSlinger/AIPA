@@ -168,6 +168,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         finishedAt: Date.now(),
         stepOutputs: { ...execution.stepOutputs },
         stepDurations: { ...execution.stepDurations },
+        stepTitles: Object.fromEntries(workflow.steps.map(s => [s.id, s.title])),
         success,
       })
       executionStartedAtRef.current = null
@@ -185,6 +186,9 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
 
   // Sidebar open state
   const [sidebarStepId, setSidebarStepId] = useState<string | null>(null)
+
+  // D5: canvas right-click context menu
+  const [canvasCtxMenu, setCanvasCtxMenu] = useState<{ x: number; y: number } | null>(null)
 
   // 30s periodic agent summary during execution
   const [agentSummary, setAgentSummary] = useState<string | null>(null)
@@ -264,6 +268,21 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     setSidebarStepId(null)
   }, [])
 
+  // D5: close context menu on outside click
+  useEffect(() => {
+    if (!canvasCtxMenu) return
+    const close = () => setCanvasCtxMenu(null)
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [canvasCtxMenu])
+
+  // D6: keyboard focus → sidebar sync
+  useEffect(() => {
+    if (layout.focusedNodeId && workflow) {
+      handleNodeSelect(layout.focusedNodeId)
+    }
+  }, [layout.focusedNodeId])
+
   // --- Canvas mouse down: deselect + start pan ---
   const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return
@@ -315,6 +334,13 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     a.click()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }, [workflow, layout.nodePositions])
+
+  // D8: auto-pan to first search match
+  useEffect(() => {
+    if (!highlightStepIds || highlightStepIds.size === 0 || !workflow) return
+    const firstMatchId = workflow.steps.find(s => highlightStepIds.has(s.id))?.id
+    if (firstMatchId) layout.autoPanToNode(firstMatchId)
+  }, [highlightStepIds])
 
   // --- Empty state ---
   if (!workflow) {
@@ -386,6 +412,11 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
       onWheel={layout.handleWheel}
       onMouseEnter={() => layout.setIsHovered(true)}
       onMouseLeave={() => layout.setIsHovered(false)}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setCanvasCtxMenu({ x: e.clientX, y: e.clientY })
+      }}
     >
       {/* Execution progress bar */}
       <CanvasProgressBar
@@ -393,6 +424,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         totalSteps={execution.totalSteps}
         isRunning={execution.isRunning}
         startedAt={executionStartRef.current}
+        hasError={execution.hasError && !execution.isRunning}
       />
 
       {/* 30s agent summary banner during execution */}
@@ -521,6 +553,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                 from={fromPos}
                 to={toPos}
                 status={edgeStatus}
+                layoutDirection={layout.layoutDirection}
               />
             )
           })}
@@ -628,6 +661,54 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           onClear={clearHistory}
         />
       </div>
+
+      {/* Canvas context menu */}
+      {canvasCtxMenu && (
+        <div
+          style={{
+            position: 'fixed',
+            left: canvasCtxMenu.x,
+            top: canvasCtxMenu.y,
+            zIndex: 1000,
+            background: 'var(--bg-card, #1e1e1e)',
+            border: '1px solid var(--border)',
+            borderRadius: 6,
+            boxShadow: '0 6px 20px rgba(0,0,0,0.35)',
+            minWidth: 160,
+            padding: '3px 0',
+            userSelect: 'none',
+          }}
+          onMouseDown={e => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
+        >
+          {[
+            { label: '适配视图', action: layout.fitToView },
+            { label: '全部折叠', action: layout.handleCollapseAll },
+            { label: '全部展开', action: layout.handleExpandAll },
+            { label: layout.layoutDirection === 'vertical' ? '切换为横向布局' : '切换为纵向布局', action: layout.toggleLayoutDirection },
+            { label: '导出 JSON', action: handleExport },
+          ].map(({ label, action }) => (
+            <div
+              key={label}
+              style={{
+                display: 'flex', alignItems: 'center',
+                padding: '6px 12px',
+                fontSize: 11,
+                cursor: 'pointer',
+                color: 'var(--text)',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              onMouseDown={() => {
+                action()
+                setCanvasCtxMenu(null)
+              }}
+            >
+              {label}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* CSS animations for execution states */}
       <style>{`

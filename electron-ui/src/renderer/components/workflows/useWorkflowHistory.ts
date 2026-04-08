@@ -7,6 +7,7 @@ export interface WorkflowRun {
   finishedAt: number
   stepOutputs: Record<string, string>
   stepDurations: Record<string, number>
+  stepTitles?: Record<string, string>
   success: boolean
 }
 

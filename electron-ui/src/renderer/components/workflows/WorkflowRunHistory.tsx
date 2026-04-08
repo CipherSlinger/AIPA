@@ -53,7 +53,7 @@ function RunSummaryCard({ run }: { run: WorkflowRun }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {durations.map(([stepId, ms]) => {
             const pct = maxDuration > 0 ? (ms / maxDuration) * 100 : 0
-            const label = stepId.slice(0, 20)
+            const label = run.stepTitles?.[stepId] ?? stepId.slice(0, 20)
             return (
               <div key={stepId}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>

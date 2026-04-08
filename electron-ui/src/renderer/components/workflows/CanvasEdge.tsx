@@ -6,6 +6,7 @@ interface CanvasEdgeProps {
   from: { x: number; y: number; width: number; height: number }
   to: { x: number; y: number; width: number; height: number }
   status?: EdgeStatus
+  layoutDirection?: 'vertical' | 'horizontal'
 }
 
 function edgeColor(status: EdgeStatus): string {
@@ -14,15 +15,24 @@ function edgeColor(status: EdgeStatus): string {
   return 'var(--text-muted)'
 }
 
-export default function CanvasEdge({ from, to, status = 'idle' }: CanvasEdgeProps) {
-  const startX = from.x + from.width / 2
-  const startY = from.y + from.height
-  const endX = to.x + to.width / 2
-  const endY = to.y
+export default function CanvasEdge({ from, to, status = 'idle', layoutDirection = 'vertical' }: CanvasEdgeProps) {
+  let startX: number, startY: number, endX: number, endY: number, d: string
 
-  const midY = (startY + endY) / 2
-
-  const d = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`
+  if (layoutDirection === 'horizontal') {
+    startX = from.x + from.width
+    startY = from.y + from.height / 2
+    endX = to.x
+    endY = to.y + to.height / 2
+    const midX = (startX + endX) / 2
+    d = `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`
+  } else {
+    startX = from.x + from.width / 2
+    startY = from.y + from.height
+    endX = to.x + to.width / 2
+    endY = to.y
+    const midY = (startY + endY) / 2
+    d = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`
+  }
   const color = edgeColor(status)
   const markerId = `canvas-arrowhead-${status}`
 
