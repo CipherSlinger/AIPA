@@ -53,15 +53,19 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 - **Edit & regenerate** any message; pick a different model before regenerating
 - **Read Aloud** via Web Speech API; **Quote Reply** by selecting text
 - **Permission prompts** — friendly allow/deny cards before any destructive tool use
+- **Permission Suggestions** — permission cards include CLI-suggested "Always Allow (Rule)" / "Always Deny" quick-action buttons; one click creates a persistent permission rule without opening Settings
+- **Hook Callback Approval** — PreToolUse/PostToolUse hooks requiring human intervention show an inline approve/block card directly in the chat; optional reason textarea; response relayed to the CLI in real time
+- **MCP Elicitation** — when an MCP server requests user input, an inline card collects structured form data (schema-driven fields or free-text) or opens a browser URL flow; submit/decline/cancel responses are relayed back to the MCP server
 - **System Diagnostics** — one-click health checks for CLI, API key, network, disk space, and system load
 - **Startup Protection** — IPC pre-registration eliminates race conditions, non-blocking menu construction, 10s hard splash timeout, renderer error recovery, preferences reset for bulletproof launches
 
 ### Input Power Tools
-- **Slash commands** (`/`), **@mention** file picker
+- **Slash commands** (`/`) with client-side commands: `/vim` toggle Vim editing, `/fast` switch to Haiku fast model, `/output-style` cycle response style, `/statusline` toggle status bar; **@mention** file picker
 - **Text snippets** — `::keyword` expands reusable blocks
 - **Text transforms** — make formal, casual, shorter, longer, or fix grammar with one click
 - **Inline calculator** — type `= 42 * 1.18`, press Tab to insert the result
 - **Task queue** — queue multiple prompts for sequential auto-execution
+- **Vim Modal Editing** — activate with `/vim`; Vim-style insert/normal mode in the input field; motion keys `h/j/k/l`, word jump `w/b`, line `0/$`, delete `x`/`dd`, undo `u`, insert/append `i`/`a`/`I`/`A`; NORMAL/INSERT mode badge shown in the input area
 
 ### Session Management
 - Browse, search, tag, pin, and bulk-delete past sessions
@@ -121,6 +125,8 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 - **Hooks Configuration** — Settings → Hooks tab to visually manage all Claude Code CLI hooks (28 event types: PreToolUse, PostToolUse, Stop, etc.); multi-step add wizard supporting command/prompt/HTTP hook types; live hook execution progress shown in the chat panel
 - **MCP Server Manager** — Settings → MCP tab for full MCP server management (stdio/http/sse); add/delete/reconnect servers; expand tool lists per server; tool-use blocks auto-badge MCP-sourced tools with `[serverName]`
 - **Tool Access Control** — Settings → Advanced tab with 4 preset modes (All Tools / Read Only / No Network / Analysis Only); per-tool checkboxes grouped by category; disabled tools injected via `--disallowedTools`
+- **Hook Callback Approval** — PreToolUse/PostToolUse hooks requiring human intervention show an inline approve/block card directly in the chat; optional reason textarea; response relayed to the CLI in real time
+- **MCP Elicitation** — when an MCP server requests user input, an inline card collects structured form data (schema-driven fields or free-text) or opens a browser URL flow; submit/decline/cancel responses are relayed back to the MCP server
 
 ### System Tray & Global Access
 - Minimize to system tray — AIPA stays ready in the background
