@@ -488,7 +488,7 @@ export default function WorkflowDetailPage() {
         </div>
 
         {/* Canvas area */}
-        <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
+        <div style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
           <Suspense fallback={
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', fontSize: 12 }}>
               {t('workflow.loadingCanvas')}

@@ -376,6 +376,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
       ref={containerRef}
       style={{
         flex: 1,
+        height: '100%',
         position: 'relative',
         overflow: 'hidden',
         cursor,
