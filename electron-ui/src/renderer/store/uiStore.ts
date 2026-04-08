@@ -75,6 +75,10 @@ interface UiState {
   incrementUnreadForSession: (sessionId: string) => void
   clearUnreadForSession: (sessionId: string) => void
   clearUnreadSessions: () => void
+
+  // Status bar visibility toggle (/statusline slash command)
+  showStatusBar: boolean
+  toggleStatusBar: () => void
 }
 
 // Restore last sidebar tab from localStorage
@@ -206,4 +210,8 @@ export const useUiStore = create<UiState>((set) => ({
     return { unreadCounts: updated, unreadSessionCount: total }
   }),
   clearUnreadSessions: () => set({ unreadCounts: {}, unreadSessionCount: 0 }),
+
+  // Status bar visibility
+  showStatusBar: true,
+  toggleStatusBar: () => set((s) => ({ showStatusBar: !s.showStatusBar })),
 }))

@@ -60,6 +60,31 @@ export interface PermissionMessage {
   toolInput: Record<string, unknown>
   decision: 'pending' | 'allowed' | 'denied'
   timestamp: number
+  permissionSuggestions?: unknown[]  // CLI-suggested rules (PermissionUpdate[])
+}
+
+export interface HookCallbackMessage {
+  id: string
+  role: 'hook_callback'
+  requestId: string
+  callbackId: string
+  hookInput: Record<string, unknown>
+  toolUseId?: string
+  decision: 'pending' | 'approved' | 'blocked'
+  timestamp: number
+}
+
+export interface ElicitationMessage {
+  id: string
+  role: 'elicitation'
+  requestId: string
+  serverName: string
+  message: string
+  mode: 'form' | 'url'
+  url?: string
+  requestedSchema?: Record<string, unknown>
+  decision: 'pending' | 'accepted' | 'declined' | 'cancelled'
+  timestamp: number
 }
 
 export interface PlanMessage {
@@ -70,7 +95,7 @@ export interface PlanMessage {
   timestamp: number
 }
 
-export type ChatMessage = StandardChatMessage | PermissionMessage | PlanMessage
+export type ChatMessage = StandardChatMessage | PermissionMessage | PlanMessage | HookCallbackMessage | ElicitationMessage
 
 export interface FileEntry {
   name: string

@@ -66,7 +66,7 @@ export default function ChatPanel() {
     }
   }, [activeTabId, currentSessionTitle, updateTabTitle])
 
-  const { sendMessage, abort, respondPermission, grantToolPermission, alwaysAllowTool, alwaysDenyTool, newConversation } = useStreamJson()
+  const { sendMessage, abort, respondPermission, respondHookCallback, respondElicitation, grantToolPermission, alwaysAllowTool, alwaysDenyTool, newConversation } = useStreamJson()
 
   // Extracted hooks
   const { elapsedStr } = useStreamingTimer(isStreaming)
@@ -437,13 +437,13 @@ export default function ChatPanel() {
               color: 'inherit',
               opacity: 0.6,
               padding: '2px 4px',
-              fontSize: 14,
-              lineHeight: 1,
+              display: 'flex',
+              alignItems: 'center',
               flexShrink: 0,
             }}
             title={t('error.dismiss')}
           >
-            x
+            <X size={13} />
           </button>
         </div>
       )}
@@ -465,6 +465,8 @@ export default function ChatPanel() {
             onGrantPermission={grantToolPermission}
             onAlwaysAllow={alwaysAllowTool}
             onAlwaysDeny={alwaysDenyTool}
+            onRespondHookCallback={respondHookCallback}
+            onRespondElicitation={respondElicitation}
             sessionId={currentSessionId}
             isStreaming={isStreaming}
             searchQuery={searchQuery}

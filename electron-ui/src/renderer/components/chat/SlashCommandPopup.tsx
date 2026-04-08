@@ -1,5 +1,5 @@
 import React from 'react'
-import { Trash2, Archive, HelpCircle, Minus } from 'lucide-react'
+import { Trash2, Archive, HelpCircle, Minus, Terminal, Zap, FileText, LayoutList } from 'lucide-react'
 import { useT } from '../../i18n'
 
 export interface SlashCommand {
@@ -14,6 +14,10 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { name: '/compact', description: 'Compact conversation history to reduce tokens', descriptionKey: 'command.compactDesc', icon: Archive },
   { name: '/clear', description: 'Clear current conversation (client-only)', descriptionKey: 'command.clearConversationDesc', icon: Trash2, clientOnly: true },
   { name: '/help', description: 'Show available commands', descriptionKey: 'command.showHelpDesc', icon: HelpCircle, clientOnly: true },
+  { name: '/vim', description: 'Toggle Vim input mode', icon: Terminal, clientOnly: true },
+  { name: '/fast', description: 'Toggle fast model (Haiku)', icon: Zap, clientOnly: true },
+  { name: '/output-style', description: 'Cycle output style: default → explanatory → learning', icon: FileText, clientOnly: true },
+  { name: '/statusline', description: 'Show/hide status bar', icon: LayoutList, clientOnly: true },
 ]
 
 interface Props {

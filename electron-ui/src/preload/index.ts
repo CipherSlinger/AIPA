@@ -23,6 +23,14 @@ const electronAPI = {
     ipcRenderer.invoke('cli:generateSuggestion', { context }) as Promise<string>,
   cliGenerateAwaySummary: (context: string) =>
     ipcRenderer.invoke('cli:generateAwaySummary', { context }) as Promise<string>,
+  cliRespondHookCallback: (args: { sessionId: string; requestId: string; response: Record<string, unknown> }) =>
+    ipcRenderer.invoke('cli:respondHookCallback', args),
+  cliRespondElicitation: (args: { sessionId: string; requestId: string; result: Record<string, unknown> }) =>
+    ipcRenderer.invoke('cli:respondElicitation', args),
+  cliCancelRequest: (args: { sessionId: string; requestId: string }) =>
+    ipcRenderer.invoke('cli:cancelRequest', args),
+  cliUpdateEnv: (args: { sessionId: string; vars: Record<string, string> }) =>
+    ipcRenderer.invoke('cli:updateEnv', args),
 
   // ── Speculation ───────────────────────────
   speculationIsSafe: (prompt: string) =>
@@ -116,6 +124,8 @@ const electronAPI = {
       'cli:error', 'cli:processExit',
       'cli:permissionRequest',
       'cli:hookEvent',
+      'cli:hookCallback',
+      'cli:elicitation',
     ]
     const handlers = channels.map((ch) => {
       const h = (_: unknown, d: Record<string, unknown>) => {

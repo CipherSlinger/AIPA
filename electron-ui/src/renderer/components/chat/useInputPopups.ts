@@ -178,8 +178,9 @@ export function useInputPopups({
       setSlashQuery(null)
       setInput('')
       if (cmd.clientOnly) {
-        if (cmd.name === '/clear') onNewConversation()
-        else if (cmd.name === '/help') {
+        if (cmd.name === '/clear') {
+          onNewConversation()
+        } else if (cmd.name === '/help') {
           useChatStore.getState().addMessage({
             id: `help-${Date.now()}`,
             role: 'assistant',
@@ -188,6 +189,31 @@ export function useInputPopups({
               SLASH_COMMANDS.map((c) => `- \`${c.name}\` — ${c.description}`).join('\n'),
             timestamp: Date.now(),
           } as any)
+        } else if (cmd.name === '/vim') {
+          const current = usePrefsStore.getState().prefs.vimMode as boolean | undefined
+          const next = !current
+          usePrefsStore.getState().setPrefs({ vimMode: next } as any)
+          window.electronAPI?.prefsSet('vimMode', next)
+          useUiStore.getState().addToast('success', next ? 'Vim mode enabled' : 'Vim mode disabled')
+        } else if (cmd.name === '/fast') {
+          const currentModel = usePrefsStore.getState().prefs.model || ''
+          const isHaiku = currentModel.includes('haiku')
+          const nextModel = isHaiku ? 'claude-sonnet-4-6' : 'claude-haiku-4-5-20251001'
+          usePrefsStore.getState().setPrefs({ model: nextModel })
+          window.electronAPI?.prefsSet('model', nextModel)
+          useUiStore.getState().addToast('success', `Model: ${nextModel}`)
+        } else if (cmd.name === '/output-style') {
+          const styles: Array<'default' | 'explanatory' | 'learning'> = ['default', 'explanatory', 'learning']
+          const current = usePrefsStore.getState().prefs.outputStyle || 'default'
+          const idx = styles.indexOf(current as any)
+          const next = styles[(idx + 1) % styles.length]
+          usePrefsStore.getState().setPrefs({ outputStyle: next })
+          window.electronAPI?.prefsSet('outputStyle', next)
+          useUiStore.getState().addToast('success', `Output style: ${next}`)
+        } else if (cmd.name === '/statusline') {
+          useUiStore.getState().toggleStatusBar()
+          const show = useUiStore.getState().showStatusBar
+          useUiStore.getState().addToast('success', show ? 'Status bar shown' : 'Status bar hidden')
         }
         return
       }

@@ -21,6 +21,7 @@ export interface CliSendMessageArgs {
 export class StreamBridge extends EventEmitter {
   private proc: ChildProcess | null = null
   private bridgeSessionId: string
+  private keepAliveTimer: NodeJS.Timeout | null = null
 
   constructor(bridgeSessionId: string) {
     super()
@@ -67,6 +68,12 @@ export class StreamBridge extends EventEmitter {
       })
     }
     // session mode: return immediately, CLI stays alive
+    // Start keep-alive ping every 25s to prevent stdin from being GC'd
+    this.keepAliveTimer = setInterval(() => {
+      if (this.proc?.stdin) {
+        try { this.proc.stdin.write('{"type":"keep_alive"}\n') } catch { /* ignore */ }
+      }
+    }, 25000)
   }
 
   private _writeUserMessage(prompt: string, sessionId?: string): void {
@@ -118,6 +125,7 @@ export class StreamBridge extends EventEmitter {
   }
 
   endSession(): void {
+    if (this.keepAliveTimer) { clearInterval(this.keepAliveTimer); this.keepAliveTimer = null }
     if (this.proc?.stdin) {
       try { this.proc.stdin.end() } catch (err) {
         log.warn('Failed to end stdin (process may already be dead):', String(err))
@@ -223,6 +231,25 @@ export class StreamBridge extends EventEmitter {
             toolInput: (req.input ?? {}) as Record<string, unknown>,
             title: (req.title as string) || undefined,
             description: (req.description as string) || undefined,
+            permissionSuggestions: (req.permission_suggestions ?? []) as unknown[],
+          })
+        } else if (subtype === 'hook_callback') {
+          this.emit('hookCallback', {
+            sessionId: this.bridgeSessionId,
+            requestId: (event.request_id as string) || '',
+            callbackId: (req.callback_id as string) || '',
+            hookInput: (req.input ?? {}) as Record<string, unknown>,
+            toolUseId: (req.tool_use_id as string) || undefined,
+          })
+        } else if (subtype === 'elicitation') {
+          this.emit('mcpElicitation', {
+            sessionId: this.bridgeSessionId,
+            requestId: (event.request_id as string) || '',
+            serverName: (req.mcp_server_name as string) || '',
+            message: (req.message as string) || '',
+            mode: (req.mode as 'form' | 'url') || 'form',
+            url: req.url as string | undefined,
+            requestedSchema: req.requested_schema as Record<string, unknown> | undefined,
           })
         }
         break
@@ -245,7 +272,48 @@ export class StreamBridge extends EventEmitter {
     }
   }
 
+  respondHookCallback(requestId: string, response: Record<string, unknown>): void {
+    if (!this.proc?.stdin) return
+    const msg = JSON.stringify({
+      type: 'control_response',
+      response: {
+        subtype: 'success',
+        request_id: requestId,
+        response,
+      },
+    }) + '\n'
+    this.proc.stdin.write(msg)
+  }
+
+  respondElicitation(requestId: string, result: Record<string, unknown>): void {
+    if (!this.proc?.stdin) return
+    const msg = JSON.stringify({
+      type: 'control_response',
+      response: {
+        subtype: 'success',
+        request_id: requestId,
+        response: result,
+      },
+    }) + '\n'
+    this.proc.stdin.write(msg)
+  }
+
+  cancelRequest(requestId: string): void {
+    if (!this.proc?.stdin) return
+    try {
+      this.proc.stdin.write(JSON.stringify({ type: 'control_cancel_request', request_id: requestId }) + '\n')
+    } catch { /* ignore if already closed */ }
+  }
+
+  updateEnv(vars: Record<string, string>): void {
+    if (!this.proc?.stdin) return
+    try {
+      this.proc.stdin.write(JSON.stringify({ type: 'update_environment_variables', variables: vars }) + '\n')
+    } catch { /* ignore if already closed */ }
+  }
+
   abort(): void {
+    if (this.keepAliveTimer) { clearInterval(this.keepAliveTimer); this.keepAliveTimer = null }
     if (this.proc) {
       try { this.proc.kill('SIGTERM') } catch (err) {
         log.debug('Kill failed (process may have already exited):', String(err))

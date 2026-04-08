@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import ReactDOM from 'react-dom'
 import { ToolUseInfo } from '../../types/app.types'
-import { ChevronDown, ChevronRight, Terminal, FileEdit, Search, Globe, Loader2, Check, X, Timer, ClipboardCopy, FileCode, FileText, Image, FileType, Palette } from 'lucide-react'
+import { ChevronDown, ChevronRight, Terminal, FileEdit, Search, Globe, Loader2, Check, X, Timer, ClipboardCopy, FileCode, FileText, Image, FileType, Palette, GitBranch, Clock, StopCircle, BookOpen, MessageSquare, Server, Network } from 'lucide-react'
 import { useT } from '../../i18n'
 import DiffView from './DiffView'
 import { generateToolSummary } from '../../utils/toolSummary'
@@ -27,6 +27,32 @@ const TOOL_ICONS: Record<string, React.ElementType> = {
   Grep: Search,
   WebFetch: Globe,
   WebSearch: Globe,
+  web_fetch: Globe,
+  // Worktree
+  EnterWorktree: GitBranch,
+  ExitWorktree: GitBranch,
+  // Scheduling / time
+  CronCreate: Clock,
+  CronDelete: Clock,
+  CronList: Clock,
+  Sleep: Clock,
+  // Task management
+  TaskCreate: FileText,
+  TaskGet: FileText,
+  TaskList: FileText,
+  TaskUpdate: FileText,
+  TaskStop: StopCircle,
+  // Notebooks
+  NotebookEdit: BookOpen,
+  // User interaction
+  AskUserQuestion: MessageSquare,
+  Brief: FileText,
+  // MCP resource tools
+  ListMcpResources: Server,
+  ReadMcpResource: Server,
+  // Agent / workflow
+  Agent: Network,
+  Workflow: Network,
 }
 
 // File extension to icon mapping for more specific file type icons (Iteration 462)

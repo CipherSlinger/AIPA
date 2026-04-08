@@ -37,6 +37,7 @@ import { StandardChatMessage } from '../../types/app.types'
 import { matchesKeepGoingKeyword, matchesNegativeKeyword } from '../../hooks/usePromptKeywords'
 import { useDoublePress } from '../../hooks/useDoublePress'
 import { normalizeFullWidthDigits, normalizeFullWidthSpace } from '../../utils/stringUtils'
+import { useVimMode } from '../../hooks/useVimMode'
 
 interface ChatInputProps {
   isStreaming: boolean
@@ -275,6 +276,10 @@ export default function ChatInput({
     handleSend, resizeTextarea,
   })
 
+  // Vim modal editing (Iteration 532)
+  const vimEnabled = !!(prefs as any).vimMode
+  const vim = useVimMode({ enabled: vimEnabled, textareaRef, setInput })
+
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     // Normalize full-width CJK digits/spaces to ASCII equivalents (sourcemap stringUtils)
     let val = normalizeFullWidthDigits(e.target.value)
@@ -466,8 +471,8 @@ export default function ChatInput({
               value={input}
               onChange={handleInputChange}
               onKeyDown={(e) => {
-                if (e.key === 'Escape' && !input.trim()) handleDoubleEscape()
-                handleKeyDown(e)
+                if (e.key === 'Escape' && !input.trim() && !vimEnabled) handleDoubleEscape()
+                vim.wrapKeyDown(e, handleKeyDown)
               }}
               onPaste={paste.handleTextPaste}
               onDragOver={(e) => {
@@ -505,6 +510,25 @@ export default function ChatInput({
           </div>
           {/* Character & word counter */}
           <CharWordCounter input={input} />
+          {/* Vim mode indicator */}
+          {vimEnabled && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 2 }}>
+              <span style={{
+                fontSize: 9,
+                fontWeight: 700,
+                letterSpacing: 0.8,
+                padding: '1px 6px',
+                borderRadius: 3,
+                background: vim.mode === 'normal' ? 'var(--accent)' : 'rgba(255,255,255,0.08)',
+                color: vim.mode === 'normal' ? '#fff' : 'var(--text-muted)',
+                textTransform: 'uppercase',
+                transition: 'background 0.15s ease, color 0.15s ease',
+                userSelect: 'none',
+              }}>
+                {vim.mode === 'normal' ? 'NORMAL' : 'INSERT'}
+              </span>
+            </div>
+          )}
         </div>
         {/* Send / Stop button with progress ring */}
         <ChatInputSendButton

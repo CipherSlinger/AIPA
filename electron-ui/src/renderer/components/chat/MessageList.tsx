@@ -1,10 +1,12 @@
 import React, { useEffect, useCallback, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { ChatMessage, StandardChatMessage } from '../../types/app.types'
+import { ChatMessage, StandardChatMessage, HookCallbackMessage, ElicitationMessage } from '../../types/app.types'
 import Message from './Message'
 import MessageErrorBoundary from './MessageErrorBoundary'
 import PermissionCard from './PermissionCard'
 import PlanCard from './PlanCard'
+import { HookCallbackCard } from './HookCallbackCard'
+import { ElicitationCard } from './ElicitationCard'
 import PinnedMessagesStrip from './PinnedMessagesStrip'
 import VirtualSeparatorRow from './VirtualSeparatorRow'
 import RewindDialog from './RewindDialog'
@@ -23,6 +25,8 @@ interface Props {
   onGrantPermission: (permissionId: string, toolName: string) => void
   onAlwaysAllow?: (toolName: string, toolInput: Record<string, unknown>) => void
   onAlwaysDeny?: (toolName: string, toolInput: Record<string, unknown>) => void
+  onRespondHookCallback?: (requestId: string, response: Record<string, unknown>) => void
+  onRespondElicitation?: (requestId: string, result: Record<string, unknown>) => void
   sessionId?: string | null
   isStreaming?: boolean
   searchQuery?: string
@@ -33,7 +37,7 @@ interface Props {
   onFork?: (msgIdx: number) => void
 }
 
-export default function MessageList({ messages, onPermission, onGrantPermission, onAlwaysAllow, onAlwaysDeny, sessionId, isStreaming, searchQuery, searchCaseSensitive, highlightedMessageIdx, scrollToMessageIdx, onEdit, onFork }: Props) {
+export default function MessageList({ messages, onPermission, onGrantPermission, onAlwaysAllow, onAlwaysDeny, onRespondHookCallback, onRespondElicitation, sessionId, isStreaming, searchQuery, searchCaseSensitive, highlightedMessageIdx, scrollToMessageIdx, onEdit, onFork }: Props) {
   const resolvePlan = useChatStore(s => s.resolvePlan)
   const rateMessage = useChatStore(s => s.rateMessage)
   const toggleBookmark = useChatStore(s => s.toggleBookmark)
@@ -124,6 +128,22 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
         />
       )
     }
+    if (msg.role === 'hook_callback') {
+      return (
+        <HookCallbackCard
+          message={msg as HookCallbackMessage}
+          onRespond={onRespondHookCallback || (() => {})}
+        />
+      )
+    }
+    if (msg.role === 'elicitation') {
+      return (
+        <ElicitationCard
+          message={msg as ElicitationMessage}
+          onRespond={onRespondElicitation || (() => {})}
+        />
+      )
+    }
     const showAvatar = showAvatarMap.get(msgIdx) ?? true
     const showTimestamp = showTimestampMap.get(msgIdx) ?? true
     // STABILITY (Iteration 308): Per-message ErrorBoundary isolates render failures.
@@ -148,10 +168,10 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
         onBookmark={(msgId) => toggleBookmark(msgId)}
         onCollapse={(msgId) => toggleCollapse(msgId)}
         onEdit={onEdit}
-        onFork={onFork && msg.role !== 'permission' && msg.role !== 'plan' ? () => setForkTarget({ msgIdx }) : undefined}
+        onFork={onFork && msg.role !== 'permission' && msg.role !== 'plan' && msg.role !== 'hook_callback' && msg.role !== 'elicitation' ? () => setForkTarget({ msgIdx }) : undefined}
         onRewind={sessionId ? (ts) => {
           // Find the message index by timestamp to calculate how many messages will be removed
-          const msgIndex = messages.findIndex(m => m.role !== 'permission' && m.role !== 'plan' && (m as StandardChatMessage).timestamp === ts)
+          const msgIndex = messages.findIndex(m => m.role !== 'permission' && m.role !== 'plan' && m.role !== 'hook_callback' && m.role !== 'elicitation' && (m as StandardChatMessage).timestamp === ts)
           if (msgIndex < 0) return
           const count = messages.length - msgIndex - 1
           if (count <= 0) return
@@ -160,7 +180,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       />
       </MessageErrorBoundary>
     )
-  }, [onPermission, onGrantPermission, onAlwaysAllow, onAlwaysDeny, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery, searchCaseSensitive, showAvatarMap, showTimestampMap, onEdit, onFork, setForkTarget, t, lastUserMsgId, assistantReplyMap, messages])
+  }, [onPermission, onGrantPermission, onAlwaysAllow, onAlwaysDeny, onRespondHookCallback, onRespondElicitation, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery, searchCaseSensitive, showAvatarMap, showTimestampMap, onEdit, onFork, setForkTarget, t, lastUserMsgId, assistantReplyMap, messages])
 
   return (
     <div style={{ height: '100%', position: 'relative', display: 'flex', flexDirection: 'column' }}>

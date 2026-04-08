@@ -214,6 +214,8 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
       const w = BrowserWindow.getAllWindows()[0]
       if (w && !w.isDestroyed()) w.webContents.send('cli:hookEvent', d)
     })
+    bridge.on('hookCallback', (d) => send('cli:hookCallback', d))
+    bridge.on('mcpElicitation', (d) => send('cli:elicitation', d))
 
     // Inject API key from prefs if not in env
     if (!args.env?.ANTHROPIC_API_KEY) {
@@ -252,6 +254,26 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
       bridge.endSession()
       // don't delete from manager yet -- processExit event will fire and clean up
     }
+  })
+
+  ipcMain.handle('cli:respondHookCallback', (_e, { sessionId, requestId, response }: { sessionId: string; requestId: string; response: Record<string, unknown> }) => {
+    const bridge = streamBridgeManager.get(sessionId)
+    if (bridge) bridge.respondHookCallback(requestId, response)
+  })
+
+  ipcMain.handle('cli:respondElicitation', (_e, { sessionId, requestId, result }: { sessionId: string; requestId: string; result: Record<string, unknown> }) => {
+    const bridge = streamBridgeManager.get(sessionId)
+    if (bridge) bridge.respondElicitation(requestId, result)
+  })
+
+  ipcMain.handle('cli:cancelRequest', (_e, { sessionId, requestId }: { sessionId: string; requestId: string }) => {
+    const bridge = streamBridgeManager.get(sessionId)
+    if (bridge) bridge.cancelRequest(requestId)
+  })
+
+  ipcMain.handle('cli:updateEnv', (_e, { sessionId, vars }: { sessionId: string; vars: Record<string, string> }) => {
+    const bridge = streamBridgeManager.get(sessionId)
+    if (bridge) bridge.updateEnv(vars)
   })
 }
 

@@ -414,6 +414,24 @@ nav[aria-label="Main navigation"]::-webkit-scrollbar {
   animation: popup-in 0.2s ease-out, permission-glow 2s ease-in-out 0.2s infinite;
 }
 
+/* Hook callback card animations */
+.hook-card-enter {
+  animation: popup-in 0.2s ease-out;
+}
+
+.hook-card-pending {
+  animation: popup-in 0.2s ease-out, permission-glow 2s ease-in-out 0.2s infinite;
+}
+
+/* Elicitation card animations */
+.elicitation-card-enter {
+  animation: popup-in 0.2s ease-out;
+}
+
+.elicitation-card-pending {
+  animation: popup-in 0.2s ease-out, permission-glow 2s ease-in-out 0.2s infinite;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .message-enter,
@@ -427,6 +445,10 @@ nav[aria-label="Main navigation"]::-webkit-scrollbar {
   .onboard-icon,
   .permission-card-enter,
   .permission-card-pending,
+  .hook-card-enter,
+  .hook-card-pending,
+  .elicitation-card-enter,
+  .elicitation-card-pending,
   .streaming-cursor {
     animation: none !important;
     transition: none !important;

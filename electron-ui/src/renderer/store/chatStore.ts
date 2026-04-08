@@ -1,7 +1,7 @@
 // Chat store — extracted from store/index.ts (Iteration 440)
 // Tab support added in Iteration 515
 import { create } from 'zustand'
-import { ChatMessage, PermissionMessage, PlanMessage, StandardChatMessage } from '../types/app.types'
+import { ChatMessage, ElicitationMessage, HookCallbackMessage, PermissionMessage, PlanMessage, StandardChatMessage } from '../types/app.types'
 
 // ── Task Queue types ─────────────────────────────
 export interface TaskQueueItem {
@@ -129,6 +129,11 @@ interface ChatState {
   addPermissionRequest: (msg: PermissionMessage) => void
   resolvePermission: (permissionId: string, decision: 'allowed' | 'denied') => void
   denyPendingPermissions: () => void
+  addHookCallback: (msg: HookCallbackMessage) => void
+  resolveHookCallback: (requestId: string, decision: 'approved' | 'blocked') => void
+  addElicitation: (msg: ElicitationMessage) => void
+  resolveElicitation: (requestId: string, decision: 'accepted' | 'declined' | 'cancelled') => void
+  cancelPendingInteractiveMessages: () => void
   addPlanMessage: (msg: PlanMessage) => void
   resolvePlan: (planId: string, decision: 'accepted' | 'rejected') => void
   rateMessage: (msgId: string, rating: 'up' | 'down' | null) => void
@@ -266,7 +271,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
     set((s) => {
       const msgs = s.messages.map((m) => {
-        if (m.role !== 'permission' && m.role !== 'plan' && (m as StandardChatMessage).isStreaming) {
+        if (m.role !== 'permission' && m.role !== 'plan' && m.role !== 'hook_callback' && m.role !== 'elicitation' && (m as StandardChatMessage).isStreaming) {
           const std = m as StandardChatMessage
           // Finalize: join chunks into content and clean up internal fields
           const finalContent = std._contentChunks ? std._contentChunks.join('') : std.content
@@ -386,6 +391,41 @@ export const useChatStore = create<ChatState>((set, get) => ({
       ),
     })),
 
+  addHookCallback: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
+
+  resolveHookCallback: (requestId, decision) =>
+    set((s) => ({
+      messages: s.messages.map((m) =>
+        m.role === 'hook_callback' && (m as HookCallbackMessage).requestId === requestId
+          ? { ...m, decision }
+          : m
+      ),
+    })),
+
+  addElicitation: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
+
+  resolveElicitation: (requestId, decision) =>
+    set((s) => ({
+      messages: s.messages.map((m) =>
+        m.role === 'elicitation' && (m as ElicitationMessage).requestId === requestId
+          ? { ...m, decision }
+          : m
+      ),
+    })),
+
+  cancelPendingInteractiveMessages: () =>
+    set((s) => ({
+      messages: s.messages.map((m) => {
+        if (m.role === 'hook_callback' && (m as HookCallbackMessage).decision === 'pending') {
+          return { ...m, decision: 'blocked' as const }
+        }
+        if (m.role === 'elicitation' && (m as ElicitationMessage).decision === 'pending') {
+          return { ...m, decision: 'cancelled' as const }
+        }
+        return m
+      }),
+    })),
+
   addPlanMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
 
   resolvePlan: (planId, decision) =>
@@ -424,11 +464,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
   })),
 
   collapseAll: () => set((s) => ({
-    messages: s.messages.map(m => m.role !== 'permission' && m.role !== 'plan' ? { ...m, collapsed: true } as StandardChatMessage : m)
+    messages: s.messages.map(m => m.role !== 'permission' && m.role !== 'plan' && m.role !== 'hook_callback' && m.role !== 'elicitation' ? { ...m, collapsed: true } as StandardChatMessage : m)
   })),
 
   expandAll: () => set((s) => ({
-    messages: s.messages.map(m => m.role !== 'permission' && m.role !== 'plan' ? { ...m, collapsed: false } as StandardChatMessage : m)
+    messages: s.messages.map(m => m.role !== 'permission' && m.role !== 'plan' && m.role !== 'hook_callback' && m.role !== 'elicitation' ? { ...m, collapsed: false } as StandardChatMessage : m)
   })),
 
   // ── Task Queue actions ──────────────────────────

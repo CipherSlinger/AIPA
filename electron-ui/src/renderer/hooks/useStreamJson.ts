@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useChatStore, usePrefsStore, useSessionStore } from '../store'
-import { PermissionMessage, PlanMessage, StandardChatMessage, PromptHistoryItem } from '../types/app.types'
+import { ElicitationMessage, HookCallbackMessage, PermissionMessage, PlanMessage, StandardChatMessage, PromptHistoryItem } from '../types/app.types'
 import { useUiStore } from '../store'
 import { useT } from '../i18n'
 import { resolveProvider, sendCompletionNotification, playCompletionSound, getActiveApiKey, rotateApiKey } from './streamJsonUtils'
@@ -20,6 +20,11 @@ export function useStreamJson() {
   const addPermissionRequest = useChatStore(s => s.addPermissionRequest)
   const resolvePermission = useChatStore(s => s.resolvePermission)
   const denyPendingPermissions = useChatStore(s => s.denyPendingPermissions)
+  const addHookCallback = useChatStore(s => s.addHookCallback)
+  const resolveHookCallback = useChatStore(s => s.resolveHookCallback)
+  const addElicitation = useChatStore(s => s.addElicitation)
+  const resolveElicitation = useChatStore(s => s.resolveElicitation)
+  const cancelPendingInteractiveMessages = useChatStore(s => s.cancelPendingInteractiveMessages)
   const setLastUsage = useChatStore(s => s.setLastUsage)
   const addPlanMessage = useChatStore(s => s.addPlanMessage)
   const setLastCost = useChatStore(s => s.setLastCost)
@@ -303,9 +308,20 @@ Keep exercises focused and achievable. The goal is active learning through doing
     const sid = activeBridgeIdRef.current
     if (sid) {
       window.electronAPI.cliAbort(sid)
+      // Cancel any pending interactive messages (hook_callback, elicitation)
+      const msgs = useChatStore.getState().messages
+      msgs.forEach((m) => {
+        if (m.role === 'hook_callback' && (m as HookCallbackMessage).decision === 'pending') {
+          window.electronAPI.cliCancelRequest({ sessionId: sid, requestId: (m as HookCallbackMessage).requestId })
+        }
+        if (m.role === 'elicitation' && (m as ElicitationMessage).decision === 'pending') {
+          window.electronAPI.cliCancelRequest({ sessionId: sid, requestId: (m as ElicitationMessage).requestId })
+        }
+      })
       activeBridgeIdRef.current = null
     }
     denyPendingPermissions()
+    cancelPendingInteractiveMessages()
     stopStreamingAndReleaseSleep()
   }
 
@@ -314,6 +330,22 @@ Keep exercises focused and achievable. The goal is active learning through doing
     if (!bridgeId) return
     window.electronAPI.cliRespondPermission({ sessionId: bridgeId, requestId: permissionId, allowed })
     resolvePermission(permissionId, allowed ? 'allowed' : 'denied')
+  }
+
+  const respondHookCallback = (requestId: string, response: Record<string, unknown>) => {
+    const bridgeId = activeBridgeIdRef.current
+    if (!bridgeId) return
+    window.electronAPI.cliRespondHookCallback({ sessionId: bridgeId, requestId, response })
+    resolveHookCallback(requestId, response.decision === 'approve' ? 'approved' : 'blocked')
+  }
+
+  const respondElicitation = (requestId: string, result: Record<string, unknown>) => {
+    const bridgeId = activeBridgeIdRef.current
+    if (!bridgeId) return
+    window.electronAPI.cliRespondElicitation({ sessionId: bridgeId, requestId, result })
+    const action = result.action as string
+    const decision = action === 'accept' ? 'accepted' : action === 'decline' ? 'declined' : 'cancelled'
+    resolveElicitation(requestId, decision)
   }
 
   const grantToolPermission = async (permissionId: string, _toolName: string) => {
@@ -664,6 +696,7 @@ Keep exercises focused and achievable. The goal is active learning through doing
         }
         case 'cli:processExit':
           denyPendingPermissions()
+          cancelPendingInteractiveMessages()
           activeBridgeIdRef.current = null
           // Reset compact state if process exits mid-compact (Iteration 519)
           {
@@ -676,7 +709,7 @@ Keep exercises focused and achievable. The goal is active learning through doing
           stopStreamingAndReleaseSleep()
           break
         case 'cli:permissionRequest': {
-          const d = data as { sessionId: string; requestId: string; toolName: string; toolInput: Record<string, unknown> }
+          const d = data as { sessionId: string; requestId: string; toolName: string; toolInput: Record<string, unknown>; permissionSuggestions?: unknown[] }
           useChatStore.getState().addPermissionRequest({
             id: `perm-${Date.now()}`,
             role: 'permission',
@@ -685,7 +718,38 @@ Keep exercises focused and achievable. The goal is active learning through doing
             toolInput: d.toolInput,
             decision: 'pending',
             timestamp: Date.now(),
+            permissionSuggestions: d.permissionSuggestions,
           } as PermissionMessage)
+          break
+        }
+        case 'cli:hookCallback': {
+          const d = data as { sessionId: string; requestId: string; callbackId: string; hookInput: Record<string, unknown>; toolUseId?: string }
+          addHookCallback({
+            id: `hook-${Date.now()}`,
+            role: 'hook_callback',
+            requestId: d.requestId,
+            callbackId: d.callbackId,
+            hookInput: d.hookInput || {},
+            toolUseId: d.toolUseId,
+            decision: 'pending',
+            timestamp: Date.now(),
+          } as HookCallbackMessage)
+          break
+        }
+        case 'cli:elicitation': {
+          const d = data as { sessionId: string; requestId: string; serverName: string; message: string; mode?: 'form' | 'url'; url?: string; requestedSchema?: Record<string, unknown> }
+          addElicitation({
+            id: `elicit-${Date.now()}`,
+            role: 'elicitation',
+            requestId: d.requestId,
+            serverName: d.serverName,
+            message: d.message,
+            mode: d.mode || 'form',
+            url: d.url,
+            requestedSchema: d.requestedSchema,
+            decision: 'pending',
+            timestamp: Date.now(),
+          } as ElicitationMessage)
           break
         }
       }
@@ -717,5 +781,5 @@ Keep exercises focused and achievable. The goal is active learning through doing
     }
   }, [])
 
-  return { sendMessage, abort, respondPermission, grantToolPermission, alwaysAllowTool, alwaysDenyTool, newConversation }
+  return { sendMessage, abort, respondPermission, respondHookCallback, respondElicitation, grantToolPermission, alwaysAllowTool, alwaysDenyTool, newConversation }
 }

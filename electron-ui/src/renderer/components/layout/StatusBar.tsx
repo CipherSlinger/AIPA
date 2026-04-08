@@ -39,6 +39,7 @@ function getModelPricing(modelId: string): [number, number] | null {
 }
 
 export default function StatusBar() {
+  const showStatusBar = useUiStore(s => s.showStatusBar)
   const workingDir = useChatStore(s => s.workingDir)
   const lastUsage = useChatStore(s => s.lastUsage)
   const lastCost = useChatStore(s => s.lastCost)
@@ -157,6 +158,8 @@ export default function StatusBar() {
     setShowTokenPopup(false)
     window.dispatchEvent(new CustomEvent('aipa:compactRequest'))
   }
+
+  if (!showStatusBar) return null
 
   return (
     <div

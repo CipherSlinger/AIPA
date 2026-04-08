@@ -3,7 +3,7 @@ import { PermissionMessage } from '../../types/app.types'
 import {
   ShieldCheck, Check, X, ShieldPlus, ShieldOff,
   Terminal, FilePlus, FileEdit, FileSearch,
-  FolderSearch, Search, Globe
+  FolderSearch, Search, Globe, GitBranch, Clock
 } from 'lucide-react'
 import { useT } from '../../i18n'
 
@@ -41,6 +41,14 @@ function getToolVisual(toolName: string): { icon: React.ReactNode; tint: string 
     case 'web_fetch':
     case 'WebSearch':
       return { icon: <Globe size={size} />, tint: 'rgba(90,63,138,0.15)' }
+    case 'EnterWorktree':
+    case 'ExitWorktree':
+      return { icon: <GitBranch size={size} />, tint: 'rgba(40,167,69,0.15)' }
+    case 'CronCreate':
+    case 'CronDelete':
+    case 'CronList':
+    case 'Sleep':
+      return { icon: <Clock size={size} />, tint: 'rgba(255,193,7,0.15)' }
     default:
       return { icon: <ShieldCheck size={size} />, tint: 'rgba(0,122,204,0.15)' }
   }
@@ -118,6 +126,28 @@ function describeAction(toolName: string, toolInput: Record<string, unknown>, t:
         detail: q ? `${t('common.search')} "${q.slice(0, 80)}"` : t('permission.toolWebSearchDetail'),
       }
     }
+    case 'EnterWorktree': {
+      const name = (toolInput.name as string) || ''
+      return { title: 'Enter git worktree', detail: name || 'Create isolated worktree environment' }
+    }
+    case 'ExitWorktree': {
+      const action = (toolInput.action as string) || ''
+      return { title: 'Exit git worktree', detail: action ? `Action: ${action}` : 'Exit worktree session' }
+    }
+    case 'CronCreate': {
+      const cron = (toolInput.cron as string) || ''
+      return { title: 'Schedule cron job', detail: cron || 'Create a scheduled task' }
+    }
+    case 'CronDelete': {
+      const id = (toolInput.id as string) || ''
+      return { title: 'Delete cron job', detail: id || 'Remove a scheduled task' }
+    }
+    case 'CronList':
+      return { title: 'List cron jobs', detail: 'Show all scheduled tasks' }
+    case 'Sleep': {
+      const ms = toolInput.ms ?? toolInput.seconds
+      return { title: 'Sleep / wait', detail: ms ? `Wait ${ms}${toolInput.seconds ? 's' : 'ms'}` : 'Pause execution' }
+    }
     default: {
       return {
         title: t('permission.toolPerformAction'),
@@ -127,11 +157,37 @@ function describeAction(toolName: string, toolInput: Record<string, unknown>, t:
   }
 }
 
+// Extract suggestion rules from CLI-pushed permissionSuggestions array
+function extractSuggestionRules(suggestions: unknown[]): { allow: string[]; deny: string[] } {
+  const allow: string[] = []
+  const deny: string[] = []
+  for (const s of suggestions) {
+    const sug = s as Record<string, unknown>
+    if (sug.type !== 'addRules') continue
+    const rules = Array.isArray(sug.rules) ? (sug.rules as string[]) : []
+    if (sug.behavior === 'allow') allow.push(...rules)
+    else if (sug.behavior === 'deny') deny.push(...rules)
+  }
+  return { allow, deny }
+}
+
+async function writeSuggestionRule(type: 'allow' | 'deny', rule: string): Promise<void> {
+  try {
+    const settings = await window.electronAPI.configReadCLISettings()
+    const perms = (settings.permissions || {}) as { allow?: string[]; deny?: string[] }
+    const list = Array.isArray(perms[type]) ? [...perms[type]!] : []
+    if (!list.includes(rule)) list.push(rule)
+    await window.electronAPI.configWriteCLISettings({ permissions: { ...perms, [type]: list } })
+  } catch { /* ignore */ }
+}
+
 export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow, onAlwaysDeny }: Props) {
   const t = useT()
   const isPending = message.decision === 'pending'
   const { title, detail } = describeAction(message.toolName, message.toolInput, t)
   const { icon, tint } = getToolVisual(message.toolName)
+  const suggestions = message.permissionSuggestions || []
+  const { allow: allowRules, deny: denyRules } = extractSuggestionRules(suggestions)
 
   return (
     <div
@@ -277,7 +333,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
                     border: 'none',
                     borderRadius: 6,
                     padding: '4px 0',
-                    color: '#10b981',
+                    color: 'var(--success)',
                     cursor: 'pointer',
                     fontSize: 11,
                     fontWeight: 500,
@@ -304,7 +360,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
                     border: 'none',
                     borderRadius: 6,
                     padding: '4px 0',
-                    color: '#ef4444',
+                    color: 'var(--error)',
                     cursor: 'pointer',
                     fontSize: 11,
                     fontWeight: 500,
@@ -321,6 +377,61 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
                   <ShieldOff size={12} /> {t('permission.alwaysDenyTool')}
                 </button>
               )}
+            </div>
+          )}
+
+          {/* Suggestion rule buttons from CLI */}
+          {(allowRules.length > 0 || denyRules.length > 0) && (
+            <div style={{
+              display: 'flex', flexDirection: 'column', gap: 4,
+              borderTop: '1px solid var(--border)', paddingTop: 8,
+            }}>
+              {allowRules.slice(0, 2).map((rule) => (
+                <button
+                  key={`allow-${rule}`}
+                  onClick={() => { writeSuggestionRule('allow', rule); onAllow() }}
+                  style={{
+                    background: 'rgba(78,201,176,0.08)',
+                    border: '1px solid rgba(78,201,176,0.3)',
+                    borderRadius: 6,
+                    padding: '5px 10px',
+                    color: 'var(--success)',
+                    cursor: 'pointer',
+                    fontSize: 11,
+                    fontWeight: 500,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    textAlign: 'left',
+                  }}
+                >
+                  <ShieldPlus size={11} />
+                  Always Allow ({rule})
+                </button>
+              ))}
+              {denyRules.slice(0, 1).map((rule) => (
+                <button
+                  key={`deny-${rule}`}
+                  onClick={() => { writeSuggestionRule('deny', rule); onDeny() }}
+                  style={{
+                    background: 'rgba(244,71,71,0.08)',
+                    border: '1px solid rgba(244,71,71,0.3)',
+                    borderRadius: 6,
+                    padding: '5px 10px',
+                    color: 'var(--error)',
+                    cursor: 'pointer',
+                    fontSize: 11,
+                    fontWeight: 500,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    textAlign: 'left',
+                  }}
+                >
+                  <ShieldOff size={11} />
+                  Always Deny ({rule})
+                </button>
+              ))}
             </div>
           )}
         </>
