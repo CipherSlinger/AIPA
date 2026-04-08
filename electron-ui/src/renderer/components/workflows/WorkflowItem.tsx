@@ -1,5 +1,5 @@
 import React from 'react'
-import { Play, Trash2, Edit3, Copy, ChevronDown } from 'lucide-react'
+import { Play, Trash2, Edit3, Copy } from 'lucide-react'
 import { Workflow } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { useUiStore } from '../../store'
@@ -75,15 +75,6 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
           <Play size={10} fill="#fff" />
           {t('workflow.run')}
         </button>
-        <ChevronDown
-          size={14}
-          style={{
-            color: 'var(--text-muted)',
-            flexShrink: 0,
-            transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-            transition: 'transform 0.2s ease',
-          }}
-        />
       </div>
 
       {/* Expanded content */}

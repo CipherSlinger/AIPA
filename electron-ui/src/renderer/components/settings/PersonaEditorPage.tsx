@@ -37,8 +37,9 @@ export default function PersonaEditorPage() {
     }
   }, [existing])
 
+  const returnView = useUiStore(s => s.personaEditorReturnView)
   const goBack = () => {
-    useUiStore.getState().setMainView('settings')
+    useUiStore.getState().setMainView(returnView)
   }
 
   // Close on Escape

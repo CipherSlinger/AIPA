@@ -2,8 +2,9 @@
 // Extracted from WorkflowPersonasSection.tsx (Iteration 386) for component decomposition.
 
 import React from 'react'
-import { Check, Pencil, Trash2, X } from 'lucide-react'
+import { Trash2, X } from 'lucide-react'
 import { useI18n } from '../../i18n'
+import { useUiStore } from '../../store'
 import type { Persona } from '../../types/app.types'
 import { PERSONA_COLORS, EMOJI_PRESETS } from '../settings/personaConstants'
 import { MODEL_OPTIONS } from '../settings/settingsConstants'
@@ -14,12 +15,10 @@ export interface PersonaSidebarCardProps {
   persona: Persona
   isActive: boolean
   isDeleting: boolean
-  onActivate: (p: Persona) => void
-  onEdit: (p: Persona) => void
   onDelete: (id: string) => void
 }
 
-export function PersonaSidebarCard({ persona, isActive, isDeleting, onActivate, onEdit, onDelete }: PersonaSidebarCardProps) {
+export function PersonaSidebarCard({ persona, isActive, isDeleting, onDelete }: PersonaSidebarCardProps) {
   const { t } = useI18n()
   const p = persona
 
@@ -32,6 +31,7 @@ export function PersonaSidebarCard({ persona, isActive, isDeleting, onActivate, 
 
   return (
     <div
+      onClick={() => useUiStore.getState().openPersonaEditor(p.id, 'chat')}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -41,7 +41,10 @@ export function PersonaSidebarCard({ persona, isActive, isDeleting, onActivate, 
         border: `1px solid ${isActive ? p.color : 'var(--border)'}`,
         borderRadius: 7,
         transition: 'border-color 150ms, background 150ms',
+        cursor: 'pointer',
       }}
+      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
     >
       {/* Emoji avatar */}
       <div style={{
@@ -92,48 +95,7 @@ export function PersonaSidebarCard({ persona, isActive, isDeleting, onActivate, 
       {/* Action buttons */}
       <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
         <button
-          onClick={() => onActivate(p)}
-          title={isActive ? t('persona.deactivate') : t('persona.activate')}
-          style={{
-            width: 24,
-            height: 24,
-            borderRadius: 4,
-            border: 'none',
-            background: isActive ? p.color : 'none',
-            color: isActive ? '#fff' : 'var(--text-muted)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'background 150ms',
-          }}
-          onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
-          onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'none' }}
-        >
-          <Check size={11} />
-        </button>
-        <button
-          onClick={() => onEdit(p)}
-          title={t('persona.editPersona')}
-          style={{
-            width: 24,
-            height: 24,
-            borderRadius: 4,
-            border: 'none',
-            background: 'none',
-            color: 'var(--text-muted)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-        >
-          <Pencil size={10} />
-        </button>
-        <button
-          onClick={() => onDelete(p.id)}
+          onClick={e => { e.stopPropagation(); onDelete(p.id) }}
           title={isDeleting ? t('persona.deleteConfirm') : t('persona.deletePersona')}
           style={{
             width: 24,

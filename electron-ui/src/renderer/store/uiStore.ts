@@ -49,7 +49,8 @@ interface UiState {
   // Persona/Workflow editor: ID of item being edited (null = new)
   editingPersonaId: string | null
   editingWorkflowId: string | null
-  openPersonaEditor: (personaId: string | null) => void
+  personaEditorReturnView: 'chat' | 'settings'
+  openPersonaEditor: (personaId: string | null, returnView?: 'chat' | 'settings') => void
   openWorkflowEditor: (workflowId: string | null) => void
   openWorkflowDetail: (workflowId: string) => void
 
@@ -145,7 +146,8 @@ export const useUiStore = create<UiState>((set) => ({
   setMainView: (view) => set({ mainView: view }),
   editingPersonaId: null,
   editingWorkflowId: null,
-  openPersonaEditor: (personaId) => set({ mainView: 'persona-editor', editingPersonaId: personaId, settingsModalOpen: false }),
+  personaEditorReturnView: 'settings' as const,
+  openPersonaEditor: (personaId, returnView = 'settings') => set({ mainView: 'persona-editor', editingPersonaId: personaId, settingsModalOpen: false, personaEditorReturnView: returnView }),
   openWorkflowEditor: (workflowId) => set({ mainView: 'workflow-editor', editingWorkflowId: workflowId, settingsModalOpen: false }),
   // Open workflow detail view in main panel (Iteration 460)
   openWorkflowDetail: (workflowId: string) => set({ mainView: 'workflow-detail' as const, editingWorkflowId: workflowId, settingsModalOpen: false }),

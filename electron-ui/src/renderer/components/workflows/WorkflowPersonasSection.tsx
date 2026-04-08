@@ -317,8 +317,6 @@ export default function WorkflowPersonasSection() {
                   persona={p}
                   isActive={effectivePersonaId === p.id}
                   isDeleting={deletingId === p.id}
-                  onActivate={handleActivate}
-                  onEdit={startEdit}
                   onDelete={handleDelete}
                 />
               ))}
