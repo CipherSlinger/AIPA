@@ -13,6 +13,7 @@ const PersonaEditorPage = React.lazy(() => import('../settings/PersonaEditorPage
 const WorkflowEditorPage = React.lazy(() => import('../settings/WorkflowEditorPage'))
 const WorkflowDetailPage = React.lazy(() => import('../workflows/WorkflowDetailPage'))
 const NotesPanel = React.lazy(() => import('../notes/NotesPanel'))
+const SkillCreatorPage = React.lazy(() => import('../skills/SkillCreatorPage'))
 
 const MIN_SIDEBAR = 180
 const MAX_SIDEBAR = 400
@@ -73,6 +74,9 @@ export default function AppShell() {
           // Go back to chat from notes main view
           useUiStore.getState().setMainView('chat')
           useUiStore.getState().setActiveNavItem('chat')
+        } else if (mainView === 'skill-creator') {
+          // Go back to chat from skill creator
+          useUiStore.getState().setMainView('chat')
         } else {
           closeSettings()
         }
@@ -265,6 +269,12 @@ export default function AppShell() {
             <ErrorBoundary fallbackLabel="notes panel">
               <React.Suspense fallback={<div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading...</div>}>
                 <NotesPanel />
+              </React.Suspense>
+            </ErrorBoundary>
+          ) : mainView === 'skill-creator' ? (
+            <ErrorBoundary fallbackLabel="skill creator">
+              <React.Suspense fallback={<div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading...</div>}>
+                <SkillCreatorPage />
               </React.Suspense>
             </ErrorBoundary>
           ) : (

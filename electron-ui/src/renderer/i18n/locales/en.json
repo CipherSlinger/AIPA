@@ -1302,6 +1302,21 @@
     "createOwn": "Create Your Own",
     "skillCreatorLaunched": "Skill Creator opened in chat"
   },
+  "skill": {
+    "createTitle": "Create Skill",
+    "nameLabel": "Skill Name",
+    "namePlaceholder": "e.g. Code Reviewer, Meeting Summarizer...",
+    "descLabel": "Description / System Prompt",
+    "descPlaceholder": "Describe what this skill does and how it should behave. This becomes the skill's system prompt.",
+    "descHint": "This text defines the skill's behavior and becomes its system prompt.",
+    "confirmCreate": "Create",
+    "cancelCreate": "Cancel",
+    "creating": "Creating...",
+    "createSuccess": "Skill created successfully",
+    "createFailed": "Failed to create skill",
+    "redirecting": "Returning to chat...",
+    "submitHint": "Ctrl+Enter to create"
+  },
   "followUp": {
     "explainCode": "Explain this code",
     "explainCodePrompt": "Can you explain the code above in more detail? Break down how it works step by step.",
@@ -1493,6 +1508,10 @@
     "parallelPrompts": "Parallel Prompts",
     "addParallelPrompt": "Add prompt",
     "removeParallelPrompt": "Remove",
+    "availableVariables": "Available variables",
+    "stepLabel": "Step {{n}}",
+    "retryStep": "Retry step: {{title}}",
+    "filterSteps": "Filter steps...",
     "footer": "Prompt chains for multi-step tasks",
     "inspired": "Inspired by OpenClaw Lobster",
     "preset": {

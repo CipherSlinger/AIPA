@@ -1320,6 +1320,21 @@
     "createOwn": "创建自定义",
     "skillCreatorLaunched": "技能创建器已在聊天中打开"
   },
+  "skill": {
+    "createTitle": "创建技能",
+    "nameLabel": "技能名称",
+    "namePlaceholder": "例：代码审查、会议总结...",
+    "descLabel": "描述 / 系统提示词",
+    "descPlaceholder": "描述该技能的功能和行为方式，这将成为技能的系统提示词。",
+    "descHint": "此文本定义技能的行为，将作为其系统提示词。",
+    "confirmCreate": "创建",
+    "cancelCreate": "取消",
+    "creating": "创建中...",
+    "createSuccess": "技能创建成功",
+    "createFailed": "技能创建失败",
+    "redirecting": "正在返回聊天...",
+    "submitHint": "Ctrl+Enter 快速创建"
+  },
   "followUp": {
     "explainCode": "解释这段代码",
     "explainCodePrompt": "请详细解释上面的代码，逐步说明它是如何工作的。",

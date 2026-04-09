@@ -108,11 +108,10 @@ export default function SkillsPanel() {
     }
   }, [deletingSkillPath, addToast, t, loadSkills])
 
-  // Create skill — invoke the built-in skill-creator via chat
+  // Create skill — open the skill-creator form in the main view (Iteration 535)
   const handleCreateSkill = useCallback(() => {
-    setQuotedText('/skill-creator')
-    addToast('success', t('skills.skillCreatorLaunched'))
-  }, [setQuotedText, addToast, t])
+    useUiStore.getState().setMainView('skill-creator')
+  }, [])
 
   // Install marketplace skill
   const handleInstallSkill = useCallback(async (skill: MarketplaceSkill) => {
