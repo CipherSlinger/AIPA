@@ -264,10 +264,16 @@ export interface MemoryItem {
   source?: string         // optional: which session it came from
 }
 
+export type WorkflowNodeType = 'prompt' | 'condition' | 'parallel'
+
 export interface WorkflowStep {
   id: string              // 'step-' + timestamp + random
   title: string           // step display name (max 50 chars)
   prompt: string          // the prompt text to send (max 2000 chars)
+  nodeType?: WorkflowNodeType  // default: 'prompt'
+  condition?: string           // for condition nodes: the condition text
+  branches?: { label: string; prompt: string }[]  // for condition: [{label:'Yes', prompt:'...'}, {label:'No', prompt:'...'}]
+  parallelPrompts?: string[]   // for parallel nodes: list of prompts to run simultaneously
   canvasPos?: { x: number; y: number }   // user-dragged position override
 }
 

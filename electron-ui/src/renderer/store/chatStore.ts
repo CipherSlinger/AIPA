@@ -8,6 +8,9 @@ export interface TaskQueueItem {
   id: string
   content: string
   status: 'pending' | 'running' | 'done'
+  /** Optional workflow metadata for template variable substitution */
+  workflowId?: string
+  stepIndex?: number  // 0-based index of this step within the workflow
 }
 
 // ── Tab types (Iteration 515) ────────────────────
@@ -156,7 +159,7 @@ interface ChatState {
   // Task Queue
   taskQueue: TaskQueueItem[]
   queuePaused: boolean
-  addToQueue: (content: string) => void
+  addToQueue: (content: string, meta?: { workflowId?: string; stepIndex?: number }) => void
   removeFromQueue: (id: string) => void
   clearQueue: () => void
   toggleQueuePause: () => void
@@ -472,8 +475,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
   })),
 
   // ── Task Queue actions ──────────────────────────
-  addToQueue: (content) => set((s) => ({
-    taskQueue: [...s.taskQueue, { id: `queue-${Date.now()}-${Math.random()}`, content, status: 'pending' as const }]
+  addToQueue: (content, meta) => set((s) => ({
+    taskQueue: [...s.taskQueue, {
+      id: `queue-${Date.now()}-${Math.random()}`,
+      content,
+      status: 'pending' as const,
+      ...(meta?.workflowId !== undefined ? { workflowId: meta.workflowId } : {}),
+      ...(meta?.stepIndex !== undefined ? { stepIndex: meta.stepIndex } : {}),
+    }]
   })),
 
   removeFromQueue: (id) => set((s) => ({

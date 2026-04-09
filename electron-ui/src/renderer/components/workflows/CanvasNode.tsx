@@ -339,10 +339,26 @@ export default function CanvasNode({
     setCtxMenu({ x: e.clientX, y: e.clientY })
   }, [])
 
+  const nodeType = step.nodeType ?? 'prompt'
+
   const displayTitle = getPresetStepText(presetKey, index, 'title', t, step.title)
   const displayPrompt = getPresetStepText(presetKey, index, 'prompt', t, step.prompt)
   const promptPreview =
     displayPrompt.length > 60 ? displayPrompt.slice(0, 60) + '…' : displayPrompt
+
+  // Node type header config
+  const nodeTypeHeader: { label: string; bg: string; color: string } | null =
+    nodeType === 'condition'
+      ? { label: '🔀 Condition', bg: 'rgba(245,158,11,0.15)', color: '#f59e0b' }
+      : nodeType === 'parallel'
+        ? { label: '⚡ Parallel', bg: 'rgba(139,92,246,0.15)', color: '#8b5cf6' }
+        : null
+
+  // Left border override for special node types
+  const nodeTypeBorderLeft =
+    nodeType === 'condition' ? '3px solid #f59e0b'
+    : nodeType === 'parallel' ? '3px solid #8b5cf6'
+    : undefined
 
   const statusStyle = STATUS_STYLES[status] ?? STATUS_STYLES.idle
   const isActive = selected || status === 'running'
@@ -403,6 +419,7 @@ export default function CanvasNode({
           borderLeft: (() => {
             if (isActive) return undefined
             if (statusStyle.borderLeft) return statusStyle.borderLeft
+            if (nodeTypeBorderLeft) return nodeTypeBorderLeft
             if (isFirst) return '3px solid #6366f1'
             if (isLast) return '3px solid #f59e0b'
             return undefined
@@ -506,6 +523,23 @@ export default function CanvasNode({
           >
             {collapsed ? <ChevronDown size={11} /> : <ChevronUp size={11} />}
           </button>
+        )}
+
+        {/* Node type header badge — shown for condition/parallel nodes */}
+        {!collapsed && nodeTypeHeader && (
+          <div style={{
+            fontSize: 9,
+            fontWeight: 700,
+            color: nodeTypeHeader.color,
+            background: nodeTypeHeader.bg,
+            borderRadius: 3,
+            padding: '1px 5px',
+            marginBottom: 4,
+            alignSelf: 'flex-start',
+            letterSpacing: 0.3,
+          }}>
+            {nodeTypeHeader.label}
+          </div>
         )}
 
         {/* Step title — double-click to inline edit */}
@@ -625,6 +659,45 @@ export default function CanvasNode({
                 width: '100%',
               }}>
                 {streamingText}
+              </div>
+            ) : nodeType === 'condition' ? (
+              /* Condition node: show condition text + Yes/No branch labels */
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4, width: '100%' }}>
+                <div style={{
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  marginBottom: 4,
+                }}>
+                  {step.condition || promptPreview}
+                </div>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <span style={{ fontSize: 9, background: 'rgba(34,197,94,0.12)', color: '#22c55e', borderRadius: 3, padding: '1px 5px', fontWeight: 600 }}>
+                    Yes
+                  </span>
+                  <span style={{ fontSize: 9, background: 'rgba(239,68,68,0.12)', color: '#ef4444', borderRadius: 3, padding: '1px 5px', fontWeight: 600 }}>
+                    No
+                  </span>
+                </div>
+              </div>
+            ) : nodeType === 'parallel' ? (
+              /* Parallel node: show sub-prompt count */
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4, width: '100%' }}>
+                <div style={{
+                  display: '-webkit-box',
+                  WebkitLineClamp: 1,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  marginBottom: 4,
+                }}>
+                  {promptPreview}
+                </div>
+                {step.parallelPrompts && step.parallelPrompts.length > 0 && (
+                  <span style={{ fontSize: 9, background: 'rgba(139,92,246,0.12)', color: '#8b5cf6', borderRadius: 3, padding: '1px 5px', fontWeight: 600 }}>
+                    {step.parallelPrompts.length} parallel prompt{step.parallelPrompts.length !== 1 ? 's' : ''}
+                  </span>
+                )}
               </div>
             ) : (
               /* Default: show prompt preview */

@@ -649,7 +649,53 @@ Keep exercises focused and achievable. The goal is active learning through doing
               const nextItem = useChatStore.getState().shiftQueue()
               if (nextItem) {
                 setTimeout(() => {
-                  sendMessageRef.current?.(nextItem.content)
+                  // ── Template variable substitution for workflow steps ──
+                  let resolvedContent = nextItem.content
+                  if (nextItem.workflowId !== undefined && nextItem.stepIndex !== undefined && nextItem.stepIndex > 0) {
+                    const allMessages = useChatStore.getState().messages
+                    const allQueue = useChatStore.getState().taskQueue
+                    // Build map: stepIndex → assistant output text
+                    const stepOutputMap: Record<number, string> = {}
+                    const workflowItems = allQueue.filter(
+                      item => item.workflowId === nextItem.workflowId && item.status === 'done'
+                    )
+                    workflowItems.forEach(item => {
+                      if (item.stepIndex === undefined) return
+                      // Find the user message matching this step's content in chat history
+                      const stdMsgs = allMessages.filter(
+                        m => m.role === 'user' || m.role === 'assistant'
+                      ) as StandardChatMessage[]
+                      for (let mi = 0; mi < stdMsgs.length; mi++) {
+                        if (stdMsgs[mi].role === 'user' && stdMsgs[mi].content === item.content) {
+                          // Find the next assistant message
+                          for (let ai = mi + 1; ai < stdMsgs.length; ai++) {
+                            if (stdMsgs[ai].role === 'assistant') {
+                              stepOutputMap[item.stepIndex] = stdMsgs[ai].content
+                              break
+                            } else if (stdMsgs[ai].role === 'user') {
+                              break
+                            }
+                          }
+                          break
+                        }
+                      }
+                    })
+                    // Replace {{step_N_output}} and {{output_N}} placeholders (1-based)
+                    resolvedContent = resolvedContent.replace(
+                      /\{\{step_(\d+)_output\}\}/g,
+                      (_match: string, n: string) => {
+                        const idx = parseInt(n, 10) - 1 // convert 1-based to 0-based
+                        return stepOutputMap[idx] ?? ''
+                      }
+                    ).replace(
+                      /\{\{output_(\d+)\}\}/g,
+                      (_match: string, n: string) => {
+                        const idx = parseInt(n, 10) - 1
+                        return stepOutputMap[idx] ?? ''
+                      }
+                    )
+                  }
+                  sendMessageRef.current?.(resolvedContent)
                 }, 600)
               }
             }

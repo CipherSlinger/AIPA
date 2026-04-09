@@ -57,7 +57,7 @@ export default function WorkflowDetailPage() {
   const [editName, setEditName] = useState('')
   const [editDesc, setEditDesc] = useState('')
   const [editIcon, setEditIcon] = useState('\u{1F4CB}')
-  const [editSteps, setEditSteps] = useState<{id: string; title: string; prompt: string}[]>([])
+  const [editSteps, setEditSteps] = useState<WorkflowStep[]>([])
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [justSaved, setJustSaved] = useState(false)
   const [saveFlash, setSaveFlash] = useState(false)
@@ -97,7 +97,7 @@ export default function WorkflowDetailPage() {
       setEditName(workflow.presetKey ? t(`workflow.preset.${workflow.presetKey}`) : workflow.name)
       setEditDesc(workflow.description || '')
       setEditIcon(workflow.icon)
-      setEditSteps(workflow.steps.map(s => ({ id: s.id, title: s.title, prompt: s.prompt })))
+      setEditSteps(workflow.steps.map(s => ({ ...s })))
       setHasUnsavedChanges(false)
       setIsEditMode(false) // Reset to view mode when switching workflows
     }
@@ -110,7 +110,7 @@ export default function WorkflowDetailPage() {
     setEditName(workflow.presetKey ? t(`workflow.preset.${workflow.presetKey}`) : workflow.name)
     setEditDesc(workflow.description || '')
     setEditIcon(workflow.icon)
-    setEditSteps(workflow.steps.map(s => ({ id: s.id, title: s.title, prompt: s.prompt })))
+    setEditSteps(workflow.steps.map(s => ({ ...s })))
     setHasUnsavedChanges(false)
     setIsEditMode(true)
   }, [workflow, t])
@@ -200,8 +200,16 @@ export default function WorkflowDetailPage() {
 
   const runWorkflow = () => {
     if (!workflow) return
-    window.dispatchEvent(new CustomEvent('aipa:runWorkflow', { detail: { workflowId: workflow.id } }))
-    addToast('info', t('workflow.running', { name: displayName, count: String(workflow.steps.length) }))
+    let queuedCount = 0
+    workflow.steps.forEach((step, idx) => {
+      const prompt = getPresetStepText(workflow.presetKey, idx, 'prompt', t, step.prompt)
+      if (prompt.trim()) {
+        useChatStore.getState().addToQueue(prompt, { workflowId: workflow.id, stepIndex: idx })
+        queuedCount++
+      }
+    })
+    if (queuedCount === 0) return
+    addToast('info', t('workflow.running', { name: displayName, count: String(queuedCount) }))
   }
 
   // Direction A: retry a single failed step by re-queuing its prompt
@@ -211,7 +219,7 @@ export default function WorkflowDetailPage() {
     if (stepIdx < 0) return
     const step = workflow.steps[stepIdx]
     const prompt = getPresetStepText(workflow.presetKey, stepIdx, 'prompt', t, step.prompt)
-    useChatStore.getState().addToQueue(prompt)
+    useChatStore.getState().addToQueue(prompt, { workflowId: workflow.id, stepIndex: stepIdx })
     addToast('info', `重试步骤: ${step.title || `Step ${stepIdx + 1}`}`)
   }, [workflow, t, addToast])
 
@@ -265,8 +273,8 @@ export default function WorkflowDetailPage() {
     const name = editName.trim()
     if (!name) { addToast('error', t('workflow.nameRequired')); return }
     const validSteps: WorkflowStep[] = editSteps
-      .filter(s => s.prompt.trim())
-      .map((s, idx) => ({ id: s.id, title: s.title.trim() || `Step ${idx + 1}`, prompt: s.prompt.trim() }))
+      .filter(s => s.prompt.trim() || (s.nodeType === 'parallel' && (s.parallelPrompts ?? []).some(p => p.trim())))
+      .map((s, idx) => ({ ...s, title: s.title.trim() || `Step ${idx + 1}`, prompt: s.prompt.trim() }))
     if (validSteps.length === 0) { addToast('error', t('workflow.stepsRequired')); return }
 
     const prefs = usePrefsStore.getState()
@@ -286,7 +294,7 @@ export default function WorkflowDetailPage() {
     setTimeout(() => { setJustSaved(false); setSaveFlash(false) }, 2000)
   }
 
-  const updateStep = (idx: number, field: 'title' | 'prompt', value: string) => {
+  const updateStep = (idx: number, field: keyof WorkflowStep, value: string) => {
     setEditSteps(editSteps.map((s, i) => i === idx ? { ...s, [field]: value } : s))
     markDirty()
   }
@@ -440,6 +448,39 @@ export default function WorkflowDetailPage() {
                       onFocus={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
                       onBlur={e => (e.currentTarget.style.borderColor = 'var(--border)')}
                     />
+                    {idx > 0 && (
+                      <div style={{ marginTop: 4, padding: '4px 6px', background: 'var(--bg-chat)', border: '1px solid var(--border)', borderRadius: 4 }}>
+                        <div style={{ fontSize: 9, color: 'var(--text-muted)', fontWeight: 600, marginBottom: 3, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                          Available variables
+                        </div>
+                        {editSteps.slice(0, idx).map((priorStep, priorIdx) => {
+                          const varName = `{{step_${priorIdx + 1}_output}}`
+                          const isUsed = step.prompt.includes(varName)
+                          return (
+                            <div
+                              key={priorStep.id}
+                              title={`Click to insert ${varName}`}
+                              onClick={() => updateStep(idx, 'prompt', step.prompt + varName)}
+                              style={{
+                                fontSize: 9, lineHeight: 1.6, cursor: 'pointer',
+                                color: isUsed ? 'var(--accent)' : 'var(--text-muted)',
+                                display: 'flex', alignItems: 'center', gap: 4,
+                              }}
+                            >
+                              <code style={{
+                                fontFamily: 'monospace',
+                                background: isUsed ? 'rgba(59,130,246,0.12)' : 'var(--input-field-bg)',
+                                padding: '0 3px', borderRadius: 3, fontSize: 9,
+                                color: isUsed ? 'var(--accent)' : 'var(--text-muted)',
+                              }}>{varName}</code>
+                              <span style={{ opacity: 0.7 }}>
+                                Step {priorIdx + 1}{priorStep.title ? `: "${priorStep.title}"` : ''}
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
                   </div>
                 ))}
               </>

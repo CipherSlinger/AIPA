@@ -39,14 +39,32 @@ export function useWorkflowCrud() {
 
   const runWorkflow = useCallback((wf: Workflow) => {
     if (wf.steps.length === 0) return
+    let queuedCount = 0
     wf.steps.forEach((step, idx) => {
-      const prompt = getPresetStepText(wf.presetKey, idx, 'prompt', t, step.prompt)
-      addToQueue(prompt)
+      const nodeType = step.nodeType ?? 'prompt'
+      if (nodeType === 'parallel' && step.parallelPrompts && step.parallelPrompts.length > 0) {
+        // Queue all parallel prompts simultaneously
+        step.parallelPrompts.forEach((pp, pi) => {
+          if (pp.trim()) {
+            addToQueue(pp.trim(), { workflowId: wf.id, stepIndex: idx * 100 + pi })
+            queuedCount++
+          }
+        })
+      } else {
+        // For condition nodes: queue the main prompt (condition question)
+        // Branches are display-only hints in the MVP
+        const prompt = getPresetStepText(wf.presetKey, idx, 'prompt', t, step.prompt)
+        if (prompt.trim()) {
+          addToQueue(prompt, { workflowId: wf.id, stepIndex: idx })
+          queuedCount++
+        }
+      }
     })
+    if (queuedCount === 0) return
     saveWorkflows(workflows.map(w =>
       w.id === wf.id ? { ...w, runCount: w.runCount + 1, updatedAt: Date.now() } : w
     ))
-    addToast('success', t('workflow.running', { name: wf.presetKey ? t(`workflow.preset.${wf.presetKey}`) : wf.name, count: String(wf.steps.length) }))
+    addToast('success', t('workflow.running', { name: wf.presetKey ? t(`workflow.preset.${wf.presetKey}`) : wf.name, count: String(queuedCount) }))
   }, [addToQueue, workflows, saveWorkflows, addToast, t])
 
   const createWorkflow = useCallback(() => {
