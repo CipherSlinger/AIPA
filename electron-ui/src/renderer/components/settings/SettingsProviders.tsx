@@ -2,11 +2,11 @@ import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { useI18n } from '../../i18n'
 import { useUiStore } from '../../store'
 import Toggle from '../ui/Toggle'
-import { Plus, Trash2, RefreshCw, ChevronDown, ChevronRight, Eye, EyeOff, ExternalLink } from 'lucide-react'
+import { Trash2, RefreshCw, ChevronDown, ChevronRight, Eye, EyeOff, ExternalLink } from 'lucide-react'
 
 const QRCodeDisplay = lazy(() => import('../ui/QRCodeDisplay'))
 
-type ProviderScenario = 'official' | 'gateway' | 'compat'
+type ProviderScenario = 'official' | 'gateway'
 
 interface ProviderConfig {
   id: string
@@ -54,7 +54,6 @@ const inputStyle: React.CSSProperties = {
 const SCENARIO_COLORS: Record<ProviderScenario, string> = {
   official: '#3b82f6',
   gateway: '#f59e0b',
-  compat: '#22c55e',
 }
 
 export default function SettingsProviders() {
@@ -135,24 +134,6 @@ export default function SettingsProviders() {
     useUiStore.getState().addToast('success', t('provider.deleted'))
   }, [t])
 
-  const handleAddCustom = useCallback(async () => {
-    const id = `custom-${Date.now()}`
-    const config: ProviderConfig = {
-      id,
-      name: t('provider.newProviderName'),
-      scenario: 'compat',
-      baseUrl: '',
-      apiKey: '',
-      model: '',
-      models: [],
-      enabled: false,
-      failoverPriority: 10,
-    }
-    await window.electronAPI.providerUpsert(config)
-    setProviders(prev => [...prev, config])
-    setExpandedId(id)
-  }, [t])
-
   const updateDraft = useCallback((providerId: string, field: string, value: unknown) => {
     setEditDraft(prev => ({
       ...prev,
@@ -180,7 +161,6 @@ export default function SettingsProviders() {
     const currentBaseUrl = draft.baseUrl ?? provider.baseUrl ?? ''
     const currentApiKey = draft.apiKey ?? provider.apiKey ?? ''
     const currentAuthToken = draft.authToken ?? provider.authToken ?? ''
-    const currentModel = draft.model ?? provider.model ?? ''
     const hasDraftChanges = Object.keys(draft).length > 0
 
     return (
@@ -242,8 +222,8 @@ export default function SettingsProviders() {
               </div>
             )}
 
-            {/* API Key — official & compat scenarios */}
-            {(provider.scenario === 'official' || provider.scenario === 'compat') && (
+            {/* API Key — official scenario */}
+            {provider.scenario === 'official' && (
               <div>
                 <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>
                   {t('provider.apiKey')}
@@ -328,8 +308,8 @@ export default function SettingsProviders() {
               </>
             )}
 
-            {/* Base URL — gateway & compat scenarios */}
-            {(provider.scenario === 'gateway' || provider.scenario === 'compat') && (
+            {/* Base URL — gateway scenario */}
+            {provider.scenario === 'gateway' && (
               <div>
                 <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>
                   {t('provider.baseUrl')}
@@ -341,25 +321,6 @@ export default function SettingsProviders() {
                   style={inputStyle}
                   placeholder="https://..."
                 />
-              </div>
-            )}
-
-            {/* Model override — compat scenario */}
-            {provider.scenario === 'compat' && (
-              <div>
-                <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>
-                  {t('provider.model')}
-                </label>
-                <input
-                  type="text"
-                  value={currentModel}
-                  onChange={e => updateDraft(provider.id, 'model', e.target.value)}
-                  style={inputStyle}
-                  placeholder={t('provider.modelPlaceholder')}
-                />
-                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>
-                  {t('provider.modelHint')}
-                </div>
               </div>
             )}
 
@@ -465,12 +426,10 @@ export default function SettingsProviders() {
 
   const officialProviders = providers.filter(p => p.scenario === 'official')
   const gatewayProviders = providers.filter(p => p.scenario === 'gateway')
-  const compatProviders = providers.filter(p => p.scenario === 'compat')
 
   const renderScenarioSection = (
     scenario: ProviderScenario,
     items: ProviderConfig[],
-    showAddButton: boolean = false
   ) => (
     <div style={{ marginBottom: 16 }}>
       {/* Section header */}
@@ -492,32 +451,6 @@ export default function SettingsProviders() {
 
       {/* Provider cards */}
       {items.map(renderProviderCard)}
-
-      {/* Add custom button — only for compat section */}
-      {showAddButton && (
-        <button
-          onClick={handleAddCustom}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            width: '100%', padding: '9px 12px',
-            background: 'none', border: '1px dashed var(--border)',
-            borderRadius: 8, color: 'var(--text-muted)',
-            cursor: 'pointer', fontSize: 12,
-            transition: 'border-color 0.15s, color 0.15s',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.borderColor = 'var(--accent)'
-            e.currentTarget.style.color = 'var(--accent)'
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.borderColor = 'var(--border)'
-            e.currentTarget.style.color = 'var(--text-muted)'
-          }}
-        >
-          <Plus size={13} />
-          {t('provider.addCustom')}
-        </button>
-      )}
     </div>
   )
 
@@ -525,7 +458,6 @@ export default function SettingsProviders() {
     <div>
       {renderScenarioSection('official', officialProviders)}
       {renderScenarioSection('gateway', gatewayProviders)}
-      {renderScenarioSection('compat', compatProviders, true)}
     </div>
   )
 }

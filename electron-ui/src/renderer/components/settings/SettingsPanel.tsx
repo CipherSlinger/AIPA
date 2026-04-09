@@ -9,10 +9,8 @@ import SettingsStats from './SettingsStats'
 import PermissionsSettingsPanel from './PermissionsSettingsPanel'
 import SettingsAdvanced from './SettingsAdvanced'
 import HooksSettingsPanel from './HooksSettingsPanel'
-import { Radio } from 'lucide-react'
-
 // Personas tab has been moved to the Workflows sidebar panel (Iteration 376)
-type SettingsTab = 'general' | 'providers' | 'permissions' | 'mcp' | 'stats' | 'hooks' | 'advanced' | 'about'
+type SettingsTab = 'general' | 'permissions' | 'mcp' | 'stats' | 'hooks' | 'advanced' | 'about'
 
 // Default emojis for migrated templates (Iteration 309: merge Templates into Personas)
 const MIGRATION_EMOJIS = ['\u{1F4DD}', '\u{1F4CB}', '\u{1F4CC}', '\u{1F4D6}', '\u{1F4DA}', '\u{1F3AF}', '\u{1F4A1}', '\u{2B50}', '\u{1F680}', '\u{1F3C6}']
@@ -115,7 +113,7 @@ export default function SettingsPanel() {
 
       {/* Tab bar */}
       <div role="tablist" style={{ display: 'flex', gap: 4, marginBottom: 16, borderBottom: '1px solid var(--border)', paddingBottom: 10 }}>
-        {(['general', 'providers', 'permissions', 'mcp', 'stats', 'hooks', 'advanced', 'about'] as const).map(tab => (
+        {(['general', 'permissions', 'mcp', 'stats', 'hooks', 'advanced', 'about'] as const).map(tab => (
           <button
             key={tab}
             role="tab"
@@ -147,31 +145,6 @@ export default function SettingsPanel() {
           saved={saved}
           onSave={save}
         />
-      ) : settingsTab === 'providers' ? (
-        <div style={{ padding: '20px 0', textAlign: 'center' }}>
-          <Radio size={24} color="var(--text-muted)" style={{ marginBottom: 12, opacity: 0.5 }} />
-          <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500, marginBottom: 8 }}>
-            {t('provider.movedToChannels')}
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 14 }}>
-            {t('provider.movedHint')}
-          </div>
-          <button
-            onClick={() => {
-              useUiStore.getState().closeSettingsModal()
-              useUiStore.getState().setActiveNavItem('channel')
-              useUiStore.getState().setSidebarTab('channel')
-              useUiStore.getState().setSidebarOpen(true)
-            }}
-            style={{
-              padding: '6px 16px', borderRadius: 6,
-              background: 'var(--accent)', border: 'none',
-              color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 500,
-            }}
-          >
-            {t('provider.openChannels')}
-          </button>
-        </div>
       ) : settingsTab === 'permissions' ? (
         <PermissionsSettingsPanel />
       ) : settingsTab === 'mcp' ? (

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { History, X, MessageSquare, Layers, Clock, ArrowRight, Lightbulb } from 'lucide-react'
 import { useUiStore, useSessionStore, usePrefsStore, useChatStore } from '../../store'
 import { useT } from '../../i18n'
-import { getGreetingKey, getPersonaStarters, getDefaultSuggestions, getShortcuts, getQuickActions, getTimeSuggestions, getFloatingActions } from './welcomeScreenConstants'
+import { getGreetingKey, getPersonaStarters, getDefaultSuggestions, getShortcuts, getQuickActions, getFloatingActions } from './welcomeScreenConstants'
 import { useTips } from '../../hooks/useTips'
 import TemplatesSection from './TemplatesSection'
 import DailySummaryCard from './DailySummaryCard'
@@ -76,7 +76,6 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
 
   const shortcuts = useMemo(() => getShortcuts(t), [t])
   const quickActions = useMemo(() => getQuickActions(t), [t])
-  const timeSuggestions = useMemo(() => getTimeSuggestions(t), [t, greeting])
   const floatingActions = useMemo(() => getFloatingActions(t), [t])
   const { tip, dismissTip, nextTip } = useTips()
 
@@ -141,7 +140,6 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
   const showQuickActions = containerHeight > 480
   const showDailySummary = containerHeight > 430
   const showUsageStats = containerHeight > 370
-  const showTimeSuggestions = containerHeight > 340
   const showContinueLastChat = containerHeight > 320
   const compactGap = containerHeight < 500 ? 8 : containerHeight < 650 ? 12 : 20
 
@@ -160,37 +158,6 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
         activePersona={activePersona}
         accentTint={accentTint}
       />
-
-      {/* Time-contextual suggestions (Iteration 459: adaptive hide) */}
-      {showTimeSuggestions && (
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-        {timeSuggestions.map(({ icon: TSIcon, textKey }) => (
-          <button
-            key={textKey}
-            onClick={() => onSuggestion(t(textKey))}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px',
-              background: 'var(--card-bg)', border: '1px solid var(--card-border)',
-              borderRadius: 20, color: 'var(--text-primary)', cursor: 'pointer', fontSize: 12,
-              transition: 'background 0.15s, border-color 0.15s, transform 0.15s',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'var(--action-btn-hover)';
-              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)';
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.03)'
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'var(--card-bg)';
-              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--card-border)';
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'
-            }}
-          >
-            <TSIcon size={14} color="var(--accent)" />
-            <span>{t(textKey)}</span>
-          </button>
-        ))}
-      </div>
-      )}
 
       {/* Usage stats bar */}
       {showUsageStats && usageStats.totalSessions > 0 && (

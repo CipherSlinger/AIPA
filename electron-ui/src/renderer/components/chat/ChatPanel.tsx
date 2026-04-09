@@ -23,7 +23,6 @@ import WelcomeScreen from './WelcomeScreen'
 import FollowUpChips from './FollowUpChips'
 import TokenUsageBar from './TokenUsageBar'
 import IdleReturnDialog from './IdleReturnDialog'
-import QuickCapture from './QuickCapture'
 import PinnedNoteStrip from './PinnedNoteStrip'
 import RegenerateButton from './RegenerateButton'
 import CompareView from './CompareView'
@@ -576,9 +575,6 @@ export default function ChatPanel() {
           onNeverAsk={suppressIdleForever}
         />
       )}
-
-      {/* Quick note capture (Iteration 437) */}
-      {messages.length > 0 && <QuickCapture />}
 
       {/* Compare View (Iteration 456) */}
       {compareMode && (
