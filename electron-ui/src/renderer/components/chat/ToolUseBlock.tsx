@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import ReactDOM from 'react-dom'
 import { ToolUseInfo } from '../../types/app.types'
-import { ChevronDown, ChevronRight, Terminal, FileEdit, Search, Globe, Loader2, Check, X, Timer, ClipboardCopy, FileCode, FileText, Image, FileType, Palette, GitBranch, Clock, StopCircle, BookOpen, MessageSquare, Server, Network } from 'lucide-react'
+import { ChevronDown, ChevronRight, Terminal, FileEdit, Search, Globe, Loader2, Check, X, Timer, ClipboardCopy, FileCode, FileText, Image, FileType, Palette, GitBranch, Clock, StopCircle, BookOpen, MessageSquare, Server, Network, Code2 } from 'lucide-react'
 import { useT } from '../../i18n'
 import DiffView from './DiffView'
 import { generateToolSummary } from '../../utils/toolSummary'
+import LSPResultCard, { parseLSPOutput } from './LSPResultCard'
 
 interface Props {
   tool: ToolUseInfo
@@ -53,6 +54,8 @@ const TOOL_ICONS: Record<string, React.ElementType> = {
   // Agent / workflow
   Agent: Network,
   Workflow: Network,
+  // LSP code intelligence
+  LSP: Code2,
 }
 
 // File extension to icon mapping for more specific file type icons (Iteration 462)
@@ -355,7 +358,24 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
           </div>
 
           {/* Output section */}
-          {tool.result !== undefined && (
+          {tool.result !== undefined && (() => {
+            // LSP tool: try to parse result as structured LSP output
+            if (tool.name === 'LSP') {
+              const lspData = parseLSPOutput(resultText)
+              if (lspData) {
+                return (
+                  <div style={{ borderTop: '1px solid var(--border)', padding: '6px 8px' }}>
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span>{t('tool.output')}</span>
+                      <CopyOutputBtn text={resultText} t={t} />
+                    </div>
+                    <LSPResultCard data={lspData} />
+                  </div>
+                )
+              }
+            }
+
+            return (
             <div style={{ borderTop: '1px solid var(--border)' }}>
               <div style={{ padding: '4px 8px 0', fontSize: 10, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -392,7 +412,8 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
                 </pre>
               )}
             </div>
-          )}
+            )
+          })()}
 
           {/* Image preview thumbnails (Iteration 462) */}
           {imagePaths.length > 0 && (
