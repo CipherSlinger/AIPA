@@ -87,7 +87,10 @@ export default function ChatPanel() {
 
   const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleFileDrop } = useDragAndDrop(addToast)
 
-  useChatPanelShortcuts(exportConversation, copyConversation, setSearchOpen, sendMessage, abort)
+  // Export dialog state
+  const [showExport, setShowExport] = useState(false)
+
+  useChatPanelShortcuts(() => setShowExport(true), copyConversation, setSearchOpen, sendMessage, abort)
 
   // Idle return detection
   const { showDialog: showIdleDialog, idleDuration, awaySummary, summaryLoading, dismiss: dismissIdle, suppressForever: suppressIdleForever } = useIdleReturn()
@@ -105,9 +108,6 @@ export default function ChatPanel() {
   // Pinned note editing state (Iteration 434)
   const [editingNote, setEditingNote] = useState(false)
   const [noteText, setNoteText] = useState('')
-
-  // Export dialog state
-  const [showExport, setShowExport] = useState(false)
 
   // Compare mode (Iteration 456): shows two branches side by side
   const [compareMode, setCompareMode] = useState<{ sessionA: string; sessionB: string; forkMessageIndex?: number; titleA?: string; titleB?: string } | null>(null)
