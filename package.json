@@ -1,0 +1,17 @@
+{
+  "name": "AIPA",
+  "version": "1.1.148",
+  "description": "AI Personal Assistant — Electron + Claude Code CLI",
+  "private": true,
+  "scripts": {
+    "build": "npm run build --prefix electron-ui",
+    "build:main": "npm run build:main --prefix electron-ui",
+    "build:preload": "npm run build:preload --prefix electron-ui",
+    "build:renderer": "npm run build:renderer --prefix electron-ui",
+    "dev": "npm run dev:renderer --prefix electron-ui",
+    "dev:renderer": "npm run dev:renderer --prefix electron-ui",
+    "start": "npm start --prefix electron-ui",
+    "dist:win": "npm run dist:win --prefix electron-ui",
+    "rebuild-pty": "npm run rebuild-pty --prefix electron-ui"
+  }
+}

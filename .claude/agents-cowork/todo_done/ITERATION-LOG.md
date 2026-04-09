@@ -5671,3 +5671,70 @@ Per-tool enable/disable in Settings → Advanced tab (below system prompt). Tool
 - [x] Build: SUCCESS
 
 ---
+
+## Iteration 528 — Canvas 持久化与交互增强 (F1/F2/F4/F8)
+
+_Date: 2026-04-08 | Sprint Canvas UX_
+
+### Summary
+在 `useCanvasLayout.ts` 中实现四项增强：自定义节点位置持久化（F1）、布局方向持久化（F2）、Shift+框选追加到已有选区（F4）、Escape 键清除画布键盘焦点（F8）。全部变更集中于单一文件，一次提交。
+
+### Files Changed
+- `src/renderer/components/workflows/useCanvasLayout.ts` — 新增 `posSaveTimerRef`、localStorage 读写 customPositions（debounced 800ms）和 layoutDirection，`marqueeStartRef` 类型扩展 `shiftKey` 字段，`handleUp` 改为 Shift 追加逻辑，`handleKeyDown` 末尾加入 Escape 清除 focusedNodeId 分支
+
+### Build
+Status: SUCCESS
+
+### Acceptance Criteria
+- [x] 拖动节点后切换工作流再切回，节点位置恢复
+- [x] 切换布局方向（L 键）后切换工作流再切回，方向恢复
+- [x] Shift+框选将命中节点追加到已有选区而不替换
+- [x] 已有 focusedNodeId 时按 Escape 清除焦点并阻止事件冒泡到外层
+- [x] Build: SUCCESS
+
+---
+
+## Iteration 528 -- CanvasNode 拖拽把手悬停显示 + 右键菜单中文化
+
+_Date: 2026-04-08 | Sprint: Workflow UX Polish_
+
+### Summary
+F7: 将 WorkflowCanvas CanvasNode 的拖拽排序把手（GripVertical）从永远显示（opacity 0.3）改为节点悬停时才显示（opacity 0.65），不悬停时完全隐藏（opacity 0）；图标从 size=10 增大到 size=12，padding 从 2px 增大到 4px 3px，提升可点击区域。F3-node: 将 NodeContextMenu 中的菜单项文字从英文（Copy prompt / Copy output / Expand node / Collapse node）统一改为中文（复制提示词 / 复制输出内容 / 展开节点 / 折叠节点）。
+
+### Files Changed
+- `src/renderer/components/workflows/CanvasNode.tsx` -- 添加 isNodeHovered 状态，根节点 div 添加 onMouseEnter/onMouseLeave，GripVertical 改为悬停显示；NodeContextMenu 四个菜单项文字改为中文
+
+### Build
+Status: SUCCESS
+
+### Acceptance Criteria
+- [x] 节点未悬停时 GripVertical 完全不可见（opacity 0）
+- [x] 鼠标悬停节点时 GripVertical 显示（opacity 0.65），可发现性提升
+- [x] GripVertical 图标从 size=10 增大到 size=12
+- [x] 右键菜单显示中文：复制提示词 / 复制输出内容 / 展开节点 / 折叠节点
+- [x] 构建无 TypeScript 错误，build SUCCESS
+
+---
+
+## Iteration 529 — Canvas Context Menu English (F3) + Horizontal Reorder Fix (F5) + Minimap Viewport Drag (F6)
+
+_Date: 2026-04-08 | Sprint: Workflow UX Polish_
+
+### Summary
+Three canvas enhancements: (F3) right-click context menu labels converted from Chinese to English; (F5) D6 reorder drag axis-awareness -- handleMove now selects X or Y axis based on layoutDirection, insertion line renders vertically for horizontal layout; (F6) minimap viewport rectangle is now draggable to pan the canvas, with setPanX/setPanY exposed from useCanvasLayout.
+
+### Files Changed
+- `src/renderer/components/workflows/WorkflowCanvas.tsx` -- (F3) context menu labels to English; (F5) added layoutPanXRef/layoutDirectionRef, updated handleMove axis logic, replaced reorderInsertLineY IIFE with reorderInsertLine returning {x,isVertical} or {y,isVertical}, updated insertion line div; (F6) added onViewportDrag to MinimapProps, vpDragRef+handleVpMouseDown, viewport rect interactive, Minimap call passes onViewportDrag; imported NODE_MIN_HEIGHT
+- `src/renderer/components/workflows/useCanvasLayout.ts` -- exposed setPanX and setPanY in return object
+
+### Build
+Status: SUCCESS
+
+### Acceptance Criteria
+- [x] Right-click menu shows "Fit to view" / "Collapse all" / "Expand all" / "Horizontal layout" / "Vertical layout" / "Export JSON"
+- [x] Reorder drag in horizontal layout uses X-axis midpoints; insertion line is vertical (2px wide)
+- [x] Reorder drag in vertical layout uses Y-axis midpoints; insertion line is horizontal (2px tall)
+- [x] Dragging minimap viewport rectangle pans the canvas correctly
+- [x] npm run build:renderer SUCCESS; TypeScript error count unchanged (11 pre-existing errors)
+
+---

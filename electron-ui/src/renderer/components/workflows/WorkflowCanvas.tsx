@@ -3,7 +3,7 @@ import { Workflow as WorkflowIcon } from 'lucide-react'
 import { Workflow } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { useChatStore } from '../../store'
-import CanvasNode, { NODE_WIDTH } from './CanvasNode'
+import CanvasNode, { NODE_WIDTH, NODE_MIN_HEIGHT } from './CanvasNode'
 import CanvasEdge, { CanvasEdgeDefs } from './CanvasEdge'
 import CanvasProgressBar from './CanvasProgressBar'
 import CanvasNodeSidebar from './CanvasNodeSidebar'
@@ -42,9 +42,10 @@ interface MinimapProps {
   containerH: number
   // Direction C: click to jump
   onClickNode?: (stepId: string) => void
+  onViewportDrag?: (newPanX: number, newPanY: number) => void
 }
 
-function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, containerW, containerH, onClickNode }: MinimapProps) {
+function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, containerW, containerH, onClickNode, onViewportDrag }: MinimapProps) {
   if (stepIds.length === 0) return null
 
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
@@ -67,6 +68,30 @@ function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, conta
   const vpY = (-panY / zoom - minY + pad) * scale
   const vpW = (containerW / zoom) * scale
   const vpH = (containerH / zoom) * scale
+
+  const vpDragRef = React.useRef<{ mouseX: number; mouseY: number; startPanX: number; startPanY: number } | null>(null)
+
+  const handleVpMouseDown = onViewportDrag ? (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    vpDragRef.current = { mouseX: e.clientX, mouseY: e.clientY, startPanX: panX, startPanY: panY }
+    const handleMove = (me: MouseEvent) => {
+      if (!vpDragRef.current) return
+      const dx = me.clientX - vpDragRef.current.mouseX
+      const dy = me.clientY - vpDragRef.current.mouseY
+      // minimap delta → canvas pan delta（反向，除以 scale，乘以 zoom）
+      const newPanX = vpDragRef.current.startPanX - (dx / scale) * zoom
+      const newPanY = vpDragRef.current.startPanY - (dy / scale) * zoom
+      onViewportDrag(newPanX, newPanY)
+    }
+    const handleUp = () => {
+      vpDragRef.current = null
+      window.removeEventListener('mousemove', handleMove)
+      window.removeEventListener('mouseup', handleUp)
+    }
+    window.addEventListener('mousemove', handleMove)
+    window.addEventListener('mouseup', handleUp)
+  } : undefined
 
   return (
     <div
@@ -111,15 +136,14 @@ function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, conta
           )
         })}
         <rect
-          x={vpX}
-          y={vpY}
-          width={Math.max(4, vpW)}
-          height={Math.max(4, vpH)}
+          x={vpX} y={vpY}
+          width={Math.max(4, vpW)} height={Math.max(4, vpH)}
           fill="rgba(255,255,255,0.06)"
           stroke="rgba(255,255,255,0.3)"
           strokeWidth={0.8}
           rx={1}
-          style={{ pointerEvents: 'none' }}
+          style={{ pointerEvents: onViewportDrag ? 'all' : 'none', cursor: onViewportDrag ? 'grab' : 'default' }}
+          onMouseDown={handleVpMouseDown}
         />
       </svg>
     </div>
@@ -255,13 +279,17 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   const onStepReorderRef = useRef(onStepReorder)
   useEffect(() => { onStepReorderRef.current = onStepReorder }, [onStepReorder])
   const layoutPanYRef = useRef(layout.panY)
+  const layoutPanXRef = useRef(layout.panX)
+  const layoutDirectionRef = useRef(layout.layoutDirection)
   const layoutZoomRef = useRef(layout.zoom)
   const layoutNodePositionsRef = useRef(layout.nodePositions)
   useEffect(() => {
     layoutPanYRef.current = layout.panY
+    layoutPanXRef.current = layout.panX
+    layoutDirectionRef.current = layout.layoutDirection
     layoutZoomRef.current = layout.zoom
     layoutNodePositionsRef.current = layout.nodePositions
-  }, [layout.panY, layout.zoom, layout.nodePositions])
+  }, [layout.panY, layout.panX, layout.layoutDirection, layout.zoom, layout.nodePositions])
 
   // D6: reorder drag window listeners
   useEffect(() => {
@@ -270,11 +298,16 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
       const wf = workflowRef.current
       if (!containerRef.current || !wf) return
       const rect = containerRef.current.getBoundingClientRect()
-      const canvasY = (e.clientY - rect.top - layoutPanYRef.current) / layoutZoomRef.current
+      const isHoriz = layoutDirectionRef.current === 'horizontal'
+      const canvasCoord = isHoriz
+        ? (e.clientX - rect.left - layoutPanXRef.current) / layoutZoomRef.current
+        : (e.clientY - rect.top - layoutPanYRef.current) / layoutZoomRef.current
       let insertAfter = -1
       wf.steps.forEach((step, idx) => {
         const pos = layoutNodePositionsRef.current[step.id]
-        if (pos && canvasY > pos.y + pos.height / 2) insertAfter = idx
+        if (!pos) return
+        const mid = isHoriz ? pos.x + pos.width / 2 : pos.y + pos.height / 2
+        if (canvasCoord > mid) insertAfter = idx
       })
       setReorderDrag(prev => prev ? { ...prev, insertAfterIndex: insertAfter } : null)
     }
@@ -530,16 +563,24 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   const hoveredToId = hoveredEdgeKey ? hoveredEdgeKey.split(':')[1] : null
 
   // D6: compute reorder insertion line position
-  const reorderInsertLineY = reorderDrag && (() => {
+  const reorderInsertLine = reorderDrag && (() => {
     const { insertAfterIndex } = reorderDrag
-    if (insertAfterIndex < 0) {
-      const firstStep = workflow.steps[0]
-      const pos = firstStep ? layout.nodePositions[firstStep.id] : null
-      return pos ? pos.y - 8 : -8
+    const isHoriz = layout.layoutDirection === 'horizontal'
+    if (isHoriz) {
+      if (insertAfterIndex < 0) {
+        const pos = workflow.steps[0] ? layout.nodePositions[workflow.steps[0].id] : null
+        return pos ? { x: pos.x - 8, isVertical: true } : null
+      }
+      const pos = workflow.steps[insertAfterIndex] ? layout.nodePositions[workflow.steps[insertAfterIndex].id] : null
+      return pos ? { x: pos.x + pos.width + 4, isVertical: true } : null
+    } else {
+      if (insertAfterIndex < 0) {
+        const pos = workflow.steps[0] ? layout.nodePositions[workflow.steps[0].id] : null
+        return pos ? { y: pos.y - 8, isVertical: false } : null
+      }
+      const pos = workflow.steps[insertAfterIndex] ? layout.nodePositions[workflow.steps[insertAfterIndex].id] : null
+      return pos ? { y: pos.y + pos.height + 4, isVertical: false } : null
     }
-    const step = workflow.steps[insertAfterIndex]
-    const pos = step ? layout.nodePositions[step.id] : null
-    return pos ? pos.y + pos.height + 4 : 0
   })()
 
   return (
@@ -785,14 +826,13 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         })}
 
         {/* D6: Reorder insertion indicator line */}
-        {reorderDrag && reorderInsertLineY !== null && (
+        {reorderDrag && reorderInsertLine && (
           <div
             style={{
               position: 'absolute',
-              left: -6,
-              top: reorderInsertLineY,
-              width: NODE_WIDTH + 12,
-              height: 2,
+              ...(reorderInsertLine.isVertical
+                ? { top: -6, height: NODE_MIN_HEIGHT + 12, left: (reorderInsertLine as any).x, width: 2 }
+                : { left: -6, width: NODE_WIDTH + 12, top: (reorderInsertLine as any).y, height: 2 }),
               background: 'var(--accent)',
               borderRadius: 1,
               pointerEvents: 'none',
@@ -840,6 +880,10 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           containerW={layout.containerSize.w}
           containerH={layout.containerSize.h}
           onClickNode={handleMinimapClickNode}
+          onViewportDrag={(newPanX, newPanY) => {
+            layout.setPanX(newPanX)
+            layout.setPanY(newPanY)
+          }}
         />
       )}
 
@@ -892,11 +936,11 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           onClick={e => e.stopPropagation()}
         >
           {[
-            { label: '适配视图', action: layout.fitToView },
-            { label: '全部折叠', action: layout.handleCollapseAll },
-            { label: '全部展开', action: layout.handleExpandAll },
-            { label: layout.layoutDirection === 'vertical' ? '切换为横向布局' : '切换为纵向布局', action: layout.toggleLayoutDirection },
-            { label: '导出 JSON', action: handleExport },
+            { label: 'Fit to view', action: layout.fitToView },
+            { label: 'Collapse all', action: layout.handleCollapseAll },
+            { label: 'Expand all', action: layout.handleExpandAll },
+            { label: layout.layoutDirection === 'vertical' ? 'Horizontal layout' : 'Vertical layout', action: layout.toggleLayoutDirection },
+            { label: 'Export JSON', action: handleExport },
           ].map(({ label, action }) => (
             <div
               key={label}

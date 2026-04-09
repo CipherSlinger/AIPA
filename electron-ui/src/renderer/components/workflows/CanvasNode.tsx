@@ -153,7 +153,7 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, onCollapse, onClose, onCo
         onMouseDown={() => { onCopyPrompt(); onClose() }}
       >
         <Copy size={11} style={{ opacity: 0.7 }} />
-        Copy prompt
+        复制提示词
       </div>
       {hasOutput && (
         <div
@@ -163,7 +163,7 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, onCollapse, onClose, onCo
           onMouseDown={() => { onCopyOutput(); onClose() }}
         >
           <MessageSquare size={11} style={{ opacity: 0.7 }} />
-          Copy output
+          复制输出内容
         </div>
       )}
       <div style={{ height: 1, background: 'var(--border)', margin: '3px 0' }} />
@@ -174,7 +174,7 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, onCollapse, onClose, onCo
         onMouseDown={() => { onCollapse(); onClose() }}
       >
         {collapsed ? <ChevronDown size={11} style={{ opacity: 0.7 }} /> : <ChevronUp size={11} style={{ opacity: 0.7 }} />}
-        {collapsed ? 'Expand node' : 'Collapse node'}
+        {collapsed ? '展开节点' : '折叠节点'}
       </div>
     </div>
   )
@@ -211,6 +211,7 @@ export default function CanvasNode({
   const [outputExpanded, setOutputExpanded] = useState(false)
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editTitleValue, setEditTitleValue] = useState('')
+  const [isNodeHovered, setIsNodeHovered] = useState(false)
   const titleInputRef = useRef<HTMLInputElement>(null)
 
   // Reset output expansion when node changes status
@@ -317,6 +318,8 @@ export default function CanvasNode({
         onKeyDown={(e) => {
           if (e.key === 'Enter') onSelect(step.id)
         }}
+        onMouseEnter={() => setIsNodeHovered(true)}
+        onMouseLeave={() => setIsNodeHovered(false)}
         style={{
           position: 'absolute',
           left: x,
@@ -402,17 +405,15 @@ export default function CanvasNode({
               transform: 'translateY(-50%)',
               cursor: 'ns-resize',
               color: 'var(--text-muted)',
-              opacity: 0.3,
-              padding: '2px 2px',
+              opacity: isNodeHovered ? 0.65 : 0,
+              padding: '4px 3px',
               display: 'flex',
               alignItems: 'center',
               borderRadius: 2,
               transition: 'opacity 0.15s',
             }}
-            onMouseEnter={e => (e.currentTarget.style.opacity = '0.7')}
-            onMouseLeave={e => (e.currentTarget.style.opacity = '0.3')}
           >
-            <GripVertical size={10} />
+            <GripVertical size={12} />
           </div>
         )}
 

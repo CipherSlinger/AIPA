@@ -100,10 +100,13 @@ export function useCanvasLayout(
   const viewportRestoredRef = useRef(false)
   const vpSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // F1: custom positions save timer ref
+  const posSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   // D1: Marquee selection state
   const [marqueeRect, setMarqueeRect] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null)
   const [isMarqueeing, setIsMarqueeing] = useState(false)
-  const marqueeStartRef = useRef<{ x1: number; y1: number; panX: number; panY: number; zoom: number } | null>(null)
+  const marqueeStartRef = useRef<{ x1: number; y1: number; panX: number; panY: number; zoom: number; shiftKey: boolean } | null>(null)
 
   // D1: keep nodePositions accessible inside marquee effect without causing re-registrations
   const nodePositionsRef = useRef<Record<string, NodePosition>>({})
@@ -217,6 +220,27 @@ export function useCanvasLayout(
       } catch {
         setCollapsedNodes(new Set())
       }
+
+      // F1: restore custom positions (override seed from step.canvasPos)
+      try {
+        const posSaved = localStorage.getItem(`aipa:canvas-pos:${workflow.id}`)
+        if (posSaved) {
+          const parsed: Record<string, { x: number; y: number }> = JSON.parse(posSaved)
+          setCustomPositions(prev => ({ ...prev, ...parsed }))
+        }
+      } catch { }
+
+      // F2: restore layout direction
+      try {
+        const dirSaved = localStorage.getItem(`aipa:canvas-dir:${workflow.id}`)
+        if (dirSaved === 'horizontal' || dirSaved === 'vertical') {
+          setLayoutDirection(dirSaved)
+        } else {
+          setLayoutDirection('vertical')
+        }
+      } catch {
+        setLayoutDirection('vertical')
+      }
     } else {
       setCollapsedNodes(new Set())
     }
@@ -246,6 +270,29 @@ export function useCanvasLayout(
       localStorage.setItem(`aipa:canvas-collapsed:${workflow.id}`, JSON.stringify([...collapsedNodes]))
     } catch { }
   }, [collapsedNodes, workflow?.id])
+
+  // F1: save custom positions to localStorage (debounced 800ms)
+  useEffect(() => {
+    if (!workflow?.id) return
+    if (posSaveTimerRef.current) clearTimeout(posSaveTimerRef.current)
+    posSaveTimerRef.current = setTimeout(() => {
+      try {
+        if (Object.keys(customPositions).length > 0) {
+          localStorage.setItem(`aipa:canvas-pos:${workflow.id}`, JSON.stringify(customPositions))
+        } else {
+          localStorage.removeItem(`aipa:canvas-pos:${workflow.id}`)
+        }
+      } catch { }
+    }, 800)
+  }, [customPositions, workflow?.id])
+
+  // F2: save layout direction to localStorage whenever it changes
+  useEffect(() => {
+    if (!workflow?.id) return
+    try {
+      localStorage.setItem(`aipa:canvas-dir:${workflow.id}`, layoutDirection)
+    } catch { }
+  }, [layoutDirection, workflow?.id])
 
   // Fit to view
   const fitToView = useCallback(() => {
@@ -449,7 +496,7 @@ export function useCanvasLayout(
     const rect = el.getBoundingClientRect()
     const cx = (e.clientX - rect.left - panX) / zoom
     const cy = (e.clientY - rect.top - panY) / zoom
-    marqueeStartRef.current = { x1: cx, y1: cy, panX, panY, zoom }
+    marqueeStartRef.current = { x1: cx, y1: cy, panX, panY, zoom, shiftKey: e.shiftKey }
     setMarqueeRect({ x1: cx, y1: cy, x2: cx, y2: cy })
     setIsMarqueeing(true)
   }, [containerRef, panX, panY, zoom])
@@ -484,7 +531,17 @@ export function useCanvasLayout(
                 selected.add(id)
               }
             })
-            if (selected.size > 0) setSelectedNodes(selected)
+            if (selected.size > 0) {
+              if (startData.shiftKey) {
+                setSelectedNodes(prev => {
+                  const next = new Set(prev)
+                  selected.forEach(id => next.add(id))
+                  return next
+                })
+              } else {
+                setSelectedNodes(selected)
+              }
+            }
           }
         }
         return null
@@ -600,6 +657,13 @@ export function useCanvasLayout(
           return prevId
         })
       }
+      else if (e.key === 'Escape') {
+        if (focusedNodeId) {
+          e.preventDefault()
+          e.stopPropagation()
+          setFocusedNodeId(null)
+        }
+      }
     }
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.key === ' ') {
@@ -613,7 +677,7 @@ export function useCanvasLayout(
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [isHovered, zoomIn, zoomOut, fitToView, workflow, autoPanToNode, toggleLayoutDirection, handleCollapseAll, handleExpandAll])
+  }, [isHovered, zoomIn, zoomOut, fitToView, workflow, autoPanToNode, toggleLayoutDirection, handleCollapseAll, handleExpandAll, focusedNodeId])
 
   // --- Reset layout: clear all custom positions and notify store ---
   const resetLayout = useCallback(() => {
@@ -659,5 +723,7 @@ export function useCanvasLayout(
     selectNode,
     clearSelection,
     startMarquee,
+    setPanX,
+    setPanY,
   }
 }
