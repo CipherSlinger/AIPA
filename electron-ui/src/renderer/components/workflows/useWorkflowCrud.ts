@@ -22,8 +22,8 @@ export function useWorkflowCrud() {
   const [newName, setNewName] = useState('')
   const [newDesc, setNewDesc] = useState('')
   const [newIcon, setNewIcon] = useState('🔄')
-  const [newSteps, setNewSteps] = useState<WorkflowStep[]>([
-    { id: `step-${Date.now()}`, title: 'Step 1', prompt: '' },
+  const [newSteps, setNewSteps] = useState<WorkflowStep[]>(() => [
+    { id: `step-${Date.now()}`, title: t('workflow.stepLabel', { n: 1 }), prompt: '' },
   ])
 
   // Edit form state
@@ -89,7 +89,7 @@ export function useWorkflowCrud() {
     setNewName('')
     setNewDesc('')
     setNewIcon('🔄')
-    setNewSteps([{ id: `step-${Date.now()}`, title: 'Step 1', prompt: '' }])
+    setNewSteps([{ id: `step-${Date.now()}`, title: t('workflow.stepLabel', { n: 1 }), prompt: '' }])
     addToast('success', t('workflow.created'))
   }, [newName, newDesc, newIcon, newSteps, workflows, saveWorkflows, addToast, t])
 

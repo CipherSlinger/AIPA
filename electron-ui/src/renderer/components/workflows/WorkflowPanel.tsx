@@ -34,7 +34,7 @@ export default function WorkflowPanel() {
 /* Workflows tab content — extracted to keep the main component clean */
 function WorkflowTabContent({ crud, t }: {
   crud: ReturnType<typeof useWorkflowCrud>;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }) {
   return (
     <>
@@ -153,7 +153,7 @@ function WorkflowTabContent({ crud, t }: {
           <WorkflowStepEditor steps={crud.newSteps} setSteps={crud.setNewSteps} />
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4, marginTop: 8 }}>
             <button
-              onClick={() => { crud.setShowCreateForm(false); crud.setNewName(''); crud.setNewDesc(''); crud.setNewSteps([{ id: `step-${Date.now()}`, title: 'Step 1', prompt: '' }]) }}
+              onClick={() => { crud.setShowCreateForm(false); crud.setNewName(''); crud.setNewDesc(''); crud.setNewSteps([{ id: `step-${Date.now()}`, title: t('workflow.stepLabel', { n: 1 }), prompt: '' }]) }}
               style={{
                 background: 'transparent', border: '1px solid var(--border)', borderRadius: 4,
                 padding: '3px 10px', fontSize: 10, color: 'var(--text-muted)', cursor: 'pointer',

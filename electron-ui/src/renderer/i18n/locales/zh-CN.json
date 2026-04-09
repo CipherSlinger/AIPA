@@ -1526,6 +1526,10 @@
     "parallelPrompts": "并行提示词",
     "addParallelPrompt": "添加提示词",
     "removeParallelPrompt": "移除",
+    "availableVariables": "可用变量",
+    "stepLabel": "第 {{n}} 步",
+    "retryStep": "重试步骤：{{title}}",
+    "filterSteps": "筛选步骤...",
     "footer": "多步骤任务的提示词链",
     "inspired": "灵感来自 OpenClaw Lobster",
     "preset": {

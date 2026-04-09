@@ -9,11 +9,11 @@ interface WorkflowStepEditorProps {
   setSteps: React.Dispatch<React.SetStateAction<WorkflowStep[]>>
 }
 
-function addStep(steps: WorkflowStep[], setter: React.Dispatch<React.SetStateAction<WorkflowStep[]>>) {
+function addStep(steps: WorkflowStep[], setter: React.Dispatch<React.SetStateAction<WorkflowStep[]>>, t: (key: string, params?: Record<string, string | number>) => string) {
   if (steps.length >= MAX_STEPS) return
   setter([...steps, {
     id: `step-${Date.now()}-${Math.random().toString(36).slice(2, 4)}`,
-    title: `Step ${steps.length + 1}`,
+    title: t('workflow.stepLabel', { n: steps.length + 1 }),
     prompt: '',
   }])
 }
@@ -105,7 +105,7 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
             <input
               value={step.title}
               onChange={e => updateStep(setSteps, step.id, 'title', e.target.value)}
-              placeholder={`Step ${idx + 1}`}
+              placeholder={t('workflow.stepLabel', { n: idx + 1 })}
               maxLength={50}
               style={{
                 flex: 1,
@@ -191,7 +191,7 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
           {idx > 0 && (
             <div style={{ marginTop: 4, padding: '4px 6px', background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 4 }}>
               <div style={{ fontSize: 9, color: 'var(--text-muted)', fontWeight: 600, marginBottom: 3, textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                Available variables
+                {t('workflow.availableVariables')}
               </div>
               {steps.slice(0, idx).map((priorStep, priorIdx) => {
                 const varName = `{{step_${priorIdx + 1}_output}}`
@@ -220,7 +220,7 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
                       color: isUsed ? 'var(--accent)' : 'var(--text-muted)',
                     }}>{varName}</code>
                     <span style={{ opacity: 0.7 }}>
-                      Step {priorIdx + 1}{priorStep.title ? `: "${priorStep.title}"` : ''}
+                      {t('workflow.stepLabel', { n: priorIdx + 1 })}{priorStep.title ? `: "${priorStep.title}"` : ''}
                     </span>
                   </div>
                 )
@@ -326,7 +326,7 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
       ))}
       {steps.length < MAX_STEPS && (
         <button
-          onClick={() => addStep(steps, setSteps)}
+          onClick={() => addStep(steps, setSteps, t)}
           style={{
             background: 'transparent',
             border: '1px dashed var(--border)',

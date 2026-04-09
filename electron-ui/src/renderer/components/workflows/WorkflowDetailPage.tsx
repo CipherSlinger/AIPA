@@ -22,6 +22,7 @@ const STEP_STATUS_BORDER: Record<StepStatus, string> = {
   pending: 'var(--border)',
   running: 'var(--accent)',
   completed: '#22c55e',
+  error: '#ef4444',
 }
 
 const STEP_STATUS_BG: Record<StepStatus, string> = {
@@ -29,6 +30,7 @@ const STEP_STATUS_BG: Record<StepStatus, string> = {
   pending: 'var(--card-bg)',
   running: 'rgba(var(--accent-rgb, 59,130,246), 0.06)',
   completed: 'rgba(34,197,94, 0.06)',
+  error: 'rgba(239,68,68, 0.06)',
 }
 
 const stepIconStyle = (bg: string, anim?: string): React.CSSProperties => ({
@@ -220,7 +222,7 @@ export default function WorkflowDetailPage() {
     const step = workflow.steps[stepIdx]
     const prompt = getPresetStepText(workflow.presetKey, stepIdx, 'prompt', t, step.prompt)
     useChatStore.getState().addToQueue(prompt, { workflowId: workflow.id, stepIndex: stepIdx })
-    addToast('info', `重试步骤: ${step.title || `Step ${stepIdx + 1}`}`)
+    addToast('info', t('workflow.retryStep', { title: step.title || t('workflow.stepLabel', { n: stepIdx + 1 }) }))
   }, [workflow, t, addToast])
 
   // Direction A: rerun the entire workflow
@@ -274,7 +276,7 @@ export default function WorkflowDetailPage() {
     if (!name) { addToast('error', t('workflow.nameRequired')); return }
     const validSteps: WorkflowStep[] = editSteps
       .filter(s => s.prompt.trim() || (s.nodeType === 'parallel' && (s.parallelPrompts ?? []).some(p => p.trim())))
-      .map((s, idx) => ({ ...s, title: s.title.trim() || `Step ${idx + 1}`, prompt: s.prompt.trim() }))
+      .map((s, idx) => ({ ...s, title: s.title.trim() || t('workflow.stepLabel', { n: idx + 1 }), prompt: s.prompt.trim() }))
     if (validSteps.length === 0) { addToast('error', t('workflow.stepsRequired')); return }
 
     const prefs = usePrefsStore.getState()
@@ -362,7 +364,7 @@ export default function WorkflowDetailPage() {
               <Search size={11} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
               <input
                 type="text"
-                placeholder="Filter steps..."
+                placeholder={t('workflow.filterSteps')}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 style={{
@@ -451,7 +453,7 @@ export default function WorkflowDetailPage() {
                     {idx > 0 && (
                       <div style={{ marginTop: 4, padding: '4px 6px', background: 'var(--bg-chat)', border: '1px solid var(--border)', borderRadius: 4 }}>
                         <div style={{ fontSize: 9, color: 'var(--text-muted)', fontWeight: 600, marginBottom: 3, textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                          Available variables
+                          {t('workflow.availableVariables')}
                         </div>
                         {editSteps.slice(0, idx).map((priorStep, priorIdx) => {
                           const varName = `{{step_${priorIdx + 1}_output}}`
@@ -474,7 +476,7 @@ export default function WorkflowDetailPage() {
                                 color: isUsed ? 'var(--accent)' : 'var(--text-muted)',
                               }}>{varName}</code>
                               <span style={{ opacity: 0.7 }}>
-                                Step {priorIdx + 1}{priorStep.title ? `: "${priorStep.title}"` : ''}
+                                {t('workflow.stepLabel', { n: priorIdx + 1 })}{priorStep.title ? `: "${priorStep.title}"` : ''}
                               </span>
                             </div>
                           )
@@ -516,7 +518,7 @@ export default function WorkflowDetailPage() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {step.title || `Step ${idx + 1}`}
+                          {step.title || t('workflow.stepLabel', { n: idx + 1 })}
                         </span>
                         <StepStatusIcon status={status} />
                       </div>
