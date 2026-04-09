@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useRef, useEffect } from 'react'
-import { Check, Loader, ChevronUp, ChevronDown, Copy, MessageSquare, AlertCircle, GripVertical } from 'lucide-react'
+import { Check, Loader, ChevronUp, ChevronDown, Copy, MessageSquare, AlertCircle, GripVertical, PlusCircle, RefreshCw, Trash2 } from 'lucide-react'
 import { WorkflowStep } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { getPresetStepText } from './workflowConstants'
@@ -30,6 +30,10 @@ interface CanvasNodeProps {
   onTitleChange?: (stepId: string, newTitle: string) => void
   onMultiSelect?: (stepId: string, shiftKey: boolean) => void
   onReorderDragStart?: (stepId: string, e: React.MouseEvent) => void  // D6: drag to reorder
+  onDeleteNode?: (stepId: string) => void
+  onInsertBefore?: (stepId: string) => void
+  onInsertAfter?: (stepId: string) => void
+  onRetry?: (stepId: string) => void
 }
 
 export const NODE_WIDTH = 220
@@ -105,13 +109,18 @@ interface ContextMenuProps {
   collapsed: boolean
   hasOutput: boolean
   displayPrompt: string
+  status: StepStatus
   onCollapse: () => void
   onClose: () => void
   onCopyPrompt: () => void
   onCopyOutput: () => void
+  onDeleteNode?: () => void
+  onInsertBefore?: () => void
+  onInsertAfter?: () => void
+  onRetry?: () => void
 }
 
-function NodeContextMenu({ x, y, collapsed, hasOutput, onCollapse, onClose, onCopyPrompt, onCopyOutput }: ContextMenuProps) {
+function NodeContextMenu({ x, y, collapsed, hasOutput, status, onCollapse, onClose, onCopyPrompt, onCopyOutput, onDeleteNode, onInsertBefore, onInsertAfter, onRetry }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -142,6 +151,11 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, onCollapse, onClose, onCo
     fontSize: 11,
     cursor: 'pointer',
     color: 'var(--text)',
+  }
+
+  const deleteItemStyle: React.CSSProperties = {
+    ...itemStyle,
+    color: '#ef4444',
   }
 
   return (
@@ -176,6 +190,53 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, onCollapse, onClose, onCo
         {collapsed ? <ChevronDown size={11} style={{ opacity: 0.7 }} /> : <ChevronUp size={11} style={{ opacity: 0.7 }} />}
         {collapsed ? '展开节点' : '折叠节点'}
       </div>
+      {onInsertBefore && (
+        <div
+          style={itemStyle}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          onMouseDown={() => { onInsertBefore(); onClose() }}
+        >
+          <PlusCircle size={11} style={{ opacity: 0.7 }} />
+          在此之前插入
+        </div>
+      )}
+      {onInsertAfter && (
+        <div
+          style={itemStyle}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          onMouseDown={() => { onInsertAfter(); onClose() }}
+        >
+          <PlusCircle size={11} style={{ opacity: 0.7 }} />
+          在此之后插入
+        </div>
+      )}
+      {onRetry && status === 'error' && (
+        <div
+          style={itemStyle}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          onMouseDown={() => { onRetry(); onClose() }}
+        >
+          <RefreshCw size={11} style={{ opacity: 0.7 }} />
+          重试此步骤
+        </div>
+      )}
+      {onDeleteNode && (
+        <>
+          <div style={{ height: 1, background: 'var(--border)', margin: '3px 0' }} />
+          <div
+            style={deleteItemStyle}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            onMouseDown={() => { onDeleteNode(); onClose() }}
+          >
+            <Trash2 size={11} style={{ opacity: 0.7 }} />
+            删除此步骤
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -205,6 +266,10 @@ export default function CanvasNode({
   onTitleChange,
   onMultiSelect,
   onReorderDragStart,
+  onDeleteNode,
+  onInsertBefore,
+  onInsertAfter,
+  onRetry,
 }: CanvasNodeProps) {
   const t = useT()
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null)
@@ -279,11 +344,6 @@ export default function CanvasNode({
   const promptPreview =
     displayPrompt.length > 60 ? displayPrompt.slice(0, 60) + '…' : displayPrompt
 
-  // Truncated output inline preview (shows on completed nodes)
-  const outputPreview = outputText
-    ? (outputText.length > 80 ? outputText.slice(0, 80) + '…' : outputText)
-    : null
-
   const statusStyle = STATUS_STYLES[status] ?? STATUS_STYLES.idle
   const isActive = selected || status === 'running'
   const isMulti = multiSelected && !selected
@@ -302,6 +362,10 @@ export default function CanvasNode({
 
   // D5: format elapsed time
   const elapsedSec = liveElapsedMs !== undefined ? Math.floor(liveElapsedMs / 1000) : 0
+
+  // Char count badge for completed output
+  const charCount = outputText ? outputText.length : 0
+  const charCountLabel = charCount >= 1000 ? `${(charCount / 1000).toFixed(1)}k chars` : `${charCount} chars`
 
   return (
     <>
@@ -505,26 +569,41 @@ export default function CanvasNode({
         {!collapsed && (
           <>
             {status === 'completed' && outputText ? (
-              /* Completed: show output text */
+              /* Completed: show output text with improved preview */
               <div style={{ fontSize: 10, color: 'var(--text-secondary)', lineHeight: 1.45, width: '100%' }}>
                 <div style={{
+                  whiteSpace: outputExpanded ? 'pre-wrap' : undefined,
+                  wordBreak: 'break-word',
                   display: outputExpanded ? 'block' : '-webkit-box',
                   WebkitLineClamp: outputExpanded ? undefined : 2,
                   WebkitBoxOrient: 'vertical',
                   overflow: 'hidden',
-                  whiteSpace: outputExpanded ? 'pre-wrap' : undefined,
-                  wordBreak: 'break-word',
                 }}>
-                  {outputText}
+                  {outputExpanded ? outputText.slice(0, 2000) : outputText.slice(0, 120)}
+                  {!outputExpanded && outputText.length > 120 && '...'}
                 </div>
-                {outputText.length > 80 && (
+                {!outputExpanded && outputText.length > 120 && (
+                  <span style={{
+                    display: 'inline-block',
+                    background: 'rgba(34,197,94,0.1)',
+                    color: '#22c55e',
+                    fontSize: 9,
+                    borderRadius: 3,
+                    padding: '1px 4px',
+                    marginLeft: 4,
+                    verticalAlign: 'middle',
+                  }}>
+                    {charCountLabel}
+                  </span>
+                )}
+                {outputText.length > 120 && (
                   <button
                     onMouseDown={e => e.stopPropagation()}
                     onClick={(e) => { e.stopPropagation(); setOutputExpanded(v => !v) }}
                     style={{
                       background: 'none', border: 'none', padding: 0,
                       cursor: 'pointer', fontSize: 9, color: 'var(--accent)',
-                      marginTop: 2,
+                      marginTop: 2, display: 'block',
                     }}
                   >
                     {outputExpanded ? 'Show less' : 'Show more'}
@@ -559,6 +638,13 @@ export default function CanvasNode({
                 overflow: 'hidden',
               }}>
                 {promptPreview}
+              </div>
+            )}
+
+            {/* Error output summary */}
+            {status === 'error' && outputText && (
+              <div style={{ fontSize: 9, color: '#ef4444', marginTop: 4, opacity: 0.8, lineHeight: 1.4, wordBreak: 'break-word' }}>
+                {outputText.slice(0, 80)}
               </div>
             )}
           </>
@@ -619,10 +705,15 @@ export default function CanvasNode({
           collapsed={collapsed}
           hasOutput={!!outputText}
           displayPrompt={displayPrompt}
+          status={status}
           onCollapse={() => onToggleCollapse?.(step.id)}
           onClose={() => setCtxMenu(null)}
           onCopyPrompt={() => navigator.clipboard?.writeText(displayPrompt)}
           onCopyOutput={() => outputText && navigator.clipboard?.writeText(outputText)}
+          onDeleteNode={onDeleteNode ? () => onDeleteNode(step.id) : undefined}
+          onInsertBefore={onInsertBefore ? () => onInsertBefore(step.id) : undefined}
+          onInsertAfter={onInsertAfter ? () => onInsertAfter(step.id) : undefined}
+          onRetry={onRetry ? () => onRetry(step.id) : undefined}
         />
       )}
     </>

@@ -6,6 +6,8 @@
 // D1: marquee/box selection on canvas drag
 // D3: viewport state persistence (pan/zoom saved per workflow in localStorage)
 // D7: collapsed node state persistence per workflow in localStorage
+// Direction 9: dynamic node heights
+// Direction 5: expanded keyboard shortcuts (Escape clears selection, Delete/Backspace triggers onDeleteNodes)
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { NODE_WIDTH, NODE_MIN_HEIGHT, NODE_COLLAPSED_HEIGHT, NODE_GAP_Y } from './CanvasNode'
@@ -26,6 +28,7 @@ export function useCanvasLayout(
   workflow: Workflow | null,
   containerRef: React.RefObject<HTMLDivElement | null>,
   onPositionsChange?: (positions: Record<string, { x: number; y: number }>) => void,
+  onDeleteNodes?: (ids: string[]) => void,
 ) {
   // Pan & zoom state
   const [panX, setPanX] = useState(0)
@@ -111,6 +114,16 @@ export function useCanvasLayout(
   // D1: keep nodePositions accessible inside marquee effect without causing re-registrations
   const nodePositionsRef = useRef<Record<string, NodePosition>>({})
 
+  // Direction 9: dynamic node heights reported by CanvasNode via ResizeObserver
+  const [nodeHeights, setNodeHeights] = useState<Record<string, number>>({})
+
+  const updateNodeHeight = useCallback((nodeId: string, height: number) => {
+    setNodeHeights(prev => {
+      if (prev[nodeId] === height) return prev
+      return { ...prev, [nodeId]: height }
+    })
+  }, [])
+
   const handleToggleCollapse = useCallback((stepId: string) => {
     setCollapsedNodes(prev => {
       const next = new Set(prev)
@@ -130,13 +143,14 @@ export function useCanvasLayout(
   }, [])
 
   // Compute default positions for all nodes — supports vertical and horizontal layouts
+  // Direction 9: use dynamic nodeHeights for expanded nodes instead of fixed NODE_MIN_HEIGHT
   const defaultPositions = useMemo(() => {
     if (!workflow) return {}
     const positions: Record<string, NodePosition> = {}
     let offset = 0
     workflow.steps.forEach((step) => {
       const isCollapsed = collapsedNodes.has(step.id)
-      const h = isCollapsed ? NODE_COLLAPSED_HEIGHT : NODE_MIN_HEIGHT
+      const h = isCollapsed ? NODE_COLLAPSED_HEIGHT : (nodeHeights[step.id] ?? NODE_MIN_HEIGHT)
       if (layoutDirection === 'horizontal') {
         positions[step.id] = {
           x: offset,
@@ -156,7 +170,7 @@ export function useCanvasLayout(
       }
     })
     return positions
-  }, [workflow, collapsedNodes, layoutDirection])
+  }, [workflow, collapsedNodes, layoutDirection, nodeHeights])
 
   // Merged positions: default + custom overrides
   const nodePositions = useMemo(() => {
@@ -190,6 +204,8 @@ export function useCanvasLayout(
     setSelectedNodes(new Set())
     setMarqueeRect(null)
     setIsMarqueeing(false)
+    // Direction 9: reset dynamic heights on workflow switch
+    setNodeHeights({})
 
     viewportRestoredRef.current = false
 
@@ -657,11 +673,24 @@ export function useCanvasLayout(
           return prevId
         })
       }
+      // Direction 5: Escape — clear selection and focused node
       else if (e.key === 'Escape') {
-        if (focusedNodeId) {
+        e.preventDefault()
+        clearSelection()
+        setFocusedNodeId(null)
+      }
+      // Direction 5: Delete/Backspace — invoke onDeleteNodes for focused or selected nodes
+      else if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (!onDeleteNodes) return
+        // Collect ids to delete: selectedNodes union focusedNodeId
+        const ids: string[] = []
+        selectedNodes.forEach(id => ids.push(id))
+        if (focusedNodeId && !selectedNodes.has(focusedNodeId)) {
+          ids.push(focusedNodeId)
+        }
+        if (ids.length > 0) {
           e.preventDefault()
-          e.stopPropagation()
-          setFocusedNodeId(null)
+          onDeleteNodes(ids)
         }
       }
     }
@@ -677,7 +706,7 @@ export function useCanvasLayout(
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [isHovered, zoomIn, zoomOut, fitToView, workflow, autoPanToNode, toggleLayoutDirection, handleCollapseAll, handleExpandAll, focusedNodeId])
+  }, [isHovered, zoomIn, zoomOut, fitToView, workflow, autoPanToNode, toggleLayoutDirection, handleCollapseAll, handleExpandAll, focusedNodeId, clearSelection, selectedNodes, onDeleteNodes])
 
   // --- Reset layout: clear all custom positions and notify store ---
   const resetLayout = useCallback(() => {
@@ -702,6 +731,7 @@ export function useCanvasLayout(
     layoutDirection,
     selectedNodes,
     marqueeRect,
+    nodeHeights,
 
     // Actions
     fitToView,
@@ -725,5 +755,6 @@ export function useCanvasLayout(
     startMarquee,
     setPanX,
     setPanY,
+    updateNodeHeight,
   }
 }

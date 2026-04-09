@@ -25,6 +25,12 @@ interface WorkflowCanvasProps {
   onStepUpdate?: (stepId: string, changes: { title?: string; prompt?: string }) => void
   // D6: reorder steps (drag handle)
   onStepReorder?: (stepId: string, newIndex: number) => void
+  // Direction 11: import steps from JSON
+  onImportSteps?: (steps: Array<{ title: string; prompt: string }>) => void
+  // Direction 4: insert step between two existing steps
+  onInsertBetween?: (afterStepId: string, beforeStepId: string) => void
+  // Direction 5: delete steps by id
+  onDeleteSteps?: (stepIds: string[]) => void
 }
 
 // --- Minimap ---
@@ -150,7 +156,7 @@ function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, conta
   )
 }
 
-export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep, onRerun, onStepUpdate, onStepReorder }: WorkflowCanvasProps) {
+export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep, onRerun, onStepUpdate, onStepReorder, onImportSteps, onInsertBetween, onDeleteSteps }: WorkflowCanvasProps) {
   const t = useT()
   const containerRef = useRef<HTMLDivElement>(null)
   const execution = useWorkflowExecution(workflow)
@@ -171,8 +177,16 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     return ''
   })
 
+  // Direction 13: search query state
+  const [searchQuery, setSearchQuery] = useState('')
+
+  // Direction 5: delete nodes callback (passed to useCanvasLayout as 4th param)
+  const handleDeleteNodes = useCallback((ids: string[]) => {
+    onDeleteSteps?.(ids)
+  }, [onDeleteSteps])
+
   // Layout hook (pan, zoom, node positions, drag, collapse, minimap, Space key)
-  const layout = useCanvasLayout(workflow, containerRef)
+  const layout = useCanvasLayout(workflow, containerRef, undefined, handleDeleteNodes)
 
   // Direction 6: execution history
   const { runs, saveRun, clearHistory } = useWorkflowHistory(workflow?.id ?? null)
@@ -389,6 +403,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     setSelectedRunId(null)
     setReorderDrag(null)
     setHoveredEdgeKey(null)
+    setSearchQuery('')
   }, [workflow?.id])
 
   // --- Auto-pan to active node during execution ---
@@ -496,12 +511,52 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }, [workflow, layout.nodePositions])
 
+  // Direction 11: JSON import handler
+  const handleImport = useCallback((jsonStr: string) => {
+    try {
+      const d = JSON.parse(jsonStr)
+      if (d.steps) onImportSteps?.(d.steps)
+    } catch {
+      // ignore parse errors
+    }
+  }, [onImportSteps])
+
+  // Direction 12: Shell script export handler
+  const handleExportScript = useCallback(() => {
+    if (!workflow) return
+    const lines = ['#!/bin/bash', `# Workflow: ${workflow.name}`, '']
+    workflow.steps.forEach((step, i) => {
+      lines.push(`# Step ${i + 1}: ${step.title}`)
+      lines.push(`echo "Running: ${step.title}"`)
+      lines.push(`# Prompt: ${step.prompt.slice(0, 100).replace(/"/g, '\\"')}`)
+      lines.push('')
+    })
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${workflow.name.replace(/[^a-z0-9]/gi, '_')}.sh`
+    a.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }, [workflow])
+
+  // Direction 13: compute effective highlight IDs (search takes priority over external prop)
+  const effectiveHighlightStepIds: Set<string> | null | undefined = (() => {
+    if (searchQuery && workflow) {
+      const matched = workflow.steps
+        .filter(s => s.title.includes(searchQuery) || s.prompt.includes(searchQuery))
+        .map(s => s.id)
+      return new Set(matched)
+    }
+    return highlightStepIds
+  })()
+
   // D8: auto-pan to first search match
   useEffect(() => {
-    if (!highlightStepIds || highlightStepIds.size === 0 || !workflow) return
-    const firstMatchId = workflow.steps.find(s => highlightStepIds.has(s.id))?.id
+    if (!effectiveHighlightStepIds || effectiveHighlightStepIds.size === 0 || !workflow) return
+    const firstMatchId = workflow.steps.find(s => effectiveHighlightStepIds!.has(s.id))?.id
     if (firstMatchId) layout.autoPanToNode(firstMatchId)
-  }, [highlightStepIds])
+  }, [effectiveHighlightStepIds])
 
   // --- Empty state ---
   if (!workflow) {
@@ -681,6 +736,10 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         layoutDirection={layout.layoutDirection}
         onToggleLayout={layout.toggleLayoutDirection}
         onExport={handleExport}
+        onImport={handleImport}
+        onExportScript={handleExportScript}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
       />
 
       {/* Space-key hint */}
@@ -745,6 +804,13 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                 layoutDirection={layout.layoutDirection}
                 onHoverChange={(hovered) => setHoveredEdgeKey(hovered ? edgeKey : null)}
                 highlighted={isHighlighted}
+                // Direction 4: insert step between two existing steps
+                onAddBetween={onInsertBetween ? () => {
+                  onInsertBetween(prevStep.id, step.id)
+                } : undefined}
+                // Direction 4: pass output length and duration from previous step
+                outputLength={execution.stepOutputs[prevStep.id]?.length}
+                durationMs={execution.stepDurations[prevStep.id]}
               />
             )
           })}
@@ -792,7 +858,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               collapsed={layout.collapsedNodes.has(step.id)}
               outputText={historyStepOutputs ? (historyStepOutputs[step.id] ?? execution.stepOutputs[step.id]) : execution.stepOutputs[step.id]}
               dimmed={
-                (highlightStepIds !== null && highlightStepIds !== undefined && !highlightStepIds.has(step.id)) ||
+                (effectiveHighlightStepIds !== null && effectiveHighlightStepIds !== undefined && !effectiveHighlightStepIds.has(step.id)) ||
                 (reorderDrag !== null && reorderDrag.stepId === step.id)
               }
               durationMs={historyStepDurations ? (historyStepDurations[step.id] ?? execution.stepDurations[step.id]) : execution.stepDurations[step.id]}
@@ -821,6 +887,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                 e.stopPropagation()
                 setReorderDrag({ stepId, insertAfterIndex: -1 })
               } : undefined}
+              // TODO: wire up updateNodeHeight via CanvasNode onHeightChange
             />
           )
         })}
@@ -900,6 +967,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           onClose={closeSidebar}
           onRetryStep={onRetryStep}
           onPromptChange={handlePromptChange}
+          // TODO: Direction G2 — highlight {{...}} template variables in prompt preview
         />
       )}
 
@@ -941,6 +1009,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             { label: 'Expand all', action: layout.handleExpandAll },
             { label: layout.layoutDirection === 'vertical' ? 'Horizontal layout' : 'Vertical layout', action: layout.toggleLayoutDirection },
             { label: 'Export JSON', action: handleExport },
+            { label: 'Export Script', action: handleExportScript },
           ].map(({ label, action }) => (
             <div
               key={label}

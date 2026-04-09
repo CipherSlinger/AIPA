@@ -2,9 +2,12 @@
 // Iteration 490: added minimap toggle button
 // Direction 9: context-aware abort/rerun buttons
 // Iteration 528: Direction G (export), E (layout toggle), A (restart on error)
+// Direction 11: JSON import button
+// Direction 12: export as shell script button
+// Direction 13: search box
 
-import React from 'react'
-import { Maximize2, ChevronsDownUp, ChevronsUpDown, Map, Download, ArrowDownUp, ArrowLeftRight } from 'lucide-react'
+import React, { useRef } from 'react'
+import { Maximize2, ChevronsDownUp, ChevronsUpDown, Map, Download, ArrowDownUp, ArrowLeftRight, Upload, Terminal, Search, X } from 'lucide-react'
 
 const toolbarBtnStyle: React.CSSProperties = {
   background: 'transparent',
@@ -60,6 +63,13 @@ interface CanvasToolbarProps {
   onToggleLayout?: () => void
   // Direction G: export
   onExport?: () => void
+  // Direction 11: JSON import
+  onImport?: (jsonString: string) => void
+  // Direction 12: export as shell script
+  onExportScript?: () => void
+  // Direction 13: search
+  searchQuery?: string
+  onSearchChange?: (q: string) => void
 }
 
 export default function CanvasToolbar({
@@ -74,7 +84,26 @@ export default function CanvasToolbar({
   layoutDirection = 'vertical',
   onToggleLayout,
   onExport,
+  onImport,
+  onExportScript,
+  searchQuery,
+  onSearchChange,
 }: CanvasToolbarProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !onImport) return
+    const reader = new FileReader()
+    reader.onload = (evt) => {
+      const content = evt.target?.result
+      if (typeof content === 'string') onImport(content)
+    }
+    reader.readAsText(file)
+    // Reset input so the same file can be re-imported
+    e.target.value = ''
+  }
+
   return (
     <div style={{
       position: 'absolute',
@@ -91,7 +120,52 @@ export default function CanvasToolbar({
       border: '1px solid var(--border)',
       transition: 'top 0.2s ease',
     }}>
-      {/* Direction 9: Abort button — left side, shown when running */}
+      {/* Direction 13: Search box — leftmost */}
+      {onSearchChange && (
+        <>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <Search size={11} style={{ position: 'absolute', left: 5, color: 'var(--text-muted)', pointerEvents: 'none' }} />
+            <input
+              type="text"
+              value={searchQuery ?? ''}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Search…"
+              style={{
+                width: 110,
+                fontSize: 11,
+                padding: '2px 22px 2px 20px',
+                background: 'var(--bg-input, transparent)',
+                border: '1px solid var(--border)',
+                borderRadius: 4,
+                color: 'var(--text)',
+                outline: 'none',
+              }}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => onSearchChange('')}
+                aria-label="Clear search"
+                style={{
+                  position: 'absolute',
+                  right: 3,
+                  background: 'transparent',
+                  border: 'none',
+                  padding: 1,
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <X size={10} />
+              </button>
+            )}
+          </div>
+          <div style={{ width: 1, height: 14, background: 'var(--border)', margin: '0 2px' }} />
+        </>
+      )}
+
+      {/* Direction 9: Abort button — shown when running */}
       {isRunning && onAbort && (
         <>
           <button
@@ -251,19 +325,55 @@ export default function CanvasToolbar({
           {layoutDirection === 'vertical' ? <ArrowDownUp size={13} /> : <ArrowLeftRight size={13} />}
         </button>
       )}
-      {/* Direction G: Export */}
-      {onExport && (
+      {/* Direction G: Export JSON + Direction 12: Export Shell Script */}
+      {(onExport || onExportScript) && (
         <>
           <div style={{ width: 1, height: 14, background: 'var(--border)', margin: '0 2px' }} />
+          {onExport && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onExport() }}
+              aria-label="Export workflow"
+              title="Export JSON"
+              style={toolbarBtnStyle}
+              onMouseEnter={hoverIn}
+              onMouseLeave={hoverOut}
+            >
+              <Download size={13} />
+            </button>
+          )}
+          {onExportScript && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onExportScript() }}
+              aria-label="Export as shell script"
+              title="Export as Shell Script"
+              style={toolbarBtnStyle}
+              onMouseEnter={hoverIn}
+              onMouseLeave={hoverOut}
+            >
+              <Terminal size={13} />
+            </button>
+          )}
+        </>
+      )}
+      {/* Direction 11: Import JSON */}
+      {onImport && (
+        <>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+          />
           <button
-            onClick={(e) => { e.stopPropagation(); onExport() }}
-            aria-label="Export workflow"
-            title="Export JSON"
+            onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click() }}
+            aria-label="Import workflow from JSON"
+            title="Import JSON"
             style={toolbarBtnStyle}
             onMouseEnter={hoverIn}
             onMouseLeave={hoverOut}
           >
-            <Download size={13} />
+            <Upload size={13} />
           </button>
         </>
       )}
