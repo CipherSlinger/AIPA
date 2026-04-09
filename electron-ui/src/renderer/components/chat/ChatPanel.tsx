@@ -27,7 +27,9 @@ import PinnedNoteStrip from './PinnedNoteStrip'
 import RegenerateButton from './RegenerateButton'
 import CompareView from './CompareView'
 import SpeculationCard from './SpeculationCard'
+import SpeculationStatusBar from './SpeculationStatusBar'
 import TabBar from './TabBar'
+import ExportDialog from './ExportDialog'
 import { getTemplateById } from '../../utils/promptTemplates'
 import { useT } from '../../i18n'
 import { useIdleReturn } from '../../hooks/useIdleReturn'
@@ -95,7 +97,7 @@ export default function ChatPanel() {
 
   // Speculation — pre-executes prompt suggestions in an isolated sandbox (Iteration 489)
   const speculationCwd = prefs.workingDir || ''
-  const { status: specStatus, result: specResult, accept: specAccept, reject: specReject } = useSpeculation(
+  const { status: specStatus, result: specResult, accept: specAccept, reject: specReject, abortCurrent: specAbort } = useSpeculation(
     isStreaming,
     speculationCwd,
   )
@@ -103,6 +105,9 @@ export default function ChatPanel() {
   // Pinned note editing state (Iteration 434)
   const [editingNote, setEditingNote] = useState(false)
   const [noteText, setNoteText] = useState('')
+
+  // Export dialog state
+  const [showExport, setShowExport] = useState(false)
 
   // Compare mode (Iteration 456): shows two branches side by side
   const [compareMode, setCompareMode] = useState<{ sessionA: string; sessionB: string; forkMessageIndex?: number; titleA?: string; titleB?: string } | null>(null)
@@ -281,7 +286,7 @@ export default function ChatPanel() {
         sessionChanges={sessionChanges}
         canRegenerate={canRegenerate}
         onToggleSearch={() => setSearchOpen(!searchOpen)}
-        onExport={exportConversation}
+        onExport={() => setShowExport(true)}
         onCopyConversation={copyConversation}
         onToggleFocus={toggleFocusMode}
         onNewConversation={newConversation}
@@ -555,6 +560,22 @@ export default function ChatPanel() {
       {/* Typing status indicator (Iteration 461) — compact footer status line */}
       {isStreaming && <TypingStatus />}
 
+      {/* Speculation status bar — compact banner above input while speculation runs/is ready */}
+      {!isStreaming && (specStatus === 'running' || specStatus === 'ready') && (
+        <SpeculationStatusBar
+          status={specStatus}
+          result={specResult}
+          onAccept={async () => {
+            const accepted = await specAccept()
+            if (accepted) {
+              sendMessage(accepted.prompt)
+            }
+          }}
+          onReject={specReject}
+          onAbort={specAbort}
+        />
+      )}
+
       {/* Input bar */}
       <ChatInput
         isStreaming={isStreaming}
@@ -586,6 +607,11 @@ export default function ChatPanel() {
           forkMessageIndex={compareMode.forkMessageIndex}
           onClose={() => setCompareMode(null)}
         />
+      )}
+
+      {/* Export Dialog */}
+      {showExport && (
+        <ExportDialog onClose={() => setShowExport(false)} />
       )}
     </div>
   )

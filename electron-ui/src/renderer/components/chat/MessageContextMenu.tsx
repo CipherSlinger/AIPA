@@ -293,8 +293,8 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
         </>
       )}
 
-      {/* Rewind to here */}
-      {onRewind && (
+      {/* Rewind to here (assistant messages only) */}
+      {isAssistant && onRewind && (
         <>
           {separator}
           <button

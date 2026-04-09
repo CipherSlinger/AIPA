@@ -382,7 +382,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             onAnnotate={handleAnnotateToggle}
             hasAnnotation={!!(message as StandardChatMessage).annotation}
             onRate={onRate ? (rating) => onRate(message.id, rating) : undefined}
-            onRewind={onRewind && (message as StandardChatMessage).timestamp
+            onRewind={isAssistant && onRewind && (message as StandardChatMessage).timestamp
               ? () => onRewind((message as StandardChatMessage).timestamp)
               : undefined
             }
@@ -420,7 +420,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           onAnnotate={handleAnnotateToggle}
           hasAnnotation={!!(message as StandardChatMessage).annotation}
           onCollapse={onCollapse ? () => onCollapse(message.id) : undefined}
-          onRewind={onRewind && (message as StandardChatMessage).timestamp
+          onRewind={isAssistant && onRewind && (message as StandardChatMessage).timestamp
             ? () => onRewind((message as StandardChatMessage).timestamp)
             : undefined
           }
