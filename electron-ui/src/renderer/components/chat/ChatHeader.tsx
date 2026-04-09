@@ -134,15 +134,21 @@ export default function ChatHeader({
     setShowTempPrompt(false)
   }, [setTempSystemPrompt])
   const workingDir = usePrefsStore(s => s.prefs.workingDir)
+  const activeTabId = useChatStore(s => s.activeTabId)
+  const tabs = useChatStore(s => s.tabs)
+  const setTabCwd = useChatStore(s => s.setTabCwd)
+  const currentTab = tabs.find(t => t.id === activeTabId)
+  // Effective working dir: per-tab override > global prefs
+  const effectiveWorkingDir = currentTab?.cwd || workingDir
   // Terminal removed (Iteration 404)
 
   // Check if current working dir is a git repo (for worktree button)
   useEffect(() => {
-    if (!workingDir) { setIsGitRepo(false); return }
-    window.electronAPI.worktreeIsGitRepo(workingDir)
+    if (!effectiveWorkingDir) { setIsGitRepo(false); return }
+    window.electronAPI.worktreeIsGitRepo(effectiveWorkingDir)
       .then(({ isGit }) => setIsGitRepo(isGit))
       .catch(() => setIsGitRepo(false))
-  }, [workingDir])
+  }, [effectiveWorkingDir])
 
   // Focus title input when editing starts
   useEffect(() => {
@@ -188,11 +194,17 @@ export default function ChatHeader({
   const handleChangeDir = useCallback(async () => {
     const p = await window.electronAPI.fsShowOpenDialog()
     if (p) {
-      usePrefsStore.getState().setPrefs({ workingDir: p })
-      useChatStore.getState().setWorkingDir(p)
-      window.electronAPI.prefsSet('workingDir', p)
+      if (activeTabId) {
+        // Set cwd on current tab only (per-tab override)
+        setTabCwd(activeTabId, p)
+      } else {
+        // No tabs open — fall back to global prefs
+        usePrefsStore.getState().setPrefs({ workingDir: p })
+        useChatStore.getState().setWorkingDir(p)
+        window.electronAPI.prefsSet('workingDir', p)
+      }
     }
-  }, [])
+  }, [activeTabId, setTabCwd])
 
   return (
     <div style={{ flexShrink: 0 }}>
@@ -263,7 +275,8 @@ export default function ChatHeader({
       {/* Working directory indicator */}
       <span
         onClick={handleChangeDir}
-        title={`${t('chat.workingDir')}: ${workingDir || t('chat.workingDirDefault')}\n${t('chat.clickToChangeDir')}`}
+        title={`${t('chat.workingDir')}: ${effectiveWorkingDir || t('chat.workingDirDefault')}${currentTab?.cwd ? '' : ' (global)'}
+${t('chat.clickToChangeDir')}`}
         style={{
           fontSize: 10,
           color: 'var(--text-muted)',
@@ -280,7 +293,10 @@ export default function ChatHeader({
         onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
       >
         <FolderOpen size={10} style={{ flexShrink: 0, opacity: 0.7 }} />
-        {workingDir ? truncatePath(workingDir) : t('chat.workingDirDefault')}
+        {effectiveWorkingDir ? truncatePath(effectiveWorkingDir) : t('chat.workingDirDefault')}
+        {!currentTab?.cwd && effectiveWorkingDir && (
+          <span style={{ fontSize: 8, opacity: 0.5, marginLeft: 2 }}>(global)</span>
+        )}
       </span>
       </div>
 
@@ -570,14 +586,18 @@ export default function ChatHeader({
       )}
 
       {/* Worktree dialog */}
-      {showWorktree && workingDir && (
+      {showWorktree && effectiveWorkingDir && (
         <WorktreeDialog
-          cwd={workingDir}
+          cwd={effectiveWorkingDir}
           onClose={() => setShowWorktree(false)}
           onSwitchCwd={(newCwd, branch) => {
-            // Switch working directory to the selected worktree
-            usePrefsStore.getState().setPrefs({ workingDir: newCwd })
-            window.electronAPI.prefsSet('workingDir', newCwd)
+            // Switch working directory for this tab only (per-tab cwd)
+            if (activeTabId) {
+              setTabCwd(activeTabId, newCwd)
+            } else {
+              usePrefsStore.getState().setPrefs({ workingDir: newCwd })
+              window.electronAPI.prefsSet('workingDir', newCwd)
+            }
             setShowWorktree(false)
           }}
         />

@@ -31,6 +31,8 @@ export function useStreamJson() {
   const setLastContextUsage = useChatStore(s => s.setLastContextUsage)
   const setSessionTitle = useChatStore(s => s.setSessionTitle)
   const prefs = usePrefsStore(s => s.prefs)
+  const activeTabId = useChatStore(s => s.activeTabId)
+  const tabs = useChatStore(s => s.tabs)
   const t = useT()
   const { tryAutoCompact } = useAutoCompact()
   const { tryExtractMemories } = useAutoMemory()
@@ -104,6 +106,10 @@ export function useStreamJson() {
     }
 
     const flags: string[] = []
+
+    // Compute effective cwd: per-tab override > global prefs > home dir
+    const currentTabForCwd = useChatStore.getState().tabs.find(t => t.id === useChatStore.getState().activeTabId)
+    const effectiveCwdEarly = currentTabForCwd?.cwd || prefs.workingDir || ''
     if (prefs.thinkingLevel === 'adaptive') {
       flags.push('--thinking', 'adaptive')
     }
@@ -122,7 +128,9 @@ export function useStreamJson() {
       const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown'
       const presenceParts = [`Current date: ${dateStr}`, `Current time: ${timeStr} (${tz})`]
-      if (prefs.workingDir) {
+      if (effectiveCwdEarly) {
+        presenceParts.push(`Working directory: ${effectiveCwdEarly}`)
+      } else if (prefs.workingDir) {
         presenceParts.push(`Working directory: ${prefs.workingDir}`)
       }
       if (prefs.displayName) {
@@ -274,9 +282,12 @@ Keep exercises focused and achievable. The goal is active learning through doing
     }
 
     // Claude CLI provider: use existing cliSendMessage
+    // Determine effective cwd: per-tab override takes priority over global prefs
+    const currentTab = tabs.find(t => t.id === activeTabId)
+    const effectiveCwd = currentTab?.cwd || prefs.workingDir || (await window.electronAPI.fsGetHome())
     const result = await window.electronAPI.cliSendMessage({
       prompt: actualPrompt,
-      cwd: prefs.workingDir || (await window.electronAPI.fsGetHome()),
+      cwd: effectiveCwd,
       sessionId: currentSessionId,
       activeBridgeId: activeBridgeIdRef.current ?? undefined,
       model: prefs.model,

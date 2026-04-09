@@ -32,6 +32,8 @@ export interface TabInfo {
   sessionId: string | null
   title: string
   snapshot: TabSnapshot | null  // null = this tab's state is "live" (in the flat chatStore fields)
+  /** Per-tab working directory override. undefined = fall back to global prefs.workingDir */
+  cwd?: string
 }
 
 // ── Streaming buffer for throttled delta accumulation ──
@@ -229,6 +231,8 @@ interface ChatState {
   findTabBySessionId: (sessionId: string) => string | null
   /** Update the title of a tab (e.g. when session title changes) */
   updateTabTitle: (tabId: string, title: string) => void
+  /** Set (or clear) the per-tab working directory override */
+  setTabCwd: (tabId: string, cwd: string | undefined) => void
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -624,6 +628,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
   updateTabTitle: (tabId, title) => {
     set((s) => ({
       tabs: s.tabs.map(t => t.id === tabId ? { ...t, title } : t),
+    }))
+  },
+
+  setTabCwd: (tabId, cwd) => {
+    set((s) => ({
+      tabs: s.tabs.map(t => t.id === tabId ? { ...t, cwd } : t),
     }))
   },
 
