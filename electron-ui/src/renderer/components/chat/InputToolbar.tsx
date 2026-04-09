@@ -167,8 +167,6 @@ export default function InputToolbar({
       {/* Text transform */}
       <InputToolbarTextTransform inputText={inputText} onSend={onSend} />
       {/* Favorite prompts */}
-      {/* Save input as note */}
-      <InputToolbarSaveNote inputText={inputText} />
       {/* Model indicator chip */}
       <button
         onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, shiftKey: true, key: 'P' }))}

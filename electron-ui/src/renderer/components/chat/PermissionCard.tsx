@@ -151,7 +151,7 @@ function describeAction(toolName: string, toolInput: Record<string, unknown>, t:
     default: {
       return {
         title: t('permission.toolPerformAction'),
-        detail: toolName,
+        detail: typeof toolName === 'string' ? toolName : JSON.stringify(toolName),
       }
     }
   }
@@ -184,8 +184,10 @@ async function writeSuggestionRule(type: 'allow' | 'deny', rule: string): Promis
 export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow, onAlwaysDeny }: Props) {
   const t = useT()
   const isPending = message.decision === 'pending'
-  const { title, detail } = describeAction(message.toolName, message.toolInput, t)
-  const { icon, tint } = getToolVisual(message.toolName)
+  // Defensive: toolName may arrive as a nested object from some CLI tool variants
+  const toolNameStr = typeof message.toolName === 'string' ? message.toolName : String(message.toolName ?? '')
+  const { title, detail } = describeAction(toolNameStr, message.toolInput, t)
+  const { icon, tint } = getToolVisual(toolNameStr)
   const suggestions = message.permissionSuggestions || []
   const { allow: allowRules, deny: denyRules } = extractSuggestionRules(suggestions)
 

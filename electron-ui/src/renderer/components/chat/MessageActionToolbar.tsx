@@ -92,7 +92,7 @@ export default function MessageActionToolbar({
       className="popup-enter"
       style={{
         position: 'absolute',
-        top: -14,
+        bottom: -14,
         ...(isUser ? { left: 0 } : { right: 0 }),
         display: 'flex',
         alignItems: 'center',

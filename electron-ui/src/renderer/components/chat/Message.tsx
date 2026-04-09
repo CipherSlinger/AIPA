@@ -344,15 +344,6 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           />
         </div>
 
-        {/* Reaction chips (extracted component, Iteration 451) */}
-        {isAssistant && !isPermission && !isPlan && (
-          <ReactionChips
-            messageId={message.id}
-            reactions={((message as StandardChatMessage).reactions || [])}
-            hovered={hovered}
-          />
-        )}
-
         {/* Annotation display / editor (extracted component, Iteration 451) */}
         {!isPermission && !isPlan && (
           <AnnotationEditor
