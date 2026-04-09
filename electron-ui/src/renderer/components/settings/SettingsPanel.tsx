@@ -9,8 +9,10 @@ import SettingsStats from './SettingsStats'
 import PermissionsSettingsPanel from './PermissionsSettingsPanel'
 import SettingsAdvanced from './SettingsAdvanced'
 import HooksSettingsPanel from './HooksSettingsPanel'
+import SettingsMemory from './SettingsMemory'
+import SettingsPlugins from './SettingsPlugins'
 // Personas tab has been moved to the Workflows sidebar panel (Iteration 376)
-type SettingsTab = 'general' | 'permissions' | 'mcp' | 'stats' | 'hooks' | 'advanced' | 'about'
+type SettingsTab = 'general' | 'permissions' | 'mcp' | 'stats' | 'hooks' | 'memory' | 'plugins' | 'advanced' | 'about'
 
 // Default emojis for migrated templates (Iteration 309: merge Templates into Personas)
 const MIGRATION_EMOJIS = ['\u{1F4DD}', '\u{1F4CB}', '\u{1F4CC}', '\u{1F4D6}', '\u{1F4DA}', '\u{1F3AF}', '\u{1F4A1}', '\u{2B50}', '\u{1F680}', '\u{1F3C6}']
@@ -113,7 +115,7 @@ export default function SettingsPanel() {
 
       {/* Tab bar */}
       <div role="tablist" style={{ display: 'flex', gap: 4, marginBottom: 16, borderBottom: '1px solid var(--border)', paddingBottom: 10 }}>
-        {(['general', 'permissions', 'mcp', 'stats', 'hooks', 'advanced', 'about'] as const).map(tab => (
+        {(['general', 'permissions', 'mcp', 'stats', 'hooks', 'memory', 'plugins', 'advanced', 'about'] as const).map(tab => (
           <button
             key={tab}
             role="tab"
@@ -153,6 +155,10 @@ export default function SettingsPanel() {
         <SettingsStats />
       ) : settingsTab === 'hooks' ? (
         <HooksSettingsPanel />
+      ) : settingsTab === 'memory' ? (
+        <SettingsMemory />
+      ) : settingsTab === 'plugins' ? (
+        <SettingsPlugins />
       ) : settingsTab === 'advanced' ? (
         <SettingsAdvanced />
       ) : (

@@ -10,6 +10,9 @@ import { readSettings, writeSettings, listSessions, loadSession, deleteSession, 
 import { getSessionStats } from '../sessions/session-stats'
 import { getApiKey, setApiKey, getPref, setPref, getAllPrefs, resetAllPrefs } from '../config/config-manager'
 import { readCLISettings, writeCLISettings } from '../config/cli-settings-manager'
+import { listMemoryFiles, readMemoryFile, writeMemoryFile, createMemoryFile, deleteMemoryFile } from '../sessions/memory-manager'
+import { checkIsGitRepo, listWorktrees, createWorktree, removeWorktree } from '../sessions/worktree-manager'
+import { listPlugins, setPluginEnabled, uninstallPlugin, registerLocalPlugin } from '../plugins/plugin-manager'
 import { getCliPath } from '../utils/cli-path'
 import { validateApiKey, validateModelName, validateFlags } from '../utils/validate'
 import { registerSkillsHandlers } from './skills-handlers'
@@ -441,6 +444,59 @@ function registerConfigHandlers(): void {
 
   safeHandle('mcp:reconnect', async (_e, { serverName: _serverName }: { serverName: string }) => {
     return { success: false, error: 'Reconnect not supported in this version' }
+  })
+
+  // ── Memory ──────────────────────────────────────────────────────────────
+  safeHandle('memory:list', (_e, { scope }: { scope?: 'global' | 'project' | 'all' }) => {
+    return listMemoryFiles(scope || 'all')
+  })
+  safeHandle('memory:read', (_e, { filePath }: { filePath: string }) => {
+    return readMemoryFile(filePath)
+  })
+  safeHandle('memory:write', (_e, { filePath, content }: { filePath: string; content: string }) => {
+    writeMemoryFile(filePath, content)
+    return { success: true }
+  })
+  safeHandle('memory:create', (_e, { name, description, type, body, scope, projectHash }: {
+    name: string; description: string; type: string; body: string; scope: 'global' | 'project'; projectHash?: string
+  }) => {
+    const filePath = createMemoryFile(name, description, type, body, scope, projectHash)
+    return { success: true, filePath }
+  })
+  safeHandle('memory:delete', (_e, { filePath }: { filePath: string }) => {
+    deleteMemoryFile(filePath)
+    return { success: true }
+  })
+
+  // ── Worktree ─────────────────────────────────────────────────────────────
+  safeHandle('worktree:isGitRepo', (_e, { cwd }: { cwd: string }) => {
+    return { isGit: checkIsGitRepo(cwd) }
+  })
+  safeHandle('worktree:list', (_e, { cwd }: { cwd: string }) => {
+    return listWorktrees(cwd)
+  })
+  safeHandle('worktree:create', async (_e, { cwd, name }: { cwd: string; name: string }) => {
+    return createWorktree(cwd, name)
+  })
+  safeHandle('worktree:remove', (_e, { cwd, worktreePath, force }: { cwd: string; worktreePath: string; force: boolean }) => {
+    removeWorktree(cwd, worktreePath, force)
+    return { success: true }
+  })
+
+  // ── Plugin ───────────────────────────────────────────────────────────────
+  safeHandle('plugin:list', () => {
+    return listPlugins()
+  })
+  safeHandle('plugin:setEnabled', (_e, { name, enabled }: { name: string; enabled: boolean }) => {
+    setPluginEnabled(name, enabled)
+    return { success: true }
+  })
+  safeHandle('plugin:uninstall', (_e, { name }: { name: string }) => {
+    uninstallPlugin(name)
+    return { success: true }
+  })
+  safeHandle('plugin:registerLocal', (_e, { pluginPath }: { pluginPath: string }) => {
+    return registerLocalPlugin(pluginPath)
   })
 
   ipcMain.handle('feedback:rate', (_e: Electron.IpcMainInvokeEvent, { messageId, rating }: { messageId: string; rating: 'up' | 'down' | null }) => {

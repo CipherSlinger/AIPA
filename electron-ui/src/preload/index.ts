@@ -226,6 +226,46 @@ const electronAPI = {
     return () => ipcRenderer.removeListener('provider:failover', handler)
   },
 
+  // ── Memory ──────────────────────────────────────────────────────────────
+  memoryList: (scope?: 'global' | 'project' | 'all') =>
+    ipcRenderer.invoke('memory:list', { scope }) as Promise<{
+      filePath: string; name: string; description: string;
+      type: string; content: string; scope: string; projectHash?: string
+    }[]>,
+  memoryRead: (filePath: string) =>
+    ipcRenderer.invoke('memory:read', { filePath }) as Promise<string>,
+  memoryWrite: (filePath: string, content: string) =>
+    ipcRenderer.invoke('memory:write', { filePath, content }) as Promise<{ success: boolean }>,
+  memoryCreate: (args: { name: string; description: string; type: string; body: string; scope: 'global' | 'project'; projectHash?: string }) =>
+    ipcRenderer.invoke('memory:create', args) as Promise<{ success: boolean; filePath: string }>,
+  memoryDelete: (filePath: string) =>
+    ipcRenderer.invoke('memory:delete', { filePath }) as Promise<{ success: boolean }>,
+
+  // ── Worktree ─────────────────────────────────────────────────────────────
+  worktreeIsGitRepo: (cwd: string) =>
+    ipcRenderer.invoke('worktree:isGitRepo', { cwd }) as Promise<{ isGit: boolean }>,
+  worktreeList: (cwd: string) =>
+    ipcRenderer.invoke('worktree:list', { cwd }) as Promise<{
+      path: string; branch: string; head: string; isMain: boolean
+    }[]>,
+  worktreeCreate: (cwd: string, name: string) =>
+    ipcRenderer.invoke('worktree:create', { cwd, name }) as Promise<{ path: string; branch: string }>,
+  worktreeRemove: (cwd: string, worktreePath: string, force: boolean) =>
+    ipcRenderer.invoke('worktree:remove', { cwd, worktreePath, force }) as Promise<{ success: boolean }>,
+
+  // ── Plugin ───────────────────────────────────────────────────────────────
+  pluginList: () =>
+    ipcRenderer.invoke('plugin:list') as Promise<{
+      name: string; version?: string; source: string; enabled: boolean;
+      installDate: string; description?: string; mcpServers?: unknown; hooks?: unknown
+    }[]>,
+  pluginSetEnabled: (name: string, enabled: boolean) =>
+    ipcRenderer.invoke('plugin:setEnabled', { name, enabled }) as Promise<{ success: boolean }>,
+  pluginUninstall: (name: string) =>
+    ipcRenderer.invoke('plugin:uninstall', { name }) as Promise<{ success: boolean }>,
+  pluginRegisterLocal: (pluginPath: string) =>
+    ipcRenderer.invoke('plugin:registerLocal', { pluginPath }),
+
   // ── Version info ────────────────────────
   versions: {
     electron: process.versions.electron,

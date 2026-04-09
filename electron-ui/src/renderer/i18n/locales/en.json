@@ -503,6 +503,8 @@
       "mcp": "MCP Servers",
       "stats": "Stats",
       "hooks": "Hooks",
+      "memory": "Memory",
+      "plugins": "Plugins",
       "advanced": "Advanced",
       "about": "About"
     },

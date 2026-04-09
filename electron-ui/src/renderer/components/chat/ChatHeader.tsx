@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Search, Download, ClipboardCopy, Maximize2, Minimize2, Plus, FolderOpen, FileText, FilePlus2, RefreshCw, MessageSquarePlus, X } from 'lucide-react'
+import { Search, Download, ClipboardCopy, Maximize2, Minimize2, Plus, FolderOpen, FileText, FilePlus2, RefreshCw, MessageSquarePlus, X, GitBranch } from 'lucide-react'
 import { useChatStore, useSessionStore, usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import ModelPicker from './ModelPicker'
@@ -12,6 +12,7 @@ import type { ConversationStats, BookmarkedMessage } from '../../hooks/useConver
 import type { SessionChanges } from '../../hooks/useSessionChanges'
 import SaveTemplateDialog from './SaveTemplateDialog'
 import CompactButton from './CompactButton'
+import WorktreeDialog from './WorktreeDialog'
 
 interface ChatHeaderProps {
   sessionTitle: string | null
@@ -98,6 +99,8 @@ export default function ChatHeader({
   const [showSaveTemplate, setShowSaveTemplate] = useState(false)
   const [showTempPrompt, setShowTempPrompt] = useState(false)
   const [tempDraft, setTempDraft] = useState('')
+  const [showWorktree, setShowWorktree] = useState(false)
+  const [isGitRepo, setIsGitRepo] = useState(false)
   const tempPromptRef = useRef<HTMLDivElement>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const tempSystemPrompt = useChatStore(s => s.tempSystemPrompt)
@@ -132,6 +135,14 @@ export default function ChatHeader({
   }, [setTempSystemPrompt])
   const workingDir = usePrefsStore(s => s.prefs.workingDir)
   // Terminal removed (Iteration 404)
+
+  // Check if current working dir is a git repo (for worktree button)
+  useEffect(() => {
+    if (!workingDir) { setIsGitRepo(false); return }
+    window.electronAPI.worktreeIsGitRepo(workingDir)
+      .then(({ isGit }) => setIsGitRepo(isGit))
+      .catch(() => setIsGitRepo(false))
+  }, [workingDir])
 
   // Focus title input when editing starts
   useEffect(() => {
@@ -454,6 +465,19 @@ export default function ChatHeader({
         hoverOut={(e) => hoverOut(e)}
       />
 
+      {/* Git Worktree button — only shown in git repos */}
+      {isGitRepo && (
+        <button
+          onClick={() => setShowWorktree(true)}
+          title="Git Worktrees — work on isolated branches"
+          style={headerBtnStyle}
+          onMouseEnter={(e) => hoverIn(e)}
+          onMouseLeave={(e) => hoverOut(e)}
+        >
+          <GitBranch size={15} />
+        </button>
+      )}
+
       {/* Bookmarks dropdown (extracted) */}
       <BookmarksPanel
         bookmarkedMessages={bookmarkedMessages}
@@ -543,6 +567,20 @@ export default function ChatHeader({
       {/* Save as Template dialog */}
       {showSaveTemplate && (
         <SaveTemplateDialog onClose={() => setShowSaveTemplate(false)} />
+      )}
+
+      {/* Worktree dialog */}
+      {showWorktree && workingDir && (
+        <WorktreeDialog
+          cwd={workingDir}
+          onClose={() => setShowWorktree(false)}
+          onSwitchCwd={(newCwd, branch) => {
+            // Switch working directory to the selected worktree
+            usePrefsStore.getState().setPrefs({ workingDir: newCwd })
+            window.electronAPI.prefsSet('workingDir', newCwd)
+            setShowWorktree(false)
+          }}
+        />
       )}
     </div>
     <ContextProgressBar />

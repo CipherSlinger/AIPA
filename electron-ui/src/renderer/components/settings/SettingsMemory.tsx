@@ -1,0 +1,393 @@
+// SettingsMemory — view and manage Claude Code memory files (~/.claude/memory/)
+import React, { useState, useEffect, useCallback } from 'react'
+import { Brain, Trash2, Plus, Edit3, Check, X, RefreshCw, ChevronDown, ChevronRight, FileText } from 'lucide-react'
+import { useI18n } from '../../i18n'
+
+interface MemoryFile {
+  filePath: string
+  name: string
+  description: string
+  type: 'user' | 'feedback' | 'project' | 'reference' | 'unknown'
+  content: string
+  scope: 'global' | 'project'
+  projectHash?: string
+}
+
+type Scope = 'global' | 'project' | 'all'
+
+const TYPE_COLORS: Record<string, string> = {
+  user: '#3b82f6',
+  feedback: '#f59e0b',
+  project: '#10b981',
+  reference: '#8b5cf6',
+  unknown: '#6b7280',
+}
+
+const TYPE_LABELS: Record<string, string> = {
+  user: 'User',
+  feedback: 'Feedback',
+  project: 'Project',
+  reference: 'Reference',
+  unknown: 'Other',
+}
+
+interface NewMemoryState {
+  name: string
+  description: string
+  type: string
+  body: string
+  scope: 'global' | 'project'
+}
+
+function freshNew(): NewMemoryState {
+  return { name: '', description: '', type: 'user', body: '', scope: 'global' }
+}
+
+export default function SettingsMemory() {
+  const { t } = useI18n()
+  const [scope, setScope] = useState<Scope>('all')
+  const [memories, setMemories] = useState<MemoryFile[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [editingPath, setEditingPath] = useState<string | null>(null)
+  const [editContent, setEditContent] = useState('')
+  const [confirmDeletePath, setConfirmDeletePath] = useState<string | null>(null)
+  const [showNew, setShowNew] = useState(false)
+  const [newState, setNewState] = useState<NewMemoryState>(freshNew())
+  const [saving, setSaving] = useState(false)
+  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set())
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await window.electronAPI.memoryList(scope)
+      setMemories(result)
+    } catch (e) {
+      setError('Failed to load memories: ' + String(e))
+    } finally {
+      setLoading(false)
+    }
+  }, [scope])
+
+  useEffect(() => { load() }, [load])
+
+  const startEdit = (mem: MemoryFile) => {
+    setEditingPath(mem.filePath)
+    setEditContent(mem.content)
+    setExpandedPaths(prev => new Set([...prev, mem.filePath]))
+  }
+
+  const cancelEdit = () => {
+    setEditingPath(null)
+    setEditContent('')
+  }
+
+  const saveEdit = async (filePath: string, mem: MemoryFile) => {
+    setSaving(true)
+    try {
+      // Rebuild full file content with frontmatter
+      const fullContent = `---\nname: ${mem.name}\ndescription: ${mem.description}\ntype: ${mem.type}\n---\n${editContent}`
+      await window.electronAPI.memoryWrite(filePath, fullContent)
+      setEditingPath(null)
+      await load()
+    } catch (e) {
+      setError('Save failed: ' + String(e))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const deleteMemory = async (filePath: string) => {
+    try {
+      await window.electronAPI.memoryDelete(filePath)
+      setConfirmDeletePath(null)
+      await load()
+    } catch (e) {
+      setError('Delete failed: ' + String(e))
+    }
+  }
+
+  const createMemory = async () => {
+    if (!newState.name.trim() || !newState.body.trim()) return
+    setSaving(true)
+    try {
+      await window.electronAPI.memoryCreate({
+        name: newState.name.trim(),
+        description: newState.description.trim(),
+        type: newState.type,
+        body: newState.body.trim(),
+        scope: newState.scope,
+      })
+      setShowNew(false)
+      setNewState(freshNew())
+      await load()
+    } catch (e) {
+      setError('Create failed: ' + String(e))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const toggleExpand = (filePath: string) => {
+    setExpandedPaths(prev => {
+      const next = new Set(prev)
+      if (next.has(filePath)) next.delete(filePath)
+      else next.add(filePath)
+      return next
+    })
+  }
+
+  const btnStyle: React.CSSProperties = {
+    background: 'none', border: 'none', cursor: 'pointer',
+    display: 'flex', alignItems: 'center', padding: '2px 4px', borderRadius: 4,
+  }
+
+  return (
+    <div style={{ padding: '4px 0' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Brain size={15} style={{ color: 'var(--accent)' }} />
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+            Memory Files
+          </span>
+          <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>~/.claude/memory/</span>
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button onClick={load} title="Refresh" style={{ ...btnStyle, color: 'var(--text-muted)' }}>
+            <RefreshCw size={13} />
+          </button>
+          <button
+            onClick={() => setShowNew(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '4px 10px', fontSize: 11, fontWeight: 500,
+              background: 'var(--accent)', border: 'none', borderRadius: 6,
+              color: '#fff', cursor: 'pointer',
+            }}
+          >
+            <Plus size={11} /> New
+          </button>
+        </div>
+      </div>
+
+      {/* Scope tabs */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
+        {(['all', 'global', 'project'] as const).map(s => (
+          <button
+            key={s}
+            onClick={() => setScope(s)}
+            style={{
+              padding: '3px 10px', fontSize: 11, borderRadius: 5, cursor: 'pointer',
+              background: scope === s ? 'var(--accent)' : 'none',
+              border: '1px solid ' + (scope === s ? 'var(--accent)' : 'var(--border)'),
+              color: scope === s ? '#fff' : 'var(--text-muted)',
+              fontWeight: scope === s ? 600 : 400,
+            }}
+          >
+            {s.charAt(0).toUpperCase() + s.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {error && (
+        <div style={{ padding: '8px 12px', background: 'rgba(239,68,68,0.1)', borderRadius: 6, fontSize: 12, color: 'var(--error)', marginBottom: 10 }}>
+          {error}
+        </div>
+      )}
+
+      {/* New memory form */}
+      {showNew && (
+        <div style={{
+          background: 'var(--bg-input)', border: '1px solid var(--border)',
+          borderRadius: 8, padding: 12, marginBottom: 12,
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>New Memory</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+            <input
+              placeholder="Name *"
+              value={newState.name}
+              onChange={e => setNewState(s => ({ ...s, name: e.target.value }))}
+              style={{ padding: '5px 8px', fontSize: 11, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 5, color: 'var(--text-primary)', outline: 'none' }}
+            />
+            <select
+              value={newState.type}
+              onChange={e => setNewState(s => ({ ...s, type: e.target.value }))}
+              style={{ padding: '5px 8px', fontSize: 11, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 5, color: 'var(--text-primary)', outline: 'none' }}
+            >
+              {['user', 'feedback', 'project', 'reference'].map(t => (
+                <option key={t} value={t}>{TYPE_LABELS[t]}</option>
+              ))}
+            </select>
+          </div>
+          <input
+            placeholder="One-line description"
+            value={newState.description}
+            onChange={e => setNewState(s => ({ ...s, description: e.target.value }))}
+            style={{ width: '100%', marginBottom: 8, padding: '5px 8px', fontSize: 11, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 5, color: 'var(--text-primary)', outline: 'none', boxSizing: 'border-box' }}
+          />
+          <textarea
+            placeholder="Memory content *"
+            value={newState.body}
+            onChange={e => setNewState(s => ({ ...s, body: e.target.value }))}
+            rows={4}
+            style={{ width: '100%', marginBottom: 8, padding: '5px 8px', fontSize: 11, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 5, color: 'var(--text-primary)', outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
+          />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <select
+              value={newState.scope}
+              onChange={e => setNewState(s => ({ ...s, scope: e.target.value as 'global' | 'project' }))}
+              style={{ padding: '4px 8px', fontSize: 11, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 5, color: 'var(--text-muted)', outline: 'none' }}
+            >
+              <option value="global">Global scope</option>
+              <option value="project">Project scope</option>
+            </select>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button onClick={() => { setShowNew(false); setNewState(freshNew()) }} style={{ ...btnStyle, color: 'var(--text-muted)', padding: '4px 8px', fontSize: 11 }}>Cancel</button>
+              <button
+                onClick={createMemory}
+                disabled={saving || !newState.name.trim() || !newState.body.trim()}
+                style={{
+                  padding: '4px 12px', fontSize: 11, fontWeight: 500,
+                  background: 'var(--accent)', border: 'none', borderRadius: 5,
+                  color: '#fff', cursor: saving ? 'wait' : 'pointer',
+                  opacity: (!newState.name.trim() || !newState.body.trim()) ? 0.5 : 1,
+                }}
+              >
+                {saving ? 'Saving…' : 'Create'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Memory list */}
+      {loading ? (
+        <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>Loading…</div>
+      ) : memories.length === 0 ? (
+        <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
+          <Brain size={28} style={{ opacity: 0.2, marginBottom: 8 }} />
+          <div>No memory files found</div>
+          <div style={{ fontSize: 10, marginTop: 4 }}>Claude Code stores memories in ~/.claude/memory/</div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {memories.map(mem => {
+            const isExpanded = expandedPaths.has(mem.filePath)
+            const isEditing = editingPath === mem.filePath
+            const isConfirmDelete = confirmDeletePath === mem.filePath
+            return (
+              <div
+                key={mem.filePath}
+                style={{
+                  border: '1px solid var(--border)', borderRadius: 8,
+                  overflow: 'hidden', background: 'var(--bg-input)',
+                }}
+              >
+                {/* Row header */}
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', cursor: 'pointer' }}
+                  onClick={() => toggleExpand(mem.filePath)}
+                >
+                  {isExpanded ? <ChevronDown size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} /> : <ChevronRight size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />}
+                  <span style={{
+                    fontSize: 9, fontWeight: 600, padding: '1px 6px', borderRadius: 10,
+                    background: `${TYPE_COLORS[mem.type]}22`,
+                    color: TYPE_COLORS[mem.type],
+                    flexShrink: 0,
+                  }}>
+                    {TYPE_LABELS[mem.type]}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {mem.name}
+                    </div>
+                    {mem.description && (
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {mem.description}
+                      </div>
+                    )}
+                  </div>
+                  <span style={{ fontSize: 9, color: 'var(--text-muted)', flexShrink: 0, marginRight: 4 }}>
+                    {mem.scope}
+                  </span>
+                  {/* Action buttons */}
+                  <div style={{ display: 'flex', gap: 2, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                    {!isEditing && (
+                      <button onClick={() => startEdit(mem)} title="Edit" style={{ ...btnStyle, color: 'var(--text-muted)' }}>
+                        <Edit3 size={12} />
+                      </button>
+                    )}
+                    {isConfirmDelete ? (
+                      <>
+                        <button onClick={() => deleteMemory(mem.filePath)} title="Confirm delete" style={{ ...btnStyle, color: 'var(--error)' }}>
+                          <Check size={12} />
+                        </button>
+                        <button onClick={() => setConfirmDeletePath(null)} style={{ ...btnStyle, color: 'var(--text-muted)' }}>
+                          <X size={12} />
+                        </button>
+                      </>
+                    ) : (
+                      <button onClick={() => setConfirmDeletePath(mem.filePath)} title="Delete" style={{ ...btnStyle, color: 'var(--error)' }}>
+                        <Trash2 size={12} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Expanded content */}
+                {isExpanded && (
+                  <div style={{ borderTop: '1px solid var(--border)', padding: '8px 10px' }}>
+                    {isEditing ? (
+                      <>
+                        <textarea
+                          value={editContent}
+                          onChange={e => setEditContent(e.target.value)}
+                          rows={6}
+                          style={{
+                            width: '100%', padding: '6px 8px', fontSize: 11, lineHeight: 1.5,
+                            background: 'var(--bg)', border: '1px solid var(--accent)',
+                            borderRadius: 5, color: 'var(--text-primary)',
+                            outline: 'none', resize: 'vertical', fontFamily: 'monospace',
+                            boxSizing: 'border-box',
+                          }}
+                          autoFocus
+                        />
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 6 }}>
+                          <button onClick={cancelEdit} style={{ ...btnStyle, color: 'var(--text-muted)', padding: '4px 8px', fontSize: 11 }}>Cancel</button>
+                          <button
+                            onClick={() => saveEdit(mem.filePath, mem)}
+                            disabled={saving}
+                            style={{
+                              padding: '4px 10px', fontSize: 11, fontWeight: 500,
+                              background: 'var(--accent)', border: 'none', borderRadius: 5,
+                              color: '#fff', cursor: 'pointer',
+                            }}
+                          >
+                            {saving ? 'Saving…' : 'Save'}
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <pre style={{
+                        margin: 0, fontSize: 11, lineHeight: 1.5, whiteSpace: 'pre-wrap',
+                        color: 'var(--text-secondary)', fontFamily: 'monospace',
+                        maxHeight: 200, overflowY: 'auto',
+                      }}>
+                        {mem.content || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>(empty)</span>}
+                      </pre>
+                    )}
+                    <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 6 }}>
+                      <FileText size={9} style={{ verticalAlign: 'middle' }} /> {mem.filePath}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
