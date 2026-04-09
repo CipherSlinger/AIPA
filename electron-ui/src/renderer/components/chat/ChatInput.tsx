@@ -63,14 +63,13 @@ export default function ChatInput({
   const isPlanMode = useChatStore(s => s.isPlanMode)
   const setPlanMode = useChatStore(s => s.setPlanMode)
 
-  // Plan Mode toggle: send /plan to CLI and flip local state (Iteration 520)
-  const handleTogglePlanMode = useCallback(async () => {
+  // Plan Mode toggle: local UI state only — does NOT send any message to AI (Iteration 535)
+  const handleTogglePlanMode = useCallback(() => {
     if (isStreaming) return
     const next = !isPlanMode
     setPlanMode(next)
     addToast('info', t(next ? 'plan.enabled' : 'plan.disabled'))
-    await onSend('/plan')
-  }, [isPlanMode, isStreaming, setPlanMode, onSend, addToast, t])
+  }, [isPlanMode, isStreaming, setPlanMode, addToast, t])
 
   // Draft persistence (per-session)
   const { input, setInput, clearDraft } = useChatInputDraft({

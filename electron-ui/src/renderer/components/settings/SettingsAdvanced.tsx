@@ -203,10 +203,10 @@ export default function SettingsAdvanced() {
       {/* ── Section 2: Tool Access Control ───────────────────────────── */}
       <div>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
-          Tool Access Control
+          {t('settings.toolAccessControl')}
         </div>
         <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 12 }}>
-          Control which built-in tools Claude can use. Disabled tools are passed via <code style={{ fontFamily: 'monospace', fontSize: 10 }}>--disallowedTools</code>.
+          {t('settings.toolAccessControlHint')}
         </div>
 
         {/* Preset chips */}
@@ -226,7 +226,7 @@ export default function SettingsAdvanced() {
             </button>
           ))}
           {activePreset === 'custom' && (
-            <span style={{ fontSize: 11, color: 'var(--text-muted)', alignSelf: 'center', fontStyle: 'italic' }}>Custom</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', alignSelf: 'center', fontStyle: 'italic' }}>{t('settings.toolAccessCustom')}</span>
           )}
         </div>
 
@@ -234,7 +234,7 @@ export default function SettingsAdvanced() {
         {allDisabled && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, padding: '8px 12px' }}>
             <AlertTriangle size={13} color="#ef4444" />
-            <span style={{ fontSize: 11, color: '#ef4444' }}>All tools disabled. Claude can only chat without taking actions.</span>
+            <span style={{ fontSize: 11, color: '#ef4444' }}>{t('settings.toolAccessAllDisabled')}</span>
           </div>
         )}
 
@@ -262,7 +262,7 @@ export default function SettingsAdvanced() {
                     <code style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--text-primary)', flex: '0 0 auto' }}>{tool.name}</code>
                     <span style={{ fontSize: 11, color: 'var(--text-muted)', flex: 1 }}>{tool.desc}</span>
                     {!isAllowed && (
-                      <span style={{ fontSize: 10, background: 'rgba(239,68,68,0.12)', color: '#ef4444', borderRadius: 3, padding: '1px 5px' }}>disabled</span>
+                      <span style={{ fontSize: 10, background: 'rgba(239,68,68,0.12)', color: '#ef4444', borderRadius: 3, padding: '1px 5px' }}>{t('settings.toolAccessDisabled')}</span>
                     )}
                   </label>
                 )

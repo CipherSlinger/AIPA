@@ -602,6 +602,11 @@
     "unlimited": "Unlimited",
     "noMcpServers": "No MCP servers configured",
     "mcpHint": "Add mcpServers to ~/.claude/settings.json",
+    "toolAccessControl": "Tool Access Control",
+    "toolAccessControlHint": "Control which built-in tools Claude can use. Disabled tools are passed via --disallowedTools.",
+    "toolAccessCustom": "Custom",
+    "toolAccessAllDisabled": "All tools disabled. Claude can only chat without taking actions.",
+    "toolAccessDisabled": "disabled",
     "about": {
       "aiPersonalAssistant": "AI Personal Assistant",
       "links": "Links",

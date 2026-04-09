@@ -602,6 +602,11 @@
     "unlimited": "无限制",
     "noMcpServers": "未配置 MCP 服务器",
     "mcpHint": "在 ~/.claude/settings.json 中添加 mcpServers",
+    "toolAccessControl": "工具访问控制",
+    "toolAccessControlHint": "控制 Claude 可以使用哪些内置工具。禁用的工具通过 --disallowedTools 传递。",
+    "toolAccessCustom": "自定义",
+    "toolAccessAllDisabled": "所有工具已禁用。Claude 只能进行文字对话，无法执行操作。",
+    "toolAccessDisabled": "已禁用",
     "about": {
       "aiPersonalAssistant": "AI 个人助手",
       "links": "链接",
