@@ -5813,6 +5813,28 @@ Status: SUCCESS
 
 ---
 
+## Iteration 533 — Remove Channels tab Feishu/WeChat; auto-close panels on session click
+
+_Date: 2026-04-09 | Sprint UI Cleanup_
+
+### Summary
+Task 6: Removed Feishu and WeChat tabs from ChannelPanel. The entire tab switcher, FeishuTab component, WechatTab component, ConfigField, StatusBadge, and all imports from channelConstants (FeishuConfig, WechatConfig, DEFAULT_FEISHU_CONFIG, DEFAULT_WECHAT_CONFIG, FEISHU_DOCS_URL, WECHAT_DOCS_URL) were eliminated. ChannelPanel now renders SettingsProviders directly inside a React.Suspense boundary. The panel header (Radio icon + title) and footer are preserved. Task 9: Added `useUiStore.getState().setMainView('chat')` and `useUiStore.getState().closeSettingsModal()` at the start of openSession (after the early return guard) — useUiStore was already imported in that file, so no new imports needed.
+
+### Files Changed
+- `src/renderer/components/channel/ChannelPanel.tsx` — removed feishu/wechat tabs and all related components/imports, renders SettingsProviders directly; file reduced from 485 lines to 56 lines
+- `src/renderer/components/sessions/useSessionListActions.ts` — added setMainView('chat') + closeSettingsModal() at start of openSession to auto-dismiss overlay panels
+
+### Build
+Status: SUCCESS
+
+### Acceptance Criteria
+- [x] Channels panel shows only providers, no Feishu/WeChat tabs
+- [x] Clicking a session when settings is open: settings closes, session loads
+- [x] Clicking a session when workflow editor is open: editor closes, session loads
+- [x] npm run build:renderer SUCCESS
+
+---
+
 ## Iteration 532 — WorkflowCanvas 背景点阵、空状态引导与过渡动画 (B2/B8/B11)
 
 _Date: 2026-04-09 | Sprint Canvas UI Polish_
@@ -5840,3 +5862,59 @@ Status: SUCCESS
 - [!] 注意：文件 1118 行，已超过 800 行阈值，需在后续迭代分解
 
 ---
+
+## Iteration 534 — Workflow options in persona picker + Delete button in workflow list
+
+_Date: 2026-04-09 | Sprint UI Features_
+
+### Summary
+Two UI feature tasks: (1) `StatusBarPersonaPicker` now shows a "Workflows" section below personas in the dropdown — selecting a workflow navigates to its canvas detail view via `openWorkflowDetail`. The picker now remains visible when workflows exist but no personas are defined. (2) In `WorkflowItem`, the green "Run" button in the list header row has been replaced with a subdued "Delete" button featuring two-click confirmation: first click turns the button red and shows "Confirm?", second click within 2.5s performs the delete, and the confirmation state auto-resets after the timeout without a second click.
+
+### Files Changed
+- `src/renderer/components/layout/StatusBarPersonaPicker.tsx` — added `EMPTY_WORKFLOWS`, `workflows` selector from prefs store, `handleWorkflowSelect` callback, workflow section (separator + label + items with `GitBranch` icon) in dropdown; updated early-return guard to also check `workflows.length`
+- `src/renderer/components/workflows/WorkflowItem.tsx` — replaced `Play`/Run button import+JSX with two-click-confirm `Trash2`/Delete button; added `deleteConfirming` state + 2.5s timeout `useEffect` + `handleDeleteClick` handler
+- `src/renderer/i18n/locales/en.json` — added `workflow.deleteConfirm: "Confirm?"` key
+- `src/renderer/i18n/locales/zh-CN.json` — added `workflow.deleteConfirm: "确认删除?"` key
+
+### Build
+Status: SUCCESS (npm run build passed; 0 new TypeScript errors — all 11 pre-existing errors unchanged)
+
+### Acceptance Criteria
+- [x] StatusBarPersonaPicker dropdown shows workflows section with separator and section label when workflows exist
+- [x] Each workflow item in the picker shows GitBranch icon + emoji + name
+- [x] Selecting a workflow calls `openWorkflowDetail(wf.id)` and closes the picker
+- [x] Picker still renders when only workflows exist (no personas) — guard updated
+- [x] WorkflowItem header row now has a Delete button instead of Run button
+- [x] First click: button turns red, label changes to "Confirm?" (2.5s timeout)
+- [x] Second click within timeout: workflow deleted via `crud.deleteWorkflow`
+- [x] Timeout expires without second click: button reverts to default state
+- [x] Run action still available in expanded view (unchanged) and canvas detail
+- [x] i18n keys added for both en and zh-CN locales
+- [x] npm run build SUCCESS; zero new TypeScript errors introduced
+
+---
+
+## Iteration 534 — Notes in main view; per-session draft persistence
+
+_Date: 2026-04-09 | Sprint UI Improvements_
+
+### Summary
+Task 4: Notes content now renders in the main content area (replacing the chat panel) when the notes nav item is clicked, using the existing mainView routing pattern. Clicking notes again toggles back to chat. Task 7: Per-session draft persistence was already fully implemented via the `useChatInputDraft` hook (localStorage key `aipa:draft:{sessionId}`, restore on session change, clear on send) — no changes needed.
+
+### Files Changed
+- `src/renderer/store/uiStore.ts` — Added `'notes'` to `mainView` type union; updated `setActiveNavItem` to route notes nav clicks to `mainView: 'notes'` with toggle-back-to-chat behavior instead of opening the sidebar panel
+- `src/renderer/components/layout/AppShell.tsx` — Added lazy import for `NotesPanel`; added `mainView === 'notes'` render branch in main content area; added Escape key handler for notes main view (returns to chat)
+- `src/renderer/components/layout/NavRail.tsx` — Added `mainView` selector; updated `isNotesActive` to reflect both sidebar-notes and main-view-notes states
+
+### Build
+Status: SUCCESS
+
+### Acceptance Criteria
+- [x] Clicking notes nav item shows notes content in main area (not sidebar)
+- [x] Clicking notes again (or pressing Escape) returns to chat
+- [x] Notes nav item shows active highlight when notes main view is open
+- [x] Notes lazy-loaded as separate chunk (NotesPanel-*.js in dist)
+- [x] Typing in session A, switching to session B, switching back to A: draft text is preserved (already implemented via useChatInputDraft)
+- [x] Sending a message clears the draft for that session (clearDraft() called in handleSend)
+- [x] npm run build:renderer SUCCESS
+- [x] Zero new TypeScript errors in modified files

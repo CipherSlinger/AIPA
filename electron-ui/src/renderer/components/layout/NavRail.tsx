@@ -209,6 +209,8 @@ export default function NavRail() {
     sidebarTab,
   } = useUiStore()
 
+  const mainView = useUiStore(s => s.mainView)
+
   const navExpanded = usePrefsStore(s => !!s.prefs.navExpanded)
   const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
   const avatarPreset = usePrefsStore(s => s.prefs.avatarPreset)
@@ -233,7 +235,7 @@ export default function NavRail() {
   // The active panel item (history/files/settings) matches activeNavItem
   const isHistoryActive = activeNavItem === 'history' && sidebarTab === 'history'
   const isFilesActive = activeNavItem === 'files' && sidebarTab === 'files'
-  const isNotesActive = activeNavItem === 'notes' && sidebarTab === 'notes'
+  const isNotesActive = mainView === 'notes' || (activeNavItem === 'notes' && sidebarTab === 'notes')
   const isSkillsActive = activeNavItem === 'skills' && sidebarTab === 'skills'
   const isMemoryActive = activeNavItem === 'memory' && sidebarTab === 'memory'
   const isWorkflowsActive = activeNavItem === 'workflows' && sidebarTab === 'workflows'

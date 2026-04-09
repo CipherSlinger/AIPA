@@ -1433,6 +1433,7 @@
     "run": "Run",
     "edit": "Edit",
     "delete": "Delete",
+    "deleteConfirm": "Confirm?",
     "duplicate": "Copy",
     "created": "Workflow created",
     "updated": "Workflow updated",

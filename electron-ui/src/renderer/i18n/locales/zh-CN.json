@@ -1451,6 +1451,7 @@
     "run": "运行",
     "edit": "编辑",
     "delete": "删除",
+    "deleteConfirm": "确认删除?",
     "duplicate": "复制",
     "created": "工作流已创建",
     "updated": "工作流已更新",

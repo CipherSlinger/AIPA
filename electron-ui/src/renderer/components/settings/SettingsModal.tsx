@@ -68,39 +68,6 @@ export default function SettingsModal() {
           animation: 'settings-modal-slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
-        {/* Close button */}
-        <button
-          onClick={close}
-          aria-label={t('settings.close') || 'Close'}
-          style={{
-            position: 'absolute',
-            top: 12,
-            right: 12,
-            width: 28,
-            height: 28,
-            borderRadius: 6,
-            border: 'none',
-            background: 'rgba(255, 255, 255, 0.06)',
-            color: 'var(--text-muted)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1,
-            transition: 'background 0.15s, color 0.15s',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)'
-            e.currentTarget.style.color = '#ef4444'
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'
-            e.currentTarget.style.color = 'var(--text-muted)'
-          }}
-        >
-          <X size={14} />
-        </button>
-
         {/* SettingsPanel content — fills the modal */}
         <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
           <React.Suspense

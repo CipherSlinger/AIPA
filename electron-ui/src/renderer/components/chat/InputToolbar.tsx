@@ -1,5 +1,5 @@
 import React from 'react'
-import { AtSign, TerminalSquare, Mic, MicOff, ListPlus, Cpu, Paperclip, Camera, ShieldOff, Shield, Shrink, WrapText, AlignLeft, ClipboardList } from 'lucide-react'
+import { AtSign, TerminalSquare, Mic, MicOff, ListPlus, Paperclip, Camera, ShieldOff, Shield, Shrink, WrapText, AlignLeft, ClipboardList } from 'lucide-react'
 import { useT } from '../../i18n'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import ClipboardActionsMenu from './ClipboardActionsMenu'
@@ -166,36 +166,6 @@ export default function InputToolbar({
       <ClipboardActionsMenu onSend={onSend} />
       {/* Text transform */}
       <InputToolbarTextTransform inputText={inputText} onSend={onSend} />
-      {/* Favorite prompts */}
-      {/* Model indicator chip */}
-      <button
-        onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, shiftKey: true, key: 'P' }))}
-        title={t('chat.switchModel')}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 3,
-          padding: '2px 8px',
-          background: 'none',
-          border: '1px solid var(--border)',
-          borderRadius: 10,
-          color: 'var(--text-muted)',
-          cursor: 'pointer',
-          fontSize: 9,
-          flexShrink: 0,
-          transition: 'border-color 150ms, color 150ms',
-          whiteSpace: 'nowrap',
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
-      >
-        <Cpu size={9} />
-        {(() => {
-          const m = prefs.model || 'claude-sonnet-4-6'
-          const parts = m.replace('claude-', '').split('-')
-          return parts[0].charAt(0).toUpperCase() + parts[0].slice(1) + (parts[1] ? ' ' + parts.slice(1).join('.') : '')
-        })()}
-      </button>
       {/* Response tone selector */}
       <InputToolbarStyleSelector />
       {/* Effort level dropdown picker */}

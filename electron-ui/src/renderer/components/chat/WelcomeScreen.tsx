@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import { History, X, MessageSquare, Layers, Clock, ArrowRight, Sparkles, Lightbulb } from 'lucide-react'
+import { History, X, MessageSquare, Layers, Clock, ArrowRight, Lightbulb } from 'lucide-react'
 import { useUiStore, useSessionStore, usePrefsStore, useChatStore } from '../../store'
 import { useT } from '../../i18n'
 import { getGreetingKey, getPersonaStarters, getDefaultSuggestions, getShortcuts, getQuickActions, getTimeSuggestions, getFloatingActions } from './welcomeScreenConstants'
@@ -140,7 +140,6 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
   const showRecentPrompts = containerHeight > 550
   const showQuickActions = containerHeight > 480
   const showDailySummary = containerHeight > 430
-  const showPersonas = containerHeight > 400
   const showUsageStats = containerHeight > 370
   const showTimeSuggestions = containerHeight > 340
   const showContinueLastChat = containerHeight > 320
@@ -258,69 +257,6 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
         </button>
       )}
 
-      {/* Persona quick-start cards */}
-      {showPersonas && personas.length > 0 && (
-        <div style={{ width: '100%', maxWidth: 420 }}>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Sparkles size={11} />
-            <span>{t('persona.title')}</span>
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {personas.slice(0, 4).map(p => {
-              const isActive = p.id === activePersonaId
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => {
-                    if (isActive) return
-                    const resolvedPrompt = p.presetKey ? t(`persona.presetPrompt.${p.presetKey}`) : p.systemPrompt
-                    useChatStore.getState().setSessionPersonaId(p.id)
-                    usePrefsStore.getState().setPrefs({
-                      model: p.model,
-                      systemPrompt: resolvedPrompt,
-                    })
-                    window.electronAPI.prefsSet('model', p.model)
-                    window.electronAPI.prefsSet('systemPrompt', resolvedPrompt)
-                    useUiStore.getState().addToast('success', t('persona.switchedTo', { name: p.presetKey ? t(`persona.preset.${p.presetKey}`) : p.name }))
-                  }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px',
-                    background: isActive ? `${p.color}18` : 'var(--card-bg)',
-                    border: `1px solid ${isActive ? p.color : 'var(--card-border)'}`,
-                    borderRadius: 10, color: isActive ? p.color : 'var(--text-primary)',
-                    cursor: isActive ? 'default' : 'pointer', fontSize: 12,
-                    transition: 'background 0.15s, border-color 0.15s, transform 0.15s',
-                    fontWeight: isActive ? 600 : 400,
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isActive) {
-                      (e.currentTarget as HTMLButtonElement).style.borderColor = p.color;
-                      (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.03)'
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) {
-                      (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--card-border)';
-                      (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'
-                    }
-                  }}
-                >
-                  <span style={{ fontSize: 18 }}>{p.emoji}</span>
-                  <span>{p.name}</span>
-                  {isActive && (
-                    <span style={{
-                      fontSize: 8, background: p.color, color: '#fff',
-                      padding: '1px 5px', borderRadius: 6, fontWeight: 600,
-                    }}>
-                      {t('persona.active')}
-                    </span>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Suggestion cards */}
       <div style={{ display: 'flex', gap: 12, marginTop: 4, flexWrap: 'wrap', justifyContent: 'center' }}>

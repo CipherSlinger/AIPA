@@ -90,6 +90,9 @@ export function useSessionListActions() {
 
   const openSession = async (session: SessionListItem) => {
     if (renamingId === session.sessionId) return
+    // Auto-close any overlay panels (settings, workflow editor, etc.) so the user sees chat (Iteration 533)
+    useUiStore.getState().setMainView('chat')
+    useUiStore.getState().closeSettingsModal()
     const raw = await window.electronAPI.sessionLoad(session.sessionId)
     const chatMessages = parseSessionMessages(raw)
     clearMessages()

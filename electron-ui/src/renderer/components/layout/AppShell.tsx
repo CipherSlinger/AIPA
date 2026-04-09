@@ -6,12 +6,13 @@ import NavRail from './NavRail'
 import ChatPanel from '../chat/ChatPanel'
 import StatusBar from './StatusBar'
 import ErrorBoundary from '../shared/ErrorBoundary'
-import { ArrowLeft, X } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 
 const SettingsPanel = React.lazy(() => import('../settings/SettingsPanel'))
 const PersonaEditorPage = React.lazy(() => import('../settings/PersonaEditorPage'))
 const WorkflowEditorPage = React.lazy(() => import('../settings/WorkflowEditorPage'))
 const WorkflowDetailPage = React.lazy(() => import('../workflows/WorkflowDetailPage'))
+const NotesPanel = React.lazy(() => import('../notes/NotesPanel'))
 
 const MIN_SIDEBAR = 180
 const MAX_SIDEBAR = 400
@@ -68,6 +69,10 @@ export default function AppShell() {
         } else if (mainView === 'persona-editor' || mainView === 'workflow-editor') {
           // Go back to settings, not chat
           useUiStore.getState().setMainView('settings')
+        } else if (mainView === 'notes') {
+          // Go back to chat from notes main view
+          useUiStore.getState().setMainView('chat')
+          useUiStore.getState().setActiveNavItem('chat')
         } else {
           closeSettings()
         }
@@ -225,19 +230,6 @@ export default function AppShell() {
                 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>
                   {t('settings.title')}
                 </span>
-                <button
-                  onClick={closeSettings}
-                  title={t('settings.close')}
-                  style={{
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
-                    padding: 4, borderRadius: 4,
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)' }}
-                >
-                  <X size={16} />
-                </button>
               </div>
               {/* Settings content */}
               <div style={{
@@ -267,6 +259,12 @@ export default function AppShell() {
             <ErrorBoundary fallbackLabel="workflow detail">
               <React.Suspense fallback={<div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading...</div>}>
                 <WorkflowDetailPage />
+              </React.Suspense>
+            </ErrorBoundary>
+          ) : mainView === 'notes' ? (
+            <ErrorBoundary fallbackLabel="notes panel">
+              <React.Suspense fallback={<div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading...</div>}>
+                <NotesPanel />
               </React.Suspense>
             </ErrorBoundary>
           ) : (

@@ -1,11 +1,12 @@
 // StatusBar persona picker — extracted from StatusBar.tsx (Iteration 313)
 // Updated to per-session persona model (Iteration 407)
+// Added workflow section (Iteration 533)
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { ChevronUp, Check, User } from 'lucide-react'
+import { ChevronUp, Check, User, GitBranch } from 'lucide-react'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
-import type { Persona } from '../../types/app.types'
+import type { Persona, Workflow } from '../../types/app.types'
 
 interface StatusBarPersonaPickerProps {
   personas: Persona[]
@@ -13,11 +14,13 @@ interface StatusBarPersonaPickerProps {
 }
 
 const EMPTY_PERSONAS: Persona[] = []
+const EMPTY_WORKFLOWS: Workflow[] = []
 
 export default function StatusBarPersonaPicker({ personas, activePersona: _defaultPersona }: StatusBarPersonaPickerProps) {
   const t = useT()
   const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
   const allPersonas = usePrefsStore(s => s.prefs.personas ?? EMPTY_PERSONAS)
+  const workflows = usePrefsStore(s => s.prefs.workflows ?? EMPTY_WORKFLOWS)
   const sessionPersona = allPersonas.find(p => p.id === sessionPersonaId)
   const [show, setShow] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -55,7 +58,12 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
     setShow(false)
   }, [t])
 
-  if (personas.length === 0) return null
+  const handleWorkflowSelect = useCallback((wf: Workflow) => {
+    useUiStore.getState().openWorkflowDetail(wf.id)
+    setShow(false)
+  }, [])
+
+  if (personas.length === 0 && workflows.length === 0) return null
 
   return (
     <div style={{ position: 'relative' }} ref={ref}>
@@ -163,6 +171,58 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
               </button>
             )
           })}
+          {workflows.length > 0 && (
+            <>
+              {/* Separator */}
+              <div style={{
+                height: 1,
+                background: 'var(--popup-border)',
+                margin: '4px 0',
+              }} />
+              {/* Workflows section label */}
+              <div style={{
+                padding: '2px 12px 4px',
+                fontSize: 9,
+                fontWeight: 600,
+                color: 'var(--text-muted)',
+                textTransform: 'uppercase',
+                letterSpacing: 0.5,
+              }}>
+                {t('workflow.title')}
+              </div>
+              {workflows.map(wf => {
+                const displayName = wf.presetKey ? t(`workflow.preset.${wf.presetKey}`) : wf.name
+                return (
+                  <button
+                    key={wf.id}
+                    onClick={() => handleWorkflowSelect(wf)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      width: '100%',
+                      padding: '5px 12px',
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-primary)',
+                      cursor: 'pointer',
+                      fontSize: 11,
+                      textAlign: 'left',
+                      transition: 'background 0.1s',
+                    }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+                    title={wf.description || displayName}
+                  >
+                    <GitBranch size={11} style={{ opacity: 0.6, flexShrink: 0 }} />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {wf.icon} {displayName}
+                    </span>
+                  </button>
+                )
+              })}
+            </>
+          )}
         </div>
       )}
     </div>

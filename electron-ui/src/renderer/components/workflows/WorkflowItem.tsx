@@ -1,5 +1,5 @@
-import React from 'react'
-import { Play, Trash2, Edit3, Copy } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Trash2, Edit3, Copy } from 'lucide-react'
 import { Workflow } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { useUiStore } from '../../store'
@@ -18,6 +18,24 @@ interface WorkflowItemProps {
 
 export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: WorkflowItemProps) {
   const t = useT()
+  const [deleteConfirming, setDeleteConfirming] = useState(false)
+
+  // Reset confirmation state after 2.5s without a second click
+  useEffect(() => {
+    if (!deleteConfirming) return
+    const timer = setTimeout(() => setDeleteConfirming(false), 2500)
+    return () => clearTimeout(timer)
+  }, [deleteConfirming])
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (deleteConfirming) {
+      crud.deleteWorkflow(wf.id)
+      setDeleteConfirming(false)
+    } else {
+      setDeleteConfirming(true)
+    }
+  }
 
   // Use localized name/description for installed presets
   const displayName = wf.presetKey ? t(`workflow.preset.${wf.presetKey}`) : wf.name
@@ -53,27 +71,40 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
             {wf.runCount > 0 && <span>{t('workflow.runCount', { count: String(wf.runCount) })}</span>}
           </div>
         </div>
-        {/* Run button */}
+        {/* Delete button with two-click confirmation */}
         <button
-          onClick={e => { e.stopPropagation(); crud.runWorkflow(wf) }}
-          title={t('workflow.run')}
+          onClick={handleDeleteClick}
+          title={deleteConfirming ? t('workflow.deleteConfirm') : t('workflow.delete')}
           style={{
-            background: 'var(--accent)',
-            border: 'none',
+            background: deleteConfirming ? 'var(--error, #ef4444)' : 'transparent',
+            border: deleteConfirming ? 'none' : '1px solid var(--border)',
             borderRadius: 6,
             padding: '4px 8px',
             cursor: 'pointer',
-            color: '#fff',
+            color: deleteConfirming ? '#fff' : 'var(--text-muted)',
             display: 'flex',
             alignItems: 'center',
             gap: 3,
             fontSize: 10,
             fontWeight: 500,
             flexShrink: 0,
+            transition: 'background 0.15s, color 0.15s, border-color 0.15s',
+          }}
+          onMouseEnter={e => {
+            if (!deleteConfirming) {
+              (e.currentTarget as HTMLElement).style.color = 'var(--error, #ef4444)'
+              ;(e.currentTarget as HTMLElement).style.borderColor = 'var(--error, #ef4444)'
+            }
+          }}
+          onMouseLeave={e => {
+            if (!deleteConfirming) {
+              (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'
+              ;(e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'
+            }
           }}
         >
-          <Play size={10} fill="#fff" />
-          {t('workflow.run')}
+          <Trash2 size={10} />
+          {deleteConfirming ? t('workflow.deleteConfirm') : t('workflow.delete')}
         </button>
       </div>
 

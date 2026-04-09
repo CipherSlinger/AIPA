@@ -42,9 +42,9 @@ interface UiState {
   openSettingsModal: () => void
   closeSettingsModal: () => void
 
-  // Main content area view (Iteration 412: settings; Iteration 414: editors; Iteration 460: workflow-detail)
-  mainView: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor' | 'workflow-detail'
-  setMainView: (view: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor' | 'workflow-detail') => void
+  // Main content area view (Iteration 412: settings; Iteration 414: editors; Iteration 460: workflow-detail; Iteration 534: notes)
+  mainView: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor' | 'workflow-detail' | 'notes'
+  setMainView: (view: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor' | 'workflow-detail' | 'notes') => void
 
   // Persona/Workflow editor: ID of item being edited (null = new)
   editingPersonaId: string | null
@@ -130,7 +130,16 @@ export const useUiStore = create<UiState>((set) => ({
     if (item === 'settings') {
       return { settingsModalOpen: true }
     }
-    if (item === 'history' || item === 'files' || item === 'notes' || item === 'skills' || item === 'memory' || item === 'workflows' || item === 'channel' || item === 'tasks' || item === 'changes') {
+    // Notes opens in the main content area (Iteration 534)
+    if (item === 'notes') {
+      // Toggle: if already in notes main view, go back to chat
+      if (s.mainView === 'notes') {
+        return { activeNavItem: 'chat', mainView: 'chat' as const }
+      }
+      try { localStorage.setItem('aipa:sidebar-tab', item) } catch { }
+      return { activeNavItem: item, sidebarTab: item, mainView: 'notes' as const }
+    }
+    if (item === 'history' || item === 'files' || item === 'skills' || item === 'memory' || item === 'workflows' || item === 'channel' || item === 'tasks' || item === 'changes') {
       try { localStorage.setItem('aipa:sidebar-tab', item) } catch { }
       // Clear all unread badges when viewing History
       const extra = item === 'history' ? { unreadCounts: {} as Record<string, number>, unreadSessionCount: 0 } : {}
