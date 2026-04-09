@@ -1,24 +1,25 @@
 /**
- * ModelProvider interface — the abstraction layer for multi-model support.
- * All model providers (Claude CLI, OpenAI, Ollama, etc.) implement this interface.
+ * Provider scenario determines how CLI environment variables are injected.
  *
- * Events emitted by providers follow the same pattern as the existing StreamBridge:
- * - textDelta: { text: string }
- * - thinkingDelta: { thinking: string }
- * - toolUse: { event: { id, name, input } }
- * - toolResult: { event: { tool_use_id, content, is_error } }
- * - messageStop: {}
- * - result: { claudeSessionId?: string, event: any }
- * - error: { error: string }
- * - processExit: { code: number }
+ * - official: Anthropic official API via ANTHROPIC_API_KEY
+ * - gateway:  AI gateway / proxy via ANTHROPIC_AUTH_TOKEN + empty ANTHROPIC_API_KEY + ANTHROPIC_BASE_URL
+ * - compat:   Third-party compatible API (DeepSeek, Qwen, OpenAI, etc.) via
+ *             ANTHROPIC_API_KEY + ANTHROPIC_BASE_URL + ANTHROPIC_MODEL
  */
+export type ProviderScenario = 'official' | 'gateway' | 'compat'
 
 export interface ModelProviderConfig {
   id: string
   name: string
-  type: 'claude-cli' | 'openai-compat' | 'ollama'
+  /** Scenario determines which env vars are injected into the CLI subprocess */
+  scenario: ProviderScenario
   baseUrl?: string
   apiKey?: string
+  /** Bearer token for gateway/proxy authentication (ANTHROPIC_AUTH_TOKEN).
+   *  When set, apiKey must be empty to prevent it from taking precedence. */
+  authToken?: string
+  /** Model override injected as ANTHROPIC_MODEL. Only used in 'compat' scenario. */
+  model?: string
   models: ModelInfo[]
   enabled: boolean
   isDefault?: boolean
@@ -52,68 +53,73 @@ export interface ProviderHealthStatus {
   cooldownUntil?: number
 }
 
-export interface StreamEvent {
-  type: 'textDelta' | 'thinkingDelta' | 'toolUse' | 'toolResult' | 'messageStop' | 'result' | 'error'
-  data: Record<string, unknown>
+/**
+ * Build the environment variable overrides to inject into the CLI subprocess
+ * based on the provider's scenario and configuration.
+ */
+export function buildCliEnv(config: ModelProviderConfig): Record<string, string> {
+  const env: Record<string, string> = {}
+
+  switch (config.scenario) {
+    case 'official':
+      // Direct Anthropic API — just pass the API key
+      if (config.apiKey) env.ANTHROPIC_API_KEY = config.apiKey
+      break
+
+    case 'gateway':
+      // AI gateway/proxy (e.g. Vercel AI Gateway):
+      // Must set ANTHROPIC_API_KEY to empty string so it doesn't take precedence over the token
+      env.ANTHROPIC_API_KEY = ''
+      if (config.authToken) env.ANTHROPIC_AUTH_TOKEN = config.authToken
+      if (config.baseUrl) env.ANTHROPIC_BASE_URL = config.baseUrl
+      break
+
+    case 'compat':
+      // Third-party compatible API (DeepSeek, Qwen, OpenAI, Ollama, etc.)
+      if (config.apiKey) env.ANTHROPIC_API_KEY = config.apiKey
+      if (config.baseUrl) env.ANTHROPIC_BASE_URL = config.baseUrl
+      if (config.model) env.ANTHROPIC_MODEL = config.model
+      break
+  }
+
+  return env
 }
 
-export interface SendMessageOptions {
-  prompt: string
-  model: string
-  systemPrompt?: string
-  /** Previous messages for context (OpenAI-format: {role, content}[]) */
-  messages?: Array<{ role: string; content: string }>
-  /** Image attachments as base64 data URLs */
-  images?: string[]
-  /** Max tokens to generate */
-  maxTokens?: number
-  /** Temperature (0-2) */
-  temperature?: number
-  /** Abort signal */
-  signal?: AbortSignal
-}
+/**
+ * Migrate a legacy provider config (with 'type' field) to the new 'scenario' format.
+ */
+export function migrateProviderConfig(raw: Record<string, unknown>): ModelProviderConfig {
+  if (raw.scenario) {
+    // Already in new format
+    return raw as unknown as ModelProviderConfig
+  }
 
-export interface ModelProvider {
-  readonly id: string
-  readonly type: ModelProviderConfig['type']
+  // Map old 'type' to 'scenario'
+  let scenario: ProviderScenario = 'official'
+  const oldType = raw.type as string | undefined
+  if (oldType === 'openai-compat' || oldType === 'ollama') {
+    scenario = 'compat'
+  }
 
-  /** Initialize the provider with config */
-  initialize(config: ModelProviderConfig): Promise<void>
+  // For ollama, ensure baseUrl uses /v1 path
+  let baseUrl = raw.baseUrl as string | undefined
+  if (oldType === 'ollama' && baseUrl === 'http://localhost:11434') {
+    baseUrl = 'http://localhost:11434/v1'
+  }
 
-  /** Check if the provider is healthy and reachable */
-  healthCheck(): Promise<ProviderHealthStatus>
-
-  /** List available models from this provider */
-  listModels(): Promise<ModelInfo[]>
-
-  /** Send a message and stream the response */
-  sendMessage(
-    options: SendMessageOptions,
-    onEvent: (event: StreamEvent) => void,
-  ): Promise<void>
-
-  /** Abort the current request */
-  abort(): void
-
-  /** Get current config */
-  getConfig(): ModelProviderConfig
-
-  /** Whether this provider supports tool use */
-  supportsTools(): boolean
-
-  /** Whether this provider supports image/vision inputs */
-  supportsVision(): boolean
+  const { type: _type, ...rest } = raw
+  return { ...rest, scenario, baseUrl } as unknown as ModelProviderConfig
 }
 
 /**
  * Default provider configs for well-known services.
- * Users can add custom providers beyond these.
+ * All providers now use the Claude CLI as the execution engine.
  */
-export const DEFAULT_PROVIDER_CONFIGS: Omit<ModelProviderConfig, 'apiKey'>[] = [
+export const DEFAULT_PROVIDER_CONFIGS: ModelProviderConfig[] = [
   {
     id: 'claude-cli',
-    name: 'Claude (CLI)',
-    type: 'claude-cli',
+    name: 'Claude (Anthropic)',
+    scenario: 'official',
     enabled: true,
     isDefault: true,
     failoverPriority: 0,
@@ -125,33 +131,33 @@ export const DEFAULT_PROVIDER_CONFIGS: Omit<ModelProviderConfig, 'apiKey'>[] = [
     ],
   },
   {
-    id: 'openai',
-    name: 'OpenAI',
-    type: 'openai-compat',
-    baseUrl: 'https://api.openai.com/v1',
+    id: 'gateway',
+    name: 'AI Gateway / Proxy',
+    scenario: 'gateway',
     enabled: false,
     failoverPriority: 1,
+    models: [],
+  },
+  {
+    id: 'openai',
+    name: 'OpenAI',
+    scenario: 'compat',
+    baseUrl: 'https://api.openai.com/v1',
+    model: 'gpt-4o',
+    enabled: false,
+    failoverPriority: 2,
     models: [
       { id: 'gpt-4o', name: 'GPT-4o', provider: 'openai', capabilities: { vision: true, code: true, reasoning: true, tools: true, streaming: true }, contextWindow: 128000 },
       { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'openai', capabilities: { vision: true, code: true, reasoning: false, tools: true, streaming: true }, contextWindow: 128000 },
-      { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', provider: 'openai', capabilities: { vision: true, code: true, reasoning: true, tools: true, streaming: true }, contextWindow: 128000 },
       { id: 'o3-mini', name: 'o3-mini', provider: 'openai', capabilities: { vision: false, code: true, reasoning: true, tools: true, streaming: true }, contextWindow: 200000 },
     ],
   },
   {
-    id: 'ollama',
-    name: 'Ollama (Local)',
-    type: 'ollama',
-    baseUrl: 'http://localhost:11434',
-    enabled: false,
-    failoverPriority: 2,
-    models: [], // Dynamically discovered from Ollama API
-  },
-  {
     id: 'deepseek',
     name: 'DeepSeek',
-    type: 'openai-compat',
+    scenario: 'compat',
     baseUrl: 'https://api.deepseek.com/v1',
+    model: 'deepseek-chat',
     enabled: false,
     failoverPriority: 3,
     models: [
@@ -162,8 +168,9 @@ export const DEFAULT_PROVIDER_CONFIGS: Omit<ModelProviderConfig, 'apiKey'>[] = [
   {
     id: 'qwen',
     name: 'Qwen (Alibaba Cloud)',
-    type: 'openai-compat',
+    scenario: 'compat',
     baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    model: 'qwen-max',
     enabled: false,
     failoverPriority: 4,
     models: [
@@ -174,10 +181,21 @@ export const DEFAULT_PROVIDER_CONFIGS: Omit<ModelProviderConfig, 'apiKey'>[] = [
     ],
   },
   {
+    id: 'ollama',
+    name: 'Ollama (Local)',
+    scenario: 'compat',
+    baseUrl: 'http://localhost:11434/v1',
+    model: 'llama3',
+    enabled: false,
+    failoverPriority: 5,
+    models: [],
+  },
+  {
     id: 'custom',
     name: 'Custom (OpenAI-compatible)',
-    type: 'openai-compat',
+    scenario: 'compat',
     baseUrl: '',
+    model: '',
     enabled: false,
     failoverPriority: 99,
     models: [],

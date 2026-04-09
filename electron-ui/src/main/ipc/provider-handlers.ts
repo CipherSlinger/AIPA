@@ -1,7 +1,9 @@
 import { ipcMain, BrowserWindow } from 'electron'
 import { getPref, setPref } from '../config/config-manager'
 import { providerRegistry } from '../providers'
-import type { ModelProviderConfig, StreamEvent } from '../providers'
+import { buildCliEnv } from '../providers/types'
+import type { ModelProviderConfig } from '../providers'
+import { streamBridgeManager } from '../pty/stream-bridge'
 import { createLogger } from '../utils/logger'
 
 const log = createLogger('ipc:providers')
@@ -27,7 +29,6 @@ export function registerProviderHandlers(win: BrowserWindow, send: (ch: string, 
   ipcMain.handle('provider:upsert', async (_e, config: ModelProviderConfig) => {
     try {
       await providerRegistry.upsertProvider(config)
-      // Persist all configs
       const allConfigs = providerRegistry.serializeConfigs()
       setPref('modelProviders', allConfigs)
       return { success: true }
@@ -44,7 +45,7 @@ export function registerProviderHandlers(win: BrowserWindow, send: (ch: string, 
     return { success: true }
   })
 
-  // Health check all providers
+  // Health check all providers (config completeness check — no HTTP requests)
   ipcMain.handle('provider:healthCheck', async () => {
     return providerRegistry.checkAllHealth()
   })
@@ -66,71 +67,61 @@ export function registerProviderHandlers(win: BrowserWindow, send: (ch: string, 
     return providerRegistry.getActiveProviderId()
   })
 
-  // Send message to a non-Claude provider (OpenAI, Ollama, etc.)
+  // Send message via Claude CLI with provider-specific env vars injected
   ipcMain.handle('provider:sendMessage', async (_e, args: {
     prompt: string
-    model: string
-    systemPrompt?: string
-    messages?: Array<{ role: string; content: string }>
-    images?: string[]
-    maxTokens?: number
-    temperature?: number
+    model?: string
+    providerId: string
+    cwd?: string
+    resumeSessionId?: string
   }) => {
+    const config = providerRegistry.getConfig(args.providerId)
+    if (!config) {
+      return { success: false, error: `Provider not found: ${args.providerId}` }
+    }
+
     const sessionId = `provider-${Date.now()}`
+    const bridge = streamBridgeManager.create(sessionId)
+
+    // Forward events to renderer (same pattern as registerCliHandlers)
+    bridge.on('textDelta', (d) => send('cli:assistantText', d))
+    bridge.on('thinkingDelta', (d) => send('cli:thinkingDelta', d))
+    bridge.on('toolUse', (d) => send('cli:toolUse', d))
+    bridge.on('toolResult', (d) => send('cli:toolResult', d))
+    bridge.on('messageStop', (d) => send('cli:messageEnd', d))
+    bridge.on('result', (d) => send('cli:result', d))
+    bridge.on('processExit', (d) => send('cli:processExit', d))
+    bridge.on('stderr', (d) => send('cli:error', { sessionId, error: d }))
+    bridge.on('permissionRequest', (d) => send('cli:permissionRequest', d))
+    bridge.on('hookCallback', (d) => send('cli:hookCallback', d))
+    bridge.on('mcpElicitation', (d) => send('cli:elicitation', d))
+
+    // Build env from provider config — this is the core of the new architecture
+    const providerEnv = buildCliEnv(config)
+
+    // Strip CLAUDECODE to allow nesting
+    const env = { ...providerEnv, CLAUDECODE: '' }
 
     try {
-      const handledBy = await providerRegistry.sendMessageWithFailover(
-        {
-          prompt: args.prompt,
-          model: args.model,
-          systemPrompt: args.systemPrompt,
-          messages: args.messages,
-          images: args.images,
-          maxTokens: args.maxTokens,
-          temperature: args.temperature,
-        },
-        (event: StreamEvent) => {
-          switch (event.type) {
-            case 'textDelta':
-              send('cli:assistantText', { sessionId, text: event.data.text })
-              break
-            case 'thinkingDelta':
-              send('cli:thinkingDelta', { sessionId, thinking: event.data.thinking })
-              break
-            case 'toolUse':
-              send('cli:toolUse', { sessionId, event: event.data })
-              break
-            case 'toolResult':
-              send('cli:toolResult', { sessionId, event: event.data })
-              break
-            case 'messageStop':
-              send('cli:messageEnd', { sessionId })
-              break
-            case 'result':
-              send('cli:result', { sessionId, event: event.data.event })
-              break
-            case 'error':
-              send('cli:error', { sessionId, error: event.data.error })
-              break
-          }
-        },
-        (fromProvider, toProvider, reason) => {
-          send('provider:failover', { fromProvider, toProvider, reason })
-        },
-      )
-
-      return { success: true, sessionId, handledBy }
+      await bridge.sendMessage({
+        prompt: args.prompt,
+        cwd: args.cwd || process.cwd(),
+        resumeSessionId: args.resumeSessionId,
+        sessionId,
+        model: args.model,
+        env,
+        skipPermissions: false,
+      })
+      return { success: true, sessionId }
     } catch (err) {
-      return { success: false, sessionId, error: String(err) }
+      send('cli:error', { sessionId, error: String(err) })
+      return { success: false, error: String(err) }
     }
   })
 
-  // Abort a provider request
-  ipcMain.handle('provider:abort', (_e, providerId: string) => {
-    const provider = providerRegistry.getProvider(providerId)
-    if (provider) {
-      provider.abort()
-    }
+  // Abort a provider session
+  ipcMain.handle('provider:abort', (_e, sessionId: string) => {
+    streamBridgeManager.abort(sessionId)
     return { success: true }
   })
 }

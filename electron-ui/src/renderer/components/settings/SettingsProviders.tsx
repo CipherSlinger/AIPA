@@ -6,13 +6,16 @@ import { Plus, Trash2, RefreshCw, ChevronDown, ChevronRight, Eye, EyeOff, Extern
 
 const QRCodeDisplay = lazy(() => import('../ui/QRCodeDisplay'))
 
-/** Mirrors ModelProviderConfig from main/providers/types.ts */
+type ProviderScenario = 'official' | 'gateway' | 'compat'
+
 interface ProviderConfig {
   id: string
   name: string
-  type: 'claude-cli' | 'openai-compat' | 'ollama'
+  scenario: ProviderScenario
   baseUrl?: string
   apiKey?: string
+  authToken?: string
+  model?: string
   models: { id: string; name: string; provider: string }[]
   enabled: boolean
   isDefault?: boolean
@@ -26,15 +29,32 @@ interface HealthStatus {
   lastError?: string
 }
 
-const BUILT_IN_IDS = ['claude-cli', 'openai', 'ollama', 'deepseek', 'qwen']
+const BUILT_IN_IDS = ['claude-cli', 'gateway', 'openai', 'ollama', 'deepseek', 'qwen']
 
-/** Links to get API keys for each built-in provider */
 const PROVIDER_KEY_LINKS: Record<string, string> = {
   'claude-cli': 'https://console.anthropic.com/settings/keys',
   'openai': 'https://platform.openai.com/api-keys',
   'deepseek': 'https://platform.deepseek.com/api_keys',
   'qwen': 'https://dashscope.console.aliyun.com/apiKey',
   'ollama': 'https://ollama.ai/download',
+}
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  background: 'var(--bg-input)',
+  border: '1px solid var(--border)',
+  borderRadius: 4,
+  padding: '6px 10px',
+  color: 'var(--text-primary)',
+  fontSize: 12,
+  outline: 'none',
+  boxSizing: 'border-box',
+}
+
+const SCENARIO_COLORS: Record<ProviderScenario, string> = {
+  official: '#3b82f6',
+  gateway: '#f59e0b',
+  compat: '#22c55e',
 }
 
 export default function SettingsProviders() {
@@ -47,7 +67,6 @@ export default function SettingsProviders() {
   const [editDraft, setEditDraft] = useState<Record<string, Partial<ProviderConfig>>>({})
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
 
-  // Load providers on mount
   useEffect(() => {
     window.electronAPI.providerListConfigs().then((configs: ProviderConfig[]) => {
       setProviders(configs)
@@ -79,7 +98,7 @@ export default function SettingsProviders() {
       } else {
         useUiStore.getState().addToast('error', `${t('provider.connectionFailed')}: ${result?.lastError || 'Unknown'}`)
       }
-    } catch (err) {
+    } catch {
       useUiStore.getState().addToast('error', t('provider.connectionFailed'))
     }
     setTesting(null)
@@ -91,8 +110,9 @@ export default function SettingsProviders() {
     const current = providers.find(p => p.id === providerId)
     if (!current) return
     const updated = { ...current, ...draft }
-    // Auto-enable when API key is set for the first time
-    if (draft.apiKey && draft.apiKey.trim() && !current.enabled) {
+    // Auto-enable when credential is set for the first time
+    const hasCredential = (draft.apiKey && draft.apiKey.trim()) || (draft.authToken && draft.authToken.trim())
+    if (hasCredential && !current.enabled) {
       updated.enabled = true
     }
     await window.electronAPI.providerUpsert(updated)
@@ -103,8 +123,7 @@ export default function SettingsProviders() {
       return next
     })
     useUiStore.getState().addToast('success', t('provider.saved'))
-    // Auto health check after enabling with new API key
-    if (updated.enabled && draft.apiKey) {
+    if (updated.enabled && hasCredential) {
       handleTestConnection(providerId)
     }
   }, [editDraft, providers, t, handleTestConnection])
@@ -121,9 +140,10 @@ export default function SettingsProviders() {
     const config: ProviderConfig = {
       id,
       name: t('provider.newProviderName'),
-      type: 'openai-compat',
+      scenario: 'compat',
       baseUrl: '',
       apiKey: '',
+      model: '',
       models: [],
       enabled: false,
       failoverPriority: 10,
@@ -131,7 +151,7 @@ export default function SettingsProviders() {
     await window.electronAPI.providerUpsert(config)
     setProviders(prev => [...prev, config])
     setExpandedId(id)
-  }, [])
+  }, [t])
 
   const updateDraft = useCallback((providerId: string, field: string, value: unknown) => {
     setEditDraft(prev => ({
@@ -150,343 +170,362 @@ export default function SettingsProviders() {
     }
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    background: 'var(--bg-input)',
-    border: '1px solid var(--border)',
-    borderRadius: 4,
-    padding: '6px 10px',
-    color: 'var(--text-primary)',
-    fontSize: 12,
-    outline: 'none',
-    boxSizing: 'border-box',
-  }
+  // Provider card — shared between all scenarios
+  const renderProviderCard = (provider: ProviderConfig) => {
+    const isExpanded = expandedId === provider.id
+    const isBuiltIn = BUILT_IN_IDS.includes(provider.id)
+    const healthDot = getHealthDot(provider.id)
+    const draft = editDraft[provider.id] || {}
+    const currentName = draft.name ?? provider.name
+    const currentBaseUrl = draft.baseUrl ?? provider.baseUrl ?? ''
+    const currentApiKey = draft.apiKey ?? provider.apiKey ?? ''
+    const currentAuthToken = draft.authToken ?? provider.authToken ?? ''
+    const currentModel = draft.model ?? provider.model ?? ''
+    const hasDraftChanges = Object.keys(draft).length > 0
 
-  return (
-    <div>
-      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
-        {t('provider.title')}
-      </div>
+    return (
+      <div
+        key={provider.id}
+        style={{
+          border: '1px solid var(--border)',
+          borderRadius: 8,
+          marginBottom: 6,
+          overflow: 'hidden',
+          background: isExpanded ? 'var(--card-bg)' : 'transparent',
+          transition: 'background 0.15s',
+        }}
+      >
+        {/* Header row */}
+        <div
+          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', cursor: 'pointer' }}
+          onClick={() => setExpandedId(isExpanded ? null : provider.id)}
+        >
+          {isExpanded
+            ? <ChevronDown size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+            : <ChevronRight size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+          }
+          <span title={healthDot.label} style={{
+            width: 7, height: 7, borderRadius: '50%',
+            background: healthDot.color, flexShrink: 0, display: 'inline-block',
+          }} />
+          <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+            {provider.name}
+          </span>
+          {!isBuiltIn && (
+            <span style={{
+              fontSize: 9, fontWeight: 500, padding: '1px 5px', borderRadius: 4,
+              background: 'rgba(var(--accent-rgb, 0,122,204), 0.12)', color: 'var(--accent)',
+            }}>
+              {t('provider.custom')}
+            </span>
+          )}
+          <div onClick={e => e.stopPropagation()}>
+            <Toggle value={provider.enabled} onChange={() => handleToggleEnabled(provider)} aria-label={t('provider.enabled')} />
+          </div>
+        </div>
 
-      {providers.map(provider => {
-        const isExpanded = expandedId === provider.id
-        const isBuiltIn = BUILT_IN_IDS.includes(provider.id)
-        const healthDot = getHealthDot(provider.id)
-        const draft = editDraft[provider.id] || {}
-        const currentName = (draft.name ?? provider.name)
-        const currentBaseUrl = (draft.baseUrl ?? provider.baseUrl ?? '')
-        const currentApiKey = (draft.apiKey ?? provider.apiKey ?? '')
-        const currentPriority = (draft.failoverPriority ?? provider.failoverPriority ?? 99)
-        const hasDraftChanges = Object.keys(draft).length > 0
-
-        return (
-          <div
-            key={provider.id}
-            style={{
-              border: '1px solid var(--border)',
-              borderRadius: 8,
-              marginBottom: 8,
-              overflow: 'hidden',
-              background: isExpanded ? 'var(--card-bg)' : 'transparent',
-              transition: 'background 0.15s',
-            }}
-          >
-            {/* Header row */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '10px 12px',
-                cursor: 'pointer',
-              }}
-              onClick={() => setExpandedId(isExpanded ? null : provider.id)}
-            >
-              {isExpanded
-                ? <ChevronDown size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                : <ChevronRight size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-              }
-
-              {/* Health dot */}
-              <span
-                title={healthDot.label}
-                style={{
-                  width: 8, height: 8, borderRadius: '50%',
-                  background: healthDot.color, flexShrink: 0,
-                  display: 'inline-block',
-                }}
-              />
-
-              {/* Name */}
-              <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
-                {provider.name}
-              </span>
-
-              {/* Type badge */}
-              <span style={{
-                fontSize: 9, fontWeight: 500,
-                padding: '1px 6px', borderRadius: 4,
-                background: 'rgba(var(--accent-rgb, 0,122,204), 0.12)',
-                color: 'var(--accent)',
-              }}>
-                {isBuiltIn ? t('provider.builtIn') : t('provider.custom')}
-              </span>
-
-              {/* Toggle */}
-              <div onClick={e => e.stopPropagation()}>
-                <Toggle
-                  value={provider.enabled}
-                  onChange={() => handleToggleEnabled(provider)}
-                  aria-label={t('provider.enabled')}
+        {/* Expanded config */}
+        {isExpanded && (
+          <div style={{ padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* Name — editable for custom providers */}
+            {!isBuiltIn && (
+              <div>
+                <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>
+                  {t('provider.title')}
+                </label>
+                <input
+                  type="text"
+                  value={currentName}
+                  onChange={e => updateDraft(provider.id, 'name', e.target.value)}
+                  style={inputStyle}
                 />
               </div>
-            </div>
+            )}
 
-            {/* Expanded config */}
-            {isExpanded && (
-              <div style={{ padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {/* Name */}
-                <div>
-                  <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>
-                    {t('provider.title')}
-                  </label>
+            {/* API Key — official & compat scenarios */}
+            {(provider.scenario === 'official' || provider.scenario === 'compat') && (
+              <div>
+                <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>
+                  {t('provider.apiKey')}
+                </label>
+                <div style={{ display: 'flex', gap: 4 }}>
                   <input
-                    type="text"
-                    value={currentName}
-                    onChange={e => updateDraft(provider.id, 'name', e.target.value)}
-                    style={inputStyle}
-                    disabled={provider.id === 'claude-cli'}
+                    type={showKeyMap[provider.id] ? 'text' : 'password'}
+                    value={currentApiKey}
+                    onChange={e => updateDraft(provider.id, 'apiKey', e.target.value)}
+                    style={{ ...inputStyle, flex: 1 }}
+                    placeholder="sk-..."
                   />
-                </div>
-
-                {/* Base URL (not for claude-cli) */}
-                {provider.type !== 'claude-cli' && (
-                  <div>
-                    <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>
-                      {t('provider.baseUrl')}
-                    </label>
-                    <input
-                      type="text"
-                      value={currentBaseUrl}
-                      onChange={e => updateDraft(provider.id, 'baseUrl', e.target.value)}
-                      style={inputStyle}
-                      placeholder="https://api.openai.com/v1"
-                    />
-                  </div>
-                )}
-
-                {/* API Key (not for claude-cli or ollama) */}
-                {provider.type !== 'claude-cli' && provider.type !== 'ollama' && (
-                  <div>
-                    <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>
-                      {t('provider.apiKey')}
-                    </label>
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      <input
-                        type={showKeyMap[provider.id] ? 'text' : 'password'}
-                        value={currentApiKey}
-                        onChange={e => updateDraft(provider.id, 'apiKey', e.target.value)}
-                        style={{ ...inputStyle, flex: 1 }}
-                        placeholder="sk-..."
-                      />
-                      <button
-                        onClick={() => setShowKeyMap(prev => ({ ...prev, [provider.id]: !prev[provider.id] }))}
-                        style={{
-                          background: 'var(--card-bg)',
-                          border: '1px solid var(--border)',
-                          borderRadius: 4,
-                          padding: '0 8px',
-                          cursor: 'pointer',
-                          color: 'var(--text-muted)',
-                          display: 'flex', alignItems: 'center',
-                        }}
-                        title={showKeyMap[provider.id] ? 'Hide' : 'Show'}
-                      >
-                        {showKeyMap[provider.id] ? <EyeOff size={14} /> : <Eye size={14} />}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Get API Key link for built-in providers */}
-                {isBuiltIn && PROVIDER_KEY_LINKS[provider.id] && (
-                  <div>
-                    <button
-                      onClick={() => window.electronAPI.shellOpenExternal(PROVIDER_KEY_LINKS[provider.id])}
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 4,
-                        padding: '4px 10px', borderRadius: 6,
-                        background: 'none', border: '1px solid var(--border)',
-                        color: 'var(--accent)', cursor: 'pointer', fontSize: 11,
-                      }}
-                    >
-                      <ExternalLink size={12} />
-                      {t('provider.getApiKey')}
-                    </button>
-                  </div>
-                )}
-
-                {/* Qwen QR Code quick setup */}
-                {provider.id === 'qwen' && (
-                  <div style={{
-                    background: 'var(--bg-hover)',
-                    borderRadius: 8,
-                    padding: 12,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 16,
-                  }}>
-                    <Suspense fallback={<div style={{ width: 120, height: 120 }} />}>
-                      <QRCodeDisplay
-                        url="https://dashscope.console.aliyun.com/apiKey"
-                        size={120}
-                        label={t('provider.qrScanLabel')}
-                      />
-                    </Suspense>
-                    <div style={{ flex: 1, fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                      <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4, fontSize: 12 }}>
-                        {t('provider.qwenQuickSetup')}
-                      </div>
-                      {t('provider.qwenQuickSetupDesc')}
-                    </div>
-                  </div>
-                )}
-
-                {/* Failover Priority */}
-                <div>
-                  <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>
-                    {t('provider.failoverPriority')}
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={99}
-                    value={currentPriority}
-                    onChange={e => updateDraft(provider.id, 'failoverPriority', parseInt(e.target.value) || 0)}
-                    style={{ ...inputStyle, width: 80 }}
-                  />
-                  <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 8 }}>
-                    (0 = highest)
-                  </span>
-                </div>
-
-                {/* Models list */}
-                {provider.models.length > 0 && (
-                  <div>
-                    <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>
-                      Models ({provider.models.length})
-                    </label>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                      {provider.models.map(m => (
-                        <span key={m.id} style={{
-                          fontSize: 10, padding: '2px 6px', borderRadius: 4,
-                          background: 'var(--bg-hover)', color: 'var(--text-primary)',
-                        }}>
-                          {m.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Action buttons */}
-                <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                  {/* Test Connection */}
-                  {provider.type !== 'claude-cli' && (
-                    <button
-                      onClick={() => handleTestConnection(provider.id)}
-                      disabled={testing === provider.id}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 4,
-                        padding: '5px 10px', borderRadius: 6,
-                        background: 'var(--card-bg)',
-                        border: '1px solid var(--border)',
-                        color: 'var(--text-primary)',
-                        cursor: testing === provider.id ? 'wait' : 'pointer',
-                        fontSize: 11, opacity: testing === provider.id ? 0.6 : 1,
-                      }}
-                    >
-                      <RefreshCw size={12} style={{ animation: testing === provider.id ? 'spin 1s linear infinite' : 'none' }} />
-                      {t('provider.testConnection')}
-                    </button>
-                  )}
-
-                  {/* Save (if draft has changes) */}
-                  {hasDraftChanges && (
-                    <button
-                      onClick={() => handleSaveProvider(provider.id)}
-                      style={{
-                        padding: '5px 10px', borderRadius: 6,
-                        background: 'var(--accent)', border: 'none',
-                        color: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 500,
-                      }}
-                    >
-                      {t('provider.save')}
-                    </button>
-                  )}
-
-                  {/* Delete (only for custom providers) */}
-                  {!isBuiltIn && (
-                    deleteConfirm === provider.id ? (
-                      <button
-                        onClick={() => handleDeleteProvider(provider.id)}
-                        style={{
-                          padding: '5px 10px', borderRadius: 6,
-                          background: 'var(--error, #ef4444)', border: 'none',
-                          color: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 500,
-                        }}
-                      >
-                        {t('provider.deleteConfirm')}
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => setDeleteConfirm(provider.id)}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 4,
-                          padding: '5px 10px', borderRadius: 6,
-                          background: 'var(--card-bg)',
-                          border: '1px solid var(--border)',
-                          color: 'var(--error, #ef4444)',
-                          cursor: 'pointer', fontSize: 11,
-                        }}
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    )
-                  )}
+                  <button
+                    onClick={() => setShowKeyMap(prev => ({ ...prev, [provider.id]: !prev[provider.id] }))}
+                    style={{
+                      background: 'var(--card-bg)', border: '1px solid var(--border)',
+                      borderRadius: 4, padding: '0 8px', cursor: 'pointer',
+                      color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
+                    }}
+                    title={showKeyMap[provider.id] ? 'Hide' : 'Show'}
+                  >
+                    {showKeyMap[provider.id] ? <EyeOff size={13} /> : <Eye size={13} />}
+                  </button>
                 </div>
               </div>
             )}
-          </div>
-        )
-      })}
 
-      {/* Add Custom Provider */}
-      <button
-        onClick={handleAddCustom}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          width: '100%', padding: '10px 12px',
-          background: 'none',
-          border: '1px dashed var(--border)',
-          borderRadius: 8,
-          color: 'var(--text-muted)',
-          cursor: 'pointer',
-          fontSize: 12,
-          transition: 'border-color 0.15s, color 0.15s',
-        }}
-        onMouseEnter={e => {
-          e.currentTarget.style.borderColor = 'var(--accent)'
-          e.currentTarget.style.color = 'var(--accent)'
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.borderColor = 'var(--border)'
-          e.currentTarget.style.color = 'var(--text-muted)'
-        }}
-      >
-        <Plus size={14} />
-        {t('provider.addCustom')}
-      </button>
+            {/* Auth Token — gateway scenario */}
+            {provider.scenario === 'gateway' && (
+              <>
+                <div>
+                  <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>
+                    {t('provider.authToken')}
+                  </label>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <input
+                      type={showKeyMap[`${provider.id}-token`] ? 'text' : 'password'}
+                      value={currentAuthToken}
+                      onChange={e => updateDraft(provider.id, 'authToken', e.target.value)}
+                      style={{ ...inputStyle, flex: 1 }}
+                      placeholder="Bearer ..."
+                    />
+                    <button
+                      onClick={() => setShowKeyMap(prev => ({ ...prev, [`${provider.id}-token`]: !prev[`${provider.id}-token`] }))}
+                      style={{
+                        background: 'var(--card-bg)', border: '1px solid var(--border)',
+                        borderRadius: 4, padding: '0 8px', cursor: 'pointer',
+                        color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
+                      }}
+                    >
+                      {showKeyMap[`${provider.id}-token`] ? <EyeOff size={13} /> : <Eye size={13} />}
+                    </button>
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>
+                    {t('provider.authTokenHint')}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>
+                    {t('provider.apiKey')} <span style={{ opacity: 0.6 }}>(留空以使用 Auth Token)</span>
+                  </label>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <input
+                      type={showKeyMap[provider.id] ? 'text' : 'password'}
+                      value={currentApiKey}
+                      onChange={e => updateDraft(provider.id, 'apiKey', e.target.value)}
+                      style={{ ...inputStyle, flex: 1 }}
+                      placeholder="（留空）"
+                    />
+                    <button
+                      onClick={() => setShowKeyMap(prev => ({ ...prev, [provider.id]: !prev[provider.id] }))}
+                      style={{
+                        background: 'var(--card-bg)', border: '1px solid var(--border)',
+                        borderRadius: 4, padding: '0 8px', cursor: 'pointer',
+                        color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
+                      }}
+                    >
+                      {showKeyMap[provider.id] ? <EyeOff size={13} /> : <Eye size={13} />}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Base URL — gateway & compat scenarios */}
+            {(provider.scenario === 'gateway' || provider.scenario === 'compat') && (
+              <div>
+                <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>
+                  {t('provider.baseUrl')}
+                </label>
+                <input
+                  type="text"
+                  value={currentBaseUrl}
+                  onChange={e => updateDraft(provider.id, 'baseUrl', e.target.value)}
+                  style={inputStyle}
+                  placeholder="https://..."
+                />
+              </div>
+            )}
+
+            {/* Model override — compat scenario */}
+            {provider.scenario === 'compat' && (
+              <div>
+                <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>
+                  {t('provider.model')}
+                </label>
+                <input
+                  type="text"
+                  value={currentModel}
+                  onChange={e => updateDraft(provider.id, 'model', e.target.value)}
+                  style={inputStyle}
+                  placeholder={t('provider.modelPlaceholder')}
+                />
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>
+                  {t('provider.modelHint')}
+                </div>
+              </div>
+            )}
+
+            {/* Qwen QR Code quick setup */}
+            {provider.id === 'qwen' && (
+              <div style={{
+                background: 'var(--bg-hover)', borderRadius: 8, padding: 12,
+                display: 'flex', alignItems: 'center', gap: 16,
+              }}>
+                <Suspense fallback={<div style={{ width: 110, height: 110 }} />}>
+                  <QRCodeDisplay url="https://dashscope.console.aliyun.com/apiKey" size={110} label={t('provider.qrScanLabel')} />
+                </Suspense>
+                <div style={{ flex: 1, fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                  <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4, fontSize: 12 }}>
+                    {t('provider.qwenQuickSetup')}
+                  </div>
+                  {t('provider.qwenQuickSetupDesc')}
+                </div>
+              </div>
+            )}
+
+            {/* Get API Key link */}
+            {isBuiltIn && PROVIDER_KEY_LINKS[provider.id] && (
+              <div>
+                <button
+                  onClick={() => window.electronAPI.shellOpenExternal(PROVIDER_KEY_LINKS[provider.id])}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    padding: '4px 10px', borderRadius: 6,
+                    background: 'none', border: '1px solid var(--border)',
+                    color: 'var(--accent)', cursor: 'pointer', fontSize: 11,
+                  }}
+                >
+                  <ExternalLink size={11} />
+                  {t('provider.getApiKey')}
+                </button>
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
+              <button
+                onClick={() => handleTestConnection(provider.id)}
+                disabled={testing === provider.id}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: '5px 10px', borderRadius: 6,
+                  background: 'var(--card-bg)', border: '1px solid var(--border)',
+                  color: 'var(--text-primary)',
+                  cursor: testing === provider.id ? 'wait' : 'pointer',
+                  fontSize: 11, opacity: testing === provider.id ? 0.6 : 1,
+                }}
+              >
+                <RefreshCw size={11} style={{ animation: testing === provider.id ? 'spin 1s linear infinite' : 'none' }} />
+                {t('provider.testConnection')}
+              </button>
+
+              {hasDraftChanges && (
+                <button
+                  onClick={() => handleSaveProvider(provider.id)}
+                  style={{
+                    padding: '5px 10px', borderRadius: 6,
+                    background: 'var(--accent)', border: 'none',
+                    color: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 500,
+                  }}
+                >
+                  {t('provider.save')}
+                </button>
+              )}
+
+              {!isBuiltIn && (
+                deleteConfirm === provider.id ? (
+                  <button
+                    onClick={() => handleDeleteProvider(provider.id)}
+                    style={{
+                      padding: '5px 10px', borderRadius: 6,
+                      background: 'var(--error, #ef4444)', border: 'none',
+                      color: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 500,
+                    }}
+                  >
+                    {t('provider.deleteConfirm')}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setDeleteConfirm(provider.id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 4,
+                      padding: '5px 10px', borderRadius: 6,
+                      background: 'var(--card-bg)', border: '1px solid var(--border)',
+                      color: 'var(--error, #ef4444)', cursor: 'pointer', fontSize: 11,
+                    }}
+                  >
+                    <Trash2 size={11} />
+                  </button>
+                )
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  const officialProviders = providers.filter(p => p.scenario === 'official')
+  const gatewayProviders = providers.filter(p => p.scenario === 'gateway')
+  const compatProviders = providers.filter(p => p.scenario === 'compat')
+
+  const renderScenarioSection = (
+    scenario: ProviderScenario,
+    items: ProviderConfig[],
+    showAddButton: boolean = false
+  ) => (
+    <div style={{ marginBottom: 16 }}>
+      {/* Section header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <span style={{
+          width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
+          background: SCENARIO_COLORS[scenario], display: 'inline-block',
+        }} />
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)' }}>
+          {t(`provider.scenario.${scenario}`)}
+        </span>
+        <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+      </div>
+
+      {/* Scenario description */}
+      <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 8, lineHeight: 1.5, paddingLeft: 18 }}>
+        {t(`provider.scenarioHint.${scenario}`)}
+      </div>
+
+      {/* Provider cards */}
+      {items.map(renderProviderCard)}
+
+      {/* Add custom button — only for compat section */}
+      {showAddButton && (
+        <button
+          onClick={handleAddCustom}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            width: '100%', padding: '9px 12px',
+            background: 'none', border: '1px dashed var(--border)',
+            borderRadius: 8, color: 'var(--text-muted)',
+            cursor: 'pointer', fontSize: 12,
+            transition: 'border-color 0.15s, color 0.15s',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.borderColor = 'var(--accent)'
+            e.currentTarget.style.color = 'var(--accent)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderColor = 'var(--border)'
+            e.currentTarget.style.color = 'var(--text-muted)'
+          }}
+        >
+          <Plus size={13} />
+          {t('provider.addCustom')}
+        </button>
+      )}
+    </div>
+  )
+
+  return (
+    <div>
+      {renderScenarioSection('official', officialProviders)}
+      {renderScenarioSection('gateway', gatewayProviders)}
+      {renderScenarioSection('compat', compatProviders, true)}
     </div>
   )
 }

@@ -1577,7 +1577,22 @@
       "vision": "Vision",
       "code": "Code",
       "reasoning": "Reasoning"
-    }
+    },
+    "scenario": {
+      "official": "Anthropic Official",
+      "gateway": "AI Gateway / Proxy",
+      "compat": "Compatible APIs"
+    },
+    "scenarioHint": {
+      "official": "Connect directly to the Anthropic API using your API Key",
+      "gateway": "Route through an AI gateway or proxy (e.g. Vercel AI Gateway) using an Auth Token",
+      "compat": "Connect to third-party services compatible with the Anthropic API (DeepSeek, Qwen, OpenAI, Ollama, etc.)"
+    },
+    "authToken": "Auth Token",
+    "authTokenHint": "When set, API Key must be left empty. The token is sent as Authorization: Bearer",
+    "model": "Model",
+    "modelPlaceholder": "e.g. deepseek-chat",
+    "modelHint": "Leave empty to use the provider's default model"
   },
   "channel": {
     "title": "Channel",

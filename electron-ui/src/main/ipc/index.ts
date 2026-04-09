@@ -217,8 +217,11 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
     bridge.on('hookCallback', (d) => send('cli:hookCallback', d))
     bridge.on('mcpElicitation', (d) => send('cli:elicitation', d))
 
-    // Inject API key from prefs if not in env
-    if (!args.env?.ANTHROPIC_API_KEY) {
+    // Inject API key from prefs only when neither key nor auth token is already set.
+    // Gateway scenario sets ANTHROPIC_API_KEY to '' intentionally — do not overwrite it.
+    const hasExplicitApiKey = args.env && 'ANTHROPIC_API_KEY' in args.env
+    const hasAuthToken = !!args.env?.ANTHROPIC_AUTH_TOKEN
+    if (!hasExplicitApiKey && !hasAuthToken) {
       args.env = { ...(args.env || {}), ANTHROPIC_API_KEY: getApiKey() }
     }
 
