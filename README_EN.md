@@ -48,7 +48,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 - **Auto-Compaction** — automatically summarizes older messages when context window nears capacity (threshold configurable 60%-90%); **Microcompact** pre-processing trims long messages before summarization to reduce input tokens; **Time-gap microcompact** clears stale tool results across sessions idle for 30+ minutes
 - **Context Suggestions** — when context usage exceeds 70%, shows per-tool optimization tips (bash output, file reads, web fetches) with estimated token savings in a lightbulb popover
 - **Away Summary** — when you return after 5+ minutes away, automatically injects a purple summary card into the conversation showing what was happening
-- **Conversation Rewind** — roll back to any message, syncing both in-memory state and persisted session
+- **Conversation Rewind** — right-click any assistant message → "Rewind to here" to trim the conversation to that point, syncing both in-memory state and persisted session; confirmation dialog prevents accidental use
 - **Keyboard message navigation** — `Ctrl+Up/Down` to step through messages, `Ctrl+Home/End` to jump to first/last, with visual focus indicator
 - **Edit & regenerate** any message; pick a different model before regenerating
 - **Read Aloud** via Web Speech API; **Quote Reply** by selecting text
