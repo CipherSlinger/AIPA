@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useRef, useEffect } from 'react'
-import { Check, Loader, ChevronUp, ChevronDown, Copy, MessageSquare, AlertCircle } from 'lucide-react'
+import { Check, Loader, ChevronUp, ChevronDown, Copy, MessageSquare, AlertCircle, GripVertical } from 'lucide-react'
 import { WorkflowStep } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { getPresetStepText } from './workflowConstants'
@@ -21,11 +21,15 @@ interface CanvasNodeProps {
   isFirst?: boolean
   isLast?: boolean
   multiSelected?: boolean
+  focused?: boolean         // D4: keyboard focus visual ring
+  streamingText?: string    // D2: live streaming output text
+  liveElapsedMs?: number    // D5: real-time step execution timer
   onSelect: (stepId: string) => void
   onDragStart: (stepId: string, e: React.MouseEvent) => void
   onToggleCollapse?: (stepId: string) => void
   onTitleChange?: (stepId: string, newTitle: string) => void
   onMultiSelect?: (stepId: string, shiftKey: boolean) => void
+  onReorderDragStart?: (stepId: string, e: React.MouseEvent) => void  // D6: drag to reorder
 }
 
 export const NODE_WIDTH = 220
@@ -192,11 +196,15 @@ export default function CanvasNode({
   isFirst = false,
   isLast = false,
   multiSelected = false,
+  focused = false,
+  streamingText,
+  liveElapsedMs,
   onSelect,
   onDragStart,
   onToggleCollapse,
   onTitleChange,
   onMultiSelect,
+  onReorderDragStart,
 }: CanvasNodeProps) {
   const t = useT()
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null)
@@ -279,6 +287,9 @@ export default function CanvasNode({
   const isActive = selected || status === 'running'
   const isMulti = multiSelected && !selected
 
+  // D4: focused but not selected — dashed outline
+  const isFocusedOnly = focused && !selected && !isMulti
+
   // Dynamic height: expand when showing output preview
   const nodeHeight = collapsed
     ? NODE_COLLAPSED_HEIGHT
@@ -287,6 +298,9 @@ export default function CanvasNode({
       : NODE_MIN_HEIGHT
 
   const badgeColor = status === 'completed' ? '#22c55e' : status === 'running' ? 'var(--accent)' : 'var(--text-muted)'
+
+  // D5: format elapsed time
+  const elapsedSec = liveElapsedMs !== undefined ? Math.floor(liveElapsedMs / 1000) : 0
 
   return (
     <>
@@ -334,6 +348,9 @@ export default function CanvasNode({
             : status === 'completed'
               ? '0 2px 8px rgba(34,197,94,0.08)'
               : '0 1px 3px rgba(0,0,0,0.12)',
+          // D4: focus ring — dashed outline when focused but not selected
+          outline: isFocusedOnly ? '2px dashed rgba(var(--accent-rgb, 59,130,246), 0.55)' : 'none',
+          outlineOffset: 3,
           transition: 'border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, height 0.2s ease, background 0.2s ease',
           userSelect: 'none',
           boxSizing: 'border-box',
@@ -372,6 +389,32 @@ export default function CanvasNode({
 
         {/* Status badge (top-right) */}
         <StatusBadge status={status} />
+
+        {/* D6: Reorder drag handle — shown on left side */}
+        {onReorderDragStart && !collapsed && (
+          <div
+            onMouseDown={e => { e.stopPropagation(); onReorderDragStart(step.id, e) }}
+            title="Drag to reorder"
+            style={{
+              position: 'absolute',
+              left: 2,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              cursor: 'ns-resize',
+              color: 'var(--text-muted)',
+              opacity: 0.3,
+              padding: '2px 2px',
+              display: 'flex',
+              alignItems: 'center',
+              borderRadius: 2,
+              transition: 'opacity 0.15s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = '0.7')}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '0.3')}
+          >
+            <GripVertical size={10} />
+          </div>
+        )}
 
         {/* Collapse toggle button */}
         {onToggleCollapse && (
@@ -436,6 +479,7 @@ export default function CanvasNode({
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               paddingRight: 20,
+              paddingLeft: onReorderDragStart ? 14 : 0,
               width: '100%',
               cursor: 'text',
               display: 'flex',
@@ -456,19 +500,12 @@ export default function CanvasNode({
           </div>
         )}
 
-        {/* Prompt preview or output preview — hidden when collapsed */}
+        {/* Prompt preview / output preview / streaming text — hidden when collapsed */}
         {!collapsed && (
           <>
-            {/* Show output preview on completed nodes (replaces prompt preview) */}
             {status === 'completed' && outputText ? (
-              <div
-                style={{
-                  fontSize: 10,
-                  color: 'var(--text-secondary)',
-                  lineHeight: 1.45,
-                  width: '100%',
-                }}
-              >
+              /* Completed: show output text */
+              <div style={{ fontSize: 10, color: 'var(--text-secondary)', lineHeight: 1.45, width: '100%' }}>
                 <div style={{
                   display: outputExpanded ? 'block' : '-webkit-box',
                   WebkitLineClamp: outputExpanded ? undefined : 2,
@@ -493,25 +530,57 @@ export default function CanvasNode({
                   </button>
                 )}
               </div>
+            ) : status === 'running' && streamingText ? (
+              /* D2: Running with streaming text — show live output */
+              <div style={{
+                fontSize: 9,
+                color: 'var(--text-secondary)',
+                lineHeight: 1.4,
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                opacity: 0.85,
+                fontStyle: 'italic',
+                width: '100%',
+              }}>
+                {streamingText}
+              </div>
             ) : (
-              <div
-                style={{
-                  fontSize: 10,
-                  color: 'var(--text-muted)',
-                  lineHeight: 1.4,
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                }}
-              >
+              /* Default: show prompt preview */
+              <div style={{
+                fontSize: 10,
+                color: 'var(--text-muted)',
+                lineHeight: 1.4,
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+              }}>
                 {promptPreview}
               </div>
             )}
           </>
         )}
 
-        {/* Duration chip */}
+        {/* D5: Live step timer — shown on running nodes after 1s */}
+        {!collapsed && status === 'running' && elapsedSec >= 1 && (
+          <div style={{
+            position: 'absolute',
+            bottom: 6,
+            right: 10,
+            fontSize: 9,
+            color: 'var(--accent)',
+            opacity: 0.8,
+            fontWeight: 600,
+            fontVariantNumeric: 'tabular-nums',
+            pointerEvents: 'none',
+          }}>
+            ⏱ {elapsedSec}s
+          </div>
+        )}
+
+        {/* Duration chip — shown on completed nodes */}
         {!collapsed && status === 'completed' && durationMs !== undefined && (
           <div style={{
             marginTop: 'auto',

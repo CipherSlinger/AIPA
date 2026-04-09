@@ -3,7 +3,7 @@ import { Workflow as WorkflowIcon } from 'lucide-react'
 import { Workflow } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { useChatStore } from '../../store'
-import CanvasNode from './CanvasNode'
+import CanvasNode, { NODE_WIDTH } from './CanvasNode'
 import CanvasEdge, { CanvasEdgeDefs } from './CanvasEdge'
 import CanvasProgressBar from './CanvasProgressBar'
 import CanvasNodeSidebar from './CanvasNodeSidebar'
@@ -23,6 +23,8 @@ interface WorkflowCanvasProps {
   onRerun?: () => void
   // Direction B: update a step's title or prompt
   onStepUpdate?: (stepId: string, changes: { title?: string; prompt?: string }) => void
+  // D6: reorder steps (drag handle)
+  onStepReorder?: (stepId: string, newIndex: number) => void
 }
 
 // --- Minimap ---
@@ -124,12 +126,26 @@ function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, conta
   )
 }
 
-export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep, onRerun, onStepUpdate }: WorkflowCanvasProps) {
+export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep, onRerun, onStepUpdate, onStepReorder }: WorkflowCanvasProps) {
   const t = useT()
   const containerRef = useRef<HTMLDivElement>(null)
   const execution = useWorkflowExecution(workflow)
   // Direction 9: get abort from chat store
   const abort = useChatStore(s => s.abort)
+
+  // D2: subscribe to live streaming text from the current assistant message
+  const streamingContent = useChatStore(s => {
+    if (!s.isStreaming) return ''
+    const msgs = s.messages
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const m = msgs[i] as any
+      if (m.role === 'assistant' && m.isStreaming && typeof m.content === 'string' && m.content) {
+        // Show last 100 chars of the streaming output
+        return m.content.slice(-100)
+      }
+    }
+    return ''
+  })
 
   // Layout hook (pan, zoom, node positions, drag, collapse, minimap, Space key)
   const layout = useCanvasLayout(workflow, containerRef)
@@ -190,6 +206,109 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   // D5: canvas right-click context menu
   const [canvasCtxMenu, setCanvasCtxMenu] = useState<{ x: number; y: number } | null>(null)
 
+  // D5: live step timer — track start times per step
+  const [liveElapsedMs, setLiveElapsedMs] = useState<Record<string, number>>({})
+  const stepStartTimesRef = useRef<Record<string, number>>({})
+
+  useEffect(() => {
+    if (!workflow) return
+    const statuses = execution.stepStatuses
+    workflow.steps.forEach(step => {
+      if (statuses[step.id] === 'running') {
+        if (!stepStartTimesRef.current[step.id]) {
+          stepStartTimesRef.current[step.id] = Date.now()
+        }
+      } else {
+        delete stepStartTimesRef.current[step.id]
+      }
+    })
+  }, [execution.stepStatuses, workflow])
+
+  useEffect(() => {
+    if (!execution.isRunning) {
+      setLiveElapsedMs({})
+      stepStartTimesRef.current = {}
+      return
+    }
+    const id = setInterval(() => {
+      const now = Date.now()
+      const updated: Record<string, number> = {}
+      Object.entries(stepStartTimesRef.current).forEach(([sid, start]) => {
+        updated[sid] = now - start
+      })
+      setLiveElapsedMs(updated)
+    }, 1000)
+    return () => clearInterval(id)
+  }, [execution.isRunning])
+
+  // D8: edge hover state — key is "fromId:toId"
+  const [hoveredEdgeKey, setHoveredEdgeKey] = useState<string | null>(null)
+
+  // D6: reorder drag state
+  const [reorderDrag, setReorderDrag] = useState<{ stepId: string; insertAfterIndex: number } | null>(null)
+  const reorderDragRef = useRef(reorderDrag)
+  useEffect(() => { reorderDragRef.current = reorderDrag }, [reorderDrag])
+
+  // Refs for stale-closure-safe access inside reorder effect
+  const workflowRef = useRef(workflow)
+  useEffect(() => { workflowRef.current = workflow }, [workflow])
+  const onStepReorderRef = useRef(onStepReorder)
+  useEffect(() => { onStepReorderRef.current = onStepReorder }, [onStepReorder])
+  const layoutPanYRef = useRef(layout.panY)
+  const layoutZoomRef = useRef(layout.zoom)
+  const layoutNodePositionsRef = useRef(layout.nodePositions)
+  useEffect(() => {
+    layoutPanYRef.current = layout.panY
+    layoutZoomRef.current = layout.zoom
+    layoutNodePositionsRef.current = layout.nodePositions
+  }, [layout.panY, layout.zoom, layout.nodePositions])
+
+  // D6: reorder drag window listeners
+  useEffect(() => {
+    if (!reorderDrag) return
+    const handleMove = (e: MouseEvent) => {
+      const wf = workflowRef.current
+      if (!containerRef.current || !wf) return
+      const rect = containerRef.current.getBoundingClientRect()
+      const canvasY = (e.clientY - rect.top - layoutPanYRef.current) / layoutZoomRef.current
+      let insertAfter = -1
+      wf.steps.forEach((step, idx) => {
+        const pos = layoutNodePositionsRef.current[step.id]
+        if (pos && canvasY > pos.y + pos.height / 2) insertAfter = idx
+      })
+      setReorderDrag(prev => prev ? { ...prev, insertAfterIndex: insertAfter } : null)
+    }
+    const handleUp = () => {
+      const current = reorderDragRef.current
+      const wf = workflowRef.current
+      const cb = onStepReorderRef.current
+      if (current && wf && cb) {
+        const { stepId, insertAfterIndex } = current
+        const fromIdx = wf.steps.findIndex(s => s.id === stepId)
+        const targetInsertIndex = insertAfterIndex + 1
+        let toIdx: number
+        if (targetInsertIndex < fromIdx) {
+          toIdx = targetInsertIndex
+        } else if (targetInsertIndex > fromIdx + 1) {
+          toIdx = targetInsertIndex - 1
+        } else {
+          setReorderDrag(null)
+          return
+        }
+        if (toIdx >= 0 && toIdx < wf.steps.length) {
+          cb(stepId, toIdx)
+        }
+      }
+      setReorderDrag(null)
+    }
+    window.addEventListener('mousemove', handleMove)
+    window.addEventListener('mouseup', handleUp)
+    return () => {
+      window.removeEventListener('mousemove', handleMove)
+      window.removeEventListener('mouseup', handleUp)
+    }
+  }, [reorderDrag?.stepId]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // 30s periodic agent summary during execution
   const [agentSummary, setAgentSummary] = useState<string | null>(null)
   const summaryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -235,6 +354,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     setSelectedNode(null)
     setSidebarStepId(null)
     setSelectedRunId(null)
+    setReorderDrag(null)
+    setHoveredEdgeKey(null)
   }, [workflow?.id])
 
   // --- Auto-pan to active node during execution ---
@@ -283,13 +404,19 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     }
   }, [layout.focusedNodeId])
 
-  // --- Canvas mouse down: deselect + start pan ---
+  // --- Canvas mouse down: D1 marquee vs pan depending on spaceDown ---
   const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return
     setSelectedNode(null)
     setSidebarStepId(null)
     layout.clearSelection()
-    layout.handleCanvasMouseDown(e)
+    if (layout.spaceDown) {
+      // Space held: pan mode
+      layout.handleCanvasMouseDown(e)
+    } else {
+      // D1: marquee selection mode
+      layout.startMarquee(e)
+    }
   }, [layout])
 
   // --- Sidebar step data ---
@@ -305,6 +432,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
 
   const cursor = layout.spaceDown
     ? (layout.isPanning ? 'grabbing' : 'grab')
+    : reorderDrag ? 'ns-resize'
     : layout.isPanning ? 'grabbing' : 'default'
 
   // Direction B: sidebar prompt change
@@ -396,6 +524,23 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   }
 
   const showRerunOrError = (execution.completedCount === execution.totalSteps && execution.totalSteps > 0 && !execution.isRunning) || (execution.hasError && !execution.isRunning)
+
+  // D8: determine which nodes are highlighted by edge hover
+  const hoveredFromId = hoveredEdgeKey ? hoveredEdgeKey.split(':')[0] : null
+  const hoveredToId = hoveredEdgeKey ? hoveredEdgeKey.split(':')[1] : null
+
+  // D6: compute reorder insertion line position
+  const reorderInsertLineY = reorderDrag && (() => {
+    const { insertAfterIndex } = reorderDrag
+    if (insertAfterIndex < 0) {
+      const firstStep = workflow.steps[0]
+      const pos = firstStep ? layout.nodePositions[firstStep.id] : null
+      return pos ? pos.y - 8 : -8
+    }
+    const step = workflow.steps[insertAfterIndex]
+    const pos = step ? layout.nodePositions[step.id] : null
+    return pos ? pos.y + pos.height + 4 : 0
+  })()
 
   return (
     <div
@@ -524,7 +669,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         </div>
       )}
 
-      {/* SVG edge layer */}
+      {/* SVG edge layer — pointerEvents: none on SVG allows children to override */}
       <svg
         style={{
           position: 'absolute',
@@ -547,6 +692,9 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             if (!isInViewport(fromPos) && !isInViewport(toPos)) return null
             const srcStatus = execution.stepStatuses[prevStep.id] ?? 'idle'
             const edgeStatus = srcStatus === 'completed' ? 'done' : srcStatus === 'running' ? 'active' : 'idle'
+            const edgeKey = `${prevStep.id}:${step.id}`
+            // D8: highlight edge if hovered, and nodes connected to hovered edge
+            const isHighlighted = hoveredEdgeKey === edgeKey
             return (
               <CanvasEdge
                 key={`edge-${prevStep.id}-${step.id}`}
@@ -554,6 +702,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                 to={toPos}
                 status={edgeStatus}
                 layoutDirection={layout.layoutDirection}
+                onHoverChange={(hovered) => setHoveredEdgeKey(hovered ? edgeKey : null)}
+                highlighted={isHighlighted}
               />
             )
           })}
@@ -583,6 +733,9 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               />
             )
           }
+          const stepStatus = execution.stepStatuses[step.id] ?? 'idle'
+          // D8: highlight node if it's connected to the hovered edge
+          const isEdgeHighlightedNode = hoveredEdgeKey !== null && (step.id === hoveredFromId || step.id === hoveredToId)
           return (
             <CanvasNode
               key={step.id}
@@ -593,14 +746,23 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               width={pos.width}
               selected={selectedNode === step.id}
               multiSelected={layout.selectedNodes.has(step.id)}
-              status={execution.stepStatuses[step.id] ?? 'idle'}
+              status={stepStatus}
               presetKey={workflow.presetKey}
               collapsed={layout.collapsedNodes.has(step.id)}
               outputText={historyStepOutputs ? (historyStepOutputs[step.id] ?? execution.stepOutputs[step.id]) : execution.stepOutputs[step.id]}
-              dimmed={highlightStepIds !== null && highlightStepIds !== undefined && !highlightStepIds.has(step.id)}
+              dimmed={
+                (highlightStepIds !== null && highlightStepIds !== undefined && !highlightStepIds.has(step.id)) ||
+                (reorderDrag !== null && reorderDrag.stepId === step.id)
+              }
               durationMs={historyStepDurations ? (historyStepDurations[step.id] ?? execution.stepDurations[step.id]) : execution.stepDurations[step.id]}
               isFirst={idx === 0}
               isLast={idx === workflow.steps.length - 1}
+              // D4: keyboard focus visual ring
+              focused={layout.focusedNodeId === step.id}
+              // D2: streaming text on running node
+              streamingText={execution.isRunning && stepStatus === 'running' ? streamingContent : undefined}
+              // D5: live elapsed timer
+              liveElapsedMs={liveElapsedMs[step.id]}
               onSelect={handleNodeSelect}
               onDragStart={(stepId, e) => {
                 // Direction F: if this node is part of multi-selection, drag all
@@ -613,10 +775,58 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               onToggleCollapse={layout.handleToggleCollapse}
               onTitleChange={handleTitleChange}
               onMultiSelect={(id, shiftKey) => layout.selectNode(id, shiftKey)}
+              // D6: drag to reorder
+              onReorderDragStart={onStepReorder ? (stepId, e) => {
+                e.stopPropagation()
+                setReorderDrag({ stepId, insertAfterIndex: -1 })
+              } : undefined}
             />
           )
         })}
+
+        {/* D6: Reorder insertion indicator line */}
+        {reorderDrag && reorderInsertLineY !== null && (
+          <div
+            style={{
+              position: 'absolute',
+              left: -6,
+              top: reorderInsertLineY,
+              width: NODE_WIDTH + 12,
+              height: 2,
+              background: 'var(--accent)',
+              borderRadius: 1,
+              pointerEvents: 'none',
+              boxShadow: '0 0 6px rgba(var(--accent-rgb,59,130,246),0.6)',
+              zIndex: 10,
+            }}
+          />
+        )}
       </div>
+
+      {/* D1: Marquee selection rectangle overlay */}
+      {layout.marqueeRect && (() => {
+        const { x1, y1, x2, y2 } = layout.marqueeRect
+        const screenX = Math.min(x1, x2) * layout.zoom + layout.panX
+        const screenY = Math.min(y1, y2) * layout.zoom + layout.panY
+        const screenW = Math.abs(x2 - x1) * layout.zoom
+        const screenH = Math.abs(y2 - y1) * layout.zoom
+        return (
+          <div
+            style={{
+              position: 'absolute',
+              left: screenX,
+              top: screenY,
+              width: screenW,
+              height: screenH,
+              border: '1.5px dashed rgba(var(--accent-rgb,59,130,246),0.7)',
+              background: 'rgba(var(--accent-rgb,59,130,246),0.06)',
+              pointerEvents: 'none',
+              zIndex: 15,
+              borderRadius: 2,
+            }}
+          />
+        )
+      })()}
 
       {/* Minimap */}
       {layout.showMinimap && (

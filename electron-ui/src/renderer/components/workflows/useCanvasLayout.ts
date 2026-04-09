@@ -3,6 +3,9 @@
 // Iteration 490: added trackpad pinch-to-zoom, Space-key pan, minimap toggle
 // Direction E: horizontal/vertical layout toggle (L key)
 // Direction F: multi-select nodes (Shift+click, clearSelection)
+// D1: marquee/box selection on canvas drag
+// D3: viewport state persistence (pan/zoom saved per workflow in localStorage)
+// D7: collapsed node state persistence per workflow in localStorage
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { NODE_WIDTH, NODE_MIN_HEIGHT, NODE_COLLAPSED_HEIGHT, NODE_GAP_Y } from './CanvasNode'
@@ -93,6 +96,18 @@ export function useCanvasLayout(
     return () => ro.disconnect()
   }, [containerRef])
 
+  // D3: viewport persistence refs
+  const viewportRestoredRef = useRef(false)
+  const vpSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // D1: Marquee selection state
+  const [marqueeRect, setMarqueeRect] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null)
+  const [isMarqueeing, setIsMarqueeing] = useState(false)
+  const marqueeStartRef = useRef<{ x1: number; y1: number; panX: number; panY: number; zoom: number } | null>(null)
+
+  // D1: keep nodePositions accessible inside marquee effect without causing re-registrations
+  const nodePositionsRef = useRef<Record<string, NodePosition>>({})
+
   const handleToggleCollapse = useCallback((stepId: string) => {
     setCollapsedNodes(prev => {
       const next = new Set(prev)
@@ -153,7 +168,13 @@ export function useCanvasLayout(
     return merged
   }, [defaultPositions, customPositions])
 
+  // Keep nodePositionsRef in sync for marquee hit-testing
+  useEffect(() => {
+    nodePositionsRef.current = nodePositions
+  }, [nodePositions])
+
   // Reset custom positions when workflow changes — seed from step.canvasPos
+  // D3: restore viewport from localStorage; D7: restore collapsed state
   useEffect(() => {
     const initial: Record<string, { x: number; y: number }> = {}
     if (workflow) {
@@ -162,13 +183,69 @@ export function useCanvasLayout(
       }
     }
     setCustomPositions(initial)
-    setZoom(1)
-    setPanX(0)
-    setPanY(0)
-    setCollapsedNodes(new Set())
     setFocusedNodeId(null)
     setSelectedNodes(new Set())
+    setMarqueeRect(null)
+    setIsMarqueeing(false)
+
+    viewportRestoredRef.current = false
+
+    if (workflow?.id) {
+      // D3: restore viewport
+      try {
+        const vpSaved = localStorage.getItem(`aipa:canvas-vp:${workflow.id}`)
+        if (vpSaved) {
+          const { px, py, z } = JSON.parse(vpSaved)
+          if (typeof px === 'number' && typeof py === 'number' && typeof z === 'number') {
+            setPanX(px)
+            setPanY(py)
+            setZoom(z)
+            viewportRestoredRef.current = true
+          }
+        }
+      } catch { }
+
+      // D7: restore collapsed nodes
+      try {
+        const colSaved = localStorage.getItem(`aipa:canvas-collapsed:${workflow.id}`)
+        if (colSaved) {
+          const ids: string[] = JSON.parse(colSaved)
+          setCollapsedNodes(new Set(ids))
+        } else {
+          setCollapsedNodes(new Set())
+        }
+      } catch {
+        setCollapsedNodes(new Set())
+      }
+    } else {
+      setCollapsedNodes(new Set())
+    }
+
+    if (!viewportRestoredRef.current) {
+      setZoom(1)
+      setPanX(0)
+      setPanY(0)
+    }
   }, [workflow?.id])
+
+  // D3: save viewport to localStorage (debounced 500ms)
+  useEffect(() => {
+    if (!workflow?.id) return
+    if (vpSaveTimerRef.current) clearTimeout(vpSaveTimerRef.current)
+    vpSaveTimerRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(`aipa:canvas-vp:${workflow.id}`, JSON.stringify({ px: panX, py: panY, z: zoom }))
+      } catch { }
+    }, 500)
+  }, [panX, panY, zoom, workflow?.id])
+
+  // D7: save collapsed state to localStorage whenever it changes
+  useEffect(() => {
+    if (!workflow?.id) return
+    try {
+      localStorage.setItem(`aipa:canvas-collapsed:${workflow.id}`, JSON.stringify([...collapsedNodes]))
+    } catch { }
+  }, [collapsedNodes, workflow?.id])
 
   // Fit to view
   const fitToView = useCallback(() => {
@@ -178,7 +255,7 @@ export function useCanvasLayout(
     const ch = container.clientHeight
 
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
-    for (const pos of Object.values(nodePositions)) {
+    for (const pos of Object.values(nodePositionsRef.current)) {
       minX = Math.min(minX, pos.x)
       minY = Math.min(minY, pos.y)
       maxX = Math.max(maxX, pos.x + pos.width)
@@ -199,11 +276,11 @@ export function useCanvasLayout(
     setPanX(newPanX)
     setPanY(newPanY)
     setTimeout(() => setSmoothTransition(false), 350)
-  }, [workflow, nodePositions, containerRef])
+  }, [workflow, containerRef])
 
-  // Auto-fit on first render or workflow change
+  // Auto-fit on first render or workflow change (only if viewport was NOT restored from localStorage)
   useEffect(() => {
-    if (workflow && workflow.steps.length > 0) {
+    if (workflow && workflow.steps.length > 0 && !viewportRestoredRef.current) {
       const timer = setTimeout(fitToView, 50)
       return () => clearTimeout(timer)
     }
@@ -220,7 +297,7 @@ export function useCanvasLayout(
   // --- Auto-pan to active node during execution ---
   const autoPanToNode = useCallback((stepId: string) => {
     if (!workflow || !containerRef.current) return
-    const pos = nodePositions[stepId]
+    const pos = nodePositionsRef.current[stepId]
     if (!pos) return
 
     const container = containerRef.current
@@ -244,7 +321,7 @@ export function useCanvasLayout(
       setPanY(newPanY)
       setTimeout(() => setSmoothTransition(false), 350)
     }
-  }, [workflow, containerRef, nodePositions, zoom, panX, panY])
+  }, [workflow, containerRef, zoom, panX, panY])
 
   // --- Mouse handlers for pan ---
   const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
@@ -273,11 +350,11 @@ export function useCanvasLayout(
   // --- Mouse handlers for node drag ---
   const handleNodeDragStart = useCallback((stepId: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    const pos = nodePositions[stepId]
+    const pos = nodePositionsRef.current[stepId]
     if (!pos) return
     setDraggingNode(stepId)
     dragStartRef.current = { x: e.clientX, y: e.clientY, nodeX: pos.x, nodeY: pos.y }
-  }, [nodePositions])
+  }, [])
 
   useEffect(() => {
     if (!draggingNode) return
@@ -314,12 +391,12 @@ export function useCanvasLayout(
     e.stopPropagation()
     const nodeStarts: Record<string, { x: number; y: number }> = {}
     ids.forEach(id => {
-      const pos = nodePositions[id]
+      const pos = nodePositionsRef.current[id]
       if (pos) nodeStarts[id] = { x: pos.x, y: pos.y }
     })
     multiDragStartRef.current = { mouseX: e.clientX, mouseY: e.clientY, nodeStarts }
     setDraggingMulti(true)
-  }, [nodePositions])
+  }, [])
 
   useEffect(() => {
     if (!draggingMulti) return
@@ -364,6 +441,65 @@ export function useCanvasLayout(
   const clearSelection = useCallback(() => {
     setSelectedNodes(new Set())
   }, [])
+
+  // D1: Marquee selection — start drag on empty canvas
+  const startMarquee = useCallback((e: React.MouseEvent) => {
+    const el = containerRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const cx = (e.clientX - rect.left - panX) / zoom
+    const cy = (e.clientY - rect.top - panY) / zoom
+    marqueeStartRef.current = { x1: cx, y1: cy, panX, panY, zoom }
+    setMarqueeRect({ x1: cx, y1: cy, x2: cx, y2: cy })
+    setIsMarqueeing(true)
+  }, [containerRef, panX, panY, zoom])
+
+  // D1: Handle marquee drag and selection on mouseup
+  useEffect(() => {
+    if (!isMarqueeing) return
+    const startData = marqueeStartRef.current
+    if (!startData) return
+    const el = containerRef.current
+
+    const handleMove = (e: MouseEvent) => {
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      const cx = (e.clientX - rect.left - startData.panX) / startData.zoom
+      const cy = (e.clientY - rect.top - startData.panY) / startData.zoom
+      setMarqueeRect({ x1: startData.x1, y1: startData.y1, x2: cx, y2: cy })
+    }
+
+    const handleUp = () => {
+      setMarqueeRect(prev => {
+        if (prev) {
+          const minX = Math.min(prev.x1, prev.x2)
+          const maxX = Math.max(prev.x1, prev.x2)
+          const minY = Math.min(prev.y1, prev.y2)
+          const maxY = Math.max(prev.y1, prev.y2)
+          // Only select if drag has meaningful size (> 5px in canvas coords)
+          if (maxX - minX > 5 || maxY - minY > 5) {
+            const selected = new Set<string>()
+            Object.entries(nodePositionsRef.current).forEach(([id, pos]) => {
+              if (pos.x < maxX && pos.x + pos.width > minX && pos.y < maxY && pos.y + pos.height > minY) {
+                selected.add(id)
+              }
+            })
+            if (selected.size > 0) setSelectedNodes(selected)
+          }
+        }
+        return null
+      })
+      setIsMarqueeing(false)
+      marqueeStartRef.current = null
+    }
+
+    window.addEventListener('mousemove', handleMove)
+    window.addEventListener('mouseup', handleUp)
+    return () => {
+      window.removeEventListener('mousemove', handleMove)
+      window.removeEventListener('mouseup', handleUp)
+    }
+  }, [isMarqueeing, containerRef])
 
   // --- Wheel zoom (toward cursor) — ctrlKey = trackpad pinch, else zoom ---
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -501,6 +637,7 @@ export function useCanvasLayout(
     focusedNodeId,
     layoutDirection,
     selectedNodes,
+    marqueeRect,
 
     // Actions
     fitToView,
@@ -521,5 +658,6 @@ export function useCanvasLayout(
     toggleLayoutDirection,
     selectNode,
     clearSelection,
+    startMarquee,
   }
 }

@@ -221,6 +221,24 @@ export default function WorkflowDetailPage() {
     runWorkflow()
   }, [workflow, runWorkflow])
 
+  // D6: reorder steps by moving stepId to newIndex
+  const handleStepReorder = useCallback((stepId: string, newIndex: number) => {
+    if (!workflow) return
+    const prefs = usePrefsStore.getState()
+    const currentWorkflows = prefs.prefs.workflows || []
+    const updated = currentWorkflows.map(w => {
+      if (w.id !== workflow.id) return w
+      const steps = [...w.steps]
+      const fromIdx = steps.findIndex(s => s.id === stepId)
+      if (fromIdx < 0 || newIndex < 0 || newIndex >= steps.length) return w
+      const [moved] = steps.splice(fromIdx, 1)
+      steps.splice(newIndex, 0, moved)
+      return { ...w, steps, updatedAt: Date.now() }
+    })
+    prefs.setPrefs({ workflows: updated })
+    window.electronAPI.prefsSet('workflows', updated)
+  }, [workflow])
+
   // Direction B: update a step's title or prompt directly (without entering edit mode)
   const handleStepUpdate = useCallback((stepId: string, changes: { title?: string; prompt?: string }) => {
     if (!workflow) return
@@ -500,6 +518,7 @@ export default function WorkflowDetailPage() {
               onRetryStep={handleRetryStep}
               onRerun={handleRerun}
               onStepUpdate={handleStepUpdate}
+              onStepReorder={handleStepReorder}
             />
           </Suspense>
         </div>

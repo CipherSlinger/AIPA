@@ -1,5 +1,6 @@
 import React from 'react'
 
+// D8: edge hover highlights related nodes
 type EdgeStatus = 'idle' | 'active' | 'done'
 
 interface CanvasEdgeProps {
@@ -7,6 +8,8 @@ interface CanvasEdgeProps {
   to: { x: number; y: number; width: number; height: number }
   status?: EdgeStatus
   layoutDirection?: 'vertical' | 'horizontal'
+  onHoverChange?: (hovered: boolean) => void  // D8: hover callback
+  highlighted?: boolean                        // D8: highlight when connected nodes are hovered
 }
 
 function edgeColor(status: EdgeStatus): string {
@@ -15,7 +18,7 @@ function edgeColor(status: EdgeStatus): string {
   return 'var(--text-muted)'
 }
 
-export default function CanvasEdge({ from, to, status = 'idle', layoutDirection = 'vertical' }: CanvasEdgeProps) {
+export default function CanvasEdge({ from, to, status = 'idle', layoutDirection = 'vertical', onHoverChange, highlighted }: CanvasEdgeProps) {
   let startX: number, startY: number, endX: number, endY: number, d: string
 
   if (layoutDirection === 'horizontal') {
@@ -36,17 +39,54 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
   const color = edgeColor(status)
   const markerId = `canvas-arrowhead-${status}`
 
+  // D8: boost visibility when highlighted
+  const strokeOpacity = highlighted
+    ? 0.95
+    : status === 'idle' ? 0.35 : 0.85
+  const strokeWidth = highlighted
+    ? (status === 'active' ? 2.5 : 2)
+    : (status === 'active' ? 2 : 1.5)
+
   return (
-    <g>
+    <g
+      onMouseEnter={onHoverChange ? () => onHoverChange(true) : undefined}
+      onMouseLeave={onHoverChange ? () => onHoverChange(false) : undefined}
+      style={{ pointerEvents: onHoverChange ? 'stroke' : 'none' }}
+    >
+      {/* D8: invisible wide hit area for easier hover detection */}
+      {onHoverChange && (
+        <path
+          d={d}
+          fill="none"
+          stroke="transparent"
+          strokeWidth={16}
+          style={{ pointerEvents: 'stroke', cursor: 'crosshair' }}
+        />
+      )}
+
       {/* Base path */}
       <path
         d={d}
         fill="none"
-        stroke={color}
-        strokeWidth={status === 'active' ? 2 : 1.5}
-        strokeOpacity={status === 'idle' ? 0.35 : 0.85}
+        stroke={highlighted ? color : color}
+        strokeWidth={strokeWidth}
+        strokeOpacity={strokeOpacity}
         markerEnd={`url(#${markerId})`}
+        style={{ pointerEvents: 'none' }}
       />
+
+      {/* D8: highlight glow when hovered */}
+      {highlighted && (
+        <path
+          d={d}
+          fill="none"
+          stroke={color}
+          strokeWidth={strokeWidth + 3}
+          strokeOpacity={0.15}
+          style={{ pointerEvents: 'none', filter: 'blur(2px)' }}
+        />
+      )}
+
       {/* Flowing dash animation for active edges */}
       {status === 'active' && (
         <path
@@ -56,18 +96,19 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
           strokeWidth={2}
           strokeDasharray="6 12"
           strokeLinecap="round"
-          style={{ animation: 'canvas-edge-flow 0.7s linear infinite' }}
+          style={{ animation: 'canvas-edge-flow 0.7s linear infinite', pointerEvents: 'none' }}
         />
       )}
+
       {/* Done glow */}
-      {status === 'done' && (
+      {status === 'done' && !highlighted && (
         <path
           d={d}
           fill="none"
           stroke="#22c55e"
           strokeWidth={1.5}
           strokeOpacity={0.15}
-          style={{ filter: 'blur(2px)' }}
+          style={{ filter: 'blur(2px)', pointerEvents: 'none' }}
         />
       )}
     </g>
