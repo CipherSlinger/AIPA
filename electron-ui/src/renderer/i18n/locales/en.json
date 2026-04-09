@@ -1085,7 +1085,8 @@
     "customPlaceholder": "Optional: enter custom compact instruction",
     "customHint": "Shift+click for custom compact instruction",
     "failed": "Compaction failed, conversation continues normally",
-    "count": "Compacted {{count}} time(s)"
+    "count": "Compacted {{count}} time(s)",
+    "contextDiff": "Context compacted: {{before}} → {{after}} messages"
   },
   "tips": {
     "title": "Did you know?",

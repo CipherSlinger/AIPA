@@ -495,7 +495,15 @@ Keep exercises focused and achievable. The goal is active learning through doing
           )
           break
         }
+        case 'cli:hookEvent': {
+          const hookData = data as { hookType?: string; message?: string }
+          if (hookData.hookType === 'Notification' && hookData.message) {
+            useUiStore.getState().addToast('info', hookData.message)
+          }
+          break
+        }
         case 'cli:result': {
+          const msgCountBefore = useChatStore.getState().messages.length
           const claudeSessionId = data.claudeSessionId as string | undefined
           if (claudeSessionId) {
             setSessionId(claudeSessionId)
@@ -505,6 +513,14 @@ Keep exercises focused and achievable. The goal is active learning through doing
             })
           }
           const ev = data.event as Record<string, unknown>
+          // Compact diff toast: when result metadata indicates compaction happened
+          const metadata = ev?.metadata as Record<string, unknown> | undefined
+          if (metadata?.compacted === true) {
+            const msgCountAfter = useChatStore.getState().messages.length
+            useUiStore.getState().addToast('success',
+              t('compact.contextDiff', { before: String(msgCountBefore), after: String(msgCountAfter) })
+            )
+          }
           const usage = ev?.usage as Record<string, number> | undefined
           if (usage) {
             setLastUsage({

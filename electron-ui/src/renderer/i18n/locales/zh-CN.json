@@ -1102,7 +1102,8 @@
     "customPlaceholder": "可选：输入压缩侧重指令",
     "customHint": "Shift+点击输入自定义压缩指令",
     "failed": "压缩失败，对话继续正常进行",
-    "count": "已压缩 {{count}} 次"
+    "count": "已压缩 {{count}} 次",
+    "contextDiff": "已压缩上下文：{{before}} → {{after}} 条消息"
   },
   "tips": {
     "title": "你知道吗？",
