@@ -576,23 +576,6 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     )
   }
 
-  if (workflow.steps.length === 0) {
-    return (
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'var(--text-muted)',
-        gap: 8,
-      }}>
-        <WorkflowIcon size={32} style={{ opacity: 0.4 }} />
-        <span style={{ fontSize: 12 }}>{t('workflow.emptyState')}</span>
-      </div>
-    )
-  }
-
   const zoomPercent = Math.round(layout.zoom * 100)
 
   // Direction 8: viewport culling helpers
@@ -707,14 +690,59 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             <circle
               cx={20 * layout.zoom / 2}
               cy={20 * layout.zoom / 2}
-              r={Math.max(0.5, layout.zoom * 0.7)}
-              fill="var(--border)"
-              fillOpacity={0.5}
+              r={Math.max(0.5, layout.zoom * 0.8)}
+              fill="rgba(255,255,255,0.045)"
             />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#canvas-dot-grid)" />
       </svg>
+
+      {/* B8: Empty canvas guide — shown when workflow has no steps */}
+      {workflow.steps.length === 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 12,
+            pointerEvents: 'none',
+            userSelect: 'none',
+            animation: 'canvas-empty-pulse 3s ease-in-out infinite',
+          }}
+        >
+          {/* Dashed circle with + */}
+          <svg width={80} height={80}>
+            <circle
+              cx={40}
+              cy={40}
+              r={36}
+              fill="none"
+              stroke="var(--text-muted)"
+              strokeWidth={1.5}
+              strokeDasharray="6 4"
+            />
+            <text
+              x={40}
+              y={47}
+              textAnchor="middle"
+              fontSize={24}
+              fill="var(--text-muted)"
+              fontWeight={300}
+            >+</text>
+          </svg>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>
+            {t('workflow.emptyState')}
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', opacity: 0.7 }}>
+            点击右上角 + 按钮或按 N 键
+          </div>
+        </div>
+      )}
 
       {/* Canvas toolbar */}
       <CanvasToolbar
@@ -780,7 +808,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           zIndex: 1,
         }}
       >
-        <g transform={`translate(${layout.panX}, ${layout.panY}) scale(${layout.zoom})`}>
+        <g style={{ transform: `translate(${layout.panX}px, ${layout.panY}px) scale(${layout.zoom})`, transformOrigin: '0 0', transition: layout.smoothTransition ? 'transform 0.3s ease-out' : 'none' }}>
           <CanvasEdgeDefs />
           {workflow.steps.map((step, idx) => {
             if (idx === 0) return null
@@ -841,15 +869,23 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             )
           }
           const stepStatus = execution.stepStatuses[step.id] ?? 'idle'
-          // D8: highlight node if it's connected to the hovered edge
-          const isEdgeHighlightedNode = hoveredEdgeKey !== null && (step.id === hoveredFromId || step.id === hoveredToId)
           return (
-            <CanvasNode
+            <div
               key={step.id}
+              style={{
+                position: 'absolute',
+                left: pos.x,
+                top: pos.y,
+                width: pos.width,
+                animation: 'canvas-node-fadein 0.2s ease',
+                animationFillMode: 'both',
+              }}
+            >
+            <CanvasNode
               step={step}
               index={idx}
-              x={pos.x}
-              y={pos.y}
+              x={0}
+              y={0}
               width={pos.width}
               selected={selectedNode === step.id}
               multiSelected={layout.selectedNodes.has(step.id)}
@@ -889,6 +925,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               } : undefined}
               // TODO: wire up updateNodeHeight via CanvasNode onHeightChange
             />
+            </div>
           )
         })}
 
@@ -1066,6 +1103,14 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         @keyframes canvas-blink {
           0%, 100% { opacity: 1; }
           50% { opacity: 0; }
+        }
+        @keyframes canvas-node-fadein {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes canvas-empty-pulse {
+          0%, 100% { opacity: 0.35; }
+          50% { opacity: 0.5; }
         }
       `}</style>
     </div>

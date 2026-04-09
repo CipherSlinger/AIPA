@@ -61,9 +61,10 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
   const strokeOpacity = highlighted
     ? 0.95
     : status === 'idle' ? 0.35 : 0.85
+  // B3.4: done 状态主线加粗为 2
   const strokeWidth = highlighted
     ? (status === 'active' ? 2.5 : 2)
-    : (status === 'active' ? 2 : 1.5)
+    : (status === 'done' ? 2 : status === 'active' ? 2 : 1.5)
 
   // D7: info label content
   const showInfoLabel = status === 'done' && (outputLength !== undefined || durationMs !== undefined)
@@ -78,6 +79,9 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
   // D7: label position offset from midpoint
   const labelX = layoutDirection === 'horizontal' ? midX - 20 : midX
   const labelY = layoutDirection === 'horizontal' ? midY : midY - 20
+
+  // B3.6: dynamic rect width based on text length
+  const infoRectWidth = infoText.length * 6 + 16
 
   const handleMouseEnter = () => {
     setIsHoveredLocally(true)
@@ -105,13 +109,14 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
         />
       )}
 
-      {/* Base path */}
+      {/* Base path — B3.1: idle 状态改为虚线 */}
       <path
         d={d}
         fill="none"
-        stroke={highlighted ? color : color}
+        stroke={color}
         strokeWidth={strokeWidth}
         strokeOpacity={strokeOpacity}
+        strokeDasharray={status === 'idle' ? '4 6' : undefined}
         markerEnd={`url(#${markerId})`}
         style={{ pointerEvents: 'none' }}
       />
@@ -128,32 +133,32 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
         />
       )}
 
-      {/* Flowing dash animation for active edges */}
+      {/* B3.3: Flowing dash animation for active edges — slower, smoother */}
       {status === 'active' && (
         <path
           d={d}
           fill="none"
-          stroke="rgba(255,255,255,0.55)"
+          stroke="rgba(255,255,255,0.4)"
           strokeWidth={2}
-          strokeDasharray="6 12"
+          strokeDasharray="8 14"
           strokeLinecap="round"
-          style={{ animation: 'canvas-edge-flow 0.7s linear infinite', pointerEvents: 'none' }}
+          style={{ animation: 'canvas-edge-flow 1.1s linear infinite', pointerEvents: 'none' }}
         />
       )}
 
-      {/* Done glow */}
+      {/* B3.4: Done glow — stronger effect */}
       {status === 'done' && !highlighted && (
         <path
           d={d}
           fill="none"
           stroke="#22c55e"
-          strokeWidth={1.5}
-          strokeOpacity={0.15}
+          strokeWidth={2.5}
+          strokeOpacity={0.2}
           style={{ filter: 'blur(2px)', pointerEvents: 'none' }}
         />
       )}
 
-      {/* D4: add-between button at midpoint */}
+      {/* D4: add-between button at midpoint — B3.5: dark theme style */}
       {onAddBetween && (
         <g
           style={{
@@ -167,10 +172,10 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
           <circle
             cx={midX}
             cy={midY}
-            r={9}
-            fill="white"
+            r={10}
+            fill={isHoveredLocally ? 'rgba(0,122,204,0.15)' : 'var(--bg-secondary, #252526)'}
             stroke="var(--accent)"
-            strokeWidth={1}
+            strokeWidth={1.5}
           />
           <text
             x={midX}
@@ -178,7 +183,7 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
             textAnchor="middle"
             dominantBaseline="central"
             style={{
-              fontSize: '11px',
+              fontSize: '14px',
               fontWeight: 'bold',
               fill: 'var(--accent)',
               userSelect: 'none',
@@ -190,18 +195,18 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
         </g>
       )}
 
-      {/* D7: info label at midpoint (offset to avoid overlap with + button) */}
+      {/* D7: info label at midpoint — B3.6: improved label style */}
       {showInfoLabel && (
         <g style={{ pointerEvents: 'none' }}>
           {/* Background rect for info label */}
           <rect
-            x={labelX - 20}
-            y={labelY - 7}
-            width={40}
-            height={14}
-            rx={3}
-            ry={3}
-            fill="rgba(34,197,94,0.08)"
+            x={labelX - infoRectWidth / 2}
+            y={labelY - 8}
+            width={infoRectWidth}
+            height={16}
+            rx={5}
+            ry={5}
+            fill="rgba(34,197,94,0.12)"
             style={{ pointerEvents: 'none' }}
           />
           <text
@@ -210,8 +215,8 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
             textAnchor="middle"
             dominantBaseline="central"
             style={{
-              fontSize: '9px',
-              fill: '#22c55e',
+              fontSize: '10px',
+              fill: 'rgba(34,197,94,0.85)',
               userSelect: 'none',
               pointerEvents: 'none',
             }}
@@ -231,17 +236,22 @@ export function CanvasEdgeDefs() {
         <marker
           key={status}
           id={`canvas-arrowhead-${status}`}
-          markerWidth="8"
-          markerHeight="6"
-          refX="7"
+          markerWidth="10"
+          markerHeight="7"
+          refX="6"
           refY="3"
           orient="auto"
           markerUnits="strokeWidth"
         >
+          {/* B3.2: open arrow (描边而非填充) */}
           <path
-            d="M 0 0 L 8 3 L 0 6 Z"
-            fill={edgeColor(status)}
-            fillOpacity={status === 'idle' ? 0.35 : 0.85}
+            d="M 1 0.5 L 7 3 L 1 5.5"
+            fill="none"
+            stroke={edgeColor(status)}
+            strokeWidth={1.5}
+            strokeOpacity={status === 'idle' ? 0.35 : 0.85}
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
         </marker>
       ))}

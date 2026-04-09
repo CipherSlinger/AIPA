@@ -55,21 +55,22 @@ const STATUS_STYLES: Record<string, {
     animation: 'canvas-node-pulse 1.5s ease-in-out infinite',
     glowColor: 'rgba(var(--accent-rgb, 59,130,246), 0.08)',
   },
-  completed: { borderColor: '#22c55e', borderLeft: '3px solid #22c55e' },
-  error: { borderColor: '#ef4444', borderLeft: '3px solid #ef4444' },
+  completed: { borderColor: '#22c55e' },
+  error: { borderColor: '#ef4444' },
 }
 
+// B5: StatusBadge — right-top icon indicator, size reduced to 10
 function StatusBadge({ status }: { status: StepStatus }) {
   if (status === 'completed') {
     return (
       <div style={{
         position: 'absolute', top: -6, right: -6,
-        width: 18, height: 18, borderRadius: '50%',
+        width: 16, height: 16, borderRadius: '50%',
         background: '#22c55e', color: '#fff',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         boxShadow: '0 0 0 2px var(--bg-card, #1e1e1e)',
       }}>
-        <Check size={11} strokeWidth={3} />
+        <Check size={10} strokeWidth={3} />
       </div>
     )
   }
@@ -77,13 +78,13 @@ function StatusBadge({ status }: { status: StepStatus }) {
     return (
       <div style={{
         position: 'absolute', top: -6, right: -6,
-        width: 18, height: 18, borderRadius: '50%',
+        width: 16, height: 16, borderRadius: '50%',
         background: 'var(--accent)', color: '#fff',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         animation: 'canvas-spinner 1s linear infinite',
         boxShadow: '0 0 0 2px var(--bg-card, #1e1e1e)',
       }}>
-        <Loader size={11} strokeWidth={2.5} />
+        <Loader size={10} strokeWidth={2.5} />
       </div>
     )
   }
@@ -91,12 +92,12 @@ function StatusBadge({ status }: { status: StepStatus }) {
     return (
       <div style={{
         position: 'absolute', top: -6, right: -6,
-        width: 18, height: 18, borderRadius: '50%',
+        width: 16, height: 16, borderRadius: '50%',
         background: '#ef4444', color: '#fff',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         boxShadow: '0 0 0 2px var(--bg-card, #1e1e1e)',
       }}>
-        <AlertCircle size={11} strokeWidth={2.5} />
+        <AlertCircle size={10} strokeWidth={2.5} />
       </div>
     )
   }
@@ -167,7 +168,7 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, status, onCollapse, onClo
         onMouseDown={() => { onCopyPrompt(); onClose() }}
       >
         <Copy size={11} style={{ opacity: 0.7 }} />
-        复制提示词
+        Copy Prompt
       </div>
       {hasOutput && (
         <div
@@ -177,7 +178,7 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, status, onCollapse, onClo
           onMouseDown={() => { onCopyOutput(); onClose() }}
         >
           <MessageSquare size={11} style={{ opacity: 0.7 }} />
-          复制输出内容
+          Copy Output
         </div>
       )}
       <div style={{ height: 1, background: 'var(--border)', margin: '3px 0' }} />
@@ -188,7 +189,7 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, status, onCollapse, onClo
         onMouseDown={() => { onCollapse(); onClose() }}
       >
         {collapsed ? <ChevronDown size={11} style={{ opacity: 0.7 }} /> : <ChevronUp size={11} style={{ opacity: 0.7 }} />}
-        {collapsed ? '展开节点' : '折叠节点'}
+        {collapsed ? 'Expand Node' : 'Collapse Node'}
       </div>
       {onInsertBefore && (
         <div
@@ -198,7 +199,7 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, status, onCollapse, onClo
           onMouseDown={() => { onInsertBefore(); onClose() }}
         >
           <PlusCircle size={11} style={{ opacity: 0.7 }} />
-          在此之前插入
+          Insert Before
         </div>
       )}
       {onInsertAfter && (
@@ -209,7 +210,7 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, status, onCollapse, onClo
           onMouseDown={() => { onInsertAfter(); onClose() }}
         >
           <PlusCircle size={11} style={{ opacity: 0.7 }} />
-          在此之后插入
+          Insert After
         </div>
       )}
       {onRetry && status === 'error' && (
@@ -220,7 +221,7 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, status, onCollapse, onClo
           onMouseDown={() => { onRetry(); onClose() }}
         >
           <RefreshCw size={11} style={{ opacity: 0.7 }} />
-          重试此步骤
+          Retry Step
         </div>
       )}
       {onDeleteNode && (
@@ -233,12 +234,184 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, status, onCollapse, onClo
             onMouseDown={() => { onDeleteNode(); onClose() }}
           >
             <Trash2 size={11} style={{ opacity: 0.7 }} />
-            删除此步骤
+            Delete Step
           </div>
         </>
       )}
     </div>
   )
+}
+
+// B6: NodeHeader — titled region with type accent border
+interface NodeHeaderProps {
+  nodeType: string
+  displayTitle: string
+  isFirst: boolean
+  isLast: boolean
+  isEditingTitle: boolean
+  editTitleValue: string
+  titleInputRef: React.RefObject<HTMLInputElement>
+  onEditTitleChange: (v: string) => void
+  onTitleBlur: () => void
+  onTitleKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void
+  onTitleInputMouseDown: (e: React.MouseEvent) => void
+  onTitleDoubleClick: (e: React.MouseEvent) => void
+  hasReorderHandle: boolean
+}
+
+function NodeHeader({
+  nodeType,
+  displayTitle,
+  isFirst,
+  isLast,
+  isEditingTitle,
+  editTitleValue,
+  titleInputRef,
+  onEditTitleChange,
+  onTitleBlur,
+  onTitleKeyDown,
+  onTitleInputMouseDown,
+  onTitleDoubleClick,
+  hasReorderHandle,
+}: NodeHeaderProps) {
+  // B9: header left accent border color by node type
+  const headerBorderLeft =
+    nodeType === 'condition' ? '3px solid #f59e0b'
+    : nodeType === 'parallel' ? '3px solid #a855f7'
+    : '3px solid var(--accent)'
+
+  // B9: node type icon prefix
+  const typeIcon =
+    nodeType === 'condition' ? '🔀 '
+    : nodeType === 'parallel' ? '⚡ '
+    : ''
+
+  return (
+    <div style={{
+      background: 'var(--bg-secondary, #252526)',
+      padding: '6px 10px 5px',
+      borderBottom: '1px solid var(--border)',
+      borderLeft: headerBorderLeft,
+      borderRadius: '10px 10px 0 0',
+      flexShrink: 0,
+    }}>
+      {isEditingTitle ? (
+        <input
+          ref={titleInputRef}
+          value={editTitleValue}
+          onChange={e => onEditTitleChange(e.target.value)}
+          onBlur={onTitleBlur}
+          onKeyDown={onTitleKeyDown}
+          onMouseDown={onTitleInputMouseDown}
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: 'var(--text)',
+            width: '100%',
+            paddingRight: 4,
+            background: 'var(--input-field-bg, rgba(255,255,255,0.06))',
+            border: '1px solid var(--accent)',
+            borderRadius: 3,
+            outline: 'none',
+            padding: '1px 4px',
+            boxSizing: 'border-box',
+            fontFamily: 'inherit',
+          }}
+        />
+      ) : (
+        <div
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: 'var(--text)',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            paddingRight: 20,
+            paddingLeft: hasReorderHandle ? 14 : 0,
+            width: '100%',
+            cursor: 'text',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+          }}
+          onDoubleClick={onTitleDoubleClick}
+        >
+          {isFirst && (
+            <span style={{ color: '#6366f1', fontSize: 10, flexShrink: 0 }}>▶</span>
+          )}
+          {isLast && !isFirst && (
+            <span style={{ color: '#f59e0b', fontSize: 10, flexShrink: 0 }}>⚑</span>
+          )}
+          {typeIcon && (
+            <span style={{ fontSize: 11, flexShrink: 0 }}>{typeIcon}</span>
+          )}
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {displayTitle}
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// B7: ProgressBar — shown at node bottom
+function ProgressBar({ status }: { status: StepStatus }) {
+  if (status === 'running') {
+    return (
+      <div style={{
+        position: 'absolute',
+        bottom: 0, left: 0, right: 0,
+        height: 3,
+        borderRadius: '0 0 10px 10px',
+        overflow: 'hidden',
+        background: 'rgba(0,0,0,0.15)',
+      }}>
+        <div style={{
+          width: '40%',
+          height: '100%',
+          background: 'var(--accent)',
+          animation: 'canvas-bar-shimmer 1.2s ease-in-out infinite',
+        }} />
+      </div>
+    )
+  }
+  if (status === 'completed') {
+    return (
+      <div style={{
+        position: 'absolute',
+        bottom: 0, left: 0, right: 0,
+        height: 3,
+        borderRadius: '0 0 10px 10px',
+        overflow: 'hidden',
+      }}>
+        <div style={{
+          width: '100%',
+          height: '100%',
+          background: '#22c55e',
+          transition: 'width 0.3s ease',
+        }} />
+      </div>
+    )
+  }
+  if (status === 'error') {
+    return (
+      <div style={{
+        position: 'absolute',
+        bottom: 0, left: 0, right: 0,
+        height: 3,
+        borderRadius: '0 0 10px 10px',
+        overflow: 'hidden',
+      }}>
+        <div style={{
+          width: '100%',
+          height: '100%',
+          background: '#ef4444',
+        }} />
+      </div>
+    )
+  }
+  return null
 }
 
 export default function CanvasNode({
@@ -343,22 +516,6 @@ export default function CanvasNode({
 
   const displayTitle = getPresetStepText(presetKey, index, 'title', t, step.title)
   const displayPrompt = getPresetStepText(presetKey, index, 'prompt', t, step.prompt)
-  const promptPreview =
-    displayPrompt.length > 60 ? displayPrompt.slice(0, 60) + '…' : displayPrompt
-
-  // Node type header config
-  const nodeTypeHeader: { label: string; bg: string; color: string } | null =
-    nodeType === 'condition'
-      ? { label: '🔀 Condition', bg: 'rgba(245,158,11,0.15)', color: '#f59e0b' }
-      : nodeType === 'parallel'
-        ? { label: '⚡ Parallel', bg: 'rgba(139,92,246,0.15)', color: '#8b5cf6' }
-        : null
-
-  // Left border override for special node types
-  const nodeTypeBorderLeft =
-    nodeType === 'condition' ? '3px solid #f59e0b'
-    : nodeType === 'parallel' ? '3px solid #8b5cf6'
-    : undefined
 
   const statusStyle = STATUS_STYLES[status] ?? STATUS_STYLES.idle
   const isActive = selected || status === 'running'
@@ -367,6 +524,13 @@ export default function CanvasNode({
   // D4: focused but not selected — dashed outline
   const isFocusedOnly = focused && !selected && !isMulti
 
+  // B1: box shadow by selection state
+  const boxShadow = isMulti
+    ? '0 0 0 2px #f59e0b, 0 4px 12px rgba(0,0,0,0.3)'
+    : isActive
+      ? '0 0 0 2px var(--accent), 0 4px 16px rgba(0,0,0,0.35)'
+      : '0 2px 8px rgba(0,0,0,0.25)'
+
   // Dynamic height: expand when showing output preview
   const nodeHeight = collapsed
     ? NODE_COLLAPSED_HEIGHT
@@ -374,14 +538,25 @@ export default function CanvasNode({
       ? NODE_MIN_HEIGHT + 56
       : NODE_MIN_HEIGHT
 
-  const badgeColor = status === 'completed' ? '#22c55e' : status === 'running' ? 'var(--accent)' : 'var(--text-muted)'
-
   // D5: format elapsed time
   const elapsedSec = liveElapsedMs !== undefined ? Math.floor(liveElapsedMs / 1000) : 0
 
   // Char count badge for completed output
   const charCount = outputText ? outputText.length : 0
   const charCountLabel = charCount >= 1000 ? `${(charCount / 1000).toFixed(1)}k chars` : `${charCount} chars`
+
+  // B5: step number badge label — "01", "02", etc.
+  const stepNumberLabel = String(index + 1).padStart(2, '0')
+
+  // B5: step number badge background color by status
+  const stepBadgeBg =
+    status === 'running' ? 'var(--accent)'
+    : status === 'completed' ? '#22c55e'
+    : status === 'error' ? '#ef4444'
+    : 'var(--bg-input, #2a2a2a)'
+
+  const stepBadgeColor =
+    (status === 'idle' || status === 'pending') ? 'var(--text-muted)' : '#fff'
 
   return (
     <>
@@ -416,26 +591,18 @@ export default function CanvasNode({
             : isMulti
               ? '2px solid var(--accent)'
               : `1.5px solid ${statusStyle.borderColor}`,
-          borderLeft: (() => {
-            if (isActive) return undefined
-            if (statusStyle.borderLeft) return statusStyle.borderLeft
-            if (nodeTypeBorderLeft) return nodeTypeBorderLeft
-            if (isFirst) return '3px solid #6366f1'
-            if (isLast) return '3px solid #f59e0b'
-            return undefined
-          })(),
-          borderRadius: 8,
-          padding: collapsed ? '0 12px' : '10px 12px 8px',
+          // B1: radius 10px
+          borderRadius: 10,
+          // B6: no padding on container — handled by header/body/output zones
+          padding: collapsed ? '0 12px' : 0,
           cursor: 'grab',
-          boxShadow: isActive
-            ? '0 4px 16px rgba(0,0,0,0.25)'
-            : status === 'completed'
-              ? '0 2px 8px rgba(34,197,94,0.08)'
-              : '0 1px 3px rgba(0,0,0,0.12)',
-          // D4: focus ring — dashed outline when focused but not selected
+          // B1: layered box shadow
+          boxShadow,
+          // D4: focus ring
           outline: isFocusedOnly ? '2px dashed rgba(var(--accent-rgb, 59,130,246), 0.55)' : 'none',
           outlineOffset: 3,
-          transition: 'border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, height 0.2s ease, background 0.2s ease',
+          // B1: transition
+          transition: 'box-shadow 0.15s, border-color 0.15s, opacity 0.2s ease, height 0.2s ease, background 0.2s ease',
           userSelect: 'none',
           boxSizing: 'border-box',
           opacity: dimmed ? 0.2 : (statusStyle.opacity ?? 1),
@@ -447,17 +614,17 @@ export default function CanvasNode({
           justifyContent: collapsed ? 'center' : 'flex-start',
         }}
       >
-        {/* Step number badge */}
+        {/* B5: Step number badge — left-top, outside the node */}
         <div
           style={{
             position: 'absolute',
             top: -8,
-            left: -8,
+            left: -10,
             width: 20,
             height: 20,
-            background: status === 'completed' ? '#22c55e' : status === 'running' ? 'var(--accent)' : status === 'error' ? '#ef4444' : 'var(--text-muted)',
-            color: '#fff',
-            fontSize: 10,
+            background: stepBadgeBg,
+            color: stepBadgeColor,
+            fontSize: 9,
             fontWeight: 700,
             borderRadius: '50%',
             display: 'flex',
@@ -465,13 +632,14 @@ export default function CanvasNode({
             justifyContent: 'center',
             lineHeight: 1,
             transition: 'background 0.2s ease',
-            boxShadow: '0 0 0 2px var(--bg-main, #141414)',
+            boxShadow: '0 0 0 2px var(--bg-primary, #1e1e1e)',
+            zIndex: 2,
           }}
         >
-          {index + 1}
+          {stepNumberLabel}
         </div>
 
-        {/* Status badge (top-right) */}
+        {/* B5: Status badge (top-right) — spinner/check/error icon, size=10 */}
         <StatusBadge status={status} />
 
         {/* D6: Reorder drag handle — shown on left side */}
@@ -492,6 +660,7 @@ export default function CanvasNode({
               alignItems: 'center',
               borderRadius: 2,
               transition: 'opacity 0.15s',
+              zIndex: 3,
             }}
           >
             <GripVertical size={12} />
@@ -518,6 +687,7 @@ export default function CanvasNode({
               display: 'flex',
               alignItems: 'center',
               opacity: 0.5,
+              zIndex: 3,
             }}
             title={collapsed ? 'Expand' : 'Collapse'}
           >
@@ -525,249 +695,250 @@ export default function CanvasNode({
           </button>
         )}
 
-        {/* Node type header badge — shown for condition/parallel nodes */}
-        {!collapsed && nodeTypeHeader && (
+        {/* Collapsed state: just show title inline */}
+        {collapsed && (
           <div style={{
-            fontSize: 9,
-            fontWeight: 700,
-            color: nodeTypeHeader.color,
-            background: nodeTypeHeader.bg,
-            borderRadius: 3,
-            padding: '1px 5px',
-            marginBottom: 4,
-            alignSelf: 'flex-start',
-            letterSpacing: 0.3,
+            fontSize: 12,
+            fontWeight: 600,
+            color: 'var(--text)',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            paddingRight: 24,
+            paddingLeft: onReorderDragStart ? 14 : 0,
+            width: '100%',
           }}>
-            {nodeTypeHeader.label}
+            {displayTitle}
           </div>
         )}
 
-        {/* Step title — double-click to inline edit */}
-        {isEditingTitle ? (
-          <input
-            ref={titleInputRef}
-            value={editTitleValue}
-            onChange={e => setEditTitleValue(e.target.value)}
-            onBlur={commitTitleEdit}
-            onKeyDown={handleTitleKeyDown}
-            onMouseDown={e => e.stopPropagation()}
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              color: 'var(--text)',
-              marginBottom: collapsed ? 0 : 4,
-              width: '100%',
-              paddingRight: 20,
-              background: 'var(--input-field-bg, rgba(255,255,255,0.06))',
-              border: '1px solid var(--accent)',
-              borderRadius: 3,
-              outline: 'none',
-              padding: '1px 4px',
-              boxSizing: 'border-box',
-              fontFamily: 'inherit',
-            }}
-          />
-        ) : (
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              color: 'var(--text)',
-              marginBottom: collapsed ? 0 : 4,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              paddingRight: 20,
-              paddingLeft: onReorderDragStart ? 14 : 0,
-              width: '100%',
-              cursor: 'text',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-            }}
-            onDoubleClick={handleTitleDoubleClick}
-          >
-            {isFirst && (
-              <span style={{ color: '#6366f1', fontSize: 10, flexShrink: 0 }}>▶</span>
-            )}
-            {isLast && !isFirst && (
-              <span style={{ color: '#f59e0b', fontSize: 10, flexShrink: 0 }}>⚑</span>
-            )}
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {displayTitle}
-            </span>
-          </div>
-        )}
-
-        {/* Prompt preview / output preview / streaming text — hidden when collapsed */}
+        {/* B6: Three-zone layout — only when not collapsed */}
         {!collapsed && (
           <>
-            {status === 'completed' && outputText ? (
-              /* Completed: show output text with improved preview */
-              <div style={{ fontSize: 10, color: 'var(--text-secondary)', lineHeight: 1.45, width: '100%' }}>
-                <div style={{
-                  whiteSpace: outputExpanded ? 'pre-wrap' : undefined,
-                  wordBreak: 'break-word',
-                  display: outputExpanded ? 'block' : '-webkit-box',
-                  WebkitLineClamp: outputExpanded ? undefined : 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                }}>
-                  {outputExpanded ? outputText.slice(0, 2000) : outputText.slice(0, 120)}
-                  {!outputExpanded && outputText.length > 120 && '...'}
-                </div>
-                {!outputExpanded && outputText.length > 120 && (
-                  <span style={{
-                    display: 'inline-block',
-                    background: 'rgba(34,197,94,0.1)',
-                    color: '#22c55e',
-                    fontSize: 9,
-                    borderRadius: 3,
-                    padding: '1px 4px',
-                    marginLeft: 4,
-                    verticalAlign: 'middle',
+            {/* Zone 1: Header */}
+            <NodeHeader
+              nodeType={nodeType}
+              displayTitle={displayTitle}
+              isFirst={isFirst}
+              isLast={isLast}
+              isEditingTitle={isEditingTitle}
+              editTitleValue={editTitleValue}
+              titleInputRef={titleInputRef}
+              onEditTitleChange={setEditTitleValue}
+              onTitleBlur={commitTitleEdit}
+              onTitleKeyDown={handleTitleKeyDown}
+              onTitleInputMouseDown={e => e.stopPropagation()}
+              onTitleDoubleClick={handleTitleDoubleClick}
+              hasReorderHandle={!!onReorderDragStart}
+            />
+
+            {/* Zone 2: Body — prompt preview, streaming, condition/parallel content */}
+            <div style={{
+              background: 'transparent',
+              padding: '7px 10px',
+              flex: 1,
+              width: '100%',
+              boxSizing: 'border-box',
+              overflow: 'hidden',
+            }}>
+              {status === 'completed' && outputText ? (
+                /* Completed: show output text */
+                <div style={{ fontSize: 10, color: 'var(--text-secondary)', lineHeight: 1.45, width: '100%' }}>
+                  <div style={{
+                    whiteSpace: outputExpanded ? 'pre-wrap' : undefined,
+                    wordBreak: 'break-word',
+                    display: outputExpanded ? 'block' : '-webkit-box',
+                    WebkitLineClamp: outputExpanded ? undefined : 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
                   }}>
-                    {charCountLabel}
-                  </span>
-                )}
-                {outputText.length > 120 && (
-                  <button
-                    onMouseDown={e => e.stopPropagation()}
-                    onClick={(e) => { e.stopPropagation(); setOutputExpanded(v => !v) }}
-                    style={{
-                      background: 'none', border: 'none', padding: 0,
-                      cursor: 'pointer', fontSize: 9, color: 'var(--accent)',
-                      marginTop: 2, display: 'block',
-                    }}
-                  >
-                    {outputExpanded ? 'Show less' : 'Show more'}
-                  </button>
-                )}
-              </div>
-            ) : status === 'running' && streamingText ? (
-              /* D2: Running with streaming text — show live output */
-              <div style={{
-                fontSize: 9,
-                color: 'var(--text-secondary)',
-                lineHeight: 1.4,
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
-                opacity: 0.85,
-                fontStyle: 'italic',
-                width: '100%',
-              }}>
-                {streamingText}
-              </div>
-            ) : nodeType === 'condition' ? (
-              /* Condition node: show condition text + Yes/No branch labels */
-              <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4, width: '100%' }}>
+                    {outputExpanded ? outputText.slice(0, 2000) : outputText.slice(0, 120)}
+                    {!outputExpanded && outputText.length > 120 && '...'}
+                  </div>
+                  {!outputExpanded && outputText.length > 120 && (
+                    <span style={{
+                      display: 'inline-block',
+                      background: 'rgba(34,197,94,0.1)',
+                      color: '#22c55e',
+                      fontSize: 9,
+                      borderRadius: 3,
+                      padding: '1px 4px',
+                      marginLeft: 4,
+                      verticalAlign: 'middle',
+                    }}>
+                      {charCountLabel}
+                    </span>
+                  )}
+                  {outputText.length > 120 && (
+                    <button
+                      onMouseDown={e => e.stopPropagation()}
+                      onClick={(e) => { e.stopPropagation(); setOutputExpanded(v => !v) }}
+                      style={{
+                        background: 'none', border: 'none', padding: 0,
+                        cursor: 'pointer', fontSize: 9, color: 'var(--accent)',
+                        marginTop: 2, display: 'block',
+                      }}
+                    >
+                      {outputExpanded ? 'Show less' : 'Show more'}
+                    </button>
+                  )}
+                </div>
+              ) : status === 'running' && streamingText ? (
+                /* D2: Running with streaming text */
                 <div style={{
+                  fontSize: 9,
+                  color: 'var(--text-secondary)',
+                  lineHeight: 1.4,
                   display: '-webkit-box',
                   WebkitLineClamp: 2,
                   WebkitBoxOrient: 'vertical',
                   overflow: 'hidden',
-                  marginBottom: 4,
+                  opacity: 0.85,
+                  fontStyle: 'italic',
+                  width: '100%',
                 }}>
-                  {step.condition || promptPreview}
+                  {streamingText}
                 </div>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  <span style={{ fontSize: 9, background: 'rgba(34,197,94,0.12)', color: '#22c55e', borderRadius: 3, padding: '1px 5px', fontWeight: 600 }}>
-                    Yes
-                  </span>
-                  <span style={{ fontSize: 9, background: 'rgba(239,68,68,0.12)', color: '#ef4444', borderRadius: 3, padding: '1px 5px', fontWeight: 600 }}>
-                    No
-                  </span>
+              ) : nodeType === 'condition' ? (
+                /* B9: Condition node body — condition text + Yes/No chips */
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4, width: '100%' }}>
+                  <div style={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    marginBottom: 4,
+                    fontSize: 11,
+                    lineHeight: 1.5,
+                  }}>
+                    {step.condition || displayPrompt}
+                  </div>
+                  {/* B9: Yes/No branch chips with borderRadius:10 */}
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 3,
+                      padding: '2px 7px', borderRadius: 10, fontSize: 9,
+                      background: 'rgba(34,197,94,0.15)', color: '#22c55e',
+                      fontWeight: 600,
+                    }}>
+                      Yes
+                    </span>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 3,
+                      padding: '2px 7px', borderRadius: 10, fontSize: 9,
+                      background: 'rgba(239,68,68,0.12)', color: '#ef4444',
+                      fontWeight: 600,
+                    }}>
+                      No
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ) : nodeType === 'parallel' ? (
-              /* Parallel node: show sub-prompt count */
-              <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4, width: '100%' }}>
+              ) : nodeType === 'parallel' ? (
+                /* B9: Parallel node body — prompt preview + sub-task count */
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4, width: '100%' }}>
+                  <div style={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    marginBottom: 4,
+                    fontSize: 11,
+                    lineHeight: 1.5,
+                  }}>
+                    {displayPrompt}
+                  </div>
+                  {step.parallelPrompts && step.parallelPrompts.length > 0 && (
+                    <span style={{ fontSize: 9, background: 'rgba(168,85,247,0.12)', color: '#a855f7', borderRadius: 3, padding: '1px 5px', fontWeight: 600 }}>
+                      {step.parallelPrompts.length} sub-prompt{step.parallelPrompts.length !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                /* B6: Default prompt body — 3-line clamp */
                 <div style={{
+                  fontSize: 11,
+                  color: 'var(--text-muted)',
+                  lineHeight: 1.5,
                   display: '-webkit-box',
-                  WebkitLineClamp: 1,
+                  WebkitLineClamp: 3,
                   WebkitBoxOrient: 'vertical',
                   overflow: 'hidden',
-                  marginBottom: 4,
                 }}>
-                  {promptPreview}
+                  {displayPrompt}
                 </div>
-                {step.parallelPrompts && step.parallelPrompts.length > 0 && (
-                  <span style={{ fontSize: 9, background: 'rgba(139,92,246,0.12)', color: '#8b5cf6', borderRadius: 3, padding: '1px 5px', fontWeight: 600 }}>
-                    {step.parallelPrompts.length} parallel prompt{step.parallelPrompts.length !== 1 ? 's' : ''}
-                  </span>
-                )}
-              </div>
-            ) : (
-              /* Default: show prompt preview */
+              )}
+
+              {/* Error output summary */}
+              {status === 'error' && outputText && (
+                <div style={{ fontSize: 9, color: '#ef4444', marginTop: 4, opacity: 0.8, lineHeight: 1.4, wordBreak: 'break-word' }}>
+                  {outputText.slice(0, 80)}
+                </div>
+              )}
+            </div>
+
+            {/* B6: Zone 3 — Output result zone (only when completed + expanded + outputText) */}
+            {status === 'completed' && outputExpanded && outputText && (
               <div style={{
-                fontSize: 10,
-                color: 'var(--text-muted)',
-                lineHeight: 1.4,
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
+                background: 'rgba(34,197,94,0.05)',
+                borderTop: '1px solid rgba(34,197,94,0.15)',
+                borderLeft: '3px solid #22c55e',
+                padding: '6px 10px 6px 13px',
+                width: '100%',
+                boxSizing: 'border-box',
+                flexShrink: 0,
               }}>
-                {promptPreview}
+                <div style={{
+                  fontSize: 10,
+                  color: 'var(--text-muted)',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 4,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  lineHeight: 1.5,
+                }}>
+                  {outputText.slice(0, 300)}
+                </div>
               </div>
             )}
 
-            {/* Error output summary */}
-            {status === 'error' && outputText && (
-              <div style={{ fontSize: 9, color: '#ef4444', marginTop: 4, opacity: 0.8, lineHeight: 1.4, wordBreak: 'break-word' }}>
-                {outputText.slice(0, 80)}
+            {/* D5: Live step timer — shown on running nodes after 1s */}
+            {status === 'running' && elapsedSec >= 1 && (
+              <div style={{
+                position: 'absolute',
+                bottom: 8,
+                right: 10,
+                fontSize: 9,
+                color: 'var(--accent)',
+                opacity: 0.8,
+                fontWeight: 600,
+                fontVariantNumeric: 'tabular-nums',
+                pointerEvents: 'none',
+              }}>
+                ⏱ {elapsedSec}s
+              </div>
+            )}
+
+            {/* Duration chip — shown on completed nodes */}
+            {status === 'completed' && durationMs !== undefined && (
+              <div style={{
+                marginTop: 'auto',
+                paddingTop: 4,
+                paddingBottom: 6,
+                paddingRight: 10,
+                fontSize: 9,
+                color: '#22c55e',
+                opacity: 0.75,
+                fontWeight: 500,
+                alignSelf: 'flex-end',
+              }}>
+                {durationMs < 1000 ? `${durationMs}ms` : `${(durationMs / 1000).toFixed(1)}s`}
               </div>
             )}
           </>
         )}
 
-        {/* D5: Live step timer — shown on running nodes after 1s */}
-        {!collapsed && status === 'running' && elapsedSec >= 1 && (
-          <div style={{
-            position: 'absolute',
-            bottom: 6,
-            right: 10,
-            fontSize: 9,
-            color: 'var(--accent)',
-            opacity: 0.8,
-            fontWeight: 600,
-            fontVariantNumeric: 'tabular-nums',
-            pointerEvents: 'none',
-          }}>
-            ⏱ {elapsedSec}s
-          </div>
-        )}
-
-        {/* Duration chip — shown on completed nodes */}
-        {!collapsed && status === 'completed' && durationMs !== undefined && (
-          <div style={{
-            marginTop: 'auto',
-            paddingTop: 4,
-            fontSize: 9,
-            color: '#22c55e',
-            opacity: 0.75,
-            fontWeight: 500,
-            alignSelf: 'flex-end',
-          }}>
-            {durationMs < 1000 ? `${durationMs}ms` : `${(durationMs / 1000).toFixed(1)}s`}
-          </div>
-        )}
-
-        {/* Running shimmer line */}
-        {status === 'running' && (
-          <div style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 2,
-            borderRadius: '0 0 8px 8px',
-            background: 'linear-gradient(90deg, transparent, var(--accent), transparent)',
-            animation: 'canvas-shimmer 1.6s ease-in-out infinite',
-          }} />
-        )}
+        {/* B7: Progress bar at node bottom */}
+        <ProgressBar status={status} />
       </div>
 
       {/* Context menu */}

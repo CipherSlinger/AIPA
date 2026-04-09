@@ -5716,6 +5716,27 @@ Status: SUCCESS
 
 ---
 
+## Iteration 530 — CanvasEdge 连接线精致化 (B3)
+
+_Date: 2026-04-09 | Sprint: Workflow UX Polish_
+
+### Summary
+对 CanvasEdge 实施六项视觉改进：idle 状态改为虚线（4 6）；箭头由实心三角改为描边开放箭头；active 流动动画减速至 1.1s 并降低 overlay 透明度；done 状态边缘光加强（strokeWidth 2.5 / opacity 0.2）；+ 按钮改为深色主题风格并加 hover 高亮；info 标签动态宽度、更大字体（10px）、更圆角（rx/ry=5）。
+
+### Files Changed
+- `src/renderer/components/workflows/CanvasEdge.tsx` — 全部 B3.1~B3.6 改进，CanvasEdgeDefs 箭头改为 open arrow，marker 参数调整
+
+### Build
+Status: SUCCESS
+
+### Acceptance Criteria
+- [x] idle 线条显示为虚线（strokeDasharray 4 6），透明度保持 0.35
+- [x] 箭头改为描边折线（M 1 0.5 L 7 3 L 1 5.5），无填充
+- [x] active 流动动画 1.1s，白色 overlay opacity 0.4
+- [x] done glow strokeWidth 2.5 / opacity 0.2
+- [x] + 按钮 fill 改为 var(--bg-secondary)，hover 时加蓝色半透明背景
+- [x] info 标签宽度动态计算，字体 10px，rx/ry=5，fill 0.85 透明度
+
 ## Iteration 529 — Canvas Context Menu English (F3) + Horizontal Reorder Fix (F5) + Minimap Viewport Drag (F6)
 
 _Date: 2026-04-08 | Sprint: Workflow UX Polish_
@@ -5736,5 +5757,86 @@ Status: SUCCESS
 - [x] Reorder drag in vertical layout uses Y-axis midpoints; insertion line is horizontal (2px tall)
 - [x] Dragging minimap viewport rectangle pans the canvas correctly
 - [x] npm run build:renderer SUCCESS; TypeScript error count unchanged (11 pre-existing errors)
+
+---
+
+## Iteration 530 — CanvasToolbar UI 精致化 (B4)
+
+_Date: 2026-04-09 | Sprint: Workflow UX Polish_
+
+### Summary
+对 CanvasToolbar 进行全面 UI 升级（B4）：搜索框从工具栏中分离，以独立浮动块渲染在画布左上角；功能按钮组右上角浮动，添加更深的阴影（boxShadow 0 2px 12px）并将圆角从 6 调整为 8、padding 调整为 4px 8px；toolbarBtnStyle 和 toolbarZoomBtnStyle 加入 transition 过渡动画；分隔线统一 height:16 + opacity:0.5 + margin:'0 3px'；中止/重运行按钮 fontSize/padding/borderRadius 升级，emoji 替换为 lucide Square/Play 图标；zoom 百分比改为可点击 button，点击调用 onFitToView 重置缩放。
+
+### Files Changed
+- `src/renderer/components/workflows/CanvasToolbar.tsx` — 重构 return 为 Fragment，左上角独立搜索浮块，右上角升级功能按钮组，引入 Square/Play 图标，zoom% 变为可点击按钮，统一分隔线样式，添加 transition
+
+### Build
+Status: SUCCESS
+
+### Acceptance Criteria
+- [x] 搜索框独立浮动于左上角，不与功能按钮混排
+- [x] 工具栏添加 boxShadow 0 2px 12px rgba(0,0,0,0.35)，圆角 8，padding 4px 8px
+- [x] toolbarBtnStyle/toolbarZoomBtnStyle 包含 transition: background 0.12s, color 0.12s
+- [x] 分隔线 height:16, opacity:0.5, margin:'0 3px'
+- [x] 中止按钮使用 Square icon，重运行按钮使用 Play icon，fontSize 12，padding 3px 9px，borderRadius 6
+- [x] zoom% span 改为 button，点击调用 onFitToView，带 title="点击重置缩放 (0)"
+- [x] npm run build:renderer SUCCESS
+
+---
+
+## Iteration 531 — CanvasNode 节点卡片 UI 美化 (B1/B5/B6/B7/B9)
+
+_Date: 2026-04-09 | Sprint Canvas UI Polish_
+
+### Summary
+对 CanvasNode.tsx 实施 5 项视觉改进：B1 阴影与选中样式分层、B5 序号徽标格式化、B6 节点内容三区分层（header/body/output）、B7 底部执行进度条、B9 节点类型视觉语言统一。重构后节点卡片层次感更强，状态反馈更直观。
+
+### Files Changed
+- `src/renderer/components/workflows/CanvasNode.tsx` — 全面重构节点卡片 UI：引入 NodeHeader/ProgressBar 子组件；B1 boxShadow 按 selected/multiSelected/idle 分三档；B5 序号徽标改为 padStart(2,'0') 两位数字、颜色跟随 status；B6 三区分层（bg-secondary header + transparent body + green-tinted output zone）；B7 ProgressBar 使用 canvas-bar-shimmer 动画；B9 header borderLeft 按 nodeType 区分颜色（accent/amber/purple），Yes/No chip borderRadius:10
+
+### Build
+Status: SUCCESS
+
+### Acceptance Criteria
+- [x] B1: 未选中 boxShadow '0 2px 8px rgba(0,0,0,0.25)'，选中 '0 0 0 2px var(--accent), 0 4px 16px rgba(0,0,0,0.35)'，multiSelected 琥珀色外圈
+- [x] B1: borderRadius 改为 10px，transition: 'box-shadow 0.15s, border-color 0.15s'
+- [x] B5: 序号徽标位置 left:-10/top:-8，尺寸 20x20，内容 "01"/"02" padStart
+- [x] B5: StatusBadge 保留右上角，size 改为 10
+- [x] B6: NodeHeader 组件有 bg-secondary 背景、borderBottom、borderLeft 类型色、borderRadius '10px 10px 0 0'
+- [x] B6: Body 区 prompt 文字 fontSize:11，lineHeight:1.5，WebkitLineClamp:3
+- [x] B6: Output zone 仅在 completed+expanded+outputText 时显示，绿色左边条
+- [x] B7: running 状态进度条 indeterminate 动画（复用 canvas-bar-shimmer），completed 绿色，error 红色
+- [x] B9: condition 标题左边条 amber，header 显示 🔀 emoji；parallel 紫色，显示 ⚡ emoji
+- [x] B9: Yes/No chip borderRadius:10，样式符合规范
+- [x] npm run build:renderer SUCCESS，CanvasNode.tsx 零 TypeScript 错误
+- [!] 注意：文件 965 行，超过 800 行关注阈值，建议后续迭代将 NodeHeader/ProgressBar 提取到独立文件
+
+---
+
+## Iteration 532 — WorkflowCanvas 背景点阵、空状态引导与过渡动画 (B2/B8/B11)
+
+_Date: 2026-04-09 | Sprint Canvas UI Polish_
+
+### Summary
+三项画布视觉改进：B2 优化 SVG 点阵背景（rgba 白色点替代 var(--border)，更低不透明度，更专业的外观）；B8 将空步骤画布从"早期返回"改为叠加层方式（保留画布背景网格，中央显示虚线圆圈引导 + 呼吸动画）；B11 节点出现动画（canvas-node-fadein 关键帧 + 包裹 div key 触发）和 SVG 边线层同步 smoothTransition（CSS transform + transition）。
+
+### Files Changed
+- `src/renderer/components/workflows/WorkflowCanvas.tsx` — B2: dot 改为 rgba(255,255,255,0.045) r=zoom*0.8；B8: 移除 early-return 空状态，改为 position:absolute 叠加引导层（虚线圆圈 SVG + 两行文字 + 呼吸动画）；B11: 节点渲染外包 position:absolute 容器并附 canvas-node-fadein 动画，SVG `<g>` 改为 CSS transform 方式支持 smoothTransition；新增 canvas-node-fadein + canvas-empty-pulse 关键帧
+
+### Build
+Status: SUCCESS
+
+### Acceptance Criteria
+- [x] B2: 点阵背景使用 rgba(255,255,255,0.045)，r=zoom*0.8，视觉上更精细专业
+- [x] B2: 点阵随 pan/zoom 正确移动（panX%gridSize, panY%gridSize）
+- [x] B8: steps.length===0 时画布中央显示虚线圆圈 + "添加第一个步骤" 文字提示
+- [x] B8: 引导层 pointerEvents:none，不阻挡画布鼠标操作
+- [x] B8: 引导层 canvas-empty-pulse 呼吸动画（opacity 0.35↔0.5，3s 循环）
+- [x] B8: 点阵背景网格在空状态下仍然可见（不再 early-return）
+- [x] B11: 新增节点首次挂载时触发 canvas-node-fadein（opacity 0→1，scale 0.95→1，0.2s）
+- [x] B11: SVG edge layer `<g>` 使用 CSS transform，fit-to-view 时与节点层同步平滑过渡
+- [x] B11: 拖拽时 smoothTransition=false，无延迟感
+- [x] npm run build:renderer SUCCESS；WorkflowCanvas.tsx 无新增 TypeScript 错误
+- [!] 注意：文件 1118 行，已超过 800 行阈值，需在后续迭代分解
 
 ---
