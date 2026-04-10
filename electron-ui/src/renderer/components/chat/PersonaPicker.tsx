@@ -1,11 +1,12 @@
 import React, { useState, useRef, useCallback } from 'react'
-import { ChevronDown, Sparkles } from 'lucide-react'
+import { ChevronDown, Sparkles, Workflow as WorkflowIcon } from 'lucide-react'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import { useClickOutside } from '../../hooks/useClickOutside'
-import type { Persona } from '../../types/app.types'
+import type { Persona, Workflow } from '../../types/app.types'
 
 const EMPTY_PERSONAS: Persona[] = []
+const EMPTY_WORKFLOWS: Workflow[] = []
 
 export default function PersonaPicker() {
   const t = useT()
@@ -13,6 +14,7 @@ export default function PersonaPicker() {
   const pickerRef = useRef<HTMLDivElement>(null)
 
   const personas = usePrefsStore(s => s.prefs.personas ?? EMPTY_PERSONAS)
+  const workflows = usePrefsStore(s => (s.prefs.workflows as Workflow[] | undefined) ?? EMPTY_WORKFLOWS)
   const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
   const sessionPersona = personas.find(p => p.id === sessionPersonaId)
 
@@ -43,7 +45,12 @@ export default function PersonaPicker() {
     }
   }, [t])
 
-  if (personas.length === 0) return null
+  const handleRunWorkflow = useCallback((workflowId: string) => {
+    setShowPicker(false)
+    window.dispatchEvent(new CustomEvent('aipa:runWorkflow', { detail: workflowId }))
+  }, [])
+
+  if (personas.length === 0 && workflows.length === 0) return null
 
   return (
     <div style={{ position: 'relative' }} ref={pickerRef}>
@@ -171,6 +178,43 @@ export default function PersonaPicker() {
               </button>
             )
           })}
+          {/* Workflows section */}
+          {workflows.length > 0 && (
+            <>
+              <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
+              <div style={{ padding: '4px 12px 2px', fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>
+                {t('nav.workflows')}
+              </div>
+              {workflows.map(wf => (
+                <button
+                  key={wf.id}
+                  onClick={() => handleRunWorkflow(wf.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    width: '100%',
+                    textAlign: 'left',
+                    background: 'none',
+                    border: 'none',
+                    padding: '7px 12px',
+                    cursor: 'pointer',
+                    color: 'var(--text-primary)',
+                    fontSize: 12,
+                    fontWeight: 400,
+                    transition: 'background 100ms',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+                >
+                  <span style={{ width: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <WorkflowIcon size={13} style={{ color: 'var(--text-muted)' }} />
+                  </span>
+                  <span style={{ flex: 1 }}>{wf.name}</span>
+                </button>
+              ))}
+            </>
+          )}
         </div>
       )}
     </div>

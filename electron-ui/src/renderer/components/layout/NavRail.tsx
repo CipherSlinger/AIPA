@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { Building2, NotebookPen, Puzzle, Brain, Workflow, Settings, User, PanelLeftClose, PanelLeftOpen, CheckSquare, GitBranch, Users2 } from 'lucide-react'
+import { Building2, NotebookPen, Puzzle, Brain, Workflow, Settings, User, PanelLeftClose, PanelLeftOpen, CheckSquare, GitBranch, Users, Users2 } from 'lucide-react'
 import { useUiStore, useChatStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 import { AVATAR_PRESETS } from './avatarPresets'
@@ -282,6 +282,16 @@ export default function NavRail() {
         expanded={navExpanded}
       />
 
+      {/* Employees (Workflows) */}
+      <NavItem
+        icon={<Users size={iconSize} />}
+        label={t('nav.employees')}
+        shortcut="Ctrl+6"
+        isActive={isWorkflowsActive}
+        onClick={() => setActiveNavItem('workflows')}
+        expanded={navExpanded}
+      />
+
       {/* Notes */}
       <NavItem
         icon={<NotebookPen size={iconSize} />}
@@ -309,16 +319,6 @@ export default function NavRail() {
         shortcut="Ctrl+5"
         isActive={isMemoryActive}
         onClick={() => setActiveNavItem('memory')}
-        expanded={navExpanded}
-      />
-
-      {/* Workflows */}
-      <NavItem
-        icon={<Users2 size={iconSize} />}
-        label={t('nav.workflows')}
-        shortcut="Ctrl+6"
-        isActive={isWorkflowsActive}
-        onClick={() => setActiveNavItem('workflows')}
         expanded={navExpanded}
       />
 

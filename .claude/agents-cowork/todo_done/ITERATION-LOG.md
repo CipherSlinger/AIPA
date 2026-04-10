@@ -5958,4 +5958,30 @@ Status: SUCCESS (tsc main+preload OK; vite build OK; zero new TS errors in modif
 - [x] MCP Servers tab renders full SettingsMcp UI (add/delete/toggle/reconnect)
 - [x] Settings modal no longer shows MCP Servers tab
 - [x] i18n keys present in both locales
+
+## Iteration 537 — Onboarding provider sync fix + NavRail employees rename + Agents i18n + PersonaPicker workflows
+_Date: 2026-04-10 | Sprint ongoing_
+
+### Summary
+Four targeted fixes: (1) OnboardingWizard now creates a new claude-cli provider entry if none exists on first launch, instead of silently skipping the sync. (2) NavRail renames the Workflows nav item to "Employees" with a Users icon and moves it to immediately after Departments. (3) PersonaCard now uses `t('persona.preset.${presetKey}')` to display localized preset names instead of hardcoded English. (4) PersonaPicker dropdown adds a Workflows section that fires `aipa:runWorkflow` custom events on click.
+
+### Files Changed
+- `src/renderer/components/onboarding/OnboardingWizard.tsx` — provider sync: create fallback entry if `claudeCli` is not found in config list
+- `src/renderer/components/layout/NavRail.tsx` — add `Users` import; move Employees (workflows) NavItem to after Departments; change icon from Users2 to Users, label to `t('nav.employees')`
+- `src/renderer/i18n/locales/en.json` — add `nav.employees = "Employees"`
+- `src/renderer/i18n/locales/zh-CN.json` — add `nav.employees = "员工"`
+- `src/renderer/components/settings/PersonaCard.tsx` — use `presetKey ? t('persona.preset.${presetKey}') : p.name` for display name
+- `src/renderer/components/chat/PersonaPicker.tsx` — import Workflow type + WorkflowIcon; add workflows selector; add handleRunWorkflow callback; add Workflows section in dropdown
+
+### Build
+Status: SUCCESS (vite build OK in 10.89s; zero new TS errors in all modified files)
+
+### Acceptance Criteria
+- [x] First launch with empty provider list: onboarding completes and saves claude-cli provider entry
+- [x] Existing provider list: onboarding still merges apiKey/token/baseUrl correctly
+- [x] NavRail shows "Employees" entry (Users icon) immediately after Departments
+- [x] `nav.employees` i18n key present in en.json and zh-CN.json
+- [x] PersonaCard displays localized persona name for preset personas in Settings
+- [x] PersonaPicker dropdown shows Workflows section below personas when workflows exist
+- [x] Clicking a workflow in PersonaPicker fires `aipa:runWorkflow` CustomEvent and closes dropdown
 - [x] Build passes with no new TypeScript errors

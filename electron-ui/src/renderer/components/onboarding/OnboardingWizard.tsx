@@ -22,29 +22,24 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
     }
     // Sync apiKey / token / baseUrl to the claude-cli provider config so the Providers page shows them
     if (apiKey.trim() || token.trim() || baseUrl.trim()) {
-      const configs: Array<{
-        id: string
-        name: string
-        scenario: string
-        baseUrl?: string
-        apiKey?: string
-        authToken?: string
-        models: unknown[]
-        enabled: boolean
-        isDefault?: boolean
-        failoverPriority?: number
-      }> = await window.electronAPI.providerListConfigs()
-      const claudeCli = configs.find((c) => c.id === 'claude-cli')
-      if (claudeCli) {
-        const updated = {
-          ...claudeCli,
-          ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
-          ...(token.trim() ? { authToken: token.trim() } : {}),
-          ...(baseUrl.trim() ? { baseUrl: baseUrl.trim() } : {}),
-          enabled: true,
-        }
-        await window.electronAPI.providerUpsert(updated)
+      const configs = await window.electronAPI.providerListConfigs()
+      const claudeCli = configs.find((c: any) => c.id === 'claude-cli')
+      const providerEntry = claudeCli ?? {
+        id: 'claude-cli',
+        name: 'Claude CLI',
+        enabled: true,
+        apiKey: '',
+        authToken: '',
+        baseUrl: '',
       }
+      const updated = {
+        ...providerEntry,
+        ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
+        ...(token.trim() ? { authToken: token.trim() } : {}),
+        ...(baseUrl.trim() ? { baseUrl: baseUrl.trim() } : {}),
+        enabled: true,
+      }
+      await window.electronAPI.providerUpsert(updated)
     }
     await window.electronAPI.prefsSet('onboardingDone', true)
     onComplete()

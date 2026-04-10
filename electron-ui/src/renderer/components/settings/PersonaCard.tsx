@@ -49,7 +49,7 @@ export default function PersonaCard({ persona, isActive, isDefault, isDeleting, 
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-bright)' }}>{p.name}</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-bright)' }}>{p.presetKey ? t(`persona.preset.${p.presetKey}`) : p.name}</span>
           {isDefault && (
             <span style={{
               fontSize: 9,
