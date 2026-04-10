@@ -6,7 +6,6 @@ import { useChatStore } from '../../store'
 import CanvasNode, { NODE_WIDTH, NODE_MIN_HEIGHT } from './CanvasNode'
 import CanvasEdge, { CanvasEdgeDefs } from './CanvasEdge'
 import CanvasProgressBar from './CanvasProgressBar'
-import CanvasNodeSidebar from './CanvasNodeSidebar'
 import CanvasToolbar from './CanvasToolbar'
 import { useWorkflowExecution } from './useWorkflowExecution'
 import { useCanvasLayout } from './useCanvasLayout'
@@ -235,11 +234,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   const historyStepOutputs = selectedRun ? selectedRun.stepOutputs : null
   const historyStepDurations = selectedRun ? selectedRun.stepDurations : null
 
-  // Selected node (for sidebar)
+  // Selected node
   const [selectedNode, setSelectedNode] = useState<string | null>(null)
-
-  // Sidebar open state
-  const [sidebarStepId, setSidebarStepId] = useState<string | null>(null)
 
   // D5: canvas right-click context menu
   const [canvasCtxMenu, setCanvasCtxMenu] = useState<{ x: number; y: number } | null>(null)
@@ -399,7 +395,6 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   // Reset selection when workflow changes
   useEffect(() => {
     setSelectedNode(null)
-    setSidebarStepId(null)
     setSelectedRunId(null)
     setReorderDrag(null)
     setHoveredEdgeKey(null)
@@ -421,10 +416,9 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     layout.autoPanToNode(activeStep.id)
   }, [execution.activeStepIndex, workflow, layout])
 
-  // --- Node selection (opens sidebar) ---
+  // --- Node selection ---
   const handleNodeSelect = useCallback((stepId: string) => {
     setSelectedNode(stepId)
-    setSidebarStepId(stepId)
   }, [])
 
   // Direction C: minimap click handler
@@ -432,10 +426,6 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     layout.autoPanToNode(stepId)
     handleNodeSelect(stepId)
   }, [layout, handleNodeSelect])
-
-  const closeSidebar = useCallback(() => {
-    setSidebarStepId(null)
-  }, [])
 
   // D5: close context menu on outside click
   useEffect(() => {
@@ -445,7 +435,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     return () => document.removeEventListener('mousedown', close)
   }, [canvasCtxMenu])
 
-  // D6: keyboard focus → sidebar sync
+  // D6: keyboard focus → node selection sync
   useEffect(() => {
     if (layout.focusedNodeId && workflow) {
       handleNodeSelect(layout.focusedNodeId)
@@ -456,7 +446,6 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return
     setSelectedNode(null)
-    setSidebarStepId(null)
     layout.clearSelection()
     if (layout.spaceDown) {
       // Space held: pan mode
@@ -467,26 +456,10 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     }
   }, [layout])
 
-  // --- Sidebar step data ---
-  const sidebarStep = sidebarStepId && workflow
-    ? workflow.steps.find(s => s.id === sidebarStepId) ?? null
-    : null
-  const sidebarStepIndex = sidebarStepId && workflow
-    ? workflow.steps.findIndex(s => s.id === sidebarStepId)
-    : -1
-  const sidebarStatus = sidebarStepId
-    ? execution.stepStatuses[sidebarStepId] ?? 'idle'
-    : 'idle'
-
   const cursor = layout.spaceDown
     ? (layout.isPanning ? 'grabbing' : 'grab')
     : reorderDrag ? 'ns-resize'
     : layout.isPanning ? 'grabbing' : 'default'
-
-  // Direction B: sidebar prompt change
-  const handlePromptChange = useCallback((stepId: string, newPrompt: string) => {
-    onStepUpdate?.(stepId, { prompt: newPrompt })
-  }, [onStepUpdate])
 
   // Direction B: node title change (from CanvasNode inline edit)
   const handleTitleChange = useCallback((stepId: string, newTitle: string) => {
@@ -991,22 +964,6 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         />
       )}
 
-      {/* Node detail sidebar */}
-      {sidebarStep && (
-        <CanvasNodeSidebar
-          step={sidebarStep}
-          stepIndex={sidebarStepIndex}
-          presetKey={workflow?.presetKey}
-          status={sidebarStatus}
-          outputText={sidebarStepId ? execution.stepOutputs[sidebarStepId] : undefined}
-          durationMs={sidebarStepId ? execution.stepDurations[sidebarStepId] : undefined}
-          historyOutput={selectedRun && sidebarStepId ? (selectedRun.stepOutputs[sidebarStepId] ?? undefined) : undefined}
-          onClose={closeSidebar}
-          onRetryStep={onRetryStep}
-          onPromptChange={handlePromptChange}
-          // TODO: Direction G2 — highlight {{...}} template variables in prompt preview
-        />
-      )}
 
       {/* Direction 6: History replay panel — bottom left */}
       <div

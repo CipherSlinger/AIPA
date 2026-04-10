@@ -281,30 +281,6 @@ export default function SettingsProviders() {
                     {t('provider.authTokenHint')}
                   </div>
                 </div>
-                <div>
-                  <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>
-                    {t('provider.apiKey')} <span style={{ opacity: 0.6 }}>(留空以使用 Auth Token)</span>
-                  </label>
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    <input
-                      type={showKeyMap[provider.id] ? 'text' : 'password'}
-                      value={currentApiKey}
-                      onChange={e => updateDraft(provider.id, 'apiKey', e.target.value)}
-                      style={{ ...inputStyle, flex: 1 }}
-                      placeholder="（留空）"
-                    />
-                    <button
-                      onClick={() => setShowKeyMap(prev => ({ ...prev, [provider.id]: !prev[provider.id] }))}
-                      style={{
-                        background: 'var(--card-bg)', border: '1px solid var(--border)',
-                        borderRadius: 4, padding: '0 8px', cursor: 'pointer',
-                        color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
-                      }}
-                    >
-                      {showKeyMap[provider.id] ? <EyeOff size={13} /> : <Eye size={13} />}
-                    </button>
-                  </div>
-                </div>
               </>
             )}
 

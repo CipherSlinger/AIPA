@@ -2261,7 +2261,11 @@
     "newSession": "New Session",
     "sessions": "Sessions",
     "noSessions": "No sessions yet",
-    "noSessionsHint": "Click \"New Session\" to start a conversation in this department."
+    "noSessionsHint": "Click \"New Session\" to start a conversation in this department.",
+    "newFolder": "Create new folder",
+    "newFolderPath": "Enter folder path...",
+    "createFolder": "Create",
+    "creating": "Creating..."
   },
   "session": {
     "justNow": "just now",

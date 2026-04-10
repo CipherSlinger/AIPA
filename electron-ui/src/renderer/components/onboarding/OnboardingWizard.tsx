@@ -1,32 +1,25 @@
 import React, { useState } from 'react'
-import { Sparkles, Key, FolderOpen, CheckCircle2, Folder, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react'
+import { Sparkles, Key, ChevronLeft, ArrowRight } from 'lucide-react'
 import { useT } from '../../i18n'
 
 interface OnboardingWizardProps {
   onComplete: () => void
 }
 
-const STEP_ICONS = [Sparkles, Key, FolderOpen, CheckCircle2] as const
+const STEP_ICONS = [Sparkles, Key] as const
 
 export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
+  const [step, setStep] = useState<1 | 2>(1)
   const [apiKey, setApiKey] = useState('')
   const [token, setToken] = useState('')
   const [baseUrl, setBaseUrl] = useState('')
-  const [workDir, setWorkDir] = useState(() => '~/claude')
   const [inputFocused, setInputFocused] = useState<string | null>(null)
   const t = useT()
-
-  const handlePickFolder = async () => {
-    const p = await window.electronAPI.fsShowOpenDialog()
-    if (p) setWorkDir(p)
-  }
 
   const handleComplete = async () => {
     if (apiKey.trim()) {
       await window.electronAPI.configSetApiKey(apiKey)
     }
-    await window.electronAPI.prefsSet('workingDir', workDir)
     // If token or baseUrl was provided, update the claude-cli provider config
     if (token.trim() || baseUrl.trim()) {
       const configs: Array<{
@@ -61,8 +54,8 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
   }
 
   const StepIcon = STEP_ICONS[step - 1]
-  const iconColor = step === 4 ? 'var(--success)' : 'var(--accent)'
-  const progressWidth = `${((step) / 4) * 100}%`
+  const iconColor = 'var(--accent)'
+  const progressWidth = `${((step) / 2) * 100}%`
   // Step 2 is valid when either API key or auth token is filled
   const step2Valid = apiKey.trim().length > 0 || token.trim().length > 0
 
@@ -74,7 +67,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
           <div style={styles.progressTrack}>
             <div style={{ ...styles.progressFill, width: progressWidth }} />
           </div>
-          <div style={styles.progressLabel}>{t('onboarding.step', { current: step, total: 4 })}</div>
+          <div style={styles.progressLabel}>{t('onboarding.step', { current: step, total: 2 })}</div>
         </div>
 
         {/* Step icon */}
@@ -193,12 +186,12 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                   opacity: step2Valid ? 1 : 0.4,
                   cursor: step2Valid ? 'pointer' : 'not-allowed',
                 }}
-                onClick={() => step2Valid && setStep(3)}
+                onClick={() => step2Valid && handleComplete()}
                 disabled={!step2Valid}
                 onMouseEnter={e => { if (step2Valid) { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.filter = 'brightness(1.1)' } }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.filter = 'none' }}
               >
-                {t('onboarding.next')} <ChevronRight size={14} style={{ marginLeft: 4, verticalAlign: 'middle' }} />
+                {t('onboarding.startChatting')} <ArrowRight size={16} style={{ marginLeft: 6, verticalAlign: 'middle' }} />
               </button>
             </div>
             <button
@@ -208,62 +201,6 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
               onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none' }}
             >
               {t('onboarding.skipConfig')}
-            </button>
-          </div>
-        )}
-
-        {/* Step 3: Work Folder */}
-        {step === 3 && (
-          <div className="onboard-step-content" key="step3" style={styles.stepContent}>
-            <h1 style={styles.title}>{t('onboarding.chooseFolder')}</h1>
-            <p style={styles.explanation}>
-              {t('onboarding.folderExplanation')}
-            </p>
-            <div style={styles.folderDisplay}>
-              <Folder size={18} color="var(--accent)" style={{ flexShrink: 0 }} />
-              <span style={styles.folderPath}>{workDir}</span>
-            </div>
-            <button
-              style={styles.outlineBtn}
-              onClick={handlePickFolder}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,122,204,0.08)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-            >
-              {t('onboarding.chooseButton')}
-            </button>
-            <div style={styles.btnRow}>
-              <button
-                style={styles.secondaryBtn}
-                onClick={() => setStep(2)}
-                onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
-                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
-              >
-                <ChevronLeft size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} /> {t('onboarding.back')}
-              </button>
-              <button
-                style={styles.primaryBtn}
-                onClick={() => setStep(4)}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.filter = 'brightness(1.1)' }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.filter = 'none' }}
-              >
-                {t('onboarding.finishSetup')} <ChevronRight size={14} style={{ marginLeft: 4, verticalAlign: 'middle' }} />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 4: Done */}
-        {step === 4 && (
-          <div className="onboard-step-content" key="step4" style={styles.stepContent}>
-            <h1 style={styles.title}>{t('onboarding.allSet')}</h1>
-            <p style={styles.subtitle}>{t('onboarding.readyToChat')}</p>
-            <button
-              style={styles.primaryBtn}
-              onClick={handleComplete}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.filter = 'brightness(1.1)' }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.filter = 'none' }}
-            >
-              {t('onboarding.startChatting')} <ArrowRight size={16} style={{ marginLeft: 6, verticalAlign: 'middle' }} />
             </button>
           </div>
         )}

@@ -36,10 +36,10 @@ interface CanvasNodeProps {
   onRetry?: (stepId: string) => void
 }
 
-export const NODE_WIDTH = 220
-export const NODE_MIN_HEIGHT = 70
-export const NODE_COLLAPSED_HEIGHT = 36
-export const NODE_GAP_Y = 120
+export const NODE_WIDTH = 180
+export const NODE_MIN_HEIGHT = 58
+export const NODE_COLLAPSED_HEIGHT = 30
+export const NODE_GAP_Y = 100
 
 const STATUS_STYLES: Record<string, {
   borderColor: string
@@ -64,40 +64,40 @@ function StatusBadge({ status }: { status: StepStatus }) {
   if (status === 'completed') {
     return (
       <div style={{
-        position: 'absolute', top: -6, right: -6,
-        width: 16, height: 16, borderRadius: '50%',
+        position: 'absolute', top: -5, right: -5,
+        width: 13, height: 13, borderRadius: '50%',
         background: '#22c55e', color: '#fff',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: '0 0 0 2px var(--bg-card, #1e1e1e)',
+        boxShadow: '0 0 0 1.5px var(--bg-card, #1e1e1e)',
       }}>
-        <Check size={10} strokeWidth={3} />
+        <Check size={8} strokeWidth={3} />
       </div>
     )
   }
   if (status === 'running') {
     return (
       <div style={{
-        position: 'absolute', top: -6, right: -6,
-        width: 16, height: 16, borderRadius: '50%',
+        position: 'absolute', top: -5, right: -5,
+        width: 13, height: 13, borderRadius: '50%',
         background: 'var(--accent)', color: '#fff',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         animation: 'canvas-spinner 1s linear infinite',
-        boxShadow: '0 0 0 2px var(--bg-card, #1e1e1e)',
+        boxShadow: '0 0 0 1.5px var(--bg-card, #1e1e1e)',
       }}>
-        <Loader size={10} strokeWidth={2.5} />
+        <Loader size={8} strokeWidth={2.5} />
       </div>
     )
   }
   if (status === 'error') {
     return (
       <div style={{
-        position: 'absolute', top: -6, right: -6,
-        width: 16, height: 16, borderRadius: '50%',
+        position: 'absolute', top: -5, right: -5,
+        width: 13, height: 13, borderRadius: '50%',
         background: '#ef4444', color: '#fff',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: '0 0 0 2px var(--bg-card, #1e1e1e)',
+        boxShadow: '0 0 0 1.5px var(--bg-card, #1e1e1e)',
       }}>
-        <AlertCircle size={10} strokeWidth={2.5} />
+        <AlertCircle size={8} strokeWidth={2.5} />
       </div>
     )
   }
@@ -288,12 +288,12 @@ function NodeHeader({
 
   return (
     <div style={{
-      background: 'var(--bg-secondary, #252526)',
-      padding: '6px 10px 5px',
+      padding: '5px 8px 4px',
       borderBottom: '1px solid var(--border)',
       borderLeft: headerBorderLeft,
-      borderRadius: '10px 10px 0 0',
+      borderRadius: '8px 8px 0 0',
       flexShrink: 0,
+      background: 'rgba(255,255,255,0.02)',
     }}>
       {isEditingTitle ? (
         <input
@@ -304,11 +304,10 @@ function NodeHeader({
           onKeyDown={onTitleKeyDown}
           onMouseDown={onTitleInputMouseDown}
           style={{
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: 600,
             color: 'var(--text)',
             width: '100%',
-            paddingRight: 4,
             background: 'var(--input-field-bg, rgba(255,255,255,0.06))',
             border: '1px solid var(--accent)',
             borderRadius: 3,
@@ -321,30 +320,24 @@ function NodeHeader({
       ) : (
         <div
           style={{
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: 600,
             color: 'var(--text)',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            paddingRight: 20,
-            paddingLeft: hasReorderHandle ? 14 : 0,
+            paddingRight: 16,
+            paddingLeft: hasReorderHandle ? 12 : 0,
             width: '100%',
             cursor: 'text',
             display: 'flex',
             alignItems: 'center',
-            gap: 4,
+            gap: 3,
           }}
           onDoubleClick={onTitleDoubleClick}
         >
-          {isFirst && (
-            <span style={{ color: '#6366f1', fontSize: 10, flexShrink: 0 }}>▶</span>
-          )}
-          {isLast && !isFirst && (
-            <span style={{ color: '#f59e0b', fontSize: 10, flexShrink: 0 }}>⚑</span>
-          )}
           {typeIcon && (
-            <span style={{ fontSize: 11, flexShrink: 0 }}>{typeIcon}</span>
+            <span style={{ fontSize: 9, flexShrink: 0, opacity: 0.8 }}>{typeIcon}</span>
           )}
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {displayTitle}
@@ -362,8 +355,8 @@ function ProgressBar({ status }: { status: StepStatus }) {
       <div style={{
         position: 'absolute',
         bottom: 0, left: 0, right: 0,
-        height: 3,
-        borderRadius: '0 0 10px 10px',
+        height: 2,
+        borderRadius: '0 0 8px 8px',
         overflow: 'hidden',
         background: 'rgba(0,0,0,0.15)',
       }}>
@@ -381,8 +374,8 @@ function ProgressBar({ status }: { status: StepStatus }) {
       <div style={{
         position: 'absolute',
         bottom: 0, left: 0, right: 0,
-        height: 3,
-        borderRadius: '0 0 10px 10px',
+        height: 2,
+        borderRadius: '0 0 8px 8px',
         overflow: 'hidden',
       }}>
         <div style={{
@@ -399,8 +392,8 @@ function ProgressBar({ status }: { status: StepStatus }) {
       <div style={{
         position: 'absolute',
         bottom: 0, left: 0, right: 0,
-        height: 3,
-        borderRadius: '0 0 10px 10px',
+        height: 2,
+        borderRadius: '0 0 8px 8px',
         overflow: 'hidden',
       }}>
         <div style={{
@@ -524,18 +517,18 @@ export default function CanvasNode({
   // D4: focused but not selected — dashed outline
   const isFocusedOnly = focused && !selected && !isMulti
 
-  // B1: box shadow by selection state
+  // Box shadow by selection state
   const boxShadow = isMulti
-    ? '0 0 0 2px #f59e0b, 0 4px 12px rgba(0,0,0,0.3)'
+    ? '0 0 0 1.5px #f59e0b, 0 2px 8px rgba(0,0,0,0.25)'
     : isActive
-      ? '0 0 0 2px var(--accent), 0 4px 16px rgba(0,0,0,0.35)'
-      : '0 2px 8px rgba(0,0,0,0.25)'
+      ? '0 0 0 1.5px var(--accent), 0 3px 12px rgba(0,0,0,0.25)'
+      : '0 1px 4px rgba(0,0,0,0.2)'
 
   // Dynamic height: expand when showing output preview
   const nodeHeight = collapsed
     ? NODE_COLLAPSED_HEIGHT
     : (status === 'completed' && outputExpanded && outputText)
-      ? NODE_MIN_HEIGHT + 56
+      ? NODE_MIN_HEIGHT + 48
       : NODE_MIN_HEIGHT
 
   // D5: format elapsed time
@@ -587,14 +580,12 @@ export default function CanvasNode({
               ? 'rgba(var(--accent-rgb, 59,130,246), 0.06)'
               : 'var(--bg-card, var(--bg-sessionpanel))',
           border: isActive
-            ? '1.5px solid var(--accent)'
+            ? '1px solid var(--accent)'
             : isMulti
-              ? '2px solid var(--accent)'
-              : `1.5px solid ${statusStyle.borderColor}`,
-          // B1: radius 10px
-          borderRadius: 10,
-          // B6: no padding on container — handled by header/body/output zones
-          padding: collapsed ? '0 12px' : 0,
+              ? '1.5px solid var(--accent)'
+              : `1px solid ${statusStyle.borderColor}`,
+          borderRadius: 8,
+          padding: collapsed ? '0 10px' : 0,
           cursor: 'grab',
           // B1: layered box shadow
           boxShadow,
@@ -614,17 +605,17 @@ export default function CanvasNode({
           justifyContent: collapsed ? 'center' : 'flex-start',
         }}
       >
-        {/* B5: Step number badge — left-top, outside the node */}
+        {/* Step number badge — left-top, outside the node */}
         <div
           style={{
             position: 'absolute',
-            top: -8,
-            left: -10,
-            width: 20,
-            height: 20,
+            top: -6,
+            left: -7,
+            width: 16,
+            height: 16,
             background: stepBadgeBg,
             color: stepBadgeColor,
-            fontSize: 9,
+            fontSize: 8,
             fontWeight: 700,
             borderRadius: '50%',
             display: 'flex',
@@ -632,7 +623,7 @@ export default function CanvasNode({
             justifyContent: 'center',
             lineHeight: 1,
             transition: 'background 0.2s ease',
-            boxShadow: '0 0 0 2px var(--bg-primary, #1e1e1e)',
+            boxShadow: '0 0 0 1.5px var(--bg-primary, #1e1e1e)',
             zIndex: 2,
           }}
         >
@@ -642,7 +633,7 @@ export default function CanvasNode({
         {/* B5: Status badge (top-right) — spinner/check/error icon, size=10 */}
         <StatusBadge status={status} />
 
-        {/* D6: Reorder drag handle — shown on left side */}
+        {/* Reorder drag handle — shown on left side */}
         {onReorderDragStart && !collapsed && (
           <div
             onMouseDown={e => { e.stopPropagation(); onReorderDragStart(step.id, e) }}
@@ -654,8 +645,8 @@ export default function CanvasNode({
               transform: 'translateY(-50%)',
               cursor: 'ns-resize',
               color: 'var(--text-muted)',
-              opacity: isNodeHovered ? 0.65 : 0,
-              padding: '4px 3px',
+              opacity: isNodeHovered ? 0.5 : 0,
+              padding: '3px 2px',
               display: 'flex',
               alignItems: 'center',
               borderRadius: 2,
@@ -663,7 +654,7 @@ export default function CanvasNode({
               zIndex: 3,
             }}
           >
-            <GripVertical size={12} />
+            <GripVertical size={10} />
           </div>
         )}
 
@@ -674,9 +665,9 @@ export default function CanvasNode({
             onMouseDown={e => e.stopPropagation()}
             style={{
               position: 'absolute',
-              bottom: collapsed ? undefined : 4,
+              bottom: collapsed ? undefined : 3,
               top: collapsed ? '50%' : undefined,
-              right: 6,
+              right: 4,
               transform: collapsed ? 'translateY(-50%)' : undefined,
               background: 'transparent',
               border: 'none',
@@ -686,26 +677,27 @@ export default function CanvasNode({
               borderRadius: 3,
               display: 'flex',
               alignItems: 'center',
-              opacity: 0.5,
+              opacity: isNodeHovered ? 0.6 : 0,
+              transition: 'opacity 0.15s',
               zIndex: 3,
             }}
             title={collapsed ? 'Expand' : 'Collapse'}
           >
-            {collapsed ? <ChevronDown size={11} /> : <ChevronUp size={11} />}
+            {collapsed ? <ChevronDown size={9} /> : <ChevronUp size={9} />}
           </button>
         )}
 
         {/* Collapsed state: just show title inline */}
         {collapsed && (
           <div style={{
-            fontSize: 12,
+            fontSize: 10,
             fontWeight: 600,
             color: 'var(--text)',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            paddingRight: 24,
-            paddingLeft: onReorderDragStart ? 14 : 0,
+            paddingRight: 20,
+            paddingLeft: onReorderDragStart ? 12 : 0,
             width: '100%',
           }}>
             {displayTitle}
@@ -735,7 +727,7 @@ export default function CanvasNode({
             {/* Zone 2: Body — prompt preview, streaming, condition/parallel content */}
             <div style={{
               background: 'transparent',
-              padding: '7px 10px',
+              padding: '5px 8px',
               flex: 1,
               width: '100%',
               boxSizing: 'border-box',
@@ -743,7 +735,7 @@ export default function CanvasNode({
             }}>
               {status === 'completed' && outputText ? (
                 /* Completed: show output text */
-                <div style={{ fontSize: 10, color: 'var(--text-secondary)', lineHeight: 1.45, width: '100%' }}>
+                <div style={{ fontSize: 9, color: 'var(--text-secondary)', lineHeight: 1.4, width: '100%' }}>
                   <div style={{
                     whiteSpace: outputExpanded ? 'pre-wrap' : undefined,
                     wordBreak: 'break-word',
@@ -800,16 +792,16 @@ export default function CanvasNode({
                   {streamingText}
                 </div>
               ) : nodeType === 'condition' ? (
-                /* B9: Condition node body — condition text + Yes/No chips */
-                <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4, width: '100%' }}>
+                /* Condition node body — condition text + Yes/No chips */
+                <div style={{ fontSize: 9, color: 'var(--text-muted)', lineHeight: 1.4, width: '100%' }}>
                   <div style={{
                     display: '-webkit-box',
-                    WebkitLineClamp: 3,
+                    WebkitLineClamp: 2,
                     WebkitBoxOrient: 'vertical',
                     overflow: 'hidden',
-                    marginBottom: 4,
-                    fontSize: 11,
-                    lineHeight: 1.5,
+                    marginBottom: 3,
+                    fontSize: 9,
+                    lineHeight: 1.4,
                   }}>
                     {step.condition || displayPrompt}
                   </div>
@@ -834,16 +826,16 @@ export default function CanvasNode({
                   </div>
                 </div>
               ) : nodeType === 'parallel' ? (
-                /* B9: Parallel node body — prompt preview + sub-task count */
-                <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4, width: '100%' }}>
+                /* Parallel node body — prompt preview + sub-task count */
+                <div style={{ fontSize: 9, color: 'var(--text-muted)', lineHeight: 1.4, width: '100%' }}>
                   <div style={{
                     display: '-webkit-box',
-                    WebkitLineClamp: 3,
+                    WebkitLineClamp: 2,
                     WebkitBoxOrient: 'vertical',
                     overflow: 'hidden',
-                    marginBottom: 4,
-                    fontSize: 11,
-                    lineHeight: 1.5,
+                    marginBottom: 3,
+                    fontSize: 9,
+                    lineHeight: 1.4,
                   }}>
                     {displayPrompt}
                   </div>
@@ -854,13 +846,13 @@ export default function CanvasNode({
                   )}
                 </div>
               ) : (
-                /* B6: Default prompt body — 3-line clamp */
+                /* Default prompt body — 2-line clamp */
                 <div style={{
-                  fontSize: 11,
+                  fontSize: 9,
                   color: 'var(--text-muted)',
-                  lineHeight: 1.5,
+                  lineHeight: 1.4,
                   display: '-webkit-box',
-                  WebkitLineClamp: 3,
+                  WebkitLineClamp: 2,
                   WebkitBoxOrient: 'vertical',
                   overflow: 'hidden',
                 }}>
