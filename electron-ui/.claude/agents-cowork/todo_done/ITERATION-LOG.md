@@ -81,3 +81,25 @@ Status: SUCCESS (✓ built in 14.56s)
 - [x] Space hint bg rgba(0,0,0,0.6), radius 6, font 10px
 - [x] Minimap bottom 40px, rgba(15,15,25,0.85), radius 8
 - [x] Canvas context menu backdrop blur, radius 8, font 12px
+
+## Iteration 3 — Provider Model Discovery + Dept Dashboard Fixes
+_Date: 2026-04-10 | Sprint 1_
+
+### Summary
+Implemented 4 fixes: (1) Provider model discovery via `baseUrl/v1/models` with IPC handler, preload binding, and UI modal in SettingsProviders; (2) Fixed org chart navigation always starting at the root level; (3) Fixed dept sessions always reloading on mount; (4) Added "+" new session card in OrgChart for quick session creation.
+
+### Files Changed
+- `src/main/ipc/provider-handlers.ts` — Added `provider:fetchRemoteModels` IPC handler that fetches OpenAI-compatible `/v1/models` endpoint with Bearer auth
+- `src/preload/index.ts` — Exposed `providerFetchRemoteModels` to renderer via contextBridge
+- `src/renderer/components/settings/SettingsProviders.tsx` — Added `fetchingModels`/`modelModal` state, `handleFetchRemoteModels` callback, "获取可用模型" button for gateway providers, and model picker modal with "加载全部模型" action
+- `src/renderer/components/departments/DepartmentDashboard.tsx` — Fixed nav: `useState(null)` instead of `useState(activeDepartmentId)`; fixed sessions: always reload on mount; added `newSessionInDept` helper; added "+" dashed card as last item in each dept's session row
+
+### Build
+Status: SUCCESS
+
+### Acceptance Criteria
+- [x] Gateway providers show "获取可用模型" button; clicking it fetches `/v1/models` with auth header
+- [x] Model picker modal lists discovered models; "加载全部模型" persists them to provider config
+- [x] Navigating to dept view always shows org chart (not a drilled-in dept)
+- [x] Sessions always refresh when entering DepartmentDashboard (no stale cache)
+- [x] "+" card appears as last card in each dept's session row in OrgChart; clicking navigates to new chat with dept's working dir

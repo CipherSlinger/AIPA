@@ -65,6 +65,8 @@ export default function SettingsProviders() {
   const [testing, setTesting] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState<Record<string, Partial<ProviderConfig>>>({})
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [fetchingModels, setFetchingModels] = useState<string | null>(null)
+  const [modelModal, setModelModal] = useState<{ providerId: string; models: string[] } | null>(null)
 
   useEffect(() => {
     window.electronAPI.providerListConfigs().then((configs: ProviderConfig[]) => {
@@ -151,6 +153,30 @@ export default function SettingsProviders() {
     setExpandedId(newId)
     useUiStore.getState().addToast('success', t('provider.saved'))
   }, [t])
+
+  const handleFetchRemoteModels = useCallback(async (provider: ProviderConfig) => {
+    const baseUrl = (editDraft[provider.id]?.baseUrl ?? provider.baseUrl ?? '').trim()
+    if (!baseUrl) {
+      useUiStore.getState().addToast('error', 'Please enter a Base URL first')
+      return
+    }
+    setFetchingModels(provider.id)
+    try {
+      const apiKey = (editDraft[provider.id]?.apiKey ?? provider.apiKey ?? '').trim()
+      const authToken = (editDraft[provider.id]?.authToken ?? provider.authToken ?? '').trim()
+      const result = await (window.electronAPI as any).providerFetchRemoteModels({ baseUrl, apiKey, authToken })
+      if (result.success && result.models.length > 0) {
+        setModelModal({ providerId: provider.id, models: result.models })
+      } else if (result.success) {
+        useUiStore.getState().addToast('info', 'No models returned from endpoint')
+      } else {
+        useUiStore.getState().addToast('error', `Failed: ${result.error}`)
+      }
+    } catch (err) {
+      useUiStore.getState().addToast('error', `Error: ${String(err)}`)
+    }
+    setFetchingModels(null)
+  }, [editDraft])
 
   const updateDraft = useCallback((providerId: string, field: string, value: unknown) => {
     setEditDraft(prev => ({
@@ -318,6 +344,26 @@ export default function SettingsProviders() {
               </div>
             )}
 
+            {/* Fetch models button — gateway scenario */}
+            {provider.scenario === 'gateway' && (
+              <div>
+                <button
+                  onClick={() => handleFetchRemoteModels(provider)}
+                  disabled={fetchingModels === provider.id}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '4px 10px', borderRadius: 6,
+                    background: 'none', border: '1px solid var(--border)',
+                    color: 'var(--text-muted)', cursor: fetchingModels === provider.id ? 'wait' : 'pointer',
+                    fontSize: 11, opacity: fetchingModels === provider.id ? 0.6 : 1,
+                  }}
+                >
+                  <RefreshCw size={11} style={{ animation: fetchingModels === provider.id ? 'spin 1s linear infinite' : 'none' }} />
+                  {fetchingModels === provider.id ? '获取模型中...' : '获取可用模型'}
+                </button>
+              </div>
+            )}
+
             {/* Qwen QR Code quick setup */}
             {provider.id === 'qwen' && (
               <div style={{
@@ -476,6 +522,65 @@ export default function SettingsProviders() {
         <Plus size={13} />
         {t('provider.addCustom')}
       </button>
+
+      {/* Model picker modal */}
+      {modelModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }} onClick={() => setModelModal(null)}>
+          <div style={{
+            background: 'var(--popup-bg, var(--bg-primary))', border: '1px solid var(--border)',
+            borderRadius: 10, padding: 20, width: 400, maxHeight: '70vh', display: 'flex', flexDirection: 'column',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>
+              发现 {modelModal.models.length} 个模型
+            </div>
+            <div style={{ flex: 1, overflow: 'auto', marginBottom: 14, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {modelModal.models.map(m => (
+                <div key={m} style={{
+                  padding: '5px 8px', borderRadius: 5, fontSize: 12,
+                  color: 'var(--text-secondary)', background: 'var(--bg-hover, rgba(255,255,255,0.04))',
+                  fontFamily: 'monospace',
+                }}>{m}</div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setModelModal(null)}
+                style={{
+                  padding: '5px 12px', borderRadius: 6, background: 'none',
+                  border: '1px solid var(--border)', color: 'var(--text-muted)',
+                  cursor: 'pointer', fontSize: 12,
+                }}
+              >
+                取消
+              </button>
+              <button
+                onClick={() => {
+                  // Load models into the provider
+                  const provider = providers.find(p => p.id === modelModal.providerId)
+                  if (!provider) return
+                  const updatedModels = modelModal.models.map(id => ({ id, name: id, provider: provider.id }))
+                  const updated = { ...provider, models: updatedModels }
+                  window.electronAPI.providerUpsert(updated)
+                  setProviders(prev => prev.map(p => p.id === provider.id ? updated : p))
+                  useUiStore.getState().addToast('success', `已加载 ${modelModal.models.length} 个模型`)
+                  setModelModal(null)
+                }}
+                style={{
+                  padding: '5px 12px', borderRadius: 6,
+                  background: 'var(--accent)', border: 'none',
+                  color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 500,
+                }}
+              >
+                加载全部模型
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

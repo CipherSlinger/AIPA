@@ -124,4 +124,21 @@ export function registerProviderHandlers(win: BrowserWindow, send: (ch: string, 
     streamBridgeManager.abort(sessionId)
     return { success: true }
   })
+
+  // Fetch models from an OpenAI-compatible endpoint
+  ipcMain.handle('provider:fetchRemoteModels', async (_e, { baseUrl, apiKey, authToken }: { baseUrl: string; apiKey?: string; authToken?: string }) => {
+    try {
+      const url = `${baseUrl.replace(/\/+$/, '')}/v1/models`
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      const key = apiKey?.trim() || authToken?.trim()
+      if (key) headers['Authorization'] = `Bearer ${key}`
+      const resp = await fetch(url, { headers, signal: AbortSignal.timeout(8000) })
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+      const data = await resp.json() as { data?: { id: string }[] }
+      const models = (data.data || []).map((m: { id: string }) => m.id).filter(Boolean)
+      return { success: true, models }
+    } catch (err) {
+      return { success: false, error: String(err) }
+    }
+  })
 }

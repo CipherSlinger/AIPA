@@ -219,6 +219,7 @@ const electronAPI = {
   providerGetActive: () => ipcRenderer.invoke('provider:getActive'),
   providerSendMessage: (args: unknown) => ipcRenderer.invoke('provider:sendMessage', args),
   providerAbort: (providerId: string) => ipcRenderer.invoke('provider:abort', providerId),
+  providerFetchRemoteModels: (args: unknown) => ipcRenderer.invoke('provider:fetchRemoteModels', args),
 
   onProviderFailover: (cb: (data: { fromProvider: string; toProvider: string; reason: string }) => void): Unsubscribe => {
     const handler = (_: unknown, data: { fromProvider: string; toProvider: string; reason: string }) => cb(data)

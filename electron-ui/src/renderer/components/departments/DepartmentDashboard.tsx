@@ -375,6 +375,13 @@ function OrgChart({ onSelectDept }: OrgChartProps) {
     }
   }
 
+  const newSessionInDept = (dept: { id: string; directory: string; name: string; color?: string }) => {
+    setPrefs({ workingDir: dept.directory })
+    window.electronAPI.prefsSet('workingDir', dept.directory)
+    useChatStore.getState().clearMessages()
+    useUiStore.getState().setMainView('chat')
+  }
+
   if (departments.length === 0) {
     return (
       <div style={{
@@ -580,6 +587,41 @@ function OrgChart({ onSelectDept }: OrgChartProps) {
                     <span style={{ letterSpacing: '0.03em' }}>{t('dept.sessions')}</span>
                   </div>
                 )}
+                {/* New session card */}
+                <div
+                  onClick={() => newSessionInDept(dept)}
+                  title={t('dept.newSession')}
+                  style={{
+                    width: 240,
+                    minHeight: 130,
+                    borderRadius: 12,
+                    border: '1.5px dashed rgba(255,255,255,0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'column',
+                    gap: 6,
+                    cursor: 'pointer',
+                    color: 'var(--text-muted)',
+                    transition: 'border-color 0.15s, color 0.15s, background 0.15s',
+                    background: 'rgba(255,255,255,0.02)',
+                  }}
+                  onMouseEnter={e => {
+                    const el = e.currentTarget as HTMLElement
+                    el.style.borderColor = 'var(--accent)'
+                    el.style.color = 'var(--accent)'
+                    el.style.background = 'rgba(99,102,241,0.06)'
+                  }}
+                  onMouseLeave={e => {
+                    const el = e.currentTarget as HTMLElement
+                    el.style.borderColor = 'rgba(255,255,255,0.15)'
+                    el.style.color = 'var(--text-muted)'
+                    el.style.background = 'rgba(255,255,255,0.02)'
+                  }}
+                >
+                  <span style={{ fontSize: 28, fontWeight: 200, lineHeight: 1 }}>+</span>
+                  <span style={{ fontSize: 10, letterSpacing: '0.03em' }}>{t('dept.newSession')}</span>
+                </div>
               </div>
             )}
           </div>
@@ -593,27 +635,23 @@ function OrgChart({ onSelectDept }: OrgChartProps) {
 export default function DepartmentDashboard() {
   const t = useT()
   const departments = useDepartmentStore(s => s.departments)
-  const activeDepartmentId = useDepartmentStore(s => s.activeDepartmentId)
   const setActiveDepartmentId = useDepartmentStore(s => s.setActiveDepartmentId)
 
-  const allSessions = useSessionStore(s => s.sessions)
-  const sessionsLoading = useSessionStore(s => s.loading)
   const setSessions = useSessionStore(s => s.setSessions)
   const setLoading = useSessionStore(s => s.setLoading)
 
   // Local state: which dept is being drilled into (null = org chart)
-  const [selectedDeptId, setSelectedDeptId] = useState<string | null>(activeDepartmentId)
+  const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null)
 
-  // Load sessions if not yet loaded
+  // Always reload sessions when DepartmentDashboard mounts
   useEffect(() => {
-    if (allSessions.length === 0 && !sessionsLoading) {
-      setLoading(true)
-      window.electronAPI.sessionList().then(list => {
-        setSessions(list || [])
-        setLoading(false)
-      }).catch(() => setLoading(false))
-    }
-  }, [allSessions.length, sessionsLoading, setSessions, setLoading])
+    setLoading(true)
+    window.electronAPI.sessionList().then((list: any) => {
+      setSessions(list || [])
+      setLoading(false)
+    }).catch(() => setLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Only run on mount — always refresh sessions when entering dept view
 
   const handleSelectDept = (deptId: string) => {
     setActiveDepartmentId(deptId)
