@@ -23,6 +23,7 @@ interface CanvasNodeSidebarProps {
 
 function CopyButton({ text, label }: { text: string; label: string }) {
   const [copied, setCopied] = React.useState(false)
+  const t = useT()
 
   const handleCopy = () => {
     navigator.clipboard?.writeText(text)
@@ -49,7 +50,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
       }}
     >
       {copied ? <Check size={10} strokeWidth={2.5} /> : <Copy size={10} />}
-      {copied ? 'Copied' : 'Copy'}
+      {copied ? t('workflow.canvasCopied') : t('workflow.canvasCopy')}
     </button>
   )
 }
@@ -203,7 +204,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
               {onPromptChange && !presetKey && (
                 <button
                   onClick={isEditingPrompt ? commitPromptEdit : startEditPrompt}
-                  title={isEditingPrompt ? 'Save (Ctrl+Enter)' : 'Edit prompt'}
+                  title={isEditingPrompt ? t('workflow.canvasSavePrompt') : t('workflow.canvasEditPrompt')}
                   style={{
                     background: isEditingPrompt ? 'rgba(var(--accent-rgb,59,130,246),0.15)' : 'transparent',
                     border: 'none',
@@ -218,10 +219,10 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
                   }}
                 >
                   <Pencil size={10} />
-                  {isEditingPrompt ? 'Save' : 'Edit'}
+                  {isEditingPrompt ? t('workflow.canvasSave') : t('workflow.canvasEdit')}
                 </button>
               )}
-              <CopyButton text={displayPrompt} label="Copy prompt" />
+              <CopyButton text={displayPrompt} label={t('workflow.canvasCopyPrompt')} />
             </div>
           </div>
 
@@ -254,7 +255,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
                 }}
               />
               <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 3 }}>
-                Ctrl+Enter to save · Esc to cancel
+                {t('workflow.canvasEditHint')}
               </div>
             </div>
           ) : (
@@ -298,12 +299,12 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
                   padding: '0px 4px',
                   letterSpacing: 0.3,
                 }}>
-                  历史
+                  {t('workflow.canvasHistory')}
                 </span>
               )}
             </div>
             {(historyOutput || outputText) && (
-              <CopyButton text={historyOutput ?? outputText ?? ''} label="Copy output" />
+              <CopyButton text={historyOutput ?? outputText ?? ''} label={t('workflow.canvasCopyOutput')} />
             )}
           </div>
           <div style={{
@@ -337,7 +338,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
               : status === 'running' ? t('workflow.canvasRunning')
               : status === 'pending' ? t('workflow.canvasPending')
               : status === 'completed' ? t('workflow.canvasStepDone')
-              : status === 'error' ? '执行失败'
+              : status === 'error' ? t('workflow.canvasError')
               : t('workflow.canvasNotStarted')}
           </div>
 
@@ -365,7 +366,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
               onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)' }}
             >
               <RefreshCw size={11} />
-              重试此步骤
+              {t('workflow.canvasRetryStep')}
             </button>
           )}
         </div>
@@ -391,7 +392,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
             {status === 'running' && t('workflow.canvasRunning')}
             {status === 'pending' && t('workflow.canvasPending')}
             {status === 'idle' && t('workflow.canvasNotStarted')}
-            {status === 'error' && <span style={{ color: '#ef4444' }}>执行失败</span>}
+            {status === 'error' && <span style={{ color: '#ef4444' }}>{t('workflow.canvasError')}</span>}
           </span>
         </div>
         {durationMs !== undefined && status === 'completed' && (

@@ -1,30 +1,31 @@
 import React, { useState } from 'react'
 import { Terminal, MessageSquare, Globe, X, ChevronRight } from 'lucide-react'
+import { useT } from '../../i18n'
 
 // ── Event type groups ──────────────────────────────────────────────────────
-const EVENT_GROUPS: { label: string; events: string[] }[] = [
+const EVENT_GROUP_KEYS: { labelKey: string; events: string[] }[] = [
   {
-    label: 'Tool lifecycle',
+    labelKey: 'hooks.wizard.groupTool',
     events: ['PreToolUse', 'PostToolUse', 'PostToolUseFailure'],
   },
   {
-    label: 'Session lifecycle',
+    labelKey: 'hooks.wizard.groupSession',
     events: ['SessionStart', 'SessionEnd', 'Stop', 'StopFailure'],
   },
   {
-    label: 'User interaction',
+    labelKey: 'hooks.wizard.groupUser',
     events: ['UserPromptSubmit', 'Notification', 'PermissionRequest', 'PermissionDenied'],
   },
   {
-    label: 'Context',
+    labelKey: 'hooks.wizard.groupContext',
     events: ['PreCompact', 'PostCompact'],
   },
   {
-    label: 'Task',
+    labelKey: 'hooks.wizard.groupTask',
     events: ['SubagentStart', 'SubagentStop', 'TaskCreated', 'TaskCompleted'],
   },
   {
-    label: 'Advanced',
+    labelKey: 'hooks.wizard.groupAdvanced',
     events: ['Setup', 'Elicitation', 'ElicitationResult'],
   },
 ]
@@ -37,6 +38,7 @@ interface HookAddWizardProps {
 }
 
 export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) {
+  const t = useT()
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [selectedEvent, setSelectedEvent] = useState('')
   const [hookType, setHookType] = useState<HookType>('command')
@@ -85,16 +87,16 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
     setError('')
     // Validate
     if (hookType === 'command' && !command.trim()) {
-      setError('Command is required.')
+      setError(t('hooks.wizard.errCommandRequired'))
       return
     }
     if (hookType === 'prompt' && !prompt.trim()) {
-      setError('Prompt is required.')
+      setError(t('hooks.wizard.errPromptRequired'))
       return
     }
     if (hookType === 'http') {
-      if (!url.trim()) { setError('URL is required.'); return }
-      try { new URL(url.trim()) } catch { setError('URL format is invalid.'); return }
+      if (!url.trim()) { setError(t('hooks.wizard.errUrlRequired')); return }
+      try { new URL(url.trim()) } catch { setError(t('hooks.wizard.errUrlInvalid')); return }
     }
 
     const hook: Record<string, unknown> = { type: hookType }
@@ -146,7 +148,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
         </React.Fragment>
       ))}
       <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--text-muted)' }}>
-        {step === 1 ? 'Select event' : step === 2 ? 'Select type' : 'Configure'}
+        {step === 1 ? t('hooks.wizard.selectEvent') : step === 2 ? t('hooks.wizard.selectType') : t('hooks.wizard.configure')}
       </span>
     </div>
   )
@@ -160,7 +162,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
       marginTop: 10,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>Add Hook</span>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{t('hooks.wizard.title')}</span>
         <button onClick={onCancel} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2 }}>
           <X size={14} />
         </button>
@@ -172,13 +174,13 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
       {step === 1 && (
         <div>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
-            Choose the event that will trigger this hook:
+            {t('hooks.wizard.chooseEventHint')}
           </div>
           <div style={{ maxHeight: 260, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {EVENT_GROUPS.map(group => (
-              <div key={group.label}>
+            {EVENT_GROUP_KEYS.map(group => (
+              <div key={group.labelKey}>
                 <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
-                  {group.label}
+                  {t(group.labelKey)}
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                   {group.events.map(ev => (
@@ -210,13 +212,13 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
       {step === 2 && (
         <div>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
-            Event: <strong style={{ color: 'var(--text-primary)' }}>{selectedEvent}</strong> — choose hook type:
+            {t('hooks.wizard.chooseTypeHint', { event: selectedEvent })}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             {([
-              { type: 'command' as HookType, icon: <Terminal size={18} />, label: 'Command', desc: 'Run a shell command' },
-              { type: 'prompt' as HookType, icon: <MessageSquare size={18} />, label: 'Prompt', desc: 'Send an AI prompt' },
-              { type: 'http' as HookType, icon: <Globe size={18} />, label: 'HTTP', desc: 'Call a webhook URL' },
+              { type: 'command' as HookType, icon: <Terminal size={18} />, label: t('hooks.wizard.typeCommand'), desc: t('hooks.wizard.typeCommandDesc') },
+              { type: 'prompt' as HookType, icon: <MessageSquare size={18} />, label: t('hooks.wizard.typePrompt'), desc: t('hooks.wizard.typePromptDesc') },
+              { type: 'http' as HookType, icon: <Globe size={18} />, label: t('hooks.wizard.typeHttp'), desc: t('hooks.wizard.typeHttpDesc') },
             ]).map(({ type, icon, label, desc }) => (
               <button
                 key={type}
@@ -243,7 +245,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
             ))}
           </div>
           <button onClick={() => setStep(1)} style={{ marginTop: 10, background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--text-muted)' }}>
-            ← Back
+            {t('hooks.wizard.back')}
           </button>
         </div>
       )}
@@ -252,13 +254,13 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
       {step === 3 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-            Event: <strong style={{ color: 'var(--text-primary)' }}>{selectedEvent}</strong> · Type: <strong style={{ color: 'var(--text-primary)' }}>{hookType}</strong>
+            {t('hooks.wizard.configureHint', { event: selectedEvent, type: hookType })}
           </div>
 
           {/* command fields */}
           {hookType === 'command' && (
             <div>
-              <label style={labelStyle}>Command <span style={{ color: '#ef4444' }}>*</span></label>
+              <label style={labelStyle}>{t('hooks.wizard.labelCommand')} <span style={{ color: '#ef4444' }}>*</span></label>
               <textarea
                 value={command}
                 onChange={e => setCommand(e.target.value)}
@@ -272,7 +274,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
           {hookType === 'prompt' && (
             <>
               <div>
-                <label style={labelStyle}>Prompt <span style={{ color: '#ef4444' }}>*</span></label>
+                <label style={labelStyle}>{t('hooks.wizard.labelPrompt')} <span style={{ color: '#ef4444' }}>*</span></label>
                 <textarea
                   value={prompt}
                   onChange={e => setPrompt(e.target.value)}
@@ -281,7 +283,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                 />
               </div>
               <div>
-                <label style={labelStyle}>Model (optional)</label>
+                <label style={labelStyle}>{t('hooks.wizard.labelModel')}</label>
                 <input value={model} onChange={e => setModel(e.target.value)} placeholder="e.g. claude-haiku-3-5" style={inputStyle} />
               </div>
             </>
@@ -291,11 +293,11 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
           {hookType === 'http' && (
             <>
               <div>
-                <label style={labelStyle}>URL <span style={{ color: '#ef4444' }}>*</span></label>
+                <label style={labelStyle}>{t('hooks.wizard.labelUrl')} <span style={{ color: '#ef4444' }}>*</span></label>
                 <input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://example.com/webhook" style={inputStyle} />
               </div>
               <div>
-                <label style={labelStyle}>Headers (optional, one KEY=VALUE per line)</label>
+                <label style={labelStyle}>{t('hooks.wizard.labelHeaders')}</label>
                 <textarea
                   value={headers}
                   onChange={e => setHeaders(e.target.value)}
@@ -309,11 +311,11 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
           {/* shared optional fields */}
           <div style={{ display: 'flex', gap: 8 }}>
             <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Matcher (optional)</label>
+              <label style={labelStyle}>{t('hooks.wizard.labelMatcher')}</label>
               <input value={matcher} onChange={e => setMatcher(e.target.value)} placeholder="e.g. Bash" style={inputStyle} />
             </div>
             <div style={{ width: 80 }}>
-              <label style={labelStyle}>Timeout (s)</label>
+              <label style={labelStyle}>{t('hooks.wizard.labelTimeout')}</label>
               <input value={timeout} onChange={e => setTimeout_(e.target.value)} placeholder="10" type="number" min="1" style={inputStyle} />
             </div>
           </div>
@@ -326,7 +328,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
 
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
             <button onClick={() => setStep(2)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '5px 12px', cursor: 'pointer', fontSize: 11, color: 'var(--text-muted)' }}>
-              ← Back
+              {t('hooks.wizard.back')}
             </button>
             <button
               onClick={handleSave}
@@ -344,10 +346,10 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                 opacity: saving ? 0.7 : 1,
               }}
             >
-              {saving ? 'Saving…' : 'Save Hook'}
+              {saving ? t('hooks.wizard.saving') : t('hooks.wizard.save')}
             </button>
             <button onClick={onCancel} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '5px 12px', cursor: 'pointer', fontSize: 11, color: 'var(--text-muted)' }}>
-              Cancel
+              {t('hooks.wizard.cancel')}
             </button>
           </div>
         </div>

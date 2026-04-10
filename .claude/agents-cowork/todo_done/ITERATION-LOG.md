@@ -5918,3 +5918,44 @@ Status: SUCCESS
 - [x] Sending a message clears the draft for that session (clearDraft() called in handleSend)
 - [x] npm run build:renderer SUCCESS
 - [x] Zero new TypeScript errors in modified files
+
+## Iteration 535 — Fix onboarding step 2 auth validation (OR logic)
+_Date: 2026-04-09 | Sprint ongoing_
+
+### Summary
+Step 2 of the onboarding wizard had a validation bug where the "Next" button only checked for a non-empty API key, ignoring the auth token field entirely. Users who wanted to use the "天玄 Auth Token" flow could never proceed. Fixed by computing `step2Valid = apiKey.trim().length > 0 || token.trim().length > 0` and using it as the single source of truth for the button's disabled state, opacity, cursor, onClick guard, and onMouseEnter guard. Also fixed `handleComplete` to skip `configSetApiKey` when apiKey is empty (no longer passes empty string to the IPC call).
+
+### Files Changed
+- `electron-ui/src/renderer/components/onboarding/OnboardingWizard.tsx` — replace hard `apiKey.trim()` guard with `step2Valid` (OR of apiKey/token); skip configSetApiKey when apiKey empty
+
+### Build
+Status: SUCCESS (npm run build + tsc --noEmit; zero new errors in modified file)
+
+### Acceptance Criteria
+- [x] Filling only auth token enables the Next button on step 2
+- [x] Filling only API key still enables the Next button (existing behavior preserved)
+- [x] Both fields empty keeps Next button disabled
+- [x] handleComplete no longer sends empty string to configSetApiKey when user chose token-only path
+- [x] Build passes with no new TypeScript errors
+
+## Iteration 536 — Move MCP config from Settings to Channels sidebar
+_Date: 2026-04-09 | Sprint ongoing_
+
+### Summary
+MCP Servers configuration has been relocated from the Settings modal (where it lived as its own tab) into the Channels sidebar panel. ChannelPanel now has a two-tab underline bar (Providers | MCP Servers); SettingsMcp is lazy-loaded inside the new MCP Servers tab. The Settings modal type union and tab array no longer include 'mcp', and the SettingsMcp import was removed from SettingsPanel. i18n key `channel.mcpTab` added to both en.json and zh-CN.json.
+
+### Files Changed
+- `electron-ui/src/renderer/components/channel/ChannelPanel.tsx` — added Providers/MCP Servers tab bar; lazy-load SettingsMcp in MCP tab
+- `electron-ui/src/renderer/components/settings/SettingsPanel.tsx` — removed 'mcp' from SettingsTab type, tab array, render logic, and import
+- `electron-ui/src/renderer/i18n/locales/en.json` — added `channel.mcpTab = "MCP Servers"`
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` — added `channel.mcpTab = "MCP 服务器"`
+
+### Build
+Status: SUCCESS (tsc main+preload OK; vite build OK; zero new TS errors in modified files)
+
+### Acceptance Criteria
+- [x] Channels sidebar panel shows two tabs: Providers and MCP Servers
+- [x] MCP Servers tab renders full SettingsMcp UI (add/delete/toggle/reconnect)
+- [x] Settings modal no longer shows MCP Servers tab
+- [x] i18n keys present in both locales
+- [x] Build passes with no new TypeScript errors

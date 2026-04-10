@@ -23,7 +23,9 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
   }
 
   const handleComplete = async () => {
-    await window.electronAPI.configSetApiKey(apiKey)
+    if (apiKey.trim()) {
+      await window.electronAPI.configSetApiKey(apiKey)
+    }
     await window.electronAPI.prefsSet('workingDir', workDir)
     // If token or baseUrl was provided, update the claude-cli provider config
     if (token.trim() || baseUrl.trim()) {
@@ -61,6 +63,8 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
   const StepIcon = STEP_ICONS[step - 1]
   const iconColor = step === 4 ? 'var(--success)' : 'var(--accent)'
   const progressWidth = `${((step) / 4) * 100}%`
+  // Step 2 is valid when either API key or auth token is filled
+  const step2Valid = apiKey.trim().length > 0 || token.trim().length > 0
 
   return (
     <div style={styles.overlay}>
@@ -186,12 +190,12 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
               <button
                 style={{
                   ...styles.primaryBtn,
-                  opacity: apiKey.trim() ? 1 : 0.4,
-                  cursor: apiKey.trim() ? 'pointer' : 'not-allowed',
+                  opacity: step2Valid ? 1 : 0.4,
+                  cursor: step2Valid ? 'pointer' : 'not-allowed',
                 }}
-                onClick={() => apiKey.trim() && setStep(3)}
-                disabled={!apiKey.trim()}
-                onMouseEnter={e => { if (apiKey.trim()) { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.filter = 'brightness(1.1)' } }}
+                onClick={() => step2Valid && setStep(3)}
+                disabled={!step2Valid}
+                onMouseEnter={e => { if (step2Valid) { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.filter = 'brightness(1.1)' } }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.filter = 'none' }}
               >
                 {t('onboarding.next')} <ChevronRight size={14} style={{ marginLeft: 4, verticalAlign: 'middle' }} />

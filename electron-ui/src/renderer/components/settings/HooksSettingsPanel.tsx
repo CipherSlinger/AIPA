@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { Zap, Terminal, MessageSquare, Globe, Trash2, Plus, ChevronDown, ChevronRight } from 'lucide-react'
 import HookAddWizard from './HookAddWizard'
+import { useT } from '../../i18n'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface HookEntry {
@@ -38,6 +39,7 @@ function HookTypeIcon({ type }: { type: string }) {
 
 // ── Main component ─────────────────────────────────────────────────────────
 export default function HooksSettingsPanel() {
+  const t = useT()
   const [hooks, setHooks] = useState<HooksConfig>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -51,7 +53,7 @@ export default function HooksSettingsPanel() {
       const settings = await window.electronAPI.configReadCLISettings()
       setHooks((settings?.hooks as HooksConfig) ?? {})
     } catch (e) {
-      setError('Failed to load hooks: ' + String(e))
+      setError(t('hooks.loadError', { error: String(e) }))
     } finally {
       setLoading(false)
     }
@@ -104,7 +106,7 @@ export default function HooksSettingsPanel() {
   if (loading) {
     return (
       <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
-        Loading hooks…
+        {t('hooks.loading')}
       </div>
     )
   }
@@ -115,10 +117,10 @@ export default function HooksSettingsPanel() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <div>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
-            Hooks Configuration
+            {t('hooks.title')}
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-            Hooks run shell commands, AI prompts, or HTTP calls in response to CLI events.
+            {t('hooks.subtitle')}
           </div>
         </div>
         <button
@@ -132,7 +134,7 @@ export default function HooksSettingsPanel() {
           }}
         >
           <Plus size={13} />
-          Add Hook
+          {t('hooks.addHook')}
         </button>
       </div>
 
@@ -158,10 +160,10 @@ export default function HooksSettingsPanel() {
         }}>
           <Zap size={28} color="var(--text-muted)" style={{ opacity: 0.4, marginBottom: 10 }} />
           <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500, marginBottom: 6 }}>
-            No hooks configured
+            {t('hooks.noHooksTitle')}
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 300, margin: '0 auto' }}>
-            Hooks let you run custom commands, prompts, or HTTP requests automatically when Claude Code CLI events fire. Click "Add Hook" to get started.
+            {t('hooks.noHooksDesc')}
           </div>
         </div>
       )}
@@ -208,7 +210,7 @@ export default function HooksSettingsPanel() {
                     borderRadius: 10,
                     padding: '1px 6px',
                   }}>
-                    {totalHooks} {totalHooks === 1 ? 'hook' : 'hooks'}
+                    {t('hooks.hookCount', { count: totalHooks })}
                   </span>
                 </button>
 
@@ -252,13 +254,13 @@ export default function HooksSettingsPanel() {
                             )}
                             <button
                               onClick={() => handleDelete(eventType, mi, hi)}
-                              title="Delete hook"
+                              title={t('hooks.deleteHook')}
                               style={{
                                 background: 'none', border: 'none', cursor: 'pointer',
                                 color: 'var(--text-muted)', padding: 2, display: 'flex', alignItems: 'center',
                                 flexShrink: 0,
                               }}
-                              aria-label="Delete hook"
+                              aria-label={t('hooks.deleteHook')}
                             >
                               <Trash2 size={12} />
                             </button>

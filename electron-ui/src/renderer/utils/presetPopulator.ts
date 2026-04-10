@@ -4,7 +4,7 @@
  * immediately instead of an empty panel.
  */
 import { PERSONA_PRESETS } from '../components/settings/personaConstants'
-import { PRESET_WORKFLOWS } from '../components/workflows/workflowConstants'
+import { PRESET_WORKFLOWS, PRESET_TEAMWORK_WORKFLOWS } from '../components/workflows/workflowConstants'
 import { usePrefsStore } from '../store'
 import type { Persona, Workflow } from '../types/app.types'
 
@@ -39,7 +39,8 @@ export function populateDefaultPresetsIfEmpty(prefs: Record<string, any>) {
   // Populate workflows if empty
   if (!existingWorkflows || existingWorkflows.length === 0) {
     const now = Date.now()
-    const defaultWorkflows: Workflow[] = PRESET_WORKFLOWS.map((preset, i) => ({
+    const allPresets = [...PRESET_WORKFLOWS, ...PRESET_TEAMWORK_WORKFLOWS]
+    const defaultWorkflows: Workflow[] = allPresets.map((preset, i) => ({
       ...preset,
       id: generateId() + i,
       createdAt: now,
