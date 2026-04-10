@@ -2,6 +2,7 @@
   "nav": {
     "newChat": "New Chat",
     "history": "History",
+    "departments": "Departments",
     "files": "Files",
     "settings": "Settings",
     "userProfile": "User profile",
@@ -2242,5 +2243,32 @@
       "errUrlRequired": "URL is required.",
       "errUrlInvalid": "URL format is invalid."
     }
+  },
+  "dept": {
+    "panelTitle": "Departments",
+    "add": "+ New Department",
+    "addTitle": "New Department",
+    "namePlaceholder": "Department name",
+    "pickDirectory": "Choose office directory...",
+    "create": "Create",
+    "cancel": "Cancel",
+    "rename": "Rename",
+    "delete": "Delete",
+    "emptyHint": "No departments yet.\nClick + to create one.",
+    "noSelection": "No department selected",
+    "noSelectionHint": "Select a department from the sidebar",
+    "files": "Department Files",
+    "newSession": "New Session",
+    "sessions": "Sessions",
+    "noSessions": "No sessions yet",
+    "noSessionsHint": "Click \"New Session\" to start a conversation in this department."
+  },
+  "session": {
+    "justNow": "just now",
+    "minutesAgo": "m ago",
+    "hoursAgo": "h ago",
+    "daysAgo": "d ago",
+    "untitled": "Untitled Session",
+    "messages": "msgs"
   }
 }

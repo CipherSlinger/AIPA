@@ -2,6 +2,7 @@
   "nav": {
     "newChat": "新对话",
     "history": "历史记录",
+    "departments": "部门",
     "files": "文件",
     "settings": "设置",
     "userProfile": "用户头像",
@@ -2260,5 +2261,32 @@
       "errUrlRequired": "URL 不能为空。",
       "errUrlInvalid": "URL 格式无效。"
     }
+  },
+  "dept": {
+    "panelTitle": "部门",
+    "add": "+ 新增部门",
+    "addTitle": "新增部门",
+    "namePlaceholder": "部门名称",
+    "pickDirectory": "选择部门办公室目录...",
+    "create": "创建",
+    "cancel": "取消",
+    "rename": "重命名",
+    "delete": "删除",
+    "emptyHint": "暂无部门，点击 + 新增。",
+    "noSelection": "未选择部门",
+    "noSelectionHint": "在侧边栏选择一个部门",
+    "files": "部门资料",
+    "newSession": "新建会话",
+    "sessions": "会话列表",
+    "noSessions": "该部门暂无会话",
+    "noSessionsHint": "点击「新建会话」在此部门开始一次对话。"
+  },
+  "session": {
+    "justNow": "刚刚",
+    "minutesAgo": "分钟前",
+    "hoursAgo": "小时前",
+    "daysAgo": "天前",
+    "untitled": "无标题会话",
+    "messages": "条消息"
   }
 }

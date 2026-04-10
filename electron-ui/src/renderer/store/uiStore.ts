@@ -42,9 +42,9 @@ interface UiState {
   openSettingsModal: () => void
   closeSettingsModal: () => void
 
-  // Main content area view (Iteration 412: settings; Iteration 414: editors; Iteration 460: workflow-detail; Iteration 534: notes; Iteration 535: skill-creator)
-  mainView: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor' | 'workflow-detail' | 'notes' | 'skill-creator'
-  setMainView: (view: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor' | 'workflow-detail' | 'notes' | 'skill-creator') => void
+  // Main content area view (Iteration 412: settings; Iteration 414: editors; Iteration 460: workflow-detail; Iteration 534: notes; Iteration 535: skill-creator; department: department dashboard)
+  mainView: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor' | 'workflow-detail' | 'notes' | 'skill-creator' | 'department'
+  setMainView: (view: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor' | 'workflow-detail' | 'notes' | 'skill-creator' | 'department') => void
 
   // Persona/Workflow editor: ID of item being edited (null = new)
   editingPersonaId: string | null
@@ -155,7 +155,7 @@ export const useUiStore = create<UiState>((set) => ({
   setSettingsModalOpen: (v) => set({ settingsModalOpen: v }),
   openSettingsModal: () => set({ settingsModalOpen: true, mainView: 'settings' }),
   closeSettingsModal: () => set({ settingsModalOpen: false, mainView: 'chat' }),
-  mainView: 'chat',
+  mainView: 'chat' as const,
   setMainView: (view) => set({ mainView: view }),
   editingPersonaId: null,
   editingWorkflowId: null,

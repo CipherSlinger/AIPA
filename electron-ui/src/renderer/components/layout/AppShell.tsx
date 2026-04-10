@@ -14,6 +14,7 @@ const WorkflowEditorPage = React.lazy(() => import('../settings/WorkflowEditorPa
 const WorkflowDetailPage = React.lazy(() => import('../workflows/WorkflowDetailPage'))
 const NotesPanel = React.lazy(() => import('../notes/NotesPanel'))
 const SkillCreatorPage = React.lazy(() => import('../skills/SkillCreatorPage'))
+const DepartmentDashboard = React.lazy(() => import('../departments/DepartmentDashboard'))
 
 const MIN_SIDEBAR = 180
 const MAX_SIDEBAR = 400
@@ -64,7 +65,10 @@ export default function AppShell() {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation()
-        if (mainView === 'workflow-detail') {
+        if (mainView === 'department') {
+          // Escape from department dashboard goes to chat
+          useUiStore.getState().setMainView('chat')
+        } else if (mainView === 'workflow-detail') {
           // Go back to chat from workflow detail
           useUiStore.getState().setMainView('chat')
         } else if (mainView === 'persona-editor' || mainView === 'workflow-editor') {
@@ -205,7 +209,13 @@ export default function AppShell() {
             flexDirection: 'column',
           }}
         >
-          {mainView === 'settings' ? (
+          {mainView === 'department' ? (
+            <ErrorBoundary fallbackLabel="department dashboard">
+              <React.Suspense fallback={<div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading...</div>}>
+                <DepartmentDashboard />
+              </React.Suspense>
+            </ErrorBoundary>
+          ) : mainView === 'settings' ? (
             <ErrorBoundary fallbackLabel="settings page">
               {/* Settings page header */}
               <div style={{

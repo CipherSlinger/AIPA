@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react'
 import { useUiStore } from '../../store'
-import SessionList from '../sessions/SessionList'
+import DepartmentPanel from '../departments/DepartmentPanel'
 import ErrorBoundary from '../shared/ErrorBoundary'
 
 // Lazy-load heavy sidebar panels (Iteration 198 — code-splitting)
@@ -49,7 +49,7 @@ export default function Sidebar() {
     >
       {/* Tab content — NavRail controls which tab is active */}
       <div className="flex-1 overflow-auto">
-        {sidebarTab === 'history' && <SessionList />}
+        {sidebarTab === 'history' && <DepartmentPanel />}
         {sidebarTab === 'files' && (
           <Suspense fallback={<PanelFallback />}>
             <FileBrowser />
