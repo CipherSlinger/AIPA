@@ -20,8 +20,8 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
     if (apiKey.trim()) {
       await window.electronAPI.configSetApiKey(apiKey)
     }
-    // If token or baseUrl was provided, update the claude-cli provider config
-    if (token.trim() || baseUrl.trim()) {
+    // Sync apiKey / token / baseUrl to the claude-cli provider config so the Providers page shows them
+    if (apiKey.trim() || token.trim() || baseUrl.trim()) {
       const configs: Array<{
         id: string
         name: string
@@ -38,8 +38,10 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
       if (claudeCli) {
         const updated = {
           ...claudeCli,
-          authToken: token.trim() || claudeCli.authToken,
-          baseUrl: baseUrl.trim() || claudeCli.baseUrl,
+          ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
+          ...(token.trim() ? { authToken: token.trim() } : {}),
+          ...(baseUrl.trim() ? { baseUrl: baseUrl.trim() } : {}),
+          enabled: true,
         }
         await window.electronAPI.providerUpsert(updated)
       }

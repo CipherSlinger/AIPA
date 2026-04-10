@@ -43,8 +43,8 @@ interface UiState {
   closeSettingsModal: () => void
 
   // Main content area view (Iteration 412: settings; Iteration 414: editors; Iteration 460: workflow-detail; Iteration 534: notes; Iteration 535: skill-creator; department: department dashboard)
-  mainView: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor' | 'workflow-detail' | 'notes' | 'skill-creator' | 'department'
-  setMainView: (view: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor' | 'workflow-detail' | 'notes' | 'skill-creator' | 'department') => void
+  mainView: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor' | 'workflow-detail' | 'notes' | 'skill-creator' | 'skill-marketplace' | 'department'
+  setMainView: (view: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor' | 'workflow-detail' | 'notes' | 'skill-creator' | 'skill-marketplace' | 'department') => void
 
   // Persona/Workflow editor: ID of item being edited (null = new)
   editingPersonaId: string | null

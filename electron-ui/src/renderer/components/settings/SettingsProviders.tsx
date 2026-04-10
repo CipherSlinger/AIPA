@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { useI18n } from '../../i18n'
 import { useUiStore } from '../../store'
 import Toggle from '../ui/Toggle'
-import { Trash2, RefreshCw, ChevronDown, ChevronRight, Eye, EyeOff, ExternalLink } from 'lucide-react'
+import { Trash2, RefreshCw, ChevronDown, ChevronRight, Eye, EyeOff, ExternalLink, Plus } from 'lucide-react'
 
 const QRCodeDisplay = lazy(() => import('../ui/QRCodeDisplay'))
 
@@ -132,6 +132,24 @@ export default function SettingsProviders() {
     setProviders(prev => prev.filter(p => p.id !== providerId))
     setDeleteConfirm(null)
     useUiStore.getState().addToast('success', t('provider.deleted'))
+  }, [t])
+
+  const handleAddCustomProvider = useCallback(async () => {
+    const newId = `custom-${Date.now()}`
+    const newProvider: ProviderConfig = {
+      id: newId,
+      name: t('provider.newProviderName'),
+      scenario: 'gateway',
+      baseUrl: '',
+      authToken: '',
+      apiKey: '',
+      models: [],
+      enabled: false,
+    }
+    await window.electronAPI.providerUpsert(newProvider)
+    setProviders(prev => [...prev, newProvider])
+    setExpandedId(newId)
+    useUiStore.getState().addToast('success', t('provider.saved'))
   }, [t])
 
   const updateDraft = useCallback((providerId: string, field: string, value: unknown) => {
@@ -434,6 +452,30 @@ export default function SettingsProviders() {
     <div>
       {renderScenarioSection('official', officialProviders)}
       {renderScenarioSection('gateway', gatewayProviders)}
+      <button
+        onClick={handleAddCustomProvider}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '6px 12px',
+          marginTop: 4,
+          borderRadius: 6,
+          border: '1px dashed var(--border)',
+          background: 'transparent',
+          color: 'var(--text-muted)',
+          fontSize: 12,
+          cursor: 'pointer',
+          width: '100%',
+          justifyContent: 'center',
+          transition: 'border-color 0.15s, color 0.15s',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+      >
+        <Plus size={13} />
+        {t('provider.addCustom')}
+      </button>
     </div>
   )
 }

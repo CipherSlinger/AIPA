@@ -34,6 +34,7 @@ interface CanvasNodeProps {
   onInsertBefore?: (stepId: string) => void
   onInsertAfter?: (stepId: string) => void
   onRetry?: (stepId: string) => void
+  onPromptChange?: (stepId: string, newPrompt: string) => void
 }
 
 export const NODE_WIDTH = 180
@@ -436,14 +437,18 @@ export default function CanvasNode({
   onInsertBefore,
   onInsertAfter,
   onRetry,
+  onPromptChange,
 }: CanvasNodeProps) {
   const t = useT()
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null)
   const [outputExpanded, setOutputExpanded] = useState(false)
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editTitleValue, setEditTitleValue] = useState('')
+  const [isEditingPrompt, setIsEditingPrompt] = useState(false)
+  const [editPromptValue, setEditPromptValue] = useState('')
   const [isNodeHovered, setIsNodeHovered] = useState(false)
   const titleInputRef = useRef<HTMLInputElement>(null)
+  const promptTextareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Reset output expansion when node changes status
   useEffect(() => {
@@ -457,6 +462,14 @@ export default function CanvasNode({
       titleInputRef.current.select()
     }
   }, [isEditingTitle])
+
+  // Auto-focus prompt textarea when entering prompt edit mode
+  useEffect(() => {
+    if (isEditingPrompt && promptTextareaRef.current) {
+      promptTextareaRef.current.focus()
+      promptTextareaRef.current.select()
+    }
+  }, [isEditingPrompt])
 
   const handleTitleDoubleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
@@ -475,6 +488,26 @@ export default function CanvasNode({
   const cancelTitleEdit = useCallback(() => {
     setIsEditingTitle(false)
   }, [])
+
+  const handlePromptDoubleClick = useCallback((e: React.MouseEvent) => {
+    if (!onPromptChange) return
+    e.stopPropagation()
+    setEditPromptValue(step.prompt || '')
+    setIsEditingPrompt(true)
+  }, [step.prompt, onPromptChange])
+
+  const commitPromptEdit = useCallback(() => {
+    const trimmed = editPromptValue.trim()
+    if (trimmed && trimmed !== step.prompt) {
+      onPromptChange?.(step.id, trimmed)
+    }
+    setIsEditingPrompt(false)
+  }, [editPromptValue, step.id, step.prompt, onPromptChange])
+
+  const handlePromptKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Escape') { e.preventDefault(); setIsEditingPrompt(false) }
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); commitPromptEdit() }
+  }, [commitPromptEdit])
 
   const handleTitleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') { e.preventDefault(); commitTitleEdit() }
@@ -846,18 +879,53 @@ export default function CanvasNode({
                   )}
                 </div>
               ) : (
-                /* Default prompt body — 2-line clamp */
-                <div style={{
-                  fontSize: 9,
-                  color: 'var(--text-muted)',
-                  lineHeight: 1.4,
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                }}>
-                  {displayPrompt}
-                </div>
+                /* Default prompt body — double-click to edit */
+                isEditingPrompt ? (
+                  <div onMouseDown={e => e.stopPropagation()}>
+                    <textarea
+                      ref={promptTextareaRef}
+                      value={editPromptValue}
+                      onChange={e => setEditPromptValue(e.target.value)}
+                      onKeyDown={handlePromptKeyDown}
+                      onBlur={commitPromptEdit}
+                      style={{
+                        width: '100%',
+                        minHeight: 48,
+                        fontSize: 9,
+                        color: 'var(--text-primary)',
+                        background: 'var(--input-field-bg, rgba(255,255,255,0.06))',
+                        border: '1px solid var(--accent)',
+                        borderRadius: 3,
+                        padding: '3px 5px',
+                        outline: 'none',
+                        resize: 'vertical',
+                        boxSizing: 'border-box',
+                        fontFamily: 'inherit',
+                        lineHeight: 1.4,
+                      }}
+                    />
+                    <div style={{ fontSize: 8, color: 'var(--text-muted)', marginTop: 2 }}>
+                      Ctrl+Enter save · Esc cancel
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      fontSize: 9,
+                      color: 'var(--text-muted)',
+                      lineHeight: 1.4,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      cursor: onPromptChange ? 'text' : undefined,
+                    }}
+                    onDoubleClick={handlePromptDoubleClick}
+                    title={onPromptChange ? 'Double-click to edit' : undefined}
+                  >
+                    {displayPrompt}
+                  </div>
+                )
               )}
 
               {/* Error output summary */}

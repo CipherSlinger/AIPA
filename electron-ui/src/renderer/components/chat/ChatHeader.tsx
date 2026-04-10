@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Search, Download, ClipboardCopy, Maximize2, Minimize2, Plus, FolderOpen, FileText, FilePlus2, RefreshCw, MessageSquarePlus, X, GitBranch } from 'lucide-react'
+import { Search, Download, ClipboardCopy, Maximize2, Minimize2, Plus, FolderOpen, FileText, FilePlus2, RefreshCw, MessageSquarePlus, X, GitBranch, Building2 } from 'lucide-react'
 import { useChatStore, useSessionStore, usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import ModelPicker from './ModelPicker'
@@ -521,19 +521,19 @@ ${t('chat.clickToChangeDir')}`}
         hoverOut={hoverOut}
       />
 
-      {/* Focus mode toggle */}
+      {/* Return to org chart */}
       <button
         onClick={onToggleFocus}
-        title={focusMode ? `${t('chat.exitFocusMode')} (Ctrl+Shift+O)` : `${t('chat.focusMode')} (Ctrl+Shift+O)`}
+        title={t('dept.backToOrgChart')}
         style={{
           ...headerBtnStyle,
-          background: focusMode ? 'var(--accent)' : 'none',
-          color: focusMode ? '#fff' : 'var(--chat-header-icon)',
+          background: 'none',
+          color: 'var(--chat-header-icon)',
         }}
-        onMouseEnter={(e) => hoverIn(e, focusMode)}
-        onMouseLeave={(e) => hoverOut(e, focusMode)}
+        onMouseEnter={(e) => hoverIn(e, false)}
+        onMouseLeave={(e) => hoverOut(e, false)}
       >
-        {focusMode ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+        <Building2 size={15} />
       </button>
 
       {/* Session cost badge — visible when cost > $0.01, color-coded by threshold */}

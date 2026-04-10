@@ -3,16 +3,14 @@
 //              StatusBarModelPicker, StatusBarPersonaPicker, StatusBarTokenPopup
 
 import React, { useState } from 'react'
-import { PanelLeft, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Square, StopCircle, Pin, Settings, Gauge, Brain, Calendar, Wifi, Archive, ClipboardList } from 'lucide-react'
+import { PanelLeft, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Square, Pin, Settings, Gauge, Brain, Calendar, Wifi, Archive, ClipboardList } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore, useSessionStore } from '../../store'
 import { StandardChatMessage } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { Separator, formatDuration, fmtNumber } from './statusBarConstants'
-import { useFocusTimer, useStopwatch, FOCUS_PRESETS } from './useStatusBarTimers'
+import { useFocusTimer, FOCUS_PRESETS } from './useStatusBarTimers'
 import { useStreamingSpeed } from './useStreamingSpeed'
 import { useMemoryUsage } from '../../hooks/useMemoryUsage'
-import StatusBarModelPicker from './StatusBarModelPicker'
-import StatusBarPersonaPicker from './StatusBarPersonaPicker'
 import StatusBarTokenPopup from './StatusBarTokenPopup'
 
 // Per-model pricing tiers (inspired by Claude Code modelCost.ts)
@@ -60,23 +58,11 @@ export default function StatusBar() {
   // Hooks from extracted modules
   const streamingSpeed = useStreamingSpeed()
   const focusTimer = useFocusTimer()
-  const stopwatch = useStopwatch()
   const memoryUsage = useMemoryUsage()
 
   // Derived values
   const dirLabel = workingDir || prefs.workingDir || '~'
   const dirShort = dirLabel.split(/[/\\]/).pop() || dirLabel
-  const modelLabel = prefs.model || 'claude-sonnet-4-6'
-  const isClaudeModel = modelLabel.startsWith('claude-')
-  const shortModel = isClaudeModel
-    ? modelLabel
-        .replace('claude-', '')
-        .replace(/-\d{8}$/, '')
-        .split('-')
-        .map((s: string) => s.charAt(0).toUpperCase() + s.slice(1))
-        .join(' ')
-    : modelLabel
-
   const contextPct = lastContextUsage && lastContextUsage.total > 0
     ? Math.min(100, Math.round(lastContextUsage.used / lastContextUsage.total * 100))
     : null
@@ -96,10 +82,6 @@ export default function StatusBar() {
     : null
   const sessionDuration = firstMsgTs ? Date.now() - firstMsgTs : null
 
-  const personas = prefs.personas || []
-  const activePersona = personas.find(p => p.id === prefs.activePersonaId)
-
-  // Sessions today count (Iteration 417)
   const allSessions = useSessionStore(s => s.sessions)
   const sessionsToday = React.useMemo(() => {
     const todayStart = new Date()
@@ -410,36 +392,6 @@ export default function StatusBar() {
           )}
         </div>
 
-        {/* Stopwatch */}
-        <button
-          onClick={stopwatch.handleClick}
-          title={stopwatch.active ? t('toolbar.stopStopwatch') : stopwatch.elapsed > 0 ? t('toolbar.resumeStopwatch') : t('toolbar.startStopwatch')}
-          style={{
-            background: stopwatch.active ? 'rgba(255,255,255,0.15)' : 'none',
-            border: 'none',
-            color: '#fff',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 3,
-            padding: '1px 5px',
-            borderRadius: 4,
-            fontSize: 10,
-            opacity: stopwatch.active || stopwatch.elapsed > 0 ? 1 : 0.6,
-            transition: 'opacity 0.15s',
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = (stopwatch.active || stopwatch.elapsed > 0) ? '1' : '0.6' }}
-        >
-          <StopCircle size={10} style={{ color: stopwatch.active ? '#f59e0b' : undefined }} />
-          {stopwatch.active || stopwatch.elapsed > 0 ? (
-            <span style={{ fontVariantNumeric: 'tabular-nums' }}>
-              {formatDuration(stopwatch.elapsed * 1000)}
-            </span>
-          ) : (
-            <span>{t('toolbar.stopwatch')}</span>
-          )}
-        </button>
       </div>
 
       <Separator />
@@ -542,12 +494,6 @@ export default function StatusBar() {
             )}
           </div>
         )}
-
-        {/* Persona quick-switcher */}
-        <StatusBarPersonaPicker personas={personas} activePersona={activePersona} />
-
-        {/* Model badge (clickable) */}
-        <StatusBarModelPicker modelLabel={modelLabel} shortModel={shortModel} isClaudeModel={isClaudeModel} />
 
         {/* Effort level indicator (display only, non-auto levels) */}
         {effortLevel !== 'auto' && (

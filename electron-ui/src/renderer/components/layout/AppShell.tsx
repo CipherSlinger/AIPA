@@ -14,6 +14,7 @@ const WorkflowEditorPage = React.lazy(() => import('../settings/WorkflowEditorPa
 const WorkflowDetailPage = React.lazy(() => import('../workflows/WorkflowDetailPage'))
 const NotesPanel = React.lazy(() => import('../notes/NotesPanel'))
 const SkillCreatorPage = React.lazy(() => import('../skills/SkillCreatorPage'))
+const SkillMarketplacePage = React.lazy(() => import('../skills/SkillMarketplacePage'))
 const DepartmentDashboard = React.lazy(() => import('../departments/DepartmentDashboard'))
 
 const MIN_SIDEBAR = 180
@@ -285,6 +286,12 @@ export default function AppShell() {
             <ErrorBoundary fallbackLabel="skill creator">
               <React.Suspense fallback={<div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading...</div>}>
                 <SkillCreatorPage />
+              </React.Suspense>
+            </ErrorBoundary>
+          ) : mainView === 'skill-marketplace' ? (
+            <ErrorBoundary fallbackLabel="skill marketplace">
+              <React.Suspense fallback={<div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading...</div>}>
+                <SkillMarketplacePage />
               </React.Suspense>
             </ErrorBoundary>
           ) : (

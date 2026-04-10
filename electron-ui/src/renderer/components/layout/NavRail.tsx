@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { MessageSquarePlus, Building2, NotebookPen, Puzzle, Brain, Workflow, Settings, User, PanelLeftClose, PanelLeftOpen, CheckSquare, GitBranch, Users2 } from 'lucide-react'
+import { Building2, NotebookPen, Puzzle, Brain, Workflow, Settings, User, PanelLeftClose, PanelLeftOpen, CheckSquare, GitBranch, Users2 } from 'lucide-react'
 import { useUiStore, useChatStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 import { AVATAR_PRESETS } from './avatarPresets'
@@ -234,6 +234,7 @@ export default function NavRail() {
 
   // The active panel item (history/files/settings) matches activeNavItem
   const isHistoryActive = activeNavItem === 'history' && sidebarTab === 'history'
+  const isDepartmentActive = mainView === 'department'
   const isNotesActive = mainView === 'notes' || (activeNavItem === 'notes' && sidebarTab === 'notes')
   const isSkillsActive = activeNavItem === 'skills' && sidebarTab === 'skills'
   const isMemoryActive = activeNavItem === 'memory' && sidebarTab === 'memory'
@@ -245,13 +246,6 @@ export default function NavRail() {
   const changedFilesCount = useMemo(() => new Set(changedFiles.map(f => f.filePath)).size, [changedFiles])
   const isStreaming = useChatStore(s => s.isStreaming)
   const isSettingsActive = useUiStore(s => s.settingsModalOpen)
-
-  const handleNewChat = () => {
-    // Same logic as Ctrl+N in App.tsx: clear messages to start fresh
-    const store = useChatStore.getState()
-    if (store.isStreaming) return
-    store.clearMessages()
-  }
 
   const iconSize = navExpanded ? 20 : 18
 
@@ -277,23 +271,14 @@ export default function NavRail() {
         transition: 'width 0.2s ease',
       }}
     >
-      {/* New Chat */}
-      <NavItem
-        icon={<MessageSquarePlus size={iconSize} />}
-        label={t('nav.newChat')}
-        shortcut="Ctrl+N"
-        onClick={handleNewChat}
-        expanded={navExpanded}
-      />
-
       {/* Departments */}
       <NavItem
         icon={<Building2 size={iconSize} />}
         label={t('nav.departments')}
         shortcut="Ctrl+1"
-        isActive={isHistoryActive}
-        onClick={() => setActiveNavItem('history')}
-        pulseDot={isStreaming && !isHistoryActive}
+        isActive={isDepartmentActive}
+        onClick={() => useUiStore.getState().setMainView('department')}
+        pulseDot={isStreaming && !isDepartmentActive}
         expanded={navExpanded}
       />
 

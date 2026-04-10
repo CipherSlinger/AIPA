@@ -288,7 +288,7 @@ export default function ChatPanel() {
         onToggleSearch={() => setSearchOpen(!searchOpen)}
         onExport={() => setShowExport(true)}
         onCopyConversation={copyConversation}
-        onToggleFocus={toggleFocusMode}
+        onToggleFocus={() => useUiStore.getState().setMainView('department')}
         onNewConversation={newConversation}
         onRegenerate={handleRegenerate}
         onScrollToMessage={handleScrollToMessage}

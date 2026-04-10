@@ -466,6 +466,11 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     onStepUpdate?.(stepId, { title: newTitle })
   }, [onStepUpdate])
 
+  // Direction B: node prompt change (from CanvasNode inline edit)
+  const handlePromptChange = useCallback((stepId: string, newPrompt: string) => {
+    onStepUpdate?.(stepId, { prompt: newPrompt })
+  }, [onStepUpdate])
+
   // Direction G: JSON export
   const handleExport = useCallback(() => {
     if (!workflow) return
@@ -890,6 +895,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               }}
               onToggleCollapse={layout.handleToggleCollapse}
               onTitleChange={handleTitleChange}
+              onPromptChange={onStepUpdate ? handlePromptChange : undefined}
               onMultiSelect={(id, shiftKey) => layout.selectNode(id, shiftKey)}
               // D6: drag to reorder
               onReorderDragStart={onStepReorder ? (stepId, e) => {
