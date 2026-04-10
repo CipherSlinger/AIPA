@@ -113,7 +113,7 @@ export default function SettingsGeneral({
             />
             <button
               onClick={() => setShowKey(!showKey)}
-              aria-label={showKey ? 'Hide API key' : 'Show API key'}
+              aria-label={showKey ? t('settingsAdvanced.hideApiKey') : t('settingsAdvanced.showApiKey')}
               style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex' }}
             >
               {showKey ? <EyeOff size={13} /> : <Eye size={13} />}

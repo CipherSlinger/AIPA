@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useI18n } from '../../i18n'
+import { useI18n, useT } from '../../i18n'
 import Toggle from '../ui/Toggle'
 import { Plus, Trash2, RefreshCw, ChevronDown, ChevronRight, Wrench } from 'lucide-react'
 
@@ -69,6 +69,7 @@ function KVEditor({
   keyPlaceholder: string
   valPlaceholder: string
 }) {
+  const t = useT()
   const set = (i: number, field: 'key' | 'value', v: string) => {
     const next = pairs.map((p, idx) => idx === i ? { ...p, [field]: v } : p)
     onChange(next)
@@ -93,12 +94,12 @@ function KVEditor({
             style={inputStyle}
           />
           {pairs.length > 1 && (
-            <button onClick={() => remove(i)} style={iconBtnStyle} title="Remove row">×</button>
+            <button onClick={() => remove(i)} style={iconBtnStyle} title={t('mcp.removeRow')}>×</button>
           )}
         </div>
       ))}
       <button onClick={add} style={{ ...secondaryBtnStyle, alignSelf: 'flex-start', fontSize: 10, padding: '2px 8px' }}>
-        + Add row
+        + {t('mcp.addRow')}
       </button>
     </div>
   )
@@ -166,6 +167,7 @@ function McpAddWizard({
   onDone: () => void
   onCancel: () => void
 }) {
+  const t = useT()
   const [w, setW] = useState<WizardState>(freshWizard())
   const set = (patch: Partial<WizardState>) => setW(prev => ({ ...prev, ...patch }))
 
@@ -190,7 +192,7 @@ function McpAddWizard({
 
   const validateStep2 = (): boolean => {
     if ((w.type === 'http' || w.type === 'sse') && !isValidUrl(w.url.trim())) {
-      set({ urlError: 'Please enter a valid URL' })
+      set({ urlError: t('mcp.errorUrlRequired') })
       return false
     }
     if (w.type === 'stdio' && !w.command.trim()) {
@@ -202,8 +204,8 @@ function McpAddWizard({
 
   const validateStep3 = (): boolean => {
     const n = w.name.trim()
-    if (!n) { set({ nameError: 'Name is required' }); return false }
-    if (existingNames.includes(n)) { set({ nameError: 'A server with this name already exists' }); return false }
+    if (!n) { set({ nameError: t('mcp.errorNameRequired') }); return false }
+    if (existingNames.includes(n)) { set({ nameError: t('mcp.errorNameExists') }); return false }
     set({ nameError: '' })
     return true
   }
@@ -269,16 +271,16 @@ function McpAddWizard({
           </React.Fragment>
         ))}
         <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 4 }}>
-          {w.step === 1 ? 'Choose type' : w.step === 2 ? 'Configure' : 'Name & finish'}
+          {w.step === 1 ? t('mcp.chooseType') : w.step === 2 ? t('mcp.configure') : t('mcp.nameAndFinish')}
         </span>
       </div>
 
       {/* Step 1: type */}
       {w.step === 1 && (
         <div style={{ display: 'flex', gap: 8 }}>
-          {typeCard('stdio', 'stdio', 'Local command — npx, python, etc.')}
-          {typeCard('http', 'HTTP', 'Remote HTTP MCP endpoint')}
-          {typeCard('sse', 'SSE', 'Server-Sent Events endpoint')}
+          {typeCard('stdio', t('mcp.typeStdio'), t('mcp.typeStdioDesc'))}
+          {typeCard('http', t('mcp.typeHttp'), t('mcp.typeHttpDesc'))}
+          {typeCard('sse', t('mcp.typeSse'), t('mcp.typeSseDesc'))}
         </div>
       )}
 
@@ -286,7 +288,7 @@ function McpAddWizard({
       {w.step === 2 && w.type === 'stdio' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div>
-            <label style={labelStyle}>Command <span style={{ color: 'var(--error)' }}>*</span></label>
+            <label style={labelStyle}>{t('mcp.fieldCommandRequired')}</label>
             <input
               value={w.command}
               onChange={e => set({ command: e.target.value })}
@@ -296,16 +298,16 @@ function McpAddWizard({
             />
           </div>
           <div>
-            <label style={labelStyle}>Arguments (comma-separated)</label>
+            <label style={labelStyle}>{t('mcp.fieldArgs')}</label>
             <input
               value={w.args}
               onChange={e => set({ args: e.target.value })}
-              placeholder="-y, @modelcontextprotocol/server-filesystem, /tmp"
+              placeholder={t('mcp.fieldArgsPlaceholder')}
               style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }}
             />
           </div>
           <div>
-            <label style={labelStyle}>Environment variables</label>
+            <label style={labelStyle}>{t('mcp.fieldEnvVars')}</label>
             <KVEditor
               pairs={w.envPairs}
               onChange={pairs => set({ envPairs: pairs })}
@@ -319,7 +321,7 @@ function McpAddWizard({
       {w.step === 2 && (w.type === 'http' || w.type === 'sse') && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div>
-            <label style={labelStyle}>URL <span style={{ color: 'var(--error)' }}>*</span></label>
+            <label style={labelStyle}>{t('mcp.fieldUrlRequired')}</label>
             <input
               value={w.url}
               onChange={e => set({ url: e.target.value, urlError: '' })}
@@ -331,7 +333,7 @@ function McpAddWizard({
           </div>
           {w.type === 'http' && (
             <div>
-              <label style={labelStyle}>Headers</label>
+              <label style={labelStyle}>{t('mcp.fieldHeaders')}</label>
               <KVEditor
                 pairs={w.headerPairs}
                 onChange={pairs => set({ headerPairs: pairs })}
@@ -347,7 +349,7 @@ function McpAddWizard({
       {w.step === 3 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div>
-            <label style={labelStyle}>Server name <span style={{ color: 'var(--error)' }}>*</span></label>
+            <label style={labelStyle}>{t('mcp.fieldServerNameRequired')}</label>
             <input
               value={w.name}
               onChange={e => set({ name: e.target.value, nameError: '' })}
@@ -373,7 +375,7 @@ function McpAddWizard({
       {/* Navigation buttons */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
         <button onClick={w.step === 1 ? onCancel : handleBack} style={secondaryBtnStyle}>
-          {w.step === 1 ? 'Cancel' : '← Back'}
+          {w.step === 1 ? t('mcp.cancel') : t('mcp.back')}
         </button>
         {w.step < 3 ? (
           <button
@@ -384,11 +386,11 @@ function McpAddWizard({
             }}
             disabled={w.step === 2 && w.type === 'stdio' && !w.command.trim()}
           >
-            Next →
+            {t('mcp.nextStep')}
           </button>
         ) : (
           <button onClick={handleSubmit} style={{ ...primaryBtnStyle, opacity: w.submitting ? 0.6 : 1 }} disabled={w.submitting}>
-            {w.submitting ? 'Adding…' : 'Add Server'}
+            {w.submitting ? t('mcp.adding') : t('mcp.addServerBtn')}
           </button>
         )}
       </div>
@@ -409,6 +411,7 @@ function ServerCard({
   onDelete: () => void
   onReconnect: () => void
 }) {
+  const t = useT()
   const [expanded, setExpanded] = useState(false)
   const [tools, setTools] = useState<{ name: string; description?: string }[] | null>(null)
   const [loadingTools, setLoadingTools] = useState(false)
@@ -440,7 +443,7 @@ function ServerCard({
       {/* Row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px' }}>
         {/* Expand chevron */}
-        <button onClick={handleExpand} style={{ ...iconBtnStyle, color: 'var(--text-muted)', padding: 0 }} title="Show tools">
+        <button onClick={handleExpand} style={{ ...iconBtnStyle, color: 'var(--text-muted)', padding: 0 }} title={t('mcp.showTools')}>
           {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
         </button>
 
@@ -453,7 +456,7 @@ function ServerCard({
                 fontSize: 9, background: 'var(--accent)', color: '#fff',
                 borderRadius: 10, padding: '1px 5px', fontWeight: 700,
               }}>
-                {srv.toolCount} tools
+                {srv.toolCount} {t('mcp.tools')}
               </span>
             )}
           </div>
@@ -467,7 +470,7 @@ function ServerCard({
         {/* Reconnect */}
         <button
           onClick={onReconnect}
-          title="Reconnect"
+          title={t('mcp.reconnect')}
           style={{ ...iconBtnStyle, display: 'flex', alignItems: 'center' }}
         >
           <RefreshCw size={13} />
@@ -476,14 +479,14 @@ function ServerCard({
         {/* Delete */}
         {confirmDelete ? (
           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-            <span style={{ fontSize: 10, color: 'var(--error)' }}>Remove?</span>
-            <button onClick={onDelete} style={{ ...primaryBtnStyle, background: 'var(--error)', padding: '2px 8px', fontSize: 10 }}>Yes</button>
-            <button onClick={() => setConfirmDelete(false)} style={{ ...secondaryBtnStyle, padding: '2px 8px', fontSize: 10 }}>No</button>
+            <span style={{ fontSize: 10, color: 'var(--error)' }}>{t('mcp.removeConfirm')}</span>
+            <button onClick={onDelete} style={{ ...primaryBtnStyle, background: 'var(--error)', padding: '2px 8px', fontSize: 10 }}>{t('mcp.removeYes')}</button>
+            <button onClick={() => setConfirmDelete(false)} style={{ ...secondaryBtnStyle, padding: '2px 8px', fontSize: 10 }}>{t('mcp.removeNo')}</button>
           </div>
         ) : (
           <button
             onClick={() => setConfirmDelete(true)}
-            title="Remove server"
+            title={t('mcp.removeServer')}
             style={{ ...iconBtnStyle, display: 'flex', alignItems: 'center', color: 'var(--error)' }}
           >
             <Trash2 size={13} />
@@ -501,7 +504,7 @@ function ServerCard({
       {expanded && (
         <div style={{ borderTop: '1px solid var(--border)', padding: '6px 12px 8px' }}>
           {loadingTools ? (
-            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Loading tools…</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('mcp.loadingTools')}</div>
           ) : tools && tools.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               {tools.map(tool => (
@@ -519,7 +522,7 @@ function ServerCard({
           ) : (
             <div style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
               <Wrench size={11} style={{ opacity: 0.4 }} />
-              No tool info available (server must be running to enumerate tools)
+              {t('mcp.noToolInfo')}
             </div>
           )}
         </div>
@@ -565,14 +568,14 @@ export default function SettingsMcp() {
       {/* Header row */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-          {mcpServers.length} server{mcpServers.length !== 1 ? 's' : ''} configured
+          {mcpServers.length !== 1 ? t('mcp.serversConfiguredPlural', { count: String(mcpServers.length) }) : t('mcp.serversConfigured', { count: String(mcpServers.length) })}
         </span>
         {!showWizard && (
           <button
             onClick={() => setShowWizard(true)}
             style={{ ...primaryBtnStyle, display: 'flex', alignItems: 'center', gap: 5 }}
           >
-            <Plus size={12} /> Add Server
+            <Plus size={12} /> {t('mcp.addServer')}
           </button>
         )}
       </div>

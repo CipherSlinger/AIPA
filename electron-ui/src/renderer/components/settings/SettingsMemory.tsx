@@ -23,12 +23,12 @@ const TYPE_COLORS: Record<string, string> = {
   unknown: '#6b7280',
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  user: 'User',
-  feedback: 'Feedback',
-  project: 'Project',
-  reference: 'Reference',
-  unknown: 'Other',
+const TYPE_LABEL_KEYS: Record<string, string> = {
+  user: 'settingsMemory.typeUser',
+  feedback: 'settingsMemory.typeFeedback',
+  project: 'settingsMemory.typeProject',
+  reference: 'settingsMemory.typeReference',
+  unknown: 'settingsMemory.typeUnknown',
 }
 
 interface NewMemoryState {
@@ -45,6 +45,7 @@ function freshNew(): NewMemoryState {
 
 export default function SettingsMemory() {
   const { t } = useI18n()
+  const typeLabel = (type: string) => t(TYPE_LABEL_KEYS[type] ?? 'settingsMemory.typeUnknown')
   const [scope, setScope] = useState<Scope>('all')
   const [memories, setMemories] = useState<MemoryFile[]>([])
   const [loading, setLoading] = useState(true)
@@ -64,7 +65,7 @@ export default function SettingsMemory() {
       const result = await window.electronAPI.memoryList(scope)
       setMemories(result)
     } catch (e) {
-      setError('Failed to load memories: ' + String(e))
+      setError(t('settingsMemory.loadingError', { error: String(e) }))
     } finally {
       setLoading(false)
     }
@@ -92,7 +93,7 @@ export default function SettingsMemory() {
       setEditingPath(null)
       await load()
     } catch (e) {
-      setError('Save failed: ' + String(e))
+      setError(t('settingsMemory.saveError', { error: String(e) }))
     } finally {
       setSaving(false)
     }
@@ -104,7 +105,7 @@ export default function SettingsMemory() {
       setConfirmDeletePath(null)
       await load()
     } catch (e) {
-      setError('Delete failed: ' + String(e))
+      setError(t('settingsMemory.deleteError', { error: String(e) }))
     }
   }
 
@@ -123,7 +124,7 @@ export default function SettingsMemory() {
       setNewState(freshNew())
       await load()
     } catch (e) {
-      setError('Create failed: ' + String(e))
+      setError(t('settingsMemory.createError', { error: String(e) }))
     } finally {
       setSaving(false)
     }
@@ -150,12 +151,12 @@ export default function SettingsMemory() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Brain size={15} style={{ color: 'var(--accent)' }} />
           <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-            Memory Files
+            {t('settingsMemory.title')}
           </span>
-          <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>~/.claude/memory/</span>
+          <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('settingsMemory.path')}</span>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={load} title="Refresh" style={{ ...btnStyle, color: 'var(--text-muted)' }}>
+          <button onClick={load} title={t('common.refresh')} style={{ ...btnStyle, color: 'var(--text-muted)' }}>
             <RefreshCw size={13} />
           </button>
           <button
@@ -167,7 +168,7 @@ export default function SettingsMemory() {
               color: '#fff', cursor: 'pointer',
             }}
           >
-            <Plus size={11} /> New
+            <Plus size={11} /> {t('settingsMemory.newBtn')}
           </button>
         </div>
       </div>
@@ -186,7 +187,7 @@ export default function SettingsMemory() {
               fontWeight: scope === s ? 600 : 400,
             }}
           >
-            {s.charAt(0).toUpperCase() + s.slice(1)}
+            {t(`settingsMemory.scope${s.charAt(0).toUpperCase() + s.slice(1)}`)}
           </button>
         ))}
       </div>
@@ -203,10 +204,10 @@ export default function SettingsMemory() {
           background: 'var(--bg-input)', border: '1px solid var(--border)',
           borderRadius: 8, padding: 12, marginBottom: 12,
         }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>New Memory</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>{t('settingsMemory.newMemory')}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
             <input
-              placeholder="Name *"
+              placeholder={t('settingsMemory.fieldName')}
               value={newState.name}
               onChange={e => setNewState(s => ({ ...s, name: e.target.value }))}
               style={{ padding: '5px 8px', fontSize: 11, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 5, color: 'var(--text-primary)', outline: 'none' }}
@@ -216,19 +217,19 @@ export default function SettingsMemory() {
               onChange={e => setNewState(s => ({ ...s, type: e.target.value }))}
               style={{ padding: '5px 8px', fontSize: 11, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 5, color: 'var(--text-primary)', outline: 'none' }}
             >
-              {['user', 'feedback', 'project', 'reference'].map(t => (
-                <option key={t} value={t}>{TYPE_LABELS[t]}</option>
+              {['user', 'feedback', 'project', 'reference'].map(typ => (
+                <option key={typ} value={typ}>{typeLabel(typ)}</option>
               ))}
             </select>
           </div>
           <input
-            placeholder="One-line description"
+            placeholder={t('settingsMemory.fieldDescription')}
             value={newState.description}
             onChange={e => setNewState(s => ({ ...s, description: e.target.value }))}
             style={{ width: '100%', marginBottom: 8, padding: '5px 8px', fontSize: 11, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 5, color: 'var(--text-primary)', outline: 'none', boxSizing: 'border-box' }}
           />
           <textarea
-            placeholder="Memory content *"
+            placeholder={t('settingsMemory.fieldBody')}
             value={newState.body}
             onChange={e => setNewState(s => ({ ...s, body: e.target.value }))}
             rows={4}
@@ -240,11 +241,11 @@ export default function SettingsMemory() {
               onChange={e => setNewState(s => ({ ...s, scope: e.target.value as 'global' | 'project' }))}
               style={{ padding: '4px 8px', fontSize: 11, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 5, color: 'var(--text-muted)', outline: 'none' }}
             >
-              <option value="global">Global scope</option>
-              <option value="project">Project scope</option>
+              <option value="global">{t('settingsMemory.scopeGlobalOption')}</option>
+              <option value="project">{t('settingsMemory.scopeProjectOption')}</option>
             </select>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button onClick={() => { setShowNew(false); setNewState(freshNew()) }} style={{ ...btnStyle, color: 'var(--text-muted)', padding: '4px 8px', fontSize: 11 }}>Cancel</button>
+              <button onClick={() => { setShowNew(false); setNewState(freshNew()) }} style={{ ...btnStyle, color: 'var(--text-muted)', padding: '4px 8px', fontSize: 11 }}>{t('common.cancel')}</button>
               <button
                 onClick={createMemory}
                 disabled={saving || !newState.name.trim() || !newState.body.trim()}
@@ -255,7 +256,7 @@ export default function SettingsMemory() {
                   opacity: (!newState.name.trim() || !newState.body.trim()) ? 0.5 : 1,
                 }}
               >
-                {saving ? 'Saving…' : 'Create'}
+                {saving ? t('common.saving') : t('common.create')}
               </button>
             </div>
           </div>
@@ -264,12 +265,12 @@ export default function SettingsMemory() {
 
       {/* Memory list */}
       {loading ? (
-        <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>Loading…</div>
+        <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>{t('common.loadingEllipsis')}</div>
       ) : memories.length === 0 ? (
         <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
           <Brain size={28} style={{ opacity: 0.2, marginBottom: 8 }} />
-          <div>No memory files found</div>
-          <div style={{ fontSize: 10, marginTop: 4 }}>Claude Code stores memories in ~/.claude/memory/</div>
+          <div>{t('settingsMemory.noMemories')}</div>
+          <div style={{ fontSize: 10, marginTop: 4 }}>{t('settingsMemory.noMemoriesHint')}</div>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -297,7 +298,7 @@ export default function SettingsMemory() {
                     color: TYPE_COLORS[mem.type],
                     flexShrink: 0,
                   }}>
-                    {TYPE_LABELS[mem.type]}
+                    {typeLabel(mem.type)}
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -315,13 +316,13 @@ export default function SettingsMemory() {
                   {/* Action buttons */}
                   <div style={{ display: 'flex', gap: 2, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                     {!isEditing && (
-                      <button onClick={() => startEdit(mem)} title="Edit" style={{ ...btnStyle, color: 'var(--text-muted)' }}>
+                      <button onClick={() => startEdit(mem)} title={t('settingsMemory.editTitle')} style={{ ...btnStyle, color: 'var(--text-muted)' }}>
                         <Edit3 size={12} />
                       </button>
                     )}
                     {isConfirmDelete ? (
                       <>
-                        <button onClick={() => deleteMemory(mem.filePath)} title="Confirm delete" style={{ ...btnStyle, color: 'var(--error)' }}>
+                        <button onClick={() => deleteMemory(mem.filePath)} title={t('settingsMemory.confirmDelete')} style={{ ...btnStyle, color: 'var(--error)' }}>
                           <Check size={12} />
                         </button>
                         <button onClick={() => setConfirmDeletePath(null)} style={{ ...btnStyle, color: 'var(--text-muted)' }}>
@@ -329,7 +330,7 @@ export default function SettingsMemory() {
                         </button>
                       </>
                     ) : (
-                      <button onClick={() => setConfirmDeletePath(mem.filePath)} title="Delete" style={{ ...btnStyle, color: 'var(--error)' }}>
+                      <button onClick={() => setConfirmDeletePath(mem.filePath)} title={t('settingsMemory.deleteTitle')} style={{ ...btnStyle, color: 'var(--error)' }}>
                         <Trash2 size={12} />
                       </button>
                     )}
@@ -355,7 +356,7 @@ export default function SettingsMemory() {
                           autoFocus
                         />
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 6 }}>
-                          <button onClick={cancelEdit} style={{ ...btnStyle, color: 'var(--text-muted)', padding: '4px 8px', fontSize: 11 }}>Cancel</button>
+                          <button onClick={cancelEdit} style={{ ...btnStyle, color: 'var(--text-muted)', padding: '4px 8px', fontSize: 11 }}>{t('common.cancel')}</button>
                           <button
                             onClick={() => saveEdit(mem.filePath, mem)}
                             disabled={saving}
@@ -365,7 +366,7 @@ export default function SettingsMemory() {
                               color: '#fff', cursor: 'pointer',
                             }}
                           >
-                            {saving ? 'Saving…' : 'Save'}
+                            {saving ? t('common.saving') : t('common.save')}
                           </button>
                         </div>
                       </>
@@ -375,7 +376,7 @@ export default function SettingsMemory() {
                         color: 'var(--text-secondary)', fontFamily: 'monospace',
                         maxHeight: 200, overflowY: 'auto',
                       }}>
-                        {mem.content || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>(empty)</span>}
+                        {mem.content || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>{t('settingsMemory.empty')}</span>}
                       </pre>
                     )}
                     <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 6 }}>

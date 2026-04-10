@@ -6,50 +6,50 @@ import { AlertTriangle } from 'lucide-react'
 
 const MAX_CHARS = 2000
 
-// ── System Prompt presets ──────────────────────────────────────────────────
-const PROMPT_PRESETS = [
-  { key: 'concise',    label: 'Concise',     prompt: 'Always be concise. Answer in 1-3 sentences unless asked for detail.' },
-  { key: 'reviewer',  label: 'Code Review',  prompt: 'Act as a senior code reviewer. Focus on bugs, performance issues, and best practices.' },
-  { key: 'teaching',  label: 'Teaching',     prompt: 'Explain concepts step by step, as if teaching a junior developer. Use analogies.' },
-  { key: 'chinese',   label: '中文回复',      prompt: 'Always respond in Chinese (Simplified). Use technical terms in English.' },
-  { key: 'analyze',   label: 'Analyze Only', prompt: 'Analyze and explain what you would do, but do NOT execute any tools or make any changes.' },
-  { key: 'security',  label: 'Security',     prompt: 'Focus on security vulnerabilities, injection risks, and auth issues in the code.' },
+// ── System Prompt presets — labels resolved at render time via t() ─────────
+const PROMPT_PRESET_DEFS = [
+  { key: 'concise',    labelKey: 'settingsAdvanced.presetConcise',     promptKey: 'settingsAdvanced.presetConcisePrompt' },
+  { key: 'reviewer',  labelKey: 'settingsAdvanced.presetCodeReview',   promptKey: 'settingsAdvanced.presetCodeReviewPrompt' },
+  { key: 'teaching',  labelKey: 'settingsAdvanced.presetTeaching',     promptKey: 'settingsAdvanced.presetTeachingPrompt' },
+  { key: 'chinese',   labelKey: 'settingsAdvanced.presetChinese',      promptKey: 'settingsAdvanced.presetChinesePrompt' },
+  { key: 'analyze',   labelKey: 'settingsAdvanced.presetAnalyzeOnly',  promptKey: 'settingsAdvanced.presetAnalyzeOnlyPrompt' },
+  { key: 'security',  labelKey: 'settingsAdvanced.presetSecurity',     promptKey: 'settingsAdvanced.presetSecurityPrompt' },
 ]
 
-// ── Tool definitions ───────────────────────────────────────────────────────
-interface ToolDef { name: string; desc: string }
-const TOOL_GROUPS: { label: string; tools: ToolDef[] }[] = [
-  { label: 'Execution', tools: [{ name: 'Bash', desc: 'Run shell commands' }] },
-  { label: 'File Write', tools: [
-    { name: 'Write', desc: 'Create/overwrite files' },
-    { name: 'Edit', desc: 'Edit file sections' },
-    { name: 'MultiEdit', desc: 'Edit multiple sections' },
+// ── Tool definitions — labels resolved at render time via t() ─────────────
+interface ToolDef { name: string; descKey: string }
+const TOOL_GROUP_DEFS: { labelKey: string; tools: ToolDef[] }[] = [
+  { labelKey: 'settingsAdvanced.toolGroupExecution', tools: [{ name: 'Bash', descKey: 'settingsAdvanced.toolDescBash' }] },
+  { labelKey: 'settingsAdvanced.toolGroupFileWrite', tools: [
+    { name: 'Write', descKey: 'settingsAdvanced.toolDescWrite' },
+    { name: 'Edit', descKey: 'settingsAdvanced.toolDescEdit' },
+    { name: 'MultiEdit', descKey: 'settingsAdvanced.toolDescMultiEdit' },
   ]},
-  { label: 'File Read', tools: [
-    { name: 'Read', desc: 'Read file contents' },
-    { name: 'Glob', desc: 'Find files by pattern' },
-    { name: 'Grep', desc: 'Search file contents' },
-    { name: 'LS', desc: 'List directory' },
+  { labelKey: 'settingsAdvanced.toolGroupFileRead', tools: [
+    { name: 'Read', descKey: 'settingsAdvanced.toolDescRead' },
+    { name: 'Glob', descKey: 'settingsAdvanced.toolDescGlob' },
+    { name: 'Grep', descKey: 'settingsAdvanced.toolDescGrep' },
+    { name: 'LS', descKey: 'settingsAdvanced.toolDescLs' },
   ]},
-  { label: 'Network', tools: [
-    { name: 'WebFetch', desc: 'Fetch web pages' },
-    { name: 'WebSearch', desc: 'Search the web' },
+  { labelKey: 'settingsAdvanced.toolGroupNetwork', tools: [
+    { name: 'WebFetch', descKey: 'settingsAdvanced.toolDescWebFetch' },
+    { name: 'WebSearch', descKey: 'settingsAdvanced.toolDescWebSearch' },
   ]},
-  { label: 'Other', tools: [
-    { name: 'NotebookEdit', desc: 'Edit Jupyter notebooks' },
-    { name: 'TodoRead', desc: 'Read todo list' },
-    { name: 'TodoWrite', desc: 'Write todo list' },
+  { labelKey: 'settingsAdvanced.toolGroupOther', tools: [
+    { name: 'NotebookEdit', descKey: 'settingsAdvanced.toolDescNotebookEdit' },
+    { name: 'TodoRead', descKey: 'settingsAdvanced.toolDescTodoRead' },
+    { name: 'TodoWrite', descKey: 'settingsAdvanced.toolDescTodoWrite' },
   ]},
 ]
 
-const ALL_TOOL_NAMES = TOOL_GROUPS.flatMap(g => g.tools.map(t => t.name))
+const ALL_TOOL_NAMES = TOOL_GROUP_DEFS.flatMap(g => g.tools.map(t => t.name))
 
 type PresetKey = 'all' | 'readonly' | 'nonet' | 'analysis' | 'custom'
-const TOOL_PRESETS: { key: PresetKey; label: string; disallowed: string[] }[] = [
-  { key: 'all',      label: 'All Tools',     disallowed: [] },
-  { key: 'readonly', label: 'Read Only',     disallowed: ['Bash', 'Write', 'Edit', 'MultiEdit', 'NotebookEdit', 'TodoWrite'] },
-  { key: 'nonet',    label: 'No Network',    disallowed: ['WebFetch', 'WebSearch'] },
-  { key: 'analysis', label: 'Analysis Only', disallowed: ['Bash', 'Write', 'Edit', 'MultiEdit', 'WebFetch', 'WebSearch', 'NotebookEdit', 'TodoRead', 'TodoWrite'] },
+const TOOL_PRESETS: { key: PresetKey; labelKey: string; disallowed: string[] }[] = [
+  { key: 'all',      labelKey: 'settingsAdvanced.presetAllTools',     disallowed: [] },
+  { key: 'readonly', labelKey: 'settingsAdvanced.presetReadOnly',     disallowed: ['Bash', 'Write', 'Edit', 'MultiEdit', 'NotebookEdit', 'TodoWrite'] },
+  { key: 'nonet',    labelKey: 'settingsAdvanced.presetNoNetwork',    disallowed: ['WebFetch', 'WebSearch'] },
+  { key: 'analysis', labelKey: 'settingsAdvanced.presetAnalysisOnly', disallowed: ['Bash', 'Write', 'Edit', 'MultiEdit', 'WebFetch', 'WebSearch', 'NotebookEdit', 'TodoRead', 'TodoWrite'] },
 ]
 
 function detectPreset(disallowed: string[]): PresetKey {
@@ -130,22 +130,26 @@ export default function SettingsAdvanced() {
 
         {/* Preset chips */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-          {PROMPT_PRESETS.map(p => (
-            <button
-              key={p.key}
-              onClick={() => applyPreset(p.prompt)}
-              aria-label={`${t('systemPrompt.preset')}: ${p.label}`}
-              style={{
-                background: draft.trim() === p.prompt ? 'var(--accent)' : 'var(--action-btn-bg)',
-                border: '1px solid var(--border)',
-                borderRadius: 5, padding: '3px 10px', fontSize: 11,
-                color: draft.trim() === p.prompt ? '#fff' : 'var(--text-muted)',
-                cursor: 'pointer',
-              }}
-            >
-              {p.label}
-            </button>
-          ))}
+          {PROMPT_PRESET_DEFS.map(p => {
+            const label = t(p.labelKey)
+            const prompt = t(p.promptKey)
+            return (
+              <button
+                key={p.key}
+                onClick={() => applyPreset(prompt)}
+                aria-label={`${t('systemPrompt.preset')}: ${label}`}
+                style={{
+                  background: draft.trim() === prompt ? 'var(--accent)' : 'var(--action-btn-bg)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 5, padding: '3px 10px', fontSize: 11,
+                  color: draft.trim() === prompt ? '#fff' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                }}
+              >
+                {label}
+              </button>
+            )
+          })}
         </div>
 
         {/* Replace confirm */}
@@ -222,7 +226,7 @@ export default function SettingsAdvanced() {
                 cursor: 'pointer',
               }}
             >
-              {p.label}
+              {t(p.labelKey)}
             </button>
           ))}
           {activePreset === 'custom' && (
@@ -239,10 +243,10 @@ export default function SettingsAdvanced() {
         )}
 
         {/* Tool groups */}
-        {TOOL_GROUPS.map(group => (
-          <div key={group.label} style={{ marginBottom: 12 }}>
+        {TOOL_GROUP_DEFS.map(group => (
+          <div key={group.labelKey} style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-              {group.label}
+              {t(group.labelKey)}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {group.tools.map(tool => {
@@ -256,11 +260,11 @@ export default function SettingsAdvanced() {
                       type="checkbox"
                       checked={isAllowed}
                       onChange={(e) => toggleTool(tool.name, e.target.checked)}
-                      aria-label={`${isAllowed ? 'Disable' : 'Enable'} ${tool.name}`}
+                      aria-label={`${isAllowed ? t('common.disable') : t('common.enable')} ${tool.name}`}
                       style={{ cursor: 'pointer', accentColor: 'var(--accent)' }}
                     />
                     <code style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--text-primary)', flex: '0 0 auto' }}>{tool.name}</code>
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)', flex: 1 }}>{tool.desc}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)', flex: 1 }}>{t(tool.descKey)}</span>
                     {!isAllowed && (
                       <span style={{ fontSize: 10, background: 'rgba(239,68,68,0.12)', color: '#ef4444', borderRadius: 3, padding: '1px 5px' }}>{t('settings.toolAccessDisabled')}</span>
                     )}

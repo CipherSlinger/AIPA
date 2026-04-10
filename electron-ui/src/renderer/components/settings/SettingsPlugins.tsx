@@ -34,7 +34,7 @@ export default function SettingsPlugins() {
       const list = await window.electronAPI.pluginList()
       setPlugins(list)
     } catch (e) {
-      setError('Failed to load plugins: ' + String(e))
+      setError(t('settingsPlugins.loadError', { error: String(e) }))
     } finally {
       setLoading(false)
     }
@@ -52,7 +52,7 @@ export default function SettingsPlugins() {
       setShowInstallForm(false)
       await load()
     } catch (e) {
-      setError('Install failed: ' + String(e))
+      setError(t('settingsPlugins.installError', { error: String(e) }))
     } finally {
       setInstalling(false)
     }
@@ -64,7 +64,7 @@ export default function SettingsPlugins() {
       await window.electronAPI.pluginSetEnabled(name, !enabled)
       await load()
     } catch (e) {
-      setError('Failed to update plugin: ' + String(e))
+      setError(t('settingsPlugins.toggleError', { error: String(e) }))
     } finally {
       setToggling(null)
     }
@@ -76,7 +76,7 @@ export default function SettingsPlugins() {
       setConfirmDelete(null)
       await load()
     } catch (e) {
-      setError('Uninstall failed: ' + String(e))
+      setError(t('settingsPlugins.uninstallError', { error: String(e) }))
     }
   }
 
@@ -99,9 +99,9 @@ export default function SettingsPlugins() {
   }
 
   const sourceTag = (source: string) => {
-    if (source.startsWith('local:')) return { label: 'local', color: '#10b981' }
-    if (source.startsWith('npm:')) return { label: 'npm', color: '#f59e0b' }
-    return { label: 'external', color: '#8b5cf6' }
+    if (source.startsWith('local:')) return { label: t('settingsPlugins.sourceLocal'), color: '#10b981' }
+    if (source.startsWith('npm:')) return { label: t('settingsPlugins.sourceNpm'), color: '#f59e0b' }
+    return { label: t('settingsPlugins.sourceExternal'), color: '#8b5cf6' }
   }
 
   return (
@@ -110,11 +110,11 @@ export default function SettingsPlugins() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Puzzle size={15} style={{ color: 'var(--accent)' }} />
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Plugins</span>
-          <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>~/.claude/plugins.json</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{t('settingsPlugins.title')}</span>
+          <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('settingsPlugins.path')}</span>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={load} title="Refresh" style={{ ...btnStyle, color: 'var(--text-muted)' }}>
+          <button onClick={load} title={t('common.refresh')} style={{ ...btnStyle, color: 'var(--text-muted)' }}>
             <RefreshCw size={13} />
           </button>
           <button
@@ -126,14 +126,14 @@ export default function SettingsPlugins() {
               color: '#fff', cursor: 'pointer',
             }}
           >
-            <Plus size={11} /> Install
+            <Plus size={11} /> {t('settingsPlugins.installBtn')}
           </button>
         </div>
       </div>
 
       {/* Description */}
       <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 14, lineHeight: 1.5 }}>
-        Plugins extend Claude Code with additional MCP servers, hooks, and slash commands. A plugin is a directory containing a <code style={{ fontSize: 10 }}>claude-plugin.json</code> manifest.
+        {t('settingsPlugins.description')}
       </div>
 
       {/* Install form */}
@@ -142,13 +142,13 @@ export default function SettingsPlugins() {
           background: 'var(--bg-input)', border: '1px solid var(--border)',
           borderRadius: 8, padding: 12, marginBottom: 14,
         }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 10 }}>Install Local Plugin</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 10 }}>{t('settingsPlugins.installLocal')}</div>
           <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
             <input
               value={installPath}
               onChange={e => setInstallPath(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleInstallLocal() }}
-              placeholder="/path/to/my-plugin"
+              placeholder={t('settingsPlugins.installPathPlaceholder')}
               style={{
                 flex: 1, padding: '6px 10px', fontSize: 12,
                 background: 'var(--bg)', border: '1px solid var(--border)',
@@ -157,7 +157,7 @@ export default function SettingsPlugins() {
             />
             <button
               onClick={handleBrowseDir}
-              title="Browse directory"
+              title={t('settingsPlugins.browseDir')}
               style={{
                 display: 'flex', alignItems: 'center', gap: 4,
                 padding: '6px 10px', fontSize: 11,
@@ -169,10 +169,10 @@ export default function SettingsPlugins() {
             </button>
           </div>
           <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.5 }}>
-            The directory should contain a <code>claude-plugin.json</code> with <code>mcpServers</code> and/or <code>hooks</code> fields, and optionally a <code>package.json</code> for metadata.
+            {t('settingsPlugins.installDirHint')}
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-            <button onClick={() => { setShowInstallForm(false); setInstallPath('') }} style={{ ...btnStyle, padding: '4px 8px', fontSize: 11, color: 'var(--text-muted)' }}>Cancel</button>
+            <button onClick={() => { setShowInstallForm(false); setInstallPath('') }} style={{ ...btnStyle, padding: '4px 8px', fontSize: 11, color: 'var(--text-muted)' }}>{t('common.cancel')}</button>
             <button
               onClick={handleInstallLocal}
               disabled={installing || !installPath.trim()}
@@ -183,7 +183,7 @@ export default function SettingsPlugins() {
                 opacity: installing || !installPath.trim() ? 0.6 : 1,
               }}
             >
-              {installing ? 'Installing…' : 'Install'}
+              {installing ? t('settingsPlugins.installingPlugin') : t('settingsPlugins.installPlugin')}
             </button>
           </div>
         </div>
@@ -205,12 +205,12 @@ export default function SettingsPlugins() {
 
       {/* Plugin list */}
       {loading ? (
-        <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>Loading…</div>
+        <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>{t('common.loadingEllipsis')}</div>
       ) : plugins.length === 0 ? (
         <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
           <Puzzle size={28} style={{ opacity: 0.2, marginBottom: 8 }} />
-          <div>No plugins installed</div>
-          <div style={{ fontSize: 10, marginTop: 4 }}>Install a local plugin directory to get started</div>
+          <div>{t('settingsPlugins.noPlugins')}</div>
+          <div style={{ fontSize: 10, marginTop: 4 }}>{t('settingsPlugins.noPluginsHint')}</div>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -237,7 +237,7 @@ export default function SettingsPlugins() {
                   <button
                     onClick={() => handleToggle(plugin.name, plugin.enabled)}
                     disabled={isToggling}
-                    title={plugin.enabled ? 'Disable plugin' : 'Enable plugin'}
+                    title={plugin.enabled ? t('settingsPlugins.disablePlugin') : t('settingsPlugins.enablePlugin')}
                     style={{
                       width: 32, height: 18, borderRadius: 9, border: 'none', cursor: 'pointer',
                       background: plugin.enabled ? 'var(--accent)' : 'var(--border)',
@@ -277,12 +277,12 @@ export default function SettingsPlugins() {
                       <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
                         {mcpCount > 0 && (
                           <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 8, background: 'rgba(139,92,246,0.1)', color: '#8b5cf6', border: '1px solid rgba(139,92,246,0.2)' }}>
-                            {mcpCount} MCP
+                            {t('settingsPlugins.mcpCount', { count: String(mcpCount) })}
                           </span>
                         )}
                         {hooksCount > 0 && (
                           <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 8, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>
-                            {hooksCount} hook{hooksCount > 1 ? 's' : ''}
+                            {hooksCount > 1 ? t('settingsPlugins.hookCount_other', { count: String(hooksCount) }) : t('settingsPlugins.hookCount_one', { count: String(hooksCount) })}
                           </span>
                         )}
                       </div>
@@ -297,16 +297,16 @@ export default function SettingsPlugins() {
                     {isConfirmDelete ? (
                       <div style={{ display: 'flex', gap: 4 }}>
                         <button onClick={() => handleUninstall(plugin.name)} style={{ padding: '3px 8px', fontSize: 10, background: 'var(--error)', border: 'none', borderRadius: 5, color: '#fff', cursor: 'pointer' }}>
-                          Uninstall
+                          {t('settingsPlugins.uninstallConfirm')}
                         </button>
                         <button onClick={() => setConfirmDelete(null)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 5, padding: '3px 8px', fontSize: 10, color: 'var(--text-muted)', cursor: 'pointer' }}>
-                          Cancel
+                          {t('common.cancel')}
                         </button>
                       </div>
                     ) : (
                       <button
                         onClick={() => setConfirmDelete(plugin.name)}
-                        title="Uninstall plugin"
+                        title={t('settingsPlugins.uninstallConfirm')}
                         style={{ ...btnStyle, color: 'var(--error)' }}
                       >
                         <Trash2 size={13} />
