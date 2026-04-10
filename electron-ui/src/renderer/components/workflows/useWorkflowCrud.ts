@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from 'react'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import { Workflow, WorkflowStep } from '../../types/app.types'
 import { useT } from '../../i18n'
-import { MAX_WORKFLOWS, MAX_NAME_LENGTH, MAX_DESC_LENGTH, PRESET_WORKFLOWS, getPresetStepText } from './workflowConstants'
+import { MAX_WORKFLOWS, MAX_NAME_LENGTH, MAX_DESC_LENGTH, PRESET_WORKFLOWS, PRESET_TEAMWORK_WORKFLOWS, getPresetStepText } from './workflowConstants'
 
 export function useWorkflowCrud() {
   const t = useT()
@@ -22,6 +22,7 @@ export function useWorkflowCrud() {
   const [newName, setNewName] = useState('')
   const [newDesc, setNewDesc] = useState('')
   const [newIcon, setNewIcon] = useState('🔄')
+  const [newTeamwork, setNewTeamwork] = useState(false)
   const [newSteps, setNewSteps] = useState<WorkflowStep[]>(() => [
     { id: `step-${Date.now()}`, title: t('workflow.stepLabel', { n: 1 }), prompt: '' },
   ])
@@ -80,6 +81,7 @@ export function useWorkflowCrud() {
       description: newDesc.trim().slice(0, MAX_DESC_LENGTH),
       icon: newIcon,
       steps: validSteps,
+      teamwork: newTeamwork || undefined,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       runCount: 0,
@@ -89,6 +91,7 @@ export function useWorkflowCrud() {
     setNewName('')
     setNewDesc('')
     setNewIcon('🔄')
+    setNewTeamwork(false)
     setNewSteps([{ id: `step-${Date.now()}`, title: t('workflow.stepLabel', { n: 1 }), prompt: '' }])
     addToast('success', t('workflow.created'))
   }, [newName, newDesc, newIcon, newSteps, workflows, saveWorkflows, addToast, t])
@@ -192,6 +195,7 @@ export function useWorkflowCrud() {
     newName, setNewName,
     newDesc, setNewDesc,
     newIcon, setNewIcon,
+    newTeamwork, setNewTeamwork,
     newSteps, setNewSteps,
     // Edit form
     editName, setEditName,
@@ -207,5 +211,6 @@ export function useWorkflowCrud() {
     saveEdit,
     installPreset,
     updateStepPositions,
+    PRESET_TEAMWORK_WORKFLOWS,
   }
 }

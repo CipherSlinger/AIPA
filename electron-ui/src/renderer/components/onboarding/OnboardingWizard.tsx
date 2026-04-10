@@ -11,8 +11,10 @@ const STEP_ICONS = [Sparkles, Key, FolderOpen, CheckCircle2] as const
 export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
   const [apiKey, setApiKey] = useState('')
+  const [token, setToken] = useState('')
+  const [baseUrl, setBaseUrl] = useState('')
   const [workDir, setWorkDir] = useState(() => '~/claude')
-  const [inputFocused, setInputFocused] = useState(false)
+  const [inputFocused, setInputFocused] = useState<string | null>(null)
   const t = useT()
 
   const handlePickFolder = async () => {
@@ -23,6 +25,30 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
   const handleComplete = async () => {
     await window.electronAPI.configSetApiKey(apiKey)
     await window.electronAPI.prefsSet('workingDir', workDir)
+    // If token or baseUrl was provided, update the claude-cli provider config
+    if (token.trim() || baseUrl.trim()) {
+      const configs: Array<{
+        id: string
+        name: string
+        scenario: string
+        baseUrl?: string
+        apiKey?: string
+        authToken?: string
+        models: unknown[]
+        enabled: boolean
+        isDefault?: boolean
+        failoverPriority?: number
+      }> = await window.electronAPI.providerListConfigs()
+      const claudeCli = configs.find((c) => c.id === 'claude-cli')
+      if (claudeCli) {
+        const updated = {
+          ...claudeCli,
+          authToken: token.trim() || claudeCli.authToken,
+          baseUrl: baseUrl.trim() || claudeCli.baseUrl,
+        }
+        await window.electronAPI.providerUpsert(updated)
+      }
+    }
     await window.electronAPI.prefsSet('onboardingDone', true)
     onComplete()
   }
@@ -70,27 +96,72 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
           </div>
         )}
 
-        {/* Step 2: API Key */}
+        {/* Step 2: API Key + Token + Base URL */}
         {step === 2 && (
           <div className="onboard-step-content" key="step2" style={styles.stepContent}>
             <h1 style={styles.title}>{t('onboarding.enterApiKey')}</h1>
             <p style={styles.explanation}>
               {t('onboarding.apiKeyStored')}
             </p>
-            <input
-              type="password"
-              placeholder="sk-ant-..."
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              style={{
-                ...styles.input,
-                borderColor: inputFocused ? 'var(--input-field-focus)' : 'var(--input-field-border)',
-                boxShadow: inputFocused ? 'var(--input-focus-shadow)' : 'none',
-              }}
-              onFocus={() => setInputFocused(true)}
-              onBlur={() => setInputFocused(false)}
-              autoFocus
-            />
+
+            {/* API Key */}
+            <div style={styles.fieldGroup}>
+              <label style={styles.fieldLabel}>{t('onboarding.apiKeyLabel')}</label>
+              <input
+                type="password"
+                placeholder="sk-ant-..."
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                style={{
+                  ...styles.input,
+                  borderColor: inputFocused === 'apiKey' ? 'var(--input-field-focus)' : 'var(--input-field-border)',
+                  boxShadow: inputFocused === 'apiKey' ? 'var(--input-focus-shadow)' : 'none',
+                }}
+                onFocus={() => setInputFocused('apiKey')}
+                onBlur={() => setInputFocused(null)}
+                autoFocus
+              />
+            </div>
+
+            {/* Token */}
+            <div style={styles.fieldGroup}>
+              <label style={styles.fieldLabel}>{t('onboarding.tokenLabel')}</label>
+              <input
+                type="password"
+                placeholder={t('onboarding.tokenPlaceholder')}
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
+                style={{
+                  ...styles.input,
+                  borderColor: inputFocused === 'token' ? 'var(--input-field-focus)' : 'var(--input-field-border)',
+                  boxShadow: inputFocused === 'token' ? 'var(--input-focus-shadow)' : 'none',
+                }}
+                onFocus={() => setInputFocused('token')}
+                onBlur={() => setInputFocused(null)}
+              />
+              <span style={styles.fieldHint}>{t('onboarding.tokenHint')}</span>
+            </div>
+
+            {/* Base URL */}
+            <div style={styles.fieldGroup}>
+              <label style={styles.fieldLabel}>{t('onboarding.baseUrlLabel')}</label>
+              <input
+                type="text"
+                placeholder={t('onboarding.baseUrlPlaceholder')}
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+                style={{
+                  ...styles.input,
+                  borderColor: inputFocused === 'baseUrl' ? 'var(--input-field-focus)' : 'var(--input-field-border)',
+                  boxShadow: inputFocused === 'baseUrl' ? 'var(--input-focus-shadow)' : 'none',
+                  fontFamily: 'monospace',
+                }}
+                onFocus={() => setInputFocused('baseUrl')}
+                onBlur={() => setInputFocused(null)}
+              />
+              <span style={styles.fieldHint}>{t('onboarding.baseUrlHint')}</span>
+            </div>
+
             <a
               href="#"
               style={styles.link}
@@ -288,6 +359,25 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0,
     maxWidth: '360px',
   },
+  fieldGroup: {
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+  },
+  fieldLabel: {
+    fontSize: '11px',
+    fontWeight: '600',
+    color: 'var(--text-muted)',
+    letterSpacing: '0.04em',
+    textTransform: 'uppercase' as const,
+  },
+  fieldHint: {
+    fontSize: '11px',
+    color: 'var(--text-muted)',
+    lineHeight: '1.5',
+    opacity: 0.8,
+  },
   input: {
     width: '100%',
     height: '42px',
@@ -300,6 +390,7 @@ const styles: Record<string, React.CSSProperties> = {
     outline: 'none',
     fontFamily: 'monospace',
     transition: 'border-color 0.15s, box-shadow 0.15s',
+    boxSizing: 'border-box' as const,
   },
   link: {
     fontSize: '12px',

@@ -1068,17 +1068,16 @@
     "nearCapacity": "Context window {{pct}}% full. Enable auto-compact in Settings > Behavior."
   },
   "changes": {
-    "title": "Session Changes",
-    "filesChanged": "{{count}} files changed",
-    "fileChanged": "1 file changed",
-    "linesAdded": "+{{count}} lines",
-    "linesRemoved": "-{{count}} lines",
-    "statusCreated": "Created",
-    "statusModified": "Modified",
-    "turn": "Turn {{num}}: \"{{prompt}}\"",
-    "noChanges": "No file changes in this session",
-    "copied": "Changes summary copied",
-    "tooltip": "Session Changes"
+    "title": "Changes",
+    "noChanges": "No file changes recorded in this session",
+    "noChangesHint": "Claude will track files it edits or creates",
+    "viewAllChanges": "View All Changes (git diff HEAD)",
+    "turnLabel": "Turn {{turn}}",
+    "diffLoading": "Loading diff...",
+    "diffError": "Failed to load diff",
+    "noDiff": "No diff output",
+    "gitDiffTitle": "Git Diff (HEAD)",
+    "close": "Close"
   },
   "cost": {
     "thresholdWarning": "Session cost exceeded $5.00. Consider starting a new conversation or compacting.",
@@ -1563,7 +1562,13 @@
       "weeklyReview": "Weekly Review",
       "weeklyReviewDesc": "Reflect on the week and plan ahead",
       "morningMotivation": "Morning Motivation",
-      "morningMotivationDesc": "Start the day with inspiration and goals"
+      "morningMotivationDesc": "Start the day with inspiration and goals",
+      "productLaunch": "Product Launch",
+      "productLaunchDesc": "Coordinate a full product launch across roles",
+      "incidentResponse": "Incident Response",
+      "incidentResponseDesc": "Multi-role incident analysis and resolution",
+      "contentPipeline": "Content Pipeline",
+      "contentPipelineDesc": "Multi-role content creation and review"
     },
     "presetStep": {
       "weeklyReport": {
@@ -1601,8 +1606,40 @@
       "morningMotivation": {
         "s1Title": "Get inspired",
         "s1Prompt": "Good morning! Give me an inspiring thought for today and suggest 3 productive things I could accomplish."
+      },
+      "productLaunch": {
+        "s1Title": "PM: Define scope",
+        "s1Prompt": "As the Product Manager, define the product launch scope: target audience, key features, success metrics, and timeline.",
+        "s2Title": "Designer: UX plan",
+        "s2Prompt": "As the UX Designer, outline the key user flows, wireframe priorities, and design deliverables needed for launch.",
+        "s3Title": "Engineer: Tech plan",
+        "s3Prompt": "As the Tech Lead, estimate implementation effort, identify technical risks, and propose the development roadmap.",
+        "s4Title": "Marketing: Go-to-market",
+        "s4Prompt": "As the Marketing Lead, create a go-to-market strategy: messaging, channels, launch timeline, and success KPIs."
+      },
+      "incidentResponse": {
+        "s1Title": "On-call: Triage",
+        "s1Prompt": "As the on-call engineer, triage the incident: What is broken? Who is affected? What is the current severity level?",
+        "s2Title": "Ops: Root cause",
+        "s2Prompt": "As the Ops lead, investigate the root cause. Review logs, metrics, and recent deployments to identify what triggered the issue.",
+        "s3Title": "Comms: Status update",
+        "s3Prompt": "As the Comms lead, draft a clear status update for stakeholders and customers. Be transparent about impact and ETA.",
+        "s4Title": "Team: Post-mortem",
+        "s4Prompt": "Collaboratively write a post-mortem: timeline of events, root cause, impact, remediation steps, and prevention measures."
+      },
+      "contentPipeline": {
+        "s1Title": "Strategist: Brief",
+        "s1Prompt": "As the Content Strategist, define the content brief: goal, target audience, key messages, tone, and SEO keywords.",
+        "s2Title": "Writer: Draft",
+        "s2Prompt": "As the Content Writer, write a full draft based on the brief. Focus on clarity, engagement, and hitting the key messages.",
+        "s3Title": "Editor: Review",
+        "s3Prompt": "As the Editor, review the draft for tone, grammar, structure, and alignment with the brief. Provide specific revision notes.",
+        "s4Title": "Publisher: Finalize",
+        "s4Prompt": "As the Publisher, finalize the content: apply edits, format for the target platform, and prepare the publishing checklist."
       }
-    }
+    },
+    "teamworkToggle": "Teamwork mode",
+    "teamworkEmptyHint": "Combine prompts across multiple roles to simulate team collaboration on complex tasks."
   },
   "snippet": {
     "title": "Text Snippets",
@@ -1972,18 +2009,6 @@
     "warningThreshold": "Context usage at {{pct}}%. Consider compacting or starting a new session.",
     "compactAction": "Compact",
     "dismiss": "Dismiss"
-  },
-  "changes": {
-    "title": "Changes",
-    "noChanges": "No file changes recorded in this session",
-    "noChangesHint": "Claude will track files it edits or creates",
-    "viewAllChanges": "View All Changes (git diff HEAD)",
-    "turnLabel": "Turn {{turn}}",
-    "diffLoading": "Loading diff...",
-    "diffError": "Failed to load diff",
-    "noDiff": "No diff output",
-    "gitDiffTitle": "Git Diff (HEAD)",
-    "close": "Close"
   },
   "systemPrompt": {
     "title": "Append System Prompt",

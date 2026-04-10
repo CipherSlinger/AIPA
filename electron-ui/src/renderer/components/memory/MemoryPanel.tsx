@@ -124,7 +124,7 @@ function ProjectMemoryTab() {
         <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
           <button
             onClick={load}
-            title="Refresh"
+            title={t('memory.projectRefresh')}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2, display: 'flex', alignItems: 'center' }}
           >
             <RefreshCw size={12} />
@@ -221,9 +221,9 @@ function ProjectMemoryTab() {
             height: '60%', color: 'var(--text-muted)', gap: 8, textAlign: 'center',
           }}>
             <FolderOpen size={28} style={{ opacity: 0.3 }} />
-            <span style={{ fontSize: 12 }}>No MEMORY.md found</span>
+            <span style={{ fontSize: 12 }}>{t('memory.projectNoFile')}</span>
             <span style={{ fontSize: 10, opacity: 0.7, padding: '0 20px' }}>
-              Click Edit to create project-level memory that Claude uses in this working directory.
+              {t('memory.projectNoFileHint')}
             </span>
             <button
               onClick={startEdit}
@@ -233,7 +233,7 @@ function ProjectMemoryTab() {
                 color: '#fff', fontSize: 11, cursor: 'pointer', padding: '5px 14px',
               }}
             >
-              Create MEMORY.md
+              {t('memory.projectCreate')}
             </button>
           </div>
         )}
@@ -242,7 +242,7 @@ function ProjectMemoryTab() {
       {/* Footer hint */}
       {!editing && (
         <div style={{ padding: '4px 12px', fontSize: 9, color: 'var(--text-muted)', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
-          Loaded by Claude Code on every conversation in this project
+          {t('memory.projectFooter')}
         </div>
       )}
 
@@ -376,11 +376,11 @@ export default function MemoryPanel() {
         }}>
           <button style={tabStyle(activeTab === 'personal')} onClick={() => setActiveTab('personal')}>
             <User size={11} />
-            Personal
+            {t('memory.globalMemory')}
           </button>
           <button style={tabStyle(activeTab === 'project')} onClick={() => setActiveTab('project')}>
             <FolderOpen size={11} />
-            Project
+            {t('memory.projectMemory')}
           </button>
         </div>
 

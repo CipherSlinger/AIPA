@@ -1085,17 +1085,16 @@
     "nearCapacity": "上下文窗口已使用 {{pct}}%。请在设置 > 行为中启用自动压缩。"
   },
   "changes": {
-    "title": "会话更改",
-    "filesChanged": "{{count}} 个文件已更改",
-    "fileChanged": "1 个文件已更改",
-    "linesAdded": "+{{count}} 行",
-    "linesRemoved": "-{{count}} 行",
-    "statusCreated": "新建",
-    "statusModified": "修改",
-    "turn": "轮次 {{num}}: \"{{prompt}}\"",
-    "noChanges": "本次会话无文件更改",
-    "copied": "更改摘要已复制",
-    "tooltip": "会话更改"
+    "title": "变更",
+    "noChanges": "本会话中没有记录到文件变更",
+    "noChangesHint": "Claude 编辑或创建文件时将自动追踪",
+    "viewAllChanges": "查看全部变更 (git diff HEAD)",
+    "turnLabel": "第 {{turn}} 轮",
+    "diffLoading": "加载 diff 中...",
+    "diffError": "加载 diff 失败",
+    "noDiff": "无 diff 输出",
+    "gitDiffTitle": "Git Diff（HEAD）",
+    "close": "关闭"
   },
   "cost": {
     "thresholdWarning": "会话费用已超过 $5.00。建议开始新对话或压缩上下文。",
@@ -1581,7 +1580,13 @@
       "weeklyReview": "每周回顾",
       "weeklyReviewDesc": "反思本周并规划下周",
       "morningMotivation": "晨间激励",
-      "morningMotivationDesc": "以灵感和目标开启新的一天"
+      "morningMotivationDesc": "以灵感和目标开启新的一天",
+      "productLaunch": "产品发布",
+      "productLaunchDesc": "跨角色协调完整的产品发布流程",
+      "incidentResponse": "故障响应",
+      "incidentResponseDesc": "多角色事故分析与处置",
+      "contentPipeline": "内容流水线",
+      "contentPipelineDesc": "多角色内容创作与审校"
     },
     "presetStep": {
       "weeklyReport": {
@@ -1619,8 +1624,40 @@
       "morningMotivation": {
         "s1Title": "获取灵感",
         "s1Prompt": "早上好！给我一句今天的励志名言，并建议 3 件我今天可以完成的有意义的事情。"
+      },
+      "productLaunch": {
+        "s1Title": "PM：定义范围",
+        "s1Prompt": "作为产品经理，定义产品发布范围：目标用户、核心功能、成功指标和时间线。",
+        "s2Title": "设计师：UX 计划",
+        "s2Prompt": "作为 UX 设计师，梳理关键用户流程、线框图优先级以及发布所需的设计交付物。",
+        "s3Title": "工程师：技术方案",
+        "s3Prompt": "作为技术负责人，评估实现工作量，识别技术风险，并提出开发路线图。",
+        "s4Title": "市场：上市策略",
+        "s4Prompt": "作为市场负责人，制定上市策略：核心信息、推广渠道、发布时间线和成功 KPI。"
+      },
+      "incidentResponse": {
+        "s1Title": "值班：分诊",
+        "s1Prompt": "作为值班工程师，对故障进行分诊：什么出了问题？影响了哪些用户？当前严重级别是什么？",
+        "s2Title": "运维：根因分析",
+        "s2Prompt": "作为运维负责人，排查根本原因。回顾日志、监控指标和近期发布，找出触发问题的原因。",
+        "s3Title": "通讯：状态更新",
+        "s3Prompt": "作为通讯负责人，为利益相关方和客户撰写清晰的状态更新。如实说明影响和预计恢复时间。",
+        "s4Title": "团队：故障复盘",
+        "s4Prompt": "协作撰写故障复盘报告：事件时间线、根因、影响范围、修复步骤和预防措施。"
+      },
+      "contentPipeline": {
+        "s1Title": "策略师：Brief",
+        "s1Prompt": "作为内容策略师，定义内容简报：目标、目标受众、核心信息、语气和 SEO 关键词。",
+        "s2Title": "撰稿人：初稿",
+        "s2Prompt": "作为内容撰稿人，根据简报撰写完整初稿。注重清晰度、吸引力和核心信息的传达。",
+        "s3Title": "编辑：审校",
+        "s3Prompt": "作为编辑，审查初稿的语气、语法、结构与简报的契合度，并提供具体修改意见。",
+        "s4Title": "发布：定稿",
+        "s4Prompt": "作为发布负责人，完成最终内容：应用修改意见，根据目标平台格式化，并准备发布清单。"
       }
-    }
+    },
+    "teamworkToggle": "团队合作模式",
+    "teamworkEmptyHint": "将多个角色的提示词协同组合，模拟团队协作完成复杂任务。"
   },
   "snippet": {
     "title": "文本片段",
@@ -1990,18 +2027,6 @@
     "warningThreshold": "上下文使用率已达 {{pct}}%，建议压缩对话或开启新会话。",
     "compactAction": "压缩",
     "dismiss": "忽略"
-  },
-  "changes": {
-    "title": "变更",
-    "noChanges": "本会话中没有记录到文件变更",
-    "noChangesHint": "Claude 编辑或创建文件时将自动追踪",
-    "viewAllChanges": "查看全部变更 (git diff HEAD)",
-    "turnLabel": "第 {{turn}} 轮",
-    "diffLoading": "加载 diff 中...",
-    "diffError": "加载 diff 失败",
-    "noDiff": "无 diff 输出",
-    "gitDiffTitle": "Git Diff（HEAD）",
-    "close": "关闭"
   },
   "systemPrompt": {
     "title": "追加系统提示词",

@@ -72,6 +72,48 @@ export const PRESET_WORKFLOWS: Omit<Workflow, 'id' | 'createdAt' | 'updatedAt' |
   },
 ]
 
+export const PRESET_TEAMWORK_WORKFLOWS: Omit<Workflow, 'id' | 'createdAt' | 'updatedAt' | 'runCount'>[] = [
+  {
+    name: 'Product Launch',
+    description: 'Coordinate a full product launch across roles',
+    icon: '🚀',
+    presetKey: 'productLaunch',
+    teamwork: true,
+    steps: [
+      { id: 'p1', title: 'PM: Define scope', prompt: 'As the Product Manager, define the product launch scope: target audience, key features, success metrics, and timeline.' },
+      { id: 'p2', title: 'Designer: UX plan', prompt: 'As the UX Designer, outline the key user flows, wireframe priorities, and design deliverables needed for launch.' },
+      { id: 'p3', title: 'Engineer: Tech plan', prompt: 'As the Tech Lead, estimate implementation effort, identify technical risks, and propose the development roadmap.' },
+      { id: 'p4', title: 'Marketing: Go-to-market', prompt: 'As the Marketing Lead, create a go-to-market strategy: messaging, channels, launch timeline, and success KPIs.' },
+    ],
+  },
+  {
+    name: 'Incident Response',
+    description: 'Multi-role incident analysis and resolution',
+    icon: '🚨',
+    presetKey: 'incidentResponse',
+    teamwork: true,
+    steps: [
+      { id: 'p1', title: 'On-call: Triage', prompt: 'As the on-call engineer, triage the incident: What is broken? Who is affected? What is the current severity level?' },
+      { id: 'p2', title: 'Ops: Root cause', prompt: 'As the Ops lead, investigate the root cause. Review logs, metrics, and recent deployments to identify what triggered the issue.' },
+      { id: 'p3', title: 'Comms: Status update', prompt: 'As the Comms lead, draft a clear status update for stakeholders and customers. Be transparent about impact and ETA.' },
+      { id: 'p4', title: 'Team: Post-mortem', prompt: 'Collaboratively write a post-mortem: timeline of events, root cause, impact, remediation steps, and prevention measures.' },
+    ],
+  },
+  {
+    name: 'Content Pipeline',
+    description: 'Multi-role content creation and review',
+    icon: '✍️',
+    presetKey: 'contentPipeline',
+    teamwork: true,
+    steps: [
+      { id: 'p1', title: 'Strategist: Brief', prompt: 'As the Content Strategist, define the content brief: goal, target audience, key messages, tone, and SEO keywords.' },
+      { id: 'p2', title: 'Writer: Draft', prompt: 'As the Content Writer, write a full draft based on the brief. Focus on clarity, engagement, and hitting the key messages.' },
+      { id: 'p3', title: 'Editor: Review', prompt: 'As the Editor, review the draft for tone, grammar, structure, and alignment with the brief. Provide specific revision notes.' },
+      { id: 'p4', title: 'Publisher: Finalize', prompt: 'As the Publisher, finalize the content: apply edits, format for the target platform, and prepare the publishing checklist.' },
+    ],
+  },
+]
+
 export const iconBtnStyle: React.CSSProperties = {
   background: 'transparent',
   border: 'none',
