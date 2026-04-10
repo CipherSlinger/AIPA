@@ -102,13 +102,14 @@ function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, conta
     <div
       style={{
         position: 'absolute',
-        bottom: 36,
+        bottom: 40,
         right: 8,
         zIndex: 10,
-        background: 'rgba(var(--bg-card-rgb, 30,30,30), 0.85)',
-        backdropFilter: 'blur(6px)',
-        border: '1px solid var(--border)',
-        borderRadius: 5,
+        background: 'rgba(15,15,25,0.85)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 8,
         overflow: 'hidden',
         width: MINIMAP_W,
         height: MINIMAP_H,
@@ -635,8 +636,10 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           position: 'absolute', top: 32, left: '50%', transform: 'translateX(-50%)',
           zIndex: 50, pointerEvents: 'none',
           background: 'rgba(var(--accent-rgb,59,130,246),0.1)',
-          border: '1px solid rgba(var(--accent-rgb,59,130,246),0.22)',
-          borderRadius: 8, padding: '4px 12px',
+          border: '1px solid rgba(var(--accent-rgb,59,130,246),0.3)',
+          borderRadius: 10, padding: '5px 16px',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
           fontSize: 11, color: 'var(--text-primary)',
           whiteSpace: 'nowrap', maxWidth: '60%',
           overflow: 'hidden', textOverflow: 'ellipsis',
@@ -659,22 +662,30 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         <defs>
           <pattern
             id="canvas-dot-grid"
-            x={layout.panX % (20 * layout.zoom)}
-            y={layout.panY % (20 * layout.zoom)}
-            width={20 * layout.zoom}
-            height={20 * layout.zoom}
+            x={layout.panX % (24 * layout.zoom)}
+            y={layout.panY % (24 * layout.zoom)}
+            width={24 * layout.zoom}
+            height={24 * layout.zoom}
             patternUnits="userSpaceOnUse"
           >
             <circle
-              cx={20 * layout.zoom / 2}
-              cy={20 * layout.zoom / 2}
-              r={Math.max(0.5, layout.zoom * 0.8)}
-              fill="rgba(255,255,255,0.045)"
+              cx={24 * layout.zoom / 2}
+              cy={24 * layout.zoom / 2}
+              r={Math.max(0.8, layout.zoom)}
+              fill="rgba(255,255,255,0.06)"
             />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#canvas-dot-grid)" />
       </svg>
+      {/* Radial gradient overlay — subtle purple glow at canvas center */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        pointerEvents: 'none',
+        zIndex: 0,
+        background: 'radial-gradient(ellipse at 50% 40%, rgba(99,102,241,0.04) 0%, transparent 65%)',
+      }} />
 
       {/* B8: Empty canvas guide — shown when workflow has no steps */}
       {workflow.steps.length === 0 && (
@@ -694,30 +705,33 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           }}
         >
           {/* Dashed circle with + */}
-          <svg width={80} height={80}>
+          <svg width={90} height={90}>
             <circle
-              cx={40}
-              cy={40}
-              r={36}
+              cx={45}
+              cy={45}
+              r={40}
               fill="none"
               stroke="var(--text-muted)"
               strokeWidth={1.5}
               strokeDasharray="6 4"
             />
             <text
-              x={40}
-              y={47}
+              x={45}
+              y={54}
               textAnchor="middle"
-              fontSize={24}
+              fontSize={28}
               fill="var(--text-muted)"
               fontWeight={300}
             >+</text>
           </svg>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', opacity: 0.6, letterSpacing: '0.01em' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', opacity: 0.6, letterSpacing: '0.01em' }}>
             {t('workflow.emptyState')}
           </div>
-          <div style={{ fontSize: 10, color: 'var(--text-muted)', opacity: 0.4, letterSpacing: '0.01em' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', opacity: 0.4, letterSpacing: '0.01em' }}>
             {t('workflow.canvasAddStepHint')}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', opacity: 0.3, letterSpacing: '0.01em' }}>
+            or right-click the canvas
           </div>
         </div>
       )}
@@ -753,8 +767,9 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         <div style={{
           position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)',
           zIndex: 20, pointerEvents: 'none',
-          background: 'rgba(0,0,0,0.5)', borderRadius: 4,
-          padding: '2px 8px', fontSize: 9, color: 'rgba(255,255,255,0.6)',
+          background: 'rgba(0,0,0,0.6)', borderRadius: 6,
+          padding: '3px 10px', fontSize: 10, color: 'rgba(255,255,255,0.65)',
+          letterSpacing: '0.01em',
         }}>
           Hold & drag to pan
         </div>
@@ -941,7 +956,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               top: screenY,
               width: screenW,
               height: screenH,
-              border: '1.5px dashed rgba(var(--accent-rgb,59,130,246),0.7)',
+              border: '1.5px dashed rgba(var(--accent-rgb,59,130,246),0.8)',
               background: 'rgba(var(--accent-rgb,59,130,246),0.06)',
               pointerEvents: 'none',
               zIndex: 15,
@@ -992,12 +1007,14 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             left: canvasCtxMenu.x,
             top: canvasCtxMenu.y,
             zIndex: 1000,
-            background: 'var(--bg-card, #1e1e1e)',
-            border: '1px solid var(--border)',
-            borderRadius: 6,
-            boxShadow: '0 6px 20px rgba(0,0,0,0.35)',
-            minWidth: 160,
-            padding: '3px 0',
+            background: 'var(--popup-bg, #1e1e2e)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 8,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05)',
+            minWidth: 168,
+            padding: '4px 0',
             userSelect: 'none',
           }}
           onMouseDown={e => e.stopPropagation()}
@@ -1015,12 +1032,13 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               key={label}
               style={{
                 display: 'flex', alignItems: 'center',
-                padding: '6px 12px',
-                fontSize: 11,
+                padding: '7px 12px',
+                fontSize: 12,
                 cursor: 'pointer',
                 color: 'var(--text)',
+                transition: 'background 0.1s',
               }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               onMouseDown={() => {
                 action()
@@ -1036,8 +1054,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
       {/* CSS animations for execution states */}
       <style>{`
         @keyframes canvas-node-pulse {
-          0%, 100% { box-shadow: 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0 rgba(var(--accent-rgb, 59, 130, 246), 0.4); }
-          50% { box-shadow: 0 4px 16px rgba(0,0,0,0.2), 0 0 0 6px rgba(var(--accent-rgb, 59, 130, 246), 0); }
+          0%, 100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb, 59,130,246), 0.5), 0 4px 20px rgba(0,0,0,0.3); }
+          50% { box-shadow: 0 0 0 8px rgba(var(--accent-rgb, 59,130,246), 0), 0 4px 20px rgba(0,0,0,0.3); }
         }
         @keyframes canvas-spinner {
           from { transform: rotate(0deg); }

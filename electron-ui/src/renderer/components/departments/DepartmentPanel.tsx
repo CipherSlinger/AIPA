@@ -29,6 +29,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
   const [newFolderPath, setNewFolderPath] = useState('')
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
+  const [nameFocused, setNameFocused] = useState(false)
 
   const pickDir = async () => {
     const p = await window.electronAPI.fsShowOpenDialog()
@@ -65,53 +66,90 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
 
   return (
     <div style={{
-      padding: '12px 10px',
-      background: 'var(--bg-input, rgba(255,255,255,0.04))',
-      borderTop: '1px solid var(--border)',
+      padding: '14px 12px',
+      background: 'rgba(255,255,255,0.025)',
+      borderTop: '1px solid rgba(255,255,255,0.08)',
     }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+      <div style={{
+        fontSize: 10,
+        fontWeight: 600,
+        color: 'var(--text-muted)',
+        marginBottom: 10,
+        textTransform: 'uppercase',
+        letterSpacing: '0.08em',
+      }}>
         {t('dept.addTitle')}
       </div>
+
+      {/* Name input */}
       <input
         autoFocus
         placeholder={t('dept.namePlaceholder')}
         value={name}
         onChange={e => setName(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') onDone() }}
+        onFocus={() => setNameFocused(true)}
+        onBlur={() => setNameFocused(false)}
         style={{
           width: '100%',
-          padding: '5px 8px',
-          borderRadius: 5,
-          border: '1px solid var(--border)',
-          background: 'var(--bg-input)',
+          padding: '6px 9px',
+          borderRadius: 6,
+          border: `1px solid ${nameFocused ? 'var(--accent)' : 'rgba(255,255,255,0.1)'}`,
+          background: 'rgba(255,255,255,0.04)',
           color: 'var(--text-primary)',
           fontSize: 12,
-          marginBottom: 6,
+          marginBottom: 7,
           boxSizing: 'border-box',
           outline: 'none',
+          transition: 'border-color 0.15s, box-shadow 0.15s',
+          boxShadow: nameFocused ? '0 0 0 3px rgba(99,102,241,0.15)' : 'none',
         }}
       />
 
       {/* Directory selection */}
       {directory ? (
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 4,
-          padding: '4px 8px', borderRadius: 5,
-          border: '1px solid var(--border)',
-          background: 'rgba(255,255,255,0.03)',
-          marginBottom: 6,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 5,
+          padding: '5px 9px',
+          borderRadius: 6,
+          border: '1px solid rgba(255,255,255,0.1)',
+          background: 'rgba(99,102,241,0.06)',
+          marginBottom: 7,
         }}>
-          <FolderOpen size={11} color="var(--accent)" />
-          <span style={{ flex: 1, fontSize: 10, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <FolderOpen size={11} color="var(--accent)" style={{ flexShrink: 0 }} />
+          <span style={{
+            flex: 1,
+            fontSize: 10,
+            color: 'var(--text-muted)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}>
             {directory}
           </span>
-          <button onClick={() => setDirectory('')} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 1, display: 'flex' }}>
+          <button
+            onClick={() => setDirectory('')}
+            style={{
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              color: 'var(--text-muted)',
+              padding: 2,
+              display: 'flex',
+              borderRadius: 3,
+              transition: 'color 0.12s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
+          >
             <X size={10} />
           </button>
         </div>
       ) : newFolderMode ? (
         /* New folder path input */
-        <div style={{ marginBottom: 6 }}>
+        <div style={{ marginBottom: 7 }}>
           <input
             autoFocus
             placeholder={t('dept.newFolderPath')}
@@ -119,28 +157,65 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
             onChange={e => setNewFolderPath(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') createFolder(); if (e.key === 'Escape') setNewFolderMode(false) }}
             style={{
-              width: '100%', padding: '5px 8px', borderRadius: 5,
-              border: '1px solid var(--accent)', background: 'var(--bg-input)',
-              color: 'var(--text-primary)', fontSize: 11, boxSizing: 'border-box', outline: 'none',
-              fontFamily: 'monospace', marginBottom: 4,
+              width: '100%',
+              padding: '6px 9px',
+              borderRadius: 6,
+              border: '1px solid var(--accent)',
+              background: 'rgba(99,102,241,0.06)',
+              color: 'var(--text-primary)',
+              fontSize: 11,
+              boxSizing: 'border-box',
+              outline: 'none',
+              fontFamily: 'monospace',
+              marginBottom: 5,
+              boxShadow: '0 0 0 3px rgba(99,102,241,0.12)',
             }}
           />
-          {createError && <div style={{ fontSize: 10, color: '#ef4444', marginBottom: 4 }}>{createError}</div>}
-          <div style={{ display: 'flex', gap: 4 }}>
+          {createError && (
+            <div style={{
+              fontSize: 10,
+              color: '#ef4444',
+              marginBottom: 5,
+              padding: '3px 6px',
+              background: 'rgba(239,68,68,0.08)',
+              borderRadius: 4,
+            }}>
+              {createError}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 5 }}>
             <button
               onClick={createFolder}
               disabled={creating || !newFolderPath.trim()}
               style={{
-                flex: 1, padding: '4px 0', borderRadius: 4, border: 'none',
-                background: creating ? 'var(--border)' : 'var(--accent)',
-                color: '#fff', fontSize: 10, fontWeight: 600, cursor: creating ? 'default' : 'pointer',
+                flex: 1,
+                padding: '5px 0',
+                borderRadius: 5,
+                border: 'none',
+                background: creating ? 'rgba(255,255,255,0.08)' : 'var(--accent)',
+                color: creating ? 'var(--text-muted)' : '#fff',
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: creating ? 'default' : 'pointer',
+                transition: 'background 0.15s',
               }}
             >
               {creating ? t('dept.creating') : t('dept.createFolder')}
             </button>
             <button
               onClick={() => setNewFolderMode(false)}
-              style={{ padding: '4px 8px', borderRadius: 4, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: 10, cursor: 'pointer' }}
+              style={{
+                padding: '5px 9px',
+                borderRadius: 5,
+                border: '1px solid rgba(255,255,255,0.1)',
+                background: 'transparent',
+                color: 'var(--text-muted)',
+                fontSize: 11,
+                cursor: 'pointer',
+                transition: 'background 0.12s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
             >
               {t('dept.cancel')}
             </button>
@@ -148,17 +223,33 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
         </div>
       ) : (
         /* Directory pick buttons */
-        <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+        <div style={{ display: 'flex', gap: 5, marginBottom: 7 }}>
           <button
             onClick={pickDir}
             style={{
-              flex: 1, padding: '5px 8px', borderRadius: 5,
-              border: '1px dashed var(--border)', background: 'transparent',
-              color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 5,
+              flex: 1,
+              padding: '6px 8px',
+              borderRadius: 6,
+              border: '1px dashed rgba(255,255,255,0.15)',
+              background: 'transparent',
+              color: 'var(--text-muted)',
+              fontSize: 11,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              transition: 'border-color 0.15s, color 0.15s, background 0.15s',
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = 'var(--accent)'
+              e.currentTarget.style.color = 'var(--accent)'
+              e.currentTarget.style.background = 'rgba(99,102,241,0.06)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
+              e.currentTarget.style.color = 'var(--text-muted)'
+              e.currentTarget.style.background = 'transparent'
+            }}
           >
             <FolderOpen size={11} />
             {t('dept.pickDirectory')}
@@ -167,13 +258,28 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
             onClick={() => setNewFolderMode(true)}
             title={t('dept.newFolder')}
             style={{
-              padding: '5px 8px', borderRadius: 5,
-              border: '1px dashed var(--border)', background: 'transparent',
-              color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '6px 9px',
+              borderRadius: 6,
+              border: '1px dashed rgba(255,255,255,0.15)',
+              background: 'transparent',
+              color: 'var(--text-muted)',
+              fontSize: 11,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              transition: 'border-color 0.15s, color 0.15s, background 0.15s',
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = 'var(--accent)'
+              e.currentTarget.style.color = 'var(--accent)'
+              e.currentTarget.style.background = 'rgba(99,102,241,0.06)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
+              e.currentTarget.style.color = 'var(--text-muted)'
+              e.currentTarget.style.background = 'transparent'
+            }}
           >
             <FolderPlus size={11} />
           </button>
@@ -185,10 +291,17 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
           onClick={submit}
           disabled={!name.trim() || !directory}
           style={{
-            flex: 1, padding: '5px 0', borderRadius: 5, border: 'none',
-            background: (!name.trim() || !directory) ? 'var(--border)' : 'var(--accent)',
-            color: '#fff', fontSize: 11, fontWeight: 600,
+            flex: 1,
+            padding: '6px 0',
+            borderRadius: 6,
+            border: 'none',
+            background: (!name.trim() || !directory) ? 'rgba(255,255,255,0.06)' : 'var(--accent)',
+            color: (!name.trim() || !directory) ? 'var(--text-muted)' : '#fff',
+            fontSize: 11,
+            fontWeight: 600,
             cursor: (!name.trim() || !directory) ? 'default' : 'pointer',
+            transition: 'background 0.15s, box-shadow 0.15s',
+            boxShadow: (!name.trim() || !directory) ? 'none' : '0 2px 8px rgba(99,102,241,0.3)',
           }}
         >
           {t('dept.create')}
@@ -196,9 +309,17 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
         <button
           onClick={onDone}
           style={{
-            padding: '5px 10px', borderRadius: 5, border: '1px solid var(--border)',
-            background: 'transparent', color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer',
+            padding: '6px 11px',
+            borderRadius: 6,
+            border: '1px solid rgba(255,255,255,0.1)',
+            background: 'transparent',
+            color: 'var(--text-muted)',
+            fontSize: 11,
+            cursor: 'pointer',
+            transition: 'background 0.12s',
           }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
         >
           {t('dept.cancel')}
         </button>
@@ -242,14 +363,34 @@ function DepartmentRow({ dept, isActive }: { dept: Department; isActive: boolean
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => { setHovered(false); setMenuOpen(false) }}
       style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        padding: '7px 10px', borderRadius: 6, marginBottom: 2,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '8px 12px',
+        borderRadius: 8,
+        marginBottom: 2,
         cursor: editing ? 'default' : 'pointer',
-        background: isActive ? 'rgba(255,255,255,0.08)' : hovered ? 'rgba(255,255,255,0.04)' : 'transparent',
+        background: isActive
+          ? 'rgba(99,102,241,0.12)'
+          : hovered
+          ? 'rgba(255,255,255,0.05)'
+          : 'transparent',
+        // Left accent bar for active state
+        borderLeft: isActive ? '3px solid var(--accent)' : '3px solid transparent',
+        paddingLeft: isActive ? 9 : 12,
         position: 'relative',
+        transition: 'background 0.15s, border-color 0.15s',
       }}
     >
-      <div style={{ width: 8, height: 8, borderRadius: '50%', background: dept.color || 'var(--accent)', flexShrink: 0 }} />
+      {/* Color dot */}
+      <div style={{
+        width: 10,
+        height: 10,
+        borderRadius: '50%',
+        background: dept.color || 'var(--accent)',
+        flexShrink: 0,
+        boxShadow: '0 0 0 1.5px rgba(255,255,255,0.1)',
+      }} />
 
       {editing ? (
         <input
@@ -259,27 +400,67 @@ function DepartmentRow({ dept, isActive }: { dept: Department; isActive: boolean
           onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditing(false) }}
           onClick={e => e.stopPropagation()}
           style={{
-            flex: 1, background: 'var(--bg-input)', border: '1px solid var(--accent)',
-            borderRadius: 4, padding: '2px 6px', color: 'var(--text-primary)', fontSize: 12, outline: 'none',
+            flex: 1,
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid var(--accent)',
+            borderRadius: 5,
+            padding: '2px 7px',
+            color: 'var(--text-primary)',
+            fontSize: 12,
+            outline: 'none',
+            boxShadow: '0 0 0 3px rgba(99,102,241,0.15)',
           }}
         />
       ) : (
         <span style={{
-          flex: 1, fontSize: 12, fontWeight: isActive ? 600 : 400,
+          flex: 1,
+          fontSize: 12,
+          fontWeight: isActive ? 600 : 400,
           color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          transition: 'color 0.12s',
         }}>
           {dept.name}
         </span>
       )}
 
       {editing && (
-        <div style={{ display: 'flex', gap: 4 }} onClick={e => e.stopPropagation()}>
-          <button onClick={saveEdit} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--accent)', padding: 2 }}>
-            <Check size={12} />
+        <div style={{ display: 'flex', gap: 3 }} onClick={e => e.stopPropagation()}>
+          <button
+            onClick={saveEdit}
+            style={{
+              border: 'none',
+              background: 'rgba(99,102,241,0.15)',
+              cursor: 'pointer',
+              color: 'var(--accent)',
+              padding: '3px 5px',
+              borderRadius: 4,
+              display: 'flex',
+              transition: 'background 0.12s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.25)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)' }}
+          >
+            <Check size={11} />
           </button>
-          <button onClick={() => setEditing(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2 }}>
-            <X size={12} />
+          <button
+            onClick={() => setEditing(false)}
+            style={{
+              border: 'none',
+              background: 'rgba(255,255,255,0.05)',
+              cursor: 'pointer',
+              color: 'var(--text-muted)',
+              padding: '3px 5px',
+              borderRadius: 4,
+              display: 'flex',
+              transition: 'background 0.12s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
+          >
+            <X size={11} />
           </button>
         </div>
       )}
@@ -287,7 +468,31 @@ function DepartmentRow({ dept, isActive }: { dept: Department; isActive: boolean
       {!editing && (hovered || menuOpen) && (
         <button
           onClick={e => { e.stopPropagation(); setMenuOpen(!menuOpen) }}
-          style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2, borderRadius: 3, display: 'flex', flexShrink: 0 }}
+          style={{
+            border: 'none',
+            background: menuOpen ? 'rgba(255,255,255,0.1)' : 'none',
+            cursor: 'pointer',
+            color: menuOpen ? 'var(--text-primary)' : 'var(--text-muted)',
+            padding: 4,
+            borderRadius: '50%',
+            width: 24,
+            height: 24,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            transition: 'background 0.12s, color 0.12s',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.1)'
+            e.currentTarget.style.color = 'var(--text-primary)'
+          }}
+          onMouseLeave={e => {
+            if (!menuOpen) {
+              e.currentTarget.style.background = 'none'
+              e.currentTarget.style.color = 'var(--text-muted)'
+            }
+          }}
         >
           <MoreHorizontal size={13} />
         </button>
@@ -298,14 +503,34 @@ function DepartmentRow({ dept, isActive }: { dept: Department; isActive: boolean
           ref={menuRef}
           onClick={e => e.stopPropagation()}
           style={{
-            position: 'absolute', right: 8, top: '100%', zIndex: 200,
-            background: 'var(--popup-bg)', border: '1px solid var(--popup-border)',
-            borderRadius: 8, boxShadow: 'var(--popup-shadow)', minWidth: 130, padding: 4,
+            position: 'absolute',
+            right: 8,
+            top: '100%',
+            zIndex: 200,
+            background: 'var(--popup-bg)',
+            border: '1px solid var(--popup-border)',
+            borderRadius: 9,
+            boxShadow: 'var(--popup-shadow)',
+            minWidth: 135,
+            padding: 4,
           }}
         >
           <button
             onClick={() => { setMenuOpen(false); setEditing(true); setEditName(dept.name) }}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 10px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--text-primary)', borderRadius: 5 }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              width: '100%',
+              padding: '7px 11px',
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              fontSize: 12,
+              color: 'var(--text-primary)',
+              borderRadius: 6,
+              transition: 'background 0.12s',
+            }}
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
           >
@@ -313,7 +538,20 @@ function DepartmentRow({ dept, isActive }: { dept: Department; isActive: boolean
           </button>
           <button
             onClick={handleDelete}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 10px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, color: '#ef4444', borderRadius: 5 }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              width: '100%',
+              padding: '7px 11px',
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              fontSize: 12,
+              color: '#ef4444',
+              borderRadius: 6,
+              transition: 'background 0.12s',
+            }}
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
           >
@@ -358,32 +596,75 @@ export default function DepartmentPanel() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Header */}
       <div style={{
-        padding: '10px 10px 6px', borderBottom: '1px solid var(--border)',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
+        padding: '10px 12px 8px',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Building2 size={13} color="var(--text-muted)" />
-          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <Building2 size={12} color="var(--text-muted)" style={{ opacity: 0.8 }} />
+          <span style={{
+            fontSize: 10,
+            fontWeight: 600,
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+          }}>
             {t('dept.panelTitle')}
           </span>
         </div>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
           title={t('dept.add')}
-          style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 3, borderRadius: 4, display: 'flex' }}
-          onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
-          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
+          style={{
+            border: 'none',
+            background: showAddForm ? 'rgba(99,102,241,0.15)' : 'none',
+            cursor: 'pointer',
+            color: showAddForm ? 'var(--accent)' : 'var(--text-muted)',
+            padding: 4,
+            borderRadius: 5,
+            display: 'flex',
+            width: 24,
+            height: 24,
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'background 0.15s, color 0.15s',
+          }}
+          onMouseEnter={e => {
+            if (!showAddForm) {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
+              e.currentTarget.style.color = 'var(--text-primary)'
+            }
+          }}
+          onMouseLeave={e => {
+            if (!showAddForm) {
+              e.currentTarget.style.background = 'none'
+              e.currentTarget.style.color = 'var(--text-muted)'
+            }
+          }}
         >
-          <Plus size={15} />
+          <Plus size={14} />
         </button>
       </div>
 
       {/* Department list */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '6px 6px 0' }}>
         {departments.length === 0 && !showAddForm ? (
-          <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12, lineHeight: 1.6 }}>
-            <Building2 size={28} color="var(--text-muted)" style={{ opacity: 0.4, marginBottom: 8 }} />
-            <div>{t('dept.emptyHint')}</div>
+          <div style={{
+            padding: '28px 14px',
+            textAlign: 'center',
+            color: 'var(--text-muted)',
+            fontSize: 12,
+            lineHeight: 1.65,
+          }}>
+            <Building2
+              size={28}
+              color="var(--text-muted)"
+              style={{ opacity: 0.3, marginBottom: 10, display: 'block', margin: '0 auto 10px' }}
+            />
+            <div style={{ opacity: 0.7 }}>{t('dept.emptyHint')}</div>
           </div>
         ) : (
           departments.map(dept => (
@@ -394,17 +675,37 @@ export default function DepartmentPanel() {
 
       {showAddForm && <AddDepartmentForm onDone={() => setShowAddForm(false)} />}
 
+      {/* Add department button — full width dashed */}
       {!showAddForm && departments.length > 0 && (
         <button
           onClick={() => setShowAddForm(true)}
           style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            margin: '6px 10px 10px', padding: '6px 10px',
-            border: '1px dashed var(--border)', borderRadius: 6,
-            background: 'transparent', color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer', flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            margin: '6px 10px 10px',
+            padding: '7px 10px',
+            border: '1px dashed rgba(255,255,255,0.12)',
+            borderRadius: 7,
+            background: 'transparent',
+            color: 'var(--text-muted)',
+            fontSize: 11,
+            cursor: 'pointer',
+            flexShrink: 0,
+            width: 'calc(100% - 20px)',
+            transition: 'border-color 0.15s, color 0.15s, background 0.15s',
           }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+          onMouseEnter={e => {
+            e.currentTarget.style.borderColor = 'var(--accent)'
+            e.currentTarget.style.color = 'var(--accent)'
+            e.currentTarget.style.background = 'rgba(99,102,241,0.06)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'
+            e.currentTarget.style.color = 'var(--text-muted)'
+            e.currentTarget.style.background = 'transparent'
+          }}
         >
           <Plus size={12} />
           {t('dept.add')}

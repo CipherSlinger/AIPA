@@ -287,6 +287,12 @@ code:not(pre code) {
   100% { opacity: 1; }
 }
 
+/* Shimmer sweep animation for skeleton cards */
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 .skeleton {
   animation: skeleton-pulse 1.5s ease-in-out infinite;
   background: var(--popup-bg, #2a2a2a);

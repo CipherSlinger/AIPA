@@ -38,74 +38,147 @@ export default function SessionCard({ session, onClick, isActive }: SessionCardP
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        width: 220,
-        minHeight: 110,
-        borderRadius: 10,
-        border: `1.5px solid ${isActive ? 'var(--accent)' : hovered ? 'var(--border-hover, rgba(255,255,255,0.2))' : 'var(--border)'}`,
+        width: 240,
+        minHeight: 130,
+        borderRadius: 12,
+        border: `1.5px solid ${
+          isActive
+            ? 'var(--accent)'
+            : hovered
+            ? 'rgba(255,255,255,0.14)'
+            : 'rgba(255,255,255,0.07)'
+        }`,
         background: isActive
-          ? 'rgba(99,102,241,0.08)'
+          ? 'rgba(99,102,241,0.10)'
           : hovered
-          ? 'rgba(255,255,255,0.04)'
-          : 'var(--bg-sessionpanel)',
+          ? 'rgba(255,255,255,0.06)'
+          : 'rgba(255,255,255,0.03)',
         cursor: 'pointer',
-        padding: '12px 14px',
+        padding: '13px 14px 11px 18px',
         display: 'flex',
         flexDirection: 'column',
         gap: 6,
-        transition: 'border-color 0.15s, background 0.15s, transform 0.12s',
-        transform: hovered ? 'translateY(-2px)' : 'none',
-        boxShadow: hovered ? '0 4px 16px rgba(0,0,0,0.2)' : '0 1px 4px rgba(0,0,0,0.08)',
+        transition: 'border-color 0.18s, background 0.18s, transform 0.15s, box-shadow 0.18s',
+        transform: hovered && !isActive ? 'translateY(-3px)' : 'none',
+        boxShadow: isActive
+          ? '0 0 0 1px var(--accent), 0 4px 20px rgba(99,102,241,0.18)'
+          : hovered
+          ? '0 8px 24px rgba(0,0,0,0.25)'
+          : '0 1px 4px rgba(0,0,0,0.1)',
         flexShrink: 0,
+        position: 'relative',
+        overflow: 'hidden',
+        // Left accent border
+        borderLeft: `4px solid ${isActive ? 'var(--accent)' : 'transparent'}`,
       }}
     >
+      {/* Hover top-gradient overlay */}
+      {(hovered || isActive) && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: isActive
+              ? 'linear-gradient(135deg, rgba(99,102,241,0.08) 0%, transparent 60%)'
+              : 'linear-gradient(135deg, rgba(99,102,241,0.06) 0%, transparent 60%)',
+            pointerEvents: 'none',
+            borderRadius: 'inherit',
+          }}
+        />
+      )}
+
+      {/* Active glow dot — top right */}
+      {isActive && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            background: 'var(--accent)',
+            boxShadow: '0 0 0 2px rgba(99,102,241,0.25), 0 0 8px rgba(99,102,241,0.6)',
+          }}
+        />
+      )}
+
       {/* Icon + title row */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-        <MessageSquare size={14} color={isActive ? 'var(--accent)' : 'var(--text-muted)'} style={{ flexShrink: 0, marginTop: 1 }} />
-        <span style={{
-          fontSize: 12,
-          fontWeight: 600,
-          color: 'var(--text-primary)',
-          lineHeight: 1.4,
-          overflow: 'hidden',
-          display: '-webkit-box',
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: 'vertical',
-        }}>
+        <MessageSquare
+          size={14}
+          color={isActive ? 'var(--accent)' : hovered ? 'rgba(255,255,255,0.5)' : 'var(--text-muted)'}
+          style={{ flexShrink: 0, marginTop: 1, transition: 'color 0.15s' }}
+        />
+        <span
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: isActive ? 'var(--text-primary)' : hovered ? 'var(--text-primary)' : 'var(--text-secondary)',
+            lineHeight: 1.4,
+            overflow: 'hidden',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            transition: 'color 0.15s',
+            paddingRight: isActive ? 16 : 0,
+          }}
+        >
           {title}
         </span>
       </div>
 
       {/* Preview text */}
       {preview && (
-        <span style={{
-          fontSize: 11,
-          color: 'var(--text-muted)',
-          lineHeight: 1.5,
-          overflow: 'hidden',
-          display: '-webkit-box',
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: 'vertical',
-          flex: 1,
-        }}>
+        <span
+          style={{
+            fontSize: 11,
+            color: 'var(--text-muted)',
+            lineHeight: 1.55,
+            overflow: 'hidden',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            flex: 1,
+            opacity: isActive ? 0.85 : 0.7,
+          }}
+        >
           {preview}
         </span>
       )}
 
       {/* Footer: time + message count */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 'auto', paddingTop: 4 }}>
-        <Clock size={10} color="var(--text-muted)" />
-        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{timeStr}</span>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 5,
+          marginTop: 'auto',
+          paddingTop: 6,
+        }}
+      >
+        <Clock size={10} color="var(--text-muted)" style={{ opacity: 0.7, flexShrink: 0 }} />
+        <span style={{ fontSize: 10, color: 'var(--text-muted)', opacity: 0.8 }}>{timeStr}</span>
+
         {session.messageCount !== undefined && session.messageCount > 0 && (
-          <span style={{
-            marginLeft: 'auto',
-            fontSize: 10,
-            color: 'var(--text-muted)',
-            background: 'rgba(255,255,255,0.06)',
-            borderRadius: 4,
-            padding: '1px 5px',
-          }}>
-            {session.messageCount} {t('session.messages')}
-          </span>
+          <>
+            <span style={{ fontSize: 10, color: 'var(--text-muted)', opacity: 0.4, margin: '0 1px' }}>·</span>
+            <span
+              style={{
+                marginLeft: 'auto',
+                fontSize: 10,
+                fontWeight: 500,
+                color: isActive ? 'var(--accent)' : 'var(--text-muted)',
+                background: isActive ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.08)',
+                borderRadius: 20,
+                padding: '1px 7px',
+                lineHeight: '16px',
+                transition: 'background 0.15s, color 0.15s',
+              }}
+            >
+              {session.messageCount} {t('session.messages')}
+            </span>
+          </>
         )}
       </div>
     </div>
