@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
   Workflow as WorkflowIcon,
   Plus,
   Search,
+  Users2,
 } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useUiStore } from '../../store'
@@ -11,6 +12,8 @@ import { WORKFLOW_ICONS, MAX_NAME_LENGTH, MAX_DESC_LENGTH, PRESET_WORKFLOWS } fr
 import WorkflowStepEditor from './WorkflowStepEditor'
 import WorkflowItem from './WorkflowItem'
 import WorkflowPersonasSection from './WorkflowPersonasSection'
+
+type WorkflowCategory = 'singleAgent' | 'teamwork'
 
 export default function WorkflowPanel() {
   const t = useT()
@@ -36,6 +39,21 @@ function WorkflowTabContent({ crud, t }: {
   crud: ReturnType<typeof useWorkflowCrud>;
   t: (key: string, params?: Record<string, string | number>) => string;
 }) {
+  const [category, setCategory] = useState<WorkflowCategory>('singleAgent')
+
+  // Filter workflows by category
+  const categoryWorkflows = useMemo(() => {
+    return crud.filteredWorkflows.filter(wf =>
+      category === 'teamwork' ? wf.teamwork === true : !wf.teamwork
+    )
+  }, [crud.filteredWorkflows, category])
+
+  const allCategoryWorkflows = useMemo(() => {
+    return crud.workflows.filter(wf =>
+      category === 'teamwork' ? wf.teamwork === true : !wf.teamwork
+    )
+  }, [crud.workflows, category])
+
   return (
     <>
       {/* Workflows sub-header with search + create */}
@@ -71,6 +89,35 @@ function WorkflowTabContent({ crud, t }: {
               <Plus size={14} />
             </button>
           </div>
+        </div>
+
+        {/* Category tabs: Single-Agent / Teamwork */}
+        <div style={{ display: 'flex', gap: 2, marginBottom: 6 }}>
+          {(['singleAgent', 'teamwork'] as WorkflowCategory[]).map(cat => (
+            <button
+              key={cat}
+              onClick={() => setCategory(cat)}
+              style={{
+                flex: 1,
+                padding: '3px 0',
+                fontSize: 10,
+                fontWeight: category === cat ? 600 : 400,
+                background: category === cat ? 'rgba(var(--accent-rgb, 59, 130, 246), 0.12)' : 'transparent',
+                border: `1px solid ${category === cat ? 'var(--accent)' : 'var(--border)'}`,
+                borderRadius: 5,
+                color: category === cat ? 'var(--accent)' : 'var(--text-muted)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {cat === 'teamwork' ? <Users2 size={10} /> : <WorkflowIcon size={10} />}
+              {t(`workflow.${cat}`)}
+            </button>
+          ))}
         </div>
 
         {/* Search */}
@@ -179,16 +226,19 @@ function WorkflowTabContent({ crud, t }: {
 
       {/* Workflow list (Iteration 459: canvas removed, workflows open in main panel) */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
-          {crud.filteredWorkflows.length === 0 && !crud.showCreateForm ? (
+          {categoryWorkflows.length === 0 && !crud.showCreateForm ? (
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             height: '50%', color: 'var(--text-muted)', gap: 8, padding: '0 16px',
           }}>
-            <WorkflowIcon size={32} style={{ opacity: 0.3, animation: 'wf-pulse 2s ease-in-out infinite' }} />
+            {category === 'teamwork'
+              ? <Users2 size={28} style={{ opacity: 0.3, animation: 'wf-pulse 2s ease-in-out infinite' }} />
+              : <WorkflowIcon size={28} style={{ opacity: 0.3, animation: 'wf-pulse 2s ease-in-out infinite' }} />
+            }
             <span style={{ fontSize: 12 }}>
-              {crud.workflows.length === 0 ? t('workflow.emptyState') : t('workflow.noResults')}
+              {allCategoryWorkflows.length === 0 ? t('workflow.emptyState') : t('workflow.noResults')}
             </span>
-            {crud.workflows.length === 0 && (
+            {allCategoryWorkflows.length === 0 && category === 'singleAgent' && (
               <>
                 <span style={{ fontSize: 10, opacity: 0.7, textAlign: 'center' }}>
                   {t('workflow.emptyHint')}
@@ -223,7 +273,7 @@ function WorkflowTabContent({ crud, t }: {
             )}
           </div>
         ) : (
-          crud.filteredWorkflows.map(wf => (
+          categoryWorkflows.map(wf => (
             <WorkflowItem
               key={wf.id}
               wf={wf}
@@ -234,8 +284,8 @@ function WorkflowTabContent({ crud, t }: {
           ))
         )}
 
-        {/* Presets section (when workflows exist but not searching) */}
-        {crud.workflows.length > 0 && !crud.searchQuery && (
+        {/* Presets section (when workflows exist but not searching) — only for singleAgent */}
+        {allCategoryWorkflows.length > 0 && !crud.searchQuery && category === 'singleAgent' && (
           <div style={{ padding: '8px 12px' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>
               {t('workflow.presets')}

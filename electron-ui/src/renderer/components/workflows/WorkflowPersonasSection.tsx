@@ -58,7 +58,8 @@ export default function WorkflowPersonasSection() {
     setFormName('')
     setFormEmoji('🧑‍💼')
     setFormModel('claude-sonnet-4-6')
-    setFormPrompt('')
+    // Pre-fill system prompt with localized default template
+    setFormPrompt(t('persona.defaultSystemPrompt'))
     setFormColor('#3b82f6')
   }
 

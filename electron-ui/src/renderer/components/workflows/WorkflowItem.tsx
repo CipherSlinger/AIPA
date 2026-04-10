@@ -79,7 +79,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
             background: deleteConfirming ? 'var(--error, #ef4444)' : 'transparent',
             border: deleteConfirming ? 'none' : '1px solid var(--border)',
             borderRadius: 6,
-            padding: '4px 8px',
+            padding: '4px',
             cursor: 'pointer',
             color: deleteConfirming ? '#fff' : 'var(--text-muted)',
             display: 'flex',
@@ -104,7 +104,6 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
           }}
         >
           <Trash2 size={10} />
-          {deleteConfirming ? t('workflow.deleteConfirm') : t('workflow.delete')}
         </button>
       </div>
 
@@ -209,11 +208,12 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
                 </button>
                 <button
                   onClick={() => crud.deleteWorkflow(wf.id)}
+                  title={t('workflow.delete')}
                   style={{ ...smallBtnStyle, color: 'var(--text-muted)' }}
                   onMouseEnter={e => (e.currentTarget.style.color = 'var(--error)')}
                   onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
                 >
-                  <Trash2 size={10} /> {t('workflow.delete')}
+                  <Trash2 size={10} />
                 </button>
               </div>
             </>

@@ -568,10 +568,10 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         alignItems: 'center',
         justifyContent: 'center',
         color: 'var(--text-muted)',
-        gap: 8,
+        gap: 6,
       }}>
-        <WorkflowIcon size={32} style={{ opacity: 0.4 }} />
-        <span style={{ fontSize: 12 }}>{t('workflow.canvasEmpty')}</span>
+        <WorkflowIcon size={20} style={{ opacity: 0.25 }} />
+        <span style={{ fontSize: 11, color: 'var(--text-muted)', opacity: 0.55, letterSpacing: '0.01em' }}>{t('workflow.canvasEmpty')}</span>
       </div>
     )
   }
@@ -735,11 +735,11 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               fontWeight={300}
             >+</text>
           </svg>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', opacity: 0.6, letterSpacing: '0.01em' }}>
             {t('workflow.emptyState')}
           </div>
-          <div style={{ fontSize: 10, color: 'var(--text-muted)', opacity: 0.7 }}>
-            点击右上角 + 按钮或按 N 键
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', opacity: 0.4, letterSpacing: '0.01em' }}>
+            {t('workflow.canvasAddStepHint')}
           </div>
         </div>
       )}

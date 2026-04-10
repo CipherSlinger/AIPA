@@ -4,7 +4,7 @@
 // saveFlash for green flash on Ctrl+S, enterEditMode/exitEditMode callbacks.
 
 import React, { useState } from 'react'
-import { ArrowLeft, Play, Edit3, Check, Save, X as XIcon, Eye } from 'lucide-react'
+import { ArrowLeft, Edit3, Check, Save, Eye } from 'lucide-react'
 import type { WorkflowExecutionState } from './useWorkflowExecution'
 
 const WORKFLOW_EMOJIS = [
@@ -26,7 +26,6 @@ interface Props {
   onOpenEditor: () => void
   onEnterEditMode: () => void
   onExitEditMode: () => void
-  onRunWorkflow: () => void
   onSave: () => void
   onUpdateIcon: (emoji: string) => void
   onUpdateDesc: (v: string) => void
@@ -36,7 +35,7 @@ interface Props {
 export default function WorkflowDetailHeader({
   editIcon, editDesc, hasUnsavedChanges, justSaved, canSave,
   execution, isEditMode, saveFlash, onGoBack, onOpenEditor,
-  onEnterEditMode, onExitEditMode, onRunWorkflow, onSave,
+  onEnterEditMode, onExitEditMode, onSave,
   onUpdateIcon, onUpdateDesc, t,
 }: Props) {
   const [showIconPicker, setShowIconPicker] = useState(false)
@@ -171,17 +170,6 @@ export default function WorkflowDetailHeader({
               <button onClick={onEnterEditMode} title={t('workflow.edit')} style={actionBtnStyle}>
                 <Edit3 size={14} />
                 <span style={{ fontSize: 12 }}>{t('workflow.edit')}</span>
-              </button>
-              {/* Run workflow */}
-              <button onClick={onRunWorkflow} disabled={execution.isRunning} style={{
-                ...actionBtnStyle,
-                background: execution.isRunning ? 'var(--border)' : 'var(--accent)',
-                color: '#fff',
-                opacity: execution.isRunning ? 0.6 : 1,
-                cursor: execution.isRunning ? 'not-allowed' : 'pointer',
-              }}>
-                <Play size={14} fill="#fff" />
-                <span style={{ fontSize: 12, fontWeight: 500 }}>{t('workflow.run')}</span>
               </button>
             </>
           )}

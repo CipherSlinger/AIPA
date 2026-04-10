@@ -340,7 +340,6 @@ export default function WorkflowDetailPage() {
         onOpenEditor={openEditor}
         onEnterEditMode={enterEditMode}
         onExitEditMode={exitEditMode}
-        onRunWorkflow={runWorkflow}
         onSave={handleSave}
         onUpdateIcon={updateIcon}
         onUpdateDesc={updateDesc}

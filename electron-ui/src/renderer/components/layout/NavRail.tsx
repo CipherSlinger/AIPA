@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, Settings, User, PanelLeftClose, PanelLeftOpen, Radio, CheckSquare, GitBranch } from 'lucide-react'
+import { MessageSquarePlus, History, FolderOpen, NotebookPen, Puzzle, Brain, Workflow, Settings, User, PanelLeftClose, PanelLeftOpen, CheckSquare, GitBranch, Users2 } from 'lucide-react'
 import { useUiStore, useChatStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 import { AVATAR_PRESETS } from './avatarPresets'
@@ -344,7 +344,7 @@ export default function NavRail() {
 
       {/* Workflows */}
       <NavItem
-        icon={<Workflow size={iconSize} />}
+        icon={<Users2 size={iconSize} />}
         label={t('nav.workflows')}
         shortcut="Ctrl+6"
         isActive={isWorkflowsActive}
@@ -354,7 +354,7 @@ export default function NavRail() {
 
       {/* Channel */}
       <NavItem
-        icon={<Radio size={iconSize} />}
+        icon={<Workflow size={iconSize} />}
         label={t('nav.channel')}
         shortcut="Ctrl+7"
         isActive={isChannelActive}
