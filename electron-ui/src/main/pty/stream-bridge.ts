@@ -244,10 +244,21 @@ export class StreamBridge extends EventEmitter {
         }
         break
       }
-      case 'result':
-        // result event contains session_id for future --resume
-        this.emit('result', { sessionId: sid, claudeSessionId: (event as Record<string, unknown>).session_id, event })
+      case 'result': {
+        // result event contains session_id and rich stats for the completed turn
+        const re = event as Record<string, unknown>
+        this.emit('result', {
+          sessionId: sid,
+          claudeSessionId: re.session_id,
+          totalCostUsd: re.total_cost_usd,
+          usage: re.usage,
+          permissionDenials: (re.permission_denials as Array<{ tool_name: string; reason?: string }> | undefined) ?? [],
+          numTurns: re.num_turns,
+          durationMs: re.duration_ms,
+          event,
+        })
         break
+      }
       case 'control_request': {
         const req = (event.request ?? event) as Record<string, unknown>
         const subtype = req.subtype as string | undefined

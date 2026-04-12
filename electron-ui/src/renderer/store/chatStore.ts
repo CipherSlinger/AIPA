@@ -219,6 +219,13 @@ interface ChatState {
   updateHookEvent: (id: string, update: Partial<{ id: string; hookEvent: string; hookType: string; status: 'running' | 'success' | 'error'; output?: string; timestamp: number }>) => void
   clearHookEvents: () => void
 
+  // Result event stats (P0-5): permission denials, turns, duration from CLI result
+  permissionDenials: Array<{ tool_name: string; reason?: string }>
+  lastNumTurns: number | null
+  lastDurationMs: number | null
+  setResultStats: (denials: Array<{ tool_name: string; reason?: string }>, numTurns: number | null, durationMs: number | null) => void
+  clearResultStats: () => void
+
   // system.init data — updated at the start of each CLI session
   availableTools: string[]
   mcpServers: Array<{ name: string; status: string }>
@@ -265,8 +272,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
   changedFiles: [],
   tempSystemPrompt: null,
   hookEvents: [],
+  permissionDenials: [],
+  lastNumTurns: null,
+  lastDurationMs: null,
   availableTools: [],
-  mcpServers: [],
   activeModel: '',
   permissionMode: 'default',
 
@@ -353,7 +362,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     streamingBuffer.sessionId = null
     streamingBuffer.messageId = null
     streamingBuffer.dirty = false
-    set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false, totalSessionCost: 0, lastCost: null, lastUsage: null, lastContextUsage: null, modelUsage: {}, sessionPersonaId: undefined, isPlanMode: false, changedFiles: [], tempSystemPrompt: null, hookEvents: [] })
+    set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false, totalSessionCost: 0, lastCost: null, lastUsage: null, lastContextUsage: null, modelUsage: {}, sessionPersonaId: undefined, isPlanMode: false, changedFiles: [], tempSystemPrompt: null, hookEvents: [], permissionDenials: [], lastNumTurns: null, lastDurationMs: null })
   },
   loadHistory: (messages) => set({ messages, isStreaming: false }),
 
@@ -637,6 +646,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     hookEvents: s.hookEvents.map(e => e.id === id ? { ...e, ...update } : e),
   })),
   clearHookEvents: () => set({ hookEvents: [] }),
+
+  // Result stats setters (P0-5)
+  setResultStats: (denials, numTurns, durationMs) => set({ permissionDenials: denials, lastNumTurns: numTurns, lastDurationMs: durationMs }),
+  clearResultStats: () => set({ permissionDenials: [], lastNumTurns: null, lastDurationMs: null }),
 
   // system.init handler
   setSystemInit: (data) => set({

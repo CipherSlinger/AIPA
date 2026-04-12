@@ -534,6 +534,13 @@ Keep exercises focused and achievable. The goal is active learning through doing
               if (list) useSessionStore.getState().setSessions(list)
             })
           }
+          // Consume full result stats: permission denials, turns, duration
+          {
+            const denials = (data.permissionDenials as Array<{ tool_name: string; reason?: string }> | undefined) ?? []
+            const numTurns = (data.numTurns as number | undefined) ?? null
+            const durationMs = (data.durationMs as number | undefined) ?? null
+            useChatStore.getState().setResultStats(denials, numTurns, durationMs)
+          }
           const ev = data.event as Record<string, unknown>
           // Compact diff toast: when result metadata indicates compaction happened
           const metadata = ev?.metadata as Record<string, unknown> | undefined

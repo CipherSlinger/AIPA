@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
-import { BarChart3, ClipboardCopy, Check, FileText } from 'lucide-react'
+import { BarChart3, ClipboardCopy, Check, FileText, AlertTriangle } from 'lucide-react'
 import { useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import { useClickOutside } from '../../hooks/useClickOutside'
@@ -22,6 +22,9 @@ export default function StatsPanel({
 }: StatsPanelProps) {
   const t = useT()
   const addToast = useUiStore(s => s.addToast)
+  const permissionDenials = useChatStore(s => s.permissionDenials)
+  const lastNumTurns = useChatStore(s => s.lastNumTurns)
+  const lastDurationMs = useChatStore(s => s.lastDurationMs)
   const [showStats, setShowStats] = useState(false)
   const [statsCopied, setStatsCopied] = useState(false)
   const [summaryCopied, setSummaryCopied] = useState(false)
@@ -262,6 +265,8 @@ export default function StatsPanel({
             ...(conversationStats.annotationCount > 0 ? [{ label: t('chat.statsAnnotations'), value: conversationStats.annotationCount, color: '#818cf8' }] : []),
             ...((conversationStats.ratingUp + conversationStats.ratingDown) > 0 ? [{ label: t('chat.statsRatings'), value: `${conversationStats.ratingUp} / ${conversationStats.ratingDown}`, color: '#4ade80' }] : []),
             ...(useChatStore.getState().compactionCount > 0 ? [{ label: t('compact.complete'), value: useChatStore.getState().compactionCount, color: '#818cf8' }] : []),
+            ...(lastNumTurns != null ? [{ label: t('chat.statsNumTurns'), value: lastNumTurns, color: '#818cf8' }] : []),
+            ...(lastDurationMs != null ? [{ label: t('chat.statsCliDuration'), value: `${(lastDurationMs / 1000).toFixed(1)}s`, color: '#67e8f9' }] : []),
           ].map(({ label, value, color }) => (
             <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 11 }}>
               <span style={{ color: 'rgba(255,255,255,0.45)' }}>{label}</span>
@@ -279,6 +284,48 @@ export default function StatsPanel({
             }}>
               <span style={{ color: 'rgba(255,255,255,0.45)' }}>{t('chat.statsSessionCost')}</span>
               <span style={{ color: '#4ade80', fontWeight: 600, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>${useChatStore.getState().totalSessionCost.toFixed(4)}</span>
+            </div>
+          )}
+          {/* Permission Denials — shown only when present */}
+          {permissionDenials.length > 0 && (
+            <div style={{
+              marginTop: 10,
+              paddingTop: 8,
+              borderTop: '1px solid rgba(255,255,255,0.06)',
+            }}>
+              <div style={{
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: '0.07em',
+                textTransform: 'uppercase',
+                color: 'rgba(239,68,68,0.82)',
+                marginBottom: 6,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}>
+                <AlertTriangle size={10} />
+                {t('chat.statsPermissionDenials')}
+              </div>
+              <div style={{
+                background: 'rgba(239,68,68,0.08)',
+                border: '1px solid rgba(239,68,68,0.40)',
+                borderRadius: 8,
+                padding: '6px 8px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4,
+                transition: 'all 0.15s ease',
+              }}>
+                {permissionDenials.map((d, i) => (
+                  <div key={i} style={{ fontSize: 11 }}>
+                    <span style={{ color: 'rgba(239,68,68,0.82)', fontWeight: 600, fontFamily: 'monospace' }}>{d.tool_name}</span>
+                    {d.reason && (
+                      <span style={{ color: 'rgba(255,255,255,0.45)', marginLeft: 6 }}>{d.reason}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
           {/* Collapse/Expand all actions */}
