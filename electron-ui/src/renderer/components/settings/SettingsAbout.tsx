@@ -4,6 +4,10 @@ import { useI18n } from '../../i18n'
 import { useUiStore } from '../../store'
 import DiagnosticsPanel from './DiagnosticsPanel'
 
+declare const __BUILD_DATE__: string
+declare const __COMMIT_HASH__: string
+declare const __CLI_VERSION__: string
+
 interface SettingsAboutProps {
   onResetDefaults: () => void
   saved: boolean
@@ -95,19 +99,34 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
       <div style={{ ...sectionCardStyle, textAlign: 'center', padding: '20px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
         <div style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.9)', letterSpacing: '-0.01em', lineHeight: 1.3 }}>AIPA</div>
         <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>{t('settings.about.aiPersonalAssistant')}</div>
-        <div style={{
-          display: 'inline-block',
-          marginTop: 10,
-          background: 'rgba(99,102,241,0.15)',
-          border: '1px solid rgba(99,102,241,0.3)',
-          borderRadius: 20,
-          padding: '3px 10px',
-          fontSize: 12,
-          fontWeight: 700,
-          color: '#818cf8',
-          fontVariantNumeric: 'tabular-nums',
-        }}>
-          v{window.electronAPI.versions?.app || '1.0.0'}
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' }}>
+          <div style={{
+            background: 'rgba(99,102,241,0.15)',
+            border: '1px solid rgba(99,102,241,0.3)',
+            borderRadius: 20,
+            padding: '3px 10px',
+            fontSize: 12,
+            fontWeight: 700,
+            color: '#818cf8',
+            fontVariantNumeric: 'tabular-nums',
+          }}>
+            App v{window.electronAPI.versions?.app || '1.0.0'}
+          </div>
+          <div style={{
+            background: 'rgba(16,185,129,0.12)',
+            border: '1px solid rgba(16,185,129,0.28)',
+            borderRadius: 20,
+            padding: '3px 10px',
+            fontSize: 12,
+            fontWeight: 700,
+            color: '#6ee7b7',
+            fontVariantNumeric: 'tabular-nums',
+          }}>
+            CLI v{__CLI_VERSION__}
+          </div>
+        </div>
+        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)', fontFamily: 'monospace', marginTop: 8 }}>
+          Built {__BUILD_DATE__} · {__COMMIT_HASH__}
         </div>
       </div>
 
@@ -128,14 +147,14 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
                 display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                 padding: '6px 14px', marginBottom: 0,
                 background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.10)',
+                border: '1px solid rgba(255,255,255,0.09)',
                 borderRadius: 6,
                 color: '#818cf8', cursor: 'pointer', fontSize: 12,
                 textAlign: 'left',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.10)';
+                e.currentTarget.style.background = 'rgba(255,255,255,0.09)';
                 e.currentTarget.style.textDecoration = 'underline';
               }}
               onMouseLeave={(e) => {
@@ -160,13 +179,13 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
             display: 'flex', alignItems: 'center', gap: 8, width: '100%',
             padding: '10px 12px',
             background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.10)',
+            border: '1px solid rgba(255,255,255,0.09)',
             borderRadius: 6,
             color: 'rgba(255,255,255,0.82)', cursor: 'pointer', fontSize: 12,
             justifyContent: 'space-between',
             transition: 'all 0.15s ease',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.10)')}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.09)')}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
         >
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -193,13 +212,13 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
               display: 'flex', alignItems: 'center', gap: 8, flex: 1,
               padding: '10px 12px',
               background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.10)',
+              border: '1px solid rgba(255,255,255,0.09)',
               borderRadius: 6,
               color: 'rgba(255,255,255,0.82)', cursor: backupLoading ? 'wait' : 'pointer', fontSize: 12,
               justifyContent: 'center', opacity: backupLoading ? 0.4 : 1,
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={(e) => { if (!backupLoading) e.currentTarget.style.background = 'rgba(255,255,255,0.10)' }}
+            onMouseEnter={(e) => { if (!backupLoading) e.currentTarget.style.background = 'rgba(255,255,255,0.09)' }}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
           >
             {backupLoading ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={14} style={{ color: '#a5b4fc' }} />}
@@ -212,13 +231,13 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
               display: 'flex', alignItems: 'center', gap: 8, flex: 1,
               padding: '10px 12px',
               background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.10)',
+              border: '1px solid rgba(255,255,255,0.09)',
               borderRadius: 6,
               color: 'rgba(255,255,255,0.82)', cursor: restoreLoading ? 'wait' : 'pointer', fontSize: 12,
               justifyContent: 'center', opacity: restoreLoading ? 0.4 : 1,
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={(e) => { if (!restoreLoading) e.currentTarget.style.background = 'rgba(255,255,255,0.10)' }}
+            onMouseEnter={(e) => { if (!restoreLoading) e.currentTarget.style.background = 'rgba(255,255,255,0.09)' }}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
           >
             {restoreLoading ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Upload size={14} style={{ color: '#a5b4fc' }} />}
@@ -239,13 +258,13 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
             display: 'flex', alignItems: 'center', gap: 8, width: '100%',
             padding: '10px 12px',
             background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.10)',
+            border: '1px solid rgba(255,255,255,0.09)',
             borderRadius: 6,
             color: 'rgba(255,255,255,0.82)', cursor: 'pointer', fontSize: 12,
             justifyContent: 'space-between',
             transition: 'all 0.15s ease',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.10)')}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.09)')}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
         >
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -260,6 +279,8 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
         <div style={sectionLabelStyle}>{t('settings.about.runtime')}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {[
+            { key: 'App', val: `v${window.electronAPI.versions?.app || '1.0.0'}` },
+            { key: 'CLI', val: `v${__CLI_VERSION__}` },
             { key: 'Electron', val: window.electronAPI.versions?.electron || 'N/A' },
             { key: 'Node.js', val: window.electronAPI.versions?.node || 'N/A' },
             { key: 'Chromium', val: window.electronAPI.versions?.chrome || 'N/A' },
