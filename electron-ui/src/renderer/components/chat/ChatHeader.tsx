@@ -327,63 +327,60 @@ ${t('chat.clickToChangeDir')}`}
         )}
       </span>
 
-      {/* MCP connection status — shown only when servers are present */}
+      {/* Active model pill — always shown; uses CLI-reported model or configured fallback */}
+      {(() => {
+        const modelName = activeModel || model || 'claude'
+        const displayName = modelName.replace(/^claude-/, '').replace(/-\d{4}-\d{2}-\d{2}$/, '')
+        return (
+          <span
+            title={`Active model: ${modelName}`}
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: '0.05em',
+              color: 'rgba(165,180,252,0.82)',
+              background: 'rgba(99,102,241,0.12)',
+              border: '1px solid rgba(99,102,241,0.22)',
+              borderRadius: 10,
+              padding: '2px 8px',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: 120,
+              userSelect: 'none',
+              flexShrink: 0,
+            }}
+          >
+            {displayName}
+          </span>
+        )
+      })()}
+
+      {/* MCP connection status pill — shown only when servers are active */}
       {mcpServers.length > 0 && (() => {
-        const connected = mcpServers.filter(s => s.status === 'connected').length
         const failed = mcpServers.filter(s => s.status !== 'connected').length
         const allOk = failed === 0
         return (
           <span
             title={mcpServers.map(s => `${s.name}: ${s.status}`).join('\n')}
             style={{
-              fontSize: 9,
-              color: 'rgba(255,255,255,0.45)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 3,
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: '0.05em',
+              color: allOk ? 'rgba(34,197,94,0.82)' : 'rgba(239,68,68,0.82)',
+              background: allOk ? 'rgba(34,197,94,0.10)' : 'rgba(239,68,68,0.10)',
+              border: `1px solid ${allOk ? 'rgba(34,197,94,0.22)' : 'rgba(239,68,68,0.22)'}`,
+              borderRadius: 10,
+              padding: '2px 8px',
               whiteSpace: 'nowrap',
-              transition: 'all 0.15s ease',
+              userSelect: 'none',
+              flexShrink: 0,
             }}
           >
-            <span style={{
-              width: 5,
-              height: 5,
-              borderRadius: '50%',
-              flexShrink: 0,
-              background: allOk ? 'rgba(34,197,94,0.80)' : 'rgba(239,68,68,0.80)',
-              boxShadow: allOk ? '0 0 4px rgba(34,197,94,0.5)' : '0 0 4px rgba(239,68,68,0.5)',
-              display: 'inline-block',
-              transition: 'all 0.15s ease',
-            }} />
-            {`MCP ${connected}/${mcpServers.length}`}
-            {failed > 0 && (
-              <span style={{ color: 'rgba(239,68,68,0.80)' }}>{` (${failed} err)`}</span>
-            )}
+            {`MCP ×${mcpServers.length}`}{failed > 0 && ` (${failed}!)`}
           </span>
         )
       })()}
-
-      {/* Active model chip — shown when CLI reports a different model than configured */}
-      {activeModel && (
-        <span
-          title={`Active model: ${activeModel}`}
-          style={{
-            fontSize: 9,
-            color: 'rgba(255,255,255,0.45)',
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.07)',
-            borderRadius: 4,
-            padding: '1px 5px',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            maxWidth: 110,
-            transition: 'all 0.15s ease',
-          }}
-        >
-          {activeModel.replace('claude-', '').replace(/-\d{4}-\d{2}-\d{2}$/, '')}
-        </span>
-      )}
       </div>
 
       {/* Model quick-switcher (extracted) */}
