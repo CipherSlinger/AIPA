@@ -169,10 +169,10 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
           padding: '14px 16px',
           borderBottom: '1px solid rgba(255,255,255,0.06)',
           background: inputFocused ? 'rgba(99,102,241,0.04)' : 'rgba(255,255,255,0.06)',
-          transition: 'background 0.15s ease',
+          transition: 'all 0.15s ease',
           boxShadow: inputFocused ? 'inset 0 0 0 1px rgba(99,102,241,0.40)' : 'none',
         }}>
-          <Search size={16} style={{ color: inputFocused ? '#818cf8' : 'rgba(255,255,255,0.40)', flexShrink: 0, transition: 'color 0.15s ease' }} />
+          <Search size={16} style={{ color: inputFocused ? '#818cf8' : 'rgba(255,255,255,0.40)', flexShrink: 0, transition: 'all 0.15s ease' }} />
           <input
             ref={inputRef}
             value={query}
@@ -249,6 +249,7 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
                   background: index === selectedIndex ? 'rgba(99,102,241,0.10)' : 'transparent',
                   borderLeft: index === selectedIndex ? '2px solid rgba(99,102,241,0.60)' : '2px solid transparent',
                   transition: 'all 0.15s ease',
+
                 }}
               >
                 <MessageSquare size={14} style={{ color: 'rgba(255,255,255,0.45)', flexShrink: 0 }} />
