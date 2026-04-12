@@ -628,11 +628,91 @@ function ServerCard({
 
 // ─── Live session status area ──────────────────────────────────────────────────
 
+interface McpToolInfo {
+  name: string
+  description?: string
+}
+
 interface ActiveMcpServer {
   name: string
   status: string
-  tools?: string[] | number
+  tools?: McpToolInfo[] | string[] | number
   error?: string
+}
+
+function ServerToolList({ tools }: { tools: McpToolInfo[] }) {
+  const [expanded, setExpanded] = useState(false)
+  const count = tools.length
+
+  if (count === 0) {
+    return (
+      <div style={{
+        marginTop: 6,
+        padding: '5px 8px',
+        background: 'rgba(255,255,255,0.03)',
+        borderLeft: '2px solid rgba(165,180,252,0.20)',
+        borderRadius: '0 4px 4px 0',
+        fontSize: 10,
+        color: 'rgba(255,255,255,0.38)',
+        fontStyle: 'italic',
+        transition: 'all 0.15s ease',
+      }}>
+        暂无工具信息
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ marginTop: 6, transition: 'all 0.15s ease' }}>
+      <button
+        onClick={() => setExpanded(v => !v)}
+        style={{
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          padding: '2px 0',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+          color: 'rgba(165,180,252,0.70)',
+          fontSize: 10,
+          fontWeight: 600,
+          transition: 'all 0.15s ease',
+        }}
+      >
+        <span style={{ fontSize: 9, transition: 'all 0.15s ease' }}>{expanded ? '▾' : '▸'}</span>
+        {expanded ? '收起' : `展开 ${count} 个工具`}
+      </button>
+      {expanded && (
+        <div style={{
+          marginTop: 4,
+          padding: '6px 8px',
+          background: 'rgba(255,255,255,0.03)',
+          borderLeft: '2px solid rgba(165,180,252,0.20)',
+          borderRadius: '0 4px 4px 0',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 5,
+          transition: 'all 0.15s ease',
+        }}>
+          {tools.map((tool, idx) => (
+            <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(165,180,252,0.82)' }}>
+                {tool.name}
+              </span>
+              {tool.description && (
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4 }}>
+                  {tool.description.length > 60
+                    ? tool.description.slice(0, 60) + '…'
+                    : tool.description}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 function LiveSessionStatus({ servers }: { servers: ActiveMcpServer[] }) {
@@ -690,48 +770,83 @@ function LiveSessionStatus({ servers }: { servers: ActiveMcpServer[] }) {
           : isFailed
             ? 'rgba(252,165,165,0.82)'
             : 'rgba(251,191,36,0.82)'
-        const toolCount = Array.isArray(srv.tools) ? srv.tools.length : typeof srv.tools === 'number' ? srv.tools : null
+        // Normalize tools: CLI may send [{name, description}] objects or string[] or a count number
+        const rawTools = srv.tools
+        const toolObjects: McpToolInfo[] = Array.isArray(rawTools)
+          ? rawTools.map(t =>
+              typeof t === 'string'
+                ? { name: t }
+                : (t as McpToolInfo)
+            )
+          : []
+        const toolCount = Array.isArray(rawTools)
+          ? rawTools.length
+          : typeof rawTools === 'number'
+            ? rawTools
+            : null
         return (
           <div key={i} style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '7px 0',
+            padding: '8px 0',
             borderBottom: i < servers.length - 1 ? '1px solid rgba(255,255,255,0.07)' : 'none',
           }}>
-            {/* 状态指示灯 */}
-            <span style={{
-              width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-              background: dotColor,
-              boxShadow: dotShadow,
-            }} />
-            {/* 服务器名 */}
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)', flex: 1 }}>
-              {srv.name || `MCP Server ${i + 1}`}
-            </span>
-            {/* 工具数 */}
-            {toolCount !== null && toolCount > 0 && (
+            {/* 服务器头部行 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {/* 状态指示灯 */}
               <span style={{
-                fontSize: 10, color: 'rgba(165,180,252,0.82)',
-                background: 'rgba(99,102,241,0.12)',
-                border: '1px solid rgba(99,102,241,0.20)',
-                borderRadius: 6, padding: '1px 6px',
+                width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                background: dotColor,
+                boxShadow: dotShadow,
+              }} />
+              {/* 服务器名 */}
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)', flex: 1 }}>
+                {srv.name || `MCP Server ${i + 1}`}
+              </span>
+              {/* 工具数徽标 */}
+              {toolCount !== null && toolCount > 0 && (
+                <span style={{
+                  fontSize: 10, color: 'rgba(165,180,252,0.82)',
+                  background: 'rgba(99,102,241,0.12)',
+                  border: '1px solid rgba(99,102,241,0.20)',
+                  borderRadius: 6, padding: '1px 6px',
+                }}>
+                  {toolCount} 个工具
+                </span>
+              )}
+              {/* 失败原因 */}
+              {isFailed && srv.error && (
+                <span style={{ fontSize: 10, color: 'rgba(252,165,165,0.80)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {srv.error}
+                </span>
+              )}
+              {/* 状态标签 */}
+              <span style={{
+                fontSize: 9, fontWeight: 700, letterSpacing: '0.05em',
+                textTransform: 'uppercase' as const,
+                color: statusColor,
               }}>
-                {toolCount} 个工具
+                {statusLabel}
               </span>
+            </div>
+            {/* 工具列表（仅对已连接且有工具对象信息时展示） */}
+            {isConnected && toolObjects.length > 0 && (
+              <ServerToolList tools={toolObjects} />
             )}
-            {/* 失败原因 */}
-            {isFailed && srv.error && (
-              <span style={{ fontSize: 10, color: 'rgba(252,165,165,0.80)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {srv.error}
-              </span>
+            {/* 已连接但没有工具对象信息（只有数量）时展示暂无工具信息 */}
+            {isConnected && toolObjects.length === 0 && toolCount === null && (
+              <div style={{
+                marginTop: 6,
+                padding: '5px 8px',
+                background: 'rgba(255,255,255,0.03)',
+                borderLeft: '2px solid rgba(165,180,252,0.20)',
+                borderRadius: '0 4px 4px 0',
+                fontSize: 10,
+                color: 'rgba(255,255,255,0.38)',
+                fontStyle: 'italic',
+                transition: 'all 0.15s ease',
+              }}>
+                暂无工具信息
+              </div>
             )}
-            {/* 状态标签 */}
-            <span style={{
-              fontSize: 9, fontWeight: 700, letterSpacing: '0.05em',
-              textTransform: 'uppercase' as const,
-              color: statusColor,
-            }}>
-              {statusLabel}
-            </span>
           </div>
         )
       })}
