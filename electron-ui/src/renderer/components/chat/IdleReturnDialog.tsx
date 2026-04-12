@@ -49,7 +49,7 @@ export default function IdleReturnDialog({
           background: 'rgba(15,15,25,0.96)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid rgba(255,255,255,0.07)',
           borderRadius: 16,
           padding: '24px 28px',
           maxWidth: 420,

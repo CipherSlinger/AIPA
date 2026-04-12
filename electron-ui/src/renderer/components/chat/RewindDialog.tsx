@@ -29,7 +29,7 @@ export default function RewindDialog({ count, onConfirm, onCancel }: RewindDialo
           background: 'rgba(15,15,25,0.96)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid rgba(255,255,255,0.07)',
           borderRadius: 16,
           boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
           maxWidth: 360,
