@@ -41,6 +41,17 @@ export default function TokenUsageBar() {
   const handleCompact = useCallback(async () => {
     if (!canCompact) return
     setCompactCooldown(true)
+
+    // Record context usage before compact so useStreamJson can show before/after diff
+    const chatState = useChatStore.getState()
+    if (chatState.lastContextUsage) {
+      chatState.setContextBeforeCompact({
+        used: chatState.lastContextUsage.used,
+        total: chatState.lastContextUsage.total,
+      })
+    }
+    chatState.setCompacting(true)
+
     try {
       await window.electronAPI.cliSendMessage({
         prompt: '/compact',
@@ -48,6 +59,7 @@ export default function TokenUsageBar() {
       })
     } catch {
       // ignore errors — the chat panel event system will surface them
+      useChatStore.getState().setCompacting(false)
     }
     setTimeout(() => setCompactCooldown(false), 1500)
   }, [canCompact, currentSessionId])
