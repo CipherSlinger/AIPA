@@ -100,11 +100,11 @@ export function SnippetsSection() {
             onClick={resetForm}
             style={{
               background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.10)',
+              border: '1px solid rgba(255,255,255,0.09)',
               borderRadius: 8,
               padding: '7px 14px',
               fontSize: 12,
-              color: 'rgba(255,255,255,0.72)',
+              color: 'rgba(255,255,255,0.60)',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}
@@ -121,7 +121,7 @@ export function SnippetsSection() {
               padding: '7px 14px',
               fontSize: 12,
               fontWeight: 600,
-              color: 'rgba(255,255,255,0.95)',
+              color: 'rgba(255,255,255,0.82)',
               cursor: formKeyword.trim() && formContent.trim() ? 'pointer' : 'not-allowed',
               opacity: formKeyword.trim() && formContent.trim() ? 1 : 0.5,
             }}
@@ -206,7 +206,7 @@ export function SnippetsSection() {
                       setShowAdd(false)
                     }}
                     title={t('common.edit')}
-                    style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.38)', cursor: 'pointer', display: 'flex', padding: 4, borderRadius: 8, transition: 'color 0.15s ease' }}
+                    style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.38)', cursor: 'pointer', display: 'flex', padding: 4, borderRadius: 8, transition: 'all 0.15s ease' }}
                     onMouseEnter={(e) => (e.currentTarget.style.color = 'rgba(165,180,252,0.9)')}
                     onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.38)')}
                   >
@@ -225,7 +225,7 @@ export function SnippetsSection() {
                       borderRadius: 8,
                       fontWeight: deletingId === s.id ? 600 : 400,
                       fontSize: deletingId === s.id ? 10 : 'inherit',
-                      transition: 'color 0.15s ease, background 0.15s ease',
+                      transition: 'all 0.15s ease',
                     }}
                     onMouseEnter={(e) => { if (deletingId !== s.id) e.currentTarget.style.color = '#fca5a5' }}
                     onMouseLeave={(e) => { if (deletingId !== s.id) e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
@@ -246,7 +246,7 @@ export function SnippetsSection() {
           onClick={() => { setShowAdd(true); setEditingId(null); setFormKeyword(''); setFormContent('') }}
           style={{
             background: 'rgba(255,255,255,0.04)',
-            border: '1px dashed rgba(255,255,255,0.12)',
+            border: '1px dashed rgba(255,255,255,0.09)',
             borderRadius: 8,
             padding: '8px 16px',
             color: 'rgba(255,255,255,0.45)',
@@ -257,7 +257,7 @@ export function SnippetsSection() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 6,
-            transition: 'border-color 0.15s ease, color 0.15s ease, background 0.15s ease',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)'
@@ -265,7 +265,7 @@ export function SnippetsSection() {
             e.currentTarget.style.background = 'rgba(99,102,241,0.07)'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
             e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
             e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
           }}

@@ -45,13 +45,13 @@ function freshNew(): NewMemoryState {
 
 const glassInputStyle: React.CSSProperties = {
   background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(255,255,255,0.08)',
+  border: '1px solid rgba(255,255,255,0.07)',
   borderRadius: 6,
   padding: '5px 10px',
   fontSize: 12,
   color: 'rgba(255,255,255,0.82)',
   outline: 'none',
-  transition: 'border-color 0.15s ease',
+  transition: 'all 0.15s ease',
 }
 
 export default function SettingsMemory() {
@@ -179,7 +179,7 @@ export default function SettingsMemory() {
               padding: '7px 14px', fontSize: 12, fontWeight: 600,
               background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
               border: 'none', borderRadius: 8,
-              color: 'rgba(255,255,255,0.95)', cursor: 'pointer',
+              color: 'rgba(255,255,255,0.82)', cursor: 'pointer',
             }}
           >
             <Plus size={11} /> {t('settingsMemory.newBtn')}
@@ -196,7 +196,7 @@ export default function SettingsMemory() {
             style={{
               padding: '3px 10px', fontSize: 11, borderRadius: 5, cursor: 'pointer',
               background: scope === s ? 'rgba(99,102,241,0.18)' : 'none',
-              border: '1px solid ' + (scope === s ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.10)'),
+              border: '1px solid ' + (scope === s ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.09)'),
               color: scope === s ? '#818cf8' : 'rgba(255,255,255,0.45)',
               fontWeight: scope === s ? 600 : 400,
               transition: 'all 0.15s ease',
@@ -269,7 +269,7 @@ export default function SettingsMemory() {
                   padding: '4px 12px', fontSize: 11, fontWeight: 600,
                   background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                   border: 'none', borderRadius: 8,
-                  color: 'rgba(255,255,255,0.95)', cursor: saving ? 'wait' : 'pointer',
+                  color: 'rgba(255,255,255,0.82)', cursor: saving ? 'wait' : 'pointer',
                   opacity: (!newState.name.trim() || !newState.body.trim()) ? 0.5 : 1,
                 }}
               >
@@ -282,9 +282,9 @@ export default function SettingsMemory() {
 
       {/* Memory list */}
       {loading ? (
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center', padding: 24 }}>{t('common.loadingEllipsis')}</div>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', textAlign: 'center', padding: 24 }}>{t('common.loadingEllipsis')}</div>
       ) : memories.length === 0 ? (
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center', padding: 24 }}>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', textAlign: 'center', padding: 24 }}>
           <Brain size={28} style={{ opacity: 0.2, marginBottom: 8 }} />
           <div>{t('settingsMemory.noMemories')}</div>
           <div style={{ fontSize: 10, marginTop: 4 }}>{t('settingsMemory.noMemoriesHint')}</div>
@@ -303,7 +303,7 @@ export default function SettingsMemory() {
                   border: hoveredRow === mem.filePath ? '1px solid rgba(255,255,255,0.09)' : '1px solid rgba(255,255,255,0.07)',
                   borderRadius: 8,
                   overflow: 'hidden',
-                  transition: 'background 0.15s ease, border-color 0.15s ease',
+                  transition: 'all 0.15s ease',
                 }}
                 onMouseEnter={() => setHoveredRow(mem.filePath)}
                 onMouseLeave={() => setHoveredRow(null)}
@@ -341,7 +341,7 @@ export default function SettingsMemory() {
                   {/* Action buttons */}
                   <div style={{ display: 'flex', gap: 2, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                     {!isEditing && (
-                      <button onClick={() => startEdit(mem)} title={t('settingsMemory.editTitle')} style={{ ...btnStyle, color: 'rgba(255,255,255,0.3)' }}>
+                      <button onClick={() => startEdit(mem)} title={t('settingsMemory.editTitle')} style={{ ...btnStyle, color: 'rgba(255,255,255,0.38)' }}>
                         <Edit3 size={12} />
                       </button>
                     )}
@@ -350,7 +350,7 @@ export default function SettingsMemory() {
                         <button onClick={() => deleteMemory(mem.filePath)} title={t('settingsMemory.confirmDelete')} style={{ ...btnStyle, color: '#f87171' }}>
                           <Check size={12} />
                         </button>
-                        <button onClick={() => setConfirmDeletePath(null)} style={{ ...btnStyle, color: 'rgba(255,255,255,0.3)' }}>
+                        <button onClick={() => setConfirmDeletePath(null)} style={{ ...btnStyle, color: 'rgba(255,255,255,0.38)' }}>
                           <X size={12} />
                         </button>
                       </>
@@ -362,8 +362,8 @@ export default function SettingsMemory() {
                         onMouseLeave={() => setHoveredDelete(null)}
                         style={{
                           ...btnStyle,
-                          color: hoveredDelete === mem.filePath ? '#fca5a5' : 'rgba(255,255,255,0.3)',
-                          transition: 'color 0.15s ease',
+                          color: hoveredDelete === mem.filePath ? '#fca5a5' : 'rgba(255,255,255,0.38)',
+                          transition: 'all 0.15s ease',
                         }}
                       >
                         <Trash2 size={12} />
@@ -374,7 +374,7 @@ export default function SettingsMemory() {
 
                 {/* Expanded content */}
                 {isExpanded && (
-                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '8px 12px' }}>
+                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', padding: '8px 12px' }}>
                     {isEditing ? (
                       <>
                         <textarea
@@ -400,7 +400,7 @@ export default function SettingsMemory() {
                               padding: '4px 10px', fontSize: 11, fontWeight: 600,
                               background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                               border: 'none', borderRadius: 6,
-                              color: 'rgba(255,255,255,0.95)', cursor: 'pointer',
+                              color: 'rgba(255,255,255,0.82)', cursor: 'pointer',
                             }}
                           >
                             {saving ? t('common.saving') : t('common.save')}
@@ -413,7 +413,7 @@ export default function SettingsMemory() {
                         color: 'rgba(255,255,255,0.82)', fontFamily: 'monospace',
                         maxHeight: 200, overflowY: 'auto',
                       }}>
-                        {mem.content || <span style={{ color: 'rgba(255,255,255,0.3)', fontStyle: 'italic' }}>{t('settingsMemory.empty')}</span>}
+                        {mem.content || <span style={{ color: 'rgba(255,255,255,0.38)', fontStyle: 'italic' }}>{t('settingsMemory.empty')}</span>}
                       </pre>
                     )}
                     <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)', marginTop: 6 }}>

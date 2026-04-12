@@ -49,7 +49,7 @@ const inputStyle: React.CSSProperties = {
   fontSize: 12,
   outline: 'none',
   boxSizing: 'border-box',
-  transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+  transition: 'all 0.15s ease',
 }
 
 const SCENARIO_COLORS: Record<ProviderScenario, string> = {
@@ -188,7 +188,7 @@ export default function SettingsProviders() {
 
   const getHealthDot = (providerId: string): { color: string; label: string } => {
     const health = healthMap[providerId]
-    if (!health) return { color: 'rgba(255,255,255,0.3)', label: t('provider.unchecked') }
+    if (!health) return { color: 'rgba(255,255,255,0.38)', label: t('provider.unchecked') }
     switch (health.status) {
       case 'healthy': return { color: '#22c55e', label: t('provider.healthy') }
       case 'degraded': return { color: '#fbbf24', label: t('provider.degraded') }
@@ -216,7 +216,7 @@ export default function SettingsProviders() {
         : healthMap[provider.id].status === 'down'
           ? { background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', borderRadius: 20, padding: '2px 8px', fontSize: 10, fontWeight: 600 }
           : { background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.25)', color: '#fbbf24', borderRadius: 20, padding: '2px 8px', fontSize: 10, fontWeight: 600 }
-      : { color: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 600 }
+      : { color: 'rgba(255,255,255,0.38)', fontSize: 10, fontWeight: 600 }
 
     return (
       <div
@@ -227,7 +227,7 @@ export default function SettingsProviders() {
           borderRadius: 12,
           marginBottom: 12,
           overflow: 'hidden',
-          transition: 'border-color 0.15s ease',
+          transition: 'all 0.15s ease',
           boxShadow: isExpanded ? '0 4px 16px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.2)',
         }}
       >
@@ -276,7 +276,7 @@ export default function SettingsProviders() {
 
         {/* Expanded config */}
         {isExpanded && (
-          <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 10, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 10, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
             <div style={{ height: 10 }} />
 
             {/* Name — editable for custom providers */}
@@ -382,7 +382,7 @@ export default function SettingsProviders() {
                     color: 'rgba(255,255,255,0.45)', cursor: fetchingModels === provider.id ? 'wait' : 'pointer',
                     fontSize: 11, fontWeight: 500,
                     opacity: fetchingModels === provider.id ? 0.6 : 1,
-                    transition: 'border-color 0.15s ease, color 0.15s ease',
+                    transition: 'all 0.15s ease',
                   }}
                 >
                   <RefreshCw size={11} style={{ animation: fetchingModels === provider.id ? 'spin 1s linear infinite' : 'none' }} />
@@ -421,8 +421,8 @@ export default function SettingsProviders() {
                     display: 'inline-flex', alignItems: 'center', gap: 4,
                     padding: '5px 12px', borderRadius: 6,
                     background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(255,255,255,0.09)',
-                    color: 'rgba(99,102,241,0.6)', cursor: 'pointer', fontSize: 11, fontWeight: 500,
-                    transition: 'border-color 0.15s ease, color 0.15s ease',
+                    color: 'rgba(99,102,241,0.60)', cursor: 'pointer', fontSize: 11, fontWeight: 500,
+                    transition: 'all 0.15s ease',
                   }}
                 >
                   <ExternalLink size={11} />
@@ -446,7 +446,7 @@ export default function SettingsProviders() {
                   cursor: testing === provider.id ? 'wait' : 'pointer',
                   fontSize: 11, fontWeight: 500,
                   opacity: testing === provider.id ? 0.6 : 1,
-                  transition: 'border-color 0.15s ease, color 0.15s ease',
+                  transition: 'all 0.15s ease',
                 }}
               >
                 <RefreshCw size={11} style={{ animation: testing === provider.id ? 'spin 1s linear infinite' : 'none' }} />
@@ -462,7 +462,7 @@ export default function SettingsProviders() {
                     padding: '6px 14px', borderRadius: 6,
                     background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                     border: 'none',
-                    color: 'rgba(255,255,255,0.95)', cursor: 'pointer', fontSize: 11, fontWeight: 600,
+                    color: 'rgba(255,255,255,0.82)', cursor: 'pointer', fontSize: 11, fontWeight: 600,
                     transition: 'all 0.15s ease',
                   }}
                 >
@@ -495,7 +495,7 @@ export default function SettingsProviders() {
                       padding: '6px 10px', borderRadius: 6,
                       background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.09)',
                       color: 'rgba(255,255,255,0.38)', cursor: 'pointer', fontSize: 11,
-                      transition: 'border-color 0.15s ease, color 0.15s ease',
+                      transition: 'all 0.15s ease',
                     }}
                   >
                     <Trash2 size={11} />
@@ -555,17 +555,17 @@ export default function SettingsProviders() {
           padding: '8px 12px',
           marginTop: 4,
           borderRadius: 8,
-          border: '1px dashed rgba(255,255,255,0.12)',
+          border: '1px dashed rgba(255,255,255,0.09)',
           background: 'transparent',
           color: 'rgba(255,255,255,0.38)',
           fontSize: 12,
           cursor: 'pointer',
           width: '100%',
           justifyContent: 'center',
-          transition: 'border-color 0.15s ease, color 0.15s ease',
+          transition: 'all 0.15s ease',
         }}
         onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'; e.currentTarget.style.color = '#a5b4fc' }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
       >
         <Plus size={13} />
         {t('provider.addCustom')}
@@ -632,7 +632,7 @@ export default function SettingsProviders() {
                   padding: '6px 14px', borderRadius: 6,
                   background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                   border: 'none',
-                  color: 'rgba(255,255,255,0.95)', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                  color: 'rgba(255,255,255,0.82)', cursor: 'pointer', fontSize: 12, fontWeight: 600,
                   transition: 'all 0.15s ease',
                 }}
               >

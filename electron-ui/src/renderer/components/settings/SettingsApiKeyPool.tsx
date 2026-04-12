@@ -14,7 +14,7 @@ interface SettingsApiKeyPoolProps {
 
 const glassInputStyle: React.CSSProperties = {
   background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(255,255,255,0.10)',
+  border: '1px solid rgba(255,255,255,0.09)',
   borderRadius: 6,
   padding: '5px 10px',
   fontSize: 12,
@@ -116,7 +116,7 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
           />
           {/* Key list */}
           {apiKeyPool.length === 0 ? (
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center', padding: 24 }}>{t('settings.noKeysInPool')}</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', textAlign: 'center', padding: 24 }}>{t('settings.noKeysInPool')}</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
               {apiKeyPool.map((entry) => (
@@ -124,13 +124,13 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
                   key={entry.id}
                   style={{
                     background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.07)',
                     borderRadius: 8,
                     padding: '10px 12px',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 8,
-                    transition: 'background 0.15s ease',
+                    transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
@@ -163,7 +163,7 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
                   )}
                   <button
                     onClick={() => savePool(apiKeyPool.map(k => k.id === entry.id ? { ...k, enabled: !k.enabled } : k))}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: entry.enabled ? '#818cf8' : 'rgba(255,255,255,0.3)', fontSize: 10, padding: '1px 4px' }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: entry.enabled ? '#818cf8' : 'rgba(255,255,255,0.38)', fontSize: 10, padding: '1px 4px' }}
                     title={entry.enabled ? 'Disable' : 'Enable'}
                   >{entry.enabled ? '✓' : '○'}</button>
                   <button
@@ -174,7 +174,7 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
                       background: 'none', border: 'none', cursor: 'pointer',
                       color: hoveredRemove === entry.id ? '#fca5a5' : 'rgba(239,68,68,0.7)',
                       display: 'flex', alignItems: 'center', padding: 2,
-                      transition: 'color 0.15s ease',
+                      transition: 'all 0.15s ease',
                     }}
                     aria-label={t('a11y.deleteKey')}
                   ><Trash2 size={11} /></button>
@@ -209,7 +209,7 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
               style={{
                 background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                 border: 'none', borderRadius: 8, padding: '7px 14px',
-                color: 'rgba(255,255,255,0.95)', cursor: newKeyValue.trim() ? 'pointer' : 'not-allowed',
+                color: 'rgba(255,255,255,0.82)', cursor: newKeyValue.trim() ? 'pointer' : 'not-allowed',
                 fontSize: 12, fontWeight: 600,
                 display: 'flex', alignItems: 'center', gap: 4,
                 opacity: newKeyValue.trim() ? 1 : 0.5,
@@ -236,7 +236,7 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
               style={{
                 flex: 1,
                 background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.07)',
                 borderRadius: 8, padding: '5px 8px',
                 color: 'rgba(255,255,255,0.82)', cursor: 'pointer',
                 fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'center',
@@ -248,7 +248,7 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
                 style={{
                   flex: 1,
                   background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.07)',
                   borderRadius: 8, padding: '5px 8px',
                   color: 'rgba(255,255,255,0.82)', cursor: 'pointer',
                   fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'center',

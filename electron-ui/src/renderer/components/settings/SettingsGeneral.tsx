@@ -82,7 +82,7 @@ export default function SettingsGeneral({
           placeholder={t('settings.searchPlaceholder')}
           aria-label={t('settings.searchPlaceholder')}
           onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.boxShadow = 'none' }}
+          onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow = 'none' }}
           style={{
             ...INPUT_STYLE,
             paddingLeft: 30,
@@ -112,7 +112,7 @@ export default function SettingsGeneral({
               onChange={(e) => updateLocal({ apiKey: e.target.value })}
               placeholder="sk-ant-..."
               onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.boxShadow = 'none' }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow = 'none' }}
               style={{ ...INPUT_STYLE, paddingRight: 36 }}
             />
             <button
@@ -171,7 +171,7 @@ export default function SettingsGeneral({
             onChange={(e) => updateLocal({ maxTurns: e.target.value ? Number(e.target.value) : undefined })}
             placeholder={t('settings.unlimited')}
             onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.boxShadow = 'none' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow = 'none' }}
             style={{ ...INPUT_STYLE, width: 120 }}
           />,
           <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
@@ -189,7 +189,7 @@ export default function SettingsGeneral({
             onChange={(e) => updateLocal({ maxBudgetUsd: e.target.value ? Number(e.target.value) : undefined })}
             placeholder={t('settings.unlimited')}
             onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.boxShadow = 'none' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow = 'none' }}
             style={{ ...INPUT_STYLE, width: 120 }}
           />,
           <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
@@ -237,7 +237,7 @@ export default function SettingsGeneral({
             placeholder={t('settings.systemPromptPlaceholder')}
             rows={4}
             onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.boxShadow = 'none' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow = 'none' }}
             style={{
               ...INPUT_STYLE,
               resize: 'vertical',
@@ -277,7 +277,7 @@ export default function SettingsGeneral({
             placeholder={t('settings.displayNamePlaceholder')}
             maxLength={30}
             onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.boxShadow = 'none' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow = 'none' }}
             style={{ ...INPUT_STYLE }}
           />,
           <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>{t('settings.displayNameHint')}</span>
@@ -299,7 +299,7 @@ export default function SettingsGeneral({
                   aria-label={t(theme.labelKey)}
                   aria-pressed={isActive}
                   style={{
-                    flex: 1, border: `2px solid ${isActive ? 'rgba(99,102,241,0.8)' : 'rgba(255,255,255,0.1)'}`,
+                    flex: 1, border: `2px solid ${isActive ? 'rgba(99,102,241,0.8)' : 'rgba(255,255,255,0.09)'}`,
                     borderRadius: 8, padding: '6px 4px', background: theme.id === 'light' ? theme.colors[0] : 'rgba(255,255,255,0.04)',
                     cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
                     transition: 'all 0.15s ease',
@@ -350,7 +350,7 @@ export default function SettingsGeneral({
               onChange={(e) => updateLocal({ workingDir: e.target.value })}
               placeholder={t('settings.workingFolderPlaceholder')}
               onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.boxShadow = 'none' }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow = 'none' }}
               style={{ ...INPUT_STYLE, flex: 1 }}
             />
             <button
@@ -361,7 +361,7 @@ export default function SettingsGeneral({
               aria-label={t('settings.browse')}
               onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
-              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 7, padding: '0 10px', color: 'rgba(255,255,255,0.60)', cursor: 'pointer', fontSize: 12, transition: 'all 0.15s ease', whiteSpace: 'nowrap' }}
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 7, padding: '0 10px', color: 'rgba(255,255,255,0.60)', cursor: 'pointer', fontSize: 12, transition: 'all 0.15s ease', whiteSpace: 'nowrap' }}
             >
               {t('settings.browse')}
             </button>
@@ -385,7 +385,7 @@ export default function SettingsGeneral({
                   }}
                   placeholder={t('tags.tagNamePlaceholder')}
                   onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-                  onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.boxShadow = 'none' }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow = 'none' }}
                   style={{ ...INPUT_STYLE, flex: 1 }}
                 />
               </div>
@@ -540,7 +540,7 @@ export default function SettingsGeneral({
             ? 'linear-gradient(135deg, rgba(34,197,94,0.85), rgba(16,185,129,0.85))'
             : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
           border: 'none', borderRadius: 8, padding: '9px 16px',
-          color: 'rgba(255,255,255,0.95)', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+          color: 'rgba(255,255,255,0.82)', cursor: 'pointer', fontSize: 13, fontWeight: 600,
           display: 'flex', alignItems: 'center', gap: 6,
           width: '100%', justifyContent: 'center', marginTop: 8,
           transition: 'all 0.15s ease',

@@ -288,7 +288,7 @@ export default function SettingsAdvanced() {
             <button onClick={confirmReplace} style={{ fontSize: 11, padding: '3px 10px', background: 'rgba(99,102,241,0.25)', border: '1px solid rgba(99,102,241,0.4)', borderRadius: 8, color: '#a5b4fc', cursor: 'pointer', transition: 'all 0.15s ease' }}>
               {t('common.confirm')}
             </button>
-            <button onClick={() => setReplaceConfirm(null)} style={{ fontSize: 11, padding: '3px 10px', background: 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, color: 'rgba(255,255,255,0.45)', cursor: 'pointer', transition: 'all 0.15s ease' }}>
+            <button onClick={() => setReplaceConfirm(null)} style={{ fontSize: 11, padding: '3px 10px', background: 'none', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, color: 'rgba(255,255,255,0.45)', cursor: 'pointer', transition: 'all 0.15s ease' }}>
               {t('common.cancel')}
             </button>
           </div>
@@ -304,15 +304,15 @@ export default function SettingsAdvanced() {
             style={{
               width: '100%',
               background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.07)',
               borderRadius: 7, padding: '8px 10px',
               color: 'rgba(255,255,255,0.82)',
               fontSize: 12, fontFamily: 'inherit', resize: 'vertical', outline: 'none',
               boxSizing: 'border-box', lineHeight: 1.6,
-              transition: 'border-color 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
             onFocus={e => (e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)')}
-            onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
+            onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
           />
           <span style={{ position: 'absolute', bottom: 8, right: 10, fontSize: 10, color: draft.length >= MAX_CHARS ? '#f87171' : 'rgba(255,255,255,0.38)', fontVariantNumeric: 'tabular-nums' }}>
             {draft.length} / {MAX_CHARS}
@@ -330,7 +330,7 @@ export default function SettingsAdvanced() {
             <button onClick={() => setDraft('')}
               onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
               onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
-              style={{ padding: '7px 12px', fontSize: 12, background: 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, color: 'rgba(255,255,255,0.45)', cursor: 'pointer', transition: 'all 0.15s ease' }}>
+              style={{ padding: '7px 12px', fontSize: 12, background: 'none', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 6, color: 'rgba(255,255,255,0.45)', cursor: 'pointer', transition: 'all 0.15s ease' }}>
               {t('common.clear')}
             </button>
           )}

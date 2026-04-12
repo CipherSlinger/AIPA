@@ -37,12 +37,12 @@ export const THEMES: { id: 'vscode' | 'light' | 'system'; label: string; labelKe
 export const INPUT_STYLE: React.CSSProperties = {
   width: '100%',
   background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(255,255,255,0.08)',
+  border: '1px solid rgba(255,255,255,0.07)',
   borderRadius: 7,
   padding: '6px 10px',
   color: 'rgba(255,255,255,0.82)',
   fontSize: 13,
   outline: 'none',
   boxSizing: 'border-box',
-  transition: 'border-color 0.15s ease',
+  transition: 'all 0.15s ease',
 }

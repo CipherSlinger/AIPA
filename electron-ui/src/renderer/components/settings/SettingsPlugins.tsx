@@ -118,10 +118,10 @@ export default function SettingsPlugins() {
   const inputStyle: React.CSSProperties = {
     flex: 1, padding: '7px 10px', fontSize: 13,
     background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.08)',
+    border: '1px solid rgba(255,255,255,0.07)',
     borderRadius: 7, color: 'rgba(255,255,255,0.82)',
     outline: 'none', boxSizing: 'border-box',
-    transition: 'border-color 0.15s ease',
+    transition: 'all 0.15s ease',
   }
 
   return (
@@ -155,19 +155,19 @@ export default function SettingsPlugins() {
             title={t('common.refresh')}
             style={{
               background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.07)',
               borderRadius: 6, cursor: 'pointer',
               display: 'flex', alignItems: 'center', padding: '5px 8px',
               color: 'rgba(255,255,255,0.45)',
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
               e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
-              e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+              e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
               e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
               e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
             }}
@@ -184,7 +184,7 @@ export default function SettingsPlugins() {
                 : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
               border: showInstallForm ? '1px solid rgba(99,102,241,0.4)' : 'none',
               borderRadius: 7,
-              color: 'rgba(255,255,255,0.95)', cursor: 'pointer',
+              color: 'rgba(255,255,255,0.82)', cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => {
@@ -227,7 +227,7 @@ export default function SettingsPlugins() {
               placeholder={t('settingsPlugins.installPathPlaceholder')}
               style={inputStyle}
               onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)' }}
-              onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
+              onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)' }}
             />
             <button
               onClick={handleBrowseDir}
@@ -236,7 +236,7 @@ export default function SettingsPlugins() {
                 display: 'flex', alignItems: 'center', gap: 4,
                 padding: '7px 10px', fontSize: 12,
                 background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.07)',
                 borderRadius: 7, color: 'rgba(255,255,255,0.60)', cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
@@ -246,7 +246,7 @@ export default function SettingsPlugins() {
                 e.currentTarget.style.background = 'rgba(99,102,241,0.10)'
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
                 e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
                 e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
               }}
@@ -265,7 +265,7 @@ export default function SettingsPlugins() {
               onClick={() => { setShowInstallForm(false); setInstallPath('') }}
               style={{
                 background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.07)',
                 borderRadius: 7, padding: '6px 14px',
                 cursor: 'pointer', fontSize: 12,
                 color: 'rgba(255,255,255,0.60)',
@@ -291,10 +291,10 @@ export default function SettingsPlugins() {
                   ? 'rgba(99,102,241,0.25)'
                   : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                 border: 'none', borderRadius: 7,
-                color: 'rgba(255,255,255,0.95)',
+                color: 'rgba(255,255,255,0.82)',
                 cursor: installing || !installPath.trim() ? 'not-allowed' : 'pointer',
                 opacity: installing || !installPath.trim() ? 0.6 : 1,
-                transition: 'opacity 0.15s ease',
+                transition: 'all 0.15s ease',
               }}
             >
               {installing ? t('settingsPlugins.installingPlugin') : t('settingsPlugins.installPlugin')}
@@ -320,7 +320,7 @@ export default function SettingsPlugins() {
               background: 'none', border: 'none', cursor: 'pointer',
               color: 'rgba(252,165,165,0.6)', padding: 0,
               display: 'flex', alignItems: 'center',
-              transition: 'color 0.15s',
+              transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => { e.currentTarget.style.color = '#fca5a5' }}
             onMouseLeave={e => { e.currentTarget.style.color = 'rgba(252,165,165,0.6)' }}
@@ -350,10 +350,10 @@ export default function SettingsPlugins() {
         <div style={{
           padding: '40px 0', textAlign: 'center',
           background: 'rgba(255,255,255,0.02)',
-          border: '1px dashed rgba(255,255,255,0.08)',
+          border: '1px dashed rgba(255,255,255,0.07)',
           borderRadius: 10,
         }}>
-          <Puzzle size={32} style={{ opacity: 0.18, marginBottom: 10, color: 'rgba(255,255,255,0.6)' }} />
+          <Puzzle size={32} style={{ opacity: 0.18, marginBottom: 10, color: 'rgba(255,255,255,0.60)' }} />
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.38)', fontWeight: 500 }}>
             {t('settingsPlugins.noPlugins')}
           </div>
@@ -390,7 +390,7 @@ export default function SettingsPlugins() {
                     borderRadius: 10,
                     overflow: 'hidden',
                     opacity: plugin.enabled ? 1 : 0.55,
-                    transition: 'opacity 0.15s ease, border-color 0.15s ease',
+                    transition: 'all 0.15s ease',
                   }}
                 >
                   <div style={{
@@ -409,7 +409,7 @@ export default function SettingsPlugins() {
                           ? 'rgba(99,102,241,0.70)'
                           : 'rgba(255,255,255,0.12)',
                         position: 'relative', flexShrink: 0,
-                        transition: 'background 0.15s ease',
+                        transition: 'all 0.15s ease',
                         boxShadow: plugin.enabled
                           ? '0 0 8px rgba(99,102,241,0.35)'
                           : 'none',
@@ -418,7 +418,7 @@ export default function SettingsPlugins() {
                       <span style={{
                         position: 'absolute', top: 2.5,
                         width: 14, height: 14, borderRadius: '50%',
-                        background: '#ffffff', transition: 'left 0.15s ease',
+                        background: '#ffffff', transition: 'all 0.15s ease',
                         left: plugin.enabled ? 18 : 3,
                         boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
                       }} />
@@ -438,7 +438,7 @@ export default function SettingsPlugins() {
                         {plugin.version && (
                           <span style={{
                             background: 'rgba(255,255,255,0.07)',
-                            border: '1px solid rgba(255,255,255,0.10)',
+                            border: '1px solid rgba(255,255,255,0.09)',
                             borderRadius: 20,
                             padding: '1px 7px', fontSize: 10,
                             color: 'rgba(255,255,255,0.45)',
@@ -529,7 +529,7 @@ export default function SettingsPlugins() {
                             onClick={() => setConfirmDelete(null)}
                             style={{
                               background: 'rgba(255,255,255,0.05)',
-                              border: '1px solid rgba(255,255,255,0.08)',
+                              border: '1px solid rgba(255,255,255,0.07)',
                               borderRadius: 6, padding: '5px 8px',
                               fontSize: 11, color: 'rgba(255,255,255,0.45)',
                               cursor: 'pointer',
@@ -565,7 +565,7 @@ export default function SettingsPlugins() {
                               : 'rgba(255,255,255,0.38)',
                             padding: '5px 7px',
                             display: 'flex', alignItems: 'center',
-                            transition: 'all 0.15s',
+                            transition: 'all 0.15s ease',
                           }}
                         >
                           <Trash2 size={13} />
