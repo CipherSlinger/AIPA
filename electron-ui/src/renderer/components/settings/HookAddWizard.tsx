@@ -292,12 +292,13 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                   {group.events.map(ev => {
                     const isSelected = selectedEvent === ev
+                    const desc = t(`hooks.wizard.eventDesc.${ev}`)
                     return (
                       <button
                         key={ev}
                         onClick={() => { setSelectedEvent(ev); setStep(2) }}
                         style={{
-                          padding: '5px 11px',
+                          padding: '6px 11px',
                           borderRadius: 6,
                           border: '1px solid ' + (isSelected
                             ? 'rgba(99,102,241,0.45)'
@@ -309,6 +310,11 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                           fontSize: 12, cursor: 'pointer',
                           fontWeight: isSelected ? 600 : 400,
                           transition: 'all 0.15s ease',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'flex-start',
+                          gap: 2,
+                          textAlign: 'left',
                         }}
                         onMouseEnter={e => {
                           if (!isSelected) {
@@ -325,7 +331,12 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                           }
                         }}
                       >
-                        {ev}
+                        <span style={{ fontWeight: isSelected ? 700 : 500 }}>{ev}</span>
+                        {desc && !desc.startsWith('hooks.wizard.eventDesc') && (
+                          <span style={{ fontSize: 10, color: isSelected ? 'rgba(165,180,252,0.70)' : 'rgba(255,255,255,0.35)', lineHeight: 1.4, fontWeight: 400 }}>
+                            {desc}
+                          </span>
+                        )}
                       </button>
                     )
                   })}
@@ -517,11 +528,14 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
               <input
                 value={matcher}
                 onChange={e => setMatcher(e.target.value)}
-                placeholder="e.g. Bash"
+                placeholder={t('hooks.wizard.matcherPlaceholder')}
                 style={inputStyle}
                 onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)' }}
                 onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
               />
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', marginTop: 4, lineHeight: 1.5 }}>
+                {t('hooks.wizard.matcherHint')}
+              </div>
             </div>
             <div style={{ width: 88 }}>
               <label style={fieldLabelStyle}>{t('hooks.wizard.labelTimeout')}</label>

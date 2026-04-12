@@ -23,9 +23,9 @@ type HooksConfig = Record<string, HookMatcher[]>
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function hookPreview(hook: HookEntry): string {
-  if (hook.type === 'command') return hook.command?.slice(0, 60) ?? ''
-  if (hook.type === 'prompt') return hook.prompt?.slice(0, 60) ?? ''
-  if (hook.type === 'http') return hook.url?.slice(0, 60) ?? ''
+  if (hook.type === 'command') return hook.command?.slice(0, 50) ?? ''
+  if (hook.type === 'prompt') return hook.prompt?.slice(0, 50) ?? ''
+  if (hook.type === 'http') return hook.url?.slice(0, 50) ?? ''
   return hook.type
 }
 
@@ -35,6 +35,68 @@ function HookTypeIcon({ type }: { type: string }) {
   if (type === 'prompt') return <MessageSquare size={size} color="rgba(255,255,255,0.45)" />
   if (type === 'http') return <Globe size={size} color="rgba(255,255,255,0.45)" />
   return <Zap size={size} color="rgba(255,255,255,0.45)" />
+}
+
+// Color palette for event-type badges
+const EVENT_BADGE_STYLES: Record<string, { bg: string; color: string }> = {
+  PreToolUse:    { bg: 'rgba(255,165,0,0.15)',   color: 'rgba(255,165,0,0.90)' },
+  PostToolUse:   { bg: 'rgba(99,102,241,0.15)',  color: 'rgba(165,180,252,0.90)' },
+  PostToolUseFailure: { bg: 'rgba(99,102,241,0.12)', color: 'rgba(165,180,252,0.75)' },
+  SessionStart:  { bg: 'rgba(34,197,94,0.15)',   color: 'rgba(34,197,94,0.90)' },
+  SessionEnd:    { bg: 'rgba(34,197,94,0.10)',   color: 'rgba(34,197,94,0.70)' },
+  Stop:          { bg: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.60)' },
+  StopFailure:   { bg: 'rgba(239,68,68,0.12)',   color: 'rgba(252,165,165,0.80)' },
+  Notification:  { bg: 'rgba(251,191,36,0.12)',  color: 'rgba(251,191,36,0.80)' },
+  UserPromptSubmit: { bg: 'rgba(99,102,241,0.10)', color: 'rgba(165,180,252,0.70)' },
+  SubagentStop:  { bg: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.55)' },
+  PreCompact:    { bg: 'rgba(139,92,246,0.12)',  color: 'rgba(196,181,253,0.80)' },
+}
+
+function EventTypeBadge({ eventType }: { eventType: string }) {
+  const style = EVENT_BADGE_STYLES[eventType] ?? { bg: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.60)' }
+  return (
+    <span style={{
+      borderRadius: 6,
+      fontSize: 10,
+      fontWeight: 700,
+      letterSpacing: '0.07em',
+      textTransform: 'uppercase' as const,
+      padding: '2px 8px',
+      background: style.bg,
+      color: style.color,
+      border: `1px solid ${style.color.replace(/[\d.]+\)$/, '0.25)')}`,
+      flexShrink: 0,
+      transition: 'all 0.15s ease',
+    }}>
+      {eventType}
+    </span>
+  )
+}
+
+function HookTypeBadge({ type }: { type: string }) {
+  const colorMap: Record<string, string> = {
+    command: 'rgba(165,180,252,0.80)',
+    http:    'rgba(34,197,94,0.80)',
+    prompt:  'rgba(251,191,36,0.80)',
+  }
+  const color = colorMap[type] ?? 'rgba(255,255,255,0.55)'
+  return (
+    <span style={{
+      borderRadius: 5,
+      fontSize: 9,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase' as const,
+      padding: '2px 6px',
+      background: color.replace(/[\d.]+\)$/, '0.12)'),
+      color,
+      border: `1px solid ${color.replace(/[\d.]+\)$/, '0.22)')}`,
+      flexShrink: 0,
+      transition: 'all 0.15s ease',
+    }}>
+      {type}
+    </span>
+  )
 }
 
 // ── Main component ─────────────────────────────────────────────────────────
@@ -212,17 +274,12 @@ export default function HooksSettingsPanel() {
                     ? <ChevronRight size={13} color="rgba(255,255,255,0.38)" />
                     : <ChevronDown size={13} color="rgba(255,255,255,0.38)" />
                   }
-                  <Zap size={13} color="rgba(99,102,241,0.85)" />
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.82)', flex: 1 }}>
-                    {eventType}
-                  </span>
+                  <EventTypeBadge eventType={eventType} />
+                  <span style={{ flex: 1 }} />
                   <span style={{
-                    fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
-                    textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)',
-                    background: 'rgba(99,102,241,0.12)',
-                    border: '1px solid rgba(99,102,241,0.2)',
-                    borderRadius: 10,
-                    padding: '1px 8px',
+                    fontSize: 10, fontWeight: 600,
+                    color: 'rgba(255,255,255,0.38)',
+                    flexShrink: 0,
                   }}>
                     {t('hooks.hookCount', { count: totalHooks })}
                   </span>
@@ -233,15 +290,6 @@ export default function HooksSettingsPanel() {
                   <div style={{ padding: '8px 12px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {matchers.map((matcherGroup, mi) => (
                       <div key={mi}>
-                        {matcherGroup.matcher && (
-                          <div style={{
-                            fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
-                            textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)',
-                            marginBottom: 6,
-                          }}>
-                            matcher: <code style={{ fontStyle: 'normal', color: 'rgba(165,180,252,0.85)', fontFamily: 'monospace', textTransform: 'none', letterSpacing: 0 }}>{matcherGroup.matcher}</code>
-                          </div>
-                        )}
                         {matcherGroup.hooks.map((hook, hi) => {
                           const deleteKey = `${eventType}-${mi}-${hi}`
                           return (
@@ -258,14 +306,7 @@ export default function HooksSettingsPanel() {
                               }}
                             >
                               <HookTypeIcon type={hook.type} />
-                              <span style={{
-                                fontSize: 10, fontWeight: 700,
-                                textTransform: 'uppercase', letterSpacing: '0.07em',
-                                color: 'rgba(255,255,255,0.38)',
-                                width: 52, flexShrink: 0,
-                              }}>
-                                {hook.type}
-                              </span>
+                              <HookTypeBadge type={hook.type} />
                               <span style={{
                                 background: 'rgba(15,15,25,0.70)',
                                 borderRadius: 6,
@@ -277,6 +318,20 @@ export default function HooksSettingsPanel() {
                               }}>
                                 {hookPreview(hook)}
                               </span>
+                              {matcherGroup.matcher && (
+                                <span style={{
+                                  fontSize: 10, color: 'rgba(255,165,0,0.75)',
+                                  background: 'rgba(255,165,0,0.08)',
+                                  border: '1px solid rgba(255,165,0,0.18)',
+                                  borderRadius: 5,
+                                  padding: '2px 7px',
+                                  fontFamily: 'monospace',
+                                  flexShrink: 0,
+                                  maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                }}>
+                                  {matcherGroup.matcher}
+                                </span>
+                              )}
                               {hook.timeout && (
                                 <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', flexShrink: 0 }}>
                                   {hook.timeout}s
