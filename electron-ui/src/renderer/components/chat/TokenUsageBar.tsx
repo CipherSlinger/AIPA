@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { useChatStore } from '../../store'
 import { useT } from '../../i18n'
 
@@ -7,11 +7,20 @@ function fmtNum(n: number): string {
   return n.toLocaleString()
 }
 
+/** Threshold above which the compact button is shown */
+const COMPACT_THRESHOLD = 75
+/** Threshold above which the button switches to red/critical styling */
+const CRITICAL_THRESHOLD = 90
+
 export default function TokenUsageBar() {
   const t = useT()
   const lastContextUsage = useChatStore(s => s.lastContextUsage)
   const lastUsage = useChatStore(s => s.lastUsage)
+  const currentSessionId = useChatStore(s => s.currentSessionId)
+  const isStreaming = useChatStore(s => s.isStreaming)
   const [hovered, setHovered] = useState(false)
+  const [compactCooldown, setCompactCooldown] = useState(false)
+  const [btnHovered, setBtnHovered] = useState(false)
 
   const { pct, fillColor } = useMemo(() => {
     if (!lastContextUsage || lastContextUsage.total <= 0) {
@@ -25,12 +34,54 @@ export default function TokenUsageBar() {
     return { pct: p, fillColor: color }
   }, [lastContextUsage])
 
+  const showCompactButton = pct >= COMPACT_THRESHOLD
+  const isCritical = pct >= CRITICAL_THRESHOLD
+  const canCompact = !!(currentSessionId && !isStreaming && !compactCooldown)
+
+  const handleCompact = useCallback(async () => {
+    if (!canCompact) return
+    setCompactCooldown(true)
+    try {
+      await window.electronAPI.cliSendMessage({
+        prompt: '/compact',
+        sessionId: currentSessionId,
+      })
+    } catch {
+      // ignore errors — the chat panel event system will surface them
+    }
+    setTimeout(() => setCompactCooldown(false), 1500)
+  }, [canCompact, currentSessionId])
+
   // Don't render when no usage data
   if (!lastContextUsage || lastContextUsage.total <= 0) return null
 
   const pctStr = pct.toFixed(1)
+  const pctRounded = Math.round(pct)
   const usedStr = fmtNum(lastContextUsage.used)
   const totalStr = fmtNum(lastContextUsage.total)
+
+  // Compact button base styles
+  const compactBase: React.CSSProperties = isCritical
+    ? {
+        border: '1px solid rgba(239,68,68,0.40)',
+        background: 'rgba(239,68,68,0.12)',
+        color: 'rgba(239,68,68,0.80)',
+      }
+    : {
+        border: '1px solid rgba(255,165,0,0.35)',
+        background: 'rgba(255,165,0,0.10)',
+        color: 'rgba(255,165,0,0.80)',
+      }
+
+  const compactHover: React.CSSProperties = isCritical
+    ? {
+        border: '1px solid rgba(239,68,68,0.55)',
+        background: 'rgba(239,68,68,0.20)',
+      }
+    : {
+        border: '1px solid rgba(255,165,0,0.50)',
+        background: 'rgba(255,165,0,0.18)',
+      }
 
   return (
     <div
@@ -43,11 +94,12 @@ export default function TokenUsageBar() {
         flexShrink: 0,
         background: 'transparent',
         overflow: 'visible',
+        gap: 6,
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Track */}
+      {/* Track — grows to fill available space */}
       <div
         role="progressbar"
         aria-valuenow={Math.round(pct)}
@@ -55,7 +107,7 @@ export default function TokenUsageBar() {
         aria-valuemax={100}
         aria-label={`Context usage: ${pctStr}%`}
         style={{
-          width: '100%',
+          flex: 1,
           height: 2,
           background: 'rgba(255,255,255,0.06)',
           overflow: 'hidden',
@@ -72,6 +124,64 @@ export default function TokenUsageBar() {
           }}
         />
       </div>
+
+      {/* Percentage label */}
+      <span
+        style={{
+          fontSize: 11,
+          fontVariantNumeric: 'tabular-nums',
+          fontFeatureSettings: '"tnum"',
+          color: 'rgba(255,255,255,0.38)',
+          lineHeight: 1,
+          flexShrink: 0,
+          userSelect: 'none',
+        }}
+      >
+        {pctRounded}%
+      </span>
+
+      {/* Compact button — only shown at >= 75% */}
+      {showCompactButton && (
+        <button
+          onClick={handleCompact}
+          disabled={!canCompact}
+          onMouseEnter={() => setBtnHovered(true)}
+          onMouseLeave={() => setBtnHovered(false)}
+          title={canCompact ? 'Compress context window (/compact)' : isStreaming ? 'Wait for response to finish' : 'No active session'}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: '2px 8px',
+            borderRadius: 6,
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: '0.07em',
+            textTransform: 'uppercase' as const,
+            cursor: canCompact ? 'pointer' : 'not-allowed',
+            transition: 'all 0.15s ease',
+            flexShrink: 0,
+            lineHeight: 1,
+            // When disabled (no session or streaming) — grey out
+            ...(canCompact
+              ? { ...(btnHovered ? { ...compactBase, ...compactHover } : compactBase) }
+              : {
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  background: 'rgba(255,255,255,0.05)',
+                  color: 'rgba(255,255,255,0.25)',
+                }),
+          }}
+        >
+          {isCritical ? (
+            <>
+              <span>&#x26A0;</span>
+              <span>COMPACT</span>
+            </>
+          ) : (
+            <span>COMPACT</span>
+          )}
+        </button>
+      )}
 
       {/* Tooltip */}
       {hovered && (
