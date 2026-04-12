@@ -222,6 +222,7 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
     bridge.on('hookCallback', (d) => send('cli:hookCallback', d))
     bridge.on('mcpElicitation', (d) => send('cli:elicitation', d))
     bridge.on('systemInit', (d) => send('cli:systemInit', d))
+    bridge.on('notification', (d) => send('cli:notification', d))
 
     // Inject API key from prefs only when neither key nor auth token is already set.
     // Gateway scenario sets ANTHROPIC_API_KEY to '' intentionally — do not overwrite it.

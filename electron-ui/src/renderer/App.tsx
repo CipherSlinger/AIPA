@@ -139,6 +139,18 @@ export default function App() {
     init()
   }, [])
 
+  // Listen for CLI notification events and surface them as info toasts
+  useEffect(() => {
+    if (!window.electronAPI?.onNotification) return
+    const unsub = window.electronAPI.onNotification((data) => {
+      const text = data.title
+        ? `${data.title}: ${data.message}`
+        : data.message
+      if (text) useUiStore.getState().addToast('info', text)
+    })
+    return () => unsub?.()
+  }, [])
+
   // Listen for menu events
   useEffect(() => {
     const cleanups = [

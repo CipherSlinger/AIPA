@@ -295,6 +295,14 @@ export class StreamBridge extends EventEmitter {
         this.emit('hookEvent', { sessionId: sid, data: event })
         break
       }
+      case 'notification': {
+        this.emit('notification', {
+          sessionId: sid,
+          message: (event.message as string) ?? '',
+          title: (event.title as string) ?? '',
+        })
+        break
+      }
       default:
         this.emit('unknown', { sessionId: sid, event })
     }

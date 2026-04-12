@@ -31,6 +31,7 @@ import SpeculationCard from './SpeculationCard'
 import SpeculationStatusBar from './SpeculationStatusBar'
 import TabBar from './TabBar'
 import ExportDialog from './ExportDialog'
+import ToolApprovalDialog from './ToolApprovalDialog'
 import { getTemplateById } from '../../utils/promptTemplates'
 import { useT } from '../../i18n'
 import { useIdleReturn } from '../../hooks/useIdleReturn'
@@ -631,6 +632,9 @@ export default function ChatPanel() {
       {showExport && (
         <ExportDialog onClose={() => setShowExport(false)} />
       )}
+
+      {/* Tool Approval Dialog — floating modal for permission requests (non-bypass modes) */}
+      <ToolApprovalDialog onRespond={respondPermission} />
     </div>
   )
 }

@@ -152,6 +152,12 @@ const electronAPI = {
     return () => ipcRenderer.removeListener('cli:systemInit', handler)
   },
 
+  onNotification: (cb: (data: { message: string; title?: string; sessionId?: string }) => void): Unsubscribe => {
+    const handler = (_: unknown, data: { message: string; title?: string; sessionId?: string }) => cb(data)
+    ipcRenderer.on('cli:notification', handler)
+    return () => ipcRenderer.removeListener('cli:notification', handler)
+  },
+
   // ── Menu events ──────────────────────────
   onMenuEvent: (event: string, cb: (...args: unknown[]) => void): Unsubscribe => {
     const h = (_: unknown, ...args: unknown[]) => cb(...args)
