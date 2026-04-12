@@ -77,7 +77,7 @@ export default function AtMentionPopup({ query, onSelect, onDismiss, anchorRef }
         background: 'rgba(15,15,25,0.96)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '1px solid rgba(255,255,255,0.07)',
         borderRadius: 12,
         boxShadow: '0 16px 48px rgba(0,0,0,0.65), 0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
         zIndex: 1000,
@@ -221,7 +221,7 @@ export default function AtMentionPopup({ query, onSelect, onDismiss, anchorRef }
               padding: '1px 5px',
               fontSize: 10,
               fontFamily: 'monospace',
-              color: 'rgba(255,255,255,0.55)',
+              color: 'rgba(255,255,255,0.45)',
               lineHeight: 1.6,
             }}>
               {key}

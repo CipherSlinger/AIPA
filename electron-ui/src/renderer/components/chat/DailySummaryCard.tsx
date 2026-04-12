@@ -125,7 +125,7 @@ export default function DailySummaryCard() {
       background: 'rgba(15,15,25,0.88)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
-      border: '1px solid rgba(255,255,255,0.08)',
+      border: '1px solid rgba(255,255,255,0.07)',
       borderLeft: '3px solid rgba(99,102,241,0.6)',
       borderRadius: 12,
       position: 'relative',
@@ -200,20 +200,20 @@ export default function DailySummaryCard() {
       {/* Next reminder */}
       {stats.nextReminder && (
         <div style={{
-          fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.6,
+          fontSize: 13, color: 'rgba(255,255,255,0.60)', lineHeight: 1.6,
           display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4,
         }}>
           <Bell size={9} color="#818cf8" />
           <span>
             {t('dailyBriefing.nextReminder')}: {stats.nextReminder.text}
-            {' '}(<span style={{ opacity: 0.65, fontSize: 11, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{new Date(stats.nextReminder.fireAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>)
+            {' '}(<span style={{ opacity: 0.60, fontSize: 11, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{new Date(stats.nextReminder.fireAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>)
           </span>
         </div>
       )}
 
       {/* Topics */}
       {stats.topics.length > 0 && (
-        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.6, marginBottom: 4 }}>
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.60)', lineHeight: 1.6, marginBottom: 4 }}>
           <Zap size={9} style={{ marginRight: 3, verticalAlign: 'middle', color: '#818cf8' }} />
           {t('dailySummary.topics')}: {stats.topics.join(', ')}
         </div>
@@ -221,7 +221,7 @@ export default function DailySummaryCard() {
 
       {/* No content state */}
       {!hasContent && (
-        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.6, marginBottom: 6 }}>
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.60)', lineHeight: 1.6, marginBottom: 6 }}>
           {t('dailyBriefing.allClear')}
         </div>
       )}
@@ -243,7 +243,7 @@ export default function DailySummaryCard() {
           onClick={navigateToTasks}
           style={{
             marginTop: 8, background: 'transparent',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.07)',
             cursor: 'pointer',
             color: '#818cf8', fontSize: 10, display: 'flex', alignItems: 'center', gap: 3,
             padding: '3px 8px', borderRadius: 8,

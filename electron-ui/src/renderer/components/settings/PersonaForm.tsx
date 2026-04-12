@@ -33,7 +33,7 @@ const SECTION_LABEL_STYLE: React.CSSProperties = {
 const GLASS_INPUT_STYLE: React.CSSProperties = {
   ...INPUT_STYLE,
   background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(255,255,255,0.12)',
+  border: '1px solid rgba(255,255,255,0.09)',
   borderRadius: 6,
   color: 'rgba(255,255,255,0.82)',
   fontSize: 13,
@@ -52,7 +52,7 @@ export default function PersonaForm({
   const [cancelHovered, setCancelHovered] = useState(false)
 
   const focusedBorder = '1px solid rgba(99,102,241,0.5)'
-  const restingBorder = '1px solid rgba(255,255,255,0.12)'
+  const restingBorder = '1px solid rgba(255,255,255,0.09)'
 
   return (
     <div style={{
@@ -60,7 +60,7 @@ export default function PersonaForm({
       background: 'rgba(15,15,25,0.85)',
       backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
-      border: '1px solid rgba(255,255,255,0.08)',
+      border: '1px solid rgba(255,255,255,0.07)',
       borderRadius: 16,
       boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
       marginBottom: 12,
@@ -245,7 +245,7 @@ export default function PersonaForm({
           style={{
             flex: 1,
             background: cancelHovered ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.12)',
+            border: '1px solid rgba(255,255,255,0.09)',
             borderRadius: 8,
             padding: '7px 0',
             color: 'rgba(255,255,255,0.60)',
