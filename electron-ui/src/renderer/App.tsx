@@ -151,6 +151,18 @@ export default function App() {
     return () => unsub?.()
   }, [])
 
+  // Listen for CLI system.init events to sync active model and MCP server state
+  useEffect(() => {
+    if (!window.electronAPI?.onSystemInit) return
+    const unsub = window.electronAPI.onSystemInit((data) => {
+      if (data.model) usePrefsStore.getState().setActiveModel(data.model)
+      if (data.mcpServers) usePrefsStore.getState().setActiveMcpServers(
+        data.mcpServers as unknown as Record<string, unknown>[]
+      )
+    })
+    return () => unsub?.()
+  }, [])
+
   // Listen for menu events
   useEffect(() => {
     const cleanups = [

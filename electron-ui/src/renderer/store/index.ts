@@ -46,6 +46,11 @@ interface PrefsState {
   setPrefs: (p: Partial<ClaudePrefs>) => void
   setLoaded: (v: boolean) => void
   setPermissionMode: (mode: PermissionMode) => void
+  // Runtime state from CLI system.init event
+  activeModel: string
+  setActiveModel: (model: string) => void
+  activeMcpServers: Record<string, unknown>[]
+  setActiveMcpServers: (servers: Record<string, unknown>[]) => void
 }
 
 const DEFAULT_PREFS: ClaudePrefs = {
@@ -92,4 +97,8 @@ export const usePrefsStore = create<PrefsState>((set) => ({
       skipPermissions: mode === 'bypassPermissions',
     },
   })),
+  activeModel: '',
+  setActiveModel: (model) => set({ activeModel: model }),
+  activeMcpServers: [],
+  setActiveMcpServers: (servers) => set({ activeMcpServers: servers }),
 }))
