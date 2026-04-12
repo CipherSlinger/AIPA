@@ -286,7 +286,7 @@ export default function WorkflowPersonasSection() {
                   : 'rgba(255,255,255,0.06)',
                 border: showForm && !editingId
                   ? '1px solid rgba(99,102,241,0.60)'
-                  : '1px solid rgba(255,255,255,0.10)',
+                  : '1px solid rgba(255,255,255,0.09)',
                 borderRadius: 8,
                 padding: '2px 5px',
                 cursor: personas.length >= 10 ? 'not-allowed' : 'pointer',
@@ -311,7 +311,7 @@ export default function WorkflowPersonasSection() {
               onMouseLeave={e => {
                 if (!(showForm && !editingId)) {
                   e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
                   e.currentTarget.style.boxShadow = 'none'
                   e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
                 }
@@ -372,7 +372,7 @@ export default function WorkflowPersonasSection() {
                   gap: 4,
                   padding: '4px 10px',
                   background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.10)',
+                  border: '1px solid rgba(255,255,255,0.09)',
                   borderRadius: 8,
                   color: 'rgba(255,255,255,0.60)',
                   fontSize: 10,
@@ -390,7 +390,7 @@ export default function WorkflowPersonasSection() {
                 }}
                 onMouseLeave={e => {
                   e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
                   e.currentTarget.style.boxShadow = 'none'
                   e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
                 }}
@@ -418,7 +418,7 @@ export default function WorkflowPersonasSection() {
                   }}
                   onMouseEnter={e => {
                     e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
                     e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)'
                   }}
                   onMouseLeave={e => {
@@ -506,14 +506,14 @@ export default function WorkflowPersonasSection() {
                       width: '100%',
                       padding: '5px 8px',
                       background: 'transparent',
-                      border: '1px dashed rgba(255,255,255,0.15)',
+                      border: '1px dashed rgba(255,255,255,0.09)',
                       borderRadius: 6,
                       cursor: 'pointer',
                       textAlign: 'left',
                       transition: 'border-color 0.15s ease, background 0.15s ease',
                     }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)'; e.currentTarget.style.background = 'rgba(99,102,241,0.06)' }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.background = 'transparent' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.background = 'transparent' }}
                   >
                     <span style={{ fontSize: 14 }}>{preset.emoji}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>

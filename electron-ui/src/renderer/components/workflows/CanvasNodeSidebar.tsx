@@ -72,7 +72,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
         fontSize: 9,
         transition: 'color 0.15s ease',
       }}
-      onMouseEnter={e => { if (!copied) e.currentTarget.style.color = 'rgba(255,255,255,0.65)' }}
+      onMouseEnter={e => { if (!copied) e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
       onMouseLeave={e => { if (!copied) e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
     >
       {copied ? <Check size={10} strokeWidth={2.5} /> : <Copy size={10} />}
@@ -197,7 +197,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
       {/* Header */}
       <div style={{
         padding: '12px 14px',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -232,7 +232,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
           style={{
             flexShrink: 0,
             background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.07)',
             borderRadius: 6,
             padding: 4,
             cursor: 'pointer',
@@ -241,8 +241,8 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
             lineHeight: 1,
             transition: 'all 0.15s ease',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(255,255,255,0.38)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(255,255,255,0.38)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)' }}
         >
           <X size={13} strokeWidth={2} />
         </button>
@@ -267,7 +267,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
                     background: isEditingPrompt
                       ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
                       : 'rgba(255,255,255,0.05)',
-                    border: isEditingPrompt ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                    border: isEditingPrompt ? 'none' : '1px solid rgba(255,255,255,0.07)',
                     borderRadius: 7,
                     padding: '2px 8px',
                     cursor: 'pointer',
@@ -279,7 +279,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
                     fontWeight: 600,
                     transition: 'all 0.15s ease',
                   }}
-                  onMouseEnter={e => { if (!isEditingPrompt) { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.65)' } }}
+                  onMouseEnter={e => { if (!isEditingPrompt) { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.60)' } }}
                   onMouseLeave={e => { if (!isEditingPrompt) { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = 'rgba(255,255,255,0.38)' } }}
                 >
                   <Pencil size={10} />
@@ -349,14 +349,14 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
                   style={{
                     padding: '5px 10px',
                     borderRadius: 7,
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.07)',
                     background: 'rgba(255,255,255,0.04)',
                     color: 'rgba(255,255,255,0.45)',
                     fontSize: 10,
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.70)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
                 >
                   {t('common.cancel') || 'Cancel'}
@@ -371,7 +371,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
               padding: '7px 9px',
               background: 'rgba(255,255,255,0.06)',
               borderRadius: 7,
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.07)',
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
               transition: 'border-color 0.15s ease',
@@ -428,7 +428,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
               ? '1px solid rgba(99,102,241,0.20)'
               : status === 'error'
                 ? '1px solid rgba(239,68,68,0.25)'
-                : outputText ? `1px solid ${status === 'completed' ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.08)'}` : '1px solid rgba(255,255,255,0.08)',
+                : outputText ? `1px solid ${status === 'completed' ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.07)'}` : '1px solid rgba(255,255,255,0.07)',
             fontFamily: 'monospace',
             fontStyle: (historyOutput || outputText || streamingText) ? 'normal' : (status === 'running' ? 'italic' : 'normal'),
             whiteSpace: (historyOutput || outputText || streamingText) ? 'pre-wrap' : 'normal',
@@ -502,7 +502,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
       {/* Status footer */}
       <div style={{
         padding: '6px 10px',
-        borderTop: '1px solid rgba(255,255,255,0.06)',
+        borderTop: '1px solid rgba(255,255,255,0.07)',
         flexShrink: 0,
         fontSize: 9,
         color: statusColor,

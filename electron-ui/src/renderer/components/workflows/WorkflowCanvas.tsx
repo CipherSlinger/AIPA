@@ -1376,7 +1376,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)',
           zIndex: 20, pointerEvents: 'none',
           background: 'rgba(0,0,0,0.6)', borderRadius: 6,
-          padding: '3px 10px', fontSize: 10, color: 'rgba(255,255,255,0.65)',
+          padding: '3px 10px', fontSize: 10, color: 'rgba(255,255,255,0.60)',
           letterSpacing: '0.01em',
         }}>
           {t('workflow.holdDragToPan')}
@@ -1947,7 +1947,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                   borderRadius: 3,
                   background: bg,
                   cursor: 'pointer',
-                  transition: 'background 0.15s ease, transform 0.15s',
+                  transition: 'background 0.15s ease, transform 0.15s ease',
                   position: 'relative',
                   overflow: 'hidden',
                   minWidth: 4,

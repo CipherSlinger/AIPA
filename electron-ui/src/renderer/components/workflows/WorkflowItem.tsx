@@ -76,7 +76,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
   return (
     <div
       style={{
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
         borderLeft: (hovered || isExpanded) ? '3px solid rgba(99,102,241,0.75)' : '3px solid transparent',
         transition: 'background 0.15s ease, border-left-color 0.15s ease, box-shadow 0.15s ease',
         position: 'relative',
@@ -197,7 +197,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
             title="Clone workflow"
             style={{
               background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.07)',
               cursor: 'pointer',
               color: 'rgba(255,255,255,0.45)',
               padding: 4,

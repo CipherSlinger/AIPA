@@ -108,7 +108,7 @@ function StatusBadge({ status }: { status: StepStatus }) {
       <div style={{
         position: 'absolute', top: -6, right: -6,
         width: 16, height: 16, borderRadius: '50%',
-        background: '#4ade80', color: 'rgba(255,255,255,0.95)',
+        background: '#4ade80', color: 'rgba(255,255,255,0.82)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         boxShadow: '0 0 4px rgba(74,222,128,0.6), 0 0 0 2px rgba(12,12,20,0.95)',
       }}>
@@ -121,7 +121,7 @@ function StatusBadge({ status }: { status: StepStatus }) {
       <div style={{
         position: 'absolute', top: -6, right: -6,
         width: 16, height: 16, borderRadius: '50%',
-        background: 'rgba(99,102,241,0.9)', color: 'rgba(255,255,255,0.95)',
+        background: 'rgba(99,102,241,0.9)', color: 'rgba(255,255,255,0.82)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         animation: 'canvas-spinner 1s linear infinite',
         boxShadow: '0 0 6px rgba(99,102,241,0.7), 0 0 0 2px rgba(12,12,20,0.95)',
@@ -135,7 +135,7 @@ function StatusBadge({ status }: { status: StepStatus }) {
       <div style={{
         position: 'absolute', top: -6, right: -6,
         width: 16, height: 16, borderRadius: '50%',
-        background: '#f87171', color: 'rgba(255,255,255,0.95)',
+        background: '#f87171', color: 'rgba(255,255,255,0.82)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         boxShadow: '0 0 4px rgba(248,113,113,0.6), 0 0 0 2px rgba(12,12,20,0.95)',
       }}>
@@ -184,7 +184,7 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, status, onCollapse, onClo
     background: 'rgba(18,18,30,0.97)',
     backdropFilter: 'blur(12px)',
     WebkitBackdropFilter: 'blur(12px)',
-    border: '1px solid rgba(255,255,255,0.10)',
+    border: '1px solid rgba(255,255,255,0.09)',
     borderRadius: 8,
     boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05)',
     minWidth: 168,
@@ -375,7 +375,7 @@ function NodeHeader({
           style={{
             fontSize: 12,
             fontWeight: 700,
-            color: 'rgba(255,255,255,0.88)',
+            color: 'rgba(255,255,255,0.82)',
             width: '100%',
             background: 'rgba(255,255,255,0.06)',
             border: '1px solid rgba(99,102,241,0.6)',
@@ -748,7 +748,7 @@ export default function CanvasNode({
     : 'rgba(255,255,255,0.38)'
 
   const stepBadgeColor =
-    (status === 'idle' || status === 'pending') ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.95)'
+    (status === 'idle' || status === 'pending') ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.82)'
 
   const nodeBorder = selected
     ? '1px solid rgba(99,102,241,0.60)'
@@ -820,7 +820,7 @@ export default function CanvasNode({
             : isFocusedOnly ? '2px dashed rgba(99,102,241,0.55)' : 'none',
           outlineOffset: 3,
           // B1: transition
-          transition: 'box-shadow 0.15s, border-color 0.15s, opacity 0.15s ease, height 0.15s ease, background 0.15s ease',
+          transition: 'box-shadow 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, height 0.15s ease, background 0.15s ease',
           userSelect: 'none',
           boxSizing: 'border-box',
           opacity: dimmed ? 0.2 : (statusStyle.opacity ?? 1),
@@ -907,7 +907,7 @@ export default function CanvasNode({
               display: 'flex',
               alignItems: 'center',
               borderRadius: 2,
-              transition: 'opacity 0.15s',
+              transition: 'opacity 0.15s ease',
               zIndex: 3,
             }}
           >
@@ -935,7 +935,7 @@ export default function CanvasNode({
               display: 'flex',
               alignItems: 'center',
               opacity: isNodeHovered ? 0.6 : 0,
-              transition: 'opacity 0.15s',
+              transition: 'opacity 0.15s ease',
               zIndex: 3,
             }}
             title={collapsed ? t('canvas.expandNode') : t('canvas.collapseNode')}
@@ -1022,7 +1022,7 @@ export default function CanvasNode({
               }} />
               <span style={{
                 fontSize: 11, fontWeight: 600,
-                color: 'rgba(255,255,255,0.70)',
+                color: 'rgba(255,255,255,0.60)',
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>
                 {step.title || `Step ${(stepIndex ?? 0) + 1}`}
@@ -1064,7 +1064,7 @@ export default function CanvasNode({
               display: 'flex',
               alignItems: 'center',
               opacity: (isNodeHovered || !!noteText) ? 0.8 : 0,
-              transition: 'opacity 0.15s, color 0.15s, background 0.15s',
+              transition: 'opacity 0.15s ease, color 0.15s ease, background 0.15s ease',
               fontSize: 11,
               zIndex: 4,
             }}
@@ -1092,7 +1092,7 @@ export default function CanvasNode({
               display: 'flex',
               alignItems: 'center',
               opacity: isNodeHovered || pinned ? 1 : 0,
-              transition: 'opacity 0.15s, color 0.15s, background 0.15s',
+              transition: 'opacity 0.15s ease, color 0.15s ease, background 0.15s ease',
               zIndex: 5,
             }}
           >
@@ -1119,7 +1119,7 @@ export default function CanvasNode({
               display: 'flex',
               alignItems: 'center',
               opacity: isNodeHovered ? 1 : 0,
-              transition: 'opacity 0.15s, color 0.15s',
+              transition: 'opacity 0.15s ease, color 0.15s ease',
               zIndex: 5,
             }}
           >
@@ -1301,7 +1301,7 @@ export default function CanvasNode({
                         width: '100%',
                         minHeight: 48,
                         fontSize: 10,
-                        color: 'rgba(255,255,255,0.88)',
+                        color: 'rgba(255,255,255,0.82)',
                         background: 'rgba(255,255,255,0.06)',
                         border: '1px solid rgba(99,102,241,0.6)',
                         borderRadius: 3,
@@ -1319,7 +1319,7 @@ export default function CanvasNode({
                       color: editPromptValue.length > 1800 ? 'rgba(239,68,68,0.7)' : 'rgba(255,255,255,0.45)',
                       opacity: 0.7,
                       marginTop: 2,
-                      transition: 'color 0.15s',
+                      transition: 'color 0.15s ease',
                     }}>
                       {editPromptValue.length} / 2000
                     </div>
@@ -1332,7 +1332,7 @@ export default function CanvasNode({
                     <div
                       style={{
                         fontSize: 11,
-                        color: 'rgba(255,255,255,0.55)',
+                        color: 'rgba(255,255,255,0.60)',
                         opacity: 0.8,
                         lineHeight: 1.4,
                         display: '-webkit-box',
@@ -1386,7 +1386,7 @@ export default function CanvasNode({
                           fontSize: 10,
                           display: 'flex', alignItems: 'center', gap: 3,
                           zIndex: 3,
-                          transition: 'all 0.15s',
+                          transition: 'all 0.15s ease',
                         }}
                       >
                         {promptCopied ? <Check size={9} /> : <Copy size={9} />}
@@ -1588,14 +1588,14 @@ export default function CanvasNode({
                     position: 'absolute',
                     top: 6, right: 6,
                     background: outputCopied ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.06)',
-                    border: `1px solid ${outputCopied ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.12)'}`,
+                    border: `1px solid ${outputCopied ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.09)'}`,
                     borderRadius: 4,
                     padding: '2px 6px',
                     cursor: 'pointer',
                     color: outputCopied ? '#22c55e' : 'rgba(255,255,255,0.45)',
                     fontSize: 10,
                     display: 'flex', alignItems: 'center', gap: 3,
-                    transition: 'all 0.15s',
+                    transition: 'all 0.15s ease',
                   }}
                 >
                   {outputCopied ? <Check size={9} /> : <Copy size={9} />}
@@ -1603,7 +1603,7 @@ export default function CanvasNode({
                 </button>
                 <div style={{
                   fontSize: 10,
-                  color: 'rgba(255,255,255,0.55)',
+                  color: 'rgba(255,255,255,0.60)',
                   display: '-webkit-box',
                   WebkitLineClamp: 4,
                   WebkitBoxOrient: 'vertical',
@@ -1672,11 +1672,11 @@ export default function CanvasNode({
                 width: 10,
                 height: 10,
                 borderRadius: '50%',
-                border: '2px solid rgba(255,255,255,0.15)',
+                border: '2px solid rgba(255,255,255,0.09)',
                 background: 'rgba(15,15,25,0.9)',
                 zIndex: 4,
                 pointerEvents: 'none',
-                transition: 'border-color 0.15s, background 0.15s, transform 0.15s ease',
+                transition: 'border-color 0.15s ease, background 0.15s ease, transform 0.15s ease',
                 ...(isNodeHovered ? {
                   borderColor: 'rgba(99,102,241,0.6)',
                   background: 'rgba(99,102,241,0.15)',
@@ -1692,11 +1692,11 @@ export default function CanvasNode({
                 width: 10,
                 height: 10,
                 borderRadius: '50%',
-                border: '2px solid rgba(255,255,255,0.15)',
+                border: '2px solid rgba(255,255,255,0.09)',
                 background: 'rgba(15,15,25,0.9)',
                 zIndex: 4,
                 pointerEvents: 'none',
-                transition: 'border-color 0.15s, background 0.15s, transform 0.15s ease',
+                transition: 'border-color 0.15s ease, background 0.15s ease, transform 0.15s ease',
                 ...(isNodeHovered ? {
                   borderColor: 'rgba(99,102,241,0.6)',
                   background: 'rgba(99,102,241,0.15)',

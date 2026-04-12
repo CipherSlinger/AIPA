@@ -151,8 +151,8 @@ function ProjectMemoryTab() {
               <button
                 onClick={cancelEdit}
                 style={{
-                  background: 'transparent', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 4,
-                  color: 'rgba(255,255,255,0.55)', fontSize: 10, cursor: 'pointer', padding: '2px 8px',
+                  background: 'transparent', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 4,
+                  color: 'rgba(255,255,255,0.60)', fontSize: 10, cursor: 'pointer', padding: '2px 8px',
                 }}
               >
                 {t('common.cancel')}
@@ -162,7 +162,7 @@ function ProjectMemoryTab() {
                 disabled={saving}
                 style={{
                   background: 'linear-gradient(135deg, #6366f1, #a78bfa)', border: 'none', borderRadius: 4,
-                  color: 'rgba(255,255,255,0.95)', fontSize: 10, cursor: 'pointer', padding: '2px 8px',
+                  color: 'rgba(255,255,255,0.82)', fontSize: 10, cursor: 'pointer', padding: '2px 8px',
                   display: 'flex', alignItems: 'center', gap: 3, fontWeight: 600,
                   opacity: saving ? 0.6 : 1,
                   transition: 'box-shadow 0.15s ease, opacity 0.15s ease',
@@ -243,7 +243,7 @@ function ProjectMemoryTab() {
               style={{
                 marginTop: 4,
                 background: 'linear-gradient(135deg, #6366f1, #a78bfa)', border: 'none', borderRadius: 6,
-                color: 'rgba(255,255,255,0.95)', fontSize: 11, cursor: 'pointer', padding: '5px 14px', fontWeight: 600,
+                color: 'rgba(255,255,255,0.82)', fontSize: 11, cursor: 'pointer', padding: '5px 14px', fontWeight: 600,
               }}
             >
               {t('memory.projectCreate')}
@@ -254,7 +254,7 @@ function ProjectMemoryTab() {
 
       {/* Footer hint */}
       {!editing && (
-        <div style={{ padding: '4px 12px', fontSize: 9, color: 'rgba(255,255,255,0.38)', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+        <div style={{ padding: '4px 12px', fontSize: 9, color: 'rgba(255,255,255,0.38)', borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
           {t('memory.projectFooter')}
         </div>
       )}
@@ -383,7 +383,7 @@ function ClaudeConfigTab() {
       {/* Description bar */}
       <div style={{
         padding: '6px 12px 4px',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
         flexShrink: 0,
       }}>
         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
@@ -417,7 +417,7 @@ function ClaudeConfigTab() {
             transition: 'color 0.15s ease',
             userSelect: 'none',
           }}
-          onMouseEnter={e => { if (!pathCopied) e.currentTarget.style.color = 'rgba(255,255,255,0.65)' }}
+          onMouseEnter={e => { if (!pathCopied) e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
           onMouseLeave={e => { if (!pathCopied) e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
         >
           {pathCopied ? '✓ Copied' : displayPath}
@@ -449,8 +449,8 @@ function ClaudeConfigTab() {
             onClick={openInEditor}
             title="在编辑器中打开"
             style={{
-              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 4,
-              color: 'rgba(255,255,255,0.55)', fontSize: 10, cursor: 'pointer', padding: '2px 7px',
+              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 4,
+              color: 'rgba(255,255,255,0.60)', fontSize: 10, cursor: 'pointer', padding: '2px 7px',
               display: 'flex', alignItems: 'center', gap: 3,
             }}
           >
@@ -475,8 +475,8 @@ function ClaudeConfigTab() {
               <button
                 onClick={cancelEdit}
                 style={{
-                  background: 'transparent', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 4,
-                  color: 'rgba(255,255,255,0.55)', fontSize: 10, cursor: 'pointer', padding: '2px 8px',
+                  background: 'transparent', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 4,
+                  color: 'rgba(255,255,255,0.60)', fontSize: 10, cursor: 'pointer', padding: '2px 8px',
                 }}
               >
                 {t('common.cancel')}
@@ -583,7 +583,7 @@ function ClaudeConfigTab() {
                 onClick={() => startEdit()}
                 style={{
                   background: 'linear-gradient(135deg, #6366f1, #a78bfa)', border: 'none', borderRadius: 6,
-                  color: 'rgba(255,255,255,0.95)', fontSize: 11, cursor: 'pointer', padding: '5px 14px', fontWeight: 600,
+                  color: 'rgba(255,255,255,0.82)', fontSize: 11, cursor: 'pointer', padding: '5px 14px', fontWeight: 600,
                 }}
               >
                 创建 CLAUDE.md
@@ -610,7 +610,7 @@ function ClaudeConfigTab() {
 
       {/* Footer hint */}
       {!editing && (
-        <div style={{ padding: '4px 12px', fontSize: 9, color: 'rgba(255,255,255,0.38)', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+        <div style={{ padding: '4px 12px', fontSize: 9, color: 'rgba(255,255,255,0.38)', borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
           CLAUDE.md · 项目级 Claude Code 配置 · 自动加载
         </div>
       )}
@@ -680,7 +680,7 @@ export default function MemoryPanel() {
             <span style={{
               fontSize: 13,
               fontWeight: 700,
-              color: 'rgba(255,255,255,0.88)',
+              color: 'rgba(255,255,255,0.82)',
               letterSpacing: '-0.01em',
               lineHeight: 1.3,
             }}>
@@ -714,7 +714,7 @@ export default function MemoryPanel() {
                   fontSize: 11,
                   fontWeight: 600,
                   cursor: 'pointer',
-                  color: 'rgba(255,255,255,0.95)',
+                  color: 'rgba(255,255,255,0.82)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 3,
@@ -800,7 +800,7 @@ export default function MemoryPanel() {
                   paddingLeft: 26,
                   paddingRight: crud.searchQuery.trim() ? 56 : 8,
                   background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.07)',
                   borderRadius: 7,
                   fontSize: 12,
                   color: 'rgba(255,255,255,0.82)',
@@ -912,7 +912,7 @@ export default function MemoryPanel() {
           <div style={{
             flex: 1, overflowY: 'auto', padding: '6px 8px',
             scrollbarWidth: 'thin',
-            scrollbarColor: 'rgba(255,255,255,0.10) transparent',
+            scrollbarColor: 'rgba(255,255,255,0.09) transparent',
           }}>
             {crud.filteredMemories.length === 0 ? (
               <div style={{

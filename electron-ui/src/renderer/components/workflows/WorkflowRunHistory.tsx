@@ -98,7 +98,7 @@ function RunSummaryCard({ run }: { run: WorkflowRun }) {
   return (
     <div style={{
       background: 'rgba(8,8,16,0.80)',
-      borderBottom: '1px solid rgba(255,255,255,0.05)',
+      borderBottom: '1px solid rgba(255,255,255,0.07)',
       padding: '8px 12px',
     }}>
       {/* Summary row */}
@@ -207,7 +207,7 @@ export default function WorkflowRunHistory({
           whiteSpace: 'nowrap',
         }}
         onMouseEnter={e => {
-          if (!isReplay) { e.currentTarget.style.background = 'rgba(20,20,30,0.95)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)' }
+          if (!isReplay) { e.currentTarget.style.background = 'rgba(20,20,30,0.95)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)' }
         }}
         onMouseLeave={e => {
           if (!isReplay) { e.currentTarget.style.background = 'rgba(20,20,30,0.85)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)' }
@@ -231,7 +231,7 @@ export default function WorkflowRunHistory({
             background: 'rgba(14,14,24,0.96)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.09)',
             borderRadius: 10,
             boxShadow: '0 8px 32px rgba(0,0,0,0.50)',
             zIndex: 100,
@@ -298,7 +298,7 @@ export default function WorkflowRunHistory({
               border: 'none',
               borderBottom: '1px solid rgba(255,255,255,0.04)',
               cursor: 'pointer',
-              color: selectedRunId === null ? '#818cf8' : 'rgba(255,255,255,0.65)',
+              color: selectedRunId === null ? '#818cf8' : 'rgba(255,255,255,0.60)',
               fontSize: 10,
               fontWeight: 600,
               textAlign: 'left',
@@ -366,14 +366,14 @@ export default function WorkflowRunHistory({
                           ? 'rgba(99,102,241,0.1)'
                           : 'transparent',
                         border: 'none',
-                        borderBottom: '1px solid rgba(255,255,255,0.05)',
+                        borderBottom: '1px solid rgba(255,255,255,0.07)',
                         borderLeft: run.success === undefined
                           ? '3px solid rgba(99,102,241,0.6)'
                           : run.success
                             ? '3px solid rgba(34,197,94,0.6)'
                             : '3px solid rgba(239,68,68,0.6)',
                         cursor: 'pointer',
-                        color: isSelected ? '#818cf8' : 'rgba(255,255,255,0.65)',
+                        color: isSelected ? '#818cf8' : 'rgba(255,255,255,0.60)',
                         fontSize: 10,
                         textAlign: 'left',
                         transition: 'all 0.15s ease',
@@ -390,7 +390,7 @@ export default function WorkflowRunHistory({
                       {/* Top row: relative time + badges */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
-                          <span style={{ fontWeight: 700, fontSize: 11, flexShrink: 0, color: isSelected ? '#818cf8' : 'rgba(255,255,255,0.75)' }}>
+                          <span style={{ fontWeight: 700, fontSize: 11, flexShrink: 0, color: isSelected ? '#818cf8' : 'rgba(255,255,255,0.82)' }}>
                             {formatRelativeTime(run.startedAt)}
                           </span>
                           <span style={{

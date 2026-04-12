@@ -297,8 +297,8 @@ export default function WorkflowDetailHeader({
                 onClick={onExitEditMode}
                 title={t('workflow.exitEditMode')}
                 style={{ ...actionBtnStyle, gap: 4 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)' }}
               >
                 <Eye size={14} />
                 <span style={{ fontSize: 12 }}>{t('workflow.viewMode')}</span>
@@ -334,8 +334,8 @@ export default function WorkflowDetailHeader({
             <>
               {/* Enter edit mode */}
               <button onClick={onEnterEditMode} title={t('workflow.edit')} style={actionBtnStyle}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)' }}
               >
                 <Edit3 size={14} />
                 <span style={{ fontSize: 12 }}>{t('workflow.edit')}</span>
@@ -390,7 +390,7 @@ const actionBtnStyle: React.CSSProperties = {
   gap: 4,
   padding: '5px 12px',
   background: 'rgba(255,255,255,0.07)',
-  border: '1px solid rgba(255,255,255,0.10)',
+  border: '1px solid rgba(255,255,255,0.09)',
   borderRadius: 7,
   cursor: 'pointer',
   color: 'rgba(255,255,255,0.82)',

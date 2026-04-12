@@ -17,7 +17,7 @@ const toolbarBtnStyle: React.CSSProperties = {
   borderRadius: 8,
   padding: '6px 8px',
   cursor: 'pointer',
-  color: 'rgba(255,255,255,0.50)',
+  color: 'rgba(255,255,255,0.45)',
   display: 'flex',
   alignItems: 'center',
   transition: 'all 0.15s ease',
@@ -29,7 +29,7 @@ const toolbarZoomBtnStyle: React.CSSProperties = {
   borderRadius: 8,
   padding: '1px 5px',
   cursor: 'pointer',
-  color: 'rgba(255,255,255,0.50)',
+  color: 'rgba(255,255,255,0.45)',
   fontSize: 14,
   lineHeight: 1,
   fontWeight: 600,
@@ -50,7 +50,7 @@ function hoverIn(e: React.MouseEvent<HTMLButtonElement>) {
 }
 function hoverOut(e: React.MouseEvent<HTMLButtonElement>) {
   e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
-  e.currentTarget.style.color = 'rgba(255,255,255,0.50)'
+  e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
 }
 
 interface CanvasToolbarProps {
@@ -155,7 +155,7 @@ export default function CanvasToolbar({
           WebkitBackdropFilter: 'blur(16px)',
           borderRadius: 12,
           padding: '4px 8px',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid rgba(255,255,255,0.07)',
           boxShadow: '0 4px 16px rgba(0,0,0,0.40), 0 1px 4px rgba(0,0,0,0.30)',
           gap: 4,
           transition: 'all 0.15s ease',
@@ -185,7 +185,7 @@ export default function CanvasToolbar({
                 border: 'none',
                 padding: 1,
                 cursor: 'pointer',
-                color: 'rgba(255,255,255,0.55)',
+                color: 'rgba(255,255,255,0.45)',
                 display: 'flex',
                 alignItems: 'center',
               }}
@@ -210,7 +210,7 @@ export default function CanvasToolbar({
         WebkitBackdropFilter: 'blur(16px)',
         borderRadius: 12,
         padding: '4px 8px',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '1px solid rgba(255,255,255,0.07)',
         boxShadow: '0 4px 16px rgba(0,0,0,0.40), 0 1px 4px rgba(0,0,0,0.30)',
         transition: 'all 0.15s ease',
         // needed so the shortcuts popup anchors to this element
@@ -445,9 +445,9 @@ export default function CanvasToolbar({
           onClick={(e) => { e.stopPropagation(); onToggleMinimap() }}
           aria-label={t('canvas.minimapLabel')}
           title={t('canvas.minimapTitle')}
-          style={{ ...toolbarBtnStyle, background: showMinimap ? 'rgba(99,102,241,0.15)' : 'transparent', color: showMinimap ? '#818cf8' : 'rgba(255,255,255,0.50)', boxShadow: showMinimap ? 'inset 0 0 0 1px rgba(99,102,241,0.4)' : 'none' }}
+          style={{ ...toolbarBtnStyle, background: showMinimap ? 'rgba(99,102,241,0.15)' : 'transparent', color: showMinimap ? '#818cf8' : 'rgba(255,255,255,0.45)', boxShadow: showMinimap ? 'inset 0 0 0 1px rgba(99,102,241,0.4)' : 'none' }}
           onMouseEnter={hoverIn}
-          onMouseLeave={e => { e.currentTarget.style.background = showMinimap ? 'rgba(99,102,241,0.15)' : 'transparent'; e.currentTarget.style.color = showMinimap ? '#818cf8' : 'rgba(255,255,255,0.50)'; e.currentTarget.style.boxShadow = showMinimap ? 'inset 0 0 0 1px rgba(99,102,241,0.4)' : 'none' }}
+          onMouseLeave={e => { e.currentTarget.style.background = showMinimap ? 'rgba(99,102,241,0.15)' : 'transparent'; e.currentTarget.style.color = showMinimap ? '#818cf8' : 'rgba(255,255,255,0.45)'; e.currentTarget.style.boxShadow = showMinimap ? 'inset 0 0 0 1px rgba(99,102,241,0.4)' : 'none' }}
         >
           <Map size={13} />
         </button>
@@ -459,9 +459,9 @@ export default function CanvasToolbar({
               onClick={(e) => { e.stopPropagation(); onToggleLayout() }}
               aria-label={t('canvas.layoutToggleLabel')}
               title={t('canvas.layoutToggleTitle')}
-              style={{ ...toolbarBtnStyle, background: layoutActive ? 'rgba(99,102,241,0.15)' : 'transparent', color: layoutActive ? '#818cf8' : 'rgba(255,255,255,0.50)', boxShadow: layoutActive ? 'inset 0 0 0 1px rgba(99,102,241,0.4)' : 'none' }}
+              style={{ ...toolbarBtnStyle, background: layoutActive ? 'rgba(99,102,241,0.15)' : 'transparent', color: layoutActive ? '#818cf8' : 'rgba(255,255,255,0.45)', boxShadow: layoutActive ? 'inset 0 0 0 1px rgba(99,102,241,0.4)' : 'none' }}
               onMouseEnter={hoverIn}
-              onMouseLeave={e => { e.currentTarget.style.background = layoutActive ? 'rgba(99,102,241,0.15)' : 'transparent'; e.currentTarget.style.color = layoutActive ? '#818cf8' : 'rgba(255,255,255,0.50)'; e.currentTarget.style.boxShadow = layoutActive ? 'inset 0 0 0 1px rgba(99,102,241,0.4)' : 'none' }}
+              onMouseLeave={e => { e.currentTarget.style.background = layoutActive ? 'rgba(99,102,241,0.15)' : 'transparent'; e.currentTarget.style.color = layoutActive ? '#818cf8' : 'rgba(255,255,255,0.45)'; e.currentTarget.style.boxShadow = layoutActive ? 'inset 0 0 0 1px rgba(99,102,241,0.4)' : 'none' }}
             >
               {layoutDirection === 'vertical' ? <ArrowDownUp size={13} /> : <ArrowLeftRight size={13} />}
             </button>
@@ -527,9 +527,9 @@ export default function CanvasToolbar({
             style={{
               display: 'flex', alignItems: 'center', gap: 4,
               padding: '4px 8px', borderRadius: 6,
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.07)',
               background: 'transparent',
-              color: 'rgba(255,255,255,0.55)', fontSize: 11,
+              color: 'rgba(255,255,255,0.45)', fontSize: 11,
               cursor: 'pointer', flexShrink: 0,
               transition: 'all 0.15s ease',
             }}
@@ -539,8 +539,8 @@ export default function CanvasToolbar({
               e.currentTarget.style.background = 'rgba(239,68,68,0.06)'
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
-              e.currentTarget.style.color = 'rgba(255,255,255,0.55)'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
+              e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
               e.currentTarget.style.background = 'transparent'
             }}
           >
@@ -569,7 +569,7 @@ export default function CanvasToolbar({
             title="Keyboard shortcuts"
             style={{
               background: showShortcuts ? 'rgba(99,102,241,0.15)' : 'transparent',
-              border: showShortcuts ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(255,255,255,0.08)',
+              border: showShortcuts ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(255,255,255,0.07)',
               borderRadius: 6,
               color: showShortcuts ? '#818cf8' : 'rgba(255,255,255,0.45)',
               cursor: 'pointer',
@@ -594,11 +594,11 @@ export default function CanvasToolbar({
                 background: 'rgba(15,15,25,0.96)',
                 backdropFilter: 'blur(16px)',
                 WebkitBackdropFilter: 'blur(16px)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.07)',
                 borderRadius: 12,
                 padding: '12px 16px',
                 minWidth: 220,
-                boxShadow: '0 8px 32px rgba(0,0,0,0.50), 0 2px 8px rgba(0,0,0,0.30)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
                 animation: 'slideUp 0.15s ease',
               }}
               onMouseDown={e => e.stopPropagation()}
@@ -616,9 +616,9 @@ export default function CanvasToolbar({
                 { key: '+/-', desc: 'Zoom in/out' },
                 { key: 'Ctrl+Z', desc: 'Undo (coming soon)' },
               ].map(({ key, desc }) => (
-                <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)' }}>{desc}</span>
-                  <kbd style={{ fontSize: 10, fontFamily: 'monospace', background: 'rgba(255,255,255,0.1)', borderRadius: 4, padding: '1px 5px', color: 'rgba(255,255,255,0.70)', border: '1px solid rgba(255,255,255,0.15)' }}>{key}</kbd>
+                <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>{desc}</span>
+                  <kbd style={{ fontSize: 10, fontFamily: 'monospace', background: 'rgba(255,255,255,0.1)', borderRadius: 4, padding: '1px 5px', color: 'rgba(255,255,255,0.60)', border: '1px solid rgba(255,255,255,0.09)' }}>{key}</kbd>
                 </div>
               ))}
             </div>

@@ -189,7 +189,7 @@ function WorkflowTabContent({ crud, t }: {
       {/* Workflows sub-header with search + create */}
       <div style={{
         padding: '12px 14px 8px',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
         flexShrink: 0,
       }}>
         <div style={{
@@ -264,7 +264,7 @@ function WorkflowTabContent({ crud, t }: {
               style={{
                 display: 'flex', alignItems: 'center', gap: 4,
                 padding: '5px 10px', borderRadius: 6,
-                border: '1px solid rgba(255,255,255,0.1)',
+                border: '1px solid rgba(255,255,255,0.07)',
                 background: 'transparent',
                 color: 'rgba(255,255,255,0.45)', fontSize: 11,
                 cursor: 'pointer', flexShrink: 0,
@@ -276,7 +276,7 @@ function WorkflowTabContent({ crud, t }: {
                 e.currentTarget.style.background = 'rgba(99,102,241,0.06)'
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
                 e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
                 e.currentTarget.style.background = 'transparent'
               }}
@@ -416,7 +416,7 @@ function WorkflowTabContent({ crud, t }: {
             autoFocus
             style={{
               width: '100%', height: 28, padding: '0 8px',
-              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)',
               borderRadius: 6, fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.82)',
               outline: 'none', boxSizing: 'border-box', marginBottom: 4,
             }}
@@ -428,7 +428,7 @@ function WorkflowTabContent({ crud, t }: {
             maxLength={MAX_DESC_LENGTH}
             style={{
               width: '100%', height: 28, padding: '0 8px',
-              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)',
               borderRadius: 6, fontSize: 10, color: 'rgba(255,255,255,0.60)',
               outline: 'none', boxSizing: 'border-box', marginBottom: 6,
             }}
@@ -495,8 +495,8 @@ function WorkflowTabContent({ crud, t }: {
                 style={{
                   fontSize: 10, padding: '2px 9px', borderRadius: 20, cursor: 'pointer',
                   background: !categoryFilter ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.06)',
-                  border: !categoryFilter ? '1px solid rgba(99,102,241,0.30)' : '1px solid rgba(255,255,255,0.08)',
-                  color: !categoryFilter ? '#818cf8' : 'rgba(255,255,255,0.55)',
+                  border: !categoryFilter ? '1px solid rgba(99,102,241,0.30)' : '1px solid rgba(255,255,255,0.07)',
+                  color: !categoryFilter ? '#818cf8' : 'rgba(255,255,255,0.45)',
                   fontWeight: !categoryFilter ? 700 : 400,
                   transition: 'all 0.15s ease',
                 }}
@@ -507,8 +507,8 @@ function WorkflowTabContent({ crud, t }: {
                   style={{
                     fontSize: 10, padding: '2px 9px', borderRadius: 20, cursor: 'pointer',
                     background: categoryFilter === cat ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.06)',
-                    border: categoryFilter === cat ? '1px solid rgba(99,102,241,0.30)' : '1px solid rgba(255,255,255,0.08)',
-                    color: categoryFilter === cat ? '#818cf8' : 'rgba(255,255,255,0.55)',
+                    border: categoryFilter === cat ? '1px solid rgba(99,102,241,0.30)' : '1px solid rgba(255,255,255,0.07)',
+                    color: categoryFilter === cat ? '#818cf8' : 'rgba(255,255,255,0.45)',
                     fontWeight: categoryFilter === cat ? 700 : 400,
                     transition: 'all 0.15s ease',
                     textTransform: 'capitalize',
@@ -528,7 +528,7 @@ function WorkflowTabContent({ crud, t }: {
                     fontSize: 10,
                     padding: '2px 8px',
                     borderRadius: 6,
-                    border: `1px solid ${sortBy === s ? 'rgba(99,102,241,0.50)' : 'rgba(255,255,255,0.1)'}`,
+                    border: `1px solid ${sortBy === s ? 'rgba(99,102,241,0.50)' : 'rgba(255,255,255,0.07)'}`,
                     background: sortBy === s ? 'rgba(99,102,241,0.15)' : 'transparent',
                     color: sortBy === s ? '#818cf8' : 'rgba(255,255,255,0.45)',
                     cursor: 'pointer',

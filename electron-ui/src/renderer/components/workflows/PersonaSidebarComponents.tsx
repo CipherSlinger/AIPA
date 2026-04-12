@@ -95,7 +95,7 @@ export function PersonaSidebarCard({ persona, isActive, isDeleting, onDelete }: 
           e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)'
           const avatar = e.currentTarget.querySelector('.persona-avatar') as HTMLElement | null
           if (avatar) {
-            avatar.style.borderColor = 'rgba(99,102,241,0.70)'
+            avatar.style.borderColor = 'rgba(99,102,241,0.60)'
             avatar.style.transform = 'scale(1.05)'
             avatar.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3), 0 0 10px rgba(99,102,241,0.30)'
           }
@@ -201,7 +201,7 @@ export function PersonaSidebarCard({ persona, isActive, isDeleting, onDelete }: 
             width: 26,
             height: 26,
             borderRadius: 6,
-            border: isDeleting ? '1px solid rgba(252,165,165,0.4)' : '1px solid rgba(255,255,255,0.06)',
+            border: isDeleting ? '1px solid rgba(252,165,165,0.4)' : '1px solid rgba(255,255,255,0.07)',
             background: isDeleting ? 'rgba(252,165,165,0.15)' : 'transparent',
             color: isDeleting ? '#fca5a5' : 'rgba(255,255,255,0.38)',
             cursor: 'pointer',
@@ -222,7 +222,7 @@ export function PersonaSidebarCard({ persona, isActive, isDeleting, onDelete }: 
           onMouseLeave={e => {
             if (!isDeleting) {
               e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
               e.currentTarget.style.color = 'rgba(255,255,255,0.38)'
             }
           }}
@@ -294,7 +294,7 @@ export function PersonaInlineForm({
         marginBottom: 8,
         letterSpacing: '0.07em',
         textTransform: 'uppercase',
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
         paddingBottom: 4,
       }}>
         {editingId ? t('persona.editPersona') : t('persona.addPersona')}
@@ -395,7 +395,7 @@ export function PersonaInlineForm({
             background: canSubmit
               ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
               : 'rgba(255,255,255,0.04)',
-            border: canSubmit ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(255,255,255,0.08)',
+            border: canSubmit ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(255,255,255,0.07)',
             borderRadius: 6,
             padding: '5px 0',
             color: canSubmit ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)',
@@ -429,8 +429,8 @@ export function PersonaInlineForm({
           }}
           onMouseEnter={e => {
             e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.75)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
           }}
           onMouseLeave={e => {
             e.currentTarget.style.background = 'rgba(255,255,255,0.04)'

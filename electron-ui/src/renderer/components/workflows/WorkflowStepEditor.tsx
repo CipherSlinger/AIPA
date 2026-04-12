@@ -252,7 +252,7 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
           </div>
 
           {/* Prompt / Condition Question */}
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'rgba(255,255,255,0.38)', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 4, marginBottom: 8 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'rgba(255,255,255,0.38)', borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: 4, marginBottom: 8 }}>
             {(step.nodeType ?? 'prompt') === 'condition' ? t('workflow.conditionQuestion') : 'Prompt'}
           </div>
           <textarea
@@ -265,7 +265,7 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
               height: 40,
               padding: '10px 12px',
               background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.10)',
+              border: '1px solid rgba(255,255,255,0.09)',
               borderRadius: 8,
               fontSize: 12,
               color: 'rgba(255,255,255,0.82)',
@@ -276,7 +276,7 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
               lineHeight: 1.6,
             }}
             onFocus={e => { e.currentTarget.style.border = '1px solid rgba(99,102,241,0.50)'; e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.15)' }}
-            onBlur={e => { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.10)'; e.currentTarget.style.boxShadow = 'none' }}
+            onBlur={e => { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.09)'; e.currentTarget.style.boxShadow = 'none' }}
           />
 
           {/* Template variable hints for steps with prior steps */}

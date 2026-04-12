@@ -288,7 +288,7 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
             background: 'rgba(15,15,25,0.88)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.09)',
             borderRadius: 6,
             padding: '2px 8px',
             fontSize: 11,

@@ -395,7 +395,7 @@ export default function WorkflowDetailPage() {
               background: 'rgba(15,15,25,0.85)',
               backdropFilter: 'blur(20px)',
               WebkitBackdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.09)',
               borderRadius: 16,
               padding: '20px 24px',
               width: 380,
@@ -415,7 +415,7 @@ export default function WorkflowDetailPage() {
                 onClick={handleDialogStay}
                 style={{
                   padding: '7px 16px', fontSize: 12,
-                  background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)',
+                  background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)',
                   borderRadius: 7, color: 'rgba(255,255,255,0.60)', cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
