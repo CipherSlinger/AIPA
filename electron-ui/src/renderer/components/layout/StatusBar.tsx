@@ -214,7 +214,7 @@ export default function StatusBar() {
               borderRadius: '50%',
               background: isStreaming ? '#4ade80' : 'rgba(255,255,255,0.38)',
               boxShadow: isStreaming ? '0 0 4px rgba(74,222,128,0.6)' : undefined,
-              transition: 'background 0.15s ease, box-shadow 0.15s ease',
+              transition: 'all 0.15s ease',
               animation: isStreaming ? 'pulse 1.2s ease-in-out infinite' : undefined,
             }}
           />
@@ -278,7 +278,7 @@ export default function StatusBar() {
               border: 'none',
               color: '#a5b4fc', cursor: 'pointer',
               fontSize: 9, fontWeight: 600, letterSpacing: 0.5,
-              transition: 'background 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
           >
             <ClipboardList size={9} />
@@ -312,7 +312,7 @@ export default function StatusBar() {
                     : contextPct >= 80
                       ? 'rgba(245,158,11,0.8)'
                       : 'linear-gradient(90deg, rgba(99,102,241,0.7), rgba(139,92,246,0.6))',
-                  transition: 'width 0.15s ease, background 0.15s ease', borderRadius: 3,
+                  transition: 'all 0.15s ease', borderRadius: 3,
                 }} />
               </div>
               <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', opacity: 0.8, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
@@ -418,7 +418,7 @@ export default function StatusBar() {
                     padding: '4px 8px', borderRadius: 6,
                     border: 'none', background: 'transparent',
                     color: 'rgba(255,255,255,0.82)', fontSize: 11, cursor: 'pointer',
-                    transition: 'background 0.15s ease',
+                    transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
@@ -601,7 +601,7 @@ export default function StatusBar() {
             transition: 'all 0.15s ease',
           }}
         >
-          <Pin size={12} style={{ transform: alwaysOnTop ? 'rotate(-45deg)' : undefined, transition: 'transform 0.15s ease' }} />
+          <Pin size={12} style={{ transform: alwaysOnTop ? 'rotate(-45deg)' : undefined, transition: 'all 0.15s ease' }} />
         </button>
 
         {/* Date + sessions today (Iteration 417) */}

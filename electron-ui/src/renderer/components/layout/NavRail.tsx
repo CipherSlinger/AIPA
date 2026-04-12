@@ -63,7 +63,7 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
           : 'transparent',
         position: 'relative',
         marginBottom: 1,
-        transition: 'background 0.15s ease, color 0.15s ease',
+        transition: 'all 0.15s ease',
         color: isActive
           ? '#818cf8'
           : hovered
@@ -89,7 +89,7 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
             borderRadius: '0 2px 2px 0',
             background: 'rgba(99,102,241,0.6)',
             opacity: 1,
-            transition: 'opacity 0.15s ease',
+            transition: 'all 0.15s ease',
           }}
         />
       )}
@@ -275,7 +275,7 @@ export default function NavRail() {
         userSelect: 'none',
         overflowY: 'auto',
         overflowX: 'hidden',
-        transition: 'width 0.15s ease',
+        transition: 'all 0.15s ease',
       }}
     >
       {/* Departments */}
@@ -404,7 +404,7 @@ export default function NavRail() {
             boxShadow: avatarHovered
               ? '0 0 0 2px rgba(99,102,241,0.30)'
               : 'none',
-            transition: 'background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, width 0.15s ease',
+            transition: 'all 0.15s ease',
             gap: navExpanded ? 8 : 0,
             paddingLeft: navExpanded ? 8 : 0,
             boxSizing: 'border-box',
@@ -470,7 +470,7 @@ export default function NavRail() {
           paddingLeft: navExpanded ? 10 : 0,
           paddingRight: navExpanded ? 8 : 0,
           boxSizing: 'border-box',
-          transition: 'background 0.15s ease, color 0.15s ease, width 0.15s ease',
+          transition: 'all 0.15s ease',
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.background = 'rgba(255,255,255,0.07)'

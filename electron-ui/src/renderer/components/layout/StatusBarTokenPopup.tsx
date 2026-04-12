@@ -82,7 +82,7 @@ export default function StatusBarTokenPopup({
                   ? ctxColor
                   : 'linear-gradient(90deg, rgba(99,102,241,0.9), rgba(129,140,248,0.9))',
                 borderRadius: 3,
-                transition: 'width 0.15s ease, background 0.15s ease',
+                transition: 'all 0.15s ease',
               }}
             />
           </div>
@@ -160,7 +160,7 @@ export default function StatusBarTokenPopup({
             borderRadius: 6,
             color: '#818cf8',
             cursor: 'pointer',
-            transition: 'background 0.15s ease',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(99,102,241,0.25)' }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)' }}

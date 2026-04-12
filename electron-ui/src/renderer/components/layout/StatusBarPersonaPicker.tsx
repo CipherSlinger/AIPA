@@ -107,7 +107,7 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
             {t('persona.selectPersona')}
           </>
         )}
-        <ChevronUp size={8} style={{ opacity: 0.6, transform: show ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+        <ChevronUp size={8} style={{ opacity: 0.6, transform: show ? 'rotate(180deg)' : 'none', transition: 'all 0.15s ease' }} />
       </button>
       {show && (
         <div
@@ -150,7 +150,7 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
               color: !sessionPersonaId ? '#818cf8' : 'rgba(255,255,255,0.72)',
               cursor: 'pointer',
               textAlign: 'left',
-              transition: 'background 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
           >
             {!sessionPersonaId && <Check size={11} style={{ color: '#818cf8', flexShrink: 0 }} />}
@@ -209,7 +209,7 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
                   color: isActive ? '#818cf8' : 'rgba(255,255,255,0.72)',
                   cursor: 'pointer',
                   textAlign: 'left',
-                  transition: 'background 0.15s ease',
+                  transition: 'all 0.15s ease',
                 }}
               >
                 {isActive && <Check size={11} style={{ color: '#818cf8', flexShrink: 0 }} />}
@@ -276,7 +276,7 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
                       cursor: 'pointer',
                       fontSize: 11,
                       textAlign: 'left',
-                      transition: 'background 0.15s ease',
+                      transition: 'all 0.15s ease',
                     }}
                     title={wf.description || displayName}
                   >

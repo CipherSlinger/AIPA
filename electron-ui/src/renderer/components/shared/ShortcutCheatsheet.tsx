@@ -153,7 +153,7 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <h2 style={{ fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.88)', margin: 0, lineHeight: 1.4, letterSpacing: '-0.01em' }}>
+          <h2 style={{ fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.82)', margin: 0, lineHeight: 1.4, letterSpacing: '-0.01em' }}>
             {t('shortcutCheatsheet.title')}
           </h2>
           <button

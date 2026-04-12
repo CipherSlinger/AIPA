@@ -327,7 +327,7 @@ export default function FileBrowser() {
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            transition: 'color 0.15s ease',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => e.currentTarget.style.color = '#818cf8'}
           onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}

@@ -212,7 +212,7 @@ export default function AppShell() {
                 overflow: 'hidden',
                 background: 'rgba(10,10,18,1)',
                 borderRight: sidebarOpen ? '1px solid rgba(255,255,255,0.07)' : 'none',
-                transition: 'width 0.15s ease, opacity 0.15s ease',
+                transition: 'all 0.15s ease',
                 opacity: sidebarOpen ? 1 : 0,
                 position: 'relative',
               }}
@@ -237,7 +237,7 @@ export default function AppShell() {
                 flexShrink: 0,
                 background: isDragging ? 'rgba(99,102,241,0.40)' : 'rgba(255,255,255,0.04)',
                 cursor: 'col-resize',
-                transition: 'background 0.15s ease',
+                transition: 'all 0.15s ease',
               }}
               onMouseDown={startDrag('sidebar')}
               onDoubleClick={() => { setSidebarWidth(240); window.electronAPI.prefsSet('sidebarWidth', 240) }}
@@ -291,7 +291,7 @@ export default function AppShell() {
                     background: 'none', border: 'none', cursor: 'pointer',
                     color: 'rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center',
                     padding: 4, borderRadius: 8,
-                    transition: 'color 0.15s ease, background 0.15s ease',
+                    transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.82)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)'; e.currentTarget.style.background = 'none' }}
