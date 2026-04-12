@@ -137,6 +137,15 @@ const FILE_EDIT_TOOLS = new Set(['Edit', 'MultiEdit', 'str_replace_editor', 'str
 const FILE_CLI_EDIT_TOOLS = new Set(['file_edit'])
 const FILE_CLI_WRITE_TOOLS = new Set(['file_write', 'file_create'])
 
+// File path highlight tools
+const FILE_PATH_TOOLS = new Set(['Read', 'Write', 'Edit', 'MultiEdit', 'read_file', 'create_file'])
+
+// Glob/Grep result summary tools
+const SEARCH_RESULT_TOOLS = new Set(['Glob', 'Grep'])
+
+// Error keywords for Bash output detection
+const ERROR_KEYWORDS = /exit code|error|Error|FAILED|fatal/
+
 function formatElapsed(seconds: number): string {
   if (seconds < 60) return `${seconds}s`
   const m = Math.floor(seconds / 60)
@@ -181,6 +190,228 @@ function CopyOutputBtn({ text, t }: { text: string; t: (key: string) => string }
       {copied ? <Check size={10} /> : <ClipboardCopy size={10} />}
       {copied ? t('message.codeCopied') : t('message.copyCode')}
     </button>
+  )
+}
+
+/** Render file path with directory dimmed and filename bold */
+function FilePathHighlight({ filePath }: { filePath: string }) {
+  const normalized = filePath.replace(/\\/g, '/')
+  const lastSlash = normalized.lastIndexOf('/')
+  const dir = lastSlash >= 0 ? normalized.slice(0, lastSlash + 1) : ''
+  const fileName = lastSlash >= 0 ? normalized.slice(lastSlash + 1) : normalized
+
+  return (
+    <span style={{
+      fontFamily: 'monospace',
+      fontSize: 12,
+      color: 'rgba(165,180,252,0.80)',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+      maxWidth: 280,
+      display: 'inline-block',
+      verticalAlign: 'middle',
+    }}>
+      {dir && (
+        <span style={{ fontWeight: 400, opacity: 0.65 }}>{dir}</span>
+      )}
+      <span style={{ fontWeight: 600 }}>{fileName}</span>
+    </span>
+  )
+}
+
+/** Bash command block */
+function BashCommandBlock({ command }: { command: string }) {
+  return (
+    <div style={{
+      background: 'rgba(0,0,0,0.30)',
+      borderRadius: 8,
+      border: '1px solid rgba(255,255,255,0.07)',
+      padding: '8px 12px',
+      fontFamily: 'monospace',
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: 0,
+      transition: 'all 0.15s ease',
+    }}>
+      <span style={{
+        color: 'rgba(99,102,241,0.80)',
+        fontWeight: 700,
+        marginRight: 8,
+        flexShrink: 0,
+        userSelect: 'none',
+        fontSize: 13,
+      }}>$</span>
+      <span style={{
+        color: 'rgba(255,255,255,0.82)',
+        fontFamily: 'monospace',
+        fontSize: 13,
+        whiteSpace: 'pre-wrap',
+        wordBreak: 'break-word',
+        flex: 1,
+      }}>{command}</span>
+    </div>
+  )
+}
+
+const BASH_OUTPUT_MAX_LINES = 30
+
+/** Bash output block with line-limit fold */
+function BashOutputBlock({ output }: { output: string }) {
+  const lines = output.split('\n')
+  const totalLines = lines.length
+  const hasError = ERROR_KEYWORDS.test(output)
+  const [showAll, setShowAll] = useState(false)
+
+  const visibleLines = (!showAll && totalLines > BASH_OUTPUT_MAX_LINES)
+    ? lines.slice(0, BASH_OUTPUT_MAX_LINES)
+    : lines
+
+  const textColor = hasError ? 'rgba(239,68,68,0.75)' : 'rgba(255,255,255,0.60)'
+
+  return (
+    <div style={{
+      background: 'rgba(0,0,0,0.20)',
+      borderRadius: 6,
+      padding: '6px 10px',
+      transition: 'all 0.15s ease',
+    }}>
+      <pre style={{
+        margin: 0,
+        fontSize: 12,
+        fontFamily: 'monospace',
+        color: textColor,
+        lineHeight: 1.5,
+        maxHeight: 200,
+        overflowY: 'auto',
+        whiteSpace: 'pre-wrap',
+        wordBreak: 'break-word',
+        scrollbarWidth: 'thin',
+        scrollbarColor: 'rgba(255,255,255,0.10) transparent',
+      }}>
+        {visibleLines.join('\n')}
+      </pre>
+      {totalLines > BASH_OUTPUT_MAX_LINES && !showAll && (
+        <button
+          onClick={() => setShowAll(true)}
+          style={{
+            marginTop: 4,
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: 'rgba(165,180,252,0.70)',
+            fontSize: 11,
+            fontFamily: 'monospace',
+            padding: '2px 0',
+            transition: 'color 0.15s ease',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,1)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,0.70)' }}
+        >
+          展开全部 {totalLines} 行
+        </button>
+      )}
+    </div>
+  )
+}
+
+/** Bash exit status indicator */
+function BashStatusDot({ output }: { output: string }) {
+  const hasError = ERROR_KEYWORDS.test(output)
+  const dotColor = hasError ? 'rgba(239,68,68,0.80)' : 'rgba(34,197,94,0.80)'
+  const label = hasError ? '失败' : '成功'
+
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 5,
+      fontSize: 10,
+      fontWeight: 600,
+      color: dotColor,
+    }}>
+      <span style={{
+        width: 6,
+        height: 6,
+        borderRadius: '50%',
+        background: dotColor,
+        display: 'inline-block',
+        flexShrink: 0,
+      }} />
+      {label}
+    </span>
+  )
+}
+
+/** Glob/Grep result summary */
+function SearchResultSummary({ resultText }: { resultText: string }) {
+  const [showAll, setShowAll] = useState(false)
+  const lines = resultText.split('\n').filter(l => l.trim().length > 0)
+  const total = lines.length
+  const PREVIEW_LIMIT = 5
+  const visibleLines = (!showAll && total > PREVIEW_LIMIT) ? lines.slice(0, PREVIEW_LIMIT) : lines
+
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 4,
+      transition: 'all 0.15s ease',
+    }}>
+      {/* Count badge */}
+      <div>
+        <span style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          padding: '2px 7px',
+          borderRadius: 6,
+          background: 'rgba(34,197,94,0.15)',
+          color: 'rgba(34,197,94,0.80)',
+          fontSize: 10,
+          fontWeight: 700,
+          border: '1px solid rgba(34,197,94,0.25)',
+          letterSpacing: '0.03em',
+        }}>
+          找到 {total} 项
+        </span>
+      </div>
+      {/* Results list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        {visibleLines.map((line, idx) => (
+          <div key={idx} style={{
+            fontSize: 11,
+            fontFamily: 'monospace',
+            color: 'rgba(255,255,255,0.60)',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            lineHeight: 1.5,
+          }}>
+            {line}
+          </div>
+        ))}
+        {total > PREVIEW_LIMIT && !showAll && (
+          <button
+            onClick={() => setShowAll(true)}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'rgba(165,180,252,0.70)',
+              fontSize: 11,
+              fontFamily: 'monospace',
+              padding: '2px 0',
+              textAlign: 'left',
+              transition: 'color 0.15s ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,1)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,0.70)' }}
+          >
+            + {total - PREVIEW_LIMIT} 更多...
+          </button>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -242,6 +473,8 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
   const summaryLabel = generateToolSummary(tool, t)
   const isBash = BASH_TOOLS.has(tool.name)
   const isFileEdit = FILE_EDIT_TOOLS.has(tool.name)
+  const isFilePath = FILE_PATH_TOOLS.has(tool.name)
+  const isSearchResult = SEARCH_RESULT_TOOLS.has(tool.name)
   const showElapsed = isRunning && elapsed >= 2
   const showFinalDuration = !isRunning && finalDuration !== null && finalDuration >= 1
   const imagePaths = !isRunning ? extractImagePaths(tool) : []
@@ -263,6 +496,12 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
     : tool.status === 'done'
     ? 'rgba(34,197,94,0.50)'
     : 'rgba(239,68,68,0.50)'
+
+  // File path for path-highlight tools
+  const highlightFilePath = isFilePath ? extractFilePath(tool.input || {}) : null
+
+  // Bash command string
+  const bashCommand = isBash && typeof tool.input?.command === 'string' ? tool.input.command : null
 
   return (
     <div
@@ -311,7 +550,17 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
         />
         <Icon size={13} style={{ color: 'rgba(165,180,252,0.8)', flexShrink: 0 }} />
         <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, display: 'flex', alignItems: 'center', gap: 5 }}>
-          {summaryLabel}
+          {/* For file path tools, show path-highlighted summary; otherwise show normal summary */}
+          {isFilePath && highlightFilePath ? (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5, overflow: 'hidden', minWidth: 0 }}>
+              <span style={{ flexShrink: 0, color: 'rgba(255,255,255,0.60)', fontWeight: 400 }}>
+                {tool.name === 'Read' ? '读取' : tool.name === 'Write' ? '写入' : tool.name === 'Edit' ? '编辑' : tool.name === 'MultiEdit' ? '多段编辑' : tool.name}
+              </span>
+              <FilePathHighlight filePath={highlightFilePath} />
+            </span>
+          ) : (
+            summaryLabel
+          )}
           {tool.name.startsWith('mcp__') && (() => {
             const parts = tool.name.split('__')
             const serverName = parts[1]
@@ -407,15 +656,20 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           {/* Input section */}
           <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
               {t('tool.input')}
-              {extractFilePath(tool.input || {}) && (
+              {/* File path for non-file-path-highlight tools (legacy display) */}
+              {!isFilePath && extractFilePath(tool.input || {}) && (
                 <span style={{ color: '#a5b4fc', fontSize: 11, fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 260, fontWeight: 400, letterSpacing: 'normal', textTransform: 'none' }}>
                   {extractFilePath(tool.input || {})}
                 </span>
               )}
             </div>
-            {FILE_CLI_EDIT_TOOLS.has(tool.name) && typeof tool.input.path === 'string' ? (
+
+            {/* Bash: command block */}
+            {isBash && bashCommand ? (
+              <BashCommandBlock command={bashCommand} />
+            ) : FILE_CLI_EDIT_TOOLS.has(tool.name) && typeof tool.input.path === 'string' ? (
               <FileDiffView
                 tool="file_edit"
                 path={tool.input.path}
@@ -471,6 +725,47 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
               }
             }
 
+            // Glob/Grep: structured result summary
+            if (isSearchResult && resultText) {
+              return (
+                <div>
+                  <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+                  <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span>{t('tool.output')}</span>
+                      <CopyOutputBtn text={resultText} t={t} />
+                    </div>
+                    <SearchResultSummary resultText={resultText} />
+                  </div>
+                </div>
+              )
+            }
+
+            // Bash: command output with fold, error highlighting, status dot
+            if (isBash) {
+              return (
+                <div>
+                  <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+                  <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {t('tool.output')}
+                        {resultText && <BashStatusDot output={resultText} />}
+                      </span>
+                      {resultText && <CopyOutputBtn text={resultText} t={t} />}
+                    </div>
+                    {resultText ? (
+                      <BashOutputBlock output={resultText} />
+                    ) : (
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)', fontStyle: 'italic', fontFamily: 'monospace' }}>
+                        {t('tool.noOutput')}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            }
+
             return (
             <div>
               {/* Divider */}
@@ -489,35 +784,19 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
                     <CopyOutputBtn text={resultText} t={t} />
                   )}
                 </div>
-                {isBash ? (
-                  <pre style={{
-                    margin: 0, padding: '6px 8px',
-                    fontFamily: 'monospace', fontSize: 11,
-                    background: 'rgba(8,8,16,1)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: 4,
-                    color: '#4ade80',
-                    maxHeight: 200, overflowY: 'auto',
-                    whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-                    lineHeight: 1.5,
-                  }}>
-                    {resultText || t('tool.noOutput')}
-                  </pre>
-                ) : (
-                  <pre style={{
-                    fontSize: 11, margin: 0, padding: '6px 8px',
-                    fontFamily: 'monospace',
-                    background: 'rgba(8,8,16,1)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: 4,
-                    color: tool.status === 'error' ? '#fca5a5' : 'rgba(255,255,255,0.60)',
-                    overflow: 'auto', maxHeight: 200,
-                    whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-                    lineHeight: 1.5,
-                  }}>
-                    {resultText}
-                  </pre>
-                )}
+                <pre style={{
+                  fontSize: 11, margin: 0, padding: '6px 8px',
+                  fontFamily: 'monospace',
+                  background: 'rgba(8,8,16,1)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  borderRadius: 4,
+                  color: tool.status === 'error' ? '#fca5a5' : 'rgba(255,255,255,0.60)',
+                  overflow: 'auto', maxHeight: 200,
+                  whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                  lineHeight: 1.5,
+                }}>
+                  {resultText}
+                </pre>
               </div>
             </div>
             )
