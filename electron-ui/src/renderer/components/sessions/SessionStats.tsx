@@ -82,7 +82,7 @@ export default function SessionStats({ onBack }: SessionStatsProps) {
     background: 'rgba(15,15,25,0.88)',
     backdropFilter: 'blur(16px)',
     WebkitBackdropFilter: 'blur(16px)',
-    border: '1px solid rgba(255,255,255,0.08)',
+    border: '1px solid rgba(255,255,255,0.07)',
     borderRadius: 12,
     padding: '12px 14px',
     boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
@@ -138,7 +138,7 @@ export default function SessionStats({ onBack }: SessionStatsProps) {
               <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', width: 24, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
                 {day.label}
               </span>
-              <div style={{ flex: 1, height: 14, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ flex: 1, height: 14, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.07)' }}>
                 <div style={{
                   height: '100%',
                   width: `${(day.count / stats.maxWeekCount) * 100}%`,
@@ -185,7 +185,7 @@ export default function SessionStats({ onBack }: SessionStatsProps) {
                 <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', width: 60, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {tag.name}
                 </span>
-                <div style={{ flex: 1, height: 10, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ flex: 1, height: 10, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.07)' }}>
                   <div style={{
                     height: '100%',
                     width: `${(tag.count / stats.maxTagCount) * 100}%`,

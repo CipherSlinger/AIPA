@@ -67,7 +67,7 @@ export default function GlobalSearchResults({
       background: 'rgba(15,15,25,0.92)',
       backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
-      border: '1px solid rgba(255,255,255,0.08)',
+      border: '1px solid rgba(255,255,255,0.07)',
       borderRadius: 10,
       maxHeight: '50%',
       display: 'flex',
@@ -102,7 +102,7 @@ export default function GlobalSearchResults({
           onClick={onClose}
           style={{
             background: 'transparent',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.07)',
             borderRadius: 6,
             color: 'rgba(255,255,255,0.45)',
             cursor: 'pointer',

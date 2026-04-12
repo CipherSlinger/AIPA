@@ -255,7 +255,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.70)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
               onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
             >
               {t('dept.cancel')}
@@ -279,7 +279,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
               display: 'flex',
               alignItems: 'center',
               gap: 5,
-              transition: 'border-color 0.15s, color 0.15s, background 0.15s',
+              transition: 'border-color 0.15s ease, color 0.15s ease, background 0.15s ease',
             }}
             onMouseEnter={e => {
               e.currentTarget.style.borderColor = '#6366f1'
@@ -309,7 +309,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
               display: 'flex',
               alignItems: 'center',
               gap: 4,
-              transition: 'border-color 0.15s, color 0.15s, background 0.15s',
+              transition: 'border-color 0.15s ease, color 0.15s ease, background 0.15s ease',
             }}
             onMouseEnter={e => {
               e.currentTarget.style.borderColor = '#6366f1'
@@ -364,7 +364,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
             cursor: 'pointer',
             transition: 'all 0.15s ease',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.70)' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
           onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
         >
           {t('dept.cancel')}
@@ -529,7 +529,7 @@ function DepartmentRow({
           cursor: 'pointer',
           padding: 0,
           boxShadow: hovered ? '0 0 0 2px rgba(255,255,255,0.38)' : '0 0 0 1.5px rgba(255,255,255,0.1)',
-          transition: 'box-shadow 0.15s, transform 0.15s',
+          transition: 'box-shadow 0.15s ease, transform 0.15s ease',
           transform: hovered ? 'scale(1.2)' : 'scale(1)',
         }}
       />
@@ -702,7 +702,7 @@ function DepartmentRow({
             background: 'rgba(15,15,25,0.97)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.10)',
+            border: '1px solid rgba(255,255,255,0.07)',
             borderRadius: 9,
             boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
             minWidth: 135,
@@ -967,7 +967,7 @@ export default function DepartmentPanel() {
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: 600,
-              transition: 'background 0.15s, border-color 0.15s, box-shadow 0.15s',
+              transition: 'background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease',
             }}
             onMouseEnter={e => {
               e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.38), rgba(139,92,246,0.32))'
@@ -1031,7 +1031,7 @@ export default function DepartmentPanel() {
                 fontSize: 11,
                 fontWeight: 600,
                 cursor: 'pointer',
-                transition: 'background 0.15s, border-color 0.15s, box-shadow 0.15s',
+                transition: 'background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease',
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(99,102,241,0.12))'
@@ -1103,7 +1103,7 @@ export default function DepartmentPanel() {
             cursor: 'pointer',
             flexShrink: 0,
             width: 'calc(100% - 20px)',
-            transition: 'border-color 0.15s, color 0.15s, background 0.15s, box-shadow 0.15s',
+            transition: 'border-color 0.15s ease, color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease',
           }}
           onMouseEnter={e => {
             e.currentTarget.style.borderColor = 'rgba(99,102,241,0.55)'

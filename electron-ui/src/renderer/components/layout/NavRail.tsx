@@ -59,7 +59,7 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
         background: isActive
           ? 'rgba(99,102,241,0.10)'
           : hovered
-          ? 'rgba(255,255,255,0.06)'
+          ? 'rgba(255,255,255,0.07)'
           : 'transparent',
         position: 'relative',
         marginBottom: 1,
@@ -67,7 +67,7 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
         color: isActive
           ? '#818cf8'
           : hovered
-          ? 'rgba(255,255,255,0.75)'
+          ? 'rgba(255,255,255,0.82)'
           : 'rgba(255,255,255,0.45)',
         flexShrink: 0,
         gap: expanded ? 6 : 0,
@@ -191,7 +191,7 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
               marginLeft: 6,
               padding: '1px 4px',
               borderRadius: 6,
-              background: 'rgba(255,255,255,0.10)',
+              background: 'rgba(255,255,255,0.09)',
               fontSize: 10,
               fontWeight: 400,
               color: 'rgba(255,255,255,0.45)',
@@ -368,7 +368,7 @@ export default function NavRail() {
 
       {/* Bottom section separator */}
       <div style={{
-        borderTop: '1px solid rgba(255,255,255,0.06)',
+        borderTop: '1px solid rgba(255,255,255,0.07)',
         marginBottom: 6,
         marginTop: 4,
         marginLeft: navExpanded ? -6 : -4,
@@ -473,8 +473,8 @@ export default function NavRail() {
           transition: 'background 0.15s ease, color 0.15s ease, width 0.15s ease',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-          e.currentTarget.style.color = 'rgba(255,255,255,0.55)'
+          e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
+          e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.background = 'transparent'

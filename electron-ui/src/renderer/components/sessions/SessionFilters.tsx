@@ -50,7 +50,7 @@ export default function SessionFilters({
       : '1px solid rgba(255,255,255,0.09)',
     cursor: 'pointer',
     fontSize: 11,
-    color: isActive ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.55)',
+    color: isActive ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.60)',
     fontWeight: isActive ? 600 : 400,
     whiteSpace: 'nowrap' as const,
     flexShrink: 0,

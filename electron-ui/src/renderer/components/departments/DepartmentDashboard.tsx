@@ -242,7 +242,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
             fontSize: 11,
             cursor: 'pointer',
             flexShrink: 0,
-            transition: 'all 0.15s',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => {
             if (!selectMode) {
@@ -496,7 +496,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
               },
             ].map(stat => (
               <div key={stat.label} style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1, textAlign: 'center' }}>
-                <div style={{ fontSize: 22, fontWeight: 700, color: 'rgba(255,255,255,0.88)', lineHeight: 1.2, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: 'rgba(255,255,255,0.82)', lineHeight: 1.2, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
                   {stat.value}
                 </div>
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '0.07em', lineHeight: 1.4 }}>
@@ -1174,7 +1174,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
               <span style={{
                 fontSize: 10,
                 color: 'rgba(255,255,255,0.45)',
-                background: 'rgba(255,255,255,0.10)',
+                background: 'rgba(255,255,255,0.09)',
                 borderRadius: 20,
                 padding: '1px 8px',
                 fontWeight: 600,
@@ -1323,7 +1323,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                           padding: '3px 7px',
                           fontSize: 9,
                           fontWeight: 600,
-                          color: 'rgba(255,255,255,0.65)',
+                          color: 'rgba(255,255,255,0.60)',
                           cursor: 'pointer',
                           letterSpacing: '0.04em',
                           textTransform: 'uppercase',
@@ -1652,7 +1652,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                 background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.45)', fontSize: 11, cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = 'rgba(255,255,255,0.70)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
               onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
             >
               Cancel
@@ -1785,7 +1785,7 @@ export default function DepartmentDashboard() {
             boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
           }}>
             <Building2 size={16} style={{ color: 'rgba(255,255,255,0.45)', opacity: 0.8 }} />
-            <span style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.9)', flex: 1, letterSpacing: '-0.01em', lineHeight: 1.3 }}>
+            <span style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.82)', flex: 1, letterSpacing: '-0.01em', lineHeight: 1.3 }}>
               {t('dept.orgChart')}
             </span>
             <span style={{

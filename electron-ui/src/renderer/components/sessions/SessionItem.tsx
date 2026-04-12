@@ -165,7 +165,7 @@ export default function SessionItem({
         padding: compact ? '5px 12px' : '10px 12px',
         cursor: 'pointer',
         position: 'relative',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
         borderLeft: '3px solid transparent',
         background: isSelected
           ? 'rgba(99,102,241,0.12)'
@@ -310,7 +310,7 @@ export default function SessionItem({
               style={{
                 flex: 1,
                 background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.07)',
                 borderRadius: 6,
                 padding: '2px 6px',
                 color: 'rgba(255,255,255,0.82)',
@@ -437,7 +437,7 @@ export default function SessionItem({
                   color: 'rgba(255,255,255,0.45)',
                   opacity: 0.7,
                   background: 'rgba(128,128,128,0.10)',
-                  border: '1px dashed rgba(255,255,255,0.08)',
+                  border: '1px dashed rgba(255,255,255,0.07)',
                   borderRadius: 8,
                   padding: '0px 5px',
                   lineHeight: '16px',

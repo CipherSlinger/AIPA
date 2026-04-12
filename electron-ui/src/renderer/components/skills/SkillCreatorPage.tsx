@@ -110,16 +110,16 @@ ${trimmedDesc}
           title={t('skill.cancelCreate')}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            color: 'rgba(255,255,255,0.55)', display: 'flex', alignItems: 'center',
+            color: 'rgba(255,255,255,0.60)', display: 'flex', alignItems: 'center',
             padding: '5px', borderRadius: 6, transition: 'background 0.15s, color 0.15s',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = 'rgba(255,255,255,0.88)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.55)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
         >
           <ArrowLeft size={16} />
         </button>
         <Puzzle size={16} style={{ color: '#818cf8', flexShrink: 0 }} />
-        <span style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.9)', flex: 1, lineHeight: 1.3, letterSpacing: '-0.01em' }}>
+        <span style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.82)', flex: 1, lineHeight: 1.3, letterSpacing: '-0.01em' }}>
           {t('skill.createTitle')}
         </span>
       </div>
@@ -187,18 +187,18 @@ ${trimmedDesc}
                     width: '100%',
                     padding: '7px 10px',
                     borderRadius: 6,
-                    border: '1px solid rgba(255,255,255,0.10)',
+                    border: '1px solid rgba(255,255,255,0.09)',
                     background: 'rgba(255,255,255,0.06)',
                     color: 'rgba(255,255,255,0.82)',
                     fontSize: 12,
                     fontFamily: 'inherit',
                     outline: 'none',
                     boxSizing: 'border-box',
-                    transition: 'border-color 0.15s',
+                    transition: 'border-color 0.15s ease',
                     opacity: isCreating ? 0.6 : 1,
                   }}
                   onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)' }}
-                  onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)' }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)' }}
                 />
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', marginTop: 4, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
                   {skillName.trim().length}/60
@@ -236,7 +236,7 @@ ${trimmedDesc}
                     width: '100%',
                     padding: '12px 14px',
                     borderRadius: 8,
-                    border: '1px solid rgba(255,255,255,0.10)',
+                    border: '1px solid rgba(255,255,255,0.09)',
                     background: 'rgba(8,8,16,1)',
                     color: '#a5b4fc',
                     fontSize: 12,
@@ -250,7 +250,7 @@ ${trimmedDesc}
                     minHeight: 160,
                   }}
                   onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)' }}
-                  onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)' }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)' }}
                 />
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', marginTop: 4 }}>
                   {t('skill.descHint')}
@@ -284,9 +284,9 @@ ${trimmedDesc}
                   style={{
                     padding: '9px 20px',
                     borderRadius: 8,
-                    border: '1px solid rgba(255,255,255,0.10)',
+                    border: '1px solid rgba(255,255,255,0.09)',
                     background: 'rgba(255,255,255,0.04)',
-                    color: 'rgba(255,255,255,0.55)',
+                    color: 'rgba(255,255,255,0.60)',
                     fontSize: 13,
                     fontWeight: 500,
                     cursor: isCreating ? 'not-allowed' : 'pointer',
@@ -297,13 +297,13 @@ ${trimmedDesc}
                     if (!isCreating) {
                       e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'
                       e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
-                      e.currentTarget.style.color = 'rgba(255,255,255,0.80)'
+                      e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
                     }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
                     e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
-                    e.currentTarget.style.color = 'rgba(255,255,255,0.55)'
+                    e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
                   }}
                 >
                   {t('skill.cancelCreate')}

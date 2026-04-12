@@ -327,7 +327,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'rgba(15,15,25,0.96)',
     backdropFilter: 'blur(20px)',
     WebkitBackdropFilter: 'blur(20px)',
-    border: '1px solid rgba(255,255,255,0.08)',
+    border: '1px solid rgba(255,255,255,0.07)',
     borderRadius: 16,
     width: '100%',
     maxWidth: '520px',
@@ -446,7 +446,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'rgba(99,102,241,0.9)',
     textDecoration: 'none',
     cursor: 'pointer',
-    transition: 'text-decoration 0.15s',
+    transition: 'text-decoration 0.15s ease',
   },
   folderDisplay: {
     width: '100%',

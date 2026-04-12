@@ -121,7 +121,7 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
                   gap: 3,
                   padding: '1px 6px',
                   borderRadius: 8,
-                  border: '1px solid rgba(255,255,255,0.10)',
+                  border: '1px solid rgba(255,255,255,0.09)',
                   background: 'transparent',
                   color: 'rgba(255,255,255,0.45)',
                   fontSize: 9,
@@ -129,7 +129,7 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
                   transition: 'color 0.15s, border-color 0.15s',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.color = '#a5b4fc'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)' }}
-                onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)' }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)' }}
               >
                 <ExternalLink size={9} />
                 {t('skills.source')}

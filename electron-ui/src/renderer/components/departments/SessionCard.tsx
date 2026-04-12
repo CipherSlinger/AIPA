@@ -342,7 +342,7 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
               WebkitBackdropFilter: 'blur(4px)',
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.75)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.4)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
           >
             {t('dept.cancel')}
@@ -368,7 +368,7 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
             borderRadius: 4,
             display: 'flex',
             alignItems: 'center',
-            transition: 'background 0.15s, color 0.15s',
+            transition: 'background 0.15s ease, color 0.15s ease',
           }}
           onMouseEnter={e => {
             e.currentTarget.style.background = 'rgba(252,165,165,0.12)'
@@ -403,7 +403,7 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
             alignItems: 'center',
             fontSize: 12,
             lineHeight: 1,
-            transition: 'background 0.15s, color 0.15s',
+            transition: 'background 0.15s ease, color 0.15s ease',
           }}
           onMouseEnter={e => {
             e.currentTarget.style.background = 'rgba(251,191,36,0.15)'
@@ -437,7 +437,7 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
         <MessageSquare
           size={14}
           color={isActive ? '#818cf8' : hovered ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.45)'}
-          style={{ flexShrink: 0, marginTop: 1, transition: 'color 0.15s' }}
+          style={{ flexShrink: 0, marginTop: 1, transition: 'color 0.15s ease' }}
         />
         <span
           style={{
@@ -449,7 +449,7 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
-            transition: 'color 0.15s',
+            transition: 'color 0.15s ease',
             paddingRight: statusPill || isActive ? 72 : 0,
           }}
         >
@@ -490,7 +490,7 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
           color: '#818cf8',
           opacity: 0.85,
           pointerEvents: 'none',
-          transition: 'opacity 0.15s',
+          transition: 'opacity 0.15s ease',
         }}>
           <span>Open</span>
           <ArrowRight size={10} />
@@ -558,16 +558,16 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
                 marginLeft: 'auto',
                 fontSize: 10,
                 fontWeight: 600,
-                color: isActive ? '#818cf8' : hovered ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.45)',
+                color: isActive ? '#818cf8' : hovered ? 'rgba(255,255,255,0.60)' : 'rgba(255,255,255,0.45)',
                 background: isActive
                   ? 'rgba(99,102,241,0.18)'
                   : hovered
-                  ? 'rgba(255,255,255,0.10)'
+                  ? 'rgba(255,255,255,0.09)'
                   : 'rgba(255,255,255,0.06)',
                 borderRadius: 20,
                 padding: '1px 7px',
                 lineHeight: '16px',
-                transition: 'background 0.15s, color 0.15s',
+                transition: 'background 0.15s ease, color 0.15s ease',
                 flexShrink: 0,
               }}
             >

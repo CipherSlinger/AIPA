@@ -112,7 +112,7 @@ export default function SessionFolders({ activeFolder, onFolderSelect, folderCou
           gap: 4,
           padding: '3px 8px',
           background: activeFolder && activeFolderObj?.color ? `${activeFolderObj.color}18` : activeFolder ? 'rgba(99,102,241,0.1)' : 'transparent',
-          border: `1px solid ${activeFolder && activeFolderObj?.color ? activeFolderObj.color + '40' : 'rgba(255,255,255,0.08)'}`,
+          border: `1px solid ${activeFolder && activeFolderObj?.color ? activeFolderObj.color + '40' : 'rgba(255,255,255,0.07)'}`,
           borderRadius: 8,
           cursor: 'pointer',
           color: activeFolder && activeFolderObj?.color ? activeFolderObj.color : activeFolder ? '#818cf8' : 'rgba(255,255,255,0.60)',
@@ -144,9 +144,9 @@ export default function SessionFolders({ activeFolder, onFolderSelect, folderCou
             background: 'rgba(15,15,25,0.96)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.07)',
             borderRadius: 12,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
             padding: 6,
             zIndex: 300,
             animation: 'slideUp 0.15s ease',
@@ -261,17 +261,17 @@ export default function SessionFolders({ activeFolder, onFolderSelect, folderCou
               )}
               <button
                 onClick={() => { setEditingId(f.id); setEditName(f.name) }}
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.55)', padding: 2, display: 'flex', borderRadius: 6, transition: 'background 0.15s ease' }}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', padding: 2, display: 'flex', borderRadius: 6, transition: 'background 0.15s ease' }}
                 onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.55)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
               >
                 <Pencil size={10} />
               </button>
               <button
                 onClick={() => deleteFolder(f.id)}
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.55)', padding: 2, display: 'flex', borderRadius: 6, transition: 'background 0.15s ease, color 0.15s ease' }}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', padding: 2, display: 'flex', borderRadius: 6, transition: 'background 0.15s ease, color 0.15s ease' }}
                 onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#f87171' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.55)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
               >
                 <Trash2 size={10} />
               </button>
@@ -330,7 +330,7 @@ export default function SessionFolders({ activeFolder, onFolderSelect, folderCou
                   style={{
                     flex: 1,
                     background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.07)',
                     borderRadius: 6,
                     padding: '4px 8px',
                     color: 'rgba(255,255,255,0.82)',
@@ -343,7 +343,7 @@ export default function SessionFolders({ activeFolder, onFolderSelect, folderCou
                     e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.12)'
                   }}
                   onBlur={e => {
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
                     e.currentTarget.style.boxShadow = 'none'
                   }}
                 />

@@ -28,7 +28,7 @@ export default function TagPicker({ sessionId, pos, sessionTags, tagNames, onTog
         background: 'rgba(15,15,25,0.96)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '1px solid rgba(255,255,255,0.07)',
         borderRadius: 12,
         padding: 6,
         boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',

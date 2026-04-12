@@ -36,7 +36,7 @@ export default function SessionTooltip({ session, pos, sessionTags, tagNames, pr
         background: 'rgba(15,15,25,0.94)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '1px solid rgba(255,255,255,0.09)',
         borderRadius: 10,
         boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
         maxWidth: 320,
@@ -49,7 +49,7 @@ export default function SessionTooltip({ session, pos, sessionTags, tagNames, pr
       }}
     >
       {/* Header */}
-      <div style={{ padding: '8px 12px', borderBottom: hasPreview || previewLoading ? '1px solid rgba(255,255,255,0.08)' : 'none' }}>
+      <div style={{ padding: '8px 12px', borderBottom: hasPreview || previewLoading ? '1px solid rgba(255,255,255,0.07)' : 'none' }}>
         {/* Title */}
         <div style={{
           fontSize: 12,

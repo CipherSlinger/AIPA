@@ -31,7 +31,7 @@ function getSourceBadgeStyle(source: string): React.CSSProperties {
   return {
     background: 'rgba(255,255,255,0.08)',
     border: '1px solid rgba(255,255,255,0.12)',
-    color: 'rgba(255,255,255,0.55)',
+    color: 'rgba(255,255,255,0.60)',
   }
 }
 
@@ -72,7 +72,7 @@ export default function SkillDetail({
           style={{
             background: backHovered ? 'rgba(255,255,255,0.07)' : 'none',
             border: 'none',
-            color: backHovered ? 'rgba(255,255,255,0.88)' : 'rgba(255,255,255,0.55)',
+            color: backHovered ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.60)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -123,7 +123,7 @@ export default function SkillDetail({
         background: 'rgba(15,15,25,0.92)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '1px solid rgba(255,255,255,0.07)',
         borderRadius: 12,
         padding: '20px 24px',
         flexShrink: 0,
@@ -245,7 +245,7 @@ export default function SkillDetail({
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 20px' }}>
         <div style={{
           background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid rgba(255,255,255,0.07)',
           borderRadius: 12,
           padding: '16px 20px',
         }}>

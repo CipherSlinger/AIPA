@@ -90,15 +90,15 @@ export default function SkillMarketplacePage() {
             background: 'none',
             border: 'none',
             cursor: 'pointer',
-            color: 'rgba(255,255,255,0.55)',
+            color: 'rgba(255,255,255,0.60)',
             display: 'flex',
             alignItems: 'center',
             padding: '5px',
             borderRadius: 6,
             transition: 'background 0.15s, color 0.15s',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = 'rgba(255,255,255,0.88)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.55)' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
         >
           <ArrowLeft size={16} />
         </button>
@@ -138,10 +138,10 @@ export default function SkillMarketplacePage() {
           borderRadius: 8,
           border: searchFocused
             ? '1px solid rgba(99,102,241,0.40)'
-            : '1px solid rgba(255,255,255,0.10)',
+            : '1px solid rgba(255,255,255,0.09)',
           background: 'rgba(255,255,255,0.06)',
           boxShadow: searchFocused ? '0 0 0 3px rgba(99,102,241,0.12)' : 'none',
-          transition: 'border-color 0.15s, box-shadow 0.15s',
+          transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
           boxSizing: 'border-box' as const,
         }}>
           <input
@@ -171,11 +171,11 @@ export default function SkillMarketplacePage() {
               borderRadius: 20,
               border: marketplaceSource === null ? '1px solid rgba(99,102,241,0.30)' : '1px solid rgba(255,255,255,0.09)',
               background: marketplaceSource === null ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.06)',
-              color: marketplaceSource === null ? '#818cf8' : 'rgba(255,255,255,0.55)',
+              color: marketplaceSource === null ? '#818cf8' : 'rgba(255,255,255,0.60)',
               fontSize: 11,
               fontWeight: marketplaceSource === null ? 600 : 400,
               cursor: 'pointer',
-              transition: 'all 0.15s',
+              transition: 'all 0.15s ease',
             }}
           >
             {t('skills.allSources')}
@@ -189,11 +189,11 @@ export default function SkillMarketplacePage() {
                 borderRadius: 20,
                 border: marketplaceSource === src ? '1px solid rgba(99,102,241,0.30)' : '1px solid rgba(255,255,255,0.09)',
                 background: marketplaceSource === src ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.06)',
-                color: marketplaceSource === src ? '#818cf8' : 'rgba(255,255,255,0.55)',
+                color: marketplaceSource === src ? '#818cf8' : 'rgba(255,255,255,0.60)',
                 fontSize: 11,
                 fontWeight: marketplaceSource === src ? 600 : 400,
                 cursor: 'pointer',
-                transition: 'all 0.15s',
+                transition: 'all 0.15s ease',
               }}
             >
               {t(`skills.source_${src.toLowerCase()}`)}
@@ -208,11 +208,11 @@ export default function SkillMarketplacePage() {
               borderRadius: 20,
               border: marketplaceCategory === null ? '1px solid rgba(99,102,241,0.30)' : '1px solid rgba(255,255,255,0.09)',
               background: marketplaceCategory === null ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.06)',
-              color: marketplaceCategory === null ? '#818cf8' : 'rgba(255,255,255,0.55)',
+              color: marketplaceCategory === null ? '#818cf8' : 'rgba(255,255,255,0.60)',
               fontSize: 11,
               fontWeight: marketplaceCategory === null ? 600 : 400,
               cursor: 'pointer',
-              transition: 'all 0.15s',
+              transition: 'all 0.15s ease',
             }}
           >
             {t('skills.allCategories')}
@@ -226,11 +226,11 @@ export default function SkillMarketplacePage() {
                 borderRadius: 20,
                 border: marketplaceCategory === cat ? '1px solid rgba(99,102,241,0.30)' : '1px solid rgba(255,255,255,0.09)',
                 background: marketplaceCategory === cat ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.06)',
-                color: marketplaceCategory === cat ? '#818cf8' : 'rgba(255,255,255,0.55)',
+                color: marketplaceCategory === cat ? '#818cf8' : 'rgba(255,255,255,0.60)',
                 fontSize: 11,
                 fontWeight: marketplaceCategory === cat ? 600 : 400,
                 cursor: 'pointer',
-                transition: 'all 0.15s',
+                transition: 'all 0.15s ease',
               }}
             >
               {t(`skills.category_${cat.toLowerCase()}`)}

@@ -78,7 +78,7 @@ export default function ChannelPanel() {
           <button
             style={tabStyle('providers')}
             onClick={() => setActiveTab('providers')}
-            onMouseEnter={e => { if (activeTab !== 'providers') e.currentTarget.style.color = 'rgba(255,255,255,0.65)' }}
+            onMouseEnter={e => { if (activeTab !== 'providers') e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
             onMouseLeave={e => { if (activeTab !== 'providers') e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
           >
             <Radio size={11} />
@@ -87,7 +87,7 @@ export default function ChannelPanel() {
           <button
             style={tabStyle('mcp')}
             onClick={() => setActiveTab('mcp')}
-            onMouseEnter={e => { if (activeTab !== 'mcp') e.currentTarget.style.color = 'rgba(255,255,255,0.65)' }}
+            onMouseEnter={e => { if (activeTab !== 'mcp') e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
             onMouseLeave={e => { if (activeTab !== 'mcp') e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
           >
             <Server size={11} />

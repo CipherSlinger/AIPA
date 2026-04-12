@@ -144,7 +144,7 @@ export default function SkillsPanel() {
         borderBottom: '1px solid rgba(255,255,255,0.07)',
         flexShrink: 0,
       }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.88)', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.82)', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
           {t('skills.title')}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -164,7 +164,7 @@ export default function SkillsPanel() {
               padding: '4px 8px',
               fontSize: 11,
               fontWeight: 500,
-              transition: 'border-color 0.15s, color 0.15s',
+              transition: 'border-color 0.15s ease, color 0.15s ease',
             }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; e.currentTarget.style.color = '#818cf8' }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
@@ -188,7 +188,7 @@ export default function SkillsPanel() {
               padding: '4px 8px',
               fontSize: 11,
               fontWeight: 500,
-              transition: 'border-color 0.15s, color 0.15s',
+              transition: 'border-color 0.15s ease, color 0.15s ease',
             }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; e.currentTarget.style.color = '#818cf8' }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
@@ -211,7 +211,7 @@ export default function SkillsPanel() {
               alignItems: 'center',
               padding: '4px 8px',
               fontSize: 12,
-              transition: 'border-color 0.15s, color 0.15s',
+              transition: 'border-color 0.15s ease, color 0.15s ease',
               opacity: loading ? 0.4 : 1,
             }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; e.currentTarget.style.color = '#818cf8' }}
@@ -231,9 +231,9 @@ export default function SkillsPanel() {
           height: 32,
           padding: '0 8px',
           background: 'rgba(255,255,255,0.06)',
-          border: '1px solid rgba(255,255,255,0.10)',
+          border: '1px solid rgba(255,255,255,0.09)',
           borderRadius: 7,
-          transition: 'border-color 0.15s, box-shadow 0.15s',
+          transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
         }}>
           <Search size={14} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
           <input
@@ -256,7 +256,7 @@ export default function SkillsPanel() {
               background: 'transparent',
               border: 'none',
               outline: 'none',
-              color: 'rgba(255,255,255,0.88)',
+              color: 'rgba(255,255,255,0.82)',
               fontSize: 12,
               fontFamily: 'inherit',
             }}
@@ -297,7 +297,7 @@ export default function SkillsPanel() {
                 flexShrink: 0,
                 background: sourceFilter === src ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.06)',
                 border: sourceFilter === src ? '1px solid rgba(99,102,241,0.30)' : '1px solid rgba(255,255,255,0.08)',
-                color: sourceFilter === src ? '#818cf8' : 'rgba(255,255,255,0.55)',
+                color: sourceFilter === src ? '#818cf8' : 'rgba(255,255,255,0.60)',
                 transition: 'all 0.15s ease',
                 textTransform: 'capitalize',
               }}
@@ -364,7 +364,7 @@ export default function SkillsPanel() {
                   gap: 6,
                   padding: '8px 16px',
                   background: 'rgba(255,255,255,0.04)',
-                  color: 'rgba(255,255,255,0.55)',
+                  color: 'rgba(255,255,255,0.60)',
                   border: '1px solid rgba(255,255,255,0.08)',
                   borderRadius: 8,
                   fontSize: 12,
@@ -374,12 +374,12 @@ export default function SkillsPanel() {
                 }}
                 onMouseEnter={e => {
                   e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'
-                  e.currentTarget.style.color = 'rgba(255,255,255,0.80)'
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
                   e.currentTarget.style.transform = 'translateY(-1px)'
                 }}
                 onMouseLeave={e => {
                   e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
-                  e.currentTarget.style.color = 'rgba(255,255,255,0.55)'
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
                   e.currentTarget.style.transform = 'translateY(0)'
                 }}
               >
