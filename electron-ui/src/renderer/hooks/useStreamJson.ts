@@ -316,6 +316,7 @@ Keep exercises focused and achievable. The goal is active learning through doing
         ...(getActiveApiKey() ? { ANTHROPIC_API_KEY: getActiveApiKey() } : {}),
       },
       flags,
+      permissionMode: prefs.permissionMode || 'default',
     })
 
     if (result?.success && result.sessionId) {

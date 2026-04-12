@@ -104,6 +104,8 @@ export interface FileEntry {
   path: string
 }
 
+export type PermissionMode = 'default' | 'acceptEdits' | 'dontAsk' | 'plan' | 'bypassPermissions'
+
 export interface ClaudePrefs {
   apiKey: string
   model: string
@@ -113,6 +115,7 @@ export interface ClaudePrefs {
   fontSize: number
   fontFamily: string
   skipPermissions: boolean
+  permissionMode?: PermissionMode   // 5-level CLI permission mode (supersedes skipPermissions)
   verbose: boolean
   theme: 'vscode' | 'light' | 'system'
   onboardingDone?: boolean

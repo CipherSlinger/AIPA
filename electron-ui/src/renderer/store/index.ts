@@ -3,7 +3,7 @@
 // SessionStore and PrefsStore remain here (both are tiny).
 
 import { create } from 'zustand'
-import { ClaudePrefs, SessionListItem } from '../types/app.types'
+import { ClaudePrefs, PermissionMode, SessionListItem } from '../types/app.types'
 
 // ── Re-exports from sub-modules ──────────────────
 export { useChatStore } from './chatStore'
@@ -45,6 +45,7 @@ interface PrefsState {
   loaded: boolean
   setPrefs: (p: Partial<ClaudePrefs>) => void
   setLoaded: (v: boolean) => void
+  setPermissionMode: (mode: PermissionMode) => void
 }
 
 const DEFAULT_PREFS: ClaudePrefs = {
@@ -55,7 +56,8 @@ const DEFAULT_PREFS: ClaudePrefs = {
   terminalWidth: 400,
   fontSize: 14,
   fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
-  skipPermissions: true,
+  skipPermissions: false,
+  permissionMode: 'default',
   verbose: false,
   theme: 'vscode',
   thinkingLevel: 'off',
@@ -83,4 +85,11 @@ export const usePrefsStore = create<PrefsState>((set) => ({
   loaded: false,
   setPrefs: (p) => set((s) => ({ prefs: { ...s.prefs, ...p } })),
   setLoaded: (v) => set({ loaded: v }),
+  setPermissionMode: (mode) => set((s) => ({
+    prefs: {
+      ...s.prefs,
+      permissionMode: mode,
+      skipPermissions: mode === 'bypassPermissions',
+    },
+  })),
 }))

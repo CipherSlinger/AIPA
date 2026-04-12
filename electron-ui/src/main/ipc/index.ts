@@ -187,6 +187,8 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
     if (args.model) validateModelName(args.model)
 
     const skipPermissions: boolean = !!(args.flags || []).includes('--dangerously-skip-permissions')
+    // permissionMode may be passed directly from renderer prefs
+    const permissionMode = args.permissionMode as string | undefined
 
     // Reuse existing bridge if one is active for this conversation
     const existingBridgeId: string | undefined = args.activeBridgeId
@@ -236,6 +238,7 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
       await bridge.sendMessage({
         ...args,
         skipPermissions,
+        permissionMode: permissionMode as import('../pty/stream-bridge').PermissionMode | undefined,
         resumeSessionId: args.sessionId || undefined, // real Claude session ID
         sessionId: bridgeId,                          // internal bridge ID
       })

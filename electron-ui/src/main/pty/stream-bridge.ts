@@ -7,6 +7,8 @@ import { createLogger } from '../utils/logger'
 
 const log = createLogger('stream-bridge')
 
+export type PermissionMode = 'default' | 'acceptEdits' | 'dontAsk' | 'plan' | 'bypassPermissions'
+
 export interface CliSendMessageArgs {
   prompt: string
   cwd: string
@@ -15,7 +17,8 @@ export interface CliSendMessageArgs {
   model?: string
   env: Record<string, string>
   flags?: string[]
-  skipPermissions?: boolean
+  skipPermissions?: boolean  // legacy — derived from permissionMode
+  permissionMode?: PermissionMode
 }
 
 export class StreamBridge extends EventEmitter {
@@ -29,13 +32,25 @@ export class StreamBridge extends EventEmitter {
   }
 
   async sendMessage(args: CliSendMessageArgs): Promise<void> {
-    const isSessionMode = !args.skipPermissions
+    // Resolve effective permission mode (permissionMode takes precedence over legacy skipPermissions)
+    const effectiveMode: PermissionMode = args.permissionMode
+      ?? (args.skipPermissions ? 'bypassPermissions' : 'default')
+
+    // session mode: keep stdin open so we can send follow-ups
+    // non-session mode (bypassPermissions legacy path): close stdin and wait
+    const isSessionMode = effectiveMode !== 'bypassPermissions'
+
+    // Build --permission-mode flag; bypassPermissions also passes legacy flag for older CLI compat
+    const permissionFlags: string[] = effectiveMode === 'bypassPermissions'
+      ? ['--permission-mode', 'bypassPermissions']
+      : ['--permission-mode', effectiveMode]
 
     const cliArgs = [
       getCliPath(),
       '--input-format', 'stream-json',
       '--output-format', 'stream-json',
       '--permission-prompt-tool', 'stdio',
+      ...permissionFlags,
       ...(isSessionMode ? [] : ['--print']),
       ...(args.resumeSessionId ? ['--resume', args.resumeSessionId] : []),
       ...(args.model ? ['--model', args.model] : []),

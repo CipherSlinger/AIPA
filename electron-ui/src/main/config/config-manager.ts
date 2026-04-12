@@ -14,6 +14,7 @@ interface StoreSchema {
   fontSize: number
   fontFamily: string
   skipPermissions: boolean
+  permissionMode: 'default' | 'acceptEdits' | 'dontAsk' | 'plan' | 'bypassPermissions'
   verbose: boolean
   theme: 'vscode' | 'modern' | 'minimal'
   onboardingDone: boolean
@@ -35,7 +36,8 @@ const store = new Store<StoreSchema>({
     terminalWidth: 400,
     fontSize: 14,
     fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
-    skipPermissions: true,
+    skipPermissions: false,
+    permissionMode: 'default',
     verbose: false,
     theme: 'vscode',
     onboardingDone: false,

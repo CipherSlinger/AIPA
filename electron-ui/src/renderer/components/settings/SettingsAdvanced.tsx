@@ -1,8 +1,9 @@
-// SettingsAdvanced — System Prompt + Tool Access Control (Iterations 523, 527)
+// SettingsAdvanced — Permission Mode + System Prompt + Tool Access Control (Iterations 523, 527, 535)
 import React, { useState, useCallback } from 'react'
 import { usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 import { AlertTriangle } from 'lucide-react'
+import type { PermissionMode } from '../../types/app.types'
 
 const MAX_CHARS = 2000
 
@@ -62,6 +63,20 @@ const TOOL_GROUP_DEFS: { labelKey: string; tools: ToolDef[] }[] = [
 
 const ALL_TOOL_NAMES = TOOL_GROUP_DEFS.flatMap(g => g.tools.map(t => t.name))
 
+// ── Permission mode options ────────────────────────────────────────────────
+const PERMISSION_MODE_OPTIONS: {
+  mode: PermissionMode
+  label: string
+  desc: string
+  danger?: boolean
+}[] = [
+  { mode: 'default',            label: 'Default',        desc: '每次工具调用均需确认' },
+  { mode: 'acceptEdits',        label: 'Accept Edits',   desc: '自动接受文件修改' },
+  { mode: 'dontAsk',            label: "Don't Ask",      desc: '自动接受大多数操作' },
+  { mode: 'plan',               label: 'Plan Only',      desc: '仅规划，不执行' },
+  { mode: 'bypassPermissions',  label: 'Bypass',         desc: '跳过所有权限检查 ⚠️', danger: true },
+]
+
 type PresetKey = 'all' | 'readonly' | 'nonet' | 'analysis' | 'custom'
 const TOOL_PRESETS: { key: PresetKey; labelKey: string; disallowed: string[] }[] = [
   { key: 'all',      labelKey: 'settingsAdvanced.presetAllTools',     disallowed: [] },
@@ -105,7 +120,7 @@ const descStyle: React.CSSProperties = {
 // ── Component ──────────────────────────────────────────────────────────────
 export default function SettingsAdvanced() {
   const t = useT()
-  const { prefs, setPrefs } = usePrefsStore()
+  const { prefs, setPrefs, setPermissionMode } = usePrefsStore()
 
   // System prompt state
   const [draft, setDraft] = useState(prefs.appendSystemPrompt || '')
@@ -116,6 +131,15 @@ export default function SettingsAdvanced() {
   const disallowedTools = prefs.disallowedTools || []
   const activePreset = detectPreset(disallowedTools)
   const allDisabled = disallowedTools.length === ALL_TOOL_NAMES.length
+
+  // Permission mode state
+  const currentPermissionMode: PermissionMode = prefs.permissionMode || 'default'
+
+  const handlePermissionModeChange = useCallback(async (mode: PermissionMode) => {
+    setPermissionMode(mode)
+    await window.electronAPI.prefsSet('permissionMode', mode)
+    await window.electronAPI.prefsSet('skipPermissions', mode === 'bypassPermissions')
+  }, [setPermissionMode])
 
   // ── System prompt handlers ─────────────────────────────────────────────
   const savePrompt = useCallback(async () => {
@@ -160,6 +184,65 @@ export default function SettingsAdvanced() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+
+      {/* ── Section 0: Permission Mode ───────────────────────────────── */}
+      <div style={sectionCardStyle}>
+        <div style={sectionTitleStyle}>PERMISSION MODE</div>
+        <div style={descStyle}>控制 AI 工具调用的权限策略，适用于每次新对话。</div>
+
+        {/* Button group */}
+        <div style={{
+          display: 'flex', flexWrap: 'wrap', gap: 4,
+          background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 4,
+        }}>
+          {PERMISSION_MODE_OPTIONS.map(opt => {
+            const isSelected = currentPermissionMode === opt.mode
+            return (
+              <button
+                key={opt.mode}
+                onClick={() => handlePermissionModeChange(opt.mode)}
+                style={{
+                  flex: '1 1 auto',
+                  background: isSelected
+                    ? (opt.danger ? 'rgba(239,68,68,0.12)' : 'rgba(99,102,241,0.15)')
+                    : 'transparent',
+                  border: isSelected
+                    ? (opt.danger ? '1px solid rgba(239,68,68,0.40)' : '1px solid rgba(99,102,241,0.35)')
+                    : '1px solid transparent',
+                  borderRadius: 6,
+                  padding: '6px 12px',
+                  color: isSelected
+                    ? (opt.danger ? 'rgba(239,68,68,0.90)' : 'rgba(165,180,252,0.90)')
+                    : 'rgba(255,255,255,0.45)',
+                  fontSize: 11,
+                  fontWeight: isSelected ? 600 : 400,
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  transition: 'all 0.15s ease',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <div>{opt.label}</div>
+                <div style={{ fontSize: 9, opacity: 0.7, marginTop: 2 }}>{opt.desc}</div>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Bypass warning */}
+        {currentPermissionMode === 'bypassPermissions' && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8, marginTop: 10,
+            background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)',
+            borderRadius: 6, padding: '8px 12px',
+          }}>
+            <AlertTriangle size={13} color="#f87171" />
+            <span style={{ fontSize: 11, color: '#fca5a5' }}>
+              Bypass 模式将跳过所有权限检查，AI 可无限制地执行工具调用。
+            </span>
+          </div>
+        )}
+      </div>
 
       {/* ── Section 1: System Prompt ─────────────────────────────────── */}
       <div style={sectionCardStyle}>
