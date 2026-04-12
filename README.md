@@ -228,6 +228,19 @@ CLI 通过两种模式桥接：
 
 ---
 
+## Design System
+
+AIPA uses a unified glass-morphism design system:
+
+- **Glass backgrounds**: `rgba(15,15,25,0.85–0.96)` with `backdropFilter: blur(12–20px)`
+- **Text opacity ladder**: primary=0.82, secondary=0.60, muted=0.45, micro=0.38
+- **Shadow system**: L1–L4 layered depth shadows
+- **Indigo accent**: `#6366f1`/`#818cf8`/`#a5b4fc` throughout
+- **Transitions**: Unified `0.15s ease` on all interactive elements
+- **Tabular numbers**: All numeric displays use `fontVariantNumeric: tabular-nums`
+
+---
+
 ## 安全
 
 - API 密钥通过系统密钥链加密（`electron.safeStorage` / DPAPI）
