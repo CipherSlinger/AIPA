@@ -39,9 +39,9 @@ export default function SettingsModal() {
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.65)',
-        backdropFilter: 'blur(4px)',
-        WebkitBackdropFilter: 'blur(4px)',
+        background: 'rgba(0,0,0,0.70)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         zIndex: 300,
         display: 'flex',
         alignItems: 'center',
@@ -68,7 +68,7 @@ export default function SettingsModal() {
           flexDirection: 'column',
           overflow: 'hidden',
           position: 'relative',
-          animation: 'slideUp 0.20s ease',
+          animation: 'slideUp 0.15s ease',
         }}
       >
         {/* SettingsPanel content — fills the modal */}

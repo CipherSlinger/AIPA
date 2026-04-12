@@ -63,21 +63,21 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
           to   { opacity: 1; transform: translateY(0)    scale(1); }
         }
         .onboard-card-enter {
-          animation: onboard-fadeIn 0.25s ease both;
+          animation: onboard-fadeIn 0.15s ease both;
         }
         @keyframes onboard-icon-pop {
           from { opacity: 0; transform: scale(0.85); }
           to   { opacity: 1; transform: scale(1); }
         }
         .onboard-icon {
-          animation: onboard-icon-pop 0.25s ease both;
+          animation: onboard-icon-pop 0.15s ease both;
         }
         @keyframes onboard-step-in {
           from { opacity: 0; transform: translateX(12px); }
           to   { opacity: 1; transform: translateX(0); }
         }
         .onboard-step-content {
-          animation: onboard-step-in 0.22s ease both;
+          animation: onboard-step-in 0.15s ease both;
         }
       `}</style>
       <div style={styles.card} className="onboard-card-enter">
@@ -102,7 +102,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                       ? '0 0 0 3px rgba(74,222,128,0.15)'
                       : 'none',
                   transform: isActive ? 'scale(1.15)' : 'scale(1)',
-                  transition: 'all 0.2s ease',
+                  transition: 'all 0.15s ease',
                 }}>
                   {isDone
                     ? <Check size={10} color="rgba(0,0,0,0.75)" strokeWidth={3} />
@@ -113,7 +113,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                   <div style={{
                     ...styles.stepConnector,
                     background: step > s ? 'rgba(99,102,241,0.50)' : 'rgba(255,255,255,0.10)',
-                    transition: 'background 0.25s ease',
+                    transition: 'background 0.15s ease',
                   }} />
                 )}
               </React.Fragment>
@@ -135,7 +135,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                   : isDone
                     ? 'rgba(255,255,255,0.60)'
                     : 'rgba(255,255,255,0.38)',
-                transition: 'color 0.2s ease',
+                transition: 'color 0.15s ease',
                 letterSpacing: '0.04em',
               }}>
                 {s === 1 ? t('onboarding.getStarted') : t('onboarding.enterApiKey')}

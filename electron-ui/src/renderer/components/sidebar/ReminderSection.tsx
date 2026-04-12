@@ -354,7 +354,7 @@ export default function ReminderSection({
                             cursor: cronExpr.trim() && cronPreview ? 'pointer' : 'not-allowed',
                             border: 'none',
                             background: cronExpr.trim() && cronPreview
-                              ? 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))'
+                              ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
                               : 'rgba(255,255,255,0.06)',
                             color: cronExpr.trim() && cronPreview ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.38)',
                             transition: 'all 0.15s ease',

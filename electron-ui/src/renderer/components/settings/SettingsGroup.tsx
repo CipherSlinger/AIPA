@@ -47,7 +47,7 @@ export default function SettingsGroup({ title, icon, children, groupKey }: Setti
           cursor: 'pointer',
           color: 'rgba(255,255,255,0.82)',
           textAlign: 'left',
-          transition: 'background 0.15s',
+          transition: 'background 0.15s ease',
         }}
         onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
         onMouseLeave={e => (e.currentTarget.style.background = 'none')}

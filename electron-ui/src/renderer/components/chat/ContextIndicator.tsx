@@ -99,7 +99,7 @@ export function ContextBadge({ onNewConversation }: { onNewConversation: () => v
   const estMsgsRemaining = Math.max(0, Math.floor(remaining / 800))
 
   const newSessionBg = pct >= 80
-    ? 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))'
+    ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
     : 'rgba(255,255,255,0.06)'
 
   return (

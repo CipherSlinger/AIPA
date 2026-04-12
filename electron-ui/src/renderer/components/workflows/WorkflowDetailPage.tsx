@@ -401,7 +401,7 @@ export default function WorkflowDetailPage() {
               width: 380,
               maxWidth: '90vw',
               boxShadow: '0 16px 48px rgba(0,0,0,0.6),0 4px 16px rgba(0,0,0,0.4)',
-              animation: 'slideUp 0.20s ease',
+              animation: 'slideUp 0.15s ease',
             }}
           >
             <div style={{ fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.82)', marginBottom: 8, lineHeight: 1.3, letterSpacing: '-0.01em' }}>
@@ -447,7 +447,7 @@ export default function WorkflowDetailPage() {
                 onClick={handleDialogSaveAndLeave}
                 style={{
                   padding: '7px 16px', fontSize: 12,
-                  background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                  background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                   border: 'none',
                   borderRadius: 7, color: 'rgba(255,255,255,0.95)', cursor: 'pointer', fontWeight: 600,
                   boxShadow: '0 2px 8px rgba(99,102,241,0.30)',

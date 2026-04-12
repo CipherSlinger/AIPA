@@ -200,7 +200,7 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
         <g
           style={{
             opacity: isHoveredLocally ? 1 : 0,
-            transition: 'opacity 0.15s',
+            transition: 'opacity 0.15s ease',
             cursor: 'pointer',
             pointerEvents: 'all',
             filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))',

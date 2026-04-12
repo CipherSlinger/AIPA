@@ -198,7 +198,7 @@ export default function InputToolbar({
             color: '#f87171',
             fontVariantNumeric: 'tabular-nums',
             whiteSpace: 'nowrap',
-            animation: 'voiceFadeIn 0.3s ease-in',
+            animation: 'voiceFadeIn 0.15s ease-in',
           }}>
             {Math.floor(recordingSeconds / 60)}:{String(recordingSeconds % 60).padStart(2, '0')}
           </span>
@@ -407,7 +407,7 @@ export default function InputToolbar({
                     padding: '5px 14px',
                     fontSize: 12,
                     fontWeight: 600,
-                    background: ultraplanInput.trim() ? 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))' : 'rgba(99,102,241,0.2)',
+                    background: ultraplanInput.trim() ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))' : 'rgba(99,102,241,0.2)',
                     color: ultraplanInput.trim() ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)',
                     border: 'none',
                     borderRadius: 8,

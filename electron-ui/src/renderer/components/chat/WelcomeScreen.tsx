@@ -154,7 +154,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
         color: 'rgba(255,255,255,0.45)',
         overflow: 'hidden',
         background: 'transparent',
-        animation: 'fadeIn 0.3s ease',
+        animation: 'fadeIn 0.15s ease',
       }}
     >
       {/* Spacer that auto-shrinks: when content fits, it centers; when content overflows, it collapses */}

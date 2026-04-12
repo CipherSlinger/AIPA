@@ -138,7 +138,7 @@ function RunSummaryCard({ run }: { run: WorkflowRun }) {
                     width: `${pct}%`,
                     background: 'linear-gradient(90deg, rgba(99,102,241,0.70), rgba(139,92,246,0.55))',
                     borderRadius: 2,
-                    transition: 'width 0.3s ease',
+                    transition: 'width 0.15s ease',
                   }} />
                 </div>
               </div>
@@ -203,7 +203,7 @@ export default function WorkflowRunHistory({
           color: isReplay ? '#818cf8' : 'rgba(255,255,255,0.45)',
           fontSize: 10,
           fontWeight: 500,
-          transition: 'background 0.15s, border-color 0.15s',
+          transition: 'background 0.15s ease, border-color 0.15s ease',
           whiteSpace: 'nowrap',
         }}
         onMouseEnter={e => {
@@ -434,7 +434,7 @@ export default function WorkflowRunHistory({
                             ? (isSelected ? '#818cf8' : 'rgba(34,197,94,0.55)')
                             : 'rgba(248,113,113,0.55)',
                           borderRadius: 2,
-                          transition: 'width 0.3s ease',
+                          transition: 'width 0.15s ease',
                         }} />
                       </div>
                     </button>

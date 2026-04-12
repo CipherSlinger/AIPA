@@ -202,7 +202,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
             </div>
             <span style={{
               fontSize: 11, fontWeight: step === s ? 600 : 400,
-              color: step === s ? 'rgba(255,255,255,0.80)' : 'rgba(255,255,255,0.38)',
+              color: step === s ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.38)',
               transition: 'color 0.15s ease',
             }}>
               {stepLabels[s - 1]}
@@ -227,7 +227,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
     border: '1px solid rgba(255,255,255,0.08)',
     borderRadius: 7, padding: '8px 16px',
     cursor: 'pointer', fontSize: 12,
-    color: 'rgba(255,255,255,0.50)',
+    color: 'rgba(255,255,255,0.60)',
     transition: 'all 0.15s ease',
   }
 
@@ -240,14 +240,14 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
       borderRadius: 12,
       padding: '18px 20px',
       marginTop: 10,
-      boxShadow: '0 24px 64px rgba(0,0,0,0.65)',
+      boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
     }}>
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center',
         justifyContent: 'space-between', marginBottom: 16,
       }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.88)', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.82)', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
           {t('hooks.wizard.title')}
         </span>
         <button
@@ -262,7 +262,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
           }}
           onMouseEnter={e => {
             e.currentTarget.style.background = 'rgba(255,255,255,0.10)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.80)'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
           }}
           onMouseLeave={e => {
             e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
@@ -305,7 +305,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                           background: isSelected
                             ? 'rgba(99,102,241,0.18)'
                             : 'rgba(255,255,255,0.05)',
-                          color: isSelected ? '#a5b4fc' : 'rgba(255,255,255,0.70)',
+                          color: isSelected ? '#a5b4fc' : 'rgba(255,255,255,0.60)',
                           fontSize: 12, cursor: 'pointer',
                           fontWeight: isSelected ? 600 : 400,
                           transition: 'all 0.15s ease',
@@ -314,14 +314,14 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                           if (!isSelected) {
                             e.currentTarget.style.background = 'rgba(99,102,241,0.10)'
                             e.currentTarget.style.borderColor = 'rgba(99,102,241,0.30)'
-                            e.currentTarget.style.color = 'rgba(255,255,255,0.85)'
+                            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
                           }
                         }}
                         onMouseLeave={e => {
                           if (!isSelected) {
                             e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
                             e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
-                            e.currentTarget.style.color = 'rgba(255,255,255,0.70)'
+                            e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
                           }
                         }}
                       >
@@ -362,7 +362,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                     background: isSelected
                       ? 'rgba(99,102,241,0.14)'
                       : 'rgba(255,255,255,0.04)',
-                    color: isSelected ? '#a5b4fc' : 'rgba(255,255,255,0.70)',
+                    color: isSelected ? '#a5b4fc' : 'rgba(255,255,255,0.60)',
                     cursor: 'pointer',
                     display: 'flex', flexDirection: 'column',
                     alignItems: 'center', gap: 6,
@@ -397,11 +397,11 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
             style={backBtnStyle}
             onMouseEnter={e => {
               e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
-              e.currentTarget.style.color = 'rgba(255,255,255,0.75)'
+              e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
             }}
             onMouseLeave={e => {
               e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
-              e.currentTarget.style.color = 'rgba(255,255,255,0.50)'
+              e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
             }}
           >
             {t('hooks.wizard.back')}
@@ -702,11 +702,11 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
               style={backBtnStyle}
               onMouseEnter={e => {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.75)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.50)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
               }}
             >
               {t('hooks.wizard.back')}
@@ -718,7 +718,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                 flex: 1,
                 background: saving
                   ? 'rgba(99,102,241,0.40)'
-                  : 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                  : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                 border: 'none',
                 borderRadius: 8,
                 padding: '9px',
@@ -747,11 +747,11 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
               style={backBtnStyle}
               onMouseEnter={e => {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.75)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.50)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
               }}
             >
               {t('hooks.wizard.cancel')}

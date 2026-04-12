@@ -469,7 +469,7 @@ function ProgressBar({ status }: { status: StepStatus }) {
           width: '100%',
           height: '100%',
           background: 'linear-gradient(90deg, #22c55e, #4ade80)',
-          transition: 'width 0.3s ease',
+          transition: 'width 0.15s ease',
         }} />
       </div>
     )
@@ -820,7 +820,7 @@ export default function CanvasNode({
             : isFocusedOnly ? '2px dashed rgba(99,102,241,0.55)' : 'none',
           outlineOffset: 3,
           // B1: transition
-          transition: 'box-shadow 0.15s, border-color 0.15s, opacity 0.2s ease, height 0.2s ease, background 0.2s ease',
+          transition: 'box-shadow 0.15s, border-color 0.15s, opacity 0.15s ease, height 0.15s ease, background 0.15s ease',
           userSelect: 'none',
           boxSizing: 'border-box',
           opacity: dimmed ? 0.2 : (statusStyle.opacity ?? 1),
@@ -879,7 +879,7 @@ export default function CanvasNode({
             alignItems: 'center',
             justifyContent: 'center',
             lineHeight: 1,
-            transition: 'background 0.2s ease',
+            transition: 'background 0.15s ease',
             boxShadow: '0 0 0 2px rgba(12,12,20,0.95)',
             zIndex: 2,
           }}
@@ -941,9 +941,9 @@ export default function CanvasNode({
             title={collapsed ? t('canvas.expandNode') : t('canvas.collapseNode')}
           >
             {collapsed ? (
-              <ChevronDown size={9} style={{ transform: 'rotate(0deg)', transition: 'transform 0.2s ease' }} />
+              <ChevronDown size={9} style={{ transform: 'rotate(0deg)', transition: 'transform 0.15s ease' }} />
             ) : (
-              <ChevronUp size={9} style={{ transform: 'rotate(180deg)', transition: 'transform 0.2s ease' }} />
+              <ChevronUp size={9} style={{ transform: 'rotate(180deg)', transition: 'transform 0.15s ease' }} />
             )}
           </button>
         )}
@@ -1319,7 +1319,7 @@ export default function CanvasNode({
                       color: editPromptValue.length > 1800 ? 'rgba(239,68,68,0.7)' : 'rgba(255,255,255,0.45)',
                       opacity: 0.7,
                       marginTop: 2,
-                      transition: 'color 0.2s',
+                      transition: 'color 0.15s',
                     }}>
                       {editPromptValue.length} / 2000
                     </div>

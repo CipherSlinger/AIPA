@@ -128,7 +128,7 @@ export default function WorkflowDetailHeader({
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         flexShrink: 0,
-        transition: 'background 0.3s ease',
+        transition: 'background 0.15s ease',
       }}>
         <button
           onClick={onGoBack}
@@ -153,7 +153,7 @@ export default function WorkflowDetailHeader({
               style={{
                 fontSize: 22, background: 'none', border: '1px solid transparent',
                 borderRadius: 6, cursor: 'pointer', padding: '2px 4px',
-                transition: 'border-color 0.15s',
+                transition: 'border-color 0.15s ease',
               }}
               onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
               onMouseLeave={e => (e.currentTarget.style.borderColor = 'transparent')}
@@ -310,7 +310,7 @@ export default function WorkflowDetailHeader({
                 style={{
                   ...actionBtnStyle,
                   background: hasUnsavedChanges && canSave
-                    ? 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))'
+                    ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
                     : justSaved ? '#22c55e' : 'rgba(255,255,255,0.04)',
                   color: hasUnsavedChanges && canSave ? 'rgba(255,255,255,0.95)' : justSaved ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
                   opacity: hasUnsavedChanges && canSave ? 1 : justSaved ? 1 : 0.4,

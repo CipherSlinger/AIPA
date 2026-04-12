@@ -86,7 +86,7 @@ export function PersonaSidebarCard({ persona, isActive, isDeleting, onDelete }: 
         boxShadow: isActive
           ? `0 0 0 1px ${p.color}30, 0 2px 8px rgba(0,0,0,0.25)`
           : '0 1px 3px rgba(0,0,0,0.18)',
-        animation: 'personaCardIn 200ms ease both',
+        animation: 'personaCardIn 0.15s ease both',
       }}
     onMouseEnter={e => {
         if (!isActive) {
@@ -285,7 +285,7 @@ export function PersonaInlineForm({
       backdropFilter: 'blur(6px)',
       WebkitBackdropFilter: 'blur(6px)',
       boxShadow: '0 2px 12px rgba(0,0,0,0.25)',
-      animation: 'personaCardIn 180ms ease both',
+      animation: 'personaCardIn 0.15s ease both',
     }}>
       <div style={{
         fontSize: 10,

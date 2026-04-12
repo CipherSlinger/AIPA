@@ -248,7 +248,7 @@ export default function QuickCapture() {
               disabled={!text.trim()}
               style={{
                 background: text.trim()
-                  ? 'linear-gradient(135deg, rgba(99,102,241,0.90), rgba(139,92,246,0.90))'
+                  ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
                   : 'rgba(99,102,241,0.25)',
                 color: 'rgba(255,255,255,0.95)',
                 border: 'none',

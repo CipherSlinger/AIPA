@@ -124,7 +124,7 @@ const inputStyle: React.CSSProperties = {
 }
 
 const primaryBtnStyle: React.CSSProperties = {
-  background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+  background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
   border: 'none',
   borderRadius: 8,
   color: 'rgba(255,255,255,0.95)',
@@ -276,7 +276,7 @@ function McpAddWizard({
           <React.Fragment key={s}>
             <div style={{
               width: 22, height: 22, borderRadius: '50%',
-              background: w.step >= s ? 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))' : 'rgba(255,255,255,0.08)',
+              background: w.step >= s ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))' : 'rgba(255,255,255,0.08)',
               color: w.step >= s ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 10, fontWeight: 700, flexShrink: 0,

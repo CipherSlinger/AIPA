@@ -314,7 +314,7 @@ When building or reviewing UI:
 - Use opacity for subtle variations, not new colors
 
 ## Animations
-- Duration: 150ms for micro-interactions, 300ms for transitions
+- Duration: 0.15s for all transitions and micro-interactions (use 'all 0.15s ease')
 - Easing: ease-out for entrances, ease-in for exits
 - Respect prefers-reduced-motion
 

@@ -317,7 +317,7 @@ ${trimmedDesc}
                     padding: '9px 20px',
                     borderRadius: 8,
                     border: 'none',
-                    background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                    background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                     color: 'rgba(255,255,255,0.95)',
                     fontSize: 13,
                     fontWeight: 600,

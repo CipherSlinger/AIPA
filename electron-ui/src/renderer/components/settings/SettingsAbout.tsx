@@ -162,7 +162,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
             background: 'rgba(255,255,255,0.06)',
             border: '1px solid rgba(255,255,255,0.10)',
             borderRadius: 6,
-            color: 'rgba(255,255,255,0.75)', cursor: 'pointer', fontSize: 12,
+            color: 'rgba(255,255,255,0.82)', cursor: 'pointer', fontSize: 12,
             justifyContent: 'space-between',
             transition: 'all 0.15s ease',
           }}
@@ -195,7 +195,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.10)',
               borderRadius: 6,
-              color: 'rgba(255,255,255,0.75)', cursor: backupLoading ? 'wait' : 'pointer', fontSize: 12,
+              color: 'rgba(255,255,255,0.82)', cursor: backupLoading ? 'wait' : 'pointer', fontSize: 12,
               justifyContent: 'center', opacity: backupLoading ? 0.4 : 1,
               transition: 'all 0.15s ease',
             }}
@@ -214,7 +214,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.10)',
               borderRadius: 6,
-              color: 'rgba(255,255,255,0.75)', cursor: restoreLoading ? 'wait' : 'pointer', fontSize: 12,
+              color: 'rgba(255,255,255,0.82)', cursor: restoreLoading ? 'wait' : 'pointer', fontSize: 12,
               justifyContent: 'center', opacity: restoreLoading ? 0.4 : 1,
               transition: 'all 0.15s ease',
             }}
@@ -241,7 +241,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
             background: 'rgba(255,255,255,0.06)',
             border: '1px solid rgba(255,255,255,0.10)',
             borderRadius: 6,
-            color: 'rgba(255,255,255,0.75)', cursor: 'pointer', fontSize: 12,
+            color: 'rgba(255,255,255,0.82)', cursor: 'pointer', fontSize: 12,
             justifyContent: 'space-between',
             transition: 'all 0.15s ease',
           }}

@@ -325,8 +325,8 @@ export default function TaskQueuePanel() {
         overflowY: 'auto',
         flexShrink: 0,
         animation: isExiting
-          ? 'queue-panel-out 150ms ease-in forwards'
-          : 'queue-panel-in 150ms ease-out forwards',
+          ? 'queue-panel-out 0.15s ease-in forwards'
+          : 'queue-panel-in 0.15s ease-out forwards',
       }}
     >
       {/* Header bar */}

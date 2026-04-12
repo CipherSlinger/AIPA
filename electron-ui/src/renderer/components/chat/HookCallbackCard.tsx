@@ -302,7 +302,7 @@ export function HookCallbackCard({ message, onRespond }: Props) {
                 borderRadius: 6,
                 border: 'none',
                 background: selectedOptionKey
-                  ? 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))'
+                  ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
                   : 'rgba(255,255,255,0.06)',
                 color: selectedOptionKey ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.35)',
                 fontWeight: 600,
@@ -402,7 +402,7 @@ export function HookCallbackCard({ message, onRespond }: Props) {
                 height: 36,
                 borderRadius: 6,
                 border: 'none',
-                background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                 color: 'rgba(255,255,255,0.95)',
                 fontWeight: 600,
                 fontSize: 13,

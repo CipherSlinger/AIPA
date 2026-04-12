@@ -62,14 +62,14 @@ export default function PersonaForm({
       WebkitBackdropFilter: 'blur(16px)',
       border: '1px solid rgba(255,255,255,0.08)',
       borderRadius: 16,
-      boxShadow: '0 24px 64px rgba(0,0,0,0.75), 0 8px 24px rgba(0,0,0,0.5)',
+      boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
       marginBottom: 12,
     }}>
       {/* Header */}
       <div style={{
         fontSize: 14,
         fontWeight: 700,
-        color: 'rgba(255,255,255,0.92)',
+        color: 'rgba(255,255,255,0.82)',
         marginBottom: 12,
         paddingBottom: 10,
         borderBottom: '1px solid rgba(255,255,255,0.07)',
@@ -211,7 +211,7 @@ export default function PersonaForm({
           style={{
             flex: 1,
             background: canSubmit
-              ? 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))'
+              ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
               : 'rgba(99,102,241,0.3)',
             border: 'none',
             borderRadius: 8,

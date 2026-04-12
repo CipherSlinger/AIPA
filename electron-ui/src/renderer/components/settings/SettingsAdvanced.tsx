@@ -181,7 +181,7 @@ export default function SettingsAdvanced() {
                   background: isActive ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.05)',
                   border: isActive ? '1px solid rgba(99,102,241,0.5)' : '1px solid rgba(255,255,255,0.09)',
                   borderRadius: 8, padding: '3px 10px', fontSize: 11,
-                  color: isActive ? '#a5b4fc' : 'rgba(255,255,255,0.55)',
+                  color: isActive ? '#a5b4fc' : 'rgba(255,255,255,0.60)',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
@@ -199,7 +199,7 @@ export default function SettingsAdvanced() {
             background: 'rgba(255,255,255,0.04)', borderRadius: 6, padding: '7px 12px',
             border: '1px solid rgba(255,255,255,0.07)',
           }}>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', flex: 1 }}>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.60)', flex: 1 }}>
               {t('systemPrompt.replaceConfirm')}
             </span>
             <button onClick={confirmReplace} style={{ fontSize: 11, padding: '3px 10px', background: 'rgba(99,102,241,0.25)', border: '1px solid rgba(99,102,241,0.4)', borderRadius: 8, color: '#a5b4fc', cursor: 'pointer', transition: 'all 0.15s ease' }}>
@@ -245,7 +245,7 @@ export default function SettingsAdvanced() {
           </button>
           {draft.trim() && (
             <button onClick={() => setDraft('')}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.65)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
               onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
               style={{ padding: '7px 12px', fontSize: 12, background: 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, color: 'rgba(255,255,255,0.45)', cursor: 'pointer', transition: 'all 0.15s ease' }}>
               {t('common.clear')}
@@ -271,7 +271,7 @@ export default function SettingsAdvanced() {
                   background: isActive ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.05)',
                   border: isActive ? '1px solid rgba(99,102,241,0.5)' : '1px solid rgba(255,255,255,0.09)',
                   borderRadius: 5, padding: '3px 10px',
-                  fontSize: 11, color: isActive ? '#a5b4fc' : 'rgba(255,255,255,0.55)',
+                  fontSize: 11, color: isActive ? '#a5b4fc' : 'rgba(255,255,255,0.60)',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}

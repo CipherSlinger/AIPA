@@ -186,7 +186,7 @@ export function SkillCard({ skill, onOpen, onUse }: {
         onMouseLeave={() => setBtnHovered(false)}
         title={t('skills.useSkill')}
         style={{
-          background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+          background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
           border: 'none',
           borderRadius: 6,
           color: 'rgba(255,255,255,0.95)',

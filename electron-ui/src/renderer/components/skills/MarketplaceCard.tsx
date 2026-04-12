@@ -182,7 +182,7 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
                 alignItems: 'center',
                 gap: 4,
                 padding: '4px 10px',
-                background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                 color: 'rgba(255,255,255,0.95)',
                 border: 'none',
                 borderRadius: 6,

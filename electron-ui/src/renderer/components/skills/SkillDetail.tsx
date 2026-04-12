@@ -193,7 +193,7 @@ export default function SkillDetail({
             alignItems: 'center',
             gap: 6,
             padding: '9px 20px',
-            background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+            background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
             color: 'rgba(255,255,255,0.95)',
             border: 'none',
             borderRadius: 8,

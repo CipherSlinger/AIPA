@@ -142,7 +142,7 @@ export default function AnnotationEditor({
               onClick={handleSave}
               disabled={annotationDraft.trim().length === 0}
               style={{
-                background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                 border: 'none', cursor: annotationDraft.trim().length === 0 ? 'not-allowed' : 'pointer',
                 color: 'rgba(255,255,255,0.95)', fontSize: 12, fontWeight: 600, padding: '3px 10px',
                 borderRadius: 6, transition: 'all 0.15s ease',

@@ -282,7 +282,7 @@ export default function WorkflowPersonasSection() {
               disabled={personas.length >= 10}
               style={{
                 background: showForm && !editingId
-                  ? 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))'
+                  ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
                   : 'rgba(255,255,255,0.06)',
                 border: showForm && !editingId
                   ? '1px solid rgba(99,102,241,0.60)'
@@ -325,7 +325,7 @@ export default function WorkflowPersonasSection() {
             style={{
               color: 'rgba(255,255,255,0.45)',
               transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
-              transition: 'transform 0.2s ease',
+              transition: 'transform 0.15s ease',
             }}
           />
         </div>
@@ -510,7 +510,7 @@ export default function WorkflowPersonasSection() {
                       borderRadius: 6,
                       cursor: 'pointer',
                       textAlign: 'left',
-                      transition: 'border-color 0.15s, background 0.15s',
+                      transition: 'border-color 0.15s ease, background 0.15s ease',
                     }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)'; e.currentTarget.style.background = 'rgba(99,102,241,0.06)' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.background = 'transparent' }}

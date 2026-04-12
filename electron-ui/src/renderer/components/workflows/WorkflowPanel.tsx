@@ -228,7 +228,7 @@ function WorkflowTabContent({ crud, t }: {
                 background: importStatus.startsWith('✓') ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
                 borderRadius: 4,
                 flexShrink: 0,
-                transition: 'opacity 0.3s',
+                transition: 'opacity 0.15s ease',
               }}>
                 {importStatus}
               </div>
@@ -290,7 +290,7 @@ function WorkflowTabContent({ crud, t }: {
               }}
               aria-label={t('workflow.create')}
               style={{
-                background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                 border: 'none',
                 borderRadius: 7,
                 padding: '5px 10px',
@@ -310,7 +310,7 @@ function WorkflowTabContent({ crud, t }: {
                 ;(e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'
               }}
               onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))'
+                (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
                 ;(e.currentTarget as HTMLElement).style.boxShadow = 'none'
                 ;(e.currentTarget as HTMLElement).style.transform = 'translateY(0)'
               }}
@@ -578,7 +578,7 @@ function WorkflowTabContent({ crud, t }: {
                     fontSize: 11,
                     fontWeight: 600,
                     color: 'rgba(255,255,255,0.95)',
-                    background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(79,70,229,0.85))',
+                    background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                     border: 'none',
                     borderRadius: 8,
                     padding: '6px 16px',
@@ -588,12 +588,12 @@ function WorkflowTabContent({ crud, t }: {
                     transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={e => {
-                    (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(99,102,241,0.95), rgba(79,70,229,0.95))'
+                    (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(99,102,241,0.95), rgba(139,92,246,0.95))'
                     ;(e.currentTarget as HTMLElement).style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'
                     ;(e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'
                   }}
                   onMouseLeave={e => {
-                    (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(79,70,229,0.85))'
+                    (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
                     ;(e.currentTarget as HTMLElement).style.boxShadow = '0 2px 8px rgba(99,102,241,0.35)'
                     ;(e.currentTarget as HTMLElement).style.transform = 'translateY(0)'
                   }}

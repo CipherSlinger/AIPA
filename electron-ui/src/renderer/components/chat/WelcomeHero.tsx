@@ -28,7 +28,7 @@ export default function WelcomeHero({ greeting, displayName, activePersona, acce
       {/* Hero icon */}
       <div className="onboard-icon" style={{
         width: 64, height: 64, borderRadius: 16,
-        background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+        background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
         boxShadow: '0 0 32px rgba(99,102,241,0.4), 0 8px 24px rgba(0,0,0,0.4)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 16, boxSizing: 'border-box',

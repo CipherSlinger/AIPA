@@ -58,7 +58,7 @@ function PresetRow({ preset, onInstall, label, description, installTitle }: Pres
         </div>
         <div style={{
           fontSize: 11,
-          color: 'rgba(255,255,255,0.55)',
+          color: 'rgba(255,255,255,0.60)',
           lineHeight: 1.4,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -77,7 +77,7 @@ function PresetRow({ preset, onInstall, label, description, installTitle }: Pres
           padding: '4px 10px',
           fontSize: 11,
           fontWeight: 600,
-          background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+          background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
           border: 'none',
           borderRadius: 8,
           color: 'rgba(255,255,255,0.95)',

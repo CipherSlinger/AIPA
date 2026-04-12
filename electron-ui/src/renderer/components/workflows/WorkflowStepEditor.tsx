@@ -427,7 +427,7 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
         <button
           onClick={() => addStep(steps, setSteps, t)}
           style={{
-            background: 'linear-gradient(135deg, rgba(99,102,241,0.8), rgba(139,92,246,0.8))',
+            background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
             border: 'none',
             borderRadius: 8,
             padding: '6px 0',

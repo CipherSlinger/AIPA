@@ -24,7 +24,7 @@ export default function ScrollToBottomFab({ show, unreadCount, onClick }: Props)
         pointerEvents: show ? 'auto' : 'none',
         opacity: show ? 1 : 0,
         transform: show ? 'translateY(0)' : 'translateY(12px)',
-        transition: 'opacity 150ms ease, transform 150ms ease',
+        transition: 'opacity 0.15s ease, transform 0.15s ease',
         animation: show ? 'slideUp 0.15s ease' : undefined,
       }}
     >

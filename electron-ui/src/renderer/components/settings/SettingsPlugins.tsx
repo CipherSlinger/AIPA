@@ -163,7 +163,7 @@ export default function SettingsPlugins() {
             }}
             onMouseEnter={e => {
               e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'
-              e.currentTarget.style.color = 'rgba(255,255,255,0.75)'
+              e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
               e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
             }}
             onMouseLeave={e => {
@@ -181,7 +181,7 @@ export default function SettingsPlugins() {
               padding: '6px 12px', fontSize: 12, fontWeight: 600,
               background: showInstallForm
                 ? 'rgba(99,102,241,0.25)'
-                : 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
               border: showInstallForm ? '1px solid rgba(99,102,241,0.4)' : 'none',
               borderRadius: 7,
               color: 'rgba(255,255,255,0.95)', cursor: 'pointer',
@@ -237,7 +237,7 @@ export default function SettingsPlugins() {
                 padding: '7px 10px', fontSize: 12,
                 background: 'rgba(255,255,255,0.06)',
                 border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: 7, color: 'rgba(255,255,255,0.50)', cursor: 'pointer',
+                borderRadius: 7, color: 'rgba(255,255,255,0.60)', cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={e => {
@@ -247,7 +247,7 @@ export default function SettingsPlugins() {
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.50)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
                 e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
               }}
             >
@@ -268,16 +268,16 @@ export default function SettingsPlugins() {
                 border: '1px solid rgba(255,255,255,0.08)',
                 borderRadius: 7, padding: '6px 14px',
                 cursor: 'pointer', fontSize: 12,
-                color: 'rgba(255,255,255,0.50)',
+                color: 'rgba(255,255,255,0.60)',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.75)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.50)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
               }}
             >
               {t('common.cancel')}
@@ -289,7 +289,7 @@ export default function SettingsPlugins() {
                 padding: '6px 16px', fontSize: 12, fontWeight: 600,
                 background: installing || !installPath.trim()
                   ? 'rgba(99,102,241,0.25)'
-                  : 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                  : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                 border: 'none', borderRadius: 7,
                 color: 'rgba(255,255,255,0.95)',
                 cursor: installing || !installPath.trim() ? 'not-allowed' : 'pointer',

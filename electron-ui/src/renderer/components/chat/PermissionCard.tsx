@@ -681,7 +681,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
                 disabled={checkedRules.size === 0}
                 style={{
                   marginTop: 2,
-                  background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                  background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                   border: 'none',
                   borderRadius: 7,
                   padding: '6px 0',

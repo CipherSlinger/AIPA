@@ -207,7 +207,7 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
               onClick={handleAddKey}
               disabled={!newKeyValue.trim()}
               style={{
-                background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                 border: 'none', borderRadius: 8, padding: '7px 14px',
                 color: 'rgba(255,255,255,0.95)', cursor: newKeyValue.trim() ? 'pointer' : 'not-allowed',
                 fontSize: 12, fontWeight: 600,

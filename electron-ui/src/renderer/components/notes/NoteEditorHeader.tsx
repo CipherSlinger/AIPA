@@ -39,10 +39,10 @@ export default function NoteEditorHeader({
       alignItems: 'center',
       justifyContent: 'space-between',
       padding: '8px 12px',
-      background: 'rgba(15,15,25,0.85)',
-      backdropFilter: 'blur(12px)',
-      WebkitBackdropFilter: 'blur(12px)',
-      borderBottom: '1px solid rgba(255,255,255,0.06)',
+      background: 'rgba(15,15,25,0.95)',
+      backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
+      borderBottom: '1px solid rgba(255,255,255,0.07)',
       flexShrink: 0,
     }}>
       <button
@@ -50,7 +50,7 @@ export default function NoteEditorHeader({
         aria-label={t('notes.back')}
         style={{
           background: 'rgba(255,255,255,0.06)',
-          border: '1px solid rgba(255,255,255,0.10)',
+          border: '1px solid rgba(255,255,255,0.08)',
           color: 'rgba(255,255,255,0.45)',
           cursor: 'pointer',
           display: 'flex',
@@ -58,12 +58,12 @@ export default function NoteEditorHeader({
           gap: 4,
           fontSize: 12,
           padding: '4px 8px',
-          borderRadius: 6,
+          borderRadius: 8,
           transition: 'all 0.15s ease',
         }}
         onMouseEnter={e => {
-          e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
-          e.currentTarget.style.color = 'rgba(255,255,255,0.85)'
+          e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
+          e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
         }}
         onMouseLeave={e => {
           e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
@@ -85,7 +85,7 @@ export default function NoteEditorHeader({
         <button
           onClick={() => { if (previewMode) { onSetPreviewMode(false) } }}
           style={{
-            background: !previewMode ? 'linear-gradient(135deg, rgba(99,102,241,0.8), rgba(139,92,246,0.8))' : 'transparent',
+            background: !previewMode ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))' : 'transparent',
             color: !previewMode ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
             border: 'none',
             padding: '4px 10px',
@@ -107,7 +107,7 @@ export default function NoteEditorHeader({
             }
           }}
           style={{
-            background: previewMode ? 'linear-gradient(135deg, rgba(99,102,241,0.8), rgba(139,92,246,0.8))' : 'transparent',
+            background: previewMode ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))' : 'transparent',
             color: previewMode ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
             border: 'none',
             borderLeft: '1px solid rgba(255,255,255,0.1)',
@@ -131,17 +131,17 @@ export default function NoteEditorHeader({
         title={t('notes.exportNote')}
         style={{
           background: 'rgba(255,255,255,0.06)',
-          border: '1px solid rgba(255,255,255,0.10)',
+          border: '1px solid rgba(255,255,255,0.08)',
           color: 'rgba(255,255,255,0.45)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           padding: '4px 7px',
-          borderRadius: 6,
+          borderRadius: 8,
           transition: 'all 0.15s ease',
         }}
         onMouseEnter={e => {
-          e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
+          e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
           e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
         }}
         onMouseLeave={e => {
@@ -160,17 +160,17 @@ export default function NoteEditorHeader({
           title={t('notes.duplicate')}
           style={{
             background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.10)',
+            border: '1px solid rgba(255,255,255,0.08)',
             color: 'rgba(255,255,255,0.45)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             padding: '4px 7px',
-            borderRadius: 6,
+            borderRadius: 8,
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
+            e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
             e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
           }}
           onMouseLeave={e => {
@@ -189,18 +189,18 @@ export default function NoteEditorHeader({
         title={note.pinned ? t('notes.unpin') : t('notes.pin')}
         style={{
           background: note.pinned ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.06)',
-          border: note.pinned ? '1px solid rgba(251,191,36,0.30)' : '1px solid rgba(255,255,255,0.10)',
+          border: note.pinned ? '1px solid rgba(251,191,36,0.30)' : '1px solid rgba(255,255,255,0.08)',
           color: note.pinned ? '#fbbf24' : 'rgba(255,255,255,0.45)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           padding: '4px 7px',
-          borderRadius: 6,
+          borderRadius: 8,
           transition: 'all 0.15s ease',
           transform: 'rotate(45deg)',
         }}
         onMouseEnter={e => {
-          e.currentTarget.style.background = note.pinned ? 'rgba(251,191,36,0.22)' : 'rgba(255,255,255,0.09)'
+          e.currentTarget.style.background = note.pinned ? 'rgba(251,191,36,0.22)' : 'rgba(255,255,255,0.07)'
           e.currentTarget.style.color = '#fbbf24'
         }}
         onMouseLeave={e => {
@@ -218,17 +218,17 @@ export default function NoteEditorHeader({
         title={t('notes.pinToChat')}
         style={{
           background: 'rgba(255,255,255,0.06)',
-          border: '1px solid rgba(255,255,255,0.10)',
+          border: '1px solid rgba(255,255,255,0.08)',
           color: 'rgba(255,255,255,0.45)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           padding: '4px 7px',
-          borderRadius: 6,
+          borderRadius: 8,
           transition: 'all 0.15s ease',
         }}
         onMouseEnter={e => {
-          e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
+          e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
           e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
         }}
         onMouseLeave={e => {
@@ -239,7 +239,7 @@ export default function NoteEditorHeader({
         <MessageSquare size={14} />
       </button>
 
-      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: 'rgba(255,255,255,0.38)', fontStyle: 'italic', display: 'flex', gap: 8, alignItems: 'center', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"', lineHeight: 1 }}>
+      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.38)', fontStyle: 'italic', display: 'flex', gap: 8, alignItems: 'center', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"', lineHeight: 1 }}>
         <span>{content.length} / {MAX_CONTENT_LENGTH.toLocaleString()} {t('notes.characters')}</span>
         <span>{content.trim() ? content.trim().split(/\s+/).length : 0} {t('notes.words')}</span>
         {content.trim() && (() => {

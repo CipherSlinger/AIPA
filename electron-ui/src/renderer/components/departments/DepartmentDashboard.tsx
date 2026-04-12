@@ -371,7 +371,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
             padding: '9px 20px',
             borderRadius: 8,
             border: 'none',
-            background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+            background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
             color: 'rgba(255,255,255,0.95)',
             fontSize: 13,
             fontWeight: 600,
@@ -645,7 +645,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
             gap: 16,
             color: 'rgba(255,255,255,0.45)',
             textAlign: 'center',
-            animation: 'dept-empty-in 0.25s ease-out',
+            animation: 'dept-empty-in 0.15s ease-out',
           }}>
             <div style={{
               width: 72,
@@ -674,7 +674,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
                 padding: '9px 22px',
                 borderRadius: 8,
                 border: 'none',
-                background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                 color: 'rgba(255,255,255,0.95)',
                 fontSize: 13,
                 fontWeight: 600,
@@ -1633,7 +1633,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                 flex: 1, padding: '6px 12px', borderRadius: 7, border: 'none',
                 background: (!newDeptName.trim() || !newDeptDir.trim())
                   ? 'rgba(99,102,241,0.25)'
-                  : 'linear-gradient(135deg, rgba(99,102,241,0.9), rgba(139,92,246,0.9))',
+                  : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                 color: 'rgba(255,255,255,0.95)', fontSize: 11, fontWeight: 600,
                 cursor: (!newDeptName.trim() || !newDeptDir.trim()) ? 'not-allowed' : 'pointer',
                 transition: 'box-shadow 0.15s, transform 0.15s',
@@ -1759,7 +1759,7 @@ export default function DepartmentDashboard() {
       `}</style>
 
       {selectedDeptId ? (
-        <div key={selectedDeptId} style={{ flex: 1, overflow: 'hidden', animation: 'dept-view-in 0.2s ease-out' }}>
+        <div key={selectedDeptId} style={{ flex: 1, overflow: 'hidden', animation: 'dept-view-in 0.15s ease-out' }}>
           <DeptView
             deptId={selectedDeptId}
             onBack={handleBack}
@@ -1769,7 +1769,7 @@ export default function DepartmentDashboard() {
           />
         </div>
       ) : (
-        <div key="org" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', animation: 'dept-org-in 0.2s ease-out' }}>
+        <div key="org" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', animation: 'dept-org-in 0.15s ease-out' }}>
           {/* Top bar — shown on org chart view */}
           <div style={{
             height: 56,

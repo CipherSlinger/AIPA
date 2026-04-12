@@ -230,7 +230,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
                 border: 'none',
                 background: creating
                   ? 'rgba(255,255,255,0.08)'
-                  : 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                  : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                 color: creating ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.95)',
                 fontSize: 11,
                 fontWeight: 600,
@@ -338,7 +338,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
             border: 'none',
             background: (!name.trim() || !directory)
               ? 'rgba(99,102,241,0.25)'
-              : 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+              : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
             color: (!name.trim() || !directory) ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.95)',
             fontSize: 11,
             fontWeight: 600,
@@ -767,7 +767,7 @@ function DepartmentRow({
             border: '1px solid rgba(239,68,68,0.3)',
             borderRadius: 9, padding: '10px 12px', minWidth: 200,
             boxShadow: '0 12px 40px rgba(0,0,0,0.65), 0 4px 16px rgba(239,68,68,0.12)',
-            animation: 'slideUp 0.20s ease',
+            animation: 'slideUp 0.15s ease',
           }}
         >
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.82)', marginBottom: 8 }}>{t('dept.confirmDelete')}</div>

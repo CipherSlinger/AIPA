@@ -188,7 +188,7 @@ export default function NotesHeader({
               aria-label={t('notes.newNote')}
               disabled={atLimit}
               style={{
-                background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                 border: 'none',
                 borderRadius: '7px 0 0 7px',
                 color: 'rgba(255,255,255,0.95)',
@@ -214,7 +214,7 @@ export default function NotesHeader({
               aria-label={t('notes.fromTemplate')}
               title={t('notes.fromTemplate')}
               style={{
-                background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                 border: 'none',
                 borderLeft: '1px solid rgba(255,255,255,0.15)',
                 borderRadius: '0 7px 7px 0',

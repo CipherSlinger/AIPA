@@ -163,7 +163,7 @@ export default function SettingsPanel() {
                 borderLeft: isActive ? '2px solid rgba(99,102,241,0.6)' : '2px solid transparent',
                 borderRadius: '0 6px 6px 0',
                 padding: '7px 12px',
-                color: isActive ? '#818cf8' : isHovered ? 'rgba(255,255,255,0.70)' : 'rgba(255,255,255,0.55)',
+                color: isActive ? '#818cf8' : isHovered ? 'rgba(255,255,255,0.60)' : 'rgba(255,255,255,0.45)',
                 cursor: 'pointer',
                 fontSize: 12,
                 fontWeight: isActive ? 600 : 400,

@@ -182,7 +182,7 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
             boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
             pointerEvents: 'none',
             zIndex: 100,
-            animation: 'slideUp 0.10s ease',
+            animation: 'slideUp 0.15s ease',
           }}
         >
           {label}

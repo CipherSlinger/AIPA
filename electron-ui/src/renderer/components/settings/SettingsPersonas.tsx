@@ -201,7 +201,7 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
             padding: '9px 16px',
             background: isAtLimit
               ? 'rgba(255,255,255,0.04)'
-              : 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+              : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
             border: isAtLimit ? '1px solid rgba(255,255,255,0.07)' : 'none',
             borderRadius: 8,
             color: isAtLimit ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.95)',
@@ -298,7 +298,7 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.10)',
               borderRadius: 7,
-              color: 'rgba(255,255,255,0.55)',
+              color: 'rgba(255,255,255,0.60)',
               cursor: 'pointer',
               fontSize: 11, fontWeight: 500,
               transition: 'all 0.15s ease',
@@ -310,7 +310,7 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
             }}
             onMouseLeave={e => {
               e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
-              e.currentTarget.style.color = 'rgba(255,255,255,0.55)'
+              e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
               e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
             }}
           >
@@ -328,7 +328,7 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.10)',
               borderRadius: 7,
-              color: 'rgba(255,255,255,0.55)',
+              color: 'rgba(255,255,255,0.60)',
               cursor: isAtLimit ? 'not-allowed' : 'pointer',
               fontSize: 11, fontWeight: 500,
               opacity: isAtLimit ? 0.45 : 1,
@@ -343,7 +343,7 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
             }}
             onMouseLeave={e => {
               e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
-              e.currentTarget.style.color = 'rgba(255,255,255,0.55)'
+              e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
               e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
             }}
           >

@@ -251,7 +251,7 @@ export default function SettingsStats() {
                         width: `${pct}%`, height: '100%',
                         background: `linear-gradient(90deg, ${color}, ${color}99)`,
                         borderRadius: 4,
-                        transition: 'width 0.5s cubic-bezier(0.34,1.56,0.64,1)',
+                        transition: 'width 0.15s ease',
                         boxShadow: `0 0 8px ${glow}`,
                       }} />
                     </div>
@@ -352,7 +352,7 @@ export default function SettingsStats() {
                           ? 'linear-gradient(180deg, rgba(139,92,246,0.85), rgba(99,102,241,0.85))'
                           : 'rgba(255,255,255,0.06)',
                         borderRadius: '3px 3px 0 0',
-                        transition: 'height 0.35s ease',
+                        transition: 'all 0.15s ease',
                         boxShadow: isActive ? '0 -2px 8px rgba(99,102,241,0.3)' : 'none',
                       }} />
                       {showLabel && (

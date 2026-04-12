@@ -97,7 +97,7 @@ export default function SaveTemplateDialog({ onClose }: Props) {
           border: '1px solid rgba(255,255,255,0.09)',
           borderRadius: 16,
           boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
-          animation: 'slideUp 0.20s ease',
+          animation: 'slideUp 0.15s ease',
         }}
       >
         {/* Header */}
@@ -268,7 +268,7 @@ export default function SaveTemplateDialog({ onClose }: Props) {
               padding: '7px 16px', borderRadius: 8, fontSize: 13,
               cursor: name.trim() ? 'pointer' : 'not-allowed',
               background: name.trim()
-                ? 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))'
+                ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
                 : 'rgba(255,255,255,0.06)',
               border: 'none', color: 'rgba(255,255,255,0.95)', fontWeight: 600,
               opacity: !name.trim() ? 0.5 : 1,
@@ -282,7 +282,7 @@ export default function SaveTemplateDialog({ onClose }: Props) {
             }}
             onMouseLeave={(e) => {
               if (!name.trim()) return
-              e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))'
+              e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
               e.currentTarget.style.boxShadow = 'none'
               e.currentTarget.style.transform = 'translateY(0)'
             }}

@@ -125,7 +125,7 @@ export default function CompareView({ sessionA, sessionB, titleA, titleB, forkMe
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        animation: 'slideUp 0.20s ease',
+        animation: 'slideUp 0.15s ease',
       }}>
       {/* Header */}
       <div

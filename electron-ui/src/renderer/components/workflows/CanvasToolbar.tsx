@@ -158,7 +158,7 @@ export default function CanvasToolbar({
           border: '1px solid rgba(255,255,255,0.08)',
           boxShadow: '0 4px 16px rgba(0,0,0,0.40), 0 1px 4px rgba(0,0,0,0.30)',
           gap: 4,
-          transition: 'top 0.2s ease',
+          transition: 'all 0.15s ease',
         }}>
           <Search size={12} style={{ color: 'rgba(255,255,255,0.45)', flexShrink: 0 }} />
           <input
@@ -212,7 +212,7 @@ export default function CanvasToolbar({
         padding: '4px 8px',
         border: '1px solid rgba(255,255,255,0.08)',
         boxShadow: '0 4px 16px rgba(0,0,0,0.40), 0 1px 4px rgba(0,0,0,0.30)',
-        transition: 'top 0.2s ease',
+        transition: 'all 0.15s ease',
         // needed so the shortcuts popup anchors to this element
         isolation: 'isolate',
       }}>
@@ -531,7 +531,7 @@ export default function CanvasToolbar({
               background: 'transparent',
               color: 'rgba(255,255,255,0.55)', fontSize: 11,
               cursor: 'pointer', flexShrink: 0,
-              transition: 'all 0.15s',
+              transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => {
               e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'
@@ -578,7 +578,7 @@ export default function CanvasToolbar({
               alignItems: 'center',
               fontSize: 11,
               gap: 4,
-              transition: 'all 0.15s',
+              transition: 'all 0.15s ease',
             }}
           >
             <HelpCircle size={12} />

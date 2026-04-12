@@ -42,7 +42,7 @@ interface ChatHeaderProps {
 /** Shared header button styling — ghost glass */
 const headerBtnStyle: React.CSSProperties = {
   background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(255,255,255,0.10)',
+  border: '1px solid rgba(255,255,255,0.09)',
   color: 'rgba(255,255,255,0.45)',
   cursor: 'pointer',
   display: 'flex',
@@ -68,7 +68,7 @@ const hoverOut = (e: React.MouseEvent<HTMLButtonElement>, active = false, defaul
   if (!active) {
     (e.currentTarget as HTMLButtonElement).style.color = defaultColor
     ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)'
-    ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.10)'
+    ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.09)'
   }
 }
 
@@ -347,7 +347,7 @@ ${t('chat.clickToChangeDir')}`}
             WebkitBackdropFilter: 'blur(16px)',
             border: '1px solid rgba(255,255,255,0.08)',
             borderRadius: 8, padding: 12, width: 300, zIndex: 200,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
           }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.82)', marginBottom: 4, letterSpacing: '-0.01em' }}>
               {t('systemPrompt.tempPopoverTitle')}
@@ -379,7 +379,7 @@ ${t('chat.clickToChangeDir')}`}
                   style={{
                     fontSize: 11, padding: '4px 10px',
                     background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(255,255,255,0.10)', borderRadius: 8,
+                    border: '1px solid rgba(255,255,255,0.09)', borderRadius: 8,
                     color: 'rgba(255,255,255,0.60)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
                     transition: 'all 0.15s ease',
                   }}
@@ -391,7 +391,7 @@ ${t('chat.clickToChangeDir')}`}
                 onClick={applyTempPrompt}
                 style={{
                   fontSize: 11, padding: '4px 12px',
-                  background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))', border: 'none', borderRadius: 8,
+                  background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))', border: 'none', borderRadius: 8,
                   color: 'rgba(255,255,255,0.95)', cursor: 'pointer', transition: 'all 0.15s ease',
                 }}
               >

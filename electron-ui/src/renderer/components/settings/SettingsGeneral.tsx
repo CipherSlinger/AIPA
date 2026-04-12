@@ -62,7 +62,7 @@ export default function SettingsGeneral({
   const row = (label: string, control: React.ReactNode, hint?: string) => (
     <div style={{ marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
       <div>
-        <div style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.75)' }}>{label}</div>
+        <div style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.82)' }}>{label}</div>
         {hint && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', marginTop: 2, lineHeight: 1.5 }}>{hint}</div>}
       </div>
       {control}
@@ -308,7 +308,7 @@ export default function SettingsGeneral({
                   <div style={{ display: 'flex', gap: 2 }}>
                     {theme.colors.map((c, i) => <div key={i} style={{ width: 10, height: 10, borderRadius: 2, background: c }} />)}
                   </div>
-                  <span style={{ fontSize: 9, color: theme.id === 'light' ? 'rgba(30,30,30,0.6)' : 'rgba(255,255,255,0.6)', whiteSpace: 'nowrap' }}>{t(theme.labelKey)}</span>
+                  <span style={{ fontSize: 9, color: theme.id === 'light' ? 'rgba(30,30,30,0.60)' : 'rgba(255,255,255,0.60)', whiteSpace: 'nowrap' }}>{t(theme.labelKey)}</span>
                 </button>
               )
             })}
@@ -534,11 +534,11 @@ export default function SettingsGeneral({
         onClick={onSave}
         aria-label={saved ? t('settings.saved') : t('settings.save')}
         onMouseEnter={(e) => { e.currentTarget.style.background = saved ? 'linear-gradient(135deg, rgba(34,197,94,0.95), rgba(16,185,129,0.95))' : 'linear-gradient(135deg, rgba(99,102,241,0.95), rgba(139,92,246,0.95))'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = saved ? 'linear-gradient(135deg, rgba(34,197,94,0.85), rgba(16,185,129,0.85))' : 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = saved ? 'linear-gradient(135deg, rgba(34,197,94,0.85), rgba(16,185,129,0.85))' : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}
         style={{
           background: saved
             ? 'linear-gradient(135deg, rgba(34,197,94,0.85), rgba(16,185,129,0.85))'
-            : 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+            : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
           border: 'none', borderRadius: 8, padding: '9px 16px',
           color: 'rgba(255,255,255,0.95)', cursor: 'pointer', fontSize: 13, fontWeight: 600,
           display: 'flex', alignItems: 'center', gap: 6,

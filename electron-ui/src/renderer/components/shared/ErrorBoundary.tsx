@@ -431,11 +431,11 @@ export default class ErrorBoundary extends Component<Props, State> {
     const actionButtons = (gap: string) => (
       <div style={{ display: 'flex', gap, flexWrap: 'wrap' }}>
         {!recoveryFailed && (
-          <button onClick={this.handleDismiss} style={btnStyle('linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))')}>
+          <button onClick={this.handleDismiss} style={btnStyle('linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))')}>
             {retryLabel}
           </button>
         )}
-        <button onClick={this.handleNewConversation} style={btnStyle('linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))')}>
+        <button onClick={this.handleNewConversation} style={btnStyle('linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))')}>
           {t('error.startNewConversation')}
         </button>
         <button onClick={this.handleReportBug} style={btnStyle('rgba(239,68,68,0.08)', '1px solid rgba(239,68,68,0.25)')}>

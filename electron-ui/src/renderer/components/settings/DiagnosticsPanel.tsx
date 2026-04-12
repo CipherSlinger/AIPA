@@ -144,23 +144,23 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
             background: 'rgba(255,255,255,0.05)',
             border: '1px solid rgba(255,255,255,0.09)',
             cursor: 'pointer',
-            color: 'rgba(255,255,255,0.55)', padding: '4px 6px', borderRadius: 6,
+            color: 'rgba(255,255,255,0.60)', padding: '4px 6px', borderRadius: 6,
             display: 'flex', alignItems: 'center',
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.color = 'rgba(255,255,255,0.85)'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
             e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.color = 'rgba(255,255,255,0.55)'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
             e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
           }}
           title={t('common.back')}
         >
           <ArrowLeft size={16} />
         </button>
-        <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>
+        <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>
           {t('diagnostics.title')}
         </span>
       </div>
@@ -193,12 +193,12 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
                 {loading ? statusIcon('loading') : statusIcon(result!.status)}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>
                   {loading ? item.label : getLabel(result!)}
                 </div>
                 {!loading && result && (
                   <>
-                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 3, lineHeight: 1.5 }}>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.60)', marginTop: 3, lineHeight: 1.5 }}>
                       {result.detail}
                     </div>
                     {result.subDetail && (
@@ -271,11 +271,11 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
             {extraLoading ? statusIcon('loading') : (claudeMdResult ? statusIcon(claudeMdResult.status) : statusIcon('loading'))}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>
               {t('diagnostics.claudeMdStatus')}
             </div>
             {!extraLoading && claudeMdResult && (
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 3, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.60)', marginTop: 3, lineHeight: 1.5 }}>
                 {claudeMdResult.detail}
               </div>
             )}
@@ -297,7 +297,7 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 16px' }}>
             <div style={{ paddingTop: 2 }}>{statusIcon('loading')}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>{t('diagnostics.mcpConnectivity')}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>{t('diagnostics.mcpConnectivity')}</div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', marginTop: 3, lineHeight: 1.5 }}>Loading…</div>
             </div>
           </div>
@@ -307,8 +307,8 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
               <Server size={16} style={{ color: 'rgba(255,255,255,0.30)', flexShrink: 0 }} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>{t('diagnostics.mcpConnectivity')}</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 3, lineHeight: 1.5 }}>No MCP servers configured</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>{t('diagnostics.mcpConnectivity')}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.60)', marginTop: 3, lineHeight: 1.5 }}>No MCP servers configured</div>
             </div>
           </div>
         ) : (
@@ -329,9 +329,9 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
                     : statusIcon('error')}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>{srv.name}</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>{srv.name}</div>
                 {srv.detail && (
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 3, lineHeight: 1.5 }}>{srv.detail}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.60)', marginTop: 3, lineHeight: 1.5 }}>{srv.detail}</div>
                 )}
               </div>
             </div>
@@ -349,7 +349,7 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
           background: 'rgba(255,255,255,0.05)',
           border: '1px solid rgba(255,255,255,0.09)',
           borderRadius: 6,
-          color: loading ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.65)',
+          color: loading ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.60)',
           cursor: isStillLoading ? 'not-allowed' : 'pointer', fontSize: 12,
           width: '100%',
           transition: 'all 0.15s ease',

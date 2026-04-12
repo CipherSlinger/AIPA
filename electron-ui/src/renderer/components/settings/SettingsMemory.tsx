@@ -163,7 +163,7 @@ export default function SettingsMemory() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Brain size={15} style={{ color: '#818cf8' }} />
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.88)' }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>
             {t('settingsMemory.title')}
           </span>
           <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)' }}>{t('settingsMemory.path')}</span>
@@ -177,7 +177,7 @@ export default function SettingsMemory() {
             style={{
               display: 'flex', alignItems: 'center', gap: 4,
               padding: '7px 14px', fontSize: 12, fontWeight: 600,
-              background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+              background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
               border: 'none', borderRadius: 8,
               color: 'rgba(255,255,255,0.95)', cursor: 'pointer',
             }}
@@ -220,7 +220,7 @@ export default function SettingsMemory() {
           border: '1px solid rgba(255,255,255,0.07)',
           borderRadius: 12, padding: 14, marginBottom: 12,
         }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.75)', marginBottom: 8 }}>{t('settingsMemory.newMemory')}</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.82)', marginBottom: 8 }}>{t('settingsMemory.newMemory')}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
             <input
               placeholder={t('settingsMemory.fieldName')}
@@ -267,7 +267,7 @@ export default function SettingsMemory() {
                 disabled={saving || !newState.name.trim() || !newState.body.trim()}
                 style={{
                   padding: '4px 12px', fontSize: 11, fontWeight: 600,
-                  background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                  background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                   border: 'none', borderRadius: 8,
                   color: 'rgba(255,255,255,0.95)', cursor: saving ? 'wait' : 'pointer',
                   opacity: (!newState.name.trim() || !newState.body.trim()) ? 0.5 : 1,
@@ -326,7 +326,7 @@ export default function SettingsMemory() {
                     {typeLabel(mem.type)}
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.75)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {mem.name}
                     </div>
                     {mem.description && (
@@ -398,7 +398,7 @@ export default function SettingsMemory() {
                             disabled={saving}
                             style={{
                               padding: '4px 10px', fontSize: 11, fontWeight: 600,
-                              background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                              background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                               border: 'none', borderRadius: 6,
                               color: 'rgba(255,255,255,0.95)', cursor: 'pointer',
                             }}
@@ -410,7 +410,7 @@ export default function SettingsMemory() {
                     ) : (
                       <pre style={{
                         margin: 0, fontSize: 11, lineHeight: 1.5, whiteSpace: 'pre-wrap',
-                        color: 'rgba(255,255,255,0.75)', fontFamily: 'monospace',
+                        color: 'rgba(255,255,255,0.82)', fontFamily: 'monospace',
                         maxHeight: 200, overflowY: 'auto',
                       }}>
                         {mem.content || <span style={{ color: 'rgba(255,255,255,0.3)', fontStyle: 'italic' }}>{t('settingsMemory.empty')}</span>}

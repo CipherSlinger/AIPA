@@ -47,12 +47,12 @@ export default function CategoryManager({
     <div style={{
       padding: '10px 14px',
       borderBottom: '1px solid rgba(255,255,255,0.09)',
-      background: 'rgba(15,15,25,0.95)',
-      backdropFilter: 'blur(16px)',
-      WebkitBackdropFilter: 'blur(16px)',
+      background: 'rgba(15,15,25,0.96)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
       border: '1px solid rgba(255,255,255,0.09)',
       borderRadius: 12,
-      boxShadow: '0 12px 40px rgba(0,0,0,0.55)',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
       flexShrink: 0,
     }}>
       {/* Header */}
@@ -138,7 +138,7 @@ export default function CategoryManager({
           style={{
             background: !newCategoryName.trim() || categories.length >= MAX_CATEGORIES
               ? 'rgba(99,102,241,0.3)'
-              : 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+              : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
             border: 'none',
             borderRadius: 7,
             color: 'rgba(255,255,255,0.95)',
@@ -173,7 +173,7 @@ export default function CategoryManager({
             borderRadius: 7,
             transition: 'background 0.15s ease',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 2px 8px rgba(0,0,0,0.20)' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 2px 8px rgba(0,0,0,0.20)' }}
           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; (e.currentTarget as HTMLDivElement).style.boxShadow = 'none' }}
         >
           <span style={{ width: 14, height: 14, borderRadius: '50%', background: cat.color, flexShrink: 0, display: 'inline-block' }} />
@@ -206,7 +206,7 @@ export default function CategoryManager({
               style={{
                 flex: 1,
                 fontSize: 12,
-                color: 'rgba(255,255,255,0.75)',
+                color: 'rgba(255,255,255,0.82)',
                 cursor: 'pointer',
               }}
               title={t('notes.clickToRename')}

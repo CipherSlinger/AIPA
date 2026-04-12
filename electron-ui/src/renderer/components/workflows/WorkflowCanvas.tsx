@@ -997,7 +997,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             border: '1px solid rgba(255,255,255,0.08)',
             borderRadius: 20,
             pointerEvents: 'none',
-            animation: 'workflow-done-in 0.2s ease-out',
+            animation: 'workflow-done-in 0.15s ease-out',
           }}
         >
           <span style={{
@@ -1206,7 +1206,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           backdropFilter: 'blur(10px)',
           WebkitBackdropFilter: 'blur(10px)',
           boxShadow: '0 4px 20px rgba(34,197,94,0.2)',
-          animation: 'workflow-done-in 0.3s ease-out',
+          animation: 'workflow-done-in 0.15s ease-out',
           pointerEvents: 'none',
         }}>
           <div style={{ fontSize: 18 }}>✓</div>
@@ -1362,7 +1362,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           borderRadius: 20,
           padding: '2px 8px',
           pointerEvents: 'none',
-          transition: 'top 0.2s ease',
+          transition: 'top 0.15s ease',
           fontWeight: 600,
           border: '1px solid rgba(255,255,255,0.08)',
         }}>
@@ -1431,7 +1431,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           zIndex: 1,
         }}
       >
-        <g style={{ transform: `translate(${layout.panX}px, ${layout.panY}px) scale(${layout.zoom})`, transformOrigin: '0 0', transition: layout.smoothTransition ? 'transform 0.3s ease-out' : 'none' }}>
+        <g style={{ transform: `translate(${layout.panX}px, ${layout.panY}px) scale(${layout.zoom})`, transformOrigin: '0 0', transition: layout.smoothTransition ? 'transform 0.15s ease-out' : 'none' }}>
           <CanvasEdgeDefs />
           {workflow.steps.map((step, idx) => {
             if (idx === 0) return null
@@ -1479,7 +1479,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           zIndex: 2,
           transform: `translate(${layout.panX}px, ${layout.panY}px) scale(${layout.zoom})`,
           transformOrigin: '0 0',
-          transition: layout.smoothTransition ? 'transform 0.3s ease-out' : 'none',
+          transition: layout.smoothTransition ? 'transform 0.15s ease-out' : 'none',
         }}
       >
         {workflow.steps.map((step, idx) => {
@@ -1503,7 +1503,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                 left: pos.x,
                 top: pos.y,
                 width: pos.width,
-                animation: 'canvas-node-fadein 0.2s ease',
+                animation: 'canvas-node-fadein 0.15s ease',
                 animationFillMode: 'both',
               }}
             >
@@ -1835,7 +1835,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           backdropFilter: 'blur(8px)',
           WebkitBackdropFilter: 'blur(8px)',
           boxShadow: '0 4px 16px rgba(34,197,94,0.3)',
-          animation: 'canvas-toast-in 0.2s ease-out',
+          animation: 'canvas-toast-in 0.15s ease-out',
         }}>
           Workflow copied to clipboard ✓
         </div>
@@ -1858,7 +1858,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             maxWidth: 240,
             boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
             overflow: 'hidden',
-            animation: 'canvas-toast-in 0.2s ease-out',
+            animation: 'canvas-toast-in 0.15s ease-out',
           }}
           onMouseDown={e => e.stopPropagation()}
           onClick={e => e.stopPropagation()}
@@ -1947,7 +1947,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                   borderRadius: 3,
                   background: bg,
                   cursor: 'pointer',
-                  transition: 'background 0.3s ease, transform 0.15s',
+                  transition: 'background 0.15s ease, transform 0.15s',
                   position: 'relative',
                   overflow: 'hidden',
                   minWidth: 4,

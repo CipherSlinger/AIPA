@@ -144,7 +144,7 @@ export default function SessionStats({ onBack }: SessionStatsProps) {
                   width: `${(day.count / stats.maxWeekCount) * 100}%`,
                   background: 'linear-gradient(90deg, rgba(99,102,241,0.90), rgba(129,140,248,0.90))',
                   borderRadius: 4,
-                  transition: 'width 0.3s ease',
+                  transition: 'width 0.15s ease',
                   minWidth: day.count > 0 ? 4 : 0,
                 }} />
               </div>

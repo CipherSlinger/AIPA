@@ -180,7 +180,7 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
         boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
         borderRadius: 10,
         zIndex: 1000,
-        animation: 'slideUp 0.12s ease',
+        animation: 'slideUp 0.15s ease',
       }}
     >
       {/* Copy selection */}

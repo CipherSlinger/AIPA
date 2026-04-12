@@ -134,7 +134,7 @@ export default function HooksSettingsPanel() {
             padding: '7px 14px', borderRadius: 8,
             background: addBtnHover
               ? 'linear-gradient(135deg, rgba(99,102,241,0.95), rgba(139,92,246,0.95))'
-              : 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+              : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
             border: 'none',
             color: 'rgba(255,255,255,0.95)', cursor: 'pointer', fontSize: 12, fontWeight: 600,
             flexShrink: 0,
@@ -169,7 +169,7 @@ export default function HooksSettingsPanel() {
           border: '1px dashed rgba(255,255,255,0.09)', borderRadius: 12, marginTop: 8,
         }}>
           <Zap size={28} color="rgba(255,255,255,0.2)" style={{ marginBottom: 10 }} />
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', fontWeight: 500, marginBottom: 6 }}>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.60)', fontWeight: 500, marginBottom: 6 }}>
             {t('hooks.noHooksTitle')}
           </div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', maxWidth: 300, margin: '0 auto' }}>

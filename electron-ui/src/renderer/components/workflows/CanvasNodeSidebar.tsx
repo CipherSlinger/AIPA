@@ -70,7 +70,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
         alignItems: 'center',
         gap: 3,
         fontSize: 9,
-        transition: 'color 0.2s ease',
+        transition: 'color 0.15s ease',
       }}
       onMouseEnter={e => { if (!copied) e.currentTarget.style.color = 'rgba(255,255,255,0.65)' }}
       onMouseLeave={e => { if (!copied) e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
@@ -189,7 +189,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
         zIndex: 20,
         display: 'flex',
         flexDirection: 'column',
-        animation: 'canvas-sidebar-in 0.18s ease-out',
+        animation: 'canvas-sidebar-in 0.15s ease-out',
         boxShadow: '-6px 0 24px rgba(0,0,0,0.22)',
       }}
       onClick={(e) => e.stopPropagation()}
@@ -265,7 +265,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
                   title={isEditingPrompt ? t('workflow.canvasSavePrompt') : t('workflow.canvasEditPrompt')}
                   style={{
                     background: isEditingPrompt
-                      ? 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))'
+                      ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
                       : 'rgba(255,255,255,0.05)',
                     border: isEditingPrompt ? 'none' : '1px solid rgba(255,255,255,0.08)',
                     borderRadius: 7,
@@ -317,7 +317,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
                   resize: 'vertical',
                   fontFamily: 'monospace',
                   boxSizing: 'border-box',
-                  transition: 'border-color 0.15s, box-shadow 0.15s',
+                  transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
                 }}
               />
               <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)', marginTop: 3 }}>
@@ -332,12 +332,12 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
                     padding: '5px 0',
                     borderRadius: 7,
                     border: 'none',
-                    background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                    background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                     color: 'rgba(255,255,255,0.95)',
                     fontSize: 10,
                     fontWeight: 600,
                     cursor: 'pointer',
-                    transition: 'box-shadow 0.15s, transform 0.15s',
+                    transition: 'box-shadow 0.15s ease, transform 0.15s ease',
                   }}
                   onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
                   onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}

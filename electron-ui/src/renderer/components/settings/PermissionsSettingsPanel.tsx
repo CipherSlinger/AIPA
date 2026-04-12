@@ -134,7 +134,7 @@ export default function PermissionsSettingsPanel() {
           border: '1px solid rgba(255,255,255,0.10)',
           borderRadius: 8,
           padding: '9px 18px',
-          fontSize: 12, color: 'rgba(255,255,255,0.85)', zIndex: 9999,
+          fontSize: 12, color: 'rgba(255,255,255,0.82)', zIndex: 9999,
           boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
           pointerEvents: 'none',
         }}>
@@ -255,7 +255,7 @@ function RuleSection({
         justifyContent: 'space-between', marginBottom: 12,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.75)' }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>
             {title}
           </span>
           {/* Count badge */}
@@ -371,7 +371,7 @@ function RuleSection({
             style={{
               padding: '7px 14px', fontSize: 12, fontWeight: 600,
               background: inputValue.trim()
-                ? 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))'
+                ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
                 : 'rgba(255,255,255,0.06)',
               border: inputValue.trim() ? 'none' : '1px solid rgba(255,255,255,0.08)',
               borderRadius: 7,
