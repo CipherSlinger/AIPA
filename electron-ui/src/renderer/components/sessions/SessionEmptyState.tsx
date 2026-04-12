@@ -74,7 +74,7 @@ export default function SessionEmptyState({ onNewChat }: Props) {
           borderRadius: 8,
           background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
           border: '1px solid rgba(99,102,241,0.35)',
-          color: 'rgba(255,255,255,0.95)',
+          color: 'rgba(255,255,255,0.82)',
           fontSize: 12,
           fontWeight: 600,
           cursor: 'pointer',

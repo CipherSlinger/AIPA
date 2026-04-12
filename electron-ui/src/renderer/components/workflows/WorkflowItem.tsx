@@ -78,7 +78,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
       style={{
         borderBottom: '1px solid rgba(255,255,255,0.07)',
         borderLeft: (hovered || isExpanded) ? '3px solid rgba(99,102,241,0.75)' : '3px solid transparent',
-        transition: 'background 0.15s ease, border-left-color 0.15s ease, box-shadow 0.15s ease',
+        transition: 'all 0.15s ease',
         position: 'relative',
         borderRadius: 8,
         marginBottom: 2,
@@ -216,7 +216,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
             onMouseLeave={e => {
               e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
               e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
             }}
           >
             <Copy size={12} />
@@ -358,7 +358,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
                 </button>
                 <button onClick={crud.saveEdit} style={{
                   background: '#6366f1', border: 'none', borderRadius: 4,
-                  padding: '2px 10px', fontSize: 10, color: 'rgba(255,255,255,0.95)', cursor: 'pointer',
+                  padding: '2px 10px', fontSize: 10, color: 'rgba(255,255,255,0.82)', cursor: 'pointer',
                 }}>
                   {t('workflow.save')}
                 </button>

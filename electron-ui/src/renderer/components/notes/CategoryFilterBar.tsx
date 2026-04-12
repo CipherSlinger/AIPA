@@ -47,7 +47,7 @@ export default function CategoryFilterBar({
             fontSize: 10,
             color: 'rgba(255,255,255,0.60)',
             whiteSpace: 'nowrap',
-            transition: 'background 0.15s ease, color 0.15s ease',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
           onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}

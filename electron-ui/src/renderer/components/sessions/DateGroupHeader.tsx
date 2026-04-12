@@ -24,7 +24,7 @@ export default function DateGroupHeader({ group, count, isCollapsed, onToggle }:
         gap: 4,
         cursor: 'pointer',
         userSelect: 'none',
-        transition: 'background 0.15s ease',
+        transition: 'all 0.15s ease',
         background: 'rgba(15,15,25,0.96)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',

@@ -259,7 +259,7 @@ export default function WorkflowPersonasSection() {
               style={{
                 fontSize: 8,
                 background: '#6366f1',
-                color: 'rgba(255,255,255,0.95)',
+                color: 'rgba(255,255,255,0.82)',
                 padding: '1px 5px',
                 borderRadius: 6,
                 fontWeight: 700,
@@ -290,7 +290,7 @@ export default function WorkflowPersonasSection() {
                 borderRadius: 8,
                 padding: '2px 5px',
                 cursor: personas.length >= 10 ? 'not-allowed' : 'pointer',
-                color: showForm && !editingId ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.60)',
+                color: showForm && !editingId ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.60)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 3,
@@ -325,7 +325,7 @@ export default function WorkflowPersonasSection() {
             style={{
               color: 'rgba(255,255,255,0.45)',
               transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
-              transition: 'transform 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
           />
         </div>
@@ -354,7 +354,7 @@ export default function WorkflowPersonasSection() {
               textAlign: 'center',
               padding: '14px 8px 10px',
               background: 'rgba(255,255,255,0.02)',
-              border: '1px dashed rgba(255,255,255,0.1)',
+              border: '1px dashed rgba(255,255,255,0.09)',
               borderRadius: 8,
               margin: '2px 0 4px',
             }}>
@@ -510,7 +510,7 @@ export default function WorkflowPersonasSection() {
                       borderRadius: 6,
                       cursor: 'pointer',
                       textAlign: 'left',
-                      transition: 'border-color 0.15s ease, background 0.15s ease',
+                      transition: 'all 0.15s ease',
                     }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)'; e.currentTarget.style.background = 'rgba(99,102,241,0.06)' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.background = 'transparent' }}
@@ -546,7 +546,7 @@ export default function WorkflowPersonasSection() {
                   color: 'rgba(255,255,255,0.45)',
                   cursor: 'pointer',
                   fontSize: 9,
-                  transition: 'border-color 0.15s ease, color 0.15s ease',
+                  transition: 'all 0.15s ease',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
@@ -571,7 +571,7 @@ export default function WorkflowPersonasSection() {
                   cursor: personas.length >= 10 ? 'not-allowed' : 'pointer',
                   fontSize: 9,
                   opacity: personas.length >= 10 ? 0.4 : 1,
-                  transition: 'border-color 0.15s ease, color 0.15s ease',
+                  transition: 'all 0.15s ease',
                 }}
                 onMouseEnter={e => { if (personas.length < 10) { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' } }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}

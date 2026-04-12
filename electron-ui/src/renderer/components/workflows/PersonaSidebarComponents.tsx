@@ -128,7 +128,7 @@ export function PersonaSidebarCard({ persona, isActive, isDeleting, onDelete }: 
         fontSize: 15,
         flexShrink: 0,
         boxShadow: isActive ? '0 0 8px rgba(99,102,241,0.25)' : `0 0 6px ${p.color}40`,
-        transition: 'border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease',
+        transition: 'all 0.15s ease',
       }}>
         {p.emoji}
       </div>
@@ -168,7 +168,7 @@ export function PersonaSidebarCard({ persona, isActive, isDeleting, onDelete }: 
             <span style={{
               fontSize: 8,
               background: `linear-gradient(135deg, ${p.color}, ${p.color}cc)`,
-              color: 'rgba(255,255,255,0.95)',
+              color: 'rgba(255,255,255,0.82)',
               padding: '1px 6px',
               borderRadius: 8,
               fontWeight: 700,
@@ -272,7 +272,7 @@ export function PersonaInlineForm({
     outline: 'none',
     boxSizing: 'border-box',
     marginBottom: 6,
-    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+    transition: 'all 0.15s ease',
   }
 
   return (
@@ -375,9 +375,9 @@ export function PersonaInlineForm({
               height: 18,
               borderRadius: '50%',
               background: c,
-              border: formColor === c ? '2px solid rgba(255,255,255,0.88)' : '2px solid transparent',
+              border: formColor === c ? '2px solid rgba(255,255,255,0.82)' : '2px solid transparent',
               cursor: 'pointer',
-              transition: 'transform 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.2)')}
             onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
@@ -398,12 +398,12 @@ export function PersonaInlineForm({
             border: canSubmit ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(255,255,255,0.07)',
             borderRadius: 6,
             padding: '5px 0',
-            color: canSubmit ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)',
+            color: canSubmit ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.38)',
             cursor: canSubmit ? 'pointer' : 'not-allowed',
             fontSize: 10,
             fontWeight: 700,
             letterSpacing: '0.04em',
-            transition: 'opacity 0.15s ease, box-shadow 0.15s ease',
+            transition: 'all 0.15s ease',
             boxShadow: canSubmit ? '0 2px 8px rgba(99,102,241,0.4)' : 'none',
           }}
           onMouseEnter={e => { if (canSubmit) e.currentTarget.style.opacity = '0.88' }}

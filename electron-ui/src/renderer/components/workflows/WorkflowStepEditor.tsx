@@ -118,7 +118,7 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
             <span
               style={{
                 fontSize: 9,
-                color: 'rgba(255,255,255,0.95)',
+                color: 'rgba(255,255,255,0.82)',
                 fontWeight: 700,
                 flexShrink: 0,
                 background: 'linear-gradient(135deg, #6366f1, #818cf8)',
@@ -433,7 +433,7 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
             padding: '6px 0',
             fontSize: 10,
             fontWeight: 600,
-            color: 'rgba(255,255,255,0.95)',
+            color: 'rgba(255,255,255,0.82)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',

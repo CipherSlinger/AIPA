@@ -304,7 +304,7 @@ export default function NoteEditor({
               width: `${Math.min(charRatio * 100, 100)}%`,
               borderRadius: 2,
               background: charCritical ? '#f87171' : charWarning ? '#fbbf24' : 'rgba(99,102,241,0.7)',
-              transition: 'width 0.15s ease, background 0.15s ease',
+              transition: 'all 0.15s ease',
             }} />
           </div>
           {charWarning && (

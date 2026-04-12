@@ -57,7 +57,7 @@ function PresetCard({
         display: 'flex',
         alignItems: 'flex-start',
         gap: 8,
-        transition: 'background 0.15s ease, border-color 0.15s ease',
+        transition: 'all 0.15s ease',
         position: 'relative',
       }}
     >
@@ -228,7 +228,7 @@ function WorkflowTabContent({ crud, t }: {
                 background: importStatus.startsWith('✓') ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
                 borderRadius: 4,
                 flexShrink: 0,
-                transition: 'opacity 0.15s ease',
+                transition: 'all 0.15s ease',
               }}>
                 {importStatus}
               </div>
@@ -295,7 +295,7 @@ function WorkflowTabContent({ crud, t }: {
                 borderRadius: 7,
                 padding: '5px 10px',
                 cursor: 'pointer',
-                color: 'rgba(255,255,255,0.95)',
+                color: 'rgba(255,255,255,0.82)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -367,7 +367,7 @@ function WorkflowTabContent({ crud, t }: {
               borderRadius: 8, fontSize: 11, color: 'rgba(255,255,255,0.82)', outline: 'none', boxSizing: 'border-box',
               backdropFilter: 'blur(8px)',
               WebkitBackdropFilter: 'blur(8px)',
-              transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
             onFocus={e => {
               e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'
@@ -473,7 +473,7 @@ function WorkflowTabContent({ crud, t }: {
               style={{
                 background: crud.newName.trim() ? '#6366f1' : 'rgba(255,255,255,0.08)',
                 border: 'none', borderRadius: 4, padding: '3px 12px', fontSize: 10, fontWeight: 600,
-                color: crud.newName.trim() ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
+                color: crud.newName.trim() ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.45)',
                 cursor: crud.newName.trim() ? 'pointer' : 'not-allowed',
                 opacity: crud.newName.trim() ? 1 : 0.4,
                 transition: 'all 0.15s ease',
@@ -577,7 +577,7 @@ function WorkflowTabContent({ crud, t }: {
                   style={{
                     fontSize: 11,
                     fontWeight: 600,
-                    color: 'rgba(255,255,255,0.95)',
+                    color: 'rgba(255,255,255,0.82)',
                     background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                     border: 'none',
                     borderRadius: 8,

@@ -197,7 +197,7 @@ export default function NoteList({
                   display: 'flex',
                   alignItems: 'center',
                   opacity: note.pinned ? 1 : 0.5,
-                  transition: 'opacity 0.15s, color 0.15s',
+                  transition: 'all 0.15s ease',
                   flexShrink: 0,
                   transform: 'rotate(45deg)',
                 }}
@@ -221,7 +221,7 @@ export default function NoteList({
                   display: 'flex',
                   alignItems: 'center',
                   opacity: !note.title && !note.content ? 0.3 : 0.4,
-                  transition: 'opacity 0.15s, color 0.15s',
+                  transition: 'all 0.15s ease',
                   flexShrink: 0,
                 }}
                 onMouseEnter={e => { if (note.title || note.content) { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = '#818cf8' } }}
@@ -243,7 +243,7 @@ export default function NoteList({
                   display: 'flex',
                   alignItems: 'center',
                   opacity: deletingNoteId === note.id ? 1 : 0.4,
-                  transition: 'opacity 0.15s, color 0.15s',
+                  transition: 'all 0.15s ease',
                   flexShrink: 0,
                 }}
                 onMouseEnter={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = '#fca5a5' }}

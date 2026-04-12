@@ -128,7 +128,7 @@ export default function SessionFolders({ activeFolder, onFolderSelect, folderCou
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {activeFolderObj ? activeFolderObj.name : t('session.allSessions')}
         </span>
-        <ChevronDown size={10} style={{ flexShrink: 0, opacity: 0.6, transition: 'transform 0.15s ease', transform: showMenu ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+        <ChevronDown size={10} style={{ flexShrink: 0, opacity: 0.6, transition: 'all 0.15s ease', transform: showMenu ? 'rotate(180deg)' : 'rotate(0deg)' }} />
       </button>
 
       {/* Dropdown menu */}
@@ -211,7 +211,7 @@ export default function SessionFolders({ activeFolder, onFolderSelect, folderCou
                       fontSize: 11,
                       outline: 'none',
                       boxShadow: '0 0 0 3px rgba(99,102,241,0.12)',
-                      transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+                      transition: 'all 0.15s ease',
                     }}
                   />
                 </div>
@@ -261,7 +261,7 @@ export default function SessionFolders({ activeFolder, onFolderSelect, folderCou
               )}
               <button
                 onClick={() => { setEditingId(f.id); setEditName(f.name) }}
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', padding: 2, display: 'flex', borderRadius: 6, transition: 'background 0.15s ease' }}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', padding: 2, display: 'flex', borderRadius: 6, transition: 'all 0.15s ease' }}
                 onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
               >
@@ -269,7 +269,7 @@ export default function SessionFolders({ activeFolder, onFolderSelect, folderCou
               </button>
               <button
                 onClick={() => deleteFolder(f.id)}
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', padding: 2, display: 'flex', borderRadius: 6, transition: 'background 0.15s ease, color 0.15s ease' }}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', padding: 2, display: 'flex', borderRadius: 6, transition: 'all 0.15s ease' }}
                 onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#f87171' }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
               >
@@ -295,7 +295,7 @@ export default function SessionFolders({ activeFolder, onFolderSelect, folderCou
                       background: newEmoji === emoji ? 'rgba(99,102,241,0.1)' : 'transparent',
                       cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      transition: 'border-color 0.15s ease, background 0.15s ease',
+                      transition: 'all 0.15s ease',
                     }}
                   >
                     {emoji}
@@ -336,7 +336,7 @@ export default function SessionFolders({ activeFolder, onFolderSelect, folderCou
                     color: 'rgba(255,255,255,0.82)',
                     fontSize: 11,
                     outline: 'none',
-                    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+                    transition: 'all 0.15s ease',
                   }}
                   onFocus={e => {
                     e.currentTarget.style.borderColor = 'rgba(99,102,241,0.55)'
@@ -355,11 +355,11 @@ export default function SessionFolders({ activeFolder, onFolderSelect, folderCou
                     border: 'none',
                     borderRadius: 6,
                     padding: '4px 8px',
-                    color: newName.trim() ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.38)',
+                    color: newName.trim() ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.38)',
                     cursor: newName.trim() ? 'pointer' : 'not-allowed',
                     fontSize: 10,
                     fontWeight: 600,
-                    transition: 'box-shadow 0.15s ease',
+                    transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={e => { if (newName.trim()) e.currentTarget.style.boxShadow = '0 0 10px rgba(99,102,241,0.4)' }}
                   onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none' }}
@@ -380,7 +380,7 @@ export default function SessionFolders({ activeFolder, onFolderSelect, folderCou
                 cursor: folders.length >= 10 ? 'not-allowed' : 'pointer',
                 color: folders.length >= 10 ? 'rgba(255,255,255,0.38)' : '#818cf8',
                 fontSize: 11, textAlign: 'left',
-                transition: 'background 0.15s ease',
+                transition: 'all 0.15s ease',
               }}
               onMouseEnter={e => { if (folders.length < 10) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}

@@ -75,7 +75,7 @@ export default function BulkActionBar({
           }}
           onMouseEnter={e => {
             e.currentTarget.style.background = 'rgba(255,255,255,0.10)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.95)'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
           }}
           onMouseLeave={e => {
             e.currentTarget.style.background = 'rgba(255,255,255,0.06)'

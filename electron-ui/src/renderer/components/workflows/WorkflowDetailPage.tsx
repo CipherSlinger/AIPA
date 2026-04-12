@@ -449,7 +449,7 @@ export default function WorkflowDetailPage() {
                   padding: '7px 16px', fontSize: 12,
                   background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                   border: 'none',
-                  borderRadius: 7, color: 'rgba(255,255,255,0.95)', cursor: 'pointer', fontWeight: 600,
+                  borderRadius: 7, color: 'rgba(255,255,255,0.82)', cursor: 'pointer', fontWeight: 600,
                   boxShadow: '0 2px 8px rgba(99,102,241,0.30)',
                   transition: 'all 0.15s ease',
                 }}

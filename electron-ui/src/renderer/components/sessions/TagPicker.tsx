@@ -57,7 +57,7 @@ export default function TagPicker({ sessionId, pos, sessionTags, tagNames, onTog
                 : '1px solid transparent',
               borderRadius: 20,
               cursor: 'pointer',
-              color: assigned ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.60)',
+              color: assigned ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.60)',
               fontSize: 12,
               textAlign: 'left' as const,
               transition: 'all 0.15s ease',

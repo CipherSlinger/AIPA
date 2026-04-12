@@ -89,7 +89,7 @@ export default function SessionListHeader({
     display: 'flex',
     alignItems: 'center',
     padding: '3px 4px',
-    transition: 'background 0.15s ease, color 0.15s ease',
+    transition: 'all 0.15s ease',
   }
 
   const iconBtnHover = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -98,7 +98,7 @@ export default function SessionListHeader({
   }
   const iconBtnLeave = (e: React.MouseEvent<HTMLButtonElement>, active?: boolean) => {
     e.currentTarget.style.background = active ? '#6366f1' : 'transparent'
-    e.currentTarget.style.color = active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)'
+    e.currentTarget.style.color = active ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.45)'
   }
 
   return (
@@ -150,7 +150,7 @@ export default function SessionListHeader({
             color: 'rgba(255,255,255,0.82)',
             fontSize: 12,
             outline: 'none',
-            transition: 'border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease',
+            transition: 'all 0.15s ease',
           }}
           onFocus={(e) => {
             e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)'
@@ -247,7 +247,7 @@ export default function SessionListHeader({
                     fontWeight: isActive ? 600 : 400,
                     textAlign: 'left',
                     borderRadius: 0,
-                    transition: 'background 0.15s ease',
+                    transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
                   onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
@@ -272,7 +272,7 @@ export default function SessionListHeader({
         style={{
           ...iconBtnStyle,
           background: selectMode ? '#6366f1' : 'transparent',
-          color: selectMode ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
+          color: selectMode ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.45)',
           padding: selectMode ? '2px 5px' : '3px 4px',
         }}
         onMouseEnter={(e) => { if (!selectMode) iconBtnHover(e) }}
@@ -297,7 +297,7 @@ export default function SessionListHeader({
         style={{
           ...iconBtnStyle,
           background: showArchived ? '#6366f1' : 'transparent',
-          color: showArchived ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
+          color: showArchived ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.45)',
           padding: showArchived ? '2px 5px' : '3px 4px',
           position: 'relative',
         }}
@@ -328,7 +328,7 @@ export default function SessionListHeader({
         style={{
           ...iconBtnStyle,
           background: showStats ? '#6366f1' : 'transparent',
-          color: showStats ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
+          color: showStats ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.45)',
           padding: showStats ? '2px 5px' : '3px 4px',
         }}
         onMouseEnter={(e) => { if (!showStats) iconBtnHover(e) }}
@@ -344,7 +344,7 @@ export default function SessionListHeader({
           style={{
             ...iconBtnStyle,
             background: sessionListCompact ? '#6366f1' : 'transparent',
-            color: sessionListCompact ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
+            color: sessionListCompact ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.45)',
             padding: sessionListCompact ? '2px 5px' : '3px 4px',
           }}
           onMouseEnter={(e) => { if (!sessionListCompact) iconBtnHover(e) }}

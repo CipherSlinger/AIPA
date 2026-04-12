@@ -108,7 +108,7 @@ export default function NotesPanel() {
             borderRadius: 7,
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
-            transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+            transition: 'all 0.15s ease',
             boxShadow: searchFocused ? '0 0 0 3px rgba(99,102,241,0.12)' : 'none',
           }}>
             <Search size={14} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
