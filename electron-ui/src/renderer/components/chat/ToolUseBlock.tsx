@@ -4,6 +4,7 @@ import { ToolUseInfo } from '../../types/app.types'
 import { ChevronDown, Terminal, FileEdit, Search, Globe, Loader2, Check, X, Timer, ClipboardCopy, FileCode, FileText, Image, FileType, Palette, GitBranch, GitMerge, Clock, StopCircle, BookOpen, Network, Code2, CheckSquare, ClipboardList, Settings2, Send, Users, Compass, CheckCircle2, Layers, Database, FileInput, HelpCircle } from 'lucide-react'
 import { useT } from '../../i18n'
 import DiffView from './DiffView'
+import FileDiffView from './FileDiffView'
 import { generateToolSummary } from '../../utils/toolSummary'
 import LSPResultCard, { parseLSPOutput } from './LSPResultCard'
 
@@ -132,6 +133,9 @@ function extractImagePaths(tool: ToolUseInfo): string[] {
 
 const BASH_TOOLS = new Set(['Bash', 'computer'])
 const FILE_EDIT_TOOLS = new Set(['Edit', 'MultiEdit', 'str_replace_editor', 'str_replace_based_edit_tool'])
+// CLI snake_case variants (file_edit / file_write / file_create from stream-json)
+const FILE_CLI_EDIT_TOOLS = new Set(['file_edit'])
+const FILE_CLI_WRITE_TOOLS = new Set(['file_write', 'file_create'])
 
 function formatElapsed(seconds: number): string {
   if (seconds < 60) return `${seconds}s`
@@ -411,7 +415,20 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
                 </span>
               )}
             </div>
-            {isFileEdit && (tool.input.old_str || tool.input.new_str || tool.input.old_string || tool.input.new_string) ? (
+            {FILE_CLI_EDIT_TOOLS.has(tool.name) && typeof tool.input.path === 'string' ? (
+              <FileDiffView
+                tool="file_edit"
+                path={tool.input.path}
+                oldString={typeof tool.input.old_string === 'string' ? tool.input.old_string : ''}
+                newString={typeof tool.input.new_string === 'string' ? tool.input.new_string : ''}
+              />
+            ) : FILE_CLI_WRITE_TOOLS.has(tool.name) && typeof tool.input.path === 'string' ? (
+              <FileDiffView
+                tool={tool.name === 'file_create' ? 'file_create' : 'file_write'}
+                path={tool.input.path}
+                content={typeof tool.input.content === 'string' ? tool.input.content : ''}
+              />
+            ) : isFileEdit && (tool.input.old_str || tool.input.new_str || tool.input.old_string || tool.input.new_string) ? (
               <>
                 <DiffView
                   oldStr={String(tool.input.old_str ?? tool.input.old_string ?? '')}
