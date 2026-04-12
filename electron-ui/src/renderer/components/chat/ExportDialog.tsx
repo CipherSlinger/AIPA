@@ -87,7 +87,7 @@ export default function ExportDialog({ onClose }: Props) {
   const addToast = useUiStore(s => s.addToast)
 
   const [format, setFormat] = useState<'markdown' | 'json'>('markdown')
-  const [includeTools, setIncludeTools] = useState(true)
+  const [includeTools, setIncludeTools] = useState(false)
   const [includeTimestamps, setIncludeTimestamps] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -179,22 +179,22 @@ export default function ExportDialog({ onClose }: Props) {
 
   const radioGroupStyle: React.CSSProperties = {
     display: 'flex',
-    gap: 8,
+    background: 'rgba(255,255,255,0.05)',
+    borderRadius: 8,
+    padding: 3,
+    gap: 2,
   }
 
   const radioOptionStyle = (active: boolean): React.CSSProperties => ({
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
-    padding: '5px 12px',
-    border: `1px solid ${active ? 'rgba(99,102,241,0.4)' : 'rgba(255,255,255,0.09)'}`,
-    borderRadius: 8,
-    cursor: 'pointer',
-    background: active ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.04)',
-    color: active ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.6)',
+    padding: '5px 14px',
+    borderRadius: 6,
+    background: active ? 'rgba(99,102,241,0.88)' : 'transparent',
+    border: 'none',
+    color: active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
     fontSize: 12,
     fontWeight: active ? 600 : 400,
-    transition: 'border-color 0.15s ease, background 0.15s ease, color 0.15s ease',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
     userSelect: 'none',
   })
 
@@ -203,7 +203,7 @@ export default function ExportDialog({ onClose }: Props) {
     alignItems: 'center',
     gap: 8,
     fontSize: 12,
-    color: 'rgba(255,255,255,0.6)',
+    color: 'rgba(255,255,255,0.60)',
     cursor: 'pointer',
     userSelect: 'none',
   }
@@ -215,7 +215,7 @@ export default function ExportDialog({ onClose }: Props) {
     padding: '8px 10px',
     fontSize: 11,
     fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
-    color: 'rgba(255,255,255,0.6)',
+    color: 'rgba(255,255,255,0.60)',
     whiteSpace: 'pre-wrap',
     overflowY: 'auto',
     maxHeight: 160,
@@ -261,30 +261,12 @@ export default function ExportDialog({ onClose }: Props) {
         <div>
           <div style={labelStyle}>格式</div>
           <div style={radioGroupStyle}>
-            <div style={radioOptionStyle(format === 'markdown')} onClick={() => setFormat('markdown')}>
-              <span style={{
-                width: 12, height: 12, borderRadius: '50%',
-                border: `2px solid ${format === 'markdown' ? 'rgba(99,102,241,0.9)' : 'rgba(255,255,255,0.3)'}`,
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>
-                {format === 'markdown' && (
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6366f1' }} />
-                )}
-              </span>
+            <button style={radioOptionStyle(format === 'markdown')} onClick={() => setFormat('markdown')}>
               Markdown
-            </div>
-            <div style={radioOptionStyle(format === 'json')} onClick={() => setFormat('json')}>
-              <span style={{
-                width: 12, height: 12, borderRadius: '50%',
-                border: `2px solid ${format === 'json' ? 'rgba(99,102,241,0.9)' : 'rgba(255,255,255,0.3)'}`,
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>
-                {format === 'json' && (
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6366f1' }} />
-                )}
-              </span>
+            </button>
+            <button style={radioOptionStyle(format === 'json')} onClick={() => setFormat('json')}>
               JSON
-            </div>
+            </button>
           </div>
         </div>
 
@@ -296,16 +278,16 @@ export default function ExportDialog({ onClose }: Props) {
                 type="checkbox"
                 checked={includeTools}
                 onChange={e => setIncludeTools(e.target.checked)}
-                style={{ accentColor: '#6366f1', cursor: 'pointer' }}
+                style={{ accentColor: 'rgba(99,102,241,0.88)', cursor: 'pointer', width: 14, height: 14 }}
               />
-              包含工具调用详情
+              包含工具调用记录
             </label>
             <label style={checkRowStyle}>
               <input
                 type="checkbox"
                 checked={includeTimestamps}
                 onChange={e => setIncludeTimestamps(e.target.checked)}
-                style={{ accentColor: '#6366f1', cursor: 'pointer' }}
+                style={{ accentColor: 'rgba(99,102,241,0.88)', cursor: 'pointer', width: 14, height: 14 }}
               />
               包含时间戳
             </label>
@@ -325,16 +307,16 @@ export default function ExportDialog({ onClose }: Props) {
             style={{
               ...btnBase,
               background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.12)',
+              border: '1px solid rgba(255,255,255,0.09)',
               color: 'rgba(255,255,255,0.60)',
             }}
             onMouseEnter={e => {
               e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
             }}
             onMouseLeave={e => {
               e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
             }}
           >
             取消
