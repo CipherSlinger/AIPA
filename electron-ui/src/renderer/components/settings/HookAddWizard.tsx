@@ -64,6 +64,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
 
   // Step 3 fields
   const [matcher, setMatcher] = useState('')
+  const [ifCondition, setIfCondition] = useState('')
   const [timeout, setTimeout_] = useState('')
   // command
   const [command, setCommand] = useState('')
@@ -131,6 +132,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
     if (once) hook.once = true
     if (asyncMode) hook.async = true
     if (statusMessage.trim()) hook.statusMessage = statusMessage.trim()
+    if (ifCondition.trim()) hook.if = ifCondition.trim()
 
     if (hookType === 'command') {
       hook.command = command.trim()
@@ -573,6 +575,24 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
               />
             </div>
           </div>
+
+          {/* If condition (PreToolUse only) */}
+          {selectedEvent === 'PreToolUse' && (
+            <div>
+              <label style={fieldLabelStyle}>If 条件（可选）</label>
+              <input
+                value={ifCondition}
+                onChange={e => setIfCondition(e.target.value)}
+                placeholder="e.g. input.tool_name === 'Bash'"
+                style={inputStyle}
+                onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)' }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
+              />
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', marginTop: 4, lineHeight: 1.5 }}>
+                JavaScript 表达式，为真时才触发此 Hook。可访问 input 对象（如 input.tool_name）。
+              </div>
+            </div>
+          )}
 
           {/* Advanced: shell (command only) */}
           {hookType === 'command' && (
