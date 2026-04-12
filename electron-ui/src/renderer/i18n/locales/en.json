@@ -965,7 +965,16 @@
     "batchEdited": "Edited {{count}} files",
     "batchRan": "Ran {{count}} commands",
     "batchFetched": "Fetched {{count}} URLs",
-    "batchWrote": "Wrote {{count}} files"
+    "batchWrote": "Wrote {{count}} files",
+    "todoNoItems": "No todo items",
+    "todoStatusCompleted": "Completed",
+    "todoStatusInProgress": "In progress",
+    "todoStatusPending": "Pending",
+    "todoPriorityHigh": "High",
+    "todoPriorityMedium": "Medium",
+    "todoPriorityLow": "Low",
+    "todoHeader": "Todo List",
+    "todoCount": "{{count}} items"
   },
   "diff": {
     "showDiff": "Show diff",

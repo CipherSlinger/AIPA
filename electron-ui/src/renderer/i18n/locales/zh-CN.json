@@ -982,7 +982,16 @@
     "batchEdited": "编辑了 {{count}} 个文件",
     "batchRan": "执行了 {{count}} 条命令",
     "batchFetched": "获取了 {{count}} 个 URL",
-    "batchWrote": "写入了 {{count}} 个文件"
+    "batchWrote": "写入了 {{count}} 个文件",
+    "todoNoItems": "暂无待办事项",
+    "todoStatusCompleted": "已完成",
+    "todoStatusInProgress": "进行中",
+    "todoStatusPending": "待处理",
+    "todoPriorityHigh": "高",
+    "todoPriorityMedium": "中",
+    "todoPriorityLow": "低",
+    "todoHeader": "待办列表",
+    "todoCount": "共 {{count}} 项"
   },
   "diff": {
     "showDiff": "显示差异",

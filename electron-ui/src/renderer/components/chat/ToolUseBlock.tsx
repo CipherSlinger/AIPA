@@ -7,6 +7,7 @@ import DiffView from './DiffView'
 import FileDiffView from './FileDiffView'
 import { generateToolSummary } from '../../utils/toolSummary'
 import LSPResultCard, { parseLSPOutput } from './LSPResultCard'
+import TodoListView from './TodoListView'
 
 interface Props {
   tool: ToolUseInfo
@@ -698,8 +699,8 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
               />
             ) : tool.name === 'NotebookEdit' ? (
               <NotebookEditCard input={tool.input} />
-            ) : tool.name === 'TodoWrite' ? (
-              <TodoWriteCard input={tool.input} />
+            ) : tool.name === 'TodoWrite' || tool.name === 'todo_write' ? (
+              <TodoListView todos={Array.isArray(tool.input.todos) ? (tool.input.todos as import('./TodoListView').TodoItem[]) : []} />
             ) : (
               <pre style={{ fontSize: 11, margin: 0, fontFamily: 'monospace', background: 'rgba(8,8,16,1)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 4, padding: '6px 8px', overflow: 'auto', maxHeight: 200, color: '#a5b4fc', lineHeight: 1.5 }}>
                 {JSON.stringify(tool.input, null, 2)}
@@ -958,104 +959,6 @@ function NotebookEditCard({ input }: { input: Record<string, unknown> }) {
           Cell {cellNumber !== null ? cellNumber : ''} will be deleted.
         </div>
       )}
-    </div>
-  )
-}
-
-// ── TodoWrite specialized card ─────────────────────────────────────────────────
-
-interface TodoItem {
-  content: string
-  status: 'pending' | 'in_progress' | 'completed'
-  priority?: 'high' | 'medium' | 'low'
-  id?: string
-}
-
-function TodoWriteCard({ input }: { input: Record<string, unknown> }) {
-  const todos: TodoItem[] = Array.isArray(input.todos)
-    ? (input.todos as TodoItem[])
-    : []
-
-  const priorityColor: Record<string, string> = {
-    high: 'rgba(239,68,68,0.85)',
-    medium: 'rgba(251,191,36,0.85)',
-    low: 'rgba(255,255,255,0.38)',
-  }
-
-  if (todos.length === 0) {
-    return (
-      <div style={{
-        background: 'rgba(8,8,16,0.8)',
-        borderRadius: 8,
-        padding: 8,
-        fontSize: 11,
-        color: 'rgba(255,255,255,0.38)',
-        fontStyle: 'italic',
-      }}>
-        No todo items
-      </div>
-    )
-  }
-
-  return (
-    <div style={{
-      background: 'rgba(8,8,16,0.8)',
-      borderRadius: 8,
-      padding: 8,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 4,
-    }}>
-      {todos.map((todo, idx) => {
-        const isDone = todo.status === 'completed'
-        const isActive = todo.status === 'in_progress'
-        return (
-          <div
-            key={todo.id ?? idx}
-            style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 8,
-              padding: '4px 0',
-              borderBottom: idx < todos.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
-            }}
-          >
-            {/* Checkbox icon */}
-            <span style={{
-              flexShrink: 0,
-              marginTop: 1,
-              fontSize: 13,
-              color: isDone ? '#4ade80' : isActive ? '#818cf8' : 'rgba(255,255,255,0.30)',
-            }}>
-              {isDone ? '☑' : isActive ? '◉' : '☐'}
-            </span>
-            {/* Content */}
-            <span style={{
-              flex: 1,
-              fontSize: 12,
-              color: isDone ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.82)',
-              textDecoration: isDone ? 'line-through' : 'none',
-              lineHeight: 1.5,
-            }}>
-              {todo.content}
-            </span>
-            {/* Priority badge */}
-            {todo.priority && (
-              <span style={{
-                flexShrink: 0,
-                fontSize: 9,
-                fontWeight: 700,
-                color: priorityColor[todo.priority] ?? 'rgba(255,255,255,0.38)',
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase',
-                marginTop: 2,
-              }}>
-                {todo.priority}
-              </span>
-            )}
-          </div>
-        )
-      })}
     </div>
   )
 }
