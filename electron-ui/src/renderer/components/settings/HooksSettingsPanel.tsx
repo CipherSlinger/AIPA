@@ -26,6 +26,7 @@ interface EditState {
   eventType: string
   matcherIdx: number
   hookIdx: number
+  hookType: string
   // editable fields
   matcher: string
   command: string
@@ -37,7 +38,7 @@ interface EditState {
 // ── Helpers ────────────────────────────────────────────────────────────────
 function hookPreview(hook: HookEntry): string {
   if (hook.type === 'command') return hook.command?.slice(0, 50) ?? ''
-  if (hook.type === 'prompt') return hook.prompt?.slice(0, 50) ?? ''
+  if (hook.type === 'prompt' || hook.type === 'agent') return hook.prompt?.slice(0, 50) ?? ''
   if (hook.type === 'http') return hook.url?.slice(0, 50) ?? ''
   return hook.type
 }
@@ -191,7 +192,7 @@ function InlineEditor({ editState, onEditChange, onSave, onCancel }: InlineEdito
       {/* prompt */}
       {editState.prompt !== undefined && (
         <div>
-          <label style={labelStyle}>Prompt</label>
+          <label style={labelStyle}>{editState.hookType === 'agent' ? 'Sub-Agent Prompt' : 'Prompt'}</label>
           <textarea
             value={editState.prompt}
             onChange={e => onEditChange({ prompt: e.target.value })}
@@ -373,9 +374,10 @@ export default function HooksSettingsPanel() {
       eventType,
       matcherIdx,
       hookIdx,
+      hookType: hook.type,
       matcher: matcherStr,
       command: hook.type === 'command' ? (hook.command ?? '') : undefined as unknown as string,
-      prompt: hook.type === 'prompt' ? (hook.prompt ?? '') : undefined as unknown as string,
+      prompt: (hook.type === 'prompt' || hook.type === 'agent') ? (hook.prompt ?? '') : undefined as unknown as string,
       url: hook.type === 'http' ? (hook.url ?? '') : undefined as unknown as string,
       timeout: hook.timeout != null ? String(hook.timeout) : '',
     }
@@ -393,7 +395,7 @@ export default function HooksSettingsPanel() {
     if (hook.type === 'command' && editState.command !== undefined) {
       hook.command = editState.command
     }
-    if (hook.type === 'prompt' && editState.prompt !== undefined) {
+    if ((hook.type === 'prompt' || hook.type === 'agent') && editState.prompt !== undefined) {
       hook.prompt = editState.prompt
     }
     if (hook.type === 'http' && editState.url !== undefined) {
