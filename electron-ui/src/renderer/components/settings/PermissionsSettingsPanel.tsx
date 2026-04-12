@@ -131,11 +131,11 @@ export default function PermissionsSettingsPanel() {
           background: 'rgba(12,12,22,0.96)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
-          border: '1px solid rgba(255,255,255,0.10)',
+          border: '1px solid rgba(255,255,255,0.09)',
           borderRadius: 8,
           padding: '9px 18px',
           fontSize: 12, color: 'rgba(255,255,255,0.82)', zIndex: 9999,
-          boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
           pointerEvents: 'none',
         }}>
           {toast}
@@ -275,7 +275,7 @@ function RuleSection({
           style={{
             display: 'flex', alignItems: 'center', gap: 4,
             background: adding ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.10)',
+            border: '1px solid rgba(255,255,255,0.09)',
             borderRadius: 6, padding: '4px 10px',
             cursor: 'pointer', fontSize: 11, fontWeight: 500,
             color: 'rgba(255,255,255,0.60)',
@@ -284,12 +284,12 @@ function RuleSection({
           onMouseEnter={e => {
             e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
             e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
           }}
           onMouseLeave={e => {
             e.currentTarget.style.background = adding ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.06)'
             e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
           }}
           aria-label={t('permissions.addRule')}
         >
