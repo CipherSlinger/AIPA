@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Terminal, MessageSquare, Globe, X, ChevronRight } from 'lucide-react'
+import { Terminal, MessageSquare, Globe, X, ChevronRight, Bot } from 'lucide-react'
 import { useT } from '../../i18n'
 
 // ── Event type groups ──────────────────────────────────────────────────────
@@ -38,7 +38,7 @@ const EVENT_GROUP_KEYS: { labelKey: string; events: string[] }[] = [
   },
 ]
 
-type HookType = 'command' | 'prompt' | 'http'
+type HookType = 'command' | 'prompt' | 'http' | 'agent'
 
 interface HookAddWizardProps {
   onSave: (eventType: string, hook: Record<string, unknown>, matcher: string) => Promise<void>
@@ -121,6 +121,9 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
       if (!url.trim()) { setError(t('hooks.wizard.errUrlRequired')); return }
       try { new URL(url.trim()) } catch { setError(t('hooks.wizard.errUrlInvalid')); return }
     }
+    if (hookType === 'agent') {
+      if (!prompt.trim()) { setError('Sub-agent prompt is required.'); return }
+    }
 
     const hook: Record<string, unknown> = { type: hookType }
     const t_ = parseInt(timeout)
@@ -147,6 +150,8 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
         }
         hook.headers = parsed
       }
+    } else if (hookType === 'agent') {
+      hook.prompt = prompt.trim()
     }
 
     setSaving(true)
@@ -353,11 +358,12 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>
             {t('hooks.wizard.chooseTypeHint', { event: selectedEvent })}
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {([
               { type: 'command' as HookType, icon: <Terminal size={20} />, label: t('hooks.wizard.typeCommand'), desc: t('hooks.wizard.typeCommandDesc') },
               { type: 'prompt' as HookType, icon: <MessageSquare size={20} />, label: t('hooks.wizard.typePrompt'), desc: t('hooks.wizard.typePromptDesc') },
               { type: 'http' as HookType, icon: <Globe size={20} />, label: t('hooks.wizard.typeHttp'), desc: t('hooks.wizard.typeHttpDesc') },
+              { type: 'agent' as HookType, icon: <Bot size={20} />, label: t('hooks.wizard.typeAgent') || 'Agent', desc: 'Invoke a sub-agent' },
             ]).map(({ type, icon, label, desc }) => {
               const isSelected = hookType === type
               return (
@@ -502,6 +508,23 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                 />
               </div>
             </>
+          )}
+
+          {/* agent fields */}
+          {hookType === 'agent' && (
+            <div>
+              <label style={fieldLabelStyle}>
+                Sub-Agent Prompt <span style={{ color: '#f87171' }}>*</span>
+              </label>
+              <textarea
+                value={prompt}
+                onChange={e => setPrompt(e.target.value)}
+                placeholder="Describe what the sub-agent should do"
+                style={textareaStyle}
+                onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)' }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
+              />
+            </div>
           )}
 
           {/* Command preview */}

@@ -158,6 +158,12 @@ const electronAPI = {
     return () => ipcRenderer.removeListener('cli:notification', handler)
   },
 
+  onHookEvent: (cb: (data: { eventType?: string; [key: string]: unknown }) => void): Unsubscribe => {
+    const handler = (_: unknown, data: { eventType?: string; [key: string]: unknown }) => cb(data)
+    ipcRenderer.on('cli:hookEvent', handler)
+    return () => ipcRenderer.removeListener('cli:hookEvent', handler)
+  },
+
   // ── Menu events ──────────────────────────
   onMenuEvent: (event: string, cb: (...args: unknown[]) => void): Unsubscribe => {
     const h = (_: unknown, ...args: unknown[]) => cb(...args)

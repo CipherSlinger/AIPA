@@ -301,6 +301,7 @@ export default function HooksSettingsPanel() {
   const [editHover, setEditHover] = useState<string | null>(null)
   const [addBtnHover, setAddBtnHover] = useState(false)
   const [editState, setEditState] = useState<EditState | null>(null)
+  const [fireCounts, setFireCounts] = useState<Record<string, number>>({})
 
   const loadHooks = useCallback(async () => {
     setLoading(true)
@@ -317,6 +318,16 @@ export default function HooksSettingsPanel() {
   }, [])
 
   useEffect(() => { loadHooks() }, [loadHooks])
+
+  useEffect(() => {
+    if (!window.electronAPI.onHookEvent) return
+    const unsub = window.electronAPI.onHookEvent((data: { eventType?: string }) => {
+      if (data?.eventType) {
+        setFireCounts(prev => ({ ...prev, [data.eventType!]: (prev[data.eventType!] ?? 0) + 1 }))
+      }
+    })
+    return () => unsub?.()
+  }, [])
 
   const saveHooks = useCallback(async (next: HooksConfig) => {
     await window.electronAPI.configWriteCLISettings({ hooks: next })
@@ -611,6 +622,20 @@ export default function HooksSettingsPanel() {
                   }}>
                     {t('hooks.hookCount', { count: totalHooks })}
                   </span>
+                  {(fireCounts[eventType] ?? 0) > 0 && (
+                    <span style={{
+                      background: 'rgba(99,102,241,0.18)',
+                      border: '1px solid rgba(99,102,241,0.30)',
+                      borderRadius: 10,
+                      padding: '1px 6px',
+                      fontSize: 9,
+                      fontWeight: 700,
+                      color: 'rgba(165,180,252,0.90)',
+                      flexShrink: 0,
+                    }}>
+                      ▶ {fireCounts[eventType]}
+                    </span>
+                  )}
                 </button>
 
                 {/* Accordion body */}
