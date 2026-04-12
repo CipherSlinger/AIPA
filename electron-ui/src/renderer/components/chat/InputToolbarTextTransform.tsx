@@ -38,12 +38,13 @@ export default function InputToolbarTextTransform({ inputText, onSend }: TextTra
         title={t('transform.title')}
         style={{
           ...toolbarBtnStyle,
-          color: show ? 'var(--accent)' : 'var(--input-toolbar-icon)',
+          color: show ? '#818cf8' : 'rgba(255,255,255,0.45)',
+          background: show ? 'rgba(99,102,241,0.12)' : 'transparent',
           opacity: hasText ? 1 : 0.4,
           cursor: hasText ? 'pointer' : 'not-allowed',
         }}
-        onMouseEnter={(e) => { if (hasText) { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.background = 'rgba(0, 122, 204, 0.10)' } }}
-        onMouseLeave={(e) => { e.currentTarget.style.color = show ? 'var(--accent)' : 'var(--input-toolbar-icon)'; e.currentTarget.style.background = 'none' }}
+        onMouseEnter={(e) => { if (hasText) { e.currentTarget.style.color = '#818cf8'; e.currentTarget.style.background = 'rgba(99,102,241,0.12)' } }}
+        onMouseLeave={(e) => { e.currentTarget.style.color = show ? '#818cf8' : 'rgba(255,255,255,0.45)'; e.currentTarget.style.background = show ? 'rgba(99,102,241,0.12)' : 'transparent' }}
       >
         <Wand2 size={16} />
       </button>
@@ -54,17 +55,19 @@ export default function InputToolbarTextTransform({ inputText, onSend }: TextTra
             bottom: '100%',
             left: 0,
             marginBottom: 4,
-            background: 'var(--popup-bg)',
-            border: '1px solid var(--popup-border)',
-            borderRadius: 8,
-            boxShadow: 'var(--popup-shadow)',
-            padding: '4px 0',
+            background: 'rgba(15,15,25,0.96)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.09)',
+            borderRadius: 10,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
+            padding: '6px 0',
             minWidth: 180,
             zIndex: 100,
-            animation: 'popup-in 0.15s ease',
+            animation: 'slideUp 0.15s ease',
           }}
         >
-          <div style={{ padding: '4px 12px 6px', fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          <div style={{ padding: '4px 12px 6px', fontSize: 10, color: 'rgba(255,255,255,0.38)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
             {t('transform.title')}
           </div>
           {TRANSFORM_ACTIONS.map(action => (
@@ -78,17 +81,18 @@ export default function InputToolbarTextTransform({ inputText, onSend }: TextTra
                 display: 'block',
                 width: '100%',
                 textAlign: 'left',
-                padding: '6px 12px',
-                background: 'none',
+                padding: '7px 12px',
+                background: 'transparent',
                 border: 'none',
-                color: 'var(--text-primary)',
+                borderRadius: 7,
+                color: 'rgba(255,255,255,0.60)',
                 cursor: 'pointer',
                 fontSize: 12,
                 lineHeight: 1.4,
-                transition: 'background 100ms',
+                transition: 'all 0.15s ease',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(99,102,241,0.08)'; e.currentTarget.style.color = '#a5b4fc' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.65)' }}
             >
               {t(action.labelKey)}
             </button>

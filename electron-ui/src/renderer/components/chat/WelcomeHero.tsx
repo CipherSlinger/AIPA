@@ -27,27 +27,36 @@ export default function WelcomeHero({ greeting, displayName, activePersona, acce
     <>
       {/* Hero icon */}
       <div className="onboard-icon" style={{
-        width: 64, height: 64, borderRadius: '50%', background: accentTint,
+        width: 64, height: 64, borderRadius: 16,
+        background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+        boxShadow: '0 0 32px rgba(99,102,241,0.4), 0 8px 24px rgba(0,0,0,0.4)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 16, boxSizing: 'border-box',
       }}>
         {activePersona
           ? <span style={{ fontSize: 36, lineHeight: 1 }}>{activePersona.emoji}</span>
-          : <Bot size={38} color="var(--accent)" strokeWidth={1.5} />
+          : <Bot size={38} color="#e0e7ff" strokeWidth={1.5} />
         }
       </div>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 24, color: 'var(--text-bright)', fontWeight: 700, letterSpacing: '-0.02em' }}>
-          {displayName ? t('welcome.greetingWithName', { greeting: t(greeting), name: displayName }) : t(greeting)}
+        <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+          <span style={{
+            background: 'linear-gradient(135deg, #e0e7ff, #c4b5fd)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}>
+            {displayName ? t('welcome.greetingWithName', { greeting: t(greeting), name: displayName }) : t(greeting)}
+          </span>
         </div>
         {activePersona && (
           <div style={{ fontSize: 13, color: activePersona.color, marginTop: 4, fontWeight: 500 }}>
             {t('persona.personaGreeting', { name: activePersona.presetKey ? t(`persona.preset.${activePersona.presetKey}`) : activePersona.name })}
           </div>
         )}
-        <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4, opacity: 0.7 }}>
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.38)', marginTop: 4 }}>
           {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
         </div>
-        <div style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 8, maxWidth: 360, lineHeight: 1.7 }}>
+        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.60)', marginTop: 6, maxWidth: 360, lineHeight: 1.6 }}>
           {t('welcome.subtitle')}
         </div>
       </div>

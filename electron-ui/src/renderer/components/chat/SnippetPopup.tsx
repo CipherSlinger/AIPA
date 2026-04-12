@@ -1,4 +1,4 @@
-// SnippetPopup — text snippet selection popup in ChatInput (extracted Iteration 455)
+// SnippetPopup — text snippet selection popup in ChatInput (extracted Iteration 456)
 import React from 'react'
 import { useT } from '../../i18n'
 
@@ -25,41 +25,140 @@ export default function SnippetPopup({ snippets, selectedIndex, onSelect, onHove
       className="popup-enter"
       style={{
         position: 'absolute', bottom: '100%', left: 0, marginBottom: 4,
-        width: 320, maxHeight: 240, overflowY: 'auto',
-        background: 'var(--popup-bg)', border: '1px solid var(--popup-border)',
-        borderRadius: 8, boxShadow: 'var(--popup-shadow)', padding: '4px 0', zIndex: 50,
+        width: 320,
+        background: 'rgba(15,15,25,0.96)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 12,
+        boxShadow: '0 16px 48px rgba(0,0,0,0.65), 0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+        zIndex: 50,
+        overflow: 'hidden',
       }}
     >
-      <div style={{ padding: '4px 10px 2px', fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, letterSpacing: 0.3 }}>
+      <style>{`.snippet-popup-scroll::-webkit-scrollbar { width: 4px; } .snippet-popup-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); border-radius: 2px; }`}</style>
+
+      {/* Section header — micro-label */}
+      <div style={{
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: '0.07em',
+        textTransform: 'uppercase' as const,
+        color: 'rgba(255,255,255,0.38)',
+        padding: '6px 12px 4px',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
+      }}>
         {t('snippet.title')}
       </div>
-      {snippets.map((snippet, idx) => (
-        <button
-          key={snippet.id}
-          onClick={() => onSelect(snippet)}
-          onMouseEnter={() => onHover(idx)}
-          style={{
-            display: 'flex', alignItems: 'flex-start', gap: 8,
-            padding: '6px 10px',
-            background: idx === selectedIndex ? 'var(--popup-item-hover)' : 'transparent',
-            border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left', borderRadius: 0,
-          }}
-        >
-          <span style={{
-            fontSize: 11, fontWeight: 600, color: 'var(--accent)',
-            fontFamily: 'monospace', flexShrink: 0, minWidth: 48,
-          }}>
-            ::{snippet.keyword}
+
+      {/* Snippet list */}
+      <div className="snippet-popup-scroll" style={{ maxHeight: 240, overflowY: 'auto', padding: '2px 0' }}>
+        {snippets.map((snippet, idx) => {
+          const isSelected = idx === selectedIndex
+          return (
+            <button
+              key={snippet.id}
+              onClick={() => onSelect(snippet)}
+              onMouseEnter={() => onHover(idx)}
+              style={{
+                display: 'flex', alignItems: 'flex-start', gap: 10,
+                padding: '7px 12px',
+                background: isSelected ? 'rgba(99,102,241,0.12)' : 'transparent',
+                borderLeft: isSelected ? '2px solid rgba(99,102,241,0.60)' : '2px solid transparent',
+                border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseOver={(e) => {
+                if (!isSelected) {
+                  (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)'
+                }
+              }}
+              onMouseOut={(e) => {
+                if (!isSelected) {
+                  (e.currentTarget as HTMLButtonElement).style.background = 'transparent'
+                }
+              }}
+            >
+              {/* :: badge */}
+              <div style={{
+                width: 28, height: 28, borderRadius: 7, flexShrink: 0,
+                background: isSelected ? 'rgba(99,102,241,0.25)' : 'rgba(99,102,241,0.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'background 0.15s ease',
+              }}>
+                <span style={{
+                  fontSize: 9, fontWeight: 700,
+                  color: isSelected ? '#a5b4fc' : '#818cf8',
+                  fontFamily: 'monospace',
+                }}>
+                  ::
+                </span>
+              </div>
+
+              {/* Content */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {/* Keyword name */}
+                <div style={{
+                  fontSize: 13, fontWeight: 600,
+                  color: isSelected ? '#818cf8' : 'rgba(255,255,255,0.82)',
+                  marginBottom: 2,
+                  transition: 'color 0.15s ease',
+                }}>
+                  {snippet.keyword}
+                </div>
+                {/* Preview — monospace, muted */}
+                <div style={{
+                  fontSize: 11,
+                  fontFamily: 'monospace',
+                  color: 'rgba(255,255,255,0.45)',
+                  lineHeight: 1.4,
+                  overflow: 'hidden',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical' as const,
+                }}>
+                  {snippet.content}
+                </div>
+              </div>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Footer — keyboard hints as kbd */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '5px 12px',
+        borderTop: '1px solid rgba(255,255,255,0.07)',
+        flexWrap: 'wrap' as const,
+      }}>
+        {[
+          ['↑↓', 'navigate'],
+          ['↵', 'select'],
+          ['Esc', 'dismiss'],
+        ].map(([key, label]) => (
+          <span key={key} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            <kbd style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(255,255,255,0.07)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: 4,
+              padding: '1px 5px',
+              fontSize: 10,
+              fontFamily: 'monospace',
+              color: 'rgba(255,255,255,0.55)',
+              lineHeight: 1.6,
+            }}>
+              {key}
+            </kbd>
+            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)' }}>{label}</span>
           </span>
-          <span style={{
-            fontSize: 11, color: 'var(--text-primary)', overflow: 'hidden',
-            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-            lineHeight: 1.4, opacity: 0.8,
-          }}>
-            {snippet.content.length > 80 ? snippet.content.slice(0, 80) + '...' : snippet.content}
-          </span>
-        </button>
-      ))}
+        ))}
+      </div>
     </div>
   )
 }

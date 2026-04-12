@@ -97,7 +97,7 @@ export default function ChangesPanel({
         {totalFilesChanged > 0 && (
           <span style={{
             position: 'absolute', top: -4, right: -4,
-            background: 'var(--accent)', color: '#fff',
+            background: 'rgba(99,102,241,0.85)', color: 'rgba(255,255,255,0.95)',
             fontSize: 9, fontWeight: 700, borderRadius: '50%',
             minWidth: 16, height: 16, display: 'flex',
             alignItems: 'center', justifyContent: 'center',
@@ -116,17 +116,22 @@ export default function ChangesPanel({
           style={{
             position: 'absolute', top: '100%', right: 0,
             width: 380, maxHeight: 420, overflowY: 'auto',
-            background: 'var(--popup-bg)', border: '1px solid var(--popup-border)',
-            boxShadow: 'var(--popup-shadow)', borderRadius: 8,
+            background: 'rgba(15,15,25,0.92)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
+            borderRadius: 12,
             zIndex: 200, marginTop: 4,
           }}
         >
           {/* Header */}
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '10px 12px 6px',
+            padding: '10px 14px',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
           }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.82)' }}>
               {t('changes.title')}
             </span>
             <div style={{ display: 'flex', gap: 4 }}>
@@ -136,10 +141,11 @@ export default function ChangesPanel({
                   title={t('common.copy')}
                   style={{
                     background: 'transparent', border: 'none', cursor: 'pointer',
-                    padding: 4, borderRadius: 4, color: 'var(--text-muted)',
+                    padding: 4, borderRadius: 8, color: 'rgba(255,255,255,0.45)',
                     display: 'flex', alignItems: 'center',
+                    transition: 'background 0.15s ease',
                   }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)' }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
                 >
                   {copied ? <Check size={14} /> : <ClipboardCopy size={14} />}
@@ -149,10 +155,11 @@ export default function ChangesPanel({
                 onClick={() => setShowPanel(false)}
                 style={{
                   background: 'transparent', border: 'none', cursor: 'pointer',
-                  padding: 4, borderRadius: 4, color: 'var(--text-muted)',
+                  padding: 4, borderRadius: 8, color: 'rgba(255,255,255,0.45)',
                   display: 'flex', alignItems: 'center',
+                  transition: 'background 0.15s ease',
                 }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)' }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
               >
                 <X size={14} />
@@ -163,17 +170,27 @@ export default function ChangesPanel({
           {totalFilesChanged === 0 ? (
             /* Empty state */
             <div style={{
-              padding: '24px 12px', textAlign: 'center',
-              fontSize: 12, color: 'var(--text-muted)',
+              padding: '32px 16px', textAlign: 'center',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
             }}>
-              {t('changes.noChanges')}
+              <div style={{
+                width: 48, height: 48, borderRadius: 12,
+                background: 'rgba(255,255,255,0.04)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <GitCompareArrows size={20} style={{ color: 'rgba(255,255,255,0.2)' }} />
+              </div>
+              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', textAlign: 'center' }}>
+                {t('changes.noChanges')}
+              </span>
             </div>
           ) : (
             <>
               {/* Summary stats */}
               <div style={{
-                padding: '0 12px 8px', fontSize: 12, color: 'var(--text-secondary)',
+                padding: '8px 12px 8px', fontSize: 12, color: 'rgba(255,255,255,0.60)',
                 display: 'flex', gap: 8, flexWrap: 'wrap',
+                fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"',
               }}>
                 <span>{totalFilesChanged === 1 ? t('changes.fileChanged') : t('changes.filesChanged', { count: String(totalFilesChanged) })}</span>
                 {totalLinesAdded > 0 && (
@@ -185,37 +202,57 @@ export default function ChangesPanel({
               </div>
 
               {/* File list */}
-              <div role="list" style={{ borderTop: '1px solid var(--popup-border)' }}>
-                {files.map(f => (
-                  <div key={f.filePath} role="listitem" style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '5px 12px', height: 28,
-                  }}>
-                    <span style={{
-                      fontSize: 10, fontWeight: 600, borderRadius: 3,
-                      padding: '1px 6px', flexShrink: 0,
-                      background: f.status === 'created' ? 'rgba(74, 222, 128, 0.15)' : 'rgba(250, 204, 21, 0.15)',
-                      color: f.status === 'created' ? '#4ade80' : '#facc15',
-                    }}>
-                      {f.status === 'created' ? t('changes.statusCreated') : t('changes.statusModified')}
-                    </span>
-                    <span title={f.filePath} style={{
-                      fontSize: 12, color: 'var(--text-primary)',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
-                    }}>
-                      {f.basename}
-                    </span>
-                    <span style={{ fontSize: 11, fontFamily: 'monospace', flexShrink: 0, display: 'flex', gap: 6 }}>
-                      {f.linesAdded > 0 && <span style={{ color: '#4ade80' }}>+{f.linesAdded}</span>}
-                      {f.linesRemoved > 0 && <span style={{ color: '#f87171' }}>-{f.linesRemoved}</span>}
-                    </span>
-                  </div>
-                ))}
+              <div role="list" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                {files.map(f => {
+                  const isCreated = f.status === 'created'
+                  const borderColor = isCreated ? 'rgba(74,222,128,0.5)' : 'rgba(99,102,241,0.5)'
+                  const badgeBg = isCreated ? 'rgba(34,197,94,0.12)' : 'rgba(99,102,241,0.12)'
+                  const badgeColor = isCreated ? '#86efac' : '#a5b4fc'
+                  const badgeBorder = isCreated ? '1px solid rgba(34,197,94,0.25)' : '1px solid rgba(99,102,241,0.25)'
+                  return (
+                    <div
+                      key={f.filePath}
+                      role="listitem"
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        padding: '8px 12px',
+                        borderBottom: '1px solid rgba(255,255,255,0.04)',
+                        borderLeft: `3px solid ${borderColor}`,
+                        borderRadius: 8,
+                        transition: 'background 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)' }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+                    >
+                      <span style={{
+                        fontSize: 9, fontWeight: 700, borderRadius: 6,
+                        padding: '1px 5px', flexShrink: 0,
+                        background: badgeBg,
+                        color: badgeColor,
+                        border: badgeBorder,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                      }}>
+                        {isCreated ? t('changes.statusCreated') : t('changes.statusModified')}
+                      </span>
+                      <span title={f.filePath} style={{
+                        fontSize: 11, fontFamily: 'monospace', color: 'rgba(255,255,255,0.82)',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
+                      }}>
+                        {f.basename}
+                      </span>
+                      <span style={{ fontSize: 10, fontFamily: 'monospace', flexShrink: 0, display: 'flex', gap: 6, fontVariantNumeric: 'tabular-nums', color: 'rgba(255,255,255,0.38)' }}>
+                        {f.linesAdded > 0 && <span style={{ color: '#4ade80' }}>+{f.linesAdded}</span>}
+                        {f.linesRemoved > 0 && <span style={{ color: '#f87171' }}>-{f.linesRemoved}</span>}
+                      </span>
+                    </div>
+                  )
+                })}
               </div>
 
               {/* Per-turn breakdown */}
               {turns.length > 0 && (
-                <div style={{ borderTop: '1px solid var(--popup-border)', paddingTop: 4 }}>
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: 4 }}>
                   {turns.map((turn, idx) => {
                     const isExpanded = expandedTurns.has(idx)
                     return (
@@ -227,39 +264,54 @@ export default function ChangesPanel({
                             width: '100%', display: 'flex', alignItems: 'center', gap: 4,
                             padding: '4px 12px', background: 'none', border: 'none',
                             cursor: 'pointer', textAlign: 'left',
-                            color: 'var(--text-muted)', fontSize: 11,
+                            color: 'rgba(255,255,255,0.45)', fontSize: 11,
+                            transition: 'background 0.15s ease',
                           }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)' }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none' }}
                         >
                           {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {t('changes.turn', { num: String(idx + 1), prompt: turn.userPromptPreview })}
                           </span>
                         </button>
-                        {isExpanded && turn.files.map(f => (
-                          <div key={f.filePath} style={{
-                            display: 'flex', alignItems: 'center', gap: 8,
-                            padding: '3px 12px 3px 32px', fontSize: 11,
-                          }}>
-                            <span style={{
-                              fontSize: 9, fontWeight: 600, borderRadius: 3,
-                              padding: '0 4px', flexShrink: 0,
-                              background: f.status === 'created' ? 'rgba(74, 222, 128, 0.15)' : 'rgba(250, 204, 21, 0.15)',
-                              color: f.status === 'created' ? '#4ade80' : '#facc15',
+                        {isExpanded && turn.files.map(f => {
+                          const isCreated = f.status === 'created'
+                          const badgeBg = isCreated ? 'rgba(34,197,94,0.12)' : 'rgba(99,102,241,0.12)'
+                          const badgeColor = isCreated ? '#86efac' : '#a5b4fc'
+                          const badgeBorder = isCreated ? '1px solid rgba(34,197,94,0.25)' : '1px solid rgba(99,102,241,0.25)'
+                          return (
+                            <div key={f.filePath} style={{
+                              display: 'flex', alignItems: 'center', gap: 8,
+                              padding: '3px 12px 3px 32px', fontSize: 11,
+                              borderBottom: '1px solid rgba(255,255,255,0.04)',
+                              borderLeft: `3px solid ${isCreated ? 'rgba(34,197,94,0.3)' : 'rgba(99,102,241,0.3)'}`,
                             }}>
-                              {f.status === 'created' ? t('changes.statusCreated') : t('changes.statusModified')}
-                            </span>
-                            <span title={f.filePath} style={{
-                              color: 'var(--text-secondary)',
-                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
-                            }}>
-                              {f.basename}
-                            </span>
-                            <span style={{ fontFamily: 'monospace', flexShrink: 0, display: 'flex', gap: 4 }}>
-                              {f.linesAdded > 0 && <span style={{ color: '#4ade80' }}>+{f.linesAdded}</span>}
-                              {f.linesRemoved > 0 && <span style={{ color: '#f87171' }}>-{f.linesRemoved}</span>}
-                            </span>
-                          </div>
-                        ))}
+                              <span style={{
+                                fontSize: 9, fontWeight: 700, borderRadius: 6,
+                                padding: '1px 5px', flexShrink: 0,
+                                background: badgeBg,
+                                color: badgeColor,
+                                border: badgeBorder,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.04em',
+                              }}>
+                                {isCreated ? t('changes.statusCreated') : t('changes.statusModified')}
+                              </span>
+                              <span title={f.filePath} style={{
+                                fontFamily: 'monospace', fontSize: 11,
+                                color: 'rgba(255,255,255,0.82)',
+                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
+                              }}>
+                                {f.basename}
+                              </span>
+                              <span style={{ fontFamily: 'monospace', flexShrink: 0, display: 'flex', gap: 4, fontSize: 10, fontVariantNumeric: 'tabular-nums', color: 'rgba(255,255,255,0.38)' }}>
+                                {f.linesAdded > 0 && <span style={{ color: '#4ade80' }}>+{f.linesAdded}</span>}
+                                {f.linesRemoved > 0 && <span style={{ color: '#f87171' }}>-{f.linesRemoved}</span>}
+                              </span>
+                            </div>
+                          )
+                        })}
                       </div>
                     )
                   })}

@@ -1,26 +1,95 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { StandardChatMessage } from '../../types/app.types'
 import { Copy, Check, Bookmark, Code2, Pencil, MessageSquareQuote, NotebookPen, Volume2, VolumeX, Brain, Share2, Pin, Languages, StickyNote, ThumbsUp, ThumbsDown, Undo2, ChevronDown, FileText, Braces, GitBranch } from 'lucide-react'
 import { useT } from '../../i18n'
 
-const actionBtnStyle: React.CSSProperties = {
-  background: 'transparent',
-  border: 'none',
-  borderRadius: 5,
-  padding: '3px 5px',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  color: 'var(--text-muted)',
-  transition: 'background 0.12s ease, color 0.12s ease',
+// ---------- ActionButton ----------
+// Handles hover/active states via React state so no imperative style mutations exist.
+
+interface ActionButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  isActive?: boolean
+  isCopied?: boolean
+  isDestructive?: boolean
+  skipHover?: boolean
+  style?: React.CSSProperties
 }
 
-const hoverIn = (e: React.MouseEvent<HTMLButtonElement>, skipIf?: boolean) => {
-  if (!skipIf) (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)'
+function ActionButton({
+  isActive,
+  isCopied,
+  isDestructive,
+  skipHover,
+  style,
+  children,
+  ...rest
+}: ActionButtonProps) {
+  const [hovered, setHovered] = useState(false)
+  const [pressed, setPressed] = useState(false)
+
+  let bg = 'transparent'
+  let color = 'rgba(255,255,255,0.45)'
+
+  if (isCopied) {
+    bg = 'rgba(34,197,94,0.1)'
+    color = '#4ade80'
+  } else if (isActive) {
+    // keep caller-provided color; just ensure bg reflects active
+    bg = 'transparent'
+  } else if (pressed) {
+    bg = 'rgba(99,102,241,0.15)'
+    color = '#818cf8'
+  } else if (hovered && !skipHover) {
+    bg = isDestructive ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.09)'
+    color = isDestructive ? '#fca5a5' : 'rgba(255,255,255,0.82)'
+  }
+
+  return (
+    <button
+      {...rest}
+      style={{
+        background: bg,
+        border: hovered && !skipHover && !isActive && !isCopied
+          ? '1px solid rgba(255,255,255,0.09)'
+          : '1px solid transparent',
+        borderRadius: 8,
+        padding: '4px 6px',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: 28,
+        minHeight: 28,
+        color,
+        transition: 'all 0.15s ease',
+        ...style,
+      }}
+      onMouseEnter={(e) => { setHovered(true); rest.onMouseEnter?.(e) }}
+      onMouseLeave={(e) => { setHovered(false); setPressed(false); rest.onMouseLeave?.(e) }}
+      onMouseDown={(e) => { setPressed(true); rest.onMouseDown?.(e) }}
+      onMouseUp={(e) => { setPressed(false); rest.onMouseUp?.(e) }}
+    >
+      {children}
+    </button>
+  )
 }
-const hoverOut = (e: React.MouseEvent<HTMLButtonElement>, skipIf?: boolean) => {
-  if (!skipIf) (e.currentTarget as HTMLElement).style.background = 'transparent'
+
+// ---------- Separator ----------
+
+function Sep() {
+  return (
+    <div
+      style={{
+        background: 'rgba(255,255,255,0.08)',
+        width: 1,
+        height: 14,
+        margin: '0 2px',
+        flexShrink: 0,
+      }}
+    />
+  )
 }
+
+// ---------- Props ----------
 
 interface MessageActionToolbarProps {
   isUser: boolean
@@ -55,6 +124,8 @@ interface MessageActionToolbarProps {
   onFork?: () => void
 }
 
+// ---------- Component ----------
+
 export default function MessageActionToolbar({
   isUser, isAssistant, isPermission, isPlan, message,
   copied, showRawMarkdown, globalIsStreaming,
@@ -85,6 +156,14 @@ export default function MessageActionToolbar({
     return () => document.removeEventListener('mousedown', handler)
   }, [showCopyMenu])
 
+  // Whether any "left group" buttons are visible (edit / fork / rewind)
+  const hasLeftGroup = (isUser && hasOnEdit && !globalIsStreaming) ||
+    (isUser && !!onFork && !globalIsStreaming) ||
+    (!!onRewind && !isLastMessage && !globalIsStreaming && !isPermission && !isPlan)
+
+  // Whether right assistant-only group is visible (save/remember)
+  const hasAssistantRightGroup = isAssistant && !!message.content
+
   return (
     <div
       role="toolbar"
@@ -97,84 +176,80 @@ export default function MessageActionToolbar({
         display: 'flex',
         alignItems: 'center',
         gap: 2,
-        padding: '3px 5px',
-        background: 'var(--popup-bg)',
-        border: '1px solid var(--popup-border)',
-        boxShadow: 'var(--popup-shadow)',
-        borderRadius: 8,
+        padding: '2px 4px',
+        background: 'rgba(15,15,25,0.92)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        border: '1px solid rgba(255,255,255,0.09)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3)',
+        borderRadius: 10,
         zIndex: 20,
+        animation: 'slideUp 0.15s ease',
       }}
     >
-      {/* Raw markdown toggle (assistant only) */}
+      {/* ── Left group: edit / fork / rewind ── */}
+
+      {/* Raw markdown toggle (assistant only) — sits before the left sep */}
       {isAssistant && (
-        <button
+        <ActionButton
           onClick={(e) => { e.stopPropagation(); onToggleRawMarkdown() }}
           title={showRawMarkdown ? t('message.formattedView') : t('message.rawMarkdown')}
+          isActive={showRawMarkdown}
+          skipHover={showRawMarkdown}
           style={{
-            ...actionBtnStyle,
-            background: showRawMarkdown ? 'var(--accent)' : 'transparent',
-            color: showRawMarkdown ? '#fff' : 'var(--text-muted)',
+            background: showRawMarkdown ? '#6366f1' : undefined,
+            color: showRawMarkdown ? 'rgba(255,255,255,0.95)' : undefined,
           }}
-          onMouseEnter={(e) => hoverIn(e, showRawMarkdown)}
-          onMouseLeave={(e) => hoverOut(e, showRawMarkdown)}
         >
           <Code2 size={13} />
-        </button>
+        </ActionButton>
       )}
 
       {/* Edit (user messages only) */}
       {isUser && hasOnEdit && !globalIsStreaming && (
-        <button
+        <ActionButton
           onClick={(e) => { e.stopPropagation(); onStartEdit() }}
           title={t('message.editMessage')}
-          style={actionBtnStyle}
-          onMouseEnter={(e) => hoverIn(e)}
-          onMouseLeave={(e) => hoverOut(e)}
         >
           <Pencil size={13} />
-        </button>
+        </ActionButton>
       )}
 
       {/* Fork from here (user messages only) */}
       {isUser && onFork && !globalIsStreaming && (
-        <button
+        <ActionButton
           onClick={(e) => { e.stopPropagation(); onFork() }}
           title={t('fork.forkFromHere')}
-          style={actionBtnStyle}
-          onMouseEnter={(e) => hoverIn(e)}
-          onMouseLeave={(e) => hoverOut(e)}
         >
           <GitBranch size={13} />
-        </button>
+        </ActionButton>
       )}
 
-      {/* Rewind to here (not shown on last message or while streaming) */}
+      {/* Rewind to here */}
       {onRewind && !isLastMessage && !globalIsStreaming && !isPermission && !isPlan && (
-        <button
+        <ActionButton
           onClick={(e) => { e.stopPropagation(); onRewind() }}
           title={t('rewind.button')}
-          style={actionBtnStyle}
-          onMouseEnter={(e) => hoverIn(e)}
-          onMouseLeave={(e) => hoverOut(e)}
         >
           <Undo2 size={13} />
-        </button>
+        </ActionButton>
       )}
 
-      {/* Copy with dropdown */}
+      {/* Separator after left group */}
+      {hasLeftGroup && <Sep />}
+
+      {/* ── Copy with dropdown ── */}
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }} ref={copyMenuRef}>
-        <button
+        <ActionButton
           onClick={(e) => { e.stopPropagation(); onCopy() }}
           title={copied ? t('message.copied') : t('message.copy')}
+          isCopied={copied}
+          skipHover={copied}
           style={{
-            ...actionBtnStyle,
             gap: 3,
-            color: copied ? 'var(--success)' : 'var(--text-muted)',
             fontSize: 11,
             borderRadius: (isAssistant && (onCopyMarkdown || onCopyCodeBlocks)) ? '5px 0 0 5px' : 5,
           }}
-          onMouseEnter={(e) => hoverIn(e, copied)}
-          onMouseLeave={(e) => hoverOut(e)}
         >
           {copied ? (
             <>
@@ -184,25 +259,23 @@ export default function MessageActionToolbar({
           ) : (
             <Copy size={13} />
           )}
-        </button>
+        </ActionButton>
+
         {/* Dropdown arrow for assistant messages with copy variants */}
         {isAssistant && (onCopyMarkdown || onCopyCodeBlocks) && (
-          <button
+          <ActionButton
             onClick={(e) => { e.stopPropagation(); setShowCopyMenu(!showCopyMenu) }}
             title={t('copy.moreOptions')}
             style={{
-              ...actionBtnStyle,
-              padding: '3px 2px',
+              padding: '4px 2px',
               borderRadius: '0 5px 5px 0',
-              borderLeft: '1px solid var(--popup-border)',
-              color: 'var(--text-muted)',
+              borderLeft: '1px solid rgba(255,255,255,0.09)',
             }}
-            onMouseEnter={(e) => hoverIn(e)}
-            onMouseLeave={(e) => hoverOut(e)}
           >
             <ChevronDown size={10} />
-          </button>
+          </ActionButton>
         )}
+
         {/* Copy dropdown menu */}
         {showCopyMenu && (
           <div
@@ -213,228 +286,226 @@ export default function MessageActionToolbar({
               ...(isUser ? { left: 0 } : { right: 0 }),
               marginTop: 4,
               width: 180,
-              background: 'var(--popup-bg)',
-              border: '1px solid var(--popup-border)',
-              borderRadius: 8,
-              boxShadow: 'var(--popup-shadow)',
+              background: 'rgba(15,15,25,0.96)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.09)',
+              borderRadius: 10,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
               padding: '4px 0',
               zIndex: 30,
+              animation: 'slideUp 0.15s ease',
             }}
           >
-            <button
+            <DropdownItem
+              icon={<FileText size={12} color="rgba(255,255,255,0.45)" />}
+              label={t('copy.asText')}
               onClick={(e) => { e.stopPropagation(); onCopy(); setShowCopyMenu(false) }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                width: '100%', padding: '6px 12px', background: 'none',
-                border: 'none', cursor: 'pointer', color: 'var(--text-primary)',
-                fontSize: 11, textAlign: 'left',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
-            >
-              <FileText size={12} color="var(--text-muted)" />
-              {t('copy.asText')}
-            </button>
+            />
             {onCopyMarkdown && (
-              <button
+              <DropdownItem
+                icon={<Braces size={12} color="rgba(255,255,255,0.45)" />}
+                label={t('copy.asMarkdown')}
                 onClick={(e) => { e.stopPropagation(); onCopyMarkdown(); setShowCopyMenu(false) }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  width: '100%', padding: '6px 12px', background: 'none',
-                  border: 'none', cursor: 'pointer', color: 'var(--text-primary)',
-                  fontSize: 11, textAlign: 'left',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
-              >
-                <Braces size={12} color="var(--text-muted)" />
-                {t('copy.asMarkdown')}
-              </button>
+              />
             )}
             {onCopyCodeBlocks && hasCodeBlocks && (
-              <button
+              <DropdownItem
+                icon={<Code2 size={12} color="rgba(255,255,255,0.45)" />}
+                label={t('copy.codeBlocksOnly')}
                 onClick={(e) => { e.stopPropagation(); onCopyCodeBlocks(); setShowCopyMenu(false) }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  width: '100%', padding: '6px 12px', background: 'none',
-                  border: 'none', cursor: 'pointer', color: 'var(--text-primary)',
-                  fontSize: 11, textAlign: 'left',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
-              >
-                <Code2 size={12} color="var(--text-muted)" />
-                {t('copy.codeBlocksOnly')}
-              </button>
+              />
             )}
           </div>
         )}
       </div>
 
+      {/* ── Middle group: bookmark / pin / quote / translate / share / annotate ── */}
+
+      {!isPermission && !isPlan && <Sep />}
+
       {/* Bookmark */}
       {!isPermission && !isPlan && (
-        <button
+        <ActionButton
           onClick={(e) => { e.stopPropagation(); onBookmark() }}
           title={message.bookmarked ? t('message.removeBookmark') : t('message.bookmark')}
+          isActive={!!message.bookmarked}
           style={{
-            ...actionBtnStyle,
-            color: message.bookmarked ? 'var(--warning)' : 'var(--text-muted)',
+            color: message.bookmarked ? '#818cf8' : undefined,
           }}
-          onMouseEnter={(e) => hoverIn(e)}
-          onMouseLeave={(e) => hoverOut(e)}
         >
           <Bookmark
             size={13}
-            style={message.bookmarked ? { fill: 'var(--warning)' } : {}}
+            style={message.bookmarked ? { fill: '#818cf8' } : {}}
           />
-        </button>
+        </ActionButton>
       )}
 
       {/* Pin */}
       {!isPermission && !isPlan && (
-        <button
+        <ActionButton
           onClick={(e) => { e.stopPropagation(); onPin() }}
           title={message.pinned ? t('message.unpinMessage') : t('message.pinMessage')}
+          isActive={!!message.pinned}
           style={{
-            ...actionBtnStyle,
-            color: message.pinned ? 'var(--accent)' : 'var(--text-muted)',
+            color: message.pinned ? '#6366f1' : undefined,
           }}
-          onMouseEnter={(e) => hoverIn(e)}
-          onMouseLeave={(e) => hoverOut(e)}
         >
           <Pin
             size={13}
-            style={message.pinned ? { fill: 'var(--accent)' } : {}}
+            style={message.pinned ? { fill: '#6366f1' } : {}}
           />
-        </button>
+        </ActionButton>
       )}
 
       {/* Quote reply */}
       {!isPermission && !isPlan && message.content && (
-        <button
+        <ActionButton
           onClick={(e) => { e.stopPropagation(); onQuote() }}
           title={t('message.quoteReply')}
-          style={actionBtnStyle}
-          onMouseEnter={(e) => hoverIn(e)}
-          onMouseLeave={(e) => hoverOut(e)}
         >
           <MessageSquareQuote size={13} />
-        </button>
+        </ActionButton>
       )}
 
       {/* Translate */}
       {!isPermission && !isPlan && message.content && (
-        <button
+        <ActionButton
           onClick={(e) => { e.stopPropagation(); onTranslate() }}
           title={t('message.translateMessage')}
-          style={actionBtnStyle}
-          onMouseEnter={(e) => hoverIn(e)}
-          onMouseLeave={(e) => hoverOut(e)}
         >
           <Languages size={13} />
-        </button>
+        </ActionButton>
       )}
 
       {/* Share */}
       {!isPermission && !isPlan && message.content && (
-        <button
+        <ActionButton
           onClick={(e) => { e.stopPropagation(); onShare() }}
           title={t('message.shareMessage')}
-          style={actionBtnStyle}
-          onMouseEnter={(e) => hoverIn(e)}
-          onMouseLeave={(e) => hoverOut(e)}
         >
           <Share2 size={13} />
-        </button>
+        </ActionButton>
       )}
 
       {/* Annotate */}
       {!isPermission && !isPlan && onAnnotate && (
-        <button
+        <ActionButton
           onClick={(e) => { e.stopPropagation(); onAnnotate() }}
           title={hasAnnotation ? t('message.editAnnotation') : t('message.addAnnotation')}
+          isActive={!!hasAnnotation}
           style={{
-            ...actionBtnStyle,
-            color: hasAnnotation ? 'var(--accent)' : 'var(--text-muted)',
+            color: hasAnnotation ? '#6366f1' : undefined,
           }}
-          onMouseEnter={(e) => hoverIn(e)}
-          onMouseLeave={(e) => hoverOut(e)}
         >
-          <StickyNote size={13} style={hasAnnotation ? { fill: 'var(--accent)', opacity: 0.3 } : {}} />
-        </button>
+          <StickyNote size={13} style={hasAnnotation ? { fill: '#6366f1', opacity: 0.3 } : {}} />
+        </ActionButton>
       )}
+
+      {/* ── Assistant-only right group ── */}
+
+      {isAssistant && <Sep />}
 
       {/* Read Aloud (assistant messages only) */}
       {isAssistant && onReadAloud && (
-        <button
+        <ActionButton
           onClick={(e) => { e.stopPropagation(); onReadAloud() }}
           title={isSpeaking ? t('message.stopReading') : t('message.readAloud')}
+          isActive={!!isSpeaking}
+          skipHover={!!isSpeaking}
           style={{
-            ...actionBtnStyle,
-            color: isSpeaking ? 'var(--accent)' : 'var(--text-muted)',
+            color: isSpeaking ? '#6366f1' : undefined,
           }}
-          onMouseEnter={(e) => hoverIn(e, isSpeaking)}
-          onMouseLeave={(e) => hoverOut(e, isSpeaking)}
         >
           {isSpeaking ? <VolumeX size={13} /> : <Volume2 size={13} />}
-        </button>
+        </ActionButton>
       )}
 
       {/* Rate (assistant messages only) */}
       {isAssistant && onRate && (
         <>
-          <button
+          <ActionButton
             onClick={(e) => { e.stopPropagation(); onRate(message.rating === 'up' ? null : 'up') }}
             title={t('message.thumbsUp')}
+            isActive={message.rating === 'up'}
+            skipHover={message.rating === 'up'}
             style={{
-              ...actionBtnStyle,
-              color: message.rating === 'up' ? 'var(--success)' : 'var(--text-muted)',
+              color: message.rating === 'up' ? '#4ade80' : undefined,
             }}
-            onMouseEnter={(e) => hoverIn(e, message.rating === 'up')}
-            onMouseLeave={(e) => hoverOut(e, message.rating === 'up')}
           >
-            <ThumbsUp size={13} style={message.rating === 'up' ? { fill: 'var(--success)', opacity: 0.3 } : {}} />
-          </button>
-          <button
+            <ThumbsUp size={13} style={message.rating === 'up' ? { fill: '#4ade80', opacity: 0.3 } : {}} />
+          </ActionButton>
+          {/* ThumbsDown is destructive-flavored */}
+          <ActionButton
             onClick={(e) => { e.stopPropagation(); onRate(message.rating === 'down' ? null : 'down') }}
             title={t('message.thumbsDown')}
+            isActive={message.rating === 'down'}
+            skipHover={message.rating === 'down'}
+            isDestructive={message.rating !== 'down'}
             style={{
-              ...actionBtnStyle,
-              color: message.rating === 'down' ? 'var(--error)' : 'var(--text-muted)',
+              color: message.rating === 'down' ? '#f87171' : undefined,
             }}
-            onMouseEnter={(e) => hoverIn(e, message.rating === 'down')}
-            onMouseLeave={(e) => hoverOut(e, message.rating === 'down')}
           >
-            <ThumbsDown size={13} style={message.rating === 'down' ? { fill: 'var(--error)', opacity: 0.3 } : {}} />
-          </button>
+            <ThumbsDown size={13} style={message.rating === 'down' ? { fill: '#f87171', opacity: 0.3 } : {}} />
+          </ActionButton>
         </>
       )}
 
-      {/* Save to Note (assistant messages only) */}
-      {isAssistant && message.content && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onSaveAsNote() }}
-          title={t('message.saveToNote')}
-          style={actionBtnStyle}
-          onMouseEnter={(e) => hoverIn(e)}
-          onMouseLeave={(e) => hoverOut(e)}
-        >
-          <NotebookPen size={13} />
-        </button>
-      )}
-
-      {/* Remember This (assistant messages only) */}
-      {isAssistant && message.content && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onRememberThis() }}
-          title={t('message.rememberThis')}
-          style={actionBtnStyle}
-          onMouseEnter={(e) => hoverIn(e)}
-          onMouseLeave={(e) => hoverOut(e)}
-        >
-          <Brain size={13} />
-        </button>
+      {/* Save to Note / Remember This (assistant messages only) */}
+      {hasAssistantRightGroup && (
+        <>
+          <ActionButton
+            onClick={(e) => { e.stopPropagation(); onSaveAsNote() }}
+            title={t('message.saveToNote')}
+          >
+            <NotebookPen size={13} />
+          </ActionButton>
+          <ActionButton
+            onClick={(e) => { e.stopPropagation(); onRememberThis() }}
+            title={t('message.rememberThis')}
+          >
+            <Brain size={13} />
+          </ActionButton>
+        </>
       )}
     </div>
+  )
+}
+
+// ---------- DropdownItem ----------
+
+function DropdownItem({
+  icon,
+  label,
+  onClick,
+}: {
+  icon: React.ReactNode
+  label: string
+  onClick: React.MouseEventHandler<HTMLButtonElement>
+}) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        width: '100%',
+        padding: '7px 14px',
+        background: hovered ? 'rgba(255,255,255,0.07)' : 'none',
+        border: 'none',
+        cursor: 'pointer',
+        color: 'rgba(255,255,255,0.82)',
+        fontSize: 13,
+        textAlign: 'left',
+        transition: 'background 0.15s ease',
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {icon}
+      {label}
+    </button>
   )
 }

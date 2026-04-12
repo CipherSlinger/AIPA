@@ -189,7 +189,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
         <div
           style={{
             height: 2,
-            background: 'var(--border)',
+            background: 'rgba(255,255,255,0.05)',
             flexShrink: 0,
             position: 'relative',
             overflow: 'hidden',
@@ -202,8 +202,8 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
               top: 0,
               height: '100%',
               width: `${scrollState.scrollProgress * 100}%`,
-              background: 'var(--accent)',
-              transition: 'width 0.1s ease-out',
+              background: 'rgba(99,102,241,0.7)',
+              transition: 'width 0.15s ease-out',
             }}
           />
         </div>
@@ -216,7 +216,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       role="log"
       aria-label={t('a11y.conversationMessages')}
       aria-live="polite"
-      style={{ flex: 1, overflowY: 'auto', padding: '16px 0', position: 'relative' }}
+      style={{ flex: 1, overflowY: 'auto', padding: '16px 0', position: 'relative', background: 'transparent', scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.12) transparent' }}
     >
       <div
         style={{
@@ -260,11 +260,11 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
               }}
             >
               <div style={{
-                outline: isHighlighted ? '2px solid var(--accent)' : 'none',
-                borderLeft: isFocused ? '3px solid var(--accent)' : '3px solid transparent',
+                outline: isHighlighted ? '2px solid rgba(99,102,241,0.7)' : 'none',
+                borderLeft: isFocused ? '3px solid rgba(99,102,241,0.7)' : '3px solid transparent',
                 borderRadius: isHighlighted ? 4 : 0,
-                transition: 'outline 0.2s, border-color 0.15s',
-                background: isFocused ? 'rgba(var(--accent-rgb, 59, 130, 246), 0.04)' : 'transparent',
+                transition: 'outline 0.15s ease, border-color 0.15s ease',
+                background: isFocused ? 'rgba(99,102,241,0.04)' : 'transparent',
               }}>
                 {renderMessage(msg, isHighlighted, item.msgIdx)}
               </div>
@@ -287,18 +287,18 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
             width: 32,
             height: 32,
             borderRadius: '50%',
-            background: 'var(--bg-hover)',
-            border: '1px solid var(--border)',
-            color: 'var(--text-muted)',
+            background: 'rgba(255,255,255,0.07)',
+            border: '1px solid rgba(255,255,255,0.09)',
+            color: 'rgba(255,255,255,0.45)',
             cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
             zIndex: 10,
             opacity: 0.8,
             transition: 'opacity 0.15s',
             fontSize: 11,
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = 'var(--text-primary)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.8'; e.currentTarget.style.color = 'var(--text-muted)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.8'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
         >
           <ArrowUp size={14} />
         </button>
@@ -319,11 +319,11 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
             width: 28,
             height: 28,
             borderRadius: '50%',
-            background: scrollState.scrollLocked ? 'var(--warning)' : 'var(--bg-hover)',
-            border: `1px solid ${scrollState.scrollLocked ? 'var(--warning)' : 'var(--border)'}`,
-            color: scrollState.scrollLocked ? '#fff' : 'var(--text-muted)',
+            background: scrollState.scrollLocked ? 'rgba(245,158,11,0.7)' : 'rgba(255,255,255,0.07)',
+            border: `1px solid ${scrollState.scrollLocked ? 'rgba(245,158,11,0.5)' : 'rgba(255,255,255,0.09)'}`,
+            color: scrollState.scrollLocked ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
             cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
             zIndex: 10,
             opacity: 0.85,
             transition: 'all 0.15s',

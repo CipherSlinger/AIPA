@@ -1,5 +1,5 @@
 // WorkflowEditorPage — full-width workflow editor rendered in main content area
-// Iteration 414
+// Iteration 415
 
 import React, { useState, useEffect } from 'react'
 import { ArrowLeft, Save, Plus, GripVertical, Trash2 } from 'lucide-react'
@@ -16,6 +16,51 @@ const WORKFLOW_EMOJIS = [
 
 const EMPTY_WORKFLOWS: Workflow[] = []
 
+// Glass input surface — matches design-system spec
+const GLASS_INPUT: React.CSSProperties = {
+  ...INPUT_STYLE,
+  background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(255,255,255,0.08)',
+  borderRadius: 7,
+  padding: '7px 10px',
+  fontSize: 12,
+  color: 'rgba(255,255,255,0.82)',
+  outline: 'none',
+  transition: 'all 0.15s ease',
+}
+
+// Micro-label (section headers)
+const MICRO_LABEL: React.CSSProperties = {
+  fontSize: 10,
+  fontWeight: 700,
+  letterSpacing: '0.07em',
+  textTransform: 'uppercase',
+  color: 'rgba(255,255,255,0.38)',
+  marginBottom: 8,
+}
+
+// Form section card
+const SECTION_CARD: React.CSSProperties = {
+  background: 'rgba(15,15,25,0.85)',
+  backdropFilter: 'blur(12px)',
+  WebkitBackdropFilter: 'blur(12px)',
+  border: '1px solid rgba(255,255,255,0.07)',
+  borderRadius: 12,
+  padding: '16px 20px',
+  marginBottom: 12,
+  boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+}
+
+// Utility: focus ring handlers for inputs
+const focusRingOn = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  e.currentTarget.style.border = '1px solid rgba(99,102,241,0.45)'
+  e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.45)'
+}
+const focusRingOff = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  e.currentTarget.style.border = '1px solid rgba(255,255,255,0.08)'
+  e.currentTarget.style.boxShadow = 'none'
+}
+
 export default function WorkflowEditorPage() {
   const { t } = useI18n()
   const editingId = useUiStore(s => s.editingWorkflowId)
@@ -29,6 +74,8 @@ export default function WorkflowEditorPage() {
   const [steps, setSteps] = useState<{ id: string; title: string; prompt: string }[]>([
     { id: `step-${Date.now()}`, title: '', prompt: '' },
   ])
+  const [hoveredStepIdx, setHoveredStepIdx] = useState<number | null>(null)
+  const [addStepHovered, setAddStepHovered] = useState(false)
 
   // Load existing workflow data
   useEffect(() => {
@@ -125,12 +172,14 @@ export default function WorkflowEditorPage() {
   const pageTitle = editingId ? (existing?.name || t('workflow.edit')) : t('workflow.create')
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'rgba(10,10,18,1)' }}>
       {/* Header */}
       <div style={{
         height: 44,
-        background: 'var(--chat-header-bg)',
-        borderBottom: '1px solid var(--border)',
+        background: 'rgba(15,15,25,0.92)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
         display: 'flex',
         alignItems: 'center',
         padding: '0 16px',
@@ -142,28 +191,38 @@ export default function WorkflowEditorPage() {
           title={t('settings.backToChat')}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
-            padding: 4, borderRadius: 4,
+            color: 'rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center',
+            padding: 4, borderRadius: 8, transition: 'all 0.15s ease',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.9)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
         >
           <ArrowLeft size={16} />
         </button>
-        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>
+        <span style={{ fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.9)', flex: 1, lineHeight: 1.3, letterSpacing: '-0.01em' }}>
           {pageTitle}
         </span>
         <button
           onClick={handleSave}
           disabled={!canSubmit}
+          onMouseEnter={e => { if (canSubmit) { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.95), rgba(139,92,246,0.95))'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'; e.currentTarget.style.transform = 'translateY(-1px)' } }}
+          onMouseLeave={e => { e.currentTarget.style.background = canSubmit ? 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))' : 'rgba(255,255,255,0.06)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}
           style={{
-            background: canSubmit ? 'var(--accent)' : 'var(--bg-input)',
-            border: 'none', borderRadius: 6, cursor: canSubmit ? 'pointer' : 'not-allowed',
-            color: canSubmit ? '#fff' : 'var(--text-muted)',
-            padding: '5px 14px', fontSize: 12, fontWeight: 600,
-            display: 'flex', alignItems: 'center', gap: 6,
+            background: canSubmit
+              ? 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))'
+              : 'rgba(255,255,255,0.06)',
+            border: 'none',
+            borderRadius: 8,
+            cursor: canSubmit ? 'pointer' : 'not-allowed',
+            color: canSubmit ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.38)',
+            padding: '7px 14px',
+            fontSize: 12,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
             opacity: canSubmit ? 1 : 0.5,
-            transition: 'background 150ms, opacity 150ms',
+            transition: 'all 0.15s ease',
           }}
         >
           <Save size={13} />
@@ -176,37 +235,38 @@ export default function WorkflowEditorPage() {
         <div style={{ width: '100%', maxWidth: 700, padding: '24px 20px' }}>
 
           {/* Name + Icon */}
-          <div style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'flex-start' }}>
-            {/* Icon display */}
-            <div style={{
-              width: 48, height: 48, borderRadius: 10,
-              background: 'var(--bg-input)', border: '1px solid var(--border)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 24, flexShrink: 0,
-            }}>
-              {formIcon}
-            </div>
-
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, fontWeight: 600 }}>
-                {t('workflow.name')}
+          <div style={SECTION_CARD}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              {/* Icon display */}
+              <div style={{
+                width: 48, height: 48, borderRadius: 10,
+                background: 'rgba(99,102,241,0.12)',
+                border: '1px solid rgba(99,102,241,0.20)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 24, flexShrink: 0,
+              }}>
+                {formIcon}
               </div>
-              <input
-                value={formName}
-                onChange={e => setFormName(e.target.value)}
-                placeholder={t('workflow.namePlaceholder')}
-                maxLength={50}
-                style={{ ...INPUT_STYLE, fontSize: 14 }}
-                autoFocus
-              />
+
+              <div style={{ flex: 1 }}>
+                <div style={MICRO_LABEL}>{t('workflow.name')}</div>
+                <input
+                  value={formName}
+                  onChange={e => setFormName(e.target.value)}
+                  placeholder={t('workflow.namePlaceholder')}
+                  maxLength={50}
+                  style={{ ...GLASS_INPUT, fontSize: 14 }}
+                  onFocus={focusRingOn}
+                  onBlur={focusRingOff}
+                  autoFocus
+                />
+              </div>
             </div>
           </div>
 
           {/* Icon picker */}
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600 }}>
-              {t('workflow.icon')}
-            </div>
+          <div style={SECTION_CARD}>
+            <div style={MICRO_LABEL}>{t('workflow.icon')}</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {WORKFLOW_EMOJIS.map(emoji => (
                 <button
@@ -214,11 +274,12 @@ export default function WorkflowEditorPage() {
                   onClick={() => setFormIcon(emoji)}
                   style={{
                     width: 36, height: 36,
-                    border: formIcon === emoji ? '2px solid var(--accent)' : '1px solid var(--border)',
+                    border: formIcon === emoji ? '2px solid rgba(99,102,241,0.8)' : '1px solid rgba(255,255,255,0.10)',
                     borderRadius: 8,
-                    background: formIcon === emoji ? 'rgba(var(--accent-rgb, 0, 122, 204), 0.12)' : 'transparent',
+                    background: formIcon === emoji ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.04)',
                     cursor: 'pointer', fontSize: 18,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'all 0.15s ease',
                   }}
                 >
                   {emoji}
@@ -228,77 +289,97 @@ export default function WorkflowEditorPage() {
           </div>
 
           {/* Description */}
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600 }}>
-              {t('workflow.description')}
-            </div>
+          <div style={SECTION_CARD}>
+            <div style={MICRO_LABEL}>{t('workflow.description')}</div>
             <input
               value={formDesc}
               onChange={e => setFormDesc(e.target.value)}
               placeholder={t('workflow.descPlaceholder')}
               maxLength={200}
-              style={INPUT_STYLE}
+              style={GLASS_INPUT}
+              onFocus={focusRingOn}
+              onBlur={focusRingOff}
             />
           </div>
 
           {/* Steps */}
           <div style={{ marginBottom: 24 }}>
             <div style={{
-              fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600,
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 10,
             }}>
-              <span>{t('workflow.steps')} ({steps.length}/20)</span>
-              <button
-                onClick={addStep}
-                disabled={steps.length >= 20}
-                style={{
-                  background: 'none', border: '1px solid var(--border)',
-                  borderRadius: 4, padding: '3px 10px',
-                  color: steps.length >= 20 ? 'var(--text-muted)' : 'var(--accent)',
-                  cursor: steps.length >= 20 ? 'not-allowed' : 'pointer',
-                  fontSize: 11, fontWeight: 500,
-                  display: 'flex', alignItems: 'center', gap: 4,
-                }}
-              >
-                <Plus size={12} />
-                {t('workflow.addStep')}
-              </button>
+              <span style={{ ...MICRO_LABEL, marginBottom: 0 }}>
+                {t('workflow.steps')} ({steps.length}/20)
+              </span>
             </div>
 
             {steps.map((step, idx) => (
               <div
                 key={step.id}
                 style={{
-                  background: 'var(--bg-input)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 8,
-                  padding: 14,
+                  background: 'rgba(15,15,25,0.85)',
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  borderRadius: 10,
+                  padding: '14px 16px',
                   marginBottom: 10,
+                  boxShadow: hoveredStepIdx === idx
+                    ? '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)'
+                    : '0 2px 8px rgba(0,0,0,0.3)',
+                  transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
                 }}
+                onMouseEnter={() => setHoveredStepIdx(idx)}
+                onMouseLeave={() => setHoveredStepIdx(null)}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                  <GripVertical size={14} color="var(--text-muted)" style={{ opacity: 0.4, flexShrink: 0 }} />
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', flexShrink: 0, minWidth: 50 }}>
-                    {t('workflow.stepN', { n: idx + 1 })}
-                  </span>
+                  {/* Drag handle — visible on hover */}
+                  <GripVertical
+                    size={14}
+                    color={hoveredStepIdx === idx ? 'rgba(255,255,255,0.50)' : 'rgba(255,255,255,0.14)'}
+                    style={{ flexShrink: 0, transition: 'color 0.15s ease', cursor: 'grab' }}
+                  />
+
+                  {/* Numbered indigo badge */}
+                  <div style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: '50%',
+                    background: 'rgba(99,102,241,0.85)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: 'rgba(255,255,255,0.95)',
+                    flexShrink: 0,
+                  }}>
+                    {idx + 1}
+                  </div>
+
                   <input
                     value={step.title}
                     onChange={e => updateStep(idx, 'title', e.target.value)}
                     placeholder={t('workflow.stepTitlePlaceholder')}
                     maxLength={50}
-                    style={{ ...INPUT_STYLE, flex: 1, fontSize: 12 }}
+                    style={{ ...GLASS_INPUT, flex: 1, fontSize: 12 }}
+                    onFocus={focusRingOn}
+                    onBlur={focusRingOff}
                   />
                   {steps.length > 1 && (
                     <button
                       onClick={() => removeStep(idx)}
                       style={{
                         background: 'none', border: 'none',
-                        cursor: 'pointer', color: 'var(--text-muted)',
+                        cursor: 'pointer', color: 'rgba(255,255,255,0.38)',
                         display: 'flex', alignItems: 'center', padding: 4, borderRadius: 4,
-                        flexShrink: 0,
+                        flexShrink: 0, transition: 'color 0.15s ease',
+                        opacity: hoveredStepIdx === idx ? 1 : 0,
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.color = '#ef4444' }}
-                      onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
+                      onMouseEnter={e => { e.currentTarget.style.color = '#fca5a5' }}
+                      onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
                     >
                       <Trash2 size={13} />
                     </button>
@@ -311,13 +392,44 @@ export default function WorkflowEditorPage() {
                   maxLength={2000}
                   rows={3}
                   style={{
-                    ...INPUT_STYLE,
+                    ...GLASS_INPUT,
+                    background: 'rgba(255,255,255,0.04)',
                     resize: 'vertical', minHeight: 60,
-                    fontFamily: 'inherit', lineHeight: 1.5,
+                    fontFamily: 'monospace', lineHeight: 1.6, fontSize: 13,
+                    width: '100%', boxSizing: 'border-box',
                   }}
+                  onFocus={focusRingOn}
+                  onBlur={focusRingOff}
                 />
               </div>
             ))}
+
+            {/* Add step — dashed border pattern */}
+            <button
+              onClick={addStep}
+              disabled={steps.length >= 20}
+              onMouseEnter={() => setAddStepHovered(true)}
+              onMouseLeave={() => setAddStepHovered(false)}
+              style={{
+                width: '100%',
+                background: addStepHovered && steps.length < 20 ? 'rgba(255,255,255,0.03)' : 'transparent',
+                border: `1.5px dashed ${steps.length >= 20 ? 'rgba(255,255,255,0.08)' : addStepHovered ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.12)'}`,
+                borderRadius: 8,
+                padding: '10px 16px',
+                color: steps.length >= 20 ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.55)',
+                cursor: steps.length >= 20 ? 'not-allowed' : 'pointer',
+                fontSize: 12,
+                fontWeight: 500,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <Plus size={13} />
+              {t('workflow.addStep')}
+            </button>
           </div>
 
           {/* Bottom actions */}
@@ -325,26 +437,45 @@ export default function WorkflowEditorPage() {
             <button
               onClick={goBack}
               style={{
-                background: 'none', border: '1px solid var(--border)',
-                borderRadius: 6, padding: '7px 20px',
-                color: 'var(--text-muted)', cursor: 'pointer',
-                fontSize: 12, fontWeight: 500,
+                background: 'transparent',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 8,
+                padding: '7px 14px',
+                color: 'rgba(255,255,255,0.72)',
+                cursor: 'pointer',
+                fontSize: 12,
+                fontWeight: 500,
+                transition: 'all 0.15s ease',
               }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.38)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)' }}
             >
               {t('workflow.cancel')}
             </button>
             <button
               onClick={handleSave}
               disabled={!canSubmit}
+              onMouseEnter={e => { if (canSubmit) { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.95), rgba(139,92,246,0.95))'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'; e.currentTarget.style.transform = 'translateY(-1px)' } }}
+              onMouseLeave={e => { e.currentTarget.style.background = canSubmit ? 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))' : 'rgba(255,255,255,0.06)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}
               style={{
-                background: canSubmit ? 'var(--accent)' : 'var(--bg-input)',
-                border: 'none', borderRadius: 6,
-                padding: '7px 20px', cursor: canSubmit ? 'pointer' : 'not-allowed',
-                color: canSubmit ? '#fff' : 'var(--text-muted)',
-                fontSize: 12, fontWeight: 600,
+                background: canSubmit
+                  ? 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))'
+                  : 'rgba(255,255,255,0.06)',
+                border: 'none',
+                borderRadius: 8,
+                padding: '7px 14px',
+                cursor: canSubmit ? 'pointer' : 'not-allowed',
+                color: canSubmit ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.38)',
+                fontSize: 12,
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
                 opacity: canSubmit ? 1 : 0.5,
+                transition: 'all 0.15s ease',
               }}
             >
+              <Save size={13} />
               {editingId ? t('workflow.save') : t('workflow.create')}
             </button>
           </div>

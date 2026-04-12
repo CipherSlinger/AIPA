@@ -10,6 +10,7 @@ export default function InputToolbarStyleSelector() {
   const prefs = usePrefsStore(s => s.prefs)
   const setPrefs = usePrefsStore(s => s.setPrefs)
   const [show, setShow] = useState(false)
+  const [hoveredStyle, setHoveredStyle] = useState<string | null>(null)
   const ref = useRef<HTMLDivElement>(null)
   const currentStyle = prefs.outputStyle || 'default'
 
@@ -39,21 +40,29 @@ export default function InputToolbarStyleSelector() {
           display: 'flex',
           alignItems: 'center',
           gap: 3,
-          padding: '2px 8px',
-          background: isActive ? 'rgba(0, 122, 204, 0.08)' : 'none',
-          border: `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
-          borderRadius: 10,
-          color: isActive ? 'var(--accent)' : 'var(--text-muted)',
+          padding: '3px 8px',
+          background: isActive ? 'rgba(99,102,241,0.14)' : 'rgba(255,255,255,0.06)',
+          border: `1px solid ${isActive ? 'rgba(99,102,241,0.3)' : 'rgba(255,255,255,0.09)'}`,
+          borderRadius: 6,
+          color: isActive ? '#818cf8' : 'rgba(255,255,255,0.60)',
           cursor: 'pointer',
-          fontSize: 9,
+          fontSize: 11,
           flexShrink: 0,
-          transition: 'border-color 150ms, color 150ms, background 150ms',
+          transition: 'all 0.15s ease',
           whiteSpace: 'nowrap',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.borderColor = isActive ? 'var(--accent)' : 'var(--border)'; e.currentTarget.style.color = isActive ? 'var(--accent)' : 'var(--text-muted)' }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+          e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = isActive ? 'rgba(99,102,241,0.14)' : 'rgba(255,255,255,0.06)'
+          e.currentTarget.style.color = isActive ? '#818cf8' : 'rgba(255,255,255,0.60)'
+          e.currentTarget.style.borderColor = isActive ? 'rgba(99,102,241,0.3)' : 'rgba(255,255,255,0.09)'
+        }}
       >
-        <Sparkles size={9} />
+        <Sparkles size={11} />
         {t(`outputStyle.${currentStyle}`)}
       </button>
       {show && (
@@ -63,51 +72,81 @@ export default function InputToolbarStyleSelector() {
             bottom: '100%',
             left: 0,
             marginBottom: 4,
-            background: 'var(--popup-bg)',
-            border: '1px solid var(--popup-border)',
-            borderRadius: 8,
-            boxShadow: 'var(--popup-shadow)',
-            padding: '4px 0',
+            background: 'rgba(15,15,25,0.96)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.09)',
+            borderRadius: 10,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
+            padding: '4px',
             minWidth: 200,
             zIndex: 100,
-            animation: 'popup-in 0.15s ease',
+            animation: 'slideUp 0.15s ease',
           }}
         >
-          <div style={{ padding: '4px 12px 6px', fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          <div style={{
+            padding: '4px 10px 6px',
+            fontSize: 10,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.07em',
+            color: 'rgba(255,255,255,0.38)',
+          }}>
             {t('outputStyle.title')}
           </div>
-          {STYLE_OPTIONS.map(style => (
-            <button
-              key={style}
-              onClick={() => handleSelect(style)}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                width: '100%',
-                textAlign: 'left',
-                padding: '6px 12px',
-                background: style === currentStyle ? 'var(--popup-item-hover)' : 'none',
-                border: 'none',
-                color: style === currentStyle ? 'var(--accent)' : 'var(--text-primary)',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: style === currentStyle ? 600 : 400,
-                lineHeight: 1.4,
-                transition: 'background 100ms',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = style === currentStyle ? 'var(--popup-item-hover)' : 'none' }}
-            >
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                <span>{t(`outputStyle.${style}`)}</span>
-                {style === currentStyle && <span style={{ fontSize: 11 }}>{'\u2713'}</span>}
-              </span>
-              <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 400 }}>
-                {t(`outputStyle.${style}.desc`)}
-              </span>
-            </button>
-          ))}
+          {STYLE_OPTIONS.map(style => {
+            const isSelected = style === currentStyle
+            return (
+              <button
+                key={style}
+                onClick={() => handleSelect(style)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '7px 10px',
+                  borderRadius: 7,
+                  background: isSelected ? 'rgba(99,102,241,0.12)' : 'none',
+                  border: 'none',
+                  borderLeft: isSelected ? '2px solid rgba(99,102,241,0.6)' : '2px solid transparent',
+                  color: isSelected ? '#818cf8' : 'rgba(255,255,255,0.60)',
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  fontWeight: isSelected ? 600 : 400,
+                  lineHeight: 1.4,
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSelected) {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                    e.currentTarget.style.color = 'rgba(255,255,255,0.88)'
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = isSelected ? 'rgba(99,102,241,0.12)' : 'none'
+                  e.currentTarget.style.color = isSelected ? '#818cf8' : 'rgba(255,255,255,0.60)'
+                }}
+              >
+                <span style={{
+                  width: 16, height: 16, display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', color: 'rgba(255,255,255,0.45)', flexShrink: 0,
+                }}>
+                  <Sparkles size={12} />
+                </span>
+                <span style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <span>{t(`outputStyle.${style}`)}</span>
+                    {isSelected && <span style={{ fontSize: 11 }}>{'\u2713'}</span>}
+                  </span>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', fontWeight: 400 }}>
+                    {t(`outputStyle.${style}.desc`)}
+                  </span>
+                </span>
+              </button>
+            )
+          })}
         </div>
       )}
     </div>

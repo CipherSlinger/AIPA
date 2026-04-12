@@ -18,19 +18,21 @@ export default function TagPicker({ sessionId, pos, sessionTags, tagNames, onTog
   return (
     <div
       role="menu"
+      className="popup-enter"
       onClick={(e) => e.stopPropagation()}
       style={{
         position: 'fixed',
         top: Math.min(pos.top, window.innerHeight - 200),
         left: pos.left,
         zIndex: 10000,
-        background: 'var(--popup-bg)',
-        border: '1px solid var(--popup-border)',
-        borderRadius: 8,
-        padding: 4,
-        boxShadow: 'var(--popup-shadow)',
-        width: 160,
-        animation: 'popup-in 0.15s ease',
+        background: 'rgba(15,15,25,0.96)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 12,
+        padding: 6,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
+        width: 168,
       }}
     >
       {TAG_PRESETS.map((tag, idx) => {
@@ -46,22 +48,37 @@ export default function TagPicker({ sessionId, pos, sessionTags, tagNames, onTog
               alignItems: 'center',
               gap: 8,
               width: '100%',
-              padding: '6px 8px',
-              background: 'none',
-              border: 'none',
-              borderRadius: 4,
+              padding: '6px 10px',
+              background: assigned
+                ? 'linear-gradient(135deg, rgba(99,102,241,0.22), rgba(139,92,246,0.18))'
+                : 'none',
+              border: assigned
+                ? '1px solid rgba(99,102,241,0.38)'
+                : '1px solid transparent',
+              borderRadius: 20,
               cursor: 'pointer',
-              color: 'var(--text-primary)',
+              color: assigned ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.60)',
               fontSize: 12,
               textAlign: 'left' as const,
-              transition: 'background 0.1s ease',
+              transition: 'all 0.15s ease',
+              marginBottom: 2,
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--popup-item-hover)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+            onMouseEnter={(e) => {
+              if (!assigned) {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!assigned) {
+                e.currentTarget.style.background = 'none'
+                e.currentTarget.style.borderColor = 'transparent'
+              }
+            }}
           >
             <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', background: tag.color, flexShrink: 0 }} />
             <span style={{ flex: 1 }}>{getTagName(idx)}</span>
-            {assigned && <Check size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />}
+            {assigned && <Check size={12} style={{ color: '#a5b4fc', flexShrink: 0 }} />}
           </button>
         )
       })}

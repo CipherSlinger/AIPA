@@ -65,31 +65,33 @@ export default class MessageErrorBoundary extends Component<Props, State> {
           alignItems: 'center',
           gap: 8,
           padding: '10px 14px',
-          background: 'var(--popup-bg, #252526)',
-          border: '1px solid rgba(244, 71, 71, 0.3)',
+          background: 'rgba(239,68,68,0.08)',
+          border: '1px solid rgba(239,68,68,0.20)',
           borderRadius: 8,
-          color: 'var(--text-muted, #858585)',
           fontSize: 12,
           margin: '4px 0',
         }}
       >
-        <AlertTriangle size={14} style={{ color: 'var(--error, #f44747)', flexShrink: 0 }} />
-        <span style={{ flex: 1 }}>{t('error.messageRenderFailed')}</span>
+        <AlertTriangle size={14} style={{ color: '#f87171', flexShrink: 0 }} />
+        <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: '#fca5a5' }}>{t('error.messageRenderFailed')}</span>
         <button
           onClick={this.handleCopyRaw}
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: 4,
-            padding: '4px 10px',
-            background: 'var(--action-btn-bg, #2a2a2a)',
-            border: '1px solid var(--action-btn-border, #3a3a3a)',
-            borderRadius: 4,
-            color: this.state.copied ? 'var(--success, #4ec9b0)' : 'var(--text-primary, #ccc)',
+            padding: '3px 10px',
+            background: this.state.copied ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.12)',
+            border: '1px solid rgba(239,68,68,0.25)',
+            borderRadius: 6,
+            color: this.state.copied ? '#4ade80' : '#fca5a5',
             cursor: 'pointer',
             fontSize: 11,
             flexShrink: 0,
+            transition: 'background 0.15s ease',
           }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.20)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)' }}
         >
           <Copy size={11} />
           {this.state.copied ? t('error.copied') : t('error.copyRaw')}
@@ -100,14 +102,25 @@ export default class MessageErrorBoundary extends Component<Props, State> {
             display: 'flex',
             alignItems: 'center',
             gap: 4,
-            padding: '4px 10px',
-            background: 'var(--action-btn-bg, #2a2a2a)',
-            border: '1px solid var(--action-btn-border, #3a3a3a)',
-            borderRadius: 4,
-            color: 'var(--text-primary, #ccc)',
+            padding: '3px 10px',
+            background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+            border: 'none',
+            borderRadius: 6,
+            color: 'rgba(255,255,255,0.95)',
             cursor: 'pointer',
             fontSize: 11,
             flexShrink: 0,
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.filter = 'brightness(0.95)'
+            e.currentTarget.style.transform = 'translateY(-1px)'
+            e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.filter = ''
+            e.currentTarget.style.transform = ''
+            e.currentTarget.style.boxShadow = 'none'
           }}
         >
           <RefreshCw size={11} />

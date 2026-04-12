@@ -1,7 +1,7 @@
 // ReminderSection — reminder list + scheduling + cron UI (extracted from TasksPanel, Iteration 510)
 
 import React, { useState } from 'react'
-import { Plus, X, Bell, Clock, ChevronDown, ChevronRight, RefreshCw } from 'lucide-react'
+import { Plus, X, Bell, Clock, ChevronDown, RefreshCw } from 'lucide-react'
 import { useT } from '../../i18n'
 import { cronToHuman, describeCron, CRON_PRESETS } from '../../utils/cronScheduler'
 import type { ReminderItem } from './useTasksCrud'
@@ -30,8 +30,10 @@ export default function ReminderSection({
   const [remindersExpanded, setRemindersExpanded] = useState(true)
   const [showReminderForm, setShowReminderForm] = useState(false)
   const [reminderText, setReminderText] = useState('')
+  const [reminderTextFocused, setReminderTextFocused] = useState(false)
   const [cronMode, setCronMode] = useState(false)
   const [cronExpr, setCronExpr] = useState('')
+  const [cronFocused, setCronFocused] = useState(false)
   const [cronPreview, setCronPreview] = useState<string | null>(null)
 
   const handleAddReminder = (minutes: number) => {
@@ -51,25 +53,65 @@ export default function ReminderSection({
   }
 
   return (
-    <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+    <div
+      style={{
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.07)',
+        borderRadius: 10,
+        padding: '12px 14px',
+        marginBottom: 8,
+        marginTop: 12,
+      }}
+    >
+      {/* Section header */}
       <div
         style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '4px 8px', cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          cursor: 'pointer',
+          marginBottom: remindersExpanded ? 8 : 0,
+          padding: '2px 0',
+          transition: 'opacity 0.15s ease',
         }}
         onClick={() => setRemindersExpanded(!remindersExpanded)}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {remindersExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-          <Bell size={12} color="var(--accent)" />
-          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)' }}>
+          <span
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              transition: 'transform 0.15s ease',
+              transform: remindersExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+            }}
+          >
+            <ChevronDown size={12} color="rgba(255,255,255,0.38)" />
+          </span>
+          <Bell size={12} color="#fbbf24" />
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: '0.07em',
+              textTransform: 'uppercase',
+              color: 'rgba(255,255,255,0.38)',
+            }}
+          >
             {t('reminders.title')}
           </span>
           {activeReminders.length > 0 && (
-            <span style={{
-              fontSize: 9, background: 'var(--accent)', color: '#fff',
-              borderRadius: 8, padding: '1px 5px', fontWeight: 600,
-            }}>
+            <span
+              style={{
+                fontSize: 9,
+                background: 'rgba(99,102,241,0.25)',
+                color: '#a5b4fc',
+                borderRadius: 6,
+                padding: '1px 5px',
+                fontWeight: 700,
+                fontVariantNumeric: 'tabular-nums',
+                fontFeatureSettings: '"tnum"',
+              }}
+            >
               {activeReminders.length}
             </span>
           )}
@@ -77,11 +119,27 @@ export default function ReminderSection({
         <button
           onClick={(e) => { e.stopPropagation(); setShowReminderForm(true); setRemindersExpanded(true) }}
           style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--accent)', display: 'flex', alignItems: 'center', padding: 0,
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.10)',
+            borderRadius: 6,
+            cursor: 'pointer',
+            color: 'rgba(255,255,255,0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            padding: '2px 5px',
+            fontSize: 11,
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.10)'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.85)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.55)'
           }}
         >
-          <Plus size={14} />
+          <Plus size={12} />
         </button>
       </div>
 
@@ -89,17 +147,27 @@ export default function ReminderSection({
         <>
           {/* Reminder creation form */}
           {showReminderForm && (
-            <div style={{ padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 6 }}>
               <input
                 value={reminderText}
                 onChange={(e) => setReminderText(e.target.value)}
                 placeholder={t('reminders.textPlaceholder')}
                 autoFocus
+                onFocus={() => setReminderTextFocused(true)}
+                onBlur={() => setReminderTextFocused(false)}
                 onKeyDown={(e) => { if (e.key === 'Escape') setShowReminderForm(false) }}
                 style={{
-                  padding: '5px 8px', borderRadius: 6,
-                  border: '1px solid var(--border)', background: 'var(--bg-active)',
-                  color: 'var(--text-primary)', fontSize: 11, outline: 'none',
+                  padding: '5px 8px',
+                  borderRadius: 7,
+                  border: reminderTextFocused
+                    ? '1px solid rgba(99,102,241,0.40)'
+                    : '1px solid rgba(255,255,255,0.08)',
+                  background: 'rgba(255,255,255,0.06)',
+                  color: 'rgba(255,255,255,0.82)',
+                  fontSize: 11,
+                  outline: 'none',
+                  transition: 'all 0.15s ease',
+                  boxShadow: reminderTextFocused ? '0 0 0 2px rgba(99,102,241,0.10)' : 'none',
                 }}
                 maxLength={200}
               />
@@ -110,10 +178,19 @@ export default function ReminderSection({
                     <button
                       onClick={() => setCronMode(false)}
                       style={{
-                        padding: '2px 8px', borderRadius: 8, fontSize: 9, cursor: 'pointer',
-                        border: '1px solid var(--border)',
-                        background: !cronMode ? 'var(--accent)' : 'transparent',
-                        color: !cronMode ? '#fff' : 'var(--text-muted)',
+                        padding: '2px 8px',
+                        borderRadius: 8,
+                        fontSize: 9,
+                        fontWeight: 700,
+                        letterSpacing: '0.07em',
+                        textTransform: 'uppercase' as const,
+                        cursor: 'pointer',
+                        border: !cronMode
+                          ? '1px solid rgba(99,102,241,0.40)'
+                          : '1px solid rgba(255,255,255,0.10)',
+                        background: !cronMode ? 'rgba(99,102,241,0.15)' : 'transparent',
+                        color: !cronMode ? '#818cf8' : 'rgba(255,255,255,0.45)',
+                        transition: 'all 0.15s ease',
                       }}
                     >
                       {t('reminders.quickPresets')}
@@ -121,11 +198,22 @@ export default function ReminderSection({
                     <button
                       onClick={() => setCronMode(true)}
                       style={{
-                        padding: '2px 8px', borderRadius: 8, fontSize: 9, cursor: 'pointer',
-                        border: '1px solid var(--border)',
-                        background: cronMode ? 'var(--accent)' : 'transparent',
-                        color: cronMode ? '#fff' : 'var(--text-muted)',
-                        display: 'flex', alignItems: 'center', gap: 3,
+                        padding: '2px 8px',
+                        borderRadius: 8,
+                        fontSize: 9,
+                        fontWeight: 700,
+                        letterSpacing: '0.07em',
+                        textTransform: 'uppercase' as const,
+                        cursor: 'pointer',
+                        border: cronMode
+                          ? '1px solid rgba(99,102,241,0.40)'
+                          : '1px solid rgba(255,255,255,0.10)',
+                        background: cronMode ? 'rgba(99,102,241,0.15)' : 'transparent',
+                        color: cronMode ? '#818cf8' : 'rgba(255,255,255,0.45)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        transition: 'all 0.15s ease',
                       }}
                     >
                       <RefreshCw size={9} />
@@ -140,31 +228,51 @@ export default function ReminderSection({
                           key={preset.minutes}
                           onClick={() => handleAddReminder(preset.minutes)}
                           style={{
-                            padding: '3px 8px', borderRadius: 10,
-                            border: '1px solid var(--border)', background: 'var(--bg-active)',
-                            color: 'var(--text-primary)', fontSize: 10, cursor: 'pointer',
-                            transition: 'background 100ms, border-color 100ms',
+                            padding: '3px 8px',
+                            borderRadius: 10,
+                            border: '1px solid rgba(255,255,255,0.10)',
+                            background: 'rgba(255,255,255,0.06)',
+                            color: 'rgba(255,255,255,0.72)',
+                            fontSize: 10,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'var(--accent)'
-                            e.currentTarget.style.color = '#fff'
-                            e.currentTarget.style.borderColor = 'var(--accent)'
+                            e.currentTarget.style.background = 'rgba(99,102,241,0.15)'
+                            e.currentTarget.style.color = '#818cf8'
+                            e.currentTarget.style.borderColor = '#818cf8'
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'var(--bg-active)'
-                            e.currentTarget.style.color = 'var(--text-primary)'
-                            e.currentTarget.style.borderColor = 'var(--border)'
+                            e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                            e.currentTarget.style.color = 'rgba(255,255,255,0.72)'
+                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
                           }}
                         >
                           {t(preset.labelKey)}
                         </button>
                       ))}
+                      {/* Ghost cancel */}
                       <button
                         onClick={() => setShowReminderForm(false)}
                         style={{
-                          padding: '3px 8px', borderRadius: 10,
-                          border: '1px solid var(--border)', background: 'transparent',
-                          color: 'var(--text-muted)', fontSize: 10, cursor: 'pointer',
+                          padding: '3px 8px',
+                          borderRadius: 10,
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          background: 'rgba(255,255,255,0.04)',
+                          color: 'rgba(255,255,255,0.38)',
+                          fontSize: 10,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
+                          e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+                          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                          e.currentTarget.style.color = 'rgba(255,255,255,0.38)'
+                          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
                         }}
                       >
                         {t('reminders.cancel')}
@@ -180,54 +288,117 @@ export default function ReminderSection({
                             key={p.cron}
                             onClick={() => { setCronExpr(p.cron); setCronPreview(cronToHuman(p.cron) || describeCron(p.cron)) }}
                             style={{
-                              padding: '2px 6px', borderRadius: 8, fontSize: 9, cursor: 'pointer',
-                              border: cronExpr === p.cron ? '1px solid var(--accent)' : '1px solid var(--border)',
-                              background: cronExpr === p.cron ? 'rgba(var(--accent-rgb,59,130,246),0.1)' : 'transparent',
-                              color: cronExpr === p.cron ? 'var(--accent)' : 'var(--text-muted)',
+                              padding: '2px 6px',
+                              borderRadius: 8,
+                              fontSize: 9,
+                              cursor: 'pointer',
+                              border: cronExpr === p.cron
+                                ? '1px solid rgba(99,102,241,0.40)'
+                                : '1px solid rgba(255,255,255,0.08)',
+                              background: cronExpr === p.cron ? 'rgba(99,102,241,0.15)' : 'transparent',
+                              color: cronExpr === p.cron ? '#818cf8' : 'rgba(255,255,255,0.38)',
+                              transition: 'all 0.15s ease',
                             }}
                           >
                             {p.label}
                           </button>
                         ))}
                       </div>
-                      {/* Manual cron input */}
+                      {/* Manual cron input with glass focus ring */}
                       <input
                         value={cronExpr}
                         onChange={e => {
                           setCronExpr(e.target.value)
                           setCronPreview(cronToHuman(e.target.value) || describeCron(e.target.value))
                         }}
+                        onFocus={() => setCronFocused(true)}
+                        onBlur={() => setCronFocused(false)}
                         placeholder="* * * * * (min hr dom mon dow)"
                         style={{
-                          padding: '4px 8px', borderRadius: 6, fontSize: 10,
-                          border: '1px solid var(--border)', background: 'var(--bg-active)',
-                          color: 'var(--text-primary)', outline: 'none', fontFamily: 'monospace',
+                          padding: '4px 8px',
+                          borderRadius: 7,
+                          fontSize: 10,
+                          border: cronFocused
+                            ? '1px solid rgba(99,102,241,0.40)'
+                            : '1px solid rgba(255,255,255,0.08)',
+                          background: 'rgba(255,255,255,0.06)',
+                          color: 'rgba(255,255,255,0.82)',
+                          outline: 'none',
+                          fontFamily: 'monospace',
+                          transition: 'all 0.15s ease',
+                          boxShadow: cronFocused ? '0 0 0 2px rgba(99,102,241,0.10)' : 'none',
                         }}
                       />
+                      {/* Next-fire preview */}
                       {cronPreview && (
-                        <div style={{ fontSize: 9, color: 'var(--text-muted)', paddingLeft: 2 }}>
+                        <div
+                          style={{
+                            fontSize: 9,
+                            color: 'rgba(255,255,255,0.45)',
+                            paddingLeft: 2,
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                        >
                           {cronPreview}
                         </div>
                       )}
                       <div style={{ display: 'flex', gap: 4 }}>
+                        {/* Gradient CTA Set button */}
                         <button
                           onClick={handleAddCronReminder}
                           disabled={!cronExpr.trim() || !cronPreview}
                           style={{
-                            padding: '3px 10px', borderRadius: 8, fontSize: 10, cursor: 'pointer',
+                            padding: '3px 10px',
+                            borderRadius: 8,
+                            fontSize: 10,
+                            cursor: cronExpr.trim() && cronPreview ? 'pointer' : 'not-allowed',
                             border: 'none',
-                            background: cronExpr.trim() && cronPreview ? 'var(--accent)' : 'var(--bg-active)',
-                            color: cronExpr.trim() && cronPreview ? '#fff' : 'var(--text-muted)',
+                            background: cronExpr.trim() && cronPreview
+                              ? 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))'
+                              : 'rgba(255,255,255,0.06)',
+                            color: cronExpr.trim() && cronPreview ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.38)',
+                            transition: 'all 0.15s ease',
+                            boxShadow: cronExpr.trim() && cronPreview ? '0 2px 8px rgba(99,102,241,0.35)' : 'none',
+                          }}
+                          onMouseEnter={(e) => {
+                            if (cronExpr.trim() && cronPreview) {
+                              e.currentTarget.style.filter = 'brightness(0.95)'
+                              e.currentTarget.style.transform = 'translateY(-1px)'
+                              e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.filter = ''
+                            e.currentTarget.style.transform = ''
+                            e.currentTarget.style.boxShadow = cronExpr.trim() && cronPreview
+                              ? '0 2px 8px rgba(99,102,241,0.35)'
+                              : 'none'
                           }}
                         >
                           {t('reminders.setRecurring')}
                         </button>
+                        {/* Ghost glass cancel */}
                         <button
                           onClick={() => setShowReminderForm(false)}
                           style={{
-                            padding: '3px 8px', borderRadius: 8, fontSize: 10, cursor: 'pointer',
-                            border: '1px solid var(--border)', background: 'transparent',
-                            color: 'var(--text-muted)',
+                            padding: '3px 8px',
+                            borderRadius: 8,
+                            fontSize: 10,
+                            cursor: 'pointer',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            background: 'rgba(255,255,255,0.04)',
+                            color: 'rgba(255,255,255,0.38)',
+                            transition: 'all 0.15s ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
+                            e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)'
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                            e.currentTarget.style.color = 'rgba(255,255,255,0.38)'
+                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
                           }}
                         >
                           {t('reminders.cancel')}
@@ -242,7 +413,15 @@ export default function ReminderSection({
 
           {/* Active reminders list */}
           {activeReminders.length === 0 && !showReminderForm && (
-            <div style={{ padding: '8px 16px', fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>
+            <div
+              style={{
+                padding: '10px 4px 6px',
+                fontSize: 11,
+                color: 'rgba(255,255,255,0.38)',
+                textAlign: 'center',
+                lineHeight: 1.5,
+              }}
+            >
               {t('reminders.empty')}
             </div>
           )}
@@ -270,46 +449,90 @@ function ReminderRow({ reminder, onDelete, formatTimeLeft }: {
     ? cronToHuman(reminder.cronExpression)
     : null
 
+  const now = Date.now()
+  const msLeft = reminder.fireAt - now
+  const isOverdue = !reminder.recurring && msLeft < 0
+  const isSoon = !reminder.recurring && !isOverdue && msLeft < 10 * 60 * 1000   // < 10 min
+  const isUpcoming = !reminder.recurring && !isOverdue && !isSoon
+
+  // Time label color: overdue=red, soon=amber, upcoming=green, recurring=indigo
+  const timeColor =
+    isOverdue ? '#f87171'
+    : isSoon ? '#fbbf24'
+    : reminder.recurring ? '#a78bfa'
+    : '#4ade80'
+
+  // Icon color matches time color
+  const iconColor = timeColor
+
+  // Text color: overdue gets red tint, others normal
+  const textColor = isOverdue ? 'rgba(248,113,113,0.90)' : 'rgba(255,255,255,0.82)'
+
   return (
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        padding: '5px 8px', borderRadius: 6,
-        background: hovered ? 'var(--popup-item-hover)' : 'transparent',
-        transition: 'background 100ms',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 8,
+        padding: '7px 8px',
+        borderRadius: 8,
+        background: hovered ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.07)',
+        marginBottom: 4,
+        transition: 'all 0.15s ease',
+        boxShadow: hovered ? '0 2px 8px rgba(0,0,0,0.30)' : 'none',
       }}
     >
-      <Clock size={12} style={{ color: reminder.recurring ? '#8b5cf6' : 'var(--accent)', flexShrink: 0 }} />
+      <Clock size={12} style={{ color: iconColor, flexShrink: 0, marginTop: 2, filter: `drop-shadow(0 0 3px ${iconColor}66)` }} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ fontSize: 11, color: 'var(--text-primary)', wordBreak: 'break-word' }}>
+        <div style={{ fontSize: 12, color: textColor, lineHeight: 1.4, wordBreak: 'break-word', transition: 'color 0.15s ease' }}>
           {reminder.text}
           {reminder.recurring && (
-            <RefreshCw size={9} style={{ display: 'inline', marginLeft: 4, color: '#8b5cf6', verticalAlign: 'middle' }} />
+            <RefreshCw size={9} style={{ display: 'inline', marginLeft: 4, color: '#a78bfa', verticalAlign: 'middle' }} />
           )}
-        </span>
-        {humanFreq && (
-          <div style={{ fontSize: 9, color: '#8b5cf6', marginTop: 1 }}>{humanFreq}</div>
-        )}
-      </div>
-      <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0, whiteSpace: 'nowrap' }}>
-        {formatTimeLeft(reminder.fireAt)}
-      </span>
-      {hovered && (
-        <button
-          onClick={() => onDelete(reminder.id)}
+        </div>
+        {/* Next-fire date with tabular nums */}
+        <div
           style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
-            padding: 0, flexShrink: 0,
+            fontSize: 10,
+            color: timeColor,
+            marginTop: 3,
+            fontVariantNumeric: 'tabular-nums',
+            fontFeatureSettings: '"tnum"',
+            letterSpacing: '0.02em',
+            transition: 'color 0.15s ease',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--error)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)' }}
         >
-          <X size={12} />
-        </button>
-      )}
+          {humanFreq || formatTimeLeft(reminder.fireAt)}
+        </div>
+      </div>
+      <button
+        onClick={() => onDelete(reminder.id)}
+        style={{
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          color: hovered ? 'rgba(255,255,255,0.45)' : 'transparent',
+          padding: '2px 3px',
+          borderRadius: 4,
+          display: 'flex',
+          alignItems: 'center',
+          flexShrink: 0,
+          transition: 'all 0.15s ease',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = '#f87171'
+          e.currentTarget.style.background = 'rgba(239,68,68,0.12)'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = hovered ? 'rgba(255,255,255,0.45)' : 'transparent'
+          e.currentTarget.style.background = 'transparent'
+        }}
+      >
+        <X size={11} />
+      </button>
     </div>
   )
 }

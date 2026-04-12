@@ -81,24 +81,26 @@ export default function AvatarPicker({ onClose, navExpanded, anchorRef }: Avatar
         position: 'fixed',
         left: pos.left,
         bottom: pos.bottom,
-        width: 200,
-        background: 'var(--popup-bg)',
-        border: '1px solid var(--popup-border)',
-        borderRadius: 8,
-        boxShadow: 'var(--popup-shadow)',
-        padding: 8,
+        width: 220,
+        background: 'rgba(15,15,25,0.85)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 12,
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+        padding: 10,
         zIndex: 10000,
-        animation: 'popup-in 0.12s ease',
+        animation: 'slideUp 0.15s ease',
       }}
     >
       {/* Title */}
       <div style={{
         fontSize: 10,
-        fontWeight: 600,
-        color: 'var(--text-muted)',
+        fontWeight: 700,
+        color: 'rgba(255,255,255,0.38)',
         textTransform: 'uppercase',
-        letterSpacing: '0.05em',
-        marginBottom: 8,
+        letterSpacing: '0.07em',
+        marginBottom: 10,
         paddingLeft: 4,
       }}>
         {t('avatar.choose')}
@@ -115,22 +117,33 @@ export default function AvatarPicker({ onClose, navExpanded, anchorRef }: Avatar
           onClick={() => selectPreset(null)}
           title={t('avatar.default')}
           style={{
-            width: 40,
-            height: 40,
-            borderRadius: '50%',
-            border: !currentPreset ? '2px solid var(--accent)' : '2px solid transparent',
-            background: 'var(--avatar-ai)',
+            width: 36,
+            height: 36,
+            borderRadius: 8,
+            border: !currentPreset ? '1px solid rgba(99,102,241,0.70)' : '1px solid rgba(255,255,255,0.08)',
+            background: !currentPreset ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.06)',
+            boxShadow: !currentPreset ? '0 0 0 2px rgba(99,102,241,0.25)' : 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
             fontSize: 16,
-            transition: 'transform 0.15s ease, border-color 0.15s ease',
+            transition: 'all 0.15s ease',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.1)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
+          onMouseEnter={(e) => {
+            if (currentPreset) {
+              e.currentTarget.style.background = 'rgba(99,102,241,0.08)'
+              e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (currentPreset) {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+            }
+          }}
         >
-          <span style={{ fontSize: 14, color: '#ffffff' }}>U</span>
+          <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.95)' }}>U</span>
         </button>
 
         {AVATAR_PRESETS.map(preset => (
@@ -139,20 +152,31 @@ export default function AvatarPicker({ onClose, navExpanded, anchorRef }: Avatar
             onClick={() => selectPreset(preset.id)}
             title={t(preset.nameKey)}
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: '50%',
-              border: currentPreset === preset.id ? '2px solid var(--accent)' : `2px solid ${preset.border}`,
-              background: preset.bg,
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              border: currentPreset === preset.id ? '1px solid rgba(99,102,241,0.70)' : '1px solid rgba(255,255,255,0.08)',
+              background: currentPreset === preset.id ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.06)',
+              boxShadow: currentPreset === preset.id ? '0 0 0 2px rgba(99,102,241,0.25)' : 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
               fontSize: 16,
-              transition: 'transform 0.15s ease, border-color 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.1)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
+            onMouseEnter={(e) => {
+              if (currentPreset !== preset.id) {
+                e.currentTarget.style.background = 'rgba(99,102,241,0.08)'
+                e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (currentPreset !== preset.id) {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+              }
+            }}
           >
             {preset.emoji}
           </button>

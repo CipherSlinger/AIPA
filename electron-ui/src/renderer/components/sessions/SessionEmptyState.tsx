@@ -26,59 +26,70 @@ export default function SessionEmptyState({ onNewChat }: Props) {
       }}
       aria-label={t('session.emptyState.noConversations')}
     >
-      {/* Illustration: chat bubble icon */}
+      {/* Illustration: chat bubble icon — indigo glow */}
       <div
         style={{
           width: 56,
           height: 56,
           borderRadius: '50%',
-          background: 'var(--bg-hover)',
-          border: '1.5px solid var(--border)',
+          background: 'rgba(99,102,241,0.14)',
+          border: '1px solid rgba(99,102,241,0.28)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           marginBottom: 4,
+          boxShadow: '0 4px 16px rgba(99,102,241,0.15), 0 2px 8px rgba(0,0,0,0.3)',
         }}
       >
-        <MessageSquarePlus
-          size={26}
-          style={{ color: 'var(--text-muted)', opacity: 0.6 }}
-        />
+        <MessageSquarePlus size={28} style={{ color: 'rgba(99,102,241,0.85)' }} />
       </div>
 
       {/* Primary text */}
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>
+      <div style={{
+        fontSize: 14,
+        fontWeight: 600,
+        color: 'rgba(255,255,255,0.60)',
+        marginBottom: 2,
+        lineHeight: 1.3,
+      }}>
         {t('session.emptyState.noConversations')}
       </div>
 
       {/* Subtitle */}
-      <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5, maxWidth: 180 }}>
+      <div style={{
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.38)',
+        lineHeight: 1.55,
+        maxWidth: 180,
+      }}>
         {t('session.emptyState.subtitle')}
       </div>
 
-      {/* CTA button */}
+      {/* CTA button — indigo gradient */}
       <button
         onClick={onNewChat}
         style={{
-          marginTop: 4,
-          padding: '7px 18px',
-          borderRadius: 20,
-          background: 'var(--accent)',
-          border: 'none',
-          color: '#fff',
+          marginTop: 8,
+          padding: '8px 20px',
+          borderRadius: 8,
+          background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
+          border: '1px solid rgba(99,102,241,0.35)',
+          color: 'rgba(255,255,255,0.95)',
           fontSize: 12,
           fontWeight: 600,
           cursor: 'pointer',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-          transition: 'opacity 150ms ease, box-shadow 150ms ease',
+          transition: 'all 0.15s ease',
+          boxShadow: '0 2px 8px rgba(99,102,241,0.20)',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.opacity = '0.9'
-          e.currentTarget.style.boxShadow = '0 3px 10px rgba(0,0,0,0.3)'
+          e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.95), rgba(139,92,246,0.95))'
+          e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.40), 0 1px 4px rgba(0,0,0,0.3)'
+          e.currentTarget.style.transform = 'translateY(-1px)'
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.opacity = '1'
-          e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.2)'
+          e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(99,102,241,0.20)'
+          e.currentTarget.style.transform = 'translateY(0)'
         }}
       >
         {t('session.emptyState.startNewChat')}

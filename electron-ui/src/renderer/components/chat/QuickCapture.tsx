@@ -84,7 +84,7 @@ export default function QuickCapture() {
 
   return (
     <>
-      {/* Floating button */}
+      {/* Floating trigger button */}
       <button
         onClick={() => setOpen(!open)}
         title={`${t('notes.quickCapture')} (Ctrl+Shift+N)`}
@@ -95,49 +95,87 @@ export default function QuickCapture() {
           width: 36,
           height: 36,
           borderRadius: '50%',
-          background: open ? 'var(--text-muted)' : 'var(--accent)',
-          border: 'none',
+          background: open
+            ? 'rgba(255,255,255,0.18)'
+            : 'linear-gradient(135deg, #6366f1, #818cf8)',
+          border: open
+            ? '1px solid rgba(255,255,255,0.38)'
+            : '1px solid rgba(99,102,241,0.50)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+          boxShadow: open
+            ? '0 2px 8px rgba(0,0,0,0.25)'
+            : '0 4px 16px rgba(99,102,241,0.40)',
           zIndex: 50,
-          transition: 'transform 0.15s ease, background 0.15s ease',
+          transition: 'transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease',
+          backdropFilter: open ? 'blur(12px)' : 'none',
+          WebkitBackdropFilter: open ? 'blur(12px)' : 'none',
         }}
-        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.1)' }}
-        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
+        onMouseEnter={e => {
+          e.currentTarget.style.transform = 'scale(1.08)'
+          if (!open) e.currentTarget.style.boxShadow = '0 6px 20px rgba(99,102,241,0.55)'
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.transform = 'scale(1)'
+          e.currentTarget.style.boxShadow = open
+            ? '0 2px 8px rgba(0,0,0,0.25)'
+            : '0 4px 16px rgba(99,102,241,0.40)'
+        }}
       >
-        {open ? <X size={18} color="#fff" /> : <Plus size={18} color="#fff" />}
+        {open ? <X size={17} color="rgba(255,255,255,0.85)" /> : <Plus size={18} color="#fff" />}
       </button>
 
-      {/* Capture card */}
+      {/* Capture panel */}
       {open && (
         <div style={{
           position: 'absolute',
           bottom: 96,
           right: 20,
           width: 320,
-          background: 'var(--card-bg, var(--bg-primary))',
-          border: '1px solid var(--card-border, var(--border))',
-          borderRadius: 12,
-          boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-          padding: 12,
+          background: 'rgba(15,15,25,0.96)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 14,
+          boxShadow: '0 16px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(99,102,241,0.08) inset',
+          padding: 14,
           zIndex: 51,
-          animation: 'quickCaptureIn 0.2s ease',
+          animation: 'slideUp 0.15s ease',
         }}>
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-            <StickyNote size={13} color="var(--accent)" />
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10,
+            paddingBottom: 10, borderBottom: '1px solid rgba(255,255,255,0.07)',
+          }}>
+            <StickyNote size={13} color="#818cf8" />
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.82)', flex: 1 }}>
               {t('notes.quickCapture')}
             </span>
+            <kbd style={{
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: '0.04em',
+              background: 'rgba(255,255,255,0.07)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: 5,
+              padding: '1px 5px',
+              color: 'rgba(255,255,255,0.45)',
+              fontFamily: 'monospace',
+              lineHeight: '14px',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+            }}>⌃⇧N</kbd>
             <button
               onClick={() => setOpen(false)}
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
+                color: 'rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center',
+                borderRadius: 6, padding: 3, transition: 'all 0.15s ease',
               }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
             >
               <X size={14} />
             </button>
@@ -150,39 +188,54 @@ export default function QuickCapture() {
             onChange={e => setText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={t('notes.jotDown')}
+            onFocus={e => {
+              e.currentTarget.style.border = '1px solid rgba(99,102,241,0.50)'
+              e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.50)'
+            }}
+            onBlur={e => {
+              e.currentTarget.style.border = '1px solid rgba(255,255,255,0.08)'
+              e.currentTarget.style.boxShadow = 'none'
+            }}
             style={{
               width: '100%',
-              minHeight: 60,
-              maxHeight: 120,
-              resize: 'vertical',
-              background: 'var(--bg-input)',
-              border: '1px solid var(--border)',
+              minHeight: 64,
+              maxHeight: 130,
+              resize: 'none',
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
               borderRadius: 8,
-              padding: '8px 10px',
-              color: 'var(--text-primary)',
-              fontSize: 12,
+              padding: '9px 11px',
+              color: 'rgba(255,255,255,0.88)',
+              fontSize: 14,
               outline: 'none',
               fontFamily: 'inherit',
-              lineHeight: 1.5,
+              lineHeight: 1.6,
               boxSizing: 'border-box',
+              transition: 'border 0.15s ease, box-shadow 0.15s ease',
             }}
           />
 
-          {/* Footer: category + save */}
+          {/* Char counter */}
+          <div style={{ textAlign: 'right', marginTop: 4, fontSize: 10, color: 'rgba(255,255,255,0.38)' }}>
+            {text.length}
+          </div>
+
+          {/* Footer: category pills + save button */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
             <select
               value={categoryId || ''}
               onChange={e => setCategoryId(e.target.value || undefined)}
               style={{
                 flex: 1,
-                background: 'var(--bg-input)',
-                border: '1px solid var(--border)',
-                borderRadius: 6,
-                padding: '4px 6px',
-                color: 'var(--text-secondary)',
-                fontSize: 11,
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.09)',
+                borderRadius: 8,
+                padding: '4px 8px',
+                color: 'rgba(255,255,255,0.60)',
+                fontSize: 12,
                 outline: 'none',
                 cursor: 'pointer',
+                transition: 'all 0.15s ease',
               }}
             >
               <option value="">{t('notes.noCategory')}</option>
@@ -194,15 +247,25 @@ export default function QuickCapture() {
               onClick={handleSave}
               disabled={!text.trim()}
               style={{
-                background: text.trim() ? 'var(--accent)' : 'var(--bg-secondary)',
-                color: text.trim() ? '#fff' : 'var(--text-muted)',
+                background: text.trim()
+                  ? 'linear-gradient(135deg, rgba(99,102,241,0.90), rgba(139,92,246,0.90))'
+                  : 'rgba(99,102,241,0.25)',
+                color: 'rgba(255,255,255,0.95)',
                 border: 'none',
-                borderRadius: 6,
-                padding: '5px 14px',
-                fontSize: 11,
+                borderRadius: 8,
+                padding: '6px 16px',
+                fontSize: 12,
                 fontWeight: 600,
                 cursor: text.trim() ? 'pointer' : 'not-allowed',
-                transition: 'background 0.15s ease',
+                opacity: text.trim() ? 1 : 0.45,
+                transition: 'all 0.15s ease',
+                boxShadow: text.trim() ? '0 4px 16px rgba(99,102,241,0.35)' : 'none',
+              }}
+              onMouseEnter={e => {
+                if (text.trim()) e.currentTarget.style.boxShadow = '0 6px 20px rgba(99,102,241,0.50)'
+              }}
+              onMouseLeave={e => {
+                if (text.trim()) e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'
               }}
             >
               {t('notes.save')}
@@ -210,14 +273,6 @@ export default function QuickCapture() {
           </div>
         </div>
       )}
-
-      {/* Inline animation styles */}
-      <style>{`
-        @keyframes quickCaptureIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
     </>
   )
 }

@@ -66,8 +66,8 @@ export function useStreamJson() {
     window.electronAPI?.prefsSet('promptHistory', updated)
   }
 
-  const sendMessage = async (prompt: string, attachments?: import('./useImagePaste').ImageAttachment[]) => {
-    if (!prompt.trim() && (!attachments || attachments.length === 0)) return
+  const sendMessage = async (prompt: string, attachments?: import('./useImagePaste').ImageAttachment[], fileAttachments?: import('./useImagePaste').FileAttachment[]) => {
+    if (!prompt.trim() && (!attachments || attachments.length === 0) && (!fileAttachments || fileAttachments.length === 0)) return
 
     // Track prompt in history for analytics (max 200 items, deduped by normalized text)
     trackPromptHistory(prompt)
@@ -227,16 +227,37 @@ Keep exercises focused and achievable. The goal is active learning through doing
       }
     }
 
-    // Build actual prompt — if images attached, encode as JSON content array
+    // Build actual prompt — if images or non-text file attachments present, encode as JSON content array
     let actualPrompt: string
-    if (attachments && attachments.length > 0) {
+    const hasImageAttachments = attachments && attachments.length > 0
+    // Binary file attachments (PDF, images via file dialog with dataUrl) that need document/image blocks
+    const binaryFileBlocks = (fileAttachments || []).filter(f => f.dataUrl && f.mimeType)
+    const hasBinaryBlocks = binaryFileBlocks.length > 0
+    if (hasImageAttachments || hasBinaryBlocks) {
       const contentBlocks: unknown[] = [{ type: 'text', text: prompt }]
-      for (const img of attachments) {
+      // Image paste attachments → image blocks
+      for (const img of (attachments || [])) {
         const base64 = img.dataUrl.split(',')[1] // strip data:image/png;base64,
         contentBlocks.push({
           type: 'image',
           source: { type: 'base64', media_type: img.mimeType, data: base64 },
         })
+      }
+      // Binary file attachments (e.g. PDF, images from file dialog) → document or image blocks
+      for (const file of binaryFileBlocks) {
+        const base64 = file.dataUrl!.split(',')[1]
+        if (file.isImage) {
+          contentBlocks.push({
+            type: 'image',
+            source: { type: 'base64', media_type: file.mimeType, data: base64 },
+          })
+        } else {
+          // PDFs and other binary docs → document block
+          contentBlocks.push({
+            type: 'document',
+            source: { type: 'base64', media_type: file.mimeType, data: base64 },
+          })
+        }
       }
       actualPrompt = JSON.stringify(contentBlocks)  // stream-bridge will parse back to array
     } else {

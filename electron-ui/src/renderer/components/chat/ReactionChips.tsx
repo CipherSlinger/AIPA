@@ -38,18 +38,31 @@ export default function ReactionChips({ messageId, reactions, hovered }: Reactio
             title={label}
             style={{
               display: 'flex', alignItems: 'center', gap: 3,
-              padding: '2px 6px', fontSize: 10,
-              background: active ? 'rgba(0, 122, 204, 0.12)' : 'transparent',
-              border: active ? '1px solid rgba(0, 122, 204, 0.3)' : '1px solid transparent',
-              borderRadius: 10, cursor: 'pointer',
-              color: active ? 'var(--accent)' : 'var(--text-muted)',
-              transition: 'all 0.12s ease',
-              opacity: active ? 1 : (hovered ? 0.6 : 0),
+              padding: '2px 8px', fontSize: 12,
+              background: active ? 'rgba(99,102,241,0.20)' : 'rgba(255,255,255,0.06)',
+              border: active ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(255,255,255,0.09)',
+              borderRadius: 20, cursor: 'pointer',
+              color: active ? '#a5b4fc' : 'rgba(255,255,255,0.60)',
+              transition: 'all 0.15s ease',
+              opacity: active ? 1 : (hovered ? 1 : 0),
+              fontVariantNumeric: 'tabular-nums',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; if (!active) e.currentTarget.style.borderColor = 'var(--border)' }}
-            onMouseLeave={(e) => { if (!active) { e.currentTarget.style.opacity = hovered ? '0.6' : '0'; e.currentTarget.style.borderColor = 'transparent' } }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.opacity = '1'
+              if (!active) {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.10)'
+                e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!active) {
+                e.currentTarget.style.opacity = hovered ? '1' : '0'
+                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+              }
+            }}
           >
-            <Icon size={11} style={active ? { fill: 'var(--accent)', opacity: 0.3 } : {}} />
+            <Icon size={12} style={active ? { fill: '#a5b4fc', opacity: 0.8 } : { opacity: 0.7 }} />
           </button>
         )
       })}

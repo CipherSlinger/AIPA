@@ -19,10 +19,12 @@ export default function PinnedNoteStrip({ note, categories, onUnpin }: Props) {
 
   return (
     <div style={{
-      borderBottom: '1px solid rgba(0, 122, 204, 0.15)',
-      background: 'rgba(0, 122, 204, 0.04)',
+      borderBottom: '1px solid rgba(99,102,241,0.20)',
+      background: 'rgba(99,102,241,0.08)',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
       flexShrink: 0,
-      animation: 'quickCaptureIn 0.2s ease',
+      animation: 'quickCaptureIn 0.15s ease',
     }}>
       {/* Header row */}
       <div
@@ -36,22 +38,36 @@ export default function PinnedNoteStrip({ note, categories, onUnpin }: Props) {
         }}
         onClick={() => setExpanded(!expanded)}
       >
-        <Pin size={11} style={{ color: 'var(--accent)', flexShrink: 0, transform: 'rotate(45deg)' }} />
-        <StickyNote size={11} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+        <Pin size={13} style={{ color: '#818cf8', flexShrink: 0, transform: 'rotate(45deg)' }} />
+        <StickyNote size={13} style={{ color: '#fbbf24', flexShrink: 0 }} />
         <span style={{
           flex: 1,
-          fontSize: 11,
-          fontWeight: 600,
-          color: 'var(--text-primary)',
+          fontSize: 12,
+          color: 'rgba(255,255,255,0.60)',
+          fontStyle: 'italic',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
         }}>
           {categoryEmoji}{note.title}
         </span>
+        {category && (
+          <span style={{
+            background: 'rgba(99,102,241,0.15)',
+            color: '#a5b4fc',
+            borderRadius: 10,
+            padding: '1px 6px',
+            fontSize: 9,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            flexShrink: 0,
+          }}>
+            {category.name}
+          </span>
+        )}
         {expanded
-          ? <ChevronUp size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-          : <ChevronDown size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+          ? <ChevronUp size={12} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
+          : <ChevronDown size={12} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
         }
         <button
           onClick={(e) => { e.stopPropagation(); onUnpin() }}
@@ -60,15 +76,15 @@ export default function PinnedNoteStrip({ note, categories, onUnpin }: Props) {
             background: 'none',
             border: 'none',
             cursor: 'pointer',
-            color: 'var(--text-muted)',
+            color: 'rgba(255,255,255,0.38)',
             display: 'flex',
             alignItems: 'center',
-            padding: 2,
-            opacity: 0.5,
-            transition: 'opacity 150ms',
+            padding: '2px 4px',
+            borderRadius: 6,
+            transition: 'all 0.15s ease',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.opacity = '1' }}
-          onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.5' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = '#fca5a5'; e.currentTarget.style.background = 'rgba(239,68,68,0.08)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.38)'; e.currentTarget.style.background = 'none' }}
         >
           <X size={12} />
         </button>
@@ -79,13 +95,14 @@ export default function PinnedNoteStrip({ note, categories, onUnpin }: Props) {
         <div style={{
           padding: '4px 12px 8px 30px',
           fontSize: 12,
-          color: 'var(--text-secondary)',
+          color: 'rgba(255,255,255,0.60)',
+          fontStyle: 'italic',
           lineHeight: 1.5,
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-word',
           maxHeight: 200,
           overflowY: 'auto',
-          borderTop: '1px solid rgba(0, 122, 204, 0.08)',
+          borderTop: '1px solid rgba(99,102,241,0.10)',
         }}>
           {note.content}
         </div>

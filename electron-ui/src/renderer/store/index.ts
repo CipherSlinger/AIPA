@@ -21,18 +21,22 @@ interface SessionState {
   sessions: SessionListItem[]
   loading: boolean
   searchQuery: string
+  homeDir: string
   setSessions: (sessions: SessionListItem[]) => void
   setLoading: (v: boolean) => void
   setSearchQuery: (query: string) => void
+  setHomeDir: (dir: string) => void
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
   sessions: [],
   loading: false,
   searchQuery: '',
+  homeDir: '',
   setSessions: (sessions) => set({ sessions }),
   setLoading: (v) => set({ loading: v }),
   setSearchQuery: (query) => set({ searchQuery: query }),
+  setHomeDir: (dir) => set({ homeDir: dir }),
 }))
 
 // ── Prefs store ─────────────────────────────────

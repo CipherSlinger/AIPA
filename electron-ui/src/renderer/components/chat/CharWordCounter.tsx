@@ -18,22 +18,29 @@ export default function CharWordCounter({ input }: CharWordCounterProps) {
 
   return (
     <div style={{
-      display: 'flex', justifyContent: 'flex-end',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      justifyContent: 'flex-end',
       padding: '2px 0 0',
     }}>
       <span style={{
-        fontSize: 10,
-        fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
+        fontSize: 11,
+        fontVariantNumeric: 'tabular-nums',
+        fontFeatureSettings: '"tnum"',
         color: input.length >= 50000
-          ? 'var(--error, #d9534f)'
+          ? '#f87171'
           : input.length >= 10000
-          ? 'var(--warning, #f0ad4e)'
-          : 'var(--text-muted)',
-        opacity: input.length >= 10000 ? 1 : 0.6,
-        transition: 'color 200ms ease',
+          ? '#fbbf24'
+          : 'rgba(255,255,255,0.38)',
+        transition: 'color 0.15s ease',
         userSelect: 'none',
       }}>
-        {wordCount} {t('chat.words')} | {input.length.toLocaleString()} {t('chat.chars')} | ~{tokenEst.toLocaleString()} {t('chat.tokens')}
+        {wordCount} {t('chat.words')}
+        <span style={{ color: 'rgba(255,255,255,0.18)', margin: '0 4px' }}>|</span>
+        {input.length.toLocaleString()} {t('chat.chars')}
+        <span style={{ color: 'rgba(255,255,255,0.18)', margin: '0 4px' }}>|</span>
+        ~{tokenEst.toLocaleString()} {t('chat.tokens')}
       </span>
     </div>
   )

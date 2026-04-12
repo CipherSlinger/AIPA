@@ -53,9 +53,9 @@ export default function ThinkingIndicator() {
     <div
       style={{
         display: 'flex',
-        gap: 8,
-        padding: '8px 16px',
-        alignItems: 'flex-start',
+        gap: 6,
+        padding: '6px 12px',
+        alignItems: 'center',
       }}
       aria-live="polite"
       aria-label={`${activityLabel}...`}
@@ -69,31 +69,38 @@ export default function ThinkingIndicator() {
           borderRadius: '50%',
           background: activePersona?.color
             ? `${activePersona.color}22`
-            : 'var(--bubble-ai)',
+            : 'rgba(25,25,35,0.95)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
           border: activePersona?.color
             ? `1.5px solid ${activePersona.color}44`
-            : 'none',
+            : '1.5px solid rgba(99,102,241,0.25)',
         }}
       >
         {activePersona?.emoji ? (
           <span style={{ fontSize: 15, lineHeight: 1 }}>{activePersona.emoji}</span>
         ) : (
-          <Bot size={16} color="var(--bubble-ai-text)" />
+          <Bot size={16} color="rgba(255,255,255,0.82)" />
         )}
       </div>
 
-      {/* Mini bubble */}
+      {/* Mini bubble — indigo-tinted glass */}
       <div
         style={{
-          background: 'var(--bubble-ai)',
-          borderRadius: '2px 12px 12px 12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
           padding: '8px 14px',
+          background: 'rgba(99,102,241,0.06)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          border: '1px solid rgba(99,102,241,0.15)',
+          borderRadius: 20,
           minWidth: 80,
-          maxWidth: 200,
+          maxWidth: 240,
+          boxShadow: '0 2px 12px rgba(99,102,241,0.08)',
         }}
       >
         {/* Dots + activity label row */}
@@ -105,12 +112,21 @@ export default function ThinkingIndicator() {
                 width: 5,
                 height: 5,
                 borderRadius: '50%',
-                background: activePersona?.color || 'var(--accent)',
-                animation: `dot-wave 1.2s ease-in-out ${i * 0.15}s infinite`,
+                background: 'rgba(165,180,252,0.75)',
+                animation: `pulse 1.2s ease-in-out ${i * 150}ms infinite`,
+                flexShrink: 0,
               }}
             />
           ))}
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 2, whiteSpace: 'nowrap' }}>
+          <span
+            style={{
+              fontSize: 12,
+              fontStyle: 'italic',
+              marginLeft: 2,
+              whiteSpace: 'nowrap',
+              color: 'rgba(255,255,255,0.60)',
+            }}
+          >
             {activityLabel}...
           </span>
         </div>
@@ -118,9 +134,9 @@ export default function ThinkingIndicator() {
         {/* Elapsed timer */}
         <div style={{
           fontSize: 10,
-          color: 'var(--text-muted)',
-          opacity: 0.7,
-          marginTop: 3,
+          color: 'rgba(255,255,255,0.38)',
+          flexShrink: 0,
+          fontVariantNumeric: 'tabular-nums',
         }}>
           {elapsed}s
         </div>

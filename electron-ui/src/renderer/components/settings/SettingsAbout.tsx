@@ -10,6 +10,29 @@ interface SettingsAboutProps {
   onShowShortcuts?: () => void
 }
 
+const sectionLabelStyle: React.CSSProperties = {
+  fontSize: 10,
+  fontWeight: 700,
+  letterSpacing: '0.07em',
+  textTransform: 'uppercase',
+  color: 'rgba(255,255,255,0.38)',
+  marginBottom: 10,
+}
+
+const sectionCardStyle: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.03)',
+  border: '1px solid rgba(255,255,255,0.07)',
+  borderRadius: 10,
+  padding: '16px 20px',
+  marginBottom: 12,
+}
+
+const dividerStyle: React.CSSProperties = {
+  height: 1,
+  background: 'rgba(255,255,255,0.05)',
+  margin: '8px 0',
+}
+
 export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts }: SettingsAboutProps) {
   const { t } = useI18n()
   const [showDiagnostics, setShowDiagnostics] = useState(false)
@@ -67,94 +90,119 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
       {/* App identity */}
-      <div style={{ textAlign: 'center', padding: '12px 0' }}>
-        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-bright)', letterSpacing: 1 }}>AIPA</div>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{t('settings.about.aiPersonalAssistant')}</div>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>v{window.electronAPI.versions?.app || '1.0.0'}</div>
+      <div style={{ ...sectionCardStyle, textAlign: 'center', padding: '20px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.9)', letterSpacing: '-0.01em', lineHeight: 1.3 }}>AIPA</div>
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>{t('settings.about.aiPersonalAssistant')}</div>
+        <div style={{
+          display: 'inline-block',
+          marginTop: 10,
+          background: 'rgba(99,102,241,0.15)',
+          border: '1px solid rgba(99,102,241,0.3)',
+          borderRadius: 20,
+          padding: '3px 10px',
+          fontSize: 12,
+          fontWeight: 700,
+          color: '#818cf8',
+          fontVariantNumeric: 'tabular-nums',
+        }}>
+          v{window.electronAPI.versions?.app || '1.0.0'}
+        </div>
       </div>
 
-      <div style={{ borderTop: '1px solid var(--border)' }} />
-
       {/* Links */}
-      <div>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>{t('settings.about.links')}</div>
+      <div style={sectionCardStyle}>
+        <div style={sectionLabelStyle}>{t('settings.about.links')}</div>
         {[
           { label: t('settings.about.githubRepo'), url: 'https://github.com/CipherSlinger/AIPA' },
           { label: t('settings.about.anthropicConsole'), url: 'https://console.anthropic.com/' },
           { label: t('settings.about.apiDocs'), url: 'https://docs.anthropic.com/' },
           { label: t('settings.about.getApiKey'), url: 'https://console.anthropic.com/settings/keys' },
-        ].map(link => (
-          <button
-            key={link.url}
-            onClick={() => window.electronAPI.shellOpenExternal(link.url)}
-            aria-label={link.label}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-              padding: '7px 10px', marginBottom: 4, background: 'none',
-              border: '1px solid var(--border)', borderRadius: 4,
-              color: 'var(--text-primary)', cursor: 'pointer', fontSize: 12,
-              textAlign: 'left',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-          >
-            <ExternalLink size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-            {link.label}
-          </button>
+        ].map((link, i, arr) => (
+          <React.Fragment key={link.url}>
+            <button
+              onClick={() => window.electronAPI.shellOpenExternal(link.url)}
+              aria-label={link.label}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                padding: '6px 14px', marginBottom: 0,
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.10)',
+                borderRadius: 6,
+                color: '#818cf8', cursor: 'pointer', fontSize: 12,
+                textAlign: 'left',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.10)';
+                e.currentTarget.style.textDecoration = 'underline';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                e.currentTarget.style.textDecoration = 'none';
+              }}
+            >
+              <ExternalLink size={12} style={{ color: 'rgba(129,140,248,0.6)', flexShrink: 0 }} />
+              {link.label}
+            </button>
+            {i < arr.length - 1 && <div style={dividerStyle} />}
+          </React.Fragment>
         ))}
       </div>
 
-      <div style={{ borderTop: '1px solid var(--border)' }} />
-
       {/* Keyboard shortcuts -- link to full cheatsheet */}
-      <div>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>{t('settings.about.keyboardShortcuts')}</div>
+      <div style={sectionCardStyle}>
+        <div style={sectionLabelStyle}>{t('settings.about.keyboardShortcuts')}</div>
         <button
           onClick={onShowShortcuts}
           style={{
             display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-            padding: '10px 12px', background: 'var(--bg-active)',
-            border: '1px solid var(--border)', borderRadius: 6,
-            color: 'var(--text-primary)', cursor: 'pointer', fontSize: 12,
+            padding: '10px 12px',
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.10)',
+            borderRadius: 6,
+            color: 'rgba(255,255,255,0.75)', cursor: 'pointer', fontSize: 12,
             justifyContent: 'space-between',
+            transition: 'all 0.15s ease',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
-          onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.10)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
         >
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Keyboard size={14} style={{ color: 'var(--accent)' }} />
+            <Keyboard size={14} style={{ color: '#a5b4fc' }} />
             {t('settings.about.viewAllShortcuts')}
           </span>
           <kbd style={{
-            fontSize: 10, color: 'var(--text-muted)', background: 'var(--bg-input)',
-            border: '1px solid var(--border)', borderRadius: 3, padding: '1px 6px',
+            fontSize: 10, color: 'rgba(255,255,255,0.38)',
+            background: 'rgba(12,12,22,0.6)',
+            border: '1px solid rgba(255,255,255,0.09)', borderRadius: 6, padding: '1px 6px',
             fontFamily: 'inherit',
           }}>Ctrl+/</kbd>
         </button>
       </div>
 
-      <div style={{ borderTop: '1px solid var(--border)' }} />
-
       {/* Data Backup & Restore */}
-      <div>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>{t('backup.title')}</div>
+      <div style={sectionCardStyle}>
+        <div style={sectionLabelStyle}>{t('backup.title')}</div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button
             onClick={handleBackup}
             disabled={backupLoading}
             style={{
               display: 'flex', alignItems: 'center', gap: 8, flex: 1,
-              padding: '10px 12px', background: 'var(--bg-active)',
-              border: '1px solid var(--border)', borderRadius: 6,
-              color: 'var(--text-primary)', cursor: backupLoading ? 'wait' : 'pointer', fontSize: 12,
-              justifyContent: 'center', opacity: backupLoading ? 0.6 : 1,
+              padding: '10px 12px',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.10)',
+              borderRadius: 6,
+              color: 'rgba(255,255,255,0.75)', cursor: backupLoading ? 'wait' : 'pointer', fontSize: 12,
+              justifyContent: 'center', opacity: backupLoading ? 0.4 : 1,
+              transition: 'all 0.15s ease',
             }}
-            onMouseEnter={(e) => { if (!backupLoading) e.currentTarget.style.borderColor = 'var(--accent)' }}
-            onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+            onMouseEnter={(e) => { if (!backupLoading) e.currentTarget.style.background = 'rgba(255,255,255,0.10)' }}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
           >
-            {backupLoading ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={14} style={{ color: 'var(--accent)' }} />}
+            {backupLoading ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={14} style={{ color: '#a5b4fc' }} />}
             {t('backup.export')}
           </button>
           <button
@@ -162,57 +210,72 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
             disabled={restoreLoading}
             style={{
               display: 'flex', alignItems: 'center', gap: 8, flex: 1,
-              padding: '10px 12px', background: 'var(--bg-active)',
-              border: '1px solid var(--border)', borderRadius: 6,
-              color: 'var(--text-primary)', cursor: restoreLoading ? 'wait' : 'pointer', fontSize: 12,
-              justifyContent: 'center', opacity: restoreLoading ? 0.6 : 1,
+              padding: '10px 12px',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.10)',
+              borderRadius: 6,
+              color: 'rgba(255,255,255,0.75)', cursor: restoreLoading ? 'wait' : 'pointer', fontSize: 12,
+              justifyContent: 'center', opacity: restoreLoading ? 0.4 : 1,
+              transition: 'all 0.15s ease',
             }}
-            onMouseEnter={(e) => { if (!restoreLoading) e.currentTarget.style.borderColor = 'var(--accent)' }}
-            onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+            onMouseEnter={(e) => { if (!restoreLoading) e.currentTarget.style.background = 'rgba(255,255,255,0.10)' }}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
           >
-            {restoreLoading ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Upload size={14} style={{ color: 'var(--accent)' }} />}
+            {restoreLoading ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Upload size={14} style={{ color: '#a5b4fc' }} />}
             {t('backup.import')}
           </button>
         </div>
-        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 8, lineHeight: 1.5 }}>
           {t('backup.hint')}
         </div>
       </div>
 
-      <div style={{ borderTop: '1px solid var(--border)' }} />
-
       {/* System Diagnostics */}
-      <div>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>{t('diagnostics.title')}</div>
+      <div style={sectionCardStyle}>
+        <div style={sectionLabelStyle}>{t('diagnostics.title')}</div>
         <button
           onClick={() => setShowDiagnostics(true)}
           style={{
             display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-            padding: '10px 12px', background: 'var(--bg-active)',
-            border: '1px solid var(--border)', borderRadius: 6,
-            color: 'var(--text-primary)', cursor: 'pointer', fontSize: 12,
+            padding: '10px 12px',
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.10)',
+            borderRadius: 6,
+            color: 'rgba(255,255,255,0.75)', cursor: 'pointer', fontSize: 12,
             justifyContent: 'space-between',
+            transition: 'all 0.15s ease',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
-          onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.10)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
         >
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Activity size={14} style={{ color: 'var(--accent)' }} />
+            <Activity size={14} style={{ color: '#a5b4fc' }} />
             {t('diagnostics.runDiagnostics')}
           </span>
         </button>
       </div>
 
-      <div style={{ borderTop: '1px solid var(--border)' }} />
-
       {/* Runtime info */}
-      <div>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>{t('settings.about.runtime')}</div>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.8 }}>
-          Electron {window.electronAPI.versions?.electron || 'N/A'}<br />
-          Node.js {window.electronAPI.versions?.node || 'N/A'}<br />
-          Chromium {window.electronAPI.versions?.chrome || 'N/A'}<br />
-          {window.electronAPI.versions?.platform || 'unknown'} / {window.electronAPI.versions?.arch || 'unknown'}
+      <div style={sectionCardStyle}>
+        <div style={sectionLabelStyle}>{t('settings.about.runtime')}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {[
+            { key: 'Electron', val: window.electronAPI.versions?.electron || 'N/A' },
+            { key: 'Node.js', val: window.electronAPI.versions?.node || 'N/A' },
+            { key: 'Chromium', val: window.electronAPI.versions?.chrome || 'N/A' },
+            { key: 'Platform', val: `${window.electronAPI.versions?.platform || 'unknown'} / ${window.electronAPI.versions?.arch || 'unknown'}` },
+          ].map((row, i, arr) => (
+            <React.Fragment key={row.key}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', fontVariantNumeric: 'tabular-nums' }}>{row.key}</span>
+                <span style={{
+                  fontFamily: 'monospace', fontSize: 11, color: 'rgba(165,180,252,0.8)',
+                  background: 'rgba(12,12,22,0.6)', borderRadius: 6, padding: '1px 5px',
+                }}>{row.val}</span>
+              </div>
+              {i < arr.length - 1 && <div style={dividerStyle} />}
+            </React.Fragment>
+          ))}
         </div>
       </div>
 
@@ -221,12 +284,19 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
         onClick={onResetDefaults}
         aria-label={t('settings.about.resetDefaults')}
         style={{
-          background: 'none', border: '1px solid var(--border)', borderRadius: 4,
-          padding: '8px 16px', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 12,
-          width: '100%', textAlign: 'center', marginTop: 4,
+          background: 'rgba(239,68,68,0.06)',
+          border: '1px solid rgba(239,68,68,0.2)',
+          borderRadius: 6,
+          padding: '8px 16px',
+          color: '#fca5a5',
+          cursor: 'pointer',
+          fontSize: 12,
+          width: '100%',
+          textAlign: 'center',
+          transition: 'all 0.15s ease',
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--error)')}
-        onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+        onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239,68,68,0.12)')}
+        onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(239,68,68,0.06)')}
       >
         {t('settings.about.resetDefaults')}
       </button>

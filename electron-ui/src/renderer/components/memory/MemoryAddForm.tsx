@@ -24,11 +24,24 @@ export default function MemoryAddForm({
 
   return (
     <div style={{
-      padding: '8px 12px',
-      borderBottom: '1px solid var(--border)',
-      background: 'rgba(var(--accent-rgb, 59, 130, 246), 0.03)',
+      padding: '14px 16px',
+      background: 'rgba(15,15,25,0.85)',
+      backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
+      border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: 12,
+      marginBottom: 6,
       flexShrink: 0,
     }}>
+      {/* Header */}
+      <div style={{
+        fontSize: 12,
+        fontWeight: 600,
+        color: 'rgba(255,255,255,0.60)',
+        marginBottom: 8,
+      }}>
+        {t('memory.addTitle')}
+      </div>
       <textarea
         value={newContent}
         onChange={e => onContentChange(e.target.value)}
@@ -37,20 +50,28 @@ export default function MemoryAddForm({
         autoFocus
         style={{
           width: '100%',
-          height: 60,
-          padding: 8,
-          background: 'var(--input-field-bg)',
-          border: '1px solid var(--input-field-border)',
+          minHeight: 80,
+          padding: '7px 10px',
+          background: 'rgba(255,255,255,0.06)',
+          border: '1px solid rgba(255,255,255,0.10)',
           borderRadius: 6,
-          fontSize: 11,
-          color: 'var(--text-primary)',
-          resize: 'none',
+          fontSize: 13,
+          color: 'rgba(255,255,255,0.82)',
+          resize: 'vertical',
           outline: 'none',
           boxSizing: 'border-box',
-          fontFamily: 'inherit',
+          fontFamily: 'monospace',
+          lineHeight: 1.6,
+          transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
         }}
-        onFocus={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
-        onBlur={e => (e.currentTarget.style.borderColor = 'var(--input-field-border)')}
+        onFocus={e => {
+          e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)'
+          e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.45)'
+        }}
+        onBlur={e => {
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+          e.currentTarget.style.boxShadow = 'none'
+        }}
         onKeyDown={e => {
           if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
             e.preventDefault()
@@ -65,7 +86,7 @@ export default function MemoryAddForm({
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 6,
+        marginTop: 8,
       }}>
         {/* Category selector */}
         <div style={{ position: 'relative' }}>
@@ -82,6 +103,8 @@ export default function MemoryAddForm({
               display: 'flex',
               alignItems: 'center',
               gap: 4,
+              fontWeight: 600,
+              transition: 'all 0.15s ease',
             }}
           >
             {CATEGORY_CONFIG[newCategory].icon}
@@ -97,10 +120,12 @@ export default function MemoryAddForm({
               top: '100%',
               left: 0,
               marginTop: 2,
-              background: 'var(--popup-bg)',
-              border: '1px solid var(--popup-border)',
-              borderRadius: 6,
-              boxShadow: 'var(--popup-shadow)',
+              background: 'rgba(15,15,25,0.95)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255,255,255,0.09)',
+              borderRadius: 8,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
               zIndex: 50,
               overflow: 'hidden',
               minWidth: 120,
@@ -119,12 +144,19 @@ export default function MemoryAddForm({
                     gap: 6,
                     width: '100%',
                     padding: '6px 10px',
-                    background: newCategory === cat ? 'rgba(255,255,255,0.05)' : 'transparent',
+                    background: newCategory === cat ? 'rgba(255,255,255,0.06)' : 'transparent',
                     border: 'none',
                     color: CATEGORY_CONFIG[cat].color,
                     fontSize: 11,
                     cursor: 'pointer',
                     textAlign: 'left',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={e => {
+                    if (newCategory !== cat) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                  }}
+                  onMouseLeave={e => {
+                    if (newCategory !== cat) e.currentTarget.style.background = 'transparent'
                   }}
                 >
                   {CATEGORY_CONFIG[cat].icon}
@@ -134,42 +166,54 @@ export default function MemoryAddForm({
             </div>
           )}
         </div>
-        <div style={{ display: 'flex', gap: 4 }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {/* Character counter */}
           <span style={{
-            fontSize: 9,
-            color: newContent.length > MAX_CONTENT_LENGTH * 0.9 ? 'var(--warning)' : 'var(--text-muted)',
+            fontSize: 10,
+            color: newContent.length > MAX_CONTENT_LENGTH * 0.9 ? '#fbbf24' : 'rgba(255,255,255,0.38)',
             alignSelf: 'center',
-            marginRight: 4,
+            fontVariantNumeric: 'tabular-nums',
           }}>
             {newContent.length}/{MAX_CONTENT_LENGTH}
           </span>
+          {/* Cancel button */}
           <button
             onClick={onClose}
             style={{
-              background: 'transparent',
-              border: '1px solid var(--border)',
-              borderRadius: 4,
-              padding: '2px 8px',
-              fontSize: 10,
-              color: 'var(--text-muted)',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.10)',
+              borderRadius: 8,
+              padding: '7px 14px',
+              fontSize: 12,
+              color: 'rgba(255,255,255,0.60)',
               cursor: 'pointer',
+              transition: 'all 0.15s ease',
             }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.09)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
           >
             {t('memory.cancel')}
           </button>
+          {/* Save/add button */}
           <button
             onClick={onSave}
             disabled={!newContent.trim()}
             style={{
-              background: newContent.trim() ? 'var(--accent)' : 'var(--input-field-bg)',
+              background: newContent.trim()
+                ? 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))'
+                : 'rgba(255,255,255,0.05)',
               border: 'none',
-              borderRadius: 4,
-              padding: '2px 10px',
-              fontSize: 10,
+              borderRadius: 8,
+              padding: '7px 14px',
+              fontSize: 12,
               fontWeight: 600,
-              color: newContent.trim() ? '#fff' : 'var(--text-muted)',
-              cursor: newContent.trim() ? 'pointer' : 'default',
+              color: newContent.trim() ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.38)',
+              cursor: newContent.trim() ? 'pointer' : 'not-allowed',
+              transition: 'all 0.15s ease',
+              boxShadow: newContent.trim() ? '0 2px 8px rgba(99,102,241,0.30)' : 'none',
             }}
+            onMouseEnter={e => { if (newContent.trim()) { e.currentTarget.style.boxShadow = '0 4px 14px rgba(99,102,241,0.45)'; e.currentTarget.style.transform = 'translateY(-1px)' } }}
+            onMouseLeave={e => { e.currentTarget.style.boxShadow = newContent.trim() ? '0 2px 8px rgba(99,102,241,0.30)' : 'none'; e.currentTarget.style.transform = 'translateY(0)' }}
           >
             {t('memory.save')}
           </button>

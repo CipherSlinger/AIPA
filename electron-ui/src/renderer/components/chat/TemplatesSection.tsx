@@ -57,8 +57,8 @@ export default function TemplatesSection({ onUseTemplate }: Props) {
     <div style={{ width: '100%', maxWidth: 420 }}>
       {/* Header + category pills */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
-        <FileText size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-        <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500, marginRight: 4 }}>
+        <FileText size={11} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
+        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', marginRight: 4 }}>
           {t('convTemplate.section')}
         </span>
         {/* "All" pill */}
@@ -66,10 +66,13 @@ export default function TemplatesSection({ onUseTemplate }: Props) {
           onClick={() => setActiveCategory('all')}
           style={{
             padding: '2px 8px', borderRadius: 10, fontSize: 10, cursor: 'pointer',
-            border: activeCategory === 'all' ? '1px solid var(--accent)' : '1px solid var(--card-border)',
-            background: activeCategory === 'all' ? 'var(--accent)' : 'transparent',
-            color: activeCategory === 'all' ? '#fff' : 'var(--text-muted)',
-            transition: 'all 0.15s',
+            border: activeCategory === 'all' ? '1px solid rgba(99,102,241,0.5)' : '1px solid rgba(255,255,255,0.10)',
+            background: activeCategory === 'all' ? 'rgba(99,102,241,0.20)' : 'rgba(255,255,255,0.06)',
+            color: activeCategory === 'all' ? '#818cf8' : 'rgba(255,255,255,0.45)',
+            fontWeight: 700,
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+            transition: 'all 0.15s ease',
           }}
         >
           {t('convTemplate.all')}
@@ -80,10 +83,13 @@ export default function TemplatesSection({ onUseTemplate }: Props) {
             onClick={() => setActiveCategory(cat.key)}
             style={{
               padding: '2px 8px', borderRadius: 10, fontSize: 10, cursor: 'pointer',
-              border: activeCategory === cat.key ? '1px solid var(--accent)' : '1px solid var(--card-border)',
-              background: activeCategory === cat.key ? 'var(--accent)' : 'transparent',
-              color: activeCategory === cat.key ? '#fff' : 'var(--text-muted)',
-              transition: 'all 0.15s',
+              border: activeCategory === cat.key ? '1px solid rgba(99,102,241,0.5)' : '1px solid rgba(255,255,255,0.10)',
+              background: activeCategory === cat.key ? 'rgba(99,102,241,0.20)' : 'rgba(255,255,255,0.06)',
+              color: activeCategory === cat.key ? '#818cf8' : 'rgba(255,255,255,0.45)',
+              fontWeight: 700,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              transition: 'all 0.15s ease',
             }}
           >
             {t(cat.labelKey)}
@@ -99,62 +105,99 @@ export default function TemplatesSection({ onUseTemplate }: Props) {
           const isCustom = !tpl.isBuiltIn
 
           return (
-            <button
+            <div
               key={tpl.id}
-              onClick={() => handleUse(tpl)}
               style={{
-                display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px',
-                background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+                display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 12px',
+                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
                 borderRadius: 10, cursor: 'pointer', textAlign: 'left',
-                transition: 'background 0.15s, border-color 0.15s, transform 0.15s',
+                transition: 'all 0.15s ease',
                 position: 'relative',
+                boxShadow: '0 2px 8px rgba(0,0,0,0)',
               }}
               onMouseEnter={e => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'var(--action-btn-hover)';
-                (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)';
-                (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.02)'
+                const el = e.currentTarget as HTMLDivElement;
+                el.style.background = 'rgba(255,255,255,0.07)';
+                el.style.borderColor = 'rgba(255,255,255,0.12)';
+                el.style.transform = 'translateY(-1px)';
+                el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
               }}
               onMouseLeave={e => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'var(--card-bg)';
-                (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--card-border)';
-                (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'
+                const el = e.currentTarget as HTMLDivElement;
+                el.style.background = 'rgba(255,255,255,0.04)';
+                el.style.borderColor = 'rgba(255,255,255,0.07)';
+                el.style.transform = 'translateY(0)';
+                el.style.boxShadow = '0 2px 8px rgba(0,0,0,0)';
               }}
             >
-              <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0, marginTop: 2 }}>{tpl.emoji}</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{
-                  fontSize: 12, fontWeight: 600, color: 'var(--text-primary)',
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}>
-                  {title}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0, marginTop: 2 }}>{tpl.emoji}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.82)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    lineHeight: 1.3,
+                  }}>
+                    {title}
+                  </div>
+                  <div style={{
+                    fontSize: 12, color: 'rgba(255,255,255,0.60)', marginTop: 3,
+                    overflow: 'hidden', display: '-webkit-box',
+                    WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                    lineHeight: 1.5,
+                  }}>
+                    {desc}
+                  </div>
                 </div>
-                <div style={{
-                  fontSize: 10, color: 'var(--text-muted)', marginTop: 2,
-                  overflow: 'hidden', display: '-webkit-box',
-                  WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                  lineHeight: 1.4,
-                }}>
-                  {desc}
-                </div>
+                {isCustom && (
+                  <button
+                    onClick={e => handleDeleteCustom(e, tpl.id)}
+                    title={t('convTemplate.deleted')}
+                    className="tpl-delete-btn"
+                    style={{
+                      position: 'absolute', top: 4, right: 4,
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      color: 'rgba(255,255,255,0.45)', padding: 2, borderRadius: 6,
+                      opacity: 0, transition: 'opacity 0.15s, color 0.15s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.color = '#f87171'; e.currentTarget.style.opacity = '1' }}
+                    onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+                  >
+                    <X size={12} />
+                  </button>
+                )}
               </div>
-              {isCustom && (
-                <button
-                  onClick={e => handleDeleteCustom(e, tpl.id)}
-                  title={t('convTemplate.deleted')}
-                  className="tpl-delete-btn"
-                  style={{
-                    position: 'absolute', top: 4, right: 4,
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    color: 'var(--text-muted)', padding: 2, borderRadius: 3,
-                    opacity: 0, transition: 'opacity 0.15s, color 0.15s',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--error)'; e.currentTarget.style.opacity = '1' }}
-                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
-                >
-                  <X size={12} />
-                </button>
-              )}
-            </button>
+              {/* Use CTA button */}
+              <button
+                onClick={() => handleUse(tpl)}
+                style={{
+                  alignSelf: 'flex-start',
+                  padding: '4px 12px',
+                  background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                  border: 'none',
+                  borderRadius: 20,
+                  color: 'rgba(255,255,255,0.92)',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.filter = 'brightness(0.95)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.filter = 'none';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                {t('convTemplate.use') || 'Use'}
+              </button>
+            </div>
           )
         })}
       </div>

@@ -92,9 +92,9 @@ export function getActionsForType(contentType: PasteContentType): PasteAction[] 
 
 // Shared toolbar button style
 export const toolbarBtnStyle: React.CSSProperties = {
-  background: 'none',
+  background: 'transparent',
   border: 'none',
-  color: 'var(--input-toolbar-icon)',
+  color: 'rgba(255,255,255,0.45)',
   cursor: 'pointer',
   display: 'flex',
   alignItems: 'center',
@@ -102,16 +102,17 @@ export const toolbarBtnStyle: React.CSSProperties = {
   width: 28,
   height: 28,
   borderRadius: 6,
+  padding: '4px 6px',
   flexShrink: 0,
-  transition: 'color 150ms, background 150ms',
+  transition: 'all 0.15s ease',
 }
 
 export const toolbarHoverIn = (e: React.MouseEvent<HTMLButtonElement>) => {
-  ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--input-toolbar-hover)'
-  ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)'
+  ;(e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.82)'
+  ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'
 }
 
 export const toolbarHoverOut = (e: React.MouseEvent<HTMLButtonElement>) => {
-  ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--input-toolbar-icon)'
-  ;(e.currentTarget as HTMLButtonElement).style.background = 'none'
+  ;(e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.45)'
+  ;(e.currentTarget as HTMLButtonElement).style.background = 'transparent'
 }

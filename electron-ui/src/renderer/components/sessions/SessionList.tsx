@@ -218,7 +218,7 @@ export default function SessionList() {
   const sessionListCompact = prefs.sessionListCompact || false
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'transparent' }}>
       {/* Search bar + toolbar (extracted Iteration 441) */}
       <SessionListHeader
         filter={filter}
@@ -257,7 +257,7 @@ export default function SessionList() {
       />
 
       {/* Folder filter */}
-      <div style={{ padding: '4px 10px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+      <div style={{ padding: '4px 10px', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0, background: 'rgba(15,15,25,0.85)' }}>
         <SessionFolders
           activeFolder={activeFolderFilter}
           onFolderSelect={setActiveFolderFilter}
@@ -309,8 +309,10 @@ export default function SessionList() {
         <div style={{
           padding: '4px 12px',
           fontSize: 10,
-          color: 'var(--text-muted)',
-          borderBottom: '1px solid var(--border)',
+          color: 'rgba(255,255,255,0.38)',
+          fontWeight: 600,
+          letterSpacing: '0.05em',
+          borderBottom: '1px solid rgba(255,255,255,0.07)',
           display: 'flex',
           alignItems: 'center',
           gap: 4,
@@ -349,7 +351,7 @@ export default function SessionList() {
             actions.deleteSession(fakeEvent, session.sessionId)
           }
         }}
-        style={{ flex: 1, overflowY: 'auto', outline: 'none' }}
+        style={{ flex: 1, overflowY: 'auto', outline: 'none', scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.10) transparent' }}
       >
         {sessionLoading && (
           <div>
@@ -363,17 +365,28 @@ export default function SessionList() {
         )}
         {!sessionLoading && filtered.length === 0 && filter && (
           <div style={{
-            padding: '32px 16px',
-            color: 'var(--text-muted)',
             fontSize: 12,
+            color: 'rgba(255,255,255,0.45)',
             textAlign: 'center',
+            padding: '32px 16px',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: 8,
+            gap: 10,
           }}>
-            <MessageSquare size={28} style={{ opacity: 0.3 }} />
-            <div style={{ fontWeight: 500 }}>
+            <div style={{
+              width: 48,
+              height: 48,
+              borderRadius: 12,
+              background: 'rgba(99,102,241,0.12)',
+              border: '1px solid rgba(99,102,241,0.20)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <MessageSquare size={22} style={{ color: '#818cf8' }} />
+            </div>
+            <div style={{ fontWeight: 600, color: 'rgba(255,255,255,0.60)', lineHeight: 1.4 }}>
               {t('session.noResults')}
             </div>
           </div>

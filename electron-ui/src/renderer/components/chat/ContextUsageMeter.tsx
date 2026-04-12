@@ -82,7 +82,16 @@ export default function ContextUsageMeter({ used, total, isStreaming, onCompact,
   const [showSuggestions, setShowSuggestions] = useState(false)
   const pct = Math.round((used / total) * 100)
   if (pct < 40) return null
-  const barColor = pct >= 85 ? 'var(--error)' : pct >= 70 ? '#f97316' : pct >= 55 ? 'var(--warning)' : 'var(--accent)'
+
+  // Thresholds: <70% indigo, 70-90% amber, >90% red
+  const barGradient = pct >= 90
+    ? 'linear-gradient(90deg, rgba(239,68,68,0.85), rgba(248,113,113,0.85))'
+    : pct >= 70
+      ? 'linear-gradient(90deg, rgba(251,191,36,0.85), rgba(251,191,36,0.7))'
+      : 'linear-gradient(90deg, rgba(99,102,241,0.8), rgba(139,92,246,0.8))'
+
+  // Text color for the percentage label
+  const barColor = pct >= 90 ? '#f87171' : pct >= 70 ? '#fbbf24' : 'rgba(255,255,255,0.45)'
 
   const suggestions = generateSuggestions(used, total, toolBreakdown)
   const hasSuggestions = suggestions.length > 0 && pct >= 70
@@ -90,89 +99,145 @@ export default function ContextUsageMeter({ used, total, isStreaming, onCompact,
   return (
     <div style={{ position: 'relative' }}>
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 8, padding: '2px 4px', marginBottom: 4,
+        background: 'rgba(15,15,25,0.80)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        borderRadius: 8,
+        padding: '10px 12px',
       }}>
         <div style={{
-          flex: 1, height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden',
+          display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4,
         }}>
           <div style={{
-            width: `${Math.min(pct, 100)}%`, height: '100%', background: barColor,
-            borderRadius: 2, transition: 'width 300ms ease, background 300ms ease',
-          }} />
+            flex: 1, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden',
+          }}>
+            <div style={{
+              width: `${Math.min(pct, 100)}%`, height: '100%', background: barGradient,
+              borderRadius: 4, transition: 'width 0.15s ease, background 0.15s ease',
+            }} />
+          </div>
+          <span style={{
+            fontSize: 11,
+            color: barColor,
+            fontWeight: 600,
+            whiteSpace: 'nowrap',
+            fontVariantNumeric: 'tabular-nums',
+            fontFeatureSettings: '"tnum"',
+          }}>
+            {pct}%
+          </span>
+          {hasSuggestions && (
+            <button
+              onClick={() => setShowSuggestions(s => !s)}
+              title="Context optimization suggestions"
+              style={{
+                display: 'flex', alignItems: 'center',
+                padding: '1px 4px', fontSize: 9,
+                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 6, color: '#818cf8', cursor: 'pointer',
+                transition: 'background 0.15s ease, border-color 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(99,102,241,0.15)'
+                e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+              }}
+            >
+              <Lightbulb size={9} />
+            </button>
+          )}
+          {pct >= 60 && !isStreaming && (
+            <button
+              onClick={onCompact}
+              disabled={isCompacting}
+              title={isCompacting ? t('compact.inProgress') : t('compact.buttonHint')}
+              aria-label={isCompacting ? t('compact.inProgress') : t('compact.buttonHint')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 3,
+                padding: '1px 6px', fontSize: 9, fontWeight: 500,
+                background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.25)',
+                borderRadius: 8, color: '#818cf8', cursor: isCompacting ? 'not-allowed' : 'pointer',
+                transition: 'background 0.15s ease, border-color 0.15s ease', whiteSpace: 'nowrap',
+                opacity: isCompacting ? 0.4 : 1,
+              }}
+              onMouseEnter={(e) => {
+                if (!isCompacting) {
+                  e.currentTarget.style.background = 'rgba(99,102,241,0.15)'
+                  e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(99,102,241,0.08)'
+                e.currentTarget.style.borderColor = 'rgba(99,102,241,0.25)'
+              }}
+            >
+              {isCompacting
+                ? <Loader2 size={9} style={{ color: '#818cf8', animation: 'spin 1s linear infinite' }} />
+                : <Archive size={9} />
+              }
+              {isCompacting ? t('compact.inProgress') : t('compact.button')}
+            </button>
+          )}
         </div>
-        <span style={{ fontSize: 9, color: barColor, fontWeight: 500, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-          {pct}%
-        </span>
-        {hasSuggestions && (
-          <button
-            onClick={() => setShowSuggestions(s => !s)}
-            title="Context optimization suggestions"
-            style={{
-              display: 'flex', alignItems: 'center',
-              padding: '1px 4px', fontSize: 9,
-              background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)',
-              borderRadius: 8, color: '#f59e0b', cursor: 'pointer',
-              transition: 'background 150ms',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(245,158,11,0.15)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(245,158,11,0.08)' }}
-          >
-            <Lightbulb size={9} />
-          </button>
-        )}
-        {pct >= 60 && !isStreaming && (
-          <button
-            onClick={onCompact}
-            disabled={isCompacting}
-            title={isCompacting ? t('compact.inProgress') : t('compact.buttonHint')}
-            aria-label={isCompacting ? t('compact.inProgress') : t('compact.buttonHint')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 3,
-              padding: '1px 6px', fontSize: 9, fontWeight: 500,
-              background: 'rgba(0, 122, 204, 0.08)', border: '1px solid rgba(0, 122, 204, 0.2)',
-              borderRadius: 8, color: 'var(--accent)', cursor: isCompacting ? 'not-allowed' : 'pointer',
-              transition: 'background 150ms, border-color 150ms', whiteSpace: 'nowrap',
-              opacity: isCompacting ? 0.7 : 1,
-            }}
-            onMouseEnter={(e) => { if (!isCompacting) { e.currentTarget.style.background = 'rgba(0, 122, 204, 0.15)'; e.currentTarget.style.borderColor = 'var(--accent)' } }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0, 122, 204, 0.08)'; e.currentTarget.style.borderColor = 'rgba(0, 122, 204, 0.2)' }}
-          >
-            {isCompacting ? <Loader2 size={9} style={{ animation: 'spin 1s linear infinite' }} /> : <Archive size={9} />}
-            {isCompacting ? t('compact.inProgress') : t('compact.button')}
-          </button>
-        )}
       </div>
 
       {/* Suggestions popover */}
       {showSuggestions && hasSuggestions && (
         <div style={{
           position: 'absolute', bottom: '100%', right: 0, marginBottom: 6,
-          background: 'var(--popup-bg)', border: '1px solid var(--border)',
-          borderRadius: 8, padding: 10, width: 280, zIndex: 100,
-          boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+          background: 'rgba(15,15,25,0.96)', border: '1px solid rgba(255,255,255,0.09)',
+          borderRadius: 10, padding: 10, width: 280, zIndex: 100,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          animation: 'slideUp 0.15s ease',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            marginBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: 6,
+          }}>
+            <span style={{
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
+              color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase',
+            }}>
               Context Suggestions
             </span>
-            <button onClick={() => setShowSuggestions(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: 0 }}>
+            <button
+              onClick={() => setShowSuggestions(false)}
+              style={{
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                color: 'rgba(255,255,255,0.45)', display: 'flex', padding: 2,
+                borderRadius: 8, transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+            >
               <X size={12} />
             </button>
           </div>
           {suggestions.map((s, i) => (
             <div key={i} style={{
-              padding: '6px 8px', borderRadius: 6, marginBottom: 4,
-              background: s.severity === 'warning' ? 'rgba(239,68,68,0.06)' : 'rgba(59,130,246,0.06)',
-              borderLeft: `2px solid ${s.severity === 'warning' ? 'var(--error)' : 'var(--accent)'}`,
+              padding: '8px 10px', borderRadius: 8, marginBottom: 4,
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.07)',
+              borderLeft: `3px solid ${s.severity === 'warning' ? 'rgba(251,191,36,0.6)' : 'rgba(99,102,241,0.5)'}`,
             }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)', marginBottom: 2 }}>
                 {s.title}
               </div>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4, opacity: 0.75 }}>
                 {s.detail}
               </div>
               {s.savingsTokens > 0 && (
-                <div style={{ fontSize: 9, color: 'var(--success)', marginTop: 3 }}>
+                <div style={{
+                  marginTop: 4, display: 'inline-block',
+                  background: 'rgba(74,222,128,0.12)', color: '#4ade80',
+                  borderRadius: 6, padding: '1px 5px', fontSize: 10,
+                  fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"',
+                }}>
                   ~{Math.round(s.savingsTokens / 1000)}k tokens could be saved
                 </div>
               )}

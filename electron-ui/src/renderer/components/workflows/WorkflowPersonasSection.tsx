@@ -44,7 +44,7 @@ export default function WorkflowPersonasSection() {
   const [formEmoji, setFormEmoji] = useState('🧑‍💼')
   const [formModel, setFormModel] = useState('claude-sonnet-4-6')
   const [formPrompt, setFormPrompt] = useState('')
-  const [formColor, setFormColor] = useState('#3b82f6')
+  const [formColor, setFormColor] = useState('#6366f1')
 
   const savePersonas = (updated: Persona[]) => {
     setPersonas(updated)
@@ -60,7 +60,7 @@ export default function WorkflowPersonasSection() {
     setFormModel('claude-sonnet-4-6')
     // Pre-fill system prompt with localized default template
     setFormPrompt(t('persona.defaultSystemPrompt'))
-    setFormColor('#3b82f6')
+    setFormColor('#6366f1')
   }
 
   const startEdit = (p: Persona) => {
@@ -215,7 +215,7 @@ export default function WorkflowPersonasSection() {
 
   return (
     <div style={{
-      borderBottom: '1px solid var(--border)',
+      borderBottom: '1px solid rgba(255,255,255,0.07)',
       flexShrink: 0,
     }}>
       {/* Section header */}
@@ -233,18 +233,38 @@ export default function WorkflowPersonasSection() {
         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            {t('persona.title')} ({personas.length})
+          <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '0.07em', borderLeft: '2px solid rgba(99,102,241,0.5)', paddingLeft: 8 }}>
+            {t('persona.title')}
           </span>
-          {effectivePersonaId && (
+          {/* Team composition badge */}
+          {personas.length > 0 && (
             <span style={{
-              fontSize: 8,
-              background: 'var(--accent)',
-              color: '#fff',
-              padding: '1px 5px',
+              fontSize: 9,
+              background: 'rgba(99,102,241,0.15)',
+              border: '1px solid rgba(99,102,241,0.25)',
+              color: '#818cf8',
+              padding: '1px 6px',
               borderRadius: 6,
               fontWeight: 700,
+              letterSpacing: '0.02em',
+              fontVariantNumeric: 'tabular-nums',
+              fontFeatureSettings: '"tnum"',
             }}>
+              {personas.length} {personas.length === 1 ? 'agent' : 'agents'}
+            </span>
+          )}
+          {effectivePersonaId && (
+            <span
+              title={personas.find(p => p.id === effectivePersonaId)?.name ?? ''}
+              style={{
+                fontSize: 8,
+                background: '#6366f1',
+                color: 'rgba(255,255,255,0.95)',
+                padding: '1px 5px',
+                borderRadius: 6,
+                fontWeight: 700,
+              }}
+            >
               {personas.find(p => p.id === effectivePersonaId)?.emoji ?? ''}
             </span>
           )}
@@ -261,24 +281,49 @@ export default function WorkflowPersonasSection() {
               title={t('persona.addPersona')}
               disabled={personas.length >= 10}
               style={{
-                background: showForm && !editingId ? 'var(--accent)' : 'transparent',
-                border: 'none',
-                borderRadius: 5,
-                padding: 3,
+                background: showForm && !editingId
+                  ? 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))'
+                  : 'rgba(255,255,255,0.06)',
+                border: showForm && !editingId
+                  ? '1px solid rgba(99,102,241,0.60)'
+                  : '1px solid rgba(255,255,255,0.10)',
+                borderRadius: 8,
+                padding: '2px 5px',
                 cursor: personas.length >= 10 ? 'not-allowed' : 'pointer',
-                color: showForm && !editingId ? '#fff' : 'var(--text-muted)',
+                color: showForm && !editingId ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.60)',
                 display: 'flex',
+                alignItems: 'center',
+                gap: 3,
                 opacity: personas.length >= 10 ? 0.4 : 1,
                 transition: 'all 0.15s ease',
+                backdropFilter: 'blur(4px)',
+                WebkitBackdropFilter: 'blur(4px)',
+                boxShadow: showForm && !editingId ? '0 0 0 3px rgba(99,102,241,0.10)' : 'none',
+              }}
+              onMouseEnter={e => {
+                if (personas.length < 10 && !(showForm && !editingId)) {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
+                  e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)'
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+                }
+              }}
+              onMouseLeave={e => {
+                if (!(showForm && !editingId)) {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+                  e.currentTarget.style.boxShadow = 'none'
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+                }
               }}
             >
-              <Plus size={13} />
+              <Plus size={11} />
             </button>
           )}
           <ChevronDown
             size={13}
             style={{
-              color: 'var(--text-muted)',
+              color: 'rgba(255,255,255,0.45)',
               transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
               transition: 'transform 0.2s ease',
             }}
@@ -305,21 +350,140 @@ export default function WorkflowPersonasSection() {
 
           {/* Persona list */}
           {personas.length === 0 && !showForm ? (
-            <div style={{ textAlign: 'center', padding: '10px 0 6px', color: 'var(--text-muted)' }}>
-              <Sparkles size={20} style={{ opacity: 0.3, marginBottom: 4 }} />
-              <div style={{ fontSize: 11 }}>{t('persona.noPersonas')}</div>
-              <div style={{ fontSize: 9, marginTop: 3, opacity: 0.65 }}>{t('persona.noPersonasHint')}</div>
+            <div style={{
+              textAlign: 'center',
+              padding: '14px 8px 10px',
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px dashed rgba(255,255,255,0.1)',
+              borderRadius: 8,
+              margin: '2px 0 4px',
+            }}>
+              <div style={{ background: 'rgba(99,102,241,0.08)', borderRadius: 16, padding: 16, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+                <Sparkles size={18} style={{ opacity: 0.5, display: 'block' }} />
+              </div>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>{t('persona.noPersonas')}</div>
+              <div style={{ fontSize: 11, marginTop: 4, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4 }}>{t('persona.noPersonasHint')}</div>
+              <button
+                onClick={() => { resetForm(); setShowForm(true) }}
+                style={{
+                  marginTop: 10,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '4px 10px',
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.10)',
+                  borderRadius: 8,
+                  color: 'rgba(255,255,255,0.60)',
+                  fontSize: 10,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  backdropFilter: 'blur(4px)',
+                  WebkitBackdropFilter: 'blur(4px)',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
+                  e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)'
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+                  e.currentTarget.style.boxShadow = 'none'
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+                }}
+              >
+                <Plus size={10} />
+                {t('persona.addPersona')}
+              </button>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {personas.map(p => (
-                <PersonaSidebarCard
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {personas.map((p) => (
+                <div
                   key={p.id}
-                  persona={p}
-                  isActive={effectivePersonaId === p.id}
-                  isDeleting={deletingId === p.id}
-                  onDelete={handleDelete}
-                />
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '8px 10px',
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.07)',
+                    borderRadius: 8,
+                    marginBottom: 6,
+                    transition: 'all 0.15s ease',
+                    flexDirection: 'column',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
+                    e.currentTarget.style.boxShadow = 'none'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
+                    {/* Avatar/icon container */}
+                    <div style={{
+                      width: 28, height: 28, borderRadius: '50%',
+                      background: 'rgba(99,102,241,0.15)',
+                      border: `1px solid ${p.color ?? '#818cf8'}40`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0, fontSize: 14, overflow: 'hidden',
+                      transition: 'all 0.15s ease',
+                      color: '#818cf8',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.transform = 'scale(1.05)'
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)'
+                      e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)'
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.transform = 'scale(1)'
+                      e.currentTarget.style.boxShadow = 'none'
+                      e.currentTarget.style.borderColor = `${p.color ?? '#818cf8'}40`
+                    }}
+                    >
+                      {p.emoji}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontWeight: 600, fontSize: 12, color: 'rgba(255,255,255,0.82)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {p.presetKey ? t(`persona.preset.${p.presetKey}`) : p.name}
+                        </span>
+                        {effectivePersonaId === p.id && (
+                          <span style={{
+                            background: 'rgba(99,102,241,0.12)',
+                            color: '#818cf8',
+                            border: '1px solid rgba(99,102,241,0.30)',
+                            borderLeft: '2px solid rgba(99,102,241,0.6)',
+                            borderRadius: 6,
+                            padding: '1px 8px',
+                            fontSize: 10,
+                            fontWeight: 700,
+                            flexShrink: 0,
+                          }}>
+                            active
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {p.model}
+                      </div>
+                    </div>
+                  </div>
+                  <PersonaSidebarCard
+                    persona={p}
+                    isActive={effectivePersonaId === p.id}
+                    isDeleting={deletingId === p.id}
+                    onDelete={handleDelete}
+                  />
+                </div>
               ))}
             </div>
           )}
@@ -327,7 +491,7 @@ export default function WorkflowPersonasSection() {
           {/* Available presets */}
           {availablePresets.length > 0 && personas.length < 10 && (
             <div style={{ marginTop: 8 }}>
-              <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4 }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.38)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                 {t('persona.presets')}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -342,22 +506,22 @@ export default function WorkflowPersonasSection() {
                       width: '100%',
                       padding: '5px 8px',
                       background: 'transparent',
-                      border: '1px dashed var(--border)',
+                      border: '1px dashed rgba(255,255,255,0.15)',
                       borderRadius: 6,
                       cursor: 'pointer',
                       textAlign: 'left',
-                      transition: 'border-color 0.15s',
+                      transition: 'border-color 0.15s, background 0.15s',
                     }}
-                    onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
-                    onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)'; e.currentTarget.style.background = 'rgba(99,102,241,0.06)' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.background = 'transparent' }}
                   >
                     <span style={{ fontSize: 14 }}>{preset.emoji}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.82)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {preset.presetKey ? t(`persona.preset.${preset.presetKey}`) : preset.name}
                       </div>
                     </div>
-                    <Plus size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                    <Plus size={11} style={{ color: 'rgba(255,255,255,0.45)', flexShrink: 0 }} />
                   </button>
                 ))}
               </div>
@@ -377,15 +541,15 @@ export default function WorkflowPersonasSection() {
                   gap: 4,
                   padding: '4px 0',
                   background: 'none',
-                  border: '1px solid var(--border)',
+                  border: '1px solid rgba(255,255,255,0.07)',
                   borderRadius: 4,
-                  color: 'var(--text-muted)',
+                  color: 'rgba(255,255,255,0.45)',
                   cursor: 'pointer',
                   fontSize: 9,
-                  transition: 'border-color 150ms, color 150ms',
+                  transition: 'border-color 0.15s ease, color 0.15s ease',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
               >
                 <Download size={10} />
                 {t('persona.exportPersonas')}
@@ -401,16 +565,16 @@ export default function WorkflowPersonasSection() {
                   gap: 4,
                   padding: '4px 0',
                   background: 'none',
-                  border: '1px solid var(--border)',
+                  border: '1px solid rgba(255,255,255,0.07)',
                   borderRadius: 4,
-                  color: 'var(--text-muted)',
+                  color: 'rgba(255,255,255,0.45)',
                   cursor: personas.length >= 10 ? 'not-allowed' : 'pointer',
                   fontSize: 9,
-                  opacity: personas.length >= 10 ? 0.5 : 1,
-                  transition: 'border-color 150ms, color 150ms',
+                  opacity: personas.length >= 10 ? 0.4 : 1,
+                  transition: 'border-color 0.15s ease, color 0.15s ease',
                 }}
-                onMouseEnter={e => { if (personas.length < 10) { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--text-primary)' } }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+                onMouseEnter={e => { if (personas.length < 10) { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' } }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
               >
                 <Upload size={10} />
                 {t('persona.importPersonas')}

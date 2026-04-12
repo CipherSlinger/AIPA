@@ -41,6 +41,10 @@ interface UiState {
   setSettingsModalOpen: (v: boolean) => void
   openSettingsModal: () => void
   closeSettingsModal: () => void
+  // Pending settings tab — consumed by SettingsPanel on open to jump to a specific tab
+  pendingSettingsTab: string | null
+  openSettingsAt: (tab: string) => void
+  clearPendingSettingsTab: () => void
 
   // Main content area view (Iteration 412: settings; Iteration 414: editors; Iteration 460: workflow-detail; Iteration 534: notes; Iteration 535: skill-creator; department: department dashboard)
   mainView: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor' | 'workflow-detail' | 'notes' | 'skill-creator' | 'skill-marketplace' | 'department'
@@ -155,6 +159,9 @@ export const useUiStore = create<UiState>((set) => ({
   setSettingsModalOpen: (v) => set({ settingsModalOpen: v }),
   openSettingsModal: () => set({ settingsModalOpen: true, mainView: 'settings' }),
   closeSettingsModal: () => set({ settingsModalOpen: false, mainView: 'chat' }),
+  pendingSettingsTab: null,
+  openSettingsAt: (tab) => set({ settingsModalOpen: true, mainView: 'settings', pendingSettingsTab: tab }),
+  clearPendingSettingsTab: () => set({ pendingSettingsTab: null }),
   mainView: 'chat' as const,
   setMainView: (view) => set({ mainView: view }),
   editingPersonaId: null,

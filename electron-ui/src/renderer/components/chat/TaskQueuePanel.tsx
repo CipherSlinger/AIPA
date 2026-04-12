@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { AlignJustify, Pause, Play, Trash2, X } from 'lucide-react'
+import { AlignJustify, ArrowDown, ArrowUp, Pause, Play, Trash2, X } from 'lucide-react'
 import { useChatStore } from '../../store'
 import type { TaskQueueItem } from '../../store'
 import { useT } from '../../i18n'
@@ -27,53 +27,54 @@ function ensureKeyframes() {
       0%, 100% { opacity: 1; }
       50%       { opacity: 0.6; }
     }
+    @keyframes queue-spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    .task-queue-scroll::-webkit-scrollbar { width: 4px; }
+    .task-queue-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
   `
   document.head.appendChild(style)
 }
 
-// ── Status badge ────────────────────────────────────
-function StatusBadge({ status, t }: { status: TaskQueueItem['status']; t: (key: string) => string }) {
+// ── Status icon ─────────────────────────────────────
+function StatusIcon({ status }: { status: TaskQueueItem['status'] }) {
   if (status === 'running') {
     return (
       <span style={{
-        background: 'var(--queue-bg-running)',
-        color: 'var(--queue-accent-soft)',
-        fontSize: 10,
-        padding: '2px 6px',
-        borderRadius: 3,
-        flexShrink: 0,
-        animation: 'queue-running-pulse 1.5s ease-in-out infinite',
         display: 'inline-block',
-      }}>
-        {t('taskQueue.running')}
-      </span>
+        width: 14,
+        height: 14,
+        border: '2px solid rgba(129,140,248,0.3)',
+        borderTopColor: '#818cf8',
+        borderRadius: '50%',
+        flexShrink: 0,
+        animation: 'queue-spin 0.7s linear infinite',
+      }} />
     )
   }
   if (status === 'done') {
     return (
-      <span style={{
-        background: 'rgba(78, 201, 176, 0.15)',
-        color: 'var(--success)',
-        fontSize: 10,
-        padding: '2px 6px',
-        borderRadius: 3,
-        flexShrink: 0,
-      }}>
-        {t('taskQueue.done')}
-      </span>
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
+        <circle cx="7" cy="7" r="6" stroke="#4ade80" strokeWidth="1.5" />
+        <path d="M4.5 7l2 2 3-3" stroke="#4ade80" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
     )
   }
+  if (status === 'failed') {
+    return (
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
+        <circle cx="7" cy="7" r="6" stroke="#f87171" strokeWidth="1.5" />
+        <path d="M5 5l4 4M9 5l-4 4" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    )
+  }
+  // pending
   return (
-    <span style={{
-      background: 'rgba(64, 64, 64, 0.6)',
-      color: 'var(--text-muted)',
-      fontSize: 10,
-      padding: '2px 6px',
-      borderRadius: 3,
-      flexShrink: 0,
-    }}>
-      {t('taskQueue.pending')}
-    </span>
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
+      <circle cx="7" cy="7" r="6" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+      <circle cx="7" cy="7" r="2" fill="rgba(255,255,255,0.3)" />
+    </svg>
   )
 }
 
@@ -82,14 +83,56 @@ function TaskRow({
   item,
   index,
   onRemove,
+  reorderQueue,
+  totalCount,
   t,
 }: {
   item: TaskQueueItem
   index: number
   onRemove: (id: string) => void
+  reorderQueue: (from: number, to: number) => void
+  totalCount: number
   t: (key: string) => string
 }) {
   const [hovered, setHovered] = useState(false)
+  const [upHovered, setUpHovered] = useState(false)
+  const [downHovered, setDownHovered] = useState(false)
+
+  const rowBackground =
+    item.status === 'running'
+      ? 'rgba(99,102,241,0.08)'
+      : item.status === 'done'
+      ? 'transparent'
+      : item.status === 'failed'
+      ? 'rgba(239,68,68,0.06)'
+      : hovered
+      ? 'rgba(255,255,255,0.04)'
+      : 'rgba(255,255,255,0.03)'
+
+  const rowBorderLeft =
+    item.status === 'running'
+      ? '2px solid rgba(99,102,241,0.60)'
+      : item.status === 'done'
+      ? '2px solid rgba(34,197,94,0.4)'
+      : item.status === 'failed'
+      ? '2px solid rgba(239,68,68,0.4)'
+      : hovered
+      ? '2px solid rgba(255,255,255,0.18)'
+      : '2px solid rgba(255,255,255,0.10)'
+
+  const rowBoxShadow =
+    hovered && item.status !== 'done'
+      ? '0 2px 8px rgba(0,0,0,0.3)'
+      : 'none'
+
+  const rowOpacity = item.status === 'done' ? 0.6 : 1
+
+  const titleColor =
+    item.status === 'running'
+      ? 'rgba(255,255,255,0.82)'
+      : item.status === 'done'
+      ? 'rgba(255,255,255,0.45)'
+      : 'rgba(255,255,255,0.82)'
 
   return (
     <div
@@ -100,30 +143,37 @@ function TaskRow({
         display: 'flex',
         alignItems: 'center',
         gap: 8,
-        padding: '6px 12px',
-        background: hovered ? 'rgba(255, 255, 255, 0.03)' : 'transparent',
-        transition: 'background 100ms ease',
-        borderBottom: '1px solid rgba(64, 64, 64, 0.25)',
+        padding: '8px 10px',
+        marginBottom: 4,
+        borderRadius: 8,
+        background: rowBackground,
+        borderLeft: rowBorderLeft,
+        boxShadow: rowBoxShadow,
+        opacity: rowOpacity,
+        transition: 'all 0.15s ease',
       }}
     >
       {/* Sequence number */}
       <span style={{
         fontSize: 11,
-        color: '#4a4a4a',
+        color: 'rgba(255,255,255,0.38)',
         width: 16,
         textAlign: 'right',
         flexShrink: 0,
+        fontVariantNumeric: 'tabular-nums',
       }}>
         {index + 1}
       </span>
 
-      {/* Status badge */}
-      <StatusBadge status={item.status} t={t} />
+      {/* Status icon */}
+      <StatusIcon status={item.status} />
 
       {/* Content */}
       <span style={{
-        fontSize: 13,
-        color: 'var(--text-primary)',
+        fontSize: 12,
+        fontWeight: 500,
+        color: titleColor,
+        textDecoration: item.status === 'done' ? 'line-through' : 'none',
         flex: '1 1 0',
         minWidth: 0,
         overflow: 'hidden',
@@ -133,28 +183,79 @@ function TaskRow({
         {item.content}
       </span>
 
-      {/* Delete button -- pending only */}
+      {/* Reorder + Delete buttons -- pending only */}
       {item.status === 'pending' && (
-        <button
-          onClick={() => onRemove(item.id)}
-          aria-label={`${t('taskQueue.remove')}: ${item.content.slice(0, 40)}`}
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: 2,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            flexShrink: 0,
-            color: '#4a4a4a',
-            opacity: hovered ? 1 : 0,
-            transition: 'opacity 150ms ease, color 150ms ease',
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--error)' }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#4a4a4a' }}
-        >
-          <X size={14} />
-        </button>
+        <>
+          {/* Up arrow */}
+          <button
+            onClick={() => reorderQueue(index, index - 1)}
+            disabled={index === 0}
+            aria-label="Move task up"
+            onMouseEnter={() => setUpHovered(true)}
+            onMouseLeave={() => setUpHovered(false)}
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: '1px 3px',
+              borderRadius: 8,
+              cursor: index === 0 ? 'not-allowed' : 'pointer',
+              color: upHovered && index !== 0 ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              flexShrink: 0,
+              opacity: index === 0 ? 0.2 : 1,
+              transition: 'color 0.15s ease',
+            }}
+          >
+            <ArrowUp size={11} />
+          </button>
+
+          {/* Down arrow */}
+          <button
+            onClick={() => reorderQueue(index, index + 1)}
+            disabled={index === totalCount - 1}
+            aria-label="Move task down"
+            onMouseEnter={() => setDownHovered(true)}
+            onMouseLeave={() => setDownHovered(false)}
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: '1px 3px',
+              borderRadius: 8,
+              cursor: index === totalCount - 1 ? 'not-allowed' : 'pointer',
+              color: downHovered && index !== totalCount - 1 ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              flexShrink: 0,
+              opacity: index === totalCount - 1 ? 0.2 : 1,
+              transition: 'color 0.15s ease',
+            }}
+          >
+            <ArrowDown size={11} />
+          </button>
+
+          {/* Delete button */}
+          <button
+            onClick={() => onRemove(item.id)}
+            aria-label={`${t('taskQueue.remove')}: ${item.content.slice(0, 40)}`}
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: 2,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              flexShrink: 0,
+              color: 'rgba(255,255,255,0.45)',
+              opacity: hovered ? 1 : 0,
+              transition: 'opacity 0.15s ease, color 0.15s ease',
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#f87171' }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.45)' }}
+          >
+            <X size={14} />
+          </button>
+        </>
       )}
       {/* Placeholder to keep row height stable when delete button is hidden */}
       {item.status !== 'pending' && (
@@ -171,6 +272,7 @@ export default function TaskQueuePanel() {
   const queuePaused = useChatStore(s => s.queuePaused)
   const removeFromQueue = useChatStore(s => s.removeFromQueue)
   const clearQueue = useChatStore(s => s.clearQueue)
+  const reorderQueue = useChatStore(s => s.reorderQueue)
   const toggleQueuePause = useChatStore(s => s.toggleQueuePause)
 
   // Visibility: panel stays mounted during exit animation
@@ -213,17 +315,18 @@ export default function TaskQueuePanel() {
     <div
       style={{
         margin: '0 16px 8px 16px',
-        background: 'var(--queue-panel-bg)',
-        backdropFilter: 'blur(8px)',
-        border: '1px solid var(--queue-panel-border)',
+        background: 'rgba(15,15,25,0.85)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        border: '1px solid rgba(255,255,255,0.08)',
         borderRadius: 10,
-        boxShadow: 'var(--queue-panel-shadow)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
         maxHeight: 208,
         overflowY: 'auto',
         flexShrink: 0,
         animation: isExiting
           ? 'queue-panel-out 150ms ease-in forwards'
-          : 'queue-panel-in 200ms ease-out forwards',
+          : 'queue-panel-in 150ms ease-out forwards',
       }}
     >
       {/* Header bar */}
@@ -232,16 +335,16 @@ export default function TaskQueuePanel() {
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '8px 12px',
-        borderBottom: '1px solid rgba(64, 64, 64, 0.5)',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
         flexShrink: 0,
       }}>
         {/* Left: title */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <AlignJustify size={14} style={{ color: 'var(--queue-accent)', flexShrink: 0 }} />
-          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
+          <AlignJustify size={14} style={{ color: '#818cf8', flexShrink: 0 }} />
+          <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.02em', color: 'rgba(255,255,255,0.82)' }}>
             {t('taskQueue.title')}
           </span>
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 2 }}>
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginLeft: 2 }}>
             ({pendingCount} {t('taskQueue.pending')} / {totalCount} {t('taskQueue.totalLabel')})
           </span>
         </div>
@@ -261,14 +364,14 @@ export default function TaskQueuePanel() {
               alignItems: 'center',
               gap: 4,
               fontSize: 11,
-              color: queuePaused ? '#fbbf24' : 'var(--text-muted)',
+              color: queuePaused ? '#fbbf24' : 'rgba(255,255,255,0.45)',
               padding: '2px 6px',
-              borderRadius: 3,
-              transition: 'color 150ms ease',
+              borderRadius: 8,
+              transition: 'color 0.15s ease',
             }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#fbbf24' }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = queuePaused ? '#fbbf24' : 'var(--text-muted)'
+              (e.currentTarget as HTMLButtonElement).style.color = queuePaused ? '#fbbf24' : 'rgba(255,255,255,0.45)'
             }}
           >
             {queuePaused ? <Play size={12} /> : <Pause size={12} />}
@@ -287,32 +390,80 @@ export default function TaskQueuePanel() {
               alignItems: 'center',
               gap: 4,
               fontSize: 11,
-              color: 'var(--text-muted)',
+              color: 'rgba(255,255,255,0.45)',
               padding: '2px 6px',
-              borderRadius: 3,
+              borderRadius: 8,
               marginLeft: 6,
-              transition: 'color 150ms ease',
+              transition: 'color 0.15s ease',
             }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--error)' }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)' }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#f87171' }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.45)' }}
           >
             <Trash2 size={12} />
             <span>{t('taskQueue.clear')}</span>
+          </button>
+
+          {/* Close button */}
+          <button
+            onClick={() => setVisible(false)}
+            title={t('taskQueue.close') ?? 'Close'}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              color: 'rgba(255,255,255,0.45)',
+              padding: '2px 4px',
+              borderRadius: 8,
+              marginLeft: 4,
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              const btn = e.currentTarget as HTMLButtonElement
+              btn.style.background = 'rgba(255,255,255,0.08)'
+              btn.style.color = 'rgba(255,255,255,0.82)'
+            }}
+            onMouseLeave={(e) => {
+              const btn = e.currentTarget as HTMLButtonElement
+              btn.style.background = 'none'
+              btn.style.color = 'rgba(255,255,255,0.45)'
+            }}
+          >
+            <X size={13} />
           </button>
         </div>
       </div>
 
       {/* Task list */}
-      <div role="list" style={{ overflowY: 'auto' }}>
-        {taskQueue.map((item, idx) => (
-          <TaskRow
-            key={item.id}
-            item={item}
-            index={idx}
-            onRemove={removeFromQueue}
-            t={t}
-          />
-        ))}
+      <div
+        role="list"
+        className="task-queue-scroll"
+        style={{ overflowY: 'auto', padding: '4px 6px', scrollbarWidth: 'thin' }}
+      >
+        {taskQueue.length === 0 ? (
+          <div style={{
+            color: 'rgba(255,255,255,0.45)',
+            fontSize: 12,
+            textAlign: 'center',
+            padding: 16,
+            opacity: 0.6,
+          }}>
+            {t('taskQueue.empty') ?? 'No tasks queued'}
+          </div>
+        ) : (
+          taskQueue.map((item, idx) => (
+            <TaskRow
+              key={item.id}
+              item={item}
+              index={idx}
+              onRemove={removeFromQueue}
+              reorderQueue={reorderQueue}
+              totalCount={totalCount}
+              t={t}
+            />
+          ))
+        )}
       </div>
     </div>
   )

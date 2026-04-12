@@ -39,18 +39,18 @@ export default function CategoryFilterBar({
             alignItems: 'center',
             gap: 4,
             height: 20,
-            borderRadius: 10,
+            borderRadius: 20,
             padding: '0 8px',
-            background: 'none',
-            border: '1px solid var(--border)',
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.09)',
             cursor: 'pointer',
             fontSize: 10,
-            color: 'var(--text-muted)',
+            color: 'rgba(255,255,255,0.60)',
             whiteSpace: 'nowrap',
-            transition: 'border-color 0.15s, color 0.15s',
+            transition: 'background 0.15s ease, color 0.15s ease',
           }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
         >
           <Plus size={10} />
           {t('notes.manageCategories')}
@@ -71,6 +71,8 @@ export default function CategoryFilterBar({
         flexShrink: 0,
         scrollbarWidth: 'none',
         alignItems: 'center',
+        flexWrap: 'wrap',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
       }}
     >
       {/* "All" pill */}
@@ -83,17 +85,29 @@ export default function CategoryFilterBar({
           alignItems: 'center',
           gap: 4,
           height: 20,
-          borderRadius: 10,
-          padding: '0 8px',
-          background: activeCategoryFilter === null ? 'var(--accent)20' : 'transparent',
-          border: `1px solid ${activeCategoryFilter === null ? 'var(--accent)' : 'var(--border)'}`,
+          borderRadius: 20,
+          padding: '0 10px',
+          background: activeCategoryFilter === null ? 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(139,92,246,0.20))' : 'rgba(255,255,255,0.06)',
+          border: `1px solid ${activeCategoryFilter === null ? 'rgba(99,102,241,0.45)' : 'rgba(255,255,255,0.09)'}`,
           cursor: 'pointer',
-          fontSize: 10,
-          color: activeCategoryFilter === null ? 'var(--accent)' : 'var(--text-secondary)',
+          fontSize: 11,
+          color: activeCategoryFilter === null ? '#a5b4fc' : 'rgba(255,255,255,0.60)',
           fontWeight: activeCategoryFilter === null ? 600 : 400,
           whiteSpace: 'nowrap',
           flexShrink: 0,
-          transition: 'background 0.15s ease, border-color 0.15s ease, color 0.15s ease',
+          transition: 'all 0.15s ease',
+        }}
+        onMouseEnter={e => {
+          if (activeCategoryFilter !== null) {
+            e.currentTarget.style.background = 'rgba(99,102,241,0.10)'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+          }
+        }}
+        onMouseLeave={e => {
+          if (activeCategoryFilter !== null) {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+          }
         }}
       >
         {t('notes.allNotes')}
@@ -115,20 +129,32 @@ export default function CategoryFilterBar({
               alignItems: 'center',
               gap: 4,
               height: 20,
-              borderRadius: 10,
-              padding: '0 8px',
-              background: isActive ? `${cat.color}30` : `${cat.color}1a`,
-              border: `1px solid ${isActive ? `${cat.color}80` : `${cat.color}40`}`,
+              borderRadius: 20,
+              padding: '3px 10px',
+              background: isActive ? 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(139,92,246,0.20))' : 'rgba(255,255,255,0.06)',
+              border: `1px solid ${isActive ? 'rgba(99,102,241,0.45)' : 'rgba(255,255,255,0.09)'}`,
               cursor: 'pointer',
-              fontSize: 10,
-              color: isActive ? cat.color : 'var(--text-secondary)',
+              fontSize: 11,
+              color: isActive ? '#a5b4fc' : 'rgba(255,255,255,0.60)',
               fontWeight: isActive ? 600 : 400,
               whiteSpace: 'nowrap',
               flexShrink: 0,
-              transition: 'background 0.15s ease, border-color 0.15s ease, color 0.15s ease',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={e => {
+              if (!isActive) {
+                e.currentTarget.style.background = 'rgba(99,102,241,0.10)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+              }
+            }}
+            onMouseLeave={e => {
+              if (!isActive) {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+              }
             }}
           >
-            <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: '50%', background: cat.color, flexShrink: 0 }} />
+            <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', background: cat.color, flexShrink: 0 }} />
             {cat.name}
             <span style={{ opacity: 0.6, fontSize: 9 }}>({count})</span>
           </button>
@@ -144,19 +170,19 @@ export default function CategoryFilterBar({
           alignItems: 'center',
           gap: 3,
           height: 20,
-          borderRadius: 10,
+          borderRadius: 20,
           padding: '0 6px',
-          background: 'none',
-          border: '1px solid var(--border)',
+          background: 'rgba(255,255,255,0.06)',
+          border: '1px solid rgba(255,255,255,0.09)',
           cursor: 'pointer',
           fontSize: 10,
-          color: 'var(--text-muted)',
+          color: 'rgba(255,255,255,0.45)',
           whiteSpace: 'nowrap',
           flexShrink: 0,
-          transition: 'border-color 0.15s, color 0.15s',
+          transition: 'all 0.15s ease',
         }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
       >
         <Settings size={10} />
       </button>

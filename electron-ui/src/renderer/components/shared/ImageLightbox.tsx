@@ -34,10 +34,11 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 300,
-        background: 'rgba(0, 0, 0, 0.85)',
+        background: 'rgba(0,0,0,0.70)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        zIndex: 600,
         display: 'flex',
-        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
       }}
@@ -46,17 +47,27 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
       <div
         style={{
           position: 'absolute',
-          top: 12,
-          right: 12,
+          top: 16,
+          right: 16,
           display: 'flex',
           gap: 6,
-          zIndex: 301,
+          zIndex: 601,
         }}
       >
         <button
           onClick={() => setZoom(z => Math.min(z + 0.25, 5))}
           title={t('lightbox.zoomIn')}
           style={btnStyle}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(99,102,241,0.25)'
+            e.currentTarget.style.borderColor = 'rgba(99,102,241,0.50)'
+            e.currentTarget.style.color = '#a5b4fc'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(15,15,25,0.85)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+          }}
         >
           <ZoomIn size={16} />
         </button>
@@ -64,6 +75,16 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
           onClick={() => setZoom(z => Math.max(z - 0.25, 0.25))}
           title={t('lightbox.zoomOut')}
           style={btnStyle}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(99,102,241,0.25)'
+            e.currentTarget.style.borderColor = 'rgba(99,102,241,0.50)'
+            e.currentTarget.style.color = '#a5b4fc'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(15,15,25,0.85)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+          }}
         >
           <ZoomOut size={16} />
         </button>
@@ -71,6 +92,16 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
           onClick={() => setRotation(r => (r + 90) % 360)}
           title={t('lightbox.rotate')}
           style={btnStyle}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(99,102,241,0.25)'
+            e.currentTarget.style.borderColor = 'rgba(99,102,241,0.50)'
+            e.currentTarget.style.color = '#a5b4fc'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(15,15,25,0.85)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+          }}
         >
           <RotateCw size={16} />
         </button>
@@ -78,6 +109,16 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
           onClick={onClose}
           title={t('lightbox.close')}
           style={btnStyle}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(99,102,241,0.25)'
+            e.currentTarget.style.borderColor = 'rgba(99,102,241,0.50)'
+            e.currentTarget.style.color = '#a5b4fc'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(15,15,25,0.85)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+          }}
         >
           <X size={16} />
         </button>
@@ -90,54 +131,70 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
           bottom: 16,
           left: '50%',
           transform: 'translateX(-50%)',
-          background: 'rgba(0,0,0,0.7)',
-          color: '#fff',
+          background: 'rgba(15,15,25,0.85)',
+          border: '1px solid rgba(255,255,255,0.09)',
+          color: 'rgba(255,255,255,0.60)',
           padding: '4px 12px',
           borderRadius: 12,
           fontSize: 12,
           fontWeight: 500,
-          zIndex: 301,
+          zIndex: 601,
+          fontVariantNumeric: 'tabular-nums',
+          fontFeatureSettings: '"tnum"',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
         }}>
           {Math.round(zoom * 100)}%
         </div>
       )}
 
       {/* Image */}
-      <img
-        src={src}
-        alt={alt || t('lightbox.preview')}
+      <div
         style={{
+          borderRadius: 8,
+          overflow: 'hidden',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.7)',
           maxWidth: '90vw',
           maxHeight: '85vh',
-          objectFit: 'contain',
-          transform: `scale(${zoom}) rotate(${rotation}deg)`,
-          transition: 'transform 0.2s ease',
-          borderRadius: 4,
-          cursor: zoom > 1 ? 'grab' : 'default',
         }}
-        onWheel={(e) => {
-          e.preventDefault()
-          if (e.deltaY < 0) {
-            setZoom(z => Math.min(z + 0.1, 5))
-          } else {
-            setZoom(z => Math.max(z - 0.1, 0.25))
-          }
-        }}
-        draggable={false}
-      />
+      >
+        <img
+          src={src}
+          alt={alt || t('lightbox.preview')}
+          style={{
+            maxWidth: '90vw',
+            maxHeight: '85vh',
+            objectFit: 'contain',
+            transform: `scale(${zoom}) rotate(${rotation}deg)`,
+            transition: 'transform 0.15s ease',
+            display: 'block',
+            cursor: zoom > 1 ? 'grab' : 'default',
+          }}
+          onWheel={(e) => {
+            e.preventDefault()
+            if (e.deltaY < 0) {
+              setZoom(z => Math.min(z + 0.1, 5))
+            } else {
+              setZoom(z => Math.max(z - 0.1, 0.25))
+            }
+          }}
+          draggable={false}
+        />
+      </div>
 
-      {/* Alt text */}
+      {/* Alt text / caption */}
       {alt && (
         <div style={{
           position: 'absolute',
           bottom: 40,
           left: '50%',
           transform: 'translateX(-50%)',
-          color: 'rgba(255,255,255,0.6)',
-          fontSize: 11,
-          zIndex: 301,
-          maxWidth: '60%',
+          fontSize: 12,
+          color: 'rgba(255,255,255,0.55)',
           textAlign: 'center',
+          marginTop: 10,
+          zIndex: 601,
+          maxWidth: '60%',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -152,12 +209,17 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
 }
 
 const btnStyle: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.1)',
-  border: '1px solid rgba(255,255,255,0.2)',
-  borderRadius: 6,
-  padding: 8,
-  color: '#fff',
+  background: 'rgba(15,15,25,0.85)',
+  border: '1px solid rgba(255,255,255,0.12)',
+  borderRadius: '50%',
+  width: 36,
+  height: 36,
   cursor: 'pointer',
+  color: 'rgba(255,255,255,0.82)',
   display: 'flex',
   alignItems: 'center',
+  justifyContent: 'center',
+  transition: 'all 0.15s ease',
+  backdropFilter: 'blur(8px)',
+  WebkitBackdropFilter: 'blur(8px)',
 }

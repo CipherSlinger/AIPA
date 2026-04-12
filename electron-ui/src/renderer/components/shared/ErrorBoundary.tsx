@@ -290,10 +290,12 @@ export default class ErrorBoundary extends Component<Props, State> {
               left: '50%',
               transform: 'translateX(-50%)',
               padding: '8px 20px',
-              background: 'var(--popup-bg, #252526)',
-              border: '1px solid var(--warning, #cca700)',
+              background: 'rgba(15,15,25,0.92)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255,255,255,0.07)',
               borderRadius: '8px',
-              color: 'var(--text-muted, #858585)',
+              color: 'rgba(255,255,255,0.45)',
               fontSize: '12px',
               textAlign: 'center',
               zIndex: 10000,
@@ -309,9 +311,12 @@ export default class ErrorBoundary extends Component<Props, State> {
           style={{
             padding: '16px',
             margin: '8px',
-            background: 'var(--popup-bg, #252526)',
+            background: 'rgba(15,15,25,0.85)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.07)',
             borderRadius: '6px',
-            color: 'var(--text-muted, #858585)',
+            color: 'rgba(255,255,255,0.45)',
             fontSize: '12px',
             textAlign: 'center',
           }}
@@ -340,13 +345,13 @@ export default class ErrorBoundary extends Component<Props, State> {
         style={{
           fontFamily: 'monospace',
           fontSize,
-          background: 'var(--card-bg, #1e1e1e)',
+          background: 'rgba(239,68,68,0.08)',
           padding: '6px 8px',
           borderRadius: '4px',
           marginBottom,
           maxHeight,
           overflowY: 'auto' as const,
-          color: 'var(--text-muted, #858585)',
+          color: '#fca5a5',
           whiteSpace: 'pre-wrap' as const,
           wordBreak: 'break-word' as const,
         }}
@@ -358,12 +363,12 @@ export default class ErrorBoundary extends Component<Props, State> {
     const statusLine = (fontSize: string) => (
       <>
         {errorSummary && (
-          <div style={{ fontSize, color: isPermanent ? 'var(--warning, #cca700)' : 'var(--text-muted, #858585)', marginBottom: '6px' }}>
+          <div style={{ fontSize, color: isPermanent ? '#fca5a5' : 'rgba(255,255,255,0.45)', marginBottom: '6px' }}>
             {errorSummary}
           </div>
         )}
         {recoveryFailed && (
-          <div style={{ fontSize, color: 'var(--warning, #cca700)', marginBottom: '6px' }}>
+          <div style={{ fontSize, color: '#fca5a5', marginBottom: '6px' }}>
             {t('error.recoveryFailed')}
           </div>
         )}
@@ -378,7 +383,7 @@ export default class ErrorBoundary extends Component<Props, State> {
             background: 'none',
             border: 'none',
             cursor: 'pointer',
-            color: 'var(--text-muted, #858585)',
+            color: 'rgba(255,255,255,0.45)',
             fontSize,
             padding: 0,
             textDecoration: 'underline',
@@ -392,18 +397,18 @@ export default class ErrorBoundary extends Component<Props, State> {
             style={{
               fontFamily: 'monospace',
               fontSize: '10px',
-              background: 'var(--card-bg, #1e1e1e)',
+              background: 'rgba(239,68,68,0.08)',
               padding: '8px',
               borderRadius: '4px',
               marginTop: '4px',
               maxHeight: '150px',
               overflowY: 'auto',
-              color: 'var(--text-muted, #858585)',
+              color: '#fca5a5',
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
             }}
           >
-            <div style={{ marginBottom: '4px', fontWeight: 600, color: 'var(--text-primary, #ccc)' }}>
+            <div style={{ marginBottom: '4px', fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>
               {this.state.error?.constructor?.name || 'Error'}
             </div>
             {this.state.errorInfo?.componentStack || '(no component stack)'}
@@ -417,7 +422,7 @@ export default class ErrorBoundary extends Component<Props, State> {
       background: bg,
       border: border || 'none',
       borderRadius: '6px',
-      color: border ? 'var(--text-primary, #ccc)' : '#fff',
+      color: border ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.95)',
       cursor: 'pointer',
       fontSize: '11px',
       fontWeight: border ? 400 : 500,
@@ -426,20 +431,20 @@ export default class ErrorBoundary extends Component<Props, State> {
     const actionButtons = (gap: string) => (
       <div style={{ display: 'flex', gap, flexWrap: 'wrap' }}>
         {!recoveryFailed && (
-          <button onClick={this.handleDismiss} style={btnStyle('var(--accent, #0e639c)')}>
+          <button onClick={this.handleDismiss} style={btnStyle('linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))')}>
             {retryLabel}
           </button>
         )}
-        <button onClick={this.handleNewConversation} style={btnStyle('var(--accent, #0e639c)')}>
+        <button onClick={this.handleNewConversation} style={btnStyle('linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))')}>
           {t('error.startNewConversation')}
         </button>
-        <button onClick={this.handleReportBug} style={btnStyle('var(--card-bg, #1e1e1e)', '1px solid var(--popup-border, #3a3a3a)')}>
+        <button onClick={this.handleReportBug} style={btnStyle('rgba(239,68,68,0.08)', '1px solid rgba(239,68,68,0.25)')}>
           {t('error.reportBug')}
         </button>
-        <button onClick={this.handleReload} style={btnStyle('var(--card-bg, #1e1e1e)', '1px solid var(--popup-border, #3a3a3a)')}>
+        <button onClick={this.handleReload} style={btnStyle('rgba(255,255,255,0.05)', '1px solid rgba(255,255,255,0.07)')}>
           {t('error.reload')}
         </button>
-        <button onClick={this.handleCopyError} style={btnStyle('var(--card-bg, #1e1e1e)', '1px solid var(--popup-border, #3a3a3a)')}>
+        <button onClick={this.handleCopyError} style={btnStyle('rgba(255,255,255,0.05)', '1px solid rgba(255,255,255,0.07)')}>
           {t('error.copyError')}
         </button>
       </div>
@@ -453,7 +458,7 @@ export default class ErrorBoundary extends Component<Props, State> {
           {/* Render children in a degraded state -- they'll be in their last good render */}
           <div style={{ opacity: 0.3, pointerEvents: 'none', filter: 'grayscale(0.5)', height: '100%' }}>
             {/* Can't render children (would re-trigger error), show placeholder */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted, #858585)', fontSize: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'rgba(255,255,255,0.45)', fontSize: 14 }}>
               {t('error.appDegraded')}
             </div>
           </div>
@@ -466,17 +471,19 @@ export default class ErrorBoundary extends Component<Props, State> {
               transform: 'translateX(-50%)',
               width: '90%',
               maxWidth: 480,
-              background: 'var(--popup-bg, #252526)',
-              border: '1px solid var(--error, #f44747)',
+              background: 'rgba(15,15,25,0.92)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              border: '1px solid rgba(239,68,68,0.25)',
               borderRadius: '10px',
-              color: 'var(--text-primary, #cccccc)',
+              color: 'rgba(255,255,255,0.82)',
               fontSize: '13px',
               padding: '14px 18px',
               zIndex: 10000,
               boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
             }}
           >
-            <div style={{ fontWeight: 600, marginBottom: '6px', color: 'var(--error, #f44747)', fontSize: 14 }}>
+            <div style={{ fontWeight: 600, marginBottom: '6px', color: '#fca5a5', fontSize: 14 }}>
               {t('error.titleIn', { label })}
             </div>
             {errorMessageBlock('10px', '60px', '8px')}
@@ -493,14 +500,16 @@ export default class ErrorBoundary extends Component<Props, State> {
         style={{
           padding: '16px',
           margin: '8px',
-          background: 'var(--popup-bg, #252526)',
-          border: '1px solid var(--error, #f44747)',
+          background: 'rgba(239,68,68,0.08)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          border: '1px solid rgba(239,68,68,0.25)',
           borderRadius: '8px',
-          color: 'var(--text-primary, #cccccc)',
+          color: '#fca5a5',
           fontSize: '13px',
         }}
       >
-        <div style={{ fontWeight: 600, marginBottom: '8px', color: 'var(--error, #f44747)' }}>
+        <div style={{ fontWeight: 600, marginBottom: '8px', color: '#fca5a5' }}>
           {t('error.titleIn', { label })}
         </div>
         {errorMessageBlock('11px', '120px', '10px')}

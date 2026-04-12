@@ -34,6 +34,46 @@ export default function SessionFilters({
     return acc
   }, {})
 
+  // Shared chip style factory
+  const chipStyle = (isActive: boolean): React.CSSProperties => ({
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+    height: 22,
+    borderRadius: 20,
+    padding: '0 10px',
+    background: isActive
+      ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
+      : 'rgba(255,255,255,0.06)',
+    border: isActive
+      ? '1px solid rgba(99,102,241,0.45)'
+      : '1px solid rgba(255,255,255,0.09)',
+    cursor: 'pointer',
+    fontSize: 11,
+    color: isActive ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.55)',
+    fontWeight: isActive ? 600 : 400,
+    whiteSpace: 'nowrap' as const,
+    flexShrink: 0,
+    transition: 'all 0.15s ease',
+    boxShadow: isActive ? '0 2px 8px rgba(99,102,241,0.25)' : 'none',
+  })
+
+  const chipHoverEnter = (e: React.MouseEvent<HTMLButtonElement>, isActive: boolean) => {
+    if (!isActive) {
+      e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
+      e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.13)'
+    }
+  }
+
+  const chipHoverLeave = (e: React.MouseEvent<HTMLButtonElement>, isActive: boolean) => {
+    if (!isActive) {
+      e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+      e.currentTarget.style.color = 'rgba(255,255,255,0.55)'
+      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+    }
+  }
+
   return (
     <>
       {/* Tag filter bar */}
@@ -44,7 +84,8 @@ export default function SessionFilters({
           style={{
             display: 'flex',
             gap: 6,
-            padding: '4px 10px',
+            padding: '6px 8px',
+            flexWrap: 'wrap',
             overflowX: 'auto',
             flexShrink: 0,
             scrollbarWidth: 'none',
@@ -55,23 +96,9 @@ export default function SessionFilters({
             role="radio"
             aria-checked={!activeTagFilter}
             onClick={() => onTagFilterChange(null)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              height: 20,
-              borderRadius: 10,
-              padding: '0 8px',
-              background: !activeTagFilter ? 'rgba(100,100,100,0.3)' : 'rgba(100,100,100,0.1)',
-              border: `1px solid ${!activeTagFilter ? 'rgba(100,100,100,0.6)' : 'rgba(100,100,100,0.3)'}`,
-              cursor: 'pointer',
-              fontSize: 10,
-              color: !activeTagFilter ? 'var(--text-primary)' : 'var(--text-secondary)',
-              fontWeight: !activeTagFilter ? 600 : 400,
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-              transition: 'background 0.15s ease, border-color 0.15s ease',
-            }}
+            style={chipStyle(!activeTagFilter)}
+            onMouseEnter={e => chipHoverEnter(e, !activeTagFilter)}
+            onMouseLeave={e => chipHoverLeave(e, !activeTagFilter)}
           >
             {t('session.tagFilterAll')}
           </button>
@@ -85,30 +112,42 @@ export default function SessionFilters({
                 role="radio"
                 aria-checked={isActive}
                 onClick={() => onTagFilterChange(isActive ? null : tag.id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  height: 20,
-                  borderRadius: 10,
-                  padding: '0 8px',
-                  background: isActive ? `${tag.color}30` : `${tag.color}1a`,
-                  border: `1px solid ${isActive ? `${tag.color}80` : `${tag.color}40`}`,
-                  cursor: 'pointer',
-                  fontSize: 10,
-                  color: isActive ? tag.color : 'var(--text-secondary)',
-                  fontWeight: isActive ? 600 : 400,
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                  transition: 'background 0.15s ease, border-color 0.15s ease, color 0.15s ease',
-                }}
+                style={chipStyle(isActive)}
+                onMouseEnter={e => chipHoverEnter(e, isActive)}
+                onMouseLeave={e => chipHoverLeave(e, isActive)}
               >
                 <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: '50%', background: tag.color, flexShrink: 0 }} />
                 {getTagName(idx)}
-                <span style={{ opacity: 0.6, fontSize: 9 }}>({count})</span>
+                <span style={{
+                  opacity: isActive ? 0.75 : 0.55,
+                  fontSize: 9,
+                  fontVariantNumeric: 'tabular-nums',
+                  fontFeatureSettings: '"tnum"',
+                }}>({count})</span>
               </button>
             )
           })}
+          {/* Clear tag filter — shown only when a tag is active */}
+          {activeTagFilter && (
+            <button
+              onClick={() => onTagFilterChange(null)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: 11,
+                color: 'rgba(255,255,255,0.45)',
+                padding: '0 4px',
+                transition: 'all 0.15s ease',
+                flexShrink: 0,
+                borderRadius: 6,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+            >
+              {t('session.clearFilter') || '×'}
+            </button>
+          )}
         </div>
       )}
 
@@ -120,7 +159,8 @@ export default function SessionFilters({
           style={{
             display: 'flex',
             gap: 6,
-            padding: '4px 10px',
+            padding: '6px 8px',
+            flexWrap: 'wrap',
             overflowX: 'auto',
             flexShrink: 0,
             scrollbarWidth: 'none',
@@ -130,23 +170,9 @@ export default function SessionFilters({
             role="radio"
             aria-checked={!activeProjectFilter}
             onClick={() => onProjectFilterChange(null)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              height: 20,
-              borderRadius: 10,
-              padding: '0 8px',
-              background: !activeProjectFilter ? 'rgba(100,100,100,0.3)' : 'rgba(100,100,100,0.1)',
-              border: `1px solid ${!activeProjectFilter ? 'rgba(100,100,100,0.6)' : 'rgba(100,100,100,0.3)'}`,
-              cursor: 'pointer',
-              fontSize: 10,
-              color: !activeProjectFilter ? 'var(--text-primary)' : 'var(--text-secondary)',
-              fontWeight: !activeProjectFilter ? 600 : 400,
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-              transition: 'background 0.15s ease, border-color 0.15s ease',
-            }}
+            style={chipStyle(!activeProjectFilter)}
+            onMouseEnter={e => chipHoverEnter(e, !activeProjectFilter)}
+            onMouseLeave={e => chipHoverLeave(e, !activeProjectFilter)}
           >
             {t('session.allProjects')}
           </button>
@@ -161,31 +187,45 @@ export default function SessionFilters({
                 onClick={() => onProjectFilterChange(isActive ? null : proj.name)}
                 title={proj.name}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  height: 20,
-                  borderRadius: 10,
-                  padding: '0 8px',
-                  background: isActive ? 'rgba(59,130,246,0.2)' : 'rgba(59,130,246,0.08)',
-                  border: `1px solid ${isActive ? 'rgba(59,130,246,0.5)' : 'rgba(59,130,246,0.25)'}`,
-                  cursor: 'pointer',
-                  fontSize: 10,
-                  color: isActive ? '#3b82f6' : 'var(--text-secondary)',
-                  fontWeight: isActive ? 600 : 400,
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                  transition: 'background 0.15s ease, border-color 0.15s ease, color 0.15s ease',
+                  ...chipStyle(isActive),
                   maxWidth: 120,
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                 }}
+                onMouseEnter={e => chipHoverEnter(e, isActive)}
+                onMouseLeave={e => chipHoverLeave(e, isActive)}
               >
                 {shortName}
-                <span style={{ opacity: 0.6, fontSize: 9 }}>({proj.count})</span>
+                <span style={{
+                  opacity: isActive ? 0.75 : 0.55,
+                  fontSize: 9,
+                  fontVariantNumeric: 'tabular-nums',
+                  fontFeatureSettings: '"tnum"',
+                }}>({proj.count})</span>
               </button>
             )
           })}
+          {/* Clear project filter */}
+          {activeProjectFilter && (
+            <button
+              onClick={() => onProjectFilterChange(null)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: 11,
+                color: 'rgba(255,255,255,0.45)',
+                padding: '0 4px',
+                transition: 'all 0.15s ease',
+                flexShrink: 0,
+                borderRadius: 6,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+            >
+              {t('session.clearFilter') || '×'}
+            </button>
+          )}
         </div>
       )}
     </>

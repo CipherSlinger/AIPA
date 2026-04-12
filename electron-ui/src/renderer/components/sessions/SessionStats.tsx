@@ -1,4 +1,4 @@
-// SessionStats — weekly activity chart and aggregate statistics (Iteration 436)
+// SessionStats — weekly activity chart and aggregate statistics (Iteration 437)
 import React, { useMemo } from 'react'
 import { ArrowLeft, BarChart3, MessageSquare, Layers, Calendar, Flame, Tag } from 'lucide-react'
 import { useSessionStore, usePrefsStore } from '../../store'
@@ -71,60 +71,84 @@ export default function SessionStats({ onBack }: SessionStatsProps) {
       .map(([tagId, count]) => {
         const preset = TAG_PRESETS.find(p => p.id === tagId)
         const idx = preset ? TAG_PRESETS.indexOf(preset) : -1
-        return { name: idx >= 0 ? tagNames[idx] : tagId, count, color: preset?.color || '#6b7280' }
+        return { name: idx >= 0 ? tagNames[idx] : tagId, count, color: preset?.color || 'rgba(255,255,255,0.45)' }
       })
     const maxTagCount = topTags.length > 0 ? topTags[0].count : 1
 
     return { weekDays, maxWeekCount, totalSessions, totalMessages, avgMessages, mostActiveDay, streak, topTags, maxTagCount }
   }, [sessions, sessionTags, tagNames])
 
+  const glassCard: React.CSSProperties = {
+    background: 'rgba(15,15,25,0.88)',
+    backdropFilter: 'blur(16px)',
+    WebkitBackdropFilter: 'blur(16px)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: 12,
+    padding: '12px 14px',
+    boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+    marginBottom: 12,
+  }
+
+  const sectionLabel: React.CSSProperties = {
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: '0.07em',
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.38)',
+    marginBottom: 10,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+  }
+
   return (
-    <div style={{ padding: '12px 14px', overflow: 'auto', height: '100%' }}>
+    <div style={{ padding: '12px 14px', overflow: 'auto', height: '100%', scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.10) transparent' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
         <button
           onClick={onBack}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4,
-            fontSize: 11, padding: '2px 6px', borderRadius: 4,
+            color: 'rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center', gap: 4,
+            fontSize: 11, padding: '4px 6px', borderRadius: 8,
+            transition: 'all 0.15s ease',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'var(--list-item-hover)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+          onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
+          onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
         >
           <ArrowLeft size={12} />
           {t('session.backToList')}
         </button>
         <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 4 }}>
-          <BarChart3 size={13} color="var(--accent)" />
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <BarChart3 size={13} color="#6366f1" />
           {t('session.statsTitle')}
         </span>
       </div>
 
       {/* Weekly chart */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ width: 3, height: 12, background: 'var(--accent)', borderRadius: 2, display: 'inline-block' }} />
+      <div style={glassCard}>
+        <div style={sectionLabel}>
+          <span style={{ width: 3, height: 12, background: '#6366f1', borderRadius: 2, display: 'inline-block' }} />
           {t('session.thisWeek')}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {stats.weekDays.map((day, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 10, color: 'var(--text-muted)', width: 24, textAlign: 'right', fontFamily: 'monospace' }}>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', width: 24, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
                 {day.label}
               </span>
-              <div style={{ flex: 1, height: 14, background: 'var(--bg-secondary)', borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{ flex: 1, height: 14, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{
                   height: '100%',
                   width: `${(day.count / stats.maxWeekCount) * 100}%`,
-                  background: 'var(--accent)',
-                  borderRadius: 3,
+                  background: 'linear-gradient(90deg, rgba(99,102,241,0.90), rgba(129,140,248,0.90))',
+                  borderRadius: 4,
                   transition: 'width 0.3s ease',
                   minWidth: day.count > 0 ? 4 : 0,
                 }} />
               </div>
-              <span style={{ fontSize: 10, color: 'var(--text-muted)', width: 20, textAlign: 'right', fontFamily: 'monospace' }}>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', width: 20, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
                 {day.count}
               </span>
             </div>
@@ -133,9 +157,9 @@ export default function SessionStats({ onBack }: SessionStatsProps) {
       </div>
 
       {/* Overview */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ width: 3, height: 12, background: 'var(--accent)', borderRadius: 2, display: 'inline-block' }} />
+      <div style={glassCard}>
+        <div style={sectionLabel}>
+          <span style={{ width: 3, height: 12, background: '#6366f1', borderRadius: 2, display: 'inline-block' }} />
           {t('session.overview')}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px' }}>
@@ -143,34 +167,34 @@ export default function SessionStats({ onBack }: SessionStatsProps) {
           <StatRow icon={<MessageSquare size={11} />} label={t('session.totalMessages')} value={String(stats.totalMessages)} />
           <StatRow icon={<Calendar size={11} />} label={t('session.mostActiveDay')} value={stats.mostActiveDay} />
           <StatRow icon={<MessageSquare size={11} />} label={t('session.avgMessages')} value={String(stats.avgMessages)} />
-          <StatRow icon={<Flame size={11} />} label={t('session.activityStreak')} value={`${stats.streak}d${stats.streak >= 3 ? ' \uD83D\uDD25' : ''}`} />
+          <StatRow icon={<Flame size={11} />} label={t('session.activityStreak')} value={`${stats.streak}d${stats.streak >= 3 ? ' 🔥' : ''}`} />
         </div>
       </div>
 
       {/* Top Tags */}
       {stats.topTags.length > 0 && (
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ width: 3, height: 12, background: 'var(--accent)', borderRadius: 2, display: 'inline-block' }} />
+        <div style={glassCard}>
+          <div style={sectionLabel}>
+            <span style={{ width: 3, height: 12, background: '#6366f1', borderRadius: 2, display: 'inline-block' }} />
             {t('session.topTags')}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {stats.topTags.map((tag, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Tag size={9} color={tag.color} />
-                <span style={{ fontSize: 10, color: 'var(--text-secondary)', width: 60, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', width: 60, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {tag.name}
                 </span>
-                <div style={{ flex: 1, height: 10, background: 'var(--bg-secondary)', borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{ flex: 1, height: 10, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
                   <div style={{
                     height: '100%',
                     width: `${(tag.count / stats.maxTagCount) * 100}%`,
                     background: tag.color,
-                    borderRadius: 3,
-                    opacity: 0.7,
+                    borderRadius: 4,
+                    opacity: 0.75,
                   }} />
                 </div>
-                <span style={{ fontSize: 10, color: 'var(--text-muted)', width: 20, textAlign: 'right', fontFamily: 'monospace' }}>
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', width: 20, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
                   {tag.count}
                 </span>
               </div>
@@ -185,9 +209,9 @@ export default function SessionStats({ onBack }: SessionStatsProps) {
 function StatRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      <span style={{ color: 'var(--text-muted)' }}>{icon}</span>
-      <span style={{ fontSize: 10, color: 'var(--text-secondary)', flex: 1 }}>{label}</span>
-      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>{value}</span>
+      <span style={{ color: 'rgba(255,255,255,0.38)' }}>{icon}</span>
+      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', flex: 1 }}>{label}</span>
+      <span style={{ fontSize: 22, fontWeight: 700, color: '#a5b4fc', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"', lineHeight: 1.3, letterSpacing: '-0.02em' }}>{value}</span>
     </div>
   )
 }

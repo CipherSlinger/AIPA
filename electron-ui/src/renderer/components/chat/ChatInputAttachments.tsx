@@ -20,41 +20,123 @@ export default function ChatInputAttachments({ attachments, fileAttachments, onR
     <>
       {/* Image attachments */}
       {attachments.length > 0 && (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingBottom: 8 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '4px 0' }}>
           {attachments.map(img => (
-            <div key={img.id} style={{ position: 'relative', flexShrink: 0 }}>
-              <img src={img.dataUrl} alt={img.name} style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--input-field-border)' }} />
-              <button onClick={() => onRemoveImage(img.id)} style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: 'var(--error)', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, lineHeight: '1' }}>{'\u00d7'}</button>
+            <div
+              key={img.id}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.09)',
+                borderRadius: 8,
+                padding: '4px 8px 4px 6px',
+                transition: 'all 0.15s ease',
+                flexShrink: 0,
+              }}
+              onMouseEnter={(e) => {
+                const el = e.currentTarget as HTMLDivElement
+                el.style.background = 'rgba(255,255,255,0.10)'
+                el.style.borderColor = 'rgba(255,255,255,0.15)'
+              }}
+              onMouseLeave={(e) => {
+                const el = e.currentTarget as HTMLDivElement
+                el.style.background = 'rgba(255,255,255,0.06)'
+                el.style.borderColor = 'rgba(255,255,255,0.09)'
+              }}
+            >
+              <img
+                src={img.dataUrl}
+                alt={img.name}
+                style={{ width: 28, height: 28, objectFit: 'cover', borderRadius: 8, flexShrink: 0, border: '1px solid rgba(255,255,255,0.09)' }}
+              />
+              <span style={{
+                fontSize: 11, fontWeight: 500,
+                color: 'rgba(255,255,255,0.82)',
+                maxWidth: 120, overflow: 'hidden',
+                textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {img.name}
+              </span>
+              <button
+                onClick={() => onRemoveImage(img.id)}
+                style={{
+                  background: 'none', border: 'none',
+                  color: 'rgba(255,255,255,0.38)',
+                  cursor: 'pointer', display: 'flex',
+                  alignItems: 'center', padding: '2px 3px',
+                  borderRadius: 6, flexShrink: 0,
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.color = '#fca5a5'
+                  ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.15)'
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.38)'
+                  ;(e.currentTarget as HTMLButtonElement).style.background = 'none'
+                }}
+              >
+                <X size={11} />
+              </button>
             </div>
           ))}
         </div>
       )}
       {/* File attachments */}
       {fileAttachments.length > 0 && (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingBottom: 8 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '4px 0' }}>
           {fileAttachments.map(file => (
             <div key={file.id} style={{
-              position: 'relative', display: 'flex', alignItems: 'center', gap: 6,
-              padding: '4px 8px', background: 'rgba(0, 122, 204, 0.06)',
-              border: '1px solid rgba(0, 122, 204, 0.15)', borderRadius: 6,
-              maxWidth: 200,
-            }}>
-              <FileText size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '4px 8px 4px 6px',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.09)',
+              borderRadius: 8,
+              transition: 'all 0.15s ease',
+            }}
+              onMouseEnter={(e) => {
+                const el = e.currentTarget as HTMLDivElement
+                el.style.background = 'rgba(255,255,255,0.10)'
+                el.style.borderColor = 'rgba(255,255,255,0.15)'
+              }}
+              onMouseLeave={(e) => {
+                const el = e.currentTarget as HTMLDivElement
+                el.style.background = 'rgba(255,255,255,0.06)'
+                el.style.borderColor = 'rgba(255,255,255,0.09)'
+              }}
+            >
+              <FileText size={16} style={{ color: '#818cf8', flexShrink: 0 }} />
               <div style={{ overflow: 'hidden', flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</div>
-                <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>
+                <div style={{
+                  fontSize: 11, fontWeight: 500,
+                  color: 'rgba(255,255,255,0.82)',
+                  maxWidth: 120,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {file.name}
+                </div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)' }}>
                   {file.content ? formatFileSize(file.size) : t('chat.fileRefOnly')}
                 </div>
               </div>
               <button onClick={() => onRemoveFile(file.id)} style={{
-                background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', padding: 1, borderRadius: 4, flexShrink: 0,
-                transition: 'color 150ms',
+                background: 'none', border: 'none',
+                color: 'rgba(255,255,255,0.38)',
+                cursor: 'pointer', display: 'flex',
+                alignItems: 'center', padding: '2px 3px',
+                borderRadius: 6, flexShrink: 0,
+                transition: 'all 0.15s ease',
               }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--error)' }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)' }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.color = '#fca5a5'
+                  ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.15)'
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.38)'
+                  ;(e.currentTarget as HTMLButtonElement).style.background = 'none'
+                }}
               >
-                <X size={12} />
+                <X size={11} />
               </button>
             </div>
           ))}

@@ -46,13 +46,34 @@ export default function MemoryItemCard({
   return (
     <div
       style={{
-        padding: '8px 12px',
-        borderBottom: '1px solid var(--border)',
-        transition: 'background 0.15s ease',
+        padding: '10px 12px',
+        background: 'rgba(15,15,25,0.85)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        border: mem.pinned
+          ? '1px solid rgba(251,191,36,0.25)'
+          : '1px solid rgba(255,255,255,0.07)',
+        borderLeft: mem.pinned
+          ? '3px solid rgba(251,191,36,0.55)'
+          : '1px solid rgba(255,255,255,0.07)',
+        borderRadius: 10,
+        marginBottom: 6,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+        transition: 'all 0.15s ease',
         position: 'relative',
       }}
-      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')}
-      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+      onMouseEnter={e => {
+        e.currentTarget.style.background = 'rgba(20,20,35,0.90)'
+        e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)'
+        e.currentTarget.style.transform = 'translateY(-1px)'
+        if (!mem.pinned) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.background = 'rgba(15,15,25,0.85)'
+        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)'
+        e.currentTarget.style.transform = 'translateY(0)'
+        if (!mem.pinned) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
+      }}
     >
       {isEditing ? (
         /* Edit mode */
@@ -66,15 +87,25 @@ export default function MemoryItemCard({
               width: '100%',
               height: 50,
               padding: 6,
-              background: 'var(--input-field-bg)',
-              border: '1px solid var(--accent)',
-              borderRadius: 4,
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 6,
               fontSize: 11,
-              color: 'var(--text-primary)',
+              color: 'rgba(255,255,255,0.82)',
+              lineHeight: 1.6,
               resize: 'none',
               outline: 'none',
               boxSizing: 'border-box',
               fontFamily: 'inherit',
+              transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+            }}
+            onFocus={e => {
+              e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'
+              e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.12)'
+            }}
+            onBlur={e => {
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'
+              e.currentTarget.style.boxShadow = 'none'
             }}
             onKeyDown={e => {
               if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -101,6 +132,7 @@ export default function MemoryItemCard({
                       color: CATEGORY_CONFIG[cat].color,
                       display: 'flex',
                       alignItems: 'center',
+                      transition: 'all 0.15s ease',
                     }}
                   >
                     {CATEGORY_CONFIG[cat].icon}
@@ -124,12 +156,13 @@ export default function MemoryItemCard({
                           borderRadius: 4,
                           padding: '1px 5px',
                           cursor: 'pointer',
-                          color: isActive ? tc.color : 'var(--text-muted)',
+                          color: isActive ? tc.color : 'rgba(255,255,255,0.45)',
                           display: 'flex',
                           alignItems: 'center',
                           gap: 2,
                           fontSize: 9,
                           fontWeight: isActive ? 600 : 400,
+                          transition: 'all 0.15s ease',
                         }}
                       >
                         {tc.icon}
@@ -144,28 +177,37 @@ export default function MemoryItemCard({
               <button
                 onClick={onCancelEdit}
                 style={{
-                  background: 'transparent',
-                  border: 'none',
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.12)',
                   borderRadius: 4,
-                  padding: 2,
+                  padding: '2px 7px',
                   cursor: 'pointer',
-                  color: 'var(--text-muted)',
+                  color: 'rgba(255,255,255,0.50)',
                   display: 'flex',
+                  alignItems: 'center',
+                  transition: 'all 0.15s ease',
                 }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.10)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
               >
                 <X size={14} />
               </button>
               <button
                 onClick={onSaveEdit}
                 style={{
-                  background: 'var(--accent)',
+                  background: 'linear-gradient(135deg, #6366f1, #a78bfa)',
                   border: 'none',
                   borderRadius: 4,
-                  padding: 2,
+                  padding: '2px 7px',
                   cursor: 'pointer',
-                  color: '#fff',
+                  color: 'rgba(255,255,255,0.95)',
+                  fontWeight: 600,
                   display: 'flex',
+                  alignItems: 'center',
+                  transition: 'box-shadow 0.15s ease',
                 }}
+                onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 10px rgba(99,102,241,0.45)' }}
+                onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none' }}
               >
                 <Check size={14} />
               </button>
@@ -198,9 +240,10 @@ export default function MemoryItemCard({
             {/* Content */}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{
-                fontSize: 11,
-                color: 'var(--text-primary)',
-                lineHeight: 1.5,
+                fontSize: 13,
+                fontWeight: 400,
+                color: 'rgba(255,255,255,0.60)',
+                lineHeight: 1.6,
                 wordBreak: 'break-word',
               }}>
                 {searchQuery ? (
@@ -215,13 +258,16 @@ export default function MemoryItemCard({
                 gap: 6,
                 marginTop: 3,
               }}>
+                {/* Category badge */}
                 <span style={{
-                  fontSize: 9,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: '0.07em',
+                  textTransform: 'uppercase',
                   color: cfg.color,
-                  background: `${cfg.color}10`,
-                  borderRadius: 6,
-                  padding: '0 5px',
-                  fontWeight: 500,
+                  background: `${cfg.color}1e`,
+                  borderRadius: 10,
+                  padding: '1px 6px',
                 }}>
                   {t(cfg.labelKey)}
                 </span>
@@ -231,11 +277,11 @@ export default function MemoryItemCard({
                     display: 'flex',
                     alignItems: 'center',
                     gap: 2,
-                    fontSize: 9,
+                    fontSize: 10,
                     color: typeCfg.color,
-                    background: `${typeCfg.color}10`,
-                    borderRadius: 6,
-                    padding: '0 5px',
+                    background: 'rgba(255,255,255,0.06)',
+                    borderRadius: 4,
+                    padding: '1px 5px',
                     fontWeight: 500,
                   }}
                   title={typeCfg.description}
@@ -244,11 +290,11 @@ export default function MemoryItemCard({
                     {mem.memoryType}
                   </span>
                 )}
-                <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
                   {formatRelativeTime(mem.updatedAt, t)}
                 </span>
                 {mem.pinned && (
-                  <Pin size={9} style={{ color: 'var(--accent)' }} />
+                  <Pin size={9} style={{ color: '#fbbf24' }} />
                 )}
               </div>
             </div>
@@ -262,24 +308,30 @@ export default function MemoryItemCard({
               right: 8,
               display: 'none',
               gap: 2,
-              background: 'var(--popup-bg)',
-              borderRadius: 4,
+              background: 'rgba(10,10,20,0.94)',
+              border: '1px solid rgba(255,255,255,0.09)',
+              borderRadius: 6,
               padding: '2px 2px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
             }}
           >
             <button
               onClick={onTogglePin}
               title={mem.pinned ? t('memory.unpin') : t('memory.pin')}
               style={{
-                background: 'transparent',
+                background: 'none',
                 border: 'none',
-                borderRadius: 3,
+                borderRadius: 4,
                 padding: 3,
                 cursor: 'pointer',
-                color: mem.pinned ? 'var(--accent)' : 'var(--text-muted)',
+                color: mem.pinned ? '#fbbf24' : 'rgba(255,255,255,0.38)',
                 display: 'flex',
+                transition: 'all 0.15s ease',
               }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'none')}
             >
               {mem.pinned ? <PinOff size={12} /> : <Pin size={12} />}
             </button>
@@ -287,13 +339,22 @@ export default function MemoryItemCard({
               onClick={onStartEdit}
               title={t('memory.edit')}
               style={{
-                background: 'transparent',
+                background: 'none',
                 border: 'none',
-                borderRadius: 3,
+                borderRadius: 4,
                 padding: 3,
                 cursor: 'pointer',
-                color: 'var(--text-muted)',
+                color: 'rgba(255,255,255,0.38)',
                 display: 'flex',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(99,102,241,0.12)'
+                e.currentTarget.style.color = '#818cf8'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'none'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.38)'
               }}
             >
               <Edit3 size={12} />
@@ -302,16 +363,23 @@ export default function MemoryItemCard({
               onClick={onDelete}
               title={t('memory.delete')}
               style={{
-                background: 'transparent',
+                background: 'none',
                 border: 'none',
-                borderRadius: 3,
+                borderRadius: 4,
                 padding: 3,
                 cursor: 'pointer',
-                color: 'var(--text-muted)',
+                color: 'rgba(255,255,255,0.38)',
                 display: 'flex',
+                transition: 'all 0.15s ease',
               }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--error)')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(239,68,68,0.15)'
+                e.currentTarget.style.color = '#f87171'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'none'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.38)'
+              }}
             >
               <Trash2 size={12} />
             </button>

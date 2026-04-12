@@ -9,17 +9,54 @@ interface Props {
   onReject: () => void
 }
 
+// Parse plan content into structured step lines vs plain text lines
+interface StepLine {
+  type: 'step'
+  num: number
+  text: string
+  index: number // position among steps only
+}
+interface PlainLine {
+  type: 'plain'
+  text: string
+}
+type ParsedLine = StepLine | PlainLine
+
+function parsePlanLines(content: string): ParsedLine[] {
+  const raw = content.split('\n')
+  const result: ParsedLine[] = []
+  let stepIndex = 0
+  for (const line of raw) {
+    const m = line.match(/^(\d+)[.)]\s+(.*)$/)
+    if (m) {
+      result.push({ type: 'step', num: parseInt(m[1], 10), text: m[2], index: stepIndex++ })
+    } else {
+      result.push({ type: 'plain', text: line })
+    }
+  }
+  return result
+}
+
 export default function PlanCard({ message, onAccept, onReject }: Props) {
   const t = useT()
   const isPending = message.decision === 'pending'
+  const parsedLines = parsePlanLines(message.planContent)
+
+  // Determine active step index: first step if pending, last step if accepted
+  const stepLines = parsedLines.filter((l): l is StepLine => l.type === 'step')
+  const activeStepIndex = isPending ? 0 : stepLines.length - 1
 
   return (
     <div
       style={{
         margin: '8px 16px',
-        borderRadius: 8,
-        border: '1px solid var(--card-border)',
-        background: 'var(--card-bg)',
+        borderRadius: 10,
+        background: 'rgba(15,15,25,0.85)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderLeft: '3px solid rgba(99,102,241,0.60)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
         overflow: 'hidden',
       }}
     >
@@ -30,19 +67,30 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
           alignItems: 'center',
           gap: 8,
           padding: '10px 14px',
-          background: 'color-mix(in srgb, var(--accent) 15%, transparent)',
-          borderBottom: '1px solid var(--border)',
+          borderBottom: '1px solid rgba(255,255,255,0.07)',
         }}
       >
-        <ClipboardList size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>{t('plan.executionPlan')}</span>
+        <ClipboardList size={13} style={{ color: '#818cf8', flexShrink: 0 }} />
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.07em',
+            color: 'rgba(255,255,255,0.38)',
+          }}
+        >
+          {t('plan.executionPlan')}
+        </span>
         {!isPending && (
           <span
             style={{
               marginLeft: 'auto',
               fontSize: 10,
-              color: message.decision === 'accepted' ? 'var(--success)' : 'var(--error)',
-              fontWeight: 600,
+              color: message.decision === 'accepted' ? '#4ade80' : '#f87171',
+              fontWeight: 700,
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
             }}
           >
             {message.decision === 'accepted' ? t('plan.approved') : t('plan.rejected')}
@@ -54,15 +102,96 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
       <div
         style={{
           padding: '12px 14px',
-          fontSize: 13,
-          color: 'var(--text-primary)',
-          whiteSpace: 'pre-wrap',
-          lineHeight: 1.6,
           maxHeight: 400,
           overflowY: 'auto',
         }}
       >
-        {message.planContent}
+        {parsedLines.map((line, i) => {
+          if (line.type === 'plain') {
+            // Render non-step lines as muted text (intro/outro prose)
+            return line.text.trim() ? (
+              <p
+                key={i}
+                style={{
+                  margin: '0 0 6px 0',
+                  fontSize: 12,
+                  lineHeight: 1.6,
+                  color: 'rgba(255,255,255,0.60)',
+                }}
+              >
+                {line.text}
+              </p>
+            ) : (
+              <div key={i} style={{ height: 4 }} />
+            )
+          }
+
+          // Step line
+          const isCompleted = !isPending && message.decision === 'accepted'
+            ? line.index < activeStepIndex
+            : false
+          const isActive = line.index === activeStepIndex && isPending
+
+          return (
+            <div
+              key={i}
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 8,
+                padding: '4px 6px',
+                borderRadius: 6,
+                background: 'transparent',
+                transition: 'background 0.15s ease',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+            >
+              {/* Bullet / step number */}
+              <span
+                style={{
+                  flexShrink: 0,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: isCompleted ? '#4ade80' : isActive ? '#a5b4fc' : '#818cf8',
+                  width: 20,
+                  height: 20,
+                  borderRadius: '50%',
+                  background: isCompleted
+                    ? 'rgba(74,222,128,0.15)'
+                    : isActive
+                      ? 'rgba(99,102,241,0.30)'
+                      : 'rgba(99,102,241,0.18)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  lineHeight: 1,
+                  paddingTop: 1,
+                }}
+              >
+                {line.num}.
+              </span>
+              {/* Step text */}
+              <span
+                style={{
+                  fontSize: 12,
+                  lineHeight: 1.6,
+                  color: isCompleted
+                    ? 'rgba(255,255,255,0.38)'
+                    : isActive
+                      ? 'rgba(255,255,255,0.92)'
+                      : 'rgba(255,255,255,0.60)',
+                  textDecoration: isCompleted ? 'line-through' : 'none',
+                  opacity: isCompleted ? 0.6 : 1,
+                  fontWeight: isActive ? 600 : 400,
+                  flex: 1,
+                }}
+              >
+                {line.text}
+              </span>
+            </div>
+          )
+        })}
       </div>
 
       {/* Action buttons */}
@@ -72,11 +201,19 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
             display: 'flex',
             gap: 8,
             padding: '10px 14px',
-            borderTop: '1px solid var(--border)',
+            borderTop: '1px solid rgba(255,255,255,0.07)',
           }}
         >
           <button
             onClick={onAccept}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.filter = 'brightness(1.1)'
+              e.currentTarget.style.transform = 'scale(1.02)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.filter = 'brightness(1)'
+              e.currentTarget.style.transform = 'scale(1)'
+            }}
             style={{
               flex: 1,
               display: 'flex',
@@ -84,13 +221,15 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
               justifyContent: 'center',
               gap: 6,
               padding: '6px 12px',
-              background: 'var(--accent)',
+              background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
               border: 'none',
-              borderRadius: 4,
-              color: '#fff',
-              fontSize: 12,
+              borderRadius: 8,
+              color: 'rgba(255,255,255,0.95)',
+              fontSize: 13,
               cursor: 'pointer',
               fontWeight: 600,
+              boxShadow: '0 2px 8px rgba(99,102,241,0.3)',
+              transition: 'all 0.15s ease',
             }}
           >
             <CheckCircle size={13} />
@@ -98,6 +237,14 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
           </button>
           <button
             onClick={onReject}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+            }}
             style={{
               flex: 1,
               display: 'flex',
@@ -105,12 +252,14 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
               justifyContent: 'center',
               gap: 6,
               padding: '6px 12px',
-              background: 'none',
-              border: '1px solid var(--border)',
-              borderRadius: 4,
-              color: 'var(--text-muted)',
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.10)',
+              borderRadius: 8,
+              color: 'rgba(255,255,255,0.55)',
               fontSize: 12,
               cursor: 'pointer',
+              fontWeight: 600,
+              transition: 'all 0.15s ease',
             }}
           >
             <XCircle size={13} />

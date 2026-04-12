@@ -11,7 +11,7 @@ export default function HighlightText({ text, highlight }: { text: string; highl
     <>
       {parts.map((part, i) =>
         regex.test(part) ? (
-          <span key={i} style={{ background: 'var(--warning)', color: '#1a1a1a', borderRadius: 2, padding: '0 1px' }}>
+          <span key={i} style={{ background: 'rgba(99,102,241,0.25)', color: '#818cf8', borderRadius: 2, padding: '0 1px' }}>
             {part}
           </span>
         ) : (

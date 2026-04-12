@@ -47,8 +47,10 @@ export default function PinnedMessagesStrip({ messages, items, virtualizer }: Pr
   return (
     <div style={{
       flexShrink: 0,
-      background: 'var(--popup-bg)',
-      borderBottom: '1px solid var(--popup-border)',
+      background: 'rgba(99,102,241,0.08)',
+      borderBottom: '1px solid rgba(99,102,241,0.20)',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
     }}>
       <button
         onClick={() => setPinnedExpanded(prev => !prev)}
@@ -61,25 +63,38 @@ export default function PinnedMessagesStrip({ messages, items, virtualizer }: Pr
           background: 'transparent',
           border: 'none',
           cursor: 'pointer',
-          color: 'var(--accent)',
+          color: 'rgba(255,255,255,0.45)',
           fontSize: 11,
           fontWeight: 600,
         }}
       >
-        <Pin size={12} style={{ transform: 'rotate(-45deg)' }} />
-        <span>{t('message.pinnedMessages')} ({pinnedMessages.length})</span>
+        <Pin size={12} style={{ transform: 'rotate(-45deg)', color: '#818cf8' }} />
+        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)' }}>
+          {t('message.pinnedMessages')}
+        </span>
+        <span style={{
+          background: 'rgba(99,102,241,0.15)',
+          color: '#a5b4fc',
+          borderRadius: 10,
+          padding: '1px 6px',
+          fontSize: 10,
+          fontWeight: 600,
+        }}>
+          {pinnedMessages.length}
+        </span>
         <button
           onClick={(e) => { e.stopPropagation(); handleUnpinAll() }}
           title={t('message.unpinAll')}
           style={{
             marginLeft: 'auto', marginRight: 8,
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--text-muted)', fontSize: 10,
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            color: 'rgba(255,255,255,0.38)', fontSize: 10,
             display: 'flex', alignItems: 'center', gap: 2,
-            transition: 'color 0.15s',
+            padding: '2px 6px', borderRadius: 6,
+            transition: 'all 0.15s ease',
           }}
-          onMouseEnter={e => { e.currentTarget.style.color = 'var(--error)' }}
-          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)'; e.currentTarget.style.color = '#fca5a5' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
         >
           <X size={10} />
           {t('message.unpinAll')}
@@ -107,32 +122,43 @@ export default function PinnedMessagesStrip({ messages, items, virtualizer }: Pr
                   display: 'flex',
                   alignItems: 'flex-start',
                   gap: 8,
-                  padding: '5px 8px',
-                  background: 'var(--action-btn-bg)',
-                  border: '1px solid var(--action-btn-border)',
-                  borderRadius: 6,
+                  padding: '4px 8px',
+                  background: 'rgba(251,191,36,0.06)',
+                  border: '1px solid rgba(251,191,36,0.15)',
+                  borderRadius: 8,
                   cursor: 'pointer',
                   textAlign: 'left',
                   width: '100%',
-                  transition: 'background 0.12s',
+                  transition: 'all 0.15s ease',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'var(--action-btn-bg)' }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'rgba(251,191,36,0.12)'
+                  e.currentTarget.style.transform = 'translateY(-1px)'
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(251,191,36,0.10)'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'rgba(251,191,36,0.06)'
+                  e.currentTarget.style.transform = 'none'
+                  e.currentTarget.style.boxShadow = 'none'
+                }}
               >
                 <span style={{
                   fontSize: 10,
-                  fontWeight: 600,
-                  color: msg.role === 'user' ? 'var(--accent)' : 'var(--text-muted)',
+                  fontWeight: 700,
+                  letterSpacing: '0.07em',
+                  textTransform: 'uppercase',
+                  color: msg.role === 'user' ? '#fbbf24' : 'rgba(255,255,255,0.38)',
                   flexShrink: 0,
                   minWidth: 32,
                 }}>
                   {roleLabel}
                 </span>
                 <span style={{
-                  fontSize: 11,
-                  color: 'var(--text-primary)',
-                  lineHeight: 1.4,
+                  fontSize: 12,
+                  color: 'rgba(255,255,255,0.60)',
+                  lineHeight: 1.6,
                   overflow: 'hidden',
+                  textOverflow: 'ellipsis',
                   display: '-webkit-box',
                   WebkitLineClamp: 2,
                   WebkitBoxOrient: 'vertical',

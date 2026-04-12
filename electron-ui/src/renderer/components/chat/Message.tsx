@@ -168,18 +168,19 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           <div style={{
             background: 'rgba(139, 92, 246, 0.06)',
             border: '1px solid rgba(139, 92, 246, 0.15)',
-            borderRadius: 8,
+            borderRadius: 10,
             padding: '8px 14px',
             fontSize: 11,
-            color: 'var(--text-muted)',
+            color: 'rgba(255,255,255,0.45)',
             maxWidth: 480,
             display: 'flex',
             gap: 8,
             alignItems: 'flex-start',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
           }}>
             <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>🌙</span>
             <div>
-              <div style={{ fontWeight: 600, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3, color: '#8b5cf6' }}>
+              <div style={{ fontWeight: 600, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3, color: '#a78bfa', lineHeight: 1.3 }}>
                 {t('awaySummary.title')}
               </div>
               <div style={{ lineHeight: 1.5 }}>{summaryText}</div>
@@ -191,8 +192,8 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 20px' }}>
         <span style={{
-          background: 'rgba(244, 71, 71, 0.08)', borderRadius: 4,
-          padding: '4px 12px', fontSize: 12, color: 'var(--text-muted)',
+          background: 'rgba(244, 71, 71, 0.08)', borderRadius: 6,
+          padding: '4px 12px', fontSize: 12, color: 'rgba(255,255,255,0.45)',
         }}>
           {content}
         </span>
@@ -231,6 +232,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
         padding: compact ? `6px 20px` : `8px 20px`,
         maxWidth: '100%',
         position: 'relative',
+        background: hovered ? 'rgba(255,255,255,0.01)' : undefined,
       }}
       aria-label={isUser ? `You said: ${((message as StandardChatMessage).content || '').slice(0, 100)}` : `Claude said: ${((message as StandardChatMessage).content || '').slice(0, 100)}`}
     >
@@ -240,16 +242,16 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           style={{
             width: avatarSize, height: avatarSize,
             borderRadius: '50%',
-            background: isUser ? 'var(--avatar-user)' : (isAssistant && activePersona ? `${activePersona.color}30` : 'var(--avatar-ai)'),
+            background: isUser ? 'rgba(99,102,241,0.25)' : (isAssistant && activePersona ? `${activePersona.color}30` : 'rgba(255,255,255,0.08)'),
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0, marginTop: 2,
           }}
         >
           {isUser
-            ? <User size={iconSize} color="#ffffff" />
+            ? <User size={iconSize} color="#818cf8" />
             : isAssistant && activePersona
             ? <span style={{ fontSize: avatarSize * 0.55, lineHeight: 1 }}>{activePersona.emoji}</span>
-            : <Bot size={iconSize} color="#ffffff" />
+            : <Bot size={iconSize} color="rgba(255,255,255,0.60)" />
           }
         </div>
       ) : (
@@ -267,12 +269,13 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
               transform: 'translateY(-50%)',
               [isUser ? 'right' : 'left']: 'calc(100% + 8px)',
               fontSize: 11,
-              color: 'var(--text-tertiary, var(--text-muted))',
+              color: 'rgba(255,255,255,0.38)',
               whiteSpace: 'nowrap',
               pointerEvents: 'none',
               opacity: hovered ? 1 : 0,
-              transition: 'opacity 150ms ease',
+              transition: 'opacity 0.15s ease',
               userSelect: 'none',
+              fontVariantNumeric: 'tabular-nums',
             }}
             aria-hidden="true"
           >
@@ -283,16 +286,19 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
         <div
           ref={bubbleRef}
           style={{
-            background: isUser ? 'var(--bubble-user)' : 'var(--bubble-ai)',
-            borderRadius: isUser ? '12px 2px 12px 12px' : '2px 12px 12px 12px',
+            background: isUser ? 'rgba(99,102,241,0.12)' : 'transparent',
+            borderRadius: isUser ? '12px 12px 4px 12px' : '4px 12px 12px 12px',
             padding: compact ? '8px 12px' : '10px 14px',
-            color: isUser ? 'var(--bubble-user-text)' : 'var(--bubble-ai-text)',
+            color: 'rgba(255,255,255,0.82)',
+            lineHeight: isUser ? 1.5 : 1.6,
             border: copyFlash
-              ? '1.5px solid var(--accent)'
-              : isUser ? '1px solid var(--bubble-user-border)' : '1px solid var(--bubble-ai-border)',
+              ? '1px solid rgba(34,197,94,0.4)'
+              : isUser ? '1px solid rgba(99,102,241,0.20)' : '1px solid transparent',
             wordBreak: 'break-word',
             position: 'relative',
-            boxShadow: hovered ? '0 2px 6px rgba(0,0,0,0.18)' : '0 1px 3px rgba(0,0,0,0.12)',
+            boxShadow: isUser
+              ? (hovered ? '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.3)')
+              : 'none',
             transition: 'box-shadow 0.15s ease, border-color 0.15s ease',
           }}
           title={wordInfo || undefined}
@@ -304,7 +310,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
               right: isUser ? undefined : -6,
               left: isUser ? -6 : undefined,
             }}>
-              <Bookmark size={14} style={{ color: 'var(--warning)', fill: 'var(--warning)' }} />
+              <Bookmark size={14} style={{ color: '#818cf8', fill: '#818cf8' }} />
             </div>
           )}
 
@@ -315,7 +321,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
               right: isUser ? (((message as StandardChatMessage).bookmarked) ? undefined : -6) : undefined,
               left: isUser ? undefined : (((message as StandardChatMessage).bookmarked) ? 6 : -6),
             }}>
-              <Pin size={12} style={{ color: 'var(--accent)', fill: 'var(--accent)', transform: 'rotate(-45deg)' }} />
+              <Pin size={12} style={{ color: 'rgba(255,255,255,0.38)', fill: 'rgba(255,255,255,0.38)', transform: 'rotate(-45deg)' }} />
             </div>
           )}
 

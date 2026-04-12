@@ -16,6 +16,7 @@ interface DepartmentState {
   removeDepartment: (id: string) => void
   updateDepartment: (id: string, updates: Partial<Pick<Department, 'name' | 'directory' | 'color'>>) => void
   setActiveDepartmentId: (id: string | null) => void
+  reorderDepartments: (depts: Department[]) => void
 }
 
 const STORAGE_KEY = 'aipa:departments'
@@ -79,5 +80,10 @@ export const useDepartmentStore = create<DepartmentState>((set) => ({
       else localStorage.removeItem(ACTIVE_KEY)
     } catch {}
     set({ activeDepartmentId: id })
+  },
+
+  reorderDepartments: (depts) => {
+    saveDepartments(depts)
+    set({ departments: depts })
   },
 }))

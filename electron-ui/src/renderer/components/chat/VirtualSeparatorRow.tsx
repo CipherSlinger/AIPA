@@ -33,14 +33,23 @@ export default function VirtualSeparatorRow({ type, label, virtualRow, measureEl
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 12,
+          gap: 10,
           padding: '6px 20px',
         }}>
-          <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-          <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap', fontWeight: 500, letterSpacing: 0.3 }}>
+          <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+          <span style={{
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: '0.07em',
+            textTransform: 'uppercase',
+            color: 'rgba(255,255,255,0.38)',
+            background: 'rgba(10,10,18,1)',
+            padding: '0 10px',
+            whiteSpace: 'nowrap',
+          }}>
             {label}
           </span>
-          <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+          <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
         </div>
       </div>
     )
@@ -61,11 +70,11 @@ export default function VirtualSeparatorRow({ type, label, virtualRow, measureEl
           padding: '4px 20px',
         }}>
           <span style={{
-            fontSize: 9,
-            color: 'var(--text-muted)',
-            opacity: 0.7,
+            fontSize: 11,
+            fontWeight: 600,
+            letterSpacing: '0.05em',
+            color: 'rgba(255,255,255,0.38)',
             fontFamily: 'monospace',
-            letterSpacing: 0.5,
           }}>
             {label}
           </span>
@@ -89,9 +98,8 @@ export default function VirtualSeparatorRow({ type, label, virtualRow, measureEl
           padding: '2px 20px',
         }}>
           <span style={{
-            fontSize: 9,
-            color: 'var(--text-muted)',
-            opacity: 0.5,
+            fontSize: 11,
+            color: 'rgba(255,255,255,0.38)',
             fontStyle: 'italic',
           }}>
             {label}
@@ -115,11 +123,18 @@ export default function VirtualSeparatorRow({ type, label, virtualRow, measureEl
         gap: 10,
         padding: '8px 20px',
       }}>
-        <div style={{ flex: 1, height: 1, background: 'var(--accent)', opacity: 0.4 }} />
-        <span style={{ fontSize: 10, color: 'var(--accent)', whiteSpace: 'nowrap', fontWeight: 500, letterSpacing: 0.3, opacity: 0.8 }}>
+        <div style={{ flex: 1, height: 1, background: 'rgba(99,102,241,0.20)' }} />
+        <span style={{
+          fontSize: 10,
+          fontWeight: 700,
+          letterSpacing: '0.07em',
+          textTransform: 'uppercase',
+          color: 'rgba(165,180,252,0.70)',
+          whiteSpace: 'nowrap',
+        }}>
           {label}
         </span>
-        <div style={{ flex: 1, height: 1, background: 'var(--accent)', opacity: 0.4 }} />
+        <div style={{ flex: 1, height: 1, background: 'rgba(99,102,241,0.20)' }} />
       </div>
     </div>
   )

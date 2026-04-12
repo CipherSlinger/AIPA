@@ -39,13 +39,14 @@ export default function SettingsModal() {
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 9000,
+        background: 'rgba(0,0,0,0.65)',
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)',
+        zIndex: 300,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(0, 0, 0, 0.5)',
-        backdropFilter: 'blur(4px)',
-        animation: 'settings-modal-fade-in 0.2s ease',
+        animation: 'fadeIn 0.15s ease',
       }}
     >
       <div
@@ -57,15 +58,17 @@ export default function SettingsModal() {
           maxWidth: 720,
           height: '85%',
           maxHeight: 700,
-          background: 'var(--bg-sessionpanel)',
-          borderRadius: 12,
-          border: '1px solid var(--border)',
-          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+          background: 'rgba(14,14,24,0.97)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 16,
+          boxShadow: '0 24px 64px rgba(0,0,0,0.65), 0 8px 32px rgba(0,0,0,0.4)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
           position: 'relative',
-          animation: 'settings-modal-slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+          animation: 'slideUp 0.20s ease',
         }}
       >
         {/* SettingsPanel content — fills the modal */}
@@ -74,12 +77,12 @@ export default function SettingsModal() {
             fallback={
               <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                height: '100%', color: 'var(--text-muted)', fontSize: 12,
+                height: '100%', color: 'rgba(255,255,255,0.45)', fontSize: 12,
               }}>
                 <div style={{
                   width: 20, height: 20,
-                  border: '2px solid var(--border)',
-                  borderTopColor: 'var(--accent)',
+                  border: '2px solid rgba(255,255,255,0.09)',
+                  borderTopColor: '#6366f1',
                   borderRadius: '50%',
                   animation: 'spin 0.8s linear infinite',
                 }} />
@@ -91,16 +94,6 @@ export default function SettingsModal() {
         </div>
       </div>
 
-      <style>{`
-        @keyframes settings-modal-fade-in {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes settings-modal-slide-up {
-          from { opacity: 0; transform: translateY(20px) scale(0.97); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-      `}</style>
     </div>
   )
 }

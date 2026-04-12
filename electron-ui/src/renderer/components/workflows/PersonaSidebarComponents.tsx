@@ -9,6 +9,37 @@ import type { Persona } from '../../types/app.types'
 import { PERSONA_COLORS, EMOJI_PRESETS } from '../settings/personaConstants'
 import { MODEL_OPTIONS } from '../settings/settingsConstants'
 
+// ─── Keyframe injection (once per module) ─────────────────────────────────────
+const ANIM_ID = 'persona-sidebar-keyframes'
+if (typeof document !== 'undefined' && !document.getElementById(ANIM_ID)) {
+  const s = document.createElement('style')
+  s.id = ANIM_ID
+  s.textContent = `
+    @keyframes personaCardIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  `
+  document.head.appendChild(s)
+}
+
+// ─── Color-coded role badges derived from presetKey ───────────────────────────
+
+const ROLE_BADGE_MAP: Record<string, { label: string; color: string; bg: string }> = {
+  writingCoach:      { label: 'Writer',   color: '#6366f1', bg: 'rgba(99,102,241,0.15)' },
+  researchAnalyst:   { label: 'Analyst',  color: '#22c55e', bg: 'rgba(34,197,94,0.15)'  },
+  creativePartner:   { label: 'Creative', color: '#fbbf24', bg: 'rgba(251,191,36,0.15)' },
+  studyTutor:        { label: 'Tutor',    color: '#a78bfa', bg: 'rgba(167,139,250,0.15)' },
+  productivityCoach: { label: 'Coach',    color: '#67e8f9', bg: 'rgba(103,232,249,0.15)'  },
+}
+
+function getRoleBadge(persona: Persona) {
+  if (persona.presetKey && ROLE_BADGE_MAP[persona.presetKey]) {
+    return ROLE_BADGE_MAP[persona.presetKey]
+  }
+  return null
+}
+
 // ─── Compact persona card for the sidebar ─────────────────────────────────────
 
 export interface PersonaSidebarCardProps {
@@ -29,61 +60,130 @@ export function PersonaSidebarCard({ persona, isActive, isDeleting, onDelete }: 
     ? t(MODEL_OPTIONS.find(m => m.id === p.model)!.labelKey)
     : p.model
 
+  const roleBadge = getRoleBadge(p)
+
+  // Build tooltip: name + model + first ~80 chars of system prompt
+  const promptSnippet = p.systemPrompt.length > 80 ? p.systemPrompt.slice(0, 80) + '…' : p.systemPrompt
+  const cardTooltip = `${displayName} · ${modelLabel}\n${promptSnippet}`
+
   return (
     <div
       onClick={() => useUiStore.getState().openPersonaEditor(p.id, 'chat')}
+      title={cardTooltip}
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 8,
-        padding: '6px 10px',
-        background: isActive ? `${p.color}18` : 'transparent',
-        border: `1px solid ${isActive ? p.color : 'var(--border)'}`,
-        borderRadius: 7,
-        transition: 'border-color 150ms, background 150ms',
+        gap: 9,
+        padding: '8px 12px',
+        background: isActive
+          ? 'rgba(99,102,241,0.12)'
+          : 'rgba(255,255,255,0.02)',
+        border: `1px solid ${isActive ? 'rgba(99,102,241,0.35)' : 'rgba(255,255,255,0.07)'}`,
+        borderRadius: 8,
+        transition: 'all 0.15s ease',
         cursor: 'pointer',
+        borderLeft: isActive ? '3px solid rgba(99,102,241,0.7)' : '3px solid transparent',
+        boxShadow: isActive
+          ? `0 0 0 1px ${p.color}30, 0 2px 8px rgba(0,0,0,0.25)`
+          : '0 1px 3px rgba(0,0,0,0.18)',
+        animation: 'personaCardIn 200ms ease both',
       }}
-      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
-      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
+    onMouseEnter={e => {
+        if (!isActive) {
+          e.currentTarget.style.background = 'rgba(99,102,241,0.06)'
+          e.currentTarget.style.borderColor = 'rgba(99,102,241,0.25)'
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)'
+          const avatar = e.currentTarget.querySelector('.persona-avatar') as HTMLElement | null
+          if (avatar) {
+            avatar.style.borderColor = 'rgba(99,102,241,0.70)'
+            avatar.style.transform = 'scale(1.05)'
+            avatar.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3), 0 0 10px rgba(99,102,241,0.30)'
+          }
+        }
+      }}
+      onMouseLeave={e => {
+        if (!isActive) {
+          e.currentTarget.style.background = 'rgba(255,255,255,0.02)'
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
+          e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.18)'
+          const avatar = e.currentTarget.querySelector('.persona-avatar') as HTMLElement | null
+          if (avatar) {
+            avatar.style.borderColor = `${p.color}60`
+            avatar.style.transform = 'scale(1)'
+            avatar.style.boxShadow = `0 0 6px ${p.color}40`
+          }
+        }
+      }}
     >
-      {/* Emoji avatar */}
-      <div style={{
-        width: 30,
-        height: 30,
-        borderRadius: 6,
-        background: `${p.color}22`,
+      {/* Emoji avatar — circular with colored ring */}
+      <div className="persona-avatar" style={{
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        background: isActive ? 'rgba(99,102,241,0.15)' : `${p.color}28`,
+        border: `2px solid ${isActive ? 'rgba(99,102,241,0.30)' : `${p.color}60`}`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: 16,
+        fontSize: 15,
         flexShrink: 0,
+        boxShadow: isActive ? '0 0 8px rgba(99,102,241,0.25)' : `0 0 6px ${p.color}40`,
+        transition: 'border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease',
       }}>
         {p.emoji}
       </div>
 
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-bright)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
+          <span style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: 'rgba(255,255,255,0.82)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            letterSpacing: '0.01em',
+          }}>
             {displayName}
           </span>
+          {/* Color-coded role badge for preset personas */}
+          {roleBadge && !isActive && (
+            <span style={{
+              fontSize: 7,
+              background: roleBadge.bg,
+              color: roleBadge.color,
+              padding: '1px 5px',
+              borderRadius: 6,
+              fontWeight: 700,
+              flexShrink: 0,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              border: `1px solid ${roleBadge.color}40`,
+            }}>
+              {roleBadge.label}
+            </span>
+          )}
           {isActive && (
             <span style={{
               fontSize: 8,
-              background: p.color,
-              color: '#fff',
-              padding: '1px 5px',
-              borderRadius: 7,
+              background: `linear-gradient(135deg, ${p.color}, ${p.color}cc)`,
+              color: 'rgba(255,255,255,0.95)',
+              padding: '1px 6px',
+              borderRadius: 8,
               fontWeight: 700,
               flexShrink: 0,
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+              boxShadow: `0 1px 4px ${p.color}55`,
             }}>
               {t('persona.active')}
             </span>
           )}
         </div>
         <div style={{
-          fontSize: 9,
-          color: 'var(--text-muted)',
+          fontSize: 11,
+          color: 'rgba(255,255,255,0.45)',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -92,25 +192,40 @@ export function PersonaSidebarCard({ persona, isActive, isDeleting, onDelete }: 
         </div>
       </div>
 
-      {/* Action buttons */}
+      {/* Action buttons — glass morphism style */}
       <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
         <button
           onClick={e => { e.stopPropagation(); onDelete(p.id) }}
           title={isDeleting ? t('persona.deleteConfirm') : t('persona.deletePersona')}
           style={{
-            width: 24,
-            height: 24,
-            borderRadius: 4,
-            border: 'none',
-            background: isDeleting ? 'var(--error)' : 'none',
-            color: isDeleting ? '#fff' : 'var(--text-muted)',
+            width: 26,
+            height: 26,
+            borderRadius: 6,
+            border: isDeleting ? '1px solid rgba(252,165,165,0.4)' : '1px solid rgba(255,255,255,0.06)',
+            background: isDeleting ? 'rgba(252,165,165,0.15)' : 'transparent',
+            color: isDeleting ? '#fca5a5' : 'rgba(255,255,255,0.38)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            transition: 'all 0.15s ease',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
           }}
-          onMouseEnter={e => { if (!isDeleting) e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
-          onMouseLeave={e => { if (!isDeleting) e.currentTarget.style.background = 'none' }}
+          onMouseEnter={e => {
+            if (!isDeleting) {
+              e.currentTarget.style.background = 'rgba(252,165,165,0.12)'
+              e.currentTarget.style.borderColor = 'rgba(252,165,165,0.3)'
+              e.currentTarget.style.color = '#fca5a5'
+            }
+          }}
+          onMouseLeave={e => {
+            if (!isDeleting) {
+              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
+              e.currentTarget.style.color = 'rgba(255,255,255,0.38)'
+            }
+          }}
         >
           {isDeleting ? <X size={10} /> : <Trash2 size={10} />}
         </button>
@@ -149,25 +264,39 @@ export function PersonaInlineForm({
     width: '100%',
     height: 26,
     padding: '0 8px',
-    background: 'var(--input-field-bg)',
-    border: '1px solid var(--input-field-border)',
+    background: 'rgba(255,255,255,0.06)',
+    border: '1px solid rgba(255,255,255,0.09)',
     borderRadius: 5,
     fontSize: 11,
-    color: 'var(--text-primary)',
+    color: 'rgba(255,255,255,0.82)',
     outline: 'none',
     boxSizing: 'border-box',
     marginBottom: 6,
+    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
   }
 
   return (
     <div style={{
-      padding: '8px 10px',
-      background: 'rgba(var(--accent-rgb, 59, 130, 246), 0.04)',
-      border: '1px solid var(--accent)',
-      borderRadius: 7,
+      padding: '10px 10px',
+      background: 'rgba(99,102,241,0.06)',
+      border: '1px solid rgba(99,102,241,0.25)',
+      borderRadius: 9,
       marginBottom: 6,
+      backdropFilter: 'blur(6px)',
+      WebkitBackdropFilter: 'blur(6px)',
+      boxShadow: '0 2px 12px rgba(0,0,0,0.25)',
+      animation: 'personaCardIn 180ms ease both',
     }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-bright)', marginBottom: 8 }}>
+      <div style={{
+        fontSize: 10,
+        fontWeight: 700,
+        color: 'rgba(255,255,255,0.38)',
+        marginBottom: 8,
+        letterSpacing: '0.07em',
+        textTransform: 'uppercase',
+        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        paddingBottom: 4,
+      }}>
         {editingId ? t('persona.editPersona') : t('persona.addPersona')}
       </div>
 
@@ -190,9 +319,9 @@ export function PersonaInlineForm({
             style={{
               width: 28,
               height: 28,
-              border: formEmoji === emoji ? '2px solid var(--accent)' : '1px solid var(--border)',
+              border: formEmoji === emoji ? '2px solid #818cf8' : '1px solid rgba(255,255,255,0.07)',
               borderRadius: 5,
-              background: formEmoji === emoji ? 'rgba(var(--accent-rgb, 59, 130, 246), 0.12)' : 'none',
+              background: formEmoji === emoji ? 'rgba(99,102,241,0.12)' : 'none',
               cursor: 'pointer',
               fontSize: 14,
               display: 'flex',
@@ -246,9 +375,9 @@ export function PersonaInlineForm({
               height: 18,
               borderRadius: '50%',
               background: c,
-              border: formColor === c ? '2px solid var(--text-bright)' : '2px solid transparent',
+              border: formColor === c ? '2px solid rgba(255,255,255,0.88)' : '2px solid transparent',
               cursor: 'pointer',
-              transition: 'transform 100ms',
+              transition: 'transform 0.15s ease',
             }}
             onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.2)')}
             onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
@@ -263,15 +392,22 @@ export function PersonaInlineForm({
           disabled={!canSubmit}
           style={{
             flex: 1,
-            background: canSubmit ? 'var(--accent)' : 'var(--input-field-bg)',
-            border: 'none',
-            borderRadius: 4,
-            padding: '4px 0',
-            color: canSubmit ? '#fff' : 'var(--text-muted)',
+            background: canSubmit
+              ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
+              : 'rgba(255,255,255,0.04)',
+            border: canSubmit ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 6,
+            padding: '5px 0',
+            color: canSubmit ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)',
             cursor: canSubmit ? 'pointer' : 'not-allowed',
             fontSize: 10,
-            fontWeight: 600,
+            fontWeight: 700,
+            letterSpacing: '0.04em',
+            transition: 'opacity 0.15s ease, box-shadow 0.15s ease',
+            boxShadow: canSubmit ? '0 2px 8px rgba(99,102,241,0.4)' : 'none',
           }}
+          onMouseEnter={e => { if (canSubmit) e.currentTarget.style.opacity = '0.88' }}
+          onMouseLeave={e => { if (canSubmit) e.currentTarget.style.opacity = '1' }}
         >
           {t('persona.save')}
         </button>
@@ -279,13 +415,27 @@ export function PersonaInlineForm({
           onClick={onCancel}
           style={{
             flex: 1,
-            background: 'none',
-            border: '1px solid var(--border)',
-            borderRadius: 4,
-            padding: '4px 0',
-            color: 'var(--text-muted)',
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.09)',
+            borderRadius: 6,
+            padding: '5px 0',
+            color: 'rgba(255,255,255,0.45)',
             cursor: 'pointer',
             fontSize: 10,
+            fontWeight: 600,
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.75)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
           }}
         >
           {t('persona.cancel')}

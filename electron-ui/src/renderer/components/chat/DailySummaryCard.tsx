@@ -122,9 +122,15 @@ export default function DailySummaryCard() {
   return (
     <div style={{
       width: '100%', maxWidth: 420, padding: '12px 16px',
-      background: 'linear-gradient(135deg, var(--card-bg), rgba(0,122,204,0.05))',
-      border: '1px solid var(--card-border)', borderRadius: 12,
+      background: 'rgba(15,15,25,0.88)',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
+      border: '1px solid rgba(255,255,255,0.08)',
+      borderLeft: '3px solid rgba(99,102,241,0.6)',
+      borderRadius: 12,
       position: 'relative',
+      transition: 'all 0.15s ease',
+      boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
     }}>
       {/* Dismiss button */}
       <button
@@ -132,56 +138,60 @@ export default function DailySummaryCard() {
         style={{
           position: 'absolute', top: 8, right: 8,
           background: 'none', border: 'none', cursor: 'pointer',
-          color: 'var(--text-muted)', padding: 2, borderRadius: 3,
+          color: 'rgba(255,255,255,0.45)', padding: '3px 4px', borderRadius: 6,
+          transition: 'all 0.15s ease',
         }}
-        onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
-        onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
       >
         <X size={14} />
       </button>
 
       {/* Title with greeting */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-        <Calendar size={13} color="var(--accent)" />
-        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+        <Calendar size={13} color="#818cf8" />
+        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)' }}>
           {greeting}
         </span>
       </div>
 
       {/* Stats row */}
       {hasContent && (
-        <div style={{ display: 'flex', gap: 16, marginBottom: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
           {stats.sessionsToday > 0 && (
             <>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent)' }}>
-                  {stats.sessionsToday}
-                </div>
-                <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                  <Layers size={9} style={{ marginRight: 3, verticalAlign: 'middle' }} />
-                  {t('dailySummary.sessions')}
-                </div>
+              <div style={{
+                background: 'rgba(255,255,255,0.05)', borderRadius: 6,
+                padding: '3px 8px', fontSize: 11, fontWeight: 600,
+                display: 'flex', alignItems: 'center', gap: 4,
+                color: 'rgba(255,255,255,0.82)',
+              }}>
+                <Layers size={9} color="#818cf8" />
+                <span style={{ color: '#818cf8', fontWeight: 700, fontSize: 20, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{stats.sessionsToday}</span>
+                <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10 }}>{t('dailySummary.sessions')}</span>
               </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent)' }}>
-                  {stats.messagesToday}
-                </div>
-                <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                  <MessageSquare size={9} style={{ marginRight: 3, verticalAlign: 'middle' }} />
-                  {t('dailySummary.messages')}
-                </div>
+              <div style={{
+                background: 'rgba(255,255,255,0.05)', borderRadius: 6,
+                padding: '3px 8px', fontSize: 11, fontWeight: 600,
+                display: 'flex', alignItems: 'center', gap: 4,
+                color: 'rgba(255,255,255,0.82)',
+              }}>
+                <MessageSquare size={9} color="#818cf8" />
+                <span style={{ color: '#818cf8', fontWeight: 700, fontSize: 20, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{stats.messagesToday}</span>
+                <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10 }}>{t('dailySummary.messages')}</span>
               </div>
             </>
           )}
           {stats.pendingTasks > 0 && (
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--warning, #e8a838)' }}>
-                {stats.pendingTasks}
-              </div>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                <CheckSquare size={9} style={{ marginRight: 3, verticalAlign: 'middle' }} />
-                {t('dailyBriefing.pendingTasks')}
-              </div>
+            <div style={{
+              background: 'rgba(255,255,255,0.05)', borderRadius: 6,
+              padding: '3px 8px', fontSize: 11, fontWeight: 600,
+              display: 'flex', alignItems: 'center', gap: 4,
+              color: 'rgba(255,255,255,0.82)',
+            }}>
+              <CheckSquare size={9} color="#818cf8" />
+              <span style={{ color: '#818cf8', fontWeight: 700, fontSize: 20, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{stats.pendingTasks}</span>
+              <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10 }}>{t('dailyBriefing.pendingTasks')}</span>
             </div>
           )}
         </div>
@@ -190,39 +200,40 @@ export default function DailySummaryCard() {
       {/* Next reminder */}
       {stats.nextReminder && (
         <div style={{
-          fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5,
+          fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.6,
           display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4,
         }}>
-          <Bell size={9} color="var(--accent)" />
+          <Bell size={9} color="#818cf8" />
           <span>
             {t('dailyBriefing.nextReminder')}: {stats.nextReminder.text}
-            {' '}({new Date(stats.nextReminder.fireAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
+            {' '}(<span style={{ opacity: 0.65, fontSize: 11, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{new Date(stats.nextReminder.fireAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>)
           </span>
         </div>
       )}
 
       {/* Topics */}
       {stats.topics.length > 0 && (
-        <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: 4 }}>
-          <Zap size={9} style={{ marginRight: 3, verticalAlign: 'middle' }} />
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.6, marginBottom: 4 }}>
+          <Zap size={9} style={{ marginRight: 3, verticalAlign: 'middle', color: '#818cf8' }} />
           {t('dailySummary.topics')}: {stats.topics.join(', ')}
         </div>
       )}
 
       {/* No content state */}
       {!hasContent && (
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.6, marginBottom: 6 }}>
           {t('dailyBriefing.allClear')}
         </div>
       )}
 
       {/* Productivity tip */}
       <div style={{
-        fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5,
-        padding: '6px 8px', background: 'rgba(0,122,204,0.04)',
+        fontSize: 13, color: 'rgba(255,255,255,0.60)', lineHeight: 1.6,
+        padding: '6px 8px', background: 'rgba(99,102,241,0.06)',
         borderRadius: 6, marginTop: 4,
+        borderTop: '1px solid rgba(255,255,255,0.06)',
       }}>
-        <Zap size={9} style={{ marginRight: 3, verticalAlign: 'middle', color: 'var(--accent)' }} />
+        <Zap size={9} style={{ marginRight: 3, verticalAlign: 'middle', color: '#818cf8' }} />
         {t(tipKey)}
       </div>
 
@@ -231,10 +242,15 @@ export default function DailySummaryCard() {
         <button
           onClick={navigateToTasks}
           style={{
-            marginTop: 8, background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--accent)', fontSize: 10, display: 'flex', alignItems: 'center', gap: 3,
-            padding: 0,
+            marginTop: 8, background: 'transparent',
+            border: '1px solid rgba(255,255,255,0.08)',
+            cursor: 'pointer',
+            color: '#818cf8', fontSize: 10, display: 'flex', alignItems: 'center', gap: 3,
+            padding: '3px 8px', borderRadius: 8,
+            transition: 'all 0.15s ease',
           }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
         >
           {t('dailyBriefing.viewTasks')}
           <ArrowRight size={10} />

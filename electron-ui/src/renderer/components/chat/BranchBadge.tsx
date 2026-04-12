@@ -51,19 +51,23 @@ export function BranchBadge({ forkEntry, onCompare, onNavigate }: BranchBadgePro
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: 3,
-          padding: '1px 6px',
-          background: 'rgba(139, 92, 246, 0.12)',
-          border: '1px solid rgba(139, 92, 246, 0.3)',
-          borderRadius: 10,
-          color: 'rgb(139, 92, 246)',
-          fontSize: 10,
+          gap: 5,
+          padding: '2px 8px',
+          background: 'rgba(99,102,241,0.15)',
+          border: '1px solid rgba(99,102,241,0.30)',
+          borderRadius: 6,
+          color: '#a5b4fc',
+          fontSize: 11,
+          fontWeight: 600,
           cursor: 'default',
           userSelect: 'none',
+          transition: 'all 0.15s ease',
         }}
         aria-label={t('fork.badgeLabel')}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(99,102,241,0.20)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.30)' }}
       >
-        <GitBranch size={10} />
+        <GitBranch size={12} style={{ color: '#818cf8' }} />
         <span>{t('fork.badge')}</span>
       </span>
 
@@ -77,19 +81,22 @@ export function BranchBadge({ forkEntry, onCompare, onNavigate }: BranchBadgePro
             left: 0,
             marginBottom: 6,
             width: 220,
-            background: 'var(--popup-bg)',
-            border: '1px solid var(--popup-border)',
+            background: 'rgba(15,15,25,0.95)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.09)',
             borderRadius: 8,
-            boxShadow: 'var(--popup-shadow)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
             padding: '8px 0',
             zIndex: 50,
+            animation: 'slideUp 0.15s ease',
           }}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
-          <div style={{ padding: '0 12px 6px', fontSize: 11, color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ padding: '0 12px 6px', fontSize: 11, color: 'rgba(255,255,255,0.45)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
             <GitBranch size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
-            {t('fork.forkedTo')}: <strong style={{ color: 'var(--text-primary)' }}>{forkedTitle}</strong>
+            {t('fork.forkedTo')}: <strong style={{ color: 'rgba(255,255,255,0.82)' }}>{forkedTitle}</strong>
           </div>
           {onNavigate && (
             <button
@@ -101,11 +108,12 @@ export function BranchBadge({ forkEntry, onCompare, onNavigate }: BranchBadgePro
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: 'var(--text-primary)',
+                color: 'rgba(255,255,255,0.82)',
                 fontSize: 11,
                 textAlign: 'left',
+                transition: 'background 0.15s ease',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
             >
               {t('fork.openFork')}
@@ -121,11 +129,12 @@ export function BranchBadge({ forkEntry, onCompare, onNavigate }: BranchBadgePro
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: 'var(--text-primary)',
+                color: 'rgba(255,255,255,0.82)',
                 fontSize: 11,
                 textAlign: 'left',
+                transition: 'background 0.15s ease',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
             >
               {t('fork.compareWithFork')}

@@ -126,7 +126,7 @@ export default function WorkflowDetailPage() {
     pendingActionRef.current = null
   }, [])
 
-  // Close on Escape
+  // Keyboard shortcuts: Escape, and E to toggle edit mode
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -138,21 +138,28 @@ export default function WorkflowDetailPage() {
         } else {
           navigateBack()
         }
+      } else if ((e.key === 'e' || e.key === 'E') && !e.ctrlKey && !e.metaKey && !isEditMode) {
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+        e.preventDefault()
+        setIsEditMode(true)
       }
     }
     window.addEventListener('keydown', handler, true)
     return () => window.removeEventListener('keydown', handler, true)
   }, [isEditMode, exitEditMode, navigateBack, showUnsavedDialog, handleDialogStay])
 
-  // Save with Ctrl+S (only in edit mode)
+  // Save with Ctrl+S / Cmd+S (only in edit mode with unsaved changes)
   useEffect(() => {
     if (!isEditMode) return
     const handler = (e: KeyboardEvent) => {
-      if (e.ctrlKey && !e.shiftKey && e.key === 's') { e.preventDefault(); handleSave() }
+      if ((e.key === 's' || e.key === 'S') && (e.ctrlKey || e.metaKey) && !e.shiftKey && hasUnsavedChanges) {
+        e.preventDefault()
+        handleSave()
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [isEditMode, editName, editDesc, editIcon, editSteps])
+  }, [isEditMode, hasUnsavedChanges, editName, editDesc, editIcon, editSteps])
 
   const markDirty = () => { setHasUnsavedChanges(true); setJustSaved(false) }
 
@@ -205,6 +212,29 @@ export default function WorkflowDetailPage() {
     window.electronAPI.prefsSet('workflows', updated)
   }, [workflow])
 
+  // Direction 4: insert a new blank step between two existing steps
+  const handleInsertBetween = useCallback((afterStepId: string, beforeStepId: string) => {
+    if (!workflow) return
+    const currentPrefs = usePrefsStore.getState()
+    const currentWorkflows = currentPrefs.prefs.workflows || []
+    const targetWorkflow = currentWorkflows.find(w => w.id === workflow.id)
+    if (!targetWorkflow) return
+    const afterIdx = targetWorkflow.steps.findIndex(s => s.id === afterStepId)
+    if (afterIdx < 0) return
+    const newStep: WorkflowStep = {
+      id: `step-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      title: '',
+      prompt: '',
+    }
+    const newSteps = [...targetWorkflow.steps]
+    newSteps.splice(afterIdx + 1, 0, newStep)
+    const updated = currentWorkflows.map(w =>
+      w.id === workflow.id ? { ...w, steps: newSteps, updatedAt: Date.now() } : w
+    )
+    currentPrefs.setPrefs({ workflows: updated })
+    window.electronAPI.prefsSet('workflows', updated)
+  }, [workflow])
+
   // Direction B: update a step's title or prompt directly (without entering edit mode)
   const handleStepUpdate = useCallback((stepId: string, changes: { title?: string; prompt?: string }) => {
     if (!workflow) return
@@ -225,6 +255,16 @@ export default function WorkflowDetailPage() {
     window.electronAPI.prefsSet('workflows', updated)
     addToast('success', t('workflow.updated'))
   }, [workflow, addToast, t])
+
+  // Inline workflow update (name rename from canvas header)
+  const handleWorkflowUpdate = useCallback((updated: Workflow) => {
+    const currentPrefs = usePrefsStore.getState()
+    const currentWorkflows = currentPrefs.prefs.workflows || []
+    const newWorkflows = currentWorkflows.map(w => w.id === updated.id ? updated : w)
+    currentPrefs.setPrefs({ workflows: newWorkflows })
+    window.electronAPI.prefsSet('workflows', newWorkflows)
+    addToast('success', t('workflow.updated'))
+  }, [addToast, t])
 
   const handleSave = () => {
     if (!workflow) return
@@ -266,12 +306,12 @@ export default function WorkflowDetailPage() {
 
   if (!workflow) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-chat)' }}>
-        <div style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--border)' }}>
-          <button onClick={() => useUiStore.getState().setMainView('chat')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'rgba(8,8,16,1)' }}>
+        <div style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(15,15,25,0.92)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+          <button onClick={() => useUiStore.getState().setMainView('chat')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center' }}>
             <ArrowLeft size={18} />
           </button>
-          <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>{t('workflow.notFound')}</span>
+          <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)' }}>{t('workflow.notFound')}</span>
         </div>
       </div>
     )
@@ -280,7 +320,7 @@ export default function WorkflowDetailPage() {
   const canSave = editName.trim() && editSteps.some(s => s.prompt.trim())
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-chat)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'rgba(8,8,16,1)' }}>
       <style>{`@keyframes wdp-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
 
       <WorkflowDetailHeader
@@ -292,6 +332,9 @@ export default function WorkflowDetailPage() {
         execution={execution}
         isEditMode={isEditMode}
         saveFlash={saveFlash}
+        steps={isEditMode ? editSteps : workflow.steps}
+        runCount={workflow.runCount ?? 0}
+        lastRunAt={workflow.runCount > 0 ? workflow.updatedAt : undefined}
         onGoBack={goBack}
         onOpenEditor={openEditor}
         onEnterEditMode={enterEditMode}
@@ -303,19 +346,31 @@ export default function WorkflowDetailPage() {
       />
 
       {/* Canvas fills the full content area */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        <div style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', padding: '8px', background: 'rgba(255,255,255,0.005)' }}>
+        <div style={{
+          flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column',
+          background: 'rgba(255,255,255,0.01)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: 10,
+          overflow: 'hidden',
+        }}>
           <Suspense fallback={
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', fontSize: 12 }}>
-              {t('workflow.loadingCanvas')}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column', gap: 12 }}>
+              <div style={{ background: 'rgba(99,102,241,0.08)', borderRadius: 16, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: 24, opacity: 0.5 }}>⬡</span>
+              </div>
+              <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>{t('workflow.loadingCanvas')}</span>
             </div>
           }>
             <WorkflowCanvas
               workflow={workflow}
               onRetryStep={handleRetryStep}
               onRerun={handleRerun}
+              onRun={runWorkflow}
               onStepUpdate={handleStepUpdate}
               onStepReorder={handleStepReorder}
+              onInsertBetween={handleInsertBetween}
+              onWorkflowUpdate={handleWorkflowUpdate}
             />
           </Suspense>
         </div>
@@ -326,28 +381,33 @@ export default function WorkflowDetailPage() {
         <div
           style={{
             position: 'fixed', inset: 0, zIndex: 10001,
-            background: 'rgba(0,0,0,0.5)',
+            background: 'rgba(0,0,0,0.65)',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
+            animation: 'fadeIn 0.15s ease',
           }}
           onClick={handleDialogStay}
         >
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              background: 'var(--popup-bg, #252526)',
-              border: '1px solid var(--popup-border, #3a3a3a)',
-              borderRadius: 12,
+              background: 'rgba(15,15,25,0.85)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 16,
               padding: '20px 24px',
               width: 380,
               maxWidth: '90vw',
-              boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
-              animation: 'popup-in 0.15s ease',
+              boxShadow: '0 16px 48px rgba(0,0,0,0.6),0 4px 16px rgba(0,0,0,0.4)',
+              animation: 'slideUp 0.20s ease',
             }}
           >
-            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.82)', marginBottom: 8, lineHeight: 1.3, letterSpacing: '-0.01em' }}>
               {t('workflow.unsavedDialogTitle')}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginBottom: 20, lineHeight: 1.6 }}>
               {t('workflow.unsavedDialogDesc')}
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -355,9 +415,12 @@ export default function WorkflowDetailPage() {
                 onClick={handleDialogStay}
                 style={{
                   padding: '7px 16px', fontSize: 12,
-                  background: 'var(--card-bg)', border: '1px solid var(--card-border)',
-                  borderRadius: 6, color: 'var(--text-primary)', cursor: 'pointer',
+                  background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)',
+                  borderRadius: 7, color: 'rgba(255,255,255,0.60)', cursor: 'pointer',
+                  transition: 'all 0.15s ease',
                 }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
               >
                 {t('workflow.unsavedStay')}
               </button>
@@ -365,8 +428,17 @@ export default function WorkflowDetailPage() {
                 onClick={handleDialogDiscard}
                 style={{
                   padding: '7px 16px', fontSize: 12,
-                  background: 'var(--card-bg)', border: '1px solid #ef4444',
-                  borderRadius: 6, color: '#ef4444', cursor: 'pointer',
+                  background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)',
+                  borderRadius: 7, color: '#fca5a5', cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'rgba(239,68,68,0.22)'
+                  e.currentTarget.style.borderColor = 'rgba(239,68,68,0.40)'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'rgba(239,68,68,0.12)'
+                  e.currentTarget.style.borderColor = 'rgba(239,68,68,0.25)'
                 }}
               >
                 {t('workflow.unsavedDiscard')}
@@ -375,8 +447,21 @@ export default function WorkflowDetailPage() {
                 onClick={handleDialogSaveAndLeave}
                 style={{
                   padding: '7px 16px', fontSize: 12,
-                  background: 'var(--accent)', border: 'none',
-                  borderRadius: 6, color: '#fff', cursor: 'pointer', fontWeight: 500,
+                  background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                  border: 'none',
+                  borderRadius: 7, color: 'rgba(255,255,255,0.95)', cursor: 'pointer', fontWeight: 600,
+                  boxShadow: '0 2px 8px rgba(99,102,241,0.30)',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.filter = 'brightness(0.95)'
+                  e.currentTarget.style.transform = 'translateY(-1px)'
+                  e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.filter = ''
+                  e.currentTarget.style.transform = ''
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(99,102,241,0.30)'
                 }}
               >
                 {t('workflow.unsavedSaveLeave')}

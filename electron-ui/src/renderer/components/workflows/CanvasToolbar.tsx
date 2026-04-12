@@ -7,49 +7,50 @@
 // Direction 13: search box
 // Iteration 530: B4 — toolbar UI refinement (search float, shadows, transitions, separators, icons)
 
-import React, { useRef } from 'react'
-import { Maximize2, ChevronsDownUp, ChevronsUpDown, Map, Download, ArrowDownUp, ArrowLeftRight, Upload, Terminal, Search, X, Square, Play } from 'lucide-react'
+import React, { useRef, useState, useEffect } from 'react'
+import { Maximize2, ChevronsDownUp, ChevronsUpDown, Map, Download, ArrowDownUp, ArrowLeftRight, Upload, Terminal, Search, X, Square, Play, HelpCircle } from 'lucide-react'
+import { useT } from '../../i18n'
 
 const toolbarBtnStyle: React.CSSProperties = {
-  background: 'transparent',
+  background: 'rgba(255,255,255,0.07)',
   border: 'none',
-  borderRadius: 4,
-  padding: 3,
+  borderRadius: 8,
+  padding: '6px 8px',
   cursor: 'pointer',
-  color: 'var(--text-muted)',
+  color: 'rgba(255,255,255,0.50)',
   display: 'flex',
   alignItems: 'center',
-  transition: 'background 0.12s, color 0.12s',
+  transition: 'all 0.15s ease',
 }
 
 const toolbarZoomBtnStyle: React.CSSProperties = {
-  background: 'transparent',
+  background: 'rgba(255,255,255,0.07)',
   border: 'none',
-  borderRadius: 4,
+  borderRadius: 8,
   padding: '1px 5px',
   cursor: 'pointer',
-  color: 'var(--text-muted)',
+  color: 'rgba(255,255,255,0.50)',
   fontSize: 14,
   lineHeight: 1,
   fontWeight: 600,
-  transition: 'background 0.12s, color 0.12s',
+  transition: 'all 0.15s ease',
 }
 
 const separatorStyle: React.CSSProperties = {
   width: 1,
   height: 16,
-  background: 'var(--border)',
-  margin: '0 3px',
-  opacity: 0.5,
+  background: 'rgba(255,255,255,0.08)',
+  margin: '0 4px',
+  flexShrink: 0,
 }
 
 function hoverIn(e: React.MouseEvent<HTMLButtonElement>) {
-  e.currentTarget.style.background = 'var(--bg-hover)'
-  e.currentTarget.style.color = 'var(--text)'
+  e.currentTarget.style.background = 'rgba(255,255,255,0.10)'
+  e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
 }
 function hoverOut(e: React.MouseEvent<HTMLButtonElement>) {
-  e.currentTarget.style.background = 'transparent'
-  e.currentTarget.style.color = 'var(--text-muted)'
+  e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
+  e.currentTarget.style.color = 'rgba(255,255,255,0.50)'
 }
 
 interface CanvasToolbarProps {
@@ -69,6 +70,8 @@ interface CanvasToolbarProps {
   hasError?: boolean
   onAbort?: () => void
   onRerun?: () => void
+  // R key: run workflow for the first time (shown when not yet started)
+  onRun?: () => void
   // Direction E: layout direction
   layoutDirection?: 'vertical' | 'horizontal'
   onToggleLayout?: () => void
@@ -81,6 +84,11 @@ interface CanvasToolbarProps {
   // Direction 13: search
   searchQuery?: string
   onSearchChange?: (q: string) => void
+  // Clear step outputs
+  onClearOutputs?: () => void
+  completedCount?: number
+  // Step count indicator
+  stepCount?: number
 }
 
 export default function CanvasToolbar({
@@ -92,6 +100,7 @@ export default function CanvasToolbar({
   hasError = false,
   onAbort,
   onRerun,
+  onRun,
   layoutDirection = 'vertical',
   onToggleLayout,
   onExport,
@@ -99,8 +108,22 @@ export default function CanvasToolbar({
   onExportScript,
   searchQuery,
   onSearchChange,
+  onClearOutputs,
+  completedCount = 0,
+  stepCount,
 }: CanvasToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [showShortcuts, setShowShortcuts] = useState(false)
+  const t = useT()
+
+  useEffect(() => {
+    if (!showShortcuts) return
+    function handleOutsideClick(e: MouseEvent) {
+      setShowShortcuts(false)
+    }
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [showShortcuts])
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -117,6 +140,7 @@ export default function CanvasToolbar({
 
   return (
     <>
+      <style>{`@keyframes slideUp { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
       {/* B4.1 — Independent floating search box — top left corner */}
       {onSearchChange && (
         <div style={{
@@ -126,41 +150,42 @@ export default function CanvasToolbar({
           zIndex: 10,
           display: 'flex',
           alignItems: 'center',
-          background: 'rgba(30,30,30,0.85)',
-          backdropFilter: 'blur(8px)',
-          borderRadius: 6,
-          padding: '3px 6px',
-          border: '1px solid var(--border)',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+          background: 'rgba(15,15,25,0.92)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderRadius: 12,
+          padding: '4px 8px',
+          border: '1px solid rgba(255,255,255,0.08)',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.40), 0 1px 4px rgba(0,0,0,0.30)',
           gap: 4,
           transition: 'top 0.2s ease',
         }}>
-          <Search size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+          <Search size={12} style={{ color: 'rgba(255,255,255,0.45)', flexShrink: 0 }} />
           <input
             type="text"
             value={searchQuery ?? ''}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="搜索步骤..."
+            placeholder={t('workflow.searchSteps')}
             style={{
               width: 130,
               fontSize: 11,
               padding: '2px 4px',
               background: 'transparent',
               border: 'none',
-              color: 'var(--text-primary)',
+              color: 'rgba(255,255,255,0.88)',
               outline: 'none',
             }}
           />
           {searchQuery && (
             <button
               onClick={() => onSearchChange('')}
-              aria-label="Clear search"
+              aria-label={t('canvas.clearSearchLabel')}
               style={{
                 background: 'transparent',
                 border: 'none',
                 padding: 1,
                 cursor: 'pointer',
-                color: 'var(--text-muted)',
+                color: 'rgba(255,255,255,0.55)',
                 display: 'flex',
                 alignItems: 'center',
               }}
@@ -180,44 +205,98 @@ export default function CanvasToolbar({
         display: 'flex',
         gap: 4,
         alignItems: 'center',
-        background: 'rgba(var(--bg-card-rgb, 30, 30, 30), 0.85)',
-        backdropFilter: 'blur(8px)',
-        borderRadius: 8,
+        background: 'rgba(15,15,25,0.92)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        borderRadius: 12,
         padding: '4px 8px',
-        border: '1px solid var(--border)',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.35)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.40), 0 1px 4px rgba(0,0,0,0.30)',
         transition: 'top 0.2s ease',
+        // needed so the shortcuts popup anchors to this element
+        isolation: 'isolate',
       }}>
         {/* Direction 9: Abort button — shown when running */}
         {isRunning && onAbort && (
           <>
             <button
               onClick={(e) => { e.stopPropagation(); onAbort() }}
-              aria-label="中止执行"
-              title="中止执行 (Abort)"
+              aria-label={t('canvas.abortLabel')}
+              title={t('canvas.abortTitle')}
               style={{
                 background: 'rgba(239,68,68,0.15)',
                 border: '1px solid rgba(239,68,68,0.4)',
                 borderRadius: 6,
                 padding: '3px 9px',
                 cursor: 'pointer',
-                color: '#ef4444',
+                color: '#f87171',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 4,
                 fontSize: 12,
                 fontWeight: 600,
-                transition: 'background 0.12s',
+                transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'rgba(239,68,68,0.28)'
+                e.currentTarget.style.borderColor = 'rgba(239,68,68,0.6)'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'rgba(239,68,68,0.15)'
+                e.currentTarget.style.borderColor = 'rgba(239,68,68,0.4)'
               }}
             >
               <Square size={10} />
-              <span>中止</span>
+              <span>{t('workflow.abort')}</span>
+            </button>
+            {/* Separator */}
+            <div style={separatorStyle} />
+          </>
+        )}
+
+        {/* Initial Run button — shown when workflow hasn't run yet */}
+        {!isRunning && !allDone && !hasError && onRun && (
+          <>
+            <button
+              onClick={(e) => { e.stopPropagation(); onRun() }}
+              aria-label={t('canvas.runLabel')}
+              title={t('canvas.runTitle')}
+              style={{
+                background: 'rgba(99,102,241,0.15)',
+                border: '1px solid rgba(99,102,241,0.4)',
+                borderRadius: 6,
+                padding: '3px 9px',
+                cursor: 'pointer',
+                color: '#818cf8',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                fontSize: 12,
+                fontWeight: 600,
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(99,102,241,0.28)'
+                e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(99,102,241,0.15)'
+                e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'
+              }}
+            >
+              <Play size={10} />
+              <span>{t('workflow.run')}</span>
+              <kbd style={{
+                fontSize: 9,
+                background: 'rgba(255,255,255,0.15)',
+                borderRadius: 3,
+                padding: '0px 4px',
+                lineHeight: '14px',
+                fontFamily: 'monospace',
+                marginLeft: 4,
+              }}>
+                R
+              </kbd>
             </button>
             {/* Separator */}
             <div style={separatorStyle} />
@@ -230,8 +309,8 @@ export default function CanvasToolbar({
           <>
             <button
               onClick={(e) => { e.stopPropagation(); onRerun() }}
-              aria-label="再次运行"
-              title="再次运行 (Rerun)"
+              aria-label={t('canvas.rerunLabel')}
+              title={t('canvas.rerunTitle')}
               style={{
                 background: 'rgba(34,197,94,0.15)',
                 border: '1px solid rgba(34,197,94,0.4)',
@@ -244,17 +323,30 @@ export default function CanvasToolbar({
                 gap: 4,
                 fontSize: 12,
                 fontWeight: 600,
-                transition: 'background 0.12s',
+                transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'rgba(34,197,94,0.28)'
+                e.currentTarget.style.borderColor = 'rgba(34,197,94,0.6)'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'rgba(34,197,94,0.15)'
+                e.currentTarget.style.borderColor = 'rgba(34,197,94,0.4)'
               }}
             >
               <Play size={10} />
-              <span>{hasError && !allDone ? '重新开始' : '再次运行'}</span>
+              <span>{hasError && !allDone ? t('workflow.restart') : t('workflow.rerun')}</span>
+              <kbd style={{
+                fontSize: 9,
+                background: 'rgba(255,255,255,0.15)',
+                borderRadius: 3,
+                padding: '0px 4px',
+                lineHeight: '14px',
+                fontFamily: 'monospace',
+                marginLeft: 4,
+              }}>
+                R
+              </kbd>
             </button>
             {/* Separator */}
             <div style={separatorStyle} />
@@ -273,8 +365,8 @@ export default function CanvasToolbar({
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); onZoomOut() }}
-          aria-label="Zoom out"
-          title="Zoom out (−)"
+          aria-label={t('canvas.zoomOutLabel')}
+          title={t('canvas.zoomOutTitle')}
           style={toolbarZoomBtnStyle}
           onMouseEnter={hoverIn}
           onMouseLeave={hoverOut}
@@ -284,35 +376,38 @@ export default function CanvasToolbar({
         {/* B4.6 — zoom % is clickable to reset zoom */}
         <button
           onClick={(e) => { e.stopPropagation(); onFitToView() }}
-          title="点击重置缩放 (0)"
+          title={t('canvas.resetZoomTitle')}
           style={{
-            fontSize: 10,
-            color: 'var(--text-muted)',
+            fontSize: 11,
+            color: 'rgba(255,255,255,0.45)',
             minWidth: 36,
             textAlign: 'center',
             userSelect: 'none',
             cursor: 'pointer',
-            background: 'transparent',
+            background: 'rgba(255,255,255,0.06)',
             border: 'none',
-            padding: '1px 2px',
-            borderRadius: 4,
-            transition: 'background 0.12s, color 0.12s',
+            padding: '2px 6px',
+            borderRadius: 6,
+            fontWeight: 600,
+            fontVariantNumeric: 'tabular-nums',
+            fontFeatureSettings: '"tnum"',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'var(--bg-hover)'
-            e.currentTarget.style.color = 'var(--text)'
+            e.currentTarget.style.background = 'rgba(255,255,255,0.10)'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent'
-            e.currentTarget.style.color = 'var(--text-muted)'
+            e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
           }}
         >
           {zoomPercent}%
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); onZoomIn() }}
-          aria-label="Zoom in"
-          title="Zoom in (+)"
+          aria-label={t('canvas.zoomInLabel')}
+          title={t('canvas.zoomInTitle')}
           style={toolbarZoomBtnStyle}
           onMouseEnter={hoverIn}
           onMouseLeave={hoverOut}
@@ -324,8 +419,8 @@ export default function CanvasToolbar({
         {/* Collapse all */}
         <button
           onClick={(e) => { e.stopPropagation(); onCollapseAll() }}
-          aria-label="Collapse all nodes"
-          title="Collapse all (C)"
+          aria-label={t('canvas.collapseAllLabel')}
+          title={t('canvas.collapseAllTitle')}
           style={toolbarBtnStyle}
           onMouseEnter={hoverIn}
           onMouseLeave={hoverOut}
@@ -335,8 +430,8 @@ export default function CanvasToolbar({
         {/* Expand all */}
         <button
           onClick={(e) => { e.stopPropagation(); onExpandAll() }}
-          aria-label="Expand all nodes"
-          title="Expand all (E)"
+          aria-label={t('canvas.expandAllLabel')}
+          title={t('canvas.expandAllTitle')}
           style={toolbarBtnStyle}
           onMouseEnter={hoverIn}
           onMouseLeave={hoverOut}
@@ -348,27 +443,30 @@ export default function CanvasToolbar({
         {/* Minimap toggle */}
         <button
           onClick={(e) => { e.stopPropagation(); onToggleMinimap() }}
-          aria-label="Toggle minimap"
-          title="Toggle minimap (M)"
-          style={{ ...toolbarBtnStyle, background: showMinimap ? 'var(--bg-hover)' : 'transparent', color: showMinimap ? 'var(--text)' : 'var(--text-muted)' }}
+          aria-label={t('canvas.minimapLabel')}
+          title={t('canvas.minimapTitle')}
+          style={{ ...toolbarBtnStyle, background: showMinimap ? 'rgba(99,102,241,0.15)' : 'transparent', color: showMinimap ? '#818cf8' : 'rgba(255,255,255,0.50)', boxShadow: showMinimap ? 'inset 0 0 0 1px rgba(99,102,241,0.4)' : 'none' }}
           onMouseEnter={hoverIn}
-          onMouseLeave={e => { e.currentTarget.style.background = showMinimap ? 'var(--bg-hover)' : 'transparent'; e.currentTarget.style.color = showMinimap ? 'var(--text)' : 'var(--text-muted)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = showMinimap ? 'rgba(99,102,241,0.15)' : 'transparent'; e.currentTarget.style.color = showMinimap ? '#818cf8' : 'rgba(255,255,255,0.50)'; e.currentTarget.style.boxShadow = showMinimap ? 'inset 0 0 0 1px rgba(99,102,241,0.4)' : 'none' }}
         >
           <Map size={13} />
         </button>
         {/* Direction E: Layout toggle */}
-        {onToggleLayout && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onToggleLayout() }}
-            aria-label="Toggle layout direction"
-            title={`Toggle layout (L) — currently ${layoutDirection}`}
-            style={toolbarBtnStyle}
-            onMouseEnter={hoverIn}
-            onMouseLeave={hoverOut}
-          >
-            {layoutDirection === 'vertical' ? <ArrowDownUp size={13} /> : <ArrowLeftRight size={13} />}
-          </button>
-        )}
+        {onToggleLayout && (() => {
+          const layoutActive = layoutDirection === 'horizontal'
+          return (
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleLayout() }}
+              aria-label={t('canvas.layoutToggleLabel')}
+              title={t('canvas.layoutToggleTitle')}
+              style={{ ...toolbarBtnStyle, background: layoutActive ? 'rgba(99,102,241,0.15)' : 'transparent', color: layoutActive ? '#818cf8' : 'rgba(255,255,255,0.50)', boxShadow: layoutActive ? 'inset 0 0 0 1px rgba(99,102,241,0.4)' : 'none' }}
+              onMouseEnter={hoverIn}
+              onMouseLeave={e => { e.currentTarget.style.background = layoutActive ? 'rgba(99,102,241,0.15)' : 'transparent'; e.currentTarget.style.color = layoutActive ? '#818cf8' : 'rgba(255,255,255,0.50)'; e.currentTarget.style.boxShadow = layoutActive ? 'inset 0 0 0 1px rgba(99,102,241,0.4)' : 'none' }}
+            >
+              {layoutDirection === 'vertical' ? <ArrowDownUp size={13} /> : <ArrowLeftRight size={13} />}
+            </button>
+          )
+        })()}
         {/* Direction G: Export JSON + Direction 12: Export Shell Script */}
         {(onExport || onExportScript) && (
           <>
@@ -376,8 +474,8 @@ export default function CanvasToolbar({
             {onExport && (
               <button
                 onClick={(e) => { e.stopPropagation(); onExport() }}
-                aria-label="Export workflow"
-                title="Export JSON"
+                aria-label={t('canvas.exportJsonLabel')}
+                title={t('canvas.exportJsonTitle')}
                 style={toolbarBtnStyle}
                 onMouseEnter={hoverIn}
                 onMouseLeave={hoverOut}
@@ -388,8 +486,8 @@ export default function CanvasToolbar({
             {onExportScript && (
               <button
                 onClick={(e) => { e.stopPropagation(); onExportScript() }}
-                aria-label="Export as shell script"
-                title="Export as Shell Script"
+                aria-label={t('canvas.exportScriptLabel')}
+                title={t('canvas.exportScriptTitle')}
                 style={toolbarBtnStyle}
                 onMouseEnter={hoverIn}
                 onMouseLeave={hoverOut}
@@ -411,8 +509,8 @@ export default function CanvasToolbar({
             />
             <button
               onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click() }}
-              aria-label="Import workflow from JSON"
-              title="Import JSON"
+              aria-label={t('canvas.importJsonLabel')}
+              title={t('canvas.importJsonTitle')}
               style={toolbarBtnStyle}
               onMouseEnter={hoverIn}
               onMouseLeave={hoverOut}
@@ -421,6 +519,111 @@ export default function CanvasToolbar({
             </button>
           </>
         )}
+        {/* Clear outputs button — shown when not running and there are completed steps */}
+        {!isRunning && completedCount > 0 && onClearOutputs && (
+          <button
+            onClick={onClearOutputs}
+            title="Clear all step outputs"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '4px 8px', borderRadius: 6,
+              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'transparent',
+              color: 'rgba(255,255,255,0.55)', fontSize: 11,
+              cursor: 'pointer', flexShrink: 0,
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'
+              e.currentTarget.style.color = '#f87171'
+              e.currentTarget.style.background = 'rgba(239,68,68,0.06)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+              e.currentTarget.style.color = 'rgba(255,255,255,0.55)'
+              e.currentTarget.style.background = 'transparent'
+            }}
+          >
+            ✕ Clear
+          </button>
+        )}
+        {/* Step count indicator */}
+        {stepCount !== undefined && stepCount > 0 && (
+          <span style={{
+            fontSize: 11,
+            color: 'rgba(255,255,255,0.45)',
+            background: 'rgba(255,255,255,0.06)',
+            borderRadius: 5,
+            padding: '3px 8px',
+            border: '1px solid rgba(255,255,255,0.07)',
+            flexShrink: 0,
+            fontVariantNumeric: 'tabular-nums',
+          }}>
+            {stepCount} {stepCount === 1 ? 'step' : 'steps'}
+          </span>
+        )}
+        {/* Keyboard shortcuts help button */}
+        <div style={{ position: 'relative' }} onMouseDown={e => e.stopPropagation()}>
+          <button
+            onClick={() => setShowShortcuts(prev => !prev)}
+            title="Keyboard shortcuts"
+            style={{
+              background: showShortcuts ? 'rgba(99,102,241,0.15)' : 'transparent',
+              border: showShortcuts ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 6,
+              color: showShortcuts ? '#818cf8' : 'rgba(255,255,255,0.45)',
+              cursor: 'pointer',
+              padding: '4px 7px',
+              display: 'flex',
+              alignItems: 'center',
+              fontSize: 11,
+              gap: 4,
+              transition: 'all 0.15s',
+            }}
+          >
+            <HelpCircle size={12} />
+          </button>
+          {showShortcuts && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                marginTop: 6,
+                zIndex: 200,
+                background: 'rgba(15,15,25,0.96)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 12,
+                padding: '12px 16px',
+                minWidth: 220,
+                boxShadow: '0 8px 32px rgba(0,0,0,0.50), 0 2px 8px rgba(0,0,0,0.30)',
+                animation: 'slideUp 0.15s ease',
+              }}
+              onMouseDown={e => e.stopPropagation()}
+            >
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.88)', marginBottom: 10, letterSpacing: '0.04em' }}>
+                KEYBOARD SHORTCUTS
+              </div>
+              {[
+                { key: 'R', desc: 'Run workflow' },
+                { key: 'Esc', desc: 'Stop / deselect' },
+                { key: 'Del', desc: 'Delete selected node' },
+                { key: 'F', desc: 'Fit to view' },
+                { key: 'Ctrl+F', desc: 'Find step' },
+                { key: 'Space', desc: 'Pan canvas' },
+                { key: '+/-', desc: 'Zoom in/out' },
+                { key: 'Ctrl+Z', desc: 'Undo (coming soon)' },
+              ].map(({ key, desc }) => (
+                <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)' }}>{desc}</span>
+                  <kbd style={{ fontSize: 10, fontFamily: 'monospace', background: 'rgba(255,255,255,0.1)', borderRadius: 4, padding: '1px 5px', color: 'rgba(255,255,255,0.70)', border: '1px solid rgba(255,255,255,0.15)' }}>{key}</kbd>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </>
   )

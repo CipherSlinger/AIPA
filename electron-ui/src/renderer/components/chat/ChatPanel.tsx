@@ -17,6 +17,7 @@ import ChatInput from './ChatInput'
 import MessageList from './MessageList'
 import SearchBar from './SearchBar'
 import TaskQueuePanel from './TaskQueuePanel'
+import TaskDashboard from './TaskDashboard'
 import ThinkingIndicator from './ThinkingIndicator'
 import TypingStatus from './TypingStatus'
 import WelcomeScreen from './WelcomeScreen'
@@ -140,6 +141,13 @@ export default function ChatPanel() {
     setContextWarningDismissed(false)
   }, [currentSessionId])
 
+  // Handle slash command events dispatched from useInputPopups
+  useEffect(() => {
+    const handleOpenExport = () => setShowExport(true)
+    window.addEventListener('aipa:openExport', handleOpenExport)
+    return () => window.removeEventListener('aipa:openExport', handleOpenExport)
+  }, [])
+
   // Regeneration
   const canRegenerate = !isStreaming && messages.length >= 2 && messages[messages.length - 1]?.role === 'assistant'
 
@@ -233,7 +241,7 @@ export default function ChatPanel() {
   return (
     <div
       className="flex flex-col h-full"
-      style={{ background: 'var(--bg-chat)', position: 'relative' }}
+      style={{ background: 'rgba(10,10,18,1)', position: 'relative', borderRight: '1px solid rgba(255,255,255,0.06)' }}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -246,8 +254,8 @@ export default function ChatPanel() {
             position: 'absolute',
             inset: 8,
             zIndex: 50,
-            background: 'rgba(0, 122, 204, 0.15)',
-            border: '3px dashed var(--accent)',
+            background: 'rgba(99,102,241,0.12)',
+            border: '3px dashed rgba(99,102,241,0.55)',
             borderRadius: 8,
             display: 'flex',
             flexDirection: 'column',
@@ -258,11 +266,11 @@ export default function ChatPanel() {
             pointerEvents: 'none',
           }}
         >
-          <Upload size={48} style={{ color: 'var(--accent)' }} />
-          <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-bright)' }}>
+          <Upload size={48} style={{ color: '#818cf8' }} />
+          <div style={{ fontSize: 18, fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>
             {t('chat.dragDropHint')}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
             {t('chat.dragDropSubHint')}
           </div>
         </div>
@@ -322,16 +330,17 @@ export default function ChatPanel() {
           alignItems: 'center',
           gap: 6,
           padding: '4px 12px',
-          background: 'rgba(251, 191, 36, 0.08)',
-          borderBottom: '1px solid rgba(251, 191, 36, 0.15)',
+          background: 'rgba(99,102,241,0.08)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          borderBottom: '1px solid rgba(99,102,241,0.15)',
           fontSize: 12,
           flexShrink: 0,
           minHeight: 28,
         }}>
-          <StickyNote size={12} style={{ color: 'var(--warning)', flexShrink: 0 }} />
+          <StickyNote size={12} style={{ color: '#818cf8', flexShrink: 0 }} />
           <input
             autoFocus
-            value={noteText}
             onChange={e => setNoteText(e.target.value.slice(0, 200))}
             onKeyDown={e => {
               if (e.key === 'Enter') {
@@ -342,18 +351,21 @@ export default function ChatPanel() {
             }}
             placeholder={t('session.addNote')}
             maxLength={200}
+            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
             style={{
-              flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border)',
-              borderRadius: 3, padding: '2px 6px', fontSize: 12, color: 'var(--text-primary)', outline: 'none',
+              flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 6, padding: '2px 6px', fontSize: 12, color: 'rgba(255,255,255,0.82)', outline: 'none',
+              transition: 'border-color 0.15s ease',
             }}
           />
-          <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>{noteText.length}/200</span>
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', flexShrink: 0, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{noteText.length}/200</span>
           <button onClick={() => { if (noteText.trim()) setSessionNote(currentSessionId, noteText.trim()); setEditingNote(false) }}
-            style={{ background: 'none', border: 'none', color: 'var(--success)', cursor: 'pointer', display: 'flex', padding: 2 }}>
+            style={{ background: 'none', border: 'none', color: '#4ade80', cursor: 'pointer', display: 'flex', padding: 2 }}>
             <Check size={12} />
           </button>
           <button onClick={() => setEditingNote(false)}
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: 2 }}>
+            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.45)', cursor: 'pointer', display: 'flex', padding: 2 }}>
             <X size={12} />
           </button>
         </div>
@@ -364,15 +376,17 @@ export default function ChatPanel() {
           alignItems: 'center',
           gap: 6,
           padding: '4px 12px',
-          background: 'rgba(251, 191, 36, 0.08)',
-          borderBottom: '1px solid rgba(251, 191, 36, 0.15)',
+          background: 'rgba(99,102,241,0.08)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          borderBottom: '1px solid rgba(99,102,241,0.15)',
           fontSize: 12,
           flexShrink: 0,
           minHeight: 28,
         }}>
-          <StickyNote size={12} style={{ color: 'var(--warning)', flexShrink: 0 }} />
+          <StickyNote size={12} style={{ color: '#818cf8', flexShrink: 0 }} />
           <span
-            style={{ flex: 1, color: 'var(--text-secondary)', fontStyle: 'italic', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            style={{ flex: 1, color: 'rgba(255,255,255,0.60)', fontStyle: 'italic', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
             onClick={() => { setNoteText(currentNote || ''); setEditingNote(true) }}
             title={t('session.editNote')}
           >
@@ -380,7 +394,7 @@ export default function ChatPanel() {
           </span>
           <button
             onClick={() => { removeSessionNote(currentSessionId); setEditingNote(false) }}
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: 2, opacity: 0.5 }}
+            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.45)', cursor: 'pointer', display: 'flex', padding: 2, opacity: 0.5 }}
             title={t('session.removeNote')}
           >
             <X size={10} />
@@ -421,13 +435,14 @@ export default function ChatPanel() {
             style={{
               background: contextPct! >= 90 ? 'rgba(248, 113, 113, 0.2)' : 'rgba(251, 191, 36, 0.2)',
               border: `1px solid ${contextPct! >= 90 ? 'rgba(248, 113, 113, 0.4)' : 'rgba(251, 191, 36, 0.4)'}`,
-              borderRadius: 4,
+              borderRadius: 6,
               padding: '3px 10px',
               cursor: 'pointer',
               color: 'inherit',
               fontSize: 11,
               fontWeight: 500,
               flexShrink: 0,
+              transition: 'all 0.15s ease',
             }}
           >
             {t('chat.newConversation')}
@@ -533,26 +548,29 @@ export default function ChatPanel() {
               gap: 4,
               padding: '2px 10px',
               background: 'transparent',
-              border: '1px solid var(--border)',
+              border: '1px solid rgba(255,255,255,0.07)',
               borderRadius: 12,
               cursor: 'pointer',
-              color: 'var(--text-muted)',
+              color: 'rgba(255,255,255,0.45)',
               fontSize: 11,
-              transition: 'color 150ms ease, border-color 150ms ease',
+              transition: 'color 0.15s ease, border-color 0.15s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'var(--accent)'
-              e.currentTarget.style.borderColor = 'var(--accent)'
+              e.currentTarget.style.color = '#818cf8'
+              e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'var(--text-muted)'
-              e.currentTarget.style.borderColor = 'var(--border)'
+              e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
             }}
           >
             {chatZoom}%
           </button>
         </div>
       )}
+
+      {/* Task Dashboard — visual task flow (Iteration 550) */}
+      <TaskDashboard />
 
       {/* Task Queue Panel */}
       <TaskQueuePanel />

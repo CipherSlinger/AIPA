@@ -7,7 +7,7 @@ import { ChatMessage, ElicitationMessage, HookCallbackMessage, PermissionMessage
 export interface TaskQueueItem {
   id: string
   content: string
-  status: 'pending' | 'running' | 'done'
+  status: 'pending' | 'running' | 'done' | 'failed'
   /** Optional workflow metadata for template variable substitution */
   workflowId?: string
   stepIndex?: number  // 0-based index of this step within the workflow
@@ -164,6 +164,7 @@ interface ChatState {
   addToQueue: (content: string, meta?: { workflowId?: string; stepIndex?: number }) => void
   removeFromQueue: (id: string) => void
   clearQueue: () => void
+  reorderQueue: (fromIndex: number, toIndex: number) => void
   toggleQueuePause: () => void
   shiftQueue: () => TaskQueueItem | null
   markQueueItemDone: (id: string) => void
@@ -496,6 +497,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
   clearQueue: () => set((s) => ({
     taskQueue: s.taskQueue.filter(item => item.status !== 'pending')
   })),
+
+  reorderQueue: (fromIndex, toIndex) => set((s) => {
+    const queue = [...s.taskQueue]
+    // Only allow reordering pending items (not running or done)
+    const item = queue[fromIndex]
+    if (!item || item.status !== 'pending') return s
+    queue.splice(fromIndex, 1)
+    queue.splice(toIndex, 0, item)
+    return { taskQueue: queue }
+  }),
 
   toggleQueuePause: () => set((s) => ({ queuePaused: !s.queuePaused })),
 

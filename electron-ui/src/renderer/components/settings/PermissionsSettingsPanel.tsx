@@ -7,6 +7,15 @@ interface CLIPermissions {
   deny?: string[]
 }
 
+const sectionLabelStyle: React.CSSProperties = {
+  fontSize: 10,
+  fontWeight: 700,
+  letterSpacing: '0.07em',
+  textTransform: 'uppercase',
+  color: 'rgba(255,255,255,0.38)',
+  marginBottom: 12,
+}
+
 export default function PermissionsSettingsPanel() {
   const t = useT()
   const [permissions, setPermissions] = useState<CLIPermissions>({ allow: [], deny: [] })
@@ -22,7 +31,6 @@ export default function PermissionsSettingsPanel() {
     setTimeout(() => setToast(null), 3000)
   }, [])
 
-  // Load permissions from CLI settings
   const loadPermissions = useCallback(async () => {
     try {
       const settings = await window.electronAPI.configReadCLISettings()
@@ -40,7 +48,6 @@ export default function PermissionsSettingsPanel() {
 
   useEffect(() => { loadPermissions() }, [loadPermissions])
 
-  // Persist permissions to CLI settings
   const savePermissions = useCallback(async (updated: CLIPermissions) => {
     const result = await window.electronAPI.configWriteCLISettings({
       permissions: updated,
@@ -86,7 +93,6 @@ export default function PermissionsSettingsPanel() {
     showToast(t('permissions.ruleRemoved', { rule: removed }))
   }, [permissions, savePermissions, showToast, t])
 
-  // Check if a rule appears in both allow and deny
   const hasConflict = useCallback((rule: string, type: 'allow' | 'deny') => {
     const otherList = type === 'allow' ? (permissions.deny || []) : (permissions.allow || [])
     return otherList.includes(rule)
@@ -94,8 +100,19 @@ export default function PermissionsSettingsPanel() {
 
   if (loading) {
     return (
-      <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
-        {t('common.loading')}
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        gap: 8, padding: '36px 0',
+      }}>
+        <div style={{
+          width: 24, height: 24, borderRadius: '50%',
+          border: '2px solid rgba(99,102,241,0.25)',
+          borderTopColor: 'rgba(99,102,241,0.8)',
+          animation: 'spin 0.8s linear infinite',
+        }} />
+        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)' }}>
+          {t('common.loading')}
+        </span>
       </div>
     )
   }
@@ -105,14 +122,21 @@ export default function PermissionsSettingsPanel() {
   const isEmpty = allowList.length === 0 && denyList.length === 0
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Toast */}
       {toast && (
         <div style={{
-          position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
-          background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 8,
-          padding: '8px 16px', fontSize: 12, color: 'var(--text-primary)', zIndex: 9999,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          position: 'fixed', bottom: 24, left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(12,12,22,0.96)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255,255,255,0.10)',
+          borderRadius: 8,
+          padding: '9px 18px',
+          fontSize: 12, color: 'rgba(255,255,255,0.85)', zIndex: 9999,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+          pointerEvents: 'none',
         }}>
           {toast}
         </div>
@@ -121,11 +145,16 @@ export default function PermissionsSettingsPanel() {
       {/* Empty state */}
       {isEmpty && !addingAllow && !addingDeny && (
         <div style={{
-          textAlign: 'center', padding: '24px 16px',
-          background: 'var(--action-btn-bg)', borderRadius: 8,
+          textAlign: 'center', padding: '32px 16px',
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px dashed rgba(255,255,255,0.08)',
+          borderRadius: 12,
         }}>
-          <Shield size={32} color="var(--text-muted)" style={{ opacity: 0.5, marginBottom: 12 }} />
-          <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+          <Shield size={32} color="rgba(255,255,255,0.18)" style={{ marginBottom: 12 }} />
+          <div style={{
+            fontSize: 13, color: 'rgba(255,255,255,0.38)',
+            fontWeight: 500, marginBottom: 4,
+          }}>
             {t('permissions.emptyState')}
           </div>
         </div>
@@ -136,8 +165,11 @@ export default function PermissionsSettingsPanel() {
         title={t('permissions.allowRules')}
         rules={allowList}
         type="allow"
-        color="#10b981"
-        bgColor="rgba(16,185,129,0.12)"
+        color="#4ade80"
+        bgColor="rgba(74,222,128,0.10)"
+        borderColor="rgba(74,222,128,0.20)"
+        badgeBg="rgba(34,197,94,0.12)"
+        badgeBorder="rgba(34,197,94,0.28)"
         adding={addingAllow}
         inputValue={allowInput}
         onInputChange={setAllowInput}
@@ -153,8 +185,11 @@ export default function PermissionsSettingsPanel() {
         title={t('permissions.denyRules')}
         rules={denyList}
         type="deny"
-        color="#ef4444"
-        bgColor="rgba(239,68,68,0.12)"
+        color="#f87171"
+        bgColor="rgba(239,68,68,0.10)"
+        borderColor="rgba(239,68,68,0.20)"
+        badgeBg="rgba(239,68,68,0.12)"
+        badgeBorder="rgba(239,68,68,0.25)"
         adding={addingDeny}
         inputValue={denyInput}
         onInputChange={setDenyInput}
@@ -167,11 +202,13 @@ export default function PermissionsSettingsPanel() {
 
       {/* Format help */}
       <div style={{
-        display: 'flex', alignItems: 'flex-start', gap: 8,
-        background: 'var(--action-btn-bg)', borderRadius: 8, padding: '10px 14px',
+        display: 'flex', alignItems: 'flex-start', gap: 10,
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.07)',
+        borderRadius: 12, padding: '12px 14px',
       }}>
-        <Info size={14} color="var(--text-muted)" style={{ marginTop: 2, flexShrink: 0 }} />
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+        <Info size={13} color="rgba(255,255,255,0.38)" style={{ marginTop: 1, flexShrink: 0 }} />
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.65 }}>
           {t('permissions.formatHelp')}
         </div>
       </div>
@@ -187,6 +224,9 @@ interface RuleSectionProps {
   type: 'allow' | 'deny'
   color: string
   bgColor: string
+  borderColor: string
+  badgeBg: string
+  badgeBorder: string
   adding: boolean
   inputValue: string
   onInputChange: (v: string) => void
@@ -198,26 +238,58 @@ interface RuleSectionProps {
 }
 
 function RuleSection({
-  title, rules, type, color, bgColor,
+  title, rules, type, color, bgColor, borderColor, badgeBg, badgeBorder,
   adding, inputValue, onInputChange,
   onToggleAdd, onAdd, onRemove, hasConflict, t,
 }: RuleSectionProps) {
   return (
-    <div>
+    <div style={{
+      background: 'rgba(255,255,255,0.03)',
+      border: '1px solid rgba(255,255,255,0.07)',
+      borderRadius: 12,
+      padding: '14px 16px',
+    }}>
+      {/* Section header */}
       <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: 8,
+        display: 'flex', alignItems: 'center',
+        justifyContent: 'space-between', marginBottom: 12,
       }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-          {title}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.75)' }}>
+            {title}
+          </span>
+          {/* Count badge */}
+          <span style={{
+            background: badgeBg,
+            border: `1px solid ${badgeBorder}`,
+            color,
+            borderRadius: 20, padding: '1px 8px',
+            fontSize: 10, fontWeight: 700,
+            fontVariantNumeric: 'tabular-nums',
+          }}>
+            {rules.length}
+          </span>
+        </div>
         <button
           onClick={onToggleAdd}
           style={{
             display: 'flex', alignItems: 'center', gap: 4,
-            background: 'none', border: '1px solid var(--border)', borderRadius: 6,
-            padding: '3px 10px', cursor: 'pointer', fontSize: 11,
-            color: 'var(--text-muted)',
+            background: adding ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.10)',
+            borderRadius: 6, padding: '4px 10px',
+            cursor: 'pointer', fontSize: 11, fontWeight: 500,
+            color: 'rgba(255,255,255,0.60)',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = adding ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.06)'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
           }}
           aria-label={t('permissions.addRule')}
         >
@@ -233,28 +305,38 @@ function RuleSection({
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               background: bgColor, color,
+              border: `1px solid ${borderColor}`,
               borderRadius: 6, padding: '4px 10px',
               fontSize: 12, fontWeight: 500, fontFamily: 'monospace',
             }}
           >
             {hasConflict(rule) && (
-              <span title={t('permissions.conflictHint')} style={{ display: 'inline-flex' }}><AlertTriangle size={12} color="#f59e0b" /></span>
+              <span title={t('permissions.conflictHint')} style={{ display: 'inline-flex' }}>
+                <AlertTriangle size={11} color="#fbbf24" />
+              </span>
             )}
             {rule}
             <button
               onClick={() => onRemove(idx)}
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
-                padding: 0, display: 'flex', color: 'inherit', opacity: 0.7,
+                padding: 0, display: 'inline-flex',
+                color: 'inherit', opacity: 0.55,
+                transition: 'opacity 0.15s ease',
               }}
+              onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
+              onMouseLeave={e => { e.currentTarget.style.opacity = '0.55' }}
               aria-label={t('common.remove')}
             >
-              <X size={12} />
+              <X size={11} />
             </button>
           </span>
         ))}
         {rules.length === 0 && !adding && (
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+          <span style={{
+            fontSize: 11, color: 'rgba(255,255,255,0.38)',
+            fontStyle: 'italic', padding: '4px 0',
+          }}>
             {t('permissions.noRules')}
           </span>
         )}
@@ -262,7 +344,7 @@ function RuleSection({
 
       {/* Inline add input */}
       {adding && (
-        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+        <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
           <input
             autoFocus
             value={inputValue}
@@ -273,21 +355,29 @@ function RuleSection({
             }}
             placeholder={t('permissions.rulePlaceholder')}
             style={{
-              flex: 1, padding: '6px 10px', fontSize: 12,
-              background: 'var(--action-btn-bg)', border: '1px solid var(--border)',
-              borderRadius: 6, color: 'var(--text-primary)',
+              flex: 1, padding: '7px 10px', fontSize: 13,
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 7, color: 'rgba(255,255,255,0.82)',
               fontFamily: 'monospace', outline: 'none',
+              transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
             }}
+            onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
+            onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.boxShadow = 'none' }}
           />
           <button
             onClick={() => onAdd(inputValue)}
             disabled={!inputValue.trim()}
             style={{
-              padding: '6px 12px', fontSize: 11, fontWeight: 500,
-              background: inputValue.trim() ? 'var(--accent)' : 'var(--action-btn-bg)',
-              border: 'none', borderRadius: 6,
-              color: inputValue.trim() ? '#fff' : 'var(--text-muted)',
-              cursor: inputValue.trim() ? 'pointer' : 'default',
+              padding: '7px 14px', fontSize: 12, fontWeight: 600,
+              background: inputValue.trim()
+                ? 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))'
+                : 'rgba(255,255,255,0.06)',
+              border: inputValue.trim() ? 'none' : '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 7,
+              color: inputValue.trim() ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.38)',
+              cursor: inputValue.trim() ? 'pointer' : 'not-allowed',
+              transition: 'all 0.15s ease',
             }}
           >
             {t('common.add')}

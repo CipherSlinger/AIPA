@@ -31,10 +31,10 @@ function hookPreview(hook: HookEntry): string {
 
 function HookTypeIcon({ type }: { type: string }) {
   const size = 13
-  if (type === 'command') return <Terminal size={size} color="var(--text-muted)" />
-  if (type === 'prompt') return <MessageSquare size={size} color="var(--text-muted)" />
-  if (type === 'http') return <Globe size={size} color="var(--text-muted)" />
-  return <Zap size={size} color="var(--text-muted)" />
+  if (type === 'command') return <Terminal size={size} color="rgba(255,255,255,0.45)" />
+  if (type === 'prompt') return <MessageSquare size={size} color="rgba(255,255,255,0.45)" />
+  if (type === 'http') return <Globe size={size} color="rgba(255,255,255,0.45)" />
+  return <Zap size={size} color="rgba(255,255,255,0.45)" />
 }
 
 // ── Main component ─────────────────────────────────────────────────────────
@@ -45,6 +45,8 @@ export default function HooksSettingsPanel() {
   const [error, setError] = useState('')
   const [showWizard, setShowWizard] = useState(false)
   const [collapsedEvents, setCollapsedEvents] = useState<Set<string>>(new Set())
+  const [deleteHover, setDeleteHover] = useState<string | null>(null)
+  const [addBtnHover, setAddBtnHover] = useState(false)
 
   const loadHooks = useCallback(async () => {
     setLoading(true)
@@ -105,7 +107,7 @@ export default function HooksSettingsPanel() {
 
   if (loading) {
     return (
-      <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
+      <div style={{ padding: '24px 0', textAlign: 'center', color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>
         {t('hooks.loading')}
       </div>
     )
@@ -116,21 +118,28 @@ export default function HooksSettingsPanel() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.82)', marginBottom: 2 }}>
             {t('hooks.title')}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
             {t('hooks.subtitle')}
           </div>
         </div>
         <button
           onClick={() => setShowWizard(v => !v)}
+          onMouseEnter={() => setAddBtnHover(true)}
+          onMouseLeave={() => setAddBtnHover(false)}
           style={{
             display: 'flex', alignItems: 'center', gap: 5,
-            padding: '6px 12px', borderRadius: 6,
-            background: 'var(--accent)', border: 'none',
-            color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+            padding: '7px 14px', borderRadius: 8,
+            background: addBtnHover
+              ? 'linear-gradient(135deg, rgba(99,102,241,0.95), rgba(139,92,246,0.95))'
+              : 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+            border: 'none',
+            color: 'rgba(255,255,255,0.95)', cursor: 'pointer', fontSize: 12, fontWeight: 600,
             flexShrink: 0,
+            transition: 'all 0.15s ease',
+            boxShadow: addBtnHover ? '0 4px 16px rgba(99,102,241,0.35)' : 'none',
           }}
         >
           <Plus size={13} />
@@ -139,7 +148,7 @@ export default function HooksSettingsPanel() {
       </div>
 
       {error && (
-        <div style={{ fontSize: 11, color: '#ef4444', marginBottom: 10, padding: '6px 10px', background: 'rgba(239,68,68,0.08)', borderRadius: 6 }}>
+        <div style={{ fontSize: 11, color: '#fca5a5', marginBottom: 10, padding: '6px 12px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.18)', borderRadius: 8 }}>
           {error}
         </div>
       )}
@@ -155,14 +164,15 @@ export default function HooksSettingsPanel() {
       {/* Empty state */}
       {eventTypes.length === 0 && !showWizard && (
         <div style={{
-          textAlign: 'center', padding: '32px 20px',
-          border: '1px dashed var(--border)', borderRadius: 8, marginTop: 8,
+          fontSize: 12, color: 'rgba(255,255,255,0.38)',
+          textAlign: 'center', padding: 24,
+          border: '1px dashed rgba(255,255,255,0.09)', borderRadius: 12, marginTop: 8,
         }}>
-          <Zap size={28} color="var(--text-muted)" style={{ opacity: 0.4, marginBottom: 10 }} />
-          <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500, marginBottom: 6 }}>
+          <Zap size={28} color="rgba(255,255,255,0.2)" style={{ marginBottom: 10 }} />
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', fontWeight: 500, marginBottom: 6 }}>
             {t('hooks.noHooksTitle')}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 300, margin: '0 auto' }}>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', maxWidth: 300, margin: '0 auto' }}>
             {t('hooks.noHooksDesc')}
           </div>
         </div>
@@ -180,8 +190,11 @@ export default function HooksSettingsPanel() {
               <div
                 key={eventType}
                 style={{
-                  border: '1px solid var(--border)',
-                  borderRadius: 8,
+                  background: 'rgba(15,15,25,0.85)',
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  borderRadius: 12,
                   overflow: 'hidden',
                 }}
               >
@@ -190,25 +203,26 @@ export default function HooksSettingsPanel() {
                   onClick={() => toggleEvent(eventType)}
                   style={{
                     width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '8px 12px',
-                    background: 'var(--action-btn-bg)', border: 'none',
+                    padding: '10px 14px',
+                    background: 'rgba(255,255,255,0.03)', border: 'none',
                     cursor: 'pointer', textAlign: 'left',
                   }}
                 >
                   {collapsed
-                    ? <ChevronRight size={13} color="var(--text-muted)" />
-                    : <ChevronDown size={13} color="var(--text-muted)" />
+                    ? <ChevronRight size={13} color="rgba(255,255,255,0.38)" />
+                    : <ChevronDown size={13} color="rgba(255,255,255,0.38)" />
                   }
-                  <Zap size={13} color="var(--accent)" />
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>
+                  <Zap size={13} color="rgba(99,102,241,0.85)" />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.82)', flex: 1 }}>
                     {eventType}
                   </span>
                   <span style={{
-                    fontSize: 10, color: 'var(--text-muted)',
-                    background: 'var(--popup-bg)',
-                    border: '1px solid var(--border)',
+                    fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
+                    textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)',
+                    background: 'rgba(99,102,241,0.12)',
+                    border: '1px solid rgba(99,102,241,0.2)',
                     borderRadius: 10,
-                    padding: '1px 6px',
+                    padding: '1px 8px',
                   }}>
                     {t('hooks.hookCount', { count: totalHooks })}
                   </span>
@@ -216,56 +230,80 @@ export default function HooksSettingsPanel() {
 
                 {/* Accordion body */}
                 {!collapsed && (
-                  <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ padding: '8px 12px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {matchers.map((matcherGroup, mi) => (
                       <div key={mi}>
                         {matcherGroup.matcher && (
-                          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4, fontStyle: 'italic' }}>
-                            matcher: <code style={{ fontStyle: 'normal', color: 'var(--text-primary)' }}>{matcherGroup.matcher}</code>
+                          <div style={{
+                            fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
+                            textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)',
+                            marginBottom: 6,
+                          }}>
+                            matcher: <code style={{ fontStyle: 'normal', color: 'rgba(165,180,252,0.85)', fontFamily: 'monospace', textTransform: 'none', letterSpacing: 0 }}>{matcherGroup.matcher}</code>
                           </div>
                         )}
-                        {matcherGroup.hooks.map((hook, hi) => (
-                          <div
-                            key={hi}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: 8,
-                              padding: '5px 8px',
-                              background: 'var(--popup-bg)',
-                              border: '1px solid var(--border)',
-                              borderRadius: 6,
-                              marginBottom: 3,
-                            }}
-                          >
-                            <HookTypeIcon type={hook.type} />
-                            <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em', width: 52, flexShrink: 0 }}>
-                              {hook.type}
-                            </span>
-                            <span style={{
-                              fontSize: 11, color: 'var(--text-primary)',
-                              flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                              fontFamily: 'monospace',
-                            }}>
-                              {hookPreview(hook)}
-                            </span>
-                            {hook.timeout && (
-                              <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>
-                                {hook.timeout}s
-                              </span>
-                            )}
-                            <button
-                              onClick={() => handleDelete(eventType, mi, hi)}
-                              title={t('hooks.deleteHook')}
+                        {matcherGroup.hooks.map((hook, hi) => {
+                          const deleteKey = `${eventType}-${mi}-${hi}`
+                          return (
+                            <div
+                              key={hi}
                               style={{
-                                background: 'none', border: 'none', cursor: 'pointer',
-                                color: 'var(--text-muted)', padding: 2, display: 'flex', alignItems: 'center',
-                                flexShrink: 0,
+                                display: 'flex', alignItems: 'center', gap: 8,
+                                background: 'rgba(255,255,255,0.03)',
+                                border: '1px solid rgba(255,255,255,0.07)',
+                                borderRadius: 8,
+                                padding: '10px 14px',
+                                marginBottom: 3,
+                                transition: 'background 0.15s ease',
                               }}
-                              aria-label={t('hooks.deleteHook')}
                             >
-                              <Trash2 size={12} />
-                            </button>
-                          </div>
-                        ))}
+                              <HookTypeIcon type={hook.type} />
+                              <span style={{
+                                fontSize: 10, fontWeight: 700,
+                                textTransform: 'uppercase', letterSpacing: '0.07em',
+                                color: 'rgba(255,255,255,0.38)',
+                                width: 52, flexShrink: 0,
+                              }}>
+                                {hook.type}
+                              </span>
+                              <span style={{
+                                background: 'rgba(15,15,25,0.70)',
+                                borderRadius: 6,
+                                padding: '3px 8px',
+                                fontSize: 11,
+                                color: 'rgba(165,180,252,0.85)',
+                                fontFamily: 'monospace',
+                                flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                              }}>
+                                {hookPreview(hook)}
+                              </span>
+                              {hook.timeout && (
+                                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', flexShrink: 0 }}>
+                                  {hook.timeout}s
+                                </span>
+                              )}
+                              <button
+                                onClick={() => handleDelete(eventType, mi, hi)}
+                                onMouseEnter={() => setDeleteHover(deleteKey)}
+                                onMouseLeave={() => setDeleteHover(null)}
+                                title={t('hooks.deleteHook')}
+                                style={{
+                                  background: deleteHover === deleteKey ? 'rgba(252,165,165,0.1)' : 'rgba(255,255,255,0.07)',
+                                  border: '1px solid ' + (deleteHover === deleteKey ? 'rgba(252,165,165,0.25)' : 'rgba(255,255,255,0.07)'),
+                                  borderRadius: 6,
+                                  cursor: 'pointer',
+                                  color: deleteHover === deleteKey ? '#fca5a5' : 'rgba(255,255,255,0.38)',
+                                  padding: '4px 6px', display: 'flex', alignItems: 'center',
+                                  flexShrink: 0,
+                                  transition: 'all 0.15s ease',
+                                }}
+                                aria-label={t('hooks.deleteHook')}
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          )
+                        })}
                       </div>
                     ))}
                   </div>

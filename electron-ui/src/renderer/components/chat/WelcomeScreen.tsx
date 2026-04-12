@@ -116,8 +116,8 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
     window.electronAPI?.prefsSet('promptHistory', updated)
   }
 
-  const accentTint = activePersona ? `${activePersona.color}20` : 'rgba(0,122,204,0.1)'
-  const accentColor = activePersona?.color || 'var(--accent)'
+  const accentTint = activePersona ? `${activePersona.color}20` : 'rgba(99,102,241,0.10)'
+  const accentColor = activePersona?.color || '#6366f1'
 
   // Adaptive layout: measure container height and hide low-priority sections when space is tight
   const containerRef = useRef<HTMLDivElement>(null)
@@ -144,7 +144,19 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
   const compactGap = containerHeight < 500 ? 8 : containerHeight < 650 ? 12 : 20
 
   return (
-    <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', color: 'var(--text-muted)', overflow: 'hidden' }}>
+    <div
+      ref={containerRef}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        height: '100%',
+        color: 'rgba(255,255,255,0.45)',
+        overflow: 'hidden',
+        background: 'transparent',
+        animation: 'fadeIn 0.3s ease',
+      }}
+    >
       {/* Spacer that auto-shrinks: when content fits, it centers; when content overflows, it collapses */}
       <div style={{ flex: '1 1 auto', minHeight: 8 }} />
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: compactGap, padding: '0 20px', width: '100%', flexShrink: 1, minHeight: 0 }}>
@@ -163,24 +175,30 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
       {showUsageStats && usageStats.totalSessions > 0 && (
         <div style={{
           display: 'flex', gap: 20, justifyContent: 'center', alignItems: 'center',
-          padding: '8px 16px', background: 'var(--card-bg)', border: '1px solid var(--card-border)',
-          borderRadius: 20, fontSize: 11, color: 'var(--text-muted)',
+          padding: '8px 16px',
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: 20,
+          fontSize: 11,
+          color: 'rgba(255,255,255,0.45)',
+          backdropFilter: 'blur(6px)',
+          WebkitBackdropFilter: 'blur(6px)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <Layers size={12} style={{ opacity: 0.6 }} />
-            <span><b style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{usageStats.totalSessions}</b> {t('welcome.statsSessions')}</span>
+            <span><b style={{ color: 'rgba(255,255,255,0.82)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{usageStats.totalSessions}</b> {t('welcome.statsSessions')}</span>
           </div>
-          <div style={{ width: 1, height: 14, background: 'var(--border)', opacity: 0.5 }} />
+          <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.12)', opacity: 0.5 }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <MessageSquare size={12} style={{ opacity: 0.6 }} />
-            <span><b style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{usageStats.totalMessages}</b> {t('welcome.statsMessages')}</span>
+            <span><b style={{ color: 'rgba(255,255,255,0.82)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{usageStats.totalMessages}</b> {t('welcome.statsMessages')}</span>
           </div>
           {usageStats.sessionsToday > 0 && (
             <>
-              <div style={{ width: 1, height: 14, background: 'var(--border)', opacity: 0.5 }} />
+              <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.12)', opacity: 0.5 }} />
               <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                 <Clock size={12} style={{ opacity: 0.6 }} />
-                <span><b style={{ color: 'var(--accent)', fontWeight: 600 }}>{usageStats.sessionsToday}</b> {t('welcome.statsToday')}</span>
+                <span><b style={{ color: 'rgba(99,102,241,0.9)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{usageStats.sessionsToday}</b> {t('welcome.statsToday')}</span>
               </div>
             </>
           )}
@@ -192,68 +210,82 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
         <button
           onClick={() => onOpenSession(lastSession.sessionId)}
           style={{
-            display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px',
-            background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 12,
-            color: 'var(--text-primary)', cursor: 'pointer', fontSize: 13,
-            width: '100%', maxWidth: 420, transition: 'background 0.15s, border-color 0.15s', textAlign: 'left',
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '12px 20px',
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.07)',
+            borderRadius: 16,
+            color: 'rgba(255,255,255,0.82)', cursor: 'pointer', fontSize: 13,
+            width: '100%', maxWidth: 420, transition: 'background 0.15s, border-color 0.15s, box-shadow 0.15s', textAlign: 'left',
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = 'var(--action-btn-hover)';
-            (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'
+            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)';
+            (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(99,102,241,0.35)';
+            (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 16px rgba(99,102,241,0.12)'
           }}
           onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = 'var(--card-bg)';
-            (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--card-border)'
+            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.03)';
+            (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.07)';
+            (e.currentTarget as HTMLButtonElement).style.boxShadow = 'none'
           }}
         >
           <div style={{
-            width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,122,204,0.08)',
+            width: 36, height: 36, borderRadius: '50%', background: 'rgba(99,102,241,0.12)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
           }}>
-            <History size={18} color="var(--accent)" />
+            <History size={18} color="#6366f1" />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('welcome.continueLastChat')}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {lastSession.title || lastSession.lastPrompt || t('session.untitled')}
             </div>
           </div>
-          <ArrowRight size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+          <ArrowRight size={16} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
         </button>
       )}
 
 
       {/* Suggestion cards */}
-      <div style={{ display: 'flex', gap: 12, marginTop: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', gap: 10, marginTop: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
         {suggestions.map(({ icon: Icon, text, templateId }: { icon: any; text: string; templateId?: string }) => (
           <button
             key={text}
             onClick={() => onSuggestion(text, templateId)}
             style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-              padding: '14px 14px', background: 'var(--card-bg)', border: '1px solid var(--card-border)',
-              borderRadius: 12, color: 'var(--text-primary)', cursor: 'pointer', fontSize: 12,
-              minWidth: 110, maxWidth: 140, transition: 'background 0.15s, border-color 0.15s, transform 0.15s',
+              padding: '4px 12px',
+              background: 'rgba(99,102,241,0.10)',
+              border: '1px solid rgba(99,102,241,0.20)',
+              borderRadius: 20,
+              color: '#a5b4fc',
+              cursor: 'pointer',
+              fontSize: 12,
+              fontWeight: 600,
+              minWidth: 110, maxWidth: 160,
+              transition: 'all 0.15s ease',
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'var(--action-btn-hover)';
-              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)';
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.03)'
+              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(99,102,241,0.18)';
+              (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(99,102,241,0.40)';
+              (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)';
+              (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)'
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'var(--card-bg)';
-              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--card-border)';
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'
+              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(99,102,241,0.10)';
+              (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(99,102,241,0.20)';
+              (e.currentTarget as HTMLButtonElement).style.boxShadow = 'none';
+              (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)'
             }}
           >
             <div style={{
-              width: 36, height: 36, borderRadius: '50%',
-              background: activePersona ? `${activePersona.color}14` : 'rgba(0,122,204,0.08)',
+              width: 32, height: 32, borderRadius: '50%',
+              background: activePersona ? `${activePersona.color}14` : 'rgba(99,102,241,0.10)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <Icon size={20} color={accentColor} />
+              <Icon size={18} color={accentColor} />
             </div>
             <span style={{ textAlign: 'center', lineHeight: 1.4 }}>{text}</span>
           </button>
@@ -267,15 +299,18 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
       {showKeyboardShortcuts && (
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(3, auto)', gap: '8px 20px',
-        padding: '14px 20px', background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 10,
+        padding: '14px 20px',
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.07)',
+        borderRadius: 12,
       }}>
         {shortcuts.map(({ keys, desc }) => (
           <div key={keys} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
             <kbd style={{
-              background: 'var(--popup-bg)', border: '1px solid var(--popup-border)', borderRadius: 4,
-              padding: '2px 8px', fontSize: 10, fontFamily: 'monospace', color: 'var(--text-primary)', whiteSpace: 'nowrap',
+              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 6,
+              padding: '2px 8px', fontSize: 10, fontFamily: 'monospace', color: 'rgba(255,255,255,0.60)', whiteSpace: 'nowrap',
             }}>{keys}</kbd>
-            <span style={{ color: 'var(--text-muted)' }}>{desc}</span>
+            <span style={{ color: 'rgba(255,255,255,0.45)' }}>{desc}</span>
           </div>
         ))}
       </div>
@@ -285,15 +320,15 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
       {showTips && tip && (
         <div style={{
           width: '100%', maxWidth: 420, padding: '10px 14px',
-          background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+          background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
           borderRadius: 10, display: 'flex', alignItems: 'flex-start', gap: 10,
         }}>
-          <Lightbulb size={16} color="var(--warning)" style={{ flexShrink: 0, marginTop: 2 }} />
+          <Lightbulb size={16} color="#fbbf24" style={{ flexShrink: 0, marginTop: 2 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 10, color: 'var(--warning)', fontWeight: 600, marginBottom: 4 }}>
+            <div style={{ fontSize: 10, color: '#fbbf24', fontWeight: 600, marginBottom: 4 }}>
               {t('tips.title')}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.5 }}>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.60)', lineHeight: 1.5 }}>
               {t(tip.contentKey)}
             </div>
           </div>
@@ -302,11 +337,11 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
               onClick={nextTip}
               title={t('tips.nextTip')}
               style={{
-                background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
-                padding: '2px 4px', borderRadius: 3, fontSize: 10,
+                background: 'none', border: 'none', color: 'rgba(255,255,255,0.45)', cursor: 'pointer',
+                padding: '2px 4px', borderRadius: 6, fontSize: 10, transition: 'color 0.15s ease',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.82)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}
             >
               {t('tips.nextTip')}
             </button>
@@ -314,11 +349,11 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
               onClick={dismissTip}
               title={t('tips.dismiss')}
               style={{
-                background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
-                padding: '2px', borderRadius: 3,
+                background: 'none', border: 'none', color: 'rgba(255,255,255,0.45)', cursor: 'pointer',
+                padding: '2px', borderRadius: 6, transition: 'color 0.15s ease',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.82)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}
             >
               <X size={12} />
             </button>

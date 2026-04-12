@@ -128,7 +128,7 @@ export function highlightText(text: string, query: string): React.ReactNode {
         ? React.createElement('mark', {
             key: i,
             style: {
-              background: 'var(--accent)',
+              background: 'rgba(99,102,241,0.85)',
               color: '#fff',
               borderRadius: 2,
               padding: '0 1px',

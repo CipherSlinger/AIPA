@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Sparkles, Key, ChevronLeft, ArrowRight } from 'lucide-react'
+import { Sparkles, Key, ChevronLeft, ArrowRight, Check } from 'lucide-react'
 import { useT } from '../../i18n'
 
 interface OnboardingWizardProps {
@@ -51,20 +51,97 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
   }
 
   const StepIcon = STEP_ICONS[step - 1]
-  const iconColor = 'var(--accent)'
-  const progressWidth = `${((step) / 2) * 100}%`
+  const iconColor = '#818cf8'
   // Step 2 is valid when either API key or auth token is filled
   const step2Valid = apiKey.trim().length > 0 || token.trim().length > 0
 
   return (
     <div style={styles.overlay}>
-      <div style={styles.card} className="popup-enter">
-        {/* Progress bar */}
-        <div style={styles.progressContainer}>
-          <div style={styles.progressTrack}>
-            <div style={{ ...styles.progressFill, width: progressWidth }} />
-          </div>
-          <div style={styles.progressLabel}>{t('onboarding.step', { current: step, total: 2 })}</div>
+      <style>{`
+        @keyframes onboard-fadeIn {
+          from { opacity: 0; transform: translateY(10px) scale(0.98); }
+          to   { opacity: 1; transform: translateY(0)    scale(1); }
+        }
+        .onboard-card-enter {
+          animation: onboard-fadeIn 0.25s ease both;
+        }
+        @keyframes onboard-icon-pop {
+          from { opacity: 0; transform: scale(0.85); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+        .onboard-icon {
+          animation: onboard-icon-pop 0.25s ease both;
+        }
+        @keyframes onboard-step-in {
+          from { opacity: 0; transform: translateX(12px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+        .onboard-step-content {
+          animation: onboard-step-in 0.22s ease both;
+        }
+      `}</style>
+      <div style={styles.card} className="onboard-card-enter">
+
+        {/* Step disc indicators */}
+        <div style={styles.stepsIndicator}>
+          {[1, 2].map((s) => {
+            const isActive = step === s
+            const isDone   = step > s
+            return (
+              <React.Fragment key={s}>
+                <div style={{
+                  ...styles.stepDisc,
+                  background: isDone
+                    ? 'rgba(74,222,128,0.85)'
+                    : isActive
+                      ? 'rgba(99,102,241,0.85)'
+                      : 'rgba(255,255,255,0.15)',
+                  boxShadow: isActive
+                    ? '0 0 0 3px rgba(99,102,241,0.20)'
+                    : isDone
+                      ? '0 0 0 3px rgba(74,222,128,0.15)'
+                      : 'none',
+                  transform: isActive ? 'scale(1.15)' : 'scale(1)',
+                  transition: 'all 0.2s ease',
+                }}>
+                  {isDone
+                    ? <Check size={10} color="rgba(0,0,0,0.75)" strokeWidth={3} />
+                    : <span style={{ fontSize: 9, fontWeight: 700, color: isActive ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)' }}>{s}</span>
+                  }
+                </div>
+                {s < 2 && (
+                  <div style={{
+                    ...styles.stepConnector,
+                    background: step > s ? 'rgba(99,102,241,0.50)' : 'rgba(255,255,255,0.10)',
+                    transition: 'background 0.25s ease',
+                  }} />
+                )}
+              </React.Fragment>
+            )
+          })}
+        </div>
+
+        {/* Step labels */}
+        <div style={styles.stepLabelsRow}>
+          {[1, 2].map((s) => {
+            const isActive = step === s
+            const isDone   = step > s
+            return (
+              <span key={s} style={{
+                fontSize: 9,
+                fontWeight: isActive ? 700 : 500,
+                color: isActive
+                  ? '#818cf8'
+                  : isDone
+                    ? 'rgba(255,255,255,0.60)'
+                    : 'rgba(255,255,255,0.38)',
+                transition: 'color 0.2s ease',
+                letterSpacing: '0.04em',
+              }}>
+                {s === 1 ? t('onboarding.getStarted') : t('onboarding.enterApiKey')}
+              </span>
+            )
+          })}
         </div>
 
         {/* Step icon */}
@@ -82,8 +159,16 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
             <button
               style={styles.primaryBtn}
               onClick={() => setStep(2)}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.filter = 'brightness(1.1)' }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.filter = 'none' }}
+              onMouseEnter={e => {
+                e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'
+                e.currentTarget.style.transform = 'translateY(-1px)'
+                e.currentTarget.style.filter = 'brightness(1.08)'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.boxShadow = 'none'
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.filter = 'none'
+              }}
             >
               {t('onboarding.getStarted')} <ArrowRight size={16} style={{ marginLeft: 6, verticalAlign: 'middle' }} />
             </button>
@@ -108,8 +193,8 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                 onChange={(e) => setApiKey(e.target.value)}
                 style={{
                   ...styles.input,
-                  borderColor: inputFocused === 'apiKey' ? 'var(--input-field-focus)' : 'var(--input-field-border)',
-                  boxShadow: inputFocused === 'apiKey' ? 'var(--input-focus-shadow)' : 'none',
+                  borderColor: inputFocused === 'apiKey' ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.09)',
+                  boxShadow: inputFocused === 'apiKey' ? 'rgba(99,102,241,0.50) 0 0 0 2px' : 'none',
                 }}
                 onFocus={() => setInputFocused('apiKey')}
                 onBlur={() => setInputFocused(null)}
@@ -127,8 +212,8 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                 onChange={(e) => setToken(e.target.value)}
                 style={{
                   ...styles.input,
-                  borderColor: inputFocused === 'token' ? 'var(--input-field-focus)' : 'var(--input-field-border)',
-                  boxShadow: inputFocused === 'token' ? 'var(--input-focus-shadow)' : 'none',
+                  borderColor: inputFocused === 'token' ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.09)',
+                  boxShadow: inputFocused === 'token' ? 'rgba(99,102,241,0.50) 0 0 0 2px' : 'none',
                 }}
                 onFocus={() => setInputFocused('token')}
                 onBlur={() => setInputFocused(null)}
@@ -146,8 +231,8 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                 onChange={(e) => setBaseUrl(e.target.value)}
                 style={{
                   ...styles.input,
-                  borderColor: inputFocused === 'baseUrl' ? 'var(--input-field-focus)' : 'var(--input-field-border)',
-                  boxShadow: inputFocused === 'baseUrl' ? 'var(--input-focus-shadow)' : 'none',
+                  borderColor: inputFocused === 'baseUrl' ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.09)',
+                  boxShadow: inputFocused === 'baseUrl' ? 'rgba(99,102,241,0.50) 0 0 0 2px' : 'none',
                   fontFamily: 'monospace',
                 }}
                 onFocus={() => setInputFocused('baseUrl')}
@@ -172,8 +257,18 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
               <button
                 style={styles.secondaryBtn}
                 onClick={() => setStep(1)}
-                onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
-                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)'
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
+                  e.currentTarget.style.transform = 'translateY(-1px)'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                  e.currentTarget.style.transform = 'translateY(0)'
+                }}
               >
                 <ChevronLeft size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} /> {t('onboarding.back')}
               </button>
@@ -185,8 +280,18 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                 }}
                 onClick={() => step2Valid && handleComplete()}
                 disabled={!step2Valid}
-                onMouseEnter={e => { if (step2Valid) { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.filter = 'brightness(1.1)' } }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.filter = 'none' }}
+                onMouseEnter={e => {
+                  if (step2Valid) {
+                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'
+                    e.currentTarget.style.transform = 'translateY(-1px)'
+                    e.currentTarget.style.filter = 'brightness(1.08)'
+                  }
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.boxShadow = 'none'
+                  e.currentTarget.style.transform = 'translateY(0)'
+                  e.currentTarget.style.filter = 'none'
+                }}
               >
                 {t('onboarding.startChatting')} <ArrowRight size={16} style={{ marginLeft: 6, verticalAlign: 'middle' }} />
               </button>
@@ -211,60 +316,66 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'fixed',
     inset: 0,
     zIndex: 9999,
-    background: 'rgba(0, 0, 0, 0.85)',
-    backgroundImage: 'radial-gradient(ellipse at center, rgba(0,122,204,0.05) 0%, transparent 70%)',
+    background: 'rgba(0,0,0,0.80)',
+    backdropFilter: 'blur(16px)',
+    WebkitBackdropFilter: 'blur(16px)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
   },
   card: {
-    background: 'var(--popup-bg)',
-    border: '1px solid var(--popup-border)',
-    borderRadius: '16px',
+    background: 'rgba(15,15,25,0.96)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: 16,
     width: '100%',
     maxWidth: '520px',
-    padding: '48px 40px 36px',
+    padding: '40px 40px 32px',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     gap: '0',
-    boxShadow: 'var(--popup-shadow), 0 0 80px rgba(0,122,204,0.08)',
+    boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
   },
-  progressContainer: {
+  stepsIndicator: {
     display: 'flex',
-    flexDirection: 'column',
     alignItems: 'center',
-    gap: '8px',
-    marginBottom: '32px',
-    width: '200px',
+    gap: 0,
+    marginBottom: 6,
   },
-  progressTrack: {
-    width: '100%',
-    height: '4px',
-    borderRadius: '2px',
-    background: 'var(--border)',
-    overflow: 'hidden',
+  stepDisc: {
+    width: 22,
+    height: 22,
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
-  progressFill: {
-    height: '100%',
-    background: 'var(--accent)',
-    borderRadius: '2px',
-    transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+  stepConnector: {
+    width: 32,
+    height: 2,
+    borderRadius: 1,
+    margin: '0 4px',
   },
-  progressLabel: {
-    fontSize: '11px',
-    color: 'var(--text-muted)',
-    letterSpacing: '0.03em',
+  stepLabelsRow: {
+    display: 'flex',
+    gap: 44,
+    marginBottom: 24,
+    paddingLeft: 2,
   },
   iconCircle: {
     width: '80px',
     height: '80px',
     borderRadius: '50%',
-    background: 'rgba(0,122,204,0.1)',
+    background: 'rgba(99,102,241,0.12)',
+    border: '1px solid rgba(99,102,241,0.25)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: '20px',
+    boxShadow: '0 0 24px rgba(99,102,241,0.15)',
   },
   stepContent: {
     width: '100%',
@@ -274,26 +385,27 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '16px',
   },
   title: {
-    fontSize: '24px',
-    fontWeight: '700',
-    color: 'var(--text-bright)',
+    fontSize: 18,
+    fontWeight: 700,
+    color: 'rgba(255,255,255,0.82)',
     textAlign: 'center',
     margin: 0,
-    letterSpacing: '-0.02em',
+    letterSpacing: '-0.01em',
+    lineHeight: 1.3,
   },
   subtitle: {
-    fontSize: '14px',
-    color: 'var(--text-muted)',
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.60)',
     textAlign: 'center',
-    lineHeight: '1.7',
+    lineHeight: 1.6,
     margin: 0,
     maxWidth: '360px',
   },
   explanation: {
-    fontSize: '14px',
-    color: 'var(--text-muted)',
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.60)',
     textAlign: 'center',
-    lineHeight: '1.7',
+    lineHeight: 1.6,
     margin: 0,
     maxWidth: '360px',
   },
@@ -304,35 +416,34 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '4px',
   },
   fieldLabel: {
-    fontSize: '11px',
-    fontWeight: '600',
-    color: 'var(--text-muted)',
-    letterSpacing: '0.04em',
+    fontSize: 10,
+    fontWeight: 700,
+    color: 'rgba(255,255,255,0.38)',
+    letterSpacing: '0.07em',
     textTransform: 'uppercase' as const,
   },
   fieldHint: {
     fontSize: '11px',
-    color: 'var(--text-muted)',
+    color: 'rgba(255,255,255,0.38)',
     lineHeight: '1.5',
-    opacity: 0.8,
   },
   input: {
     width: '100%',
     height: '42px',
     padding: '0 14px',
-    background: 'var(--input-field-bg)',
-    border: '1px solid var(--input-field-border)',
-    borderRadius: '8px',
-    color: 'var(--text-primary)',
-    fontSize: '13px',
+    background: 'rgba(255,255,255,0.07)',
+    border: '1px solid rgba(255,255,255,0.09)',
+    borderRadius: 8,
+    color: 'rgba(255,255,255,0.82)',
+    fontSize: 13,
     outline: 'none',
     fontFamily: 'monospace',
-    transition: 'border-color 0.15s, box-shadow 0.15s',
+    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
     boxSizing: 'border-box' as const,
   },
   link: {
     fontSize: '12px',
-    color: 'var(--accent)',
+    color: 'rgba(99,102,241,0.9)',
     textDecoration: 'none',
     cursor: 'pointer',
     transition: 'text-decoration 0.15s',
@@ -343,13 +454,13 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     gap: '10px',
     padding: '10px 14px',
-    background: 'var(--input-field-bg)',
-    border: '1px solid var(--input-field-border)',
-    borderRadius: '8px',
+    background: 'rgba(255,255,255,0.07)',
+    border: '1px solid rgba(255,255,255,0.12)',
+    borderRadius: 8,
   },
   folderPath: {
     fontSize: '12px',
-    color: 'var(--text-muted)',
+    color: 'rgba(255,255,255,0.6)',
     fontFamily: 'monospace',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -357,16 +468,16 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1,
   },
   primaryBtn: {
-    padding: '0 28px',
+    padding: '10px 28px',
     height: '42px',
-    background: 'var(--accent)',
-    color: '#ffffff',
+    background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
+    color: 'rgba(255,255,255,0.95)',
     border: 'none',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '600',
+    borderRadius: 8,
+    fontSize: 14,
+    fontWeight: 700,
     cursor: 'pointer',
-    transition: 'transform 0.15s, filter 0.15s, background 0.15s',
+    transition: 'all 0.15s ease',
     minWidth: '140px',
     display: 'inline-flex',
     alignItems: 'center',
@@ -375,13 +486,13 @@ const styles: Record<string, React.CSSProperties> = {
   secondaryBtn: {
     padding: '0 20px',
     height: '42px',
-    background: 'transparent',
-    color: 'var(--text-muted)',
-    border: '1px solid var(--popup-border)',
-    borderRadius: '8px',
+    background: 'rgba(255,255,255,0.06)',
+    color: 'rgba(255,255,255,0.60)',
+    border: '1px solid rgba(255,255,255,0.07)',
+    borderRadius: 8,
     fontSize: '14px',
     cursor: 'pointer',
-    transition: 'color 0.15s',
+    transition: 'all 0.15s ease',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -390,12 +501,12 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '0 20px',
     height: '38px',
     background: 'transparent',
-    color: 'var(--accent)',
-    border: '1px solid var(--accent)',
-    borderRadius: '8px',
+    color: 'rgba(99,102,241,0.9)',
+    border: '1px solid rgba(99,102,241,0.45)',
+    borderRadius: 10,
     fontSize: '13px',
     cursor: 'pointer',
-    transition: 'background 0.15s',
+    transition: 'all 0.15s ease',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -408,12 +519,12 @@ const styles: Record<string, React.CSSProperties> = {
     marginTop: '4px',
   },
   skipBtn: {
-    background: 'none',
+    background: 'transparent',
     border: 'none',
-    color: 'var(--text-muted)',
-    fontSize: '11px',
+    color: 'rgba(255,255,255,0.38)',
+    fontSize: 12,
     cursor: 'pointer',
     marginTop: '4px',
-    transition: 'text-decoration 0.15s',
+    transition: 'all 0.15s ease',
   },
 }

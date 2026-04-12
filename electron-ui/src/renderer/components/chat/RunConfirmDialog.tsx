@@ -1,6 +1,6 @@
-// RunConfirmDialog — confirmation dialog for executing shell commands (Iteration 510)
+// RunConfirmDialog — confirmation dialog for executing shell commands
 import React from 'react'
-import { AlertTriangle, Play, Terminal } from 'lucide-react'
+import { AlertTriangle, Play, Terminal, ShieldAlert } from 'lucide-react'
 import { useT } from '../../i18n'
 
 // Dangerous command patterns
@@ -36,108 +36,218 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
       style={{
         position: 'fixed', inset: 0, zIndex: 9999,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)',
+        background: 'rgba(0,0,0,0.70)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        animation: 'fadeIn 0.15s ease',
       }}
       onClick={onCancel}
     >
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: 'var(--popup-bg)', border: '1px solid var(--popup-border)',
-          borderRadius: 12, padding: '20px 24px', maxWidth: 480, width: '90%',
-          boxShadow: 'var(--popup-shadow)',
-          animation: 'popup-in 0.15s ease-out',
+          background: 'rgba(15,15,25,0.96)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: isDangerous
+            ? '1px solid rgba(239,68,68,0.25)'
+            : '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 16,
+          boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
+          maxWidth: 480,
+          width: '90%',
+          overflow: 'hidden',
+          animation: 'slideUp 0.15s ease',
         }}
       >
-        {/* Title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-          <Terminal size={16} style={{ color: 'var(--accent)' }} />
-          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-bright)' }}>
+        {/* Header */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '16px 20px',
+            borderBottom: isDangerous
+              ? '1px solid rgba(239,68,68,0.15)'
+              : '1px solid rgba(255,255,255,0.07)',
+            background: isDangerous ? 'rgba(239,68,68,0.05)' : 'transparent',
+          }}
+        >
+          {/* Icon badge */}
+          <div style={{
+            width: 32,
+            height: 32,
+            borderRadius: 8,
+            background: isDangerous ? 'rgba(239,68,68,0.12)' : 'rgba(99,102,241,0.12)',
+            border: isDangerous ? '1px solid rgba(239,68,68,0.28)' : '1px solid rgba(99,102,241,0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            {isDangerous
+              ? <ShieldAlert size={15} style={{ color: '#f87171' }} />
+              : <Terminal size={15} style={{ color: '#6366f1' }} />
+            }
+          </div>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.82)', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
             {t('codeAction.confirmRunTitle')}
           </span>
         </div>
 
-        {/* Description */}
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
-          {t('codeAction.confirmRunMessage')}
-        </div>
+        {/* Body */}
+        <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* Description */}
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.60)', lineHeight: 1.6 }}>
+            {t('codeAction.confirmRunMessage')}
+          </div>
 
-        {/* Command preview */}
-        <pre
-          style={{
-            background: 'rgba(0,0,0,0.3)',
-            border: `1px solid ${isDangerous ? 'var(--error)' : 'var(--border)'}`,
-            borderRadius: 6,
-            padding: '10px 12px',
-            fontSize: 12,
-            fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
-            color: 'var(--text-bright)',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-all',
-            maxHeight: 160,
-            overflowY: 'auto',
-            margin: '0 0 10px 0',
-          }}
-        >
-          {command}
-        </pre>
+          {/* Command preview — deep dark monospace */}
+          <pre
+            style={{
+              background: 'rgba(8,8,16,0.80)',
+              border: `1px solid ${isDangerous ? 'rgba(239,68,68,0.35)' : 'rgba(255,255,255,0.09)'}`,
+              borderRadius: 8,
+              padding: '12px 16px',
+              fontSize: 12,
+              fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", monospace',
+              color: isDangerous ? '#fca5a5' : '#a5b4fc',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-all',
+              maxHeight: 160,
+              overflowY: 'auto',
+              margin: 0,
+              fontVariantNumeric: 'tabular-nums',
+              fontFeatureSettings: '"tnum"',
+              lineHeight: 1.6,
+            }}
+          >
+            {command}
+          </pre>
 
-        {/* Working directory */}
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: isDangerous ? 10 : 18, display: 'flex', gap: 4 }}>
-          <span style={{ fontWeight: 500 }}>{t('codeAction.workingDirectory')}:</span>
-          <span style={{ fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace" }}>{workingDir}</span>
-        </div>
-
-        {/* Danger warning */}
-        {isDangerous && (
+          {/* Working directory */}
           <div
             style={{
-              display: 'flex', alignItems: 'flex-start', gap: 8,
-              background: 'rgba(248, 81, 73, 0.1)',
-              border: '1px solid rgba(248, 81, 73, 0.3)',
-              borderRadius: 6,
-              padding: '8px 12px',
-              marginBottom: 18,
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: '0.07em',
+              textTransform: 'uppercase',
+              color: 'rgba(255,255,255,0.38)',
+              display: 'flex',
+              gap: 6,
+              alignItems: 'center',
             }}
           >
-            <AlertTriangle size={14} style={{ color: 'var(--error)', flexShrink: 0, marginTop: 1 }} />
-            <span style={{ fontSize: 12, color: 'var(--error)', lineHeight: 1.5 }}>
-              {t('codeAction.dangerWarning')}
+            <span>{t('codeAction.workingDirectory')}:</span>
+            <span
+              style={{
+                fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+                fontSize: 11,
+                textTransform: 'none',
+                letterSpacing: 'normal',
+                color: 'rgba(255,255,255,0.45)',
+              }}
+            >
+              {workingDir}
             </span>
           </div>
-        )}
 
-        {/* Buttons */}
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button
-            onClick={onCancel}
-            aria-label={t('common.cancel')}
-            style={{
-              padding: '7px 18px', fontSize: 12, borderRadius: 6,
-              background: 'none', border: '1px solid var(--border)',
-              color: 'var(--text-primary)', cursor: 'pointer',
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--popup-item-hover)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'none'}
-          >
-            {t('common.cancel')}
-          </button>
-          <button
-            onClick={onConfirm}
-            aria-label={t('codeAction.runInTerminal')}
-            style={{
-              padding: '7px 18px', fontSize: 12, borderRadius: 6,
-              background: isDangerous ? 'var(--error)' : 'var(--accent)',
-              border: 'none',
-              color: '#fff', cursor: 'pointer', fontWeight: 600,
-              display: 'flex', alignItems: 'center', gap: 6,
-            }}
-            onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
-            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-          >
-            <Play size={12} />
-            {t('codeAction.runInTerminal')}
-          </button>
+          {/* Danger warning */}
+          {isDangerous && (
+            <div
+              style={{
+                display: 'flex', alignItems: 'flex-start', gap: 10,
+                background: 'rgba(239,68,68,0.08)',
+                border: '1px solid rgba(239,68,68,0.25)',
+                borderRadius: 8,
+                padding: '10px 14px',
+              }}
+            >
+              <AlertTriangle size={14} style={{ color: '#f87171', flexShrink: 0, marginTop: 1 }} />
+              <span style={{ fontSize: 12, color: 'rgba(248,113,113,0.90)', lineHeight: 1.5 }}>
+                {t('codeAction.dangerWarning')}
+              </span>
+            </div>
+          )}
+
+          {/* Buttons */}
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
+            {/* Cancel — ghost */}
+            <button
+              onClick={onCancel}
+              aria-label={t('common.cancel')}
+              style={{
+                padding: '7px 18px',
+                fontSize: 13,
+                borderRadius: 8,
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.09)',
+                color: 'rgba(255,255,255,0.60)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+              }}
+            >
+              {t('common.cancel')}
+            </button>
+
+            {/* Confirm — danger red or indigo gradient */}
+            <button
+              onClick={onConfirm}
+              aria-label={t('codeAction.runInTerminal')}
+              style={{
+                padding: '7px 18px',
+                fontSize: 13,
+                borderRadius: 8,
+                background: isDangerous
+                  ? 'rgba(239,68,68,0.15)'
+                  : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
+                border: isDangerous ? '1px solid rgba(239,68,68,0.35)' : 'none',
+                color: isDangerous ? '#fca5a5' : 'rgba(255,255,255,0.95)',
+                cursor: 'pointer',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                transition: 'all 0.15s ease',
+                boxShadow: isDangerous ? 'none' : '0 2px 8px rgba(99,102,241,0.30)',
+              }}
+              onMouseEnter={e => {
+                if (isDangerous) {
+                  e.currentTarget.style.background = 'rgba(239,68,68,0.25)'
+                  e.currentTarget.style.borderColor = 'rgba(239,68,68,0.50)'
+                  e.currentTarget.style.color = '#f87171'
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(239,68,68,0.20)'
+                } else {
+                  e.currentTarget.style.filter = 'brightness(1.08)'
+                  e.currentTarget.style.transform = 'translateY(-1px)'
+                  e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.40)'
+                }
+              }}
+              onMouseLeave={e => {
+                if (isDangerous) {
+                  e.currentTarget.style.background = 'rgba(239,68,68,0.15)'
+                  e.currentTarget.style.borderColor = 'rgba(239,68,68,0.35)'
+                  e.currentTarget.style.color = '#fca5a5'
+                  e.currentTarget.style.boxShadow = 'none'
+                } else {
+                  e.currentTarget.style.filter = ''
+                  e.currentTarget.style.transform = ''
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(99,102,241,0.30)'
+                }
+              }}
+            >
+              <Play size={12} />
+              {t('codeAction.runInTerminal')}
+            </button>
+          </div>
         </div>
       </div>
     </div>

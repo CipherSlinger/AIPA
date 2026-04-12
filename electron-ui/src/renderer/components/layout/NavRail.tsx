@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { Building2, NotebookPen, Puzzle, Brain, Workflow, Settings, User, PanelLeftClose, PanelLeftOpen, CheckSquare, GitBranch, Users, Users2 } from 'lucide-react'
+import { Building2, NotebookPen, Puzzle, Brain, Workflow, Settings, User, PanelLeftClose, PanelLeftOpen, CheckSquare, GitBranch, Users } from 'lucide-react'
 import { useUiStore, useChatStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 import { AVATAR_PRESETS } from './avatarPresets'
@@ -54,24 +54,23 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
         display: 'flex',
         alignItems: 'center',
         justifyContent: expanded ? 'flex-start' : 'center',
-        borderRadius: 7,
+        borderRadius: 8,
         border: 'none',
         background: isActive
-          ? 'rgba(255,255,255,0.08)'
+          ? 'rgba(99,102,241,0.10)'
           : hovered
           ? 'rgba(255,255,255,0.06)'
           : 'transparent',
-        cursor: 'pointer',
         position: 'relative',
         marginBottom: 1,
-        transition: 'background 0.15s ease, width 0.2s ease',
+        transition: 'background 0.15s ease, color 0.15s ease',
         color: isActive
-          ? 'var(--nav-icon-active)'
+          ? '#818cf8'
           : hovered
-          ? 'var(--nav-icon-hover)'
-          : 'var(--nav-icon-default)',
+          ? 'rgba(255,255,255,0.75)'
+          : 'rgba(255,255,255,0.45)',
         flexShrink: 0,
-        gap: expanded ? 10 : 0,
+        gap: expanded ? 6 : 0,
         paddingLeft: expanded ? 10 : 0,
         paddingRight: expanded ? 8 : 0,
         boxSizing: 'border-box',
@@ -85,24 +84,26 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
             left: 0,
             top: '50%',
             transform: 'translateY(-50%)',
-            width: 3,
+            width: 2,
             height: 16,
             borderRadius: '0 2px 2px 0',
-            background: 'var(--nav-indicator)',
+            background: 'rgba(99,102,241,0.6)',
             opacity: 1,
             transition: 'opacity 0.15s ease',
           }}
         />
       )}
 
-      {/* Icon */}
+      {/* Icon — always 18px stroke-width 1.5 */}
       <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>{icon}</span>
 
       {/* Label (expanded mode only) */}
       {expanded && (
         <span style={{
-          fontSize: 12,
-          fontWeight: isActive ? 600 : 400,
+          fontSize: 10,
+          fontWeight: isActive ? 700 : 400,
+          letterSpacing: '0.07em',
+          textTransform: 'uppercase',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -124,8 +125,8 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
             minWidth: 16,
             height: 16,
             borderRadius: 8,
-            background: badgeColor || 'var(--accent)',
-            color: '#ffffff',
+            background: badgeColor || '#6366f1',
+            color: 'rgba(255,255,255,0.95)',
             fontSize: 9,
             fontWeight: 600,
             display: 'flex',
@@ -134,6 +135,7 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
             padding: '0 4px',
             lineHeight: 1,
             flexShrink: 0,
+            fontVariantNumeric: 'tabular-nums',
           }}
         >
           {badge > 99 ? '99+' : badge}
@@ -151,8 +153,8 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
             height: 8,
             borderRadius: '50%',
             background: '#4ade80',
-            border: '1.5px solid var(--bg-nav)',
-            animation: 'pulse 1.2s ease-in-out infinite',
+            border: '1.5px solid rgba(10,10,18,1)',
+            animation: 'pulse 2s ease infinite',
             zIndex: 2,
           }}
         />
@@ -167,18 +169,20 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
             top: '50%',
             transform: 'translateY(-50%)',
             marginLeft: 8,
-            background: 'var(--popup-bg)',
-            border: '1px solid var(--popup-border)',
-            borderRadius: 6,
-            padding: '4px 10px',
-            fontSize: 11,
+            background: 'rgba(15,15,25,0.96)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.09)',
+            borderRadius: 7,
+            padding: '5px 10px',
+            fontSize: 12,
             fontWeight: 500,
-            color: 'var(--text-primary)',
+            color: 'rgba(255,255,255,0.82)',
             whiteSpace: 'nowrap',
-            boxShadow: 'var(--popup-shadow)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
             pointerEvents: 'none',
             zIndex: 100,
-            animation: 'popup-in 0.12s ease',
+            animation: 'slideUp 0.10s ease',
           }}
         >
           {label}
@@ -186,11 +190,11 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
             <span style={{
               marginLeft: 6,
               padding: '1px 4px',
-              borderRadius: 3,
-              background: 'rgba(255,255,255,0.1)',
+              borderRadius: 6,
+              background: 'rgba(255,255,255,0.10)',
               fontSize: 10,
               fontWeight: 400,
-              color: 'var(--text-muted)',
+              color: 'rgba(255,255,255,0.45)',
               letterSpacing: '0.02em',
             }}>
               {shortcut}
@@ -224,6 +228,7 @@ export default function NavRail() {
   const t = useT()
 
   const [showAvatarPicker, setShowAvatarPicker] = React.useState(false)
+  const [avatarHovered, setAvatarHovered] = React.useState(false)
   const avatarAnchorRef = React.useRef<HTMLDivElement>(null)
 
   const toggleNavExpanded = () => {
@@ -246,8 +251,10 @@ export default function NavRail() {
   const changedFilesCount = useMemo(() => new Set(changedFiles.map(f => f.filePath)).size, [changedFiles])
   const isStreaming = useChatStore(s => s.isStreaming)
   const isSettingsActive = useUiStore(s => s.settingsModalOpen)
+  const unreadSessionCount = useUiStore(s => s.unreadSessionCount)
 
-  const iconSize = navExpanded ? 20 : 18
+  // All nav icons normalized to 18px
+  const iconSize = 18
 
   return (
     <nav
@@ -256,8 +263,8 @@ export default function NavRail() {
       style={{
         width: navExpanded ? 152 : 48,
         flexShrink: 0,
-        background: 'var(--bg-nav)',
-        borderRight: '1px solid var(--border)',
+        background: 'rgba(10,10,18,0.97)',
+        borderRight: '1px solid rgba(255,255,255,0.07)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: navExpanded ? 'stretch' : 'center',
@@ -268,23 +275,25 @@ export default function NavRail() {
         userSelect: 'none',
         overflowY: 'auto',
         overflowX: 'hidden',
-        transition: 'width 0.2s ease',
+        transition: 'width 0.15s ease',
       }}
     >
       {/* Departments */}
       <NavItem
-        icon={<Building2 size={iconSize} />}
+        icon={<Building2 size={iconSize} strokeWidth={1.5} />}
         label={t('nav.departments')}
         shortcut="Ctrl+1"
         isActive={isDepartmentActive}
         onClick={() => useUiStore.getState().setMainView('department')}
         pulseDot={isStreaming && !isDepartmentActive}
+        badge={unreadSessionCount > 0 ? unreadSessionCount : undefined}
+        badgeColor="#f87171"
         expanded={navExpanded}
       />
 
       {/* Employees (Workflows) */}
       <NavItem
-        icon={<Users size={iconSize} />}
+        icon={<Users size={iconSize} strokeWidth={1.5} />}
         label={t('nav.employees')}
         shortcut="Ctrl+6"
         isActive={isWorkflowsActive}
@@ -294,7 +303,7 @@ export default function NavRail() {
 
       {/* Notes */}
       <NavItem
-        icon={<NotebookPen size={iconSize} />}
+        icon={<NotebookPen size={iconSize} strokeWidth={1.5} />}
         label={t('nav.notes')}
         shortcut="Ctrl+3"
         isActive={isNotesActive}
@@ -304,7 +313,7 @@ export default function NavRail() {
 
       {/* Skills */}
       <NavItem
-        icon={<Puzzle size={iconSize} />}
+        icon={<Puzzle size={iconSize} strokeWidth={1.5} />}
         label={t('nav.skills')}
         shortcut="Ctrl+4"
         isActive={isSkillsActive}
@@ -314,7 +323,7 @@ export default function NavRail() {
 
       {/* Memory */}
       <NavItem
-        icon={<Brain size={iconSize} />}
+        icon={<Brain size={iconSize} strokeWidth={1.5} />}
         label={t('nav.memory')}
         shortcut="Ctrl+5"
         isActive={isMemoryActive}
@@ -324,7 +333,7 @@ export default function NavRail() {
 
       {/* Channel */}
       <NavItem
-        icon={<Workflow size={iconSize} />}
+        icon={<Workflow size={iconSize} strokeWidth={1.5} />}
         label={t('nav.channel')}
         shortcut="Ctrl+7"
         isActive={isChannelActive}
@@ -334,7 +343,7 @@ export default function NavRail() {
 
       {/* Tasks (Iteration 465) */}
       <NavItem
-        icon={<CheckSquare size={iconSize} />}
+        icon={<CheckSquare size={iconSize} strokeWidth={1.5} />}
         label={t('nav.tasks')}
         shortcut="Ctrl+8"
         isActive={isTasksActive}
@@ -344,24 +353,35 @@ export default function NavRail() {
 
       {/* Changes (Iteration 521) */}
       <NavItem
-        icon={<GitBranch size={iconSize} />}
+        icon={<GitBranch size={iconSize} strokeWidth={1.5} />}
         label={t('nav.changes')}
         shortcut="Ctrl+9"
         isActive={isChangesActive}
         onClick={() => setActiveNavItem('changes')}
         badge={changedFilesCount > 0 ? changedFilesCount : undefined}
-        badgeColor="var(--accent)"
+        badgeColor="#6366f1"
         expanded={navExpanded}
       />
 
       {/* Spacer — pushes avatar + settings + toggle to bottom */}
       <div style={{ flex: 1 }} />
 
+      {/* Bottom section separator */}
+      <div style={{
+        borderTop: '1px solid rgba(255,255,255,0.06)',
+        marginBottom: 6,
+        marginTop: 4,
+        marginLeft: navExpanded ? -6 : -4,
+        marginRight: navExpanded ? -6 : -4,
+      }} />
+
       {/* Avatar -- shows persona emoji, preset avatar, or generic user icon */}
-      <div style={{ position: 'relative', flexShrink: 0 }}>
+      <div style={{ position: 'relative', flexShrink: 0, marginBottom: 2 }}>
         <div
           ref={avatarAnchorRef}
           onClick={() => setShowAvatarPicker(!showAvatarPicker)}
+          onMouseEnter={() => setAvatarHovered(true)}
+          onMouseLeave={() => setAvatarHovered(false)}
           style={{
             width: navExpanded ? '100%' : 30,
             height: 30,
@@ -370,7 +390,7 @@ export default function NavRail() {
               ? `${activePersona.color}20`
               : selectedAvatar
               ? selectedAvatar.bg
-              : 'var(--avatar-ai)',
+              : 'rgba(99,102,241,0.20)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: navExpanded ? 'flex-start' : 'center',
@@ -381,7 +401,10 @@ export default function NavRail() {
               : selectedAvatar
               ? `2px solid ${selectedAvatar.border}`
               : '2px solid transparent',
-            transition: 'background 200ms, border-color 200ms, width 0.2s ease',
+            boxShadow: avatarHovered
+              ? '0 0 0 2px rgba(99,102,241,0.30)'
+              : 'none',
+            transition: 'background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, width 0.15s ease',
             gap: navExpanded ? 8 : 0,
             paddingLeft: navExpanded ? 8 : 0,
             boxSizing: 'border-box',
@@ -393,13 +416,13 @@ export default function NavRail() {
             ? <span style={{ fontSize: 14, lineHeight: 1 }}>{activePersona.emoji}</span>
             : selectedAvatar
             ? <span style={{ fontSize: 14, lineHeight: 1 }}>{selectedAvatar.emoji}</span>
-            : <User size={14} color="#ffffff" />
+            : <User size={14} strokeWidth={1.5} color="rgba(255,255,255,0.82)" />
           }
           {navExpanded && (
             <span style={{
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: 500,
-              color: 'var(--text-muted)',
+              color: 'rgba(255,255,255,0.45)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -419,7 +442,7 @@ export default function NavRail() {
 
       {/* Settings */}
       <NavItem
-        icon={<Settings size={iconSize} />}
+        icon={<Settings size={iconSize} strokeWidth={1.5} />}
         label={t('nav.settings')}
         shortcut="Ctrl+,"
         isActive={isSettingsActive}
@@ -442,22 +465,34 @@ export default function NavRail() {
           background: 'transparent',
           cursor: 'pointer',
           marginTop: 4,
-          color: 'var(--nav-icon-default)',
-          gap: navExpanded ? 8 : 0,
+          color: 'rgba(255,255,255,0.38)',
+          gap: navExpanded ? 6 : 0,
           paddingLeft: navExpanded ? 10 : 0,
           paddingRight: navExpanded ? 8 : 0,
           boxSizing: 'border-box',
-          transition: 'background 0.15s ease, width 0.2s ease',
+          transition: 'background 0.15s ease, color 0.15s ease, width 0.15s ease',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+          e.currentTarget.style.color = 'rgba(255,255,255,0.55)'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'transparent'
+          e.currentTarget.style.color = 'rgba(255,255,255,0.38)'
+        }}
       >
         {navExpanded
-          ? <PanelLeftClose size={16} />
-          : <PanelLeftOpen size={16} />
+          ? <PanelLeftClose size={16} strokeWidth={1.5} />
+          : <PanelLeftOpen size={16} strokeWidth={1.5} />
         }
         {navExpanded && (
-          <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)' }}>
+          <span style={{
+            fontSize: 10,
+            fontWeight: 400,
+            letterSpacing: '0.07em',
+            textTransform: 'uppercase',
+            color: 'inherit',
+          }}>
             {t('nav.collapseNav')}
           </span>
         )}

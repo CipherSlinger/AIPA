@@ -49,6 +49,8 @@ export default function StatusBarModelPicker({ modelLabel, shortModel, isClaudeM
   const [show, setShow] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const [providerModels, setProviderModels] = useState<ProviderGroup[]>([])
+  const [hoveredModel, setHoveredModel] = useState<string | null>(null)
+  const [chipHovered, setChipHovered] = useState(false)
 
   useEffect(() => {
     if (!show) return
@@ -92,26 +94,27 @@ export default function StatusBarModelPicker({ modelLabel, shortModel, isClaudeM
     <div style={{ position: 'relative' }} ref={ref}>
       <button
         onClick={() => setShow(!show)}
+        onMouseEnter={() => setChipHovered(true)}
+        onMouseLeave={() => setChipHovered(false)}
         style={{
-          padding: '1px 6px',
-          borderRadius: 8,
-          background: show ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.15)',
-          fontSize: 10,
+          padding: '2px 8px',
+          borderRadius: 6,
+          background: chipHovered || show ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.06)',
+          border: '1px solid rgba(255,255,255,0.09)',
+          fontSize: 11,
           fontWeight: 500,
           whiteSpace: 'nowrap',
-          opacity: 0.9,
-          border: 'none',
-          color: '#fff',
+          color: chipHovered || show ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.55)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           gap: 3,
-          transition: 'background 0.15s',
+          transition: 'all 0.15s ease',
         }}
         title={t('chat.switchModel')}
       >
         {!isClaudeModel && (
-          <span style={{ fontSize: 8, opacity: 0.7, padding: '0 3px', borderRadius: 3, background: 'rgba(255,255,255,0.15)' }}>
+          <span style={{ fontSize: 8, opacity: 0.7, padding: '0 3px', borderRadius: 6, background: 'rgba(255,255,255,0.15)' }}>
             {modelLabel.includes('gpt') ? 'OpenAI' : modelLabel.includes('deepseek') ? 'DeepSeek' : 'API'}
           </span>
         )}
@@ -126,49 +129,67 @@ export default function StatusBarModelPicker({ modelLabel, shortModel, isClaudeM
             bottom: '100%',
             right: 0,
             marginBottom: 4,
-            background: 'var(--popup-bg)',
-            border: '1px solid var(--popup-border)',
-            boxShadow: 'var(--popup-shadow)',
-            borderRadius: 8,
+            background: 'rgba(15,15,25,0.96)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.09)',
+            borderRadius: 10,
+            boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
             padding: '4px 0',
-            minWidth: 180,
+            minWidth: 220,
             zIndex: 100,
           }}
         >
           {(providerModels.length > 0 ? providerModels : [{ providerId: 'claude-cli', providerName: 'Claude', models: MODEL_OPTIONS.map(o => ({ id: o.id, name: o.id, provider: 'claude-cli' })) }]).map(group => (
             <React.Fragment key={group.providerId}>
-              <div style={{ padding: '5px 12px 2px', fontSize: 9, fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <div style={{
+                padding: '8px 12px 3px',
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: '0.07em',
+                textTransform: 'uppercase',
+                color: 'rgba(255,255,255,0.45)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}>
                 {group.healthStatus && (
-                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: group.healthStatus === 'healthy' ? '#22c55e' : group.healthStatus === 'degraded' ? '#f59e0b' : '#ef4444' }} />
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: group.healthStatus === 'healthy' ? '#22c55e' : group.healthStatus === 'degraded' ? '#fbbf24' : '#f87171' }} />
                 )}
                 {group.providerName}
               </div>
               {group.models.map(m => {
                 const isActive = m.id === (model || 'claude-sonnet-4-6')
+                const isHovered = hoveredModel === m.id
                 return (
                   <button
                     key={m.id}
                     onClick={() => handleSelect(m.id)}
+                    onMouseEnter={() => setHoveredModel(m.id)}
+                    onMouseLeave={() => setHoveredModel(null)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: 6,
                       width: '100%',
-                      padding: '5px 12px 5px 20px',
-                      background: isActive ? 'var(--popup-item-hover)' : 'transparent',
-                      border: 'none',
-                      color: isActive ? 'var(--accent)' : 'var(--text-primary)',
+                      padding: '7px 12px 7px 20px',
+                      background: isActive
+                        ? 'rgba(99,102,241,0.12)'
+                        : isHovered ? 'rgba(255,255,255,0.06)' : 'transparent',
+                      borderLeft: isActive ? '2px solid rgba(99,102,241,0.6)' : '2px solid transparent',
+                      borderTop: 'none',
+                      borderRight: 'none',
+                      borderBottom: 'none',
+                      borderRadius: isActive ? 0 : 5,
+                      color: isActive ? '#818cf8' : 'rgba(255,255,255,0.72)',
                       cursor: 'pointer',
-                      fontSize: 11,
                       textAlign: 'left',
-                      transition: 'background 0.1s',
+                      transition: 'background 0.15s ease',
                     }}
-                    onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
-                    onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
                   >
-                    {isActive && <Check size={11} />}
-                    <span style={{ marginLeft: isActive ? 0 : 17, flex: 1 }}>{m.name}</span>
-                    {(() => { const p = getModelPricingLabel(m.id); return p ? <span style={{ fontSize: 9, opacity: 0.5, whiteSpace: 'nowrap' }}>{p}</span> : null })()}
+                    {isActive && <Check size={11} style={{ color: '#818cf8', flexShrink: 0 }} />}
+                    <span style={{ marginLeft: isActive ? 0 : 17, flex: 1, fontWeight: 500, fontSize: 12 }}>{m.name}</span>
+                    {(() => { const p = getModelPricingLabel(m.id); return p ? <span style={{ fontSize: 11, opacity: 0.55, whiteSpace: 'nowrap' }}>{p}</span> : null })()}
                   </button>
                 )
               })}

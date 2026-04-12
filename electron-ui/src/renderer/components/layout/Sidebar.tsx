@@ -20,14 +20,14 @@ function PanelFallback() {
       alignItems: 'center',
       justifyContent: 'center',
       height: '100%',
-      color: 'var(--text-muted)',
+      color: 'rgba(255,255,255,0.45)',
       fontSize: 12,
     }}>
       <div style={{
         width: 20,
         height: 20,
-        border: '2px solid var(--border)',
-        borderTopColor: 'var(--accent)',
+        border: '2px solid rgba(255,255,255,0.07)',
+        borderTopColor: '#6366f1',
         borderRadius: '50%',
         animation: 'spin 0.8s linear infinite',
       }} />
@@ -42,8 +42,8 @@ export default function Sidebar() {
     <div
       className="flex flex-col h-full"
       style={{
-        background: 'var(--bg-sessionpanel)',
-        borderRight: '1px solid var(--border)',
+        background: 'rgba(10,10,18,0.97)',
+        borderRight: '1px solid rgba(255,255,255,0.07)',
         overflow: 'hidden',
       }}
     >

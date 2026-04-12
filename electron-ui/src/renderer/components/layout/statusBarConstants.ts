@@ -6,8 +6,9 @@ export function Separator() {
   return React.createElement('div', {
     style: {
       width: 1,
-      height: 14,
-      background: 'rgba(255,255,255,0.15)',
+      height: 12,
+      background: 'rgba(255,255,255,0.06)',
+      borderRadius: 1,
       margin: '0 4px',
       flexShrink: 0,
     },

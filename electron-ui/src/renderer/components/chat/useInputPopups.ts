@@ -214,6 +214,27 @@ export function useInputPopups({
           useUiStore.getState().toggleStatusBar()
           const show = useUiStore.getState().showStatusBar
           useUiStore.getState().addToast('success', show ? 'Status bar shown' : 'Status bar hidden')
+        } else if (cmd.name === '/rename') {
+          window.dispatchEvent(new CustomEvent('aipa:renameSession'))
+        } else if (cmd.name === '/export') {
+          window.dispatchEvent(new CustomEvent('aipa:openExport'))
+        } else if (cmd.name === '/plan') {
+          window.dispatchEvent(new CustomEvent('aipa:togglePlan'))
+        } else if (cmd.name === '/permissions') {
+          useUiStore.getState().openSettingsAt('permissions')
+        } else if (cmd.name === '/hooks') {
+          useUiStore.getState().openSettingsAt('hooks')
+        } else if (cmd.name === '/mcp') {
+          useUiStore.getState().openSettingsAt('plugins')
+        } else if (cmd.name === '/memory') {
+          useUiStore.getState().openSettingsAt('memory')
+        } else if (cmd.name === '/model') {
+          useUiStore.getState().openSettingsAt('general')
+          useUiStore.getState().addToast('info', 'Model settings → General tab')
+        } else if (cmd.name === '/cost') {
+          useUiStore.getState().openSettingsAt('stats')
+        } else if (cmd.name === '/skills') {
+          useUiStore.getState().setActiveNavItem('skills')
         }
         return
       }

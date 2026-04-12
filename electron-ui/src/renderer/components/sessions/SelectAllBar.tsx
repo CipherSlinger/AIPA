@@ -26,11 +26,15 @@ export default function SelectAllBar({ filtered, currentSessionId, selectedIds, 
       display: 'flex',
       alignItems: 'center',
       gap: 8,
-      padding: '4px 12px',
-      borderBottom: '1px solid var(--border)',
+      padding: '6px 10px',
       flexShrink: 0,
-      fontSize: 11,
-      color: 'var(--text-muted)',
+      background: 'rgba(15,15,25,0.95)',
+      backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
+      border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: 8,
+      fontSize: 12,
+      color: 'rgba(255,255,255,0.60)',
     }}>
       <button
         onClick={() => {
@@ -43,23 +47,38 @@ export default function SelectAllBar({ filtered, currentSessionId, selectedIds, 
         style={{
           background: 'none',
           border: 'none',
-          color: 'var(--text-muted)',
+          color: 'rgba(255,255,255,0.60)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           gap: 4,
           padding: 0,
-          fontSize: 11,
+          fontSize: 12,
+          transition: 'all 0.15s ease',
         }}
+        onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
+        onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
       >
         {allSelected
-          ? <CheckSquare size={13} style={{ color: 'var(--accent)' }} />
-          : <Square size={13} />
+          ? <CheckSquare size={13} style={{ color: '#6366f1' }} />
+          : <Square size={13} style={{ color: 'rgba(255,255,255,0.38)' }} />
         }
         <span>{t('session.selectAll')}</span>
       </button>
       {selectedIds.size > 0 && (
-        <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--accent)', fontWeight: 500 }}>
+        <span style={{
+          marginLeft: 'auto',
+          background: 'rgba(99,102,241,0.18)',
+          border: '1px solid rgba(99,102,241,0.28)',
+          borderRadius: 20,
+          padding: '1px 7px',
+          fontSize: 10,
+          fontWeight: 700,
+          color: '#818cf8',
+          fontVariantNumeric: 'tabular-nums',
+          fontFeatureSettings: '"tnum"',
+          letterSpacing: '0.02em',
+        }}>
           {t('session.selectedCount', { count: String(selectedIds.size) })}
         </span>
       )}

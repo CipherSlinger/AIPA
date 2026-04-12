@@ -7,13 +7,30 @@ interface Props {
   onRespond: (requestId: string, response: Record<string, unknown>) => void
 }
 
+/** A single choice option from CLI PromptRequest */
+interface PromptOption {
+  key: string
+  label: string
+  description?: string
+}
+
 export function HookCallbackCard({ message, onRespond }: Props) {
   const [showReason, setShowReason] = useState(false)
   const [reason, setReason] = useState('')
+  const [approveHover, setApproveHover] = useState(false)
+  const [blockHover, setBlockHover] = useState(false)
+  const [selectedOptionKey, setSelectedOptionKey] = useState<string | null>(null)
 
   const hookEventName = (message.hookInput.hook_event_name as string) || 'Hook Event'
   const toolName = (message.hookInput.tool_name as string) || ''
   const toolInput = (message.hookInput.tool_input as Record<string, unknown>) || {}
+
+  // Detect PromptRequest options array
+  const rawOptions = message.hookInput.options
+  const options: PromptOption[] | null =
+    Array.isArray(rawOptions) && rawOptions.length > 0
+      ? (rawOptions as PromptOption[])
+      : null
 
   const isPending = message.decision === 'pending'
   const isApproved = message.decision === 'approved'
@@ -32,6 +49,13 @@ export function HookCallbackCard({ message, onRespond }: Props) {
     onRespond(message.requestId, response)
   }
 
+  const handleOptionConfirm = () => {
+    if (!isPending || !selectedOptionKey) return
+    const response: Record<string, unknown> = { decision: 'approve', selected_key: selectedOptionKey }
+    if (reason.trim()) response.reason = reason.trim()
+    onRespond(message.requestId, response)
+  }
+
   // Trim tool input JSON for display (max 400 chars)
   const toolInputStr = Object.keys(toolInput).length > 0
     ? JSON.stringify(toolInput, null, 2).slice(0, 400)
@@ -43,46 +67,50 @@ export function HookCallbackCard({ message, onRespond }: Props) {
       style={{
         margin: '8px auto',
         maxWidth: 420,
-        border: `${isPending ? '2px' : '1px'} solid ${isPending ? 'var(--accent)' : 'var(--card-border)'}`,
-        borderRadius: 12,
-        background: 'var(--card-bg)',
+        background: 'rgba(15,15,25,0.88)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderLeft: isPending ? '3px solid rgba(99,102,241,0.50)' : '3px solid rgba(99,102,241,0.20)',
+        borderRadius: 10,
         padding: '16px 18px',
         display: 'flex',
         flexDirection: 'column',
         gap: 12,
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
       }}
     >
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{
-          width: 44,
-          height: 44,
-          borderRadius: '50%',
+          width: 36,
+          height: 36,
+          borderRadius: 8,
           background: 'rgba(99,102,241,0.12)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
-          color: isPending ? 'var(--accent)' : 'var(--text-muted)',
-          opacity: isPending ? 1 : 0.6,
-          transition: 'opacity 0.2s ease',
+          color: '#818cf8',
+          opacity: isPending ? 1 : 0.55,
+          transition: 'opacity 0.15s ease',
         }}>
-          <Zap size={22} />
+          <Zap size={18} />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)' }}>
               {hookEventName}
             </span>
             {isPending && (
               <span style={{
                 fontSize: 9,
                 fontWeight: 700,
-                letterSpacing: 0.5,
+                letterSpacing: '0.07em',
                 padding: '1px 5px',
-                borderRadius: 4,
+                borderRadius: 6,
                 background: 'rgba(99,102,241,0.15)',
-                color: 'var(--accent)',
+                color: '#818cf8',
                 textTransform: 'uppercase',
               }}>
                 Hook
@@ -92,12 +120,19 @@ export function HookCallbackCard({ message, onRespond }: Props) {
           {toolName && (
             <span style={{
               fontSize: 11,
-              color: 'var(--text-muted)',
+              color: 'rgba(255,255,255,0.38)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
             }}>
-              Tool: <code style={{ fontFamily: 'monospace', fontSize: 11 }}>{toolName}</code>
+              Tool: <code style={{
+                fontFamily: 'monospace',
+                fontSize: 11,
+                background: 'rgba(99,102,241,0.12)',
+                color: '#a5b4fc',
+                borderRadius: 6,
+                padding: '1px 6px',
+              }}>{toolName}</code>
             </span>
           )}
         </div>
@@ -105,13 +140,14 @@ export function HookCallbackCard({ message, onRespond }: Props) {
 
       {/* Tool input summary */}
       {toolInputStr && (
-        <div style={{
+        <pre style={{
+          margin: 0,
           fontSize: 11,
-          color: 'var(--text-muted)',
-          background: 'var(--action-btn-bg)',
-          border: '1px solid var(--action-btn-border)',
+          color: '#a5b4fc',
+          background: 'rgba(0,0,0,0.30)',
+          border: '1px solid rgba(255,255,255,0.07)',
           borderRadius: 6,
-          padding: '8px 12px',
+          padding: '6px 10px',
           fontFamily: 'monospace',
           maxHeight: 96,
           overflow: 'auto',
@@ -120,7 +156,7 @@ export function HookCallbackCard({ message, onRespond }: Props) {
           lineHeight: 1.5,
         }}>
           {toolInputStr}
-        </div>
+        </pre>
       )}
 
       {/* Result badge or actions */}
@@ -130,8 +166,8 @@ export function HookCallbackCard({ message, onRespond }: Props) {
             display: 'inline-flex',
             alignItems: 'center',
             gap: 4,
-            background: isApproved ? 'rgba(78,201,176,0.15)' : 'rgba(244,71,71,0.15)',
-            color: isApproved ? 'var(--success)' : 'var(--error)',
+            background: isApproved ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
+            color: isApproved ? '#4ade80' : '#f87171',
             borderRadius: 12,
             padding: '3px 10px',
             fontWeight: 500,
@@ -140,7 +176,184 @@ export function HookCallbackCard({ message, onRespond }: Props) {
             {isApproved ? 'Approved' : 'Blocked'}
           </span>
         </div>
+      ) : options ? (
+        /* ── PromptRequest multi-option UI ── */
+        <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            {/* Section label */}
+            <div style={{
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: '0.07em',
+              textTransform: 'uppercase',
+              color: 'rgba(255,255,255,0.38)',
+              marginBottom: 2,
+            }}>
+              Select an option
+            </div>
+            {options.map(opt => {
+              const isSelected = selectedOptionKey === opt.key
+              return (
+                <button
+                  key={opt.key}
+                  onClick={() => setSelectedOptionKey(opt.key)}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    gap: 2,
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: 7,
+                    background: isSelected ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.04)',
+                    border: isSelected
+                      ? '1px solid rgba(99,102,241,0.40)'
+                      : '1px solid rgba(255,255,255,0.08)',
+                    borderLeft: isSelected
+                      ? '3px solid rgba(99,102,241,0.75)'
+                      : '3px solid transparent',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.background = 'rgba(99,102,241,0.07)'
+                      e.currentTarget.style.borderColor = 'rgba(99,102,241,0.25)'
+                      e.currentTarget.style.borderLeft = '3px solid rgba(99,102,241,0.40)'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+                      e.currentTarget.style.borderLeft = '3px solid transparent'
+                    }
+                  }}
+                >
+                  <span style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: isSelected ? '#a5b4fc' : 'rgba(255,255,255,0.82)',
+                    transition: 'color 0.15s ease',
+                  }}>
+                    {opt.label}
+                  </span>
+                  {opt.description && (
+                    <span style={{
+                      fontSize: 11,
+                      color: isSelected ? 'rgba(165,180,252,0.70)' : 'rgba(255,255,255,0.45)',
+                      lineHeight: 1.35,
+                    }}>
+                      {opt.description}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Optional reason textarea */}
+          {showReason && (
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Optional reason..."
+              rows={2}
+              style={{
+                width: '100%',
+                boxSizing: 'border-box',
+                borderRadius: 6,
+                border: '1px solid rgba(255,255,255,0.08)',
+                padding: '6px 10px',
+                fontSize: 12,
+                resize: 'vertical',
+                background: 'rgba(255,255,255,0.04)',
+                color: 'rgba(255,255,255,0.82)',
+                fontFamily: 'inherit',
+                outline: 'none',
+                transition: 'border-color 0.15s ease',
+              }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = '#6366f1' }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
+            />
+          )}
+
+          {/* Confirm button */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={handleOptionConfirm}
+              disabled={!selectedOptionKey}
+              onMouseEnter={(e) => {
+                if (selectedOptionKey) {
+                  e.currentTarget.style.filter = 'brightness(0.95)'
+                  e.currentTarget.style.transform = 'translateY(-1px)'
+                  e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.filter = 'none'
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
+              style={{
+                flex: 1,
+                height: 36,
+                borderRadius: 6,
+                border: 'none',
+                background: selectedOptionKey
+                  ? 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))'
+                  : 'rgba(255,255,255,0.06)',
+                color: selectedOptionKey ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.35)',
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: selectedOptionKey ? 'pointer' : 'not-allowed',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <Check size={14} /> Confirm
+            </button>
+          </div>
+
+          {/* Add reason toggle */}
+          <div style={{ display: 'flex', borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 8 }}>
+            <button
+              onClick={() => setShowReason(!showReason)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = '1'
+                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '0.75'
+                e.currentTarget.style.background = 'transparent'
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'rgba(251,191,36,0.7)',
+                cursor: 'pointer',
+                fontSize: 11,
+                fontWeight: 500,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '2px 5px',
+                borderRadius: 8,
+                opacity: 0.75,
+                transition: 'opacity 0.15s ease, background 0.15s ease',
+              }}
+            >
+              {showReason ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+              {showReason ? 'Hide reason' : 'Add reason'}
+            </button>
+          </div>
+        </>
       ) : (
+        /* ── Standard approve/block UI ── */
         <>
           {/* Optional reason textarea */}
           {showReason && (
@@ -153,18 +366,18 @@ export function HookCallbackCard({ message, onRespond }: Props) {
                 width: '100%',
                 boxSizing: 'border-box',
                 borderRadius: 6,
-                border: '1px solid var(--border)',
+                border: '1px solid rgba(255,255,255,0.08)',
                 padding: '6px 10px',
                 fontSize: 12,
                 resize: 'vertical',
-                background: 'var(--action-btn-bg)',
-                color: 'var(--text-primary)',
+                background: 'rgba(255,255,255,0.04)',
+                color: 'rgba(255,255,255,0.82)',
                 fontFamily: 'inherit',
                 outline: 'none',
                 transition: 'border-color 0.15s ease',
               }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--accent)' }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = '#6366f1' }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
             />
           )}
 
@@ -172,15 +385,25 @@ export function HookCallbackCard({ message, onRespond }: Props) {
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               onClick={handleApprove}
-              onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.1)'; e.currentTarget.style.transform = 'scale(1.02)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.filter = 'brightness(1)'; e.currentTarget.style.transform = 'scale(1)' }}
+              onMouseEnter={(e) => {
+                setApproveHover(true)
+                e.currentTarget.style.filter = 'brightness(0.95)'
+                e.currentTarget.style.transform = 'translateY(-1px)'
+                e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'
+              }}
+              onMouseLeave={(e) => {
+                setApproveHover(false)
+                e.currentTarget.style.filter = 'none'
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
               style={{
                 flex: 1,
                 height: 36,
-                borderRadius: 8,
+                borderRadius: 6,
                 border: 'none',
-                background: 'var(--success)',
-                color: '#fff',
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                color: 'rgba(255,255,255,0.95)',
                 fontWeight: 600,
                 fontSize: 13,
                 cursor: 'pointer',
@@ -188,22 +411,30 @@ export function HookCallbackCard({ message, onRespond }: Props) {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 6,
-                transition: 'transform 0.15s ease, filter 0.15s ease',
+                transition: 'all 0.15s ease',
               }}
             >
               <Check size={14} /> Approve
             </button>
             <button
               onClick={handleBlock}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+              onMouseEnter={(e) => {
+                setBlockHover(true)
+                e.currentTarget.style.background = 'rgba(239,68,68,0.18)'
+                e.currentTarget.style.borderColor = 'rgba(239,68,68,0.40)'
+              }}
+              onMouseLeave={(e) => {
+                setBlockHover(false)
+                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+              }}
               style={{
                 flex: 1,
                 height: 36,
-                borderRadius: 8,
-                border: '1px solid var(--border)',
-                background: 'transparent',
-                color: 'var(--error)',
+                borderRadius: 6,
+                border: '1px solid rgba(255,255,255,0.10)',
+                background: 'rgba(255,255,255,0.06)',
+                color: '#fca5a5',
                 fontWeight: 600,
                 fontSize: 13,
                 cursor: 'pointer',
@@ -211,7 +442,7 @@ export function HookCallbackCard({ message, onRespond }: Props) {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 6,
-                transition: 'background 0.15s ease',
+                transition: 'all 0.15s ease',
               }}
             >
               <X size={14} /> Block
@@ -219,24 +450,31 @@ export function HookCallbackCard({ message, onRespond }: Props) {
           </div>
 
           {/* Add reason toggle */}
-          <div style={{ display: 'flex', borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+          <div style={{ display: 'flex', borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 8 }}>
             <button
               onClick={() => setShowReason(!showReason)}
-              onMouseEnter={(e) => { e.currentTarget.style.opacity = '1' }}
-              onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.75' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = '1'
+                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '0.75'
+                e.currentTarget.style.background = 'transparent'
+              }}
               style={{
-                background: 'none',
+                background: 'transparent',
                 border: 'none',
-                color: 'var(--text-muted)',
+                color: 'rgba(251,191,36,0.7)',
                 cursor: 'pointer',
                 fontSize: 11,
                 fontWeight: 500,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 4,
-                padding: '2px 0',
+                padding: '2px 5px',
+                borderRadius: 8,
                 opacity: 0.75,
-                transition: 'opacity 0.15s ease',
+                transition: 'opacity 0.15s ease, background 0.15s ease',
               }}
             >
               {showReason ? <ChevronUp size={11} /> : <ChevronDown size={11} />}

@@ -1,5 +1,5 @@
 /**
- * SpeculationCard — Preview card for speculative execution results (Iteration 489).
+ * SpeculationCard — Preview card for speculative execution results (Iteration 490).
  * Shows below the last assistant message when a speculation is ready.
  *
  * Inspired by Claude Code's UI for speculation previews.
@@ -16,24 +16,110 @@ interface SpeculationCardProps {
   onReject: () => void
 }
 
+// Inline spinner using border animation
+function IndigoSpinner() {
+  return (
+    <span style={{
+      display: 'inline-block',
+      width: 12,
+      height: 12,
+      borderRadius: '50%',
+      border: '2px solid rgba(99,102,241,0.25)',
+      borderTopColor: '#818cf8',
+      animation: 'spin 0.8s linear infinite',
+      flexShrink: 0,
+    }} />
+  )
+}
+
 export default function SpeculationCard({ status, result, onAccept, onReject }: SpeculationCardProps) {
   const [expanded, setExpanded] = useState(false)
 
-  if (status === 'idle' || status === 'accepted' || status === 'rejected') return null
+  if (status === 'idle') return null
 
-  // Loading state
+  // Accepted terminal state — brief green confirmation banner
+  if (status === 'accepted') {
+    return (
+      <div style={{
+        margin: '4px 16px 8px',
+        padding: '7px 12px',
+        background: 'rgba(15,15,25,0.85)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        border: '1px solid rgba(34,197,94,0.25)',
+        borderLeft: '3px solid rgba(34,197,94,0.55)',
+        borderRadius: 10,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+        display: 'flex', alignItems: 'center', gap: 8,
+      }}>
+        <Check size={12} style={{ color: '#4ade80', flexShrink: 0 }} />
+        <span style={{ fontSize: 11, color: 'rgba(74,222,128,0.82)' }}>Speculation accepted</span>
+      </div>
+    )
+  }
+
+  // Rejected terminal state — brief red confirmation banner
+  if (status === 'rejected') {
+    return (
+      <div style={{
+        margin: '4px 16px 8px',
+        padding: '7px 12px',
+        background: 'rgba(15,15,25,0.85)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        border: '1px solid rgba(239,68,68,0.20)',
+        borderLeft: '3px solid rgba(239,68,68,0.45)',
+        borderRadius: 10,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+        display: 'flex', alignItems: 'center', gap: 8,
+      }}>
+        <X size={12} style={{ color: '#f87171', flexShrink: 0 }} />
+        <span style={{ fontSize: 11, color: 'rgba(248,113,113,0.75)' }}>Speculation discarded</span>
+      </div>
+    )
+  }
+
+  // Pending state — indigo spinner waiting for execution to start
+  if (status === 'pending') {
+    return (
+      <div style={{
+        margin: '4px 16px 8px',
+        padding: '8px 12px',
+        background: 'rgba(15,15,25,0.85)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        border: '1px solid rgba(99,102,241,0.20)',
+        borderLeft: '3px solid rgba(99,102,241,0.5)',
+        borderRadius: 10,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+        display: 'flex', alignItems: 'center', gap: 8,
+      }}>
+        <IndigoSpinner />
+        <span style={{ fontSize: 11, color: 'rgba(129,140,248,0.82)' }}>
+          Queuing speculative preview…
+        </span>
+      </div>
+    )
+  }
+
+  // Running state — indigo spinner with pulse zap icon
   if (status === 'running') {
     return (
       <div style={{
         margin: '4px 16px 8px',
         padding: '8px 12px',
-        borderRadius: 8,
-        border: '1px solid rgba(139,92,246,0.2)',
-        background: 'rgba(139,92,246,0.04)',
+        background: 'rgba(15,15,25,0.85)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        border: '1px solid rgba(99,102,241,0.25)',
+        borderLeft: '3px solid rgba(99,102,241,0.6)',
+        borderRadius: 10,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
         display: 'flex', alignItems: 'center', gap: 8,
       }}>
-        <Zap size={12} style={{ color: '#8b5cf6', flexShrink: 0, animation: 'pulse 1.5s ease-in-out infinite' }} />
-        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+        <IndigoSpinner />
+        <Zap size={11} style={{ color: '#a5b4fc', flexShrink: 0, animation: 'pulse 1.5s ease-in-out infinite' }} />
+        <span style={{ fontSize: 11, color: 'rgba(165,180,252,0.82)' }}>
           Preparing speculative preview…
         </span>
       </div>
@@ -49,25 +135,32 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
   return (
     <div style={{
       margin: '4px 16px 8px',
+      background: 'rgba(15,15,25,0.85)',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
+      border: '1px solid rgba(255,255,255,0.07)',
+      borderLeft: '3px solid rgba(99,102,241,0.55)',
       borderRadius: 10,
-      border: '1px solid rgba(139,92,246,0.3)',
-      background: 'rgba(139,92,246,0.05)',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
       overflow: 'hidden',
     }}>
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
         padding: '8px 12px',
-        borderBottom: expanded ? '1px solid rgba(139,92,246,0.15)' : 'none',
+        borderBottom: expanded ? '1px solid rgba(255,255,255,0.06)' : 'none',
         cursor: 'pointer',
+        transition: 'all 0.15s ease',
       }} onClick={() => setExpanded(e => !e)}>
-        <Zap size={12} style={{ color: '#8b5cf6', flexShrink: 0 }} />
+        <Zap size={12} style={{ color: '#818cf8', flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ fontSize: 10, color: '#8b5cf6', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          {/* Title — opacity 0.82 */}
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(165,180,252,0.82)' }}>
             Speculative Preview
           </span>
+          {/* Subtitle — opacity 0.60 */}
           <div style={{
-            fontSize: 11, color: 'var(--text-muted)',
+            fontSize: 12, color: 'rgba(255,255,255,0.60)', fontStyle: 'italic',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             marginTop: 1,
           }}>
@@ -77,16 +170,18 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
           {hasFiles && (
             <span style={{
-              fontSize: 9, background: 'rgba(139,92,246,0.15)', color: '#8b5cf6',
+              fontSize: 9, background: 'rgba(99,102,241,0.12)', color: 'rgba(165,180,252,0.82)',
+              border: '1px solid rgba(99,102,241,0.28)',
               borderRadius: 6, padding: '1px 5px', fontWeight: 600,
             }}>
               {result.changedFiles.length} file{result.changedFiles.length !== 1 ? 's' : ''}
             </span>
           )}
-          <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>
+          {/* Timestamp / metadata — opacity 0.38 */}
+          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)' }}>
             {Math.round(result.durationMs / 1000)}s
           </span>
-          {expanded ? <ChevronDown size={12} style={{ color: 'var(--text-muted)' }} /> : <ChevronRight size={12} style={{ color: 'var(--text-muted)' }} />}
+          {expanded ? <ChevronDown size={12} style={{ color: 'rgba(255,255,255,0.38)' }} /> : <ChevronRight size={12} style={{ color: 'rgba(255,255,255,0.38)' }} />}
         </div>
       </div>
 
@@ -96,16 +191,19 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
           {/* Response preview */}
           {previewText && (
             <div style={{
-              fontSize: 11, color: 'var(--text-primary)', lineHeight: 1.5,
+              fontSize: 12, color: 'rgba(255,255,255,0.60)', lineHeight: 1.5,
               marginBottom: 8,
-              padding: '6px 8px',
-              background: 'rgba(0,0,0,0.12)',
-              borderRadius: 6,
+              padding: '6px 10px',
+              background: 'rgba(0,0,0,0.30)',
+              border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 8,
               maxHeight: 120,
               overflowY: 'auto',
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
-            }}>
+              scrollbarWidth: 'thin',
+              scrollbarColor: 'rgba(255,255,255,0.12) transparent',
+            } as React.CSSProperties}>
               {previewText}{result.text.length > 300 ? '…' : ''}
             </div>
           )}
@@ -113,15 +211,19 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
           {/* Tool actions */}
           {hasTools && (
             <div style={{ marginBottom: 6 }}>
-              <div style={{ fontSize: 9, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 3 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 4 }}>
                 Tool calls ({result.toolActions.length})
               </div>
               {result.toolActions.slice(0, 3).map((ta, i) => (
                 <div key={i} style={{
-                  fontSize: 10, color: 'var(--text-muted)',
-                  padding: '2px 6px', borderRadius: 4,
-                  background: 'rgba(0,0,0,0.08)', marginBottom: 2,
+                  fontSize: 11, color: 'rgba(255,255,255,0.60)',
+                  padding: '3px 8px', borderRadius: 8,
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  marginBottom: 2,
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  fontFamily: 'monospace',
+                  transition: 'all 0.15s ease',
                 }}>
                   {ta.name}({Object.keys(ta.input).slice(0, 2).join(', ')})
                 </div>
@@ -132,20 +234,27 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
           {/* Changed files */}
           {hasFiles && (
             <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 9, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 3 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 4 }}>
                 Files to be modified
               </div>
               {result.changedFiles.slice(0, 5).map((f, i) => (
                 <div key={i} style={{
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  fontSize: 10, color: '#8b5cf6', marginBottom: 1,
-                }}>
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  fontSize: 11, color: 'rgba(165,180,252,0.82)', marginBottom: 2,
+                  padding: '3px 8px', borderRadius: 8,
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  transition: 'all 0.15s ease',
+                }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)' }}
+                >
                   <FileEdit size={10} />
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f}</span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>{f}</span>
                 </div>
               ))}
               {result.changedFiles.length > 5 && (
-                <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)' }}>
                   +{result.changedFiles.length - 5} more
                 </div>
               )}
@@ -157,46 +266,53 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
       {/* Accept / Reject bar */}
       <div style={{
         display: 'flex', gap: 6, padding: '6px 12px',
-        borderTop: '1px solid rgba(139,92,246,0.15)',
-        background: 'rgba(0,0,0,0.04)',
+        borderTop: '1px solid rgba(255,255,255,0.06)',
+        background: 'rgba(8,8,16,0.5)',
       }}>
+        {/* Accept — indigo gradient CTA */}
         <button
           onClick={onAccept}
           style={{
             display: 'flex', alignItems: 'center', gap: 4,
-            padding: '3px 10px', borderRadius: 6, fontSize: 10, fontWeight: 600,
-            border: 'none', background: '#8b5cf6', color: '#fff', cursor: 'pointer',
-            transition: 'background 150ms',
+            padding: '3px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600,
+            border: 'none',
+            background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(79,70,229,0.85))',
+            color: 'rgba(255,255,255,0.95)', cursor: 'pointer',
+            transition: 'all 0.15s ease',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = '#7c3aed' }}
-          onMouseLeave={e => { e.currentTarget.style.background = '#8b5cf6' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,1), rgba(79,70,229,1))' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(79,70,229,0.85))' }}
         >
           <Check size={10} />
           Accept
         </button>
+        {/* Reject — ghost glass */}
         <button
           onClick={onReject}
           style={{
             display: 'flex', alignItems: 'center', gap: 4,
-            padding: '3px 8px', borderRadius: 6, fontSize: 10,
-            border: '1px solid rgba(139,92,246,0.3)', background: 'transparent',
-            color: 'var(--text-muted)', cursor: 'pointer',
-            transition: 'border-color 150ms, color 150ms',
+            padding: '3px 8px', borderRadius: 6, fontSize: 12,
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.10)',
+            color: 'rgba(255,255,255,0.60)', cursor: 'pointer',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.borderColor = 'var(--error)'
-            e.currentTarget.style.color = 'var(--error)'
+            e.currentTarget.style.background = 'rgba(239,68,68,0.12)'
+            e.currentTarget.style.borderColor = 'rgba(239,68,68,0.35)'
+            e.currentTarget.style.color = '#fca5a5'
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.borderColor = 'rgba(139,92,246,0.3)'
-            e.currentTarget.style.color = 'var(--text-muted)'
+            e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
           }}
         >
           <X size={10} />
           Discard
         </button>
         <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 9, color: 'var(--text-muted)', alignSelf: 'center' }}>
+        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)', alignSelf: 'center' }}>
           Pre-executed in sandbox
         </span>
       </div>

@@ -87,6 +87,10 @@ function LSPResultBody({ text }: { text: string }) {
         overflowX: 'auto',
         maxHeight: 300,
         overflowY: 'auto',
+        background: 'rgba(12,12,22,0.9)',
+        border: '1px solid rgba(255,255,255,0.07)',
+        borderRadius: 7,
+        color: '#a5b4fc',
       }}
     >
       {lines.map((line, i) => {
@@ -106,11 +110,11 @@ function LSPResultBody({ text }: { text: string }) {
         // Error / no-result messages
         const isError = /^(No |Error |LSP server )/.test(trimmed) || trimmed.startsWith('Error')
 
-        let color = 'var(--text-primary)'
-        if (isError) color = 'var(--text-muted)'
-        else if (isSummary) color = 'var(--accent)'
-        else if (isFilePath) color = 'var(--success, #4ade80)'
-        else if (isLocation) color = 'var(--text-secondary)'
+        let color = 'rgba(255,255,255,0.82)'
+        if (isError) color = 'rgba(255,255,255,0.38)'
+        else if (isSummary) color = '#a5b4fc'
+        else if (isFilePath) color = '#4ade80'
+        else if (isLocation) color = 'rgba(255,255,255,0.6)'
 
         return (
           <div
@@ -161,11 +165,14 @@ export default function LSPResultCard({ data }: Props) {
   return (
     <div
       style={{
-        border: '1px solid var(--border)',
-        borderRadius: 6,
+        background: 'rgba(15,15,25,0.90)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        border: '1px solid rgba(255,255,255,0.09)',
+        borderRadius: 10,
+        boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
         overflow: 'hidden',
         marginBottom: 4,
-        background: 'var(--tool-card-bg, rgba(0,0,0,0.12))',
       }}
     >
       {/* Card header */}
@@ -181,34 +188,38 @@ export default function LSPResultCard({ data }: Props) {
           border: 'none',
           cursor: 'pointer',
           textAlign: 'left',
-          color: 'var(--text-primary)',
+          color: 'rgba(255,255,255,0.82)',
         }}
       >
         {expanded
-          ? <ChevronDown size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-          : <ChevronRight size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+          ? <ChevronDown size={11} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
+          : <ChevronRight size={11} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
         }
 
         {/* LSP icon */}
-        <Code2 size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+        <Code2 size={12} style={{ color: '#818cf8', flexShrink: 0 }} />
 
-        {/* Operation label */}
+        {/* Operation label — type badge */}
         <span style={{
-          fontSize: 12,
+          fontSize: 10,
           fontWeight: 600,
-          color: 'var(--accent)',
+          color: '#818cf8',
+          background: 'rgba(99,102,241,0.15)',
+          border: '1px solid rgba(99,102,241,0.3)',
+          borderRadius: 10,
+          padding: '1px 6px',
           flexShrink: 0,
         }}>
           LSP: {opLabel}
         </span>
 
         {/* Operation-specific icon */}
-        <OpIcon size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+        <OpIcon size={11} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
 
         {/* File path */}
         <span style={{
           fontSize: 10,
-          color: 'var(--text-muted)',
+          color: 'rgba(255,255,255,0.38)',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -224,14 +235,14 @@ export default function LSPResultCard({ data }: Props) {
             fontSize: 9,
             fontWeight: 700,
             padding: '1px 5px',
-            borderRadius: 3,
+            borderRadius: 6,
             background: isEmpty
-              ? 'rgba(var(--text-muted-rgb, 120,120,120), 0.15)'
-              : 'rgba(var(--accent-rgb, 99,102,241), 0.15)',
-            color: isEmpty ? 'var(--text-muted)' : 'var(--accent)',
+              ? 'rgba(120,120,120,0.12)'
+              : 'rgba(99,102,241,0.15)',
+            color: isEmpty ? 'rgba(255,255,255,0.38)' : '#818cf8',
             border: `1px solid ${isEmpty
               ? 'rgba(120,120,120,0.25)'
-              : 'rgba(var(--accent-rgb, 99,102,241), 0.35)'}`,
+              : 'rgba(99,102,241,0.3)'}`,
             flexShrink: 0,
             letterSpacing: '0.02em',
           }}>
@@ -242,7 +253,7 @@ export default function LSPResultCard({ data }: Props) {
 
       {/* Expandable body */}
       {expanded && (
-        <div style={{ borderTop: '1px solid var(--border)' }}>
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           <LSPResultBody text={data.result} />
         </div>
       )}

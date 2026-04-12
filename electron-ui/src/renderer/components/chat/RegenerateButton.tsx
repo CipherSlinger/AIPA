@@ -25,7 +25,7 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
   }, [showRegenModels])
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 16px 8px' }}>
+    <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 16px' }}>
       <div ref={regenModelRef} style={{ position: 'relative', display: 'inline-flex' }}>
         <button
           onClick={onRegenerate}
@@ -34,31 +34,28 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
             display: 'flex',
             alignItems: 'center',
             gap: 6,
-            padding: '6px 12px 6px 16px',
-            background: 'var(--action-btn-bg)',
-            border: '1px solid var(--action-btn-border)',
-            borderRight: 'none',
-            borderRadius: '20px 0 0 20px',
+            padding: '5px 14px',
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.10)',
+            borderRadius: 7,
             cursor: 'pointer',
-            color: 'var(--text-muted)',
+            color: '#818cf8',
             fontSize: 12,
-            fontWeight: 500,
-            transition: 'color 150ms ease, border-color 150ms ease, background 150ms ease',
+            fontWeight: 600,
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={(e) => {
-            const el = e.currentTarget
-            el.style.color = 'var(--accent)'
-            el.style.borderColor = 'var(--accent)'
-            el.style.background = 'var(--popup-item-hover)'
+            e.currentTarget.style.background = 'rgba(99,102,241,0.10)'
+            e.currentTarget.style.borderColor = 'rgba(99,102,241,0.30)'
+            e.currentTarget.style.color = '#a5b4fc'
           }}
           onMouseLeave={(e) => {
-            const el = e.currentTarget
-            el.style.color = 'var(--text-muted)'
-            el.style.borderColor = 'var(--action-btn-border)'
-            el.style.background = 'var(--action-btn-bg)'
+            e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+            e.currentTarget.style.color = '#818cf8'
           }}
         >
-          <RefreshCw size={14} />
+          <RefreshCw size={14} style={{ transition: 'transform 0.15s ease' }} />
           <span>{t('chat.regenerate')}</span>
           <kbd style={{
             fontSize: 9,
@@ -66,7 +63,7 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
             fontFamily: 'monospace',
             background: 'rgba(255,255,255,0.06)',
             padding: '1px 5px',
-            borderRadius: 3,
+            borderRadius: 6,
             border: '1px solid rgba(255,255,255,0.1)',
             marginLeft: 2,
           }}>Ctrl+Shift+R</kbd>
@@ -78,22 +75,24 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
             display: 'flex',
             alignItems: 'center',
             padding: '6px 8px',
-            background: showRegenModels ? 'var(--popup-item-hover)' : 'var(--action-btn-bg)',
-            border: '1px solid var(--action-btn-border)',
-            borderLeft: '1px solid var(--popup-border)',
-            borderRadius: '0 20px 20px 0',
+            marginLeft: 4,
+            background: showRegenModels ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.06)',
+            border: showRegenModels ? '1px solid rgba(99,102,241,0.40)' : '1px solid rgba(255,255,255,0.10)',
+            borderRadius: 6,
             cursor: 'pointer',
-            color: showRegenModels ? 'var(--accent)' : 'var(--text-muted)',
+            color: showRegenModels ? '#818cf8' : 'rgba(255,255,255,0.55)',
             fontSize: 12,
-            transition: 'color 150ms ease, background 150ms ease',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.color = 'var(--accent)'
-            e.currentTarget.style.background = 'var(--popup-item-hover)'
+            e.currentTarget.style.background = 'rgba(99,102,241,0.10)'
+            e.currentTarget.style.borderColor = 'rgba(99,102,241,0.30)'
+            e.currentTarget.style.color = '#818cf8'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = showRegenModels ? 'var(--accent)' : 'var(--text-muted)'
-            e.currentTarget.style.background = showRegenModels ? 'var(--popup-item-hover)' : 'var(--action-btn-bg)'
+            e.currentTarget.style.background = showRegenModels ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.06)'
+            e.currentTarget.style.borderColor = showRegenModels ? 'rgba(99,102,241,0.40)' : 'rgba(255,255,255,0.10)'
+            e.currentTarget.style.color = showRegenModels ? '#818cf8' : 'rgba(255,255,255,0.55)'
           }}
         >
           <ChevronDown size={12} />
@@ -105,17 +104,19 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
               bottom: '100%',
               right: 0,
               marginBottom: 4,
-              background: 'var(--popup-bg)',
-              border: '1px solid var(--popup-border)',
-              borderRadius: 8,
-              boxShadow: 'var(--popup-shadow)',
+              background: 'rgba(15,15,25,0.96)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.09)',
+              borderRadius: 12,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
               padding: '4px 0',
               minWidth: 200,
               zIndex: 100,
-              animation: 'popup-in 0.15s ease',
+              animation: 'slideUp 0.15s ease',
             }}
           >
-            <div style={{ padding: '4px 12px 6px', fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <div style={{ padding: '4px 12px 6px', fontSize: 10, color: 'rgba(255,255,255,0.38)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
               {t('chat.regenerateWithModel')}
             </div>
             {MODEL_OPTIONS.map(m => {
@@ -132,20 +133,22 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
                     justifyContent: 'space-between',
                     textAlign: 'left',
                     padding: '6px 12px',
-                    background: 'none',
+                    background: isCurrent ? 'rgba(99,102,241,0.12)' : 'none',
                     border: 'none',
-                    color: isCurrent ? 'var(--accent)' : 'var(--text-primary)',
+                    borderLeft: isCurrent ? '2px solid rgba(99,102,241,0.60)' : '2px solid transparent',
+                    borderRadius: 0,
+                    color: isCurrent ? '#818cf8' : 'rgba(255,255,255,0.80)',
                     cursor: 'pointer',
                     fontSize: 12,
                     fontWeight: isCurrent ? 600 : 400,
                     lineHeight: 1.4,
-                    transition: 'background 100ms',
+                    transition: 'all 0.15s ease',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = isCurrent ? 'rgba(99,102,241,0.12)' : 'none' }}
                 >
                   <span>{t(m.labelKey)}</span>
-                  {isCurrent && <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{t('chat.currentModel')}</span>}
+                  {isCurrent && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)' }}>{t('chat.currentModel')}</span>}
                 </button>
               )
             })}

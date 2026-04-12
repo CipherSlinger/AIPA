@@ -12,6 +12,7 @@ export default function ClipboardActionsMenu({ onSend }: ClipboardActionsMenuPro
   const t = useT()
   const prefs = usePrefsStore(s => s.prefs)
   const addToast = useUiStore(s => s.addToast)
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null)
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -61,7 +62,7 @@ export default function ClipboardActionsMenu({ onSend }: ClipboardActionsMenuPro
         style={{
           ...toolbarBtnStyle,
           background: showMenu ? 'rgba(255,255,255,0.06)' : 'none',
-          color: showMenu ? 'var(--input-toolbar-hover)' : 'var(--input-toolbar-icon)',
+          color: showMenu ? '#818cf8' : 'rgba(255,255,255,0.45)',
         }}
         onMouseEnter={(e) => { if (!showMenu) toolbarHoverIn(e) }}
         onMouseLeave={(e) => { if (!showMenu) toolbarHoverOut(e) }}
@@ -69,45 +70,49 @@ export default function ClipboardActionsMenu({ onSend }: ClipboardActionsMenuPro
         <ClipboardPaste size={16} />
       </button>
       {showMenu && (
-        <div style={{
+        <div className="popup-enter" style={{
           position: 'absolute',
           bottom: '100%',
           left: 0,
           marginBottom: 6,
-          background: 'var(--popup-bg)',
-          border: '1px solid var(--popup-border)',
+          background: 'rgba(15,15,25,0.96)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.09)',
           borderRadius: 10,
-          boxShadow: 'var(--popup-shadow)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
           padding: '4px 0',
           minWidth: 180,
           zIndex: 100,
-          animation: 'popup-in 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
+          animation: 'slideUp 0.15s ease',
         }}>
-          <div style={{ padding: '6px 12px 4px', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.02em' }}>
+          <div style={{ padding: '6px 12px 4px', fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)' }}>
             {t('clipboard.pasteAndAsk')}
           </div>
+          <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', margin: '3px 0' }} />
           {CLIPBOARD_ACTIONS.map(({ id, icon: Icon, labelKey }) => (
             <button
               key={id}
               onClick={() => handleAction(id)}
+              onMouseEnter={() => setHoveredItem(id)}
+              onMouseLeave={() => setHoveredItem(null)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 10,
                 width: '100%',
-                padding: '8px 12px',
-                background: 'none',
+                padding: '7px 12px',
+                background: hoveredItem === id ? 'rgba(255,255,255,0.07)' : 'transparent',
                 border: 'none',
-                color: 'var(--text-primary)',
+                borderRadius: 6,
+                color: hoveredItem === id ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.82)',
                 cursor: 'pointer',
                 fontSize: 13,
                 textAlign: 'left',
-                transition: 'background 0.12s',
+                transition: 'all 0.15s ease',
               }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--action-btn-hover)' }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
             >
-              <Icon size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+              <Icon size={15} style={{ color: hoveredItem === id ? '#a5b4fc' : '#818cf8', flexShrink: 0, transition: 'color 0.15s ease' }} />
               <span>{t(labelKey)}</span>
             </button>
           ))}

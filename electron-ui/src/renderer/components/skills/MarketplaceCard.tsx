@@ -1,4 +1,4 @@
-// Marketplace skill card — extracted from SkillsPanel.tsx (Iteration 199)
+// Marketplace skill card — extracted from SkillsPanel.tsx (Iteration 200)
 import React, { useState } from 'react'
 import { Package, Download, CheckCircle, ExternalLink } from 'lucide-react'
 import {
@@ -19,6 +19,7 @@ interface MarketplaceCardProps {
 
 export default function MarketplaceCard({ skill, isInstalled, isInstalling, onInstall, onUse, t, language }: MarketplaceCardProps) {
   const [hovered, setHovered] = useState(false)
+  const [btnHovered, setBtnHovered] = useState(false)
   const catColor = CATEGORY_COLORS[skill.category]
   const srcColor = SOURCE_COLORS[skill.source]
   const description = (language === 'zh-CN' && skill.descriptionZh) ? skill.descriptionZh : skill.description
@@ -28,70 +29,83 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        padding: '12px 14px',
-        borderBottom: '1px solid var(--border)',
-        background: hovered ? 'rgba(255,255,255,0.03)' : 'transparent',
-        transition: 'background 0.1s',
+        background: hovered ? 'rgba(255,255,255,0.07)' : 'rgba(15,15,25,0.85)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        border: hovered ? '1px solid rgba(255,255,255,0.09)' : '1px solid rgba(255,255,255,0.07)',
+        borderRadius: 12,
+        padding: '14px 16px',
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+        transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
+        boxShadow: hovered
+          ? '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)'
+          : '0 2px 8px rgba(0,0,0,0.3)',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <div style={{
-          width: 36,
-          height: 36,
-          borderRadius: 8,
-          background: `${catColor}15`,
+          width: 40,
+          height: 40,
+          borderRadius: 10,
+          overflow: 'hidden',
+          flexShrink: 0,
+          background: 'rgba(99,102,241,0.12)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          flexShrink: 0,
         }}>
-          <Package size={18} style={{ color: catColor }} />
+          <Package size={18} style={{ color: '#818cf8' }} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <span style={{
               fontSize: 13,
-              fontWeight: 500,
-              color: 'var(--text-primary)',
+              fontWeight: 700,
+              color: 'rgba(255,255,255,0.82)',
             }}>
               {skill.name}
             </span>
             <span style={{
-              fontSize: 9,
-              padding: '1px 6px',
-              borderRadius: 8,
-              background: `${catColor}20`,
-              color: catColor,
-              fontWeight: 500,
+              fontSize: 10,
+              padding: '2px 8px',
+              borderRadius: 20,
+              background: 'rgba(255,255,255,0.06)',
+              color: 'rgba(255,255,255,0.45)',
+              fontWeight: 600,
+              letterSpacing: '0.04em',
             }}>
               {t(`skills.category_${skill.category.toLowerCase()}`)}
             </span>
             <span style={{
-              fontSize: 9,
-              padding: '1px 6px',
-              borderRadius: 8,
+              fontSize: 10,
+              padding: '2px 8px',
+              borderRadius: 20,
               background: `${srcColor}20`,
               color: srcColor,
-              fontWeight: 500,
+              fontWeight: 600,
+              letterSpacing: '0.04em',
             }}>
               {t(`skills.source_${skill.source.toLowerCase()}`)}
             </span>
           </div>
           <div style={{
             fontSize: 11,
-            color: 'var(--text-muted)',
-            lineHeight: 1.4,
+            color: 'rgba(255,255,255,0.45)',
+            lineHeight: 1.5,
+            marginTop: 3,
             marginBottom: 6,
           }}>
             {description}
           </div>
           <div style={{
             fontSize: 10,
-            color: 'var(--text-muted)',
-            opacity: 0.7,
+            color: 'rgba(255,255,255,0.38)',
             display: 'flex',
             alignItems: 'center',
             gap: 6,
+            fontVariantNumeric: 'tabular-nums',
+            fontFeatureSettings: '"tnum"',
           }}>
             <span>{t('skills.by')} {skill.author}</span>
             {skill.sourceUrl && (
@@ -107,15 +121,15 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
                   gap: 3,
                   padding: '1px 6px',
                   borderRadius: 8,
-                  border: '1px solid var(--card-border)',
+                  border: '1px solid rgba(255,255,255,0.10)',
                   background: 'transparent',
-                  color: 'var(--text-muted)',
+                  color: 'rgba(255,255,255,0.45)',
                   fontSize: 9,
                   cursor: 'pointer',
                   transition: 'color 0.15s, border-color 0.15s',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--accent)' }}
-                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--card-border)' }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#a5b4fc'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)' }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)' }}
               >
                 <ExternalLink size={9} />
                 {t('skills.source')}
@@ -131,15 +145,27 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
                 display: 'flex',
                 alignItems: 'center',
                 gap: 4,
-                padding: '6px 12px',
-                background: 'rgba(16, 185, 129, 0.12)',
-                color: '#10b981',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
+                padding: '4px 10px',
+                background: 'rgba(34,197,94,0.12)',
+                color: '#4ade80',
+                border: '1px solid rgba(34,197,94,0.25)',
                 borderRadius: 6,
                 fontSize: 11,
-                fontWeight: 500,
+                fontWeight: 600,
                 cursor: 'pointer',
-                transition: 'opacity 0.15s',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(34,197,94,0.22)'
+                e.currentTarget.style.borderColor = 'rgba(34,197,94,0.45)'
+                e.currentTarget.style.transform = 'translateY(-1px)'
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(34,197,94,0.25)'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'rgba(34,197,94,0.12)'
+                e.currentTarget.style.borderColor = 'rgba(34,197,94,0.25)'
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = 'none'
               }}
             >
               <CheckCircle size={12} />
@@ -149,23 +175,25 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
             <button
               onClick={onInstall}
               disabled={isInstalling}
+              onMouseEnter={() => setBtnHovered(true)}
+              onMouseLeave={() => setBtnHovered(false)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 4,
-                padding: '6px 12px',
-                background: 'var(--accent)',
-                color: '#ffffff',
+                padding: '4px 10px',
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                color: 'rgba(255,255,255,0.95)',
                 border: 'none',
                 borderRadius: 6,
                 fontSize: 11,
-                fontWeight: 500,
-                cursor: isInstalling ? 'wait' : 'pointer',
-                opacity: isInstalling ? 0.6 : 1,
-                transition: 'opacity 0.15s',
+                fontWeight: 600,
+                cursor: isInstalling ? 'not-allowed' : 'pointer',
+                opacity: isInstalling ? 0.4 : 1,
+                transform: btnHovered && !isInstalling ? 'translateY(-1px)' : 'translateY(0)',
+                boxShadow: btnHovered && !isInstalling ? '0 4px 16px rgba(99,102,241,0.35)' : 'none',
+                transition: 'all 0.15s ease',
               }}
-              onMouseEnter={e => { if (!isInstalling) e.currentTarget.style.opacity = '0.85' }}
-              onMouseLeave={e => { if (!isInstalling) e.currentTarget.style.opacity = '1' }}
             >
               <Download size={12} />
               {isInstalling ? t('skills.installing') : t('skills.install')}

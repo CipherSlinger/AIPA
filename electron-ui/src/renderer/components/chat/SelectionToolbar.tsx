@@ -162,6 +162,7 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
   return (
     <div
       ref={toolbarRef}
+      className="popup-enter"
       onMouseDown={(e) => e.preventDefault()} // Prevent selection from being lost
       style={{
         position: 'fixed',
@@ -171,13 +172,15 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
         display: 'flex',
         alignItems: 'center',
         gap: 2,
-        padding: '3px 5px',
-        background: 'var(--popup-bg)',
-        border: '1px solid var(--popup-border)',
-        boxShadow: 'var(--popup-shadow)',
-        borderRadius: 8,
+        padding: '4px 6px',
+        background: 'rgba(15,15,25,0.96)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255,255,255,0.09)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
+        borderRadius: 10,
         zIndex: 1000,
-        animation: 'popup-in 0.12s cubic-bezier(0.16, 1, 0.3, 1)',
+        animation: 'slideUp 0.12s ease',
       }}
     >
       {/* Copy selection */}
@@ -185,28 +188,29 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
         onClick={handleCopy}
         title={copied ? t('message.copied') : t('selection.copySelection')}
         style={{
-          background: 'transparent',
+          background: copied ? 'rgba(74,222,128,0.12)' : 'transparent',
           border: 'none',
-          borderRadius: 5,
-          padding: '4px 6px',
+          borderRadius: 6,
+          padding: '4px 8px',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           gap: 3,
-          color: copied ? 'var(--success)' : 'var(--text-muted)',
-          fontSize: 11,
-          transition: 'background 0.12s ease, color 0.12s ease',
+          color: copied ? '#4ade80' : 'rgba(255,255,255,0.45)',
+          fontSize: 12,
+          fontWeight: 500,
+          transition: 'all 0.15s ease',
           whiteSpace: 'nowrap',
         }}
-        onMouseEnter={(e) => { if (!copied) (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+        onMouseEnter={(e) => { if (!copied) { (e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.10)'; (e.currentTarget as HTMLElement).style.color = '#a5b4fc' } }}
+        onMouseLeave={(e) => { if (!copied) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.45)' } }}
       >
         {copied ? <Check size={13} /> : <Copy size={13} />}
-        <span>{copied ? t('message.copied') : t('selection.copy')}</span>
+        <span style={{ fontSize: 11, fontWeight: 500 }}>{copied ? t('message.copied') : t('selection.copy')}</span>
       </button>
 
       {/* Separator */}
-      <div style={{ width: 1, height: 16, background: 'var(--popup-border)', flexShrink: 0 }} />
+      <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.08)', margin: '0 2px', flexShrink: 0 }} />
 
       {/* Quote reply */}
       <button
@@ -215,26 +219,27 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
         style={{
           background: 'transparent',
           border: 'none',
-          borderRadius: 5,
-          padding: '4px 6px',
+          borderRadius: 6,
+          padding: '4px 8px',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           gap: 3,
-          color: 'var(--text-muted)',
-          fontSize: 11,
-          transition: 'background 0.12s ease, color 0.12s ease',
+          color: 'rgba(255,255,255,0.45)',
+          fontSize: 12,
+          fontWeight: 500,
+          transition: 'all 0.15s ease',
           whiteSpace: 'nowrap',
         }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.10)'; (e.currentTarget as HTMLElement).style.color = '#a5b4fc' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.45)' }}
       >
         <MessageSquareQuote size={13} />
-        <span>{t('selection.quote')}</span>
+        <span style={{ fontSize: 11, fontWeight: 500 }}>{t('selection.quote')}</span>
       </button>
 
       {/* Separator */}
-      <div style={{ width: 1, height: 16, background: 'var(--popup-border)', flexShrink: 0 }} />
+      <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.08)', margin: '0 2px', flexShrink: 0 }} />
 
       {/* Save to notes */}
       <button
@@ -243,26 +248,27 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
         style={{
           background: 'transparent',
           border: 'none',
-          borderRadius: 5,
-          padding: '4px 6px',
+          borderRadius: 6,
+          padding: '4px 8px',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           gap: 3,
-          color: 'var(--text-muted)',
-          fontSize: 11,
-          transition: 'background 0.12s ease, color 0.12s ease',
+          color: 'rgba(255,255,255,0.45)',
+          fontSize: 12,
+          fontWeight: 500,
+          transition: 'all 0.15s ease',
           whiteSpace: 'nowrap',
         }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.10)'; (e.currentTarget as HTMLElement).style.color = '#a5b4fc' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.45)' }}
       >
         <StickyNote size={13} />
-        <span>{t('selection.note')}</span>
+        <span style={{ fontSize: 11, fontWeight: 500 }}>{t('selection.note')}</span>
       </button>
 
       {/* Separator */}
-      <div style={{ width: 1, height: 16, background: 'var(--popup-border)', flexShrink: 0 }} />
+      <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.08)', margin: '0 2px', flexShrink: 0 }} />
 
       {/* Translate */}
       <button
@@ -271,22 +277,23 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
         style={{
           background: 'transparent',
           border: 'none',
-          borderRadius: 5,
-          padding: '4px 6px',
+          borderRadius: 6,
+          padding: '4px 8px',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           gap: 3,
-          color: 'var(--text-muted)',
-          fontSize: 11,
-          transition: 'background 0.12s ease, color 0.12s ease',
+          color: 'rgba(255,255,255,0.45)',
+          fontSize: 12,
+          fontWeight: 500,
+          transition: 'all 0.15s ease',
           whiteSpace: 'nowrap',
         }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.10)'; (e.currentTarget as HTMLElement).style.color = '#a5b4fc' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.45)' }}
       >
         <Languages size={13} />
-        <span>{t('selection.translate')}</span>
+        <span style={{ fontSize: 11, fontWeight: 500 }}>{t('selection.translate')}</span>
       </button>
 
       {/* Explain */}
@@ -296,22 +303,23 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
         style={{
           background: 'transparent',
           border: 'none',
-          borderRadius: 5,
-          padding: '4px 6px',
+          borderRadius: 6,
+          padding: '4px 8px',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           gap: 3,
-          color: 'var(--text-muted)',
-          fontSize: 11,
-          transition: 'background 0.12s ease, color 0.12s ease',
+          color: 'rgba(255,255,255,0.45)',
+          fontSize: 12,
+          fontWeight: 500,
+          transition: 'all 0.15s ease',
           whiteSpace: 'nowrap',
         }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--popup-item-hover)' }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.10)'; (e.currentTarget as HTMLElement).style.color = '#a5b4fc' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.45)' }}
       >
         <Lightbulb size={13} />
-        <span>{t('selection.explain')}</span>
+        <span style={{ fontSize: 11, fontWeight: 500 }}>{t('selection.explain')}</span>
       </button>
     </div>
   )

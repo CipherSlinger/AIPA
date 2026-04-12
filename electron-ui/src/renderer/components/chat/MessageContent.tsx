@@ -42,13 +42,13 @@ function ClickableFilePath({ path }: { path: string }) {
       onClick={handleClick}
       title={t('codeAction.openInFileManager')}
       style={{
-        background: 'var(--bg-active, rgba(255,255,255,0.08))',
-        border: '1px solid var(--border)',
+        background: 'rgba(255,255,255,0.08)',
+        border: '1px solid rgba(255,255,255,0.07)',
         borderRadius: 3,
         padding: '1px 5px',
         fontSize: '0.9em',
         fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
-        color: 'var(--accent)',
+        color: '#818cf8',
         cursor: 'pointer',
         textDecoration: 'underline',
         textDecorationStyle: 'dotted' as const,
@@ -77,7 +77,7 @@ function HighlightedText({ text, query, caseSensitive = false }: { text: string;
     <>
       {parts.map((part, i) =>
         regex.test(part) ? (
-          <mark key={i} style={{ background: 'var(--warning)', color: '#1a1a1a', borderRadius: 2, padding: '0 1px' }}>
+          <mark key={i} style={{ background: 'rgba(99,102,241,0.35)', color: 'inherit', borderRadius: 2, padding: '0 1px' }}>
             {part}
           </mark>
         ) : (
@@ -102,14 +102,14 @@ function extractText(children: React.ReactNode): string {
 export default React.memo(function MessageContent({ content, isUser, searchQuery, searchCaseSensitive }: Props) {
   if (isUser) {
     return (
-      <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, color: 'var(--text-primary)', fontSize: 13 }}>
+      <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, color: 'rgba(255,255,255,0.82)', fontSize: 13 }}>
         {searchQuery ? <HighlightedText text={content} query={searchQuery} caseSensitive={searchCaseSensitive} /> : content}
       </div>
     )
   }
 
   return (
-    <div className="markdown-body" style={{ color: 'var(--text-primary)', fontSize: 13, lineHeight: 1.7 }}>
+    <div className="markdown-body" style={{ color: 'rgba(255,255,255,0.82)', fontSize: 13, lineHeight: 1.7 }}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight]}
@@ -129,13 +129,13 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
                 <code
                   className={className as string}
                   style={{
-                    background: 'var(--bg-active, rgba(255,255,255,0.08))',
-                    border: '1px solid var(--border)',
-                    borderRadius: 3,
-                    padding: '1px 5px',
-                    fontSize: '0.9em',
+                    background: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.07)',
+                    borderRadius: 4,
+                    padding: '1px 4px',
+                    fontSize: '0.85em',
                     fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
-                    color: 'var(--accent)',
+                    color: '#a5b4fc',
                   }}
                   {...props}
                 >
@@ -185,10 +185,14 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
                     window.electronAPI.shellOpenExternal(href)
                   }
                 }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = '#a5b4fc' }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = '#818cf8' }}
                 style={{
-                  color: 'var(--accent)',
+                  color: '#818cf8',
                   textDecoration: 'underline',
+                  textUnderlineOffset: '3px',
                   cursor: 'pointer',
+                  transition: 'color 0.15s ease',
                 }}
                 title={href}
               >
@@ -197,10 +201,10 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
             )
           },
           ul({ children }) {
-            return <ul style={{ paddingLeft: 20, marginBottom: 10 }}>{children}</ul>
+            return <ul style={{ paddingLeft: 20, marginBottom: 10, lineHeight: 1.7, color: 'rgba(255,255,255,0.75)' }}>{children}</ul>
           },
           ol({ children }) {
-            return <ol style={{ paddingLeft: 20, marginBottom: 10 }}>{children}</ol>
+            return <ol style={{ paddingLeft: 20, marginBottom: 10, lineHeight: 1.7, color: 'rgba(255,255,255,0.75)' }}>{children}</ol>
           },
           li({ children, ...props }) {
             // Detect task list items (GFM checkboxes)
@@ -225,9 +229,9 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
                     width: 14,
                     height: 14,
                     borderRadius: 3,
-                    border: checked ? 'none' : '1.5px solid var(--text-muted)',
-                    background: checked ? 'var(--accent)' : 'transparent',
-                    color: '#fff',
+                    border: checked ? 'none' : '1.5px solid rgba(255,255,255,0.45)',
+                    background: checked ? '#6366f1' : 'transparent',
+                    color: 'rgba(255,255,255,0.95)',
                     fontSize: 10,
                     flexShrink: 0,
                     marginTop: 3,
@@ -247,11 +251,11 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
             if (calloutMatch) {
               const type = calloutMatch[1]
               const colors: Record<string, { bg: string; border: string; label: string }> = {
-                NOTE:      { bg: 'rgba(56, 139, 253, 0.08)', border: '#388bfd', label: 'Note' },
-                TIP:       { bg: 'rgba(63, 185, 80, 0.08)', border: '#3fb950', label: 'Tip' },
-                IMPORTANT: { bg: 'rgba(168, 133, 255, 0.08)', border: '#a885ff', label: 'Important' },
-                WARNING:   { bg: 'rgba(210, 153, 34, 0.08)', border: '#d29922', label: 'Warning' },
-                CAUTION:   { bg: 'rgba(248, 81, 73, 0.08)', border: '#f85149', label: 'Caution' },
+                NOTE:      { bg: 'rgba(99,102,241,0.08)', border: '#818cf8', label: 'Note' },
+                TIP:       { bg: 'rgba(74,222,128,0.08)', border: '#4ade80', label: 'Tip' },
+                IMPORTANT: { bg: 'rgba(167,139,250,0.08)', border: '#a78bfa', label: 'Important' },
+                WARNING:   { bg: 'rgba(251,191,36,0.08)', border: '#fbbf24', label: 'Warning' },
+                CAUTION:   { bg: 'rgba(248,113,113,0.08)', border: '#f87171', label: 'Caution' },
               }
               const style = colors[type] || colors.NOTE
               return (
@@ -267,7 +271,7 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
                   <div style={{ fontSize: 12, fontWeight: 700, color: style.border, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                     {style.label}
                   </div>
-                  <div style={{ color: 'var(--text-primary)', fontSize: 13 }}>
+                  <div style={{ color: 'rgba(255,255,255,0.82)', fontSize: 13 }}>
                     {children}
                   </div>
                 </div>
@@ -276,9 +280,11 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
             return (
               <blockquote
                 style={{
-                  borderLeft: '3px solid var(--accent)',
-                  paddingLeft: 12,
-                  color: 'var(--text-muted)',
+                  borderLeft: '3px solid rgba(99,102,241,0.40)',
+                  background: 'rgba(99,102,241,0.06)',
+                  padding: '6px 12px',
+                  borderRadius: '0 4px 4px 0',
+                  color: 'rgba(255,255,255,0.60)',
                   marginBottom: 10,
                   fontStyle: 'italic',
                 }}
@@ -289,21 +295,21 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
           },
           table({ children }) {
             return (
-              <div style={{ overflowX: 'auto', marginBottom: 12, borderRadius: 6, border: '1px solid var(--border)' }}>
+              <div style={{ overflowX: 'auto', marginBottom: 12, borderRadius: 6, border: '1px solid rgba(255,255,255,0.08)' }}>
                 <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12 }}>{children}</table>
               </div>
             )
           },
           thead({ children }) {
             return (
-              <thead style={{ background: 'var(--action-btn-bg)' }}>{children}</thead>
+              <thead style={{ background: 'rgba(255,255,255,0.06)' }}>{children}</thead>
             )
           },
           tr({ children, ...props }) {
             return (
               <tr
-                style={{ transition: 'background 0.1s' }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover, rgba(255,255,255,0.04))')}
+                style={{ transition: 'background 0.15s ease' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = '')}
               >
                 {children}
@@ -313,11 +319,11 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
           th({ children }) {
             return (
               <th style={{
-                borderBottom: '2px solid var(--accent)',
+                borderBottom: '2px solid #6366f1',
                 padding: '8px 12px',
                 textAlign: 'left',
                 fontWeight: 600,
-                color: 'var(--text-bright)',
+                color: 'rgba(255,255,255,0.88)',
                 fontSize: 11,
                 textTransform: 'uppercase',
                 letterSpacing: 0.3,
@@ -330,28 +336,28 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
           td({ children }) {
             return (
               <td style={{
-                borderBottom: '1px solid var(--border)',
+                borderBottom: '1px solid rgba(255,255,255,0.07)',
                 padding: '6px 12px',
-                color: 'var(--text-primary)',
+                color: 'rgba(255,255,255,0.82)',
               }}>
                 {children}
               </td>
             )
           },
           hr() {
-            return <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '16px 0' }} />
+            return <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.08)', margin: '16px 0' }} />
           },
           img({ src, alt }) {
             return <MarkdownImage src={src} alt={alt} />
           },
           h1({ children }) {
-            return <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12, marginTop: 16, color: 'var(--text-bright)' }}>{children}</h1>
+            return <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12, marginTop: 16, color: 'rgba(255,255,255,0.88)' }}>{children}</h1>
           },
           h2({ children }) {
-            return <h2 style={{ fontSize: 17, fontWeight: 600, marginBottom: 10, marginTop: 14, color: 'var(--text-bright)' }}>{children}</h2>
+            return <h2 style={{ fontSize: 17, fontWeight: 600, marginBottom: 10, marginTop: 14, color: 'rgba(255,255,255,0.88)' }}>{children}</h2>
           },
           h3({ children }) {
-            return <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 8, marginTop: 12, color: 'var(--text-bright)' }}>{children}</h3>
+            return <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 8, marginTop: 12, color: 'rgba(255,255,255,0.88)' }}>{children}</h3>
           },
         }}
       >

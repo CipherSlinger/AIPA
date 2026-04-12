@@ -1,8 +1,8 @@
-// MarkdownImage — extracted from MessageContent.tsx (Iteration 220)
-// Image display with zoom lightbox overlay
+// MarkdownImage — extracted from MessageContent.tsx (Iteration 221)
+// Image display with zoom lightbox overlay, loading skeleton, and error state
 import React, { useState, useEffect } from 'react'
 import ReactDOM from 'react-dom'
-import { ZoomIn } from 'lucide-react'
+import { ZoomIn, ImageOff } from 'lucide-react'
 
 function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
   useEffect(() => {
@@ -39,11 +39,16 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
           bottom: 20,
           left: '50%',
           transform: 'translateX(-50%)',
-          color: 'var(--text-muted)',
-          fontSize: 12,
-          background: 'rgba(0,0,0,0.6)',
-          padding: '4px 12px',
-          borderRadius: 4,
+          color: 'rgba(255,255,255,0.38)',
+          fontSize: 11,
+          fontStyle: 'italic',
+          background: 'rgba(15,15,25,0.92)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255,255,255,0.09)',
+          padding: '4px 14px',
+          borderRadius: 6,
+          whiteSpace: 'nowrap',
         }}
       >
         {alt} &middot; Esc to close
@@ -55,49 +60,112 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
 
 export default function MarkdownImage({ src, alt }: { src?: string; alt?: string }) {
   const [showLightbox, setShowLightbox] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+  const [errored, setErrored] = useState(false)
 
   if (!src) return null
 
   return (
     <>
       <span
-        onClick={() => setShowLightbox(true)}
+        onClick={() => { if (loaded && !errored) setShowLightbox(true) }}
         style={{
           display: 'inline-block',
           position: 'relative',
-          cursor: 'zoom-in',
-          borderRadius: 6,
+          cursor: loaded && !errored ? 'zoom-in' : 'default',
+          borderRadius: 8,
           overflow: 'hidden',
-          border: '1px solid var(--border)',
+          border: errored
+            ? '1px solid rgba(239,68,68,0.45)'
+            : '1px solid rgba(255,255,255,0.07)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
           maxWidth: '100%',
           marginBottom: 8,
+          transition: 'border-color 0.15s ease',
+          background: loaded && !errored ? undefined : 'rgba(15,15,25,0.85)',
         }}
       >
+        {/* Loading skeleton — shown until image loads or errors */}
+        {!loaded && !errored && (
+          <span style={{
+            display: 'block',
+            width: '100%',
+            minWidth: 160,
+            height: 100,
+            background: 'linear-gradient(90deg, rgba(99,102,241,0.07) 25%, rgba(99,102,241,0.14) 50%, rgba(99,102,241,0.07) 75%)',
+            backgroundSize: '200% 100%',
+            animation: 'shimmer 1.6s ease-in-out infinite',
+            borderRadius: 8,
+          }} />
+        )}
+
+        {/* Error state */}
+        {errored && (
+          <span style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            padding: '20px 24px',
+            minWidth: 120,
+            minHeight: 80,
+          }}>
+            <ImageOff size={20} style={{ color: 'rgba(248,113,113,0.8)' }} />
+            <span style={{ fontSize: 11, color: 'rgba(248,113,113,0.75)' }}>
+              Image failed to load
+            </span>
+          </span>
+        )}
+
         <img
           src={src}
           alt={alt || ''}
-          style={{ maxWidth: '100%', maxHeight: 400, display: 'block', borderRadius: 6 }}
-        />
-        <span
+          onLoad={() => setLoaded(true)}
+          onError={() => { setLoaded(true); setErrored(true) }}
           style={{
-            position: 'absolute',
-            bottom: 6,
-            right: 6,
-            background: 'rgba(0,0,0,0.6)',
-            borderRadius: 4,
-            padding: '2px 6px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 3,
-            color: '#ccc',
-            fontSize: 10,
-            opacity: 0.7,
+            maxWidth: '100%',
+            maxHeight: 400,
+            display: loaded && !errored ? 'block' : 'none',
           }}
-        >
-          <ZoomIn size={10} />
-          Click to zoom
-        </span>
+        />
+
+        {/* Zoom hint — only shown when loaded without error */}
+        {loaded && !errored && (
+          <span
+            style={{
+              position: 'absolute',
+              bottom: 6,
+              right: 6,
+              background: 'rgba(15,15,25,0.85)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              borderRadius: 4,
+              border: '1px solid rgba(255,255,255,0.07)',
+              padding: '2px 6px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 3,
+              color: 'rgba(255,255,255,0.45)',
+              fontSize: 10,
+            }}
+          >
+            <ZoomIn size={10} />
+            Click to zoom
+          </span>
+        )}
       </span>
+      {alt && (
+        <div style={{
+          fontSize: 12,
+          color: 'rgba(255,255,255,0.38)',
+          textAlign: 'center',
+          paddingTop: 4,
+          fontStyle: 'italic',
+        }}>
+          {alt}
+        </div>
+      )}
       {showLightbox && (
         <ImageLightbox src={src} alt={alt || 'Image'} onClose={() => setShowLightbox(false)} />
       )}

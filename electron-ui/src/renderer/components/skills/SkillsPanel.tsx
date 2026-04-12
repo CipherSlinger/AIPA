@@ -20,6 +20,7 @@ export default function SkillsPanel() {
   const [skills, setSkills] = useState<SkillInfo[]>([])
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'personal' | 'project'>('all')
   const [selectedSkill, setSelectedSkill] = useState<SkillInfo | null>(null)
   const [skillContent, setSkillContent] = useState('')
   const [deletingSkillPath, setDeletingSkillPath] = useState<string | null>(null)
@@ -98,12 +99,14 @@ export default function SkillsPanel() {
 
   // Filter installed skills by search
   const filteredSkills = useMemo(() => {
-    if (!searchQuery.trim()) return skills
+    let result = skills
+    if (sourceFilter !== 'all') result = result.filter(s => s.source === sourceFilter)
+    if (!searchQuery.trim()) return result
     const q = searchQuery.toLowerCase()
-    return skills.filter(s =>
+    return result.filter(s =>
       s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q)
     )
-  }, [skills, searchQuery])
+  }, [skills, searchQuery, sourceFilter])
 
   // ── Skill Detail View ──
   if (selectedSkill) {
@@ -121,17 +124,27 @@ export default function SkillsPanel() {
 
   // ── Main List / Marketplace View ──
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      background: 'rgba(15,15,25,0.85)',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
+      border: '1px solid rgba(255,255,255,0.07)',
+      borderRadius: 10,
+      overflow: 'hidden',
+    }}>
       {/* Header */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '12px 14px',
-        borderBottom: '1px solid var(--border)',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
         flexShrink: 0,
       }}>
-        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.88)', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
           {t('skills.title')}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -141,9 +154,9 @@ export default function SkillsPanel() {
             title={t('skills.marketplace')}
             style={{
               background: 'none',
-              border: '1px solid var(--card-border)',
+              border: '1px solid rgba(255,255,255,0.12)',
               borderRadius: 6,
-              color: 'var(--text-muted)',
+              color: 'rgba(255,255,255,0.45)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -153,8 +166,8 @@ export default function SkillsPanel() {
               fontWeight: 500,
               transition: 'border-color 0.15s, color 0.15s',
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--card-border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; e.currentTarget.style.color = '#818cf8' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
           >
             <Store size={14} />
             {t('skills.marketplace')}
@@ -165,9 +178,9 @@ export default function SkillsPanel() {
             title={t('skills.createSkill')}
             style={{
               background: 'none',
-              border: '1px solid var(--card-border)',
+              border: '1px solid rgba(255,255,255,0.12)',
               borderRadius: 6,
-              color: 'var(--text-muted)',
+              color: 'rgba(255,255,255,0.45)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -177,8 +190,8 @@ export default function SkillsPanel() {
               fontWeight: 500,
               transition: 'border-color 0.15s, color 0.15s',
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--card-border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; e.currentTarget.style.color = '#818cf8' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
           >
             <Plus size={14} />
             {t('skills.create')}
@@ -190,19 +203,19 @@ export default function SkillsPanel() {
             disabled={loading}
             style={{
               background: 'none',
-              border: '1px solid var(--card-border)',
+              border: '1px solid rgba(255,255,255,0.12)',
               borderRadius: 6,
-              color: 'var(--text-muted)',
+              color: 'rgba(255,255,255,0.45)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               padding: '4px 8px',
               fontSize: 12,
               transition: 'border-color 0.15s, color 0.15s',
-              opacity: loading ? 0.5 : 1,
+              opacity: loading ? 0.4 : 1,
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--card-border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; e.currentTarget.style.color = '#818cf8' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
           >
             <RefreshCw size={14} style={{ animation: loading ? 'spin 1s linear infinite' : undefined }} />
           </button>
@@ -217,22 +230,33 @@ export default function SkillsPanel() {
           gap: 6,
           height: 32,
           padding: '0 8px',
-          background: 'var(--sidebar-bg)',
-          border: '1px solid var(--border)',
-          borderRadius: 6,
+          background: 'rgba(255,255,255,0.06)',
+          border: '1px solid rgba(255,255,255,0.10)',
+          borderRadius: 7,
+          transition: 'border-color 0.15s, box-shadow 0.15s',
         }}>
-          <Search size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+          <Search size={14} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
           <input
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder={t('skills.searchPlaceholder')}
+            onFocus={e => {
+              const p = e.currentTarget.parentElement as HTMLElement
+              p.style.borderColor = 'rgba(99,102,241,0.45)'
+              p.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)'
+            }}
+            onBlur={e => {
+              const p = e.currentTarget.parentElement as HTMLElement
+              p.style.borderColor = 'rgba(255,255,255,0.1)'
+              p.style.boxShadow = 'none'
+            }}
             style={{
               flex: 1,
               background: 'transparent',
               border: 'none',
               outline: 'none',
-              color: 'var(--text-primary)',
+              color: 'rgba(255,255,255,0.88)',
               fontSize: 12,
               fontFamily: 'inherit',
             }}
@@ -243,7 +267,7 @@ export default function SkillsPanel() {
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'var(--text-muted)',
+                color: 'rgba(255,255,255,0.38)',
                 cursor: 'pointer',
                 padding: 2,
                 display: 'flex',
@@ -257,6 +281,33 @@ export default function SkillsPanel() {
         </div>
       </div>
 
+      {/* Source filter chips */}
+      {skills.length > 0 && (
+        <div style={{ display: 'flex', gap: 4, padding: '8px 14px 0', flexShrink: 0, overflowX: 'auto' }}>
+          {(['all', 'personal', 'project'] as const).map(src => (
+            <button
+              key={src}
+              onClick={() => setSourceFilter(src)}
+              style={{
+                fontSize: 10,
+                fontWeight: sourceFilter === src ? 700 : 400,
+                padding: '2px 10px',
+                borderRadius: 20,
+                cursor: 'pointer',
+                flexShrink: 0,
+                background: sourceFilter === src ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.06)',
+                border: sourceFilter === src ? '1px solid rgba(99,102,241,0.30)' : '1px solid rgba(255,255,255,0.08)',
+                color: sourceFilter === src ? '#818cf8' : 'rgba(255,255,255,0.55)',
+                transition: 'all 0.15s ease',
+                textTransform: 'capitalize',
+              }}
+            >
+              {src === 'all' ? 'All' : src}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Content */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {skills.length === 0 && !loading ? (
@@ -266,14 +317,13 @@ export default function SkillsPanel() {
             alignItems: 'center',
             justifyContent: 'center',
             padding: '40px 20px',
-            color: 'var(--text-muted)',
             textAlign: 'center',
           }}>
-            <Puzzle size={40} style={{ opacity: 0.3, marginBottom: 12 }} />
-            <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 6 }}>
+            <Puzzle size={40} style={{ color: 'rgba(255,255,255,0.15)', marginBottom: 12 }} />
+            <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 6, color: 'rgba(255,255,255,0.38)' }}>
               {t('skills.noSkills')}
             </div>
-            <div style={{ fontSize: 11, lineHeight: 1.5, maxWidth: 240 }}>
+            <div style={{ fontSize: 11, lineHeight: 1.5, maxWidth: 240, color: 'rgba(255,255,255,0.38)' }}>
               {t('skills.noSkillsHint')}
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
@@ -284,17 +334,24 @@ export default function SkillsPanel() {
                   alignItems: 'center',
                   gap: 6,
                   padding: '8px 16px',
-                  background: 'var(--accent)',
-                  color: '#ffffff',
+                  background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                  color: 'rgba(255,255,255,0.95)',
                   border: 'none',
-                  borderRadius: 6,
+                  borderRadius: 8,
                   fontSize: 12,
-                  fontWeight: 500,
+                  fontWeight: 600,
                   cursor: 'pointer',
-                  transition: 'opacity 0.15s',
+                  transition: 'all 0.15s ease',
+                  boxShadow: 'none',
                 }}
-                onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
-                onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                onMouseEnter={e => {
+                  e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'
+                  e.currentTarget.style.transform = 'translateY(-1px)'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.boxShadow = 'none'
+                  e.currentTarget.style.transform = 'translateY(0)'
+                }}
               >
                 <Store size={14} />
                 {t('skills.browseMarketplace')}
@@ -306,17 +363,25 @@ export default function SkillsPanel() {
                   alignItems: 'center',
                   gap: 6,
                   padding: '8px 16px',
-                  background: 'none',
-                  color: 'var(--text-muted)',
-                  border: '1px solid var(--card-border)',
-                  borderRadius: 6,
+                  background: 'rgba(255,255,255,0.04)',
+                  color: 'rgba(255,255,255,0.55)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 8,
                   fontSize: 12,
                   fontWeight: 500,
                   cursor: 'pointer',
-                  transition: 'border-color 0.15s, color 0.15s',
+                  transition: 'all 0.15s ease',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--card-border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.80)'
+                  e.currentTarget.style.transform = 'translateY(-1px)'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.55)'
+                  e.currentTarget.style.transform = 'translateY(0)'
+                }}
               >
                 <Plus size={14} />
                 {t('skills.createOwn')}
@@ -341,11 +406,11 @@ export default function SkillsPanel() {
                 onUse={handleUseSkill}
               />
             )}
-            {filteredSkills.length === 0 && searchQuery.trim() && (
+            {filteredSkills.length === 0 && (searchQuery.trim() || sourceFilter !== 'all') && (
               <div style={{
                 padding: '20px',
                 textAlign: 'center',
-                color: 'var(--text-muted)',
+                color: 'rgba(255,255,255,0.38)',
                 fontSize: 12,
               }}>
                 {t('skills.noResults')}

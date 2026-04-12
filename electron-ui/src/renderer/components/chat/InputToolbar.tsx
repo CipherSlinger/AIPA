@@ -56,6 +56,13 @@ export default function InputToolbar({
   const ultraplanRef = useRef<HTMLDivElement>(null)
   const ultraplanTextareaRef = useRef<HTMLTextAreaElement>(null)
 
+  // Handle /plan slash command
+  useEffect(() => {
+    const handleTogglePlan = () => setUltraplanOpen(prev => !prev)
+    window.addEventListener('aipa:togglePlan', handleTogglePlan)
+    return () => window.removeEventListener('aipa:togglePlan', handleTogglePlan)
+  }, [])
+
   // Close popover on outside click
   useEffect(() => {
     if (!ultraplanOpen) return
@@ -85,7 +92,7 @@ export default function InputToolbar({
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginBottom: 6, paddingLeft: 4 }}>
+    <div style={{ background: 'rgba(255,255,255,0.04)', borderTop: '1px solid rgba(255,255,255,0.07)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '4px 8px', display: 'flex', gap: 2, alignItems: 'center' }}>
       {/* @ mention */}
       <button
         onClick={onAtClick}
@@ -103,10 +110,10 @@ export default function InputToolbar({
           title={t('toolbar.attachFiles')}
           style={{
             ...toolbarBtnStyle,
-            color: fileAttachmentCount > 0 ? 'var(--accent)' : 'var(--input-toolbar-icon)',
+            color: fileAttachmentCount > 0 ? '#6366f1' : 'rgba(255,255,255,0.45)',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.background = 'rgba(0, 122, 204, 0.10)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = fileAttachmentCount > 0 ? 'var(--accent)' : 'var(--input-toolbar-icon)'; e.currentTarget.style.background = 'none' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.82)'; e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = fileAttachmentCount > 0 ? '#6366f1' : 'rgba(255,255,255,0.45)'; e.currentTarget.style.background = 'transparent' }}
         >
           <Paperclip size={16} />
         </button>
@@ -117,8 +124,8 @@ export default function InputToolbar({
             right: 0,
             width: 14,
             height: 14,
-            background: 'var(--accent)',
-            color: '#ffffff',
+            background: '#6366f1',
+            color: 'rgba(255,255,255,0.95)',
             fontSize: 9,
             fontWeight: 600,
             borderRadius: '50%',
@@ -141,6 +148,8 @@ export default function InputToolbar({
       >
         <Camera size={16} />
       </button>
+      {/* Separator */}
+      <span style={{ background: 'rgba(255,255,255,0.07)', width: 1, height: 16, margin: '0 3px', flexShrink: 0 }} />
       {/* / slash command */}
       <button
         onClick={onSlashClick}
@@ -160,7 +169,7 @@ export default function InputToolbar({
               position: 'absolute',
               top: -2, left: -2, right: -2, bottom: -2,
               borderRadius: '50%',
-              border: '2px solid var(--error)',
+              border: '2px solid #f87171',
               animation: 'voicePulse 1.5s ease-in-out infinite',
               pointerEvents: 'none',
               width: 30, height: 30,
@@ -172,8 +181,9 @@ export default function InputToolbar({
           title={listening ? t('toolbar.stopRecording') : t('toolbar.voiceInput')}
           style={{
             ...toolbarBtnStyle,
-            background: listening ? 'var(--error)' : 'none',
-            color: listening ? '#fff' : 'var(--input-toolbar-icon)',
+            background: listening ? 'rgba(239,68,68,0.12)' : 'transparent',
+            color: listening ? '#f87171' : 'rgba(255,255,255,0.45)',
+            border: listening ? '1px solid rgba(239,68,68,0.2)' : '1px solid transparent',
           }}
           onMouseEnter={(e) => { if (!listening) toolbarHoverIn(e) }}
           onMouseLeave={(e) => { if (!listening) toolbarHoverOut(e) }}
@@ -185,7 +195,7 @@ export default function InputToolbar({
           <span style={{
             fontSize: 10,
             fontWeight: 600,
-            color: 'var(--error)',
+            color: '#f87171',
             fontVariantNumeric: 'tabular-nums',
             whiteSpace: 'nowrap',
             animation: 'voiceFadeIn 0.3s ease-in',
@@ -194,6 +204,8 @@ export default function InputToolbar({
           </span>
         )}
       </div>
+      {/* Separator */}
+      <span style={{ background: 'rgba(255,255,255,0.07)', width: 1, height: 16, margin: '0 3px', flexShrink: 0 }} />
       {/* Clipboard actions */}
       <ClipboardActionsMenu onSend={onSend} />
       {/* Text transform */}
@@ -219,8 +231,8 @@ export default function InputToolbar({
             title={skipPerms ? t('toolbar.skipPermsOnTitle') : t('toolbar.skipPermsOffTitle')}
             style={{
               ...toolbarBtnStyle,
-              color: skipPerms ? 'var(--warning)' : 'var(--input-toolbar-icon)',
-              background: skipPerms ? 'rgba(234, 179, 8, 0.12)' : 'none',
+              color: skipPerms ? '#fbbf24' : 'rgba(255,255,255,0.45)',
+              background: skipPerms ? 'rgba(234, 179, 8, 0.12)' : 'transparent',
             }}
             onMouseEnter={(e) => { if (!skipPerms) toolbarHoverIn(e) }}
             onMouseLeave={(e) => { if (!skipPerms) toolbarHoverOut(e) }}
@@ -238,8 +250,8 @@ export default function InputToolbar({
           title={isPlanMode ? t('plan.exitHint') : t('plan.enterHint')}
           style={{
             ...toolbarBtnStyle,
-            color: isPlanMode ? '#a78bfa' : 'var(--input-toolbar-icon)',
-            background: isPlanMode ? 'rgba(167, 139, 250, 0.15)' : 'none',
+            color: isPlanMode ? '#818cf8' : 'rgba(255,255,255,0.45)',
+            background: isPlanMode ? 'rgba(99,102,241,0.12)' : 'transparent',
             opacity: isStreamingProp ? 0.4 : 1,
             cursor: isStreamingProp ? 'not-allowed' : 'pointer',
           }}
@@ -266,8 +278,8 @@ export default function InputToolbar({
           title={multiLineMode ? t('input.multiLineOn') : t('input.multiLineOff')}
           style={{
             ...toolbarBtnStyle,
-            color: multiLineMode ? 'var(--accent)' : 'var(--input-toolbar-icon)',
-            background: multiLineMode ? 'rgba(0, 122, 204, 0.12)' : 'none',
+            color: multiLineMode ? '#818cf8' : 'rgba(255,255,255,0.45)',
+            background: multiLineMode ? 'rgba(99,102,241,0.12)' : 'transparent',
           }}
           onMouseEnter={(e) => { if (!multiLineMode) toolbarHoverIn(e) }}
           onMouseLeave={(e) => { if (!multiLineMode) toolbarHoverOut(e) }}
@@ -284,16 +296,16 @@ export default function InputToolbar({
             aria-pressed={ultraplanOpen}
             style={{
               ...toolbarBtnStyle,
-              color: ultraplanOpen ? '#8b5cf6' : 'var(--input-toolbar-icon)',
-              background: ultraplanOpen ? 'rgba(139,92,246,0.1)' : 'none',
+              color: ultraplanOpen ? '#818cf8' : 'rgba(255,255,255,0.45)',
+              background: ultraplanOpen ? 'rgba(99,102,241,0.12)' : 'transparent',
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = '#8b5cf6'
-              ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(139,92,246,0.1)'
+              (e.currentTarget as HTMLButtonElement).style.color = '#818cf8'
+              ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(99,102,241,0.12)'
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = ultraplanOpen ? '#8b5cf6' : 'var(--input-toolbar-icon)'
-              ;(e.currentTarget as HTMLButtonElement).style.background = ultraplanOpen ? 'rgba(139,92,246,0.1)' : 'none'
+              (e.currentTarget as HTMLButtonElement).style.color = ultraplanOpen ? '#818cf8' : 'rgba(255,255,255,0.45)'
+              ;(e.currentTarget as HTMLButtonElement).style.background = ultraplanOpen ? 'rgba(99,102,241,0.12)' : 'transparent'
             }}
           >
             <Sparkles size={14} />
@@ -306,29 +318,32 @@ export default function InputToolbar({
                 right: 0,
                 marginBottom: 8,
                 width: 320,
-                background: 'var(--input-bar-bg, #1e1e1e)',
-                border: '1px solid rgba(139,92,246,0.35)',
+                background: 'rgba(15,15,25,0.96)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                border: '1px solid rgba(255,255,255,0.09)',
                 borderRadius: 10,
-                boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
                 padding: '14px 14px 12px',
                 zIndex: 200,
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 10,
+                animation: 'slideUp 0.15s ease',
               }}
             >
               {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Sparkles size={14} style={{ color: '#8b5cf6', flexShrink: 0 }} />
-                <span style={{ fontWeight: 600, fontSize: 13, color: '#a78bfa' }}>Ultraplan</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                <Sparkles size={14} style={{ color: '#a78bfa', flexShrink: 0 }} />
+                <span style={{ fontWeight: 700, fontSize: 11, color: 'rgba(255,255,255,0.82)' }}>Ultraplan</span>
               </div>
               {/* Description */}
-              <p style={{ margin: 0, fontSize: 11, color: 'var(--text-muted, #888)', lineHeight: 1.5 }}>
+              <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
                 深度多步骤探索，生成执行计划后人工审批
               </p>
               {/* Input */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <label style={{ fontSize: 11, color: 'var(--text-secondary, #aaa)', fontWeight: 500 }}>
+                <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: 500 }}>
                   描述你的需求：
                 </label>
                 <textarea
@@ -342,10 +357,10 @@ export default function InputToolbar({
                   placeholder="例：分析整个代码库并制定重构计划"
                   rows={3}
                   style={{
-                    background: 'var(--input-field-bg, rgba(255,255,255,0.05))',
-                    border: '1px solid rgba(139,92,246,0.3)',
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.1)',
                     borderRadius: 6,
-                    color: 'var(--text-primary, #e0e0e0)',
+                    color: 'rgba(255,255,255,0.82)',
                     fontSize: 12,
                     fontFamily: 'inherit',
                     lineHeight: 1.5,
@@ -354,13 +369,14 @@ export default function InputToolbar({
                     outline: 'none',
                     width: '100%',
                     boxSizing: 'border-box',
+                    transition: 'border-color 0.15s ease',
                   }}
-                  onFocus={e => { e.currentTarget.style.borderColor = '#8b5cf6' }}
-                  onBlur={e => { e.currentTarget.style.borderColor = 'rgba(139,92,246,0.3)' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(139,92,246,0.5)' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)' }}
                 />
               </div>
               {/* Warning */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: 'var(--text-muted, #888)', opacity: 0.85 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: 'rgba(255,255,255,0.38)', fontFamily: 'monospace', opacity: 0.85 }}>
                 <span>⚡</span>
                 <span>将启动远程 AI 分析（约 5-10 分钟）</span>
               </div>
@@ -372,15 +388,15 @@ export default function InputToolbar({
                     padding: '5px 12px',
                     fontSize: 12,
                     fontWeight: 500,
-                    background: 'none',
-                    color: 'var(--text-muted, #888)',
-                    border: '1px solid rgba(255,255,255,0.12)',
-                    borderRadius: 6,
+                    background: 'rgba(255,255,255,0.06)',
+                    color: 'rgba(255,255,255,0.55)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: 8,
                     cursor: 'pointer',
-                    transition: 'background 150ms',
+                    transition: 'background 0.15s ease',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
                 >
                   取消
                 </button>
@@ -391,15 +407,15 @@ export default function InputToolbar({
                     padding: '5px 14px',
                     fontSize: 12,
                     fontWeight: 600,
-                    background: ultraplanInput.trim() ? 'rgba(139,92,246,0.85)' : 'rgba(139,92,246,0.3)',
-                    color: ultraplanInput.trim() ? '#fff' : 'rgba(255,255,255,0.4)',
+                    background: ultraplanInput.trim() ? 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))' : 'rgba(99,102,241,0.2)',
+                    color: ultraplanInput.trim() ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)',
                     border: 'none',
-                    borderRadius: 6,
+                    borderRadius: 8,
                     cursor: ultraplanInput.trim() ? 'pointer' : 'not-allowed',
-                    transition: 'background 150ms',
+                    transition: 'opacity 0.15s ease',
                   }}
-                  onMouseEnter={e => { if (ultraplanInput.trim()) e.currentTarget.style.background = 'rgba(139,92,246,1)' }}
-                  onMouseLeave={e => { if (ultraplanInput.trim()) e.currentTarget.style.background = 'rgba(139,92,246,0.85)' }}
+                  onMouseEnter={e => { if (ultraplanInput.trim()) e.currentTarget.style.opacity = '0.9' }}
+                  onMouseLeave={e => { if (ultraplanInput.trim()) e.currentTarget.style.opacity = '1' }}
                 >
                   启动 Ultraplan
                 </button>
@@ -418,19 +434,19 @@ export default function InputToolbar({
           title={t('taskQueue.addToQueueShortcut')}
           style={{
             ...toolbarBtnStyle,
-            color: taskQueue.length > 0 ? '#a78bfa' : 'var(--input-toolbar-icon)',
+            color: taskQueue.length > 0 ? '#a78bfa' : 'rgba(255,255,255,0.45)',
             cursor: hasInput ? 'pointer' : 'not-allowed',
             opacity: hasInput ? 1 : 0.4,
           }}
           onMouseEnter={(e) => {
             if (hasInput) {
-              ;(e.currentTarget as HTMLButtonElement).style.color = '#a78bfa'
-              ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(139, 92, 246, 0.10)'
+              ;(e.currentTarget as HTMLButtonElement).style.color = '#818cf8'
+              ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(99,102,241,0.12)'
             }
           }}
           onMouseLeave={(e) => {
-            ;(e.currentTarget as HTMLButtonElement).style.color = taskQueue.length > 0 ? '#a78bfa' : 'var(--input-toolbar-icon)'
-            ;(e.currentTarget as HTMLButtonElement).style.background = 'none'
+            ;(e.currentTarget as HTMLButtonElement).style.color = taskQueue.length > 0 ? '#a78bfa' : 'rgba(255,255,255,0.45)'
+            ;(e.currentTarget as HTMLButtonElement).style.background = 'transparent'
           }}
         >
           <ListPlus size={16} />
@@ -442,8 +458,8 @@ export default function InputToolbar({
             right: 0,
             width: 14,
             height: 14,
-            background: '#8b5cf6',
-            color: '#ffffff',
+            background: '#a78bfa',
+            color: 'rgba(255,255,255,0.95)',
             fontSize: 9,
             fontWeight: 600,
             borderRadius: '50%',

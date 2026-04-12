@@ -127,4 +127,18 @@ export function useChatPanelShortcuts(
     window.addEventListener('aipa:slashCommand', handler)
     return () => window.removeEventListener('aipa:slashCommand', handler)
   }, [sendMessage])
+
+  // Listen for auto-compact trigger from useAutoCompact (Iteration P1-2)
+  // useAutoCompact dispatches this event when context usage exceeds threshold
+  useEffect(() => {
+    const handler = () => {
+      const state = useChatStore.getState()
+      if (!state.isStreaming && !state.isCompacting) {
+        state.setCompacting(true)
+        sendMessage('/compact')
+      }
+    }
+    window.addEventListener('aipa:triggerCompact', handler)
+    return () => window.removeEventListener('aipa:triggerCompact', handler)
+  }, [sendMessage])
 }

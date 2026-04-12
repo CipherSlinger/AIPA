@@ -41,19 +41,20 @@ const PROVIDER_KEY_LINKS: Record<string, string> = {
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  background: 'var(--bg-input)',
-  border: '1px solid var(--border)',
-  borderRadius: 4,
-  padding: '6px 10px',
-  color: 'var(--text-primary)',
+  background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(255,255,255,0.09)',
+  borderRadius: 7,
+  padding: '7px 10px',
+  color: 'rgba(255,255,255,0.82)',
   fontSize: 12,
   outline: 'none',
   boxSizing: 'border-box',
+  transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
 }
 
 const SCENARIO_COLORS: Record<ProviderScenario, string> = {
-  official: '#3b82f6',
-  gateway: '#f59e0b',
+  official: '#818cf8',
+  gateway: '#fbbf24',
 }
 
 export default function SettingsProviders() {
@@ -187,11 +188,11 @@ export default function SettingsProviders() {
 
   const getHealthDot = (providerId: string): { color: string; label: string } => {
     const health = healthMap[providerId]
-    if (!health) return { color: 'var(--text-muted)', label: t('provider.unchecked') }
+    if (!health) return { color: 'rgba(255,255,255,0.3)', label: t('provider.unchecked') }
     switch (health.status) {
       case 'healthy': return { color: '#22c55e', label: t('provider.healthy') }
-      case 'degraded': return { color: '#f59e0b', label: t('provider.degraded') }
-      case 'down': return { color: '#ef4444', label: t('provider.down') }
+      case 'degraded': return { color: '#fbbf24', label: t('provider.degraded') }
+      case 'down': return { color: '#fca5a5', label: t('provider.down') }
     }
   }
 
@@ -206,39 +207,64 @@ export default function SettingsProviders() {
     const currentApiKey = draft.apiKey ?? provider.apiKey ?? ''
     const currentAuthToken = draft.authToken ?? provider.authToken ?? ''
     const hasDraftChanges = Object.keys(draft).length > 0
+    const modelCount = provider.models?.length ?? 0
+
+    // Health status chip style
+    const statusStyle: React.CSSProperties = healthMap[provider.id]
+      ? healthMap[provider.id].status === 'healthy'
+        ? { background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.25)', color: '#4ade80', borderRadius: 20, padding: '2px 8px', fontSize: 10, fontWeight: 600 }
+        : healthMap[provider.id].status === 'down'
+          ? { background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', borderRadius: 20, padding: '2px 8px', fontSize: 10, fontWeight: 600 }
+          : { background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.25)', color: '#fbbf24', borderRadius: 20, padding: '2px 8px', fontSize: 10, fontWeight: 600 }
+      : { color: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 600 }
 
     return (
       <div
         key={provider.id}
         style={{
-          border: '1px solid var(--border)',
-          borderRadius: 8,
-          marginBottom: 6,
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid ' + (isExpanded ? 'rgba(99,102,241,0.30)' : 'rgba(255,255,255,0.07)'),
+          borderRadius: 12,
+          marginBottom: 12,
           overflow: 'hidden',
-          background: isExpanded ? 'var(--card-bg)' : 'transparent',
-          transition: 'background 0.15s',
+          transition: 'border-color 0.15s ease',
+          boxShadow: isExpanded ? '0 4px 16px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.2)',
         }}
       >
         {/* Header row */}
         <div
-          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', cursor: 'pointer' }}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', cursor: 'pointer' }}
           onClick={() => setExpandedId(isExpanded ? null : provider.id)}
         >
           {isExpanded
-            ? <ChevronDown size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-            : <ChevronRight size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+            ? <ChevronDown size={13} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
+            : <ChevronRight size={13} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
           }
           <span title={healthDot.label} style={{
             width: 7, height: 7, borderRadius: '50%',
             background: healthDot.color, flexShrink: 0, display: 'inline-block',
           }} />
-          <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+          <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.88)', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
             {provider.name}
           </span>
+          {modelCount > 0 && (
+            <span style={{
+              background: 'rgba(99,102,241,0.12)', color: '#a5b4fc',
+              borderRadius: 10, padding: '2px 7px', fontSize: 10, fontWeight: 600,
+            }}>
+              {modelCount} models
+            </span>
+          )}
+          {healthMap[provider.id] && (
+            <span style={statusStyle}>
+              {healthMap[provider.id].status}
+            </span>
+          )}
           {!isBuiltIn && (
             <span style={{
-              fontSize: 9, fontWeight: 500, padding: '1px 5px', borderRadius: 4,
-              background: 'rgba(var(--accent-rgb, 0,122,204), 0.12)', color: 'var(--accent)',
+              fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 6,
+              background: 'rgba(99,102,241,0.12)', color: '#a5b4fc',
+              border: '1px solid rgba(99,102,241,0.2)',
             }}>
               {t('provider.custom')}
             </span>
@@ -250,11 +276,13 @@ export default function SettingsProviders() {
 
         {/* Expanded config */}
         {isExpanded && (
-          <div style={{ padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 10, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ height: 10 }} />
+
             {/* Name — editable for custom providers */}
             {!isBuiltIn && (
               <div>
-                <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>
+                <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', display: 'block', marginBottom: 5 }}>
                   {t('provider.title')}
                 </label>
                 <input
@@ -269,7 +297,7 @@ export default function SettingsProviders() {
             {/* API Key — official scenario */}
             {provider.scenario === 'official' && (
               <div>
-                <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>
+                <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', display: 'block', marginBottom: 5 }}>
                   {t('provider.apiKey')}
                 </label>
                 <div style={{ display: 'flex', gap: 4 }}>
@@ -277,16 +305,19 @@ export default function SettingsProviders() {
                     type={showKeyMap[provider.id] ? 'text' : 'password'}
                     value={currentApiKey}
                     onChange={e => updateDraft(provider.id, 'apiKey', e.target.value)}
-                    style={{ ...inputStyle, flex: 1 }}
+                    style={{ ...inputStyle, flex: 1, fontFamily: 'monospace' }}
                     placeholder="sk-..."
                   />
                   <button
                     onClick={() => setShowKeyMap(prev => ({ ...prev, [provider.id]: !prev[provider.id] }))}
                     style={{
-                      background: 'var(--card-bg)', border: '1px solid var(--border)',
-                      borderRadius: 4, padding: '0 8px', cursor: 'pointer',
-                      color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
+                      background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: 6, padding: '0 10px', cursor: 'pointer',
+                      color: 'rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center',
+                      transition: 'all 0.15s ease',
                     }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'rgba(255,255,255,0.75)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
                     title={showKeyMap[provider.id] ? 'Hide' : 'Show'}
                   >
                     {showKeyMap[provider.id] ? <EyeOff size={13} /> : <Eye size={13} />}
@@ -299,7 +330,7 @@ export default function SettingsProviders() {
             {provider.scenario === 'gateway' && (
               <>
                 <div>
-                  <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>
+                  <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', display: 'block', marginBottom: 5 }}>
                     {t('provider.authToken')}
                   </label>
                   <div style={{ display: 'flex', gap: 4 }}>
@@ -307,21 +338,24 @@ export default function SettingsProviders() {
                       type={showKeyMap[`${provider.id}-token`] ? 'text' : 'password'}
                       value={currentAuthToken}
                       onChange={e => updateDraft(provider.id, 'authToken', e.target.value)}
-                      style={{ ...inputStyle, flex: 1 }}
+                      style={{ ...inputStyle, flex: 1, fontFamily: 'monospace' }}
                       placeholder="Bearer ..."
                     />
                     <button
                       onClick={() => setShowKeyMap(prev => ({ ...prev, [`${provider.id}-token`]: !prev[`${provider.id}-token`] }))}
                       style={{
-                        background: 'var(--card-bg)', border: '1px solid var(--border)',
-                        borderRadius: 4, padding: '0 8px', cursor: 'pointer',
-                        color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
+                        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: 6, padding: '0 10px', cursor: 'pointer',
+                        color: 'rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center',
+                        transition: 'all 0.15s ease',
                       }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'rgba(255,255,255,0.75)' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
                     >
                       {showKeyMap[`${provider.id}-token`] ? <EyeOff size={13} /> : <Eye size={13} />}
                     </button>
                   </div>
-                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', marginTop: 4 }}>
                     {t('provider.authTokenHint')}
                   </div>
                 </div>
@@ -331,7 +365,7 @@ export default function SettingsProviders() {
             {/* Base URL — gateway scenario */}
             {provider.scenario === 'gateway' && (
               <div>
-                <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>
+                <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', display: 'block', marginBottom: 5 }}>
                   {t('provider.baseUrl')}
                 </label>
                 <input
@@ -350,12 +384,16 @@ export default function SettingsProviders() {
                 <button
                   onClick={() => handleFetchRemoteModels(provider)}
                   disabled={fetchingModels === provider.id}
+                  onMouseEnter={e => { if (fetchingModels !== provider.id) { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.35)'; e.currentTarget.style.color = '#a5b4fc' } }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 5,
-                    padding: '4px 10px', borderRadius: 6,
-                    background: 'none', border: '1px solid var(--border)',
-                    color: 'var(--text-muted)', cursor: fetchingModels === provider.id ? 'wait' : 'pointer',
-                    fontSize: 11, opacity: fetchingModels === provider.id ? 0.6 : 1,
+                    padding: '5px 12px', borderRadius: 6,
+                    background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)',
+                    color: 'rgba(255,255,255,0.45)', cursor: fetchingModels === provider.id ? 'wait' : 'pointer',
+                    fontSize: 11, fontWeight: 500,
+                    opacity: fetchingModels === provider.id ? 0.6 : 1,
+                    transition: 'border-color 0.15s, color 0.15s',
                   }}
                 >
                   <RefreshCw size={11} style={{ animation: fetchingModels === provider.id ? 'spin 1s linear infinite' : 'none' }} />
@@ -367,14 +405,15 @@ export default function SettingsProviders() {
             {/* Qwen QR Code quick setup */}
             {provider.id === 'qwen' && (
               <div style={{
-                background: 'var(--bg-hover)', borderRadius: 8, padding: 12,
+                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
+                borderRadius: 8, padding: 12,
                 display: 'flex', alignItems: 'center', gap: 16,
               }}>
                 <Suspense fallback={<div style={{ width: 110, height: 110 }} />}>
                   <QRCodeDisplay url="https://dashscope.console.aliyun.com/apiKey" size={110} label={t('provider.qrScanLabel')} />
                 </Suspense>
-                <div style={{ flex: 1, fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                  <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4, fontSize: 12 }}>
+                <div style={{ flex: 1, fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.6 }}>
+                  <div style={{ fontWeight: 600, color: 'rgba(255,255,255,0.75)', marginBottom: 4, fontSize: 12 }}>
                     {t('provider.qwenQuickSetup')}
                   </div>
                   {t('provider.qwenQuickSetupDesc')}
@@ -387,11 +426,14 @@ export default function SettingsProviders() {
               <div>
                 <button
                   onClick={() => window.electronAPI.shellOpenExternal(PROVIDER_KEY_LINKS[provider.id])}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.35)'; e.currentTarget.style.color = '#a5b4fc' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'rgba(99,102,241,0.6)' }}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 4,
-                    padding: '4px 10px', borderRadius: 6,
-                    background: 'none', border: '1px solid var(--border)',
-                    color: 'var(--accent)', cursor: 'pointer', fontSize: 11,
+                    padding: '5px 12px', borderRadius: 6,
+                    background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(255,255,255,0.10)',
+                    color: 'rgba(99,102,241,0.6)', cursor: 'pointer', fontSize: 11, fontWeight: 500,
+                    transition: 'border-color 0.15s, color 0.15s',
                   }}
                 >
                   <ExternalLink size={11} />
@@ -405,13 +447,17 @@ export default function SettingsProviders() {
               <button
                 onClick={() => handleTestConnection(provider.id)}
                 disabled={testing === provider.id}
+                onMouseEnter={e => { if (testing !== provider.id) { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.35)'; e.currentTarget.style.color = '#a5b4fc' } }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
-                  padding: '5px 10px', borderRadius: 6,
-                  background: 'var(--card-bg)', border: '1px solid var(--border)',
-                  color: 'var(--text-primary)',
+                  padding: '6px 12px', borderRadius: 6,
+                  background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)',
+                  color: 'rgba(255,255,255,0.45)',
                   cursor: testing === provider.id ? 'wait' : 'pointer',
-                  fontSize: 11, opacity: testing === provider.id ? 0.6 : 1,
+                  fontSize: 11, fontWeight: 500,
+                  opacity: testing === provider.id ? 0.6 : 1,
+                  transition: 'border-color 0.15s, color 0.15s',
                 }}
               >
                 <RefreshCw size={11} style={{ animation: testing === provider.id ? 'spin 1s linear infinite' : 'none' }} />
@@ -421,10 +467,14 @@ export default function SettingsProviders() {
               {hasDraftChanges && (
                 <button
                   onClick={() => handleSaveProvider(provider.id)}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.95), rgba(139,92,246,0.95))'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}
                   style={{
-                    padding: '5px 10px', borderRadius: 6,
-                    background: 'var(--accent)', border: 'none',
-                    color: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 500,
+                    padding: '6px 14px', borderRadius: 6,
+                    background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                    border: 'none',
+                    color: 'rgba(255,255,255,0.95)', cursor: 'pointer', fontSize: 11, fontWeight: 600,
+                    transition: 'all 0.15s ease',
                   }}
                 >
                   {t('provider.save')}
@@ -435,10 +485,13 @@ export default function SettingsProviders() {
                 deleteConfirm === provider.id ? (
                   <button
                     onClick={() => handleDeleteProvider(provider.id)}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.25)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.45)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(239,68,68,0.20)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.30)'; e.currentTarget.style.boxShadow = 'none' }}
                     style={{
-                      padding: '5px 10px', borderRadius: 6,
-                      background: 'var(--error, #ef4444)', border: 'none',
-                      color: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 500,
+                      padding: '6px 12px', borderRadius: 6,
+                      background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.30)',
+                      color: '#fca5a5', cursor: 'pointer', fontSize: 11, fontWeight: 600,
+                      transition: 'all 0.15s ease',
                     }}
                   >
                     {t('provider.deleteConfirm')}
@@ -446,11 +499,14 @@ export default function SettingsProviders() {
                 ) : (
                   <button
                     onClick={() => setDeleteConfirm(provider.id)}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'; e.currentTarget.style.color = '#fca5a5' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 4,
-                      padding: '5px 10px', borderRadius: 6,
-                      background: 'var(--card-bg)', border: '1px solid var(--border)',
-                      color: 'var(--error, #ef4444)', cursor: 'pointer', fontSize: 11,
+                      padding: '6px 10px', borderRadius: 6,
+                      background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)',
+                      color: 'rgba(255,255,255,0.38)', cursor: 'pointer', fontSize: 11,
+                      transition: 'border-color 0.15s, color 0.15s',
                     }}
                   >
                     <Trash2 size={11} />
@@ -473,19 +529,22 @@ export default function SettingsProviders() {
   ) => (
     <div style={{ marginBottom: 16 }}>
       {/* Section header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
         <span style={{
           width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
           background: SCENARIO_COLORS[scenario], display: 'inline-block',
         }} />
-        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)' }}>
+        <span style={{
+          fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
+          textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)',
+        }}>
           {t(`provider.scenario.${scenario}`)}
         </span>
-        <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
       </div>
 
       {/* Scenario description */}
-      <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 8, lineHeight: 1.5, paddingLeft: 18 }}>
+      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', marginBottom: 10, lineHeight: 1.5, paddingLeft: 18 }}>
         {t(`provider.scenarioHint.${scenario}`)}
       </div>
 
@@ -504,20 +563,20 @@ export default function SettingsProviders() {
           display: 'flex',
           alignItems: 'center',
           gap: 6,
-          padding: '6px 12px',
+          padding: '8px 12px',
           marginTop: 4,
-          borderRadius: 6,
-          border: '1px dashed var(--border)',
+          borderRadius: 8,
+          border: '1px dashed rgba(255,255,255,0.12)',
           background: 'transparent',
-          color: 'var(--text-muted)',
+          color: 'rgba(255,255,255,0.38)',
           fontSize: 12,
           cursor: 'pointer',
           width: '100%',
           justifyContent: 'center',
           transition: 'border-color 0.15s, color 0.15s',
         }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'; e.currentTarget.style.color = '#a5b4fc' }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
       >
         <Plus size={13} />
         {t('provider.addCustom')}
@@ -527,21 +586,26 @@ export default function SettingsProviders() {
       {modelModal && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 1000,
-          background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center',
         }} onClick={() => setModelModal(null)}>
           <div style={{
-            background: 'var(--popup-bg, var(--bg-primary))', border: '1px solid var(--border)',
-            borderRadius: 10, padding: 20, width: 400, maxHeight: '70vh', display: 'flex', flexDirection: 'column',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+            background: 'rgba(15,15,25,0.95)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.09)',
+            borderRadius: 12, padding: 20, width: 400, maxHeight: '70vh', display: 'flex', flexDirection: 'column',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
           }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.88)', marginBottom: 12 }}>
               发现 {modelModal.models.length} 个模型
             </div>
             <div style={{ flex: 1, overflow: 'auto', marginBottom: 14, display: 'flex', flexDirection: 'column', gap: 4 }}>
               {modelModal.models.map(m => (
                 <div key={m} style={{
-                  padding: '5px 8px', borderRadius: 5, fontSize: 12,
-                  color: 'var(--text-secondary)', background: 'var(--bg-hover, rgba(255,255,255,0.04))',
+                  padding: '6px 10px', borderRadius: 6, fontSize: 12,
+                  color: 'rgba(165,180,252,0.85)',
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.07)',
                   fontFamily: 'monospace',
                 }}>{m}</div>
               ))}
@@ -549,10 +613,13 @@ export default function SettingsProviders() {
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setModelModal(null)}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'rgba(255,255,255,0.75)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
                 style={{
-                  padding: '5px 12px', borderRadius: 6, background: 'none',
-                  border: '1px solid var(--border)', color: 'var(--text-muted)',
-                  cursor: 'pointer', fontSize: 12,
+                  padding: '6px 14px', borderRadius: 6,
+                  background: 'rgba(255,255,255,0.07)',
+                  border: '1px solid rgba(255,255,255,0.09)', color: 'rgba(255,255,255,0.45)',
+                  cursor: 'pointer', fontSize: 12, transition: 'all 0.15s ease',
                 }}
               >
                 取消
@@ -569,10 +636,14 @@ export default function SettingsProviders() {
                   useUiStore.getState().addToast('success', `已加载 ${modelModal.models.length} 个模型`)
                   setModelModal(null)
                 }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.95), rgba(139,92,246,0.95))'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}
                 style={{
-                  padding: '5px 12px', borderRadius: 6,
-                  background: 'var(--accent)', border: 'none',
-                  color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 500,
+                  padding: '6px 14px', borderRadius: 6,
+                  background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                  border: 'none',
+                  color: 'rgba(255,255,255,0.95)', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                  transition: 'all 0.15s ease',
                 }}
               >
                 加载全部模型

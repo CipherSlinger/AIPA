@@ -20,6 +20,34 @@ const DepartmentDashboard = React.lazy(() => import('../departments/DepartmentDa
 const MIN_SIDEBAR = 180
 const MAX_SIDEBAR = 400
 
+/** Shimmer skeleton shown while lazy panels load */
+function PanelSkeleton() {
+  return (
+    <div style={{
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 16,
+      padding: '32px 40px',
+      overflow: 'hidden',
+    }}>
+      {[80, 60, 90, 55, 70].map((w, i) => (
+        <div
+          key={i}
+          style={{
+            height: 14,
+            width: `${w}%`,
+            borderRadius: 6,
+            background: 'rgba(255,255,255,0.05)',
+            animation: 'shimmer 1.6s ease-in-out infinite',
+            animationDelay: `${i * 0.12}s`,
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
 export default function AppShell() {
   const t = useT()
   const sidebarOpen = useUiStore(s => s.sidebarOpen)
@@ -29,6 +57,7 @@ export default function AppShell() {
   const closeSettings = useUiStore(s => s.closeSettingsModal)
   const currentSessionTitle = useChatStore(s => s.currentSessionTitle)
   const [sidebarWidth, setSidebarWidth] = useState(240)
+  const [isDragging, setIsDragging] = useState(false)
   const draggingRef = useRef<'sidebar' | null>(null)
 
   useEffect(() => {
@@ -94,6 +123,7 @@ export default function AppShell() {
   const startDrag = (which: 'sidebar') => (e: React.MouseEvent) => {
     e.preventDefault()
     draggingRef.current = which
+    setIsDragging(true)
     const startX = e.clientX
     const startWidth = sidebarWidth
 
@@ -105,6 +135,7 @@ export default function AppShell() {
 
     const onUp = (ev: MouseEvent) => {
       draggingRef.current = null
+      setIsDragging(false)
       document.removeEventListener('mousemove', onMove)
       document.removeEventListener('mouseup', onUp)
       const delta = ev.clientX - startX
@@ -117,7 +148,7 @@ export default function AppShell() {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden" style={{ background: 'var(--bg-primary)' }} role="application" aria-label="AIPA">
+    <div className="flex flex-col h-full overflow-hidden" style={{ background: 'rgba(10,10,18,1)' }} role="application" aria-label="AIPA">
       {/* Skip-to-content link for keyboard accessibility */}
       <a href="#main-content" className="skip-link">{t('a11y.skipToContent')}</a>
       {/* Title bar drag region -- spans all three columns */}
@@ -127,8 +158,8 @@ export default function AppShell() {
         onDoubleClick={() => window.electronAPI.windowToggleMaximize()}
         style={{
           height: 32,
-          background: 'var(--bg-nav)',
-          borderBottom: '1px solid var(--border)',
+          background: 'rgba(8,8,16,1)',
+          borderBottom: '1px solid rgba(255,255,255,0.07)',
           flexShrink: 0,
           display: 'flex',
           alignItems: 'center',
@@ -138,13 +169,13 @@ export default function AppShell() {
       >
         <span style={{
           fontSize: 11,
-          color: 'var(--text-muted)',
-          opacity: 0.7,
+          color: 'rgba(255,255,255,0.38)',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
           maxWidth: '60%',
           pointerEvents: 'none',
+          letterSpacing: '0.01em',
         }}>
           {currentSessionTitle ? `AIPA — ${currentSessionTitle}` : 'AIPA'}
         </span>
@@ -157,6 +188,9 @@ export default function AppShell() {
           flexDirection: 'row',
           flex: 1,
           overflow: 'hidden',
+          // Prevent text selection cursor during drag
+          userSelect: isDragging ? 'none' : undefined,
+          cursor: isDragging ? 'col-resize' : undefined,
         }}
       >
         {/* NavRail — always visible unless in focus mode */}
@@ -176,22 +210,39 @@ export default function AppShell() {
                 width: sidebarOpen ? sidebarWidth : 0,
                 flexShrink: 0,
                 overflow: 'hidden',
-                background: 'var(--bg-sessionpanel)',
-                transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease',
+                background: 'rgba(10,10,18,1)',
+                borderRight: sidebarOpen ? '1px solid rgba(255,255,255,0.07)' : 'none',
+                transition: 'width 0.15s ease, opacity 0.15s ease',
                 opacity: sidebarOpen ? 1 : 0,
+                position: 'relative',
               }}
             >
               <Sidebar />
+              {/* Semi-transparent overlay during active drag */}
+              {isDragging && (
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'rgba(0,0,0,0.02)',
+                  pointerEvents: 'none',
+                }} />
+              )}
             </div>
             {/* Sidebar resize handle */}
             {sidebarOpen && (
             <div
               className="resizer"
-              style={{ width: 4, flexShrink: 0, background: 'var(--border)', cursor: 'col-resize', transition: 'background 0.15s' }}
+              style={{
+                width: 4,
+                flexShrink: 0,
+                background: isDragging ? 'rgba(99,102,241,0.40)' : 'rgba(255,255,255,0.04)',
+                cursor: 'col-resize',
+                transition: 'background 0.15s ease',
+              }}
               onMouseDown={startDrag('sidebar')}
               onDoubleClick={() => { setSidebarWidth(240); window.electronAPI.prefsSet('sidebarWidth', 240) }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--accent)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--border)')}
+              onMouseEnter={(e) => { if (!isDragging) e.currentTarget.style.background = 'rgba(99,102,241,0.40)' }}
+              onMouseLeave={(e) => { if (!isDragging) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
             />
             )}
           </>
@@ -205,14 +256,15 @@ export default function AppShell() {
           style={{
             flex: 1,
             overflow: 'hidden',
-            background: 'var(--bg-chat)',
+            background: 'rgba(10,10,18,1)',
             display: 'flex',
             flexDirection: 'column',
+            transition: 'all 0.15s ease',
           }}
         >
           {mainView === 'department' ? (
             <ErrorBoundary fallbackLabel="department dashboard">
-              <React.Suspense fallback={<div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading...</div>}>
+              <React.Suspense fallback={<PanelSkeleton />}>
                 <DepartmentDashboard />
               </React.Suspense>
             </ErrorBoundary>
@@ -221,28 +273,32 @@ export default function AppShell() {
               {/* Settings page header */}
               <div style={{
                 height: 44,
-                background: 'var(--chat-header-bg)',
-                borderBottom: '1px solid var(--border)',
+                background: 'rgba(15,15,25,0.92)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+                borderBottom: '1px solid rgba(255,255,255,0.07)',
                 display: 'flex',
                 alignItems: 'center',
                 padding: '0 16px',
                 flexShrink: 0,
                 gap: 12,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
               }}>
                 <button
                   onClick={closeSettings}
                   title={t('settings.backToChat')}
                   style={{
                     background: 'none', border: 'none', cursor: 'pointer',
-                    color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
-                    padding: 4, borderRadius: 4,
+                    color: 'rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center',
+                    padding: 4, borderRadius: 8,
+                    transition: 'color 0.15s ease, background 0.15s ease',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.82)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)'; e.currentTarget.style.background = 'none' }}
                 >
                   <ArrowLeft size={16} />
                 </button>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.82)', flex: 1, lineHeight: 1.3 }}>
                   {t('settings.title')}
                 </span>
               </div>
@@ -252,7 +308,7 @@ export default function AppShell() {
                 display: 'flex', justifyContent: 'center',
               }}>
                 <div style={{ width: '100%', maxWidth: 800 }}>
-                  <React.Suspense fallback={<div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading...</div>}>
+                  <React.Suspense fallback={<PanelSkeleton />}>
                     <SettingsPanel />
                   </React.Suspense>
                 </div>
@@ -260,37 +316,37 @@ export default function AppShell() {
             </ErrorBoundary>
           ) : mainView === 'persona-editor' ? (
             <ErrorBoundary fallbackLabel="persona editor">
-              <React.Suspense fallback={<div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading...</div>}>
+              <React.Suspense fallback={<PanelSkeleton />}>
                 <PersonaEditorPage />
               </React.Suspense>
             </ErrorBoundary>
           ) : mainView === 'workflow-editor' ? (
             <ErrorBoundary fallbackLabel="workflow editor">
-              <React.Suspense fallback={<div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading...</div>}>
+              <React.Suspense fallback={<PanelSkeleton />}>
                 <WorkflowEditorPage />
               </React.Suspense>
             </ErrorBoundary>
           ) : mainView === 'workflow-detail' ? (
             <ErrorBoundary fallbackLabel="workflow detail">
-              <React.Suspense fallback={<div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading...</div>}>
+              <React.Suspense fallback={<PanelSkeleton />}>
                 <WorkflowDetailPage />
               </React.Suspense>
             </ErrorBoundary>
           ) : mainView === 'notes' ? (
             <ErrorBoundary fallbackLabel="notes panel">
-              <React.Suspense fallback={<div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading...</div>}>
+              <React.Suspense fallback={<PanelSkeleton />}>
                 <NotesPanel />
               </React.Suspense>
             </ErrorBoundary>
           ) : mainView === 'skill-creator' ? (
             <ErrorBoundary fallbackLabel="skill creator">
-              <React.Suspense fallback={<div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading...</div>}>
+              <React.Suspense fallback={<PanelSkeleton />}>
                 <SkillCreatorPage />
               </React.Suspense>
             </ErrorBoundary>
           ) : mainView === 'skill-marketplace' ? (
             <ErrorBoundary fallbackLabel="skill marketplace">
-              <React.Suspense fallback={<div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading...</div>}>
+              <React.Suspense fallback={<PanelSkeleton />}>
                 <SkillMarketplacePage />
               </React.Suspense>
             </ErrorBoundary>

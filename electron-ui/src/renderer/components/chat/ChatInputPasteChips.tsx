@@ -31,19 +31,28 @@ interface ChatInputPasteChipsProps {
 }
 
 const chipStyle: React.CSSProperties = {
-  padding: '2px 8px', fontSize: 10, fontWeight: 500,
-  background: 'rgba(0, 122, 204, 0.1)', border: '1px solid rgba(0, 122, 204, 0.25)',
-  borderRadius: 10, color: 'var(--accent)', cursor: 'pointer',
-  transition: 'background 150ms, border-color 150ms', whiteSpace: 'nowrap',
+  padding: '4px 10px 4px 8px', fontSize: 11, fontWeight: 500,
+  background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.22)',
+  borderRadius: 8, color: 'rgba(165,180,252,0.85)', cursor: 'pointer',
+  transition: 'all 0.15s ease', whiteSpace: 'nowrap',
+  display: 'flex', alignItems: 'center', gap: 6,
 }
 
 function chipHoverOn(e: React.MouseEvent<HTMLButtonElement>) {
-  e.currentTarget.style.background = 'rgba(0, 122, 204, 0.2)'
-  e.currentTarget.style.borderColor = 'var(--accent)'
+  e.currentTarget.style.background = 'rgba(99,102,241,0.16)'
+  e.currentTarget.style.borderColor = 'rgba(99,102,241,0.35)'
 }
 function chipHoverOff(e: React.MouseEvent<HTMLButtonElement>) {
-  e.currentTarget.style.background = 'rgba(0, 122, 204, 0.1)'
-  e.currentTarget.style.borderColor = 'rgba(0, 122, 204, 0.25)'
+  e.currentTarget.style.background = 'rgba(99,102,241,0.10)'
+  e.currentTarget.style.borderColor = 'rgba(99,102,241,0.22)'
+}
+
+const dismissBtnStyle: React.CSSProperties = {
+  background: 'none', border: 'none',
+  color: 'rgba(165,180,252,0.4)',
+  cursor: 'pointer', padding: '2px 3px',
+  display: 'flex', alignItems: 'center',
+  borderRadius: 6, transition: 'all 0.15s ease',
 }
 
 // Content type label and icon
@@ -93,8 +102,8 @@ export default function ChatInputPasteChips({ paste, inputLength }: ChatInputPas
     return (
       <>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px', marginBottom: 4, flexWrap: 'wrap' }}>
-          <TypeIcon size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-          <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap', fontWeight: 500 }}>
+          <TypeIcon size={12} style={{ color: 'rgba(165,180,252,0.6)', flexShrink: 0 }} />
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'rgba(165,180,252,0.60)', whiteSpace: 'nowrap', letterSpacing: '0.07em' }}>
             {t(typeConfig.labelKey)}
           </span>
           {actions.map(action => (
@@ -111,7 +120,7 @@ export default function ChatInputPasteChips({ paste, inputLength }: ChatInputPas
           {contentType === 'long-text' && paste.onWrapAsBlock && (
             <button
               onClick={() => { paste.onWrapAsBlock?.(); paste.setPastedLongText(false) }}
-              style={{ ...chipStyle, display: 'flex', alignItems: 'center', gap: 3 }}
+              style={chipStyle}
               onMouseEnter={chipHoverOn}
               onMouseLeave={chipHoverOff}
               title={t('chat.wrapAsBlock')}
@@ -122,7 +131,15 @@ export default function ChatInputPasteChips({ paste, inputLength }: ChatInputPas
           )}
           <button
             onClick={dismissAll}
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2, display: 'flex', opacity: 0.6 }}
+            style={dismissBtnStyle}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = '#fca5a5'
+              ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.15)'
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(165,180,252,0.4)'
+              ;(e.currentTarget as HTMLButtonElement).style.background = 'none'
+            }}
           >
             <X size={12} />
           </button>
@@ -141,8 +158,8 @@ export default function ChatInputPasteChips({ paste, inputLength }: ChatInputPas
       {/* URL paste quick action chips */}
       {paste.pastedUrl && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px', marginBottom: 4, flexWrap: 'wrap' }}>
-          <Link2 size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-          <span style={{ fontSize: 10, color: 'var(--text-muted)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{paste.pastedUrl}</span>
+          <Link2 size={12} style={{ color: 'rgba(165,180,252,0.6)', flexShrink: 0 }} />
+          <span style={{ fontSize: 11, color: 'rgba(165,180,252,0.75)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{paste.pastedUrl}</span>
           {[
             { key: 'summarize', label: t('chat.urlAction.summarize') },
             { key: 'explain', label: t('chat.urlAction.explain') },
@@ -160,7 +177,15 @@ export default function ChatInputPasteChips({ paste, inputLength }: ChatInputPas
           ))}
           <button
             onClick={() => { paste.setPastedUrl(null); if (paste.urlChipTimerRef.current) clearTimeout(paste.urlChipTimerRef.current) }}
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2, display: 'flex', opacity: 0.6 }}
+            style={dismissBtnStyle}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = '#fca5a5'
+              ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.15)'
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(165,180,252,0.4)'
+              ;(e.currentTarget as HTMLButtonElement).style.background = 'none'
+            }}
           >
             <X size={12} />
           </button>
@@ -169,8 +194,8 @@ export default function ChatInputPasteChips({ paste, inputLength }: ChatInputPas
       {/* Long text paste quick action chips */}
       {paste.pastedLongText && !paste.pastedUrl && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px', marginBottom: 4, flexWrap: 'wrap' }}>
-          <FileText size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-          <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+          <FileText size={12} style={{ color: 'rgba(165,180,252,0.6)', flexShrink: 0 }} />
+          <span style={{ fontSize: 11, color: 'rgba(165,180,252,0.75)', whiteSpace: 'nowrap' }}>
             {t('chat.longPaste', { count: String(inputLength) })}
           </span>
           {[
@@ -192,7 +217,7 @@ export default function ChatInputPasteChips({ paste, inputLength }: ChatInputPas
           {paste.onWrapAsBlock && (
             <button
               onClick={() => { paste.onWrapAsBlock?.(); paste.setPastedLongText(false) }}
-              style={{ ...chipStyle, display: 'flex', alignItems: 'center', gap: 3 }}
+              style={chipStyle}
               onMouseEnter={chipHoverOn}
               onMouseLeave={chipHoverOff}
               title={t('chat.wrapAsBlock')}
@@ -203,7 +228,15 @@ export default function ChatInputPasteChips({ paste, inputLength }: ChatInputPas
           )}
           <button
             onClick={() => { paste.setPastedLongText(false); if (paste.longTextTimerRef.current) clearTimeout(paste.longTextTimerRef.current) }}
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2, display: 'flex', opacity: 0.6 }}
+            style={dismissBtnStyle}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = '#fca5a5'
+              ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.15)'
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(165,180,252,0.4)'
+              ;(e.currentTarget as HTMLButtonElement).style.background = 'none'
+            }}
           >
             <X size={12} />
           </button>
@@ -219,16 +252,22 @@ export default function ChatInputPasteChips({ paste, inputLength }: ChatInputPas
 
 function QuoteBanner({ quote, onClose, t }: { quote: string; onClose: () => void; t: (key: string) => string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 10px', marginBottom: 6, background: 'rgba(0, 122, 204, 0.08)', borderLeft: '3px solid var(--accent)', borderRadius: 4, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-      <MessageSquareQuote size={14} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2 }} />
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 10px', marginBottom: 6, background: 'rgba(255,255,255,0.04)', borderLeft: '3px solid rgba(99,102,241,0.6)', borderRadius: '0 6px 6px 0', fontSize: 12, color: 'rgba(165,180,252,0.75)', lineHeight: 1.5 }}>
+      <MessageSquareQuote size={14} style={{ color: 'rgba(165,180,252,0.6)', flexShrink: 0, marginTop: 2 }} />
       <div style={{ flex: 1, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', wordBreak: 'break-word' }}>
         {quote.length > 150 ? quote.slice(0, 150) + '...' : quote}
       </div>
       <button
         onClick={onClose}
-        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 2, borderRadius: 4, flexShrink: 0, transition: 'color 150ms' }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--error)' }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)' }}
+        style={{ background: 'none', border: 'none', color: 'rgba(165,180,252,0.4)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '2px 3px', borderRadius: 6, flexShrink: 0, transition: 'all 0.15s ease' }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.color = '#fca5a5'
+          ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.15)'
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.color = 'rgba(165,180,252,0.4)'
+          ;(e.currentTarget as HTMLButtonElement).style.background = 'none'
+        }}
         title={t('common.close')}
       >
         <X size={14} />

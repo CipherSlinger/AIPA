@@ -25,6 +25,7 @@ export default function ScrollToBottomFab({ show, unreadCount, onClick }: Props)
         opacity: show ? 1 : 0,
         transform: show ? 'translateY(0)' : 'translateY(12px)',
         transition: 'opacity 150ms ease, transform 150ms ease',
+        animation: show ? 'slideUp 0.15s ease' : undefined,
       }}
     >
       <button
@@ -39,44 +40,66 @@ export default function ScrollToBottomFab({ show, unreadCount, onClick }: Props)
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 5,
-          minWidth: 36,
+          width: 36,
           height: 36,
-          borderRadius: unreadCount > 0 ? 18 : '50%',
-          padding: unreadCount > 0 ? '0 14px' : 0,
-          background: 'var(--accent)',
-          border: 'none',
-          color: '#fff',
+          borderRadius: '50%',
+          padding: 0,
+          background: 'rgba(15,15,25,0.92)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          color: 'rgba(255,255,255,0.82)',
           cursor: 'pointer',
-          boxShadow: '0 3px 12px rgba(0,0,0,0.35)',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
           fontSize: 12,
           fontWeight: 600,
-          transition: 'border-radius 150ms ease, padding 150ms ease, box-shadow 150ms ease',
+          transition: 'all 0.15s ease',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.45)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 3px 12px rgba(0,0,0,0.35)' }}
+        onMouseEnter={(e) => {
+          const el = e.currentTarget as HTMLButtonElement
+          el.style.background = 'rgba(15,15,25,0.95)'
+          el.style.borderColor = 'rgba(99,102,241,0.40)'
+          el.style.color = 'rgba(255,255,255,0.95)'
+          el.style.boxShadow = '0 8px 32px rgba(0,0,0,0.5)'
+          el.style.transform = 'scale(1.08)'
+        }}
+        onMouseLeave={(e) => {
+          const el = e.currentTarget as HTMLButtonElement
+          el.style.background = 'rgba(15,15,25,0.92)'
+          el.style.borderColor = 'rgba(255,255,255,0.12)'
+          el.style.color = 'rgba(255,255,255,0.82)'
+          el.style.boxShadow = '0 4px 16px rgba(0,0,0,0.4)'
+          el.style.transform = 'scale(1)'
+        }}
       >
         <ArrowDown size={15} />
         {unreadCount > 0 && (
-          <span aria-live="polite" aria-atomic="true">
-            {unreadCount > 99 ? '99+' : unreadCount}
-          </span>
-        )}
-        {/* Pulsing dot on unread (subtle attention signal) */}
-        {unreadCount > 0 && (
           <span
+            aria-live="polite"
+            aria-atomic="true"
             style={{
               position: 'absolute',
-              top: -4,
-              right: -4,
-              width: 10,
-              height: 10,
-              borderRadius: '50%',
-              background: 'var(--warning, #fbbf24)',
-              border: '2px solid var(--bg-chat, #1e1e2e)',
-              animation: 'dot-wave 1.4s ease-in-out infinite',
+              top: -6,
+              right: -6,
+              background: '#6366f1',
+              color: 'rgba(255,255,255,0.95)',
+              borderRadius: 10,
+              minWidth: 16,
+              height: 16,
+              padding: '0 4px',
+              fontSize: 10,
+              fontWeight: 700,
+              boxShadow: '0 2px 8px rgba(99,102,241,0.5)',
+              lineHeight: '16px',
+              whiteSpace: 'nowrap',
+              textAlign: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
-          />
+          >
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
         )}
       </button>
     </div>

@@ -329,8 +329,9 @@ export default function ChatInput({
   }, [input, isStreaming])
 
   return (
-    <div style={{ padding: '8px 16px 12px', background: 'var(--input-bar-bg)', flexShrink: 0 }}>
+    <div style={{ margin: '0 16px 12px', background: 'rgba(15,15,25,0.92)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 12, boxShadow: '0 -4px 24px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.3)', flexShrink: 0, overflow: 'hidden' }}>
       {/* Toolbar row */}
+      <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '6px 10px' }}>
       <InputToolbar
         listening={listening}
         recordingSeconds={recordingSeconds}
@@ -367,6 +368,7 @@ export default function ChatInput({
         onTogglePlanMode={handleTogglePlanMode}
         isStreaming={isStreaming}
       />
+      </div>
       {/* Context usage meter with compact button */}
       {lastContextUsage && lastContextUsage.total > 0 && (
         <ContextUsageMeter
@@ -390,13 +392,13 @@ export default function ChatInput({
         }, 0)
       }} />
       {/* Input row */}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', padding: '8px 10px 8px' }}>
         <div
           ref={inputWrapRef}
           style={{
             flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', gap: 0,
-            background: 'var(--input-field-bg)', borderRadius: 10, padding: '8px 14px',
-            border: isPlanMode ? '1px solid #a78bfa' : '1px solid var(--input-field-border)', transition: 'border-color 200ms',
+            background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '0',
+            border: isPlanMode ? '1px solid #a78bfa' : '1px solid rgba(255,255,255,0.07)', transition: 'border-color 0.15s ease',
           }}
         >
           {/* Plan Mode banner (Iteration 520) */}
@@ -411,21 +413,25 @@ export default function ChatInput({
             </div>
           )}
           {/* Attachments (images + files) */}
-          <ChatInputAttachments
-            attachments={attachments}
-            fileAttachments={fileAttachments}
-            onRemoveImage={removeAttachment}
-            onRemoveFile={removeFileAttachment}
-          />
+          {(attachments.length > 0 || fileAttachments.length > 0) && (
+            <div style={{ padding: '6px 10px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <ChatInputAttachments
+                attachments={attachments}
+                fileAttachments={fileAttachments}
+                onRemoveImage={removeAttachment}
+                onRemoveFile={removeFileAttachment}
+              />
+            </div>
+          )}
           {/* Paste action chips + quote preview */}
           <ChatInputPasteChips paste={{ ...paste, onWrapAsBlock: input.length > 500 ? () => { setInput(prev => '```\n' + prev + '\n```'); paste.setPastedLongText(false) } : undefined }} inputLength={input.length} />
           {/* Keep-going banner (Iteration 490) */}
           {isKeepGoing && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 6px', marginBottom: 4, fontSize: 11, color: 'var(--accent)', background: 'rgba(0,122,204,0.07)', borderRadius: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 6px', marginBottom: 4, fontSize: 11, color: '#818cf8', background: 'rgba(99,102,241,0.08)', borderRadius: 6 }}>
               <span style={{ flex: 1, opacity: 0.85 }}>{t('input.keepGoingHint')}</span>
               <button
                 onClick={() => { handleSend() }}
-                style={{ padding: '2px 8px', fontSize: 11, fontWeight: 500, background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}
+                style={{ padding: '2px 8px', fontSize: 11, fontWeight: 500, background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))', color: 'rgba(255,255,255,0.95)', border: 'none', borderRadius: 6, cursor: 'pointer', transition: 'all 0.15s ease' }}
               >
                 {t('input.keepGoingSend')}
               </button>
@@ -433,7 +439,7 @@ export default function ChatInput({
           )}
           {/* Double-Escape hint: press Esc again to start new chat (Iteration 493) */}
           {escPending && !input.trim() && !isStreaming && (
-            <div style={{ fontSize: 10, color: 'var(--text-muted)', padding: '2px 6px', marginBottom: 4, opacity: 0.8 }}>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', padding: '2px 6px', marginBottom: 4, opacity: 0.8 }}>
               {t('input.escAgainNewChat')}
             </div>
           )}
@@ -457,16 +463,17 @@ export default function ChatInput({
               <div style={{
                 position: 'absolute', inset: 0, zIndex: 10,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'rgba(0, 122, 204, 0.06)', border: '2px dashed var(--accent)',
+                background: 'rgba(99,102,241,0.06)', border: '2px dashed rgba(99,102,241,0.5)',
                 borderRadius: 8, pointerEvents: 'none',
               }}>
-                <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 500 }}>
+                <span style={{ fontSize: 12, color: '#818cf8', fontWeight: 500 }}>
                   {t('input.dropTextHere')}
                 </span>
               </div>
             )}
             <textarea
               ref={textareaRef}
+              className="chat-textarea"
               value={input}
               onChange={handleInputChange}
               onKeyDown={(e) => {
@@ -497,16 +504,18 @@ export default function ChatInput({
                   setTimeout(() => textareaRef.current?.focus(), 0)
                 }
               }}
-              onFocus={() => { if (inputWrapRef.current) inputWrapRef.current.style.borderColor = isPlanMode ? '#a78bfa' : 'var(--input-field-focus)' }}
-              onBlur={() => { setTextDragOver(false); if (inputWrapRef.current) inputWrapRef.current.style.borderColor = isPlanMode ? '#a78bfa' : 'var(--input-field-border)' }}
+              onFocus={() => { if (inputWrapRef.current) inputWrapRef.current.style.borderColor = isPlanMode ? '#a78bfa' : 'rgba(99,102,241,0.45)' }}
+              onBlur={() => { setTextDragOver(false); if (inputWrapRef.current) inputWrapRef.current.style.borderColor = isPlanMode ? '#a78bfa' : 'rgba(255,255,255,0.07)' }}
               placeholder={t(PLACEHOLDER_KEYS[placeholderIdx])}
               aria-label={t('chat.placeholder')}
               rows={1}
-              style={{ flex: 1, width: '100%', background: 'none', border: 'none', outline: 'none', color: 'var(--text-primary)', resize: 'none', fontFamily: 'inherit', fontSize: 13, lineHeight: 1.5, minHeight: 20, maxHeight: 160, overflow: 'auto' }}
+              style={{ flex: 1, width: '100%', background: 'transparent', border: 'none', outline: 'none', color: 'rgba(255,255,255,0.82)', resize: 'none', fontFamily: 'inherit', fontSize: 13, lineHeight: 1.6, minHeight: 20, maxHeight: 160, overflow: 'auto', padding: '8px 14px 0' }}
             />
             {/* Ghost text autocomplete overlay */}
             <GhostTextOverlay input={input} ghostText={ghostText} />
           </div>
+          {/* Separator between compose area and status row */}
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 4, marginBottom: 2 }} />
           {/* Character & word counter */}
           <CharWordCounter input={input} />
           {/* Vim mode indicator */}
@@ -517,9 +526,9 @@ export default function ChatInput({
                 fontWeight: 700,
                 letterSpacing: 0.8,
                 padding: '1px 6px',
-                borderRadius: 3,
-                background: vim.mode === 'normal' ? 'var(--accent)' : 'rgba(255,255,255,0.08)',
-                color: vim.mode === 'normal' ? '#fff' : 'var(--text-muted)',
+                borderRadius: 6,
+                background: vim.mode === 'normal' ? 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))' : 'rgba(255,255,255,0.08)',
+                color: vim.mode === 'normal' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
                 textTransform: 'uppercase',
                 transition: 'background 0.15s ease, color 0.15s ease',
                 userSelect: 'none',

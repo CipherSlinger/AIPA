@@ -27,19 +27,21 @@ export default function SessionTooltip({ session, pos, sessionTags, tagNames, pr
 
   return (
     <div
+      className="popup-enter"
       style={{
         position: 'fixed',
         top: Math.min(pos.top, window.innerHeight - (hasPreview ? 400 : 200)),
         left: pos.left,
         zIndex: 9999,
-        background: 'var(--popup-bg)',
-        border: '1px solid var(--popup-border)',
+        background: 'rgba(15,15,25,0.94)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        border: '1px solid rgba(255,255,255,0.08)',
         borderRadius: 10,
-        boxShadow: 'var(--popup-shadow)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
         maxWidth: 320,
         minWidth: 220,
         maxHeight: 400,
-        animation: 'popup-in 0.15s ease',
         pointerEvents: 'none' as const,
         overflow: 'hidden',
         display: 'flex',
@@ -47,13 +49,13 @@ export default function SessionTooltip({ session, pos, sessionTags, tagNames, pr
       }}
     >
       {/* Header */}
-      <div style={{ padding: '12px 14px', borderBottom: hasPreview || previewLoading ? '1px solid var(--popup-border)' : 'none' }}>
+      <div style={{ padding: '8px 12px', borderBottom: hasPreview || previewLoading ? '1px solid rgba(255,255,255,0.08)' : 'none' }}>
         {/* Title */}
         <div style={{
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: 600,
-          color: 'var(--text-primary)',
-          marginBottom: 2,
+          color: 'rgba(255,255,255,0.82)',
+          marginBottom: 4,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -64,7 +66,7 @@ export default function SessionTooltip({ session, pos, sessionTags, tagNames, pr
         {/* Project + relative time */}
         <div style={{
           fontSize: 11,
-          color: 'var(--text-muted)',
+          color: 'rgba(255,255,255,0.45)',
           marginTop: 2,
           display: 'flex',
           alignItems: 'center',
@@ -79,7 +81,7 @@ export default function SessionTooltip({ session, pos, sessionTags, tagNames, pr
           {session.messageCount != null && session.messageCount > 0 && (
             <>
               <span style={{ opacity: 0.4 }}>|</span>
-              <span>{session.messageCount} msgs</span>
+              <span style={{ fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{session.messageCount} msgs</span>
             </>
           )}
         </div>
@@ -91,7 +93,7 @@ export default function SessionTooltip({ session, pos, sessionTags, tagNames, pr
           return (
             <div style={{
               fontSize: 11,
-              color: 'var(--text-muted)',
+              color: 'rgba(255,255,255,0.45)',
               marginTop: 2,
             }}>
               {t('session.tooltipDuration')}: {dur}
@@ -124,9 +126,9 @@ export default function SessionTooltip({ session, pos, sessionTags, tagNames, pr
                       gap: 4,
                       fontSize: 10,
                       color: preset.color,
-                      background: `${preset.color}1a`,
+                      background: 'rgba(255,255,255,0.08)',
                       border: `1px solid ${preset.color}40`,
-                      borderRadius: 8,
+                      borderRadius: 10,
                       padding: '1px 6px',
                       whiteSpace: 'nowrap',
                     }}
@@ -150,7 +152,7 @@ export default function SessionTooltip({ session, pos, sessionTags, tagNames, pr
               style={{
                 height: 10,
                 width: `${width}%`,
-                background: 'var(--bg-hover)',
+                background: 'rgba(255,255,255,0.15)',
                 borderRadius: 4,
                 marginBottom: 8,
                 animation: 'pulse 1.5s ease-in-out infinite',
@@ -162,7 +164,7 @@ export default function SessionTooltip({ session, pos, sessionTags, tagNames, pr
 
       {hasPreview && (
         <div style={{
-          padding: '8px 14px',
+          padding: '8px 12px',
           overflowY: 'auto',
           flex: 1,
         }}>
@@ -178,12 +180,17 @@ export default function SessionTooltip({ session, pos, sessionTags, tagNames, pr
                 <span style={{
                   fontSize: 10,
                   fontWeight: 600,
-                  color: msg.role === 'user' ? 'var(--accent)' : 'var(--text-muted)',
+                  color: msg.role === 'user' ? '#818cf8' : 'rgba(255,255,255,0.38)',
                 }}>
                   {msg.role === 'user' ? t('session.previewUser') : t('session.previewAI')}
                 </span>
                 {msg.timestamp && (
-                  <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                  <span style={{
+                    fontSize: 10,
+                    color: 'rgba(255,255,255,0.45)',
+                    fontVariantNumeric: 'tabular-nums',
+                    fontFeatureSettings: '"tnum"',
+                  }}>
                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 )}
@@ -191,8 +198,8 @@ export default function SessionTooltip({ session, pos, sessionTags, tagNames, pr
               {/* Content */}
               <div style={{
                 fontSize: 12,
-                color: 'var(--text-primary)',
-                lineHeight: 1.4,
+                color: 'rgba(255,255,255,0.60)',
+                lineHeight: 1.5,
                 display: '-webkit-box',
                 WebkitLineClamp: 3,
                 WebkitBoxOrient: 'vertical' as const,
@@ -212,9 +219,9 @@ export default function SessionTooltip({ session, pos, sessionTags, tagNames, pr
       {/* Fallback: show last prompt if no preview messages */}
       {!hasPreview && !previewLoading && session.lastPrompt && (
         <div style={{
-          padding: '8px 14px',
+          padding: '8px 12px',
           fontSize: 11,
-          color: 'var(--text-muted)',
+          color: 'rgba(255,255,255,0.45)',
           lineHeight: 1.5,
           display: '-webkit-box',
           WebkitLineClamp: 3,

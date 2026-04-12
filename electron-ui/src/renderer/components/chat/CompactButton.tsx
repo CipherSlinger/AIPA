@@ -28,6 +28,8 @@ export default function CompactButton({
   const isCompacting = useChatStore(s => s.isCompacting)
   const [showPopover, setShowPopover] = useState(false)
   const [customInstruction, setCustomInstruction] = useState('')
+  const [isHovered, setIsHovered] = useState(false)
+  const [isPressed, setIsPressed] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
   const lastClickRef = useRef(0)
@@ -108,6 +110,22 @@ export default function CompactButton({
     ? t('compact.inProgress')
     : t('compact.buttonHint')
 
+  const btnStyle: React.CSSProperties = {
+    background: isPressed ? 'rgba(99,102,241,0.20)' : isHovered ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.06)',
+    border: isPressed ? '1px solid rgba(99,102,241,0.40)' : isHovered ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(255,255,255,0.09)',
+    borderRadius: 8,
+    padding: '4px 6px',
+    color: isPressed ? '#a5b4fc' : isHovered ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.60)',
+    transition: 'all 0.15s ease',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    fontSize: 12,
+    opacity: disabled && !isCompacting ? 0.40 : 1,
+    transform: isHovered && !disabled ? 'translateY(-1px)' : 'none',
+    ...style,
+  }
+
   return (
     <div style={{ position: 'relative', display: 'inline-flex' }}>
       <button
@@ -115,13 +133,20 @@ export default function CompactButton({
         disabled={disabled}
         aria-label={ariaLabel}
         title={`${t('compact.button')} (Ctrl+Shift+K)\n${t('compact.customHint')}`}
-        style={{
-          ...style,
-          cursor: disabled ? 'not-allowed' : 'pointer',
-          opacity: disabled && !isCompacting ? 0.3 : 1,
+        style={btnStyle}
+        onMouseEnter={(e) => {
+          if (!disabled) {
+            setIsHovered(true)
+            hoverIn?.(e)
+          }
         }}
-        onMouseEnter={hoverIn ? (e) => { if (!disabled) hoverIn(e) } : undefined}
-        onMouseLeave={hoverOut ? (e) => { if (!disabled) hoverOut(e) } : undefined}
+        onMouseLeave={(e) => {
+          setIsHovered(false)
+          setIsPressed(false)
+          if (!disabled) hoverOut?.(e)
+        }}
+        onMouseDown={() => { if (!disabled) setIsPressed(true) }}
+        onMouseUp={() => setIsPressed(false)}
       >
         {isCompacting ? (
           <Loader2
@@ -142,16 +167,19 @@ export default function CompactButton({
             top: '100%',
             right: 0,
             marginTop: 6,
-            background: 'var(--popup-bg)',
-            border: '1px solid var(--border)',
-            borderRadius: 8,
+            background: 'rgba(15,15,25,0.85)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 12,
             padding: 10,
             width: 280,
             zIndex: 100,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+            animation: 'slideUp 0.15s ease',
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.82)', marginBottom: 6 }}>
             {t('compact.button')}
           </div>
           <input
@@ -166,10 +194,10 @@ export default function CompactButton({
               width: '100%',
               fontSize: 12,
               padding: '6px 8px',
-              background: 'var(--bg-input)',
-              border: '1px solid var(--border)',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.08)',
               borderRadius: 6,
-              color: 'var(--text-primary)',
+              color: 'rgba(255,255,255,0.82)',
               outline: 'none',
               fontFamily: 'inherit',
               boxSizing: 'border-box',
@@ -181,21 +209,24 @@ export default function CompactButton({
             alignItems: 'center',
             marginTop: 6,
           }}>
-            <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>
+            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
               {customInstruction.length}/200 &middot; Enter {t('common.confirm')} &middot; Esc {t('common.cancel')}
             </span>
             <button
               onClick={handlePopoverSubmit}
               style={{
                 fontSize: 11,
-                fontWeight: 500,
+                fontWeight: 600,
                 padding: '3px 10px',
-                background: 'var(--accent)',
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
                 border: 'none',
-                borderRadius: 4,
-                color: '#fff',
+                borderRadius: 8,
+                color: 'rgba(255,255,255,0.95)',
                 cursor: 'pointer',
+                transition: 'all 0.15s ease',
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(0.95)'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}
             >
               {t('compact.button')}
             </button>

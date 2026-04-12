@@ -136,11 +136,15 @@ export default function CommandPalette({
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 100,
-        background: 'rgba(0, 0, 0, 0.5)',
+        background: 'rgba(0,0,0,0.70)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        zIndex: 500,
         display: 'flex',
+        alignItems: 'flex-start',
         justifyContent: 'center',
-        paddingTop: 80,
+        paddingTop: '15vh',
+        animation: 'fadeIn 0.15s ease',
       }}
     >
       <div
@@ -150,30 +154,30 @@ export default function CommandPalette({
         aria-label={t('command.searchPlaceholder')}
         onKeyDown={handleKeyDown}
         style={{
+          background: 'rgba(15,15,25,0.96)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.09)',
+          borderRadius: 16,
+          boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
           width: '100%',
-          maxWidth: 500,
-          maxHeight: 400,
-          background: 'var(--popup-bg)',
-          border: '1px solid var(--popup-border)',
-          borderRadius: 8,
-          boxShadow: 'var(--popup-shadow)',
+          maxWidth: 560,
+          overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden',
-          alignSelf: 'flex-start',
         }}
       >
         {/* Search input */}
         <div
           style={{
-            padding: '12px 16px',
-            borderBottom: '1px solid var(--border)',
             display: 'flex',
             alignItems: 'center',
-            gap: 8,
+            gap: 10,
+            padding: '14px 18px',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
           }}
         >
-          <Search size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+          <Search size={17} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
           <input
             ref={inputRef}
             value={query}
@@ -181,12 +185,13 @@ export default function CommandPalette({
             placeholder={t('command.searchPlaceholder')}
             style={{
               flex: 1,
-              background: 'none',
+              background: 'transparent',
               border: 'none',
               outline: 'none',
-              color: 'var(--text-primary)',
-              fontSize: 14,
+              fontSize: 17,
+              color: 'rgba(255,255,255,0.82)',
               fontFamily: 'inherit',
+              letterSpacing: '-0.01em',
             }}
           />
         </div>
@@ -195,18 +200,18 @@ export default function CommandPalette({
         <div
           ref={listRef}
           style={{
-            flex: 1,
+            maxHeight: 380,
             overflowY: 'auto',
-            padding: '4px 0',
+            padding: '6px',
           }}
         >
           {filtered.length === 0 && (
             <div
               style={{
-                padding: '16px',
+                fontSize: 12,
+                color: 'rgba(255,255,255,0.38)',
                 textAlign: 'center',
-                color: 'var(--text-muted)',
-                fontSize: 13,
+                padding: '24px 16px',
               }}
             >
               {t('command.noResults')}
@@ -219,23 +224,27 @@ export default function CommandPalette({
               onClick={() => cmd.action()}
               onMouseEnter={() => setSelectedIndex(index)}
               style={{
-                padding: '8px 16px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 10,
+                padding: '9px 12px',
+                borderRadius: 8,
                 cursor: 'pointer',
-                background: index === selectedIndex ? 'var(--popup-item-hover)' : 'transparent',
-                transition: 'background 0.1s',
+                background: index === selectedIndex ? 'rgba(99,102,241,0.25)' : 'transparent',
+                borderLeft: index === selectedIndex ? '2px solid rgba(99,102,241,0.60)' : '2px solid transparent',
+                transition: 'all 0.15s ease',
               }}
             >
               <span
                 style={{
-                  color: cmd.category === 'slash' ? 'var(--warning)' : cmd.category === 'session' ? 'var(--success)' : cmd.category === 'model' ? '#8b5cf6' : cmd.category === 'workflow' ? '#10b981' : 'var(--accent)',
+                  color: index === selectedIndex ? '#818cf8' : 'rgba(255,255,255,0.60)',
                   display: 'flex',
                   alignItems: 'center',
                   flexShrink: 0,
-                  width: 20,
+                  width: 16,
+                  height: 16,
                   justifyContent: 'center',
+                  transition: 'color 0.15s ease',
                 }}
               >
                 {cmd.icon}
@@ -244,11 +253,11 @@ export default function CommandPalette({
                 <div
                   style={{
                     fontSize: 13,
-                    fontWeight: 500,
-                    color: 'var(--text-primary)',
+                    color: index === selectedIndex ? '#a5b4fc' : 'rgba(255,255,255,0.82)',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
+                    transition: 'color 0.15s ease',
                   }}
                 >
                   {cmd.name}
@@ -256,7 +265,7 @@ export default function CommandPalette({
                 <div
                   style={{
                     fontSize: 11,
-                    color: 'var(--text-muted)',
+                    color: 'rgba(255,255,255,0.45)',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -268,12 +277,13 @@ export default function CommandPalette({
               {cmd.shortcut && (
                 <kbd
                   style={{
-                    fontSize: 9,
-                    color: 'var(--text-muted)',
-                    background: 'var(--action-btn-bg)',
-                    border: '1px solid var(--border)',
-                    padding: '1px 5px',
-                    borderRadius: 3,
+                    fontSize: 11,
+                    color: 'rgba(255,255,255,0.45)',
+                    marginLeft: 'auto',
+                    background: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.10)',
+                    borderRadius: 5,
+                    padding: '2px 6px',
                     fontFamily: 'monospace',
                     flexShrink: 0,
                   }}
@@ -284,12 +294,17 @@ export default function CommandPalette({
               {(cmd.category === 'slash' || cmd.category === 'session' || cmd.category === 'model' || cmd.category === 'workflow') && (
                 <span
                   style={{
-                    fontSize: 9,
-                    color: 'var(--text-muted)',
-                    background: 'var(--bg-input)',
-                    padding: '1px 6px',
-                    borderRadius: 3,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    letterSpacing: '0.07em',
+                    textTransform: 'uppercase',
+                    color: 'rgba(255,255,255,0.38)',
+                    marginLeft: cmd.shortcut ? 0 : 'auto',
                     flexShrink: 0,
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: 4,
+                    padding: '1px 5px',
                   }}
                 >
                   {cmd.category === 'slash' ? 'slash' : cmd.category === 'model' ? 'model' : cmd.category === 'workflow' ? 'workflow' : 'session'}
@@ -302,12 +317,15 @@ export default function CommandPalette({
         {/* Footer hint */}
         <div
           style={{
-            padding: '6px 16px',
-            borderTop: '1px solid var(--border)',
             display: 'flex',
             gap: 12,
+            padding: '8px 16px',
+            borderTop: '1px solid rgba(255,255,255,0.05)',
             fontSize: 10,
-            color: 'var(--text-muted)',
+            fontWeight: 700,
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+            color: 'rgba(255,255,255,0.38)',
           }}
         >
           <span>{t('command.arrowKeysHint')}</span>

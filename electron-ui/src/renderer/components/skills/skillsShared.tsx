@@ -1,5 +1,5 @@
 // Shared types and components for Skills panel — extracted from SkillsPanel.tsx (Iteration 199)
-import React from 'react'
+import React, { useState } from 'react'
 
 export interface SkillInfo {
   name: string
@@ -28,8 +28,8 @@ export function TabButton({ label, icon, isActive, count, onClick }: {
         padding: '10px 0',
         background: 'none',
         border: 'none',
-        borderBottom: isActive ? '2px solid var(--accent)' : '2px solid transparent',
-        color: isActive ? 'var(--accent)' : 'var(--text-muted)',
+        borderBottom: isActive ? '2px solid #6366f1' : '2px solid transparent',
+        color: isActive ? 'rgba(255,255,255,0.88)' : 'rgba(255,255,255,0.45)',
         fontSize: 12,
         fontWeight: isActive ? 600 : 400,
         cursor: 'pointer',
@@ -42,8 +42,11 @@ export function TabButton({ label, icon, isActive, count, onClick }: {
         fontSize: 10,
         padding: '1px 6px',
         borderRadius: 8,
-        background: isActive ? 'rgba(59, 130, 246, 0.15)' : 'rgba(128,128,128,0.15)',
-        fontWeight: 500,
+        background: isActive ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.07)',
+        color: isActive ? '#a5b4fc' : 'rgba(255,255,255,0.38)',
+        fontWeight: 600,
+        fontVariantNumeric: 'tabular-nums',
+        fontFeatureSettings: '"tnum"',
       }}>
         {count}
       </span>
@@ -58,20 +61,34 @@ export function CategoryPill({ label, isActive, color, count, onClick }: {
   count?: number
   onClick: () => void
 }) {
+  const [hovered, setHovered] = useState(false)
+
   return (
     <button
       onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
         display: 'flex',
         alignItems: 'center',
         gap: 4,
-        padding: '3px 10px',
-        borderRadius: 12,
-        border: `1px solid ${isActive && color ? color : 'var(--card-border)'}`,
-        background: isActive && color ? `${color}20` : isActive ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
-        color: isActive && color ? color : isActive ? 'var(--accent)' : 'var(--text-muted)',
+        padding: '4px 12px',
+        borderRadius: 20,
+        border: isActive
+          ? `1px solid ${color ? `${color}4d` : 'rgba(99,102,241,0.30)'}`
+          : hovered
+            ? '1px solid rgba(255,255,255,0.13)'
+            : '1px solid rgba(255,255,255,0.09)',
+        background: isActive
+          ? color ? `${color}20` : 'rgba(99,102,241,0.15)'
+          : hovered
+            ? 'rgba(255,255,255,0.08)'
+            : 'rgba(255,255,255,0.06)',
+        color: isActive
+          ? color ? color : '#a5b4fc'
+          : 'rgba(255,255,255,0.55)',
         fontSize: 11,
-        fontWeight: isActive ? 500 : 400,
+        fontWeight: isActive ? 600 : 400,
         cursor: 'pointer',
         transition: 'all 0.15s',
       }}
@@ -88,10 +105,12 @@ export function CategoryPill({ label, isActive, color, count, onClick }: {
       {count != null && (
         <span style={{
           fontSize: 9,
-          fontWeight: 600,
-          opacity: 0.7,
+          fontWeight: 700,
+          color: isActive ? 'inherit' : 'rgba(255,255,255,0.38)',
           minWidth: 14,
           textAlign: 'center',
+          fontVariantNumeric: 'tabular-nums',
+          fontFeatureSettings: '"tnum"',
         }}>
           {count}
         </span>

@@ -14,24 +14,37 @@ export default function GhostTextOverlay({ input, ghostText }: GhostTextOverlayP
     <div
       aria-hidden="true"
       style={{
-        position: 'absolute', top: 0, left: 0, right: 0, pointerEvents: 'none',
+        position: 'absolute', top: 0, left: 0, right: 0,
+        pointerEvents: 'none', userSelect: 'none',
         fontFamily: 'inherit', fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-wrap',
         wordBreak: 'break-word', color: 'transparent', overflow: 'hidden', maxHeight: 160,
         opacity: input.trim() ? 1 : 0.45,
         fontStyle: input.trim() ? 'normal' : 'italic',
-        transition: 'opacity 0.3s ease-in',
+        transition: 'opacity 0.15s ease',
       }}
     >
       {input.trim() ? (
         <>
           <span style={{ visibility: 'hidden' }}>{input}</span>
-          <span style={{ color: 'var(--text-muted)', opacity: 0.45 }}>{ghostText}</span>
-          <span style={{ fontSize: 9, color: 'var(--text-muted)', opacity: 0.35, marginLeft: 4 }}>Tab</span>
+          <span style={{ color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>{ghostText}</span>
+          <span style={{
+            fontSize: 10, fontWeight: 700, marginLeft: 5, fontFamily: 'monospace',
+            letterSpacing: '0.07em',
+            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)',
+            borderRadius: 6, color: 'rgba(255,255,255,0.38)', padding: '1px 5px',
+            textTransform: 'uppercase',
+          }}>Tab</span>
         </>
       ) : (
         <>
-          <span style={{ color: 'var(--text-secondary)' }}>{ghostText}</span>
-          <span style={{ fontSize: 9, color: 'var(--text-muted)', opacity: 0.5, marginLeft: 6 }}>Tab</span>
+          <span style={{ color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>{ghostText}</span>
+          <span style={{
+            fontSize: 10, fontWeight: 700, marginLeft: 6, fontFamily: 'monospace',
+            letterSpacing: '0.07em',
+            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)',
+            borderRadius: 6, color: 'rgba(255,255,255,0.38)', padding: '1px 5px',
+            textTransform: 'uppercase',
+          }}>Tab</span>
         </>
       )}
     </div>

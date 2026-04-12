@@ -11,6 +11,39 @@ interface FileDiffState {
   error: string | null
 }
 
+// Status badge pill: added=green, modified=amber, deleted=red
+function StatusBadge({ toolName }: { toolName: string }) {
+  const lower = toolName.toLowerCase()
+  let label = 'MOD'
+  let bg = 'rgba(251,191,36,0.85)'
+  let color = 'rgba(0,0,0,0.75)'
+  if (lower.includes('create') || lower.includes('write') || lower.includes('new')) {
+    label = 'ADD'
+    bg = 'rgba(34,197,94,0.85)'
+  } else if (lower.includes('delete') || lower.includes('remove')) {
+    label = 'DEL'
+    bg = 'rgba(239,68,68,0.85)'
+  }
+  return (
+    <span
+      style={{
+        fontSize: 9,
+        fontWeight: 700,
+        letterSpacing: '0.07em',
+        textTransform: 'uppercase',
+        color,
+        background: bg,
+        borderRadius: 4,
+        padding: '1px 4px',
+        flexShrink: 0,
+        lineHeight: 1.5,
+      }}
+    >
+      {label}
+    </span>
+  )
+}
+
 export default function ChangesPanel() {
   const t = useT()
   const changedFiles = useChatStore(s => s.changedFiles)
@@ -76,32 +109,45 @@ export default function ChangesPanel() {
     .map(Number)
     .sort((a, b) => a - b)
 
-  const basename = (p: string) => p.split(/[\\/]/).pop() || p
+  const basename = (p: string) => p.split(/[/\\]/).pop() || p
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {/* Header */}
       <div style={{
-        padding: '12px 14px 8px',
-        borderBottom: '1px solid var(--border)',
+        padding: '12px 14px 10px',
+        background: 'linear-gradient(180deg, rgba(99,102,241,0.05) 0%, transparent 100%)',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
         display: 'flex',
         alignItems: 'center',
         gap: 8,
         flexShrink: 0,
       }}>
-        <GitBranch size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+        <GitBranch size={14} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: '0.07em',
+            textTransform: 'uppercase',
+            color: 'rgba(255,255,255,0.38)',
+          }}
+        >
           {t('changes.title')}
         </span>
         {uniquePaths.length > 0 && (
           <span style={{
             marginLeft: 'auto',
             fontSize: 10,
-            fontWeight: 600,
-            background: 'var(--accent)',
-            color: '#fff',
-            borderRadius: 8,
+            fontWeight: 700,
+            letterSpacing: '0.07em',
+            background: 'rgba(99,102,241,0.20)',
+            color: '#a5b4fc',
+            border: '1px solid rgba(99,102,241,0.30)',
+            borderRadius: 6,
             padding: '1px 6px',
+            fontVariantNumeric: 'tabular-nums',
+            fontFeatureSettings: '"tnum"',
           }}>
             {uniquePaths.length}
           </span>
@@ -111,27 +157,41 @@ export default function ChangesPanel() {
       {/* Body */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
         {changedFiles.length === 0 ? (
-          <div style={{ padding: '24px 16px', textAlign: 'center' }}>
-            <GitBranch size={28} style={{ color: 'var(--text-muted)', opacity: 0.4, marginBottom: 8 }} />
-            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 4 }}>
-              {t('changes.noChanges')}
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', opacity: 0.7 }}>
-              {t('changes.noChangesHint')}
+          <div style={{ padding: '32px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+            <span
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.07)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <GitBranch size={20} style={{ color: 'rgba(255,255,255,0.25)' }} />
+            </span>
+            <div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginBottom: 3 }}>
+                {t('changes.noChanges')}
+              </div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)' }}>
+                {t('changes.noChangesHint')}
+              </div>
             </div>
           </div>
         ) : (
           turns.map(turn => (
             <div key={turn} style={{ marginBottom: 4 }}>
-              {/* Turn label */}
+              {/* Turn label — micro style */}
               <div style={{
                 padding: '4px 14px',
                 fontSize: 10,
-                fontWeight: 600,
-                color: 'var(--text-muted)',
+                fontWeight: 700,
+                color: 'rgba(255,255,255,0.38)',
                 textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                opacity: 0.7,
+                letterSpacing: '0.07em',
               }}>
                 {t('changes.turnLabel', { turn: String(turn) })}
               </div>
@@ -149,51 +209,58 @@ export default function ChangesPanel() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: 6,
-                        padding: '5px 14px',
+                        padding: '6px 12px',
                         border: 'none',
-                        background: isOpen ? 'rgba(255,255,255,0.04)' : 'transparent',
+                        background: isOpen ? 'rgba(255,255,255,0.05)' : 'transparent',
                         cursor: 'pointer',
-                        color: 'var(--text-primary)',
                         textAlign: 'left',
-                        borderRadius: 0,
+                        borderRadius: 6,
+                        transition: 'background 0.15s ease',
                       }}
                       onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.05)' }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = isOpen ? 'rgba(255,255,255,0.04)' : 'transparent' }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = isOpen ? 'rgba(255,255,255,0.05)' : 'transparent' }}
                     >
                       {isOpen
-                        ? <ChevronDown size={12} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />
-                        : <ChevronRight size={12} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />
+                        ? <ChevronDown size={11} style={{ flexShrink: 0, color: 'rgba(255,255,255,0.45)', transition: 'all 0.15s ease' }} />
+                        : <ChevronRight size={11} style={{ flexShrink: 0, color: 'rgba(255,255,255,0.38)', transition: 'all 0.15s ease' }} />
                       }
-                      <FileCode size={13} style={{ flexShrink: 0, color: 'var(--accent)' }} />
+                      {/* Status badge */}
+                      <StatusBadge toolName={entry.toolName} />
+                      <FileCode size={12} style={{ flexShrink: 0, color: '#818cf8' }} />
+                      {/* Filename (basename) — primary */}
                       <span style={{
                         fontSize: 12,
+                        color: 'rgba(255,255,255,0.82)',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
                         flex: 1,
+                        fontWeight: 500,
                       }} title={entry.filePath}>
                         {basename(entry.filePath)}
                       </span>
-                      <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0, opacity: 0.6 }}>
-                        {entry.toolName}
-                      </span>
                     </button>
 
-                    {/* Diff content */}
+                    {/* Diff content — glass container */}
                     {isOpen && (
                       <div style={{ padding: '4px 10px 8px' }}>
-                        {/* Full path */}
+                        {/* Full path — muted */}
                         <div style={{
                           fontSize: 10,
-                          color: 'var(--text-muted)',
-                          padding: '2px 4px 6px',
+                          color: 'rgba(255,255,255,0.45)',
+                          padding: '3px 7px 5px',
                           wordBreak: 'break-all',
-                          opacity: 0.7,
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid rgba(255,255,255,0.07)',
+                          borderRadius: 6,
+                          marginBottom: 6,
+                          fontFeatureSettings: '"tnum"',
+                          letterSpacing: '0.01em',
                         }}>
                           {entry.filePath}
                         </div>
                         {diffState?.loading && (
-                          <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '8px 4px' }}>
+                          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', padding: '8px 4px' }}>
                             {t('changes.diffLoading')}
                           </div>
                         )}
@@ -205,7 +272,7 @@ export default function ChangesPanel() {
                         {diffState?.content !== null && diffState?.content !== undefined && !diffState.loading && !diffState.error && (
                           diffState.content.trim()
                             ? <DiffViewer diff={diffState.content} />
-                            : <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '8px 4px' }}>
+                            : <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', padding: '8px 4px' }}>
                                 {t('changes.noDiff')}
                               </div>
                         )}
@@ -223,7 +290,7 @@ export default function ChangesPanel() {
       {changedFiles.length > 0 && (
         <div style={{
           padding: '8px 12px',
-          borderTop: '1px solid var(--border)',
+          borderTop: '1px solid rgba(255,255,255,0.07)',
           flexShrink: 0,
         }}>
           <button
@@ -231,19 +298,30 @@ export default function ChangesPanel() {
             style={{
               width: '100%',
               padding: '7px 12px',
-              border: '1px solid var(--border)',
-              borderRadius: 6,
-              background: 'transparent',
-              color: 'var(--text-primary)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 7,
+              background: 'rgba(255,255,255,0.03)',
+              color: 'rgba(255,255,255,0.75)',
               cursor: 'pointer',
               fontSize: 12,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: 6,
+              transition: 'all 0.15s ease',
             }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
+            onMouseEnter={e => {
+              const btn = e.currentTarget as HTMLButtonElement
+              btn.style.background = 'rgba(99,102,241,0.08)'
+              btn.style.borderColor = 'rgba(99,102,241,0.30)'
+              btn.style.color = 'rgba(255,255,255,0.90)'
+            }}
+            onMouseLeave={e => {
+              const btn = e.currentTarget as HTMLButtonElement
+              btn.style.background = 'rgba(255,255,255,0.03)'
+              btn.style.borderColor = 'rgba(255,255,255,0.08)'
+              btn.style.color = 'rgba(255,255,255,0.75)'
+            }}
           >
             <ExternalLink size={13} />
             {t('changes.viewAllChanges')}
@@ -267,8 +345,10 @@ export default function ChangesPanel() {
         >
           <div
             style={{
-              background: 'var(--bg-primary, var(--bg-chat))',
-              border: '1px solid var(--border)',
+              background: 'rgba(10,10,18,0.98)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.07)',
               borderRadius: 10,
               width: '80vw',
               maxWidth: 900,
@@ -282,13 +362,14 @@ export default function ChangesPanel() {
             {/* Modal header */}
             <div style={{
               padding: '12px 16px',
-              borderBottom: '1px solid var(--border)',
+              background: 'linear-gradient(180deg, rgba(99,102,241,0.05) 0%, transparent 100%)',
+              borderBottom: '1px solid rgba(255,255,255,0.07)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               flexShrink: 0,
             }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>
                 {t('changes.gitDiffTitle')}
               </span>
               <button
@@ -297,11 +378,14 @@ export default function ChangesPanel() {
                   border: 'none',
                   background: 'transparent',
                   cursor: 'pointer',
-                  color: 'var(--text-muted)',
+                  color: 'rgba(255,255,255,0.45)',
                   fontSize: 18,
                   lineHeight: 1,
                   padding: '0 4px',
+                  transition: 'all 0.15s ease',
                 }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
               >
                 ×
               </button>
@@ -309,7 +393,7 @@ export default function ChangesPanel() {
             {/* Modal body */}
             <div style={{ flex: 1, overflow: 'auto', padding: 12 }}>
               {allDiffState.loading && (
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 8 }}>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', padding: 8 }}>
                   {t('changes.diffLoading')}
                 </div>
               )}
@@ -321,7 +405,7 @@ export default function ChangesPanel() {
               {allDiffState.content !== null && !allDiffState.loading && !allDiffState.error && (
                 allDiffState.content.trim()
                   ? <DiffViewer diff={allDiffState.content} />
-                  : <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 8 }}>
+                  : <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', padding: 8 }}>
                       {t('changes.noDiff')}
                     </div>
               )}

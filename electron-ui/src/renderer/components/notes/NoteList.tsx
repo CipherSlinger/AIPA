@@ -14,7 +14,7 @@ function HighlightText({ text, query }: { text: string; query: string }) {
     <>
       {parts.map((part, i) =>
         regex.test(part) ? (
-          <span key={i} style={{ background: 'rgba(0,122,204,0.25)', borderRadius: 2, padding: '0 1px' }}>{part}</span>
+          <span key={i} style={{ background: 'rgba(99,102,241,0.22)', borderRadius: 2, padding: '0 1px' }}>{part}</span>
         ) : (
           <span key={i}>{part}</span>
         )
@@ -73,10 +73,13 @@ export default function NoteList({
         justifyContent: 'center',
         height: '100%',
         gap: 12,
-        color: 'var(--text-muted)',
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.38)',
+        textAlign: 'center',
+        padding: '32px 16px',
       }}>
         <NotebookPen size={32} strokeWidth={1} style={{ opacity: 0.3 }} />
-        <span style={{ fontSize: 13 }}>{t('notes.emptyState')}</span>
+        <span>{t('notes.emptyState')}</span>
       </div>
     )
   }
@@ -90,10 +93,13 @@ export default function NoteList({
         justifyContent: 'center',
         height: '100%',
         gap: 12,
-        color: 'var(--text-muted)',
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.38)',
+        textAlign: 'center',
+        padding: '32px 16px',
       }}>
         <Search size={32} strokeWidth={1} style={{ opacity: 0.3 }} />
-        <span style={{ fontSize: 13 }}>{t('notes.noResults')}</span>
+        <span>{t('notes.noResults')}</span>
       </div>
     )
   }
@@ -110,19 +116,29 @@ export default function NoteList({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: '10px 14px',
+              padding: '8px 10px',
               cursor: 'pointer',
-              borderBottom: '1px solid var(--border)',
-              transition: 'background 0.1s',
+              borderRadius: 8,
+              marginBottom: 2,
+              border: '1px solid transparent',
+              transition: 'all 0.15s ease',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--action-btn-hover)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.borderColor = 'transparent'
+              e.currentTarget.style.boxShadow = 'none'
+            }}
           >
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{
-                fontSize: 13,
-                color: 'var(--text-primary)',
-                fontWeight: 500,
+                fontSize: 12,
+                color: 'rgba(255,255,255,0.82)',
+                fontWeight: 600,
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -131,7 +147,7 @@ export default function NoteList({
                 gap: 4,
               }}>
                 {note.pinned && (
-                  <Pin size={11} style={{ flexShrink: 0, color: 'var(--accent)', transform: 'rotate(45deg)' }} />
+                  <Pin size={11} style={{ flexShrink: 0, color: '#fbbf24', transform: 'rotate(45deg)' }} />
                 )}
                 <HighlightText
                   text={note.title || firstLineOf(note.content).slice(0, 30) || t('notes.untitled')}
@@ -144,27 +160,26 @@ export default function NoteList({
                 if (!snippet) return null
                 return (
                   <div style={{
-                    fontSize: 11, color: 'var(--text-muted)', marginTop: 3,
+                    fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 2,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    fontStyle: 'italic', opacity: 0.8,
+                    fontStyle: 'italic',
                   }}>
                     <HighlightText text={snippet} query={searchQuery} />
                   </div>
                 )
               })()}
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
                 {noteCat && (
                   <>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: noteCat.color, flexShrink: 0 }} />
-                    <span style={{ maxWidth: '12ch', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: noteCat.color, flexShrink: 0 }} />
+                    <span style={{ maxWidth: '12ch', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.60)', background: 'rgba(255,255,255,0.07)', borderRadius: 20, padding: '1px 7px' }}>
                       {noteCat.name}
                     </span>
-                    <span style={{ opacity: 0.4 }}>|</span>
                   </>
                 )}
-                {formatRelativeTime(note.updatedAt, t)}
-                <span style={{ opacity: 0.4 }}>|</span>
-                <span>{note.content.trim() ? note.content.trim().split(/\s+/).length : 0} {t('notes.words')}</span>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{formatRelativeTime(note.updatedAt, t)}</span>
+                <span style={{ opacity: 0.4, fontSize: 10, color: 'rgba(255,255,255,0.38)' }}>|</span>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{note.content.trim() ? note.content.trim().split(/\s+/).length : 0} {t('notes.words')}</span>
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
@@ -175,21 +190,21 @@ export default function NoteList({
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: note.pinned ? 'var(--accent)' : 'var(--text-muted)',
+                  color: note.pinned ? '#fbbf24' : 'rgba(255,255,255,0.38)',
                   cursor: 'pointer',
                   padding: 4,
-                  borderRadius: 4,
+                  borderRadius: 8,
                   display: 'flex',
                   alignItems: 'center',
-                  opacity: note.pinned ? 0.8 : 0.4,
+                  opacity: note.pinned ? 1 : 0.5,
                   transition: 'opacity 0.15s, color 0.15s',
                   flexShrink: 0,
                   transform: 'rotate(45deg)',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
-                onMouseLeave={e => { e.currentTarget.style.opacity = note.pinned ? '0.8' : '0.4' }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = note.pinned ? '0.9' : '0.4' }}
               >
-                <Pin size={14} style={{ fill: note.pinned ? 'var(--accent)' : 'none' }} />
+                <Pin size={14} style={{ fill: note.pinned ? '#fbbf24' : 'none' }} />
               </button>
               <button
                 onClick={(e) => onSendToChat(note, e)}
@@ -199,18 +214,18 @@ export default function NoteList({
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: 'var(--text-muted)',
-                  cursor: !note.title && !note.content ? 'default' : 'pointer',
+                  color: 'rgba(255,255,255,0.38)',
+                  cursor: !note.title && !note.content ? 'not-allowed' : 'pointer',
                   padding: 4,
-                  borderRadius: 4,
+                  borderRadius: 8,
                   display: 'flex',
                   alignItems: 'center',
                   opacity: !note.title && !note.content ? 0.3 : 0.4,
                   transition: 'opacity 0.15s, color 0.15s',
                   flexShrink: 0,
                 }}
-                onMouseEnter={e => { if (note.title || note.content) { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = 'var(--accent)' } }}
-                onMouseLeave={e => { e.currentTarget.style.opacity = !note.title && !note.content ? '0.3' : '0.4'; e.currentTarget.style.color = 'var(--text-muted)' }}
+                onMouseEnter={e => { if (note.title || note.content) { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = '#818cf8' } }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = !note.title && !note.content ? '0.3' : '0.4'; e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
               >
                 <MessageSquareShare size={14} />
               </button>
@@ -221,18 +236,18 @@ export default function NoteList({
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: deletingNoteId === note.id ? '#e06c75' : 'var(--text-muted)',
+                  color: deletingNoteId === note.id ? '#fca5a5' : 'rgba(255,255,255,0.38)',
                   cursor: 'pointer',
                   padding: 4,
-                  borderRadius: 4,
+                  borderRadius: 8,
                   display: 'flex',
                   alignItems: 'center',
                   opacity: deletingNoteId === note.id ? 1 : 0.4,
                   transition: 'opacity 0.15s, color 0.15s',
                   flexShrink: 0,
                 }}
-                onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
-                onMouseLeave={e => { if (deletingNoteId !== note.id) e.currentTarget.style.opacity = '0.4' }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = '#fca5a5' }}
+                onMouseLeave={e => { if (deletingNoteId !== note.id) { e.currentTarget.style.opacity = '0.4'; e.currentTarget.style.color = 'rgba(255,255,255,0.38)' } }}
               >
                 <Trash2 size={14} />
               </button>

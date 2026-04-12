@@ -28,7 +28,7 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
   const [formEmoji, setFormEmoji] = useState('\u{1F9D1}\u200D\u{1F4BC}')
   const [formModel, setFormModel] = useState('claude-sonnet-4-6')
   const [formPrompt, setFormPrompt] = useState('')
-  const [formColor, setFormColor] = useState('#3b82f6')
+  const [formColor, setFormColor] = useState('#6366f1')
   const [formTone, setFormTone] = useState('default')
 
   const savePersonas = (updated: Persona[]) => {
@@ -44,12 +44,11 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
     setFormEmoji('\u{1F9D1}\u200D\u{1F4BC}')
     setFormModel('claude-sonnet-4-6')
     setFormPrompt('')
-    setFormColor('#3b82f6')
+    setFormColor('#6366f1')
     setFormTone('default')
   }
 
   const startEdit = (p: Persona) => {
-    // Open full-page persona editor (Iteration 414)
     useUiStore.getState().openPersonaEditor(p.id)
   }
 
@@ -95,7 +94,6 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
         setPrefs({ activePersonaId: undefined })
         window.electronAPI.prefsSet('activePersonaId', undefined)
       }
-      // Clear session persona if deleted (Iteration 407)
       if (useChatStore.getState().sessionPersonaId === id) {
         useChatStore.getState().setSessionPersonaId(undefined)
         setPrefs({ systemPrompt: '' })
@@ -111,12 +109,10 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
 
   const handleActivate = (persona: Persona) => {
     if (activePersonaId === persona.id) {
-      // Remove as default
       setPrefs({ activePersonaId: undefined })
       window.electronAPI.prefsSet('activePersonaId', undefined)
       addToast('info', t('persona.defaultRemoved'))
     } else {
-      // Set as default for new sessions
       setPrefs({ activePersonaId: persona.id })
       window.electronAPI.prefsSet('activePersonaId', persona.id)
       addToast('success', t('persona.defaultSet', { name: persona.presetKey ? t(`persona.preset.${persona.presetKey}`) : persona.name }))
@@ -186,42 +182,55 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
     input.click()
   }
 
+  const isAtLimit = personas.length >= 10
+
   return (
-    <div>
-      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Subtitle */}
+      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>
         {t('persona.subtitle')}
       </div>
 
-      {/* Add button */}
+      {/* Add button — shown when not in inline form mode */}
       {!showForm && (
         <button
           onClick={() => useUiStore.getState().openPersonaEditor(null)}
-          disabled={personas.length >= 10}
+          disabled={isAtLimit}
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '6px 12px',
-            background: 'none',
-            border: '1px dashed var(--border)',
-            borderRadius: 6,
-            color: personas.length >= 10 ? 'var(--text-muted)' : 'var(--accent)',
-            cursor: personas.length >= 10 ? 'not-allowed' : 'pointer',
-            fontSize: 11,
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '9px 16px',
+            background: isAtLimit
+              ? 'rgba(255,255,255,0.04)'
+              : 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+            border: isAtLimit ? '1px solid rgba(255,255,255,0.07)' : 'none',
+            borderRadius: 8,
+            color: isAtLimit ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.95)',
+            cursor: isAtLimit ? 'not-allowed' : 'pointer',
+            fontSize: 13,
+            fontWeight: 600,
             width: '100%',
             justifyContent: 'center',
-            marginBottom: 12,
-            transition: 'border-color 150ms',
+            transition: 'all 0.15s ease',
           }}
-          onMouseEnter={e => { if (personas.length < 10) e.currentTarget.style.borderColor = 'var(--accent)' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
+          onMouseEnter={e => {
+            if (!isAtLimit) {
+              e.currentTarget.style.filter = 'brightness(0.95)'
+              e.currentTarget.style.transform = 'translateY(-1px)'
+              e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'
+            }
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.filter = ''
+            e.currentTarget.style.boxShadow = 'none'
+            e.currentTarget.style.transform = 'translateY(0)'
+          }}
         >
-          <Plus size={13} />
-          {personas.length >= 10 ? t('persona.maxReached') : t('persona.addPersona')}
+          <Plus size={14} />
+          {isAtLimit ? t('persona.maxReached') : t('persona.addPersona')}
         </button>
       )}
 
-      {/* Form */}
+      {/* Inline form */}
       {showForm && (
         <PersonaForm
           editingId={editingId}
@@ -238,10 +247,23 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
 
       {/* Persona list */}
       {personas.length === 0 && !showForm ? (
-        <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--text-muted)' }}>
-          <Sparkles size={24} style={{ opacity: 0.4, marginBottom: 8 }} />
-          <div style={{ fontSize: 12 }}>{t('persona.noPersonas')}</div>
-          <div style={{ fontSize: 10, marginTop: 4, opacity: 0.7 }}>{t('persona.noPersonasHint')}</div>
+        <div style={{
+          textAlign: 'center',
+          padding: '32px 16px',
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px dashed rgba(255,255,255,0.08)',
+          borderRadius: 12,
+        }}>
+          <Sparkles size={28} style={{ opacity: 0.25, marginBottom: 10, color: 'rgba(255,255,255,0.6)' }} />
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.38)', fontWeight: 500 }}>
+            {t('persona.noPersonas')}
+          </div>
+          <div style={{
+            fontSize: 11, marginTop: 5,
+            color: 'rgba(255,255,255,0.38)', lineHeight: 1.6,
+          }}>
+            {t('persona.noPersonasHint')}
+          </div>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -263,60 +285,75 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
       {/* Preset personas */}
       <PersonaPresets personas={personas} onInstall={handleInstallPreset} />
 
-      {/* Export / Import personas */}
+      {/* Export / Import row */}
       {personas.length > 0 && (
-        <div style={{ marginTop: 12, display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 6 }}>
           <button
             onClick={handleExport}
             style={{
               flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 5,
-              padding: '5px 0',
-              background: 'none',
-              border: '1px solid var(--border)',
-              borderRadius: 4,
-              color: 'var(--text-muted)',
+              display: 'flex', alignItems: 'center',
+              justifyContent: 'center', gap: 5,
+              padding: '7px 0',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.10)',
+              borderRadius: 7,
+              color: 'rgba(255,255,255,0.55)',
               cursor: 'pointer',
-              fontSize: 10,
-              transition: 'border-color 150ms, color 150ms',
+              fontSize: 11, fontWeight: 500,
+              transition: 'all 0.15s ease',
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'
+              e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+              e.currentTarget.style.background = 'rgba(99,102,241,0.09)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+              e.currentTarget.style.color = 'rgba(255,255,255,0.55)'
+              e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+            }}
           >
-            <Download size={11} />
+            <Download size={12} />
             {t('persona.exportPersonas')}
           </button>
           <button
             onClick={handleImport}
-            disabled={personas.length >= 10}
+            disabled={isAtLimit}
             style={{
               flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 5,
-              padding: '5px 0',
-              background: 'none',
-              border: '1px solid var(--border)',
-              borderRadius: 4,
-              color: 'var(--text-muted)',
-              cursor: personas.length >= 10 ? 'not-allowed' : 'pointer',
-              fontSize: 10,
-              opacity: personas.length >= 10 ? 0.5 : 1,
-              transition: 'border-color 150ms, color 150ms',
+              display: 'flex', alignItems: 'center',
+              justifyContent: 'center', gap: 5,
+              padding: '7px 0',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.10)',
+              borderRadius: 7,
+              color: 'rgba(255,255,255,0.55)',
+              cursor: isAtLimit ? 'not-allowed' : 'pointer',
+              fontSize: 11, fontWeight: 500,
+              opacity: isAtLimit ? 0.45 : 1,
+              transition: 'all 0.15s ease',
             }}
-            onMouseEnter={e => { if (personas.length < 10) { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--text-primary)' } }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+            onMouseEnter={e => {
+              if (!isAtLimit) {
+                e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+                e.currentTarget.style.background = 'rgba(99,102,241,0.09)'
+              }
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+              e.currentTarget.style.color = 'rgba(255,255,255,0.55)'
+              e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+            }}
           >
-            <Upload size={11} />
+            <Upload size={12} />
             {t('persona.importPersonas')}
           </button>
         </div>
       )}
-      {/* Text Snippets (moved from Templates tab, Iteration 309) */}
+
+      {/* Text Snippets */}
       <SnippetsSection />
     </div>
   )

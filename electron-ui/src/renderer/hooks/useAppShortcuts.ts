@@ -70,6 +70,15 @@ export function useAppShortcuts(
         e.preventDefault()
         setShowShortcuts(prev => !prev)
       }
+      // ? (Shift+/): Open shortcut cheatsheet (quick-access global shortcut)
+      if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const activeEl = document.activeElement
+        const inInput = activeEl instanceof HTMLTextAreaElement || activeEl instanceof HTMLInputElement || (activeEl as HTMLElement)?.isContentEditable
+        if (!inInput) {
+          e.preventDefault()
+          setShowShortcuts(prev => !prev)
+        }
+      }
       // Ctrl+Shift+O: Focus mode (hide sidebar + terminal)
       if (e.ctrlKey && e.shiftKey && e.key === 'O') {
         e.preventDefault()

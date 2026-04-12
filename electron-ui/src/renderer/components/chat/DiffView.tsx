@@ -80,6 +80,9 @@ export default function DiffView({ oldStr, newStr, filePath }: DiffViewProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [showRaw, setShowRaw] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [hunkHovered, setHunkHovered] = useState(false)
+  const [copyHovered, setCopyHovered] = useState(false)
+  const [rawHovered, setRawHovered] = useState(false)
 
   const diffLines = useMemo(() => computeUnifiedDiff(oldStr, newStr), [oldStr, newStr])
 
@@ -106,18 +109,33 @@ export default function DiffView({ oldStr, newStr, filePath }: DiffViewProps) {
 
   if (showRaw) {
     return (
-      <div style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11 }}>
+      <div style={{
+        background: 'rgba(13,13,20,0.95)',
+        border: '1px solid rgba(255,255,255,0.07)',
+        borderRadius: 10,
+        overflow: 'hidden',
+        fontFamily: 'monospace',
+        fontSize: 11,
+      }}>
         {filePath && (
-          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4 }}>{filePath}</div>
+          <div style={{
+            fontSize: 10, color: 'rgba(255,255,255,0.82)', marginBottom: 4,
+            padding: '6px 12px',
+            background: 'rgba(255,255,255,0.04)',
+            borderBottom: '1px solid rgba(255,255,255,0.07)',
+            fontFamily: 'monospace', fontWeight: 700,
+            letterSpacing: '0.07em', textTransform: 'uppercase',
+          }}>{filePath}</div>
         )}
-        <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: 10 }}>
+        <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: 10, padding: '8px 12px' }}>
           {`--- old\n+++ new\n${oldStr.split('\n').map(l => `- ${l}`).join('\n')}\n${newStr.split('\n').map(l => `+ ${l}`).join('\n')}`}
         </pre>
         <button
           onClick={() => setShowRaw(false)}
           style={{
-            background: 'none', border: 'none', color: 'var(--accent)',
-            cursor: 'pointer', fontSize: 10, padding: '4px 0', display: 'flex', alignItems: 'center', gap: 4,
+            background: 'none', border: 'none', color: '#818cf8',
+            cursor: 'pointer', fontSize: 10, padding: '4px 12px 8px', display: 'flex', alignItems: 'center', gap: 4,
+            transition: 'all 0.15s ease',
           }}
         >
           <FileCode size={10} /> {t('diff.showDiff')}
@@ -127,100 +145,178 @@ export default function DiffView({ oldStr, newStr, filePath }: DiffViewProps) {
   }
 
   return (
-    <div style={{ borderRadius: 4, overflow: 'hidden', border: '1px solid var(--border)' }}>
+    <div style={{
+      background: 'rgba(13,13,20,0.95)',
+      border: '1px solid rgba(255,255,255,0.07)',
+      borderRadius: 10,
+      overflow: 'hidden',
+    }}>
       {/* Header */}
       <div
         onClick={() => { if (autoCollapsed) setAutoCollapsed(false); else setCollapsed(!collapsed) }}
         style={{
-          display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px',
-          background: 'var(--diff-header-bg, var(--card-bg))',
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '6px 12px',
+          background: 'rgba(255,255,255,0.04)',
+          borderBottom: '1px solid rgba(255,255,255,0.07)',
           cursor: 'pointer', fontSize: 11,
+          transition: 'all 0.15s ease',
         }}
       >
         {isCollapsed
-          ? <ChevronRight size={11} style={{ color: 'var(--text-muted)' }} />
-          : <ChevronDown size={11} style={{ color: 'var(--text-muted)' }} />}
-        <FileCode size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+          ? <ChevronRight size={11} style={{ color: 'rgba(255,255,255,0.45)' }} />
+          : <ChevronDown size={11} style={{ color: 'rgba(255,255,255,0.45)' }} />}
+        <FileCode size={12} style={{ color: '#818cf8', flexShrink: 0 }} />
         {filePath && (
-          <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 10, color: 'var(--text-secondary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{
+            fontFamily: 'monospace', fontSize: 10, fontWeight: 700,
+            color: 'rgba(255,255,255,0.82)',
+            letterSpacing: '0.07em', textTransform: 'uppercase',
+            flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
             {filePath}
           </span>
         )}
-        <span style={{ fontSize: 10, flexShrink: 0 }}>
-          {stats.additions > 0 && <span style={{ color: 'var(--diff-add-text, #3fb950)' }}>+{stats.additions}</span>}
-          {stats.additions > 0 && stats.deletions > 0 && <span style={{ color: 'var(--text-muted)', margin: '0 3px' }}>/</span>}
-          {stats.deletions > 0 && <span style={{ color: 'var(--diff-del-text, #f85149)' }}>-{stats.deletions}</span>}
+        {/* Stat badges */}
+        <span style={{ fontSize: 10, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+          {stats.additions > 0 && (
+            <span style={{
+              background: 'rgba(34,197,94,0.15)', color: '#4ade80',
+              border: '1px solid rgba(34,197,94,0.25)',
+              borderRadius: 6, padding: '1px 6px',
+              fontSize: 10, fontWeight: 700,
+              fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"',
+            }}>+{stats.additions}</span>
+          )}
+          {stats.deletions > 0 && (
+            <span style={{
+              background: 'rgba(239,68,68,0.15)', color: '#f87171',
+              border: '1px solid rgba(239,68,68,0.25)',
+              borderRadius: 6, padding: '1px 6px',
+              fontSize: 10, fontWeight: 700,
+              fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"',
+            }}>-{stats.deletions}</span>
+          )}
         </span>
       </div>
 
       {/* Diff content */}
       {!isCollapsed && (
-        <div style={{ maxHeight: 400, overflowY: 'auto' }}>
-          {diffLines.map((line, idx) => (
-            <div
-              key={idx}
-              style={{
-                display: 'flex',
-                background: line.type === 'add'
-                  ? 'var(--diff-add-bg, rgba(46,160,67,0.15))'
-                  : line.type === 'del'
-                  ? 'var(--diff-del-bg, rgba(248,81,73,0.15))'
-                  : 'transparent',
-                fontFamily: 'var(--font-mono, monospace)',
-                fontSize: 11,
-                lineHeight: '1.5',
-              }}
-            >
-              {/* Line numbers */}
-              <span style={{
-                minWidth: 28, textAlign: 'right', paddingRight: 4,
-                color: 'var(--diff-line-num, var(--text-muted))',
-                fontSize: 10, opacity: 0.6, userSelect: 'none', flexShrink: 0,
-              }}>
-                {line.type !== 'add' ? line.oldNum : ''}
-              </span>
-              <span style={{
-                minWidth: 28, textAlign: 'right', paddingRight: 6,
-                color: 'var(--diff-line-num, var(--text-muted))',
-                fontSize: 10, opacity: 0.6, userSelect: 'none', flexShrink: 0,
-                borderRight: '1px solid var(--border)',
-              }}>
-                {line.type !== 'del' ? line.newNum : ''}
-              </span>
+        <div style={{
+          maxHeight: 400, overflowY: 'auto',
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'rgba(255,255,255,0.1) transparent',
+        }}>
+          {diffLines.map((line, idx) => {
+            const isAdd = line.type === 'add'
+            const isDel = line.type === 'del'
+            const isHunk = line.content.startsWith('@@')
 
-              {/* Marker */}
-              <span style={{
-                width: 14, textAlign: 'center', flexShrink: 0,
-                color: line.type === 'add'
-                  ? 'var(--diff-add-text, #3fb950)'
-                  : line.type === 'del'
-                  ? 'var(--diff-del-text, #f85149)'
-                  : 'var(--text-muted)',
-                fontWeight: 600,
-              }}>
-                {line.type === 'add' ? '+' : line.type === 'del' ? '-' : ' '}
-              </span>
+            return (
+              <div
+                key={idx}
+                style={{
+                  display: 'flex',
+                  background: isHunk
+                    ? 'rgba(99,102,241,0.08)'
+                    : isAdd
+                    ? 'rgba(34,197,94,0.12)'
+                    : isDel
+                    ? 'rgba(239,68,68,0.10)'
+                    : 'rgba(255,255,255,0.03)',
+                  borderLeft: isHunk
+                    ? '2px solid rgba(99,102,241,0.30)'
+                    : isAdd
+                    ? '2px solid rgba(34,197,94,0.25)'
+                    : isDel
+                    ? '2px solid rgba(239,68,68,0.20)'
+                    : '2px solid transparent',
+                  fontFamily: 'monospace',
+                  fontSize: 12,
+                  lineHeight: 1.5,
+                }}
+              >
+                {/* Old line number */}
+                <span style={{
+                  width: 40, textAlign: 'right', padding: '0 8px',
+                  color: isAdd
+                    ? 'rgba(34,197,94,0.4)'
+                    : isDel
+                    ? 'rgba(239,68,68,0.4)'
+                    : 'rgba(255,255,255,0.25)',
+                  fontSize: 11,
+                  fontVariantNumeric: 'tabular-nums',
+                  fontFeatureSettings: '"tnum"',
+                  userSelect: 'none', flexShrink: 0,
+                }}>
+                  {line.type !== 'add' ? line.oldNum : ''}
+                </span>
+                {/* New line number */}
+                <span style={{
+                  width: 40, textAlign: 'right', padding: '0 8px',
+                  color: isAdd
+                    ? 'rgba(34,197,94,0.4)'
+                    : isDel
+                    ? 'rgba(239,68,68,0.4)'
+                    : 'rgba(255,255,255,0.25)',
+                  fontSize: 11,
+                  fontVariantNumeric: 'tabular-nums',
+                  fontFeatureSettings: '"tnum"',
+                  userSelect: 'none', flexShrink: 0,
+                  borderRight: '1px solid rgba(255,255,255,0.05)',
+                }}>
+                  {line.type !== 'del' ? line.newNum : ''}
+                </span>
 
-              {/* Content */}
-              <span style={{
-                whiteSpace: 'pre-wrap', wordBreak: 'break-all', flex: 1,
-                paddingRight: 8,
-                color: line.type === 'ctx' ? 'var(--text-secondary)' : 'var(--text-primary)',
-              }}>
-                {line.content}
-              </span>
-            </div>
-          ))}
+                {/* Marker */}
+                <span style={{
+                  width: 14, textAlign: 'center', flexShrink: 0,
+                  color: isHunk
+                    ? '#818cf8'
+                    : isAdd
+                    ? '#4ade80'
+                    : isDel
+                    ? '#f87171'
+                    : 'rgba(255,255,255,0.25)',
+                  fontWeight: 600,
+                }}>
+                  {line.type === 'add' ? '+' : line.type === 'del' ? '-' : ' '}
+                </span>
+
+                {/* Content */}
+                <span style={{
+                  whiteSpace: 'pre-wrap', wordBreak: 'break-all', flex: 1,
+                  padding: '0 10px',
+                  fontFamily: 'monospace', fontSize: 12, lineHeight: 1.5,
+                  color: isHunk
+                    ? '#818cf8'
+                    : isAdd
+                    ? 'rgba(34,197,94,0.82)'
+                    : isDel
+                    ? 'rgba(239,68,68,0.82)'
+                    : 'rgba(255,255,255,0.45)',
+                  fontStyle: isHunk ? 'italic' : undefined,
+                }}>
+                  {line.content}
+                </span>
+              </div>
+            )
+          })}
         </div>
       )}
 
-      {/* Large diff collapsed message */}
+      {/* Large diff collapsed message — collapse/expand hunk button */}
       {isCollapsed && isLarge && (
         <div
           onClick={() => setAutoCollapsed(false)}
+          onMouseEnter={() => setHunkHovered(true)}
+          onMouseLeave={() => setHunkHovered(false)}
           style={{
-            padding: '6px 8px', fontSize: 10, color: 'var(--accent)',
+            padding: '6px 12px', fontSize: 11,
+            color: '#818cf8',
+            background: hunkHovered ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.08)',
             cursor: 'pointer', textAlign: 'center',
+            transition: 'all 0.15s ease',
           }}
         >
           {t('diff.showLines', { count: String(diffLines.length) })}
@@ -230,26 +326,35 @@ export default function DiffView({ oldStr, newStr, filePath }: DiffViewProps) {
       {/* Footer controls */}
       {!isCollapsed && (
         <div style={{
-          display: 'flex', gap: 8, padding: '3px 8px',
-          borderTop: '1px solid var(--border)', fontSize: 10,
+          display: 'flex', gap: 8, padding: '4px 12px',
+          borderTop: '1px solid rgba(255,255,255,0.07)', fontSize: 10,
+          background: 'rgba(255,255,255,0.02)',
         }}>
           <button
             onClick={() => setShowRaw(true)}
+            onMouseEnter={() => setRawHovered(true)}
+            onMouseLeave={() => setRawHovered(false)}
             style={{
-              background: 'none', border: 'none', color: 'var(--text-muted)',
+              background: 'none', border: 'none',
+              color: rawHovered ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.45)',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, fontSize: 10,
+              transition: 'all 0.15s ease',
             }}
           >
             <Code size={10} /> {t('diff.showRaw')}
           </button>
           <button
             onClick={handleCopy}
+            onMouseEnter={() => setCopyHovered(true)}
+            onMouseLeave={() => setCopyHovered(false)}
             style={{
-              background: 'none', border: 'none', color: 'var(--text-muted)',
+              background: 'none', border: 'none',
+              color: copyHovered ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.45)',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, fontSize: 10,
+              transition: 'all 0.15s ease',
             }}
           >
-            {copied ? <Check size={10} style={{ color: 'var(--success)' }} /> : <Copy size={10} />}
+            {copied ? <Check size={10} style={{ color: '#4ade80' }} /> : <Copy size={10} />}
             {copied ? t('common.copied') : t('common.copy')}
           </button>
         </div>

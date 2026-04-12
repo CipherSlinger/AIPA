@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ChatMessage, StandardChatMessage } from '../../types/app.types'
 import { useT } from '../../i18n'
@@ -28,6 +28,7 @@ interface ContextMenuProps {
 
 export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdown, onCopyRichText, onCopyCodeBlocks, onSaveAsNote, onRememberThis, onQuoteReply, onEditMessage, onRate, onRewind, onBookmark, onPin, onCollapse, onAnnotate, hasAnnotation, onClose, onFork }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null)
 
   // Clamp position to viewport
   useEffect(() => {
@@ -71,22 +72,47 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
   const isCollapsed = message.role !== 'permission' && message.role !== 'plan' ? (message as StandardChatMessage).collapsed : false
   const t = useT()
 
-  const itemStyle: React.CSSProperties = {
+  const getItemStyle = (key: string, destructive?: boolean): React.CSSProperties => ({
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '6px 12px',
-    fontSize: 12,
-    color: 'var(--text-primary)',
+    gap: 10,
+    padding: '7px 14px',
+    fontSize: 13,
+    color: destructive ? '#fca5a5' : 'rgba(255,255,255,0.78)',
     cursor: 'pointer',
-    background: 'none',
+    background: hoveredItem === key
+      ? (destructive ? 'rgba(239,68,68,0.10)' : 'rgba(255,255,255,0.06)')
+      : 'transparent',
     border: 'none',
+    borderLeft: hoveredItem === key && !destructive
+      ? '2px solid rgba(99,102,241,0.40)'
+      : '2px solid transparent',
     width: '100%',
     textAlign: 'left',
     borderRadius: 0,
-  }
+    transition: 'background 0.15s ease, border-left-color 0.15s ease',
+  })
 
-  const separator = <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
+  const getIconStyle = (key: string, destructive?: boolean): React.CSSProperties => ({
+    flexShrink: 0,
+    color: destructive ? '#f87171' : 'rgba(255,255,255,0.45)',
+    fontSize: 14,
+    transition: 'color 0.15s ease',
+  })
+
+  const getShortcutStyle = (): React.CSSProperties => ({
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.38)',
+    marginLeft: 'auto',
+    fontFamily: 'monospace',
+  })
+
+  const separator = <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '4px 0' }} />
+
+  const itemHandlers = (key: string) => ({
+    onMouseEnter: () => setHoveredItem(key),
+    onMouseLeave: () => setHoveredItem(null),
+  })
 
   const menu = (
     <div
@@ -96,33 +122,34 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
         left: x,
         top: y,
         zIndex: 100,
-        width: 210,
-        background: 'var(--popup-bg)',
-        border: '1px solid var(--popup-border)',
-        borderRadius: 6,
-        boxShadow: 'var(--popup-shadow)',
+        minWidth: 160,
+        background: 'rgba(15,15,25,0.95)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        border: '1px solid rgba(255,255,255,0.09)',
+        borderRadius: 12,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4)',
         padding: '4px 0',
         overflow: 'hidden',
+        animation: 'slideUp 0.15s ease',
       }}
     >
       {/* Copy */}
       <button
-        style={itemStyle}
+        style={getItemStyle('copy')}
         onClick={() => { onCopy(); onClose() }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+        {...itemHandlers('copy')}
       >
-        <span>{t('message.copy')}</span>
-        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Ctrl+C</span>
+        <span style={{ flex: 1 }}>{t('message.copy')}</span>
+        <span style={getShortcutStyle()}>Ctrl+C</span>
       </button>
 
       {/* Copy as Markdown (assistant only) */}
       {isAssistant && onCopyMarkdown && (
         <button
-          style={itemStyle}
+          style={getItemStyle('copyMarkdown')}
           onClick={() => { onCopyMarkdown(); onClose() }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+          {...itemHandlers('copyMarkdown')}
         >
           <span>{t('message.copyMarkdown')}</span>
         </button>
@@ -131,10 +158,9 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
       {/* Copy as Rich Text (assistant only) */}
       {isAssistant && onCopyRichText && (
         <button
-          style={itemStyle}
+          style={getItemStyle('copyRichText')}
           onClick={() => { onCopyRichText(); onClose() }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+          {...itemHandlers('copyRichText')}
         >
           <span>{t('message.copyRichText')}</span>
         </button>
@@ -143,10 +169,9 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
       {/* Copy Code Blocks (assistant only, when code blocks present) */}
       {isAssistant && onCopyCodeBlocks && (
         <button
-          style={itemStyle}
+          style={getItemStyle('copyCodeBlocks')}
           onClick={() => { onCopyCodeBlocks(); onClose() }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+          {...itemHandlers('copyCodeBlocks')}
         >
           <span>{t('message.copyCodeBlocks')}</span>
         </button>
@@ -155,10 +180,9 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
       {/* Save as Note (assistant only) */}
       {isAssistant && onSaveAsNote && (
         <button
-          style={itemStyle}
+          style={getItemStyle('saveAsNote')}
           onClick={() => { onSaveAsNote(); onClose() }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+          {...itemHandlers('saveAsNote')}
         >
           <span>{t('message.saveAsNote')}</span>
         </button>
@@ -167,10 +191,9 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
       {/* Remember This (assistant only) */}
       {isAssistant && onRememberThis && (
         <button
-          style={itemStyle}
+          style={getItemStyle('rememberThis')}
           onClick={() => { onRememberThis(); onClose() }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+          {...itemHandlers('rememberThis')}
         >
           <span>{t('message.rememberThis')}</span>
         </button>
@@ -179,10 +202,9 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
       {/* Quote Reply */}
       {onQuoteReply && (
         <button
-          style={itemStyle}
+          style={getItemStyle('quoteReply')}
           onClick={() => { onQuoteReply(); onClose() }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+          {...itemHandlers('quoteReply')}
         >
           <span>{t('message.quoteReply')}</span>
         </button>
@@ -191,10 +213,9 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
       {/* Edit Message (user only) */}
       {onEditMessage && (
         <button
-          style={itemStyle}
+          style={getItemStyle('editMessage')}
           onClick={() => { onEditMessage(); onClose() }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+          {...itemHandlers('editMessage')}
         >
           <span>{t('message.editMessage')}</span>
         </button>
@@ -203,62 +224,57 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
       {/* Fork from here (all message types) */}
       {onFork && message.role !== 'permission' && message.role !== 'plan' && (
         <button
-          style={itemStyle}
+          style={getItemStyle('fork')}
           onClick={() => { onFork(); onClose() }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+          {...itemHandlers('fork')}
         >
-          <span>{t('fork.forkFromHere')}</span>
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>⑂</span>
+          <span style={{ flex: 1 }}>{t('fork.forkFromHere')}</span>
+          <span style={getIconStyle('fork')}>⑂</span>
         </button>
       )}
 
       {/* Bookmark */}
       {onBookmark && message.role !== 'permission' && message.role !== 'plan' && (
         <button
-          style={itemStyle}
+          style={getItemStyle('bookmark')}
           onClick={() => { onBookmark(); onClose() }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+          {...itemHandlers('bookmark')}
         >
-          <span>{isBookmarked ? t('message.removeBookmark') : t('message.bookmark')}</span>
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{isBookmarked ? '\u2605' : '\u2606'}</span>
+          <span style={{ flex: 1 }}>{isBookmarked ? t('message.removeBookmark') : t('message.bookmark')}</span>
+          <span style={getIconStyle('bookmark')}>{isBookmarked ? '\u2605' : '\u2606'}</span>
         </button>
       )}
 
       {/* Pin */}
       {onPin && message.role !== 'permission' && message.role !== 'plan' && (
         <button
-          style={itemStyle}
+          style={getItemStyle('pin')}
           onClick={() => { onPin(); onClose() }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+          {...itemHandlers('pin')}
         >
-          <span>{isPinned ? t('message.unpinMessage') : t('message.pinMessage')}</span>
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{isPinned ? '\u{1F4CC}' : '\u{1F4CC}'}</span>
+          <span style={{ flex: 1 }}>{isPinned ? t('message.unpinMessage') : t('message.pinMessage')}</span>
+          <span style={getIconStyle('pin')}>{isPinned ? '\u{1F4CC}' : '\u{1F4CC}'}</span>
         </button>
       )}
 
       {/* Annotate */}
       {onAnnotate && message.role !== 'permission' && message.role !== 'plan' && (
         <button
-          style={itemStyle}
+          style={getItemStyle('annotate')}
           onClick={() => { onAnnotate(); onClose() }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+          {...itemHandlers('annotate')}
         >
-          <span>{hasAnnotation ? t('message.editAnnotation') : t('message.addAnnotation')}</span>
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{hasAnnotation ? '\u{1F4DD}' : '\u{1F4CB}'}</span>
+          <span style={{ flex: 1 }}>{hasAnnotation ? t('message.editAnnotation') : t('message.addAnnotation')}</span>
+          <span style={getIconStyle('annotate')}>{hasAnnotation ? '\u{1F4DD}' : '\u{1F4CB}'}</span>
         </button>
       )}
 
       {/* Collapse / Expand */}
       {onCollapse && message.role !== 'permission' && message.role !== 'plan' && (
         <button
-          style={itemStyle}
+          style={getItemStyle('collapse')}
           onClick={() => { onCollapse(); onClose() }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+          {...itemHandlers('collapse')}
         >
           <span>{isCollapsed ? t('message.expand') : t('message.collapse')}</span>
         </button>
@@ -269,25 +285,23 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
         <>
           {separator}
           <button
-            style={itemStyle}
+            style={getItemStyle('rateUp')}
             onClick={() => { onRate(rating === 'up' ? null : 'up'); onClose() }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+            {...itemHandlers('rateUp')}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>{t('message.thumbsUp')}</span>
-              {rating === 'up' && <span style={{ color: 'var(--success)', fontSize: 11 }}>{t('message.active')}</span>}
+              {rating === 'up' && <span style={{ color: '#4ade80', fontSize: 11 }}>{t('message.active')}</span>}
             </span>
           </button>
           <button
-            style={itemStyle}
+            style={getItemStyle('rateDown')}
             onClick={() => { onRate(rating === 'down' ? null : 'down'); onClose() }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+            {...itemHandlers('rateDown')}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>{t('message.thumbsDown')}</span>
-              {rating === 'down' && <span style={{ color: 'var(--error)', fontSize: 11 }}>{t('message.active')}</span>}
+              {rating === 'down' && <span style={{ color: '#f87171', fontSize: 11 }}>{t('message.active')}</span>}
             </span>
           </button>
         </>
@@ -298,10 +312,9 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
         <>
           {separator}
           <button
-            style={itemStyle}
+            style={getItemStyle('rewind', true)}
             onClick={() => { onRewind(); onClose() }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+            {...itemHandlers('rewind')}
           >
             <span>{t('rewind.button')}</span>
           </button>

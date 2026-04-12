@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react'
-import { Workflow as WorkflowIcon } from 'lucide-react'
-import { Workflow } from '../../types/app.types'
+import { Workflow as WorkflowIcon, Maximize2, ChevronsUpDown, Download, Minimize2, LayoutGrid } from 'lucide-react'
+import { Workflow, WorkflowStep } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { useChatStore } from '../../store'
 import CanvasNode, { NODE_WIDTH, NODE_MIN_HEIGHT } from './CanvasNode'
@@ -20,6 +20,8 @@ interface WorkflowCanvasProps {
   onRetryStep?: (stepId: string) => void
   // Direction A+9: rerun entire workflow
   onRerun?: () => void
+  // R key: run workflow for the first time
+  onRun?: () => void
   // Direction B: update a step's title or prompt
   onStepUpdate?: (stepId: string, changes: { title?: string; prompt?: string }) => void
   // D6: reorder steps (drag handle)
@@ -30,6 +32,24 @@ interface WorkflowCanvasProps {
   onInsertBetween?: (afterStepId: string, beforeStepId: string) => void
   // Direction 5: delete steps by id
   onDeleteSteps?: (stepIds: string[]) => void
+  // Inline workflow update (name rename from canvas header)
+  onWorkflowUpdate?: (updated: Workflow) => void
+}
+
+// --- Viewport culling ---
+const CULL_MARGIN = 100
+
+function isInViewport(
+  pos: { x: number; y: number; width: number; height: number },
+  viewLeft: number, viewTop: number, viewRight: number, viewBottom: number,
+  cullMargin = CULL_MARGIN
+): boolean {
+  return (
+    pos.x + pos.width > viewLeft - cullMargin &&
+    pos.x < viewRight + cullMargin &&
+    pos.y + pos.height > viewTop - cullMargin &&
+    pos.y < viewBottom + cullMargin
+  )
 }
 
 // --- Minimap ---
@@ -105,14 +125,15 @@ function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, conta
         bottom: 40,
         right: 8,
         zIndex: 10,
-        background: 'rgba(15,15,25,0.85)',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        background: 'rgba(12,12,22,0.90)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        border: '1px solid rgba(255,255,255,0.08)',
         borderRadius: 8,
         overflow: 'hidden',
         width: MINIMAP_W,
         height: MINIMAP_H,
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
       }}
       onMouseDown={e => e.stopPropagation()}
       onClick={e => e.stopPropagation()}
@@ -123,22 +144,39 @@ function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, conta
           if (!p) return null
           const st = stepStatuses[id] ?? 'idle'
           const fill = st === 'completed' ? '#22c55e'
-            : st === 'running' ? 'var(--accent)'
+            : st === 'running' ? '#6366f1'
             : st === 'pending' ? 'rgba(120,120,120,0.4)'
             : 'rgba(100,100,100,0.3)'
+          const nodeIdx = stepIds.indexOf(id)
+          const rectW = Math.max(2, p.width * scale)
+          const rectH = Math.max(2, p.height * scale)
+          const rx = (p.x - minX + pad) * scale
+          const ry = (p.y - minY + pad) * scale
           return (
-            <rect
-              key={id}
-              x={(p.x - minX + pad) * scale}
-              y={(p.y - minY + pad) * scale}
-              width={Math.max(2, p.width * scale)}
-              height={Math.max(2, p.height * scale)}
-              rx={2}
-              fill={fill}
-              fillOpacity={0.9}
-              style={{ cursor: onClickNode ? 'pointer' : 'default' }}
-              onClick={onClickNode ? (e) => { e.stopPropagation(); onClickNode(id) } : undefined}
-            />
+            <g key={id}>
+              <rect
+                x={rx} y={ry}
+                width={rectW} height={rectH}
+                rx={2}
+                fill={fill}
+                fillOpacity={0.9}
+                style={{ cursor: onClickNode ? 'pointer' : 'default' }}
+                onClick={onClickNode ? (e) => { e.stopPropagation(); onClickNode(id) } : undefined}
+              />
+              {rectW > 10 && rectH > 6 && (
+                <text
+                  x={rx + rectW / 2}
+                  y={ry + rectH / 2 + 3}
+                  textAnchor="middle"
+                  fontSize={Math.max(4, Math.min(7, rectW * 0.35))}
+                  fill="rgba(255,255,255,0.75)"
+                  fontWeight="800"
+                  style={{ pointerEvents: 'none', userSelect: 'none' }}
+                >
+                  {nodeIdx + 1}
+                </text>
+              )}
+            </g>
           )
         })}
         <rect
@@ -156,12 +194,25 @@ function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, conta
   )
 }
 
-export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep, onRerun, onStepUpdate, onStepReorder, onImportSteps, onInsertBetween, onDeleteSteps }: WorkflowCanvasProps) {
+export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep, onRerun, onRun, onStepUpdate, onStepReorder, onImportSteps, onInsertBetween, onDeleteSteps, onWorkflowUpdate }: WorkflowCanvasProps) {
   const t = useT()
   const containerRef = useRef<HTMLDivElement>(null)
+  const selectedNodesRef = useRef<Set<string>>(new Set())
+  const selectedNodeRef = useRef<string | null>(null)
+
+  // Inline name editing state
+  const [editingName, setEditingName] = useState(false)
+  const [nameValue, setNameValue] = useState(workflow?.name ?? '')
+
+  // Sync nameValue when workflow changes
+  useEffect(() => {
+    setNameValue(workflow?.name ?? '')
+    setEditingName(false)
+  }, [workflow?.id])
   const execution = useWorkflowExecution(workflow)
   // Direction 9: get abort from chat store
   const abort = useChatStore(s => s.abort)
+  const clearQueue = useChatStore(s => s.clearQueue)
 
   // D2: subscribe to live streaming text from the current assistant message
   const streamingContent = useChatStore(s => {
@@ -180,10 +231,25 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   // Direction 13: search query state
   const [searchQuery, setSearchQuery] = useState('')
 
+  // Enhancement 3: undo history for step deletions (Ctrl+Z)
+  const [deletedStepHistory, setDeletedStepHistory] = useState<{ step: WorkflowStep; idx: number }[]>([])
+
   // Direction 5: delete nodes callback (passed to useCanvasLayout as 4th param)
   const handleDeleteNodes = useCallback((ids: string[]) => {
+    if (workflow) {
+      const deletedEntries = ids
+        .map(id => {
+          const idx = workflow.steps.findIndex(s => s.id === id)
+          const step = workflow.steps[idx]
+          return idx >= 0 && step ? { step, idx } : null
+        })
+        .filter((e): e is { step: WorkflowStep; idx: number } => e !== null)
+      if (deletedEntries.length > 0) {
+        setDeletedStepHistory(prev => [...prev.slice(-5), ...deletedEntries])
+      }
+    }
     onDeleteSteps?.(ids)
-  }, [onDeleteSteps])
+  }, [onDeleteSteps, workflow])
 
   // Layout hook (pan, zoom, node positions, drag, collapse, minimap, Space key)
   const layout = useCanvasLayout(workflow, containerRef, undefined, handleDeleteNodes)
@@ -191,6 +257,10 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   // Direction 6: execution history
   const { runs, saveRun, clearHistory } = useWorkflowHistory(workflow?.id ?? null)
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null)
+
+  // Enhancement 2: workflow completion summary toast
+  const [completionSummary, setCompletionSummary] = useState<{ stepCount: number; visible: boolean } | null>(null)
+  const prevRunningRef = useRef(false)
 
   // Track when execution started for ETA
   const executionStartRef = useRef<number | null>(null)
@@ -230,6 +300,17 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   }, [execution.isRunning, execution.completedCount, execution.totalSteps,
       execution.stepOutputs, execution.stepDurations, workflow, saveRun])
 
+  // Enhancement 2: show completion toast when workflow transitions from running to done
+  useEffect(() => {
+    const wasRunning = prevRunningRef.current
+    const allDone = !execution.isRunning && execution.completedCount === execution.totalSteps && execution.totalSteps > 0
+    if (wasRunning && allDone && workflow) {
+      setCompletionSummary({ stepCount: workflow.steps.length, visible: true })
+      setTimeout(() => setCompletionSummary(null), 4000)
+    }
+    prevRunningRef.current = execution.isRunning
+  }, [execution.isRunning, execution.completedCount, execution.totalSteps, workflow])
+
   // Direction 6: resolve historical data for display
   const selectedRun = selectedRunId ? runs.find(r => r.runId === selectedRunId) : null
   const historyStepOutputs = selectedRun ? selectedRun.stepOutputs : null
@@ -237,9 +318,18 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
 
   // Selected node
   const [selectedNode, setSelectedNode] = useState<string | null>(null)
+  // Copy-to-clipboard toast
+  const [copyToast, setCopyToast] = useState(false)
+  // Execution summary card collapse state
+  const [summaryCollapsed, setSummaryCollapsed] = useState(false)
 
   // D5: canvas right-click context menu
   const [canvasCtxMenu, setCanvasCtxMenu] = useState<{ x: number; y: number } | null>(null)
+
+  // Find overlay
+  const [findOpen, setFindOpen] = useState(false)
+  const [findQuery, setFindQuery] = useState('')
+  const findInputRef = React.useRef<HTMLInputElement>(null)
 
   // D5: live step timer — track start times per step
   const [liveElapsedMs, setLiveElapsedMs] = useState<Record<string, number>>({})
@@ -278,6 +368,9 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
 
   // D8: edge hover state — key is "fromId:toId"
   const [hoveredEdgeKey, setHoveredEdgeKey] = useState<string | null>(null)
+
+  // Insert-between gap hover state — index of the step AFTER which to insert
+  const [hoveredGap, setHoveredGap] = useState<number | null>(null)
 
   // D6: reorder drag state
   const [reorderDrag, setReorderDrag] = useState<{ stepId: string; insertAfterIndex: number } | null>(null)
@@ -353,43 +446,77 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     }
   }, [reorderDrag?.stepId]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 30s periodic agent summary during execution
-  const [agentSummary, setAgentSummary] = useState<string | null>(null)
-  const summaryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const lastSummaryStepRef = useRef<string | null>(null)
+  // Streaming words-per-second indicator
+  const [streamingWps, setStreamingWps] = useState<number | null>(null)
+  const lastWordCountRef = useRef(0)
+  const lastWpsCheckRef = useRef(Date.now())
+
+  useEffect(() => {
+    if (!execution.isRunning) {
+      setStreamingWps(null)
+      lastWordCountRef.current = 0
+      return
+    }
+
+    const interval = setInterval(() => {
+      const activeIdx = execution.activeStepIndex
+      if (activeIdx < 0) return
+      const activeStep = workflow?.steps[activeIdx]
+      if (!activeStep) return
+
+      const streamText = execution.stepOutputs?.[activeStep.id] ?? ''
+      const wordCount = streamText.trim().split(/\s+/).filter(Boolean).length
+
+      const now = Date.now()
+      const elapsed = (now - lastWpsCheckRef.current) / 1000
+      if (elapsed > 0 && wordCount > lastWordCountRef.current) {
+        const wps = Math.round((wordCount - lastWordCountRef.current) / elapsed)
+        setStreamingWps(wps)
+      }
+      lastWordCountRef.current = wordCount
+      lastWpsCheckRef.current = now
+    }, 1500)
+
+    return () => clearInterval(interval)
+  }, [execution.isRunning, execution.activeStepIndex, execution.stepOutputs, workflow])
+
+  // 30s periodic active step banner during execution
+  const [activeStepBanner, setActiveStepBanner] = useState<string | null>(null)
+  const bannerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const lastBannerStepRef = useRef<string | null>(null)
 
   useEffect(() => {
     const isRunning = execution.isRunning
     if (!isRunning || !workflow) {
-      if (summaryIntervalRef.current) {
-        clearInterval(summaryIntervalRef.current)
-        summaryIntervalRef.current = null
+      if (bannerIntervalRef.current) {
+        clearInterval(bannerIntervalRef.current)
+        bannerIntervalRef.current = null
       }
-      if (!isRunning) setAgentSummary(null)
+      if (!isRunning) setActiveStepBanner(null)
       return
     }
 
-    const generateSummary = () => {
+    const updateBanner = () => {
       const activeIdx = execution.activeStepIndex
       const activeStep = activeIdx >= 0 ? workflow.steps[activeIdx] : null
       if (!activeStep) return
-      if (activeStep.id === lastSummaryStepRef.current) return
-      lastSummaryStepRef.current = activeStep.id
+      if (activeStep.id === lastBannerStepRef.current) return
+      lastBannerStepRef.current = activeStep.id
 
       const completedOutputs = workflow.steps
         .filter((_, i) => i < activeIdx)
         .map(s => `Step "${s.title}": ${(execution.stepOutputs[s.id] || '').slice(0, 200)}`)
         .join('\n')
 
-      const summaryText = `Running "${activeStep.title}"${completedOutputs ? ` — ${workflow.steps.filter((_, i) => i < activeIdx).length} steps done` : ''}`
-      setAgentSummary(summaryText)
+      const bannerText = `Running "${activeStep.title}"${completedOutputs ? ` — ${workflow.steps.filter((_, i) => i < activeIdx).length} steps done` : ''}`
+      setActiveStepBanner(bannerText)
     }
 
-    generateSummary()
-    summaryIntervalRef.current = setInterval(generateSummary, 30_000)
+    updateBanner()
+    bannerIntervalRef.current = setInterval(updateBanner, 30_000)
 
     return () => {
-      if (summaryIntervalRef.current) clearInterval(summaryIntervalRef.current)
+      if (bannerIntervalRef.current) clearInterval(bannerIntervalRef.current)
     }
   }, [execution.isRunning, execution.activeStepIndex, workflow, execution.stepOutputs])
 
@@ -400,6 +527,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     setReorderDrag(null)
     setHoveredEdgeKey(null)
     setSearchQuery('')
+    setDeletedStepHistory([])
   }, [workflow?.id])
 
   // --- Auto-pan to active node during execution ---
@@ -436,6 +564,110 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     return () => document.removeEventListener('mousedown', close)
   }, [canvasCtxMenu])
 
+  // Keep selectedNodesRef in sync to avoid re-registering the keydown listener on every render
+  useEffect(() => { selectedNodesRef.current = layout.selectedNodes }, [layout.selectedNodes])
+  // Keep selectedNodeRef in sync for stale-closure-safe access in the Delete handler
+  useEffect(() => { selectedNodeRef.current = selectedNode }, [selectedNode])
+
+  // Delete/Backspace: delete selected nodes (multi-select or single-select)
+  useEffect(() => {
+    if (!onDeleteSteps) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Delete' && e.key !== 'Backspace') return
+      // Don't fire when user is typing in an input/textarea
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+      const selected = selectedNodesRef.current
+      if (selected.size > 0) {
+        e.preventDefault()
+        onDeleteSteps([...selected])
+        layout.clearSelection()
+      } else if (selectedNodeRef.current && !execution.isRunning) {
+        e.preventDefault()
+        onDeleteSteps([selectedNodeRef.current])
+        setSelectedNode(null)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onDeleteSteps, layout.clearSelection, execution.isRunning])
+
+  // R key: run workflow (when canvas is focused/hovered and no input is active)
+  useEffect(() => {
+    if (!onRun) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'r' && e.key !== 'R') return
+      if (e.ctrlKey || e.metaKey) return
+      // Don't fire when user is typing in an input/textarea
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+      if (execution.isRunning) return
+      e.preventDefault()
+      onRun()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onRun, execution.isRunning])
+
+  // Ctrl+Z: undo last step deletion
+  useEffect(() => {
+    if (!onWorkflowUpdate) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.key !== 'z' && e.key !== 'Z') || (!e.ctrlKey && !e.metaKey) || e.shiftKey) return
+      // Don't fire when user is typing in an input/textarea
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+      if (!workflow) return
+      setDeletedStepHistory(prev => {
+        if (prev.length === 0) return prev
+        const last = prev[prev.length - 1]
+        const newSteps = [...workflow.steps]
+        newSteps.splice(last.idx, 0, last.step)
+        onWorkflowUpdate({ ...workflow, steps: newSteps, updatedAt: Date.now() })
+        e.preventDefault()
+        return prev.slice(0, -1)
+      })
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onWorkflowUpdate, workflow, deletedStepHistory])
+
+  // Ctrl+C: copy workflow as JSON when no node is selected
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      if ((e.key === 'c' || e.key === 'C') && (e.ctrlKey || e.metaKey) && !selectedNode && workflow) {
+        e.preventDefault()
+        const json = JSON.stringify(workflow, null, 2)
+        navigator.clipboard.writeText(json).then(() => {
+          setCopyToast(true)
+          setTimeout(() => setCopyToast(false), 2000)
+        }).catch(() => {})
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [selectedNode, workflow])
+
+  // Ctrl+F: find node overlay
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if ((e.key === 'f' || e.key === 'F') && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault()
+        setFindOpen(prev => {
+          if (!prev) setTimeout(() => findInputRef.current?.focus(), 50)
+          return !prev
+        })
+      }
+      if (e.key === 'Escape' && findOpen) {
+        setFindOpen(false)
+        setFindQuery('')
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [findOpen])
+
   // D6: keyboard focus → node selection sync
   useEffect(() => {
     if (layout.focusedNodeId && workflow) {
@@ -461,6 +693,10 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     ? (layout.isPanning ? 'grabbing' : 'grab')
     : reorderDrag ? 'ns-resize'
     : layout.isPanning ? 'grabbing' : 'default'
+
+  // Enhancement 1: isDragging — true when user is reorder-dragging a node
+  // (layout.draggingNode is not exported from useCanvasLayout, so we use reorderDrag as the signal)
+  const isDragging = reorderDrag !== null
 
   // Direction B: node title change (from CanvasNode inline edit)
   const handleTitleChange = useCallback((stepId: string, newTitle: string) => {
@@ -519,16 +755,35 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }, [workflow])
 
+  // TODO: wire up actual partial execution when useWorkflowExecution supports startFromStep
+  const handleRunFromStep = useCallback((_stepIdx: number) => {
+    // no-op for now — UI affordance only
+  }, [])
+
+  // Insert a new empty step after the given index by delegating to onInsertBetween
+  const handleInsertStep = useCallback((insertAtIndex: number) => {
+    if (!workflow || !onInsertBetween) return
+    const afterStep = workflow.steps[insertAtIndex - 1]
+    const beforeStep = workflow.steps[insertAtIndex]
+    if (!afterStep || !beforeStep) return
+    onInsertBetween(afterStep.id, beforeStep.id)
+  }, [workflow, onInsertBetween])
+
   // Direction 13: compute effective highlight IDs (search takes priority over external prop)
   const effectiveHighlightStepIds: Set<string> | null | undefined = (() => {
     if (searchQuery && workflow) {
+      const q = searchQuery.toLowerCase()
       const matched = workflow.steps
-        .filter(s => s.title.includes(searchQuery) || s.prompt.includes(searchQuery))
+        .filter(s => s.title.toLowerCase().includes(q) || s.prompt.toLowerCase().includes(q))
         .map(s => s.id)
       return new Set(matched)
     }
     return highlightStepIds
   })()
+
+  const searchMatchCount = searchQuery && effectiveHighlightStepIds
+    ? effectiveHighlightStepIds.size
+    : null
 
   // D8: auto-pan to first search match
   useEffect(() => {
@@ -546,14 +801,38 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        color: 'var(--text-muted)',
-        gap: 6,
+        background: 'rgba(8,8,16,1)',
+        color: 'rgba(255,255,255,0.45)',
+        gap: 10,
       }}>
-        <WorkflowIcon size={20} style={{ opacity: 0.25 }} />
-        <span style={{ fontSize: 11, color: 'var(--text-muted)', opacity: 0.55, letterSpacing: '0.01em' }}>{t('workflow.canvasEmpty')}</span>
+        <div style={{
+          background: 'rgba(99,102,241,0.08)',
+          borderRadius: 20,
+          padding: 20,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <WorkflowIcon size={24} style={{ opacity: 0.45, color: 'rgba(99,102,241,0.8)' }} />
+        </div>
+        <span style={{ fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.82)' }}>{t('workflow.canvasEmpty')}</span>
+        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{t('workflow.selectOrCreate')}</span>
       </div>
     )
   }
+
+  const selectedStep = selectedNode ? workflow?.steps.find(s => s.id === selectedNode) : null
+  const selectedStepIndex = selectedNode ? workflow?.steps.findIndex(s => s.id === selectedNode) : -1
+  const selectedStepStatus = selectedNode ? (execution.stepStatuses[selectedNode] ?? 'idle') : null
+
+  const findMatches = findQuery.trim() && workflow
+    ? workflow.steps
+        .map((step, idx) => ({ step, idx }))
+        .filter(({ step }) =>
+          step.title.toLowerCase().includes(findQuery.toLowerCase()) ||
+          (step.prompt || '').toLowerCase().includes(findQuery.toLowerCase())
+        )
+    : []
 
   const zoomPercent = Math.round(layout.zoom * 100)
 
@@ -562,18 +841,19 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   const viewTop = -layout.panY / layout.zoom
   const viewRight = viewLeft + layout.containerSize.w / layout.zoom
   const viewBottom = viewTop + layout.containerSize.h / layout.zoom
-  const CULL_MARGIN = 100
-
-  function isInViewport(pos: { x: number; y: number; width: number; height: number }) {
-    return (
-      pos.x + pos.width > viewLeft - CULL_MARGIN &&
-      pos.x < viewRight + CULL_MARGIN &&
-      pos.y + pos.height > viewTop - CULL_MARGIN &&
-      pos.y < viewBottom + CULL_MARGIN
-    )
-  }
 
   const showRerunOrError = (execution.completedCount === execution.totalSteps && execution.totalSteps > 0 && !execution.isRunning) || (execution.hasError && !execution.isRunning)
+  const totalSteps = workflow?.steps.length ?? 0
+
+  const totalDurationMs = workflow
+    ? workflow.steps.reduce((sum, step) => sum + (execution.stepDurations[step.id] ?? 0), 0)
+    : 0
+  const totalOutputWords = workflow
+    ? workflow.steps.reduce((sum, step) => {
+        const out = execution.stepOutputs[step.id] ?? ''
+        return sum + (out ? out.trim().split(/\s+/).filter(Boolean).length : 0)
+      }, 0)
+    : 0
 
   // D8: determine which nodes are highlighted by edge hover
   const hoveredFromId = hoveredEdgeKey ? hoveredEdgeKey.split(':')[0] : null
@@ -609,7 +889,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         position: 'relative',
         overflow: 'hidden',
         cursor,
-        background: 'var(--bg-main)',
+        background: 'rgba(8,8,16,1)',
       }}
       onMouseDown={handleCanvasMouseDown}
       onWheel={layout.handleWheel}
@@ -618,9 +898,234 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
       onContextMenu={(e) => {
         e.preventDefault()
         e.stopPropagation()
-        setCanvasCtxMenu({ x: e.clientX, y: e.clientY })
+        const menuW = 180
+        const menuH = 200
+        const x = e.clientX + menuW > window.innerWidth ? e.clientX - menuW : e.clientX
+        const y = e.clientY + menuH > window.innerHeight ? e.clientY - menuH : e.clientY
+        setCanvasCtxMenu({ x, y })
       }}
     >
+      {/* Canvas header strip — workflow name (inline-editable) + description */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 12,
+          display: 'flex',
+          alignItems: 'center',
+          padding: '6px 12px',
+          pointerEvents: 'none',
+        }}
+        onMouseDown={e => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, pointerEvents: 'all' }}>
+          {/* Workflow name — inline-editable on double-click */}
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.82)', lineHeight: 1.2 }}>
+            {editingName ? (
+              <input
+                value={nameValue}
+                onChange={e => setNameValue(e.target.value)}
+                onBlur={() => {
+                  if (nameValue.trim() && workflow && nameValue !== workflow.name) {
+                    onWorkflowUpdate?.({ ...workflow, name: nameValue.trim(), updatedAt: Date.now() })
+                  }
+                  setEditingName(false)
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') e.currentTarget.blur()
+                  if (e.key === 'Escape') { setNameValue(workflow?.name ?? ''); setEditingName(false) }
+                }}
+                autoFocus
+                style={{
+                  fontSize: 14, fontWeight: 700,
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid #6366f1',
+                  borderRadius: 4,
+                  color: 'rgba(255,255,255,0.82)',
+                  padding: '2px 6px',
+                  outline: 'none',
+                  width: 200,
+                }}
+              />
+            ) : (
+              <span
+                onDoubleClick={() => { setEditingName(true); setNameValue(workflow?.name ?? '') }}
+                title={t('workflow.doubleClickToEdit')}
+                style={{ cursor: 'text', userSelect: 'none' }}
+              >
+                {workflow?.name}
+              </span>
+            )}
+          </div>
+          {/* Workflow description */}
+          {workflow?.description && (
+            <div style={{
+              fontSize: 11,
+              color: 'rgba(255,255,255,0.45)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              maxWidth: 300,
+              opacity: 0.75,
+              marginTop: 1,
+            }}>
+              {workflow.description}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Selected node info strip */}
+      {selectedStep && selectedStepIndex >= 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 36,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 13,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '3px 10px 3px 8px',
+            background: 'rgba(15,15,25,0.82)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 20,
+            pointerEvents: 'none',
+            animation: 'workflow-done-in 0.2s ease-out',
+          }}
+        >
+          <span style={{
+            fontSize: 9,
+            fontWeight: 700,
+            color: 'rgba(255,255,255,0.45)',
+            background: 'rgba(255,255,255,0.08)',
+            borderRadius: 10,
+            padding: '1px 5px',
+          }}>
+            {String(selectedStepIndex + 1).padStart(2, '0')}
+          </span>
+          <span style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: 'rgba(255,255,255,0.82)',
+            maxWidth: 200,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}>
+            {selectedStep.title}
+          </span>
+          {selectedStepStatus && selectedStepStatus !== 'idle' && (
+            <span style={{
+              fontSize: 9,
+              fontWeight: 600,
+              color: selectedStepStatus === 'completed' ? '#22c55e'
+                : selectedStepStatus === 'running' ? '#6366f1'
+                : selectedStepStatus === 'error' ? '#f87171'
+                : 'rgba(255,255,255,0.45)',
+              background: selectedStepStatus === 'completed' ? 'rgba(34,197,94,0.1)'
+                : selectedStepStatus === 'running' ? 'rgba(99,102,241,0.12)'
+                : selectedStepStatus === 'error' ? 'rgba(239,68,68,0.1)'
+                : 'rgba(255,255,255,0.06)',
+              borderRadius: 8,
+              padding: '1px 6px',
+              textTransform: 'capitalize',
+            }}>
+              {selectedStepStatus}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Find node overlay — triggered by Ctrl+F */}
+      {findOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 44,
+            right: 12,
+            zIndex: 20,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            background: 'rgba(10,10,20,0.9)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.09)',
+            borderRadius: 8,
+            padding: '5px 8px',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+            minWidth: 220,
+            animation: 'slideUp 0.15s ease',
+          }}
+          onMouseDown={e => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
+        >
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', flexShrink: 0 }}>🔍</span>
+          <input
+            ref={findInputRef}
+            value={findQuery}
+            onChange={e => setFindQuery(e.target.value)}
+            placeholder="Find step..."
+            style={{
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              color: 'rgba(255,255,255,0.82)',
+              fontSize: 12,
+              flex: 1,
+              minWidth: 0,
+            }}
+            onKeyDown={e => {
+              if (e.key === 'Escape') { setFindOpen(false); setFindQuery('') }
+              if (e.key === 'Enter' && findMatches.length > 0) {
+                layout.autoPanToNode(findMatches[0].step.id)
+              }
+            }}
+          />
+          {findQuery && (
+            <span style={{ fontSize: 10, color: findMatches.length > 0 ? '#22c55e' : '#f87171', flexShrink: 0, fontWeight: 600 }}>
+              {findMatches.length}
+            </span>
+          )}
+          <button
+            onClick={() => { setFindOpen(false); setFindQuery('') }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', padding: 2, fontSize: 14, lineHeight: 1, borderRadius: 4, transition: 'all 0.15s ease' }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.82)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)'; e.currentTarget.style.background = 'none' }}
+          >×</button>
+        </div>
+      )}
+
+      {/* Execution shimmer progress bar */}
+      {execution.isRunning && (
+        <div style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0,
+          height: 3,
+          zIndex: 20,
+          background: 'rgba(255,255,255,0.06)',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            height: '100%',
+            background: 'linear-gradient(90deg, #6366f1, #818cf8, #6366f1)',
+            backgroundSize: '200% 100%',
+            animation: 'canvas-progress-shimmer 1.8s ease-in-out infinite',
+            width: execution.activeStepIndex >= 0 && totalSteps > 0
+              ? `${Math.round(((execution.activeStepIndex) / totalSteps) * 100)}%`
+              : '30%',
+            transition: 'width 0.4s ease',
+          }} />
+        </div>
+      )}
+
       {/* Execution progress bar */}
       <CanvasProgressBar
         completedCount={execution.completedCount}
@@ -630,21 +1135,89 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         hasError={execution.hasError && !execution.isRunning}
       />
 
-      {/* 30s agent summary banner during execution */}
-      {agentSummary && execution.isRunning && (
+      {/* 30s active step banner during execution */}
+      {activeStepBanner && execution.isRunning && (
         <div style={{
           position: 'absolute', top: 32, left: '50%', transform: 'translateX(-50%)',
           zIndex: 50, pointerEvents: 'none',
-          background: 'rgba(var(--accent-rgb,59,130,246),0.1)',
-          border: '1px solid rgba(var(--accent-rgb,59,130,246),0.3)',
+          background: 'rgba(99,102,241,0.08)',
+          border: '1px solid rgba(99,102,241,0.3)',
           borderRadius: 10, padding: '5px 16px',
           backdropFilter: 'blur(8px)',
           WebkitBackdropFilter: 'blur(8px)',
-          fontSize: 11, color: 'var(--text-primary)',
+          fontSize: 11, color: 'rgba(255,255,255,0.82)',
           whiteSpace: 'nowrap', maxWidth: '60%',
           overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
-          {agentSummary}
+          {activeStepBanner}
+          {streamingContent && (
+            <span style={{ opacity: 0.65, marginLeft: 8, fontSize: 10 }}>
+              — {streamingContent}
+            </span>
+          )}
+          {execution.activeStepIndex >= 0 && (
+            <span style={{
+              marginLeft: 10,
+              fontSize: 10,
+              fontWeight: 700,
+              color: '#6366f1',
+              background: 'rgba(99,102,241,0.12)',
+              borderRadius: 20,
+              padding: '1px 8px',
+              flexShrink: 0,
+              letterSpacing: '0.02em',
+              fontVariantNumeric: 'tabular-nums',
+              fontFeatureSettings: '"tnum"',
+            }}>
+              {execution.activeStepIndex + 1} / {execution.totalSteps}
+            </span>
+          )}
+          {execution.isRunning && streamingWps !== null && streamingWps > 0 && (
+            <span style={{
+              fontSize: 10,
+              color: 'rgba(99,102,241,0.8)',
+              background: 'rgba(99,102,241,0.08)',
+              borderRadius: 8,
+              padding: '1px 7px',
+              fontWeight: 500,
+              flexShrink: 0,
+            }}>
+              {streamingWps} w/s
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Enhancement 2: Workflow completion summary toast */}
+      {completionSummary?.visible && (
+        <div style={{
+          position: 'absolute',
+          top: 60,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 30,
+          background: 'rgba(34,197,94,0.15)',
+          border: '1px solid rgba(34,197,94,0.4)',
+          borderRadius: 10,
+          padding: '10px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          boxShadow: '0 4px 20px rgba(34,197,94,0.2)',
+          animation: 'workflow-done-in 0.3s ease-out',
+          pointerEvents: 'none',
+        }}>
+          <div style={{ fontSize: 18 }}>✓</div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#22c55e' }}>
+              {t('workflow.canvasComplete')}
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 1 }}>
+              {completionSummary.stepCount} {t('workflow.stepsLabel')} completed
+            </div>
+          </div>
         </div>
       )}
 
@@ -662,16 +1235,16 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         <defs>
           <pattern
             id="canvas-dot-grid"
-            x={layout.panX % (24 * layout.zoom)}
-            y={layout.panY % (24 * layout.zoom)}
-            width={24 * layout.zoom}
-            height={24 * layout.zoom}
+            x={layout.panX % (20 * layout.zoom)}
+            y={layout.panY % (20 * layout.zoom)}
+            width={20 * layout.zoom}
+            height={20 * layout.zoom}
             patternUnits="userSpaceOnUse"
           >
             <circle
-              cx={24 * layout.zoom / 2}
-              cy={24 * layout.zoom / 2}
-              r={Math.max(0.8, layout.zoom)}
+              cx={20 * layout.zoom / 2}
+              cy={20 * layout.zoom / 2}
+              r={Math.max(0.5, layout.zoom * 0.7)}
               fill="rgba(255,255,255,0.06)"
             />
           </pattern>
@@ -705,33 +1278,42 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           }}
         >
           {/* Dashed circle with + */}
-          <svg width={90} height={90}>
-            <circle
-              cx={45}
-              cy={45}
-              r={40}
-              fill="none"
-              stroke="var(--text-muted)"
-              strokeWidth={1.5}
-              strokeDasharray="6 4"
-            />
-            <text
-              x={45}
-              y={54}
-              textAnchor="middle"
-              fontSize={28}
-              fill="var(--text-muted)"
-              fontWeight={300}
-            >+</text>
-          </svg>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', opacity: 0.6, letterSpacing: '0.01em' }}>
+          <div style={{
+            background: 'rgba(99,102,241,0.08)',
+            borderRadius: 20,
+            padding: 20,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <svg width={60} height={60}>
+              <circle
+                cx={30}
+                cy={30}
+                r={26}
+                fill="none"
+                stroke="rgba(99,102,241,0.4)"
+                strokeWidth={1.5}
+                strokeDasharray="6 4"
+              />
+              <text
+                x={30}
+                y={39}
+                textAnchor="middle"
+                fontSize={22}
+                fill="rgba(99,102,241,0.6)"
+                fontWeight={300}
+              >+</text>
+            </svg>
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.82)', textAlign: 'center' }}>
             {t('workflow.emptyState')}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', opacity: 0.4, letterSpacing: '0.01em' }}>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', textAlign: 'center', letterSpacing: '0.01em' }}>
             {t('workflow.canvasAddStepHint')}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', opacity: 0.3, letterSpacing: '0.01em' }}>
-            or right-click the canvas
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', opacity: 0.5, letterSpacing: '0.01em', textAlign: 'center' }}>
+            {t('workflow.canvasRightClickHint')}
           </div>
         </div>
       )}
@@ -753,6 +1335,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         hasError={execution.hasError && !execution.isRunning}
         onAbort={abort ? () => abort() : undefined}
         onRerun={onRerun}
+        onRun={onRun}
         layoutDirection={layout.layoutDirection}
         onToggleLayout={layout.toggleLayoutDirection}
         onExport={handleExport}
@@ -760,7 +1343,32 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         onExportScript={handleExportScript}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        onClearOutputs={clearQueue}
+        completedCount={execution.completedCount}
+        stepCount={workflow?.steps.length ?? 0}
       />
+
+      {searchMatchCount !== null && (
+        <div style={{
+          position: 'absolute',
+          top: (execution.isRunning || execution.completedCount > 0) ? 28 : 8,
+          left: 158,  // 搜索框宽度约 150px + 8px offset
+          zIndex: 11,
+          fontSize: 10,
+          color: searchMatchCount > 0 ? '#6366f1' : 'rgba(255,255,255,0.45)',
+          background: searchMatchCount > 0
+            ? 'rgba(99,102,241,0.12)'
+            : 'rgba(255,255,255,0.07)',
+          borderRadius: 20,
+          padding: '2px 8px',
+          pointerEvents: 'none',
+          transition: 'top 0.2s ease',
+          fontWeight: 600,
+          border: '1px solid rgba(255,255,255,0.08)',
+        }}>
+          {searchMatchCount}
+        </div>
+      )}
 
       {/* Space-key hint */}
       {layout.spaceDown && !layout.isPanning && (
@@ -771,7 +1379,29 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           padding: '3px 10px', fontSize: 10, color: 'rgba(255,255,255,0.65)',
           letterSpacing: '0.01em',
         }}>
-          Hold & drag to pan
+          {t('workflow.holdDragToPan')}
+        </div>
+      )}
+
+      {/* Enhancement 1: Snap hint — shown during reorder drag */}
+      {isDragging && (
+        <div style={{
+          position: 'absolute',
+          bottom: 40,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          fontSize: 10,
+          color: 'rgba(255,255,255,0.45)',
+          background: 'rgba(20,20,20,0.8)',
+          backdropFilter: 'blur(6px)',
+          WebkitBackdropFilter: 'blur(6px)',
+          borderRadius: 6,
+          padding: '3px 10px',
+          border: '1px solid rgba(255,255,255,0.08)',
+          pointerEvents: 'none',
+          zIndex: 15,
+        }}>
+          Shift to disable snap · {t('canvas.dragToReorder')}
         </div>
       )}
 
@@ -781,12 +1411,12 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           position: 'absolute', top: execution.isRunning || execution.completedCount > 0 ? 60 : 40,
           left: '50%', transform: 'translateX(-50%)',
           zIndex: 20, pointerEvents: 'none',
-          background: 'rgba(var(--accent-rgb,59,130,246),0.12)',
-          border: '1px solid rgba(var(--accent-rgb,59,130,246),0.3)',
+          background: 'rgba(99,102,241,0.12)',
+          border: '1px solid rgba(99,102,241,0.3)',
           borderRadius: 4,
-          padding: '2px 10px', fontSize: 9, color: 'var(--accent)',
+          padding: '2px 10px', fontSize: 9, color: '#6366f1',
         }}>
-          {layout.selectedNodes.size} nodes selected · drag to move
+          {layout.selectedNodes.size} {t('workflow.nodesSelected')}
         </div>
       )}
 
@@ -810,7 +1440,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             const toPos = layout.nodePositions[step.id]
             if (!fromPos || !toPos) return null
             // Direction 8: skip edge if both endpoints are outside viewport
-            if (!isInViewport(fromPos) && !isInViewport(toPos)) return null
+            if (!isInViewport(fromPos, viewLeft, viewTop, viewRight, viewBottom) && !isInViewport(toPos, viewLeft, viewTop, viewRight, viewBottom)) return null
             const srcStatus = execution.stepStatuses[prevStep.id] ?? 'idle'
             const edgeStatus = srcStatus === 'completed' ? 'done' : srcStatus === 'running' ? 'active' : 'idle'
             const edgeKey = `${prevStep.id}:${step.id}`
@@ -832,6 +1462,9 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                 // Direction 4: pass output length and duration from previous step
                 outputLength={execution.stepOutputs[prevStep.id]?.length}
                 durationMs={execution.stepDurations[prevStep.id]}
+                sourceStepIndex={idx - 1}
+                targetStepIndex={idx}
+                label={prevStep.condition ? `if: ${prevStep.condition.slice(0, 20)}` : undefined}
               />
             )
           })}
@@ -853,7 +1486,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           const pos = layout.nodePositions[step.id]
           if (!pos) return null
           // Direction 8: render lightweight placeholder for off-screen nodes
-          if (!isInViewport(pos)) {
+          if (!isInViewport(pos, viewLeft, viewTop, viewRight, viewBottom)) {
             return (
               <div
                 key={step.id}
@@ -890,6 +1523,12 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                 (effectiveHighlightStepIds !== null && effectiveHighlightStepIds !== undefined && !effectiveHighlightStepIds.has(step.id)) ||
                 (reorderDrag !== null && reorderDrag.stepId === step.id)
               }
+              highlighted={
+                searchQuery.trim().length > 0 &&
+                effectiveHighlightStepIds !== null &&
+                effectiveHighlightStepIds !== undefined &&
+                effectiveHighlightStepIds.has(step.id)
+              }
               durationMs={historyStepDurations ? (historyStepDurations[step.id] ?? execution.stepDurations[step.id]) : execution.stepDurations[step.id]}
               isFirst={idx === 0}
               isLast={idx === workflow.steps.length - 1}
@@ -899,6 +1538,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               streamingText={execution.isRunning && stepStatus === 'running' ? streamingContent : undefined}
               // D5: live elapsed timer
               liveElapsedMs={liveElapsedMs[step.id]}
+              stepIndex={idx}
               onSelect={handleNodeSelect}
               onDragStart={(stepId, e) => {
                 // Direction F: if this node is part of multi-selection, drag all
@@ -917,7 +1557,48 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                 e.stopPropagation()
                 setReorderDrag({ stepId, insertAfterIndex: -1 })
               } : undefined}
-              // TODO: wire up updateNodeHeight via CanvasNode onHeightChange
+              onDeleteNode={onDeleteSteps ? (stepId) => onDeleteSteps([stepId]) : undefined}
+              onInsertBefore={onInsertBetween && idx > 0 ? (stepId) => {
+                const prevStep = workflow.steps[idx - 1]
+                onInsertBetween(prevStep.id, stepId)
+              } : undefined}
+              onInsertAfter={onInsertBetween && idx < workflow.steps.length - 1 ? (stepId) => {
+                const nextStep = workflow.steps[idx + 1]
+                onInsertBetween(stepId, nextStep.id)
+              } : undefined}
+              onRetry={onRetryStep ? (stepId) => onRetryStep(stepId) : undefined}
+              onRetryStep={onRetryStep && execution.stepStatuses[step.id] === 'error' && !execution.isRunning ? () => onRetryStep(step.id) : undefined}
+              onRunFromStep={!execution.isRunning ? () => handleRunFromStep(idx) : undefined}
+              onHeightChange={layout.updateNodeHeight}
+              onDuplicate={onWorkflowUpdate ? (stepId) => {
+                const srcIdx = workflow.steps.findIndex(s => s.id === stepId)
+                if (srcIdx === -1) return
+                const src = workflow.steps[srcIdx]
+                const dup = {
+                  ...src,
+                  id: Date.now().toString(),
+                  title: src.title + ' (copy)',
+                  canvasPos: src.canvasPos
+                    ? { x: src.canvasPos.x + 40, y: src.canvasPos.y + 40 }
+                    : undefined,
+                }
+                const newSteps = [
+                  ...workflow.steps.slice(0, srcIdx + 1),
+                  dup,
+                  ...workflow.steps.slice(srcIdx + 1),
+                ]
+                onWorkflowUpdate({ ...workflow, steps: newSteps, updatedAt: Date.now() })
+              } : undefined}
+              onMoveUp={idx > 0 && onWorkflowUpdate ? () => {
+                const steps = [...workflow.steps]
+                ;[steps[idx - 1], steps[idx]] = [steps[idx], steps[idx - 1]]
+                onWorkflowUpdate({ ...workflow, steps })
+              } : undefined}
+              onMoveDown={idx < workflow.steps.length - 1 && onWorkflowUpdate ? () => {
+                const steps = [...workflow.steps]
+                ;[steps[idx], steps[idx + 1]] = [steps[idx + 1], steps[idx]]
+                onWorkflowUpdate({ ...workflow, steps })
+              } : undefined}
             />
             </div>
           )
@@ -931,14 +1612,70 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               ...(reorderInsertLine.isVertical
                 ? { top: -6, height: NODE_MIN_HEIGHT + 12, left: (reorderInsertLine as any).x, width: 2 }
                 : { left: -6, width: NODE_WIDTH + 12, top: (reorderInsertLine as any).y, height: 2 }),
-              background: 'var(--accent)',
+              background: '#6366f1',
               borderRadius: 1,
               pointerEvents: 'none',
-              boxShadow: '0 0 6px rgba(var(--accent-rgb,59,130,246),0.6)',
+              boxShadow: '0 0 6px rgba(99,102,241,0.6)',
               zIndex: 10,
             }}
           />
         )}
+
+        {/* Insert-between zones — "+" button that appears between consecutive steps */}
+        {!execution.isRunning && onInsertBetween && workflow.steps.map((step, idx) => {
+          if (idx >= workflow.steps.length - 1) return null
+          const thisPos = layout.nodePositions[step.id]
+          const nextPos = layout.nodePositions[workflow.steps[idx + 1].id]
+          if (!thisPos || !nextPos) return null
+
+          const isHoriz = layout.layoutDirection === 'horizontal'
+          const midX = isHoriz
+            ? thisPos.x + thisPos.width + (nextPos.x - thisPos.x - thisPos.width) / 2
+            : thisPos.x + thisPos.width / 2
+          const midY = isHoriz
+            ? thisPos.y + thisPos.height / 2
+            : thisPos.y + thisPos.height + (nextPos.y - thisPos.y - thisPos.height) / 2
+
+          const isHovered = hoveredGap === idx
+          return (
+            <div
+              key={`gap-${idx}`}
+              onMouseEnter={() => setHoveredGap(idx)}
+              onMouseLeave={() => setHoveredGap(null)}
+              onClick={e => {
+                e.stopPropagation()
+                handleInsertStep(idx + 1)
+                setHoveredGap(null)
+              }}
+              style={{
+                position: 'absolute',
+                left: midX - 14,
+                top: midY - 14,
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                background: isHovered ? '#6366f1' : 'rgba(99,102,241,0.12)',
+                border: `2px solid ${isHovered ? '#6366f1' : 'rgba(99,102,241,0.3)'}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                zIndex: 5,
+                transition: 'all 0.15s ease',
+                opacity: isHovered ? 1 : 0.4,
+                color: isHovered ? 'rgba(255,255,255,0.95)' : '#6366f1',
+                fontSize: 18,
+                fontWeight: 300,
+                lineHeight: 1,
+                boxShadow: isHovered ? '0 2px 12px rgba(99,102,241,0.4)' : 'none',
+                userSelect: 'none',
+              }}
+              title={t('workflow.addStep')}
+            >
+              +
+            </div>
+          )
+        })}
       </div>
 
       {/* D1: Marquee selection rectangle overlay */}
@@ -956,8 +1693,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               top: screenY,
               width: screenW,
               height: screenH,
-              border: '1.5px dashed rgba(var(--accent-rgb,59,130,246),0.8)',
-              background: 'rgba(var(--accent-rgb,59,130,246),0.06)',
+              border: '1px solid rgba(99,102,241,0.6)',
+              background: 'rgba(99,102,241,0.08)',
               pointerEvents: 'none',
               zIndex: 15,
               borderRadius: 2,
@@ -999,6 +1736,33 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         />
       </div>
 
+      {/* Bottom-left info chip — node count */}
+      <div style={{
+        position: 'absolute',
+        bottom: 12,
+        left: 12,
+        zIndex: 10,
+        display: 'flex',
+        gap: 6,
+        alignItems: 'center',
+        pointerEvents: 'none',
+      }}>
+        <span style={{
+          fontSize: 10,
+          color: 'rgba(255,255,255,0.45)',
+          background: 'rgba(20,20,20,0.7)',
+          backdropFilter: 'blur(6px)',
+          WebkitBackdropFilter: 'blur(6px)',
+          borderRadius: 5,
+          padding: '2px 8px',
+          border: '1px solid rgba(255,255,255,0.08)',
+          fontVariantNumeric: 'tabular-nums',
+          fontFeatureSettings: '"tnum"',
+        }}>
+          {workflow?.steps.length ?? 0} {t('workflow.stepsLabel')}
+        </span>
+      </div>
+
       {/* Canvas context menu */}
       {canvasCtxMenu && (
         <div
@@ -1007,55 +1771,244 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             left: canvasCtxMenu.x,
             top: canvasCtxMenu.y,
             zIndex: 1000,
-            background: 'var(--popup-bg, #1e1e2e)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 8,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05)',
+            background: 'rgba(15,15,25,0.92)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.09)',
+            borderRadius: 10,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
             minWidth: 168,
             padding: '4px 0',
             userSelect: 'none',
+            animation: 'slideUp 0.15s ease',
           }}
           onMouseDown={e => e.stopPropagation()}
           onClick={e => e.stopPropagation()}
         >
           {[
-            { label: 'Fit to view', action: layout.fitToView },
-            { label: 'Collapse all', action: layout.handleCollapseAll },
-            { label: 'Expand all', action: layout.handleExpandAll },
-            { label: layout.layoutDirection === 'vertical' ? 'Horizontal layout' : 'Vertical layout', action: layout.toggleLayoutDirection },
-            { label: 'Export JSON', action: handleExport },
-            { label: 'Export Script', action: handleExportScript },
-          ].map(({ label, action }) => (
+            { label: t('workflow.fitToView'), icon: <Maximize2 size={11} />, action: layout.fitToView },
+            { label: t('workflow.collapseAll'), icon: <Minimize2 size={11} />, action: layout.handleCollapseAll },
+            { label: t('workflow.expandAll'), icon: <ChevronsUpDown size={11} />, action: layout.handleExpandAll },
+            { label: layout.layoutDirection === 'vertical' ? t('workflow.horizontalLayout') : t('workflow.verticalLayout'), icon: <LayoutGrid size={11} />, action: layout.toggleLayoutDirection },
+            { label: t('workflow.exportJSON'), icon: <Download size={11} />, action: handleExport },
+            { label: t('workflow.exportScript'), icon: <Download size={11} />, action: handleExportScript },
+          ].map(({ label, icon, action }) => (
             <div
               key={label}
               style={{
-                display: 'flex', alignItems: 'center',
+                display: 'flex', alignItems: 'center', gap: 8,
                 padding: '7px 12px',
                 fontSize: 12,
                 cursor: 'pointer',
-                color: 'var(--text)',
-                transition: 'background 0.1s',
+                color: 'rgba(255,255,255,0.82)',
+                transition: 'all 0.15s ease',
               }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               onMouseDown={() => {
                 action()
                 setCanvasCtxMenu(null)
               }}
             >
+              <span style={{ opacity: 0.6, display: 'flex' }}>{icon}</span>
               {label}
             </div>
           ))}
         </div>
       )}
 
+      {/* Execution timeline strip — shown when execution has results */}
+      {copyToast && (
+        <div style={{
+          position: 'absolute',
+          bottom: 40,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 50,
+          background: 'rgba(34,197,94,0.9)',
+          color: 'rgba(255,255,255,0.95)',
+          fontSize: 11,
+          fontWeight: 600,
+          borderRadius: 6,
+          padding: '5px 14px',
+          pointerEvents: 'none',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          boxShadow: '0 4px 16px rgba(34,197,94,0.3)',
+          animation: 'canvas-toast-in 0.2s ease-out',
+        }}>
+          Workflow copied to clipboard ✓
+        </div>
+      )}
+
+      {/* Execution summary card */}
+      {(execution.completedCount === execution.totalSteps && execution.totalSteps > 0 && !execution.isRunning || execution.hasError && !execution.isRunning) && execution.completedCount > 0 && workflow && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: summaryCollapsed ? 32 : 32,
+            left: 12,
+            zIndex: 11,
+            background: 'rgba(15,15,25,0.85)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: `1px solid ${execution.hasError && !execution.isRunning ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.08)'}`,
+            borderRadius: 12,
+            minWidth: 180,
+            maxWidth: 240,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
+            overflow: 'hidden',
+            animation: 'canvas-toast-in 0.2s ease-out',
+          }}
+          onMouseDown={e => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Header row */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 7,
+              padding: '7px 10px',
+              cursor: 'pointer',
+              borderBottom: summaryCollapsed ? 'none' : '1px solid rgba(255,255,255,0.07)',
+            }}
+            onClick={() => setSummaryCollapsed(p => !p)}
+          >
+            <div style={{
+              width: 7, height: 7, borderRadius: '50%',
+              background: execution.hasError && !execution.isRunning ? '#f87171' : '#22c55e',
+              flexShrink: 0,
+              boxShadow: `0 0 6px ${execution.hasError && !execution.isRunning ? 'rgba(239,68,68,0.5)' : 'rgba(34,197,94,0.5)'}`,
+            }} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.82)', flex: 1 }}>
+              {execution.hasError && !execution.isRunning ? 'Finished with errors' : 'Completed'}
+            </span>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', opacity: 0.6 }}>
+              {summaryCollapsed ? '▲' : '▼'}
+            </span>
+          </div>
+          {/* Stats */}
+          {!summaryCollapsed && (
+            <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+              {[
+                { label: 'Steps', value: `${execution.completedCount} / ${execution.totalSteps}` },
+                { label: 'Time', value: totalDurationMs < 1000 ? `${totalDurationMs}ms` : `${(totalDurationMs / 1000).toFixed(1)}s` },
+                { label: 'Output', value: `~${totalOutputWords}w` },
+              ].map(({ label, value }) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>{label}</span>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.82)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{value}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {(execution.isRunning || execution.completedCount > 0) && workflow && workflow.steps.length > 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 24,
+            zIndex: 12,
+            display: 'flex',
+            alignItems: 'stretch',
+            gap: 2,
+            padding: '3px 8px',
+            background: 'rgba(10,10,15,0.85)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            borderTop: '1px solid rgba(255,255,255,0.07)',
+            boxSizing: 'border-box',
+          }}
+          onClick={e => e.stopPropagation()}
+          onMouseDown={e => e.stopPropagation()}
+        >
+          {workflow.steps.map((step, idx) => {
+            const st = execution.stepStatuses[step.id] ?? 'idle'
+            const dur = execution.stepDurations[step.id]
+            const bg = st === 'completed' ? '#22c55e'
+              : st === 'running' ? '#6366f1'
+              : st === 'error' ? '#f87171'
+              : st === 'pending' ? 'rgba(255,255,255,0.12)'
+              : 'rgba(255,255,255,0.06)'
+            const title = `Step ${idx + 1}: ${step.title}${dur ? ` (${dur < 1000 ? dur + 'ms' : (dur/1000).toFixed(1) + 's'})` : ''}`
+            return (
+              <div
+                key={step.id}
+                title={title}
+                onClick={() => layout.autoPanToNode(step.id)}
+                style={{
+                  flex: 1,
+                  borderRadius: 3,
+                  background: bg,
+                  cursor: 'pointer',
+                  transition: 'background 0.3s ease, transform 0.15s',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  minWidth: 4,
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'scaleY(1.3)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'scaleY(1)' }}
+              >
+                {st === 'running' && (
+                  <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+                    backgroundSize: '200% 100%',
+                    animation: 'canvas-bar-shimmer 1.2s ease-in-out infinite',
+                  }} />
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Zoom level badge — bottom-center, above timeline strip */}
+      <div
+        onDoubleClick={(e) => { e.stopPropagation(); layout.fitToView() }}
+        title="Double-click to fit to view"
+        style={{
+          position: 'absolute',
+          bottom: 28,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.55)',
+          backdropFilter: 'blur(6px)',
+          WebkitBackdropFilter: 'blur(6px)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 10,
+          padding: '2px 8px',
+          fontSize: 9,
+          color: 'rgba(255,255,255,0.45)',
+          fontWeight: 500,
+          fontVariantNumeric: 'tabular-nums',
+          fontFeatureSettings: '"tnum"',
+          pointerEvents: 'auto',
+          userSelect: 'none',
+          letterSpacing: '0.05em',
+          zIndex: 11,
+          cursor: 'default',
+        }}
+      >
+        {zoomPercent}%
+      </div>
+
       {/* CSS animations for execution states */}
       <style>{`
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
         @keyframes canvas-node-pulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb, 59,130,246), 0.5), 0 4px 20px rgba(0,0,0,0.3); }
-          50% { box-shadow: 0 0 0 8px rgba(var(--accent-rgb, 59,130,246), 0), 0 4px 20px rgba(0,0,0,0.3); }
+          0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.5), 0 4px 20px rgba(0,0,0,0.3); }
+          50% { box-shadow: 0 0 0 8px rgba(99,102,241,0), 0 4px 20px rgba(0,0,0,0.3); }
         }
         @keyframes canvas-spinner {
           from { transform: rotate(0deg); }
@@ -1092,6 +2045,26 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         @keyframes canvas-empty-pulse {
           0%, 100% { opacity: 0.35; }
           50% { opacity: 0.5; }
+        }
+        @keyframes sc-spin {
+          to { transform: rotate(360deg); }
+        }
+        @keyframes canvas-node-complete {
+          0%   { box-shadow: 0 0 0 0 rgba(34,197,94,0.7), 0 4px 16px rgba(0,0,0,0.25); }
+          60%  { box-shadow: 0 0 0 10px rgba(34,197,94,0), 0 4px 16px rgba(0,0,0,0.25); }
+          100% { box-shadow: 0 0 0 2px rgba(34,197,94,0.15), 0 4px 16px rgba(0,0,0,0.25); }
+        }
+        @keyframes canvas-progress-shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+        @keyframes workflow-done-in {
+          from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+          to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        @keyframes canvas-toast-in {
+          from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+          to { opacity: 1; transform: translateX(-50%) translateY(0); }
         }
       `}</style>
     </div>

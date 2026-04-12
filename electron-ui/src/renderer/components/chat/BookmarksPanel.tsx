@@ -43,13 +43,13 @@ export default function BookmarksPanel({
         title={`${t('chat.bookmarks')} (${bookmarkedMessages.length})`}
         style={{
           ...headerBtnStyle,
-          background: showBookmarks ? 'var(--accent)' : 'none',
-          color: showBookmarks ? '#fff' : bookmarkedMessages.length > 0 ? 'var(--warning)' : 'var(--chat-header-icon)',
+          background: showBookmarks ? 'rgba(99,102,241,0.20)' : 'none',
+          color: showBookmarks ? '#818cf8' : bookmarkedMessages.length > 0 ? '#818cf8' : 'rgba(255,255,255,0.45)',
           opacity: bookmarkedMessages.length === 0 && !showBookmarks ? 0.5 : 1,
           position: 'relative',
         }}
         onMouseEnter={(e) => hoverIn(e, showBookmarks)}
-        onMouseLeave={(e) => hoverOut(e, showBookmarks, bookmarkedMessages.length > 0 ? 'var(--warning)' : 'var(--chat-header-icon)')}
+        onMouseLeave={(e) => hoverOut(e, showBookmarks, bookmarkedMessages.length > 0 ? '#818cf8' : 'rgba(255,255,255,0.45)')}
       >
         <Bookmark size={15} />
         {bookmarkedMessages.length > 0 && (
@@ -59,11 +59,12 @@ export default function BookmarksPanel({
             right: 2,
             fontSize: 9,
             fontWeight: 600,
-            color: '#fff',
-            background: 'var(--warning)',
-            borderRadius: '50%',
-            width: 14,
+            color: 'rgba(255,255,255,0.55)',
+            background: 'rgba(255,255,255,0.08)',
+            borderRadius: 10,
+            minWidth: 14,
             height: 14,
+            padding: '1px 4px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -78,26 +79,63 @@ export default function BookmarksPanel({
             top: '100%',
             right: 0,
             zIndex: 60,
-            width: 280,
-            maxHeight: 300,
+            width: 300,
+            maxHeight: 320,
             overflowY: 'auto',
-            background: 'var(--input-field-bg)',
-            border: '1px solid var(--border)',
-            borderRadius: 8,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+            background: 'rgba(15,15,25,0.92)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.09)',
+            borderRadius: 12,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
             padding: '4px 0',
             marginTop: 4,
-          }}
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'rgba(255,255,255,0.12) transparent',
+            animation: 'slideUp 0.15s ease',
+          } as React.CSSProperties}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, borderBottom: '1px solid var(--border)' }}>
-            <span>{t('chat.bookmarks')} ({bookmarkedMessages.length})</span>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '7px 12px',
+            borderBottom: '1px solid rgba(255,255,255,0.07)',
+          }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.88)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              {t('chat.bookmarks')}
+              <span style={{
+                background: 'rgba(255,255,255,0.08)',
+                borderRadius: 10,
+                padding: '1px 6px',
+                fontSize: 10,
+                fontWeight: 600,
+                color: 'rgba(255,255,255,0.55)',
+              }}>{bookmarkedMessages.length}</span>
+            </span>
             {onExportBookmarks && (
               <button
                 onClick={(e) => { e.stopPropagation(); onExportBookmarks() }}
                 title={t('chat.exportBookmarks')}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', padding: 2, borderRadius: 4 }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)' }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'rgba(255,255,255,0.45)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '3px 5px',
+                  borderRadius: 8,
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.85)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'none'
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+                }}
               >
                 <Download size={12} />
               </button>
@@ -120,31 +158,57 @@ export default function BookmarksPanel({
                   gap: 8,
                   width: '100%',
                   textAlign: 'left',
-                  background: 'none',
+                  background: 'transparent',
                   border: 'none',
+                  borderLeft: '2px solid rgba(99,102,241,0.5)',
                   padding: '8px 12px',
                   cursor: 'pointer',
-                  color: 'var(--text-primary)',
+                  color: 'rgba(255,255,255,0.82)',
                   fontSize: 12,
                   lineHeight: 1.4,
+                  transition: 'all 0.15s ease',
+                  marginTop: 2,
+                  borderRadius: '0 7px 7px 0',
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)'
+                  e.currentTarget.style.borderLeftColor = 'rgba(99,102,241,0.75)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent'
+                  e.currentTarget.style.boxShadow = 'none'
+                  e.currentTarget.style.borderLeftColor = 'rgba(99,102,241,0.5)'
+                }}
               >
                 <div style={{
                   width: 20, height: 20, borderRadius: '50%',
-                  background: isUserMsg ? 'var(--avatar-user)' : 'var(--avatar-ai)',
+                  background: isUserMsg ? 'rgba(99,102,241,0.35)' : 'rgba(255,255,255,0.10)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0, marginTop: 1,
                 }}>
                   {isUserMsg ? <User size={10} color="#ffffff" /> : <Bot size={10} color="#ffffff" />}
                 </div>
                 <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
-                  <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: 'rgba(255,255,255,0.82)',
+                    lineHeight: 1.5,
+                  }}>
                     {preview || t('chat.emptyPreview')}
                   </div>
                   {std.timestamp && (
-                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2, opacity: 0.7 }}>
+                    <div style={{
+                      fontSize: 10,
+                      color: 'rgba(255,255,255,0.38)',
+                      marginTop: 2,
+                      fontVariantNumeric: 'tabular-nums',
+                      fontFeatureSettings: '"tnum"',
+                    }}>
                       {relativeTime(std.timestamp, t)}
                     </div>
                   )}
@@ -161,21 +225,41 @@ export default function BookmarksPanel({
             top: '100%',
             right: 0,
             zIndex: 60,
-            width: 200,
-            background: 'var(--input-field-bg)',
-            border: '1px solid var(--border)',
-            borderRadius: 8,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-            padding: '16px 12px',
+            width: 220,
+            background: 'rgba(15,15,25,0.92)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.09)',
+            borderRadius: 12,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            padding: '20px 14px',
             marginTop: 4,
             textAlign: 'center',
-            fontSize: 12,
-            color: 'var(--text-muted)',
-          }}
+            animation: 'slideUp 0.15s ease',
+          } as React.CSSProperties}
         >
-          {t('chat.noBookmarks')}
-          <div style={{ fontSize: 10, marginTop: 4 }}>{t('chat.bookmarkHint')}</div>
-          <div style={{ fontSize: 10, marginTop: 2, opacity: 0.7 }}>{t('chat.bookmarkShortcutHint')}</div>
+          <div style={{
+            color: 'rgba(255,255,255,0.38)',
+            display: 'flex',
+            justifyContent: 'center',
+            marginBottom: 8,
+          }}>
+            <div style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              background: 'rgba(99,102,241,0.12)',
+              border: '1px solid rgba(99,102,241,0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <Bookmark size={20} style={{ color: '#818cf8' }} />
+            </div>
+          </div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', fontWeight: 500 }}>{t('chat.noBookmarks')}</div>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', marginTop: 5, lineHeight: 1.5 }}>{t('chat.bookmarkHint')}</div>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', marginTop: 3, lineHeight: 1.5 }}>{t('chat.bookmarkShortcutHint')}</div>
         </div>
       )}
     </div>

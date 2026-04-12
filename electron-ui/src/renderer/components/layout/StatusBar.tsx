@@ -2,7 +2,7 @@
 // Sub-modules: statusBarConstants, useStatusBarTimers, useStreamingSpeed,
 //              StatusBarModelPicker, StatusBarPersonaPicker, StatusBarTokenPopup
 
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { PanelLeft, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Square, Pin, Settings, Gauge, Brain, Calendar, Wifi, Archive, ClipboardList } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore, useSessionStore } from '../../store'
 import { StandardChatMessage } from '../../types/app.types'
@@ -75,6 +75,16 @@ export default function StatusBar() {
   const chatMessages = messages.filter(m => m.role !== 'permission' && m.role !== 'plan')
   const [showCostBreakdown, setShowCostBreakdown] = useState(false)
   const [showTokenPopup, setShowTokenPopup] = useState(false)
+
+  // Hover states for clickable items (reactive, no imperative style mutations)
+  const [hoverSidebar, setHoverSidebar] = useState(false)
+  const [hoverTokens, setHoverTokens] = useState(false)
+  const [hoverCost, setHoverCost] = useState(false)
+  const [hoverFocusTimer, setHoverFocusTimer] = useState(false)
+  const [hoverThinking, setHoverThinking] = useState(false)
+  const [hoverPin, setHoverPin] = useState(false)
+  const [hoverSettings, setHoverSettings] = useState(false)
+  const [hoverPlan, setHoverPlan] = useState(false)
   const costPopupRef = React.useRef<HTMLDivElement>(null)
   const tokenPopupRef = React.useRef<HTMLDivElement>(null)
   const firstMsgTs = chatMessages.length > 0
@@ -123,7 +133,7 @@ export default function StatusBar() {
 
   // Effort level config (5 levels: auto/low/medium/high/max)
   const effortLevel = prefs.effortLevel || 'auto'
-  const effortColors: Record<string, string> = { auto: '#60a5fa', low: '#4ade80', medium: '#fbbf24', high: '#fb923c', max: '#f87171' }
+  const effortColors: Record<string, string> = { auto: '#818cf8', low: '#4ade80', medium: '#fbbf24', high: '#fb923c', max: '#f87171' }
   const effortAbbr: Record<string, string> = { auto: 'A', low: 'L', medium: 'M', high: 'H', max: 'X' }
 
   // Extended thinking toggle (Iteration 378)
@@ -149,11 +159,15 @@ export default function StatusBar() {
       aria-label={t('a11y.statusBar')}
       style={{
         height: 24,
-        background: 'var(--accent)',
-        color: '#fff',
+        background: 'rgba(10,10,18,0.97)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        borderTop: '1px solid rgba(255,255,255,0.07)',
+        color: 'rgba(255,255,255,0.45)',
         display: 'flex',
         alignItems: 'center',
-        padding: '0 8px',
+        padding: '0 12px',
+        gap: 8,
         fontSize: 11,
         flexShrink: 0,
       }}
@@ -163,12 +177,21 @@ export default function StatusBar() {
         <button
           onClick={toggleSidebar}
           title={t('toolbar.toggleSidebar')}
-          style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0, opacity: sidebarOpen ? 1 : 0.6 }}
+          onMouseEnter={() => setHoverSidebar(true)}
+          onMouseLeave={() => setHoverSidebar(false)}
+          style={{
+            background: hoverSidebar ? 'rgba(255,255,255,0.07)' : 'transparent',
+            border: 'none', color: hoverSidebar ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.55)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center',
+            padding: '2px 6px', borderRadius: 6,
+            opacity: sidebarOpen ? 1 : 0.6,
+            transition: 'all 0.15s ease',
+          }}
         >
           <PanelLeft size={12} />
         </button>
         <span
-          style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', opacity: 0.85, maxWidth: 120 }}
+          style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'rgba(255,255,255,0.45)', maxWidth: 120 }}
           title={dirLabel}
         >
           {dirShort}
@@ -189,8 +212,9 @@ export default function StatusBar() {
               width: 6,
               height: 6,
               borderRadius: '50%',
-              background: isStreaming ? '#4ade80' : '#a0a0a0',
-              transition: 'background 0.3s',
+              background: isStreaming ? '#4ade80' : 'rgba(255,255,255,0.38)',
+              boxShadow: isStreaming ? '0 0 4px rgba(74,222,128,0.6)' : undefined,
+              transition: 'background 0.15s ease, box-shadow 0.15s ease',
               animation: isStreaming ? 'pulse 1.2s ease-in-out infinite' : undefined,
             }}
           />
@@ -210,12 +234,13 @@ export default function StatusBar() {
                 height: 6,
                 borderRadius: '50%',
                 background: '#4ade80',
+                boxShadow: '0 0 4px rgba(74,222,128,0.6)',
                 animation: 'pulse 1.2s ease-in-out infinite',
               }}
             />
             <span style={{ fontSize: 10 }}>{t('toolbar.streaming')}</span>
             {streamingSpeed !== null && streamingSpeed > 0 && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 2, opacity: 0.8, fontSize: 10 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 2, opacity: 0.8, fontSize: 10, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
                 <Zap size={9} />
                 {streamingSpeed > 1000
                   ? `${(streamingSpeed / 1000).toFixed(1)}k`
@@ -231,7 +256,7 @@ export default function StatusBar() {
 
         {/* Message count */}
         {chatMessages.length > 0 && !isStreaming && (
-          <span style={{ opacity: 0.7, fontSize: 10 }}>
+          <span style={{ opacity: 0.7, fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>
             {t('toolbar.msgs', { count: chatMessages.length })}
           </span>
         )}
@@ -244,16 +269,17 @@ export default function StatusBar() {
               useUiStore.getState().addToast('info', t('plan.disabled'))
             }}
             title={t('plan.exitHint')}
+            onMouseEnter={() => setHoverPlan(true)}
+            onMouseLeave={() => setHoverPlan(false)}
             style={{
               display: 'flex', alignItems: 'center', gap: 3,
-              padding: '1px 6px', borderRadius: 4,
-              background: 'rgba(167, 139, 250, 0.25)', border: 'none',
-              color: '#e9d5ff', cursor: 'pointer',
+              padding: '1px 6px', borderRadius: 6,
+              background: hoverPlan ? 'rgba(167, 139, 250, 0.4)' : 'rgba(167, 139, 250, 0.25)',
+              border: 'none',
+              color: '#a5b4fc', cursor: 'pointer',
               fontSize: 9, fontWeight: 600, letterSpacing: 0.5,
-              transition: 'background 150ms',
+              transition: 'background 0.15s ease',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(167, 139, 250, 0.4)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(167, 139, 250, 0.25)' }}
           >
             <ClipboardList size={9} />
             {t('plan.statusLabel')}
@@ -267,7 +293,7 @@ export default function StatusBar() {
               onClick={() => setShowTokenPopup(!showTokenPopup)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 4, opacity: 0.9,
-                background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 0,
+                background: 'none', border: 'none', color: 'rgba(255,255,255,0.55)', cursor: 'pointer', padding: 0,
               }}
               title={t('toolbar.contextUsed', { percent: String(contextPct), used: fmtNumber(lastContextUsage!.used), total: fmtNumber(lastContextUsage!.total) })}
             >
@@ -277,11 +303,19 @@ export default function StatusBar() {
                 aria-valuenow={contextPct}
                 aria-valuemin={0}
                 aria-valuemax={100}
-                style={{ width: 60, height: 4, background: 'rgba(255,255,255,0.25)', borderRadius: 3, overflow: 'hidden' }}
+                style={{ width: 60, height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden' }}
               >
-                <div style={{ width: `${contextPct}%`, height: '100%', background: ctxColor, transition: 'width 0.3s ease, background 0.3s ease', borderRadius: 3 }} />
+                <div style={{
+                  width: `${contextPct}%`, height: '100%',
+                  background: contextPct >= 95
+                    ? 'rgba(239,68,68,0.8)'
+                    : contextPct >= 80
+                      ? 'rgba(245,158,11,0.8)'
+                      : 'linear-gradient(90deg, rgba(99,102,241,0.7), rgba(139,92,246,0.6))',
+                  transition: 'width 0.15s ease, background 0.15s ease', borderRadius: 3,
+                }} />
               </div>
-              <span style={{ fontSize: 10, opacity: 0.8, fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', opacity: 0.8, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
                 {fmtNumber(lastContextUsage!.used)}/{fmtNumber(lastContextUsage!.total)}
               </span>
               {contextPct >= 85 && !isStreaming && (
@@ -291,7 +325,7 @@ export default function StatusBar() {
                   style={{
                     display: 'flex', alignItems: 'center', gap: 2,
                     padding: '0 3px', fontSize: 9, fontWeight: 500,
-                    background: 'rgba(248,113,113,0.15)', borderRadius: 4,
+                    background: 'rgba(248,113,113,0.15)', borderRadius: 6,
                     color: '#f87171', cursor: 'pointer',
                   }}
                 >
@@ -315,7 +349,7 @@ export default function StatusBar() {
 
         {/* Session duration */}
         {sessionDuration !== null && sessionDuration > 0 && (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 3, opacity: 0.7, fontSize: 10 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 3, opacity: 0.7, fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>
             <Clock size={10} />
             {formatDuration(sessionDuration)}
           </span>
@@ -329,27 +363,29 @@ export default function StatusBar() {
             title={focusTimer.active
               ? t('toolbar.stopFocusTimer')
               : t('toolbar.startFocusTimer') + ' (right-click for presets)'}
+            onMouseEnter={() => setHoverFocusTimer(true)}
+            onMouseLeave={() => setHoverFocusTimer(false)}
             style={{
-              background: focusTimer.active ? 'rgba(255,255,255,0.15)' : 'none',
+              background: focusTimer.active
+                ? 'rgba(255,255,255,0.15)'
+                : hoverFocusTimer ? 'rgba(255,255,255,0.07)' : 'transparent',
               border: 'none',
-              color: '#fff',
+              color: 'rgba(255,255,255,0.82)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: 3,
-              padding: '1px 5px',
-              borderRadius: 4,
+              padding: '2px 6px',
+              borderRadius: 6,
               fontSize: 10,
-              opacity: focusTimer.active ? 1 : 0.6,
-              transition: 'opacity 0.15s',
+              opacity: focusTimer.active || hoverFocusTimer ? 1 : 0.6,
+              transition: 'all 0.15s ease',
             }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = focusTimer.active ? '1' : '0.6' }}
           >
             {focusTimer.active ? (
               <>
                 <Timer size={10} style={{ color: '#4ade80' }} />
-                <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+                <span style={{ fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
                   {Math.floor(focusTimer.remaining / 60)}:{String(focusTimer.remaining % 60).padStart(2, '0')}
                 </span>
                 <Square size={8} />
@@ -367,9 +403,11 @@ export default function StatusBar() {
               className="popup-enter"
               style={{
                 position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)',
-                marginBottom: 4, background: 'var(--popup-bg)', border: '1px solid var(--popup-border)',
-                boxShadow: 'var(--popup-shadow)', borderRadius: 8, padding: '4px',
+                marginBottom: 4, background: 'rgba(15,15,25,0.95)', border: '1px solid rgba(255,255,255,0.09)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.5)', borderRadius: 8, padding: '4px',
                 display: 'flex', gap: 2, zIndex: 100, whiteSpace: 'nowrap',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
               }}
             >
               {FOCUS_PRESETS.map(preset => (
@@ -379,10 +417,10 @@ export default function StatusBar() {
                   style={{
                     padding: '4px 8px', borderRadius: 6,
                     border: 'none', background: 'transparent',
-                    color: 'var(--text-primary)', fontSize: 11, cursor: 'pointer',
-                    transition: 'background 100ms',
+                    color: 'rgba(255,255,255,0.82)', fontSize: 11, cursor: 'pointer',
+                    transition: 'background 0.15s ease',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                 >
                   {preset.label}
@@ -410,7 +448,17 @@ export default function StatusBar() {
               })
             }}
             title={t('toolbar.clickToCopyTokens')}
-            style={{ opacity: 0.85, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 0 }}
+            onMouseEnter={() => setHoverTokens(true)}
+            onMouseLeave={() => setHoverTokens(false)}
+            style={{
+              opacity: 0.85, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 3,
+              fontSize: 10, color: 'rgba(255,255,255,0.45)',
+              fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"',
+              background: hoverTokens ? 'rgba(255,255,255,0.07)' : 'transparent',
+              border: 'none', cursor: 'pointer',
+              padding: '2px 6px', borderRadius: 6,
+              transition: 'all 0.15s ease',
+            }}
           >
             <ArrowUp size={9} />
             {fmtNumber(lastUsage.inputTokens)}
@@ -431,11 +479,16 @@ export default function StatusBar() {
             <button
               onClick={() => setShowCostBreakdown(!showCostBreakdown)}
               title={lastCost != null ? t('toolbar.lastTurn', { cost: lastCost.toFixed(4), total: totalSessionCost.toFixed(4) }) : t('toolbar.sessionTotal', { total: totalSessionCost.toFixed(4) })}
+              onMouseEnter={() => setHoverCost(true)}
+              onMouseLeave={() => setHoverCost(false)}
               style={{
                 opacity: 0.85, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 2, fontSize: 10,
-                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"',
+                background: hoverCost ? 'rgba(255,255,255,0.07)' : 'transparent',
+                border: 'none', cursor: 'pointer',
+                padding: '2px 6px', borderRadius: 6,
                 color: totalSessionCost >= 5 ? '#f87171' : totalSessionCost >= 1 ? '#fbbf24' : '#4ade80',
-                transition: 'color 0.3s',
+                transition: 'all 0.15s ease',
               }}
             >
               <DollarSign size={10} />
@@ -446,12 +499,13 @@ export default function StatusBar() {
                 className="popup-enter"
                 style={{
                   position: 'absolute', bottom: '100%', right: 0, marginBottom: 4,
-                  background: 'var(--popup-bg)', border: '1px solid var(--popup-border)',
-                  boxShadow: 'var(--popup-shadow)', borderRadius: 8, padding: '8px 12px',
-                  minWidth: 220, zIndex: 100,
+                  background: 'rgba(15,15,25,0.95)', border: '1px solid rgba(255,255,255,0.09)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.5)', borderRadius: 8, padding: '8px 12px',
+                  minWidth: 220, zIndex: 100, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+                  animation: 'slideUp 0.15s ease',
                 }}
               >
-                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.45)', marginBottom: 6, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
                   {t('cost.breakdownTitle')}
                 </div>
                 {Object.entries(modelUsage)
@@ -465,28 +519,28 @@ export default function StatusBar() {
                       ? `$${Number.isInteger(pricing[0]) ? pricing[0] : pricing[0].toFixed(2)}/$${Number.isInteger(pricing[1]) ? pricing[1] : pricing[1].toFixed(2)} ${t('cost.perMtok')}`
                       : null
                     return (
-                      <div key={model} style={{ marginBottom: 5, borderBottom: '1px solid var(--popup-border)', paddingBottom: 5 }}>
+                      <div key={model} style={{ marginBottom: 5, borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: 5 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11 }}>
-                          <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{shortName}</span>
-                          <span style={{ color: usage.costUsd >= 1 ? '#fbbf24' : '#4ade80', fontWeight: 600 }}>
+                          <span style={{ fontWeight: 500, color: 'rgba(255,255,255,0.82)' }}>{shortName}</span>
+                          <span style={{ color: usage.costUsd >= 1 ? '#fbbf24' : '#4ade80', fontWeight: 600, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
                             ${usage.costUsd < 0.001 ? '<0.001' : usage.costUsd.toFixed(3)}
                           </span>
                         </div>
-                        <div style={{ display: 'flex', gap: 8, fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>
+                        <div style={{ display: 'flex', gap: 8, fontSize: 9, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>
                           <span>{t('cost.input')}: {fmtNumber(usage.inputTokens)}</span>
                           <span>{t('cost.output')}: {fmtNumber(usage.outputTokens)}</span>
                           {usage.cacheTokens > 0 && <span>{t('cost.cache')}: {fmtNumber(usage.cacheTokens)}</span>}
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: 'var(--text-muted)', marginTop: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: 'rgba(255,255,255,0.45)', marginTop: 1 }}>
                           <span>{usage.turns} {t('cost.turns')}</span>
                           {pricingLabel && <span style={{ opacity: 0.7 }}>{pricingLabel}</span>}
                         </div>
                       </div>
                     )
                   })}
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 600, color: 'var(--text-primary)', marginTop: 2 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.82)', marginTop: 2 }}>
                   <span>{t('cost.total')}</span>
-                  <span style={{ color: totalSessionCost >= 5 ? '#f87171' : totalSessionCost >= 1 ? '#fbbf24' : '#4ade80' }}>
+                  <span style={{ color: totalSessionCost >= 5 ? '#f87171' : totalSessionCost >= 1 ? '#fbbf24' : '#4ade80', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
                     ${totalSessionCost.toFixed(4)}
                   </span>
                 </div>
@@ -501,7 +555,7 @@ export default function StatusBar() {
             title={t('effort.title', { level: t(`effort.${effortLevel}`) })}
             style={{
               display: 'flex', alignItems: 'center', gap: 3,
-              color: effortColors[effortLevel] || '#fff',
+              color: effortColors[effortLevel] || 'rgba(255,255,255,0.82)',
               fontSize: 10, opacity: 0.9,
             }}
           >
@@ -514,15 +568,17 @@ export default function StatusBar() {
         <button
           onClick={toggleThinking}
           title={t('thinking.title')}
+          onMouseEnter={() => setHoverThinking(true)}
+          onMouseLeave={() => setHoverThinking(false)}
           style={{
-            background: 'none', border: 'none',
-            color: thinkingEnabled ? '#a78bfa' : '#fff',
+            background: hoverThinking ? 'rgba(255,255,255,0.07)' : 'transparent',
+            border: 'none',
+            color: thinkingEnabled ? '#a78bfa' : hoverThinking ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.55)',
             cursor: 'pointer', display: 'flex', alignItems: 'center',
-            padding: '0 2px', opacity: thinkingEnabled ? 1 : 0.5,
-            transition: 'color 0.2s, opacity 0.2s',
+            padding: '2px 6px', borderRadius: 6,
+            opacity: thinkingEnabled || hoverThinking ? 1 : 0.5,
+            transition: 'all 0.15s ease',
           }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = thinkingEnabled ? '1' : '0.5' }}
         >
           <Brain size={11} />
         </button>
@@ -535,18 +591,26 @@ export default function StatusBar() {
             setAlwaysOnTop(newValue)
           }}
           title={t(alwaysOnTop ? 'window.pinnedOn' : 'window.pinWindow') + ' (Ctrl+Shift+T)'}
-          style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0, opacity: alwaysOnTop ? 1 : 0.6 }}
+          onMouseEnter={() => setHoverPin(true)}
+          onMouseLeave={() => setHoverPin(false)}
+          style={{
+            background: hoverPin ? 'rgba(255,255,255,0.07)' : 'transparent',
+            border: 'none', color: alwaysOnTop || hoverPin ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.55)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center',
+            padding: '2px 6px', borderRadius: 6,
+            transition: 'all 0.15s ease',
+          }}
         >
-          <Pin size={12} style={{ transform: alwaysOnTop ? 'rotate(-45deg)' : undefined, transition: 'transform 0.2s' }} />
+          <Pin size={12} style={{ transform: alwaysOnTop ? 'rotate(-45deg)' : undefined, transition: 'transform 0.15s ease' }} />
         </button>
 
         {/* Date + sessions today (Iteration 417) */}
-        <span style={{ display: 'flex', alignItems: 'center', gap: 3, opacity: 0.7, fontSize: 10 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 3, opacity: 0.7, fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>
           <Calendar size={10} />
           {new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
         </span>
         {sessionsToday > 0 && (
-          <span style={{ opacity: 0.7, fontSize: 10 }}>
+          <span style={{ opacity: 0.7, fontSize: 10, color: 'rgba(255,255,255,0.45)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
             {sessionsToday} {t('statusBar.today')}
           </span>
         )}
@@ -558,7 +622,7 @@ export default function StatusBar() {
             style={{
               display: 'flex', alignItems: 'center', gap: 3, fontSize: 10,
               color: memoryUsage.status === 'critical' ? '#f87171' : '#fbbf24',
-              fontWeight: 600,
+              fontWeight: 600, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"',
             }}
           >
             <span style={{ fontSize: 9 }}>RAM</span>
@@ -569,9 +633,15 @@ export default function StatusBar() {
         <button
           onClick={() => useUiStore.getState().openSettingsModal()}
           title={t('nav.settings') + ' (Ctrl+,)'}
-          style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0, opacity: 0.6 }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.6' }}
+          onMouseEnter={() => setHoverSettings(true)}
+          onMouseLeave={() => setHoverSettings(false)}
+          style={{
+            background: hoverSettings ? 'rgba(255,255,255,0.07)' : 'transparent',
+            border: 'none', color: hoverSettings ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.55)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center',
+            padding: '2px 6px', borderRadius: 6,
+            transition: 'all 0.15s ease',
+          }}
         >
           <Settings size={12} />
         </button>

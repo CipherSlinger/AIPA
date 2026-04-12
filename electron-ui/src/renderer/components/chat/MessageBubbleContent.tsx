@@ -75,7 +75,7 @@ export default function MessageBubbleContent({
             onClick={(e) => { e.stopPropagation(); onCollapse(message.id) }}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
-              color: isUser ? 'rgba(255,255,255,0.5)' : 'var(--text-muted)',
+              color: isUser ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.45)',
               display: 'flex', alignItems: 'center', padding: 0,
             }}
             title={isCollapsed ? t('message.expand') : t('message.collapse')}
@@ -88,7 +88,7 @@ export default function MessageBubbleContent({
             </span>
           )}
           {message.isStreaming && (
-            <span style={{ color: 'var(--success)', fontSize: 11 }}>{t('message.processing')}</span>
+            <span style={{ color: '#4ade80', fontSize: 11 }}>{t('message.processing')}</span>
           )}
         </div>
       )}
@@ -103,7 +103,7 @@ export default function MessageBubbleContent({
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
                   background: 'none', border: 'none', cursor: 'pointer',
-                  color: isUser ? 'rgba(255,255,255,0.5)' : 'var(--text-muted)',
+                  color: isUser ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.45)',
                   fontSize: 11, padding: 0, marginBottom: 4,
                 }}
               >
@@ -112,10 +112,10 @@ export default function MessageBubbleContent({
               </button>
               {thinkingExpanded && (
                 <div style={{
-                  background: 'rgba(0, 0, 0, 0.2)',
-                  border: '1px solid var(--bubble-ai-border)',
-                  borderRadius: 4, padding: '8px 12px',
-                  fontSize: 12, color: 'var(--text-muted)',
+                  background: 'rgba(99,102,241,0.08)',
+                  border: '1px solid rgba(99,102,241,0.20)',
+                  borderRadius: 8, padding: '8px 12px',
+                  fontSize: 12, color: 'rgba(255,255,255,0.45)',
                   fontStyle: 'italic', lineHeight: 1.6,
                   whiteSpace: 'pre-wrap', maxHeight: 300, overflowY: 'auto',
                 }}>
@@ -148,12 +148,12 @@ export default function MessageBubbleContent({
           {!isPermission && message.toolUses && message.toolUses.length > 0 && (() => {
             const groups = groupToolUses(message.toolUses, t)
             return (
-              <div style={{ borderTop: '1px solid var(--bubble-ai-border)', marginTop: 8, paddingTop: 8 }}>
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: 8, paddingTop: 8 }}>
                 {groups.map((group, idx) => (
                   group.type === 'batch' ? (
                     <ToolBatchBlock key={`batch-${idx}`} group={group} />
                   ) : (
-                    <div key={group.tools[0].id} style={{ background: 'rgba(0, 0, 0, 0.15)', borderRadius: 6, marginBottom: 4 }}>
+                    <div key={group.tools[0].id} style={{ marginBottom: 4 }}>
                       <ToolUseBlock tool={group.tools[0]} />
                     </div>
                   )
@@ -178,8 +178,10 @@ export default function MessageBubbleContent({
                 }}
                 style={{
                   width: '100%', minHeight: 60, padding: '8px 10px',
-                  background: 'rgba(0,0,0,0.15)', border: '1px solid var(--accent)',
-                  borderRadius: 6, color: 'inherit', fontSize: 14,
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(99,102,241,0.45)',
+                  boxShadow: '0 0 0 2px rgba(99,102,241,0.15)',
+                  borderRadius: 8, color: 'inherit', fontSize: 14,
                   lineHeight: 1.6, fontFamily: 'inherit', resize: 'vertical', outline: 'none',
                 }}
                 autoFocus
@@ -188,12 +190,12 @@ export default function MessageBubbleContent({
                 <button
                   onClick={onEditCancel}
                   style={{
-                    background: 'transparent', border: '1px solid var(--border)',
+                    background: 'transparent', border: '1px solid rgba(255,255,255,0.07)',
                     borderRadius: 6, padding: '4px 12px',
-                    color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer',
-                    transition: 'background 150ms ease',
+                    color: 'rgba(255,255,255,0.45)', fontSize: 12, cursor: 'pointer',
+                    transition: 'background 0.15s ease',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                 >
                   {t('message.editCancel')}
@@ -202,12 +204,13 @@ export default function MessageBubbleContent({
                   onClick={onEditSubmit}
                   disabled={!editContent.trim()}
                   style={{
-                    background: 'var(--accent)', border: 'none',
-                    borderRadius: 6, padding: '4px 12px',
-                    color: '#fff', fontSize: 12, fontWeight: 500,
+                    background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
+                    border: 'none',
+                    borderRadius: 8, padding: '4px 12px',
+                    color: 'rgba(255,255,255,0.95)', fontSize: 12, fontWeight: 600,
                     cursor: editContent.trim() ? 'pointer' : 'not-allowed',
                     opacity: editContent.trim() ? 1 : 0.5,
-                    transition: 'opacity 150ms ease',
+                    transition: 'all 0.15s ease',
                   }}
                 >
                   {t('message.editSave')}
@@ -215,14 +218,14 @@ export default function MessageBubbleContent({
               </div>
             </div>
           ) : message.content && (
-            <div>
+            <div style={{ lineHeight: 1.6 }}>
               {isAssistant && showRawMarkdown ? (
                 <pre style={{
                   whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                   fontSize: 12, lineHeight: 1.6,
-                  color: 'var(--bubble-ai-text)',
+                  color: 'rgba(255,255,255,0.82)',
                   background: 'rgba(0,0,0,0.1)',
-                  border: '1px solid var(--bubble-ai-border)',
+                  border: '1px solid rgba(255,255,255,0.08)',
                   borderRadius: 4, padding: '8px 12px', margin: 0,
                   fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
                 }}>
@@ -248,8 +251,8 @@ export default function MessageBubbleContent({
                     right: 0,
                     height: 40,
                     background: isUser
-                      ? 'linear-gradient(transparent, var(--bubble-user-bg, #2563eb))'
-                      : 'linear-gradient(transparent, var(--bubble-ai-bg, #2d2d2d))',
+                      ? 'linear-gradient(transparent, rgba(60,51,200,0.85))'
+                      : 'linear-gradient(transparent, rgba(15,15,25,0.95))',
                     pointerEvents: 'none',
                   }} />
                   <button
@@ -263,8 +266,8 @@ export default function MessageBubbleContent({
                       padding: '6px 0',
                       background: 'none',
                       border: 'none',
-                      borderTop: '1px solid var(--border)',
-                      color: 'var(--accent)',
+                      borderTop: '1px solid rgba(255,255,255,0.07)',
+                      color: '#818cf8',
                       cursor: 'pointer',
                       fontSize: 11,
                       fontWeight: 500,
@@ -292,8 +295,8 @@ export default function MessageBubbleContent({
                         padding: '6px 0',
                         background: 'none',
                         border: 'none',
-                        borderTop: '1px solid var(--border)',
-                        color: 'var(--accent)',
+                        borderTop: '1px solid rgba(255,255,255,0.07)',
+                        color: '#818cf8',
                         cursor: 'pointer',
                         fontSize: 11,
                         fontWeight: 500,
@@ -313,12 +316,14 @@ export default function MessageBubbleContent({
           {showTimestamp && message.timestamp && (
             <div
               style={{
-                fontSize: compact ? 10 : 11,
-                color: isUser ? 'rgba(255,255,255,0.5)' : 'var(--text-muted)',
+                fontSize: 11,
+                color: 'rgba(255,255,255,0.38)',
                 display: 'flex', justifyContent: 'flex-end',
                 alignItems: 'center', gap: 4,
                 marginTop: 6, lineHeight: 1,
                 cursor: 'pointer', userSelect: 'none',
+                fontVariantNumeric: 'tabular-nums',
+                fontFeatureSettings: '"tnum"',
               }}
               title={getShowAbsoluteTime()
                 ? relativeTime(message.timestamp, t)
@@ -351,7 +356,7 @@ export default function MessageBubbleContent({
               })()}
               {msgStatus === 'sending' && <Clock size={10} style={{ opacity: 0.8 }} />}
               {msgStatus === 'sent' && <Check size={12} style={{ opacity: 0.9 }} />}
-              {msgStatus === 'read' && <CheckCheck size={12} style={{ color: 'var(--accent)', opacity: 1 }} />}
+              {msgStatus === 'read' && <CheckCheck size={12} style={{ color: '#818cf8', opacity: 1 }} />}
             </div>
           )}
 
@@ -363,13 +368,13 @@ export default function MessageBubbleContent({
                   key={i}
                   style={{
                     width: 6, height: 6, borderRadius: '50%',
-                    background: 'var(--success)',
+                    background: 'rgba(165,180,252,0.8)',
                     animation: 'pulse 1.4s ease-in-out infinite',
                     animationDelay: `${i * 0.2}s`,
                   }}
                 />
               ))}
-              <span style={{ fontSize: 11, color: 'var(--success)', marginLeft: 4 }}>{t('message.processing')}</span>
+              <span style={{ fontSize: 11, color: 'rgba(165,180,252,0.8)', marginLeft: 4 }}>{t('message.processing')}</span>
             </div>
           )}
         </>

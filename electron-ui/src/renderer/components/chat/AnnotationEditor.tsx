@@ -68,11 +68,15 @@ export default function AnnotationEditor({
         <div style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: 4,
-          background: 'var(--popup-bg)',
-          border: '1px solid var(--popup-border)',
-          borderRadius: 6,
-          padding: 6,
+          gap: 0,
+          background: 'rgba(15,15,25,0.92)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 10,
+          boxShadow: '0 8px 28px rgba(0,0,0,0.5)',
+          overflow: 'hidden',
+          animation: 'slideUp 0.15s ease',
         }}>
           <textarea
             ref={annotationRef}
@@ -81,33 +85,42 @@ export default function AnnotationEditor({
             onKeyDown={handleKeyDown}
             placeholder={t('message.annotationPlaceholder')}
             maxLength={500}
+            onFocus={(e) => { (e.currentTarget as HTMLTextAreaElement).style.border = '1px solid rgba(99,102,241,0.5)'; (e.currentTarget as HTMLTextAreaElement).style.boxShadow = '0 0 0 2px rgba(99,102,241,0.45)' }}
+            onBlur={(e) => { (e.currentTarget as HTMLTextAreaElement).style.border = '1px solid rgba(255,255,255,0.08)'; (e.currentTarget as HTMLTextAreaElement).style.boxShadow = 'none' }}
             style={{
-              width: '100%',
               minWidth: 200,
               minHeight: 40,
               maxHeight: 100,
-              background: 'transparent',
-              border: 'none',
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 8,
               outline: 'none',
-              color: 'var(--text)',
+              color: 'rgba(255,255,255,0.82)',
               fontSize: 12,
-              fontFamily: 'inherit',
-              resize: 'vertical',
-              padding: 4,
+              fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
+              lineHeight: 1.6,
+              resize: 'none',
+              padding: '6px 8px',
+              margin: '8px 8px 4px',
+              width: 'calc(100% - 16px)',
+              boxSizing: 'border-box',
+              transition: 'border 0.15s ease, box-shadow 0.15s ease',
             }}
           />
-          <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
-            <span style={{ fontSize: 10, color: 'var(--text-muted)', marginRight: 'auto' }}>
+          <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center', padding: '4px 8px 8px' }}>
+            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', marginRight: 'auto', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
               {annotationDraft.length}/500
             </span>
             {currentAnnotation && (
               <button
                 onClick={handleRemove}
                 style={{
-                  background: 'transparent', border: 'none', cursor: 'pointer',
-                  color: 'var(--error, #e55)', fontSize: 11, padding: '2px 6px',
-                  borderRadius: 3,
+                  background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', cursor: 'pointer',
+                  color: '#fca5a5', fontSize: 12, fontWeight: 500, padding: '3px 8px',
+                  borderRadius: 6, transition: 'all 0.15s ease',
                 }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.2)' }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.12)' }}
                 title={t('message.removeAnnotation')}
               >
                 {t('message.removeAnnotation')}
@@ -116,20 +129,27 @@ export default function AnnotationEditor({
             <button
               onClick={() => onEditorOpenChange(false)}
               style={{
-                background: 'transparent', border: 'none', cursor: 'pointer',
-                color: 'var(--text-muted)', fontSize: 11, padding: '2px 6px',
-                borderRadius: 3,
+                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', cursor: 'pointer',
+                color: 'rgba(255,255,255,0.60)', fontSize: 12, fontWeight: 500, padding: '3px 8px',
+                borderRadius: 6, transition: 'all 0.15s ease',
               }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.09)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.16)' }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.10)' }}
             >
               {t('message.editCancel')}
             </button>
             <button
               onClick={handleSave}
+              disabled={annotationDraft.trim().length === 0}
               style={{
-                background: 'var(--accent)', border: 'none', cursor: 'pointer',
-                color: '#fff', fontSize: 11, padding: '2px 8px',
-                borderRadius: 3,
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                border: 'none', cursor: annotationDraft.trim().length === 0 ? 'not-allowed' : 'pointer',
+                color: 'rgba(255,255,255,0.95)', fontSize: 12, fontWeight: 600, padding: '3px 10px',
+                borderRadius: 6, transition: 'all 0.15s ease',
+                opacity: annotationDraft.trim().length === 0 ? 0.4 : 1,
               }}
+              onMouseEnter={(e) => { if (annotationDraft.trim().length > 0) { e.currentTarget.style.filter = 'brightness(0.95)'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)' } }}
+              onMouseLeave={(e) => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}
             >
               {t('message.editSave').replace(' & Send', '')}
             </button>
@@ -143,21 +163,21 @@ export default function AnnotationEditor({
             alignItems: 'flex-start',
             gap: 4,
             padding: '3px 8px',
-            background: 'rgba(255, 193, 7, 0.08)',
-            border: '1px solid rgba(255, 193, 7, 0.2)',
+            background: 'rgba(99,102,241,0.08)',
+            border: '1px solid rgba(99,102,241,0.20)',
             borderRadius: 6,
             cursor: 'pointer',
             maxWidth: '100%',
-            transition: 'background 0.12s ease',
+            transition: 'background 0.15s ease',
           }}
           title={t('message.editAnnotation')}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255, 193, 7, 0.15)' }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255, 193, 7, 0.08)' }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.14)' }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.08)' }}
         >
-          <StickyNote size={11} style={{ color: 'var(--warning, #ffc107)', marginTop: 2, flexShrink: 0 }} />
+          <StickyNote size={11} style={{ color: '#818cf8', marginTop: 2, flexShrink: 0 }} />
           <span style={{
             fontSize: 11,
-            color: 'var(--text-muted)',
+            color: 'rgba(255,255,255,0.45)',
             lineHeight: 1.4,
             wordBreak: 'break-word',
             whiteSpace: 'pre-wrap',

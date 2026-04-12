@@ -12,6 +12,18 @@ interface SettingsApiKeyPoolProps {
   field: (label: string, content: React.ReactNode, hint?: React.ReactNode) => React.ReactNode
 }
 
+const glassInputStyle: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(255,255,255,0.10)',
+  borderRadius: 6,
+  padding: '5px 10px',
+  fontSize: 12,
+  color: 'rgba(255,255,255,0.82)',
+  outline: 'none',
+  width: '100%',
+  boxSizing: 'border-box' as const,
+}
+
 export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
   const t = useT()
   const { setPrefs } = usePrefsStore()
@@ -20,6 +32,7 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
   const [newKeyLabel, setNewKeyLabel] = useState('')
   const [newKeyValue, setNewKeyValue] = useState('')
   const [newKeyBaseUrl, setNewKeyBaseUrl] = useState('')
+  const [hoveredRemove, setHoveredRemove] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const savePool = (pool: ApiKeyEntry[]) => {
@@ -103,23 +116,66 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
           />
           {/* Key list */}
           {apiKeyPool.length === 0 ? (
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '6px 0' }}>{t('settings.noKeysInPool')}</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center', padding: 24 }}>{t('settings.noKeysInPool')}</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
               {apiKeyPool.map((entry) => (
-                <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', background: 'var(--bg-active)', borderRadius: 4, border: '1px solid var(--border)' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: entry.exhausted ? '#ef4444' : entry.enabled ? '#22c55e' : '#6b7280' }} />
-                  <span style={{ fontSize: 11, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>{entry.label}</span>
-                  {entry.exhausted && <span style={{ fontSize: 9, color: '#ef4444', background: 'rgba(239,68,68,0.1)', padding: '1px 4px', borderRadius: 3 }}>{t('settings.keyExhausted')}</span>}
-                  <span style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'monospace' }}>{'···' + entry.apiKey.slice(-6)}</span>
+                <div
+                  key={entry.id}
+                  style={{
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: 8,
+                    padding: '10px 12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    transition: 'background 0.15s ease',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+                >
+                  <span style={{
+                    width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                    background: entry.exhausted ? '#f87171' : entry.enabled ? '#22c55e' : 'rgba(255,255,255,0.2)',
+                    boxShadow: entry.enabled && !entry.exhausted ? '0 0 6px #4ade80' : 'none',
+                  }} />
+                  <span style={{ fontSize: 11, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'rgba(255,255,255,0.82)' }}>{entry.label}</span>
+                  {entry.exhausted && (
+                    <span style={{
+                      fontSize: 10, color: '#f87171',
+                      background: 'rgba(239,68,68,0.1)', padding: '1px 4px', borderRadius: 6,
+                    }}>{t('settings.keyExhausted')}</span>
+                  )}
+                  <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'rgba(165,180,252,0.8)', flex: 'none' }}>
+                    {'···' + entry.apiKey.slice(-6)}
+                  </span>
+                  {/* Active status badge */}
+                  {entry.enabled && !entry.exhausted && (
+                    <span style={{
+                      background: 'rgba(34,197,94,0.15)',
+                      border: '1px solid rgba(34,197,94,0.3)',
+                      borderRadius: 20, padding: '2px 8px',
+                      fontSize: 10, color: '#4ade80',
+                    }}>
+                      active
+                    </span>
+                  )}
                   <button
                     onClick={() => savePool(apiKeyPool.map(k => k.id === entry.id ? { ...k, enabled: !k.enabled } : k))}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: entry.enabled ? 'var(--accent)' : 'var(--text-muted)', fontSize: 10, padding: '1px 4px' }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: entry.enabled ? '#818cf8' : 'rgba(255,255,255,0.3)', fontSize: 10, padding: '1px 4px' }}
                     title={entry.enabled ? 'Disable' : 'Enable'}
-                  >{entry.enabled ? '\u2713' : '\u25CB'}</button>
+                  >{entry.enabled ? '✓' : '○'}</button>
                   <button
                     onClick={() => savePool(apiKeyPool.filter(k => k.id !== entry.id))}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', padding: 2 }}
+                    onMouseEnter={() => setHoveredRemove(entry.id)}
+                    onMouseLeave={() => setHoveredRemove(null)}
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      color: hoveredRemove === entry.id ? '#fca5a5' : 'rgba(239,68,68,0.7)',
+                      display: 'flex', alignItems: 'center', padding: 2,
+                      transition: 'color 0.15s ease',
+                    }}
                     aria-label={t('a11y.deleteKey')}
                   ><Trash2 size={11} /></button>
                 </div>
@@ -132,42 +188,76 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
               value={newKeyLabel}
               onChange={(e) => setNewKeyLabel(e.target.value)}
               placeholder={t('settings.keyLabel')}
-              style={{ ...INPUT_STYLE, fontSize: 11 }}
+              style={{ ...glassInputStyle, fontSize: 11 }}
             />
             <input
               value={newKeyValue}
               onChange={(e) => setNewKeyValue(e.target.value)}
               placeholder={t('settings.keyValue')}
               type="password"
-              style={{ ...INPUT_STYLE, fontSize: 11 }}
+              style={{ ...glassInputStyle, fontSize: 11 }}
             />
             <input
               value={newKeyBaseUrl}
               onChange={(e) => setNewKeyBaseUrl(e.target.value)}
               placeholder={t('settings.keyBaseUrl')}
-              style={{ ...INPUT_STYLE, fontSize: 11 }}
+              style={{ ...glassInputStyle, fontSize: 11 }}
             />
             <button
               onClick={handleAddKey}
               disabled={!newKeyValue.trim()}
-              style={{ background: 'var(--accent)', border: 'none', borderRadius: 4, padding: '5px 10px', color: '#fff', cursor: newKeyValue.trim() ? 'pointer' : 'not-allowed', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, opacity: newKeyValue.trim() ? 1 : 0.5 }}
+              style={{
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                border: 'none', borderRadius: 8, padding: '7px 14px',
+                color: 'rgba(255,255,255,0.95)', cursor: newKeyValue.trim() ? 'pointer' : 'not-allowed',
+                fontSize: 12, fontWeight: 600,
+                display: 'flex', alignItems: 'center', gap: 4,
+                opacity: newKeyValue.trim() ? 1 : 0.5,
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                if (newKeyValue.trim()) {
+                  e.currentTarget.style.filter = 'brightness(0.95)'
+                  e.currentTarget.style.transform = 'translateY(-1px)'
+                  e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.filter = ''
+                e.currentTarget.style.transform = ''
+                e.currentTarget.style.boxShadow = 'none'
+              }}
             ><Plus size={11} />{t('settings.addKey')}</button>
           </div>
           {/* Actions */}
           <div style={{ display: 'flex', gap: 6 }}>
             <button
               onClick={() => fileInputRef.current?.click()}
-              style={{ flex: 1, background: 'var(--bg-active)', border: '1px solid var(--border)', borderRadius: 4, padding: '5px 8px', color: 'var(--text-primary)', cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'center' }}
+              style={{
+                flex: 1,
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 8, padding: '5px 8px',
+                color: 'rgba(255,255,255,0.82)', cursor: 'pointer',
+                fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'center',
+              }}
             ><Upload size={11} />{t('settings.importKeys')}</button>
             {apiKeyPool.some(k => k.exhausted) && (
               <button
                 onClick={handleResetExhausted}
-                style={{ flex: 1, background: 'var(--bg-active)', border: '1px solid var(--border)', borderRadius: 4, padding: '5px 8px', color: 'var(--text-primary)', cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'center' }}
+                style={{
+                  flex: 1,
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 8, padding: '5px 8px',
+                  color: 'rgba(255,255,255,0.82)', cursor: 'pointer',
+                  fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'center',
+                }}
               ><RefreshCw size={11} />{t('settings.resetExhausted')}</button>
             )}
           </div>
         </div>,
-        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('settings.apiKeyPoolHint')}</span>
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)' }}>{t('settings.apiKeyPoolHint')}</span>
       )}
     </>
   )

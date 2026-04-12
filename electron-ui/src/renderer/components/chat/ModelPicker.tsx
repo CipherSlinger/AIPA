@@ -45,14 +45,30 @@ function getModelShortName(modelId: string | undefined): string {
 
 const HEALTH_DOT_COLORS: Record<string, string> = {
   healthy: '#22c55e',
-  degraded: '#f59e0b',
-  down: '#ef4444',
+  degraded: '#fbbf24',
+  down: '#f87171',
 }
 
 const CAPABILITY_COLORS: Record<string, string> = {
-  vision: '#8b5cf6',
-  code: '#3b82f6',
-  reasoning: '#f59e0b',
+  vision: '#a78bfa',
+  code: '#6366f1',
+  reasoning: '#fbbf24',
+}
+
+type ModelTier = 'haiku' | 'sonnet' | 'opus'
+
+const TIER_STYLES: Record<ModelTier, React.CSSProperties> = {
+  haiku:  { background: 'rgba(74,222,128,0.12)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.25)', borderRadius: 8, padding: '1px 5px', fontSize: 9, fontWeight: 700 },
+  sonnet: { background: 'rgba(99,102,241,0.14)',  color: '#818cf8', border: '1px solid rgba(99,102,241,0.25)',  borderRadius: 8, padding: '1px 5px', fontSize: 9, fontWeight: 700 },
+  opus:   { background: 'rgba(245,158,11,0.12)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 8, padding: '1px 5px', fontSize: 9, fontWeight: 700 },
+}
+
+function getModelTier(modelId: string): ModelTier | null {
+  const lower = modelId.toLowerCase()
+  if (lower.includes('haiku'))  return 'haiku'
+  if (lower.includes('sonnet')) return 'sonnet'
+  if (lower.includes('opus'))   return 'opus'
+  return null
 }
 
 export default function ModelPicker({ model }: ModelPickerProps) {
@@ -155,28 +171,31 @@ export default function ModelPicker({ model }: ModelPickerProps) {
         onClick={() => setShowPicker(!showPicker)}
         title={t('chat.switchModel')}
         style={{
-          background: showPicker ? 'rgba(255,255,255,0.08)' : 'none',
-          border: '1px solid transparent',
-          borderRadius: 4,
+          background: showPicker ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.06)',
+          border: `1px solid ${showPicker ? 'rgba(99,102,241,0.40)' : 'rgba(255,255,255,0.09)'}`,
+          borderRadius: 8,
           padding: '2px 8px',
           cursor: 'pointer',
-          color: 'var(--text-muted)',
+          color: showPicker ? '#818cf8' : 'rgba(255,255,255,0.65)',
           fontSize: 11,
-          fontWeight: 500,
+          fontWeight: 600,
           display: 'flex',
           alignItems: 'center',
           gap: 3,
           flexShrink: 0,
-          transition: 'color 150ms, background 150ms, border-color 150ms',
+          transition: 'all 0.15s ease',
+          boxShadow: showPicker ? '0 0 0 3px rgba(99,102,241,0.10)' : 'none',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.color = 'var(--accent)'
-          e.currentTarget.style.borderColor = 'var(--border)'
+          if (!showPicker) {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'
+          }
         }}
         onMouseLeave={(e) => {
           if (!showPicker) {
-            e.currentTarget.style.color = 'var(--text-muted)'
-            e.currentTarget.style.borderColor = 'transparent'
+            e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
           }
         }}
       >
@@ -195,32 +214,35 @@ export default function ModelPicker({ model }: ModelPickerProps) {
             width: 260,
             maxHeight: 400,
             overflowY: 'auto',
-            background: 'var(--popup-bg)',
-            border: '1px solid var(--popup-border)',
-            borderRadius: 8,
-            boxShadow: 'var(--popup-shadow)',
+            background: 'rgba(15,15,25,0.96)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.09)',
+            borderRadius: 12,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
             padding: '4px 0',
             marginTop: 4,
-            animation: 'popup-in 120ms ease-out',
+            animation: 'slideUp 0.15s ease-out',
           }}
         >
-          <div style={{ padding: '6px 12px', fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, borderBottom: '1px solid var(--border)', marginBottom: 2 }}>
+          <div style={{ padding: '8px 12px 2px', fontSize: 10, color: 'rgba(255,255,255,0.38)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: 6, marginBottom: 2 }}>
             {t('chat.switchModel')}
           </div>
 
-          {displayGroups.map(group => (
+          {displayGroups.map((group, groupIdx) => (
             <div key={group.providerId}>
               {/* Provider section header */}
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 6,
-                padding: '6px 12px 3px', fontSize: 10, fontWeight: 600,
-                color: 'var(--text-muted)',
+                padding: '8px 12px 2px', fontSize: 10, fontWeight: 700,
+                textTransform: 'uppercase', letterSpacing: '0.07em',
+                color: 'rgba(255,255,255,0.38)',
               }}>
                 {/* Health dot */}
                 {group.healthStatus && (
                   <span style={{
                     width: 6, height: 6, borderRadius: '50%',
-                    background: HEALTH_DOT_COLORS[group.healthStatus] || 'var(--text-muted)',
+                    background: HEALTH_DOT_COLORS[group.healthStatus] || 'rgba(255,255,255,0.38)',
                     flexShrink: 0,
                   }} />
                 )}
@@ -230,6 +252,7 @@ export default function ModelPicker({ model }: ModelPickerProps) {
               {/* Models in this provider */}
               {group.models.map(m => {
                 const isActive = m.id === model
+                const tier = getModelTier(m.id)
                 return (
                   <button
                     key={m.id}
@@ -241,67 +264,79 @@ export default function ModelPicker({ model }: ModelPickerProps) {
                       alignItems: 'center',
                       width: '100%',
                       textAlign: 'left',
-                      background: isActive ? 'rgba(var(--accent-rgb, 0, 122, 204), 0.12)' : 'none',
+                      background: isActive ? 'rgba(99,102,241,0.12)' : 'transparent',
                       border: 'none',
-                      padding: '6px 12px 6px 24px',
+                      borderLeft: isActive ? '2px solid rgba(99,102,241,0.60)' : '2px solid transparent',
+                      padding: '8px 12px 8px 22px',
                       cursor: 'pointer',
-                      color: isActive ? 'var(--accent)' : 'var(--text-primary)',
-                      fontSize: 12,
-                      fontWeight: isActive ? 600 : 400,
-                      transition: 'background 100ms',
+                      color: isActive ? '#818cf8' : 'rgba(255,255,255,0.82)',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      borderRadius: 7,
+                      transition: 'all 0.15s ease',
                       gap: 6,
+                      fontVariantNumeric: 'tabular-nums',
                     }}
-                    onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-                    onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'none' }}
+                    onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderLeftColor = 'rgba(99,102,241,0.40)' } }}
+                    onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent' } }}
                   >
-                    <span style={{ flex: 1 }}>{m.name}</span>
+                    <span style={{ flex: 1, fontWeight: 600, fontSize: 13, color: isActive ? '#818cf8' : 'rgba(255,255,255,0.82)' }}>{m.name}</span>
+
+                    {/* Tier badge */}
+                    {tier && <span style={TIER_STYLES[tier]}>{tier.charAt(0).toUpperCase() + tier.slice(1)}</span>}
 
                     {/* Capability tags */}
                     <span style={{ display: 'flex', gap: 3 }}>
                       {m.capabilities?.vision && (
-                        <span style={{ fontSize: 8, padding: '0 4px', borderRadius: 3, background: `${CAPABILITY_COLORS.vision}22`, color: CAPABILITY_COLORS.vision, fontWeight: 600 }}>
+                        <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>
                           {t('provider.capabilities.vision')}
                         </span>
                       )}
                       {m.capabilities?.code && (
-                        <span style={{ fontSize: 8, padding: '0 4px', borderRadius: 3, background: `${CAPABILITY_COLORS.code}22`, color: CAPABILITY_COLORS.code, fontWeight: 600 }}>
+                        <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>
                           {t('provider.capabilities.code')}
                         </span>
                       )}
                       {m.capabilities?.reasoning && (
-                        <span style={{ fontSize: 8, padding: '0 4px', borderRadius: 3, background: `${CAPABILITY_COLORS.reasoning}22`, color: CAPABILITY_COLORS.reasoning, fontWeight: 600 }}>
+                        <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'rgba(99,102,241,0.14)', color: '#818cf8', fontWeight: 700 }}>
                           {t('provider.capabilities.reasoning')}
                         </span>
                       )}
                     </span>
 
-                    {isActive && <span style={{ fontSize: 14 }}>&#10003;</span>}
+                    {isActive && <span style={{ fontSize: 14, color: '#818cf8' }}>&#10003;</span>}
                   </button>
                 )
               })}
+
+              {/* Separator between provider groups */}
+              {groupIdx < displayGroups.length - 1 && (
+                <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', margin: '4px 0' }} />
+              )}
             </div>
           ))}
 
           {/* Manage Providers link */}
-          <div style={{ borderTop: '1px solid var(--border)', marginTop: 4, paddingTop: 2 }}>
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: 4, paddingTop: 2 }}>
             <button
               onClick={handleManageProviders}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 width: '100%', textAlign: 'left',
                 padding: '7px 12px',
-                background: 'none', border: 'none',
-                color: 'var(--text-muted)',
+                background: 'transparent', border: 'none',
+                color: 'rgba(255,255,255,0.45)',
                 cursor: 'pointer', fontSize: 11,
-                transition: 'color 100ms, background 100ms',
+                borderRadius: 7,
+                transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'var(--popup-item-hover)'
-                e.currentTarget.style.color = 'var(--accent)'
+                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.80)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'none'
-                e.currentTarget.style.color = 'var(--text-muted)'
+                e.currentTarget.style.background = 'transparent'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
               }}
             >
               <Settings size={12} />

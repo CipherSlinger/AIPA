@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { CheckCircle, XCircle, Info, AlertTriangle, X } from 'lucide-react'
 import { useT } from '../../i18n'
 
@@ -23,18 +23,46 @@ const ICONS: Record<ToastType, React.ElementType> = {
   warning: AlertTriangle,
 }
 
-const COLORS: Record<ToastType, string> = {
-  success: 'var(--success, #0dbc79)',
-  error: 'var(--error, #f44747)',
-  info: 'var(--accent, #0e639c)',
-  warning: '#e5a50a',
+const VARIANT_STYLES: Record<ToastType, { bg: string; border: string; color: string; iconColor: string }> = {
+  success: {
+    bg: 'rgba(34,197,94,0.12)',
+    border: '1px solid rgba(34,197,94,0.25)',
+    color: 'rgba(255,255,255,0.82)',
+    iconColor: '#4ade80',
+  },
+  error: {
+    bg: 'rgba(239,68,68,0.12)',
+    border: '1px solid rgba(239,68,68,0.25)',
+    color: 'rgba(255,255,255,0.82)',
+    iconColor: '#f87171',
+  },
+  info: {
+    bg: 'rgba(99,102,241,0.10)',
+    border: '1px solid rgba(99,102,241,0.22)',
+    color: 'rgba(255,255,255,0.82)',
+    iconColor: '#818cf8',
+  },
+  warning: {
+    bg: 'rgba(251,191,36,0.10)',
+    border: '1px solid rgba(251,191,36,0.22)',
+    color: 'rgba(255,255,255,0.82)',
+    iconColor: '#fbbf24',
+  },
 }
+
+const TOAST_KEYFRAMES = `
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+`
 
 export function Toast({ toast, onDismiss }: ToastProps) {
   const { id, type, message, duration = 4000 } = toast
   const Icon = ICONS[type]
-  const color = COLORS[type]
+  const v = VARIANT_STYLES[type]
   const t = useT()
+  const [closeBtnHover, setCloseBtnHover] = useState(false)
 
   useEffect(() => {
     const timer = setTimeout(() => onDismiss(id), duration)
@@ -42,44 +70,59 @@ export function Toast({ toast, onDismiss }: ToastProps) {
   }, [id, duration, onDismiss])
 
   return (
-    <div
-      role={type === 'error' || type === 'warning' ? 'alert' : 'status'}
-      style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 10,
-        padding: '10px 14px',
-        background: 'var(--bg-secondary, #252526)',
-        border: `1px solid ${color}`,
-        borderLeft: `4px solid ${color}`,
-        borderRadius: 6,
-        boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-        minWidth: 280,
-        maxWidth: 400,
-        color: 'var(--text-primary, #ccc)',
-        fontSize: 13,
-        animation: 'toast-in 0.2s ease',
-      }}
-    >
-      <Icon size={16} color={color} style={{ flexShrink: 0, marginTop: 1 }} />
-      <span style={{ flex: 1, lineHeight: 1.5 }}>{message}</span>
-      <button
-        onClick={() => onDismiss(id)}
+    <>
+      <style>{TOAST_KEYFRAMES}</style>
+      <div
+        role={type === 'error' || type === 'warning' ? 'alert' : 'status'}
         style={{
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          color: 'var(--text-muted, #858585)',
-          padding: 0,
-          flexShrink: 0,
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'flex-start',
+          gap: 10,
+          padding: '10px 14px',
+          background: 'rgba(15,15,25,0.96)',
+          borderLeft: `3px solid ${v.iconColor}`,
+          border: `1px solid rgba(255,255,255,0.09)`,
+          borderRadius: 12,
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
+          maxWidth: 360,
+          color: v.color,
+          animation: 'toast-in 0.15s ease',
+          overflow: 'hidden',
+          position: 'relative',
         }}
-        aria-label={t('a11y.dismiss')}
       >
-        <X size={14} />
-      </button>
-    </div>
+        {/* Type-accent left strip */}
+        <div style={{
+          position: 'absolute', left: 0, top: 0, bottom: 0, width: 3,
+          background: v.iconColor, borderRadius: '12px 0 0 12px',
+        }} />
+        <Icon size={16} color={v.iconColor} style={{ flexShrink: 0, marginTop: 1, marginLeft: 8 }} />
+        <span style={{ flex: 1, fontSize: 13, fontWeight: 500, lineHeight: 1.4, color: 'rgba(255,255,255,0.82)' }}>{message}</span>
+        <button
+          onClick={() => onDismiss(id)}
+          style={{
+            background: closeBtnHover ? 'rgba(255,255,255,0.08)' : 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: 'rgba(255,255,255,0.60)',
+            padding: '3px 4px',
+            marginLeft: 'auto',
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            borderRadius: 6,
+            transition: 'all 0.15s ease',
+          }}
+          aria-label={t('a11y.dismiss')}
+          onMouseEnter={() => setCloseBtnHover(true)}
+          onMouseLeave={() => setCloseBtnHover(false)}
+        >
+          <X size={14} />
+        </button>
+      </div>
+    </>
   )
 }
 

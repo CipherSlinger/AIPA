@@ -1,5 +1,22 @@
 import React from 'react'
 
+const SHIMMER_KEYFRAMES = `
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+`
+
+// Inject keyframes once into the document head (idempotent)
+let shimmerInjected = false
+function ensureShimmer() {
+  if (shimmerInjected || typeof document === 'undefined') return
+  const style = document.createElement('style')
+  style.textContent = SHIMMER_KEYFRAMES
+  document.head.appendChild(style)
+  shimmerInjected = true
+}
+
 interface SkeletonProps {
   width?: string | number
   height?: string | number
@@ -8,18 +25,22 @@ interface SkeletonProps {
 }
 
 /**
- * Animated loading skeleton placeholder.
- * Uses a CSS pulse animation via globals.css .skeleton class.
+ * Animated loading skeleton placeholder with a glass-morphism shimmer.
  */
-export default function Skeleton({ width = '100%', height = 16, borderRadius = 4, style }: SkeletonProps) {
+export default function Skeleton({ width = '100%', height = 16, borderRadius = 6, style }: SkeletonProps) {
+  ensureShimmer()
+
   return (
     <div
-      className="skeleton"
       style={{
         width,
         height,
         borderRadius,
-        background: 'var(--bg-secondary, #252526)',
+        background: 'linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.05) 100%)',
+        backgroundSize: '200%',
+        animation: 'skeleton-shimmer 1.5s infinite',
+        overflow: 'hidden',
+        position: 'relative',
         ...style,
       }}
     />

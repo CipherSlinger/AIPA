@@ -33,63 +33,108 @@ function parseDiff(diff: string): DiffLine[] {
 
 const lineStyles: Record<LineType, React.CSSProperties> = {
   add: {
-    background: 'rgba(46, 160, 67, 0.2)',
-    color: 'var(--text-primary)',
+    background: 'rgba(34,197,94,0.12)',
+    color: '#86efac',
+    borderLeft: '2px solid rgba(34,197,94,0.25)',
   },
   remove: {
-    background: 'rgba(248, 81, 73, 0.2)',
-    color: 'var(--text-primary)',
+    background: 'rgba(239,68,68,0.10)',
+    color: '#fca5a5',
+    borderLeft: '2px solid rgba(239,68,68,0.20)',
   },
   hunk: {
-    color: '#58a6ff',
-    background: 'rgba(88, 166, 255, 0.08)',
+    background: 'rgba(99,102,241,0.08)',
+    color: 'rgba(165,180,252,0.7)',
+    borderLeft: '2px solid rgba(99,102,241,0.20)',
   },
   header: {
-    color: 'var(--text-muted)',
-    background: 'transparent',
+    color: 'rgba(255,255,255,0.65)',
+    background: 'rgba(255,255,255,0.03)',
+    borderLeft: '2px solid transparent',
   },
   context: {
-    color: 'var(--text-primary)',
+    color: 'rgba(255,255,255,0.45)',
     background: 'transparent',
+    borderLeft: '2px solid transparent',
   },
   other: {
-    color: 'var(--text-muted)',
+    color: 'rgba(255,255,255,0.38)',
     background: 'transparent',
+    borderLeft: '2px solid transparent',
   },
 }
 
 export default function DiffViewer({ diff }: DiffViewerProps) {
   const lines = parseDiff(diff)
 
+  if (!diff || !diff.trim()) {
+    return (
+      <div
+        style={{
+          background: 'rgba(10,10,18,0.95)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 8,
+          overflow: 'hidden',
+          fontFamily: 'monospace',
+          fontSize: 11,
+        }}
+      >
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', textAlign: 'center', padding: 24 }}>
+          No changes
+        </div>
+      </div>
+    )
+  }
+
+  // Derive a filename from the first header line if present
+  const headerLine = lines.find((l) => l.type === 'header' && l.content.startsWith('+++'))
+  const filename = headerLine ? headerLine.content.replace(/^\+\+\+\s+/, '').split('\t')[0] : null
+
   return (
     <div
       style={{
-        fontFamily: 'var(--font-mono, "JetBrains Mono", "Fira Code", monospace)',
+        background: 'rgba(10,10,18,0.95)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 8,
+        overflow: 'hidden',
+        fontFamily: 'monospace',
         fontSize: 11,
-        lineHeight: 1.5,
         maxHeight: 400,
         overflowY: 'auto',
         overflowX: 'auto',
-        borderRadius: 6,
-        border: '1px solid var(--border)',
-        background: 'var(--bg-secondary, var(--bg-chat))',
       }}
     >
-      <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 'max-content' }}>
+      {filename && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '8px 12px',
+            background: 'rgba(255,255,255,0.03)',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+          }}
+        >
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', fontFamily: 'monospace' }}>
+            {filename}
+          </span>
+        </div>
+      )}
+      <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 'max-content', lineHeight: 1.5 }}>
         <tbody>
           {lines.map((line, i) => (
             <tr key={i} style={lineStyles[line.type]}>
               <td
                 style={{
-                  padding: '0 8px',
+                  padding: '0 10px 0 8px',
                   userSelect: 'none',
-                  color: 'var(--text-muted)',
+                  color: 'rgba(255,255,255,0.38)',
                   textAlign: 'right',
-                  minWidth: 32,
-                  borderRight: '1px solid var(--border)',
+                  minWidth: 36,
+                  borderRight: '1px solid rgba(255,255,255,0.06)',
                   fontSize: 10,
-                  opacity: 0.6,
                   verticalAlign: 'top',
+                  fontVariantNumeric: 'tabular-nums',
                 }}
               >
                 {i + 1}

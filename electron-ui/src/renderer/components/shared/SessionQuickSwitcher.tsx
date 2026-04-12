@@ -1,5 +1,18 @@
 // SessionQuickSwitcher — Ctrl+K overlay for fast session switching (Iteration 434)
 
+// ── Keyframe injection (idempotent) ───────────────────────────────────────────
+;(function ensureQSKeyframes() {
+  if (typeof document === 'undefined') return
+  if (document.getElementById('qs-kf')) return
+  const s = document.createElement('style')
+  s.id = 'qs-kf'
+  s.textContent = `
+    @keyframes qs-fadeIn  { from { opacity: 0 } to { opacity: 1 } }
+    @keyframes qs-slideUp { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: translateY(0) } }
+  `
+  document.head.appendChild(s)
+})()
+
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Search, Clock, MessageSquare } from 'lucide-react'
 import { useSessionStore, useUiStore } from '../../store'
@@ -39,6 +52,7 @@ function relativeTime(timestamp: number): string {
 export default function SessionQuickSwitcher({ onClose }: Props) {
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
+  const [inputFocused, setInputFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const backdropRef = useRef<HTMLDivElement>(null)
@@ -115,11 +129,15 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 100,
-        background: 'rgba(0, 0, 0, 0.5)',
+        background: 'rgba(0,0,0,0.70)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        zIndex: 500,
         display: 'flex',
+        alignItems: 'flex-start',
         justifyContent: 'center',
-        paddingTop: 60,
+        paddingTop: '15vh',
+        animation: 'qs-fadeIn 0.15s ease',
       }}
     >
       <div
@@ -129,64 +147,86 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
         aria-label={t('session.quickSwitcher')}
         onKeyDown={handleKeyDown}
         style={{
+          background: 'rgba(15,15,25,0.96)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.09)',
+          borderRadius: 16,
+          boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
           width: '100%',
-          maxWidth: 520,
-          maxHeight: 440,
-          background: 'var(--popup-bg)',
-          border: '1px solid var(--popup-border)',
-          borderRadius: 10,
-          boxShadow: 'var(--popup-shadow)',
+          maxWidth: 560,
+          overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden',
-          alignSelf: 'flex-start',
+          animation: 'qs-slideUp 0.15s ease',
         }}
       >
         {/* Search input */}
         <div style={{
-          padding: '12px 16px',
-          borderBottom: '1px solid var(--border)',
           display: 'flex',
           alignItems: 'center',
-          gap: 8,
+          gap: 10,
+          padding: '14px 16px',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          background: inputFocused ? 'rgba(99,102,241,0.04)' : 'rgba(255,255,255,0.06)',
+          transition: 'background 0.15s ease',
+          boxShadow: inputFocused ? 'inset 0 0 0 1px rgba(99,102,241,0.40)' : 'none',
         }}>
-          <Search size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+          <Search size={16} style={{ color: inputFocused ? '#818cf8' : 'rgba(255,255,255,0.40)', flexShrink: 0, transition: 'color 0.15s ease' }} />
           <input
             ref={inputRef}
             value={query}
             onChange={e => setQuery(e.target.value)}
+            onFocus={() => setInputFocused(true)}
+            onBlur={() => setInputFocused(false)}
             placeholder={t('session.quickSwitcherPlaceholder')}
             style={{
               flex: 1,
-              background: 'none',
+              background: 'transparent',
               border: 'none',
               outline: 'none',
-              color: 'var(--text-primary)',
-              fontSize: 14,
+              color: 'rgba(255,255,255,0.82)',
+              fontSize: 16,
               fontFamily: 'inherit',
             }}
           />
           <kbd style={{
-            fontSize: 9,
-            color: 'var(--text-muted)',
-            background: 'var(--action-btn-bg)',
-            border: '1px solid var(--border)',
-            padding: '1px 5px',
-            borderRadius: 3,
+            fontSize: 10,
+            color: 'rgba(255,255,255,0.38)',
+            background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 5,
+            padding: '2px 6px',
             fontFamily: 'monospace',
+            fontWeight: 700,
+            letterSpacing: '0.07em',
           }}>Ctrl+K</kbd>
         </div>
 
         {/* Session list */}
-        <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
+        <div ref={listRef} style={{ maxHeight: 380, overflowY: 'auto', padding: '6px', scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.10) transparent' }}>
           {filtered.length === 0 && (
             <div style={{
-              padding: 24,
+              fontSize: 12,
+              color: 'rgba(255,255,255,0.38)',
               textAlign: 'center',
-              color: 'var(--text-muted)',
-              fontSize: 13,
+              padding: '24px 16px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 8,
             }}>
-              {sessions.length === 0 ? t('session.noSessions') : t('session.noResults')}
+              <div style={{
+                background: 'rgba(99,102,241,0.08)',
+                borderRadius: 12,
+                padding: 12,
+                display: 'inline-flex',
+              }}>
+                <Search size={18} style={{ color: 'rgba(255,255,255,0.38)', opacity: 0.6 }} />
+              </div>
+              <span>
+                {sessions.length === 0 ? t('session.noSessions') : t('session.noResults')}
+              </span>
             </div>
           )}
           {filtered.map((session, index) => {
@@ -200,65 +240,67 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
                 onClick={() => openSession(session)}
                 onMouseEnter={() => setSelectedIndex(index)}
                 style={{
-                  padding: '8px 16px',
-                  cursor: 'pointer',
-                  background: index === selectedIndex ? 'var(--popup-item-hover)' : 'transparent',
-                  transition: 'background 0.1s',
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: 2,
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 12px',
+                  borderRadius: 7,
+                  cursor: 'pointer',
+                  background: index === selectedIndex ? 'rgba(99,102,241,0.10)' : 'transparent',
+                  borderLeft: index === selectedIndex ? '2px solid rgba(99,102,241,0.60)' : '2px solid transparent',
+                  transition: 'all 0.15s ease',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <MessageSquare size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-                  <span style={{
-                    fontSize: 13,
+                <MessageSquare size={14} style={{ color: 'rgba(255,255,255,0.45)', flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: 12,
                     fontWeight: 500,
-                    color: 'var(--text-primary)',
+                    color: index === selectedIndex ? '#818cf8' : 'rgba(255,255,255,0.80)',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
-                    flex: 1,
                   }}>
                     {title}
-                  </span>
-                  <span style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 3,
-                    fontSize: 10,
-                    color: 'var(--text-muted)',
-                    flexShrink: 0,
-                  }}>
-                    <Clock size={10} />
-                    {relativeTime(session.timestamp)}
-                  </span>
+                  </div>
+                  {preview && preview !== title && (
+                    <div style={{
+                      fontSize: 11,
+                      color: 'rgba(255,255,255,0.38)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {preview}
+                    </div>
+                  )}
+                  {note && (
+                    <div style={{
+                      fontSize: 10,
+                      color: '#fbbf24',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      fontStyle: 'italic',
+                    }}>
+                      {note}
+                    </div>
+                  )}
                 </div>
-                {preview && preview !== title && (
-                  <div style={{
-                    fontSize: 11,
-                    color: 'var(--text-muted)',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    paddingLeft: 20,
-                  }}>
-                    {preview}
-                  </div>
-                )}
-                {note && (
-                  <div style={{
-                    fontSize: 10,
-                    color: 'var(--warning)',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    paddingLeft: 20,
-                    fontStyle: 'italic',
-                  }}>
-                    {note}
-                  </div>
-                )}
+                <span style={{
+                  fontSize: 10,
+                  color: 'rgba(255,255,255,0.38)',
+                  whiteSpace: 'nowrap',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  flexShrink: 0,
+                  fontVariantNumeric: 'tabular-nums',
+                  fontFeatureSettings: '"tnum"',
+                }}>
+                  <Clock size={10} />
+                  {relativeTime(session.timestamp)}
+                </span>
               </div>
             )
           })}
@@ -266,16 +308,29 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
 
         {/* Footer */}
         <div style={{
-          padding: '6px 16px',
-          borderTop: '1px solid var(--border)',
           display: 'flex',
           gap: 12,
+          padding: '8px 14px',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
           fontSize: 10,
-          color: 'var(--text-muted)',
+          fontWeight: 700,
+          letterSpacing: '0.07em',
+          textTransform: 'uppercase',
+          color: 'rgba(255,255,255,0.38)',
+          alignItems: 'center',
         }}>
-          <span>{t('command.arrowKeysHint')}</span>
-          <span>{t('command.enterHint')}</span>
-          <span>{t('command.escHint')}</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <kbd style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 5, padding: '1px 5px', fontSize: 9, fontFamily: 'monospace' }}>↑↓</kbd>
+            {t('command.arrowKeysHint')}
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <kbd style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 5, padding: '1px 5px', fontSize: 9, fontFamily: 'monospace' }}>↵</kbd>
+            {t('command.enterHint')}
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <kbd style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 5, padding: '1px 5px', fontSize: 9, fontFamily: 'monospace' }}>Esc</kbd>
+            {t('command.escHint')}
+          </span>
         </div>
       </div>
     </div>

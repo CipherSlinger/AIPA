@@ -128,7 +128,7 @@ export default function NoteEditor({
   }, [title, content, addToast, t])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: 0, background: 'rgba(10,10,18,0.95)', scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.10) transparent' }}>
       {/* Editor header */}
       <NoteEditorHeader
         note={note}
@@ -162,13 +162,15 @@ export default function NoteEditor({
         placeholder={t('notes.untitled')}
         style={{
           width: '100%',
-          padding: '10px 14px',
+          padding: '12px 16px',
           border: 'none',
-          borderBottom: '1px solid var(--border)',
+          borderBottom: '1px solid rgba(255,255,255,0.07)',
           background: 'transparent',
-          color: 'var(--text-primary)',
-          fontSize: 15,
-          fontWeight: 600,
+          color: 'rgba(255,255,255,0.82)',
+          fontSize: 22,
+          fontWeight: 700,
+          lineHeight: 1.2,
+          letterSpacing: '-0.01em',
           outline: 'none',
           fontFamily: 'inherit',
           boxSizing: 'border-box',
@@ -181,12 +183,14 @@ export default function NoteEditor({
           style={{
             flex: 1,
             overflowY: 'auto',
-            padding: '10px 14px',
+            padding: '12px 16px',
             boxSizing: 'border-box',
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'rgba(255,255,255,0.10) transparent',
           }}
         >
           {content.trim() ? (
-            <div className="markdown-body" style={{ color: 'var(--text-primary)', fontSize: 13, lineHeight: 1.7 }}>
+            <div className="markdown-body" style={{ color: 'rgba(255,255,255,0.82)', fontSize: 14, lineHeight: 1.7 }}>
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeHighlight]}
@@ -200,7 +204,7 @@ export default function NoteEditor({
               alignItems: 'center',
               justifyContent: 'center',
               height: '100%',
-              color: 'var(--text-muted)',
+              color: 'rgba(255,255,255,0.38)',
               fontSize: 13,
             }}>
               {t('notes.nothingToPreview')}
@@ -214,8 +218,11 @@ export default function NoteEditor({
             display: 'flex',
             alignItems: 'center',
             gap: 2,
-            padding: '4px 10px',
-            borderBottom: '1px solid var(--border)',
+            padding: '5px 10px',
+            background: 'rgba(12,12,22,0.92)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            borderBottom: '1px solid rgba(255,255,255,0.07)',
             flexShrink: 0,
           }}>
             {FORMAT_ACTIONS.map((action) => {
@@ -227,25 +234,25 @@ export default function NoteEditor({
                   title={t(action.labelKey)}
                   aria-label={t(action.labelKey)}
                   style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-muted)',
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.10)',
+                    color: 'rgba(255,255,255,0.45)',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    width: 28,
-                    height: 28,
-                    borderRadius: 4,
-                    transition: 'background 0.1s, color 0.1s',
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={e => {
-                    e.currentTarget.style.background = 'var(--action-btn-bg)'
-                    e.currentTarget.style.color = 'var(--text-primary)'
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
+                    e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
                   }}
                   onMouseLeave={e => {
-                    e.currentTarget.style.background = 'none'
-                    e.currentTarget.style.color = 'var(--text-muted)'
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                    e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
                   }}
                 >
                   <Icon size={14} />
@@ -263,16 +270,18 @@ export default function NoteEditor({
             style={{
               flex: 1,
               width: '100%',
-              padding: '10px 14px',
+              padding: '14px 16px',
               border: 'none',
               background: 'transparent',
-              color: 'var(--text-primary)',
-              fontSize: 13,
-              lineHeight: 1.6,
+              color: 'rgba(255,255,255,0.82)',
+              fontSize: 14,
+              lineHeight: 1.7,
               outline: 'none',
               resize: 'none',
               fontFamily: 'inherit',
               boxSizing: 'border-box',
+              scrollbarWidth: 'thin',
+              scrollbarColor: 'rgba(255,255,255,0.10) transparent',
             }}
           />
         </>
@@ -287,23 +296,27 @@ export default function NoteEditor({
           <div style={{
             height: 3,
             borderRadius: 2,
-            background: 'var(--border)',
+            background: 'rgba(255,255,255,0.08)',
             overflow: 'hidden',
           }}>
             <div style={{
               height: '100%',
               width: `${Math.min(charRatio * 100, 100)}%`,
               borderRadius: 2,
-              background: charCritical ? 'var(--error)' : charWarning ? 'var(--warning)' : 'var(--accent)',
+              background: charCritical ? '#f87171' : charWarning ? '#fbbf24' : 'rgba(99,102,241,0.7)',
               transition: 'width 0.2s ease, background 0.2s ease',
             }} />
           </div>
           {charWarning && (
             <div style={{
               fontSize: 10,
-              color: charCritical ? 'var(--error)' : 'var(--warning)',
+              fontWeight: 700,
+              letterSpacing: '0.07em',
+              color: charCritical ? '#f87171' : '#fbbf24',
               marginTop: 2,
               textAlign: 'right',
+              fontVariantNumeric: 'tabular-nums',
+              fontFeatureSettings: '"tnum"',
             }}>
               {t('notes.charLimitWarning', {
                 remaining: String(MAX_CONTENT_LENGTH - content.length),
@@ -315,13 +328,19 @@ export default function NoteEditor({
 
       {/* Timestamps footer */}
       <div style={{
-        padding: '6px 14px',
-        borderTop: '1px solid var(--border)',
-        fontSize: 11,
-        color: 'var(--text-muted)',
+        padding: '6px 16px',
+        borderTop: '1px solid rgba(255,255,255,0.07)',
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: '0.07em',
+        textTransform: 'uppercase' as const,
+        color: 'rgba(255,255,255,0.38)',
         display: 'flex',
         justifyContent: 'space-between',
         flexShrink: 0,
+        fontVariantNumeric: 'tabular-nums',
+        fontFeatureSettings: '"tnum"',
+        lineHeight: 1,
       }}>
         <span>{t('notes.created')}: {new Date(note.createdAt).toLocaleDateString()}</span>
         <span>{t('notes.modified')}: {new Date(note.updatedAt).toLocaleDateString()}</span>

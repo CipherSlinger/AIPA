@@ -31,7 +31,7 @@ export default function TypingStatus() {
   const effectivePersonaId = sessionPersonaId || defaultPersonaId
   const personas = usePrefsStore(s => s.prefs.personas)
   const activePersona = effectivePersonaId ? personas?.find(p => p.id === effectivePersonaId) : null
-  const dotColor = activePersona?.color || 'var(--accent)'
+  const dotColor = activePersona?.color || '#6366f1'
 
   // Determine contextual label
   let rawLabel = t('chat.typingStatus.thinking')
@@ -53,12 +53,15 @@ export default function TypingStatus() {
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 6,
-        padding: '5px 16px',
-        borderTop: '1px solid var(--border)',
+        gap: 8,
+        padding: '4px 14px',
+        borderTop: '1px solid rgba(255,255,255,0.06)',
         flexShrink: 0,
         minHeight: 28,
-        background: 'var(--bg-chat)',
+        background: 'rgba(15,15,25,0.85)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
       }}
       aria-live="polite"
       aria-label={`${label}...`}
@@ -69,10 +72,10 @@ export default function TypingStatus() {
           key={i}
           style={{
             display: 'inline-block',
-            width: 4,
-            height: 4,
+            width: 5,
+            height: 5,
             borderRadius: '50%',
-            background: dotColor,
+            background: 'rgba(165,180,252,0.75)',
             animation: `dot-wave 1.2s ease-in-out ${i * 0.15}s infinite`,
             flexShrink: 0,
           }}
@@ -80,8 +83,8 @@ export default function TypingStatus() {
       ))}
       <span
         style={{
-          fontSize: 11,
-          color: 'var(--text-muted)',
+          fontSize: 12,
+          color: 'rgba(255,255,255,0.45)',
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -92,7 +95,7 @@ export default function TypingStatus() {
       </span>
       {/* Elapsed time (shown after 3s to avoid flashing on fast responses) */}
       {streamStartRef.current > 0 && elapsed !== '0s' && elapsed !== '1s' && elapsed !== '2s' && (
-        <span style={{ fontSize: 10, color: 'var(--text-muted)', opacity: 0.6, marginLeft: 2 }}>
+        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', marginLeft: 2, fontVariantNumeric: 'tabular-nums' }}>
           {elapsed}
         </span>
       )}

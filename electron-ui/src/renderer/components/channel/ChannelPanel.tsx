@@ -9,6 +9,19 @@ const SettingsMcp = React.lazy(() => import('../settings/SettingsMcp'))
 
 type ChannelTab = 'providers' | 'mcp'
 
+const CHANNEL_STYLE = `
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
+    50%       { box-shadow: 0 0 0 4px rgba(34,197,94,0); }
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(6px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .channel-scroll::-webkit-scrollbar { width: 4px; }
+  .channel-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+`
+
 // ── Main panel ────────────────────────────────────────────────────────────────
 
 export default function ChannelPanel() {
@@ -18,12 +31,16 @@ export default function ChannelPanel() {
   const tabStyle = (tab: ChannelTab): React.CSSProperties => ({
     flex: 1,
     padding: '5px 8px',
-    fontSize: 11,
-    fontWeight: activeTab === tab ? 600 : 400,
-    color: activeTab === tab ? 'var(--accent)' : 'var(--text-muted)',
+    fontSize: 10,
+    fontWeight: activeTab === tab ? 700 : 500,
+    letterSpacing: '0.07em',
+    textTransform: 'uppercase',
+    color: activeTab === tab ? '#818cf8' : 'rgba(255,255,255,0.38)',
     background: 'none',
     border: 'none',
-    borderBottom: activeTab === tab ? '2px solid var(--accent)' : '2px solid transparent',
+    borderBottom: activeTab === tab
+      ? '2px solid rgba(99,102,241,0.6)'
+      : '2px solid transparent',
     cursor: 'pointer',
     transition: 'all 0.15s ease',
     display: 'flex',
@@ -35,51 +52,74 @@ export default function ChannelPanel() {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', height: '100%',
-      background: 'var(--bg-sessionpanel)', overflow: 'hidden',
+      background: 'rgba(15,15,25,0.92)',
+      backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
+      borderRight: '1px solid rgba(255,255,255,0.07)', overflow: 'hidden',
     }}>
+      <style>{CHANNEL_STYLE}</style>
+
       {/* Panel header */}
       <div style={{
-        padding: '10px 12px 0',
-        borderBottom: '1px solid var(--border)',
+        padding: '12px 14px',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
         flexShrink: 0,
-        background: 'linear-gradient(180deg, rgba(139, 92, 246, 0.06) 0%, transparent 100%)',
+        background: 'linear-gradient(180deg, rgba(99,102,241,0.06) 0%, transparent 100%)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          <Radio size={14} color="var(--text-muted)" />
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)' }}>
+          <Radio size={14} color="#818cf8" />
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.82)', lineHeight: 1.3 }}>
             {t('channel.title')}
           </span>
         </div>
 
-        {/* Tab bar */}
+        {/* Tab bar — micro-label style */}
         <div style={{ display: 'flex', gap: 0 }}>
-          <button style={tabStyle('providers')} onClick={() => setActiveTab('providers')}>
+          <button
+            style={tabStyle('providers')}
+            onClick={() => setActiveTab('providers')}
+            onMouseEnter={e => { if (activeTab !== 'providers') e.currentTarget.style.color = 'rgba(255,255,255,0.65)' }}
+            onMouseLeave={e => { if (activeTab !== 'providers') e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
+          >
             <Radio size={11} />
             {t('channel.providersTab')}
           </button>
-          <button style={tabStyle('mcp')} onClick={() => setActiveTab('mcp')}>
+          <button
+            style={tabStyle('mcp')}
+            onClick={() => setActiveTab('mcp')}
+            onMouseEnter={e => { if (activeTab !== 'mcp') e.currentTarget.style.color = 'rgba(255,255,255,0.65)' }}
+            onMouseLeave={e => { if (activeTab !== 'mcp') e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
+          >
             <Server size={11} />
             {t('channel.mcpTab')}
           </button>
         </div>
       </div>
 
-      {/* Tab content */}
+      {/* Tab content — glass card wrapper */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '10px 12px', overflowY: 'auto', flex: 1 }}>
-          <React.Suspense fallback={<div style={{ padding: 20, color: 'var(--text-muted)', fontSize: 11 }}>Loading...</div>}>
-            {activeTab === 'providers' ? <SettingsProviders /> : <SettingsMcp />}
-          </React.Suspense>
+        <div className="channel-scroll" style={{ padding: '10px 12px', overflowY: 'auto', flex: 1 }}>
+          <div style={{
+            borderRadius: 10,
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.07)',
+            overflow: 'hidden',
+          }}>
+            <React.Suspense fallback={<div style={{ padding: 20, color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>Loading...</div>}>
+              {activeTab === 'providers' ? <SettingsProviders /> : <SettingsMcp />}
+            </React.Suspense>
+          </div>
         </div>
       </div>
 
       {/* Footer */}
       <div style={{
-        padding: '6px 12px', borderTop: '1px solid var(--border)', flexShrink: 0,
+        padding: '6px 12px', borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0,
         display: 'flex', alignItems: 'center', gap: 6,
+        background: 'rgba(255,255,255,0.02)',
       }}>
-        <MessageCircle size={10} color="var(--text-muted)" />
-        <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>
+        <MessageCircle size={10} color="rgba(255,255,255,0.38)" />
+        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
           {t('channel.footer')}
         </span>
       </div>

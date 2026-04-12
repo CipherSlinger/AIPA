@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { MessageCircle, Code2, ListChecks, FileText, Languages, Lightbulb, ArrowRight, Layers, LucideIcon } from 'lucide-react'
 import { useT } from '../../i18n'
 
@@ -25,7 +25,7 @@ function generateSuggestions(content: string, t: (key: string) => string): Follo
 
   // Detect content patterns
   const hasCodeBlock = /```[\s\S]*?```/.test(content)
-  const hasNumberedList = /^\s*\d+[\.\)]\s/m.test(content)
+  const hasNumberedList = /^\s*\d+[\.\/\)]\s/m.test(content)
   const hasBulletList = /^\s*[-*]\s/m.test(content)
   const hasTable = /\|.*\|.*\|/m.test(content)
   const hasSteps = hasNumberedList && (lower.includes('step') || lower.includes('first') || lower.includes('then'))
@@ -157,6 +157,45 @@ function generateSuggestions(content: string, t: (key: string) => string): Follo
   return suggestions.slice(0, 3)
 }
 
+function ChipButton({ suggestion, onSelect }: { suggestion: FollowUpSuggestion; onSelect: (prompt: string) => void }) {
+  const [hovered, setHovered] = useState(false)
+  const [pressed, setPressed] = useState(false)
+  const Icon = suggestion.icon
+
+  return (
+    <button
+      key={suggestion.id}
+      onClick={() => onSelect(suggestion.prompt)}
+      title={suggestion.prompt}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => { setHovered(false); setPressed(false) }}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 5,
+        padding: '4px 11px',
+        background: hovered ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.06)',
+        border: `1px solid ${hovered ? 'rgba(99,102,241,0.40)' : 'rgba(255,255,255,0.09)'}`,
+        borderRadius: 20,
+        cursor: 'pointer',
+        color: hovered ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.60)',
+        fontSize: 12,
+        fontWeight: 500,
+        lineHeight: 1,
+        transition: 'all 0.15s ease',
+        whiteSpace: 'nowrap',
+        transform: pressed ? 'translateY(0)' : hovered ? 'translateY(-1px)' : 'none',
+        boxShadow: hovered && !pressed ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
+      }}
+    >
+      <Icon size={12} style={{ color: '#818cf8', flexShrink: 0 }} />
+      <span>{suggestion.label}</span>
+    </button>
+  )
+}
+
 export default function FollowUpChips({ lastAssistantContent, onSelect }: Props) {
   const t = useT()
 
@@ -171,52 +210,17 @@ export default function FollowUpChips({ lastAssistantContent, onSelect }: Props)
     <div
       style={{
         display: 'flex',
-        justifyContent: 'center',
-        gap: 8,
-        padding: '4px 16px 4px',
         flexWrap: 'wrap',
-      }}
+        gap: 8,
+        padding: '4px 0',
+        overflowX: 'auto',
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
+      } as React.CSSProperties}
     >
-      {suggestions.map((s) => {
-        const Icon = s.icon
-        return (
-          <button
-            key={s.id}
-            onClick={() => onSelect(s.prompt)}
-            title={s.prompt}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
-              padding: '5px 14px',
-              background: 'var(--action-btn-bg)',
-              border: '1px solid var(--action-btn-border)',
-              borderRadius: 20,
-              cursor: 'pointer',
-              color: 'var(--text-muted)',
-              fontSize: 12,
-              fontWeight: 500,
-              transition: 'color 150ms ease, border-color 150ms ease, background 150ms ease',
-              whiteSpace: 'nowrap',
-            }}
-            onMouseEnter={(e) => {
-              const el = e.currentTarget
-              el.style.color = 'var(--accent)'
-              el.style.borderColor = 'var(--accent)'
-              el.style.background = 'var(--popup-item-hover)'
-            }}
-            onMouseLeave={(e) => {
-              const el = e.currentTarget
-              el.style.color = 'var(--text-muted)'
-              el.style.borderColor = 'var(--action-btn-border)'
-              el.style.background = 'var(--action-btn-bg)'
-            }}
-          >
-            <Icon size={13} />
-            <span>{s.label}</span>
-          </button>
-        )
-      })}
+      {suggestions.map((s) => (
+        <ChipButton key={s.id} suggestion={s} onSelect={onSelect} />
+      ))}
     </div>
   )
 }

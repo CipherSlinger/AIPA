@@ -41,11 +41,11 @@ export default function NoteCategorySelector({
       alignItems: 'center',
       gap: 8,
       padding: '6px 14px',
-      borderBottom: '1px solid var(--border)',
+      borderBottom: '1px solid rgba(255,255,255,0.06)',
       flexShrink: 0,
       position: 'relative',
     }}>
-      <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>
+      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', flexShrink: 0 }}>
         {t('notes.categoryLabel')}:
       </span>
       <div ref={dropdownRef} style={{ position: 'relative' }}>
@@ -55,20 +55,26 @@ export default function NoteCategorySelector({
             display: 'flex',
             alignItems: 'center',
             gap: 5,
-            background: 'var(--card-bg)',
-            border: '1px solid var(--border)',
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.08)',
             borderRadius: 6,
             padding: '3px 8px',
             fontSize: 11,
-            color: 'var(--text-primary)',
+            color: 'rgba(255,255,255,0.82)',
             cursor: 'pointer',
-            transition: 'border-color 0.15s',
+            transition: 'all 0.15s ease',
           }}
-          onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent)'}
-          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+          onMouseEnter={e => {
+            e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'
+            e.currentTarget.style.background = 'rgba(99,102,241,0.08)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+            e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+          }}
         >
           {noteCategory && (
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: noteCategory.color, flexShrink: 0 }} />
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: noteCategory.color, flexShrink: 0 }} />
           )}
           <span>{noteCategory ? noteCategory.name : t('notes.uncategorized')}</span>
           <ChevronDown size={10} style={{ opacity: 0.5 }} />
@@ -82,12 +88,14 @@ export default function NoteCategorySelector({
             left: 0,
             marginTop: 4,
             minWidth: 160,
-            background: 'var(--popup-bg)',
-            border: '1px solid var(--popup-border)',
-            borderRadius: 8,
-            boxShadow: 'var(--popup-shadow)',
+            background: 'rgba(15,15,25,0.85)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 12,
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
             zIndex: 100,
-            animation: 'popup-in 0.15s ease',
+            animation: 'slideUp 0.15s ease',
             padding: '4px 0',
           }}>
             {/* Uncategorized option */}
@@ -100,18 +108,18 @@ export default function NoteCategorySelector({
                 alignItems: 'center',
                 gap: 8,
                 width: '100%',
-                padding: '6px 10px',
-                background: 'none',
+                padding: '7px 12px',
+                background: !note.categoryId ? 'rgba(99,102,241,0.12)' : 'none',
                 border: 'none',
-                color: 'var(--text-primary)',
-                fontSize: 11,
+                color: !note.categoryId ? '#818cf8' : 'rgba(255,255,255,0.45)',
+                fontSize: 12,
                 cursor: 'pointer',
-                transition: 'background 0.1s',
+                transition: 'all 0.15s ease',
               }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--action-btn-hover)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              onMouseEnter={e => { if (note.categoryId) e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = !note.categoryId ? 'rgba(99,102,241,0.12)' : 'transparent' }}
             >
-              <span style={{ width: 14, textAlign: 'center' }}>
+              <span style={{ width: 14, textAlign: 'center', color: '#818cf8' }}>
                 {!note.categoryId && <Check size={12} />}
               </span>
               {t('notes.uncategorized')}
@@ -127,21 +135,21 @@ export default function NoteCategorySelector({
                   alignItems: 'center',
                   gap: 8,
                   width: '100%',
-                  padding: '6px 10px',
-                  background: 'none',
+                  padding: '7px 12px',
+                  background: note.categoryId === cat.id ? 'rgba(99,102,241,0.12)' : 'none',
                   border: 'none',
-                  color: 'var(--text-primary)',
-                  fontSize: 11,
+                  color: note.categoryId === cat.id ? '#818cf8' : 'rgba(255,255,255,0.82)',
+                  fontSize: 12,
                   cursor: 'pointer',
-                  transition: 'background 0.1s',
+                  transition: 'all 0.15s ease',
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--action-btn-hover)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                onMouseEnter={e => { if (note.categoryId !== cat.id) e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = note.categoryId === cat.id ? 'rgba(99,102,241,0.12)' : 'transparent' }}
               >
-                <span style={{ width: 14, textAlign: 'center' }}>
+                <span style={{ width: 14, textAlign: 'center', color: '#818cf8' }}>
                   {note.categoryId === cat.id && <Check size={12} />}
                 </span>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: cat.color, flexShrink: 0 }} />
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: cat.color, flexShrink: 0 }} />
                 {cat.name}
               </button>
             ))}

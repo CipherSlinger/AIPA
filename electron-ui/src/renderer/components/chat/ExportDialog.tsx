@@ -146,28 +146,34 @@ export default function ExportDialog({ onClose }: Props) {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'rgba(0,0,0,0.5)',
+    background: 'rgba(0,0,0,0.70)',
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
+    animation: 'fadeIn 0.15s ease',
   }
 
   const dialogStyle: React.CSSProperties = {
-    background: 'var(--popup-bg)',
-    border: '1px solid var(--border)',
-    borderRadius: 10,
+    background: 'rgba(15,15,25,0.97)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    border: '1px solid rgba(255,255,255,0.09)',
+    borderRadius: 16,
     padding: 20,
     width: 480,
     maxWidth: 'calc(100vw - 40px)',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+    boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
     display: 'flex',
     flexDirection: 'column',
     gap: 14,
+    animation: 'slideUp 0.15s ease',
   }
 
   const labelStyle: React.CSSProperties = {
-    fontSize: 11,
-    fontWeight: 600,
-    color: 'var(--text-muted)',
+    fontSize: 10,
+    fontWeight: 700,
+    color: 'rgba(255,255,255,0.38)',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: '0.07em',
     marginBottom: 6,
   }
 
@@ -181,14 +187,14 @@ export default function ExportDialog({ onClose }: Props) {
     alignItems: 'center',
     gap: 6,
     padding: '5px 12px',
-    border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
-    borderRadius: 6,
+    border: `1px solid ${active ? 'rgba(99,102,241,0.4)' : 'rgba(255,255,255,0.09)'}`,
+    borderRadius: 8,
     cursor: 'pointer',
-    background: active ? 'rgba(59,130,246,0.12)' : 'var(--bg-input)',
-    color: active ? 'var(--accent)' : 'var(--text-primary)',
+    background: active ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.04)',
+    color: active ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.6)',
     fontSize: 12,
     fontWeight: active ? 600 : 400,
-    transition: 'border-color 150ms, background 150ms, color 150ms',
+    transition: 'border-color 0.15s ease, background 0.15s ease, color 0.15s ease',
     userSelect: 'none',
   })
 
@@ -197,19 +203,19 @@ export default function ExportDialog({ onClose }: Props) {
     alignItems: 'center',
     gap: 8,
     fontSize: 12,
-    color: 'var(--text-primary)',
+    color: 'rgba(255,255,255,0.6)',
     cursor: 'pointer',
     userSelect: 'none',
   }
 
   const previewBoxStyle: React.CSSProperties = {
-    background: 'var(--bg-input)',
-    border: '1px solid var(--border)',
-    borderRadius: 6,
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.09)',
+    borderRadius: 8,
     padding: '8px 10px',
     fontSize: 11,
     fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
-    color: 'var(--text-secondary)',
+    color: 'rgba(255,255,255,0.6)',
     whiteSpace: 'pre-wrap',
     overflowY: 'auto',
     maxHeight: 160,
@@ -218,31 +224,34 @@ export default function ExportDialog({ onClose }: Props) {
 
   const btnBase: React.CSSProperties = {
     padding: '6px 16px',
-    borderRadius: 6,
-    fontSize: 12,
-    fontWeight: 500,
+    borderRadius: 8,
+    fontSize: 13,
+    fontWeight: 600,
     cursor: 'pointer',
     border: 'none',
     display: 'flex',
     alignItems: 'center',
     gap: 6,
-    transition: 'opacity 150ms',
+    transition: 'opacity 0.15s ease',
   }
 
   return (
     <div style={overlayStyle}>
       <div ref={dialogRef} style={dialogStyle}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-bright)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <span style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.82)', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
             导出会话
           </span>
           <button
             onClick={onClose}
             style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: 'var(--text-muted)', display: 'flex', padding: 4, borderRadius: 4,
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              color: 'rgba(255,255,255,0.45)', display: 'flex', padding: 4, borderRadius: 8,
+              transition: 'all 0.15s ease',
             }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
             <X size={15} />
           </button>
@@ -255,11 +264,11 @@ export default function ExportDialog({ onClose }: Props) {
             <div style={radioOptionStyle(format === 'markdown')} onClick={() => setFormat('markdown')}>
               <span style={{
                 width: 12, height: 12, borderRadius: '50%',
-                border: `2px solid ${format === 'markdown' ? 'var(--accent)' : 'var(--text-muted)'}`,
+                border: `2px solid ${format === 'markdown' ? 'rgba(99,102,241,0.9)' : 'rgba(255,255,255,0.3)'}`,
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               }}>
                 {format === 'markdown' && (
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6366f1' }} />
                 )}
               </span>
               Markdown
@@ -267,11 +276,11 @@ export default function ExportDialog({ onClose }: Props) {
             <div style={radioOptionStyle(format === 'json')} onClick={() => setFormat('json')}>
               <span style={{
                 width: 12, height: 12, borderRadius: '50%',
-                border: `2px solid ${format === 'json' ? 'var(--accent)' : 'var(--text-muted)'}`,
+                border: `2px solid ${format === 'json' ? 'rgba(99,102,241,0.9)' : 'rgba(255,255,255,0.3)'}`,
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               }}>
                 {format === 'json' && (
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6366f1' }} />
                 )}
               </span>
               JSON
@@ -287,7 +296,7 @@ export default function ExportDialog({ onClose }: Props) {
                 type="checkbox"
                 checked={includeTools}
                 onChange={e => setIncludeTools(e.target.checked)}
-                style={{ accentColor: 'var(--accent)', cursor: 'pointer' }}
+                style={{ accentColor: '#6366f1', cursor: 'pointer' }}
               />
               包含工具调用详情
             </label>
@@ -296,7 +305,7 @@ export default function ExportDialog({ onClose }: Props) {
                 type="checkbox"
                 checked={includeTimestamps}
                 onChange={e => setIncludeTimestamps(e.target.checked)}
-                style={{ accentColor: 'var(--accent)', cursor: 'pointer' }}
+                style={{ accentColor: '#6366f1', cursor: 'pointer' }}
               />
               包含时间戳
             </label>
@@ -315,9 +324,17 @@ export default function ExportDialog({ onClose }: Props) {
             onClick={onClose}
             style={{
               ...btnBase,
-              background: 'var(--bg-input)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-primary)',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              color: 'rgba(255,255,255,0.60)',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
             }}
           >
             取消
@@ -327,11 +344,15 @@ export default function ExportDialog({ onClose }: Props) {
             disabled={saving || messages.length === 0}
             style={{
               ...btnBase,
-              background: 'var(--accent)',
-              color: '#fff',
+              background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
+              border: 'none',
+              color: 'rgba(255,255,255,0.95)',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
               opacity: saving || messages.length === 0 ? 0.5 : 1,
               cursor: saving || messages.length === 0 ? 'not-allowed' : 'pointer',
             }}
+            onMouseEnter={e => { if (!saving && messages.length > 0) { e.currentTarget.style.filter = 'brightness(0.95)'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)' } }}
+            onMouseLeave={e => { if (!saving && messages.length > 0) { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' } }}
           >
             <Download size={13} />
             {saving ? '保存中...' : '选择路径并保存'}

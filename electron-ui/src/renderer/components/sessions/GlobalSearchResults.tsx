@@ -64,23 +64,31 @@ export default function GlobalSearchResults({
 
   return (
     <div style={{
-      borderBottom: '1px solid var(--border)',
+      background: 'rgba(15,15,25,0.92)',
+      backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
+      border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: 10,
       maxHeight: '50%',
-      overflowY: 'auto',
+      display: 'flex',
+      flexDirection: 'column',
       flexShrink: 0,
+      marginBottom: 4,
+      overflow: 'hidden',
+      boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
     }}>
+      {/* Section header — micro-label style */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '6px 12px',
+        padding: '8px 12px 4px',
         fontSize: 10,
-        fontWeight: 600,
-        color: 'var(--text-muted)',
+        fontWeight: 700,
+        color: 'rgba(255,255,255,0.38)',
         textTransform: 'uppercase' as const,
-        letterSpacing: '0.5px',
-        borderBottom: '1px solid var(--border)',
-        background: 'var(--popup-bg)',
+        letterSpacing: '0.07em',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
       }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <Globe size={10} />
@@ -92,11 +100,65 @@ export default function GlobalSearchResults({
         </span>
         <button
           onClick={onClose}
-          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}
+          style={{
+            background: 'transparent',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 6,
+            color: 'rgba(255,255,255,0.45)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            padding: '2px 4px',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'transparent'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+          }}
         >
           <X size={12} />
         </button>
       </div>
+
+      {/* Empty state */}
+      {results.length === 0 && !isSearching && (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px 12px',
+          gap: 8,
+        }}>
+          <div style={{
+            width: 44,
+            height: 44,
+            borderRadius: 12,
+            background: 'rgba(99,102,241,0.12)',
+            border: '1px solid rgba(99,102,241,0.20)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <Globe size={20} color="rgba(99,102,241,0.70)" />
+          </div>
+          <span style={{
+            fontSize: 12,
+            color: 'rgba(255,255,255,0.45)',
+            textAlign: 'center',
+            maxWidth: 180,
+            lineHeight: 1.55,
+          }}>
+            {t('session.globalSearchNoResults')}
+          </span>
+        </div>
+      )}
+
+      <div style={{ overflowY: 'auto', flex: 1, scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.10) transparent' }}>
       {results.map((result, idx) => {
         const isActive = result.sessionId === currentSessionId
         const isFocused = idx === focusedIdx
@@ -109,15 +171,21 @@ export default function GlobalSearchResults({
               alignItems: 'flex-start',
               gap: 8,
               padding: '8px 12px',
+              margin: '3px 4px',
               cursor: 'pointer',
-              borderBottom: '1px solid rgba(255,255,255,0.04)',
-              background: isFocused ? 'var(--popup-item-hover)' : isActive ? 'var(--bg-active)' : 'transparent',
-              outline: isFocused ? '1px solid var(--accent)' : 'none',
+              borderRadius: 6,
+              background: isFocused || isActive ? 'rgba(255,255,255,0.05)' : 'transparent',
+              outline: isFocused ? '1px solid rgba(99,102,241,0.4)' : 'none',
               outlineOffset: -1,
-              transition: 'background 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = isActive ? 'var(--bg-active)' : 'var(--popup-item-hover)'; setFocusedIdx(idx) }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = isActive ? 'var(--bg-active)' : 'transparent' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+              setFocusedIdx(idx)
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = isActive ? 'rgba(255,255,255,0.05)' : 'transparent'
+            }}
           >
             <div style={{
               width: 28,
@@ -133,19 +201,19 @@ export default function GlobalSearchResults({
               <MessageSquare size={13} color="#fff" />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
+              {/* Session title */}
               <div style={{
-                fontSize: 12,
-                fontWeight: 500,
-                color: 'var(--text-primary)',
+                fontSize: 13,
+                fontWeight: 600,
+                color: 'rgba(255,255,255,0.82)',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
               }}>
                 {result.title || result.project.split(/[/\\]/).pop() || t('session.untitled')}
               </div>
+              {/* Match type badge + date/time */}
               <div style={{
-                fontSize: 10,
-                color: 'var(--text-muted)',
                 marginTop: 2,
                 display: 'flex',
                 alignItems: 'center',
@@ -154,22 +222,33 @@ export default function GlobalSearchResults({
                 <span style={{
                   display: 'inline-block',
                   padding: '0 4px',
-                  borderRadius: 3,
-                  background: result.matchType === 'title' ? 'rgba(59,130,246,0.15)' : 'rgba(34,197,94,0.15)',
-                  color: result.matchType === 'title' ? '#60a5fa' : '#4ade80',
-                  fontWeight: 500,
+                  borderRadius: 6,
+                  background: result.matchType === 'title' ? 'rgba(99,102,241,0.15)' : 'rgba(34,197,94,0.15)',
+                  color: result.matchType === 'title' ? '#818cf8' : '#4ade80',
+                  fontWeight: 700,
                   fontSize: 9,
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase' as const,
                 }}>
                   {result.matchType === 'title' ? t('session.matchInTitle') : t('session.matchInContent')}
                 </span>
-                <span>{formatDistanceToNow(result.timestamp, { addSuffix: true, locale: dateLocale })}</span>
+                {/* Session date/time */}
+                <span style={{
+                  fontSize: 10,
+                  color: 'rgba(255,255,255,0.45)',
+                  fontVariantNumeric: 'tabular-nums',
+                  fontFeatureSettings: '"tnum"',
+                }}>
+                  {formatDistanceToNow(result.timestamp, { addSuffix: true, locale: dateLocale })}
+                </span>
               </div>
+              {/* Message preview / snippet */}
               {result.matchType === 'content' && result.snippet && (
                 <div style={{
-                  fontSize: 10,
-                  color: 'var(--text-secondary)',
-                  marginTop: 2,
-                  lineHeight: 1.3,
+                  fontSize: 12,
+                  color: 'rgba(255,255,255,0.60)',
+                  marginTop: 3,
+                  lineHeight: 1.5,
                   overflow: 'hidden',
                   display: '-webkit-box',
                   WebkitLineClamp: 2,
@@ -182,6 +261,7 @@ export default function GlobalSearchResults({
           </div>
         )
       })}
+      </div>
     </div>
   )
 }

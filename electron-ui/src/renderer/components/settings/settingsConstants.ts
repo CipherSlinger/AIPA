@@ -29,19 +29,20 @@ export const FONT_FAMILIES: { id: string; label: string; labelKey?: string }[] =
 ]
 
 export const THEMES: { id: 'vscode' | 'light' | 'system'; label: string; labelKey: string; colors: string[] }[] = [
-  { id: 'system',   label: 'System', labelKey: 'settings.themeSystem', colors: ['#1e1e1e', '#f5f5f7', '#007acc', '#2563eb'] },
-  { id: 'vscode',   label: 'Dark',   labelKey: 'settings.themeDark',  colors: ['#1e1e1e', '#007acc', '#264f78', '#2d2d2d'] },
-  { id: 'light',    label: 'Light',  labelKey: 'settings.themeLight', colors: ['#f5f5f7', '#2563eb', '#eaebee', '#ededf0'] },
+  { id: 'system',   label: 'System', labelKey: 'settings.themeSystem', colors: ['rgba(30,30,30,1)', 'rgba(245,245,247,1)', 'rgba(99,102,241,1)', 'rgba(37,99,235,1)'] },
+  { id: 'vscode',   label: 'Dark',   labelKey: 'settings.themeDark',  colors: ['rgba(30,30,30,1)', 'rgba(0,122,204,1)', 'rgba(38,79,120,1)', 'rgba(45,45,45,1)'] },
+  { id: 'light',    label: 'Light',  labelKey: 'settings.themeLight', colors: ['rgba(245,245,247,1)', 'rgba(37,99,235,1)', 'rgba(234,235,238,1)', 'rgba(237,237,240,1)'] },
 ]
 
 export const INPUT_STYLE: React.CSSProperties = {
   width: '100%',
-  background: 'var(--bg-input)',
-  border: '1px solid var(--border)',
-  borderRadius: 4,
+  background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(255,255,255,0.08)',
+  borderRadius: 7,
   padding: '6px 10px',
-  color: 'var(--text-primary)',
-  fontSize: 12,
+  color: 'rgba(255,255,255,0.82)',
+  fontSize: 13,
   outline: 'none',
   boxSizing: 'border-box',
+  transition: 'border-color 0.15s ease',
 }

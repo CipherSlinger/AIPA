@@ -6,7 +6,7 @@ import CommandPalette from './components/shared/CommandPalette'
 import SessionQuickSwitcher from './components/shared/SessionQuickSwitcher'
 import ShortcutCheatsheet from './components/shared/ShortcutCheatsheet'
 import { ToastContainer } from './components/ui/Toast'
-import { usePrefsStore, useChatStore, useUiStore } from './store'
+import { usePrefsStore, useChatStore, useUiStore, useSessionStore } from './store'
 import { useAppShortcuts } from './hooks/useAppShortcuts'
 import { useContextHealth } from './hooks/useContextHealth'
 import { populateDefaultPresetsIfEmpty } from './utils/presetPopulator'
@@ -91,6 +91,17 @@ export default function App() {
         setWorkingDir(workingDir)
         setLoaded(true)
         console.log('[AIPA] Preferences loaded successfully')
+
+        // Preload sessions into store so DepartmentPanel and other components
+        // have data immediately without waiting for their own mount effects.
+        window.electronAPI.sessionList().then((list: any) => {
+          if (list) {
+            useSessionStore.getState().setSessions(list)
+          }
+        }).catch(() => { /* best-effort */ })
+
+        // Store home dir for path normalization (~ expansion)
+        useSessionStore.getState().setHomeDir(home)
 
         // First-run: show onboarding if never completed before.
         // If an API key already exists (env or store), silently mark done and skip.
@@ -229,7 +240,7 @@ export default function App() {
     const applyEffectiveTheme = (effective: 'vscode' | 'light') => {
       if (effective === 'vscode') {
         document.documentElement.removeAttribute('data-theme')
-        window.electronAPI.windowSetTitleBarOverlay({ color: '#2c2c2c', symbolColor: '#cccccc' })
+        window.electronAPI.windowSetTitleBarOverlay({ color: '#0a0a12', symbolColor: '#cccccc' })
       } else {
         document.documentElement.setAttribute('data-theme', 'light')
         window.electronAPI.windowSetTitleBarOverlay({ color: '#f8f8f8', symbolColor: '#1a1a1a' })
@@ -269,6 +280,16 @@ export default function App() {
   useContextHealth()
 
   return (
+    <div
+      style={{
+        background: 'rgba(10,10,18,1)',
+        color: 'rgba(255,255,255,0.82)',
+        height: '100vh',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
     <ErrorBoundary fallbackLabel="application" overlay>
       <>
         {showOnboarding && (
@@ -305,5 +326,6 @@ export default function App() {
         )}
       </>
     </ErrorBoundary>
+    </div>
   )
 }

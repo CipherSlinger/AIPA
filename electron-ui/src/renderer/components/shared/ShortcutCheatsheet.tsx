@@ -4,6 +4,19 @@ import { X, Search } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 
+// ── Keyframe injection (idempotent) ───────────────────────────────────────────
+;(function ensureSCKeyframes() {
+  if (typeof document === 'undefined') return
+  if (document.getElementById('sc-kf')) return
+  const s = document.createElement('style')
+  s.id = 'sc-kf'
+  s.textContent = `
+    @keyframes sc-fadeIn  { from { opacity: 0 } to { opacity: 1 } }
+    @keyframes sc-slideUp { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: translateY(0) } }
+  `
+  document.head.appendChild(s)
+})()
+
 interface Props {
   onClose: () => void
 }
@@ -21,7 +34,7 @@ const SHORTCUTS = [
     { keys: 'Ctrl + L', actionKey: 'focusChatInput' },
     { keys: 'Ctrl + ,', actionKey: 'openSettings' },
     { keys: 'Ctrl + Shift + P', actionKey: 'commandPalette' },
-    { keys: 'Ctrl + /', actionKey: 'thisCheatsheet' },
+    { keys: 'Ctrl + /  or  ?', actionKey: 'thisCheatsheet' },
     { keys: 'Ctrl + Shift + O', actionKey: 'focusMode' },
     { keys: 'Ctrl + Shift + N', actionKey: 'toggleNotes' },
     { keys: 'Ctrl + Shift + C', actionKey: 'collapseExpandAll' },
@@ -108,10 +121,13 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
         position: 'fixed',
         inset: 0,
         zIndex: 200,
-        background: 'rgba(0, 0, 0, 0.6)',
+        background: 'rgba(0,0,0,0.70)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        animation: 'sc-fadeIn 0.15s ease',
       }}
     >
       <div
@@ -120,32 +136,44 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
         aria-modal="true"
         aria-label={t('shortcutCheatsheet.title')}
         style={{
-          background: 'var(--popup-bg)',
-          border: '1px solid var(--popup-border)',
-          borderRadius: 10,
+          background: 'rgba(15,15,25,0.96)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.09)',
+          borderRadius: 16,
+          boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
           padding: '20px 24px',
           maxWidth: 480,
           width: '90%',
           maxHeight: '80vh',
           overflowY: 'auto',
-          boxShadow: 'var(--popup-shadow)',
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'rgba(255,255,255,0.10) transparent',
+          animation: 'sc-slideUp 0.15s ease',
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-bright)', margin: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <h2 style={{ fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.88)', margin: 0, lineHeight: 1.4, letterSpacing: '-0.01em' }}>
             {t('shortcutCheatsheet.title')}
           </h2>
           <button
             onClick={onClose}
             aria-label={t('common.close')}
             style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-muted)',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.10)',
+              borderRadius: '50%',
+              width: 36,
+              height: 36,
               cursor: 'pointer',
+              color: 'rgba(255,255,255,0.82)',
               display: 'flex',
               alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.15s ease',
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
           >
             <X size={16} />
           </button>
@@ -153,7 +181,7 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
 
         {/* Search filter */}
         <div style={{ position: 'relative', marginBottom: 12 }}>
-          <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+          <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)', pointerEvents: 'none' }} />
           <input
             ref={searchInputRef}
             type="text"
@@ -163,56 +191,66 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
             style={{
               width: '100%',
               padding: '6px 10px 6px 30px',
-              background: 'var(--bg-input)',
-              border: '1px solid var(--border)',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.09)',
               borderRadius: 6,
-              color: 'var(--text-primary)',
+              color: 'rgba(255,255,255,0.82)',
               fontSize: 12,
               outline: 'none',
               boxSizing: 'border-box',
             }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--accent)' }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.boxShadow = 'none' }}
             autoFocus
           />
         </div>
 
         {filteredSections.map(section => (
-          <div key={section.sectionKey} style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          <div key={section.sectionKey} style={{ marginBottom: 20 }}>
+            <div style={{
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: '0.07em',
+              textTransform: 'uppercase',
+              color: 'rgba(255,255,255,0.38)',
+              marginBottom: 8,
+            }}>
               {t(`shortcutCheatsheet.${section.sectionKey}`)}
             </div>
-            {section.items.map(item => (
+            {section.items.map((item, idx) => (
               <div
                 key={item.keys}
                 style={{
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  padding: '5px 0',
+                  padding: '6px 0',
+                  borderBottom: '1px solid rgba(255,255,255,0.06)',
                 }}
               >
-                <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>{t(`shortcutCheatsheet.${item.actionKey}`)}</span>
-                <kbd
-                  style={{
-                    fontSize: 11,
-                    color: 'var(--text-bright)',
-                    background: 'var(--bg-input)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 4,
-                    padding: '2px 8px',
-                    fontFamily: 'inherit',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {item.keys}
-                </kbd>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.60)' }}>{t(`shortcutCheatsheet.${item.actionKey}`)}</span>
+                <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+                  <kbd
+                    style={{
+                      background: 'rgba(255,255,255,0.08)',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      borderRadius: 5,
+                      padding: '1px 5px',
+                      fontSize: 11,
+                      fontFamily: 'monospace',
+                      color: 'rgba(255,255,255,0.60)',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {item.keys}
+                  </kbd>
+                </div>
               </div>
             ))}
           </div>
         ))}
 
-        <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
+        <div style={{ textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.38)', marginTop: 8 }}>
           {t('shortcutCheatsheet.pressEscToClose')}
         </div>
       </div>

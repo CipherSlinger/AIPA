@@ -14,8 +14,9 @@ export function CostBadge() {
   if (totalCost < 0.01) return null
 
   const costStr = totalCost < 1 ? `$${totalCost.toFixed(3)}` : `$${totalCost.toFixed(2)}`
-  const color = totalCost >= 5 ? 'var(--error)' : totalCost >= 1 ? 'var(--warning)' : 'var(--text-muted)'
+  const color = totalCost >= 5 ? '#f87171' : totalCost >= 1 ? '#fbbf24' : 'rgba(255,255,255,0.45)'
   const bgColor = totalCost >= 5 ? 'rgba(239,68,68,0.12)' : totalCost >= 1 ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.04)'
+  const borderColor = totalCost >= 5 ? 'rgba(239,68,68,0.3)' : totalCost >= 1 ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.08)'
 
   return (
     <button
@@ -31,7 +32,7 @@ export function CostBadge() {
         gap: 3,
         padding: '2px 8px',
         background: bgColor,
-        border: `1px solid ${totalCost >= 5 ? 'rgba(239,68,68,0.3)' : totalCost >= 1 ? 'rgba(245,158,11,0.3)' : 'var(--card-border)'}`,
+        border: `1px solid ${borderColor}`,
         borderRadius: 12,
         color,
         cursor: 'pointer',
@@ -39,14 +40,14 @@ export function CostBadge() {
         fontWeight: 600,
         fontFamily: 'monospace',
         flexShrink: 0,
-        transition: 'background 150ms, border-color 150ms',
+        transition: 'all 0.15s ease',
         lineHeight: 1,
       }}
       onMouseEnter={(e) => {
-        (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'
+        (e.currentTarget as HTMLButtonElement).style.borderColor = '#6366f1'
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget as HTMLButtonElement).style.borderColor = totalCost >= 5 ? 'rgba(239,68,68,0.3)' : totalCost >= 1 ? 'rgba(245,158,11,0.3)' : 'var(--card-border)'
+        (e.currentTarget as HTMLButtonElement).style.borderColor = borderColor
       }}
     >
       <DollarSign size={10} />
@@ -87,11 +88,19 @@ export function ContextBadge({ onNewConversation }: { onNewConversation: () => v
   const pct = Math.round((ctx.used / ctx.total) * 100)
   if (pct < 5) return null // Don't show when nearly empty
 
-  const color = pct >= 95 ? 'var(--error)' : pct >= 80 ? 'var(--warning)' : 'var(--text-muted)'
-  const barColor = pct >= 95 ? 'var(--error)' : pct >= 80 ? 'var(--warning)' : 'var(--accent)'
+  const isCritical = pct >= 90
+  const isWarning = pct >= 80 && pct < 90
+  const color = isCritical ? '#f87171' : isWarning ? '#fbbf24' : 'rgba(255,255,255,0.45)'
+  const chipBg = isCritical ? 'rgba(239,68,68,0.08)' : isWarning ? 'rgba(245,158,11,0.08)' : 'rgba(99,102,241,0.08)'
+  const chipBorder = isCritical ? 'rgba(239,68,68,0.2)' : isWarning ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.08)'
+  const barFill = isCritical ? '#f87171' : isWarning ? '#fbbf24' : 'rgba(99,102,241,0.8)'
   const remaining = ctx.total - ctx.used
   // Rough estimate: avg ~800 tokens per exchange (user+assistant)
   const estMsgsRemaining = Math.max(0, Math.floor(remaining / 800))
+
+  const newSessionBg = pct >= 80
+    ? 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))'
+    : 'rgba(255,255,255,0.06)'
 
   return (
     <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -100,36 +109,37 @@ export function ContextBadge({ onNewConversation }: { onNewConversation: () => v
         onClick={() => setPopoverOpen(!popoverOpen)}
         title={t('toolbar.contextUsed', { percent: String(pct), used: String(ctx.used), total: String(ctx.total) })}
         style={{
-          display: 'flex',
+          display: 'inline-flex',
           alignItems: 'center',
-          gap: 4,
-          padding: '2px 8px',
-          background: 'rgba(255,255,255,0.04)',
-          border: '1px solid var(--card-border)',
-          borderRadius: 12,
+          gap: 6,
+          padding: '3px 10px',
+          background: chipBg,
+          border: `1px solid ${chipBorder}`,
+          borderRadius: 6,
           color,
           cursor: 'pointer',
-          fontSize: 10,
+          fontSize: 11,
           fontWeight: 600,
           fontFamily: 'monospace',
           flexShrink: 0,
-          transition: 'border-color 150ms',
+          transition: 'all 0.15s ease',
           lineHeight: 1,
         }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)' }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--card-border)' }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#6366f1' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = chipBorder }}
       >
-        <span style={{ fontSize: 9, opacity: 0.7 }}>{t('toolbar.context')}</span>
+        <span style={{ fontSize: 9, opacity: 0.7, flexShrink: 0 }}>{t('toolbar.context')}</span>
         <div style={{
-          width: 30, height: 4, background: 'rgba(255,255,255,0.08)',
-          borderRadius: 2, overflow: 'hidden', position: 'relative',
+          width: 40, height: 3, background: 'rgba(255,255,255,0.08)',
+          borderRadius: 2, overflow: 'hidden', position: 'relative', flexShrink: 0,
         }}>
           <div style={{
-            width: `${pct}%`, height: '100%', background: barColor,
-            borderRadius: 2, transition: 'width 0.3s ease',
+            width: `${pct}%`, height: '100%',
+            background: barFill,
+            borderRadius: 2, transition: 'width 0.15s ease',
           }} />
         </div>
-        <span>{pct}%</span>
+        <span style={{ fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>{pct}%</span>
       </button>
 
       {/* Context Detail Popover */}
@@ -143,15 +153,18 @@ export function ContextBadge({ onNewConversation }: { onNewConversation: () => v
             right: 0,
             marginTop: 6,
             width: 260,
-            background: 'var(--popup-bg)',
-            border: '1px solid var(--popup-border)',
+            background: 'rgba(15,15,25,0.92)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.08)',
             borderRadius: 10,
-            boxShadow: 'var(--popup-shadow)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
             padding: '14px 16px',
             zIndex: 100,
+            animation: 'slideUp 0.15s ease',
           }}
         >
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-bright)', marginBottom: 10 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)', marginBottom: 10 }}>
             {t('toolbar.contextPopoverTitle')}
           </div>
 
@@ -161,21 +174,21 @@ export function ContextBadge({ onNewConversation }: { onNewConversation: () => v
             borderRadius: 3, overflow: 'hidden', marginBottom: 12,
           }}>
             <div style={{
-              width: `${pct}%`, height: '100%', background: barColor,
-              borderRadius: 3, transition: 'width 0.3s ease',
+              width: `${pct}%`, height: '100%', background: barFill,
+              borderRadius: 3, transition: 'width 0.15s ease',
             }} />
           </div>
 
           {/* Stats rows */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.45)', marginBottom: 6 }}>
             <span>{t('toolbar.contextPopoverUsed')}</span>
             <span style={{ color, fontWeight: 600, fontFamily: 'monospace' }}>{ctx.used.toLocaleString()}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.45)', marginBottom: 6 }}>
             <span>{t('toolbar.contextPopoverRemaining')}</span>
             <span style={{ fontWeight: 600, fontFamily: 'monospace' }}>{remaining.toLocaleString()}</span>
           </div>
-          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 12, opacity: 0.8 }}>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', marginBottom: 12, opacity: 0.8 }}>
             {t('toolbar.contextPopoverEstMsgs', { count: String(estMsgsRemaining) })}
           </div>
 
@@ -187,12 +200,12 @@ export function ContextBadge({ onNewConversation }: { onNewConversation: () => v
               padding: '7px 0',
               fontSize: 11,
               fontWeight: 600,
-              background: pct >= 80 ? 'var(--accent)' : 'rgba(255,255,255,0.06)',
-              border: pct >= 80 ? 'none' : '1px solid var(--border)',
+              background: newSessionBg,
+              border: pct >= 80 ? 'none' : '1px solid rgba(255,255,255,0.10)',
               borderRadius: 6,
-              color: pct >= 80 ? '#fff' : 'var(--text-primary)',
+              color: pct >= 80 ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.82)',
               cursor: 'pointer',
-              transition: 'background 150ms, opacity 150ms',
+              transition: 'all 0.15s ease',
             }}
             onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.85' }}
             onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
@@ -212,22 +225,24 @@ export function ContextProgressBar() {
   if (!ctx || ctx.total === 0) return null
   const pct = Math.round((ctx.used / ctx.total) * 100)
   if (pct < 5) return null
-  const barColor = pct >= 95 ? 'var(--error)' : pct >= 80 ? 'var(--warning)' : 'var(--success)'
+  const isCritical = pct >= 90
+  const barFill = isCritical ? '#f87171' : pct >= 80 ? '#fbbf24' : 'rgba(99,102,241,0.8)'
   return (
     <div
       title={t('toolbar.contextBarTooltip', { percent: String(pct), used: String(ctx.used), total: String(ctx.total) })}
       style={{
-        height: 3,
+        height: 2,
         width: '100%',
-        background: 'rgba(255,255,255,0.04)',
+        background: 'rgba(255,255,255,0.08)',
         flexShrink: 0,
+        transition: 'all 0.15s ease',
       }}
     >
       <div style={{
         height: '100%',
         width: `${pct}%`,
-        background: barColor,
-        transition: 'width 0.4s ease, background 0.3s ease',
+        background: barFill,
+        transition: 'width 0.15s ease, background 0.15s ease',
         borderRadius: '0 1px 1px 0',
       }} />
     </div>

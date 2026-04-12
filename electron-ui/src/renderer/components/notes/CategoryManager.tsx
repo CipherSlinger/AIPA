@@ -46,28 +46,40 @@ export default function CategoryManager({
   return (
     <div style={{
       padding: '10px 14px',
-      borderBottom: '1px solid var(--border)',
-      background: 'var(--card-bg)',
+      borderBottom: '1px solid rgba(255,255,255,0.09)',
+      background: 'rgba(15,15,25,0.95)',
+      backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
+      border: '1px solid rgba(255,255,255,0.09)',
+      borderRadius: 12,
+      boxShadow: '0 12px 40px rgba(0,0,0,0.55)',
       flexShrink: 0,
     }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>
           {t('notes.manageCategories')}
         </span>
         <button
           onClick={onClose}
           style={{
-            background: 'none',
+            background: 'transparent',
             border: 'none',
-            color: 'var(--text-muted)',
+            color: 'rgba(255,255,255,0.45)',
             cursor: 'pointer',
             fontSize: 11,
-            padding: '2px 6px',
-            borderRadius: 4,
+            padding: '2px 8px',
+            borderRadius: 8,
+            transition: 'background 0.15s ease, color 0.15s ease',
           }}
-          onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.85)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'transparent'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+          }}
         >
           {t('notes.closeManage')}
         </button>
@@ -84,15 +96,18 @@ export default function CategoryManager({
           onKeyDown={e => { if (e.key === 'Enter') onAdd() }}
           style={{
             flex: 1,
-            background: 'transparent',
-            border: '1px solid var(--border)',
-            borderRadius: 4,
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 7,
             outline: 'none',
-            color: 'var(--text-primary)',
+            color: 'rgba(255,255,255,0.82)',
             fontSize: 11,
             padding: '4px 8px',
             fontFamily: 'inherit',
+            transition: 'border-color 0.15s ease',
           }}
+          onFocus={e => (e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)')}
+          onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
         />
         {/* Color picker circles */}
         <div style={{ display: 'flex', gap: 3 }}>
@@ -104,14 +119,14 @@ export default function CategoryManager({
               aria-label={color}
               onClick={() => onNewCategoryColorChange(color)}
               style={{
-                width: newCategoryColor === color ? 16 : 14,
-                height: newCategoryColor === color ? 16 : 14,
+                width: 20,
+                height: 20,
                 borderRadius: '50%',
                 background: color,
-                border: newCategoryColor === color ? `2px solid ${color}80` : '1px solid transparent',
+                border: newCategoryColor === color ? '2px solid rgba(255,255,255,0.82)' : '2px solid transparent',
                 cursor: 'pointer',
                 padding: 0,
-                transition: 'transform 0.1s, border 0.1s',
+                transition: 'transform 0.15s ease, border 0.15s ease',
                 transform: newCategoryColor === color ? 'scale(1.1)' : 'scale(1)',
               }}
             />
@@ -121,14 +136,18 @@ export default function CategoryManager({
           onClick={onAdd}
           disabled={!newCategoryName.trim() || categories.length >= MAX_CATEGORIES}
           style={{
-            background: 'none',
-            border: '1px solid var(--border)',
-            borderRadius: 4,
-            color: !newCategoryName.trim() || categories.length >= MAX_CATEGORIES ? 'var(--text-muted)' : 'var(--accent)',
+            background: !newCategoryName.trim() || categories.length >= MAX_CATEGORIES
+              ? 'rgba(99,102,241,0.3)'
+              : 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+            border: 'none',
+            borderRadius: 7,
+            color: 'rgba(255,255,255,0.95)',
+            fontWeight: 600,
             cursor: !newCategoryName.trim() || categories.length >= MAX_CATEGORIES ? 'not-allowed' : 'pointer',
             fontSize: 11,
-            padding: '4px 8px',
+            padding: '5px 10px',
             opacity: !newCategoryName.trim() || categories.length >= MAX_CATEGORIES ? 0.5 : 1,
+            transition: 'opacity 0.15s ease',
           }}
         >
           {t('notes.addCategory')}
@@ -137,7 +156,7 @@ export default function CategoryManager({
 
       {/* Max categories notice */}
       {categories.length >= MAX_CATEGORIES && (
-        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 6 }}>
+        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', marginBottom: 6 }}>
           {t('notes.maxCategories')}
         </div>
       )}
@@ -150,10 +169,14 @@ export default function CategoryManager({
             display: 'flex',
             alignItems: 'center',
             gap: 8,
-            padding: '4px 0',
+            padding: '8px 12px',
+            borderRadius: 7,
+            transition: 'background 0.15s ease',
           }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 2px 8px rgba(0,0,0,0.20)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; (e.currentTarget as HTMLDivElement).style.boxShadow = 'none' }}
         >
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: cat.color, flexShrink: 0 }} />
+          <span style={{ width: 14, height: 14, borderRadius: '50%', background: cat.color, flexShrink: 0, display: 'inline-block' }} />
           {editingCategoryId === cat.id ? (
             <input
               type="text"
@@ -167,11 +190,11 @@ export default function CategoryManager({
               autoFocus
               style={{
                 flex: 1,
-                background: 'transparent',
-                border: '1px solid var(--accent)',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(99,102,241,0.5)',
                 borderRadius: 4,
                 outline: 'none',
-                color: 'var(--text-primary)',
+                color: 'rgba(255,255,255,0.82)',
                 fontSize: 11,
                 padding: '2px 6px',
                 fontFamily: 'inherit',
@@ -182,8 +205,8 @@ export default function CategoryManager({
               onClick={() => onRenameStart(cat)}
               style={{
                 flex: 1,
-                fontSize: 11,
-                color: 'var(--text-primary)',
+                fontSize: 12,
+                color: 'rgba(255,255,255,0.75)',
                 cursor: 'pointer',
               }}
               title={t('notes.clickToRename')}
@@ -191,26 +214,35 @@ export default function CategoryManager({
               {cat.name}
             </span>
           )}
-          <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>
+          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)' }}>
             ({categoryCounts[cat.id] || 0})
           </span>
           <button
             onClick={() => onDelete(cat.id)}
             aria-label={deletingCategoryId === cat.id ? t('notes.deleteConfirm') : t('notes.delete')}
             style={{
-              background: 'none',
-              border: 'none',
-              color: deletingCategoryId === cat.id ? '#e06c75' : 'var(--text-muted)',
+              background: deletingCategoryId === cat.id ? 'rgba(239,68,68,0.22)' : 'rgba(239,68,68,0.12)',
+              border: '1px solid rgba(239,68,68,0.3)',
+              color: '#fca5a5',
               cursor: 'pointer',
-              padding: 2,
+              padding: '2px 5px',
+              borderRadius: 8,
               display: 'flex',
               alignItems: 'center',
-              opacity: deletingCategoryId === cat.id ? 1 : 0.4,
-              transition: 'opacity 0.15s, color 0.15s',
+              opacity: deletingCategoryId === cat.id ? 1 : 0.5,
+              transition: 'opacity 0.15s, background 0.15s',
               flexShrink: 0,
             }}
-            onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-            onMouseLeave={e => { if (deletingCategoryId !== cat.id) e.currentTarget.style.opacity = '0.4' }}
+            onMouseEnter={e => {
+              e.currentTarget.style.opacity = '1'
+              e.currentTarget.style.background = 'rgba(239,68,68,0.22)'
+            }}
+            onMouseLeave={e => {
+              if (deletingCategoryId !== cat.id) {
+                e.currentTarget.style.opacity = '0.5'
+                e.currentTarget.style.background = 'rgba(239,68,68,0.12)'
+              }
+            }}
           >
             <Trash2 size={12} />
           </button>

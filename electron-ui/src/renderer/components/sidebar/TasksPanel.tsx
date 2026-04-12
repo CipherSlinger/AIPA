@@ -17,6 +17,7 @@ export type { TaskStatus, TaskItem, ReminderItem } from './useTasksCrud'
 export default function TasksPanel() {
   const t = useT()
   const [inputValue, setInputValue] = useState('')
+  const [inputFocused, setInputFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const crud = useTasksCrud()
 
@@ -28,43 +29,79 @@ export default function TasksPanel() {
     inputRef.current?.focus()
   }, [inputValue, crud])
 
+  const totalTasks = crud.activeTasks.length + crud.completedTasks.length
+  const completedCount = crud.completedTasks.length
+  const progressPct = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'rgba(10,10,18,1)' }}>
       {/* Header */}
-      <div style={{
-        padding: '12px 16px 8px',
-        fontSize: 13,
-        fontWeight: 600,
-        color: 'var(--text-primary)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-      }}>
-        <span>{t('tasks.title')}</span>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 14px 10px',
+          background: 'linear-gradient(180deg, rgba(99,102,241,0.05) 0%, transparent 100%)',
+          borderBottom: '1px solid rgba(255,255,255,0.07)',
+        }}
+      >
+        {/* Micro-label style */}
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: '0.07em',
+            textTransform: 'uppercase',
+            color: 'rgba(255,255,255,0.38)',
+            lineHeight: 1.3,
+          }}
+        >
+          {t('tasks.title')}
+        </span>
         {crud.activeTasks.length > 0 && (
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>
-            {t('tasks.count', { count: String(crud.activeTasks.length) })}
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: '0.07em',
+              color: 'rgba(255,255,255,0.60)',
+              fontVariantNumeric: 'tabular-nums',
+              fontFeatureSettings: '"tnum"',
+              background: 'rgba(99,102,241,0.15)',
+              border: '1px solid rgba(99,102,241,0.25)',
+              borderRadius: 6,
+              padding: '1px 6px',
+            }}
+          >
+            {crud.activeTasks.length}
           </span>
         )}
       </div>
 
       {/* Add task input */}
-      <div style={{ padding: '0 12px 8px', display: 'flex', gap: 6 }}>
+      <div style={{ padding: '8px 10px', display: 'flex', gap: 6 }}>
         <input
           ref={inputRef}
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') addTask() }}
+          onFocus={() => setInputFocused(true)}
+          onBlur={() => setInputFocused(false)}
           placeholder={t('tasks.addPlaceholder')}
           style={{
             flex: 1,
-            padding: '6px 10px',
-            borderRadius: 6,
-            border: '1px solid var(--border)',
-            background: 'var(--bg-active)',
-            color: 'var(--text-primary)',
+            padding: '7px 10px',
+            borderRadius: 7,
+            border: inputFocused
+              ? '1px solid rgba(99,102,241,0.40)'
+              : '1px solid rgba(255,255,255,0.08)',
+            background: 'rgba(255,255,255,0.06)',
+            color: 'rgba(255,255,255,0.82)',
             fontSize: 12,
             outline: 'none',
+            transition: 'all 0.15s ease',
+            boxShadow: inputFocused ? '0 0 0 2px rgba(99,102,241,0.10)' : 'none',
           }}
           maxLength={200}
         />
@@ -72,15 +109,30 @@ export default function TasksPanel() {
           onClick={addTask}
           disabled={!inputValue.trim()}
           style={{
-            padding: '4px 8px',
-            borderRadius: 6,
+            padding: '4px 10px',
+            borderRadius: 7,
             border: 'none',
-            background: inputValue.trim() ? 'var(--accent)' : 'var(--bg-active)',
-            color: inputValue.trim() ? '#fff' : 'var(--text-muted)',
-            cursor: inputValue.trim() ? 'pointer' : 'default',
+            background: inputValue.trim()
+              ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
+              : 'rgba(255,255,255,0.06)',
+            color: inputValue.trim() ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.38)',
+            cursor: inputValue.trim() ? 'pointer' : 'not-allowed',
             display: 'flex',
             alignItems: 'center',
-            transition: 'background 150ms',
+            transition: 'all 0.15s ease',
+            boxShadow: inputValue.trim() ? '0 2px 8px rgba(99,102,241,0.30)' : 'none',
+          }}
+          onMouseEnter={(e) => {
+            if (inputValue.trim()) {
+              e.currentTarget.style.filter = 'brightness(1.05)'
+              e.currentTarget.style.transform = 'translateY(-1px)'
+              e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.40)'
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.filter = ''
+            e.currentTarget.style.transform = ''
+            e.currentTarget.style.boxShadow = inputValue.trim() ? '0 2px 8px rgba(99,102,241,0.30)' : 'none'
           }}
         >
           <Plus size={14} />
@@ -88,16 +140,43 @@ export default function TasksPanel() {
       </div>
 
       {/* Scrollable content area */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 8px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '4px 6px' }}>
         {/* Empty state */}
         {crud.tasks.length === 0 && crud.activeReminders.length === 0 && (
-          <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'center', padding: '32px 16px', gap: 8,
-            color: 'var(--text-muted)', fontSize: 12,
-          }}>
-            <CheckSquare size={28} style={{ opacity: 0.4 }} />
-            <span>{t('tasks.empty')}</span>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '36px 16px',
+              gap: 10,
+              textAlign: 'center',
+            }}
+          >
+            <span
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.07)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <CheckSquare size={20} style={{ color: 'rgba(255,255,255,0.25)' }} />
+            </span>
+            <span
+              style={{
+                fontSize: 12,
+                color: 'rgba(255,255,255,0.38)',
+                lineHeight: 1.5,
+              }}
+            >
+              {t('tasks.empty')}
+            </span>
           </div>
         )}
 
@@ -109,23 +188,54 @@ export default function TasksPanel() {
         {/* Completed tasks — shown until 5s after all complete */}
         {crud.completedTasks.length > 0 && crud.showCompleted && (
           <>
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '8px 8px 4px', marginTop: 4,
-            }}>
-              <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            {/* Divider with label */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '10px 10px 4px',
+                marginTop: 4,
+              }}
+            >
+              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.07)' }} />
+              <span
+                style={{
+                  fontSize: 10,
+                  color: 'rgba(255,255,255,0.38)',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.07em',
+                  flexShrink: 0,
+                }}
+              >
                 {t('tasks.completed', { count: String(crud.completedTasks.length) })}
               </span>
+              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.07)' }} />
               <button
                 onClick={crud.clearCompleted}
                 style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: 'var(--text-muted)', fontSize: 10,
-                  display: 'flex', alignItems: 'center', gap: 3,
-                  transition: 'color 150ms',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'rgba(255,255,255,0.38)',
+                  fontSize: 10,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  transition: 'all 0.15s ease',
+                  flexShrink: 0,
+                  padding: '2px 4px',
+                  borderRadius: 4,
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--error)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = '#f87171'
+                  e.currentTarget.style.background = 'rgba(239,68,68,0.10)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.38)'
+                  e.currentTarget.style.background = 'transparent'
+                }}
               >
                 <Trash2 size={10} />
                 {t('tasks.clearCompleted')}
@@ -135,6 +245,56 @@ export default function TasksPanel() {
               <TaskItemRow key={task.id} task={task} onCycle={crud.cycleTaskStatus} onDelete={crud.deleteTask} />
             ))}
           </>
+        )}
+
+        {/* Progress summary */}
+        {totalTasks > 0 && (
+          <div style={{ padding: '8px 10px 4px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span
+                style={{
+                  fontSize: 10,
+                  color: 'rgba(255,255,255,0.45)',
+                  fontVariantNumeric: 'tabular-nums',
+                  fontFeatureSettings: '"tnum"',
+                  letterSpacing: '0.02em',
+                }}
+              >
+                {completedCount} / {totalTasks} done
+              </span>
+              <span
+                style={{
+                  fontSize: 10,
+                  color: progressPct === 100 ? '#4ade80' : 'rgba(255,255,255,0.38)',
+                  fontVariantNumeric: 'tabular-nums',
+                  fontFeatureSettings: '"tnum"',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {progressPct}%
+              </span>
+            </div>
+            <div
+              style={{
+                height: 3,
+                borderRadius: 99,
+                background: 'rgba(255,255,255,0.08)',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  height: '100%',
+                  width: `${progressPct}%`,
+                  background: progressPct === 100
+                    ? 'linear-gradient(90deg, #4ade80, #22c55e)'
+                    : 'linear-gradient(90deg, #6366f1, #818cf8)',
+                  borderRadius: 99,
+                  transition: 'width 300ms ease',
+                }}
+              />
+            </div>
+          </div>
         )}
 
         {/* Reminders section */}
@@ -149,10 +309,17 @@ export default function TasksPanel() {
 
       {/* Footer with task limit warning */}
       {crud.tasks.length >= 90 && (
-        <div style={{
-          padding: '4px 12px', fontSize: 10, color: 'var(--warning)',
-          textAlign: 'center', borderTop: '1px solid var(--border)',
-        }}>
+        <div
+          style={{
+            padding: '4px 12px',
+            fontSize: 10,
+            color: '#fbbf24',
+            textAlign: 'center',
+            borderTop: '1px solid rgba(255,255,255,0.07)',
+            fontVariantNumeric: 'tabular-nums',
+            fontFeatureSettings: '"tnum"',
+          }}
+        >
           {t('tasks.limitWarning', { count: String(crud.tasks.length) })}
         </div>
       )}

@@ -16,7 +16,7 @@ type SettingsTab = 'general' | 'permissions' | 'stats' | 'hooks' | 'memory' | 'p
 
 // Default emojis for migrated templates (Iteration 309: merge Templates into Personas)
 const MIGRATION_EMOJIS = ['\u{1F4DD}', '\u{1F4CB}', '\u{1F4CC}', '\u{1F4D6}', '\u{1F4DA}', '\u{1F3AF}', '\u{1F4A1}', '\u{2B50}', '\u{1F680}', '\u{1F3C6}']
-const MIGRATION_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#ec4899', '#f97316', '#14b8a6', '#6366f1']
+const MIGRATION_COLORS = ['#6366f1', '#4ade80', '#fbbf24', '#a78bfa', '#f87171', '#67e8f9', '#ec4899', '#f97316', '#14b8a6', '#818cf8']
 
 export default function SettingsPanel() {
   const { prefs, setPrefs } = usePrefsStore()
@@ -25,6 +25,20 @@ export default function SettingsPanel() {
   const [showKey, setShowKey] = useState(false)
   const [saved, setSaved] = useState(false)
   const [settingsTab, setSettingsTab] = useState<SettingsTab>('general')
+  const [hoveredTab, setHoveredTab] = useState<string | null>(null)
+
+  // Consume pendingSettingsTab from store to allow external navigation (e.g. slash commands)
+  const pendingSettingsTab = useUiStore(s => s.pendingSettingsTab)
+  const clearPendingSettingsTab = useUiStore(s => s.clearPendingSettingsTab)
+  useEffect(() => {
+    if (pendingSettingsTab) {
+      const valid: SettingsTab[] = ['general', 'permissions', 'stats', 'hooks', 'memory', 'plugins', 'advanced', 'about']
+      if (valid.includes(pendingSettingsTab as SettingsTab)) {
+        setSettingsTab(pendingSettingsTab as SettingsTab)
+      }
+      clearPendingSettingsTab()
+    }
+  }, [pendingSettingsTab, clearPendingSettingsTab])
 
   useEffect(() => {
     const load = async () => {
@@ -110,67 +124,96 @@ export default function SettingsPanel() {
   }, [setPrefs])
 
   return (
-    <div style={{ padding: '16px 24px', overflowY: 'auto', height: '100%' }}>
-      <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14 }}>{t('settings.title')}</div>
-
-      {/* Tab bar */}
-      <div role="tablist" style={{ display: 'flex', gap: 4, marginBottom: 16, borderBottom: '1px solid var(--border)', paddingBottom: 10 }}>
-        {(['general', 'permissions', 'stats', 'hooks', 'memory', 'plugins', 'advanced', 'about'] as const).map(tab => (
-          <button
-            key={tab}
-            role="tab"
-            aria-selected={settingsTab === tab}
-            onClick={() => setSettingsTab(tab)}
-            style={{
-              background: settingsTab === tab ? 'var(--accent)' : 'none',
-              border: '1px solid ' + (settingsTab === tab ? 'var(--accent)' : 'var(--border)'),
-              borderRadius: 6,
-              padding: '5px 14px',
-              color: settingsTab === tab ? '#fff' : 'var(--text-muted)',
-              cursor: 'pointer',
-              fontSize: 12,
-              fontWeight: settingsTab === tab ? 600 : 400,
-              transition: 'all 0.15s ease',
-            }}
-          >
-            {t(`settings.tabs.${tab}`)}
-          </button>
-        ))}
+    <div style={{ display: 'flex', height: '100%', overflow: 'hidden', background: 'rgba(10,10,18,1)' }}>
+      {/* Left sidebar nav */}
+      <div style={{
+        width: 140,
+        flexShrink: 0,
+        borderRight: '1px solid rgba(255,255,255,0.07)',
+        padding: '14px 8px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+        overflowY: 'auto',
+        background: 'rgba(12,12,22,0.97)',
+      }}>
+        <div style={{
+          fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
+          textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)',
+          padding: '0 12px', marginBottom: 6,
+        }}>
+          {t('settings.title')}
+        </div>
+        {(['general', 'permissions', 'stats', 'hooks', 'memory', 'plugins', 'advanced', 'about'] as const).map(tab => {
+          const isActive = settingsTab === tab
+          const isHovered = hoveredTab === tab && !isActive
+          return (
+            <button
+              key={tab}
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => setSettingsTab(tab)}
+              onMouseEnter={() => setHoveredTab(tab)}
+              onMouseLeave={() => setHoveredTab(null)}
+              style={{
+                background: isActive
+                  ? 'rgba(99,102,241,0.10)'
+                  : isHovered ? 'rgba(255,255,255,0.06)' : 'none',
+                border: 'none',
+                borderLeft: isActive ? '2px solid rgba(99,102,241,0.6)' : '2px solid transparent',
+                borderRadius: '0 6px 6px 0',
+                padding: '7px 12px',
+                color: isActive ? '#818cf8' : isHovered ? 'rgba(255,255,255,0.70)' : 'rgba(255,255,255,0.55)',
+                cursor: 'pointer',
+                fontSize: 12,
+                fontWeight: isActive ? 600 : 400,
+                textAlign: 'left',
+                transition: 'all 0.15s ease',
+                width: '100%',
+              }}
+            >
+              {t(`settings.tabs.${tab}`)}
+            </button>
+          )
+        })}
       </div>
 
-      {settingsTab === 'general' ? (
-        <SettingsGeneral
-          local={local}
-          setLocal={handleSetLocal}
-          showKey={showKey}
-          setShowKey={setShowKey}
-          saved={saved}
-          onSave={save}
-        />
-      ) : settingsTab === 'permissions' ? (
-        <PermissionsSettingsPanel />
-      ) : settingsTab === 'stats' ? (
-        <SettingsStats />
-      ) : settingsTab === 'hooks' ? (
-        <HooksSettingsPanel />
-      ) : settingsTab === 'memory' ? (
-        <SettingsMemory />
-      ) : settingsTab === 'plugins' ? (
-        <SettingsPlugins />
-      ) : settingsTab === 'advanced' ? (
-        <SettingsAdvanced />
-      ) : (
-        <SettingsAbout
-          onResetDefaults={handleResetDefaults}
-          saved={saved}
-          onShowShortcuts={() => {
-            // Close settings modal and open the shortcut cheatsheet
-            const ui = useUiStore.getState()
-            ui.closeSettingsModal()
-            window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, key: '/' }))
-          }}
-        />
-      )}
+      {/* Content area */}
+      <div style={{ flex: 1, padding: '20px 24px', overflowY: 'auto' }}>
+        {settingsTab === 'general' ? (
+          <SettingsGeneral
+            local={local}
+            setLocal={handleSetLocal}
+            showKey={showKey}
+            setShowKey={setShowKey}
+            saved={saved}
+            onSave={save}
+          />
+        ) : settingsTab === 'permissions' ? (
+          <PermissionsSettingsPanel />
+        ) : settingsTab === 'stats' ? (
+          <SettingsStats />
+        ) : settingsTab === 'hooks' ? (
+          <HooksSettingsPanel />
+        ) : settingsTab === 'memory' ? (
+          <SettingsMemory />
+        ) : settingsTab === 'plugins' ? (
+          <SettingsPlugins />
+        ) : settingsTab === 'advanced' ? (
+          <SettingsAdvanced />
+        ) : (
+          <SettingsAbout
+            onResetDefaults={handleResetDefaults}
+            saved={saved}
+            onShowShortcuts={() => {
+              // Close settings modal and open the shortcut cheatsheet
+              const ui = useUiStore.getState()
+              ui.closeSettingsModal()
+              window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, key: '/' }))
+            }}
+          />
+        )}
+      </div>
     </div>
   )
 }

@@ -60,25 +60,25 @@ export default function PersonaPicker() {
         style={{
           background: showPicker ? 'rgba(255,255,255,0.08)' : sessionPersona ? `${sessionPersona.color}18` : 'none',
           border: `1px solid ${sessionPersona ? sessionPersona.color : 'transparent'}`,
-          borderRadius: 4,
+          borderRadius: 8,
           padding: '2px 8px',
           cursor: 'pointer',
-          color: sessionPersona ? sessionPersona.color : 'var(--text-muted)',
+          color: sessionPersona ? sessionPersona.color : 'rgba(255,255,255,0.45)',
           fontSize: 11,
           fontWeight: 500,
           display: 'flex',
           alignItems: 'center',
           gap: 4,
           flexShrink: 0,
-          transition: 'color 150ms, background 150ms, border-color 150ms',
+          transition: 'color 0.15s ease, background 0.15s ease, border-color 0.15s ease',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.color = sessionPersona ? sessionPersona.color : 'var(--accent)'
-          if (!sessionPersona) e.currentTarget.style.borderColor = 'var(--border)'
+          e.currentTarget.style.color = sessionPersona ? sessionPersona.color : '#818cf8'
+          if (!sessionPersona) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
         }}
         onMouseLeave={(e) => {
           if (!showPicker) {
-            e.currentTarget.style.color = sessionPersona ? sessionPersona.color : 'var(--text-muted)'
+            e.currentTarget.style.color = sessionPersona ? sessionPersona.color : 'rgba(255,255,255,0.45)'
             if (!sessionPersona) e.currentTarget.style.borderColor = 'transparent'
           }
         }}
@@ -105,17 +105,29 @@ export default function PersonaPicker() {
             top: '100%',
             left: 0,
             zIndex: 60,
-            width: 240,
-            background: 'var(--popup-bg)',
-            border: '1px solid var(--popup-border)',
-            borderRadius: 8,
-            boxShadow: 'var(--popup-shadow)',
+            width: 260,
+            background: 'rgba(15,15,25,0.96)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.09)',
+            borderRadius: 12,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
             padding: '4px 0',
             marginTop: 4,
-            animation: 'popup-in 120ms ease-out',
+            animation: 'slideUp 0.15s ease',
           }}
         >
-          <div style={{ padding: '6px 12px', fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, borderBottom: '1px solid var(--border)', marginBottom: 2 }}>
+          {/* Section header */}
+          <div style={{
+            padding: '6px 12px 6px',
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: '0.07em',
+            textTransform: 'uppercase',
+            color: 'rgba(255,255,255,0.38)',
+            borderBottom: '1px solid rgba(255,255,255,0.07)',
+            marginBottom: 2,
+          }}>
             {t('persona.selectPersona')}
           </div>
           {/* No persona option */}
@@ -129,21 +141,41 @@ export default function PersonaPicker() {
               gap: 8,
               width: '100%',
               textAlign: 'left',
-              background: !sessionPersonaId ? 'rgba(var(--accent-rgb, 0, 122, 204), 0.12)' : 'none',
+              background: !sessionPersonaId ? 'rgba(99,102,241,0.15)' : 'none',
               border: 'none',
+              borderLeft: !sessionPersonaId ? '3px solid rgba(99,102,241,0.7)' : '3px solid transparent',
               padding: '7px 12px',
               cursor: 'pointer',
-              color: !sessionPersonaId ? 'var(--accent)' : 'var(--text-primary)',
+              color: !sessionPersonaId ? '#818cf8' : 'rgba(255,255,255,0.55)',
               fontSize: 12,
+              fontStyle: 'italic',
               fontWeight: !sessionPersonaId ? 600 : 400,
-              transition: 'background 100ms',
+              borderRadius: !sessionPersonaId ? 0 : 6,
+              transition: 'background 0.15s ease',
             }}
-            onMouseEnter={(e) => { if (sessionPersonaId) e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-            onMouseLeave={(e) => { if (sessionPersonaId) e.currentTarget.style.background = 'none' }}
+            onMouseEnter={(e) => {
+              if (sessionPersonaId) {
+                e.currentTarget.style.background = 'rgba(99,102,241,0.07)'
+                e.currentTarget.style.borderLeft = '3px solid rgba(99,102,241,0.25)'
+                e.currentTarget.style.borderRadius = '0'
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (sessionPersonaId) {
+                e.currentTarget.style.background = 'none'
+                e.currentTarget.style.borderLeft = '3px solid transparent'
+                e.currentTarget.style.borderRadius = '6px'
+              }
+            }}
           >
-            <span style={{ fontSize: 14, width: 20, textAlign: 'center' }}>-</span>
-            <span>{t('persona.noPersona')}</span>
-            {!sessionPersonaId && <span style={{ marginLeft: 'auto', fontSize: 14 }}>&#10003;</span>}
+            <span style={{
+              width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+              background: 'rgba(255,255,255,0.06)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 14,
+            }}>–</span>
+            <span style={{ fontWeight: 600, fontSize: 13 }}>{t('persona.noPersona')}</span>
+            {!sessionPersonaId && <span style={{ marginLeft: 'auto', fontSize: 12, color: '#818cf8' }}>&#10003;</span>}
           </button>
           {/* Persona options */}
           {personas.map(p => {
@@ -160,29 +192,59 @@ export default function PersonaPicker() {
                   gap: 8,
                   width: '100%',
                   textAlign: 'left',
-                  background: isActive ? `${p.color}18` : 'none',
+                  background: isActive ? 'rgba(99,102,241,0.15)' : 'none',
                   border: 'none',
+                  borderLeft: isActive ? '3px solid rgba(99,102,241,0.7)' : '3px solid transparent',
                   padding: '7px 12px',
                   cursor: 'pointer',
-                  color: isActive ? p.color : 'var(--text-primary)',
+                  color: isActive ? '#818cf8' : 'rgba(255,255,255,0.82)',
                   fontSize: 12,
                   fontWeight: isActive ? 600 : 400,
-                  transition: 'background 100ms',
+                  borderRadius: isActive ? 0 : 6,
+                  transition: 'background 0.15s ease',
                 }}
-                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'var(--popup-item-hover)' }}
-                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'none' }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'rgba(99,102,241,0.07)'
+                    e.currentTarget.style.borderLeft = '3px solid rgba(99,102,241,0.25)'
+                    e.currentTarget.style.borderRadius = '0'
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'none'
+                    e.currentTarget.style.borderLeft = '3px solid transparent'
+                    e.currentTarget.style.borderRadius = '6px'
+                  }
+                }}
               >
-                <span style={{ fontSize: 14, width: 20, textAlign: 'center' }}>{p.emoji}</span>
-                <span style={{ flex: 1 }}>{p.presetKey ? t(`persona.preset.${p.presetKey}`) : p.name}</span>
-                {isActive && <span style={{ fontSize: 14 }}>&#10003;</span>}
+                <span style={{
+                  width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                  background: isActive
+                    ? 'linear-gradient(135deg, rgba(99,102,241,0.30), rgba(139,92,246,0.25))'
+                    : `${p.color}26`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 16,
+                }}>{p.emoji}</span>
+                <span style={{ flex: 1, fontWeight: 600, fontSize: 13 }}>
+                  {p.presetKey ? t(`persona.preset.${p.presetKey}`) : p.name}
+                </span>
+                {isActive && <span style={{ fontSize: 12, color: '#818cf8' }}>&#10003;</span>}
               </button>
             )
           })}
           {/* Workflows section */}
           {workflows.length > 0 && (
             <>
-              <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
-              <div style={{ padding: '4px 12px 2px', fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', margin: '4px 0' }} />
+              <div style={{
+                padding: '4px 12px 2px',
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: '0.07em',
+                textTransform: 'uppercase',
+                color: 'rgba(255,255,255,0.38)',
+              }}>
                 {t('nav.workflows')}
               </div>
               {workflows.map(wf => (
@@ -197,20 +259,26 @@ export default function PersonaPicker() {
                     textAlign: 'left',
                     background: 'none',
                     border: 'none',
+                    borderLeft: '3px solid transparent',
+                    borderRadius: 6,
                     padding: '7px 12px',
                     cursor: 'pointer',
-                    color: 'var(--text-primary)',
+                    color: 'rgba(255,255,255,0.82)',
                     fontSize: 12,
                     fontWeight: 400,
-                    transition: 'background 100ms',
+                    transition: 'background 0.15s ease',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--popup-item-hover)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
                 >
-                  <span style={{ width: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <WorkflowIcon size={13} style={{ color: 'var(--text-muted)' }} />
+                  <span style={{
+                    width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                    background: 'rgba(99,102,241,0.12)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <WorkflowIcon size={14} style={{ color: '#818cf8' }} />
                   </span>
-                  <span style={{ flex: 1 }}>{wf.name}</span>
+                  <span style={{ flex: 1, fontWeight: 600, fontSize: 13 }}>{wf.name}</span>
                 </button>
               ))}
             </>

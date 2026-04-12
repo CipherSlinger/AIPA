@@ -160,11 +160,11 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
         placeholder={t('quickReply.labelPlaceholder')}
         style={{
           fontSize: 11,
-          background: 'var(--input-field-bg)',
-          border: '1px solid var(--input-field-border)',
+          background: 'rgba(255,255,255,0.05)',
+          border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: 6,
           padding: '3px 8px',
-          color: 'var(--text-primary)',
+          color: 'rgba(255,255,255,0.82)',
           outline: 'none',
           width: 80,
         }}
@@ -176,11 +176,11 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
         placeholder={t('quickReply.promptPlaceholder')}
         style={{
           fontSize: 11,
-          background: 'var(--input-field-bg)',
-          border: '1px solid var(--input-field-border)',
+          background: 'rgba(255,255,255,0.05)',
+          border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: 6,
           padding: '3px 8px',
-          color: 'var(--text-primary)',
+          color: 'rgba(255,255,255,0.82)',
           outline: 'none',
           width: 140,
         }}
@@ -192,7 +192,7 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
         style={{
           background: 'none',
           border: 'none',
-          color: 'var(--success, #4ade80)',
+          color: '#4ade80',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -208,7 +208,7 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
         style={{
           background: 'none',
           border: 'none',
-          color: 'var(--text-muted)',
+          color: 'rgba(255,255,255,0.45)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -228,7 +228,7 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
           style={{
             background: 'none',
             border: 'none',
-            color: 'var(--error)',
+            color: '#f87171',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -247,13 +247,10 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
         ref={scrollRef}
         style={{
           display: 'flex',
+          flexWrap: 'wrap',
           alignItems: 'center',
           gap: 6,
-          paddingLeft: 4,
-          marginBottom: 4,
-          overflowX: 'auto',
-          overflowY: 'hidden',
-          scrollbarWidth: 'none',
+          padding: '8px 0',
           flexShrink: 0,
         }}
       >
@@ -270,28 +267,42 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
               title={chip.prompt}
               aria-label={chip.prompt}
               style={{
-                background: 'var(--action-btn-bg)',
-                border: '1px solid var(--action-btn-border)',
-                borderRadius: 14,
-                padding: '4px 12px',
-                fontSize: 11,
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.09)',
+                borderRadius: 20,
+                padding: '3px 10px',
+                fontSize: 12,
                 fontWeight: 500,
-                color: 'var(--text-muted)',
+                color: 'rgba(255,255,255,0.60)',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
                 flexShrink: 0,
-                transition: 'background 0.15s ease, color 0.15s ease',
+                transition: 'all 0.15s ease',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 maxWidth: 160,
               }}
               onMouseEnter={e => {
-                ;(e.currentTarget as HTMLButtonElement).style.background = 'var(--action-btn-hover)'
-                ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)'
+                const el = e.currentTarget as HTMLButtonElement
+                el.style.background = 'rgba(255,255,255,0.10)'
+                el.style.borderColor = 'rgba(99,102,241,0.40)'
+                el.style.color = 'rgba(255,255,255,0.82)'
               }}
               onMouseLeave={e => {
-                ;(e.currentTarget as HTMLButtonElement).style.background = 'var(--action-btn-bg)'
-                ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'
+                const el = e.currentTarget as HTMLButtonElement
+                el.style.background = 'rgba(255,255,255,0.05)'
+                el.style.borderColor = 'rgba(255,255,255,0.09)'
+                el.style.color = 'rgba(255,255,255,0.60)'
+              }}
+              onMouseDown={e => {
+                const el = e.currentTarget as HTMLButtonElement
+                el.style.transform = 'translateY(0)'
+                el.style.boxShadow = 'none'
+              }}
+              onMouseUp={e => {
+                const el = e.currentTarget as HTMLButtonElement
+                el.style.transform = 'translateY(-1px)'
+                el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)'
               }}
             >
               {truncate(chip.label, 20)}
@@ -308,7 +319,7 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
             aria-label={t('quickReply.addTemplate')}
             style={{
               background: 'transparent',
-              border: '1px dashed var(--action-btn-border)',
+              border: '1px dashed rgba(255,255,255,0.15)',
               borderRadius: 14,
               width: 28,
               height: 24,
@@ -318,15 +329,18 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
               cursor: 'pointer',
               flexShrink: 0,
               transition: 'background 0.15s ease, border-color 0.15s ease',
-              color: 'var(--text-muted)',
+              color: 'rgba(255,255,255,0.38)',
+              fontSize: 11,
             }}
             onMouseEnter={e => {
-              ;(e.currentTarget as HTMLButtonElement).style.background = 'var(--action-btn-hover)'
+              ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)'
               ;(e.currentTarget as HTMLButtonElement).style.borderStyle = 'solid'
+              ;(e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.60)'
             }}
             onMouseLeave={e => {
               ;(e.currentTarget as HTMLButtonElement).style.background = 'transparent'
               ;(e.currentTarget as HTMLButtonElement).style.borderStyle = 'dashed'
+              ;(e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.38)'
             }}
           >
             <Plus size={14} />
@@ -341,14 +355,16 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
             position: 'fixed',
             left: contextMenu.x,
             top: contextMenu.y,
-            background: 'var(--popup-bg)',
-            border: '1px solid var(--popup-border)',
+            background: 'rgba(15,15,25,0.96)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.09)',
             borderRadius: 8,
-            boxShadow: 'var(--popup-shadow)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
             padding: '4px 0',
             zIndex: 9999,
             minWidth: 120,
-            animation: 'popup-in 0.15s ease',
+            animation: 'slideUp 0.15s ease',
           }}
         >
           <button
@@ -358,13 +374,13 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
               width: '100%',
               background: 'none',
               border: 'none',
-              color: 'var(--text-primary)',
+              color: 'rgba(255,255,255,0.82)',
               fontSize: 12,
               padding: '6px 14px',
               cursor: 'pointer',
               textAlign: 'left',
             }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--popup-item-hover)' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)' }}
             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
           >
             {t('common.edit')}
@@ -376,13 +392,13 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
               width: '100%',
               background: 'none',
               border: 'none',
-              color: 'var(--error)',
+              color: '#f87171',
               fontSize: 12,
               padding: '6px 14px',
               cursor: 'pointer',
               textAlign: 'left',
             }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--popup-item-hover)' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.08)' }}
             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
           >
             {t('common.remove')}

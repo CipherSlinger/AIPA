@@ -99,6 +99,11 @@ export function useWorkflowCrud() {
   const deleteWorkflow = useCallback((id: string) => {
     saveWorkflows(workflows.filter(w => w.id !== id))
     if (expandedId === id) setExpandedId(null)
+    // Clean up per-workflow localStorage keys
+    localStorage.removeItem(`aipa:canvas-vp:${id}`)
+    localStorage.removeItem(`aipa:canvas-collapsed:${id}`)
+    localStorage.removeItem(`aipa:canvas-pos:${id}`)
+    localStorage.removeItem(`aipa:canvas-dir:${id}`)
     addToast('info', t('workflow.deleted'))
   }, [workflows, saveWorkflows, expandedId, addToast, t])
 
@@ -172,11 +177,21 @@ export function useWorkflowCrud() {
     }))
   }, [workflows, saveWorkflows])
 
+  const importWorkflows = useCallback((incoming: Workflow[]) => {
+    if (incoming.length === 0) return 0
+    const remaining = MAX_WORKFLOWS - workflows.length
+    const toAdd = incoming.slice(0, remaining)
+    saveWorkflows([...toAdd, ...workflows])
+    return toAdd.length
+  }, [workflows, saveWorkflows])
+
   const filteredWorkflows = useMemo(() => {
     if (!searchQuery.trim()) return workflows
     const q = searchQuery.toLowerCase()
     return workflows.filter(w =>
-      w.name.toLowerCase().includes(q) || w.description.toLowerCase().includes(q)
+      w.name.toLowerCase().includes(q) ||
+      w.description.toLowerCase().includes(q) ||
+      w.steps.some(s => s.title.toLowerCase().includes(q))
     )
   }, [workflows, searchQuery])
 
@@ -205,6 +220,7 @@ export function useWorkflowCrud() {
     // Actions
     runWorkflow,
     createWorkflow,
+    importWorkflows,
     deleteWorkflow,
     duplicateWorkflow,
     startEdit,

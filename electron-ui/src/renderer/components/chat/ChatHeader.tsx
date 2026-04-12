@@ -39,33 +39,36 @@ interface ChatHeaderProps {
   onCompact: (prompt: string) => void
 }
 
-/** Shared header button styling */
+/** Shared header button styling — ghost glass */
 const headerBtnStyle: React.CSSProperties = {
-  background: 'none',
-  border: 'none',
-  color: 'var(--chat-header-icon)',
+  background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(255,255,255,0.10)',
+  color: 'rgba(255,255,255,0.45)',
   cursor: 'pointer',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   width: 28,
   height: 28,
-  borderRadius: 6,
+  borderRadius: 8,
+  padding: '4px 6px',
   flexShrink: 0,
-  transition: 'background 150ms, color 150ms',
+  transition: 'all 0.15s ease',
 }
 
 const hoverIn = (e: React.MouseEvent<HTMLButtonElement>, active = false) => {
   if (!active) {
-    (e.currentTarget as HTMLButtonElement).style.color = 'var(--chat-header-icon-hover)'
-    ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)'
+    (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.82)'
+    ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.09)'
+    ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.16)'
   }
 }
 
-const hoverOut = (e: React.MouseEvent<HTMLButtonElement>, active = false, defaultColor = 'var(--chat-header-icon)') => {
+const hoverOut = (e: React.MouseEvent<HTMLButtonElement>, active = false, defaultColor = 'rgba(255,255,255,0.45)') => {
   if (!active) {
     (e.currentTarget as HTMLButtonElement).style.color = defaultColor
-    ;(e.currentTarget as HTMLButtonElement).style.background = 'none'
+    ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)'
+    ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.10)'
   }
 }
 
@@ -158,6 +161,17 @@ export default function ChatHeader({
     }
   }, [isEditingTitle])
 
+  // Handle /rename slash command
+  useEffect(() => {
+    const handleRename = () => {
+      if (!sessionId || isStreaming) return
+      setEditTitleValue(sessionTitle || '')
+      setIsEditingTitle(true)
+    }
+    window.addEventListener('aipa:renameSession', handleRename)
+    return () => window.removeEventListener('aipa:renameSession', handleRename)
+  }, [sessionId, sessionTitle, isStreaming])
+
   const handleTitleClick = useCallback(() => {
     if (!sessionId || isStreaming) return
     const currentTitle = sessionTitle || ''
@@ -213,10 +227,12 @@ export default function ChatHeader({
         height: 44,
         display: 'flex',
         alignItems: 'center',
-        padding: '0 16px',
+        padding: '8px 12px',
         gap: 8,
-        borderBottom: 'none',
-        background: 'var(--chat-header-bg)',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        background: 'rgba(15,15,25,0.92)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
       }}
     >
       {/* Title + working dir column */}
@@ -236,10 +252,11 @@ export default function ChatHeader({
           style={{
             fontSize: 13,
             fontWeight: 600,
-            color: 'var(--text-bright)',
-            background: 'var(--input-field-bg)',
-            border: '1px solid var(--accent)',
-            borderRadius: 4,
+            color: 'rgba(255,255,255,0.82)',
+            background: 'rgba(255,255,255,0.05)',
+            border: 'none',
+            borderBottom: '2px solid rgba(99,102,241,0.7)',
+            borderRadius: 6,
             padding: '2px 8px',
             outline: 'none',
             fontFamily: 'inherit',
@@ -254,15 +271,16 @@ export default function ChatHeader({
           style={{
             fontSize: 13,
             fontWeight: 600,
-            color: 'var(--chat-header-title)',
+            letterSpacing: '-0.01em',
+            color: 'rgba(255,255,255,0.82)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
-            cursor: sessionId && !isStreaming ? 'pointer' : 'default',
-            transition: 'color 150ms',
+            cursor: sessionId && !isStreaming ? 'pointer' : 'not-allowed',
+            transition: 'color 0.15s ease',
           }}
-          onMouseEnter={(e) => { if (sessionId && !isStreaming) (e.currentTarget as HTMLElement).style.color = 'var(--accent)' }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--chat-header-title)' }}
+          onMouseEnter={(e) => { if (sessionId && !isStreaming) (e.currentTarget as HTMLElement).style.color = '#818cf8' }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.82)' }}
         >
           {sessionTitle
             ? sessionTitle
@@ -279,7 +297,7 @@ export default function ChatHeader({
 ${t('chat.clickToChangeDir')}`}
         style={{
           fontSize: 10,
-          color: 'var(--text-muted)',
+          color: 'rgba(255,255,255,0.45)',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -287,10 +305,10 @@ ${t('chat.clickToChangeDir')}`}
           display: 'flex',
           alignItems: 'center',
           gap: 3,
-          transition: 'color 150ms',
+          transition: 'color 0.15s ease',
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent)')}
-        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
+        onMouseEnter={(e) => (e.currentTarget.style.color = '#818cf8')}
+        onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}
       >
         <FolderOpen size={10} style={{ flexShrink: 0, opacity: 0.7 }} />
         {effectiveWorkingDir ? truncatePath(effectiveWorkingDir) : t('chat.workingDirDefault')}
@@ -313,8 +331,8 @@ ${t('chat.clickToChangeDir')}`}
           title={tempSystemPrompt ? t('systemPrompt.tempActive') : t('systemPrompt.tempButton')}
           style={{
             ...headerBtnStyle,
-            color: tempSystemPrompt ? 'var(--accent)' : 'var(--chat-header-icon)',
-            background: tempSystemPrompt ? 'rgba(59,130,246,0.12)' : 'none',
+            color: tempSystemPrompt ? '#818cf8' : 'rgba(255,255,255,0.45)',
+            background: tempSystemPrompt ? 'rgba(99,102,241,0.15)' : 'transparent',
           }}
           onMouseEnter={(e) => hoverIn(e, !!tempSystemPrompt)}
           onMouseLeave={(e) => hoverOut(e, !!tempSystemPrompt)}
@@ -324,14 +342,17 @@ ${t('chat.clickToChangeDir')}`}
         {showTempPrompt && (
           <div style={{
             position: 'absolute', top: '100%', right: 0, marginTop: 6,
-            background: 'var(--popup-bg)', border: '1px solid var(--border)',
+            background: 'rgba(15,15,25,0.97)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.08)',
             borderRadius: 8, padding: 12, width: 300, zIndex: 200,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
           }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.82)', marginBottom: 4, letterSpacing: '-0.01em' }}>
               {t('systemPrompt.tempPopoverTitle')}
             </div>
-            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 8 }}>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginBottom: 8 }}>
               {t('systemPrompt.tempPopoverHint')}
             </div>
             <textarea
@@ -341,11 +362,14 @@ ${t('chat.clickToChangeDir')}`}
               onKeyDown={(e) => { if (e.key === 'Escape') setShowTempPrompt(false) }}
               placeholder={t('systemPrompt.tempPlaceholder')}
               rows={4}
+              onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)' }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)' }}
               style={{
                 width: '100%', fontSize: 11, padding: '6px 8px',
-                background: 'var(--bg-input)', border: '1px solid var(--border)',
-                borderRadius: 5, color: 'var(--text-primary)', resize: 'vertical',
+                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)',
+                borderRadius: 8, color: 'rgba(255,255,255,0.82)', resize: 'vertical',
                 outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+                transition: 'border-color 0.15s ease',
               }}
             />
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 8 }}>
@@ -353,9 +377,11 @@ ${t('chat.clickToChangeDir')}`}
                 <button
                   onClick={clearTempPrompt}
                   style={{
-                    fontSize: 11, padding: '4px 10px', background: 'none',
-                    border: '1px solid var(--border)', borderRadius: 4,
-                    color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                    fontSize: 11, padding: '4px 10px',
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.10)', borderRadius: 8,
+                    color: 'rgba(255,255,255,0.60)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                    transition: 'all 0.15s ease',
                   }}
                 >
                   <X size={10} />{t('systemPrompt.tempClear')}
@@ -365,8 +391,8 @@ ${t('chat.clickToChangeDir')}`}
                 onClick={applyTempPrompt}
                 style={{
                   fontSize: 11, padding: '4px 12px',
-                  background: 'var(--accent)', border: 'none', borderRadius: 4,
-                  color: '#fff', cursor: 'pointer',
+                  background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))', border: 'none', borderRadius: 8,
+                  color: 'rgba(255,255,255,0.95)', cursor: 'pointer', transition: 'all 0.15s ease',
                 }}
               >
                 {t('systemPrompt.tempSet')}
@@ -382,8 +408,8 @@ ${t('chat.clickToChangeDir')}`}
         title={`${t('chat.searchConversation')} (Ctrl+F)`}
         style={{
           ...headerBtnStyle,
-          background: searchOpen ? 'var(--accent)' : 'none',
-          color: searchOpen ? '#fff' : 'var(--chat-header-icon)',
+          background: searchOpen ? 'rgba(99,102,241,0.15)' : 'transparent',
+          color: searchOpen ? '#818cf8' : 'rgba(255,255,255,0.45)',
         }}
         onMouseEnter={(e) => hoverIn(e, searchOpen)}
         onMouseLeave={(e) => hoverOut(e, searchOpen)}
@@ -525,11 +551,7 @@ ${t('chat.clickToChangeDir')}`}
       <button
         onClick={onToggleFocus}
         title={t('dept.backToOrgChart')}
-        style={{
-          ...headerBtnStyle,
-          background: 'none',
-          color: 'var(--chat-header-icon)',
-        }}
+        style={headerBtnStyle}
         onMouseEnter={(e) => hoverIn(e, false)}
         onMouseLeave={(e) => hoverOut(e, false)}
       >
@@ -545,24 +567,25 @@ ${t('chat.clickToChangeDir')}`}
       {/* Streaming elapsed timer + spinner */}
       {elapsedStr && (
         <span style={{
-          fontSize: 10,
-          color: 'var(--success)',
+          fontSize: 11,
+          color: 'rgba(255,255,255,0.38)',
           fontFamily: 'monospace',
+          fontVariantNumeric: 'tabular-nums',
           flexShrink: 0,
           display: 'flex',
           alignItems: 'center',
-          gap: 4,
+          gap: 5,
         }}>
           <span
             style={{
-              width: 8,
-              height: 8,
+              width: 7,
+              height: 7,
               borderRadius: '50%',
-              border: '2px solid var(--success)',
-              borderTopColor: 'transparent',
-              animation: 'spin 0.8s linear infinite',
+              background: 'rgba(34,197,94,0.9)',
+              boxShadow: '0 0 6px rgba(34,197,94,0.5)',
               display: 'inline-block',
               flexShrink: 0,
+              animation: 'pulse 1.5s ease-in-out infinite',
             }}
           />
           {elapsedStr}
@@ -604,7 +627,7 @@ ${t('chat.clickToChangeDir')}`}
       )}
     </div>
     <ContextProgressBar />
-    <div style={{ height: 1, background: 'var(--border)' }} />
+    <div style={{ height: 1, background: 'rgba(255,255,255,0.07)' }} />
     </div>
   )
 }
