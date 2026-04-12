@@ -172,7 +172,7 @@ export default function SessionItem({
           : isActive
             ? 'rgba(99,102,241,0.08)'
             : hovered
-              ? 'rgba(255,255,255,0.06)'
+              ? 'rgba(255,255,255,0.07)'
               : 'transparent',
         boxShadow: !isActive && hovered ? '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)' : 'none',
         outline: isFocused ? '2px solid rgba(99,102,241,0.60)' : 'none',

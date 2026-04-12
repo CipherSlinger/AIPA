@@ -69,7 +69,7 @@ export default function SessionFilters({
   const chipHoverLeave = (e: React.MouseEvent<HTMLButtonElement>, isActive: boolean) => {
     if (!isActive) {
       e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-      e.currentTarget.style.color = 'rgba(255,255,255,0.55)'
+      e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
       e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
     }
   }

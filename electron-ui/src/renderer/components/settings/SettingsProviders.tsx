@@ -311,14 +311,8 @@ export default function SettingsProviders() {
                   <button
                     onClick={() => setShowKeyMap(prev => ({ ...prev, [provider.id]: !prev[provider.id] }))}
                     style={{
-                      background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: 6, padding: '0 10px', cursor: 'pointer',
-                      color: 'rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center',
-                      transition: 'all 0.15s ease',
+                      background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)',
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
-                    title={showKeyMap[provider.id] ? 'Hide' : 'Show'}
                   >
                     {showKeyMap[provider.id] ? <EyeOff size={13} /> : <Eye size={13} />}
                   </button>
@@ -344,13 +338,8 @@ export default function SettingsProviders() {
                     <button
                       onClick={() => setShowKeyMap(prev => ({ ...prev, [`${provider.id}-token`]: !prev[`${provider.id}-token`] }))}
                       style={{
-                        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: 6, padding: '0 10px', cursor: 'pointer',
-                        color: 'rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center',
-                        transition: 'all 0.15s ease',
+                        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)',
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
                     >
                       {showKeyMap[`${provider.id}-token`] ? <EyeOff size={13} /> : <Eye size={13} />}
                     </button>
@@ -385,15 +374,15 @@ export default function SettingsProviders() {
                   onClick={() => handleFetchRemoteModels(provider)}
                   disabled={fetchingModels === provider.id}
                   onMouseEnter={e => { if (fetchingModels !== provider.id) { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.35)'; e.currentTarget.style.color = '#a5b4fc' } }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 5,
                     padding: '5px 12px', borderRadius: 6,
-                    background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)',
+                    background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.09)',
                     color: 'rgba(255,255,255,0.45)', cursor: fetchingModels === provider.id ? 'wait' : 'pointer',
                     fontSize: 11, fontWeight: 500,
                     opacity: fetchingModels === provider.id ? 0.6 : 1,
-                    transition: 'border-color 0.15s, color 0.15s',
+                    transition: 'border-color 0.15s ease, color 0.15s ease',
                   }}
                 >
                   <RefreshCw size={11} style={{ animation: fetchingModels === provider.id ? 'spin 1s linear infinite' : 'none' }} />
@@ -427,13 +416,13 @@ export default function SettingsProviders() {
                 <button
                   onClick={() => window.electronAPI.shellOpenExternal(PROVIDER_KEY_LINKS[provider.id])}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.35)'; e.currentTarget.style.color = '#a5b4fc' }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'rgba(99,102,241,0.6)' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = 'rgba(99,102,241,0.6)' }}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 4,
                     padding: '5px 12px', borderRadius: 6,
-                    background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(255,255,255,0.10)',
+                    background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(255,255,255,0.09)',
                     color: 'rgba(99,102,241,0.6)', cursor: 'pointer', fontSize: 11, fontWeight: 500,
-                    transition: 'border-color 0.15s, color 0.15s',
+                    transition: 'border-color 0.15s ease, color 0.15s ease',
                   }}
                 >
                   <ExternalLink size={11} />
@@ -448,16 +437,16 @@ export default function SettingsProviders() {
                 onClick={() => handleTestConnection(provider.id)}
                 disabled={testing === provider.id}
                 onMouseEnter={e => { if (testing !== provider.id) { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.35)'; e.currentTarget.style.color = '#a5b4fc' } }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
                   padding: '6px 12px', borderRadius: 6,
-                  background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)',
+                  background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.09)',
                   color: 'rgba(255,255,255,0.45)',
                   cursor: testing === provider.id ? 'wait' : 'pointer',
                   fontSize: 11, fontWeight: 500,
                   opacity: testing === provider.id ? 0.6 : 1,
-                  transition: 'border-color 0.15s, color 0.15s',
+                  transition: 'border-color 0.15s ease, color 0.15s ease',
                 }}
               >
                 <RefreshCw size={11} style={{ animation: testing === provider.id ? 'spin 1s linear infinite' : 'none' }} />
@@ -500,13 +489,13 @@ export default function SettingsProviders() {
                   <button
                     onClick={() => setDeleteConfirm(provider.id)}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'; e.currentTarget.style.color = '#fca5a5' }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 4,
                       padding: '6px 10px', borderRadius: 6,
-                      background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)',
+                      background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.09)',
                       color: 'rgba(255,255,255,0.38)', cursor: 'pointer', fontSize: 11,
-                      transition: 'border-color 0.15s, color 0.15s',
+                      transition: 'border-color 0.15s ease, color 0.15s ease',
                     }}
                   >
                     <Trash2 size={11} />
@@ -573,7 +562,7 @@ export default function SettingsProviders() {
           cursor: 'pointer',
           width: '100%',
           justifyContent: 'center',
-          transition: 'border-color 0.15s, color 0.15s',
+          transition: 'border-color 0.15s ease, color 0.15s ease',
         }}
         onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'; e.currentTarget.style.color = '#a5b4fc' }}
         onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
@@ -614,7 +603,7 @@ export default function SettingsProviders() {
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setModelModal(null)}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
                 style={{
                   padding: '6px 14px', borderRadius: 6,

@@ -144,7 +144,7 @@ export default function GlobalSearchResults({
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-            <Globe size={20} color="rgba(99,102,241,0.70)" />
+            <Globe size={20} color="rgba(99,102,241,0.60)" />
           </div>
           <span style={{
             fontSize: 12,
