@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useI18n, useT } from '../../i18n'
 import Toggle from '../ui/Toggle'
 import { Plus, Trash2, RefreshCw, ChevronDown, ChevronRight, Wrench } from 'lucide-react'
+import { usePrefsStore } from '../../store'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -137,7 +138,7 @@ const primaryBtnStyle: React.CSSProperties = {
 
 const secondaryBtnStyle: React.CSSProperties = {
   background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(255,255,255,0.10)',
+  border: '1px solid rgba(255,255,255,0.09)',
   borderRadius: 6,
   color: 'rgba(255,255,255,0.75)',
   cursor: 'pointer',
@@ -187,7 +188,7 @@ function McpAddWizard({
       key={type}
       onClick={() => set({ type })}
       style={{
-        border: `1px solid ${w.type === type ? 'rgba(99,102,241,0.6)' : 'rgba(255,255,255,0.08)'}`,
+        border: `1px solid ${w.type === type ? 'rgba(99,102,241,0.6)' : 'rgba(255,255,255,0.07)'}`,
         borderRadius: 8,
         padding: '10px 14px',
         cursor: 'pointer',
@@ -276,12 +277,12 @@ function McpAddWizard({
           <React.Fragment key={s}>
             <div style={{
               width: 22, height: 22, borderRadius: '50%',
-              background: w.step >= s ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))' : 'rgba(255,255,255,0.08)',
+              background: w.step >= s ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))' : 'rgba(255,255,255,0.07)',
               color: w.step >= s ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 10, fontWeight: 700, flexShrink: 0,
             }}>{s}</div>
-            {i < 2 && <div style={{ flex: 1, height: 1, background: w.step > s ? 'rgba(99,102,241,0.6)' : 'rgba(255,255,255,0.08)' }} />}
+            {i < 2 && <div style={{ flex: 1, height: 1, background: w.step > s ? 'rgba(99,102,241,0.6)' : 'rgba(255,255,255,0.07)' }} />}
           </React.Fragment>
         ))}
         <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', marginLeft: 4 }}>
@@ -464,7 +465,7 @@ function ServerCard({
 
   // Status pill styles & labels
   const statusPill: React.CSSProperties = isDisabled
-    ? { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', color: 'rgba(255,255,255,0.38)' }
+    ? { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)', color: 'rgba(255,255,255,0.38)' }
     : isLoading
     ? { background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)', color: 'rgba(165,180,252,0.7)' }
     : hasError
@@ -545,7 +546,7 @@ function ServerCard({
             ...iconBtnStyle,
             display: 'flex', alignItems: 'center',
             color: hoveredReconnect ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.3)',
-            background: hoveredReconnect ? 'rgba(255,255,255,0.08)' : 'none',
+            background: hoveredReconnect ? 'rgba(255,255,255,0.07)' : 'none',
             borderRadius: 8, padding: '3px 5px',
             transition: 'all 0.15s ease',
           }}
@@ -625,11 +626,128 @@ function ServerCard({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
+// ─── Live session status area ──────────────────────────────────────────────────
+
+interface ActiveMcpServer {
+  name: string
+  status: string
+  tools?: string[] | number
+  error?: string
+}
+
+function LiveSessionStatus({ servers }: { servers: ActiveMcpServer[] }) {
+  if (servers.length === 0) {
+    return (
+      <div style={{
+        background: 'rgba(15,15,25,0.70)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: 10,
+        padding: '10px 14px',
+        marginBottom: 14,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+      }}>
+        <span style={{
+          width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+          background: 'rgba(255,255,255,0.18)',
+        }} />
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)', fontStyle: 'italic' }}>
+          启动新会话后将显示 MCP 连接状态
+        </span>
+      </div>
+    )
+  }
+  return (
+    <div style={{
+      background: 'rgba(15,15,25,0.85)',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
+      border: '1px solid rgba(255,255,255,0.07)',
+      borderRadius: 12,
+      padding: '12px 16px',
+      marginBottom: 16,
+    }}>
+      <div style={{
+        fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
+        textTransform: 'uppercase' as const,
+        color: 'rgba(255,255,255,0.38)', marginBottom: 10,
+      }}>
+        当前会话连接状态
+      </div>
+      {servers.map((srv, i) => {
+        const isConnected = srv.status === 'connected'
+        const isFailed = srv.status === 'failed' || srv.status === 'error'
+        const dotColor = isConnected
+          ? 'rgba(34,197,94,0.90)'
+          : isFailed
+            ? 'rgba(239,68,68,0.90)'
+            : 'rgba(251,191,36,0.90)'
+        const dotShadow = isConnected ? '0 0 6px rgba(34,197,94,0.50)' : 'none'
+        const statusLabel = isConnected ? '已连接' : isFailed ? '失败' : '连接中'
+        const statusColor = isConnected
+          ? 'rgba(34,197,94,0.82)'
+          : isFailed
+            ? 'rgba(252,165,165,0.82)'
+            : 'rgba(251,191,36,0.82)'
+        const toolCount = Array.isArray(srv.tools) ? srv.tools.length : typeof srv.tools === 'number' ? srv.tools : null
+        return (
+          <div key={i} style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '7px 0',
+            borderBottom: i < servers.length - 1 ? '1px solid rgba(255,255,255,0.07)' : 'none',
+          }}>
+            {/* 状态指示灯 */}
+            <span style={{
+              width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+              background: dotColor,
+              boxShadow: dotShadow,
+            }} />
+            {/* 服务器名 */}
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)', flex: 1 }}>
+              {srv.name || `MCP Server ${i + 1}`}
+            </span>
+            {/* 工具数 */}
+            {toolCount !== null && toolCount > 0 && (
+              <span style={{
+                fontSize: 10, color: 'rgba(165,180,252,0.82)',
+                background: 'rgba(99,102,241,0.12)',
+                border: '1px solid rgba(99,102,241,0.20)',
+                borderRadius: 6, padding: '1px 6px',
+              }}>
+                {toolCount} 个工具
+              </span>
+            )}
+            {/* 失败原因 */}
+            {isFailed && srv.error && (
+              <span style={{ fontSize: 10, color: 'rgba(252,165,165,0.80)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {srv.error}
+              </span>
+            )}
+            {/* 状态标签 */}
+            <span style={{
+              fontSize: 9, fontWeight: 700, letterSpacing: '0.05em',
+              textTransform: 'uppercase' as const,
+              color: statusColor,
+            }}>
+              {statusLabel}
+            </span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export default function SettingsMcp() {
   const { t } = useI18n()
   const [mcpServers, setMcpServers] = useState<McpServer[]>([])
   const [showWizard, setShowWizard] = useState(false)
   const [reconnectMsg, setReconnectMsg] = useState<string | null>(null)
+  const rawActiveMcpServers = usePrefsStore(s => s.activeMcpServers)
+  const activeMcpServers = rawActiveMcpServers as unknown as ActiveMcpServer[]
 
   const reload = () => {
     window.electronAPI.mcpList().then(list => setMcpServers(list as McpServer[]))
@@ -657,6 +775,9 @@ export default function SettingsMcp() {
 
   return (
     <div>
+      {/* Live session MCP status */}
+      <LiveSessionStatus servers={activeMcpServers} />
+
       {/* Header row */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)' }}>
