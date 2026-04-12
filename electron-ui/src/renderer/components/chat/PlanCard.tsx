@@ -54,7 +54,7 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
         background: 'rgba(15,15,25,0.85)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '1px solid rgba(255,255,255,0.07)',
         borderLeft: '3px solid rgba(99,102,241,0.60)',
         boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
         overflow: 'hidden',
@@ -238,12 +238,12 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
           <button
             onClick={onReject}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+              e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
               e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
             }}
             style={{
               flex: 1,
@@ -253,7 +253,7 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
               gap: 6,
               padding: '6px 12px',
               background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.10)',
+              border: '1px solid rgba(255,255,255,0.09)',
               borderRadius: 8,
               color: 'rgba(255,255,255,0.55)',
               fontSize: 12,

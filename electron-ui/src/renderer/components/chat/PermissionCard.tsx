@@ -66,7 +66,7 @@ const PERMISSION_TYPE_BADGE: Record<'bash' | 'file' | 'network' | 'other', { lab
   bash:    { label: 'bash',    bg: 'rgba(99,102,241,0.15)',  color: '#818cf8', border: 'rgba(99,102,241,0.30)' },
   file:    { label: 'file',    bg: 'rgba(251,191,36,0.15)',  color: '#fbbf24', border: 'rgba(251,191,36,0.30)' },
   network: { label: 'network', bg: 'rgba(67,229,229,0.15)',  color: '#67e8f9', border: 'rgba(67,229,229,0.30)' },
-  other:   { label: 'action',  bg: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.55)', border: 'rgba(255,255,255,0.15)' },
+  other:   { label: 'action',  bg: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.60)', border: 'rgba(255,255,255,0.15)' },
 }
 
 // Map tool names to lucide icons + tint colors
@@ -420,7 +420,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
             fontSize: 11,
             color: 'rgba(165,180,252,0.9)',
             background: 'rgba(0,0,0,0.35)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.07)',
             borderRadius: 8,
             padding: '6px 10px',
             fontFamily: 'monospace',

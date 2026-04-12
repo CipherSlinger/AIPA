@@ -83,7 +83,7 @@ export default function TabBar() {
                 cursor: 'pointer',
                 fontSize: 12,
                 fontWeight: isActive ? 500 : 400,
-                color: isActive ? 'rgba(255,255,255,0.90)' : 'rgba(255,255,255,0.45)',
+                color: isActive ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.45)',
                 background: isActive ? 'rgba(99,102,241,0.12)' : 'transparent',
                 borderBottom: isActive ? '2px solid #6366f1' : '2px solid transparent',
                 borderRight: '1px solid rgba(255,255,255,0.06)',
@@ -138,7 +138,7 @@ export default function TabBar() {
                   borderRadius: 4,
                   color: 'rgba(255,255,255,0.38)',
                   flexShrink: 0,
-                  transition: 'color 0.15s ease, background 0.15s ease',
+                  transition: 'all 0.15s ease',
                   width: 18,
                   height: 18,
                 }}

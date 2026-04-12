@@ -203,7 +203,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
               height: '100%',
               width: `${scrollState.scrollProgress * 100}%`,
               background: 'rgba(99,102,241,0.7)',
-              transition: 'width 0.15s ease-out',
+              transition: 'width 0.15s ease',
             }}
           />
         </div>
@@ -294,7 +294,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
             boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
             zIndex: 10,
             opacity: 0.8,
-            transition: 'opacity 0.15s',
+            transition: 'opacity 0.15s ease',
             fontSize: 11,
           }}
           onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
@@ -326,7 +326,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
             boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
             zIndex: 10,
             opacity: 0.85,
-            transition: 'all 0.15s',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={(e) => { e.currentTarget.style.opacity = '1' }}
           onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.85' }}

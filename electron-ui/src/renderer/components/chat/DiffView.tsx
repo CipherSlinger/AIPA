@@ -336,7 +336,7 @@ export default function DiffView({ oldStr, newStr, filePath }: DiffViewProps) {
             onMouseLeave={() => setRawHovered(false)}
             style={{
               background: 'none', border: 'none',
-              color: rawHovered ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.45)',
+              color: rawHovered ? 'rgba(255,255,255,0.60)' : 'rgba(255,255,255,0.45)',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, fontSize: 10,
               transition: 'all 0.15s ease',
             }}
@@ -349,7 +349,7 @@ export default function DiffView({ oldStr, newStr, filePath }: DiffViewProps) {
             onMouseLeave={() => setCopyHovered(false)}
             style={{
               background: 'none', border: 'none',
-              color: copyHovered ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.45)',
+              color: copyHovered ? 'rgba(255,255,255,0.60)' : 'rgba(255,255,255,0.45)',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, fontSize: 10,
               transition: 'all 0.15s ease',
             }}

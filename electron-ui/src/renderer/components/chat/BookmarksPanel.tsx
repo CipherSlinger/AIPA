@@ -87,7 +87,7 @@ export default function BookmarksPanel({
             WebkitBackdropFilter: 'blur(16px)',
             border: '1px solid rgba(255,255,255,0.09)',
             borderRadius: 12,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
             padding: '4px 0',
             marginTop: 4,
             scrollbarWidth: 'thin',
@@ -102,7 +102,7 @@ export default function BookmarksPanel({
             padding: '7px 12px',
             borderBottom: '1px solid rgba(255,255,255,0.07)',
           }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.88)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.82)', display: 'flex', alignItems: 'center', gap: 6 }}>
               {t('chat.bookmarks')}
               <span style={{
                 background: 'rgba(255,255,255,0.08)',
@@ -231,7 +231,7 @@ export default function BookmarksPanel({
             WebkitBackdropFilter: 'blur(16px)',
             border: '1px solid rgba(255,255,255,0.09)',
             borderRadius: 12,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
             padding: '20px 14px',
             marginTop: 4,
             textAlign: 'center',

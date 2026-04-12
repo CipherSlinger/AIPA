@@ -60,7 +60,7 @@ export default function InputToolbarTextTransform({ inputText, onSend }: TextTra
             WebkitBackdropFilter: 'blur(20px)',
             border: '1px solid rgba(255,255,255,0.09)',
             borderRadius: 10,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
             padding: '6px 0',
             minWidth: 180,
             zIndex: 100,
@@ -92,7 +92,7 @@ export default function InputToolbarTextTransform({ inputText, onSend }: TextTra
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(99,102,241,0.08)'; e.currentTarget.style.color = '#a5b4fc' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.65)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
             >
               {t(action.labelKey)}
             </button>

@@ -156,9 +156,9 @@ export function ContextBadge({ onNewConversation }: { onNewConversation: () => v
             background: 'rgba(15,15,25,0.92)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.07)',
             borderRadius: 10,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
             padding: '14px 16px',
             zIndex: 100,
             animation: 'slideUp 0.15s ease',
@@ -233,7 +233,7 @@ export function ContextProgressBar() {
       style={{
         height: 2,
         width: '100%',
-        background: 'rgba(255,255,255,0.08)',
+        background: 'rgba(255,255,255,0.07)',
         flexShrink: 0,
         transition: 'all 0.15s ease',
       }}
@@ -242,7 +242,7 @@ export function ContextProgressBar() {
         height: '100%',
         width: `${pct}%`,
         background: barFill,
-        transition: 'width 0.15s ease, background 0.15s ease',
+        transition: 'all 0.15s ease',
         borderRadius: '0 1px 1px 0',
       }} />
     </div>

@@ -30,7 +30,7 @@ export default function NotePopup({ query, notes, categories, selectedIndex, onS
         background: 'rgba(15,15,25,0.96)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '1px solid rgba(255,255,255,0.07)',
         borderRadius: 12,
         boxShadow: '0 16px 48px rgba(0,0,0,0.65), 0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
         zIndex: 1000,

@@ -120,7 +120,7 @@ export default function EffortPicker() {
             WebkitBackdropFilter: 'blur(20px)',
             border: '1px solid rgba(255,255,255,0.09)',
             borderRadius: 10,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
             padding: '4px',
             minWidth: 220,
             zIndex: 100,

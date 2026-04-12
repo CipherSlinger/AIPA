@@ -81,7 +81,7 @@ export default function MarkdownImage({ src, alt }: { src?: string; alt?: string
           boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
           maxWidth: '100%',
           marginBottom: 8,
-          transition: 'border-color 0.15s ease',
+          transition: 'all 0.15s ease',
           background: loaded && !errored ? undefined : 'rgba(15,15,25,0.85)',
         }}
       >

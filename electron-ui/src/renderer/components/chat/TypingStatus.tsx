@@ -61,7 +61,7 @@ export default function TypingStatus() {
         background: 'rgba(15,15,25,0.85)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
       }}
       aria-live="polite"
       aria-label={`${label}...`}

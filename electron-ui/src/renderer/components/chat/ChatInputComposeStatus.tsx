@@ -58,7 +58,7 @@ export default function ChatInputComposeStatus({ input, typingWpm, calcResult, h
           {typingWpm > 0 && (
             <>
               {SEP}
-              <span style={{ fontSize: 10, color: typingWpm > 60 ? 'rgba(165,180,252,0.75)' : 'rgba(255,255,255,0.38)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
+              <span style={{ fontSize: 10, color: typingWpm > 60 ? 'rgba(165,180,252,0.60)' : 'rgba(255,255,255,0.38)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
                 {typingWpm} {t('chat.wpm')}
               </span>
             </>

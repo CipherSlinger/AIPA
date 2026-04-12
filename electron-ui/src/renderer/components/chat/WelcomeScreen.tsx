@@ -216,7 +216,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
             border: '1px solid rgba(255,255,255,0.07)',
             borderRadius: 16,
             color: 'rgba(255,255,255,0.82)', cursor: 'pointer', fontSize: 13,
-            width: '100%', maxWidth: 420, transition: 'background 0.15s, border-color 0.15s, box-shadow 0.15s', textAlign: 'left',
+            width: '100%', maxWidth: 420, transition: 'background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease', textAlign: 'left',
           }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)';

@@ -79,7 +79,7 @@ function Sep() {
   return (
     <div
       style={{
-        background: 'rgba(255,255,255,0.08)',
+        background: 'rgba(255,255,255,0.07)',
         width: 1,
         height: 14,
         margin: '0 2px',
@@ -291,7 +291,7 @@ export default function MessageActionToolbar({
               WebkitBackdropFilter: 'blur(20px)',
               border: '1px solid rgba(255,255,255,0.09)',
               borderRadius: 10,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
               padding: '4px 0',
               zIndex: 30,
               animation: 'slideUp 0.15s ease',
@@ -499,7 +499,7 @@ function DropdownItem({
         color: 'rgba(255,255,255,0.82)',
         fontSize: 13,
         textAlign: 'left',
-        transition: 'background 0.15s ease',
+        transition: 'all 0.15s ease',
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}

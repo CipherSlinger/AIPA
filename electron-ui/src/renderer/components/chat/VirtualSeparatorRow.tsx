@@ -129,7 +129,7 @@ export default function VirtualSeparatorRow({ type, label, virtualRow, measureEl
           fontWeight: 700,
           letterSpacing: '0.07em',
           textTransform: 'uppercase',
-          color: 'rgba(165,180,252,0.70)',
+          color: 'rgba(165,180,252,0.60)',
           whiteSpace: 'nowrap',
         }}>
           {label}

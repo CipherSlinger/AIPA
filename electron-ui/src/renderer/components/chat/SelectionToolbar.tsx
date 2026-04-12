@@ -177,7 +177,7 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         border: '1px solid rgba(255,255,255,0.09)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
         borderRadius: 10,
         zIndex: 1000,
         animation: 'slideUp 0.15s ease',
@@ -210,7 +210,7 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
       </button>
 
       {/* Separator */}
-      <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.08)', margin: '0 2px', flexShrink: 0 }} />
+      <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.07)', margin: '0 2px', flexShrink: 0 }} />
 
       {/* Quote reply */}
       <button
@@ -239,7 +239,7 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
       </button>
 
       {/* Separator */}
-      <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.08)', margin: '0 2px', flexShrink: 0 }} />
+      <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.07)', margin: '0 2px', flexShrink: 0 }} />
 
       {/* Save to notes */}
       <button
@@ -268,7 +268,7 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
       </button>
 
       {/* Separator */}
-      <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.08)', margin: '0 2px', flexShrink: 0 }} />
+      <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.07)', margin: '0 2px', flexShrink: 0 }} />
 
       {/* Translate */}
       <button

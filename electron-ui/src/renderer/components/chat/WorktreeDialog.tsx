@@ -92,7 +92,7 @@ export default function WorktreeDialog({ cwd, onClose, onSwitchCwd }: WorktreeDi
         background: 'rgba(15,15,25,0.96)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '1px solid rgba(255,255,255,0.07)',
         borderRadius: 16, padding: '20px 24px', width: 500,
         maxHeight: '80vh', display: 'flex', flexDirection: 'column',
         boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
@@ -315,7 +315,7 @@ export default function WorktreeDialog({ cwd, onClose, onSwitchCwd }: WorktreeDi
                             fontSize: 9, fontWeight: 700,
                             color: 'rgba(255,255,255,0.38)',
                             background: 'rgba(255,255,255,0.06)',
-                            border: '1px solid rgba(255,255,255,0.10)',
+                            border: '1px solid rgba(255,255,255,0.09)',
                             padding: '1px 5px', borderRadius: 6,
                             letterSpacing: '0.05em', textTransform: 'uppercase',
                           }}>main</span>
@@ -335,7 +335,7 @@ export default function WorktreeDialog({ cwd, onClose, onSwitchCwd }: WorktreeDi
                             fontSize: 9, fontWeight: 700,
                             background: 'rgba(255,255,255,0.04)',
                             color: 'rgba(255,255,255,0.38)',
-                            border: '1px solid rgba(255,255,255,0.08)',
+                            border: '1px solid rgba(255,255,255,0.07)',
                             padding: '1px 6px', borderRadius: 6,
                             letterSpacing: '0.05em', textTransform: 'uppercase',
                           }}>merged</span>

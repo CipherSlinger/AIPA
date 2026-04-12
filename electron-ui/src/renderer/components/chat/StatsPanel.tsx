@@ -145,7 +145,7 @@ export default function StatsPanel({
             WebkitBackdropFilter: 'blur(20px)',
             border: '1px solid rgba(255,255,255,0.09)',
             borderRadius: 12,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
             padding: '12px 14px',
             marginTop: 4,
             animation: 'slideUp 0.15s ease',
@@ -155,7 +155,7 @@ export default function StatsPanel({
           <div style={{
             fontSize: 13,
             fontWeight: 700,
-            color: 'rgba(255,255,255,0.88)',
+            color: 'rgba(255,255,255,0.82)',
             marginBottom: 10,
             paddingBottom: 8,
             borderBottom: '1px solid rgba(255,255,255,0.07)',
@@ -180,7 +180,7 @@ export default function StatsPanel({
                   borderRadius: 10,
                   padding: '10px 6px',
                   textAlign: 'center',
-                  transition: 'background 0.15s ease, border-color 0.15s ease',
+                  transition: 'all 0.15s ease',
                   cursor: 'default',
                 }}
                 onMouseEnter={(e) => {

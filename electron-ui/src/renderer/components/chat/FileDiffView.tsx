@@ -172,7 +172,7 @@ function LineRow({ line }: LineRowProps) {
       fontFamily: 'monospace',
       fontSize: 12,
       lineHeight: 1.5,
-      transition: 'background 0.15s ease',
+      transition: 'all 0.15s ease',
     }}>
       {/* Old line number */}
       <span style={{

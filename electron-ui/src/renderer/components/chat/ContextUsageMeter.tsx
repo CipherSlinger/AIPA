@@ -113,7 +113,7 @@ export default function ContextUsageMeter({ used, total, isStreaming, onCompact,
           }}>
             <div style={{
               width: `${Math.min(pct, 100)}%`, height: '100%', background: barGradient,
-              borderRadius: 4, transition: 'width 0.15s ease, background 0.15s ease',
+              borderRadius: 4, transition: 'all 0.15s ease',
             }} />
           </div>
           <span style={{
@@ -135,7 +135,7 @@ export default function ContextUsageMeter({ used, total, isStreaming, onCompact,
                 padding: '1px 4px', fontSize: 9,
                 background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
                 borderRadius: 6, color: '#818cf8', cursor: 'pointer',
-                transition: 'background 0.15s ease, border-color 0.15s ease',
+                transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'rgba(99,102,241,0.15)'
@@ -160,7 +160,7 @@ export default function ContextUsageMeter({ used, total, isStreaming, onCompact,
                 padding: '1px 6px', fontSize: 9, fontWeight: 500,
                 background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.25)',
                 borderRadius: 8, color: '#818cf8', cursor: isCompacting ? 'not-allowed' : 'pointer',
-                transition: 'background 0.15s ease, border-color 0.15s ease', whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease', whiteSpace: 'nowrap',
                 opacity: isCompacting ? 0.4 : 1,
               }}
               onMouseEnter={(e) => {

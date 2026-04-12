@@ -36,7 +36,7 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
             gap: 6,
             padding: '5px 14px',
             background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.10)',
+            border: '1px solid rgba(255,255,255,0.09)',
             borderRadius: 7,
             cursor: 'pointer',
             color: '#818cf8',
@@ -51,7 +51,7 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
             e.currentTarget.style.color = '#818cf8'
           }}
         >
@@ -77,7 +77,7 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
             padding: '6px 8px',
             marginLeft: 4,
             background: showRegenModels ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.06)',
-            border: showRegenModels ? '1px solid rgba(99,102,241,0.40)' : '1px solid rgba(255,255,255,0.10)',
+            border: showRegenModels ? '1px solid rgba(99,102,241,0.40)' : '1px solid rgba(255,255,255,0.09)',
             borderRadius: 6,
             cursor: 'pointer',
             color: showRegenModels ? '#818cf8' : 'rgba(255,255,255,0.55)',
@@ -91,7 +91,7 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = showRegenModels ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.06)'
-            e.currentTarget.style.borderColor = showRegenModels ? 'rgba(99,102,241,0.40)' : 'rgba(255,255,255,0.10)'
+            e.currentTarget.style.borderColor = showRegenModels ? 'rgba(99,102,241,0.40)' : 'rgba(255,255,255,0.09)'
             e.currentTarget.style.color = showRegenModels ? '#818cf8' : 'rgba(255,255,255,0.55)'
           }}
         >

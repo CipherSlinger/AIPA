@@ -29,9 +29,9 @@ export default function SnippetPopup({ snippets, selectedIndex, onSelect, onHove
         background: 'rgba(15,15,25,0.96)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '1px solid rgba(255,255,255,0.09)',
         borderRadius: 12,
-        boxShadow: '0 16px 48px rgba(0,0,0,0.65), 0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
         zIndex: 50,
         overflow: 'hidden',
       }}
@@ -84,7 +84,7 @@ export default function SnippetPopup({ snippets, selectedIndex, onSelect, onHove
                 width: 28, height: 28, borderRadius: 7, flexShrink: 0,
                 background: isSelected ? 'rgba(99,102,241,0.25)' : 'rgba(99,102,241,0.15)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'background 0.15s ease',
+                transition: 'all 0.15s ease',
               }}>
                 <span style={{
                   fontSize: 9, fontWeight: 700,
@@ -102,7 +102,7 @@ export default function SnippetPopup({ snippets, selectedIndex, onSelect, onHove
                   fontSize: 13, fontWeight: 600,
                   color: isSelected ? '#818cf8' : 'rgba(255,255,255,0.82)',
                   marginBottom: 2,
-                  transition: 'color 0.15s ease',
+                  transition: 'all 0.15s ease',
                 }}>
                   {snippet.keyword}
                 </div>
@@ -145,7 +145,7 @@ export default function SnippetPopup({ snippets, selectedIndex, onSelect, onHove
               alignItems: 'center',
               justifyContent: 'center',
               background: 'rgba(255,255,255,0.07)',
-              border: '1px solid rgba(255,255,255,0.12)',
+              border: '1px solid rgba(255,255,255,0.09)',
               borderRadius: 4,
               padding: '1px 5px',
               fontSize: 10,

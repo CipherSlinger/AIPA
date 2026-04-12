@@ -72,7 +72,7 @@ export default function AnnotationEditor({
           background: 'rgba(15,15,25,0.92)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid rgba(255,255,255,0.07)',
           borderRadius: 10,
           boxShadow: '0 8px 28px rgba(0,0,0,0.5)',
           overflow: 'hidden',
@@ -86,13 +86,13 @@ export default function AnnotationEditor({
             placeholder={t('message.annotationPlaceholder')}
             maxLength={500}
             onFocus={(e) => { (e.currentTarget as HTMLTextAreaElement).style.border = '1px solid rgba(99,102,241,0.5)'; (e.currentTarget as HTMLTextAreaElement).style.boxShadow = '0 0 0 2px rgba(99,102,241,0.45)' }}
-            onBlur={(e) => { (e.currentTarget as HTMLTextAreaElement).style.border = '1px solid rgba(255,255,255,0.08)'; (e.currentTarget as HTMLTextAreaElement).style.boxShadow = 'none' }}
+            onBlur={(e) => { (e.currentTarget as HTMLTextAreaElement).style.border = '1px solid rgba(255,255,255,0.07)'; (e.currentTarget as HTMLTextAreaElement).style.boxShadow = 'none' }}
             style={{
               minWidth: 200,
               minHeight: 40,
               maxHeight: 100,
               background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.07)',
               borderRadius: 8,
               outline: 'none',
               color: 'rgba(255,255,255,0.82)',
@@ -129,12 +129,12 @@ export default function AnnotationEditor({
             <button
               onClick={() => onEditorOpenChange(false)}
               style={{
-                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', cursor: 'pointer',
+                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)', cursor: 'pointer',
                 color: 'rgba(255,255,255,0.60)', fontSize: 12, fontWeight: 500, padding: '3px 8px',
                 borderRadius: 6, transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.09)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.16)' }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.10)' }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.09)' }}
             >
               {t('message.editCancel')}
             </button>

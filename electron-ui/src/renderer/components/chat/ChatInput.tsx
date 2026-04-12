@@ -331,7 +331,7 @@ export default function ChatInput({
   return (
     <div style={{ margin: '0 16px 12px', background: 'rgba(15,15,25,0.92)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)', flexShrink: 0, overflow: 'hidden' }}>
       {/* Toolbar row */}
-      <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '6px 10px' }}>
+      <div style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '6px 10px' }}>
       <InputToolbar
         listening={listening}
         recordingSeconds={recordingSeconds}

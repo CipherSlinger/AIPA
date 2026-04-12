@@ -51,9 +51,9 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
           WebkitBackdropFilter: 'blur(20px)',
           border: isDangerous
             ? '1px solid rgba(239,68,68,0.25)'
-            : '1px solid rgba(255,255,255,0.08)',
+            : '1px solid rgba(255,255,255,0.09)',
           borderRadius: 16,
-          boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
           maxWidth: 480,
           width: '90%',
           overflow: 'hidden',

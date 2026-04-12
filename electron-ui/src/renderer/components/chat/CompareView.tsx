@@ -75,7 +75,7 @@ function SimpleMessageBubble({ message, side }: MessageBubbleProps) {
           border: isUser
             ? '1px solid rgba(99,102,241,0.25)'
             : '1px solid rgba(255,255,255,0.06)',
-          color: isUser ? 'rgba(255,255,255,0.88)' : 'rgba(255,255,255,0.75)',
+          color: isUser ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.60)',
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-word',
           opacity: 0.85,
@@ -153,18 +153,18 @@ export default function CompareView({ sessionA, sessionB, titleA, titleB, forkMe
             background: 'rgba(255,255,255,0.07)',
             border: 'none',
             cursor: 'pointer',
-            color: 'rgba(255,255,255,0.55)',
+            color: 'rgba(255,255,255,0.45)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             borderRadius: '50%',
             width: 28,
             height: 28,
-            transition: 'background 0.15s ease, color 0.15s ease',
+            transition: 'all 0.15s ease',
             flexShrink: 0,
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'rgba(255,255,255,0.9)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = 'rgba(255,255,255,0.55)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
         >
           <X size={14} />
         </button>
@@ -211,7 +211,7 @@ export default function CompareView({ sessionA, sessionB, titleA, titleB, forkMe
                   fontWeight: 700,
                   letterSpacing: '0.07em',
                   textTransform: 'uppercase',
-                  color: 'rgba(99,102,241,0.75)',
+                  color: 'rgba(99,102,241,0.60)',
                   background: 'rgba(255,255,255,0.02)',
                   flexShrink: 0,
                   display: 'flex',
@@ -254,7 +254,7 @@ export default function CompareView({ sessionA, sessionB, titleA, titleB, forkMe
                   fontWeight: 700,
                   letterSpacing: '0.07em',
                   textTransform: 'uppercase',
-                  color: 'rgba(139,92,246,0.75)',
+                  color: 'rgba(139,92,246,0.60)',
                   background: 'rgba(255,255,255,0.02)',
                   flexShrink: 0,
                   display: 'flex',
@@ -263,7 +263,7 @@ export default function CompareView({ sessionA, sessionB, titleA, titleB, forkMe
                   transition: 'all 0.15s ease',
                 }}
               >
-                <GitBranch size={10} style={{ color: 'rgba(139,92,246,0.75)' }} />
+                <GitBranch size={10} style={{ color: 'rgba(139,92,246,0.60)' }} />
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {titleB || t('fork.forkedBranch')}
                 </span>

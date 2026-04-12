@@ -54,9 +54,9 @@ export default function URLPreviewCard({ url }: { url: string }) {
         marginTop: 6, marginBottom: 6,
         animation: 'pulse 1.5s ease-in-out infinite',
       }}>
-        <div style={{ width: 14, height: 14, borderRadius: 3, background: 'rgba(255,255,255,0.08)', flexShrink: 0 }} />
+        <div style={{ width: 14, height: 14, borderRadius: 3, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
         <div style={{ flex: 1 }}>
-          <div style={{ width: '60%', height: 12, borderRadius: 3, background: 'rgba(255,255,255,0.08)', marginBottom: 6 }} />
+          <div style={{ width: '60%', height: 12, borderRadius: 3, background: 'rgba(255,255,255,0.07)', marginBottom: 6 }} />
           <div style={{ width: '80%', height: 10, borderRadius: 3, background: 'rgba(255,255,255,0.06)' }} />
         </div>
       </div>
@@ -93,7 +93,7 @@ export default function URLPreviewCard({ url }: { url: string }) {
         background: 'rgba(15,15,25,0.88)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: hovered ? '1px solid rgba(255,255,255,0.14)' : '1px solid rgba(255,255,255,0.09)',
+        border: hovered ? '1px solid rgba(255,255,255,0.09)' : '1px solid rgba(255,255,255,0.09)',
         borderLeft: '3px solid rgba(99,102,241,0.5)',
         borderRadius: 10,
         boxShadow: hovered ? '0 4px 16px rgba(0,0,0,0.4)' : '0 2px 8px rgba(0,0,0,0.3)',
@@ -198,7 +198,7 @@ export default function URLPreviewCard({ url }: { url: string }) {
           flexShrink: 0,
           alignSelf: 'center',
           fontSize: 14, lineHeight: 1,
-          transition: 'color 0.15s ease',
+          transition: 'all 0.15s ease',
         }}
       >
         ×

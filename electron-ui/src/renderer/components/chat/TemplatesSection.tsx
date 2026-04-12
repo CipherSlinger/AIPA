@@ -158,7 +158,7 @@ export default function TemplatesSection({ onUseTemplate }: Props) {
                       position: 'absolute', top: 4, right: 4,
                       background: 'none', border: 'none', cursor: 'pointer',
                       color: 'rgba(255,255,255,0.45)', padding: 2, borderRadius: 6,
-                      opacity: 0, transition: 'opacity 0.15s, color 0.15s',
+                      opacity: 0, transition: 'all 0.15s ease',
                     }}
                     onMouseEnter={e => { e.currentTarget.style.color = '#f87171'; e.currentTarget.style.opacity = '1' }}
                     onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}

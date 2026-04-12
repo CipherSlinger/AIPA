@@ -176,7 +176,7 @@ export default function ModelPicker({ model }: ModelPickerProps) {
           borderRadius: 8,
           padding: '2px 8px',
           cursor: 'pointer',
-          color: showPicker ? '#818cf8' : 'rgba(255,255,255,0.65)',
+          color: showPicker ? '#818cf8' : 'rgba(255,255,255,0.60)',
           fontSize: 11,
           fontWeight: 600,
           display: 'flex',

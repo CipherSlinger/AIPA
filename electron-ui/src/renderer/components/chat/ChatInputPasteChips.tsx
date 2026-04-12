@@ -33,7 +33,7 @@ interface ChatInputPasteChipsProps {
 const chipStyle: React.CSSProperties = {
   padding: '4px 10px 4px 8px', fontSize: 11, fontWeight: 500,
   background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.22)',
-  borderRadius: 8, color: 'rgba(165,180,252,0.85)', cursor: 'pointer',
+  borderRadius: 8, color: 'rgba(165,180,252,0.82)', cursor: 'pointer',
   transition: 'all 0.15s ease', whiteSpace: 'nowrap',
   display: 'flex', alignItems: 'center', gap: 6,
 }
@@ -159,7 +159,7 @@ export default function ChatInputPasteChips({ paste, inputLength }: ChatInputPas
       {paste.pastedUrl && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px', marginBottom: 4, flexWrap: 'wrap' }}>
           <Link2 size={12} style={{ color: 'rgba(165,180,252,0.6)', flexShrink: 0 }} />
-          <span style={{ fontSize: 11, color: 'rgba(165,180,252,0.75)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{paste.pastedUrl}</span>
+          <span style={{ fontSize: 11, color: 'rgba(165,180,252,0.60)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{paste.pastedUrl}</span>
           {[
             { key: 'summarize', label: t('chat.urlAction.summarize') },
             { key: 'explain', label: t('chat.urlAction.explain') },
@@ -195,7 +195,7 @@ export default function ChatInputPasteChips({ paste, inputLength }: ChatInputPas
       {paste.pastedLongText && !paste.pastedUrl && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px', marginBottom: 4, flexWrap: 'wrap' }}>
           <FileText size={12} style={{ color: 'rgba(165,180,252,0.6)', flexShrink: 0 }} />
-          <span style={{ fontSize: 11, color: 'rgba(165,180,252,0.75)', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 11, color: 'rgba(165,180,252,0.60)', whiteSpace: 'nowrap' }}>
             {t('chat.longPaste', { count: String(inputLength) })}
           </span>
           {[
@@ -252,7 +252,7 @@ export default function ChatInputPasteChips({ paste, inputLength }: ChatInputPas
 
 function QuoteBanner({ quote, onClose, t }: { quote: string; onClose: () => void; t: (key: string) => string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 10px', marginBottom: 6, background: 'rgba(255,255,255,0.04)', borderLeft: '3px solid rgba(99,102,241,0.6)', borderRadius: '0 6px 6px 0', fontSize: 12, color: 'rgba(165,180,252,0.75)', lineHeight: 1.5 }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 10px', marginBottom: 6, background: 'rgba(255,255,255,0.04)', borderLeft: '3px solid rgba(99,102,241,0.6)', borderRadius: '0 6px 6px 0', fontSize: 12, color: 'rgba(165,180,252,0.60)', lineHeight: 1.5 }}>
       <MessageSquareQuote size={14} style={{ color: 'rgba(165,180,252,0.6)', flexShrink: 0, marginTop: 2 }} />
       <div style={{ flex: 1, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', wordBreak: 'break-word' }}>
         {quote.length > 150 ? quote.slice(0, 150) + '...' : quote}

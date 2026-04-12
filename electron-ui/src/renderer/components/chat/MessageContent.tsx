@@ -42,7 +42,7 @@ function ClickableFilePath({ path }: { path: string }) {
       onClick={handleClick}
       title={t('codeAction.openInFileManager')}
       style={{
-        background: 'rgba(255,255,255,0.08)',
+        background: 'rgba(255,255,255,0.07)',
         border: '1px solid rgba(255,255,255,0.07)',
         borderRadius: 3,
         padding: '1px 5px',
@@ -129,7 +129,7 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
                 <code
                   className={className as string}
                   style={{
-                    background: 'rgba(255,255,255,0.08)',
+                    background: 'rgba(255,255,255,0.07)',
                     border: '1px solid rgba(255,255,255,0.07)',
                     borderRadius: 4,
                     padding: '1px 4px',
@@ -295,7 +295,7 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
           },
           table({ children }) {
             return (
-              <div style={{ overflowX: 'auto', marginBottom: 12, borderRadius: 6, border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ overflowX: 'auto', marginBottom: 12, borderRadius: 6, border: '1px solid rgba(255,255,255,0.07)' }}>
                 <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12 }}>{children}</table>
               </div>
             )
@@ -345,7 +345,7 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
             )
           },
           hr() {
-            return <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.08)', margin: '16px 0' }} />
+            return <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.07)', margin: '16px 0' }} />
           },
           img({ src, alt }) {
             return <MarkdownImage src={src} alt={alt} />

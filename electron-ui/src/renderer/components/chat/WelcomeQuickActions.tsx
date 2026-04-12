@@ -53,7 +53,7 @@ export default function WelcomeQuickActions({
               onMouseLeave={() => setHoveredQuick(null)}
               style={{
                 background: isHovered ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.06)',
-                border: isHovered ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(255,255,255,0.08)',
+                border: isHovered ? '1px solid rgba(255,255,255,0.09)' : '1px solid rgba(255,255,255,0.07)',
                 borderRadius: 10,
                 padding: '12px 14px',
                 cursor: 'pointer',

@@ -170,12 +170,12 @@ export default function CompactButton({
             background: 'rgba(15,15,25,0.85)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.07)',
             borderRadius: 12,
             padding: 10,
             width: 280,
             zIndex: 100,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
             animation: 'slideUp 0.15s ease',
           }}
         >

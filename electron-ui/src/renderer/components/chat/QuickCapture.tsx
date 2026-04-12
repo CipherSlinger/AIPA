@@ -109,7 +109,7 @@ export default function QuickCapture() {
             ? '0 2px 8px rgba(0,0,0,0.25)'
             : '0 4px 16px rgba(99,102,241,0.40)',
           zIndex: 50,
-          transition: 'transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease',
+          transition: 'all 0.15s ease',
           backdropFilter: open ? 'blur(12px)' : 'none',
           WebkitBackdropFilter: open ? 'blur(12px)' : 'none',
         }}
@@ -137,9 +137,9 @@ export default function QuickCapture() {
           background: 'rgba(15,15,25,0.96)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid rgba(255,255,255,0.09)',
           borderRadius: 14,
-          boxShadow: '0 16px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(99,102,241,0.08) inset',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
           padding: 14,
           zIndex: 51,
           animation: 'slideUp 0.15s ease',
@@ -158,7 +158,7 @@ export default function QuickCapture() {
               fontWeight: 700,
               letterSpacing: '0.04em',
               background: 'rgba(255,255,255,0.07)',
-              border: '1px solid rgba(255,255,255,0.12)',
+              border: '1px solid rgba(255,255,255,0.09)',
               borderRadius: 5,
               padding: '1px 5px',
               color: 'rgba(255,255,255,0.45)',
@@ -174,7 +174,7 @@ export default function QuickCapture() {
                 color: 'rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center',
                 borderRadius: 6, padding: 3, transition: 'all 0.15s ease',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
               onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
             >
               <X size={14} />
@@ -193,7 +193,7 @@ export default function QuickCapture() {
               e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.50)'
             }}
             onBlur={e => {
-              e.currentTarget.style.border = '1px solid rgba(255,255,255,0.08)'
+              e.currentTarget.style.border = '1px solid rgba(255,255,255,0.09)'
               e.currentTarget.style.boxShadow = 'none'
             }}
             style={{
@@ -202,16 +202,16 @@ export default function QuickCapture() {
               maxHeight: 130,
               resize: 'none',
               background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.09)',
               borderRadius: 8,
               padding: '9px 11px',
-              color: 'rgba(255,255,255,0.88)',
+              color: 'rgba(255,255,255,0.82)',
               fontSize: 14,
               outline: 'none',
               fontFamily: 'inherit',
               lineHeight: 1.6,
               boxSizing: 'border-box',
-              transition: 'border 0.15s ease, box-shadow 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
           />
 

@@ -77,7 +77,7 @@ export default function SpeculationStatusBar({
             animation: 'pulse 1.5s ease-in-out infinite',
           }}
         />
-        <span style={{ flex: 1, color: 'rgba(255,255,255,0.70)' }}>
+        <span style={{ flex: 1, color: 'rgba(255,255,255,0.60)' }}>
           正在预测响应…
         </span>
         <button
@@ -123,7 +123,7 @@ export default function SpeculationStatusBar({
             animation: 'spin 1s linear infinite',
           }}
         />
-        <span style={{ flex: 1, color: 'rgba(255,255,255,0.70)' }}>
+        <span style={{ flex: 1, color: 'rgba(255,255,255,0.60)' }}>
           正在合并变更…
         </span>
       </div>
@@ -135,12 +135,12 @@ export default function SpeculationStatusBar({
     return (
       <div style={bannerStyle}>
         <Sparkles size={12} style={{ color: '#818cf8', flexShrink: 0 }} />
-        <span style={{ color: 'rgba(255,255,255,0.70)', flex: 1, fontSize: 11 }}>
+        <span style={{ color: 'rgba(255,255,255,0.60)', flex: 1, fontSize: 11 }}>
           预测完成
           {fileCount > 0 && (
             <>
               {' · '}
-              <span style={{ color: 'rgba(255,255,255,0.70)', fontWeight: 600 }}>
+              <span style={{ color: 'rgba(255,255,255,0.60)', fontWeight: 600 }}>
                 <FileEdit size={9} style={{ display: 'inline', marginRight: 2, verticalAlign: 'middle' }} />
                 已修改 {fileCount} 个文件
               </span>

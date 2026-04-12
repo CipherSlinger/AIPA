@@ -88,7 +88,7 @@ export default class MessageErrorBoundary extends Component<Props, State> {
             cursor: 'pointer',
             fontSize: 11,
             flexShrink: 0,
-            transition: 'background 0.15s ease',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.20)' }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)' }}

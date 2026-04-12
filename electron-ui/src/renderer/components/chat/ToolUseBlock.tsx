@@ -182,7 +182,7 @@ function CopyOutputBtn({ text, t }: { text: string; t: (key: string) => string }
         alignItems: 'center',
         gap: 3,
         fontSize: 9,
-        transition: 'color 0.15s ease, background 0.15s ease',
+        transition: 'all 0.15s ease',
       }}
       onMouseEnter={(e) => { if (!copied) e.currentTarget.style.color = '#6366f1' }}
       onMouseLeave={(e) => { if (!copied) e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
@@ -303,7 +303,7 @@ function BashOutputBlock({ output }: { output: string }) {
             fontSize: 11,
             fontFamily: 'monospace',
             padding: '2px 0',
-            transition: 'color 0.15s ease',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,1)' }}
           onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,0.70)' }}
@@ -402,7 +402,7 @@ function SearchResultSummary({ resultText }: { resultText: string }) {
               fontFamily: 'monospace',
               padding: '2px 0',
               textAlign: 'left',
-              transition: 'color 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
             onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,1)' }}
             onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,0.70)' }}
@@ -515,7 +515,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
         marginBottom: 6,
         overflow: 'hidden',
         boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-        transition: 'border-left-color 0.15s ease',
+        transition: 'all 0.15s ease',
       }}
     >
       {/* Header */}

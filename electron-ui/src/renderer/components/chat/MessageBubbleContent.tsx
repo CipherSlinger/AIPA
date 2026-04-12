@@ -225,7 +225,7 @@ export default function MessageBubbleContent({
                   fontSize: 12, lineHeight: 1.6,
                   color: 'rgba(255,255,255,0.82)',
                   background: 'rgba(0,0,0,0.1)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.07)',
                   borderRadius: 4, padding: '8px 12px', margin: 0,
                   fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
                 }}>

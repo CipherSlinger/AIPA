@@ -242,7 +242,7 @@ export default function ChatPanel() {
   return (
     <div
       className="flex flex-col h-full"
-      style={{ background: 'rgba(10,10,18,1)', position: 'relative', borderRight: '1px solid rgba(255,255,255,0.06)' }}
+      style={{ background: 'rgba(10,10,18,1)', position: 'relative', borderRight: '1px solid rgba(255,255,255,0.07)' }}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -353,9 +353,9 @@ export default function ChatPanel() {
             placeholder={t('session.addNote')}
             maxLength={200}
             onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)' }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)' }}
             style={{
-              flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
+              flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)',
               borderRadius: 6, padding: '2px 6px', fontSize: 12, color: 'rgba(255,255,255,0.82)', outline: 'none',
               transition: 'border-color 0.15s ease',
             }}

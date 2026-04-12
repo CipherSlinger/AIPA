@@ -70,9 +70,9 @@ export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, c
         background: 'rgba(15,15,25,0.95)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '1px solid rgba(255,255,255,0.07)',
         borderRadius: 10,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
         flexShrink: 0,
         transition: 'border-color 0.15s ease',
         animation: 'slideUp 0.15s ease',
@@ -91,7 +91,7 @@ export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, c
         }}
         onBlur={(e) => {
           const parent = e.currentTarget.closest('div') as HTMLElement | null
-          if (parent) { parent.style.borderColor = 'rgba(255,255,255,0.08)'; parent.style.boxShadow = '0 4px 16px rgba(0,0,0,0.4)' }
+          if (parent) { parent.style.borderColor = 'rgba(255,255,255,0.07)'; parent.style.boxShadow = '0 4px 16px rgba(0,0,0,0.4)' }
         }}
         style={{
           flex: 1,

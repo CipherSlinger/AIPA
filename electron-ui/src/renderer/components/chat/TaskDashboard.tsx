@@ -85,7 +85,7 @@ const StepNode: React.FC<StepNodeProps> = ({ item, isLast, prevDone }) => {
         </div>
         {/* Connector line */}
         {!isLast && (
-          <div style={{ flex: 1, height: 2, background: connectorColor, transition: 'background 0.15s ease' }} />
+          <div style={{ flex: 1, height: 2, background: connectorColor, transition: 'all 0.15s ease' }} />
         )}
       </div>
       {/* Label */}
@@ -111,16 +111,16 @@ const StepNode: React.FC<StepNodeProps> = ({ item, isLast, prevDone }) => {
 // ── Control button shared style factory ──────────────────────────────────────
 const ctrlBtn = (hoverColor?: string): React.CSSProperties => ({
   background: 'transparent',
-  border: '1px solid rgba(255,255,255,0.08)',
+  border: '1px solid rgba(255,255,255,0.09)',
   borderRadius: 6,
   padding: '4px 10px',
   fontSize: 11,
-  color: 'rgba(255,255,255,0.72)',
+  color: 'rgba(255,255,255,0.60)',
   cursor: 'pointer',
   display: 'flex',
   alignItems: 'center',
   gap: 4,
-  transition: 'background 0.15s, color 0.15s',
+  transition: 'all 0.15s ease',
 })
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -218,7 +218,7 @@ const TaskDashboard: React.FC = () => {
                 <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', marginBottom: 3 }}>
                   Now running
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.88)', lineHeight: '1.4' }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.82)', lineHeight: '1.4' }}>
                   {running.content}
                 </div>
               </div>

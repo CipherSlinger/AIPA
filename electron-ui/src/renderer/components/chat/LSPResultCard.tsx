@@ -170,7 +170,7 @@ export default function LSPResultCard({ data }: Props) {
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid rgba(255,255,255,0.09)',
         borderRadius: 10,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
         overflow: 'hidden',
         marginBottom: 4,
       }}

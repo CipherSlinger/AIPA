@@ -48,7 +48,7 @@ export default function InputToolbarSaveNote({ inputText }: SaveAsNoteButtonProp
         opacity: hasText ? 1 : 0.4,
         cursor: hasText ? 'pointer' : 'not-allowed',
       }}
-      onMouseEnter={(e) => { if (hasText) { e.currentTarget.style.color = 'rgba(255,255,255,0.82)'; e.currentTarget.style.background = 'rgba(255,255,255,0.08)' } }}
+      onMouseEnter={(e) => { if (hasText) { e.currentTarget.style.color = 'rgba(255,255,255,0.82)'; e.currentTarget.style.background = 'rgba(255,255,255,0.07)' } }}
       onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)'; e.currentTarget.style.background = 'transparent' }}
     >
       <StickyNote size={16} />

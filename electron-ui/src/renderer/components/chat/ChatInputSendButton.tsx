@@ -44,7 +44,7 @@ export default function ChatInputSendButton({ isStreaming, inputLength, hasConte
             strokeDashoffset={2 * Math.PI * 20 * (1 - Math.min(inputLength / 12000, 1))}
             strokeLinecap="round"
             opacity={0.6}
-            style={{ transition: 'stroke-dashoffset 0.15s ease, stroke 0.15s ease' }}
+            style={{ transition: 'all 0.15s ease' }}
           />
         </svg>
       )}

@@ -161,7 +161,7 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
         style={{
           fontSize: 11,
           background: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid rgba(255,255,255,0.09)',
           borderRadius: 6,
           padding: '3px 8px',
           color: 'rgba(255,255,255,0.82)',
@@ -177,7 +177,7 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
         style={{
           fontSize: 11,
           background: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid rgba(255,255,255,0.09)',
           borderRadius: 6,
           padding: '3px 8px',
           color: 'rgba(255,255,255,0.82)',
@@ -328,7 +328,7 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
               justifyContent: 'center',
               cursor: 'pointer',
               flexShrink: 0,
-              transition: 'background 0.15s ease, border-color 0.15s ease',
+              transition: 'all 0.15s ease',
               color: 'rgba(255,255,255,0.38)',
               fontSize: 11,
             }}
@@ -360,7 +360,7 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
             WebkitBackdropFilter: 'blur(20px)',
             border: '1px solid rgba(255,255,255,0.09)',
             borderRadius: 8,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
             padding: '4px 0',
             zIndex: 9999,
             minWidth: 120,

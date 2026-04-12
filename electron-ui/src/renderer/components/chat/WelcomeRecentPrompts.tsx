@@ -50,7 +50,7 @@ export default function WelcomeRecentPrompts({
               style={{
                 background: 'none', border: 'none', color: 'rgba(255,255,255,0.38)', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', padding: '1px 3px', borderRadius: 6,
-                fontSize: 10, gap: 2, transition: 'color 0.15s ease',
+                fontSize: 10, gap: 2, transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#f87171' }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.38)' }}
@@ -90,7 +90,7 @@ export default function WelcomeRecentPrompts({
                   <ChevronRight
                     size={12}
                     color="rgba(255,255,255,0.4)"
-                    style={{ flexShrink: 0, opacity: isHovered ? 1 : 0, transition: 'opacity 0.15s ease' }}
+                    style={{ flexShrink: 0, opacity: isHovered ? 1 : 0, transition: 'all 0.15s ease' }}
                   />
                 </button>
               )
@@ -145,7 +145,7 @@ export default function WelcomeRecentPrompts({
                     <ChevronRight
                       size={12}
                       color="rgba(255,255,255,0.4)"
-                      style={{ flexShrink: 0, opacity: isHovered ? 1 : 0, transition: 'opacity 0.15s ease' }}
+                      style={{ flexShrink: 0, opacity: isHovered ? 1 : 0, transition: 'all 0.15s ease' }}
                     />
                   </button>
                   <button
@@ -153,7 +153,7 @@ export default function WelcomeRecentPrompts({
                     style={{
                       background: 'none', border: 'none', cursor: 'pointer', padding: 2,
                       color: item.favorite ? '#fbbf24' : 'rgba(255,255,255,0.38)',
-                      transition: 'color 0.15s',
+                      transition: 'all 0.15s ease',
                       flexShrink: 0,
                     }}
                     title={item.favorite ? t('welcome.unfavorite') : t('welcome.favorite')}

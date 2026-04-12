@@ -204,7 +204,7 @@ function TaskRow({
               alignItems: 'center',
               flexShrink: 0,
               opacity: index === 0 ? 0.2 : 1,
-              transition: 'color 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
           >
             <ArrowUp size={11} />
@@ -228,7 +228,7 @@ function TaskRow({
               alignItems: 'center',
               flexShrink: 0,
               opacity: index === totalCount - 1 ? 0.2 : 1,
-              transition: 'color 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
           >
             <ArrowDown size={11} />
@@ -248,7 +248,7 @@ function TaskRow({
               flexShrink: 0,
               color: 'rgba(255,255,255,0.45)',
               opacity: hovered ? 1 : 0,
-              transition: 'opacity 0.15s ease, color 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#f87171' }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.45)' }}
@@ -318,9 +318,9 @@ export default function TaskQueuePanel() {
         background: 'rgba(15,15,25,0.85)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '1px solid rgba(255,255,255,0.09)',
         borderRadius: 10,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
         maxHeight: 208,
         overflowY: 'auto',
         flexShrink: 0,
@@ -367,7 +367,7 @@ export default function TaskQueuePanel() {
               color: queuePaused ? '#fbbf24' : 'rgba(255,255,255,0.45)',
               padding: '2px 6px',
               borderRadius: 8,
-              transition: 'color 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#fbbf24' }}
             onMouseLeave={(e) => {
@@ -394,7 +394,7 @@ export default function TaskQueuePanel() {
               padding: '2px 6px',
               borderRadius: 8,
               marginLeft: 6,
-              transition: 'color 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#f87171' }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.45)' }}

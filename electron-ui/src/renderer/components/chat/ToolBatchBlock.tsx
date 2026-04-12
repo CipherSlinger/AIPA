@@ -58,7 +58,7 @@ export default function ToolBatchBlock({ group, onAbort }: ToolBatchBlockProps) 
         background: 'rgba(15,15,25,0.88)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '1px solid rgba(255,255,255,0.09)',
         borderLeft: '2px solid rgba(99,102,241,0.40)',
         borderRadius: 10,
         marginBottom: 8,
@@ -89,8 +89,8 @@ export default function ToolBatchBlock({ group, onAbort }: ToolBatchBlockProps) 
         onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
       >
         {expanded
-          ? <ChevronDown size={11} style={{ color: 'rgba(255,255,255,0.45)', transition: 'color 0.15s ease', fontSize: 11 }} />
-          : <ChevronRight size={11} style={{ color: 'rgba(255,255,255,0.45)', transition: 'color 0.15s ease', fontSize: 11 }} />
+          ? <ChevronDown size={11} style={{ color: 'rgba(255,255,255,0.45)', transition: 'all 0.15s ease', fontSize: 11 }} />
+          : <ChevronRight size={11} style={{ color: 'rgba(255,255,255,0.45)', transition: 'all 0.15s ease', fontSize: 11 }} />
         }
         <Icon size={12} style={{ color: '#818cf8', flexShrink: 0 }} />
         <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)', flex: 1 }}>

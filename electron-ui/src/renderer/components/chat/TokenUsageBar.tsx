@@ -132,7 +132,7 @@ export default function TokenUsageBar() {
             width: `${pct}%`,
             borderRadius: '0 1px 1px 0',
             background: fillColor,
-            transition: 'width 0.15s ease, background 0.15s ease',
+            transition: 'all 0.15s ease',
           }}
         />
       </div>
@@ -178,7 +178,7 @@ export default function TokenUsageBar() {
             ...(canCompact
               ? { ...(btnHovered ? { ...compactBase, ...compactHover } : compactBase) }
               : {
-                  border: '1px solid rgba(255,255,255,0.12)',
+                  border: '1px solid rgba(255,255,255,0.09)',
                   background: 'rgba(255,255,255,0.05)',
                   color: 'rgba(255,255,255,0.25)',
                 }),
@@ -210,7 +210,7 @@ export default function TokenUsageBar() {
             border: '1px solid rgba(255,255,255,0.09)',
             borderRadius: 8,
             padding: '8px 12px',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
             zIndex: 100,
             whiteSpace: 'nowrap',
             fontSize: 11,

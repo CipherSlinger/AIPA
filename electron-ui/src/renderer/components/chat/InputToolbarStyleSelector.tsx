@@ -77,7 +77,7 @@ export default function InputToolbarStyleSelector() {
             WebkitBackdropFilter: 'blur(20px)',
             border: '1px solid rgba(255,255,255,0.09)',
             borderRadius: 10,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
             padding: '4px',
             minWidth: 200,
             zIndex: 100,
@@ -121,7 +121,7 @@ export default function InputToolbarStyleSelector() {
                 onMouseEnter={(e) => {
                   if (!isSelected) {
                     e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-                    e.currentTarget.style.color = 'rgba(255,255,255,0.88)'
+                    e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
                   }
                 }}
                 onMouseLeave={(e) => {
