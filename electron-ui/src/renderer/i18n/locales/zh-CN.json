@@ -399,7 +399,10 @@
     "exitSelect": "完成",
     "selectedCount": "已选 {{count}} 项",
     "selectAll": "全选",
-    "deleteSelected": "删除所选"
+    "deleteSelected": "删除所选",
+    "pinned": "已置顶",
+    "pinSession": "置顶会话",
+    "unpinSession": "取消置顶"
   },
   "settings": {
     "title": "设置",

@@ -393,6 +393,8 @@ export default function SessionList() {
         )}
         {filtered.map((session, idx) => {
           const isPinned = pinnedIds.has(session.sessionId)
+          const prevSession = filtered[idx - 1]
+          const prevIsPinned = prevSession ? pinnedIds.has(prevSession.sessionId) : false
 
           // Date group header
           let dateHeader: React.ReactNode = null
@@ -400,7 +402,6 @@ export default function SessionList() {
           if (showDateGroups && !isPinned) {
             const group = getDateGroup(session.timestamp, t)
             isGroupCollapsed = collapsedGroups.has(group)
-            const prevSession = filtered[idx - 1]
             const prevGroup = prevSession ? (pinnedIds.has(prevSession.sessionId) ? null : getDateGroup(prevSession.timestamp, t)) : null
             if (group !== prevGroup) {
               const groupCount = dateGroupMap.get(group) || 0
@@ -423,8 +424,25 @@ export default function SessionList() {
             return null
           }
 
+          // Pinned section header (first pinned session)
+          const showPinnedHeader = isPinned && idx === 0
+          // Divider between pinned and unpinned sections
+          const showPinnedDivider = !isPinned && prevIsPinned
+
           return (
             <React.Fragment key={session.sessionId}>
+              {showPinnedHeader && (
+                <div style={{
+                  fontSize: 9, fontWeight: 700, letterSpacing: '0.07em',
+                  textTransform: 'uppercase' as const,
+                  color: 'rgba(255,255,255,0.38)', padding: '6px 12px 2px',
+                }}>
+                  {t('session.pinned')}
+                </div>
+              )}
+              {showPinnedDivider && (
+                <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', margin: '4px 12px 6px' }} />
+              )}
               {dateHeader}
               {!isGroupCollapsed && (
               <SessionItem

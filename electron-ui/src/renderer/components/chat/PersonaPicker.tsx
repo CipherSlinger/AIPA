@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { ChevronDown, Sparkles, Workflow as WorkflowIcon } from 'lucide-react'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
@@ -19,6 +19,13 @@ export default function PersonaPicker() {
   const sessionPersona = personas.find(p => p.id === sessionPersonaId)
 
   useClickOutside(pickerRef, showPicker, useCallback(() => setShowPicker(false), []))
+
+  // Allow external badge click to open the picker
+  useEffect(() => {
+    const handler = () => setShowPicker(true)
+    window.addEventListener('aipa:openPersonaPicker', handler)
+    return () => window.removeEventListener('aipa:openPersonaPicker', handler)
+  }, [])
 
   const handlePersonaSwitch = useCallback((persona: Persona | null) => {
     setShowPicker(false)
@@ -70,7 +77,7 @@ export default function PersonaPicker() {
           alignItems: 'center',
           gap: 4,
           flexShrink: 0,
-          transition: 'color 0.15s ease, background 0.15s ease, border-color 0.15s ease',
+          transition: 'all 0.15s ease',
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.color = sessionPersona ? sessionPersona.color : '#818cf8'
@@ -146,12 +153,12 @@ export default function PersonaPicker() {
               borderLeft: !sessionPersonaId ? '3px solid rgba(99,102,241,0.7)' : '3px solid transparent',
               padding: '7px 12px',
               cursor: 'pointer',
-              color: !sessionPersonaId ? '#818cf8' : 'rgba(255,255,255,0.55)',
+              color: !sessionPersonaId ? '#818cf8' : 'rgba(255,255,255,0.60)',
               fontSize: 12,
               fontStyle: 'italic',
               fontWeight: !sessionPersonaId ? 600 : 400,
               borderRadius: !sessionPersonaId ? 0 : 6,
-              transition: 'background 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
             onMouseEnter={(e) => {
               if (sessionPersonaId) {
@@ -201,7 +208,7 @@ export default function PersonaPicker() {
                   fontSize: 12,
                   fontWeight: isActive ? 600 : 400,
                   borderRadius: isActive ? 0 : 6,
-                  transition: 'background 0.15s ease',
+                  transition: 'all 0.15s ease',
                 }}
                 onMouseEnter={(e) => {
                   if (!isActive) {
@@ -266,7 +273,7 @@ export default function PersonaPicker() {
                     color: 'rgba(255,255,255,0.82)',
                     fontSize: 12,
                     fontWeight: 400,
-                    transition: 'background 0.15s ease',
+                    transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}

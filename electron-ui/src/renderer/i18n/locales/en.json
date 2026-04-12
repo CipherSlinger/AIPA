@@ -399,7 +399,10 @@
     "exitSelect": "Done",
     "selectedCount": "{{count}} selected",
     "selectAll": "Select All",
-    "deleteSelected": "Delete Selected"
+    "deleteSelected": "Delete Selected",
+    "pinned": "Pinned",
+    "pinSession": "Pin session",
+    "unpinSession": "Unpin session"
   },
   "settings": {
     "title": "Settings",

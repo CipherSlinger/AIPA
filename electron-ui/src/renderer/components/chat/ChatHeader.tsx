@@ -110,6 +110,9 @@ export default function ChatHeader({
   const activeModel = useChatStore(s => s.activeModel)
   const mcpServers = useChatStore(s => s.mcpServers)
   const setSystemInit = useChatStore(s => s.setSystemInit)
+  const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
+  const personas = usePrefsStore(s => s.prefs.personas ?? [])
+  const sessionPersona = personas.find(p => p.id === sessionPersonaId)
 
   // Subscribe to system.init events from the CLI
   useEffect(() => {
@@ -381,6 +384,31 @@ ${t('chat.clickToChangeDir')}`}
           </span>
         )
       })()}
+
+      {/* Active persona badge — shown next to model pill; click to open persona picker */}
+      {sessionPersona ? (
+        <span
+          onClick={() => window.dispatchEvent(new CustomEvent('aipa:openPersonaPicker'))}
+          title={`当前人格：${sessionPersona.name}（点击切换）`}
+          style={{
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: '0.05em',
+            color: sessionPersona.color || 'rgba(251,191,36,0.82)',
+            background: sessionPersona.color ? `${sessionPersona.color}1a` : 'rgba(251,191,36,0.10)',
+            border: `1px solid ${sessionPersona.color ? `${sessionPersona.color}38` : 'rgba(251,191,36,0.22)'}`,
+            borderRadius: 10,
+            padding: '2px 8px',
+            whiteSpace: 'nowrap',
+            cursor: 'pointer',
+            userSelect: 'none' as const,
+            flexShrink: 0,
+            transition: 'all 0.15s ease',
+          }}
+        >
+          {sessionPersona.emoji} {sessionPersona.name}
+        </span>
+      ) : null}
       </div>
 
       {/* Model quick-switcher (extracted) */}
