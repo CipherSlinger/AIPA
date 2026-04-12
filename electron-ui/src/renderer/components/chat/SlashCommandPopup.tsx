@@ -1,5 +1,5 @@
 import React from 'react'
-import { Trash2, Archive, HelpCircle, Minus, Terminal, Zap, FileText, LayoutList, RotateCcw, Download, Compass, Shield, Webhook, Server, Brain, Cpu, DollarSign, BookOpen } from 'lucide-react'
+import { Trash2, Archive, HelpCircle, Minus, Terminal, Zap, FileText, LayoutList, RotateCcw, Download, Compass, Shield, Webhook, Server, Brain, Cpu, DollarSign, BookOpen, FolderOpen } from 'lucide-react'
 import { useT } from '../../i18n'
 
 export interface SlashCommand {
@@ -9,6 +9,7 @@ export interface SlashCommand {
   icon: React.ElementType
   clientOnly?: boolean  // true = handled client-side, not sent to CLI
   category?: string    // optional grouping label
+  isCustom?: boolean   // true = loaded from .claude/commands/
 }
 
 export const SLASH_COMMANDS: SlashCommand[] = [
@@ -43,30 +44,39 @@ interface Props {
 
 export default function SlashCommandPopup({ query, onSelect, onDismiss, selectedIndex, onHover, extraCommands }: Props) {
   const t = useT()
-  const allCommands: SlashCommand[] = [
-    ...SLASH_COMMANDS,
-    ...(extraCommands || [])
-      .filter(ec => !SLASH_COMMANDS.some(bc => bc.name === ec.name))
-      .map(ec => ({ name: ec.name, description: ec.description, icon: Minus })),
-  ]
+
+  // Custom commands from .claude/commands/ with isCustom flag
+  const customCommands: SlashCommand[] = (extraCommands || [])
+    .filter(ec => !SLASH_COMMANDS.some(bc => bc.name === ec.name))
+    .map(ec => ({ name: ec.name, description: ec.description, icon: FolderOpen, isCustom: true, category: 'Custom' }))
+
+  const allCommands: SlashCommand[] = [...SLASH_COMMANDS, ...customCommands]
+
   const filtered = allCommands.filter(c =>
     !query || c.name.toLowerCase().includes(query.toLowerCase())
   )
 
   if (filtered.length === 0) return null
 
-  // Group by category when not filtering
-  const showGroups = !query && filtered.some(c => c.category)
-  const groups: { label: string; commands: SlashCommand[] }[] = []
-  if (showGroups) {
+  // When searching: show flat filtered list (mixed built-in + custom)
+  // When not searching: show two sections — built-in grouped by category, then custom
+  const isFiltering = !!query
+
+  // Build category groups for built-in commands
+  const builtinFiltered = filtered.filter(c => !c.isCustom)
+  const customFiltered = filtered.filter(c => c.isCustom)
+
+  // Group built-in commands by category
+  const builtinGroups: { label: string; commands: SlashCommand[] }[] = []
+  if (!isFiltering) {
     const seen = new Set<string>()
-    for (const cmd of filtered) {
+    for (const cmd of builtinFiltered) {
       const cat = cmd.category || 'Other'
       if (!seen.has(cat)) {
         seen.add(cat)
-        groups.push({ label: cat, commands: [] })
+        builtinGroups.push({ label: cat, commands: [] })
       }
-      groups[groups.length - 1].commands.push(cmd)
+      builtinGroups[builtinGroups.length - 1].commands.push(cmd)
     }
   }
 
@@ -107,32 +117,42 @@ export default function SlashCommandPopup({ query, onSelect, onDismiss, selected
         Commands
       </div>
 
-      <div className="slash-popup-scroll" style={{ maxHeight: 260, overflowY: 'auto' }}>
-        {showGroups ? (
-          groups.map((group) => (
-            <div key={group.label}>
-              {/* Category group header — micro-label */}
-              <div style={{
-                fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: '0.07em',
-                textTransform: 'uppercase' as const,
-                color: 'rgba(255,255,255,0.38)',
-                padding: '8px 12px 2px',
-              }}>
-                {group.label}
-              </div>
-              {group.commands.map((cmd) => {
-                flatIdx++
-                return renderCommand(cmd, flatIdx, selectedIndex, onSelect, onHover, t)
-              })}
-            </div>
-          ))
-        ) : (
+      <div className="slash-popup-scroll" style={{ maxHeight: 320, overflowY: 'auto' }}>
+        {isFiltering ? (
+          /* Flat filtered list — mixed built-in and custom */
           filtered.map((cmd) => {
             flatIdx++
             return renderCommand(cmd, flatIdx, selectedIndex, onSelect, onHover, t)
           })
+        ) : (
+          /* Grouped display: built-in by category, then custom section */
+          <>
+            {/* Built-in commands grouped by category */}
+            {builtinGroups.length > 0 && (
+              <div>
+                {builtinGroups.map((group) => (
+                  <div key={group.label}>
+                    <SectionDivider label={group.label} />
+                    {group.commands.map((cmd) => {
+                      flatIdx++
+                      return renderCommand(cmd, flatIdx, selectedIndex, onSelect, onHover, t)
+                    })}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* User custom commands section */}
+            {customFiltered.length > 0 && (
+              <div>
+                <SectionDivider label="Custom Commands" />
+                {customFiltered.map((cmd) => {
+                  flatIdx++
+                  return renderCommand(cmd, flatIdx, selectedIndex, onSelect, onHover, t)
+                })}
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -174,6 +194,34 @@ export default function SlashCommandPopup({ query, onSelect, onDismiss, selected
   )
 }
 
+/** Section divider with micro-label title */
+function SectionDivider({ label }: { label: string }) {
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      padding: '8px 12px 3px',
+    }}>
+      <span style={{
+        fontSize: 9,
+        fontWeight: 700,
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase' as const,
+        color: 'rgba(255,255,255,0.38)',
+        flexShrink: 0,
+      }}>
+        {label}
+      </span>
+      <div style={{
+        flex: 1,
+        height: 1,
+        background: 'rgba(255,255,255,0.07)',
+      }} />
+    </div>
+  )
+}
+
 function renderCommand(
   cmd: SlashCommand,
   flatIdx: number,
@@ -186,6 +234,7 @@ function renderCommand(
   const isSelected = flatIdx === selectedIndex
   const slash = cmd.name.charAt(0) === '/' ? '/' : ''
   const cmdName = slash ? cmd.name.slice(1) : cmd.name
+  const isCustom = cmd.isCustom
 
   return (
     <div
@@ -216,17 +265,19 @@ function renderCommand(
       {/* Icon container */}
       <div style={{
         width: 28, height: 28, borderRadius: 7, flexShrink: 0,
-        background: isSelected ? 'rgba(99,102,241,0.25)' : 'rgba(99,102,241,0.15)',
+        background: isSelected
+          ? (isCustom ? 'rgba(134,239,172,0.25)' : 'rgba(99,102,241,0.25)')
+          : (isCustom ? 'rgba(134,239,172,0.12)' : 'rgba(99,102,241,0.15)'),
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         transition: 'background 0.15s ease',
       }}>
-        <Icon size={13} style={{ color: isSelected ? '#a5b4fc' : '#818cf8' }} />
+        <Icon size={13} style={{ color: isCustom ? (isSelected ? '#86efac' : '#6ee7b7') : (isSelected ? '#a5b4fc' : '#818cf8') }} />
       </div>
 
       {/* Name + description */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 0 }}>
-          <span style={{ fontSize: 13, fontWeight: 500, color: '#818cf8' }}>{slash}</span>
+          <span style={{ fontSize: 13, fontWeight: 500, color: isCustom ? '#86efac' : '#818cf8' }}>{slash}</span>
           <span style={{
             fontSize: 13,
             fontWeight: 500,
@@ -248,26 +299,47 @@ function renderCommand(
         </div>
       </div>
 
-      {/* client-only badge — glass kbd style */}
-      {cmd.clientOnly && (
-        <kbd style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          background: 'rgba(255,255,255,0.06)',
-          border: '1px solid rgba(255,255,255,0.09)',
-          borderRadius: 5,
-          fontSize: 9,
-          fontWeight: 700,
-          letterSpacing: '0.04em',
-          textTransform: 'uppercase' as const,
-          color: 'rgba(255,255,255,0.38)',
-          padding: '1px 5px',
-          fontFamily: 'monospace',
-          flexShrink: 0,
-        }}>
-          client
-        </kbd>
-      )}
+      {/* Right-side badges */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+        {/* client-only badge */}
+        {cmd.clientOnly && (
+          <kbd style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.09)',
+            borderRadius: 5,
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: '0.04em',
+            textTransform: 'uppercase' as const,
+            color: 'rgba(255,255,255,0.38)',
+            padding: '1px 5px',
+            fontFamily: 'monospace',
+          }}>
+            client
+          </kbd>
+        )}
+        {/* custom badge for user-defined commands */}
+        {isCustom && (
+          <kbd style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            background: 'rgba(134,239,172,0.07)',
+            border: '1px solid rgba(134,239,172,0.18)',
+            borderRadius: 5,
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: '0.04em',
+            textTransform: 'uppercase' as const,
+            color: 'rgba(134,239,172,0.60)',
+            padding: '1px 5px',
+            fontFamily: 'monospace',
+          }}>
+            custom
+          </kbd>
+        )}
+      </div>
     </div>
   )
 }
