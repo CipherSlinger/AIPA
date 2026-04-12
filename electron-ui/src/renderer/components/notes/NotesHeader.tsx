@@ -114,7 +114,7 @@ export default function NotesHeader({
             title={`${t('notes.sort')}: ${noteSortBy === 'modified' ? t('notes.sortModified') : noteSortBy === 'created' ? t('notes.sortCreated') : t('notes.sortAlpha')}`}
             style={{
               background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.10)',
+              border: '1px solid rgba(255,255,255,0.09)',
               borderRadius: 8,
               color: 'rgba(255,255,255,0.45)',
               cursor: 'pointer',
@@ -125,7 +125,7 @@ export default function NotesHeader({
               padding: '4px 7px',
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = 'rgba(255,255,255,0.75)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
           >
             <ArrowUpDown size={11} />
@@ -140,7 +140,7 @@ export default function NotesHeader({
             title={t('notes.exportAll')}
             style={{
               background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.10)',
+              border: '1px solid rgba(255,255,255,0.09)',
               borderRadius: 8,
               color: 'rgba(255,255,255,0.45)',
               cursor: 'pointer',
@@ -150,7 +150,7 @@ export default function NotesHeader({
               fontSize: 12,
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = 'rgba(255,255,255,0.75)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
           >
             <FolderDown size={14} />
@@ -164,7 +164,7 @@ export default function NotesHeader({
           disabled={atLimit}
           style={{
             background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.10)',
+            border: '1px solid rgba(255,255,255,0.09)',
             borderRadius: 8,
             color: 'rgba(255,255,255,0.45)',
             cursor: atLimit ? 'not-allowed' : 'pointer',
@@ -175,7 +175,7 @@ export default function NotesHeader({
             opacity: atLimit ? 0.5 : 1,
             transition: 'all 0.15s ease',
           }}
-          onMouseEnter={e => { if (!atLimit) { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = 'rgba(255,255,255,0.75)' } }}
+          onMouseEnter={e => { if (!atLimit) { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' } }}
           onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
         >
           <FolderUp size={14} />
@@ -242,7 +242,7 @@ export default function NotesHeader({
               background: 'rgba(15,15,25,0.92)',
               backdropFilter: 'blur(16px)',
               WebkitBackdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.09)',
               borderRadius: 8,
               boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
               padding: '4px 0',

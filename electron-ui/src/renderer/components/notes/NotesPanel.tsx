@@ -104,7 +104,7 @@ export default function NotesPanel() {
             height: 32,
             padding: '0 8px',
             background: 'rgba(255,255,255,0.06)',
-            border: searchFocused ? '1px solid rgba(99,102,241,0.45)' : '1px solid rgba(255,255,255,0.08)',
+            border: searchFocused ? '1px solid rgba(99,102,241,0.45)' : '1px solid rgba(255,255,255,0.09)',
             borderRadius: 7,
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
@@ -142,7 +142,7 @@ export default function NotesPanel() {
                   alignItems: 'center',
                   flexShrink: 0,
                 }}
-                onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.75)')}
+                onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.82)')}
                 onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}
               >
                 <X size={12} />
