@@ -54,13 +54,13 @@ export function useAppShortcuts(
           store.clearMessages()
         }
       }
-      // Ctrl+K: Session Quick Switcher (Iteration 434)
+      // Ctrl+K: Command palette (search sessions, actions, settings)
       if (e.ctrlKey && !e.shiftKey && e.key === 'k') {
         e.preventDefault()
-        useUiStore.getState().toggleSessionSwitcher()
+        toggleCommandPalette()
       }
       // Ctrl+` was terminal toggle — removed (Iteration 404)
-      // Ctrl+Shift+P: Command palette
+      // Ctrl+Shift+P: Command palette (alias)
       if (e.ctrlKey && e.shiftKey && e.key === 'P') {
         e.preventDefault()
         toggleCommandPalette()
