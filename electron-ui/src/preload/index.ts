@@ -2,6 +2,15 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 type Unsubscribe = () => void
 
+export interface SystemInitData {
+  sessionId: string
+  tools: string[]
+  mcpServers: Array<{ name: string; status: string }>
+  model: string
+  permissionMode: string
+  cwd: string
+}
+
 const electronAPI = {
   // ── IPC readiness check ────────────────────
   ipcPing: () => ipcRenderer.invoke('ipc:ping') as Promise<{ ok: boolean; timestamp: number }>,
@@ -135,6 +144,12 @@ const electronAPI = {
       return { ch, h }
     })
     return () => handlers.forEach(({ ch, h }) => ipcRenderer.removeListener(ch, h))
+  },
+
+  onSystemInit: (cb: (data: SystemInitData) => void): Unsubscribe => {
+    const handler = (_: unknown, data: SystemInitData) => cb(data)
+    ipcRenderer.on('cli:systemInit', handler)
+    return () => ipcRenderer.removeListener('cli:systemInit', handler)
   },
 
   // ── Menu events ──────────────────────────

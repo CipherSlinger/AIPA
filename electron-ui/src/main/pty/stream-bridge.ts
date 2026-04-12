@@ -213,9 +213,22 @@ export class StreamBridge extends EventEmitter {
       case 'tool_result':
         this.emit('toolResult', { sessionId: sid, event })
         break
-      case 'system':
-        this.emit('system', { sessionId: sid, event })
+      case 'system': {
+        const parsed = event as Record<string, unknown>
+        if (parsed.subtype === 'init') {
+          this.emit('systemInit', {
+            sessionId: sid,
+            tools: (parsed.tools as string[] | undefined) ?? [],
+            mcpServers: (parsed.mcp_servers as Array<{ name: string; status: string }> | undefined) ?? [],
+            model: (parsed.model as string | undefined) ?? '',
+            permissionMode: (parsed.permissionMode as string | undefined) ?? 'default',
+            cwd: (parsed.cwd as string | undefined) ?? '',
+          })
+        } else {
+          this.emit('system', { sessionId: sid, event })
+        }
         break
+      }
       case 'result':
         // result event contains session_id for future --resume
         this.emit('result', { sessionId: sid, claudeSessionId: (event as Record<string, unknown>).session_id, event })

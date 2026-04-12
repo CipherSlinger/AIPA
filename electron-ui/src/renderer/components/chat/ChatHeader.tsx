@@ -13,7 +13,6 @@ import type { SessionChanges } from '../../hooks/useSessionChanges'
 import SaveTemplateDialog from './SaveTemplateDialog'
 import CompactButton from './CompactButton'
 import WorktreeDialog from './WorktreeDialog'
-
 interface ChatHeaderProps {
   sessionTitle: string | null
   sessionId: string | null
@@ -108,6 +107,17 @@ export default function ChatHeader({
   const titleInputRef = useRef<HTMLInputElement>(null)
   const tempSystemPrompt = useChatStore(s => s.tempSystemPrompt)
   const setTempSystemPrompt = useChatStore(s => s.setTempSystemPrompt)
+  const activeModel = useChatStore(s => s.activeModel)
+  const mcpServers = useChatStore(s => s.mcpServers)
+  const setSystemInit = useChatStore(s => s.setSystemInit)
+
+  // Subscribe to system.init events from the CLI
+  useEffect(() => {
+    const unsub = window.electronAPI.onSystemInit((data) => {
+      setSystemInit(data)
+    })
+    return unsub
+  }, [setSystemInit])
 
   // Close temp prompt popover on outside click
   useEffect(() => {
@@ -316,6 +326,64 @@ ${t('chat.clickToChangeDir')}`}
           <span style={{ fontSize: 8, opacity: 0.5, marginLeft: 2 }}>(global)</span>
         )}
       </span>
+
+      {/* MCP connection status — shown only when servers are present */}
+      {mcpServers.length > 0 && (() => {
+        const connected = mcpServers.filter(s => s.status === 'connected').length
+        const failed = mcpServers.filter(s => s.status !== 'connected').length
+        const allOk = failed === 0
+        return (
+          <span
+            title={mcpServers.map(s => `${s.name}: ${s.status}`).join('\n')}
+            style={{
+              fontSize: 9,
+              color: 'rgba(255,255,255,0.45)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 3,
+              whiteSpace: 'nowrap',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span style={{
+              width: 5,
+              height: 5,
+              borderRadius: '50%',
+              flexShrink: 0,
+              background: allOk ? 'rgba(34,197,94,0.80)' : 'rgba(239,68,68,0.80)',
+              boxShadow: allOk ? '0 0 4px rgba(34,197,94,0.5)' : '0 0 4px rgba(239,68,68,0.5)',
+              display: 'inline-block',
+              transition: 'all 0.15s ease',
+            }} />
+            {`MCP ${connected}/${mcpServers.length}`}
+            {failed > 0 && (
+              <span style={{ color: 'rgba(239,68,68,0.80)' }}>{` (${failed} err)`}</span>
+            )}
+          </span>
+        )
+      })()}
+
+      {/* Active model chip — shown when CLI reports a different model than configured */}
+      {activeModel && (
+        <span
+          title={`Active model: ${activeModel}`}
+          style={{
+            fontSize: 9,
+            color: 'rgba(255,255,255,0.45)',
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.07)',
+            borderRadius: 4,
+            padding: '1px 5px',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            maxWidth: 110,
+            transition: 'all 0.15s ease',
+          }}
+        >
+          {activeModel.replace('claude-', '').replace(/-\d{4}-\d{2}-\d{2}$/, '')}
+        </span>
+      )}
       </div>
 
       {/* Model quick-switcher (extracted) */}

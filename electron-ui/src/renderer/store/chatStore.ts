@@ -219,6 +219,13 @@ interface ChatState {
   updateHookEvent: (id: string, update: Partial<{ id: string; hookEvent: string; hookType: string; status: 'running' | 'success' | 'error'; output?: string; timestamp: number }>) => void
   clearHookEvents: () => void
 
+  // system.init data — updated at the start of each CLI session
+  availableTools: string[]
+  mcpServers: Array<{ name: string; status: string }>
+  activeModel: string
+  permissionMode: string
+  setSystemInit: (data: { sessionId: string; tools: string[]; mcpServers: Array<{ name: string; status: string }>; model: string; permissionMode: string; cwd: string }) => void
+
   // ── Tabs (Iteration 515) ──────────────────────────
   tabs: TabInfo[]
   activeTabId: string | null
@@ -258,6 +265,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
   changedFiles: [],
   tempSystemPrompt: null,
   hookEvents: [],
+  availableTools: [],
+  mcpServers: [],
+  activeModel: '',
+  permissionMode: 'default',
 
   addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
 
@@ -626,6 +637,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
     hookEvents: s.hookEvents.map(e => e.id === id ? { ...e, ...update } : e),
   })),
   clearHookEvents: () => set({ hookEvents: [] }),
+
+  // system.init handler
+  setSystemInit: (data) => set({
+    availableTools: data.tools,
+    mcpServers: data.mcpServers,
+    activeModel: data.model,
+    permissionMode: data.permissionMode,
+  }),
 
   // ── Tab actions (Iteration 515) ────────────────────
   tabs: [],
