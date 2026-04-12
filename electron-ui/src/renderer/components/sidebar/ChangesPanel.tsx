@@ -298,10 +298,10 @@ export default function ChangesPanel() {
             style={{
               width: '100%',
               padding: '7px 12px',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.07)',
               borderRadius: 7,
               background: 'rgba(255,255,255,0.03)',
-              color: 'rgba(255,255,255,0.75)',
+              color: 'rgba(255,255,255,0.60)',
               cursor: 'pointer',
               fontSize: 12,
               display: 'flex',
@@ -319,8 +319,8 @@ export default function ChangesPanel() {
             onMouseLeave={e => {
               const btn = e.currentTarget as HTMLButtonElement
               btn.style.background = 'rgba(255,255,255,0.03)'
-              btn.style.borderColor = 'rgba(255,255,255,0.08)'
-              btn.style.color = 'rgba(255,255,255,0.75)'
+              btn.style.borderColor = 'rgba(255,255,255,0.07)'
+              btn.style.color = 'rgba(255,255,255,0.60)'
             }}
           >
             <ExternalLink size={13} />

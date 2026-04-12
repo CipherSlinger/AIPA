@@ -119,7 +119,7 @@ export default function ChangesPanel({
             background: 'rgba(15,15,25,0.92)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.07)',
             boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
             borderRadius: 12,
             zIndex: 200, marginTop: 4,

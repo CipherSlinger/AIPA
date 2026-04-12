@@ -288,7 +288,6 @@ export default function FileBrowser() {
             style={{
               fontSize: 9,
               color: 'rgba(255,255,255,0.38)',
-              opacity: 0.7,
               flexShrink: 0,
               fontVariantNumeric: 'tabular-nums',
             }}
@@ -310,7 +309,7 @@ export default function FileBrowser() {
             alignItems: 'center',
             borderRadius: 4,
             padding: 2,
-            transition: 'background 0.15s, color 0.15s',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => { if (!showFilter) e.currentTarget.style.color = '#818cf8' }}
           onMouseLeave={e => { if (!showFilter) e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
@@ -328,7 +327,7 @@ export default function FileBrowser() {
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            transition: 'color 0.15s',
+            transition: 'color 0.15s ease',
           }}
           onMouseEnter={e => e.currentTarget.style.color = '#818cf8'}
           onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
@@ -347,7 +346,7 @@ export default function FileBrowser() {
             display: 'flex',
             alignItems: 'center',
             opacity: canGoUp ? 1 : 0.3,
-            transition: 'opacity 0.15s, color 0.15s',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => { if (canGoUp) e.currentTarget.style.color = '#818cf8' }}
           onMouseLeave={e => { if (canGoUp) e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
