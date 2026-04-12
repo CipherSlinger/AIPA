@@ -92,7 +92,7 @@ export default function NoteEditorHeader({
             fontSize: 11,
             fontWeight: !previewMode ? 600 : 400,
             cursor: 'pointer',
-            transition: 'background 0.15s, color 0.15s',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => { if (previewMode) e.currentTarget.style.color = 'rgba(255,255,255,0.85)' }}
           onMouseLeave={e => { if (previewMode) e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
@@ -115,7 +115,7 @@ export default function NoteEditorHeader({
             fontSize: 11,
             fontWeight: previewMode ? 600 : 400,
             cursor: 'pointer',
-            transition: 'background 0.15s, color 0.15s',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => { if (!previewMode) e.currentTarget.style.color = 'rgba(255,255,255,0.85)' }}
           onMouseLeave={e => { if (!previewMode) e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}

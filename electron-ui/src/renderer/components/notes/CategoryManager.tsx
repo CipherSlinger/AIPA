@@ -230,7 +230,7 @@ export default function CategoryManager({
               display: 'flex',
               alignItems: 'center',
               opacity: deletingCategoryId === cat.id ? 1 : 0.5,
-              transition: 'opacity 0.15s, background 0.15s',
+              transition: 'opacity 0.15s ease, background 0.15s ease',
               flexShrink: 0,
             }}
             onMouseEnter={e => {

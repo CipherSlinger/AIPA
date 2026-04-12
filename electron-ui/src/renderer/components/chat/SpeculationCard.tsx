@@ -53,7 +53,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
         display: 'flex', alignItems: 'center', gap: 8,
       }}>
         <Check size={12} style={{ color: '#4ade80', flexShrink: 0 }} />
-        <span style={{ fontSize: 11, color: 'rgba(34,197,94,0.80)' }}>Speculation accepted</span>
+        <span style={{ fontSize: 11, color: 'rgba(34,197,94,0.82)' }}>Speculation accepted</span>
       </div>
     )
   }
@@ -75,7 +75,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
         opacity: 0.60,
       }}>
         <X size={12} style={{ color: '#f87171', flexShrink: 0 }} />
-        <span style={{ fontSize: 11, color: 'rgba(248,113,113,0.75)', textDecoration: 'line-through' }}>Speculation discarded</span>
+        <span style={{ fontSize: 11, color: 'rgba(248,113,113,0.60)', textDecoration: 'line-through' }}>Speculation discarded</span>
       </div>
     )
   }
