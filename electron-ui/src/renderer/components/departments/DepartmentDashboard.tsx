@@ -1,5 +1,5 @@
 // DepartmentDashboard — org chart (all depts) or single dept session list
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Building2, FolderOpen, MessageSquarePlus, ChevronRight, ArrowLeft, Search, X } from 'lucide-react'
 import { useDepartmentStore, useSessionStore, useChatStore, useUiStore, usePrefsStore } from '../../store'
 import { SessionListItem } from '../../types/app.types'
@@ -90,13 +90,13 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
     return [...pinned, ...unpinned]
   }, [filteredSessions])
 
-  const newSession = () => {
+  const newSession = useCallback(() => {
     if (!dept) return
     setPrefs({ workingDir: dept.directory })
     window.electronAPI.prefsSet('workingDir', dept.directory)
     useChatStore.getState().clearMessages()
     useUiStore.getState().setMainView('chat')
-  }
+  }, [dept, setPrefs])
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -1679,11 +1679,14 @@ export default function DepartmentDashboard() {
 
   // Always reload sessions when DepartmentDashboard mounts
   useEffect(() => {
+    let isMounted = true
     setLoading(true)
     window.electronAPI.sessionList().then((list: any) => {
+      if (!isMounted) return
       setSessions(list || [])
       setLoading(false)
-    }).catch(() => setLoading(false))
+    }).catch(() => { if (isMounted) setLoading(false) })
+    return () => { isMounted = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // Only run on mount — always refresh sessions when entering dept view
 
