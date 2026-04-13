@@ -91,6 +91,17 @@
   /* Input focus */
   --input-focus-shadow:   0 0 0 2px rgba(0,122,204,0.15);
 
+  /* Glass-morphism surfaces (theme-aware) */
+  --glass-bg-low:    rgba(15,15,25,0.85);
+  --glass-bg-mid:    rgba(15,15,25,0.90);
+  --glass-bg-high:   rgba(15,15,25,0.96);
+  --glass-border:    rgba(255,255,255,0.07);
+  --glass-border-md: rgba(255,255,255,0.09);
+  --glass-shadow:    0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3);
+  --glass-overlay:   rgba(0,0,0,0.70);
+  --text-faint:      rgba(255,255,255,0.38);
+  --cta-gradient:    linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88));
+
   /* Task queue */
   --queue-accent:       #818cf8;
   --queue-accent-deep:  #8b5cf6;
@@ -178,6 +189,16 @@
   --queue-panel-bg:     rgba(245, 245, 247, 0.97);
   --queue-panel-border: rgba(0, 0, 0, 0.1);
   --queue-panel-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+
+  /* Glass-morphism surfaces (light theme overrides) */
+  --glass-bg-low:    rgba(240,242,250,0.85);
+  --glass-bg-mid:    rgba(240,242,250,0.90);
+  --glass-bg-high:   rgba(240,242,250,0.96);
+  --glass-border:    rgba(0,0,0,0.07);
+  --glass-border-md: rgba(0,0,0,0.09);
+  --glass-shadow:    0 4px 8px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08);
+  --glass-overlay:   rgba(0,0,0,0.50);
+  --text-faint:      rgba(15,15,35,0.38);
 }
 
 * {
