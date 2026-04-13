@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Rules
 - Never use co-author-by line while git commit
 - Update `README.md` and `README_CN.md` for every important commit
+- After every code change, run `npm run check` (from `electron-ui/`) to catch TypeScript and ESLint errors. Fix all errors before committing. Do not commit broken code.
 
 ## Project Overview
 
