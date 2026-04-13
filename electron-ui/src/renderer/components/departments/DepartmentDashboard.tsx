@@ -11,6 +11,26 @@ import { parseSessionMessages } from '../sessions/sessionUtils'
 // (inline `?? {}` in a Zustand selector causes infinite re-renders because {} !== {})
 const EMPTY_COLOR_LABELS: Record<string, string> = {}
 
+/**
+ * Convert a directory path to the Claude CLI project slug format.
+ * Claude encodes paths by replacing all separators (/ on Linux, \ on Windows)
+ * with hyphens. This is the inverse of the lossy decodeProjectSlug used in
+ * session-reader — we encode the known directory and compare to the stored slug
+ * directly, avoiding the ambiguity of hyphens-in-names vs path separators.
+ */
+function dirToSlug(dir: string, homeDir?: string): string {
+  let p = dir.replace(/\\/g, '/')
+  // Expand ~ to homeDir for comparison
+  if (homeDir && p.startsWith('~/')) {
+    p = homeDir.replace(/\/+$/, '') + p.slice(1)
+  } else if (homeDir && p === '~') {
+    p = homeDir.replace(/\/+$/, '')
+  }
+  p = p.replace(/\/+$/, '') // strip trailing slash
+  // Replace path separators with hyphens (Claude's encoding rule)
+  return p.replace(/\//g, '-')
+}
+
 // Normalize path for comparison (strip trailing slashes, normalize separators, expand ~)
 function normalizePath(p: string, homeDir?: string): string {
   let normalized = p.replace(/\\/g, '/')
@@ -60,9 +80,9 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
 
   const deptSessions = useMemo((): SessionListItem[] => {
     if (!dept) return []
-    const deptDir = normalizePath(dept.directory, homeDir)
+    const deptSlug = dirToSlug(dept.directory, homeDir)
     return allSessions
-      .filter(s => normalizePath(s.project, homeDir) === deptDir)
+      .filter(s => s.projectSlug === deptSlug)
       .sort((a, b) => b.timestamp - a.timestamp)
   }, [allSessions, dept, homeDir])
 
@@ -881,8 +901,9 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
 
   // 3 most recently active sessions across ALL departments
   const recentSessions = useMemo(() => {
+    const deptSlugs = new Set(departments.map(d => dirToSlug(d.directory, homeDir)))
     return allSessions
-      .filter(s => departments.some(d => normalizePath(d.directory, homeDir) === normalizePath(s.project, homeDir)))
+      .filter(s => deptSlugs.has(s.projectSlug))
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, 3)
   }, [allSessions, departments, homeDir])
@@ -891,9 +912,9 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
   const sessionsByDept = useMemo(() => {
     const map: Record<string, SessionListItem[]> = {}
     for (const dept of departments) {
-      const deptDir = normalizePath(dept.directory, homeDir)
+      const deptSlug = dirToSlug(dept.directory, homeDir)
       map[dept.id] = allSessions
-        .filter(s => normalizePath(s.project, homeDir) === deptDir)
+        .filter(s => s.projectSlug === deptSlug)
         .sort((a, b) => b.timestamp - a.timestamp)
     }
     return map
@@ -1060,7 +1081,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
             {recentSessions.map(session => {
-              const dept = departments.find(d => normalizePath(d.directory, homeDir) === normalizePath(session.project, homeDir))
+              const dept = departments.find(d => dirToSlug(d.directory, homeDir) === session.projectSlug)
               return (
                 <div
                   key={session.sessionId}
