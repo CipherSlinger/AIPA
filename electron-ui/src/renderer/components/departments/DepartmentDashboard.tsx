@@ -11,12 +11,14 @@ import { parseSessionMessages } from '../sessions/sessionUtils'
 // (inline `?? {}` in a Zustand selector causes infinite re-renders because {} !== {})
 const EMPTY_COLOR_LABELS: Record<string, string> = {}
 
-// Simple path normalization (no homeDir expansion) — used for session matching.
-// Both s.project (decoded from slug) and dept.directory (stored from user config or
-// auto-imported from s.project) use the same decodeProjectSlug result, so even if
-// the decode is lossy (hyphens in dir names) they still match each other.
-function simpleNormPath(p: string): string {
-  return p.replace(/\\/g, '/').replace(/\/+$/, '')
+// Encode a real directory path to Claude's project slug format.
+// Claude replaces all path separators (/ and \) and Windows drive colon (:) with hyphens.
+// Example: "C:\Users\osr\Desktop" → "C--Users-osr-Desktop"
+//          "/home/osr/AIPA"       → "-home-osr-AIPA"
+// Comparing slugs is the only reliable match — s.project (decoded from slug) is lossy
+// because decodeProjectSlug replaces ALL hyphens with separators, mangling real paths.
+function dirToSlug(dir: string): string {
+  return dir.replace(/[/\\:]/g, '-')
 }
 
 // Shared core logic for opening a session in a department directory.
@@ -56,23 +58,10 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
 
   const deptSessions = useMemo((): SessionListItem[] => {
     if (!dept) return []
-    const deptDir = simpleNormPath(dept.directory)
-    const matched = allSessions.filter(s => simpleNormPath(s.project) === deptDir)
-    // DEBUG — remove after diagnosis
-    console.log('[dept:debug]', JSON.stringify({
-      deptId: dept.id,
-      deptDirectory: dept.directory,
-      deptDir,
-      totalSessions: allSessions.length,
-      matchedCount: matched.length,
-      first5sessions: allSessions.slice(0, 5).map(s => ({
-        project: s.project,
-        projectNorm: simpleNormPath(s.project),
-        projectSlug: s.projectSlug,
-        eq: simpleNormPath(s.project) === deptDir,
-      })),
-    }, null, 2))
-    return matched.sort((a, b) => b.timestamp - a.timestamp)
+    const deptSlug = dirToSlug(dept.directory)
+    return allSessions
+      .filter(s => s.projectSlug === deptSlug)
+      .sort((a, b) => b.timestamp - a.timestamp)
   }, [allSessions, dept])
 
   const [searchQuery, setSearchQuery] = useState('')
@@ -889,9 +878,9 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
 
   // 3 most recently active sessions across ALL departments
   const recentSessions = useMemo(() => {
-    const deptDirs = new Set(departments.map(d => simpleNormPath(d.directory)))
+    const deptSlugs = new Set(departments.map(d => dirToSlug(d.directory)))
     return allSessions
-      .filter(s => deptDirs.has(simpleNormPath(s.project)))
+      .filter(s => deptSlugs.has(s.projectSlug))
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, 3)
   }, [allSessions, departments])
@@ -900,9 +889,9 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
   const sessionsByDept = useMemo(() => {
     const map: Record<string, SessionListItem[]> = {}
     for (const dept of departments) {
-      const deptDir = simpleNormPath(dept.directory)
+      const deptSlug = dirToSlug(dept.directory)
       map[dept.id] = allSessions
-        .filter(s => simpleNormPath(s.project) === deptDir)
+        .filter(s => s.projectSlug === deptSlug)
         .sort((a, b) => b.timestamp - a.timestamp)
     }
     return map
@@ -1069,7 +1058,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
             {recentSessions.map(session => {
-              const dept = departments.find(d => simpleNormPath(d.directory) === simpleNormPath(session.project))
+              const dept = departments.find(d => dirToSlug(d.directory) === session.projectSlug)
               return (
                 <div
                   key={session.sessionId}
