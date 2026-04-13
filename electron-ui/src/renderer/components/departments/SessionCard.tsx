@@ -174,7 +174,7 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
           display: 'flex',
           flexDirection: 'column',
           gap: 6,
-          transition: 'border-color 0.15s ease, background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease',
+          transition: 'all 0.15s ease',
           transform: hovered && !isActive ? 'translateY(-1px)' : 'none',
           boxShadow: isActive
             ? '0 2px 8px rgba(0,0,0,0.3)'
@@ -318,7 +318,7 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
               borderRadius: 4,
               border: 'none',
               background: 'rgba(239,68,68,0.85)',
-              color: 'rgba(255,255,255,0.95)',
+              color: 'rgba(255,255,255,0.82)',
               fontSize: 10,
               fontWeight: 600,
               cursor: 'pointer',
@@ -371,7 +371,7 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
             borderRadius: 4,
             display: 'flex',
             alignItems: 'center',
-            transition: 'background 0.15s ease, color 0.15s ease',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => {
             e.currentTarget.style.background = 'rgba(252,165,165,0.12)'
@@ -406,7 +406,7 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
             alignItems: 'center',
             fontSize: 12,
             lineHeight: 1,
-            transition: 'background 0.15s ease, color 0.15s ease',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => {
             e.currentTarget.style.background = 'rgba(251,191,36,0.15)'
@@ -440,7 +440,7 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
         <MessageSquare
           size={14}
           color={isActive ? '#818cf8' : hovered ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.45)'}
-          style={{ flexShrink: 0, marginTop: 1, transition: 'color 0.15s ease' }}
+          style={{ flexShrink: 0, marginTop: 1, transition: 'all 0.15s ease' }}
         />
         <span
           style={{
@@ -452,7 +452,7 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
-            transition: 'color 0.15s ease',
+            transition: 'all 0.15s ease',
             paddingRight: statusPill || isActive ? 72 : 0,
           }}
         >
@@ -493,7 +493,7 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
           color: '#818cf8',
           opacity: 0.85,
           pointerEvents: 'none',
-          transition: 'opacity 0.15s ease',
+          transition: 'all 0.15s ease',
         }}>
           <span>Open</span>
           <ArrowRight size={10} />
@@ -570,7 +570,7 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
                 borderRadius: 20,
                 padding: '1px 7px',
                 lineHeight: '16px',
-                transition: 'background 0.15s ease, color 0.15s ease',
+                transition: 'all 0.15s ease',
                 flexShrink: 0,
               }}
             >

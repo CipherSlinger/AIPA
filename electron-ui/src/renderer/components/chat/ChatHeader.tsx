@@ -293,7 +293,7 @@ export default function ChatHeader({
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
             cursor: sessionId && !isStreaming ? 'pointer' : 'not-allowed',
-            transition: 'color 0.15s ease',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={(e) => { if (sessionId && !isStreaming) (e.currentTarget as HTMLElement).style.color = '#818cf8' }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.82)' }}
@@ -321,7 +321,7 @@ ${t('chat.clickToChangeDir')}`}
           display: 'flex',
           alignItems: 'center',
           gap: 3,
-          transition: 'color 0.15s ease',
+          transition: 'all 0.15s ease',
         }}
         onMouseEnter={(e) => (e.currentTarget.style.color = '#818cf8')}
         onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}
@@ -414,7 +414,7 @@ ${t('chat.clickToChangeDir')}`}
             background: 'rgba(15,15,25,0.97)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.07)',
             borderRadius: 8, padding: 12, width: 300, zIndex: 200,
             boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
           }}>
@@ -438,7 +438,7 @@ ${t('chat.clickToChangeDir')}`}
                 background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)',
                 borderRadius: 8, color: 'rgba(255,255,255,0.82)', resize: 'vertical',
                 outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
-                transition: 'border-color 0.15s ease',
+                transition: 'all 0.15s ease',
               }}
             />
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 8 }}>
@@ -461,7 +461,7 @@ ${t('chat.clickToChangeDir')}`}
                 style={{
                   fontSize: 11, padding: '4px 12px',
                   background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))', border: 'none', borderRadius: 8,
-                  color: 'rgba(255,255,255,0.95)', cursor: 'pointer', transition: 'all 0.15s ease',
+                  color: 'rgba(255,255,255,0.82)', cursor: 'pointer', transition: 'all 0.15s ease',
                 }}
               >
                 {t('systemPrompt.tempSet')}

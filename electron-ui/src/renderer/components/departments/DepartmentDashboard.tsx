@@ -163,7 +163,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
             height: 30,
             borderRadius: 6,
             flexShrink: 0,
-            transition: 'background 0.15s, color 0.15s',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => {
             e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
@@ -293,7 +293,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
             fontSize: 11,
             cursor: 'pointer',
             flexShrink: 0,
-            transition: 'border-color 0.15s, color 0.15s, background 0.15s',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => {
             e.currentTarget.style.borderColor = 'rgba(34,197,94,0.4)'
@@ -324,7 +324,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
             fontSize: 12,
             cursor: 'pointer',
             flexShrink: 0,
-            transition: 'border-color 0.15s, color 0.15s, background 0.15s',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => {
             e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)'
@@ -374,12 +374,12 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
             borderRadius: 8,
             border: 'none',
             background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
-            color: 'rgba(255,255,255,0.95)',
+            color: 'rgba(255,255,255,0.82)',
             fontSize: 13,
             fontWeight: 600,
             cursor: 'pointer',
             flexShrink: 0,
-            transition: 'opacity 0.15s, box-shadow 0.15s',
+            transition: 'all 0.15s ease',
             boxShadow: '0 2px 8px rgba(99,102,241,0.35)',
           }}
           onMouseEnter={e => {
@@ -459,7 +459,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
               boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
               backdropFilter: 'blur(12px)',
               WebkitBackdropFilter: 'blur(12px)',
-              transition: 'box-shadow 0.15s ease, border-color 0.15s ease, transform 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => {
               const el = e.currentTarget as HTMLElement
@@ -538,7 +538,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
               fontSize: 12,
               boxSizing: 'border-box',
               outline: 'none',
-              transition: 'border-color 0.15s, box-shadow 0.15s',
+              transition: 'all 0.15s ease',
               boxShadow: searchFocused ? '0 0 0 3px rgba(99,102,241,0.15)' : 'none',
             }}
           />
@@ -558,7 +558,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
                 display: 'flex',
                 alignItems: 'center',
                 borderRadius: 3,
-                transition: 'color 0.15s ease',
+                transition: 'all 0.15s ease',
               }}
               onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
               onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
@@ -677,12 +677,12 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
                 borderRadius: 8,
                 border: 'none',
                 background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
-                color: 'rgba(255,255,255,0.95)',
+                color: 'rgba(255,255,255,0.82)',
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: 'pointer',
                 boxShadow: '0 4px 14px rgba(99,102,241,0.45)',
-                transition: 'opacity 0.15s, box-shadow 0.15s, transform 0.15s',
+                transition: 'all 0.15s ease',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 7,
@@ -960,7 +960,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
               fontSize: 12,
               fontWeight: 600,
               cursor: 'pointer',
-              transition: 'background 0.15s',
+              transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.18)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.1)' }}
@@ -995,7 +995,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
             fontSize: 12,
             outline: 'none',
             boxSizing: 'border-box',
-            transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+            transition: 'all 0.15s ease',
           }}
           onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
           onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.boxShadow = 'none' }}
@@ -1010,7 +1010,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
               color: 'rgba(255,255,255,0.45)', padding: 2,
               display: 'flex', alignItems: 'center',
               borderRadius: 3,
-              transition: 'color 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
             onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
@@ -1069,7 +1069,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                     borderLeft: sessionColorLabels[session.sessionId]
                       ? `4px solid ${sessionColorLabels[session.sessionId]}`
                       : undefined,
-                    transition: 'box-shadow 0.15s ease, transform 0.15s ease',
+                    transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={e => {
                     const el = e.currentTarget as HTMLElement
@@ -1117,7 +1117,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                 borderRadius: 0,
                 margin: '0 -10px 14px',
                 background: isHovered ? 'rgba(255,255,255,0.04)' : 'rgba(15,15,25,0.92)',
-                transition: 'background 0.15s ease, border-color 0.15s ease, padding-left 0.15s ease',
+                transition: 'all 0.15s ease',
                 borderLeft: `3px solid ${isHovered ? (dept.color || '#6366f1') : 'transparent'}`,
                 paddingLeft: isHovered ? 7 : 10,
                 position: 'sticky',
@@ -1156,7 +1156,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                   animation: sessions.some(s => s.sessionId === currentSessionId)
                     ? 'dept-dot-pulse 2s ease infinite'
                     : 'none',
-                  transition: 'transform 0.15s, box-shadow 0.15s',
+                  transition: 'all 0.15s ease',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.3)'; e.currentTarget.style.boxShadow = `0 0 0 3px rgba(255,255,255,0.15)` }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = `0 0 0 2px rgba(255,255,255,0.08)` }}
@@ -1214,7 +1214,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                 style={{
                   color: isHovered ? 'rgba(255,255,255,0.60)' : 'rgba(255,255,255,0.45)',
                   opacity: isHovered ? 0.8 : 0.4,
-                  transition: 'color 0.15s, opacity 0.15s',
+                  transition: 'all 0.15s ease',
                 }}
               />
             </div>
@@ -1277,7 +1277,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                 {sessions.slice(0, 6).map(session => (
                   <div
                     key={session.sessionId}
-                    style={{ position: 'relative', transition: 'box-shadow 0.15s ease, transform 0.15s ease' }}
+                    style={{ position: 'relative', transition: 'all 0.15s ease' }}
                     onMouseEnter={e => {
                       const el = e.currentTarget as HTMLElement
                       el.style.boxShadow = '0 6px 20px rgba(0,0,0,0.35)'
@@ -1309,7 +1309,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                         display: 'flex',
                         gap: 4,
                         opacity: 0,
-                        transition: 'opacity 0.15s ease',
+                        transition: 'all 0.15s ease',
                         pointerEvents: 'auto',
                       }}
                     >
@@ -1369,7 +1369,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                       cursor: 'pointer',
                       color: 'rgba(255,255,255,0.45)',
                       fontSize: 11,
-                      transition: 'border-color 0.15s, color 0.15s, background 0.15s',
+                      transition: 'all 0.15s ease',
                       background: 'rgba(255,255,255,0.02)',
                     }}
                     onMouseEnter={e => {
@@ -1405,7 +1405,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                     gap: 6,
                     cursor: 'pointer',
                     color: 'rgba(255,255,255,0.45)',
-                    transition: 'border-color 0.15s, color 0.15s, background 0.15s',
+                    transition: 'all 0.15s ease',
                     background: 'rgba(255,255,255,0.02)',
                   }}
                   onMouseEnter={e => {
@@ -1543,7 +1543,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
             gap: 6,
             justifyContent: 'center',
             marginTop: 8,
-            transition: 'border-color 0.15s, color 0.15s, background 0.15s',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => {
             e.currentTarget.style.borderColor = '#6366f1'
@@ -1594,7 +1594,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
               outline: 'none',
               boxSizing: 'border-box',
               marginBottom: 6,
-              transition: 'border-color 0.15s, box-shadow 0.15s',
+              transition: 'all 0.15s ease',
               lineHeight: 1.5,
             }}
             onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
@@ -1621,7 +1621,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
               outline: 'none',
               boxSizing: 'border-box',
               marginBottom: 6,
-              transition: 'border-color 0.15s, box-shadow 0.15s',
+              transition: 'all 0.15s ease',
               lineHeight: 1.5,
             }}
             onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
@@ -1636,9 +1636,9 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                 background: (!newDeptName.trim() || !newDeptDir.trim())
                   ? 'rgba(99,102,241,0.25)'
                   : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
-                color: 'rgba(255,255,255,0.95)', fontSize: 11, fontWeight: 600,
+                color: 'rgba(255,255,255,0.82)', fontSize: 11, fontWeight: 600,
                 cursor: (!newDeptName.trim() || !newDeptDir.trim()) ? 'not-allowed' : 'pointer',
-                transition: 'box-shadow 0.15s, transform 0.15s',
+                transition: 'all 0.15s ease',
                 boxShadow: (!newDeptName.trim() || !newDeptDir.trim()) ? 'none' : '0 2px 10px rgba(99,102,241,0.3)',
               }}
               onMouseEnter={e => { if (newDeptName.trim() && newDeptDir.trim()) { e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'; e.currentTarget.style.transform = 'translateY(-1px)' } }}

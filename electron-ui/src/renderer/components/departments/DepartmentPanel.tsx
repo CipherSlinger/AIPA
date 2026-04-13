@@ -136,7 +136,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
           marginBottom: 7,
           boxSizing: 'border-box',
           outline: 'none',
-          transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+          transition: 'all 0.15s ease',
           boxShadow: nameFocused ? '0 0 0 3px rgba(99,102,241,0.10)' : 'none',
         }}
       />
@@ -174,7 +174,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
               padding: 2,
               display: 'flex',
               borderRadius: 3,
-              transition: 'color 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
             onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
@@ -204,7 +204,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
               fontFamily: 'monospace',
               marginBottom: 5,
               boxShadow: '0 0 0 3px rgba(99,102,241,0.10)',
-              transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
           />
           {createError && (
@@ -231,12 +231,12 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
                 background: creating
                   ? 'rgba(255,255,255,0.08)'
                   : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
-                color: creating ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.95)',
+                color: creating ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.82)',
                 fontSize: 11,
                 fontWeight: 600,
                 cursor: creating ? 'not-allowed' : 'pointer',
                 opacity: creating ? 0.4 : 1,
-                transition: 'box-shadow 0.15s ease, transform 0.15s ease',
+                transition: 'all 0.15s ease',
               }}
               onMouseEnter={e => { if (!creating) { e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'; e.currentTarget.style.transform = 'translateY(-1px)' } }}
               onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}
@@ -279,7 +279,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
               display: 'flex',
               alignItems: 'center',
               gap: 5,
-              transition: 'border-color 0.15s ease, color 0.15s ease, background 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => {
               e.currentTarget.style.borderColor = '#6366f1'
@@ -309,7 +309,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
               display: 'flex',
               alignItems: 'center',
               gap: 4,
-              transition: 'border-color 0.15s ease, color 0.15s ease, background 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => {
               e.currentTarget.style.borderColor = '#6366f1'
@@ -339,12 +339,12 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
             background: (!name.trim() || !directory)
               ? 'rgba(99,102,241,0.25)'
               : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
-            color: (!name.trim() || !directory) ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.95)',
+            color: (!name.trim() || !directory) ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.82)',
             fontSize: 11,
             fontWeight: 600,
             cursor: (!name.trim() || !directory) ? 'not-allowed' : 'pointer',
             opacity: (!name.trim() || !directory) ? 0.4 : 1,
-            transition: 'box-shadow 0.15s ease, transform 0.15s ease',
+            transition: 'all 0.15s ease',
             boxShadow: (!name.trim() || !directory) ? 'none' : '0 2px 8px rgba(99,102,241,0.3)',
           }}
           onMouseEnter={e => { if (name.trim() && directory) { e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'; e.currentTarget.style.transform = 'translateY(-1px)' } }}
@@ -504,7 +504,7 @@ function DepartmentRow({
           opacity: hovered ? 0.5 : 0,
           cursor: 'grab',
           flexShrink: 0,
-          transition: 'opacity 0.15s',
+          transition: 'all 0.15s ease',
         }}
       />
 
@@ -529,7 +529,7 @@ function DepartmentRow({
           cursor: 'pointer',
           padding: 0,
           boxShadow: hovered ? '0 0 0 2px rgba(255,255,255,0.38)' : '0 0 0 1.5px rgba(255,255,255,0.1)',
-          transition: 'box-shadow 0.15s ease, transform 0.15s ease',
+          transition: 'all 0.15s ease',
           transform: hovered ? 'scale(1.2)' : 'scale(1)',
         }}
       />
@@ -551,7 +551,7 @@ function DepartmentRow({
             fontSize: 12,
             outline: 'none',
             boxShadow: '0 0 0 3px rgba(99,102,241,0.10)',
-            transition: 'border-color 0.15s ease',
+            transition: 'all 0.15s ease',
           }}
         />
       ) : (
@@ -605,7 +605,7 @@ function DepartmentRow({
         <span style={{
           fontSize: 9,
           fontWeight: 700,
-          color: 'rgba(255,255,255,0.95)',
+          color: 'rgba(255,255,255,0.82)',
           background: '#f87171',
           borderRadius: 20,
           padding: '1px 5px',
@@ -773,7 +773,7 @@ function DepartmentRow({
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.82)', marginBottom: 8 }}>{t('dept.confirmDelete')}</div>
           <div style={{ display: 'flex', gap: 6 }}>
             <button onClick={() => { removeDepartment(dept.id); setConfirmDelete(false); if (isActive) useUiStore.getState().setMainView('chat') }}
-              style={{ flex: 1, padding: '5px 0', borderRadius: 5, border: 'none', background: '#f87171', color: 'rgba(255,255,255,0.95)', fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s ease' }}
+              style={{ flex: 1, padding: '5px 0', borderRadius: 5, border: 'none', background: '#f87171', color: 'rgba(255,255,255,0.82)', fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s ease' }}
               onMouseEnter={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.85)' }}
               onMouseLeave={e => { e.currentTarget.style.background = '#f87171' }}
             >
@@ -967,7 +967,7 @@ export default function DepartmentPanel() {
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: 600,
-              transition: 'background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => {
               e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.38), rgba(139,92,246,0.32))'
@@ -1031,7 +1031,7 @@ export default function DepartmentPanel() {
                 fontSize: 11,
                 fontWeight: 600,
                 cursor: 'pointer',
-                transition: 'background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease',
+                transition: 'all 0.15s ease',
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(99,102,241,0.12))'
@@ -1103,7 +1103,7 @@ export default function DepartmentPanel() {
             cursor: 'pointer',
             flexShrink: 0,
             width: 'calc(100% - 20px)',
-            transition: 'border-color 0.15s ease, color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => {
             e.currentTarget.style.borderColor = 'rgba(99,102,241,0.55)'
