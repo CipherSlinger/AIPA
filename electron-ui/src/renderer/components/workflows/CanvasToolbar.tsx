@@ -172,7 +172,7 @@ export default function CanvasToolbar({
               padding: '2px 4px',
               background: 'transparent',
               border: 'none',
-              color: 'rgba(255,255,255,0.88)',
+              color: 'rgba(255,255,255,0.82)',
               outline: 'none',
             }}
           />
@@ -603,7 +603,7 @@ export default function CanvasToolbar({
               }}
               onMouseDown={e => e.stopPropagation()}
             >
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.88)', marginBottom: 10, letterSpacing: '0.04em' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.82)', marginBottom: 10, letterSpacing: '0.04em' }}>
                 KEYBOARD SHORTCUTS
               </div>
               {[

@@ -181,7 +181,7 @@ export default function StatusBarModelPicker({ modelLabel, shortModel, isClaudeM
                       borderRight: 'none',
                       borderBottom: 'none',
                       borderRadius: isActive ? 0 : 5,
-                      color: isActive ? '#818cf8' : 'rgba(255,255,255,0.72)',
+                      color: isActive ? '#818cf8' : 'rgba(255,255,255,0.60)',
                       cursor: 'pointer',
                       textAlign: 'left',
                       transition: 'all 0.15s ease',

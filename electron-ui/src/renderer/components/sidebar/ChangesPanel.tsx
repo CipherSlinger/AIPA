@@ -170,13 +170,13 @@ export default function ChangesPanel() {
                 justifyContent: 'center',
               }}
             >
-              <GitBranch size={20} style={{ color: 'rgba(255,255,255,0.25)' }} />
+              <GitBranch size={20} style={{ color: 'rgba(255,255,255,0.38)' }} />
             </span>
             <div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginBottom: 3 }}>
                 {t('changes.noChanges')}
               </div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)' }}>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)' }}>
                 {t('changes.noChangesHint')}
               </div>
             </div>
@@ -215,7 +215,7 @@ export default function ChangesPanel() {
                         cursor: 'pointer',
                         textAlign: 'left',
                         borderRadius: 6,
-                        transition: 'background 0.15s ease',
+                        transition: 'all 0.15s ease',
                       }}
                       onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.05)' }}
                       onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = isOpen ? 'rgba(255,255,255,0.05)' : 'transparent' }}
@@ -314,7 +314,7 @@ export default function ChangesPanel() {
               const btn = e.currentTarget as HTMLButtonElement
               btn.style.background = 'rgba(99,102,241,0.08)'
               btn.style.borderColor = 'rgba(99,102,241,0.30)'
-              btn.style.color = 'rgba(255,255,255,0.90)'
+              btn.style.color = 'rgba(255,255,255,0.82)'
             }}
             onMouseLeave={e => {
               const btn = e.currentTarget as HTMLButtonElement

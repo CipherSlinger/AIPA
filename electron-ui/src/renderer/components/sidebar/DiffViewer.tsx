@@ -48,7 +48,7 @@ const lineStyles: Record<LineType, React.CSSProperties> = {
     borderLeft: '2px solid rgba(99,102,241,0.20)',
   },
   header: {
-    color: 'rgba(255,255,255,0.65)',
+    color: 'rgba(255,255,255,0.60)',
     background: 'rgba(255,255,255,0.03)',
     borderLeft: '2px solid transparent',
   },
@@ -72,7 +72,7 @@ export default function DiffViewer({ diff }: DiffViewerProps) {
       <div
         style={{
           background: 'rgba(10,10,18,0.95)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid rgba(255,255,255,0.09)',
           borderRadius: 8,
           overflow: 'hidden',
           fontFamily: 'monospace',
@@ -94,7 +94,7 @@ export default function DiffViewer({ diff }: DiffViewerProps) {
     <div
       style={{
         background: 'rgba(10,10,18,0.95)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '1px solid rgba(255,255,255,0.09)',
         borderRadius: 8,
         overflow: 'hidden',
         fontFamily: 'monospace',
@@ -112,10 +112,10 @@ export default function DiffViewer({ diff }: DiffViewerProps) {
             justifyContent: 'space-between',
             padding: '8px 12px',
             background: 'rgba(255,255,255,0.03)',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            borderBottom: '1px solid rgba(255,255,255,0.09)',
           }}
         >
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', fontFamily: 'monospace' }}>
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.60)', fontFamily: 'monospace' }}>
             {filename}
           </span>
         </div>
@@ -131,7 +131,7 @@ export default function DiffViewer({ diff }: DiffViewerProps) {
                   color: 'rgba(255,255,255,0.38)',
                   textAlign: 'right',
                   minWidth: 36,
-                  borderRight: '1px solid rgba(255,255,255,0.06)',
+                  borderRight: '1px solid rgba(255,255,255,0.09)',
                   fontSize: 10,
                   verticalAlign: 'top',
                   fontVariantNumeric: 'tabular-nums',

@@ -72,7 +72,7 @@ export default function ReminderSection({
           cursor: 'pointer',
           marginBottom: remindersExpanded ? 8 : 0,
           padding: '2px 0',
-          transition: 'opacity 0.15s ease',
+          transition: 'all 0.15s ease',
         }}
         onClick={() => setRemindersExpanded(!remindersExpanded)}
       >
@@ -81,7 +81,7 @@ export default function ReminderSection({
             style={{
               display: 'flex',
               alignItems: 'center',
-              transition: 'transform 0.15s ease',
+              transition: 'all 0.15s ease',
               transform: remindersExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
             }}
           >
@@ -120,10 +120,10 @@ export default function ReminderSection({
           onClick={(e) => { e.stopPropagation(); setShowReminderForm(true); setRemindersExpanded(true) }}
           style={{
             background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.10)',
+            border: '1px solid rgba(255,255,255,0.09)',
             borderRadius: 6,
             cursor: 'pointer',
-            color: 'rgba(255,255,255,0.55)',
+            color: 'rgba(255,255,255,0.60)',
             display: 'flex',
             alignItems: 'center',
             padding: '2px 5px',
@@ -132,11 +132,11 @@ export default function ReminderSection({
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = 'rgba(255,255,255,0.10)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.85)'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.55)'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
           }}
         >
           <Plus size={12} />
@@ -230,9 +230,9 @@ export default function ReminderSection({
                           style={{
                             padding: '3px 8px',
                             borderRadius: 10,
-                            border: '1px solid rgba(255,255,255,0.10)',
+                            border: '1px solid rgba(255,255,255,0.09)',
                             background: 'rgba(255,255,255,0.06)',
-                            color: 'rgba(255,255,255,0.72)',
+                            color: 'rgba(255,255,255,0.60)',
                             fontSize: 10,
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
@@ -244,8 +244,8 @@ export default function ReminderSection({
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-                            e.currentTarget.style.color = 'rgba(255,255,255,0.72)'
-                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+                            e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
                           }}
                         >
                           {t(preset.labelKey)}
@@ -257,7 +257,7 @@ export default function ReminderSection({
                         style={{
                           padding: '3px 8px',
                           borderRadius: 10,
-                          border: '1px solid rgba(255,255,255,0.08)',
+                          border: '1px solid rgba(255,255,255,0.09)',
                           background: 'rgba(255,255,255,0.04)',
                           color: 'rgba(255,255,255,0.38)',
                           fontSize: 10,
@@ -267,12 +267,12 @@ export default function ReminderSection({
                         onMouseEnter={(e) => {
                           e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
                           e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
-                          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)'
+                          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
                           e.currentTarget.style.color = 'rgba(255,255,255,0.38)'
-                          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+                          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
                         }}
                       >
                         {t('reminders.cancel')}
@@ -385,7 +385,7 @@ export default function ReminderSection({
                             borderRadius: 8,
                             fontSize: 10,
                             cursor: 'pointer',
-                            border: '1px solid rgba(255,255,255,0.08)',
+                            border: '1px solid rgba(255,255,255,0.09)',
                             background: 'rgba(255,255,255,0.04)',
                             color: 'rgba(255,255,255,0.38)',
                             transition: 'all 0.15s ease',
@@ -393,12 +393,12 @@ export default function ReminderSection({
                           onMouseEnter={(e) => {
                             e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
                             e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
-                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)'
+                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
                             e.currentTarget.style.color = 'rgba(255,255,255,0.38)'
-                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
                           }}
                         >
                           {t('reminders.cancel')}
@@ -487,7 +487,7 @@ function ReminderRow({ reminder, onDelete, formatTimeLeft }: {
     >
       <Clock size={12} style={{ color: iconColor, flexShrink: 0, marginTop: 2, filter: `drop-shadow(0 0 3px ${iconColor}66)` }} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, color: textColor, lineHeight: 1.4, wordBreak: 'break-word', transition: 'color 0.15s ease' }}>
+        <div style={{ fontSize: 12, color: textColor, lineHeight: 1.4, wordBreak: 'break-word', transition: 'all 0.15s ease' }}>
           {reminder.text}
           {reminder.recurring && (
             <RefreshCw size={9} style={{ display: 'inline', marginLeft: 4, color: '#a78bfa', verticalAlign: 'middle' }} />
@@ -502,7 +502,7 @@ function ReminderRow({ reminder, onDelete, formatTimeLeft }: {
             fontVariantNumeric: 'tabular-nums',
             fontFeatureSettings: '"tnum"',
             letterSpacing: '0.02em',
-            transition: 'color 0.15s ease',
+            transition: 'all 0.15s ease',
           }}
         >
           {humanFreq || formatTimeLeft(reminder.fireAt)}

@@ -111,7 +111,7 @@ ${trimmedDesc}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
             color: 'rgba(255,255,255,0.60)', display: 'flex', alignItems: 'center',
-            padding: '5px', borderRadius: 6, transition: 'background 0.15s, color 0.15s',
+            padding: '5px', borderRadius: 6, transition: 'all 0.15s ease',
           }}
           onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
@@ -145,7 +145,7 @@ ${trimmedDesc}
               color: 'rgba(255,255,255,0.45)',
             }}>
               <CheckCircle size={48} style={{ color: '#4ade80' }} />
-              <span style={{ fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.92)' }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.82)' }}>
                 {t('skill.createSuccess')}
               </span>
               <span style={{ fontSize: 12, opacity: 0.7 }}>{t('skill.redirecting')}</span>
@@ -157,7 +157,7 @@ ${trimmedDesc}
               {/* Skill Name section */}
               <div style={{
                 background: 'rgba(15,15,25,0.90)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.09)',
                 borderRadius: 12,
                 padding: '16px 20px',
                 marginBottom: 12,
@@ -194,7 +194,7 @@ ${trimmedDesc}
                     fontFamily: 'inherit',
                     outline: 'none',
                     boxSizing: 'border-box',
-                    transition: 'border-color 0.15s ease',
+                    transition: 'all 0.15s ease',
                     opacity: isCreating ? 0.6 : 1,
                   }}
                   onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)' }}
@@ -208,7 +208,7 @@ ${trimmedDesc}
               {/* Description / System Prompt section */}
               <div style={{
                 background: 'rgba(15,15,25,0.90)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.09)',
                 borderRadius: 12,
                 padding: '16px 20px',
                 marginBottom: 12,
@@ -245,7 +245,7 @@ ${trimmedDesc}
                     resize: 'vertical',
                     lineHeight: 1.5,
                     boxSizing: 'border-box',
-                    transition: 'border-color 0.15s ease',
+                    transition: 'all 0.15s ease',
                     opacity: isCreating ? 0.6 : 1,
                     minHeight: 160,
                   }}
@@ -290,12 +290,12 @@ ${trimmedDesc}
                     fontSize: 13,
                     fontWeight: 500,
                     cursor: isCreating ? 'not-allowed' : 'pointer',
-                    transition: 'border-color 0.15s, color 0.15s, background 0.15s',
+                    transition: 'all 0.15s ease',
                     opacity: isCreating ? 0.5 : 1,
                   }}
                   onMouseEnter={(e) => {
                     if (!isCreating) {
-                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
                       e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
                       e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
                     }
@@ -318,7 +318,7 @@ ${trimmedDesc}
                     borderRadius: 8,
                     border: 'none',
                     background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
-                    color: 'rgba(255,255,255,0.95)',
+                    color: 'rgba(255,255,255,0.82)',
                     fontSize: 13,
                     fontWeight: 600,
                     cursor: canCreate ? 'pointer' : 'not-allowed',
@@ -336,7 +336,7 @@ ${trimmedDesc}
                       <span style={{
                         width: 12, height: 12, borderRadius: '50%',
                         border: '2px solid rgba(255,255,255,0.3)',
-                        borderTopColor: 'rgba(255,255,255,0.95)',
+                        borderTopColor: 'rgba(255,255,255,0.82)',
                         animation: 'spin 0.8s linear infinite',
                         flexShrink: 0,
                       }} />

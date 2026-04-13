@@ -180,20 +180,20 @@ export default function CommandPalette({
           cursor: 'pointer',
           background: isSelected ? 'rgba(99,102,241,0.14)' : 'transparent',
           borderLeft: isSelected ? '2px solid rgba(99,102,241,0.60)' : '2px solid transparent',
-          transition: 'background 0.15s ease',
+          transition: 'all 0.15s ease',
         }}
       >
         {/* Icon */}
         <span
           style={{
-            color: isSelected ? '#818cf8' : 'rgba(255,255,255,0.50)',
+            color: isSelected ? '#818cf8' : 'rgba(255,255,255,0.60)',
             display: 'flex',
             alignItems: 'center',
             flexShrink: 0,
             width: 16,
             height: 16,
             justifyContent: 'center',
-            transition: 'color 0.15s ease',
+            transition: 'all 0.15s ease',
           }}
         >
           {cmd.icon}
@@ -209,7 +209,7 @@ export default function CommandPalette({
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
-              transition: 'color 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
           >
             {cmd.name}
@@ -237,7 +237,7 @@ export default function CommandPalette({
               color: 'rgba(255,255,255,0.45)',
               marginLeft: 'auto',
               background: 'rgba(255,255,255,0.08)',
-              border: '1px solid rgba(255,255,255,0.10)',
+              border: '1px solid rgba(255,255,255,0.09)',
               borderRadius: 5,
               padding: '2px 6px',
               fontFamily: 'monospace',
@@ -260,7 +260,7 @@ export default function CommandPalette({
               marginLeft: 'auto',
               flexShrink: 0,
               background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.07)',
               borderRadius: 4,
               padding: '1px 5px',
             }}
@@ -441,7 +441,7 @@ export default function CommandPalette({
 
 const kbdStyle: React.CSSProperties = {
   background: 'rgba(255,255,255,0.08)',
-  border: '1px solid rgba(255,255,255,0.12)',
+  border: '1px solid rgba(255,255,255,0.09)',
   borderRadius: 5,
   padding: '1px 5px',
   fontSize: 9,

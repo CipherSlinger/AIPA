@@ -113,7 +113,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                   <div style={{
                     ...styles.stepConnector,
                     background: step > s ? 'rgba(99,102,241,0.50)' : 'rgba(255,255,255,0.10)',
-                    transition: 'background 0.15s ease',
+                    transition: 'all 0.15s ease',
                   }} />
                 )}
               </React.Fragment>
@@ -135,7 +135,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                   : isDone
                     ? 'rgba(255,255,255,0.60)'
                     : 'rgba(255,255,255,0.38)',
-                transition: 'color 0.15s ease',
+                transition: 'all 0.15s ease',
                 letterSpacing: '0.04em',
               }}>
                 {s === 1 ? t('onboarding.getStarted') : t('onboarding.enterApiKey')}
@@ -259,7 +259,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                 onClick={() => setStep(1)}
                 onMouseEnter={e => {
                   e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
                   e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
                   e.currentTarget.style.transform = 'translateY(-1px)'
                 }}
@@ -438,7 +438,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 13,
     outline: 'none',
     fontFamily: 'monospace',
-    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+    transition: 'all 0.15s ease',
     boxSizing: 'border-box' as const,
   },
   link: {
@@ -446,7 +446,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'rgba(99,102,241,0.9)',
     textDecoration: 'none',
     cursor: 'pointer',
-    transition: 'text-decoration 0.15s ease',
+    transition: 'all 0.15s ease',
   },
   folderDisplay: {
     width: '100%',
@@ -471,7 +471,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '10px 28px',
     height: '42px',
     background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
-    color: 'rgba(255,255,255,0.95)',
+    color: 'rgba(255,255,255,0.82)',
     border: 'none',
     borderRadius: 8,
     fontSize: 14,

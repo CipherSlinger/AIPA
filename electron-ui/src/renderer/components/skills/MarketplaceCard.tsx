@@ -126,7 +126,7 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
                   color: 'rgba(255,255,255,0.45)',
                   fontSize: 9,
                   cursor: 'pointer',
-                  transition: 'color 0.15s, border-color 0.15s',
+                  transition: 'all 0.15s ease',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.color = '#a5b4fc'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)' }}
                 onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)' }}
@@ -183,7 +183,7 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
                 gap: 4,
                 padding: '4px 10px',
                 background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
-                color: 'rgba(255,255,255,0.95)',
+                color: 'rgba(255,255,255,0.82)',
                 border: 'none',
                 borderRadius: 6,
                 fontSize: 11,

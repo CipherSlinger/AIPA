@@ -70,7 +70,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
         alignItems: 'center',
         gap: 3,
         fontSize: 9,
-        transition: 'color 0.15s ease',
+        transition: 'all 0.15s ease',
       }}
       onMouseEnter={e => { if (!copied) e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
       onMouseLeave={e => { if (!copied) e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
@@ -218,7 +218,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
           }}>
             {stepIndex + 1}
           </div>
-          <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.3, color: 'rgba(255,255,255,0.88)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.3, color: 'rgba(255,255,255,0.82)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {displayTitle}
           </span>
           {/* Node type pill */}
@@ -317,7 +317,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
                   resize: 'vertical',
                   fontFamily: 'monospace',
                   boxSizing: 'border-box',
-                  transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+                  transition: 'all 0.15s ease',
                 }}
               />
               <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)', marginTop: 3 }}>
@@ -333,11 +333,11 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
                     borderRadius: 7,
                     border: 'none',
                     background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
-                    color: 'rgba(255,255,255,0.95)',
+                    color: 'rgba(255,255,255,0.82)',
                     fontSize: 10,
                     fontWeight: 600,
                     cursor: 'pointer',
-                    transition: 'box-shadow 0.15s ease, transform 0.15s ease',
+                    transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
                   onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}
@@ -374,7 +374,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
               border: '1px solid rgba(255,255,255,0.07)',
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
-              transition: 'border-color 0.15s ease',
+              transition: 'all 0.15s ease',
             }}>
               {displayPrompt}
             </div>

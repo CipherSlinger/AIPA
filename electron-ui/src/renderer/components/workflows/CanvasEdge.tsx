@@ -200,7 +200,7 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
         <g
           style={{
             opacity: isHoveredLocally ? 1 : 0,
-            transition: 'opacity 0.15s ease',
+            transition: 'all 0.15s ease',
             cursor: 'pointer',
             pointerEvents: 'all',
             filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))',
@@ -222,7 +222,7 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
             style={{
               fontSize: '14px',
               fontWeight: 700,
-              fill: 'rgba(255,255,255,0.9)',
+              fill: 'rgba(255,255,255,0.82)',
               userSelect: 'none',
               pointerEvents: 'none',
             }}

@@ -174,7 +174,7 @@ export default function CommandPalette({
             alignItems: 'center',
             gap: 10,
             padding: '14px 18px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            borderBottom: '1px solid rgba(255,255,255,0.09)',
           }}
         >
           <Search size={17} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
@@ -244,7 +244,7 @@ export default function CommandPalette({
                   width: 16,
                   height: 16,
                   justifyContent: 'center',
-                  transition: 'color 0.15s ease',
+                  transition: 'all 0.15s ease',
                 }}
               >
                 {cmd.icon}
@@ -257,7 +257,7 @@ export default function CommandPalette({
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
-                    transition: 'color 0.15s ease',
+                    transition: 'all 0.15s ease',
                   }}
                 >
                   {cmd.name}
@@ -281,7 +281,7 @@ export default function CommandPalette({
                     color: 'rgba(255,255,255,0.45)',
                     marginLeft: 'auto',
                     background: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.10)',
+                    border: '1px solid rgba(255,255,255,0.09)',
                     borderRadius: 5,
                     padding: '2px 6px',
                     fontFamily: 'monospace',
@@ -302,7 +302,7 @@ export default function CommandPalette({
                     marginLeft: cmd.shortcut ? 0 : 'auto',
                     flexShrink: 0,
                     background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.07)',
                     borderRadius: 4,
                     padding: '1px 5px',
                   }}

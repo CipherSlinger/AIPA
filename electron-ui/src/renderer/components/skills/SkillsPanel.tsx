@@ -154,7 +154,7 @@ export default function SkillsPanel() {
             title={t('skills.marketplace')}
             style={{
               background: 'none',
-              border: '1px solid rgba(255,255,255,0.12)',
+              border: '1px solid rgba(255,255,255,0.09)',
               borderRadius: 6,
               color: 'rgba(255,255,255,0.45)',
               cursor: 'pointer',
@@ -164,10 +164,10 @@ export default function SkillsPanel() {
               padding: '4px 8px',
               fontSize: 11,
               fontWeight: 500,
-              transition: 'border-color 0.15s ease, color 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; e.currentTarget.style.color = '#818cf8' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
           >
             <Store size={14} />
             {t('skills.marketplace')}
@@ -178,7 +178,7 @@ export default function SkillsPanel() {
             title={t('skills.createSkill')}
             style={{
               background: 'none',
-              border: '1px solid rgba(255,255,255,0.12)',
+              border: '1px solid rgba(255,255,255,0.09)',
               borderRadius: 6,
               color: 'rgba(255,255,255,0.45)',
               cursor: 'pointer',
@@ -188,10 +188,10 @@ export default function SkillsPanel() {
               padding: '4px 8px',
               fontSize: 11,
               fontWeight: 500,
-              transition: 'border-color 0.15s ease, color 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; e.currentTarget.style.color = '#818cf8' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
           >
             <Plus size={14} />
             {t('skills.create')}
@@ -203,7 +203,7 @@ export default function SkillsPanel() {
             disabled={loading}
             style={{
               background: 'none',
-              border: '1px solid rgba(255,255,255,0.12)',
+              border: '1px solid rgba(255,255,255,0.09)',
               borderRadius: 6,
               color: 'rgba(255,255,255,0.45)',
               cursor: 'pointer',
@@ -211,11 +211,11 @@ export default function SkillsPanel() {
               alignItems: 'center',
               padding: '4px 8px',
               fontSize: 12,
-              transition: 'border-color 0.15s ease, color 0.15s ease',
+              transition: 'all 0.15s ease',
               opacity: loading ? 0.4 : 1,
             }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; e.currentTarget.style.color = '#818cf8' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
           >
             <RefreshCw size={14} style={{ animation: loading ? 'spin 1s linear infinite' : undefined }} />
           </button>
@@ -233,7 +233,7 @@ export default function SkillsPanel() {
           background: 'rgba(255,255,255,0.06)',
           border: '1px solid rgba(255,255,255,0.09)',
           borderRadius: 7,
-          transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+          transition: 'all 0.15s ease',
         }}>
           <Search size={14} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
           <input
@@ -319,7 +319,7 @@ export default function SkillsPanel() {
             padding: '40px 20px',
             textAlign: 'center',
           }}>
-            <Puzzle size={40} style={{ color: 'rgba(255,255,255,0.15)', marginBottom: 12 }} />
+            <Puzzle size={40} style={{ color: 'rgba(255,255,255,0.38)', marginBottom: 12 }} />
             <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 6, color: 'rgba(255,255,255,0.38)' }}>
               {t('skills.noSkills')}
             </div>
@@ -335,7 +335,7 @@ export default function SkillsPanel() {
                   gap: 6,
                   padding: '8px 16px',
                   background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
-                  color: 'rgba(255,255,255,0.95)',
+                  color: 'rgba(255,255,255,0.82)',
                   border: 'none',
                   borderRadius: 8,
                   fontSize: 12,
@@ -365,7 +365,7 @@ export default function SkillsPanel() {
                   padding: '8px 16px',
                   background: 'rgba(255,255,255,0.04)',
                   color: 'rgba(255,255,255,0.60)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.09)',
                   borderRadius: 8,
                   fontSize: 12,
                   fontWeight: 500,
@@ -373,12 +373,12 @@ export default function SkillsPanel() {
                   transition: 'all 0.15s ease',
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
                   e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
                   e.currentTarget.style.transform = 'translateY(-1px)'
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
                   e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
                   e.currentTarget.style.transform = 'translateY(0)'
                 }}

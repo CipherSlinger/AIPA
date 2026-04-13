@@ -95,7 +95,7 @@ export default function SkillMarketplacePage() {
             alignItems: 'center',
             padding: '5px',
             borderRadius: 6,
-            transition: 'background 0.15s, color 0.15s',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
           onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
@@ -103,7 +103,7 @@ export default function SkillMarketplacePage() {
           <ArrowLeft size={16} />
         </button>
         <Store size={16} style={{ color: '#818cf8' }} />
-        <span style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.90)', flex: 1, lineHeight: 1.3, letterSpacing: '-0.01em' }}>
+        <span style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.82)', flex: 1, lineHeight: 1.3, letterSpacing: '-0.01em' }}>
           {t('skills.marketplace')}
         </span>
         <span style={{
@@ -141,7 +141,7 @@ export default function SkillMarketplacePage() {
             : '1px solid rgba(255,255,255,0.09)',
           background: 'rgba(255,255,255,0.06)',
           boxShadow: searchFocused ? '0 0 0 3px rgba(99,102,241,0.12)' : 'none',
-          transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+          transition: 'all 0.15s ease',
           boxSizing: 'border-box' as const,
         }}>
           <input

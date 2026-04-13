@@ -128,7 +128,7 @@ function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, conta
         background: 'rgba(12,12,22,0.90)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '1px solid rgba(255,255,255,0.09)',
         borderRadius: 8,
         overflow: 'hidden',
         width: MINIMAP_W,
@@ -994,7 +994,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             background: 'rgba(15,15,25,0.82)',
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.09)',
             borderRadius: 20,
             pointerEvents: 'none',
             animation: 'workflow-done-in 0.15s ease-out',
@@ -1121,7 +1121,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             width: execution.activeStepIndex >= 0 && totalSteps > 0
               ? `${Math.round(((execution.activeStepIndex) / totalSteps) * 100)}%`
               : '30%',
-            transition: 'width 0.4s ease',
+            transition: 'all 0.15s ease',
           }} />
         </div>
       )}
@@ -1362,9 +1362,9 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           borderRadius: 20,
           padding: '2px 8px',
           pointerEvents: 'none',
-          transition: 'top 0.15s ease',
+          transition: 'all 0.15s ease',
           fontWeight: 600,
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid rgba(255,255,255,0.09)',
         }}>
           {searchMatchCount}
         </div>
@@ -1397,7 +1397,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           WebkitBackdropFilter: 'blur(6px)',
           borderRadius: 6,
           padding: '3px 10px',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid rgba(255,255,255,0.09)',
           pointerEvents: 'none',
           zIndex: 15,
         }}>
@@ -1431,7 +1431,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           zIndex: 1,
         }}
       >
-        <g style={{ transform: `translate(${layout.panX}px, ${layout.panY}px) scale(${layout.zoom})`, transformOrigin: '0 0', transition: layout.smoothTransition ? 'transform 0.15s ease-out' : 'none' }}>
+        <g style={{ transform: `translate(${layout.panX}px, ${layout.panY}px) scale(${layout.zoom})`, transformOrigin: '0 0', transition: layout.smoothTransition ? 'all 0.15s ease' : 'none' }}>
           <CanvasEdgeDefs />
           {workflow.steps.map((step, idx) => {
             if (idx === 0) return null
@@ -1479,7 +1479,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           zIndex: 2,
           transform: `translate(${layout.panX}px, ${layout.panY}px) scale(${layout.zoom})`,
           transformOrigin: '0 0',
-          transition: layout.smoothTransition ? 'transform 0.15s ease-out' : 'none',
+          transition: layout.smoothTransition ? 'all 0.15s ease' : 'none',
         }}
       >
         {workflow.steps.map((step, idx) => {
@@ -1663,7 +1663,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                 zIndex: 5,
                 transition: 'all 0.15s ease',
                 opacity: isHovered ? 1 : 0.4,
-                color: isHovered ? 'rgba(255,255,255,0.95)' : '#6366f1',
+                color: isHovered ? 'rgba(255,255,255,0.82)' : '#6366f1',
                 fontSize: 18,
                 fontWeight: 300,
                 lineHeight: 1,
@@ -1755,7 +1755,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           WebkitBackdropFilter: 'blur(6px)',
           borderRadius: 5,
           padding: '2px 8px',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid rgba(255,255,255,0.09)',
           fontVariantNumeric: 'tabular-nums',
           fontFeatureSettings: '"tnum"',
         }}>
@@ -1826,7 +1826,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           transform: 'translateX(-50%)',
           zIndex: 50,
           background: 'rgba(34,197,94,0.9)',
-          color: 'rgba(255,255,255,0.95)',
+          color: 'rgba(255,255,255,0.82)',
           fontSize: 11,
           fontWeight: 600,
           borderRadius: 6,
@@ -1947,7 +1947,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                   borderRadius: 3,
                   background: bg,
                   cursor: 'pointer',
-                  transition: 'background 0.15s ease, transform 0.15s ease',
+                  transition: 'all 0.15s ease',
                   position: 'relative',
                   overflow: 'hidden',
                   minWidth: 4,

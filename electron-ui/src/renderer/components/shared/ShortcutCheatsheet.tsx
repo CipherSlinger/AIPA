@@ -152,7 +152,7 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
           animation: 'sc-slideUp 0.15s ease',
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.09)' }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.82)', margin: 0, lineHeight: 1.4, letterSpacing: '-0.01em' }}>
             {t('shortcutCheatsheet.title')}
           </h2>
@@ -161,7 +161,7 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
             aria-label={t('common.close')}
             style={{
               background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.10)',
+              border: '1px solid rgba(255,255,255,0.09)',
               borderRadius: '50%',
               width: 36,
               height: 36,
@@ -181,7 +181,7 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
 
         {/* Search filter */}
         <div style={{ position: 'relative', marginBottom: 12 }}>
-          <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)', pointerEvents: 'none' }} />
+          <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.38)', pointerEvents: 'none' }} />
           <input
             ref={searchInputRef}
             type="text"
@@ -225,7 +225,7 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   padding: '6px 0',
-                  borderBottom: '1px solid rgba(255,255,255,0.06)',
+                  borderBottom: '1px solid rgba(255,255,255,0.09)',
                 }}
               >
                 <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.60)' }}>{t(`shortcutCheatsheet.${item.actionKey}`)}</span>
@@ -233,7 +233,7 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
                   <kbd
                     style={{
                       background: 'rgba(255,255,255,0.08)',
-                      border: '1px solid rgba(255,255,255,0.15)',
+                      border: '1px solid rgba(255,255,255,0.09)',
                       borderRadius: 5,
                       padding: '1px 5px',
                       fontSize: 11,

@@ -181,7 +181,7 @@ export default function StatusBar() {
           onMouseLeave={() => setHoverSidebar(false)}
           style={{
             background: hoverSidebar ? 'rgba(255,255,255,0.07)' : 'transparent',
-            border: 'none', color: hoverSidebar ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.55)', cursor: 'pointer',
+            border: 'none', color: hoverSidebar ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.60)', cursor: 'pointer',
             display: 'flex', alignItems: 'center',
             padding: '2px 6px', borderRadius: 6,
             opacity: sidebarOpen ? 1 : 0.6,
@@ -293,7 +293,7 @@ export default function StatusBar() {
               onClick={() => setShowTokenPopup(!showTokenPopup)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 4, opacity: 0.9,
-                background: 'none', border: 'none', color: 'rgba(255,255,255,0.55)', cursor: 'pointer', padding: 0,
+                background: 'none', border: 'none', color: 'rgba(255,255,255,0.60)', cursor: 'pointer', padding: 0,
               }}
               title={t('toolbar.contextUsed', { percent: String(contextPct), used: fmtNumber(lastContextUsage!.used), total: fmtNumber(lastContextUsage!.total) })}
             >
@@ -573,7 +573,7 @@ export default function StatusBar() {
           style={{
             background: hoverThinking ? 'rgba(255,255,255,0.07)' : 'transparent',
             border: 'none',
-            color: thinkingEnabled ? '#a78bfa' : hoverThinking ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.55)',
+            color: thinkingEnabled ? '#a78bfa' : hoverThinking ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.60)',
             cursor: 'pointer', display: 'flex', alignItems: 'center',
             padding: '2px 6px', borderRadius: 6,
             opacity: thinkingEnabled || hoverThinking ? 1 : 0.5,
@@ -595,7 +595,7 @@ export default function StatusBar() {
           onMouseLeave={() => setHoverPin(false)}
           style={{
             background: hoverPin ? 'rgba(255,255,255,0.07)' : 'transparent',
-            border: 'none', color: alwaysOnTop || hoverPin ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.55)', cursor: 'pointer',
+            border: 'none', color: alwaysOnTop || hoverPin ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.60)', cursor: 'pointer',
             display: 'flex', alignItems: 'center',
             padding: '2px 6px', borderRadius: 6,
             transition: 'all 0.15s ease',
@@ -637,7 +637,7 @@ export default function StatusBar() {
           onMouseLeave={() => setHoverSettings(false)}
           style={{
             background: hoverSettings ? 'rgba(255,255,255,0.07)' : 'transparent',
-            border: 'none', color: hoverSettings ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.55)', cursor: 'pointer',
+            border: 'none', color: hoverSettings ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.60)', cursor: 'pointer',
             display: 'flex', alignItems: 'center',
             padding: '2px 6px', borderRadius: 6,
             transition: 'all 0.15s ease',

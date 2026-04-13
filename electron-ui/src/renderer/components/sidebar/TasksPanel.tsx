@@ -166,7 +166,7 @@ export default function TasksPanel() {
                 justifyContent: 'center',
               }}
             >
-              <CheckSquare size={20} style={{ color: 'rgba(255,255,255,0.25)' }} />
+              <CheckSquare size={20} style={{ color: 'rgba(255,255,255,0.38)' }} />
             </span>
             <span
               style={{
@@ -290,7 +290,7 @@ export default function TasksPanel() {
                     ? 'linear-gradient(90deg, #4ade80, #22c55e)'
                     : 'linear-gradient(90deg, #6366f1, #818cf8)',
                   borderRadius: 99,
-                  transition: 'width 0.15s ease',
+                  transition: 'all 0.15s ease',
                 }}
               />
             </div>

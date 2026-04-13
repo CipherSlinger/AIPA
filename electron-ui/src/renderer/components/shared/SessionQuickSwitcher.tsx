@@ -167,12 +167,12 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
           alignItems: 'center',
           gap: 10,
           padding: '14px 16px',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          borderBottom: '1px solid rgba(255,255,255,0.09)',
           background: inputFocused ? 'rgba(99,102,241,0.04)' : 'rgba(255,255,255,0.06)',
           transition: 'all 0.15s ease',
           boxShadow: inputFocused ? 'inset 0 0 0 1px rgba(99,102,241,0.40)' : 'none',
         }}>
-          <Search size={16} style={{ color: inputFocused ? '#818cf8' : 'rgba(255,255,255,0.40)', flexShrink: 0, transition: 'all 0.15s ease' }} />
+          <Search size={16} style={{ color: inputFocused ? '#818cf8' : 'rgba(255,255,255,0.38)', flexShrink: 0, transition: 'all 0.15s ease' }} />
           <input
             ref={inputRef}
             value={query}
@@ -194,7 +194,7 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
             fontSize: 10,
             color: 'rgba(255,255,255,0.38)',
             background: 'rgba(255,255,255,0.08)',
-            border: '1px solid rgba(255,255,255,0.12)',
+            border: '1px solid rgba(255,255,255,0.09)',
             borderRadius: 5,
             padding: '2px 6px',
             fontFamily: 'monospace',
@@ -257,7 +257,7 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
                   <div style={{
                     fontSize: 12,
                     fontWeight: 500,
-                    color: index === selectedIndex ? '#818cf8' : 'rgba(255,255,255,0.80)',
+                    color: index === selectedIndex ? '#818cf8' : 'rgba(255,255,255,0.82)',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -312,7 +312,7 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
           display: 'flex',
           gap: 12,
           padding: '8px 14px',
-          borderTop: '1px solid rgba(255,255,255,0.06)',
+          borderTop: '1px solid rgba(255,255,255,0.09)',
           fontSize: 10,
           fontWeight: 700,
           letterSpacing: '0.07em',
@@ -321,15 +321,15 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
           alignItems: 'center',
         }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <kbd style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 5, padding: '1px 5px', fontSize: 9, fontFamily: 'monospace' }}>↑↓</kbd>
+            <kbd style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 5, padding: '1px 5px', fontSize: 9, fontFamily: 'monospace' }}>↑↓</kbd>
             {t('command.arrowKeysHint')}
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <kbd style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 5, padding: '1px 5px', fontSize: 9, fontFamily: 'monospace' }}>↵</kbd>
+            <kbd style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 5, padding: '1px 5px', fontSize: 9, fontFamily: 'monospace' }}>↵</kbd>
             {t('command.enterHint')}
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <kbd style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 5, padding: '1px 5px', fontSize: 9, fontFamily: 'monospace' }}>Esc</kbd>
+            <kbd style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 5, padding: '1px 5px', fontSize: 9, fontFamily: 'monospace' }}>Esc</kbd>
             {t('command.escHint')}
           </span>
         </div>

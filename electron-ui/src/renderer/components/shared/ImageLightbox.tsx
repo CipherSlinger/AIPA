@@ -65,7 +65,7 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'rgba(15,15,25,0.85)'
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
             e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
           }}
         >
@@ -82,7 +82,7 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'rgba(15,15,25,0.85)'
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
             e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
           }}
         >
@@ -99,7 +99,7 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'rgba(15,15,25,0.85)'
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
             e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
           }}
         >
@@ -116,7 +116,7 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'rgba(15,15,25,0.85)'
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
             e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
           }}
         >
@@ -166,7 +166,7 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
             maxHeight: '85vh',
             objectFit: 'contain',
             transform: `scale(${zoom}) rotate(${rotation}deg)`,
-            transition: 'transform 0.15s ease',
+            transition: 'all 0.15s ease',
             display: 'block',
             cursor: zoom > 1 ? 'grab' : 'default',
           }}
@@ -190,7 +190,7 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
           left: '50%',
           transform: 'translateX(-50%)',
           fontSize: 12,
-          color: 'rgba(255,255,255,0.55)',
+          color: 'rgba(255,255,255,0.60)',
           textAlign: 'center',
           marginTop: 10,
           zIndex: 601,
@@ -210,7 +210,7 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
 
 const btnStyle: React.CSSProperties = {
   background: 'rgba(15,15,25,0.85)',
-  border: '1px solid rgba(255,255,255,0.12)',
+  border: '1px solid rgba(255,255,255,0.09)',
   borderRadius: '50%',
   width: 36,
   height: 36,

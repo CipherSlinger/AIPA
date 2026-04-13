@@ -143,7 +143,7 @@ export default function AvatarPicker({ onClose, navExpanded, anchorRef }: Avatar
             }
           }}
         >
-          <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.95)' }}>U</span>
+          <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.82)' }}>U</span>
         </button>
 
         {AVATAR_PRESETS.map(preset => (

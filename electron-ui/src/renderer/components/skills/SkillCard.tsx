@@ -67,15 +67,15 @@ function getSourceBadgeStyle(source: string): React.CSSProperties {
   // global
   return {
     background: 'rgba(255,255,255,0.08)',
-    color: 'rgba(255,255,255,0.55)',
-    border: '1px solid rgba(255,255,255,0.12)',
+    color: 'rgba(255,255,255,0.60)',
+    border: '1px solid rgba(255,255,255,0.09)',
   }
 }
 
 function getIconStyle(source: string): { color: string; bg: string } {
   if (source === 'personal') return { color: '#a5b4fc', bg: 'rgba(99,102,241,0.15)' }
   if (source === 'project') return { color: '#4ade80', bg: 'rgba(34,197,94,0.12)' }
-  return { color: 'rgba(255,255,255,0.55)', bg: 'rgba(255,255,255,0.08)' }
+  return { color: 'rgba(255,255,255,0.60)', bg: 'rgba(255,255,255,0.08)' }
 }
 
 export function SkillCard({ skill, onOpen, onUse }: {
@@ -172,7 +172,7 @@ export function SkillCard({ skill, onOpen, onUse }: {
                 borderRadius: 20,
                 padding: '1px 7px',
                 background: 'rgba(255,255,255,0.06)',
-                color: 'rgba(255,255,255,0.50)',
+                color: 'rgba(255,255,255,0.45)',
               }}>
                 {tag}
               </span>
@@ -189,7 +189,7 @@ export function SkillCard({ skill, onOpen, onUse }: {
           background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
           border: 'none',
           borderRadius: 6,
-          color: 'rgba(255,255,255,0.95)',
+          color: 'rgba(255,255,255,0.82)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',

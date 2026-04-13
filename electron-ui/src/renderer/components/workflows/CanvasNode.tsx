@@ -469,7 +469,7 @@ function ProgressBar({ status }: { status: StepStatus }) {
           width: '100%',
           height: '100%',
           background: 'linear-gradient(90deg, #22c55e, #4ade80)',
-          transition: 'width 0.15s ease',
+          transition: 'all 0.15s ease',
         }} />
       </div>
     )
@@ -820,7 +820,7 @@ export default function CanvasNode({
             : isFocusedOnly ? '2px dashed rgba(99,102,241,0.55)' : 'none',
           outlineOffset: 3,
           // B1: transition
-          transition: 'box-shadow 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, height 0.15s ease, background 0.15s ease',
+          transition: 'all 0.15s ease',
           userSelect: 'none',
           boxSizing: 'border-box',
           opacity: dimmed ? 0.2 : (statusStyle.opacity ?? 1),
@@ -879,7 +879,7 @@ export default function CanvasNode({
             alignItems: 'center',
             justifyContent: 'center',
             lineHeight: 1,
-            transition: 'background 0.15s ease',
+          transition: 'all 0.15s ease',
             boxShadow: '0 0 0 2px rgba(12,12,20,0.95)',
             zIndex: 2,
           }}
@@ -907,7 +907,7 @@ export default function CanvasNode({
               display: 'flex',
               alignItems: 'center',
               borderRadius: 2,
-              transition: 'opacity 0.15s ease',
+              transition: 'all 0.15s ease',
               zIndex: 3,
             }}
           >
@@ -935,15 +935,15 @@ export default function CanvasNode({
               display: 'flex',
               alignItems: 'center',
               opacity: isNodeHovered ? 0.6 : 0,
-              transition: 'opacity 0.15s ease',
+              transition: 'all 0.15s ease',
               zIndex: 3,
             }}
             title={collapsed ? t('canvas.expandNode') : t('canvas.collapseNode')}
           >
             {collapsed ? (
-              <ChevronDown size={9} style={{ transform: 'rotate(0deg)', transition: 'transform 0.15s ease' }} />
+              <ChevronDown size={9} style={{ transform: 'rotate(0deg)', transition: 'all 0.15s ease' }} />
             ) : (
-              <ChevronUp size={9} style={{ transform: 'rotate(180deg)', transition: 'transform 0.15s ease' }} />
+              <ChevronUp size={9} style={{ transform: 'rotate(180deg)', transition: 'all 0.15s ease' }} />
             )}
           </button>
         )}
@@ -1064,7 +1064,7 @@ export default function CanvasNode({
               display: 'flex',
               alignItems: 'center',
               opacity: (isNodeHovered || !!noteText) ? 0.8 : 0,
-              transition: 'opacity 0.15s ease, color 0.15s ease, background 0.15s ease',
+              transition: 'all 0.15s ease',
               fontSize: 11,
               zIndex: 4,
             }}
@@ -1092,7 +1092,7 @@ export default function CanvasNode({
               display: 'flex',
               alignItems: 'center',
               opacity: isNodeHovered || pinned ? 1 : 0,
-              transition: 'opacity 0.15s ease, color 0.15s ease, background 0.15s ease',
+              transition: 'all 0.15s ease',
               zIndex: 5,
             }}
           >
@@ -1119,7 +1119,7 @@ export default function CanvasNode({
               display: 'flex',
               alignItems: 'center',
               opacity: isNodeHovered ? 1 : 0,
-              transition: 'opacity 0.15s ease, color 0.15s ease',
+              transition: 'all 0.15s ease',
               zIndex: 5,
             }}
           >
@@ -1319,7 +1319,7 @@ export default function CanvasNode({
                       color: editPromptValue.length > 1800 ? 'rgba(239,68,68,0.7)' : 'rgba(255,255,255,0.45)',
                       opacity: 0.7,
                       marginTop: 2,
-                      transition: 'color 0.15s ease',
+                      transition: 'all 0.15s ease',
                     }}>
                       {editPromptValue.length} / 2000
                     </div>
@@ -1676,7 +1676,7 @@ export default function CanvasNode({
                 background: 'rgba(15,15,25,0.9)',
                 zIndex: 4,
                 pointerEvents: 'none',
-                transition: 'border-color 0.15s ease, background 0.15s ease, transform 0.15s ease',
+                transition: 'all 0.15s ease',
                 ...(isNodeHovered ? {
                   borderColor: 'rgba(99,102,241,0.6)',
                   background: 'rgba(99,102,241,0.15)',
@@ -1696,7 +1696,7 @@ export default function CanvasNode({
                 background: 'rgba(15,15,25,0.9)',
                 zIndex: 4,
                 pointerEvents: 'none',
-                transition: 'border-color 0.15s ease, background 0.15s ease, transform 0.15s ease',
+                transition: 'all 0.15s ease',
                 ...(isNodeHovered ? {
                   borderColor: 'rgba(99,102,241,0.6)',
                   background: 'rgba(99,102,241,0.15)',

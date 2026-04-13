@@ -37,7 +37,7 @@ export default function Toggle({ value, onChange, disabled, 'aria-label': ariaLa
           height: 16,
           borderRadius: '50%',
           background: 'rgba(255,255,255,1)',
-          transition: 'left 0.15s ease',
+          transition: 'all 0.15s ease',
           display: 'block',
           boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
         }}

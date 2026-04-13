@@ -130,7 +130,7 @@ export default function CanvasProgressBar({ completedCount, totalSteps, isRunnin
             : allDone
               ? '0 0 8px rgba(74,222,128,0.4)'
               : '0 0 8px rgba(99,102,241,0.4)',
-          transition: isError ? 'none' : 'width 0.15s ease, background 0.15s ease',
+          transition: isError ? 'none' : 'all 0.15s ease',
           position: 'relative',
         }}>
           {isRunning && !allDone && !isError && (

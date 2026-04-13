@@ -33,7 +33,7 @@ export function TabButton({ label, icon, isActive, count, onClick }: {
         fontSize: 12,
         fontWeight: isActive ? 600 : 400,
         cursor: 'pointer',
-        transition: 'all 0.15s',
+        transition: 'all 0.15s ease',
       }}
     >
       {icon}
@@ -90,7 +90,7 @@ export function CategoryPill({ label, isActive, color, count, onClick }: {
         fontSize: 11,
         fontWeight: isActive ? 600 : 400,
         cursor: 'pointer',
-        transition: 'all 0.15s',
+        transition: 'all 0.15s ease',
       }}
     >
       {color && (
