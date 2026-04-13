@@ -226,7 +226,7 @@ export default function SettingsGeneral({
               // Empty string = remove the field (follow system)
               window.electronAPI.configWriteCLISettings({ language: next || '' }).catch(() => {})
             }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.50)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
             onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.boxShadow = 'none' }}
             style={{
               background: 'rgba(255,255,255,0.06)',
@@ -601,7 +601,7 @@ export default function SettingsGeneral({
                 if (e.key === 'Enter') e.currentTarget.blur()
               }}
               onFocus={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(99,102,241,0.50)'
+                e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'
                 e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)'
               }}
               onBlur={(e) => {

@@ -212,7 +212,7 @@ export default function SettingsAdvanced() {
                   borderRadius: 6,
                   padding: '6px 12px',
                   color: isSelected
-                    ? (opt.danger ? 'rgba(239,68,68,0.90)' : 'rgba(165,180,252,0.90)')
+                    ? (opt.danger ? 'rgba(239,68,68,0.82)' : 'rgba(165,180,252,0.82)')
                     : 'rgba(255,255,255,0.45)',
                   fontSize: 11,
                   fontWeight: isSelected ? 600 : 400,
