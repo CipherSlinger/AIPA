@@ -1175,7 +1175,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           {execution.isRunning && streamingWps !== null && streamingWps > 0 && (
             <span style={{
               fontSize: 10,
-              color: 'rgba(99,102,241,0.8)',
+              color: 'rgba(99,102,241,0.82)',
               background: 'rgba(99,102,241,0.08)',
               borderRadius: 8,
               padding: '1px 7px',

@@ -631,7 +631,7 @@ export default function SettingsProviders() {
               {modelModal.models.map(m => (
                 <div key={m} style={{
                   padding: '6px 10px', borderRadius: 6, fontSize: 12,
-                  color: 'rgba(165,180,252,0.85)',
+                  color: 'rgba(165,180,252,0.82)',
                   background: 'rgba(255,255,255,0.04)',
                   border: '1px solid rgba(255,255,255,0.07)',
                   fontFamily: 'monospace',

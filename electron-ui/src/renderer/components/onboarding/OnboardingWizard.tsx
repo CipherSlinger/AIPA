@@ -109,8 +109,8 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                   transition: 'all 0.15s ease',
                 }}>
                   {isDone
-                    ? <Check size={10} color="rgba(0,0,0,0.75)" strokeWidth={3} />
-                    : <span style={{ fontSize: 9, fontWeight: 700, color: isActive ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)' }}>{s}</span>
+                    ? <Check size={10} color="rgba(0,0,0,0.82)" strokeWidth={3} />
+                    : <span style={{ fontSize: 9, fontWeight: 700, color: isActive ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.45)' }}>{s}</span>
                   }
                 </div>
                 {s < 2 && (
@@ -447,7 +447,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   link: {
     fontSize: '12px',
-    color: 'rgba(99,102,241,0.9)',
+    color: 'rgba(99,102,241,0.82)',
     textDecoration: 'none',
     cursor: 'pointer',
     transition: 'all 0.15s ease',
@@ -505,7 +505,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '0 20px',
     height: '38px',
     background: 'transparent',
-    color: 'rgba(99,102,241,0.9)',
+    color: 'rgba(99,102,241,0.82)',
     border: '1px solid rgba(99,102,241,0.45)',
     borderRadius: 10,
     fontSize: '13px',

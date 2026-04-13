@@ -109,7 +109,7 @@ function PresetCard({
           fontWeight: 700,
           letterSpacing: '0.07em',
           textTransform: 'uppercase' as const,
-          color: 'rgba(99,102,241,0.9)',
+          color: 'rgba(99,102,241,0.82)',
           background: 'rgba(99,102,241,0.12)',
           border: '1px solid rgba(99,102,241,0.2)',
           borderRadius: 10,
@@ -205,7 +205,7 @@ function WorkflowTabContent({ crud, t }: {
             <span style={{
               fontSize: 9,
               fontWeight: 700,
-              color: 'rgba(99,102,241,0.85)',
+              color: 'rgba(99,102,241,0.82)',
               background: 'rgba(99,102,241,0.12)',
               border: '1px solid rgba(99,102,241,0.2)',
               borderRadius: 10,
@@ -556,8 +556,8 @@ function WorkflowTabContent({ crud, t }: {
               justifyContent: 'center',
             }}>
             {category === 'teamwork'
-              ? <Users2 size={28} style={{ color: 'rgba(255,255,255,0.15)', animation: 'wf-pulse 2s ease-in-out infinite' }} />
-              : <WorkflowIcon size={28} style={{ color: 'rgba(255,255,255,0.15)', animation: 'wf-pulse 2s ease-in-out infinite' }} />
+              ? <Users2 size={28} style={{ color: 'rgba(255,255,255,0.38)', animation: 'wf-pulse 2s ease-in-out infinite' }} />
+              : <WorkflowIcon size={28} style={{ color: 'rgba(255,255,255,0.38)', animation: 'wf-pulse 2s ease-in-out infinite' }} />
             }
             </div>
             <span style={{ fontSize: 12, fontWeight: 600, textAlign: 'center', color: 'rgba(255,255,255,0.38)' }}>
