@@ -69,7 +69,7 @@ export default function SettingsProviders() {
   const [fetchingModels, setFetchingModels] = useState<string | null>(null)
   const [modelModal, setModelModal] = useState<{ providerId: string; models: string[] } | null>(null)
 
-  useEffect(() => {
+  const loadConfigs = useCallback(() => {
     window.electronAPI.providerListConfigs().then((configs: ProviderConfig[]) => {
       setProviders(configs)
     })
@@ -79,6 +79,14 @@ export default function SettingsProviders() {
       setHealthMap(map)
     })
   }, [])
+
+  useEffect(() => {
+    loadConfigs()
+    // Re-fetch when onboarding completes (in case this component was already mounted)
+    const handler = () => loadConfigs()
+    window.addEventListener('aipa:providerUpdated', handler)
+    return () => window.removeEventListener('aipa:providerUpdated', handler)
+  }, [loadConfigs])
 
   const handleToggleEnabled = useCallback(async (provider: ProviderConfig) => {
     const updated = { ...provider, enabled: !provider.enabled }

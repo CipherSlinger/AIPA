@@ -42,6 +42,8 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
         enabled: true,
       }
       await window.electronAPI.providerUpsert(updated)
+      // Notify mounted SettingsProviders to re-fetch (it may be already mounted in the channel panel)
+      window.dispatchEvent(new CustomEvent('aipa:providerUpdated'))
     }
     await window.electronAPI.prefsSet('onboardingDone', true)
     onComplete()

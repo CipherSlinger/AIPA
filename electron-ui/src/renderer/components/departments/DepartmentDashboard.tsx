@@ -81,8 +81,16 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
   const deptSessions = useMemo((): SessionListItem[] => {
     if (!dept) return []
     const deptSlug = dirToSlug(dept.directory, homeDir)
+    const deptNorm = normalizePath(dept.directory, homeDir)
+    console.debug('[dept] matching sessions — directory:', dept.directory, 'homeDir:', homeDir, 'deptSlug:', deptSlug, 'deptNorm:', deptNorm)
     return allSessions
-      .filter(s => s.projectSlug === deptSlug)
+      .filter(s => {
+        // Primary: match via slug (most reliable — avoids decodeProjectSlug lossiness)
+        if (s.projectSlug === deptSlug) return true
+        // Fallback: match via normalized project path (for depts created before slug matching)
+        const projNorm = normalizePath(s.project, homeDir)
+        return projNorm === deptNorm
+      })
       .sort((a, b) => b.timestamp - a.timestamp)
   }, [allSessions, dept, homeDir])
 
@@ -902,8 +910,9 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
   // 3 most recently active sessions across ALL departments
   const recentSessions = useMemo(() => {
     const deptSlugs = new Set(departments.map(d => dirToSlug(d.directory, homeDir)))
+    const deptNorms = new Set(departments.map(d => normalizePath(d.directory, homeDir)))
     return allSessions
-      .filter(s => deptSlugs.has(s.projectSlug))
+      .filter(s => deptSlugs.has(s.projectSlug) || deptNorms.has(normalizePath(s.project, homeDir)))
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, 3)
   }, [allSessions, departments, homeDir])
@@ -913,8 +922,9 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
     const map: Record<string, SessionListItem[]> = {}
     for (const dept of departments) {
       const deptSlug = dirToSlug(dept.directory, homeDir)
+      const deptNorm = normalizePath(dept.directory, homeDir)
       map[dept.id] = allSessions
-        .filter(s => s.projectSlug === deptSlug)
+        .filter(s => s.projectSlug === deptSlug || normalizePath(s.project, homeDir) === deptNorm)
         .sort((a, b) => b.timestamp - a.timestamp)
     }
     return map
@@ -1081,7 +1091,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
             {recentSessions.map(session => {
-              const dept = departments.find(d => dirToSlug(d.directory, homeDir) === session.projectSlug)
+              const dept = departments.find(d => dirToSlug(d.directory, homeDir) === session.projectSlug || normalizePath(d.directory, homeDir) === normalizePath(session.project, homeDir))
               return (
                 <div
                   key={session.sessionId}
