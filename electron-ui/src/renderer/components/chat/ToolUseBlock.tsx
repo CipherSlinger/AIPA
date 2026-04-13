@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import ReactDOM from 'react-dom'
 import { ToolUseInfo } from '../../types/app.types'
-import { ChevronDown, Terminal, FileEdit, Search, Globe, Loader2, Check, X, Timer, ClipboardCopy, FileCode, FileText, Image, FileType, Palette, GitBranch, GitMerge, Clock, StopCircle, BookOpen, Network, Code2, CheckSquare, ClipboardList, Settings2, Send, Users, Compass, CheckCircle2, Layers, Database, FileInput, HelpCircle } from 'lucide-react'
+import { ChevronDown, Terminal, FileEdit, Search, Globe, Loader2, Check, X, Timer, ClipboardCopy, FileCode, FileText, Image, FileType, Palette, GitBranch, GitMerge, Clock, StopCircle, BookOpen, Network, Code2, CheckSquare, ClipboardList, Settings2, Send, Users, Compass, CheckCircle2, Layers, Database, FileInput, HelpCircle, Braces } from 'lucide-react'
 import { useT } from '../../i18n'
 import DiffView from './DiffView'
 import FileDiffView from './FileDiffView'
@@ -74,6 +74,8 @@ const TOOL_ICONS: Record<string, React.ElementType> = {
   ExitPlanMode: CheckCircle2,
   // Multi-edit
   MultiEdit: Layers,
+  // Structured output
+  StructuredOutput: Braces,
 }
 
 // File extension to icon mapping for more specific file type icons (Iteration 462)
@@ -850,6 +852,16 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
     )
   }
 
+  // StructuredOutput tool: delegate to specialized card
+  if (tool.name === 'StructuredOutput') {
+    return (
+      <StructuredOutputCard
+        input={tool.input as Record<string, unknown>}
+        status={tool.status}
+      />
+    )
+  }
+
   return (
     <div
       style={{
@@ -1343,5 +1355,352 @@ function ImageThumbnail({ filePath, onClick, t }: { filePath: string; onClick: (
         border: '1px solid rgba(255,255,255,0.07)',
       }}
     />
+  )
+}
+
+// ── StructuredOutput specialized card ─────────────────────────────────────────
+
+/** Render a single JSON value with syntax-aware coloring */
+function JsonValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
+  const [collapsed, setCollapsed] = useState(depth > 2)
+
+  if (value === null) {
+    return <span style={{ color: 'rgba(148,163,184,0.82)' }}>null</span>
+  }
+  if (typeof value === 'boolean') {
+    return <span style={{ color: 'rgba(251,191,36,0.82)' }}>{String(value)}</span>
+  }
+  if (typeof value === 'number') {
+    return <span style={{ color: 'rgba(134,239,172,0.82)' }}>{String(value)}</span>
+  }
+  if (typeof value === 'string') {
+    return <span style={{ color: 'rgba(196,181,253,0.82)' }}>"{value}"</span>
+  }
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return <span style={{ color: 'rgba(255,255,255,0.45)' }}>[]</span>
+    }
+    return (
+      <span>
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: 'rgba(255,255,255,0.45)',
+            padding: '0 2px',
+            fontSize: 11,
+            fontFamily: 'monospace',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(147,197,253,0.82)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+        >
+          {collapsed ? `[…${value.length}]` : '['}
+        </button>
+        {!collapsed && (
+          <>
+            <div style={{ paddingLeft: 16 }}>
+              {value.map((item, i) => (
+                <div key={i} style={{ lineHeight: 1.6 }}>
+                  <JsonValue value={item} depth={depth + 1} />
+                  {i < value.length - 1 && <span style={{ color: 'rgba(255,255,255,0.38)' }}>,</span>}
+                </div>
+              ))}
+            </div>
+            <span style={{ color: 'rgba(255,255,255,0.45)' }}>]</span>
+          </>
+        )}
+      </span>
+    )
+  }
+  if (typeof value === 'object') {
+    const keys = Object.keys(value as Record<string, unknown>)
+    if (keys.length === 0) {
+      return <span style={{ color: 'rgba(255,255,255,0.45)' }}>{'{}'}</span>
+    }
+    return (
+      <span>
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: 'rgba(255,255,255,0.45)',
+            padding: '0 2px',
+            fontSize: 11,
+            fontFamily: 'monospace',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(147,197,253,0.82)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+        >
+          {collapsed ? `{…${keys.length}}` : '{'}
+        </button>
+        {!collapsed && (
+          <>
+            <div style={{ paddingLeft: 16 }}>
+              {keys.map((k, i) => (
+                <div key={k} style={{ lineHeight: 1.6 }}>
+                  <span style={{ color: 'rgba(147,197,253,0.82)' }}>"{k}"</span>
+                  <span style={{ color: 'rgba(255,255,255,0.38)' }}>: </span>
+                  <JsonValue value={(value as Record<string, unknown>)[k]} depth={depth + 1} />
+                  {i < keys.length - 1 && <span style={{ color: 'rgba(255,255,255,0.38)' }}>,</span>}
+                </div>
+              ))}
+            </div>
+            <span style={{ color: 'rgba(255,255,255,0.45)' }}>{'}'}</span>
+          </>
+        )}
+      </span>
+    )
+  }
+  return <span style={{ color: 'rgba(255,255,255,0.60)' }}>{String(value)}</span>
+}
+
+interface StructuredOutputCardProps {
+  input: Record<string, unknown>
+  status: string
+}
+
+function StructuredOutputCard({ input, status }: StructuredOutputCardProps) {
+  const [expanded, setExpanded] = useState(true)
+  const [copied, setCopied] = useState(false)
+
+  const keys = Object.keys(input)
+  const isDone = status === 'done'
+  const isRunning = status === 'running'
+
+  const jsonText = JSON.stringify(input, null, 2)
+
+  const handleCopy = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    navigator.clipboard.writeText(jsonText).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    }).catch(() => {})
+  }, [jsonText])
+
+  // Field type summary for the header preview
+  const fieldSummary = keys.length === 0
+    ? '(空)'
+    : keys.length <= 3
+    ? keys.join(', ')
+    : `${keys.slice(0, 3).join(', ')} … +${keys.length - 3}`
+
+  return (
+    <div
+      style={{
+        background: 'rgba(15,15,25,0.60)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        border: '1px solid rgba(255,255,255,0.07)',
+        borderLeft: '3px solid rgba(96,165,250,0.60)',
+        borderRadius: 10,
+        marginBottom: 6,
+        overflow: 'hidden',
+        transition: 'all 0.15s ease',
+      }}
+    >
+      {/* Header */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '7px 12px',
+          background: 'rgba(96,165,250,0.06)',
+          border: 'none',
+          borderBottom: expanded ? '1px solid rgba(255,255,255,0.07)' : 'none',
+          borderRadius: expanded ? '8px 8px 0 0' : 8,
+          cursor: 'pointer',
+          textAlign: 'left',
+          transition: 'all 0.15s ease',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(96,165,250,0.10)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(96,165,250,0.06)' }}
+      >
+        {/* Icon */}
+        <Braces size={13} style={{ color: 'rgba(147,197,253,0.82)', flexShrink: 0 }} />
+
+        {/* Title */}
+        <span style={{
+          fontSize: 10,
+          fontWeight: 700,
+          letterSpacing: '0.07em',
+          textTransform: 'uppercase' as const,
+          color: 'rgba(147,197,253,0.82)',
+          flexShrink: 0,
+        }}>
+          结构化输出
+        </span>
+
+        {/* Field preview */}
+        <span style={{
+          fontSize: 12,
+          color: 'rgba(255,255,255,0.60)',
+          flex: 1,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          fontFamily: 'monospace',
+        }}>
+          {fieldSummary}
+        </span>
+
+        {/* Field count badge */}
+        {keys.length > 0 && (
+          <span style={{
+            fontSize: 9,
+            fontWeight: 700,
+            background: 'rgba(96,165,250,0.15)',
+            color: 'rgba(147,197,253,0.82)',
+            border: '1px solid rgba(96,165,250,0.25)',
+            borderRadius: 8,
+            padding: '1px 6px',
+            flexShrink: 0,
+          }}>
+            {keys.length} 字段
+          </span>
+        )}
+
+        {/* Status badge */}
+        <span style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 3,
+          padding: '1px 6px',
+          borderRadius: 10,
+          fontSize: 10,
+          fontWeight: 600,
+          flexShrink: 0,
+          ...(isRunning
+            ? { background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', color: '#818cf8' }
+            : isDone
+            ? { background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.25)', color: '#4ade80' }
+            : { background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5' }
+          ),
+        }}>
+          {isRunning
+            ? <Loader2 size={10} className="animate-spin" />
+            : isDone
+            ? <Check size={10} />
+            : <X size={10} />}
+        </span>
+
+        {/* Chevron */}
+        <ChevronDown
+          size={11}
+          style={{
+            color: 'rgba(255,255,255,0.45)',
+            transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+            transition: 'transform 0.15s ease',
+            flexShrink: 0,
+          }}
+        />
+      </button>
+
+      {/* Expanded body */}
+      {expanded && (
+        <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {keys.length === 0 ? (
+            <div style={{
+              fontSize: 11,
+              color: 'rgba(255,255,255,0.38)',
+              fontStyle: 'italic',
+              fontFamily: 'monospace',
+            }}>
+              (无结构化数据)
+            </div>
+          ) : (
+            <>
+              {/* Header row: label + copy button */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+                <span style={{
+                  fontSize: 9,
+                  fontWeight: 700,
+                  letterSpacing: '0.07em',
+                  textTransform: 'uppercase' as const,
+                  color: 'rgba(255,255,255,0.38)',
+                }}>
+                  输出数据
+                </span>
+                <button
+                  onClick={handleCopy}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '1px 4px',
+                    borderRadius: 6,
+                    color: copied ? '#4ade80' : 'rgba(255,255,255,0.45)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    fontSize: 9,
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => { if (!copied) e.currentTarget.style.color = 'rgba(147,197,253,0.82)' }}
+                  onMouseLeave={(e) => { if (!copied) e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+                >
+                  {copied ? <Check size={10} /> : <ClipboardCopy size={10} />}
+                  {copied ? '已复制' : '复制 JSON'}
+                </button>
+              </div>
+
+              {/* Structured field display */}
+              <div style={{
+                background: 'rgba(8,8,16,0.80)',
+                border: '1px solid rgba(255,255,255,0.07)',
+                borderRadius: 8,
+                padding: '10px 12px',
+                overflow: 'auto',
+                maxHeight: 320,
+                scrollbarWidth: 'thin',
+                scrollbarColor: 'rgba(255,255,255,0.10) transparent',
+              }}>
+                {/* Top-level fields rendered as a list for clarity */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {keys.map((key, i) => (
+                    <div key={key} style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 0,
+                      lineHeight: 1.6,
+                      fontSize: 12,
+                      fontFamily: 'monospace',
+                      borderBottom: i < keys.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                      paddingBottom: i < keys.length - 1 ? 4 : 0,
+                    }}>
+                      <span style={{
+                        color: 'rgba(147,197,253,0.82)',
+                        fontWeight: 600,
+                        flexShrink: 0,
+                        minWidth: 0,
+                        marginRight: 4,
+                      }}>
+                        {key}
+                      </span>
+                      <span style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0, marginRight: 4 }}>:</span>
+                      <span style={{ flex: 1, minWidth: 0, wordBreak: 'break-word' }}>
+                        <JsonValue value={input[key]} depth={0} />
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
