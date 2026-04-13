@@ -398,7 +398,7 @@ export default function ChatInput({
           style={{
             flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', gap: 0,
             background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '0',
-            border: isPlanMode ? '1px solid #a78bfa' : '1px solid rgba(255,255,255,0.07)', transition: 'border-color 0.15s ease',
+            border: isPlanMode ? '1px solid #a78bfa' : '1px solid rgba(255,255,255,0.07)', transition: 'all 0.15s ease',
           }}
         >
           {/* Plan Mode banner (Iteration 520) */}
@@ -530,7 +530,7 @@ export default function ChatInput({
                 background: vim.mode === 'normal' ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))' : 'rgba(255,255,255,0.08)',
                 color: vim.mode === 'normal' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
                 textTransform: 'uppercase',
-                transition: 'background 0.15s ease, color 0.15s ease',
+                transition: 'all 0.15s ease',
                 userSelect: 'none',
               }}>
                 {vim.mode === 'normal' ? 'NORMAL' : 'INSERT'}

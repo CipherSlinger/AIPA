@@ -174,7 +174,7 @@ export default function TabBar() {
             borderLeft: '1px solid rgba(255,255,255,0.07)',
             cursor: 'pointer',
             color: 'rgba(255,255,255,0.38)',
-            transition: 'color 0.15s ease, background 0.15s ease',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
