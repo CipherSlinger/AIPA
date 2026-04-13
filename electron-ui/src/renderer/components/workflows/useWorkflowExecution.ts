@@ -105,9 +105,7 @@ export function useWorkflowExecution(workflow: Workflow | null): WorkflowExecuti
           stepStatuses[step.id] = 'pending'
           hasRunningOrPending = true
           break
-        case 'error':
         case 'failed':
-        case 'aborted':
           stepStatuses[step.id] = 'error'
           hasError = true
           break

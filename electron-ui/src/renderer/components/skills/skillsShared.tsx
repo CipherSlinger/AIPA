@@ -7,6 +7,7 @@ export interface SkillInfo {
   source: 'personal' | 'project'
   dirPath: string
   fileName: string
+  tags?: string[]
 }
 
 export function TabButton({ label, icon, isActive, count, onClick }: {

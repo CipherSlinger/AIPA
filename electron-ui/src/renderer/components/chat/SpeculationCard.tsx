@@ -80,29 +80,6 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
     )
   }
 
-  // Pending state — indigo spinner waiting for execution to start
-  if (status === 'pending') {
-    return (
-      <div style={{
-        margin: '4px 16px 8px',
-        padding: '8px 12px',
-        background: 'rgba(15,15,25,0.85)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(99,102,241,0.20)',
-        borderLeft: '3px solid rgba(99,102,241,0.5)',
-        borderRadius: 10,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-        display: 'flex', alignItems: 'center', gap: 8,
-      }}>
-        <IndigoSpinner />
-        <span style={{ fontSize: 11, color: 'rgba(129,140,248,0.82)' }}>
-          Queuing speculative preview…
-        </span>
-      </div>
-    )
-  }
-
   // Running state — indigo spinner with pulse zap icon
   if (status === 'running') {
     return (

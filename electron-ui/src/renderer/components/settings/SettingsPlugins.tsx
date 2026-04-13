@@ -42,7 +42,7 @@ export default function SettingsPlugins() {
     setError(null)
     try {
       const list = await window.electronAPI.pluginList()
-      setPlugins(list)
+      setPlugins(list as InstalledPlugin[])
     } catch (e) {
       setError(t('settingsPlugins.loadError', { error: String(e) }))
     } finally {

@@ -19,7 +19,7 @@ export default function TabBar() {
   const activeTabId = useChatStore(s => s.activeTabId)
   const switchTab = useChatStore(s => s.switchTab)
   const closeTab = useChatStore(s => s.closeTab)
-  const newTab = useChatStore(s => s.newTab)
+  const clearMessages = useChatStore(s => s.clearMessages)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll to keep the active tab visible
@@ -159,9 +159,9 @@ export default function TabBar() {
       </div>
 
       {/* New tab button — ghost, right-pinned */}
-      {newTab && (
+      {clearMessages && (
         <button
-          onClick={newTab}
+          onClick={clearMessages}
           title={t('tabs.new') || 'New tab'}
           style={{
             display: 'flex',

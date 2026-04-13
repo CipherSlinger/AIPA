@@ -190,7 +190,7 @@ export function useInputPopups({
             timestamp: Date.now(),
           } as any)
         } else if (cmd.name === '/vim') {
-          const current = usePrefsStore.getState().prefs.vimMode as boolean | undefined
+          const current = (usePrefsStore.getState().prefs as any).vimMode as boolean | undefined
           const next = !current
           usePrefsStore.getState().setPrefs({ vimMode: next } as any)
           window.electronAPI?.prefsSet('vimMode', next)

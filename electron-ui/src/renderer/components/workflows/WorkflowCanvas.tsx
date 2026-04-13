@@ -210,8 +210,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     setEditingName(false)
   }, [workflow?.id])
   const execution = useWorkflowExecution(workflow)
-  // Direction 9: get abort from chat store
-  const abort = useChatStore(s => s.abort)
+  // Direction 9: abort streaming via custom event (no abort action in chatStore)
+  const abort = () => window.dispatchEvent(new CustomEvent('aipa:abortStream'))
   const clearQueue = useChatStore(s => s.clearQueue)
 
   // D2: subscribe to live streaming text from the current assistant message
@@ -1333,7 +1333,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         isRunning={execution.isRunning}
         allDone={execution.completedCount === execution.totalSteps && execution.totalSteps > 0 && !execution.isRunning}
         hasError={execution.hasError && !execution.isRunning}
-        onAbort={abort ? () => abort() : undefined}
+        onAbort={abort}
         onRerun={onRerun}
         onRun={onRun}
         layoutDirection={layout.layoutDirection}

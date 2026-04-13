@@ -168,7 +168,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
         onBookmark={(msgId) => toggleBookmark(msgId)}
         onCollapse={(msgId) => toggleCollapse(msgId)}
         onEdit={onEdit}
-        onFork={onFork && msg.role !== 'permission' && msg.role !== 'plan' && msg.role !== 'hook_callback' && msg.role !== 'elicitation' ? () => setForkTarget({ msgIdx }) : undefined}
+        onFork={onFork && (msg as ChatMessage).role !== 'permission' && (msg as ChatMessage).role !== 'plan' && (msg as ChatMessage).role !== 'hook_callback' && (msg as ChatMessage).role !== 'elicitation' ? () => setForkTarget({ msgIdx }) : undefined}
         onRewind={sessionId ? (ts) => {
           // Find the message index by timestamp to calculate how many messages will be removed
           const msgIndex = messages.findIndex(m => m.role !== 'permission' && m.role !== 'plan' && m.role !== 'hook_callback' && m.role !== 'elicitation' && (m as StandardChatMessage).timestamp === ts)

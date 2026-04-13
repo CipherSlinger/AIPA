@@ -248,7 +248,7 @@ function WorkflowTabContent({ crud, t }: {
                     updatedAt: Date.now(),
                     runCount: 0,
                   }))
-                  const imported = crud.importWorkflows(valid)
+                  const imported = crud.importWorkflows(valid as import('../../types/app.types').Workflow[])
                   if (imported > 0) {
                     setImportStatus(`✓ Imported ${imported} workflow${imported > 1 ? 's' : ''}`)
                   } else {

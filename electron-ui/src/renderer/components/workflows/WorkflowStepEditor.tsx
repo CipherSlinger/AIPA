@@ -112,7 +112,6 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
                 opacity: 0.5,
                 cursor: 'grab',
               }}
-              title="Drag to reorder"
             />
             {/* Step number badge */}
             <span

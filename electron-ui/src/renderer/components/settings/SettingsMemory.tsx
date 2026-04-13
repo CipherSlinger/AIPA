@@ -76,7 +76,7 @@ export default function SettingsMemory() {
     setError(null)
     try {
       const result = await window.electronAPI.memoryList(scope)
-      setMemories(result)
+      setMemories(result as MemoryFile[])
     } catch (e) {
       setError(t('settingsMemory.loadingError', { error: String(e) }))
     } finally {

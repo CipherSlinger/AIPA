@@ -951,7 +951,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
             </div>
           </div>
           <button
-            onClick={() => useUiStore.getState().setActiveNavItem('departments')}
+            onClick={() => useUiStore.getState().setMainView('department')}
             style={{
               marginTop: 4,
               padding: '8px 18px',
