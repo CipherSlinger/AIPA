@@ -219,6 +219,11 @@ interface ChatState {
   updateHookEvent: (id: string, update: Partial<{ id: string; hookEvent: string; hookType: string; status: 'running' | 'success' | 'error'; output?: string; timestamp: number }>) => void
   clearHookEvents: () => void
 
+  // DreamTask events: memory consolidation runs detected via .consolidate-lock mtime
+  dreamEvents: Array<{ id: string; timestamp: number; sessionsReviewed?: number }>
+  addDreamEvent: (event: { id: string; timestamp: number; sessionsReviewed?: number }) => void
+  clearDreamEvents: () => void
+
   // Result event stats (P0-5): permission denials, turns, duration from CLI result
   permissionDenials: Array<{ tool_name: string; reason?: string }>
   lastNumTurns: number | null
@@ -272,6 +277,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   changedFiles: [],
   tempSystemPrompt: null,
   hookEvents: [],
+  dreamEvents: [],
   permissionDenials: [],
   lastNumTurns: null,
   lastDurationMs: null,
@@ -363,7 +369,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     streamingBuffer.sessionId = null
     streamingBuffer.messageId = null
     streamingBuffer.dirty = false
-    set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false, totalSessionCost: 0, lastCost: null, lastUsage: null, lastContextUsage: null, modelUsage: {}, sessionPersonaId: undefined, isPlanMode: false, changedFiles: [], tempSystemPrompt: null, hookEvents: [], permissionDenials: [], lastNumTurns: null, lastDurationMs: null })
+    set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false, totalSessionCost: 0, lastCost: null, lastUsage: null, lastContextUsage: null, modelUsage: {}, sessionPersonaId: undefined, isPlanMode: false, changedFiles: [], tempSystemPrompt: null, hookEvents: [], dreamEvents: [], permissionDenials: [], lastNumTurns: null, lastDurationMs: null })
   },
   loadHistory: (messages) => set({ messages, isStreaming: false }),
 
@@ -647,6 +653,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     hookEvents: s.hookEvents.map(e => e.id === id ? { ...e, ...update } : e),
   })),
   clearHookEvents: () => set({ hookEvents: [] }),
+
+  // DreamTask events (memory consolidation detection)
+  addDreamEvent: (event) => set((s) => ({ dreamEvents: [...s.dreamEvents.slice(-9), event] })),
+  clearDreamEvents: () => set({ dreamEvents: [] }),
 
   // Result stats setters (P0-5)
   setResultStats: (denials, numTurns, durationMs) => set({ permissionDenials: denials, lastNumTurns: numTurns, lastDurationMs: durationMs }),

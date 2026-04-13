@@ -18,6 +18,7 @@ import MessageList from './MessageList'
 import SearchBar from './SearchBar'
 import TaskQueuePanel from './TaskQueuePanel'
 import TaskDashboard from './TaskDashboard'
+import DreamTaskCard from './DreamTaskCard'
 import ThinkingIndicator from './ThinkingIndicator'
 import WelcomeScreen from './WelcomeScreen'
 import FollowUpChips from './FollowUpChips'
@@ -55,6 +56,7 @@ export default function ChatPanel() {
   const prepareRegeneration = useChatStore(s => s.prepareRegeneration)
   const lastContextUsage = useChatStore(s => s.lastContextUsage)
   const totalSessionCost = useChatStore(s => s.totalSessionCost)
+  const dreamEvents = useChatStore(s => s.dreamEvents)
   // Tab state (Iteration 515)
   const activeTabId = useChatStore(s => s.activeTabId)
   const setTabScrollTop = useChatStore(s => s.setTabScrollTop)
@@ -241,7 +243,7 @@ export default function ChatPanel() {
   return (
     <div
       className="flex flex-col h-full"
-      style={{ background: 'rgba(10,10,18,1)', position: 'relative', borderRight: '1px solid rgba(255,255,255,0.07)' }}
+      style={{ background: 'rgba(10,10,18,1)', position: 'relative', borderRight: '1px solid var(--glass-border)' }}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -267,10 +269,10 @@ export default function ChatPanel() {
           }}
         >
           <Upload size={48} style={{ color: '#818cf8' }} />
-          <div style={{ fontSize: 18, fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>
+          <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-primary)' }}>
             {t('chat.dragDropHint')}
           </div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
             {t('chat.dragDropSubHint')}
           </div>
         </div>
@@ -352,20 +354,20 @@ export default function ChatPanel() {
             placeholder={t('session.addNote')}
             maxLength={200}
             onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)' }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--glass-border)' }}
             style={{
-              flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 6, padding: '2px 6px', fontSize: 12, color: 'rgba(255,255,255,0.82)', outline: 'none',
+              flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid var(--glass-border)',
+              borderRadius: 6, padding: '2px 6px', fontSize: 12, color: 'var(--text-primary)', outline: 'none',
               transition: 'border-color 0.15s ease',
             }}
           />
-          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', flexShrink: 0, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{noteText.length}/200</span>
+          <span style={{ fontSize: 10, color: 'var(--text-faint)', flexShrink: 0, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{noteText.length}/200</span>
           <button onClick={() => { if (noteText.trim()) setSessionNote(currentSessionId, noteText.trim()); setEditingNote(false) }}
             style={{ background: 'none', border: 'none', color: '#4ade80', cursor: 'pointer', display: 'flex', padding: 2 }}>
             <Check size={12} />
           </button>
           <button onClick={() => setEditingNote(false)}
-            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.45)', cursor: 'pointer', display: 'flex', padding: 2 }}>
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: 2 }}>
             <X size={12} />
           </button>
         </div>
@@ -386,7 +388,7 @@ export default function ChatPanel() {
         }}>
           <StickyNote size={12} style={{ color: '#818cf8', flexShrink: 0 }} />
           <span
-            style={{ flex: 1, color: 'rgba(255,255,255,0.60)', fontStyle: 'italic', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            style={{ flex: 1, color: 'var(--text-secondary)', fontStyle: 'italic', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
             onClick={() => { setNoteText(currentNote || ''); setEditingNote(true) }}
             title={t('session.editNote')}
           >
@@ -394,7 +396,7 @@ export default function ChatPanel() {
           </span>
           <button
             onClick={() => { removeSessionNote(currentSessionId); setEditingNote(false) }}
-            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.45)', cursor: 'pointer', display: 'flex', padding: 2, opacity: 0.5 }}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: 2, opacity: 0.5 }}
             title={t('session.removeNote')}
           >
             <X size={10} />
@@ -548,10 +550,10 @@ export default function ChatPanel() {
               gap: 4,
               padding: '2px 10px',
               background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.07)',
+              border: '1px solid var(--glass-border)',
               borderRadius: 12,
               cursor: 'pointer',
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               fontSize: 11,
               transition: 'color 0.15s ease, border-color 0.15s ease',
             }}
@@ -560,8 +562,8 @@ export default function ChatPanel() {
               e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
+              e.currentTarget.style.color = 'var(--text-muted)'
+              e.currentTarget.style.borderColor = 'var(--glass-border)'
             }}
           >
             {chatZoom}%
@@ -571,6 +573,13 @@ export default function ChatPanel() {
 
       {/* Task Dashboard — visual task flow (Iteration 550) */}
       <TaskDashboard />
+
+      {/* DreamTask card — shown when background memory consolidation completed this session */}
+      {dreamEvents.length > 0 && (
+        <div style={{ padding: '0 16px 4px' }}>
+          <DreamTaskCard events={dreamEvents} />
+        </div>
+      )}
 
       {/* Task Queue Panel */}
       <TaskQueuePanel />

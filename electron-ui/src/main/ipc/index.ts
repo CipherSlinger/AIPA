@@ -6,7 +6,7 @@ import { ptyManager } from '../pty/pty-manager'
 import { fallbackShellManager } from '../pty/fallback-shell'
 import { streamBridgeManager } from '../pty/stream-bridge'
 import { speculationManager, isSafeToSpeculate } from '../pty/speculation-bridge'
-import { readSettings, writeSettings, listSessions, loadSession, deleteSession, forkSession, renameSession, getMcpServers, setMcpServerEnabled, generateSessionTitle, generatePromptSuggestion, generateAwaySummary, rewindSession, searchSessions, detectTurnInterruption } from '../sessions/session-reader'
+import { readSettings, writeSettings, listSessions, loadSession, deleteSession, forkSession, renameSession, getMcpServers, setMcpServerEnabled, generateSessionTitle, generatePromptSuggestion, generateAwaySummary, rewindSession, searchSessions, detectTurnInterruption, getDreamConsolidationMtime } from '../sessions/session-reader'
 import { getSessionStats } from '../sessions/session-stats'
 import { getApiKey, setApiKey, getPref, setPref, getAllPrefs, resetAllPrefs } from '../config/config-manager'
 import { readCLISettings, writeCLISettings } from '../config/cli-settings-manager'
@@ -327,6 +327,11 @@ function registerSessionHandlers(): void {
   ipcMain.handle('session:getStats', async () => {
     return getSessionStats()
   })
+
+  // DreamTask detection: returns the mtime of the .consolidate-lock file that
+  // the CLI updates whenever an auto-dream (memory consolidation) completes.
+  // Renderer compares this against its session-start snapshot to detect dreams.
+  ipcMain.handle('session:getDreamMtime', () => getDreamConsolidationMtime())
 }
 
 // ----------------------------------------

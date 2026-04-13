@@ -44,6 +44,8 @@ export function useStreamJson() {
   const sendTimestampRef = useRef<number>(0)
   // Only warn once per session about context window nearing capacity
   const contextWarningShownRef = useRef<boolean>(false)
+  // Snapshot of .consolidate-lock mtime at session start — used to detect dream completions
+  const dreamMtimeSnapshotRef = useRef<number>(0)
 
   // Track prompt sends for analytics (deduped, max 200 items)
   const trackPromptHistory = (prompt: string) => {
@@ -86,6 +88,12 @@ export function useStreamJson() {
       window.electronAPI.windowPreventSleep(true)
     }
     sendTimestampRef.current = Date.now()
+    // Snapshot .consolidate-lock mtime so we can detect dream completions after result
+    if (window.electronAPI?.sessionGetDreamMtime) {
+      window.electronAPI.sessionGetDreamMtime().then((mtime: number) => {
+        dreamMtimeSnapshotRef.current = mtime
+      }).catch(() => {})
+    }
 
     const currentSessionId = useChatStore.getState().currentSessionId
 
@@ -640,6 +648,17 @@ Keep exercises focused and achievable. The goal is active learning through doing
           }
           // Completion notification
           sendCompletionNotification('AIPA', resultText || t('chat.responseComplete'))
+          // DreamTask detection: check if .consolidate-lock mtime advanced since session start
+          if (window.electronAPI?.sessionGetDreamMtime && dreamMtimeSnapshotRef.current >= 0) {
+            const snapshotMtime = dreamMtimeSnapshotRef.current
+            window.electronAPI.sessionGetDreamMtime().then((currentMtime: number) => {
+              if (currentMtime > snapshotMtime && currentMtime > 0) {
+                const dreamId = `dream-${currentMtime}`
+                useChatStore.getState().addDreamEvent({ id: dreamId, timestamp: currentMtime })
+                useUiStore.getState().addToast('info', t('dream.memoryConsolidated'), 5000)
+              }
+            }).catch(() => {})
+          }
           // Increment per-session unread badge (Iteration 459)
           {
             const uiState = useUiStore.getState()

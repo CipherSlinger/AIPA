@@ -1049,6 +1049,9 @@
     "count": "Compacted {{count}} time(s)",
     "contextDiff": "Context compacted: {{before}} → {{after}} messages"
   },
+  "dream": {
+    "memoryConsolidated": "Memory consolidation completed in background"
+  },
   "tips": {
     "title": "Did you know?",
     "dismiss": "Dismiss",

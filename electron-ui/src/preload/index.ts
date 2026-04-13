@@ -64,6 +64,8 @@ const electronAPI = {
   sessionSearch: (query: string, limit?: number) => ipcRenderer.invoke('session:search', { query, limit }),
   sessionDetectInterruption: (sessionId: string) => ipcRenderer.invoke('session:detectInterruption', { sessionId }),
   sessionGetStats: () => ipcRenderer.invoke('session:getStats'),
+  /** Returns mtime (ms) of .consolidate-lock — used to detect dream completions */
+  sessionGetDreamMtime: () => ipcRenderer.invoke('session:getDreamMtime') as Promise<number>,
 
   // ── Config / prefs ───────────────────────
   configRead: () => ipcRenderer.invoke('config:read'),

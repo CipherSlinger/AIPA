@@ -486,6 +486,33 @@ export function searchSessions(query: string, limit = 30): SearchResult[] {
   return results.sort((a, b) => b.timestamp - a.timestamp).slice(0, limit)
 }
 
+/**
+ * Returns the mtime (ms since epoch) of ~/.claude/<cwd-hash>/.consolidate-lock,
+ * which the CLI updates whenever a dream (auto memory consolidation) completes.
+ * Returns 0 if the file does not exist or cannot be read.
+ *
+ * The CLI uses the sanitised CWD as the project hash directory name,
+ * so we iterate all project dirs and return the most-recently-modified lock.
+ * Callers compare this value against the timestamp when a CLI session began
+ * to detect whether a dream happened during the session.
+ */
+export function getDreamConsolidationMtime(): number {
+  if (!fs.existsSync(PROJECTS_DIR)) return 0
+  let latest = 0
+  try {
+    const projectDirs = fs.readdirSync(PROJECTS_DIR, { withFileTypes: true })
+      .filter(d => d.isDirectory())
+    for (const dir of projectDirs) {
+      const lockPath = path.join(PROJECTS_DIR, dir.name, '.consolidate-lock')
+      try {
+        const stat = fs.statSync(lockPath)
+        if (stat.mtimeMs > latest) latest = stat.mtimeMs
+      } catch { /* file absent */ }
+    }
+  } catch { /* projects dir unreadable */ }
+  return latest
+}
+
 export function rewindSession(sessionId: string, beforeTimestamp: string, cliPath: string): Promise<{ success: boolean; error?: string }> {
   return new Promise((resolve) => {
     const nodePath = process.env.CLAUDE_NODE_PATH || 'node'
