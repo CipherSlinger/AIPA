@@ -802,7 +802,7 @@ export default function DepartmentPanel() {
   const reorderDepartments = useDepartmentStore(s => s.reorderDepartments)
   const sessions = useSessionStore(s => s.sessions)
   const homeDir = useSessionStore(s => s.homeDir)
-  const unreadCounts = useUiStore(s => s.unreadCounts ?? {})
+  const unreadCounts = useUiStore(s => s.unreadCounts)
   const [showAddForm, setShowAddForm] = useState(false)
   // null = respect individual row state, true = all collapsed, false = all expanded
   const [forceCollapsed, setForceCollapsed] = useState<boolean | null>(null)

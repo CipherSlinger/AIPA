@@ -6,6 +6,9 @@ import ModelPicker from './ModelPicker'
 import PersonaPicker from './PersonaPicker'
 import BookmarksPanel from './BookmarksPanel'
 import StatsPanel from './StatsPanel'
+
+// Stable fallback — avoids new [] on every Zustand selector call (inline ?? [] causes infinite re-renders)
+const EMPTY_PERSONAS: NonNullable<ReturnType<typeof usePrefsStore.getState>['prefs']['personas']> = []
 import ChangesPanel from './ChangesPanel'
 import { CostBadge, ContextBadge, ContextProgressBar } from './ContextIndicator'
 import type { ConversationStats, BookmarkedMessage } from '../../hooks/useConversationStats'
@@ -111,7 +114,7 @@ export default function ChatHeader({
   const mcpServers = useChatStore(s => s.mcpServers)
   const setSystemInit = useChatStore(s => s.setSystemInit)
   const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
-  const personas = usePrefsStore(s => s.prefs.personas ?? [])
+  const personas = usePrefsStore(s => s.prefs.personas ?? EMPTY_PERSONAS)
   const sessionPersona = personas.find(p => p.id === sessionPersonaId)
 
   // Subscribe to system.init events from the CLI

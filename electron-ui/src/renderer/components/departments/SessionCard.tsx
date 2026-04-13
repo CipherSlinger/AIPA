@@ -5,6 +5,9 @@ import { SessionListItem } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { usePrefsStore } from '../../store'
 
+// Stable fallback — avoids new {} on every Zustand selector call (which causes infinite re-renders)
+const EMPTY_COLOR_LABELS: Record<string, string> = {}
+
 /** Format a duration in ms to a compact human string: "2m", "1h 4m", "3d" */
 function formatDuration(ms: number): string {
   if (ms < 60000) return '<1m'
@@ -43,7 +46,7 @@ function formatRelativeTime(timestamp: number, t: (key: string) => string): stri
 
 export default function SessionCard({ session, onClick, isActive, isLoading, onDelete }: SessionCardProps) {
   const t = useT()
-  const sessionColorLabels = usePrefsStore(s => s.prefs?.sessionColorLabels ?? {})
+  const sessionColorLabels = usePrefsStore(s => s.prefs?.sessionColorLabels ?? EMPTY_COLOR_LABELS)
   const setPrefs = usePrefsStore(s => s.setPrefs)
   const currentLabel = sessionColorLabels[session.sessionId] ?? null
   const LABEL_COLORS = ['#f87171', '#f97316', '#fbbf24', '#22c55e', '#6366f1', '#a78bfa', '#ec4899']

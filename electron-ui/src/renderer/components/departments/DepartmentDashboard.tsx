@@ -7,6 +7,10 @@ import SessionCard from './SessionCard'
 import { useT } from '../../i18n'
 import { parseSessionMessages } from '../sessions/sessionUtils'
 
+// Stable fallback for sessionColorLabels — avoids creating a new {} on every selector call
+// (inline `?? {}` in a Zustand selector causes infinite re-renders because {} !== {})
+const EMPTY_COLOR_LABELS: Record<string, string> = {}
+
 // Normalize path for comparison (strip trailing slashes, normalize separators, expand ~)
 function normalizePath(p: string, homeDir?: string): string {
   let normalized = p.replace(/\\/g, '/')
@@ -52,7 +56,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
   const currentSessionId = useChatStore(s => s.currentSessionId)
   const setPrefs = usePrefsStore(s => s.setPrefs)
   const homeDir = useSessionStore(s => s.homeDir)
-  const sessionColorLabels = usePrefsStore(s => s.prefs?.sessionColorLabels ?? {})
+  const sessionColorLabels = usePrefsStore(s => s.prefs?.sessionColorLabels ?? EMPTY_COLOR_LABELS)
 
   const deptSessions = useMemo((): SessionListItem[] => {
     if (!dept) return []
@@ -833,7 +837,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
   const sessionsLoading = useSessionStore(s => s.loading)
   const currentSessionId = useChatStore(s => s.currentSessionId)
   const setPrefs = usePrefsStore(s => s.setPrefs)
-  const sessionColorLabels = usePrefsStore(s => s.prefs?.sessionColorLabels ?? {})
+  const sessionColorLabels = usePrefsStore(s => s.prefs?.sessionColorLabels ?? EMPTY_COLOR_LABELS)
   const homeDir = useSessionStore(s => s.homeDir)
 
   const [hoveredDept, setHoveredDept] = useState<string | null>(null)
