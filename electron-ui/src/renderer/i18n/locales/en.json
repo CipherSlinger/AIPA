@@ -1690,6 +1690,7 @@
       "gateway": "Route through an AI gateway or proxy (e.g. Vercel AI Gateway) using an Auth Token",
       "compat": "Connect to third-party services compatible with the Anthropic API (DeepSeek, Qwen, OpenAI, Ollama, etc.)"
     },
+    "connectionMode": "Connection Mode",
     "authToken": "Auth Token",
     "authTokenHint": "When set, API Key must be left empty. The token is sent as Authorization: Bearer",
     "model": "Model",

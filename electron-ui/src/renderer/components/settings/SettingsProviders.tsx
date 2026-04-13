@@ -294,8 +294,38 @@ export default function SettingsProviders() {
               </div>
             )}
 
+            {/* Scenario switcher — for claude-cli: allow toggling between official and gateway */}
+            {provider.id === 'claude-cli' && (
+              <div>
+                <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', display: 'block', marginBottom: 5 }}>
+                  {t('provider.connectionMode')}
+                </label>
+                <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 3 }}>
+                  {(['official', 'gateway'] as const).map(sc => {
+                    const currentScenario = (draft.scenario ?? provider.scenario) as ProviderScenario
+                    const isActive = currentScenario === sc
+                    return (
+                      <button
+                        key={sc}
+                        onClick={() => updateDraft(provider.id, 'scenario', sc)}
+                        style={{
+                          flex: 1, padding: '5px 8px', borderRadius: 6, border: 'none',
+                          background: isActive ? `rgba(${sc === 'official' ? '99,102,241' : '251,191,36'},0.18)` : 'transparent',
+                          color: isActive ? SCENARIO_COLORS[sc] : 'rgba(255,255,255,0.38)',
+                          fontSize: 11, fontWeight: isActive ? 700 : 400, cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        {t(`provider.scenario.${sc}`)}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* API Key — official scenario */}
-            {provider.scenario === 'official' && (
+            {((draft.scenario ?? provider.scenario) as ProviderScenario) === 'official' && (
               <div>
                 <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', display: 'block', marginBottom: 5 }}>
                   {t('provider.apiKey')}
@@ -321,7 +351,7 @@ export default function SettingsProviders() {
             )}
 
             {/* Auth Token — gateway scenario */}
-            {provider.scenario === 'gateway' && (
+            {((draft.scenario ?? provider.scenario) as ProviderScenario) === 'gateway' && (
               <>
                 <div>
                   <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', display: 'block', marginBottom: 5 }}>
@@ -352,7 +382,7 @@ export default function SettingsProviders() {
             )}
 
             {/* Base URL — gateway scenario */}
-            {provider.scenario === 'gateway' && (
+            {((draft.scenario ?? provider.scenario) as ProviderScenario) === 'gateway' && (
               <div>
                 <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', display: 'block', marginBottom: 5 }}>
                   {t('provider.baseUrl')}
@@ -368,7 +398,7 @@ export default function SettingsProviders() {
             )}
 
             {/* Fetch models button — gateway scenario */}
-            {provider.scenario === 'gateway' && (
+            {((draft.scenario ?? provider.scenario) as ProviderScenario) === 'gateway' && (
               <div>
                 <button
                   onClick={() => handleFetchRemoteModels(provider)}

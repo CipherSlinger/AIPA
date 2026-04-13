@@ -1708,6 +1708,7 @@
       "gateway": "通过 AI 网关或代理（如 Vercel AI Gateway）调用，使用 Auth Token 认证",
       "compat": "接入兼容 Anthropic 协议的第三方服务（DeepSeek、Qwen、OpenAI、Ollama 等）"
     },
+    "connectionMode": "连接模式",
     "authToken": "Auth Token",
     "authTokenHint": "设置后须将 API Key 留空，Token 以 Authorization: Bearer 方式发送",
     "model": "模型",
