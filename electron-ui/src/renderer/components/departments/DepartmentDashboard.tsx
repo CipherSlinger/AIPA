@@ -57,9 +57,22 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
   const deptSessions = useMemo((): SessionListItem[] => {
     if (!dept) return []
     const deptDir = simpleNormPath(dept.directory)
-    return allSessions
-      .filter(s => simpleNormPath(s.project) === deptDir)
-      .sort((a, b) => b.timestamp - a.timestamp)
+    const matched = allSessions.filter(s => simpleNormPath(s.project) === deptDir)
+    // DEBUG — remove after diagnosis
+    console.log('[dept:debug]', JSON.stringify({
+      deptId: dept.id,
+      deptDirectory: dept.directory,
+      deptDir,
+      totalSessions: allSessions.length,
+      matchedCount: matched.length,
+      first5sessions: allSessions.slice(0, 5).map(s => ({
+        project: s.project,
+        projectNorm: simpleNormPath(s.project),
+        projectSlug: s.projectSlug,
+        eq: simpleNormPath(s.project) === deptDir,
+      })),
+    }, null, 2))
+    return matched.sort((a, b) => b.timestamp - a.timestamp)
   }, [allSessions, dept])
 
   const [searchQuery, setSearchQuery] = useState('')
