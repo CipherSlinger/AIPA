@@ -1,7 +1,7 @@
 # AIPA x Claude Code CLI — 功能差距文档
 
-> 更新日期：2026-04-12
-> CLI 版本：claude-code（源码映射来自 claude-code-sourcemap-main，推断版本 ~2.x）
+> 更新日期：2026-04-13
+> CLI 版本：claude-code 2.1.81（BUILD_TIME: 2026-03-20T21:25:42Z）
 > 分析目的：指导 AIPA UI 逐步对齐 CLI 全部能力
 
 ---
@@ -49,7 +49,14 @@
 
 **最高优先：** ✅ **P0-3 已实现** — `FileDiffView.tsx` 通过 LCS 算法渲染 FileEdit/FileWrite 的文件内容差异预览，`ToolUseBlock` 已接入，用户批准前可查看变更内容。
 
-**中优先：** TodoWrite 需要持久化 todo 侧边栏（CLI 通过 TodoWrite 工具维护 MEMORY.md 格式的 todo 列表）。Agent 子代理需要嵌套展示（当前只显示 toolUse 名称）。
+**P2-7 已实现：** ✅ **TodoWrite 面板** — `TodoListView.tsx` 组件已实现，`ToolUseBlock` 在检测到 `TodoWrite`/`todo_write` 工具时渲染结构化待办列表（支持 pending/in_progress/completed 状态，high/medium/low 优先级色标）。
+
+**中优先：** Agent 子代理需要嵌套展示（当前只显示 toolUse 名称）。
+
+**新发现（2026-04-13）：**
+- `StructuredOutput` 工具：CLI 可在调用时按 JSON Schema 约束返回结构化数据，AIPA 无专用 UI
+- `DreamTask`（`dream` 类型后台任务）：自动记忆整合子代理，AIPA 无 UI
+- `plan_approval_request/response`：多代理计划审批协议，AIPA 无 UI
 
 ---
 
