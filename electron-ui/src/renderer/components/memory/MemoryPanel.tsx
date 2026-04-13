@@ -25,7 +25,7 @@ import {
 } from 'lucide-react'
 import { useT } from '../../i18n'
 import { usePrefsStore } from '../../store'
-import { CATEGORY_CONFIG, CATEGORIES, MAX_MEMORIES } from './memoryConstants'
+import { CATEGORY_CONFIG, CATEGORIES, MAX_MEMORIES, MEMORY_TYPES, MEMORY_TYPE_CONFIG } from './memoryConstants'
 import { useMemoryCrud } from './useMemoryCrud'
 import MemoryAddForm from './MemoryAddForm'
 import MemoryItemCard from './MemoryItemCard'
