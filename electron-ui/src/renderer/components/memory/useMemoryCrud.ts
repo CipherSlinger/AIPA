@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react'
 import { usePrefsStore, useUiStore } from '../../store'
 import { MemoryItem, MemoryCategory, MemoryType } from '../../types/app.types'
-import { MAX_MEMORIES, MAX_CONTENT_LENGTH, CATEGORIES, fuzzyScore, suggestCategory, suggestMemoryType } from './memoryConstants'
+import { MAX_MEMORIES, MAX_CONTENT_LENGTH, CATEGORIES, MEMORY_TYPES, fuzzyScore, suggestCategory, suggestMemoryType } from './memoryConstants'
 
 export function useMemoryCrud() {
   const prefs = usePrefsStore(s => s.prefs)
@@ -17,6 +17,7 @@ export function useMemoryCrud() {
   // UI state
   const [searchQuery, setSearchQuery] = useState('')
   const [filterCategory, setFilterCategory] = useState<MemoryCategory | 'all'>('all')
+  const [filterMemoryType, setFilterMemoryType] = useState<MemoryType | 'all'>('all')
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
@@ -112,6 +113,12 @@ export function useMemoryCrud() {
     if (filterCategory !== 'all') {
       result = result.filter(m => m.category === filterCategory)
     }
+    // Filter by memory type:
+    // - items WITH a memoryType: must match the selected type
+    // - items WITHOUT a memoryType: only shown when 'all' is selected
+    if (filterMemoryType !== 'all') {
+      result = result.filter(m => m.memoryType === filterMemoryType)
+    }
     // Filter and score by search
     if (searchQuery.trim()) {
       const scored = result.map(m => ({
@@ -134,7 +141,7 @@ export function useMemoryCrud() {
       return b.updatedAt - a.updatedAt
     })
     return result
-  }, [memories, filterCategory, searchQuery])
+  }, [memories, filterCategory, filterMemoryType, searchQuery])
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = { all: memories.length }
@@ -144,14 +151,24 @@ export function useMemoryCrud() {
     return counts
   }, [memories])
 
+  const memoryTypeCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: memories.length }
+    for (const type of MEMORY_TYPES) {
+      counts[type] = memories.filter(m => m.memoryType === type).length
+    }
+    return counts
+  }, [memories])
+
   return {
     // Data
     memories,
     filteredMemories,
     categoryCounts,
+    memoryTypeCounts,
     // Search/filter
     searchQuery, setSearchQuery,
     filterCategory, setFilterCategory,
+    filterMemoryType, setFilterMemoryType,
     // Add form
     showAddForm, setShowAddForm,
     newContent, newCategory, setNewCategory,

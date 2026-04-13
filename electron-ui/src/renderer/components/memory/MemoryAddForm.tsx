@@ -53,7 +53,7 @@ export default function MemoryAddForm({
           minHeight: 80,
           padding: '7px 10px',
           background: 'rgba(255,255,255,0.06)',
-          border: '1px solid rgba(255,255,255,0.10)',
+          border: '1px solid rgba(255,255,255,0.09)',
           borderRadius: 6,
           fontSize: 13,
           color: 'rgba(255,255,255,0.82)',
@@ -69,7 +69,7 @@ export default function MemoryAddForm({
           e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.45)'
         }}
         onBlur={e => {
-          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
           e.currentTarget.style.boxShadow = 'none'
         }}
         onKeyDown={e => {
@@ -181,7 +181,7 @@ export default function MemoryAddForm({
             onClick={onClose}
             style={{
               background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.10)',
+              border: '1px solid rgba(255,255,255,0.09)',
               borderRadius: 8,
               padding: '7px 14px',
               fontSize: 12,
@@ -207,7 +207,7 @@ export default function MemoryAddForm({
               padding: '7px 14px',
               fontSize: 12,
               fontWeight: 600,
-              color: newContent.trim() ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.38)',
+              color: newContent.trim() ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.38)',
               cursor: newContent.trim() ? 'pointer' : 'not-allowed',
               transition: 'all 0.15s ease',
               boxShadow: newContent.trim() ? '0 2px 8px rgba(99,102,241,0.30)' : 'none',

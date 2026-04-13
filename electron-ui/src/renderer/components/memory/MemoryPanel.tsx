@@ -24,7 +24,7 @@ import {
 } from 'lucide-react'
 import { useT } from '../../i18n'
 import { usePrefsStore } from '../../store'
-import { CATEGORY_CONFIG, CATEGORIES, MAX_MEMORIES } from './memoryConstants'
+import { CATEGORY_CONFIG, CATEGORIES, MAX_MEMORIES, MEMORY_TYPE_CONFIG, MEMORY_TYPES } from './memoryConstants'
 import { useMemoryCrud } from './useMemoryCrud'
 import MemoryAddForm from './MemoryAddForm'
 import MemoryItemCard from './MemoryItemCard'
@@ -882,6 +882,88 @@ export default function MemoryPanel() {
                   >
                     {cfg.icon}
                     {t(cfg.labelKey)} ({crud.categoryCounts[cat] || 0})
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Memory type filter chips */}
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 5 }}>
+              {/* "全部" chip */}
+              <button
+                onClick={() => crud.setFilterMemoryType('all')}
+                style={{
+                  background: crud.filterMemoryType === 'all'
+                    ? 'rgba(99,102,241,0.20)'
+                    : 'rgba(255,255,255,0.06)',
+                  color: crud.filterMemoryType === 'all'
+                    ? 'rgba(165,180,252,0.82)'
+                    : 'rgba(255,255,255,0.45)',
+                  border: crud.filterMemoryType === 'all'
+                    ? '1px solid rgba(99,102,241,0.40)'
+                    : '1px solid rgba(255,255,255,0.09)',
+                  borderRadius: 20,
+                  padding: '3px 10px',
+                  fontSize: 11,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                全部
+              </button>
+              {/* Type chips */}
+              {MEMORY_TYPES.map(type => {
+                const tc = MEMORY_TYPE_CONFIG[type]
+                const isActive = crud.filterMemoryType === type
+                // Map type to Chinese label and dot color
+                const typeLabels: Record<string, { label: string; dot: string }> = {
+                  user:      { label: '用户', dot: 'rgba(251,191,36,0.82)' },
+                  feedback:  { label: '反馈', dot: 'rgba(134,239,172,0.82)' },
+                  project:   { label: '项目', dot: 'rgba(96,165,250,0.82)' },
+                  reference: { label: '参考', dot: 'rgba(192,132,252,0.82)' },
+                }
+                const info = typeLabels[type] || { label: type, dot: tc.color }
+                return (
+                  <button
+                    key={type}
+                    onClick={() => crud.setFilterMemoryType(isActive ? 'all' : type)}
+                    style={{
+                      background: isActive
+                        ? 'rgba(99,102,241,0.20)'
+                        : 'rgba(255,255,255,0.06)',
+                      color: isActive
+                        ? 'rgba(165,180,252,0.82)'
+                        : 'rgba(255,255,255,0.45)',
+                      border: isActive
+                        ? '1px solid rgba(99,102,241,0.40)'
+                        : '1px solid rgba(255,255,255,0.09)',
+                      borderRadius: 20,
+                      padding: '3px 10px',
+                      fontSize: 11,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {/* Colored dot indicator */}
+                    <span style={{
+                      display: 'inline-block',
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      background: info.dot,
+                      flexShrink: 0,
+                    }} />
+                    {info.label}
+                    <span style={{
+                      fontSize: 9,
+                      opacity: 0.7,
+                      fontVariantNumeric: 'tabular-nums',
+                    }}>
+                      {crud.memoryTypeCounts[type] || 0}
+                    </span>
                   </button>
                 )
               })}

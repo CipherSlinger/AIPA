@@ -43,6 +43,15 @@ export default function MemoryItemCard({
   const cfg = CATEGORY_CONFIG[mem.category] || CATEGORY_CONFIG.fact
   const typeCfg = mem.memoryType ? MEMORY_TYPE_CONFIG[mem.memoryType] : null
 
+  // Chinese labels and badge colors for memory type
+  const typeDisplayMap: Record<string, { label: string; dot: string; bg: string; border: string }> = {
+    user:      { label: '用户',   dot: 'rgba(251,191,36,0.82)',  bg: 'rgba(251,191,36,0.15)',  border: 'rgba(251,191,36,0.60)' },
+    feedback:  { label: '反馈',   dot: 'rgba(134,239,172,0.82)', bg: 'rgba(134,239,172,0.10)', border: 'rgba(134,239,172,0.45)' },
+    project:   { label: '项目',   dot: 'rgba(96,165,250,0.82)',  bg: 'rgba(96,165,250,0.12)',  border: 'rgba(96,165,250,0.45)' },
+    reference: { label: '参考',   dot: 'rgba(192,132,252,0.82)', bg: 'rgba(192,132,252,0.12)', border: 'rgba(192,132,252,0.45)' },
+  }
+  const typeDisplay = mem.memoryType ? typeDisplayMap[mem.memoryType] : null
+
   return (
     <div
       style={{
@@ -88,7 +97,7 @@ export default function MemoryItemCard({
               height: 50,
               padding: 6,
               background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.09)',
               borderRadius: 6,
               fontSize: 11,
               color: 'rgba(255,255,255,0.82)',
@@ -104,7 +113,7 @@ export default function MemoryItemCard({
               e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.12)'
             }}
             onBlur={e => {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
               e.currentTarget.style.boxShadow = 'none'
             }}
             onKeyDown={e => {
@@ -178,16 +187,16 @@ export default function MemoryItemCard({
                 onClick={onCancelEdit}
                 style={{
                   background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.12)',
+                  border: '1px solid rgba(255,255,255,0.09)',
                   borderRadius: 4,
                   padding: '2px 7px',
                   cursor: 'pointer',
-                  color: 'rgba(255,255,255,0.50)',
+                  color: 'rgba(255,255,255,0.45)',
                   display: 'flex',
                   alignItems: 'center',
                   transition: 'all 0.15s ease',
                 }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.10)')}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.09)')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
               >
                 <X size={14} />
@@ -200,7 +209,7 @@ export default function MemoryItemCard({
                   borderRadius: 4,
                   padding: '2px 7px',
                   cursor: 'pointer',
-                  color: 'rgba(255,255,255,0.95)',
+                  color: 'rgba(255,255,255,0.82)',
                   fontWeight: 600,
                   display: 'flex',
                   alignItems: 'center',
@@ -271,23 +280,32 @@ export default function MemoryItemCard({
                 }}>
                   {t(cfg.labelKey)}
                 </span>
-                {/* Memory type badge (Iteration 480) */}
-                {typeCfg && (
+                {/* Memory type badge */}
+                {typeDisplay && typeCfg && (
                   <span style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 2,
+                    gap: 4,
                     fontSize: 10,
-                    color: typeCfg.color,
-                    background: 'rgba(255,255,255,0.06)',
+                    color: 'rgba(255,255,255,0.60)',
+                    background: typeDisplay.bg,
+                    border: `1px solid ${typeDisplay.border}`,
                     borderRadius: 4,
                     padding: '1px 5px',
                     fontWeight: 500,
+                    transition: 'all 0.15s ease',
                   }}
                   title={typeCfg.description}
                   >
-                    {typeCfg.icon}
-                    {mem.memoryType}
+                    <span style={{
+                      display: 'inline-block',
+                      width: 5,
+                      height: 5,
+                      borderRadius: '50%',
+                      background: typeDisplay.dot,
+                      flexShrink: 0,
+                    }} />
+                    {typeDisplay.label}
                   </span>
                 )}
                 <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
