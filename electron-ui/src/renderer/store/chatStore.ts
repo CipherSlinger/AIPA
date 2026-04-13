@@ -276,6 +276,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   lastNumTurns: null,
   lastDurationMs: null,
   availableTools: [],
+  mcpServers: [],
   activeModel: '',
   permissionMode: 'default',
 
@@ -654,7 +655,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   // system.init handler
   setSystemInit: (data) => set({
     availableTools: data.tools,
-    mcpServers: data.mcpServers,
+    mcpServers: data.mcpServers ?? [],
     activeModel: data.model,
     permissionMode: data.permissionMode,
   }),
