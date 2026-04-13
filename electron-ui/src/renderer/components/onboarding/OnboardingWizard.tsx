@@ -37,6 +37,8 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
         ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
         ...(token.trim() ? { authToken: token.trim() } : {}),
         ...(baseUrl.trim() ? { baseUrl: baseUrl.trim() } : {}),
+        // Infer scenario: gateway when token/baseUrl is used without an API key
+        scenario: (!apiKey.trim() && (token.trim() || baseUrl.trim())) ? 'gateway' : 'official',
         enabled: true,
       }
       await window.electronAPI.providerUpsert(updated)
