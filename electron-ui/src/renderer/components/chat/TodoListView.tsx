@@ -171,7 +171,7 @@ export default function TodoListView({ todos }: Props) {
               {inProgress} {t('tool.todoStatusInProgress').toLowerCase()}
             </span>
           )}
-          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.30)' }}>
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)' }}>
             {completed}/{todos.length}
           </span>
         </div>

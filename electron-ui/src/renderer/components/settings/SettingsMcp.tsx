@@ -121,7 +121,7 @@ const inputStyle: React.CSSProperties = {
   fontSize: 11,
   padding: '5px 10px',
   outline: 'none',
-  transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+  transition: 'all 0.15s ease',
 }
 
 const primaryBtnStyle: React.CSSProperties = {
@@ -140,7 +140,7 @@ const secondaryBtnStyle: React.CSSProperties = {
   background: 'rgba(255,255,255,0.06)',
   border: '1px solid rgba(255,255,255,0.09)',
   borderRadius: 6,
-  color: 'rgba(255,255,255,0.75)',
+  color: 'rgba(255,255,255,0.60)',
   cursor: 'pointer',
   fontSize: 11,
   padding: '5px 12px',
@@ -489,10 +489,9 @@ function ServerCard({
       boxShadow: cardHovered
         ? '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)'
         : '0 2px 8px rgba(0,0,0,0.3)',
-      transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+      transition: 'all 0.15s ease',
     }}>
-      {/* Row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px' }}>
+      {/* Row */}      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px' }}>
         {/* Expand chevron */}
         <button onClick={handleExpand} style={{ ...iconBtnStyle, padding: 0 }} title={t('mcp.showTools')}>
           {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
@@ -545,7 +544,7 @@ function ServerCard({
           style={{
             ...iconBtnStyle,
             display: 'flex', alignItems: 'center',
-            color: hoveredReconnect ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.3)',
+            color: hoveredReconnect ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.38)',
             background: hoveredReconnect ? 'rgba(255,255,255,0.07)' : 'none',
             borderRadius: 8, padding: '3px 5px',
             transition: 'all 0.15s ease',
@@ -674,7 +673,7 @@ function ServerToolList({ tools }: { tools: McpToolInfo[] }) {
           display: 'flex',
           alignItems: 'center',
           gap: 4,
-          color: 'rgba(165,180,252,0.70)',
+          color: 'rgba(165,180,252,0.60)',
           fontSize: 10,
           fontWeight: 600,
           transition: 'all 0.15s ease',
@@ -719,7 +718,7 @@ function LiveSessionStatus({ servers }: { servers: ActiveMcpServer[] }) {
   if (servers.length === 0) {
     return (
       <div style={{
-        background: 'rgba(15,15,25,0.70)',
+        background: 'rgba(15,15,25,0.85)',
         border: '1px solid rgba(255,255,255,0.06)',
         borderRadius: 10,
         padding: '10px 14px',
@@ -732,7 +731,7 @@ function LiveSessionStatus({ servers }: { servers: ActiveMcpServer[] }) {
           width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
           background: 'rgba(255,255,255,0.18)',
         }} />
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)', fontStyle: 'italic' }}>
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', fontStyle: 'italic' }}>
           启动新会话后将显示 MCP 连接状态
         </span>
       </div>

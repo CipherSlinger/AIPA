@@ -205,7 +205,7 @@ function FilePathHighlight({ filePath }: { filePath: string }) {
     <span style={{
       fontFamily: 'monospace',
       fontSize: 12,
-      color: 'rgba(165,180,252,0.80)',
+      color: 'rgba(165,180,252,0.82)',
       overflow: 'hidden',
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap',
@@ -1168,7 +1168,9 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
           onClick={() => setLightboxSrc(null)}
           style={{
             position: 'fixed', inset: 0, zIndex: 10001,
-            background: 'rgba(0,0,0,0.85)',
+            background: 'rgba(0,0,0,0.70)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'zoom-out',
             animation: 'slideUp 0.15s ease',

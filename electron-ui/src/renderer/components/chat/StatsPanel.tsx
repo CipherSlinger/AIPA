@@ -344,7 +344,7 @@ export default function StatsPanel({
                 border: '1px solid rgba(255,255,255,0.09)',
                 borderRadius: 6,
                 padding: '5px 0',
-                color: 'rgba(255,255,255,0.50)',
+                color: 'rgba(255,255,255,0.45)',
                 cursor: 'pointer',
                 fontSize: 10,
                 fontWeight: 600,
@@ -357,7 +357,7 @@ export default function StatsPanel({
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.50)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
               }}
             >
               {t('chat.collapseAll')}
@@ -370,7 +370,7 @@ export default function StatsPanel({
                 border: '1px solid rgba(255,255,255,0.09)',
                 borderRadius: 6,
                 padding: '5px 0',
-                color: 'rgba(255,255,255,0.50)',
+                color: 'rgba(255,255,255,0.45)',
                 cursor: 'pointer',
                 fontSize: 10,
                 fontWeight: 600,
@@ -383,7 +383,7 @@ export default function StatsPanel({
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.50)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
               }}
             >
               {t('chat.expandAll')}
@@ -399,7 +399,7 @@ export default function StatsPanel({
               border: '1px solid rgba(255,255,255,0.09)',
               borderRadius: 6,
               padding: '5px 0',
-              color: statsCopied ? '#4ade80' : 'rgba(255,255,255,0.50)',
+              color: statsCopied ? '#4ade80' : 'rgba(255,255,255,0.45)',
               cursor: 'pointer',
               fontSize: 10,
               fontWeight: 600,
@@ -419,7 +419,7 @@ export default function StatsPanel({
             onMouseLeave={(e) => {
               if (!statsCopied) {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.50)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
               }
             }}
           >
@@ -436,7 +436,7 @@ export default function StatsPanel({
               border: '1px solid rgba(255,255,255,0.09)',
               borderRadius: 6,
               padding: '5px 0',
-              color: summaryCopied ? '#4ade80' : 'rgba(255,255,255,0.50)',
+              color: summaryCopied ? '#4ade80' : 'rgba(255,255,255,0.45)',
               cursor: 'pointer',
               fontSize: 10,
               fontWeight: 600,
@@ -456,7 +456,7 @@ export default function StatsPanel({
             onMouseLeave={(e) => {
               if (!summaryCopied) {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.50)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
               }
             }}
           >
