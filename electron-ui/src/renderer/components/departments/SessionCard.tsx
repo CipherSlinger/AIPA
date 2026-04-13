@@ -43,7 +43,7 @@ function formatRelativeTime(timestamp: number, t: (key: string) => string): stri
 
 export default function SessionCard({ session, onClick, isActive, isLoading, onDelete }: SessionCardProps) {
   const t = useT()
-  const sessionColorLabels = usePrefsStore(s => s.prefs.sessionColorLabels ?? {})
+  const sessionColorLabels = usePrefsStore(s => s.prefs?.sessionColorLabels ?? {})
   const setPrefs = usePrefsStore(s => s.setPrefs)
   const currentLabel = sessionColorLabels[session.sessionId] ?? null
   const LABEL_COLORS = ['#f87171', '#f97316', '#fbbf24', '#22c55e', '#6366f1', '#a78bfa', '#ec4899']

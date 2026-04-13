@@ -52,7 +52,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
   const currentSessionId = useChatStore(s => s.currentSessionId)
   const setPrefs = usePrefsStore(s => s.setPrefs)
   const homeDir = useSessionStore(s => s.homeDir)
-  const sessionColorLabels = usePrefsStore(s => s.prefs.sessionColorLabels ?? {})
+  const sessionColorLabels = usePrefsStore(s => s.prefs?.sessionColorLabels ?? {})
 
   const deptSessions = useMemo((): SessionListItem[] => {
     if (!dept) return []
@@ -833,7 +833,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
   const sessionsLoading = useSessionStore(s => s.loading)
   const currentSessionId = useChatStore(s => s.currentSessionId)
   const setPrefs = usePrefsStore(s => s.setPrefs)
-  const sessionColorLabels = usePrefsStore(s => s.prefs.sessionColorLabels ?? {})
+  const sessionColorLabels = usePrefsStore(s => s.prefs?.sessionColorLabels ?? {})
   const homeDir = useSessionStore(s => s.homeDir)
 
   const [hoveredDept, setHoveredDept] = useState<string | null>(null)
