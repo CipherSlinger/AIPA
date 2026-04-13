@@ -11,35 +11,12 @@ import { parseSessionMessages } from '../sessions/sessionUtils'
 // (inline `?? {}` in a Zustand selector causes infinite re-renders because {} !== {})
 const EMPTY_COLOR_LABELS: Record<string, string> = {}
 
-/**
- * Convert a directory path to the Claude CLI project slug format.
- * Claude encodes paths by replacing all separators (/ on Linux, \ on Windows)
- * with hyphens. This is the inverse of the lossy decodeProjectSlug used in
- * session-reader — we encode the known directory and compare to the stored slug
- * directly, avoiding the ambiguity of hyphens-in-names vs path separators.
- */
-function dirToSlug(dir: string, homeDir?: string): string {
-  let p = dir.replace(/\\/g, '/')
-  // Expand ~ to homeDir for comparison
-  if (homeDir && p.startsWith('~/')) {
-    p = homeDir.replace(/\/+$/, '') + p.slice(1)
-  } else if (homeDir && p === '~') {
-    p = homeDir.replace(/\/+$/, '')
-  }
-  p = p.replace(/\/+$/, '') // strip trailing slash
-  // Replace path separators with hyphens (Claude's encoding rule)
-  return p.replace(/\//g, '-')
-}
-
-// Normalize path for comparison (strip trailing slashes, normalize separators, expand ~)
-function normalizePath(p: string, homeDir?: string): string {
-  let normalized = p.replace(/\\/g, '/')
-  if (homeDir && normalized.startsWith('~/')) {
-    normalized = homeDir.replace(/\/+$/, '') + normalized.slice(1)
-  } else if (homeDir && normalized === '~') {
-    normalized = homeDir.replace(/\/+$/, '')
-  }
-  return normalized.replace(/\/+$/, '')
+// Simple path normalization (no homeDir expansion) — used for session matching.
+// Both s.project (decoded from slug) and dept.directory (stored from user config or
+// auto-imported from s.project) use the same decodeProjectSlug result, so even if
+// the decode is lossy (hyphens in dir names) they still match each other.
+function simpleNormPath(p: string): string {
+  return p.replace(/\\/g, '/').replace(/\/+$/, '')
 }
 
 // Shared core logic for opening a session in a department directory.
@@ -75,24 +52,15 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
   const sessionsLoading = useSessionStore(s => s.loading)
   const currentSessionId = useChatStore(s => s.currentSessionId)
   const setPrefs = usePrefsStore(s => s.setPrefs)
-  const homeDir = useSessionStore(s => s.homeDir)
   const sessionColorLabels = usePrefsStore(s => s.prefs?.sessionColorLabels ?? EMPTY_COLOR_LABELS)
 
   const deptSessions = useMemo((): SessionListItem[] => {
     if (!dept) return []
-    const deptSlug = dirToSlug(dept.directory, homeDir)
-    const deptNorm = normalizePath(dept.directory, homeDir)
-    console.debug('[dept] matching sessions — directory:', dept.directory, 'homeDir:', homeDir, 'deptSlug:', deptSlug, 'deptNorm:', deptNorm)
+    const deptDir = simpleNormPath(dept.directory)
     return allSessions
-      .filter(s => {
-        // Primary: match via slug (most reliable — avoids decodeProjectSlug lossiness)
-        if (s.projectSlug === deptSlug) return true
-        // Fallback: match via normalized project path (for depts created before slug matching)
-        const projNorm = normalizePath(s.project, homeDir)
-        return projNorm === deptNorm
-      })
+      .filter(s => simpleNormPath(s.project) === deptDir)
       .sort((a, b) => b.timestamp - a.timestamp)
-  }, [allSessions, dept, homeDir])
+  }, [allSessions, dept])
 
   const [searchQuery, setSearchQuery] = useState('')
   const [searchFocused, setSearchFocused] = useState(false)
@@ -866,7 +834,6 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
   const currentSessionId = useChatStore(s => s.currentSessionId)
   const setPrefs = usePrefsStore(s => s.setPrefs)
   const sessionColorLabels = usePrefsStore(s => s.prefs?.sessionColorLabels ?? EMPTY_COLOR_LABELS)
-  const homeDir = useSessionStore(s => s.homeDir)
 
   const [hoveredDept, setHoveredDept] = useState<string | null>(null)
   const [deptSearch, setDeptSearch] = useState('')
@@ -909,26 +876,24 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
 
   // 3 most recently active sessions across ALL departments
   const recentSessions = useMemo(() => {
-    const deptSlugs = new Set(departments.map(d => dirToSlug(d.directory, homeDir)))
-    const deptNorms = new Set(departments.map(d => normalizePath(d.directory, homeDir)))
+    const deptDirs = new Set(departments.map(d => simpleNormPath(d.directory)))
     return allSessions
-      .filter(s => deptSlugs.has(s.projectSlug) || deptNorms.has(normalizePath(s.project, homeDir)))
+      .filter(s => deptDirs.has(simpleNormPath(s.project)))
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, 3)
-  }, [allSessions, departments, homeDir])
+  }, [allSessions, departments])
 
   // Sessions per dept
   const sessionsByDept = useMemo(() => {
     const map: Record<string, SessionListItem[]> = {}
     for (const dept of departments) {
-      const deptSlug = dirToSlug(dept.directory, homeDir)
-      const deptNorm = normalizePath(dept.directory, homeDir)
+      const deptDir = simpleNormPath(dept.directory)
       map[dept.id] = allSessions
-        .filter(s => s.projectSlug === deptSlug || normalizePath(s.project, homeDir) === deptNorm)
+        .filter(s => simpleNormPath(s.project) === deptDir)
         .sort((a, b) => b.timestamp - a.timestamp)
     }
     return map
-  }, [departments, allSessions, homeDir])
+  }, [departments, allSessions])
 
   const newSessionInDept = (dept: { id: string; directory: string; name: string; color?: string }) => {
     setPrefs({ workingDir: dept.directory })
@@ -1091,7 +1056,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
             {recentSessions.map(session => {
-              const dept = departments.find(d => dirToSlug(d.directory, homeDir) === session.projectSlug || normalizePath(d.directory, homeDir) === normalizePath(session.project, homeDir))
+              const dept = departments.find(d => simpleNormPath(d.directory) === simpleNormPath(session.project))
               return (
                 <div
                   key={session.sessionId}
