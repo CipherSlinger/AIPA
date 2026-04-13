@@ -676,7 +676,7 @@ function InstructionFilesTab() {
             whiteSpace: 'nowrap',
             flex: 1,
             cursor: 'pointer',
-            transition: 'color 0.15s ease',
+            transition: 'all 0.15s ease',
             userSelect: 'none',
           }}
           onMouseEnter={e => { if (!pathCopied) e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
@@ -742,10 +742,10 @@ function InstructionFilesTab() {
                 disabled={saving}
                 style={{
                   background: 'linear-gradient(135deg, #6366f1, #a78bfa)', border: 'none', borderRadius: 4,
-                  color: 'rgba(255,255,255,0.95)', fontSize: 10, cursor: 'pointer', padding: '2px 8px',
+                  color: 'rgba(255,255,255,0.82)', fontSize: 10, cursor: 'pointer', padding: '2px 8px',
                   display: 'flex', alignItems: 'center', gap: 3, fontWeight: 600,
                   opacity: saving ? 0.6 : 1,
-                  transition: 'box-shadow 0.15s ease, opacity 0.15s ease',
+                  transition: 'all 0.15s ease',
                 }}
                 onMouseEnter={e => { if (!saving) e.currentTarget.style.boxShadow = '0 0 10px rgba(99,102,241,0.45)' }}
                 onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none' }}
@@ -898,7 +898,7 @@ export default function MemoryPanel() {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    transition: 'color 0.15s ease, border-color 0.15s ease',
+    transition: 'all 0.15s ease',
   } as React.CSSProperties)
 
   return (
@@ -972,7 +972,7 @@ export default function MemoryPanel() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 3,
-                  transition: 'box-shadow 0.15s ease, opacity 0.15s ease',
+                  transition: 'all 0.15s ease',
                   boxShadow: crud.showAddForm ? '0 0 12px rgba(99,102,241,0.45)' : 'none',
                   opacity: crud.showAddForm ? 0.85 : 1,
                 }}
@@ -996,7 +996,7 @@ export default function MemoryPanel() {
                     color: 'rgba(255,255,255,0.38)',
                     display: 'flex',
                     alignItems: 'center',
-                    transition: 'color 0.15s ease',
+                    transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={e => (e.currentTarget.style.color = '#fca5a5')}
                   onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.38)')}
@@ -1064,7 +1064,7 @@ export default function MemoryPanel() {
                   color: 'rgba(255,255,255,0.82)',
                   outline: 'none',
                   boxSizing: 'border-box',
-                  transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+                  transition: 'all 0.15s ease',
                 }}
                 onFocus={e => {
                   e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'

@@ -106,7 +106,7 @@ export default function MemoryItemCard({
               outline: 'none',
               boxSizing: 'border-box',
               fontFamily: 'inherit',
-              transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
             onFocus={e => {
               e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'
