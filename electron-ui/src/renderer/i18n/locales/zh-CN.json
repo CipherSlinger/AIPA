@@ -515,6 +515,9 @@
     "promptSuggestionsHint": "每次回复后显示 AI 预测的后续建议（输入框中的虚影文字，按 Tab 接受）",
     "speculation": "投机执行",
     "speculationHint": "在隔离沙箱中预执行预测的下一条提示词 — 接受即注入结果，拒绝即丢弃。需开启提示建议功能。",
+    "cleanupPeriodDays": "会话历史保留天数",
+    "cleanupPeriodDaysHint": "自动删除超过指定天数的会话文件，设为 0 表示禁用自动清理。",
+    "cleanupPeriodDaysDisabled": "（禁用）",
     "save": "保存设置",
     "saved": "已保存",
     "unlimited": "无限制",
@@ -883,7 +886,8 @@
     "no": "否",
     "saving": "保存中…",
     "installing": "安装中…",
-    "loadingEllipsis": "加载中…"
+    "loadingEllipsis": "加载中…",
+    "days": "天"
   },
   "shortcutCheatsheet": {
     "title": "键盘快捷键",
@@ -1406,7 +1410,23 @@
     "projectNoFileHint": "点击编辑以创建项目级记忆，Claude 将在此工作目录的每次对话中自动加载它。",
     "projectCreate": "创建 MEMORY.md",
     "projectFooter": "Claude Code 在此项目的每次对话中均会加载该文件",
-    "projectRefresh": "刷新"
+    "projectRefresh": "刷新",
+    "memdirTab": "结构化记忆",
+    "memdirEmpty": "未找到结构化记忆文件",
+    "memdirEmptyHint": "Claude Code 将 AI 生成的结构化记忆存储在 ~/.claude/memory/ 目录中",
+    "memdirFooter": "AI 自动生成的结构化记忆 · ~/.claude/memory/",
+    "memdirGlobal": "全局",
+    "memdirProject": "项目",
+    "memdirTypeUnknown": "未知",
+    "instructionTab": "指令文件",
+    "instructionGlobal": "全局",
+    "instructionProject": "项目",
+    "instructionLocal": "本地",
+    "instructionGlobalDesc": "~/.claude/CLAUDE.md — 全局 Claude Code 指令",
+    "instructionProjectDesc": "CLAUDE.md — 项目级指令（随 Git 检入）",
+    "instructionLocalDesc": ".claude/CLAUDE.local.md — 本地覆盖指令（不检入 Git）",
+    "instructionBadge": "指令文件",
+    "instructionHint": "CLAUDE.md 文件包含 Claude Code 在每次会话时自动加载的行为指令。"
   },
   "workflow": {
     "title": "工作流",

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import { Save, Eye, EyeOff, Brain, MessageSquare, Palette, FolderOpen, Settings2, Search, X } from 'lucide-react'
 import { usePrefsStore } from '../../store'
 import { useI18n } from '../../i18n'
@@ -37,12 +37,26 @@ export default function SettingsGeneral({
   const [localTagNames, setLocalTagNames] = useState<string[]>(local.tagNames || defaultTagNames)
   const [settingsFilter, setSettingsFilter] = useState('')
 
+  // cleanupPeriodDays — reads/writes directly to ~/.claude/settings.json via IPC
+  const [cleanupDays, setCleanupDays] = useState<number>(30)
+  const [cleanupDaysInput, setCleanupDaysInput] = useState<string>('30')
+  const cleanupDaysLastValid = useRef<number>(30)
+
+  useEffect(() => {
+    window.electronAPI.configReadCLISettings().then((cliSettings: Record<string, unknown>) => {
+      const val = typeof cliSettings.cleanupPeriodDays === 'number' ? cliSettings.cleanupPeriodDays : 30
+      setCleanupDays(val)
+      setCleanupDaysInput(String(val))
+      cleanupDaysLastValid.current = val
+    }).catch(() => {})
+  }, [])
+
   const groupKeywords = useMemo(() => ({
     aiEngine: [t('settings.apiKey'), t('settings.model'), t('settings.advisorModel'), t('settings.thinkingMode'), t('settings.maxTurns'), t('settings.budgetLimit'), 'API', 'Claude', 'Opus', 'Sonnet', 'Haiku', t('settings.groups.aiEngine'), 'advisor'].join(' ').toLowerCase(),
     prompts: [t('settings.promptTemplate'), t('settings.systemPrompt'), t('settings.groups.prompts')].join(' ').toLowerCase(),
     appearance: [t('settings.language'), t('settings.displayName'), t('settings.theme'), t('settings.fontSize'), t('settings.fontFamily'), t('settings.compactMode'), t('settings.groups.appearance')].join(' ').toLowerCase(),
     workspace: [t('settings.workingFolder'), t('tags.sectionTitle'), t('settings.groups.workspace')].join(' ').toLowerCase(),
-    behavior: [t('settings.skipPermissions'), t('settings.verbose'), t('settings.completionSound'), t('settings.desktopNotifications'), t('settings.resumeLastSession'), t('outputStyle.title'), t('thinking.title'), t('settings.systemPresence'), t('compact.autoCompact'), t('autoMemory.enabled'), t('settings.groups.behavior')].join(' ').toLowerCase(),
+    behavior: [t('settings.skipPermissions'), t('settings.verbose'), t('settings.completionSound'), t('settings.desktopNotifications'), t('settings.resumeLastSession'), t('outputStyle.title'), t('thinking.title'), t('settings.systemPresence'), t('compact.autoCompact'), t('autoMemory.enabled'), t('settings.groups.behavior'), t('settings.cleanupPeriodDays')].join(' ').toLowerCase(),
   }), [t])
 
   const isGroupVisible = (groupKey: string): boolean => {
@@ -525,6 +539,59 @@ export default function SettingsGeneral({
           t('effort.preventSleep'),
           <Toggle value={local.preventSleep !== false} onChange={(v) => updateLocal({ preventSleep: v })} />,
           t('effort.preventSleepHint')
+        )}
+
+        {field(
+          t('settings.cleanupPeriodDays'),
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={cleanupDaysInput}
+              onChange={(e) => setCleanupDaysInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') e.currentTarget.blur()
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(99,102,241,0.50)'
+                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)'
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+                e.currentTarget.style.boxShadow = 'none'
+                const parsed = parseInt(cleanupDaysInput, 10)
+                if (!isNaN(parsed) && parsed >= 0) {
+                  const newVal = parsed
+                  setCleanupDays(newVal)
+                  setCleanupDaysInput(String(newVal))
+                  cleanupDaysLastValid.current = newVal
+                  window.electronAPI.configWriteCLISettings({ cleanupPeriodDays: newVal }).catch(() => {})
+                } else {
+                  setCleanupDaysInput(String(cleanupDaysLastValid.current))
+                }
+              }}
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.09)',
+                borderRadius: 6,
+                color: 'rgba(255,255,255,0.82)',
+                padding: '4px 10px',
+                fontSize: 13,
+                width: 80,
+                textAlign: 'center' as const,
+                outline: 'none',
+                transition: 'all 0.15s ease',
+              }}
+            />
+            <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.60)' }}>{t('common.days')}</span>
+            {cleanupDays === 0 && (
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)' }}>{t('settings.cleanupPeriodDaysDisabled')}</span>
+            )}
+          </div>,
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
+            {t('settings.cleanupPeriodDaysHint')}
+          </span>
         )}
       </SettingsGroup>
       )}
