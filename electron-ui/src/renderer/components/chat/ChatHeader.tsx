@@ -110,7 +110,7 @@ export default function ChatHeader({
   const titleInputRef = useRef<HTMLInputElement>(null)
   const tempSystemPrompt = useChatStore(s => s.tempSystemPrompt)
   const setTempSystemPrompt = useChatStore(s => s.setTempSystemPrompt)
-  const activeModel = useChatStore(s => s.activeModel)
+  // activeModel removed (was used for the model pill, which has been removed)
   const mcpServers = useChatStore(s => s.mcpServers)
   const setSystemInit = useChatStore(s => s.setSystemInit)
   const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
@@ -333,34 +333,7 @@ ${t('chat.clickToChangeDir')}`}
         )}
       </span>
 
-      {/* Active model pill — always shown; uses CLI-reported model or configured fallback */}
-      {(() => {
-        const modelName = activeModel || model || 'claude'
-        const displayName = modelName.replace(/^claude-/, '').replace(/-\d{4}-\d{2}-\d{2}$/, '')
-        return (
-          <span
-            title={`Active model: ${modelName}`}
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              letterSpacing: '0.05em',
-              color: 'rgba(165,180,252,0.82)',
-              background: 'rgba(99,102,241,0.12)',
-              border: '1px solid rgba(99,102,241,0.22)',
-              borderRadius: 10,
-              padding: '2px 8px',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              maxWidth: 120,
-              userSelect: 'none',
-              flexShrink: 0,
-            }}
-          >
-            {displayName}
-          </span>
-        )
-      })()}
+      {/* Active model pill removed — model already shown in settings */}
 
       {/* MCP connection status pill — shown only when servers are active */}
       {mcpServers.length > 0 && (() => {

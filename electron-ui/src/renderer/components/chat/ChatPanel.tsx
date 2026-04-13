@@ -19,7 +19,6 @@ import SearchBar from './SearchBar'
 import TaskQueuePanel from './TaskQueuePanel'
 import TaskDashboard from './TaskDashboard'
 import ThinkingIndicator from './ThinkingIndicator'
-import TypingStatus from './TypingStatus'
 import WelcomeScreen from './WelcomeScreen'
 import FollowUpChips from './FollowUpChips'
 import TokenUsageBar from './TokenUsageBar'
@@ -575,9 +574,6 @@ export default function ChatPanel() {
 
       {/* Task Queue Panel */}
       <TaskQueuePanel />
-
-      {/* Typing status indicator (Iteration 461) — compact footer status line */}
-      {isStreaming && <TypingStatus />}
 
       {/* Speculation status bar — compact banner above input while speculation runs/is ready */}
       {!isStreaming && (specStatus === 'running' || specStatus === 'ready') && (
