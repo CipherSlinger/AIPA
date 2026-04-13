@@ -6,8 +6,9 @@
  * - Project tab: reads/writes .claude/MEMORY.md in the working directory
  *   (mirrors Claude Code's project memory system)
  *
- * Iteration P1-4: Added "Config" tab for CLAUDE.md editing.
- * - Config tab: reads/writes CLAUDE.md in the working directory root
+ * Iteration P1-4: Separated CLAUDE.md instruction files from memdir structured memories.
+ * - Instruction Files tab: global ~/.claude/CLAUDE.md, project CLAUDE.md, local CLAUDE.local.md
+ * - Structured Memory tab: reads ~/.claude/memory/ memdir files (AI-generated, YAML frontmatter)
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import {
@@ -24,12 +25,12 @@ import {
 } from 'lucide-react'
 import { useT } from '../../i18n'
 import { usePrefsStore } from '../../store'
-import { CATEGORY_CONFIG, CATEGORIES, MAX_MEMORIES, MEMORY_TYPE_CONFIG, MEMORY_TYPES } from './memoryConstants'
+import { CATEGORY_CONFIG, CATEGORIES, MAX_MEMORIES } from './memoryConstants'
 import { useMemoryCrud } from './useMemoryCrud'
 import MemoryAddForm from './MemoryAddForm'
 import MemoryItemCard from './MemoryItemCard'
 
-type MemoryTab = 'personal' | 'project' | 'config'
+type MemoryTab = 'personal' | 'project' | 'memdir' | 'config'
 
 // ─── Project Memory (MEMORY.md) viewer/editor ────────────────────────────────
 
@@ -266,7 +267,164 @@ function ProjectMemoryTab() {
   )
 }
 
-// ─── CLAUDE.md Config Editor ─────────────────────────────────────────────────
+// ─── Memdir (Structured Memory) viewer ───────────────────────────────────────
+
+interface MemdirFile {
+  filePath: string
+  name: string
+  description: string
+  type: 'user' | 'feedback' | 'project' | 'reference' | 'unknown'
+  content: string
+  scope: 'global' | 'project'
+  projectHash?: string
+}
+
+const MEMDIR_TYPE_COLORS: Record<string, string> = {
+  user: '#6366f1',
+  feedback: '#fbbf24',
+  project: '#4ade80',
+  reference: '#a78bfa',
+  unknown: 'rgba(255,255,255,0.38)',
+}
+
+function MemdirTab() {
+  const t = useT()
+  const [files, setFiles] = useState<MemdirFile[]>([])
+  const [loading, setLoading] = useState(true)
+  const [expanded, setExpanded] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const result = await window.electronAPI.memoryList('all')
+      setFiles(result as MemdirFile[])
+    } catch {
+      setFiles([])
+    }
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32, color: 'rgba(255,255,255,0.38)', fontSize: 12 }}>
+        <RefreshCw size={14} style={{ marginRight: 6, animation: 'spin 1s linear infinite' }} />
+        {t('common.loading')}
+      </div>
+    )
+  }
+
+  if (files.length === 0) {
+    return (
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{
+          padding: '6px 12px',
+          borderBottom: '1px solid rgba(255,255,255,0.07)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
+        }}>
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', fontFamily: 'monospace' }}>~/.claude/memory/</span>
+          <button onClick={load} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.38)', padding: 2, display: 'flex', alignItems: 'center' }}>
+            <RefreshCw size={12} />
+          </button>
+        </div>
+        <div style={{
+          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          color: 'rgba(255,255,255,0.38)', gap: 8, textAlign: 'center', padding: '0 24px',
+        }}>
+          <Brain size={28} style={{ opacity: 0.3 }} />
+          <span style={{ fontSize: 12 }}>{t('memory.memdirEmpty')}</span>
+          <span style={{ fontSize: 10, opacity: 0.7 }}>{t('memory.memdirEmptyHint')}</span>
+        </div>
+        <style>{'@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }'}</style>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      {/* Header bar */}
+      <div style={{
+        padding: '6px 12px', borderBottom: '1px solid rgba(255,255,255,0.07)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
+      }}>
+        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', fontFamily: 'monospace', flex: 1 }}>
+          {'~/.claude/memory/ \u00b7 '}{files.length}{' '}{files.length === 1 ? 'file' : 'files'}
+        </span>
+        <button onClick={load} title={t('memory.projectRefresh')}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.38)', padding: 2, display: 'flex', alignItems: 'center' }}>
+          <RefreshCw size={12} />
+        </button>
+      </div>
+
+      {/* File list */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '6px 8px', scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.09) transparent' }}>
+        {files.map(f => {
+          const typeColor = MEMDIR_TYPE_COLORS[f.type] || MEMDIR_TYPE_COLORS.unknown
+          const isOpen = expanded === f.filePath
+          return (
+            <div key={f.filePath} style={{
+              background: 'rgba(15,15,25,0.85)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, marginBottom: 6,
+              overflow: 'hidden', transition: 'all 0.15s ease',
+            }}>
+              {/* File header row */}
+              <div
+                onClick={() => setExpanded(isOpen ? null : f.filePath)}
+                style={{ padding: '9px 12px', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.03)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
+              >
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: typeColor, flexShrink: 0, boxShadow: `0 0 6px ${typeColor}80` }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {f.name}
+                  </div>
+                  {f.description && (
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {f.description}
+                    </div>
+                  )}
+                </div>
+                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: typeColor, background: `${typeColor}1e`, borderRadius: 8, padding: '1px 6px', flexShrink: 0 }}>
+                  {f.type}
+                </span>
+                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)', background: 'rgba(255,255,255,0.07)', borderRadius: 6, padding: '1px 6px', flexShrink: 0 }}>
+                  {f.scope === 'global' ? t('memory.memdirGlobal') : t('memory.memdirProject')}
+                </span>
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', flexShrink: 0, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}>{'\u25be'}</span>
+              </div>
+              {isOpen && (
+                <div style={{ padding: '0 12px 10px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                  <pre style={{
+                    margin: '8px 0 0', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 11, lineHeight: 1.6,
+                    color: 'rgba(255,255,255,0.60)', fontFamily: 'monospace',
+                    background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '8px 10px',
+                    border: '1px solid rgba(255,255,255,0.07)',
+                  }}>
+                    {f.content || <span style={{ color: 'rgba(255,255,255,0.38)' }}>(empty)</span>}
+                  </pre>
+                  <div style={{ marginTop: 6, fontSize: 9, color: 'rgba(255,255,255,0.38)', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                    {f.filePath}
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Footer */}
+      <div style={{ padding: '4px 12px', fontSize: 9, color: 'rgba(255,255,255,0.38)', borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+        {t('memory.memdirFooter')}
+      </div>
+
+      <style>{'@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }'}</style>
+    </div>
+  )
+}
+
+// ─── Instruction Files Tab (CLAUDE.md viewer) ───────────────────────────────
 
 const CLAUDE_MD_TEMPLATE = `# CLAUDE.md
 
@@ -286,9 +444,56 @@ const CLAUDE_MD_TEMPLATE = `# CLAUDE.md
 <!-- Describe key architectural decisions -->
 `
 
-function ClaudeConfigTab() {
+type InstructionScope = 'global' | 'project' | 'local'
+
+interface InstructionFile {
+  scope: InstructionScope
+  label: string
+  descKey: string
+  getPath: (workingDir: string, home: string) => string
+  gitTracked: boolean
+}
+
+const INSTRUCTION_FILES: InstructionFile[] = [
+  {
+    scope: 'global',
+    label: '~/.claude/CLAUDE.md',
+    descKey: 'memory.instructionGlobalDesc',
+    getPath: (_wd, home) => `${home}/.claude/CLAUDE.md`,
+    gitTracked: false,
+  },
+  {
+    scope: 'project',
+    label: 'CLAUDE.md',
+    descKey: 'memory.instructionProjectDesc',
+    getPath: (wd) => `${wd}/CLAUDE.md`,
+    gitTracked: true,
+  },
+  {
+    scope: 'local',
+    label: '.claude/CLAUDE.local.md',
+    descKey: 'memory.instructionLocalDesc',
+    getPath: (wd) => `${wd}/.claude/CLAUDE.local.md`,
+    gitTracked: false,
+  },
+]
+
+const SCOPE_COLORS: Record<InstructionScope, string> = {
+  global: '#a78bfa',
+  project: '#6366f1',
+  local: '#4ade80',
+}
+
+const SCOPE_LABEL_KEYS: Record<InstructionScope, string> = {
+  global: 'memory.instructionGlobal',
+  project: 'memory.instructionProject',
+  local: 'memory.instructionLocal',
+}
+
+function InstructionFilesTab() {
   const t = useT()
   const prefs = usePrefsStore(s => s.prefs)
+  const [activeScope, setActiveScope] = useState<InstructionScope>('project')
   const [content, setContent] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -297,19 +502,30 @@ function ClaudeConfigTab() {
   const [saving, setSaving] = useState(false)
   const [savedMsg, setSavedMsg] = useState(false)
   const [pathCopied, setPathCopied] = useState(false)
+  const [homeDir, setHomeDir] = useState<string>('~')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  const getConfigPath = useCallback(async (): Promise<string> => {
-    const workingDir = prefs.workingDir || await window.electronAPI.fsGetHome()
-    return `${workingDir}/CLAUDE.md`
-  }, [prefs.workingDir])
+  const currentFile = INSTRUCTION_FILES.find(f => f.scope === activeScope)!
+
+  useEffect(() => {
+    window.electronAPI.fsGetHome().then((h: string) => setHomeDir(h)).catch(() => {})
+  }, [])
+
+  const workingDir = prefs.workingDir || homeDir
+  const filePath = currentFile.getPath(workingDir, homeDir)
+  const displayPath = currentFile.scope === 'global'
+    ? `~/.claude/CLAUDE.md`
+    : currentFile.scope === 'project'
+      ? `${workingDir}/CLAUDE.md`
+      : `${workingDir}/.claude/CLAUDE.local.md`
 
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
+    setEditing(false)
+    setEditValue('')
     try {
-      const configPath = await getConfigPath()
-      const result = await window.electronAPI.fsReadFile(configPath)
+      const result = await window.electronAPI.fsReadFile(filePath)
       if (result && 'content' in result) {
         setContent(result.content as string)
       } else {
@@ -319,7 +535,7 @@ function ClaudeConfigTab() {
       setContent('')
     }
     setLoading(false)
-  }, [getConfigPath])
+  }, [filePath])
 
   useEffect(() => { load() }, [load])
 
@@ -337,8 +553,9 @@ function ClaudeConfigTab() {
   const save = async () => {
     setSaving(true)
     try {
-      const configPath = await getConfigPath()
-      await window.electronAPI.fsWriteFile(configPath, editValue)
+      const dir = filePath.substring(0, filePath.lastIndexOf('/'))
+      await window.electronAPI.fsEnsureDir(dir)
+      await window.electronAPI.fsWriteFile(filePath, editValue)
       setContent(editValue)
       setEditing(false)
       setSavedMsg(true)
@@ -349,51 +566,97 @@ function ClaudeConfigTab() {
     setSaving(false)
   }
 
-  const openInEditor = async () => {
-    try {
-      const configPath = await getConfigPath()
-      await window.electronAPI.shellOpenExternal(`file://${configPath}`)
-    } catch { /* ignore */ }
-  }
-
   const copyPath = async () => {
     try {
-      const configPath = await getConfigPath()
-      await navigator.clipboard.writeText(configPath)
+      await navigator.clipboard.writeText(filePath)
       setPathCopied(true)
       setTimeout(() => setPathCopied(false), 1500)
     } catch { /* ignore */ }
   }
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32, color: 'rgba(255,255,255,0.38)', fontSize: 12 }}>
-        <RefreshCw size={14} style={{ marginRight: 6, animation: 'spin 1s linear infinite' }} />
-        {t('common.loading')}
-      </div>
-    )
+  const openInEditor = async () => {
+    try {
+      await window.electronAPI.shellOpenExternal(`file://${filePath}`)
+    } catch { /* ignore */ }
   }
 
-  const workingDir = prefs.workingDir || '~'
-  const displayPath = `${workingDir}/CLAUDE.md`
+  const scopeTabStyle = (active: boolean, scope: InstructionScope): React.CSSProperties => ({
+    padding: '4px 10px',
+    background: active ? `rgba(99,102,241,0.15)` : 'transparent',
+    color: active ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.45)',
+    border: 'none',
+    borderBottom: active ? `2px solid ${SCOPE_COLORS[scope]}` : '2px solid transparent',
+    borderRadius: 0,
+    fontSize: 10,
+    fontWeight: active ? 600 : 400,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+    transition: 'all 0.15s ease',
+    whiteSpace: 'nowrap' as const,
+  })
+
   const hasUnsavedChanges = editing && editValue !== content
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      {/* Description bar */}
+      {/* Hint bar */}
       <div style={{
-        padding: '6px 12px 4px',
+        padding: '5px 12px',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        flexShrink: 0,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+      }}>
+        <FileText size={10} style={{ color: '#a5b4fc', flexShrink: 0 }} />
+        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', lineHeight: 1.4 }}>
+          {t('memory.instructionHint')}
+        </span>
+      </div>
+
+      {/* Scope sub-tabs */}
+      <div style={{
+        display: 'flex',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        flexShrink: 0,
+        padding: '0 12px',
+      }}>
+        {INSTRUCTION_FILES.map(f => (
+          <button
+            key={f.scope}
+            style={scopeTabStyle(activeScope === f.scope, f.scope)}
+            onClick={() => setActiveScope(f.scope)}
+          >
+            <span style={{
+              display: 'inline-block',
+              width: 6, height: 6, borderRadius: '50%',
+              background: SCOPE_COLORS[f.scope],
+              flexShrink: 0,
+            }} />
+            {t(SCOPE_LABEL_KEYS[f.scope])}
+            {f.gitTracked && (
+              <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.38)', fontStyle: 'italic' }}>git</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Description row */}
+      <div style={{
+        padding: '4px 12px',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
         flexShrink: 0,
       }}>
-        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
-          CLAUDE.md 包含项目级别的 Claude Code 配置 — 自定义指令、规则和上下文，每次对话时自动加载。
-        </div>
+        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', lineHeight: 1.4 }}>
+          {t(currentFile.descKey)}
+        </span>
       </div>
 
-      {/* Path + actions bar */}
+      {/* Path + action bar */}
       <div style={{
-        padding: '6px 12px',
+        padding: '5px 12px',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
         display: 'flex',
         alignItems: 'center',
@@ -401,12 +664,11 @@ function ClaudeConfigTab() {
         gap: 6,
         flexShrink: 0,
       }}>
-        {/* Clickable path — copies to clipboard */}
         <span
           onClick={copyPath}
           title={pathCopied ? 'Copied!' : 'Click to copy path'}
           style={{
-            fontSize: 11,
+            fontSize: 10,
             color: pathCopied ? '#a5b4fc' : 'rgba(255,255,255,0.38)',
             fontFamily: 'monospace',
             overflow: 'hidden',
@@ -420,34 +682,28 @@ function ClaudeConfigTab() {
           onMouseEnter={e => { if (!pathCopied) e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
           onMouseLeave={e => { if (!pathCopied) e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
         >
-          {pathCopied ? '✓ Copied' : displayPath}
+          {pathCopied ? '\u2713 Copied' : displayPath}
         </span>
         <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'center' }}>
-          {/* Unsaved changes dot indicator */}
           {hasUnsavedChanges && (
-            <span
-              title="Unsaved changes"
-              style={{
-                display: 'inline-block',
-                width: 6,
-                height: 6,
-                borderRadius: '50%',
-                background: 'rgba(165,180,252,0.8)',
-                fontSize: 8,
-                flexShrink: 0,
-              }}
-            />
+            <span title="Unsaved changes" style={{
+              display: 'inline-block', width: 6, height: 6,
+              borderRadius: '50%', background: 'rgba(165,180,252,0.8)', flexShrink: 0,
+            }} />
+          )}
+          {loading && <RefreshCw size={12} style={{ color: 'rgba(255,255,255,0.38)', animation: 'spin 1s linear infinite' }} />}
+          {!loading && (
+            <button
+              onClick={load}
+              title="Refresh"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.38)', padding: 2, display: 'flex', alignItems: 'center' }}
+            >
+              <RefreshCw size={12} />
+            </button>
           )}
           <button
-            onClick={load}
-            title="Refresh"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.38)', padding: 2, display: 'flex', alignItems: 'center' }}
-          >
-            <RefreshCw size={12} />
-          </button>
-          <button
             onClick={openInEditor}
-            title="在编辑器中打开"
+            title="\u5728\u7f16\u8f91\u5668\u4e2d\u6253\u5f00"
             style={{
               background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 4,
               color: 'rgba(255,255,255,0.60)', fontSize: 10, cursor: 'pointer', padding: '2px 7px',
@@ -455,7 +711,7 @@ function ClaudeConfigTab() {
             }}
           >
             <FolderOpen size={10} />
-            在编辑器中打开
+            \u5728\u7f16\u8f91\u5668\u4e2d\u6253\u5f00
           </button>
           {!editing && (
             <button
@@ -516,7 +772,7 @@ function ClaudeConfigTab() {
               ref={textareaRef}
               value={editValue}
               onChange={e => setEditValue(e.target.value)}
-              placeholder="# CLAUDE.md&#10;&#10;Add project instructions, rules, and context here..."
+              placeholder={'# CLAUDE.md\n\nAdd project instructions, rules, and context here...'}
               style={{
                 width: '100%',
                 height: '100%',
@@ -542,7 +798,6 @@ function ClaudeConfigTab() {
                 e.currentTarget.style.boxShadow = 'none'
               }}
             />
-            {/* Char counter — bottom-right of content area */}
             <div style={{
               position: 'absolute',
               bottom: 18,
@@ -573,10 +828,10 @@ function ClaudeConfigTab() {
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             height: '60%', color: 'rgba(255,255,255,0.38)', gap: 8, textAlign: 'center',
           }}>
-            <Settings size={28} style={{ opacity: 0.3 }} />
-            <span style={{ fontSize: 12 }}>尚未创建 CLAUDE.md</span>
+            <FileText size={28} style={{ color: SCOPE_COLORS[activeScope], opacity: 0.4 }} />
+            <span style={{ fontSize: 12 }}>{'\u5c1a\u672a\u521b\u5efa '}{currentFile.label}</span>
             <span style={{ fontSize: 10, opacity: 0.7, padding: '0 20px' }}>
-              CLAUDE.md 包含项目级配置，每次 Claude Code 会话时自动读取。
+              {t(currentFile.descKey)}
             </span>
             <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
               <button
@@ -586,38 +841,37 @@ function ClaudeConfigTab() {
                   color: 'rgba(255,255,255,0.82)', fontSize: 11, cursor: 'pointer', padding: '5px 14px', fontWeight: 600,
                 }}
               >
-                创建 CLAUDE.md
+                {'\u521b\u5efa '}{currentFile.label}
               </button>
-              {/* Template button — prefills common CLAUDE.md structure */}
-              <button
-                onClick={() => startEdit(CLAUDE_MD_TEMPLATE)}
-                title="使用模板创建"
-                style={{
-                  background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.30)', borderRadius: 6,
-                  color: '#a5b4fc', fontSize: 11, cursor: 'pointer', padding: '5px 14px', fontWeight: 600,
-                  display: 'flex', alignItems: 'center', gap: 4,
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.2)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.12)' }}
-              >
-                <FileText size={12} />
-                使用模板
-              </button>
+              {activeScope === 'project' && (
+                <button
+                  onClick={() => startEdit(CLAUDE_MD_TEMPLATE)}
+                  title="\u4f7f\u7528\u6a21\u677f\u521b\u5efa"
+                  style={{
+                    background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.30)', borderRadius: 6,
+                    color: '#a5b4fc', fontSize: 11, cursor: 'pointer', padding: '5px 14px', fontWeight: 600,
+                    display: 'flex', alignItems: 'center', gap: 4,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.2)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.12)' }}
+                >
+                  <FileText size={12} />
+                  \u4f7f\u7528\u6a21\u677f
+                </button>
+              )}
             </div>
           </div>
         )}
       </div>
 
-      {/* Footer hint */}
+      {/* Footer */}
       {!editing && (
         <div style={{ padding: '4px 12px', fontSize: 9, color: 'rgba(255,255,255,0.38)', borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
-          CLAUDE.md · 项目级 Claude Code 配置 · 自动加载
+          {t('memory.instructionBadge')} \u00b7 {displayPath} \u00b7 \u81ea\u52a8\u52a0\u8f7d
         </div>
       )}
 
-      <style>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
+      <style>{'@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }'}</style>
     </div>
   )
 }
@@ -770,9 +1024,13 @@ export default function MemoryPanel() {
             <FolderOpen size={11} />
             {t('memory.projectMemory')}
           </button>
+          <button style={tabStyle(activeTab === 'memdir')} onClick={() => setActiveTab('memdir')}>
+            <Brain size={11} />
+            {t('memory.memdirTab')}
+          </button>
           <button style={tabStyle(activeTab === 'config')} onClick={() => setActiveTab('config')}>
-            <Settings size={11} />
-            CLAUDE.md
+            <FileText size={11} />
+            {t('memory.instructionTab')}
           </button>
         </div>
 
@@ -1081,10 +1339,17 @@ export default function MemoryPanel() {
         </div>
       )}
 
-      {/* Config tab body — CLAUDE.md editor */}
+      {/* Structured Memory tab body */}
+      {activeTab === 'memdir' && (
+        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <MemdirTab />
+        </div>
+      )}
+
+      {/* Instruction Files tab body — multi-scope CLAUDE.md editor */}
       {activeTab === 'config' && (
         <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <ClaudeConfigTab />
+          <InstructionFilesTab />
         </div>
       )}
 

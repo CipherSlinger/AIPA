@@ -42,17 +42,22 @@ export default function SettingsGeneral({
   const [cleanupDaysInput, setCleanupDaysInput] = useState<string>('30')
   const cleanupDaysLastValid = useRef<number>(30)
 
+  // aiReplyLanguage — reads/writes `language` field in ~/.claude/settings.json via IPC
+  const [aiReplyLanguage, setAiReplyLanguage] = useState<string>('')
+
   useEffect(() => {
     window.electronAPI.configReadCLISettings().then((cliSettings: Record<string, unknown>) => {
       const val = typeof cliSettings.cleanupPeriodDays === 'number' ? cliSettings.cleanupPeriodDays : 30
       setCleanupDays(val)
       setCleanupDaysInput(String(val))
       cleanupDaysLastValid.current = val
+      const lang = typeof cliSettings.language === 'string' ? cliSettings.language : ''
+      setAiReplyLanguage(lang)
     }).catch(() => {})
   }, [])
 
   const groupKeywords = useMemo(() => ({
-    aiEngine: [t('settings.apiKey'), t('settings.model'), t('settings.advisorModel'), t('settings.thinkingMode'), t('settings.maxTurns'), t('settings.budgetLimit'), 'API', 'Claude', 'Opus', 'Sonnet', 'Haiku', t('settings.groups.aiEngine'), 'advisor'].join(' ').toLowerCase(),
+    aiEngine: [t('settings.apiKey'), t('settings.model'), t('settings.advisorModel'), t('settings.thinkingMode'), t('settings.maxTurns'), t('settings.budgetLimit'), t('settings.aiReplyLanguage'), 'API', 'Claude', 'Opus', 'Sonnet', 'Haiku', t('settings.groups.aiEngine'), 'advisor', 'language'].join(' ').toLowerCase(),
     prompts: [t('settings.promptTemplate'), t('settings.systemPrompt'), t('settings.groups.prompts')].join(' ').toLowerCase(),
     appearance: [t('settings.language'), t('settings.displayName'), t('settings.theme'), t('settings.fontSize'), t('settings.fontFamily'), t('settings.compactMode'), t('settings.groups.appearance')].join(' ').toLowerCase(),
     workspace: [t('settings.workingFolder'), t('tags.sectionTitle'), t('settings.groups.workspace')].join(' ').toLowerCase(),
@@ -208,6 +213,48 @@ export default function SettingsGeneral({
           />,
           <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
             {t('settings.budgetHint')}
+          </span>
+        )}
+
+        {field(
+          t('settings.aiReplyLanguage'),
+          <select
+            value={aiReplyLanguage}
+            onChange={(e) => {
+              const next = e.target.value
+              setAiReplyLanguage(next)
+              // Empty string = remove the field (follow system)
+              window.electronAPI.configWriteCLISettings({ language: next || '' }).catch(() => {})
+            }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.50)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.boxShadow = 'none' }}
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.09)',
+              borderRadius: 6,
+              color: 'rgba(255,255,255,0.82)',
+              padding: '6px 10px',
+              fontSize: 13,
+              outline: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              appearance: 'none',
+              WebkitAppearance: 'none',
+              width: '100%',
+            }}
+          >
+            <option value="">{t('settings.aiReplyLanguageSystem')}</option>
+            <option value="zh-CN">{t('settings.aiReplyLanguageZhCN')}</option>
+            <option value="zh-TW">{t('settings.aiReplyLanguageZhTW')}</option>
+            <option value="en">{t('settings.aiReplyLanguageEn')}</option>
+            <option value="ja">{t('settings.aiReplyLanguageJa')}</option>
+            <option value="ko">{t('settings.aiReplyLanguageKo')}</option>
+            <option value="fr">{t('settings.aiReplyLanguageFr')}</option>
+            <option value="de">{t('settings.aiReplyLanguageDe')}</option>
+            <option value="es">{t('settings.aiReplyLanguageEs')}</option>
+          </select>,
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
+            {t('settings.aiReplyLanguageHint')}
           </span>
         )}
       </SettingsGroup>
