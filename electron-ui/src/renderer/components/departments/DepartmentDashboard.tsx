@@ -406,7 +406,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
       </div>
 
       {/* Sessions area */}
-      <div style={{ flex: 1, overflow: 'auto', padding: '24px 24px', background: 'rgba(10,10,18,1)' }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: '24px 24px', background: 'var(--bg-chat)' }}>
         {/* Section header */}
         <div style={{
           display: 'flex',
@@ -629,9 +629,9 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
                   width: 240,
                   minHeight: 130,
                   borderRadius: 12,
-                  background: 'linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.04) 75%)',
+                  background: 'linear-gradient(90deg, var(--glass-shimmer) 25%, var(--glass-border) 50%, var(--glass-shimmer) 75%)',
                   backgroundSize: '200% 100%',
-                  border: '1.5px solid rgba(255,255,255,0.06)',
+                  border: '1.5px solid var(--glass-border)',
                   animation: 'shimmer 1.6s ease-in-out infinite',
                 }}
               />
@@ -973,7 +973,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
   }
 
   return (
-    <div style={{ flex: 1, overflow: 'auto', padding: '28px 24px', background: 'rgba(10,10,18,1)' }}>
+    <div style={{ flex: 1, overflow: 'auto', padding: '28px 24px', background: 'var(--bg-chat)' }}>
       <div style={{ marginBottom: 16, position: 'relative' }}>
         <Search size={12} style={{
           position: 'absolute', left: 10, top: '50%',
@@ -1228,9 +1228,9 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                       width: 240,
                       height: 130,
                       borderRadius: 12,
-                      background: 'linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.04) 75%)',
+                      background: 'linear-gradient(90deg, var(--glass-shimmer) 25%, var(--glass-border) 50%, var(--glass-shimmer) 75%)',
                       backgroundSize: '200% 100%',
-                      border: '1.5px solid rgba(255,255,255,0.06)',
+                      border: '1.5px solid var(--glass-border)',
                       animation: 'shimmer 1.6s ease-in-out infinite',
                       animationDelay: `${i * 0.15}s`,
                     }}
@@ -1446,7 +1446,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
               left: statsPopoverPos.x,
               top: statsPopoverPos.y,
               zIndex: 200,
-              background: 'rgba(14,14,24,0.97)',
+              background: 'var(--glass-bg-deep)',
               backdropFilter: 'blur(16px)',
               WebkitBackdropFilter: 'blur(16px)',
               border: `1px solid ${dept.color || 'rgba(255,255,255,0.12)'}`,
@@ -1727,7 +1727,7 @@ export default function DepartmentDashboard() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'rgba(10,10,18,1)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--bg-chat)' }}>
       <style>{`
         @keyframes dept-view-in {
           from { opacity: 0; transform: translateX(14px); }

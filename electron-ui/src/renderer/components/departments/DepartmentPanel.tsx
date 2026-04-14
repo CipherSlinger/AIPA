@@ -528,7 +528,7 @@ function DepartmentRow({
           border: 'none',
           cursor: 'pointer',
           padding: 0,
-          boxShadow: hovered ? '0 0 0 2px rgba(255,255,255,0.38)' : '0 0 0 1.5px rgba(255,255,255,0.1)',
+          boxShadow: hovered ? '0 0 0 2px var(--text-faint)' : '0 0 0 1.5px rgba(255,255,255,0.1)',
           transition: 'all 0.15s ease',
           transform: hovered ? 'scale(1.2)' : 'scale(1)',
         }}
@@ -879,7 +879,7 @@ export default function DepartmentPanel() {
   }, [])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'rgba(12,12,20,0.97)', borderRight: '1px solid var(--glass-border)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-sidebar)', borderRight: '1px solid var(--glass-border)' }}>
       <style>{SCROLLBAR_STYLE}</style>
       {/* Header */}
       <div style={{

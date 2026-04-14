@@ -57,6 +57,8 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 - **Hook Callback Approval** — PreToolUse/PostToolUse hooks requiring human intervention show an inline approve/block card directly in the chat; optional reason textarea; response relayed to the CLI in real time
 - **MCP Elicitation** — when an MCP server requests user input, an inline card collects structured form data (schema-driven fields or free-text) or opens a browser URL flow; submit/decline/cancel responses are relayed back to the MCP server
 - **System Diagnostics** — one-click health checks for CLI, API key, network, disk space, and system load
+- **API Error Visibility** — `overloaded_error` and `authentication_error` events from the CLI (previously silently dropped) now surface as toast notifications (warning for overload, error for auth failure), so users know exactly why a response stopped
+- **Copy Session ID** — a session ID badge in ChatHeader (shows 8-char prefix) copies the full session ID to clipboard on click; use it with `--resume` to manually resume any session
 - **Startup Protection** — IPC pre-registration eliminates race conditions, non-blocking menu construction, 10s hard splash timeout, renderer error recovery, preferences reset for bulletproof launches
 
 ### Input Power Tools
