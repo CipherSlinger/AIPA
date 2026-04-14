@@ -36,6 +36,8 @@ const electronAPI = {
     ipcRenderer.invoke('cli:respondHookCallback', args),
   cliRespondElicitation: (args: { sessionId: string; requestId: string; result: Record<string, unknown> }) =>
     ipcRenderer.invoke('cli:respondElicitation', args),
+  cliRespondPlanApproval: (args: { sessionId: string; requestId: string; approved: boolean; feedback?: string }) =>
+    ipcRenderer.invoke('cli:respondPlanApproval', args),
   cliCancelRequest: (args: { sessionId: string; requestId: string }) =>
     ipcRenderer.invoke('cli:cancelRequest', args),
   cliUpdateEnv: (args: { sessionId: string; vars: Record<string, string> }) =>
@@ -164,6 +166,12 @@ const electronAPI = {
     const handler = (_: unknown, data: { eventType?: string; [key: string]: unknown }) => cb(data)
     ipcRenderer.on('cli:hookEvent', handler)
     return () => ipcRenderer.removeListener('cli:hookEvent', handler)
+  },
+
+  onPlanApprovalRequest: (cb: (data: { sessionId: string; requestId: string; from: string; planContent: string; planFilePath: string; timestamp: string }) => void): Unsubscribe => {
+    const handler = (_: unknown, data: { sessionId: string; requestId: string; from: string; planContent: string; planFilePath: string; timestamp: string }) => cb(data)
+    ipcRenderer.on('cli:planApprovalRequest', handler)
+    return () => ipcRenderer.removeListener('cli:planApprovalRequest', handler)
   },
 
   // ── Menu events ──────────────────────────

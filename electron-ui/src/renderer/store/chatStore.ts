@@ -219,6 +219,10 @@ interface ChatState {
   updateHookEvent: (id: string, update: Partial<{ id: string; hookEvent: string; hookType: string; status: 'running' | 'success' | 'error'; output?: string; timestamp: number }>) => void
   clearHookEvents: () => void
 
+  // Plan approval request (multi-agent protocol): pending request from a sub-agent
+  pendingPlanApproval: { sessionId: string; requestId: string; from: string; planContent: string; planFilePath: string } | null
+  setPendingPlanApproval: (req: { sessionId: string; requestId: string; from: string; planContent: string; planFilePath: string } | null) => void
+
   // DreamTask events: memory consolidation runs detected via .consolidate-lock mtime
   dreamEvents: Array<{ id: string; timestamp: number; sessionsReviewed?: number }>
   addDreamEvent: (event: { id: string; timestamp: number; sessionsReviewed?: number }) => void
@@ -285,6 +289,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   mcpServers: [],
   activeModel: '',
   permissionMode: 'default',
+  pendingPlanApproval: null,
 
   addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
 
@@ -653,6 +658,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
     hookEvents: s.hookEvents.map(e => e.id === id ? { ...e, ...update } : e),
   })),
   clearHookEvents: () => set({ hookEvents: [] }),
+
+  // Plan approval request (multi-agent)
+  setPendingPlanApproval: (req) => set({ pendingPlanApproval: req }),
 
   // DreamTask events (memory consolidation detection)
   addDreamEvent: (event) => set((s) => ({ dreamEvents: [...s.dreamEvents.slice(-9), event] })),

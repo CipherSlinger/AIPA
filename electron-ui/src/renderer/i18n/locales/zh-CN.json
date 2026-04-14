@@ -975,7 +975,10 @@
     "bannerExit": "退出",
     "statusLabel": "规划",
     "enabled": "规划模式已启用",
-    "disabled": "规划模式已禁用"
+    "disabled": "规划模式已禁用",
+    "approvalRequired": "需要计划审批",
+    "planDetails": "计划详情",
+    "from": "来自"
   },
   "tool": {
     "input": "输入",

@@ -223,6 +223,7 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
     bridge.on('mcpElicitation', (d) => send('cli:elicitation', d))
     bridge.on('systemInit', (d) => send('cli:systemInit', d))
     bridge.on('notification', (d) => send('cli:notification', d))
+    bridge.on('planApprovalRequest', (d) => send('cli:planApprovalRequest', d))
 
     // Inject API key from prefs only when neither key nor auth token is already set.
     // Gateway scenario sets ANTHROPIC_API_KEY to '' intentionally — do not overwrite it.
@@ -275,6 +276,11 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
   ipcMain.handle('cli:respondElicitation', (_e, { sessionId, requestId, result }: { sessionId: string; requestId: string; result: Record<string, unknown> }) => {
     const bridge = streamBridgeManager.get(sessionId)
     if (bridge) bridge.respondElicitation(requestId, result)
+  })
+
+  ipcMain.handle('cli:respondPlanApproval', (_e, { sessionId, requestId, approved, feedback }: { sessionId: string; requestId: string; approved: boolean; feedback?: string }) => {
+    const bridge = streamBridgeManager.get(sessionId)
+    if (bridge) bridge.respondPlanApproval(requestId, approved, feedback)
   })
 
   ipcMain.handle('cli:cancelRequest', (_e, { sessionId, requestId }: { sessionId: string; requestId: string }) => {

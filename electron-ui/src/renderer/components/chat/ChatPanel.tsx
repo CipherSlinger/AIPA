@@ -32,6 +32,7 @@ import SpeculationStatusBar from './SpeculationStatusBar'
 import TabBar from './TabBar'
 import ExportDialog from './ExportDialog'
 import ToolApprovalDialog from './ToolApprovalDialog'
+import PlanApprovalCard from './PlanApprovalCard'
 import { getTemplateById } from '../../utils/promptTemplates'
 import { useT } from '../../i18n'
 import { useIdleReturn } from '../../hooks/useIdleReturn'
@@ -61,6 +62,10 @@ export default function ChatPanel() {
   const activeTabId = useChatStore(s => s.activeTabId)
   const setTabScrollTop = useChatStore(s => s.setTabScrollTop)
   const tabCount = useChatStore(s => s.tabs.length)
+
+  // Plan approval (multi-agent protocol)
+  const pendingPlanApproval = useChatStore(s => s.pendingPlanApproval)
+  const setPendingPlanApproval = useChatStore(s => s.setPendingPlanApproval)
 
   // Keep the active tab title in sync with session title changes
   const updateTabTitle = useChatStore(s => s.updateTabTitle)
@@ -150,6 +155,21 @@ export default function ChatPanel() {
     return () => window.removeEventListener('aipa:openExport', handleOpenExport)
   }, [])
 
+  // Subscribe to plan_approval_request events from CLI (multi-agent protocol)
+  useEffect(() => {
+    if (!window.electronAPI?.onPlanApprovalRequest) return
+    const unsub = window.electronAPI.onPlanApprovalRequest((data) => {
+      setPendingPlanApproval({
+        sessionId: data.sessionId,
+        requestId: data.requestId,
+        from: data.from,
+        planContent: data.planContent,
+        planFilePath: data.planFilePath,
+      })
+    })
+    return unsub
+  }, [setPendingPlanApproval])
+
   // Regeneration
   const canRegenerate = !isStreaming && messages.length >= 2 && messages[messages.length - 1]?.role === 'assistant'
 
@@ -200,6 +220,20 @@ export default function ChatPanel() {
       }
     }
     await sendMessage(text.trim())
+  }
+
+  const handlePlanApprove = (requestId: string) => {
+    const approval = useChatStore.getState().pendingPlanApproval
+    if (!approval) return
+    window.electronAPI.cliRespondPlanApproval({ sessionId: approval.sessionId, requestId, approved: true })
+    setPendingPlanApproval(null)
+  }
+
+  const handlePlanReject = (requestId: string, feedback?: string) => {
+    const approval = useChatStore.getState().pendingPlanApproval
+    if (!approval) return
+    window.electronAPI.cliRespondPlanApproval({ sessionId: approval.sessionId, requestId, approved: false, feedback })
+    setPendingPlanApproval(null)
   }
 
   const handleSummarize = useCallback(async () => {
@@ -583,6 +617,21 @@ export default function ChatPanel() {
 
       {/* Task Queue Panel */}
       <TaskQueuePanel />
+
+      {/* Plan Approval Card — shown when a sub-agent requests plan approval (multi-agent) */}
+      {pendingPlanApproval && (
+        <div style={{ padding: '4px 16px' }}>
+          <PlanApprovalCard
+            sessionId={pendingPlanApproval.sessionId}
+            requestId={pendingPlanApproval.requestId}
+            from={pendingPlanApproval.from}
+            planContent={pendingPlanApproval.planContent}
+            planFilePath={pendingPlanApproval.planFilePath}
+            onApprove={handlePlanApprove}
+            onReject={handlePlanReject}
+          />
+        </div>
+      )}
 
       {/* Speculation status bar — compact banner above input while speculation runs/is ready */}
       {!isStreaming && (specStatus === 'running' || specStatus === 'ready') && (

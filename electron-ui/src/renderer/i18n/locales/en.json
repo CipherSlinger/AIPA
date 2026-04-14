@@ -958,7 +958,10 @@
     "bannerExit": "Exit",
     "statusLabel": "PLAN",
     "enabled": "Plan Mode enabled",
-    "disabled": "Plan Mode disabled"
+    "disabled": "Plan Mode disabled",
+    "approvalRequired": "Plan Approval Required",
+    "planDetails": "Plan Details",
+    "from": "From"
   },
   "tool": {
     "input": "INPUT",

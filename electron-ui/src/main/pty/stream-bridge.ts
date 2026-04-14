@@ -314,9 +314,32 @@ export class StreamBridge extends EventEmitter {
         })
         break
       }
+      case 'plan_approval_request': {
+        this.emit('planApprovalRequest', {
+          sessionId: sid,
+          requestId: (event.requestId as string) || '',
+          from: (event.from as string) || '',
+          planContent: (event.planContent as string) || '',
+          planFilePath: (event.planFilePath as string) || '',
+          timestamp: (event.timestamp as string) || '',
+        })
+        break
+      }
       default:
         this.emit('unknown', { sessionId: sid, event })
     }
+  }
+
+  respondPlanApproval(requestId: string, approved: boolean, feedback?: string): void {
+    if (!this.proc?.stdin) return
+    const response = JSON.stringify({
+      type: 'plan_approval_response',
+      requestId,
+      approved,
+      feedback: feedback || undefined,
+      timestamp: new Date().toISOString(),
+    }) + '\n'
+    this.proc.stdin.write(response)
   }
 
   respondHookCallback(requestId: string, response: Record<string, unknown>): void {
