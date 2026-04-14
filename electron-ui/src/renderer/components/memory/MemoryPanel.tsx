@@ -101,7 +101,7 @@ function ProjectMemoryTab() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32, color: 'rgba(255,255,255,0.38)', fontSize: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32, color: 'var(--text-faint)', fontSize: 12 }}>
         <RefreshCw size={14} style={{ marginRight: 6, animation: 'spin 1s linear infinite' }} />
         {t('common.loading')}
       </div>
@@ -116,21 +116,21 @@ function ProjectMemoryTab() {
       {/* Path + actions bar */}
       <div style={{
         padding: '6px 12px',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--glass-border)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: 6,
         flexShrink: 0,
       }}>
-        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+        <span style={{ fontSize: 9, color: 'var(--text-faint)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
           {displayPath}
         </span>
         <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
           <button
             onClick={load}
             title={t('memory.projectRefresh')}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.38)', padding: 2, display: 'flex', alignItems: 'center' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 2, display: 'flex', alignItems: 'center' }}
           >
             <RefreshCw size={12} />
           </button>
@@ -152,8 +152,8 @@ function ProjectMemoryTab() {
               <button
                 onClick={cancelEdit}
                 style={{
-                  background: 'transparent', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 4,
-                  color: 'rgba(255,255,255,0.60)', fontSize: 10, cursor: 'pointer', padding: '2px 8px',
+                  background: 'transparent', border: '1px solid var(--glass-border-md)', borderRadius: 4,
+                  color: 'var(--text-secondary)', fontSize: 10, cursor: 'pointer', padding: '2px 8px',
                 }}
               >
                 {t('common.cancel')}
@@ -163,7 +163,7 @@ function ProjectMemoryTab() {
                 disabled={saving}
                 style={{
                   background: 'linear-gradient(135deg, #6366f1, #a78bfa)', border: 'none', borderRadius: 4,
-                  color: 'rgba(255,255,255,0.82)', fontSize: 10, cursor: 'pointer', padding: '2px 8px',
+                  color: 'var(--text-primary)', fontSize: 10, cursor: 'pointer', padding: '2px 8px',
                   display: 'flex', alignItems: 'center', gap: 3, fontWeight: 600,
                   opacity: saving ? 0.6 : 1,
                   transition: 'box-shadow 0.15s ease, opacity 0.15s ease',
@@ -197,9 +197,9 @@ function ProjectMemoryTab() {
               height: '100%',
               minHeight: 300,
               background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.09)',
+              border: '1px solid var(--glass-border-md)',
               borderRadius: 6,
-              color: 'rgba(255,255,255,0.82)',
+              color: 'var(--text-primary)',
               fontSize: 11,
               fontFamily: 'monospace',
               lineHeight: 1.6,
@@ -213,7 +213,7 @@ function ProjectMemoryTab() {
               e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.12)'
             }}
             onBlur={e => {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+              e.currentTarget.style.borderColor = 'var(--glass-border-md)'
               e.currentTarget.style.boxShadow = 'none'
             }}
           />
@@ -224,7 +224,7 @@ function ProjectMemoryTab() {
             wordBreak: 'break-word',
             fontSize: 11,
             lineHeight: 1.6,
-            color: 'rgba(255,255,255,0.82)',
+            color: 'var(--text-primary)',
             fontFamily: 'monospace',
           }}>
             {content}
@@ -232,7 +232,7 @@ function ProjectMemoryTab() {
         ) : (
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            height: '60%', color: 'rgba(255,255,255,0.38)', gap: 8, textAlign: 'center',
+            height: '60%', color: 'var(--text-faint)', gap: 8, textAlign: 'center',
           }}>
             <FolderOpen size={28} style={{ opacity: 0.3 }} />
             <span style={{ fontSize: 12 }}>{t('memory.projectNoFile')}</span>
@@ -244,7 +244,7 @@ function ProjectMemoryTab() {
               style={{
                 marginTop: 4,
                 background: 'linear-gradient(135deg, #6366f1, #a78bfa)', border: 'none', borderRadius: 6,
-                color: 'rgba(255,255,255,0.82)', fontSize: 11, cursor: 'pointer', padding: '5px 14px', fontWeight: 600,
+                color: 'var(--text-primary)', fontSize: 11, cursor: 'pointer', padding: '5px 14px', fontWeight: 600,
               }}
             >
               {t('memory.projectCreate')}
@@ -255,7 +255,7 @@ function ProjectMemoryTab() {
 
       {/* Footer hint */}
       {!editing && (
-        <div style={{ padding: '4px 12px', fontSize: 9, color: 'rgba(255,255,255,0.38)', borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+        <div style={{ padding: '4px 12px', fontSize: 9, color: 'var(--text-faint)', borderTop: '1px solid var(--glass-border)', flexShrink: 0 }}>
           {t('memory.projectFooter')}
         </div>
       )}
@@ -284,7 +284,7 @@ const MEMDIR_TYPE_COLORS: Record<string, string> = {
   feedback: '#fbbf24',
   project: '#4ade80',
   reference: '#a78bfa',
-  unknown: 'rgba(255,255,255,0.38)',
+  unknown: 'var(--text-faint)',
 }
 
 function MemdirTab() {
@@ -308,7 +308,7 @@ function MemdirTab() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32, color: 'rgba(255,255,255,0.38)', fontSize: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32, color: 'var(--text-faint)', fontSize: 12 }}>
         <RefreshCw size={14} style={{ marginRight: 6, animation: 'spin 1s linear infinite' }} />
         {t('common.loading')}
       </div>
@@ -320,17 +320,17 @@ function MemdirTab() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{
           padding: '6px 12px',
-          borderBottom: '1px solid rgba(255,255,255,0.07)',
+          borderBottom: '1px solid var(--glass-border)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
         }}>
-          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', fontFamily: 'monospace' }}>~/.claude/memory/</span>
-          <button onClick={load} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.38)', padding: 2, display: 'flex', alignItems: 'center' }}>
+          <span style={{ fontSize: 10, color: 'var(--text-faint)', fontFamily: 'monospace' }}>~/.claude/memory/</span>
+          <button onClick={load} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 2, display: 'flex', alignItems: 'center' }}>
             <RefreshCw size={12} />
           </button>
         </div>
         <div style={{
           flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          color: 'rgba(255,255,255,0.38)', gap: 8, textAlign: 'center', padding: '0 24px',
+          color: 'var(--text-faint)', gap: 8, textAlign: 'center', padding: '0 24px',
         }}>
           <Brain size={28} style={{ opacity: 0.3 }} />
           <span style={{ fontSize: 12 }}>{t('memory.memdirEmpty')}</span>
@@ -345,27 +345,27 @@ function MemdirTab() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {/* Header bar */}
       <div style={{
-        padding: '6px 12px', borderBottom: '1px solid rgba(255,255,255,0.07)',
+        padding: '6px 12px', borderBottom: '1px solid var(--glass-border)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
       }}>
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', fontFamily: 'monospace', flex: 1 }}>
+        <span style={{ fontSize: 10, color: 'var(--text-faint)', fontFamily: 'monospace', flex: 1 }}>
           {'~/.claude/memory/ \u00b7 '}{files.length}{' '}{files.length === 1 ? 'file' : 'files'}
         </span>
         <button onClick={load} title={t('memory.projectRefresh')}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.38)', padding: 2, display: 'flex', alignItems: 'center' }}>
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 2, display: 'flex', alignItems: 'center' }}>
           <RefreshCw size={12} />
         </button>
       </div>
 
       {/* File list */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '6px 8px', scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.09) transparent' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '6px 8px', scrollbarWidth: 'thin', scrollbarColor: 'var(--glass-border-md) transparent' }}>
         {files.map(f => {
           const typeColor = MEMDIR_TYPE_COLORS[f.type] || MEMDIR_TYPE_COLORS.unknown
           const isOpen = expanded === f.filePath
           return (
             <div key={f.filePath} style={{
-              background: 'rgba(15,15,25,0.85)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, marginBottom: 6,
+              background: 'var(--glass-bg-low)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+              border: '1px solid var(--glass-border)', borderRadius: 10, marginBottom: 6,
               overflow: 'hidden', transition: 'all 0.15s ease',
             }}>
               {/* File header row */}
@@ -377,11 +377,11 @@ function MemdirTab() {
               >
                 <span style={{ width: 7, height: 7, borderRadius: '50%', background: typeColor, flexShrink: 0, boxShadow: `0 0 6px ${typeColor}80` }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {f.name}
                   </div>
                   {f.description && (
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {f.description}
                     </div>
                   )}
@@ -389,22 +389,22 @@ function MemdirTab() {
                 <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: typeColor, background: `${typeColor}1e`, borderRadius: 8, padding: '1px 6px', flexShrink: 0 }}>
                   {f.type}
                 </span>
-                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)', background: 'rgba(255,255,255,0.07)', borderRadius: 6, padding: '1px 6px', flexShrink: 0 }}>
+                <span style={{ fontSize: 9, color: 'var(--text-faint)', background: 'var(--glass-border)', borderRadius: 6, padding: '1px 6px', flexShrink: 0 }}>
                   {f.scope === 'global' ? t('memory.memdirGlobal') : t('memory.memdirProject')}
                 </span>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', flexShrink: 0, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}>{'\u25be'}</span>
+                <span style={{ fontSize: 10, color: 'var(--text-faint)', flexShrink: 0, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}>{'\u25be'}</span>
               </div>
               {isOpen && (
-                <div style={{ padding: '0 12px 10px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                <div style={{ padding: '0 12px 10px', borderTop: '1px solid var(--glass-border)' }}>
                   <pre style={{
                     margin: '8px 0 0', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 11, lineHeight: 1.6,
-                    color: 'rgba(255,255,255,0.60)', fontFamily: 'monospace',
+                    color: 'var(--text-secondary)', fontFamily: 'monospace',
                     background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '8px 10px',
-                    border: '1px solid rgba(255,255,255,0.07)',
+                    border: '1px solid var(--glass-border)',
                   }}>
-                    {f.content || <span style={{ color: 'rgba(255,255,255,0.38)' }}>(empty)</span>}
+                    {f.content || <span style={{ color: 'var(--text-faint)' }}>(empty)</span>}
                   </pre>
-                  <div style={{ marginTop: 6, fontSize: 9, color: 'rgba(255,255,255,0.38)', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                  <div style={{ marginTop: 6, fontSize: 9, color: 'var(--text-faint)', fontFamily: 'monospace', wordBreak: 'break-all' }}>
                     {f.filePath}
                   </div>
                 </div>
@@ -415,7 +415,7 @@ function MemdirTab() {
       </div>
 
       {/* Footer */}
-      <div style={{ padding: '4px 12px', fontSize: 9, color: 'rgba(255,255,255,0.38)', borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+      <div style={{ padding: '4px 12px', fontSize: 9, color: 'var(--text-faint)', borderTop: '1px solid var(--glass-border)', flexShrink: 0 }}>
         {t('memory.memdirFooter')}
       </div>
 
@@ -583,7 +583,7 @@ function InstructionFilesTab() {
   const scopeTabStyle = (active: boolean, scope: InstructionScope): React.CSSProperties => ({
     padding: '4px 10px',
     background: active ? `rgba(99,102,241,0.15)` : 'transparent',
-    color: active ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.45)',
+    color: active ? 'var(--text-primary)' : 'var(--text-muted)',
     border: 'none',
     borderBottom: active ? `2px solid ${SCOPE_COLORS[scope]}` : '2px solid transparent',
     borderRadius: 0,
@@ -604,14 +604,14 @@ function InstructionFilesTab() {
       {/* Hint bar */}
       <div style={{
         padding: '5px 12px',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--glass-border)',
         flexShrink: 0,
         display: 'flex',
         alignItems: 'center',
         gap: 6,
       }}>
         <FileText size={10} style={{ color: '#a5b4fc', flexShrink: 0 }} />
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', lineHeight: 1.4 }}>
+        <span style={{ fontSize: 10, color: 'var(--text-faint)', lineHeight: 1.4 }}>
           {t('memory.instructionHint')}
         </span>
       </div>
@@ -619,7 +619,7 @@ function InstructionFilesTab() {
       {/* Scope sub-tabs */}
       <div style={{
         display: 'flex',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--glass-border)',
         flexShrink: 0,
         padding: '0 12px',
       }}>
@@ -637,7 +637,7 @@ function InstructionFilesTab() {
             }} />
             {t(SCOPE_LABEL_KEYS[f.scope])}
             {f.gitTracked && (
-              <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.38)', fontStyle: 'italic' }}>git</span>
+              <span style={{ fontSize: 8, color: 'var(--text-faint)', fontStyle: 'italic' }}>git</span>
             )}
           </button>
         ))}
@@ -646,10 +646,10 @@ function InstructionFilesTab() {
       {/* Description row */}
       <div style={{
         padding: '4px 12px',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--glass-border)',
         flexShrink: 0,
       }}>
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', lineHeight: 1.4 }}>
+        <span style={{ fontSize: 10, color: 'var(--text-faint)', lineHeight: 1.4 }}>
           {t(currentFile.descKey)}
         </span>
       </div>
@@ -657,7 +657,7 @@ function InstructionFilesTab() {
       {/* Path + action bar */}
       <div style={{
         padding: '5px 12px',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--glass-border)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -669,7 +669,7 @@ function InstructionFilesTab() {
           title={pathCopied ? 'Copied!' : 'Click to copy path'}
           style={{
             fontSize: 10,
-            color: pathCopied ? '#a5b4fc' : 'rgba(255,255,255,0.38)',
+            color: pathCopied ? '#a5b4fc' : 'var(--text-faint)',
             fontFamily: 'monospace',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -679,8 +679,8 @@ function InstructionFilesTab() {
             transition: 'all 0.15s ease',
             userSelect: 'none',
           }}
-          onMouseEnter={e => { if (!pathCopied) e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
-          onMouseLeave={e => { if (!pathCopied) e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
+          onMouseEnter={e => { if (!pathCopied) e.currentTarget.style.color = 'var(--text-secondary)' }}
+          onMouseLeave={e => { if (!pathCopied) e.currentTarget.style.color = 'var(--text-faint)' }}
         >
           {pathCopied ? '\u2713 Copied' : displayPath}
         </span>
@@ -691,12 +691,12 @@ function InstructionFilesTab() {
               borderRadius: '50%', background: 'rgba(165,180,252,0.8)', flexShrink: 0,
             }} />
           )}
-          {loading && <RefreshCw size={12} style={{ color: 'rgba(255,255,255,0.38)', animation: 'spin 1s linear infinite' }} />}
+          {loading && <RefreshCw size={12} style={{ color: 'var(--text-faint)', animation: 'spin 1s linear infinite' }} />}
           {!loading && (
             <button
               onClick={load}
               title="Refresh"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.38)', padding: 2, display: 'flex', alignItems: 'center' }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 2, display: 'flex', alignItems: 'center' }}
             >
               <RefreshCw size={12} />
             </button>
@@ -705,8 +705,8 @@ function InstructionFilesTab() {
             onClick={openInEditor}
             title="\u5728\u7f16\u8f91\u5668\u4e2d\u6253\u5f00"
             style={{
-              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 4,
-              color: 'rgba(255,255,255,0.60)', fontSize: 10, cursor: 'pointer', padding: '2px 7px',
+              background: 'rgba(255,255,255,0.06)', border: '1px solid var(--glass-border-md)', borderRadius: 4,
+              color: 'var(--text-secondary)', fontSize: 10, cursor: 'pointer', padding: '2px 7px',
               display: 'flex', alignItems: 'center', gap: 3,
             }}
           >
@@ -731,8 +731,8 @@ function InstructionFilesTab() {
               <button
                 onClick={cancelEdit}
                 style={{
-                  background: 'transparent', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 4,
-                  color: 'rgba(255,255,255,0.60)', fontSize: 10, cursor: 'pointer', padding: '2px 8px',
+                  background: 'transparent', border: '1px solid var(--glass-border-md)', borderRadius: 4,
+                  color: 'var(--text-secondary)', fontSize: 10, cursor: 'pointer', padding: '2px 8px',
                 }}
               >
                 {t('common.cancel')}
@@ -742,7 +742,7 @@ function InstructionFilesTab() {
                 disabled={saving}
                 style={{
                   background: 'linear-gradient(135deg, #6366f1, #a78bfa)', border: 'none', borderRadius: 4,
-                  color: 'rgba(255,255,255,0.82)', fontSize: 10, cursor: 'pointer', padding: '2px 8px',
+                  color: 'var(--text-primary)', fontSize: 10, cursor: 'pointer', padding: '2px 8px',
                   display: 'flex', alignItems: 'center', gap: 3, fontWeight: 600,
                   opacity: saving ? 0.6 : 1,
                   transition: 'all 0.15s ease',
@@ -778,9 +778,9 @@ function InstructionFilesTab() {
                 height: '100%',
                 minHeight: 300,
                 background: 'rgba(8,8,16,0.8)',
-                border: '1px solid rgba(255,255,255,0.09)',
+                border: '1px solid var(--glass-border-md)',
                 borderRadius: 6,
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
                 fontSize: 11,
                 fontFamily: 'monospace',
                 lineHeight: 1.6,
@@ -794,7 +794,7 @@ function InstructionFilesTab() {
                 e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.12)'
               }}
               onBlur={e => {
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+                e.currentTarget.style.borderColor = 'var(--glass-border-md)'
                 e.currentTarget.style.boxShadow = 'none'
               }}
             />
@@ -803,7 +803,7 @@ function InstructionFilesTab() {
               bottom: 18,
               right: 22,
               fontSize: 11,
-              color: 'rgba(255,255,255,0.38)',
+              color: 'var(--text-faint)',
               fontVariantNumeric: 'tabular-nums',
               pointerEvents: 'none',
               userSelect: 'none',
@@ -818,7 +818,7 @@ function InstructionFilesTab() {
             wordBreak: 'break-word',
             fontSize: 11,
             lineHeight: 1.6,
-            color: 'rgba(255,255,255,0.82)',
+            color: 'var(--text-primary)',
             fontFamily: 'monospace',
           }}>
             {content}
@@ -826,7 +826,7 @@ function InstructionFilesTab() {
         ) : (
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            height: '60%', color: 'rgba(255,255,255,0.38)', gap: 8, textAlign: 'center',
+            height: '60%', color: 'var(--text-faint)', gap: 8, textAlign: 'center',
           }}>
             <FileText size={28} style={{ color: SCOPE_COLORS[activeScope], opacity: 0.4 }} />
             <span style={{ fontSize: 12 }}>{'\u5c1a\u672a\u521b\u5efa '}{currentFile.label}</span>
@@ -838,7 +838,7 @@ function InstructionFilesTab() {
                 onClick={() => startEdit()}
                 style={{
                   background: 'linear-gradient(135deg, #6366f1, #a78bfa)', border: 'none', borderRadius: 6,
-                  color: 'rgba(255,255,255,0.82)', fontSize: 11, cursor: 'pointer', padding: '5px 14px', fontWeight: 600,
+                  color: 'var(--text-primary)', fontSize: 11, cursor: 'pointer', padding: '5px 14px', fontWeight: 600,
                 }}
               >
                 {'\u521b\u5efa '}{currentFile.label}
@@ -866,7 +866,7 @@ function InstructionFilesTab() {
 
       {/* Footer */}
       {!editing && (
-        <div style={{ padding: '4px 12px', fontSize: 9, color: 'rgba(255,255,255,0.38)', borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+        <div style={{ padding: '4px 12px', fontSize: 9, color: 'var(--text-faint)', borderTop: '1px solid var(--glass-border)', flexShrink: 0 }}>
           {t('memory.instructionBadge')} \u00b7 {displayPath} \u00b7 \u81ea\u52a8\u52a0\u8f7d
         </div>
       )}
@@ -887,7 +887,7 @@ export default function MemoryPanel() {
     flex: 1,
     padding: '5px 0',
     background: 'transparent',
-    color: active ? '#818cf8' : 'rgba(255,255,255,0.45)',
+    color: active ? '#818cf8' : 'var(--text-muted)',
     border: 'none',
     borderBottom: active ? '2px solid rgba(99,102,241,0.6)' : '2px solid transparent',
     borderRadius: 0,
@@ -906,7 +906,7 @@ export default function MemoryPanel() {
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      background: 'rgba(15,15,25,0.90)',
+      background: 'var(--glass-bg-mid)',
       backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
       overflow: 'hidden',
@@ -918,7 +918,7 @@ export default function MemoryPanel() {
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--glass-border)',
         flexShrink: 0,
         background: 'linear-gradient(180deg, rgba(99,102,241,0.06) 0%, transparent 100%)',
       }}>
@@ -934,7 +934,7 @@ export default function MemoryPanel() {
             <span style={{
               fontSize: 13,
               fontWeight: 700,
-              color: 'rgba(255,255,255,0.82)',
+              color: 'var(--text-primary)',
               letterSpacing: '-0.01em',
               lineHeight: 1.3,
             }}>
@@ -944,7 +944,7 @@ export default function MemoryPanel() {
               <span style={{
                 fontSize: 10,
                 fontWeight: 600,
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--text-muted)',
                 background: 'rgba(255,255,255,0.08)',
                 borderRadius: 10,
                 padding: '1px 7px',
@@ -968,7 +968,7 @@ export default function MemoryPanel() {
                   fontSize: 11,
                   fontWeight: 600,
                   cursor: 'pointer',
-                  color: 'rgba(255,255,255,0.82)',
+                  color: 'var(--text-primary)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 3,
@@ -993,13 +993,13 @@ export default function MemoryPanel() {
                     borderRadius: 6,
                     padding: 4,
                     cursor: 'pointer',
-                    color: 'rgba(255,255,255,0.38)',
+                    color: 'var(--text-faint)',
                     display: 'flex',
                     alignItems: 'center',
                     transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={e => (e.currentTarget.style.color = '#fca5a5')}
-                  onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.38)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-faint)')}
                 >
                   <Trash2 size={14} />
                 </button>
@@ -1012,7 +1012,7 @@ export default function MemoryPanel() {
         <div style={{
           display: 'flex',
           gap: 0,
-          borderBottom: '1px solid rgba(255,255,255,0.07)',
+          borderBottom: '1px solid var(--glass-border)',
           marginBottom: activeTab === 'personal' ? 8 : 0,
           marginTop: 4,
         }}>
@@ -1044,7 +1044,7 @@ export default function MemoryPanel() {
                 left: 8,
                 top: '50%',
                 transform: 'translateY(-50%)',
-                color: 'rgba(255,255,255,0.38)',
+                color: 'var(--text-faint)',
                 pointerEvents: 'none',
               }} />
               <input
@@ -1058,10 +1058,10 @@ export default function MemoryPanel() {
                   paddingLeft: 26,
                   paddingRight: crud.searchQuery.trim() ? 56 : 8,
                   background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.07)',
+                  border: '1px solid var(--glass-border)',
                   borderRadius: 7,
                   fontSize: 12,
-                  color: 'rgba(255,255,255,0.82)',
+                  color: 'var(--text-primary)',
                   outline: 'none',
                   boxSizing: 'border-box',
                   transition: 'all 0.15s ease',
@@ -1082,7 +1082,7 @@ export default function MemoryPanel() {
                   top: '50%',
                   transform: 'translateY(-50%)',
                   fontSize: 9,
-                  color: crud.filteredMemories.length > 0 ? '#a5b4fc' : 'rgba(255,255,255,0.38)',
+                  color: crud.filteredMemories.length > 0 ? '#a5b4fc' : 'var(--text-faint)',
                   fontWeight: 500,
                   pointerEvents: 'none',
                   fontVariantNumeric: 'tabular-nums',
@@ -1100,10 +1100,10 @@ export default function MemoryPanel() {
                   background: crud.filterCategory === 'all'
                     ? 'rgba(99,102,241,0.15)'
                     : 'rgba(255,255,255,0.06)',
-                  color: crud.filterCategory === 'all' ? '#a5b4fc' : 'rgba(255,255,255,0.45)',
+                  color: crud.filterCategory === 'all' ? '#a5b4fc' : 'var(--text-muted)',
                   border: crud.filterCategory === 'all'
                     ? '1px solid rgba(99,102,241,0.3)'
-                    : '1px solid rgba(255,255,255,0.07)',
+                    : '1px solid var(--glass-border)',
                   borderRadius: 10,
                   padding: '2px 8px',
                   fontSize: 10,
@@ -1123,10 +1123,10 @@ export default function MemoryPanel() {
                     onClick={() => crud.setFilterCategory(isActive ? 'all' : cat)}
                     style={{
                       background: isActive ? `${cfg.color}20` : 'rgba(255,255,255,0.06)',
-                      color: isActive ? cfg.color : 'rgba(255,255,255,0.45)',
+                      color: isActive ? cfg.color : 'var(--text-muted)',
                       border: isActive
                         ? `1px solid ${cfg.color}40`
-                        : '1px solid rgba(255,255,255,0.07)',
+                        : '1px solid var(--glass-border)',
                       borderRadius: 10,
                       padding: '2px 8px',
                       fontSize: 10,
@@ -1156,10 +1156,10 @@ export default function MemoryPanel() {
                     : 'rgba(255,255,255,0.06)',
                   color: crud.filterMemoryType === 'all'
                     ? 'rgba(165,180,252,0.82)'
-                    : 'rgba(255,255,255,0.45)',
+                    : 'var(--text-muted)',
                   border: crud.filterMemoryType === 'all'
                     ? '1px solid rgba(99,102,241,0.40)'
-                    : '1px solid rgba(255,255,255,0.09)',
+                    : '1px solid var(--glass-border-md)',
                   borderRadius: 20,
                   padding: '3px 10px',
                   fontSize: 11,
@@ -1191,10 +1191,10 @@ export default function MemoryPanel() {
                         : 'rgba(255,255,255,0.06)',
                       color: isActive
                         ? 'rgba(165,180,252,0.82)'
-                        : 'rgba(255,255,255,0.45)',
+                        : 'var(--text-muted)',
                       border: isActive
                         ? '1px solid rgba(99,102,241,0.40)'
-                        : '1px solid rgba(255,255,255,0.09)',
+                        : '1px solid var(--glass-border-md)',
                       borderRadius: 20,
                       padding: '3px 10px',
                       fontSize: 11,
@@ -1252,12 +1252,12 @@ export default function MemoryPanel() {
           <div style={{
             flex: 1, overflowY: 'auto', padding: '6px 8px',
             scrollbarWidth: 'thin',
-            scrollbarColor: 'rgba(255,255,255,0.09) transparent',
+            scrollbarColor: 'var(--glass-border-md) transparent',
           }}>
             {crud.filteredMemories.length === 0 ? (
               <div style={{
                 fontSize: 12,
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--text-muted)',
                 textAlign: 'center',
                 padding: '32px 16px',
                 display: 'flex',
@@ -1284,7 +1284,7 @@ export default function MemoryPanel() {
                   }
                 </span>
                 {crud.memories.length === 0 && (
-                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', textAlign: 'center', padding: '0 20px' }}>
+                  <span style={{ fontSize: 10, color: 'var(--text-faint)', textAlign: 'center', padding: '0 20px' }}>
                     {t('memory.emptyHint')}
                   </span>
                 )}
@@ -1316,16 +1316,16 @@ export default function MemoryPanel() {
           {/* Footer */}
           <div style={{
             padding: '6px 12px',
-            borderTop: '1px solid rgba(255,255,255,0.07)',
+            borderTop: '1px solid var(--glass-border)',
             flexShrink: 0,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
           }}>
-            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)', fontVariantNumeric: 'tabular-nums' }}>
+            <span style={{ fontSize: 9, color: 'var(--text-faint)', fontVariantNumeric: 'tabular-nums' }}>
               {t('memory.footer', { count: String(crud.memories.length), max: String(MAX_MEMORIES) })}
             </span>
-            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)' }}>
+            <span style={{ fontSize: 9, color: 'var(--text-faint)' }}>
               {t('memory.inspired')}
             </span>
           </div>

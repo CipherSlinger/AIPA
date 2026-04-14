@@ -115,9 +115,9 @@ function KVEditor({
 const inputStyle: React.CSSProperties = {
   flex: 1,
   background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(255,255,255,0.09)',
+  border: '1px solid var(--glass-border-md)',
   borderRadius: 7,
-  color: 'rgba(255,255,255,0.82)',
+  color: 'var(--text-primary)',
   fontSize: 11,
   padding: '5px 10px',
   outline: 'none',
@@ -125,7 +125,7 @@ const inputStyle: React.CSSProperties = {
 }
 
 const primaryBtnStyle: React.CSSProperties = {
-  background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
+  background: 'var(--cta-gradient)',
   border: 'none',
   borderRadius: 8,
   color: 'rgba(255,255,255,0.95)',
@@ -138,9 +138,9 @@ const primaryBtnStyle: React.CSSProperties = {
 
 const secondaryBtnStyle: React.CSSProperties = {
   background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(255,255,255,0.09)',
+  border: '1px solid var(--glass-border-md)',
   borderRadius: 6,
-  color: 'rgba(255,255,255,0.60)',
+  color: 'var(--text-secondary)',
   cursor: 'pointer',
   fontSize: 11,
   padding: '5px 12px',
@@ -162,7 +162,7 @@ const labelStyle: React.CSSProperties = {
   fontWeight: 700,
   letterSpacing: '0.07em',
   textTransform: 'uppercase',
-  color: 'rgba(255,255,255,0.38)',
+  color: 'var(--text-faint)',
   marginBottom: 3,
   display: 'block',
 }
@@ -197,8 +197,8 @@ function McpAddWizard({
         transition: 'all 0.15s ease',
       }}
     >
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.82)', marginBottom: 2 }}>{label}</div>
-      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', fontFamily: 'monospace' }}>{description}</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: 11, color: 'var(--text-faint)', fontFamily: 'monospace' }}>{description}</div>
     </div>
   )
 
@@ -262,14 +262,14 @@ function McpAddWizard({
 
   return (
     <div style={{
-      background: 'rgba(15,15,25,0.92)',
+      background: 'var(--glass-bg-mid)',
       backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
       border: '1px solid rgba(99,102,241,0.30)',
       borderRadius: 12,
       padding: 16,
       marginBottom: 16,
-      boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+      boxShadow: 'var(--glass-shadow)',
     }}>
       {/* Progress indicator */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
@@ -277,7 +277,7 @@ function McpAddWizard({
           <React.Fragment key={s}>
             <div style={{
               width: 22, height: 22, borderRadius: '50%',
-              background: w.step >= s ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))' : 'rgba(255,255,255,0.07)',
+      background: w.step >= s ? 'var(--cta-gradient)' : 'var(--glass-border)',
               color: w.step >= s ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 10, fontWeight: 700, flexShrink: 0,
@@ -285,7 +285,7 @@ function McpAddWizard({
             {i < 2 && <div style={{ flex: 1, height: 1, background: w.step > s ? 'rgba(99,102,241,0.6)' : 'rgba(255,255,255,0.07)' }} />}
           </React.Fragment>
         ))}
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', marginLeft: 4 }}>
+        <span style={{ fontSize: 11, color: 'var(--text-faint)', marginLeft: 4 }}>
           {w.step === 1 ? t('mcp.chooseType') : w.step === 2 ? t('mcp.configure') : t('mcp.nameAndFinish')}
         </span>
       </div>
@@ -384,7 +384,7 @@ function McpAddWizard({
             {w.nameError && <div style={{ fontSize: 10, color: '#fca5a5', marginTop: 3 }}>{w.nameError}</div>}
           </div>
           {/* Summary */}
-          <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 6, padding: '6px 10px', fontSize: 11, color: 'rgba(255,255,255,0.38)', fontFamily: 'monospace' }}>
+          <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 6, padding: '6px 10px', fontSize: 11, color: 'var(--text-faint)', fontFamily: 'monospace' }}>
             {w.type === 'stdio'
               ? `${w.command} ${w.args}`
               : w.url}
@@ -465,7 +465,7 @@ function ServerCard({
 
   // Status pill styles & labels
   const statusPill: React.CSSProperties = isDisabled
-    ? { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)', color: 'rgba(255,255,255,0.38)' }
+    ? { background: 'rgba(255,255,255,0.06)', border: '1px solid var(--glass-border-md)', color: 'var(--text-faint)' }
     : isLoading
     ? { background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)', color: 'rgba(165,180,252,0.7)' }
     : hasError
@@ -479,15 +479,15 @@ function ServerCard({
       onMouseEnter={() => setCardHovered(true)}
       onMouseLeave={() => setCardHovered(false)}
       style={{
-      background: 'rgba(15,15,25,0.85)',
+      background: 'var(--glass-bg-low)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
-      border: '1px solid rgba(255,255,255,0.07)',
+      border: '1px solid var(--glass-border)',
       borderRadius: 10,
       marginBottom: 8,
       overflow: 'hidden',
       boxShadow: cardHovered
-        ? '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)'
+        ? 'var(--glass-shadow)'
         : '0 2px 8px rgba(0,0,0,0.3)',
       transition: 'all 0.15s ease',
     }}>
@@ -499,7 +499,7 @@ function ServerCard({
 
         {/* Name + command + status pill row */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.82)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             {srv.name}
             {/* Connection status pill */}
             <span style={{
@@ -519,7 +519,7 @@ function ServerCard({
             {srv.toolCount != null && srv.toolCount > 0 && (
               <span style={{
                 fontSize: 10,
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--text-muted)',
                 fontVariantNumeric: 'tabular-nums',
                 fontFeatureSettings: '"tnum"',
                 flexShrink: 0,
@@ -529,7 +529,7 @@ function ServerCard({
             )}
           </div>
           {srv.command && (
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 2, fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {srv.command}
             </div>
           )}
@@ -544,7 +544,7 @@ function ServerCard({
           style={{
             ...iconBtnStyle,
             display: 'flex', alignItems: 'center',
-            color: hoveredReconnect ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.38)',
+            color: hoveredReconnect ? 'var(--text-primary)' : 'var(--text-faint)',
             background: hoveredReconnect ? 'rgba(255,255,255,0.07)' : 'none',
             borderRadius: 8, padding: '3px 5px',
             transition: 'all 0.15s ease',
@@ -595,7 +595,7 @@ function ServerCard({
               {[0, 150, 300].map((delay, i) => (
                 <span key={i} style={{ width: 5, height: 5, borderRadius: '50%', background: 'rgba(165,180,252,0.7)', display: 'inline-block', animation: `mcp-dot-pulse 1.2s ease-in-out ${delay}ms infinite` }} />
               ))}
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', marginLeft: 2 }}>{t('mcp.loadingTools')}</span>
+              <span style={{ fontSize: 11, color: 'var(--text-faint)', marginLeft: 2 }}>{t('mcp.loadingTools')}</span>
             </div>
           ) : tools && tools.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -603,16 +603,16 @@ function ServerCard({
                 <div key={tool.name} style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
                   <Wrench size={11} style={{ color: '#818cf8', flexShrink: 0, marginTop: 1 }} />
                   <div>
-                    <span style={{ fontSize: 11, fontFamily: 'monospace', color: 'rgba(255,255,255,0.60)' }}>{tool.name}</span>
+                    <span style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--text-secondary)' }}>{tool.name}</span>
                     {tool.description && (
-                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', marginTop: 1 }}>{tool.description}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 1 }}>{tool.description}</div>
                     )}
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-faint)', display: 'flex', alignItems: 'center', gap: 6 }}>
               <Wrench size={11} style={{ opacity: 0.4 }} />
               {t('mcp.noToolInfo')}
             </div>
@@ -652,7 +652,7 @@ function ServerToolList({ tools }: { tools: McpToolInfo[] }) {
         borderLeft: '2px solid rgba(165,180,252,0.20)',
         borderRadius: '0 4px 4px 0',
         fontSize: 10,
-        color: 'rgba(255,255,255,0.38)',
+        color: 'var(--text-faint)',
         fontStyle: 'italic',
         transition: 'all 0.15s ease',
       }}>
@@ -700,7 +700,7 @@ function ServerToolList({ tools }: { tools: McpToolInfo[] }) {
                 {tool.name}
               </span>
               {tool.description && (
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4 }}>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>
                   {tool.description.length > 60
                     ? tool.description.slice(0, 60) + '…'
                     : tool.description}
@@ -718,7 +718,7 @@ function LiveSessionStatus({ servers }: { servers: ActiveMcpServer[] }) {
   if (servers.length === 0) {
     return (
       <div style={{
-        background: 'rgba(15,15,25,0.85)',
+        background: 'var(--glass-bg-low)',
         border: '1px solid rgba(255,255,255,0.06)',
         borderRadius: 10,
         padding: '10px 14px',
@@ -731,7 +731,7 @@ function LiveSessionStatus({ servers }: { servers: ActiveMcpServer[] }) {
           width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
           background: 'rgba(255,255,255,0.18)',
         }} />
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', fontStyle: 'italic' }}>
+        <span style={{ fontSize: 11, color: 'var(--text-faint)', fontStyle: 'italic' }}>
           启动新会话后将显示 MCP 连接状态
         </span>
       </div>
@@ -739,10 +739,10 @@ function LiveSessionStatus({ servers }: { servers: ActiveMcpServer[] }) {
   }
   return (
     <div style={{
-      background: 'rgba(15,15,25,0.85)',
+      background: 'var(--glass-bg-low)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
-      border: '1px solid rgba(255,255,255,0.07)',
+      border: '1px solid var(--glass-border)',
       borderRadius: 12,
       padding: '12px 16px',
       marginBottom: 16,
@@ -750,7 +750,7 @@ function LiveSessionStatus({ servers }: { servers: ActiveMcpServer[] }) {
       <div style={{
         fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
         textTransform: 'uppercase' as const,
-        color: 'rgba(255,255,255,0.38)', marginBottom: 10,
+        color: 'var(--text-faint)', marginBottom: 10,
       }}>
         当前会话连接状态
       </div>
@@ -797,7 +797,7 @@ function LiveSessionStatus({ servers }: { servers: ActiveMcpServer[] }) {
                 boxShadow: dotShadow,
               }} />
               {/* 服务器名 */}
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)', flex: 1 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>
                 {srv.name || `MCP Server ${i + 1}`}
               </span>
               {/* 工具数徽标 */}
@@ -839,7 +839,7 @@ function LiveSessionStatus({ servers }: { servers: ActiveMcpServer[] }) {
                 borderLeft: '2px solid rgba(165,180,252,0.20)',
                 borderRadius: '0 4px 4px 0',
                 fontSize: 10,
-                color: 'rgba(255,255,255,0.38)',
+                color: 'var(--text-faint)',
                 fontStyle: 'italic',
                 transition: 'all 0.15s ease',
               }}>
@@ -894,7 +894,7 @@ export default function SettingsMcp() {
 
       {/* Header row */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)' }}>
+        <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>
           {mcpServers.length !== 1 ? t('mcp.serversConfiguredPlural', { count: String(mcpServers.length) }) : t('mcp.serversConfigured', { count: String(mcpServers.length) })}
         </span>
         {!showWizard && (
@@ -943,10 +943,10 @@ export default function SettingsMcp() {
           }}>
             <Wrench size={20} style={{ color: '#818cf8' }} />
           </div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginBottom: 4 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>
             {t('settings.noMcpServers')}
           </div>
-          <span style={{ fontSize: 11, display: 'block', color: 'rgba(255,255,255,0.38)' }}>{t('settings.mcpHint')}</span>
+          <span style={{ fontSize: 11, display: 'block', color: 'var(--text-faint)' }}>{t('settings.mcpHint')}</span>
         </div>
       ) : (
         mcpServers.map(srv => (

@@ -129,7 +129,7 @@ export default function SettingsPanel() {
       <div style={{
         width: 140,
         flexShrink: 0,
-        borderRight: '1px solid rgba(255,255,255,0.07)',
+        borderRight: '1px solid var(--glass-border)',
         padding: '14px 8px',
         display: 'flex',
         flexDirection: 'column',
@@ -139,7 +139,7 @@ export default function SettingsPanel() {
       }}>
         <div style={{
           fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
-          textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)',
+          textTransform: 'uppercase', color: 'var(--text-faint)',
           padding: '0 12px', marginBottom: 6,
         }}>
           {t('settings.title')}
@@ -163,7 +163,7 @@ export default function SettingsPanel() {
                 borderLeft: isActive ? '2px solid rgba(99,102,241,0.6)' : '2px solid transparent',
                 borderRadius: '0 6px 6px 0',
                 padding: '7px 12px',
-                color: isActive ? '#818cf8' : isHovered ? 'rgba(255,255,255,0.60)' : 'rgba(255,255,255,0.45)',
+                color: isActive ? '#818cf8' : isHovered ? 'var(--text-secondary)' : 'var(--text-muted)',
                 cursor: 'pointer',
                 fontSize: 12,
                 fontWeight: isActive ? 600 : 400,

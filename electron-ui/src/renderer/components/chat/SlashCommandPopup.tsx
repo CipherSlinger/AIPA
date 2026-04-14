@@ -91,10 +91,10 @@ export default function SlashCommandPopup({ query, onSelect, onDismiss, selected
         bottom: '100%',
         left: 0,
         right: 0,
-        background: 'rgba(15,15,25,0.96)',
+        background: 'var(--glass-bg-high)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        border: '1px solid var(--glass-border)',
         borderRadius: 12,
         boxShadow: '0 16px 48px rgba(0,0,0,0.65), 0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
         zIndex: 1001,
@@ -110,9 +110,9 @@ export default function SlashCommandPopup({ query, onSelect, onDismiss, selected
         fontWeight: 700,
         letterSpacing: '0.07em',
         textTransform: 'uppercase' as const,
-        color: 'rgba(255,255,255,0.38)',
+        color: 'var(--text-faint)',
         padding: '6px 12px 4px',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--glass-border)',
       }}>
         Commands
       </div>
@@ -162,7 +162,7 @@ export default function SlashCommandPopup({ query, onSelect, onDismiss, selected
         alignItems: 'center',
         gap: 6,
         padding: '5px 12px',
-        borderTop: '1px solid rgba(255,255,255,0.07)',
+        borderTop: '1px solid var(--glass-border)',
         flexWrap: 'wrap' as const,
       }}>
         {[
@@ -181,12 +181,12 @@ export default function SlashCommandPopup({ query, onSelect, onDismiss, selected
               padding: '1px 5px',
               fontSize: 10,
               fontFamily: 'monospace',
-              color: 'rgba(255,255,255,0.55)',
+              color: 'var(--text-faint)',
               lineHeight: 1.6,
             }}>
               {key}
             </kbd>
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)' }}>{label}</span>
+            <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>{label}</span>
           </span>
         ))}
       </div>
@@ -208,7 +208,7 @@ function SectionDivider({ label }: { label: string }) {
         fontWeight: 700,
         letterSpacing: '0.08em',
         textTransform: 'uppercase' as const,
-        color: 'rgba(255,255,255,0.38)',
+        color: 'var(--text-faint)',
         flexShrink: 0,
       }}>
         {label}
@@ -216,7 +216,7 @@ function SectionDivider({ label }: { label: string }) {
       <div style={{
         flex: 1,
         height: 1,
-        background: 'rgba(255,255,255,0.07)',
+        background: 'var(--glass-border)',
       }} />
     </div>
   )
@@ -281,7 +281,7 @@ function renderCommand(
           <span style={{
             fontSize: 13,
             fontWeight: 500,
-            color: isSelected ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.82)',
+            color: isSelected ? 'var(--text-primary)' : 'var(--text-primary)',
             transition: 'color 0.15s ease',
           }}>
             {cmdName}
@@ -289,7 +289,7 @@ function renderCommand(
         </div>
         <div style={{
           fontSize: 11,
-          color: 'rgba(255,255,255,0.45)',
+          color: 'var(--text-muted)',
           lineHeight: 1.4,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -313,7 +313,7 @@ function renderCommand(
             fontWeight: 700,
             letterSpacing: '0.04em',
             textTransform: 'uppercase' as const,
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-faint)',
             padding: '1px 5px',
             fontFamily: 'monospace',
           }}>

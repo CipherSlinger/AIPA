@@ -72,17 +72,17 @@ export default function SettingsGeneral({
 
   const field = (label: string, content: React.ReactNode, hint?: React.ReactNode) => (
     <div style={{ marginBottom: 16 }}>
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 6 }}>{label}</div>
       {content}
-      {hint && <div style={{ marginTop: 5, fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>{hint}</div>}
+      {hint && <div style={{ marginTop: 5, fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.5 }}>{hint}</div>}
     </div>
   )
 
   const row = (label: string, control: React.ReactNode, hint?: string) => (
     <div style={{ marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
       <div>
-        <div style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.82)' }}>{label}</div>
-        {hint && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', marginTop: 2, lineHeight: 1.5 }}>{hint}</div>}
+        <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>{label}</div>
+        {hint && <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 2, lineHeight: 1.5 }}>{hint}</div>}
       </div>
       {control}
     </div>
@@ -94,7 +94,7 @@ export default function SettingsGeneral({
     <>
       {/* Settings search */}
       <div style={{ marginBottom: 12, position: 'relative', display: 'flex', alignItems: 'center' }}>
-        <Search size={14} style={{ position: 'absolute', left: 10, color: 'rgba(255,255,255,0.38)', pointerEvents: 'none' }} />
+        <Search size={14} style={{ position: 'absolute', left: 10, color: 'var(--text-faint)', pointerEvents: 'none' }} />
         <input
           value={settingsFilter}
           onChange={(e) => setSettingsFilter(e.target.value)}
@@ -112,7 +112,7 @@ export default function SettingsGeneral({
           <button
             onClick={() => setSettingsFilter('')}
             aria-label={t('a11y.clearSearch')}
-            style={{ position: 'absolute', right: 8, background: 'none', border: 'none', color: 'rgba(255,255,255,0.38)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 2, transition: 'all 0.15s ease' }}
+            style={{ position: 'absolute', right: 8, background: 'none', border: 'none', color: 'var(--text-faint)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 2, transition: 'all 0.15s ease' }}
           >
             <X size={13} />
           </button>
@@ -139,7 +139,7 @@ export default function SettingsGeneral({
               aria-label={showKey ? t('settingsAdvanced.hideApiKey') : t('settingsAdvanced.showApiKey')}
               onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-              style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.45)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3px 4px', borderRadius: 4, transition: 'all 0.15s ease' }}
+              style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3px 4px', borderRadius: 4, transition: 'all 0.15s ease' }}
             >
               {showKey ? <EyeOff size={13} /> : <Eye size={13} />}
             </button>
@@ -164,7 +164,7 @@ export default function SettingsGeneral({
             {MODEL_OPTIONS.map((m) => <option key={m.id} value={m.id}>{t(m.labelKey)}</option>)}
           </select>
         ),
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>{t('settings.advisorModelHint')}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.5 }}>{t('settings.advisorModelHint')}</span>
         )}
 
         {field(t('settings.thinkingMode'), (
@@ -177,7 +177,7 @@ export default function SettingsGeneral({
             <option value="adaptive">{t('settings.thinkingAdaptive')}</option>
           </select>
         ),
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>{t('settings.thinkingHint')}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.5 }}>{t('settings.thinkingHint')}</span>
         )}
 
         {field(
@@ -193,7 +193,7 @@ export default function SettingsGeneral({
             onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow = 'none' }}
             style={{ ...INPUT_STYLE, width: 120 }}
           />,
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
+          <span style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.5 }}>
             {t('settings.maxTurnsHint')}
           </span>
         )}
@@ -211,7 +211,7 @@ export default function SettingsGeneral({
             onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow = 'none' }}
             style={{ ...INPUT_STYLE, width: 120 }}
           />,
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
+          <span style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.5 }}>
             {t('settings.budgetHint')}
           </span>
         )}
@@ -230,9 +230,9 @@ export default function SettingsGeneral({
             onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.boxShadow = 'none' }}
             style={{
               background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.09)',
+              border: '1px solid var(--glass-border-md)',
               borderRadius: 6,
-              color: 'rgba(255,255,255,0.82)',
+              color: 'var(--text-primary)',
               padding: '6px 10px',
               fontSize: 13,
               outline: 'none',
@@ -253,7 +253,7 @@ export default function SettingsGeneral({
             <option value="de">{t('settings.aiReplyLanguageDe')}</option>
             <option value="es">{t('settings.aiReplyLanguageEs')}</option>
           </select>,
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
+          <span style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.5 }}>
             {t('settings.aiReplyLanguageHint')}
           </span>
         )}
@@ -285,7 +285,7 @@ export default function SettingsGeneral({
               <option value="custom">{t('settings.promptTemplateCustom')}</option>
             )}
           </select>,
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
+          <span style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.5 }}>
             {t('settings.promptTemplateHint')}
           </span>
         )}
@@ -307,7 +307,7 @@ export default function SettingsGeneral({
               minHeight: 80,
             }}
           />,
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
+          <span style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.5 }}>
             {t('settings.systemPromptHint')}
           </span>
         )}
@@ -341,7 +341,7 @@ export default function SettingsGeneral({
             onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow = 'none' }}
             style={{ ...INPUT_STYLE }}
           />,
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>{t('settings.displayNameHint')}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.5 }}>{t('settings.displayNameHint')}</span>
         )}
 
         {field(t('settings.theme'), (
@@ -369,7 +369,7 @@ export default function SettingsGeneral({
                   <div style={{ display: 'flex', gap: 2 }}>
                     {theme.colors.map((c, i) => <div key={i} style={{ width: 10, height: 10, borderRadius: 2, background: c }} />)}
                   </div>
-                  <span style={{ fontSize: 9, color: theme.id === 'light' ? 'rgba(30,30,30,0.60)' : 'rgba(255,255,255,0.60)', whiteSpace: 'nowrap' }}>{t(theme.labelKey)}</span>
+                  <span style={{ fontSize: 9, color: theme.id === 'light' ? 'rgba(30,30,30,0.60)' : 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{t(theme.labelKey)}</span>
                 </button>
               )
             })}
@@ -422,12 +422,12 @@ export default function SettingsGeneral({
               aria-label={t('settings.browse')}
               onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
-              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 7, padding: '0 10px', color: 'rgba(255,255,255,0.60)', cursor: 'pointer', fontSize: 12, transition: 'all 0.15s ease', whiteSpace: 'nowrap' }}
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid var(--glass-border)', borderRadius: 7, padding: '0 10px', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 12, transition: 'all 0.15s ease', whiteSpace: 'nowrap' }}
             >
               {t('settings.browse')}
             </button>
           </div>,
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>{t('settings.workingFolderHint')}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.5 }}>{t('settings.workingFolderHint')}</span>
         )}
 
         {field(t('tags.sectionTitle'), (
@@ -504,7 +504,7 @@ export default function SettingsGeneral({
             <option value="explanatory">{t('outputStyle.explanatory')} — {t('outputStyle.explanatory.desc')}</option>
             <option value="learning">{t('outputStyle.learning')} — {t('outputStyle.learning.desc')}</option>
           </select>,
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>{t('outputStyle.settingsHint')}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.5 }}>{t('outputStyle.settingsHint')}</span>
         )}
 
         {field(
@@ -524,7 +524,7 @@ export default function SettingsGeneral({
             <option value="high">{t('effort.high')} — {t('effort.highHint')}</option>
             <option value="max">{t('effort.max')} — {t('effort.maxHint')}</option>
           </select>,
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>{t('effort.settingsHint')}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.5 }}>{t('effort.settingsHint')}</span>
         )}
 
         {row(
@@ -620,9 +620,9 @@ export default function SettingsGeneral({
               }}
               style={{
                 background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.09)',
+                border: '1px solid var(--glass-border-md)',
                 borderRadius: 6,
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
                 padding: '4px 10px',
                 fontSize: 13,
                 width: 80,
@@ -631,12 +631,12 @@ export default function SettingsGeneral({
                 transition: 'all 0.15s ease',
               }}
             />
-            <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.60)' }}>{t('common.days')}</span>
+            <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{t('common.days')}</span>
             {cleanupDays === 0 && (
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)' }}>{t('settings.cleanupPeriodDaysDisabled')}</span>
+              <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{t('settings.cleanupPeriodDaysDisabled')}</span>
             )}
           </div>,
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
+          <span style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.5 }}>
             {t('settings.cleanupPeriodDaysHint')}
           </span>
         )}
@@ -652,9 +652,9 @@ export default function SettingsGeneral({
         style={{
           background: saved
             ? 'linear-gradient(135deg, rgba(34,197,94,0.85), rgba(16,185,129,0.85))'
-            : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
+            : 'var(--cta-gradient)',
           border: 'none', borderRadius: 8, padding: '9px 16px',
-          color: 'rgba(255,255,255,0.82)', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+          color: 'var(--text-primary)', cursor: 'pointer', fontSize: 13, fontWeight: 600,
           display: 'flex', alignItems: 'center', gap: 6,
           width: '100%', justifyContent: 'center', marginTop: 8,
           transition: 'all 0.15s ease',

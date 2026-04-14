@@ -126,7 +126,7 @@ export default function StatsPanel({
         style={{
           ...headerBtnStyle,
           background: showStats ? '#6366f1' : 'none',
-          color: showStats ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
+          color: showStats ? 'rgba(255,255,255,0.95)' : 'var(--text-muted)',
           cursor: messageCount === 0 ? 'not-allowed' : 'pointer',
           opacity: messageCount === 0 ? 0.3 : 1,
         }}
@@ -143,12 +143,12 @@ export default function StatsPanel({
             right: 0,
             zIndex: 60,
             width: 240,
-            background: 'rgba(15,15,25,0.96)',
+            background: 'var(--glass-bg-high)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            border: '1px solid var(--glass-border-md)',
             borderRadius: 12,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+            boxShadow: 'var(--glass-shadow)',
             padding: '12px 14px',
             marginTop: 4,
             animation: 'slideUp 0.15s ease',
@@ -158,10 +158,10 @@ export default function StatsPanel({
           <div style={{
             fontSize: 13,
             fontWeight: 700,
-            color: 'rgba(255,255,255,0.82)',
+            color: 'var(--text-primary)',
             marginBottom: 10,
             paddingBottom: 8,
-            borderBottom: '1px solid rgba(255,255,255,0.07)',
+            borderBottom: '1px solid var(--glass-border)',
             lineHeight: 1.3,
             letterSpacing: '-0.01em',
           }}>
@@ -210,7 +210,7 @@ export default function StatsPanel({
                   fontWeight: 700,
                   letterSpacing: '0.07em',
                   textTransform: 'uppercase',
-                  color: 'rgba(255,255,255,0.38)',
+                  color: 'var(--text-faint)',
                   marginTop: 3,
                 }}>
                   {label}
@@ -224,7 +224,7 @@ export default function StatsPanel({
             fontWeight: 700,
             letterSpacing: '0.07em',
             textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-faint)',
             marginTop: 10,
             marginBottom: 5,
           }}>
@@ -240,7 +240,7 @@ export default function StatsPanel({
             { label: t('chat.statsReadingTime'), value: t('chat.statsReadingTimeValue', { min: String(conversationStats.readingTimeMin) }) },
           ].map(({ label, value }) => (
             <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 11 }}>
-              <span style={{ color: 'rgba(255,255,255,0.45)' }}>{label}</span>
+              <span style={{ color: 'var(--text-muted)' }}>{label}</span>
               <span style={{ color: '#a78bfa', fontWeight: 600, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{value}</span>
             </div>
           ))}
@@ -250,7 +250,7 @@ export default function StatsPanel({
             fontWeight: 700,
             letterSpacing: '0.07em',
             textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-faint)',
             marginTop: 10,
             paddingTop: 8,
             borderTop: '1px solid rgba(255,255,255,0.06)',
@@ -269,7 +269,7 @@ export default function StatsPanel({
             ...(lastDurationMs != null ? [{ label: t('chat.statsCliDuration'), value: `${(lastDurationMs / 1000).toFixed(1)}s`, color: '#67e8f9' }] : []),
           ].map(({ label, value, color }) => (
             <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 11 }}>
-              <span style={{ color: 'rgba(255,255,255,0.45)' }}>{label}</span>
+              <span style={{ color: 'var(--text-muted)' }}>{label}</span>
               <span style={{ color: color ?? '#818cf8', fontWeight: 600, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{value}</span>
             </div>
           ))}
@@ -282,7 +282,7 @@ export default function StatsPanel({
               borderTop: '1px solid rgba(255,255,255,0.06)',
               marginTop: 6,
             }}>
-              <span style={{ color: 'rgba(255,255,255,0.45)' }}>{t('chat.statsSessionCost')}</span>
+              <span style={{ color: 'var(--text-muted)' }}>{t('chat.statsSessionCost')}</span>
               <span style={{ color: '#4ade80', fontWeight: 600, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>${useChatStore.getState().totalSessionCost.toFixed(4)}</span>
             </div>
           )}
@@ -321,7 +321,7 @@ export default function StatsPanel({
                   <div key={i} style={{ fontSize: 11 }}>
                     <span style={{ color: 'rgba(239,68,68,0.82)', fontWeight: 600, fontFamily: 'monospace' }}>{d.tool_name}</span>
                     {d.reason && (
-                      <span style={{ color: 'rgba(255,255,255,0.45)', marginLeft: 6 }}>{d.reason}</span>
+                      <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>{d.reason}</span>
                     )}
                   </div>
                 ))}
@@ -341,10 +341,10 @@ export default function StatsPanel({
               style={{
                 flex: 1,
                 background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.09)',
+                border: '1px solid var(--glass-border-md)',
                 borderRadius: 6,
                 padding: '5px 0',
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--text-muted)',
                 cursor: 'pointer',
                 fontSize: 10,
                 fontWeight: 600,
@@ -357,7 +357,7 @@ export default function StatsPanel({
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+                e.currentTarget.style.color = 'var(--text-muted)'
               }}
             >
               {t('chat.collapseAll')}
@@ -367,10 +367,10 @@ export default function StatsPanel({
               style={{
                 flex: 1,
                 background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.09)',
+                border: '1px solid var(--glass-border-md)',
                 borderRadius: 6,
                 padding: '5px 0',
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--text-muted)',
                 cursor: 'pointer',
                 fontSize: 10,
                 fontWeight: 600,
@@ -383,7 +383,7 @@ export default function StatsPanel({
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+                e.currentTarget.style.color = 'var(--text-muted)'
               }}
             >
               {t('chat.expandAll')}
@@ -396,10 +396,10 @@ export default function StatsPanel({
               width: '100%',
               marginTop: 6,
               background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.09)',
+              border: '1px solid var(--glass-border-md)',
               borderRadius: 6,
               padding: '5px 0',
-              color: statsCopied ? '#4ade80' : 'rgba(255,255,255,0.45)',
+              color: statsCopied ? '#4ade80' : 'var(--text-muted)',
               cursor: 'pointer',
               fontSize: 10,
               fontWeight: 600,
@@ -419,7 +419,7 @@ export default function StatsPanel({
             onMouseLeave={(e) => {
               if (!statsCopied) {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+                e.currentTarget.style.color = 'var(--text-muted)'
               }
             }}
           >
@@ -433,10 +433,10 @@ export default function StatsPanel({
               width: '100%',
               marginTop: 4,
               background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.09)',
+              border: '1px solid var(--glass-border-md)',
               borderRadius: 6,
               padding: '5px 0',
-              color: summaryCopied ? '#4ade80' : 'rgba(255,255,255,0.45)',
+              color: summaryCopied ? '#4ade80' : 'var(--text-muted)',
               cursor: 'pointer',
               fontSize: 10,
               fontWeight: 600,
@@ -456,7 +456,7 @@ export default function StatsPanel({
             onMouseLeave={(e) => {
               if (!summaryCopied) {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+                e.currentTarget.style.color = 'var(--text-muted)'
               }
             }}
           >
