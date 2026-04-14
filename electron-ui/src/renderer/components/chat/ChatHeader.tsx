@@ -44,8 +44,8 @@ interface ChatHeaderProps {
 /** Shared header button styling — ghost glass */
 const headerBtnStyle: React.CSSProperties = {
   background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(255,255,255,0.09)',
-  color: 'rgba(255,255,255,0.45)',
+  border: '1px solid var(--glass-border-md)',
+  color: 'var(--text-muted)',
   cursor: 'pointer',
   display: 'flex',
   alignItems: 'center',
@@ -60,17 +60,17 @@ const headerBtnStyle: React.CSSProperties = {
 
 const hoverIn = (e: React.MouseEvent<HTMLButtonElement>, active = false) => {
   if (!active) {
-    (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.82)'
-    ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.09)'
+    (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)'
+    ;(e.currentTarget as HTMLButtonElement).style.background = 'var(--glass-border-md)'
     ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.16)'
   }
 }
 
-const hoverOut = (e: React.MouseEvent<HTMLButtonElement>, active = false, defaultColor = 'rgba(255,255,255,0.45)') => {
+const hoverOut = (e: React.MouseEvent<HTMLButtonElement>, active = false, defaultColor = 'var(--text-muted)') => {
   if (!active) {
     (e.currentTarget as HTMLButtonElement).style.color = defaultColor
     ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)'
-    ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.09)'
+    ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--glass-border-md)'
   }
 }
 
@@ -245,7 +245,7 @@ export default function ChatHeader({
         alignItems: 'center',
         padding: '8px 12px',
         gap: 8,
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--glass-border)',
         background: 'rgba(15,15,25,0.92)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
@@ -268,7 +268,7 @@ export default function ChatHeader({
           style={{
             fontSize: 13,
             fontWeight: 600,
-            color: 'rgba(255,255,255,0.82)',
+            color: 'var(--text-primary)',
             background: 'rgba(255,255,255,0.05)',
             border: 'none',
             borderBottom: '2px solid rgba(99,102,241,0.7)',
@@ -288,7 +288,7 @@ export default function ChatHeader({
             fontSize: 13,
             fontWeight: 600,
             letterSpacing: '-0.01em',
-            color: 'rgba(255,255,255,0.82)',
+            color: 'var(--text-primary)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -296,7 +296,7 @@ export default function ChatHeader({
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={(e) => { if (sessionId && !isStreaming) (e.currentTarget as HTMLElement).style.color = '#818cf8' }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.82)' }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)' }}
         >
           {sessionTitle
             ? sessionTitle
@@ -313,7 +313,7 @@ export default function ChatHeader({
 ${t('chat.clickToChangeDir')}`}
         style={{
           fontSize: 10,
-          color: 'rgba(255,255,255,0.45)',
+          color: 'var(--text-muted)',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -324,7 +324,7 @@ ${t('chat.clickToChangeDir')}`}
           transition: 'all 0.15s ease',
         }}
         onMouseEnter={(e) => (e.currentTarget.style.color = '#818cf8')}
-        onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}
+        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
       >
         <FolderOpen size={10} style={{ flexShrink: 0, opacity: 0.7 }} />
         {effectiveWorkingDir ? truncatePath(effectiveWorkingDir) : t('chat.workingDirDefault')}
@@ -400,7 +400,7 @@ ${t('chat.clickToChangeDir')}`}
           title={tempSystemPrompt ? t('systemPrompt.tempActive') : t('systemPrompt.tempButton')}
           style={{
             ...headerBtnStyle,
-            color: tempSystemPrompt ? '#818cf8' : 'rgba(255,255,255,0.45)',
+            color: tempSystemPrompt ? '#818cf8' : 'var(--text-muted)',
             background: tempSystemPrompt ? 'rgba(99,102,241,0.15)' : 'transparent',
           }}
           onMouseEnter={(e) => hoverIn(e, !!tempSystemPrompt)}
@@ -411,17 +411,17 @@ ${t('chat.clickToChangeDir')}`}
         {showTempPrompt && (
           <div style={{
             position: 'absolute', top: '100%', right: 0, marginTop: 6,
-            background: 'rgba(15,15,25,0.97)',
+            background: 'var(--glass-bg-high)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.07)',
+            border: '1px solid var(--glass-border)',
             borderRadius: 8, padding: 12, width: 300, zIndex: 200,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+            boxShadow: 'var(--glass-shadow)',
           }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.82)', marginBottom: 4, letterSpacing: '-0.01em' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, letterSpacing: '-0.01em' }}>
               {t('systemPrompt.tempPopoverTitle')}
             </div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginBottom: 8 }}>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 8 }}>
               {t('systemPrompt.tempPopoverHint')}
             </div>
             <textarea
@@ -432,11 +432,11 @@ ${t('chat.clickToChangeDir')}`}
               placeholder={t('systemPrompt.tempPlaceholder')}
               rows={4}
               onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)' }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)' }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--glass-border)' }}
               style={{
                 width: '100%', fontSize: 11, padding: '6px 8px',
-                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)',
-                borderRadius: 8, color: 'rgba(255,255,255,0.82)', resize: 'vertical',
+                background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)',
+                borderRadius: 8, color: 'var(--text-primary)', resize: 'vertical',
                 outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
                 transition: 'all 0.15s ease',
               }}
@@ -448,8 +448,8 @@ ${t('chat.clickToChangeDir')}`}
                   style={{
                     fontSize: 11, padding: '4px 10px',
                     background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(255,255,255,0.09)', borderRadius: 8,
-                    color: 'rgba(255,255,255,0.60)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                    border: '1px solid var(--glass-border-md)', borderRadius: 8,
+                    color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
                     transition: 'all 0.15s ease',
                   }}
                 >
@@ -460,8 +460,8 @@ ${t('chat.clickToChangeDir')}`}
                 onClick={applyTempPrompt}
                 style={{
                   fontSize: 11, padding: '4px 12px',
-                  background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))', border: 'none', borderRadius: 8,
-                  color: 'rgba(255,255,255,0.82)', cursor: 'pointer', transition: 'all 0.15s ease',
+                  background: 'var(--cta-gradient)', border: 'none', borderRadius: 8,
+                  color: 'var(--text-primary)', cursor: 'pointer', transition: 'all 0.15s ease',
                 }}
               >
                 {t('systemPrompt.tempSet')}
@@ -478,7 +478,7 @@ ${t('chat.clickToChangeDir')}`}
         style={{
           ...headerBtnStyle,
           background: searchOpen ? 'rgba(99,102,241,0.15)' : 'transparent',
-          color: searchOpen ? '#818cf8' : 'rgba(255,255,255,0.45)',
+          color: searchOpen ? '#818cf8' : 'var(--text-muted)',
         }}
         onMouseEnter={(e) => hoverIn(e, searchOpen)}
         onMouseLeave={(e) => hoverOut(e, searchOpen)}
@@ -637,7 +637,7 @@ ${t('chat.clickToChangeDir')}`}
       {elapsedStr && (
         <span style={{
           fontSize: 11,
-          color: 'rgba(255,255,255,0.38)',
+          color: 'var(--text-faint)',
           fontFamily: 'monospace',
           fontVariantNumeric: 'tabular-nums',
           flexShrink: 0,
@@ -696,7 +696,7 @@ ${t('chat.clickToChangeDir')}`}
       )}
     </div>
     <ContextProgressBar />
-    <div style={{ height: 1, background: 'rgba(255,255,255,0.07)' }} />
+    <div style={{ height: 1, background: 'var(--glass-border)' }} />
     </div>
   )
 }

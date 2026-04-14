@@ -307,7 +307,7 @@ export default function App() {
     <div
       style={{
         background: 'rgba(10,10,18,1)',
-        color: 'rgba(255,255,255,0.82)',
+        color: 'var(--text-primary)',
         height: '100vh',
         overflow: 'hidden',
         display: 'flex',

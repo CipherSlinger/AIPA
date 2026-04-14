@@ -85,6 +85,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 - **Preset localization** — 5 built-in persona names automatically switch with system language
 - Memory auto-injected into every conversation — pinned items + 10 most recent
 - **Auto-Memory Extraction** — optionally extracts durable memories (preferences, facts, instructions) from conversations automatically
+- **DreamTask Awareness** — the CLI's background auto-dream consolidation doesn't emit stream-json events; AIPA detects it by comparing `.consolidate-lock` mtime before and after each CLI session; on detection, a purple glass-morphism DreamTaskCard appears in the chat panel and an info toast notifies the user
 - **Memory Type Tags** — 4 semantic types (user/feedback/project/reference) with color badges, aligned with Claude Code's memory taxonomy
 - **Project Memory Partition** — Memory panel "Project" tab reads/writes `.claude/MEMORY.md` directly, syncing with Claude Code's project memory system
 - **Advisor Model** — configure a separate lighter model for background tasks (auto-compaction, memory extraction, away summaries) to keep costs low
