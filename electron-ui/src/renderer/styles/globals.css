@@ -95,6 +95,10 @@
   --glass-bg-low:    rgba(15,15,25,0.85);
   --glass-bg-mid:    rgba(15,15,25,0.90);
   --glass-bg-high:   rgba(15,15,25,0.96);
+  --glass-bg-card:   rgba(15,15,25,0.88);
+  --glass-bg-raised: rgba(15,15,25,0.92);
+  --glass-bg-popup:  rgba(15,15,25,0.95);
+  --glass-bg-deep:   rgba(15,15,25,0.97);
   --glass-border:    rgba(255,255,255,0.07);
   --glass-border-md: rgba(255,255,255,0.09);
   --glass-shadow:    0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3);
@@ -194,6 +198,10 @@
   --glass-bg-low:    rgba(240,242,250,0.85);
   --glass-bg-mid:    rgba(240,242,250,0.90);
   --glass-bg-high:   rgba(240,242,250,0.96);
+  --glass-bg-card:   rgba(240,242,250,0.88);
+  --glass-bg-raised: rgba(240,242,250,0.92);
+  --glass-bg-popup:  rgba(240,242,250,0.95);
+  --glass-bg-deep:   rgba(240,242,250,0.97);
   --glass-border:    rgba(0,0,0,0.07);
   --glass-border-md: rgba(0,0,0,0.09);
   --glass-shadow:    0 4px 8px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08);
@@ -331,7 +339,7 @@ code:not(pre code) {
 
 .skeleton {
   animation: skeleton-pulse 1.5s ease-in-out infinite;
-  background: rgba(15,15,25,0.95);
+  background: var(--glass-bg-popup);
 }
 
 /* Toast entrance animation */

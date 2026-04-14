@@ -159,7 +159,7 @@ export default function AppShell() {
         style={{
           height: 32,
           background: 'rgba(8,8,16,1)',
-          borderBottom: '1px solid rgba(255,255,255,0.07)',
+          borderBottom: '1px solid var(--glass-border)',
           flexShrink: 0,
           display: 'flex',
           alignItems: 'center',
@@ -169,7 +169,7 @@ export default function AppShell() {
       >
         <span style={{
           fontSize: 11,
-          color: 'rgba(255,255,255,0.38)',
+          color: 'var(--text-faint)',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -211,7 +211,7 @@ export default function AppShell() {
                 flexShrink: 0,
                 overflow: 'hidden',
                 background: 'rgba(10,10,18,1)',
-                borderRight: sidebarOpen ? '1px solid rgba(255,255,255,0.07)' : 'none',
+                borderRight: sidebarOpen ? '1px solid var(--glass-border)' : 'none',
                 transition: 'all 0.15s ease',
                 opacity: sidebarOpen ? 1 : 0,
                 position: 'relative',
@@ -273,10 +273,10 @@ export default function AppShell() {
               {/* Settings page header */}
               <div style={{
                 height: 44,
-                background: 'rgba(15,15,25,0.92)',
+                background: 'var(--glass-bg-raised)',
                 backdropFilter: 'blur(16px)',
                 WebkitBackdropFilter: 'blur(16px)',
-                borderBottom: '1px solid rgba(255,255,255,0.07)',
+                borderBottom: '1px solid var(--glass-border)',
                 display: 'flex',
                 alignItems: 'center',
                 padding: '0 16px',
@@ -289,16 +289,16 @@ export default function AppShell() {
                   title={t('settings.backToChat')}
                   style={{
                     background: 'none', border: 'none', cursor: 'pointer',
-                    color: 'rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center',
+                    color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
                     padding: 4, borderRadius: 8,
                     transition: 'all 0.15s ease',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.82)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)'; e.currentTarget.style.background = 'none' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'none' }}
                 >
                   <ArrowLeft size={16} />
                 </button>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.82)', flex: 1, lineHeight: 1.3 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', flex: 1, lineHeight: 1.3 }}>
                   {t('settings.title')}
                 </span>
               </div>

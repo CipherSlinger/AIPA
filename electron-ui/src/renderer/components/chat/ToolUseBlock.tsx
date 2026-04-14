@@ -180,7 +180,7 @@ function CopyOutputBtn({ text, t }: { text: string; t: (key: string) => string }
         cursor: 'pointer',
         padding: '1px 4px',
         borderRadius: 6,
-        color: copied ? '#4ade80' : 'rgba(255,255,255,0.45)',
+        color: copied ? '#4ade80' : 'var(--text-muted)',
         display: 'flex',
         alignItems: 'center',
         gap: 3,
@@ -188,7 +188,7 @@ function CopyOutputBtn({ text, t }: { text: string; t: (key: string) => string }
         transition: 'all 0.15s ease',
       }}
       onMouseEnter={(e) => { if (!copied) e.currentTarget.style.color = '#6366f1' }}
-      onMouseLeave={(e) => { if (!copied) e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+      onMouseLeave={(e) => { if (!copied) e.currentTarget.style.color = 'var(--text-muted)' }}
     >
       {copied ? <Check size={10} /> : <ClipboardCopy size={10} />}
       {copied ? t('message.codeCopied') : t('message.copyCode')}
@@ -229,7 +229,7 @@ function BashCommandBlock({ command }: { command: string }) {
     <div style={{
       background: 'rgba(0,0,0,0.30)',
       borderRadius: 8,
-      border: '1px solid rgba(255,255,255,0.07)',
+      border: '1px solid var(--glass-border)',
       padding: '8px 12px',
       fontFamily: 'monospace',
       display: 'flex',
@@ -246,7 +246,7 @@ function BashCommandBlock({ command }: { command: string }) {
         fontSize: 13,
       }}>$</span>
       <span style={{
-        color: 'rgba(255,255,255,0.82)',
+        color: 'var(--text-primary)',
         fontFamily: 'monospace',
         fontSize: 13,
         whiteSpace: 'pre-wrap',
@@ -270,7 +270,7 @@ function BashOutputBlock({ output }: { output: string }) {
     ? lines.slice(0, BASH_OUTPUT_MAX_LINES)
     : lines
 
-  const textColor = hasError ? 'rgba(239,68,68,0.75)' : 'rgba(255,255,255,0.60)'
+  const textColor = hasError ? 'rgba(239,68,68,0.75)' : 'var(--text-secondary)'
 
   return (
     <div style={{
@@ -384,7 +384,7 @@ function SearchResultSummary({ resultText }: { resultText: string }) {
           <div key={idx} style={{
             fontSize: 11,
             fontFamily: 'monospace',
-            color: 'rgba(255,255,255,0.60)',
+            color: 'var(--text-secondary)',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -486,10 +486,10 @@ function AgentToolCard({ input, result, isStreaming, tool, onAbort }: AgentToolC
   return (
     <div
       style={{
-        background: 'rgba(15,15,25,0.60)',
+        background: 'var(--glass-bg-low)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        border: '1px solid var(--glass-border)',
         borderLeft: '3px solid rgba(139,92,246,0.60)',
         borderRadius: 10,
         marginBottom: 6,
@@ -515,7 +515,7 @@ function AgentToolCard({ input, result, isStreaming, tool, onAbort }: AgentToolC
           padding: '7px 12px',
           background: 'rgba(139,92,246,0.06)',
           border: 'none',
-          borderBottom: expanded ? '1px solid rgba(255,255,255,0.07)' : 'none',
+          borderBottom: expanded ? '1px solid var(--glass-border)' : 'none',
           borderRadius: expanded ? '8px 8px 0 0' : 8,
           cursor: 'pointer',
           textAlign: 'left',
@@ -540,7 +540,7 @@ function AgentToolCard({ input, result, isStreaming, tool, onAbort }: AgentToolC
         <span style={{
           fontSize: 13,
           fontWeight: 500,
-          color: 'rgba(255,255,255,0.82)',
+          color: 'var(--text-primary)',
           flex: 1,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -553,7 +553,7 @@ function AgentToolCard({ input, result, isStreaming, tool, onAbort }: AgentToolC
         {isRunning && elapsed >= 2 && (
           <span style={{
             fontSize: 10,
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-faint)',
             flexShrink: 0,
             fontFamily: 'monospace',
             fontVariantNumeric: 'tabular-nums',
@@ -566,7 +566,7 @@ function AgentToolCard({ input, result, isStreaming, tool, onAbort }: AgentToolC
         {!isRunning && finalDuration !== null && finalDuration >= 1 && (
           <span style={{
             fontSize: 10,
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-faint)',
             flexShrink: 0,
             fontFamily: 'monospace',
             fontVariantNumeric: 'tabular-nums',
@@ -632,7 +632,7 @@ function AgentToolCard({ input, result, isStreaming, tool, onAbort }: AgentToolC
         <ChevronDown
           size={11}
           style={{
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)',
             transition: 'transform 0.15s ease',
             flexShrink: 0,
@@ -651,7 +651,7 @@ function AgentToolCard({ input, result, isStreaming, tool, onAbort }: AgentToolC
                 fontWeight: 700,
                 letterSpacing: '0.07em',
                 textTransform: 'uppercase' as const,
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--text-muted)',
               }}>类型</span>
               <span style={{
                 fontSize: 11,
@@ -675,7 +675,7 @@ function AgentToolCard({ input, result, isStreaming, tool, onAbort }: AgentToolC
                 fontWeight: 700,
                 letterSpacing: '0.07em',
                 textTransform: 'uppercase' as const,
-                color: 'rgba(255,255,255,0.38)',
+                color: 'var(--text-faint)',
                 marginBottom: 4,
               }}>
                 提示词
@@ -685,12 +685,12 @@ function AgentToolCard({ input, result, isStreaming, tool, onAbort }: AgentToolC
                 fontSize: 11,
                 fontFamily: 'monospace',
                 background: 'rgba(8,8,16,0.80)',
-                border: '1px solid rgba(255,255,255,0.07)',
+                border: '1px solid var(--glass-border)',
                 borderRadius: 6,
                 padding: '6px 10px',
                 overflow: 'auto',
                 maxHeight: 160,
-                color: 'rgba(255,255,255,0.60)',
+                color: 'var(--text-secondary)',
                 lineHeight: 1.5,
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
@@ -710,7 +710,7 @@ function AgentToolCard({ input, result, isStreaming, tool, onAbort }: AgentToolC
                 fontWeight: 700,
                 letterSpacing: '0.07em',
                 textTransform: 'uppercase' as const,
-                color: 'rgba(255,255,255,0.38)',
+                color: 'var(--text-faint)',
                 marginBottom: 4,
                 display: 'flex',
                 alignItems: 'center',
@@ -724,12 +724,12 @@ function AgentToolCard({ input, result, isStreaming, tool, onAbort }: AgentToolC
                 fontSize: 11,
                 fontFamily: 'monospace',
                 background: 'rgba(8,8,16,0.80)',
-                border: '1px solid rgba(255,255,255,0.07)',
+                border: '1px solid var(--glass-border)',
                 borderRadius: 6,
                 padding: '6px 10px',
                 overflow: 'auto',
                 maxHeight: 200,
-                color: 'rgba(255,255,255,0.60)',
+                color: 'var(--text-secondary)',
                 lineHeight: 1.5,
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
@@ -865,7 +865,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
   return (
     <div
       style={{
-        background: 'rgba(15,15,25,0.88)',
+        background: 'var(--glass-bg-card)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid rgba(255,255,255,0.08)',
@@ -892,7 +892,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
           borderRadius: expanded ? '8px 8px 0 0' : 8,
           cursor: 'pointer',
           textAlign: 'left',
-          color: 'rgba(255,255,255,0.82)',
+          color: 'var(--text-primary)',
           transition: 'all 0.15s ease',
         }}
         onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
@@ -901,18 +901,18 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
         <ChevronDown
           size={11}
           style={{
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)',
             transition: 'transform 0.15s ease',
             flexShrink: 0,
           }}
         />
         <Icon size={13} style={{ color: 'rgba(165,180,252,0.8)', flexShrink: 0 }} />
-        <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, display: 'flex', alignItems: 'center', gap: 5 }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, display: 'flex', alignItems: 'center', gap: 5 }}>
           {/* For file path tools, show path-highlighted summary; otherwise show normal summary */}
           {isFilePath && highlightFilePath ? (
             <span style={{ display: 'flex', alignItems: 'center', gap: 5, overflow: 'hidden', minWidth: 0 }}>
-              <span style={{ flexShrink: 0, color: 'rgba(255,255,255,0.60)', fontWeight: 400 }}>
+              <span style={{ flexShrink: 0, color: 'var(--text-secondary)', fontWeight: 400 }}>
                 {tool.name === 'Read' ? '读取' : tool.name === 'Write' ? '写入' : tool.name === 'Edit' ? '编辑' : tool.name === 'MultiEdit' ? '多段编辑' : tool.name}
               </span>
               <FilePathHighlight filePath={highlightFilePath} />
@@ -943,7 +943,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
         {showElapsed && (
           <span style={{
             fontSize: 10,
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-faint)',
             flexShrink: 0,
             fontFamily: 'monospace',
             fontVariantNumeric: 'tabular-nums',
@@ -974,7 +974,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
         {showFinalDuration && (
           <span style={{
             fontSize: 10,
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-faint)',
             flexShrink: 0,
             fontFamily: 'monospace',
             fontVariantNumeric: 'tabular-nums',
@@ -1015,7 +1015,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           {/* Input section */}
           <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
               {t('tool.input')}
               {/* File path for non-file-path-highlight tools (legacy display) */}
               {!isFilePath && extractFilePath(tool.input || {}) && (
@@ -1074,7 +1074,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
               if (lspData) {
                 return (
                   <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{t('tool.output')}</span>
                       <CopyOutputBtn text={resultText} t={t} />
                     </div>
@@ -1090,7 +1090,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
                 <div>
                   <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
                   <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{t('tool.output')}</span>
                       <CopyOutputBtn text={resultText} t={t} />
                     </div>
@@ -1106,7 +1106,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
                 <div>
                   <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
                   <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         {t('tool.output')}
                         {resultText && <BashStatusDot output={resultText} />}
@@ -1130,7 +1130,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
               {/* Divider */}
               <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
               <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     {t('tool.output')}
                     {resultText && resultText.split('\n').length > 1 && (
@@ -1149,7 +1149,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
                   background: 'rgba(8,8,16,1)',
                   border: '1px solid rgba(255,255,255,0.06)',
                   borderRadius: 4,
-                  color: tool.status === 'error' ? '#fca5a5' : 'rgba(255,255,255,0.60)',
+                  color: tool.status === 'error' ? '#fca5a5' : 'var(--text-secondary)',
                   overflow: 'auto', maxHeight: 200,
                   whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                   lineHeight: 1.5,
@@ -1180,7 +1180,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
           onClick={() => setLightboxSrc(null)}
           style={{
             position: 'fixed', inset: 0, zIndex: 10001,
-            background: 'rgba(0,0,0,0.70)',
+            background: 'var(--glass-overlay)',
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1278,7 +1278,7 @@ function NotebookEditCard({ input }: { input: Record<string, unknown> }) {
             borderRadius: 6,
             background: 'rgba(255,255,255,0.06)',
             border: '1px solid rgba(255,255,255,0.10)',
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             textTransform: 'uppercase',
             flexShrink: 0,
           }}>
@@ -1332,9 +1332,9 @@ function ImageThumbnail({ filePath, onClick, t }: { filePath: string; onClick: (
     return (
       <div style={{
         width: 80, height: 60, borderRadius: 4,
-        background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.07)',
+        background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        fontSize: 9, color: 'rgba(255,255,255,0.45)', gap: 2,
+        fontSize: 9, color: 'var(--text-muted)', gap: 2,
       }}>
         <Image size={14} style={{ opacity: 0.5 }} />
         <span style={{ maxWidth: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileName}</span>
@@ -1352,7 +1352,7 @@ function ImageThumbnail({ filePath, onClick, t }: { filePath: string; onClick: (
       style={{
         maxWidth: 300, maxHeight: 200, objectFit: 'contain',
         borderRadius: 4, cursor: 'zoom-in',
-        border: '1px solid rgba(255,255,255,0.07)',
+        border: '1px solid var(--glass-border)',
       }}
     />
   )
@@ -1378,7 +1378,7 @@ function JsonValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
   }
   if (Array.isArray(value)) {
     if (value.length === 0) {
-      return <span style={{ color: 'rgba(255,255,255,0.45)' }}>[]</span>
+      return <span style={{ color: 'var(--text-muted)' }}>[]</span>
     }
     return (
       <span>
@@ -1388,14 +1388,14 @@ function JsonValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
             background: 'none',
             border: 'none',
             cursor: 'pointer',
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             padding: '0 2px',
             fontSize: 11,
             fontFamily: 'monospace',
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(147,197,253,0.82)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)' }}
         >
           {collapsed ? `[…${value.length}]` : '['}
         </button>
@@ -1405,11 +1405,11 @@ function JsonValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
               {value.map((item, i) => (
                 <div key={i} style={{ lineHeight: 1.6 }}>
                   <JsonValue value={item} depth={depth + 1} />
-                  {i < value.length - 1 && <span style={{ color: 'rgba(255,255,255,0.38)' }}>,</span>}
+                  {i < value.length - 1 && <span style={{ color: 'var(--text-faint)' }}>,</span>}
                 </div>
               ))}
             </div>
-            <span style={{ color: 'rgba(255,255,255,0.45)' }}>]</span>
+            <span style={{ color: 'var(--text-muted)' }}>]</span>
           </>
         )}
       </span>
@@ -1418,7 +1418,7 @@ function JsonValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
   if (typeof value === 'object') {
     const keys = Object.keys(value as Record<string, unknown>)
     if (keys.length === 0) {
-      return <span style={{ color: 'rgba(255,255,255,0.45)' }}>{'{}'}</span>
+      return <span style={{ color: 'var(--text-muted)' }}>{'{}'}</span>
     }
     return (
       <span>
@@ -1428,14 +1428,14 @@ function JsonValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
             background: 'none',
             border: 'none',
             cursor: 'pointer',
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             padding: '0 2px',
             fontSize: 11,
             fontFamily: 'monospace',
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(147,197,253,0.82)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)' }}
         >
           {collapsed ? `{…${keys.length}}` : '{'}
         </button>
@@ -1445,19 +1445,19 @@ function JsonValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
               {keys.map((k, i) => (
                 <div key={k} style={{ lineHeight: 1.6 }}>
                   <span style={{ color: 'rgba(147,197,253,0.82)' }}>"{k}"</span>
-                  <span style={{ color: 'rgba(255,255,255,0.38)' }}>: </span>
+                  <span style={{ color: 'var(--text-faint)' }}>: </span>
                   <JsonValue value={(value as Record<string, unknown>)[k]} depth={depth + 1} />
-                  {i < keys.length - 1 && <span style={{ color: 'rgba(255,255,255,0.38)' }}>,</span>}
+                  {i < keys.length - 1 && <span style={{ color: 'var(--text-faint)' }}>,</span>}
                 </div>
               ))}
             </div>
-            <span style={{ color: 'rgba(255,255,255,0.45)' }}>{'}'}</span>
+            <span style={{ color: 'var(--text-muted)' }}>{'}'}</span>
           </>
         )}
       </span>
     )
   }
-  return <span style={{ color: 'rgba(255,255,255,0.60)' }}>{String(value)}</span>
+  return <span style={{ color: 'var(--text-secondary)' }}>{String(value)}</span>
 }
 
 interface StructuredOutputCardProps {
@@ -1493,10 +1493,10 @@ function StructuredOutputCard({ input, status }: StructuredOutputCardProps) {
   return (
     <div
       style={{
-        background: 'rgba(15,15,25,0.60)',
+        background: 'var(--glass-bg-low)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        border: '1px solid var(--glass-border)',
         borderLeft: '3px solid rgba(96,165,250,0.60)',
         borderRadius: 10,
         marginBottom: 6,
@@ -1515,7 +1515,7 @@ function StructuredOutputCard({ input, status }: StructuredOutputCardProps) {
           padding: '7px 12px',
           background: 'rgba(96,165,250,0.06)',
           border: 'none',
-          borderBottom: expanded ? '1px solid rgba(255,255,255,0.07)' : 'none',
+          borderBottom: expanded ? '1px solid var(--glass-border)' : 'none',
           borderRadius: expanded ? '8px 8px 0 0' : 8,
           cursor: 'pointer',
           textAlign: 'left',
@@ -1542,7 +1542,7 @@ function StructuredOutputCard({ input, status }: StructuredOutputCardProps) {
         {/* Field preview */}
         <span style={{
           fontSize: 12,
-          color: 'rgba(255,255,255,0.60)',
+          color: 'var(--text-secondary)',
           flex: 1,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -1596,7 +1596,7 @@ function StructuredOutputCard({ input, status }: StructuredOutputCardProps) {
         <ChevronDown
           size={11}
           style={{
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)',
             transition: 'transform 0.15s ease',
             flexShrink: 0,
@@ -1610,7 +1610,7 @@ function StructuredOutputCard({ input, status }: StructuredOutputCardProps) {
           {keys.length === 0 ? (
             <div style={{
               fontSize: 11,
-              color: 'rgba(255,255,255,0.38)',
+              color: 'var(--text-faint)',
               fontStyle: 'italic',
               fontFamily: 'monospace',
             }}>
@@ -1629,7 +1629,7 @@ function StructuredOutputCard({ input, status }: StructuredOutputCardProps) {
                   fontWeight: 700,
                   letterSpacing: '0.07em',
                   textTransform: 'uppercase' as const,
-                  color: 'rgba(255,255,255,0.38)',
+                  color: 'var(--text-faint)',
                 }}>
                   输出数据
                 </span>
@@ -1641,7 +1641,7 @@ function StructuredOutputCard({ input, status }: StructuredOutputCardProps) {
                     cursor: 'pointer',
                     padding: '1px 4px',
                     borderRadius: 6,
-                    color: copied ? '#4ade80' : 'rgba(255,255,255,0.45)',
+                    color: copied ? '#4ade80' : 'var(--text-muted)',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 3,
@@ -1649,7 +1649,7 @@ function StructuredOutputCard({ input, status }: StructuredOutputCardProps) {
                     transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={(e) => { if (!copied) e.currentTarget.style.color = 'rgba(147,197,253,0.82)' }}
-                  onMouseLeave={(e) => { if (!copied) e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+                  onMouseLeave={(e) => { if (!copied) e.currentTarget.style.color = 'var(--text-muted)' }}
                 >
                   {copied ? <Check size={10} /> : <ClipboardCopy size={10} />}
                   {copied ? '已复制' : '复制 JSON'}
@@ -1659,7 +1659,7 @@ function StructuredOutputCard({ input, status }: StructuredOutputCardProps) {
               {/* Structured field display */}
               <div style={{
                 background: 'rgba(8,8,16,0.80)',
-                border: '1px solid rgba(255,255,255,0.07)',
+                border: '1px solid var(--glass-border)',
                 borderRadius: 8,
                 padding: '10px 12px',
                 overflow: 'auto',
@@ -1689,7 +1689,7 @@ function StructuredOutputCard({ input, status }: StructuredOutputCardProps) {
                       }}>
                         {key}
                       </span>
-                      <span style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0, marginRight: 4 }}>:</span>
+                      <span style={{ color: 'var(--text-faint)', flexShrink: 0, marginRight: 4 }}>:</span>
                       <span style={{ flex: 1, minWidth: 0, wordBreak: 'break-word' }}>
                         <JsonValue value={input[key]} depth={0} />
                       </span>

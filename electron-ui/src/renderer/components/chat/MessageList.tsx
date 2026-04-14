@@ -287,9 +287,9 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
             width: 32,
             height: 32,
             borderRadius: '50%',
-            background: 'rgba(255,255,255,0.07)',
-            border: '1px solid rgba(255,255,255,0.09)',
-            color: 'rgba(255,255,255,0.45)',
+            background: 'var(--glass-border)',
+            border: '1px solid var(--glass-border-md)',
+            color: 'var(--text-muted)',
             cursor: 'pointer',
             boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
             zIndex: 10,
@@ -297,8 +297,8 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
             transition: 'all 0.15s ease',
             fontSize: 11,
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.8'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = 'var(--text-primary)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.8'; e.currentTarget.style.color = 'var(--text-muted)' }}
         >
           <ArrowUp size={14} />
         </button>
@@ -319,9 +319,9 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
             width: 28,
             height: 28,
             borderRadius: '50%',
-            background: scrollState.scrollLocked ? 'rgba(245,158,11,0.7)' : 'rgba(255,255,255,0.07)',
-            border: `1px solid ${scrollState.scrollLocked ? 'rgba(245,158,11,0.5)' : 'rgba(255,255,255,0.09)'}`,
-            color: scrollState.scrollLocked ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
+            background: scrollState.scrollLocked ? 'rgba(245,158,11,0.7)' : 'var(--glass-border)',
+            border: `1px solid ${scrollState.scrollLocked ? 'rgba(245,158,11,0.5)' : 'var(--glass-border-md)'}`,
+            color: scrollState.scrollLocked ? 'rgba(255,255,255,0.95)' : 'var(--text-muted)',
             cursor: 'pointer',
             boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
             zIndex: 10,
