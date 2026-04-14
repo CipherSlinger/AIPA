@@ -108,7 +108,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
       <div style={{
         fontSize: 10,
         fontWeight: 700,
-        color: 'rgba(255,255,255,0.38)',
+        color: 'var(--text-faint)',
         marginBottom: 10,
         textTransform: 'uppercase',
         letterSpacing: '0.07em',
@@ -131,7 +131,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
           borderRadius: 6,
           border: `1px solid ${nameFocused ? 'rgba(99,102,241,0.40)' : 'rgba(255,255,255,0.08)'}`,
           background: 'rgba(255,255,255,0.06)',
-          color: 'rgba(255,255,255,0.82)',
+          color: 'var(--text-primary)',
           fontSize: 12,
           marginBottom: 7,
           boxSizing: 'border-box',
@@ -157,7 +157,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
           <span style={{
             flex: 1,
             fontSize: 10,
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -170,14 +170,14 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
               border: 'none',
               background: 'none',
               cursor: 'pointer',
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               padding: 2,
               display: 'flex',
               borderRadius: 3,
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
-            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
           >
             <X size={10} />
           </button>
@@ -197,7 +197,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
               borderRadius: 6,
               border: '1px solid rgba(99,102,241,0.40)',
               background: 'rgba(255,255,255,0.06)',
-              color: 'rgba(255,255,255,0.82)',
+              color: 'var(--text-primary)',
               fontSize: 11,
               boxSizing: 'border-box',
               outline: 'none',
@@ -231,7 +231,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
                 background: creating
                   ? 'rgba(255,255,255,0.08)'
                   : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
-                color: creating ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.82)',
+                color: creating ? 'var(--text-muted)' : 'var(--text-primary)',
                 fontSize: 11,
                 fontWeight: 600,
                 cursor: creating ? 'not-allowed' : 'pointer',
@@ -250,13 +250,13 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
                 borderRadius: 7,
                 border: '1px solid rgba(255,255,255,0.08)',
                 background: 'rgba(255,255,255,0.04)',
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--text-muted)',
                 fontSize: 11,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'var(--text-muted)' }}
             >
               {t('dept.cancel')}
             </button>
@@ -273,7 +273,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
               borderRadius: 6,
               border: '1px dashed rgba(255,255,255,0.15)',
               background: 'transparent',
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               fontSize: 11,
               cursor: 'pointer',
               display: 'flex',
@@ -288,7 +288,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
             }}
             onMouseLeave={e => {
               e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
-              e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+              e.currentTarget.style.color = 'var(--text-muted)'
               e.currentTarget.style.background = 'transparent'
             }}
           >
@@ -303,7 +303,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
               borderRadius: 6,
               border: '1px dashed rgba(255,255,255,0.15)',
               background: 'transparent',
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               fontSize: 11,
               cursor: 'pointer',
               display: 'flex',
@@ -318,7 +318,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
             }}
             onMouseLeave={e => {
               e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
-              e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+              e.currentTarget.style.color = 'var(--text-muted)'
               e.currentTarget.style.background = 'transparent'
             }}
           >
@@ -339,7 +339,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
             background: (!name.trim() || !directory)
               ? 'rgba(99,102,241,0.25)'
               : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
-            color: (!name.trim() || !directory) ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.82)',
+            color: (!name.trim() || !directory) ? 'var(--text-muted)' : 'var(--text-primary)',
             fontSize: 11,
             fontWeight: 600,
             cursor: (!name.trim() || !directory) ? 'not-allowed' : 'pointer',
@@ -359,13 +359,13 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
             borderRadius: 7,
             border: '1px solid rgba(255,255,255,0.08)',
             background: 'rgba(255,255,255,0.04)',
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             fontSize: 11,
             cursor: 'pointer',
             transition: 'all 0.15s ease',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'var(--text-muted)' }}
         >
           {t('dept.cancel')}
         </button>
@@ -500,7 +500,7 @@ function DepartmentRow({
       <GripVertical
         size={12}
         style={{
-          color: 'rgba(255,255,255,0.45)',
+          color: 'var(--text-muted)',
           opacity: hovered ? 0.5 : 0,
           cursor: 'grab',
           flexShrink: 0,
@@ -547,7 +547,7 @@ function DepartmentRow({
             border: '1px solid rgba(99,102,241,0.40)',
             borderRadius: 5,
             padding: '2px 7px',
-            color: 'rgba(255,255,255,0.82)',
+            color: 'var(--text-primary)',
             fontSize: 12,
             outline: 'none',
             boxShadow: '0 0 0 3px rgba(99,102,241,0.10)',
@@ -560,7 +560,7 @@ function DepartmentRow({
             display: 'block',
             fontSize: 14,
             fontWeight: isActive ? 700 : 500,
-            color: 'rgba(255,255,255,0.82)',
+            color: 'var(--text-primary)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -571,7 +571,7 @@ function DepartmentRow({
           {lastActive > 0 && !isCollapsed && (
             <div style={{
               fontSize: 11,
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               marginTop: 3,
               lineHeight: 1.4,
             }}>
@@ -605,7 +605,7 @@ function DepartmentRow({
         <span style={{
           fontSize: 9,
           fontWeight: 700,
-          color: 'rgba(255,255,255,0.82)',
+          color: 'var(--text-primary)',
           background: '#f87171',
           borderRadius: 20,
           padding: '1px 5px',
@@ -643,7 +643,7 @@ function DepartmentRow({
               border: 'none',
               background: 'rgba(255,255,255,0.05)',
               cursor: 'pointer',
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               padding: '3px 5px',
               borderRadius: 4,
               display: 'flex',
@@ -664,7 +664,7 @@ function DepartmentRow({
             border: 'none',
             background: menuOpen ? 'rgba(255,255,255,0.1)' : 'none',
             cursor: 'pointer',
-            color: menuOpen ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.45)',
+            color: menuOpen ? 'var(--text-primary)' : 'var(--text-muted)',
             padding: 4,
             borderRadius: '50%',
             width: 24,
@@ -677,12 +677,12 @@ function DepartmentRow({
           }}
           onMouseEnter={e => {
             e.currentTarget.style.background = 'rgba(255,255,255,0.1)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+            e.currentTarget.style.color = 'var(--text-primary)'
           }}
           onMouseLeave={e => {
             if (!menuOpen) {
               e.currentTarget.style.background = 'none'
-              e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+              e.currentTarget.style.color = 'var(--text-muted)'
             }
           }}
         >
@@ -699,10 +699,10 @@ function DepartmentRow({
             right: 8,
             top: '100%',
             zIndex: 200,
-            background: 'rgba(15,15,25,0.97)',
+            background: 'var(--glass-bg-deep)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.07)',
+            border: '1px solid var(--glass-border)',
             borderRadius: 9,
             boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
             minWidth: 135,
@@ -722,7 +722,7 @@ function DepartmentRow({
               background: 'none',
               cursor: 'pointer',
               fontSize: 12,
-              color: 'rgba(255,255,255,0.82)',
+              color: 'var(--text-primary)',
               borderRadius: 6,
               transition: 'all 0.15s ease',
             }}
@@ -761,7 +761,7 @@ function DepartmentRow({
           onClick={e => e.stopPropagation()}
           style={{
             position: 'absolute', right: 8, top: '100%', zIndex: 200,
-            background: 'rgba(15,15,25,0.97)',
+            background: 'var(--glass-bg-deep)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
             border: '1px solid rgba(239,68,68,0.3)',
@@ -770,17 +770,17 @@ function DepartmentRow({
             animation: 'slideUp 0.15s ease',
           }}
         >
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.82)', marginBottom: 8 }}>{t('dept.confirmDelete')}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-primary)', marginBottom: 8 }}>{t('dept.confirmDelete')}</div>
           <div style={{ display: 'flex', gap: 6 }}>
             <button onClick={() => { removeDepartment(dept.id); setConfirmDelete(false); if (isActive) useUiStore.getState().setMainView('chat') }}
-              style={{ flex: 1, padding: '5px 0', borderRadius: 5, border: 'none', background: '#f87171', color: 'rgba(255,255,255,0.82)', fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s ease' }}
+              style={{ flex: 1, padding: '5px 0', borderRadius: 5, border: 'none', background: '#f87171', color: 'var(--text-primary)', fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s ease' }}
               onMouseEnter={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.85)' }}
               onMouseLeave={e => { e.currentTarget.style.background = '#f87171' }}
             >
               {t('dept.deleteConfirm')}
             </button>
             <button onClick={() => setConfirmDelete(false)}
-              style={{ padding: '5px 10px', borderRadius: 5, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.45)', fontSize: 11, cursor: 'pointer', transition: 'all 0.15s ease' }}
+              style={{ padding: '5px 10px', borderRadius: 5, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer', transition: 'all 0.15s ease' }}
               onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
             >
@@ -879,7 +879,7 @@ export default function DepartmentPanel() {
   }, [])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'rgba(12,12,20,0.97)', borderRight: '1px solid rgba(255,255,255,0.07)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'rgba(12,12,20,0.97)', borderRight: '1px solid var(--glass-border)' }}>
       <style>{SCROLLBAR_STYLE}</style>
       {/* Header */}
       <div style={{
@@ -901,11 +901,11 @@ export default function DepartmentPanel() {
             opacity: 0.7,
             flexShrink: 0,
           }} />
-          <Building2 size={12} color="rgba(255,255,255,0.45)" style={{ opacity: 0.8 }} />
+          <Building2 size={12} color="var(--text-muted)" style={{ opacity: 0.8 }} />
           <span style={{
             fontSize: 10,
             fontWeight: 700,
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-faint)',
             textTransform: 'uppercase',
             letterSpacing: '0.07em',
           }}>
@@ -936,15 +936,15 @@ export default function DepartmentPanel() {
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--text-muted)',
                 display: 'flex',
                 alignItems: 'center',
                 padding: '4px 6px',
                 borderRadius: 4,
                 transition: 'all 0.15s ease',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-muted)' }}
             >
               {forceCollapsed === true ? <ChevronsUpDown size={13} /> : <ChevronsDownUp size={13} />}
             </button>
@@ -1014,10 +1014,10 @@ export default function DepartmentPanel() {
             }}>
               📂
             </div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.60)', marginBottom: 6 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
               {t('dept.panelTitle')}
             </div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginBottom: 16, lineHeight: 1.6, maxWidth: 180 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.6, maxWidth: 180 }}>
               {t('dept.emptyHint')}
             </div>
             <button
@@ -1049,7 +1049,7 @@ export default function DepartmentPanel() {
             <div style={{
               marginTop: 14,
               fontSize: 10,
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               display: 'flex',
               gap: 8,
               alignItems: 'center',
@@ -1098,7 +1098,7 @@ export default function DepartmentPanel() {
             border: '1px dashed rgba(99,102,241,0.3)',
             borderRadius: 7,
             background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(99,102,241,0.05))',
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             fontSize: 11,
             cursor: 'pointer',
             flexShrink: 0,
@@ -1113,7 +1113,7 @@ export default function DepartmentPanel() {
           }}
           onMouseLeave={e => {
             e.currentTarget.style.borderColor = 'rgba(99,102,241,0.3)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+            e.currentTarget.style.color = 'var(--text-muted)'
             e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(99,102,241,0.05))'
             e.currentTarget.style.boxShadow = 'none'
           }}

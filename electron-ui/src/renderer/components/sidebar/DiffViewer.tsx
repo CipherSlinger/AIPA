@@ -48,17 +48,17 @@ const lineStyles: Record<LineType, React.CSSProperties> = {
     borderLeft: '2px solid rgba(99,102,241,0.20)',
   },
   header: {
-    color: 'rgba(255,255,255,0.60)',
+    color: 'var(--text-secondary)',
     background: 'rgba(255,255,255,0.03)',
     borderLeft: '2px solid transparent',
   },
   context: {
-    color: 'rgba(255,255,255,0.45)',
+    color: 'var(--text-muted)',
     background: 'transparent',
     borderLeft: '2px solid transparent',
   },
   other: {
-    color: 'rgba(255,255,255,0.38)',
+    color: 'var(--text-faint)',
     background: 'transparent',
     borderLeft: '2px solid transparent',
   },
@@ -72,14 +72,14 @@ export default function DiffViewer({ diff }: DiffViewerProps) {
       <div
         style={{
           background: 'rgba(10,10,18,0.95)',
-          border: '1px solid rgba(255,255,255,0.09)',
+          border: '1px solid var(--glass-border-md)',
           borderRadius: 8,
           overflow: 'hidden',
           fontFamily: 'monospace',
           fontSize: 11,
         }}
       >
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', textAlign: 'center', padding: 24 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-faint)', textAlign: 'center', padding: 24 }}>
           No changes
         </div>
       </div>
@@ -94,7 +94,7 @@ export default function DiffViewer({ diff }: DiffViewerProps) {
     <div
       style={{
         background: 'rgba(10,10,18,0.95)',
-        border: '1px solid rgba(255,255,255,0.09)',
+        border: '1px solid var(--glass-border-md)',
         borderRadius: 8,
         overflow: 'hidden',
         fontFamily: 'monospace',
@@ -112,10 +112,10 @@ export default function DiffViewer({ diff }: DiffViewerProps) {
             justifyContent: 'space-between',
             padding: '8px 12px',
             background: 'rgba(255,255,255,0.03)',
-            borderBottom: '1px solid rgba(255,255,255,0.09)',
+            borderBottom: '1px solid var(--glass-border-md)',
           }}
         >
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.60)', fontFamily: 'monospace' }}>
+          <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
             {filename}
           </span>
         </div>
@@ -128,10 +128,10 @@ export default function DiffViewer({ diff }: DiffViewerProps) {
                 style={{
                   padding: '0 10px 0 8px',
                   userSelect: 'none',
-                  color: 'rgba(255,255,255,0.38)',
+                  color: 'var(--text-faint)',
                   textAlign: 'right',
                   minWidth: 36,
-                  borderRight: '1px solid rgba(255,255,255,0.09)',
+                  borderRight: '1px solid var(--glass-border-md)',
                   fontSize: 10,
                   verticalAlign: 'top',
                   fontVariantNumeric: 'tabular-nums',

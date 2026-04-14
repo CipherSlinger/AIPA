@@ -27,7 +27,7 @@ export default function ChatInputAttachments({ attachments, fileAttachments, onR
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.09)',
+                border: '1px solid var(--glass-border-md)',
                 borderRadius: 8,
                 padding: '4px 8px 4px 6px',
                 transition: 'all 0.15s ease',
@@ -41,17 +41,17 @@ export default function ChatInputAttachments({ attachments, fileAttachments, onR
               onMouseLeave={(e) => {
                 const el = e.currentTarget as HTMLDivElement
                 el.style.background = 'rgba(255,255,255,0.06)'
-                el.style.borderColor = 'rgba(255,255,255,0.09)'
+                el.style.borderColor = 'var(--glass-border-md)'
               }}
             >
               <img
                 src={img.dataUrl}
                 alt={img.name}
-                style={{ width: 28, height: 28, objectFit: 'cover', borderRadius: 8, flexShrink: 0, border: '1px solid rgba(255,255,255,0.09)' }}
+                style={{ width: 28, height: 28, objectFit: 'cover', borderRadius: 8, flexShrink: 0, border: '1px solid var(--glass-border-md)' }}
               />
               <span style={{
                 fontSize: 11, fontWeight: 500,
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
                 maxWidth: 120, overflow: 'hidden',
                 textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>
@@ -61,7 +61,7 @@ export default function ChatInputAttachments({ attachments, fileAttachments, onR
                 onClick={() => onRemoveImage(img.id)}
                 style={{
                   background: 'none', border: 'none',
-                  color: 'rgba(255,255,255,0.38)',
+                  color: 'var(--text-faint)',
                   cursor: 'pointer', display: 'flex',
                   alignItems: 'center', padding: '2px 3px',
                   borderRadius: 6, flexShrink: 0,
@@ -72,7 +72,7 @@ export default function ChatInputAttachments({ attachments, fileAttachments, onR
                   ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.15)'
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.38)'
+                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-faint)'
                   ;(e.currentTarget as HTMLButtonElement).style.background = 'none'
                 }}
               >
@@ -90,7 +90,7 @@ export default function ChatInputAttachments({ attachments, fileAttachments, onR
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '4px 8px 4px 6px',
               background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.09)',
+              border: '1px solid var(--glass-border-md)',
               borderRadius: 8,
               transition: 'all 0.15s ease',
             }}
@@ -102,26 +102,26 @@ export default function ChatInputAttachments({ attachments, fileAttachments, onR
               onMouseLeave={(e) => {
                 const el = e.currentTarget as HTMLDivElement
                 el.style.background = 'rgba(255,255,255,0.06)'
-                el.style.borderColor = 'rgba(255,255,255,0.09)'
+                el.style.borderColor = 'var(--glass-border-md)'
               }}
             >
               <FileText size={16} style={{ color: '#818cf8', flexShrink: 0 }} />
               <div style={{ overflow: 'hidden', flex: 1, minWidth: 0 }}>
                 <div style={{
                   fontSize: 11, fontWeight: 500,
-                  color: 'rgba(255,255,255,0.82)',
+                  color: 'var(--text-primary)',
                   maxWidth: 120,
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
                   {file.name}
                 </div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)' }}>
+                <div style={{ fontSize: 10, color: 'var(--text-faint)' }}>
                   {file.content ? formatFileSize(file.size) : t('chat.fileRefOnly')}
                 </div>
               </div>
               <button onClick={() => onRemoveFile(file.id)} style={{
                 background: 'none', border: 'none',
-                color: 'rgba(255,255,255,0.38)',
+                color: 'var(--text-faint)',
                 cursor: 'pointer', display: 'flex',
                 alignItems: 'center', padding: '2px 3px',
                 borderRadius: 6, flexShrink: 0,
@@ -132,7 +132,7 @@ export default function ChatInputAttachments({ attachments, fileAttachments, onR
                   ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.15)'
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.38)'
+                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-faint)'
                   ;(e.currentTarget as HTMLButtonElement).style.background = 'none'
                 }}
               >

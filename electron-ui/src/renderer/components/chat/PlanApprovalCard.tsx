@@ -74,7 +74,7 @@ export default function PlanApprovalCard({
           alignItems: 'center',
           gap: 10,
           padding: '10px 14px',
-          borderBottom: '1px solid rgba(255,255,255,0.07)',
+          borderBottom: '1px solid var(--glass-border)',
         }}
       >
         <div
@@ -102,7 +102,7 @@ export default function PlanApprovalCard({
                 fontWeight: 700,
                 letterSpacing: '0.07em',
                 textTransform: 'uppercase',
-                color: 'rgba(255,255,255,0.38)',
+                color: 'var(--text-faint)',
               }}
             >
               {t('plan.approvalRequired')}
@@ -232,7 +232,7 @@ export default function PlanApprovalCard({
             display: 'flex',
             flexDirection: 'column',
             gap: 8,
-            borderTop: '1px solid rgba(255,255,255,0.07)',
+            borderTop: '1px solid var(--glass-border)',
           }}
         >
           {showFeedback && (
@@ -352,7 +352,7 @@ export default function PlanApprovalCard({
         <div
           style={{
             padding: '8px 14px 10px',
-            borderTop: '1px solid rgba(255,255,255,0.07)',
+            borderTop: '1px solid var(--glass-border)',
             display: 'flex',
             alignItems: 'center',
             gap: 6,

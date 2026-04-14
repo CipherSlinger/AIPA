@@ -28,13 +28,13 @@ export default function SelectAllBar({ filtered, currentSessionId, selectedIds, 
       gap: 8,
       padding: '6px 10px',
       flexShrink: 0,
-      background: 'rgba(15,15,25,0.95)',
+      background: 'var(--glass-bg-popup)',
       backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
-      border: '1px solid rgba(255,255,255,0.07)',
+      border: '1px solid var(--glass-border)',
       borderRadius: 8,
       fontSize: 12,
-      color: 'rgba(255,255,255,0.60)',
+      color: 'var(--text-secondary)',
     }}>
       <button
         onClick={() => {
@@ -47,7 +47,7 @@ export default function SelectAllBar({ filtered, currentSessionId, selectedIds, 
         style={{
           background: 'none',
           border: 'none',
-          color: 'rgba(255,255,255,0.60)',
+          color: 'var(--text-secondary)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -56,12 +56,12 @@ export default function SelectAllBar({ filtered, currentSessionId, selectedIds, 
           fontSize: 12,
           transition: 'all 0.15s ease',
         }}
-        onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
-        onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
+        onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
+        onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)' }}
       >
         {allSelected
           ? <CheckSquare size={13} style={{ color: '#6366f1' }} />
-          : <Square size={13} style={{ color: 'rgba(255,255,255,0.38)' }} />
+          : <Square size={13} style={{ color: 'var(--text-faint)' }} />
         }
         <span>{t('session.selectAll')}</span>
       </button>

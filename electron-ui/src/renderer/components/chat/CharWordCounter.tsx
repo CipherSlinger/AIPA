@@ -32,7 +32,7 @@ export default function CharWordCounter({ input }: CharWordCounterProps) {
           ? '#f87171'
           : input.length >= 10000
           ? '#fbbf24'
-          : 'rgba(255,255,255,0.38)',
+          : 'var(--text-faint)',
         transition: 'color 0.15s ease',
         userSelect: 'none',
       }}>

@@ -47,13 +47,13 @@ const sectionLabelStyle: React.CSSProperties = {
   fontWeight: 700,
   letterSpacing: '0.07em',
   textTransform: 'uppercase',
-  color: 'rgba(255,255,255,0.38)',
+  color: 'var(--text-faint)',
   marginBottom: 12,
 }
 
 const cardStyle: React.CSSProperties = {
   background: 'rgba(255,255,255,0.04)',
-  border: '1px solid rgba(255,255,255,0.07)',
+  border: '1px solid var(--glass-border)',
   borderRadius: 10,
   padding: '16px',
 }
@@ -91,7 +91,7 @@ export default function SettingsStats() {
           borderTopColor: 'rgba(99,102,241,0.85)',
           animation: 'spin 0.8s linear infinite',
         }} />
-        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)' }}>{t('stats.loading')}</span>
+        <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>{t('stats.loading')}</span>
       </div>
     )
   }
@@ -100,7 +100,7 @@ export default function SettingsStats() {
     return (
       <div style={{
         padding: '32px 0', textAlign: 'center',
-        color: 'rgba(255,255,255,0.38)', fontSize: 13,
+        color: 'var(--text-faint)', fontSize: 13,
       }}>
         {t('stats.error')}
       </div>
@@ -168,7 +168,7 @@ export default function SettingsStats() {
               style={{
                 ...cardStyle,
                 background: card.accentBg,
-                borderColor: 'rgba(255,255,255,0.07)',
+                borderColor: 'var(--glass-border)',
                 position: 'relative',
                 overflow: 'hidden',
                 transition: 'background 0.15s ease, border-color 0.15s ease',
@@ -180,7 +180,7 @@ export default function SettingsStats() {
               }}
               onMouseLeave={(e) => {
                 (e.currentTarget as HTMLDivElement).style.background = card.accentBg
-                ;(e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.07)'
+                ;(e.currentTarget as HTMLDivElement).style.borderColor = 'var(--glass-border)'
               }}
             >
               {/* Accent bar */}
@@ -189,7 +189,7 @@ export default function SettingsStats() {
                 background: `linear-gradient(90deg, ${card.accent}60, transparent)`,
               }} />
               <div style={{
-                fontSize: 11, color: 'rgba(255,255,255,0.45)',
+                fontSize: 11, color: 'var(--text-muted)',
                 marginBottom: 6, fontWeight: 500,
               }}>
                 {card.label}
@@ -204,7 +204,7 @@ export default function SettingsStats() {
                 {card.value}
               </div>
               <div style={{
-                fontSize: 10, color: 'rgba(255,255,255,0.38)',
+                fontSize: 10, color: 'var(--text-faint)',
                 marginTop: 4, lineHeight: 1.4,
               }}>
                 {card.sub}
@@ -235,7 +235,7 @@ export default function SettingsStats() {
                       boxShadow: `0 0 6px ${glow}`,
                     }} />
                     <div style={{
-                      width: 100, fontSize: 12, color: 'rgba(255,255,255,0.82)',
+                      width: 100, fontSize: 12, color: 'var(--text-primary)',
                       whiteSpace: 'nowrap', overflow: 'hidden',
                       textOverflow: 'ellipsis', flexShrink: 0,
                       fontVariantNumeric: 'tabular-nums',
@@ -257,7 +257,7 @@ export default function SettingsStats() {
                     </div>
                     <div style={{
                       width: 56, fontSize: 11,
-                      color: 'rgba(255,255,255,0.45)',
+                      color: 'var(--text-muted)',
                       textAlign: 'right', flexShrink: 0,
                       fontVariantNumeric: 'tabular-nums',
                       fontFeatureSettings: '"tnum"',
@@ -285,7 +285,7 @@ export default function SettingsStats() {
           <div style={{
             display: 'flex', gap: 4,
             background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.07)',
+            border: '1px solid var(--glass-border)',
             borderRadius: 6, padding: 2,
           }}>
             {(['7', '30'] as Range[]).map(r => {
@@ -303,7 +303,7 @@ export default function SettingsStats() {
                       : '1px solid transparent',
                     borderRadius: 4,
                     padding: '2px 10px',
-                    color: isActive ? '#a5b4fc' : 'rgba(255,255,255,0.45)',
+                    color: isActive ? '#a5b4fc' : 'var(--text-muted)',
                     cursor: 'pointer',
                     fontSize: 11,
                     fontWeight: isActive ? 600 : 400,
@@ -320,7 +320,7 @@ export default function SettingsStats() {
         <div style={{ ...cardStyle, padding: '16px 16px 12px' }}>
           {activitySlice.length === 0 || activitySlice.every(d => d.sessions === 0) ? (
             <div style={{
-              textAlign: 'center', color: 'rgba(255,255,255,0.38)',
+              textAlign: 'center', color: 'var(--text-faint)',
               fontSize: 12, padding: '24px 0',
             }}>
               {t('stats.noActivity')}
@@ -357,7 +357,7 @@ export default function SettingsStats() {
                       }} />
                       {showLabel && (
                         <div style={{
-                          fontSize: 9, color: 'rgba(255,255,255,0.38)',
+                          fontSize: 9, color: 'var(--text-faint)',
                           marginTop: 4, whiteSpace: 'nowrap',
                           fontVariantNumeric: 'tabular-nums',
                         }}>
@@ -376,7 +376,7 @@ export default function SettingsStats() {
       {/* Date range note */}
       {stats.totalSessions > 0 && (
         <div style={{
-          fontSize: 10, color: 'rgba(255,255,255,0.38)',
+          fontSize: 10, color: 'var(--text-faint)',
           textAlign: 'right', fontVariantNumeric: 'tabular-nums',
           fontFeatureSettings: '"tnum"',
           marginTop: -12,

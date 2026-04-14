@@ -66,7 +66,7 @@ const PERMISSION_TYPE_BADGE: Record<'bash' | 'file' | 'network' | 'other', { lab
   bash:    { label: 'bash',    bg: 'rgba(99,102,241,0.15)',  color: '#818cf8', border: 'rgba(99,102,241,0.30)' },
   file:    { label: 'file',    bg: 'rgba(251,191,36,0.15)',  color: '#fbbf24', border: 'rgba(251,191,36,0.30)' },
   network: { label: 'network', bg: 'rgba(67,229,229,0.15)',  color: '#67e8f9', border: 'rgba(67,229,229,0.30)' },
-  other:   { label: 'action',  bg: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.60)', border: 'rgba(255,255,255,0.15)' },
+  other:   { label: 'action',  bg: 'rgba(255,255,255,0.08)', color: 'var(--text-secondary)', border: 'rgba(255,255,255,0.15)' },
 }
 
 // Map tool names to lucide icons + tint colors
@@ -354,10 +354,10 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
       style={{
         margin: '8px auto',
         maxWidth: 420,
-        background: 'rgba(15,15,25,0.90)',
+        background: 'var(--glass-bg-mid)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255,255,255,0.09)',
+        border: '1px solid var(--glass-border-md)',
         borderLeft: leftBorder,
         borderRadius: 10,
         boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
@@ -389,7 +389,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.82)', lineHeight: 1.5 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.5 }}>
               {title}
             </span>
             <span style={{
@@ -407,7 +407,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
               {typeBadge.label}
             </span>
           </div>
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
             {t('permission.requiresPermission')}
           </span>
         </div>
@@ -420,7 +420,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
             fontSize: 11,
             color: 'rgba(165,180,252,0.9)',
             background: 'rgba(0,0,0,0.35)',
-            border: '1px solid rgba(255,255,255,0.07)',
+            border: '1px solid var(--glass-border)',
             borderRadius: 8,
             padding: '6px 10px',
             fontFamily: 'monospace',
@@ -503,7 +503,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
           {(onAlwaysAllow || onAlwaysDeny) && (
             <div style={{
               display: 'flex', gap: 8,
-              borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 8,
+              borderTop: '1px solid var(--glass-border)', paddingTop: 8,
             }}>
               {onAlwaysAllow && (
                 <button
@@ -572,7 +572,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
                 fontWeight: 700,
                 letterSpacing: '0.07em',
                 textTransform: 'uppercase',
-                color: 'rgba(255,255,255,0.38)',
+                color: 'var(--text-faint)',
                 marginBottom: 2,
               }}>
                 建议的永久规则 <span style={{ opacity: 0.6 }}>SUGGESTED RULES</span>
@@ -613,7 +613,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
                     <ShieldPlus size={11} color="#4ade80" style={{ flexShrink: 0 }} />
                     <span style={{
                       fontSize: 12,
-                      color: 'rgba(255,255,255,0.82)',
+                      color: 'var(--text-primary)',
                       fontFamily: 'monospace',
                       flex: 1,
                       overflow: 'hidden',
@@ -661,7 +661,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
                     <ShieldOff size={11} color="#fca5a5" style={{ flexShrink: 0 }} />
                     <span style={{
                       fontSize: 12,
-                      color: 'rgba(255,255,255,0.82)',
+                      color: 'var(--text-primary)',
                       fontFamily: 'monospace',
                       flex: 1,
                       overflow: 'hidden',

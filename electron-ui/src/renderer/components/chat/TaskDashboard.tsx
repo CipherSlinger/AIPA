@@ -80,7 +80,7 @@ const StepNode: React.FC<StepNodeProps> = ({ item, isLast, prevDone }) => {
             <XCircle size={12} color="#fff" strokeWidth={2.5} style={{ animation: 'none' }} />
           )}
           {status === 'pending' && (
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,255,255,0.38)' }} />
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-faint)' }} />
           )}
         </div>
         {/* Connector line */}
@@ -95,7 +95,7 @@ const StepNode: React.FC<StepNodeProps> = ({ item, isLast, prevDone }) => {
         lineHeight: '13px',
         color: status === 'done' ? '#86efac'
           : status === 'running' ? '#a5b4fc'
-          : 'rgba(255,255,255,0.38)',
+          : 'var(--text-faint)',
         textAlign: 'center',
         overflow: 'hidden',
         textOverflow: 'ellipsis',
@@ -111,11 +111,11 @@ const StepNode: React.FC<StepNodeProps> = ({ item, isLast, prevDone }) => {
 // ── Control button shared style factory ──────────────────────────────────────
 const ctrlBtn = (hoverColor?: string): React.CSSProperties => ({
   background: 'transparent',
-  border: '1px solid rgba(255,255,255,0.09)',
+  border: '1px solid var(--glass-border-md)',
   borderRadius: 6,
   padding: '4px 10px',
   fontSize: 11,
-  color: 'rgba(255,255,255,0.60)',
+  color: 'var(--text-secondary)',
   cursor: 'pointer',
   display: 'flex',
   alignItems: 'center',
@@ -140,10 +140,10 @@ const TaskDashboard: React.FC = () => {
   return (
     <div style={{
       margin: '0 16px 6px 16px',
-      background: 'rgba(15,15,25,0.85)',
+      background: 'var(--glass-bg-low)',
       backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
-      border: '1px solid rgba(255,255,255,0.07)',
+      border: '1px solid var(--glass-border)',
       borderRadius: 12,
       overflow: 'hidden',
     }}>
@@ -161,7 +161,7 @@ const TaskDashboard: React.FC = () => {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
           <LayoutDashboard size={14} color="#818cf8" />
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.82)', letterSpacing: '0.01em' }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.01em' }}>
             Task Dashboard
           </span>
           <span style={{
@@ -180,7 +180,7 @@ const TaskDashboard: React.FC = () => {
         </div>
         <ChevronDown
           size={14}
-          color="rgba(255,255,255,0.45)"
+          color="var(--text-muted)"
           style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s ease' }}
         />
       </div>
@@ -204,7 +204,7 @@ const TaskDashboard: React.FC = () => {
           {/* Current task focus card */}
           {running && (
             <div style={{
-              background: 'rgba(15,15,25,0.85)',
+              background: 'var(--glass-bg-low)',
               backdropFilter: 'blur(12px)',
               WebkitBackdropFilter: 'blur(12px)',
               borderLeft: '3px solid rgba(99,102,241,0.60)',
@@ -215,10 +215,10 @@ const TaskDashboard: React.FC = () => {
               gap: 8,
             }}>
               <div>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', marginBottom: 3 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 3 }}>
                   Now running
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.82)', lineHeight: '1.4' }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', lineHeight: '1.4' }}>
                   {running.content}
                 </div>
               </div>

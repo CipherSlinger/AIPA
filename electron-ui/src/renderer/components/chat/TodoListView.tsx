@@ -118,7 +118,7 @@ export default function TodoListView({ todos }: Props) {
     return (
       <div
         style={{
-          background: 'rgba(15,15,25,0.60)',
+          background: 'var(--glass-bg-low)',
           border: '1px solid var(--glass-border)',
           borderRadius: 8,
           padding: '10px 12px',
@@ -136,7 +136,7 @@ export default function TodoListView({ todos }: Props) {
   return (
     <div
       style={{
-        background: 'rgba(15,15,25,0.60)',
+        background: 'var(--glass-bg-low)',
         border: '1px solid var(--glass-border)',
         borderRadius: 8,
         overflow: 'hidden',

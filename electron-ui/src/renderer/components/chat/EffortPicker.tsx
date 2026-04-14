@@ -72,8 +72,8 @@ export default function EffortPicker() {
     : triggerHovered ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.06)'
   const triggerBorder = isNonDefault
     ? triggerHovered ? `${color}88` : `${color}55`
-    : triggerHovered ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.09)'
-  const triggerColor = isNonDefault ? color : 'rgba(255,255,255,0.60)'
+    : triggerHovered ? 'rgba(255,255,255,0.16)' : 'var(--glass-border-md)'
+  const triggerColor = isNonDefault ? color : 'var(--text-secondary)'
 
   return (
     <div ref={ref} style={{ position: 'relative', display: 'inline-flex' }}>
@@ -115,12 +115,12 @@ export default function EffortPicker() {
             bottom: '100%',
             left: 0,
             marginBottom: 4,
-            background: 'rgba(15,15,25,0.96)',
+            background: 'var(--glass-bg-high)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            border: '1px solid var(--glass-border-md)',
             borderRadius: 10,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+            boxShadow: 'var(--glass-shadow)',
             padding: '4px',
             minWidth: 220,
             zIndex: 100,
@@ -130,14 +130,14 @@ export default function EffortPicker() {
           <div style={{
             padding: '6px 10px 4px',
             fontSize: 10,
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-faint)',
             fontWeight: 700,
             textTransform: 'uppercase',
             letterSpacing: '0.07em',
           }}>
             {t('effort.pickerTitle')}
           </div>
-          <div style={{ padding: '0 10px 6px', fontSize: 10, color: 'rgba(255,255,255,0.38)' }}>
+          <div style={{ padding: '0 10px 6px', fontSize: 10, color: 'var(--text-faint)' }}>
             {t('effort.pickerHint')}
           </div>
           {EFFORT_OPTIONS.map(level => {
@@ -182,8 +182,8 @@ function EffortOption({ level, isSelected, lvlColor, label, hint, onSelect }: Ef
   const textColor = isSelected
     ? '#a5b4fc'
     : hovered
-    ? 'rgba(255,255,255,0.82)'
-    : 'rgba(255,255,255,0.60)'
+    ? 'var(--text-primary)'
+    : 'var(--text-secondary)'
 
   return (
     <button
@@ -225,7 +225,7 @@ function EffortOption({ level, isSelected, lvlColor, label, hint, onSelect }: Ef
         </span>
         {isSelected && <span style={{ fontSize: 11, color: '#818cf8' }}>{'✓'}</span>}
       </span>
-      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', fontWeight: 400, paddingLeft: 15 }}>
+      <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 400, paddingLeft: 15 }}>
         {hint}
       </span>
     </button>

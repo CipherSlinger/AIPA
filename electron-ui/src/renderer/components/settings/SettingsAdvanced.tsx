@@ -95,7 +95,7 @@ function detectPreset(disallowed: string[]): PresetKey {
 
 const sectionCardStyle: React.CSSProperties = {
   background: 'rgba(255,255,255,0.03)',
-  border: '1px solid rgba(255,255,255,0.07)',
+  border: '1px solid var(--glass-border)',
   borderRadius: 10,
   padding: '16px 20px',
   marginBottom: 12,
@@ -106,13 +106,13 @@ const sectionTitleStyle: React.CSSProperties = {
   fontWeight: 700,
   letterSpacing: '0.07em',
   textTransform: 'uppercase',
-  color: 'rgba(255,255,255,0.38)',
+  color: 'var(--text-faint)',
   marginBottom: 6,
 }
 
 const descStyle: React.CSSProperties = {
   fontSize: 12,
-  color: 'rgba(255,255,255,0.45)',
+  color: 'var(--text-muted)',
   lineHeight: 1.5,
   marginBottom: 12,
 }
@@ -213,7 +213,7 @@ export default function SettingsAdvanced() {
                   padding: '6px 12px',
                   color: isSelected
                     ? (opt.danger ? 'rgba(239,68,68,0.82)' : 'rgba(165,180,252,0.82)')
-                    : 'rgba(255,255,255,0.45)',
+                    : 'var(--text-muted)',
                   fontSize: 11,
                   fontWeight: isSelected ? 600 : 400,
                   cursor: 'pointer',
@@ -262,9 +262,9 @@ export default function SettingsAdvanced() {
                 aria-label={`${t('systemPrompt.preset')}: ${label}`}
                 style={{
                   background: isActive ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.05)',
-                  border: isActive ? '1px solid rgba(99,102,241,0.5)' : '1px solid rgba(255,255,255,0.09)',
+                  border: isActive ? '1px solid rgba(99,102,241,0.5)' : '1px solid var(--glass-border-md)',
                   borderRadius: 8, padding: '3px 10px', fontSize: 11,
-                  color: isActive ? '#a5b4fc' : 'rgba(255,255,255,0.60)',
+                  color: isActive ? '#a5b4fc' : 'var(--text-secondary)',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
@@ -280,15 +280,15 @@ export default function SettingsAdvanced() {
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8,
             background: 'rgba(255,255,255,0.04)', borderRadius: 6, padding: '7px 12px',
-            border: '1px solid rgba(255,255,255,0.07)',
+            border: '1px solid var(--glass-border)',
           }}>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.60)', flex: 1 }}>
+            <span style={{ fontSize: 11, color: 'var(--text-secondary)', flex: 1 }}>
               {t('systemPrompt.replaceConfirm')}
             </span>
             <button onClick={confirmReplace} style={{ fontSize: 11, padding: '3px 10px', background: 'rgba(99,102,241,0.25)', border: '1px solid rgba(99,102,241,0.4)', borderRadius: 8, color: '#a5b4fc', cursor: 'pointer', transition: 'all 0.15s ease' }}>
               {t('common.confirm')}
             </button>
-            <button onClick={() => setReplaceConfirm(null)} style={{ fontSize: 11, padding: '3px 10px', background: 'none', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, color: 'rgba(255,255,255,0.45)', cursor: 'pointer', transition: 'all 0.15s ease' }}>
+            <button onClick={() => setReplaceConfirm(null)} style={{ fontSize: 11, padding: '3px 10px', background: 'none', border: '1px solid var(--glass-border)', borderRadius: 8, color: 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.15s ease' }}>
               {t('common.cancel')}
             </button>
           </div>
@@ -304,17 +304,17 @@ export default function SettingsAdvanced() {
             style={{
               width: '100%',
               background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.07)',
+              border: '1px solid var(--glass-border)',
               borderRadius: 7, padding: '8px 10px',
-              color: 'rgba(255,255,255,0.82)',
+              color: 'var(--text-primary)',
               fontSize: 12, fontFamily: 'inherit', resize: 'vertical', outline: 'none',
               boxSizing: 'border-box', lineHeight: 1.6,
               transition: 'all 0.15s ease',
             }}
             onFocus={e => (e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)')}
-            onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
+            onBlur={e => (e.currentTarget.style.borderColor = 'var(--glass-border)')}
           />
-          <span style={{ position: 'absolute', bottom: 8, right: 10, fontSize: 10, color: draft.length >= MAX_CHARS ? '#f87171' : 'rgba(255,255,255,0.38)', fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ position: 'absolute', bottom: 8, right: 10, fontSize: 10, color: draft.length >= MAX_CHARS ? '#f87171' : 'var(--text-faint)', fontVariantNumeric: 'tabular-nums' }}>
             {draft.length} / {MAX_CHARS}
           </span>
         </div>
@@ -328,9 +328,9 @@ export default function SettingsAdvanced() {
           </button>
           {draft.trim() && (
             <button onClick={() => setDraft('')}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
-              style={{ padding: '7px 12px', fontSize: 12, background: 'none', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 6, color: 'rgba(255,255,255,0.45)', cursor: 'pointer', transition: 'all 0.15s ease' }}>
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-muted)' }}
+              style={{ padding: '7px 12px', fontSize: 12, background: 'none', border: '1px solid var(--glass-border)', borderRadius: 6, color: 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.15s ease' }}>
               {t('common.clear')}
             </button>
           )}
@@ -352,9 +352,9 @@ export default function SettingsAdvanced() {
                 onClick={() => applyToolPreset(p)}
                 style={{
                   background: isActive ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.05)',
-                  border: isActive ? '1px solid rgba(99,102,241,0.5)' : '1px solid rgba(255,255,255,0.09)',
+                  border: isActive ? '1px solid rgba(99,102,241,0.5)' : '1px solid var(--glass-border-md)',
                   borderRadius: 5, padding: '3px 10px',
-                  fontSize: 11, color: isActive ? '#a5b4fc' : 'rgba(255,255,255,0.60)',
+                  fontSize: 11, color: isActive ? '#a5b4fc' : 'var(--text-secondary)',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
@@ -364,7 +364,7 @@ export default function SettingsAdvanced() {
             )
           })}
           {activePreset === 'custom' && (
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', alignSelf: 'center', fontStyle: 'italic' }}>{t('settings.toolAccessCustom')}</span>
+            <span style={{ fontSize: 11, color: 'var(--text-faint)', alignSelf: 'center', fontStyle: 'italic' }}>{t('settings.toolAccessCustom')}</span>
           )}
         </div>
 
@@ -383,7 +383,7 @@ export default function SettingsAdvanced() {
         {TOOL_GROUP_DEFS.map(group => (
           <div key={group.labelKey} style={{ marginBottom: 14 }}>
             <div style={{
-              fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.38)',
+              fontSize: 10, fontWeight: 700, color: 'var(--text-faint)',
               textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6,
             }}>
               {t(group.labelKey)}
@@ -414,7 +414,7 @@ export default function SettingsAdvanced() {
                           background: 'rgba(99,102,241,0.10)', borderRadius: 4, padding: '1px 5px',
                           flex: '0 0 auto',
                         }}>{tool.name}</code>
-                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{t(tool.descKey)}</span>
+                        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t(tool.descKey)}</span>
                       </div>
                       {!isAllowed && (
                         <span style={{ fontSize: 10, background: 'rgba(239,68,68,0.12)', color: '#fca5a5', borderRadius: 3, padding: '1px 5px', flexShrink: 0 }}>{t('settings.toolAccessDisabled')}</span>

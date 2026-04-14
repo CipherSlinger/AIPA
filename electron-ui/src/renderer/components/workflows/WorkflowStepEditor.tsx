@@ -91,10 +91,10 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
         <div
           key={step.id}
           style={{
-            background: 'rgba(15,15,25,0.88)',
+            background: 'var(--glass-bg-card)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255,255,255,0.07)',
+            border: '1px solid var(--glass-border)',
             borderRadius: 12,
             padding: '12px 14px',
             marginBottom: 8,
@@ -107,7 +107,7 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
             <GripVertical
               size={13}
               style={{
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--text-muted)',
                 flexShrink: 0,
                 opacity: 0.5,
                 cursor: 'grab',
@@ -117,7 +117,7 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
             <span
               style={{
                 fontSize: 9,
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
                 fontWeight: 700,
                 flexShrink: 0,
                 background: 'linear-gradient(135deg, #6366f1, #818cf8)',
@@ -177,7 +177,7 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
                 title="Prompt step"
                 style={{
                   fontSize: 9,
-                  color: 'rgba(255,255,255,0.45)',
+                  color: 'var(--text-muted)',
                   flexShrink: 0,
                   lineHeight: 1,
                   opacity: 0.6,
@@ -197,7 +197,7 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
                 border: 'none',
                 fontSize: 14,
                 fontWeight: 600,
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
                 outline: 'none',
                 padding: '1px 4px',
               }}
@@ -227,7 +227,7 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
           </div>
           {/* Node type selector */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.38)', flexShrink: 0 }}>{t('workflow.nodeType')}:</span>
+            <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: 'var(--text-faint)', flexShrink: 0 }}>{t('workflow.nodeType')}:</span>
             <select
               value={step.nodeType ?? 'prompt'}
               onChange={e => updateStepNodeType(setSteps, step.id, e.target.value as WorkflowNodeType)}
@@ -235,9 +235,9 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
               style={{
                 fontSize: 10,
                 background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.09)',
+                border: '1px solid var(--glass-border-md)',
                 borderRadius: 6,
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
                 padding: '2px 6px',
                 outline: 'none',
                 cursor: 'pointer',
@@ -251,7 +251,7 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
           </div>
 
           {/* Prompt / Condition Question */}
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'rgba(255,255,255,0.38)', borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: 4, marginBottom: 8 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-faint)', borderBottom: '1px solid var(--glass-border)', paddingBottom: 4, marginBottom: 8 }}>
             {(step.nodeType ?? 'prompt') === 'condition' ? t('workflow.conditionQuestion') : 'Prompt'}
           </div>
           <textarea
@@ -264,10 +264,10 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
               height: 40,
               padding: '10px 12px',
               background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.09)',
+              border: '1px solid var(--glass-border-md)',
               borderRadius: 8,
               fontSize: 12,
-              color: 'rgba(255,255,255,0.82)',
+              color: 'var(--text-primary)',
               resize: 'vertical',
               outline: 'none',
               boxSizing: 'border-box',
@@ -275,13 +275,13 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
               lineHeight: 1.6,
             }}
             onFocus={e => { e.currentTarget.style.border = '1px solid rgba(99,102,241,0.50)'; e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.15)' }}
-            onBlur={e => { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.09)'; e.currentTarget.style.boxShadow = 'none' }}
+            onBlur={e => { e.currentTarget.style.border = '1px solid var(--glass-border-md)'; e.currentTarget.style.boxShadow = 'none' }}
           />
 
           {/* Template variable hints for steps with prior steps */}
           {idx > 0 && (
             <div style={{ marginTop: 4, padding: '6px 8px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 6 }}>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+              <div style={{ fontSize: 9, color: 'var(--text-faint)', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                 {t('workflow.availableVariables')}
               </div>
               {steps.slice(0, idx).map((priorStep, priorIdx) => {
@@ -296,7 +296,7 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
                       fontSize: 9,
                       lineHeight: 1.6,
                       cursor: 'pointer',
-                      color: isUsed ? '#a5b4fc' : 'rgba(255,255,255,0.45)',
+                      color: isUsed ? '#a5b4fc' : 'var(--text-muted)',
                       display: 'flex',
                       alignItems: 'center',
                       gap: 4,
@@ -309,7 +309,7 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
                       padding: '2px 7px',
                       borderRadius: 5,
                       fontSize: 9,
-                      color: isUsed ? '#a5b4fc' : 'rgba(255,255,255,0.45)',
+                      color: isUsed ? '#a5b4fc' : 'var(--text-muted)',
                     }}>{varName}</code>
                     <span style={{ opacity: 0.7 }}>
                       {t('workflow.stepLabel', { n: priorIdx + 1 })}{priorStep.title ? `: "${priorStep.title}"` : ''}
@@ -343,7 +343,7 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
                         border: `1px solid ${bi === 0 ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
                         borderRadius: 8,
                         fontSize: 11,
-                        color: 'rgba(255,255,255,0.82)',
+                        color: 'var(--text-primary)',
                         resize: 'vertical',
                         outline: 'none',
                         boxSizing: 'border-box',
@@ -378,7 +378,7 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
                       border: '1px solid rgba(139,92,246,0.3)',
                       borderRadius: 8,
                       fontSize: 11,
-                      color: 'rgba(255,255,255,0.82)',
+                      color: 'var(--text-primary)',
                       resize: 'vertical',
                       outline: 'none',
                       boxSizing: 'border-box',
@@ -391,7 +391,7 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
                   {(step.parallelPrompts ?? []).length > 1 && (
                     <button
                       onClick={() => removeParallelPrompt(setSteps, step.id, pi)}
-                      style={{ ...iconBtnStyle, color: 'rgba(255,255,255,0.45)', flexShrink: 0, marginTop: 4 }}
+                      style={{ ...iconBtnStyle, color: 'var(--text-muted)', flexShrink: 0, marginTop: 4 }}
                       title={t('workflow.removeParallelPrompt')}
                     >
                       <X size={10} />
@@ -432,7 +432,7 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
             padding: '6px 0',
             fontSize: 10,
             fontWeight: 600,
-            color: 'rgba(255,255,255,0.82)',
+            color: 'var(--text-primary)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',

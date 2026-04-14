@@ -196,7 +196,7 @@ export default function SettingsMemory() {
             style={{
               padding: '3px 10px', fontSize: 11, borderRadius: 5, cursor: 'pointer',
               background: scope === s ? 'rgba(99,102,241,0.18)' : 'none',
-              border: '1px solid ' + (scope === s ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.09)'),
+              border: '1px solid ' + (scope === s ? 'rgba(99,102,241,0.5)' : 'var(--glass-border-md)'),
               color: scope === s ? '#818cf8' : 'var(--text-muted)',
               fontWeight: scope === s ? 600 : 400,
               transition: 'all 0.15s ease',
@@ -217,7 +217,7 @@ export default function SettingsMemory() {
       {showNew && (
         <div style={{
           background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.07)',
+          border: '1px solid var(--glass-border)',
           borderRadius: 12, padding: 14, marginBottom: 12,
         }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>{t('settingsMemory.newMemory')}</div>
@@ -374,7 +374,7 @@ export default function SettingsMemory() {
 
                 {/* Expanded content */}
                 {isExpanded && (
-                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', padding: '8px 12px' }}>
+                  <div style={{ borderTop: '1px solid var(--glass-border)', padding: '8px 12px' }}>
                     {isEditing ? (
                       <>
                         <textarea

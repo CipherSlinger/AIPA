@@ -91,10 +91,10 @@ export default function SaveTemplateDialog({ onClose }: Props) {
         onKeyDown={handleKeyDown}
         style={{
           width: 360, padding: 20,
-          background: 'rgba(15,15,25,0.96)',
+          background: 'var(--glass-bg-high)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.09)',
+          border: '1px solid var(--glass-border-md)',
           borderRadius: 16,
           boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
           animation: 'slideUp 0.15s ease',
@@ -105,7 +105,7 @@ export default function SaveTemplateDialog({ onClose }: Props) {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           marginBottom: 16,
           paddingBottom: 14,
-          borderBottom: '1px solid rgba(255,255,255,0.07)',
+          borderBottom: '1px solid var(--glass-border)',
         }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.92)' }}>
             {t('convTemplate.saveAsTemplate')}
@@ -117,7 +117,7 @@ export default function SaveTemplateDialog({ onClose }: Props) {
             style={{
               background: closeHovered ? 'rgba(255,255,255,0.08)' : 'transparent',
               border: 'none',
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               cursor: 'pointer',
               padding: 4,
               borderRadius: 8,
@@ -135,7 +135,7 @@ export default function SaveTemplateDialog({ onClose }: Props) {
         <div style={{ marginBottom: 12 }}>
           <label style={{
             fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
-            textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)',
+            textTransform: 'uppercase', color: 'var(--text-faint)',
             display: 'block', marginBottom: 6,
           }}>
             {t('convTemplate.templateName')}
@@ -152,7 +152,7 @@ export default function SaveTemplateDialog({ onClose }: Props) {
               width: '100%', padding: '8px 10px', fontSize: 13,
               background: 'rgba(255,255,255,0.06)',
               border: nameFocused ? '1px solid rgba(99,102,241,0.5)' : '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 6, color: 'rgba(255,255,255,0.82)', outline: 'none',
+              borderRadius: 6, color: 'var(--text-primary)', outline: 'none',
               boxSizing: 'border-box',
               transition: 'border-color 0.15s ease',
             }}
@@ -163,7 +163,7 @@ export default function SaveTemplateDialog({ onClose }: Props) {
         <div style={{ marginBottom: 12 }}>
           <label style={{
             fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
-            textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)',
+            textTransform: 'uppercase', color: 'var(--text-faint)',
             display: 'block', marginBottom: 6,
           }}>
             {t('convTemplate.templateDesc')}
@@ -179,7 +179,7 @@ export default function SaveTemplateDialog({ onClose }: Props) {
               width: '100%', padding: '8px 10px', fontSize: 13,
               background: 'rgba(255,255,255,0.06)',
               border: descFocused ? '1px solid rgba(99,102,241,0.5)' : '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 6, color: 'rgba(255,255,255,0.82)', outline: 'none',
+              borderRadius: 6, color: 'var(--text-primary)', outline: 'none',
               boxSizing: 'border-box',
               transition: 'border-color 0.15s ease',
             }}
@@ -190,7 +190,7 @@ export default function SaveTemplateDialog({ onClose }: Props) {
         <div style={{ marginBottom: 12 }}>
           <label style={{
             fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
-            textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)',
+            textTransform: 'uppercase', color: 'var(--text-faint)',
             display: 'block', marginBottom: 6,
           }}>
             {t('convTemplate.selectEmoji')}
@@ -219,7 +219,7 @@ export default function SaveTemplateDialog({ onClose }: Props) {
         <div style={{ marginBottom: 16 }}>
           <label style={{
             fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
-            textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)',
+            textTransform: 'uppercase', color: 'var(--text-faint)',
             display: 'block', marginBottom: 6,
           }}>
             {t('convTemplate.selectCategory')}
@@ -234,7 +234,7 @@ export default function SaveTemplateDialog({ onClose }: Props) {
                   fontWeight: 700, letterSpacing: '0.04em',
                   border: category === cat.key ? '1px solid rgba(99,102,241,0.3)' : '1px solid rgba(255,255,255,0.1)',
                   background: category === cat.key ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.04)',
-                  color: category === cat.key ? '#818cf8' : 'rgba(255,255,255,0.45)',
+                  color: category === cat.key ? '#818cf8' : 'var(--text-muted)',
                   transition: 'all 0.15s ease',
                 }}
               >
@@ -254,7 +254,7 @@ export default function SaveTemplateDialog({ onClose }: Props) {
               padding: '7px 16px', borderRadius: 8, fontSize: 13, cursor: 'pointer',
               background: cancelHovered ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.12)',
-              color: 'rgba(255,255,255,0.60)',
+              color: 'var(--text-secondary)',
               fontWeight: 500,
               transition: 'all 0.15s ease',
             }}

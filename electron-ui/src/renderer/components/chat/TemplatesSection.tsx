@@ -57,8 +57,8 @@ export default function TemplatesSection({ onUseTemplate }: Props) {
     <div style={{ width: '100%', maxWidth: 420 }}>
       {/* Header + category pills */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
-        <FileText size={11} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', marginRight: 4 }}>
+        <FileText size={11} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+        <span style={{ fontSize: 10, color: 'var(--text-faint)', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', marginRight: 4 }}>
           {t('convTemplate.section')}
         </span>
         {/* "All" pill */}
@@ -68,7 +68,7 @@ export default function TemplatesSection({ onUseTemplate }: Props) {
             padding: '2px 8px', borderRadius: 10, fontSize: 10, cursor: 'pointer',
             border: activeCategory === 'all' ? '1px solid rgba(99,102,241,0.5)' : '1px solid rgba(255,255,255,0.10)',
             background: activeCategory === 'all' ? 'rgba(99,102,241,0.20)' : 'rgba(255,255,255,0.06)',
-            color: activeCategory === 'all' ? '#818cf8' : 'rgba(255,255,255,0.45)',
+            color: activeCategory === 'all' ? '#818cf8' : 'var(--text-muted)',
             fontWeight: 700,
             letterSpacing: '0.05em',
             textTransform: 'uppercase',
@@ -85,7 +85,7 @@ export default function TemplatesSection({ onUseTemplate }: Props) {
               padding: '2px 8px', borderRadius: 10, fontSize: 10, cursor: 'pointer',
               border: activeCategory === cat.key ? '1px solid rgba(99,102,241,0.5)' : '1px solid rgba(255,255,255,0.10)',
               background: activeCategory === cat.key ? 'rgba(99,102,241,0.20)' : 'rgba(255,255,255,0.06)',
-              color: activeCategory === cat.key ? '#818cf8' : 'rgba(255,255,255,0.45)',
+              color: activeCategory === cat.key ? '#818cf8' : 'var(--text-muted)',
               fontWeight: 700,
               letterSpacing: '0.05em',
               textTransform: 'uppercase',
@@ -109,7 +109,7 @@ export default function TemplatesSection({ onUseTemplate }: Props) {
               key={tpl.id}
               style={{
                 display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 12px',
-                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
+                background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)',
                 borderRadius: 10, cursor: 'pointer', textAlign: 'left',
                 transition: 'all 0.15s ease',
                 position: 'relative',
@@ -117,7 +117,7 @@ export default function TemplatesSection({ onUseTemplate }: Props) {
               }}
               onMouseEnter={e => {
                 const el = e.currentTarget as HTMLDivElement;
-                el.style.background = 'rgba(255,255,255,0.07)';
+                el.style.background = 'var(--glass-border)';
                 el.style.borderColor = 'rgba(255,255,255,0.12)';
                 el.style.transform = 'translateY(-1px)';
                 el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
@@ -125,7 +125,7 @@ export default function TemplatesSection({ onUseTemplate }: Props) {
               onMouseLeave={e => {
                 const el = e.currentTarget as HTMLDivElement;
                 el.style.background = 'rgba(255,255,255,0.04)';
-                el.style.borderColor = 'rgba(255,255,255,0.07)';
+                el.style.borderColor = 'var(--glass-border)';
                 el.style.transform = 'translateY(0)';
                 el.style.boxShadow = '0 2px 8px rgba(0,0,0,0)';
               }}
@@ -134,14 +134,14 @@ export default function TemplatesSection({ onUseTemplate }: Props) {
                 <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0, marginTop: 2 }}>{tpl.emoji}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
-                    fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.82)',
+                    fontSize: 13, fontWeight: 600, color: 'var(--text-primary)',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     lineHeight: 1.3,
                   }}>
                     {title}
                   </div>
                   <div style={{
-                    fontSize: 12, color: 'rgba(255,255,255,0.60)', marginTop: 3,
+                    fontSize: 12, color: 'var(--text-secondary)', marginTop: 3,
                     overflow: 'hidden', display: '-webkit-box',
                     WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
                     lineHeight: 1.5,
@@ -157,11 +157,11 @@ export default function TemplatesSection({ onUseTemplate }: Props) {
                     style={{
                       position: 'absolute', top: 4, right: 4,
                       background: 'none', border: 'none', cursor: 'pointer',
-                      color: 'rgba(255,255,255,0.45)', padding: 2, borderRadius: 6,
+                      color: 'var(--text-muted)', padding: 2, borderRadius: 6,
                       opacity: 0, transition: 'all 0.15s ease',
                     }}
                     onMouseEnter={e => { e.currentTarget.style.color = '#f87171'; e.currentTarget.style.opacity = '1' }}
-                    onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+                    onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
                   >
                     <X size={12} />
                   </button>

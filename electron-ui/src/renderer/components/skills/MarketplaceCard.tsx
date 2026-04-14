@@ -29,17 +29,17 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: hovered ? 'rgba(255,255,255,0.07)' : 'rgba(15,15,25,0.85)',
+        background: hovered ? 'var(--glass-border)' : 'var(--glass-bg-low)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: hovered ? '1px solid rgba(255,255,255,0.09)' : '1px solid rgba(255,255,255,0.07)',
+        border: hovered ? '1px solid var(--glass-border-md)' : '1px solid var(--glass-border)',
         borderRadius: 12,
         padding: '14px 16px',
         cursor: 'pointer',
         transition: 'all 0.15s ease',
         transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
         boxShadow: hovered
-          ? '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)'
+          ? 'var(--glass-shadow)'
           : '0 2px 8px rgba(0,0,0,0.3)',
       }}
     >
@@ -62,7 +62,7 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
             <span style={{
               fontSize: 13,
               fontWeight: 700,
-              color: 'rgba(255,255,255,0.82)',
+              color: 'var(--text-primary)',
             }}>
               {skill.name}
             </span>
@@ -71,7 +71,7 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
               padding: '2px 8px',
               borderRadius: 20,
               background: 'rgba(255,255,255,0.06)',
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               fontWeight: 600,
               letterSpacing: '0.04em',
             }}>
@@ -91,7 +91,7 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
           </div>
           <div style={{
             fontSize: 11,
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             lineHeight: 1.5,
             marginTop: 3,
             marginBottom: 6,
@@ -100,7 +100,7 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
           </div>
           <div style={{
             fontSize: 10,
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-faint)',
             display: 'flex',
             alignItems: 'center',
             gap: 6,
@@ -121,15 +121,15 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
                   gap: 3,
                   padding: '1px 6px',
                   borderRadius: 8,
-                  border: '1px solid rgba(255,255,255,0.09)',
+                  border: '1px solid var(--glass-border-md)',
                   background: 'transparent',
-                  color: 'rgba(255,255,255,0.45)',
+                  color: 'var(--text-muted)',
                   fontSize: 9,
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.color = '#a5b4fc'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)' }}
-                onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)' }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--glass-border-md)' }}
               >
                 <ExternalLink size={9} />
                 {t('skills.source')}
@@ -183,7 +183,7 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
                 gap: 4,
                 padding: '4px 10px',
                 background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
                 border: 'none',
                 borderRadius: 6,
                 fontSize: 11,

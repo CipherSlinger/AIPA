@@ -16,7 +16,7 @@ export function SkillSection({ label, skills, onOpen, onUse }: {
         padding: '10px 14px 6px',
         fontSize: 10,
         fontWeight: 700,
-        color: 'rgba(255,255,255,0.38)',
+        color: 'var(--text-faint)',
         textTransform: 'uppercase',
         letterSpacing: '0.07em',
         display: 'flex',
@@ -30,7 +30,7 @@ export function SkillSection({ label, skills, onOpen, onUse }: {
           padding: '1px 6px',
           fontSize: 10,
           fontWeight: 600,
-          color: 'rgba(255,255,255,0.45)',
+          color: 'var(--text-muted)',
           fontVariantNumeric: 'tabular-nums',
           fontFeatureSettings: '"tnum"',
         }}>
@@ -67,15 +67,15 @@ function getSourceBadgeStyle(source: string): React.CSSProperties {
   // global
   return {
     background: 'rgba(255,255,255,0.08)',
-    color: 'rgba(255,255,255,0.60)',
-    border: '1px solid rgba(255,255,255,0.09)',
+    color: 'var(--text-secondary)',
+    border: '1px solid var(--glass-border-md)',
   }
 }
 
 function getIconStyle(source: string): { color: string; bg: string } {
   if (source === 'personal') return { color: '#a5b4fc', bg: 'rgba(99,102,241,0.15)' }
   if (source === 'project') return { color: '#4ade80', bg: 'rgba(34,197,94,0.12)' }
-  return { color: 'rgba(255,255,255,0.60)', bg: 'rgba(255,255,255,0.08)' }
+  return { color: 'var(--text-secondary)', bg: 'rgba(255,255,255,0.08)' }
 }
 
 export function SkillCard({ skill, onOpen, onUse }: {
@@ -102,16 +102,16 @@ export function SkillCard({ skill, onOpen, onUse }: {
         padding: '12px 14px',
         cursor: 'pointer',
         margin: '4px 8px',
-        background: hovered ? 'rgba(255,255,255,0.07)' : 'rgba(15,15,25,0.85)',
+        background: hovered ? 'var(--glass-border)' : 'var(--glass-bg-low)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: hovered
-          ? '1px solid rgba(255,255,255,0.09)'
-          : '1px solid rgba(255,255,255,0.07)',
+          ? '1px solid var(--glass-border-md)'
+          : '1px solid var(--glass-border)',
         borderRadius: 12,
         transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
         boxShadow: hovered
-          ? '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)'
+          ? 'var(--glass-shadow)'
           : '0 2px 8px rgba(0,0,0,0.3)',
         transition: 'all 0.15s ease',
       }}
@@ -133,7 +133,7 @@ export function SkillCard({ skill, onOpen, onUse }: {
           <div style={{
             fontSize: 13,
             fontWeight: 600,
-            color: 'rgba(255,255,255,0.82)',
+            color: 'var(--text-primary)',
             lineHeight: 1.4,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -156,7 +156,7 @@ export function SkillCard({ skill, onOpen, onUse }: {
         </div>
         <div style={{
           fontSize: 12,
-          color: 'rgba(255,255,255,0.45)',
+          color: 'var(--text-muted)',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -172,7 +172,7 @@ export function SkillCard({ skill, onOpen, onUse }: {
                 borderRadius: 20,
                 padding: '1px 7px',
                 background: 'rgba(255,255,255,0.06)',
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--text-muted)',
               }}>
                 {tag}
               </span>
@@ -189,7 +189,7 @@ export function SkillCard({ skill, onOpen, onUse }: {
           background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
           border: 'none',
           borderRadius: 6,
-          color: 'rgba(255,255,255,0.82)',
+          color: 'var(--text-primary)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',

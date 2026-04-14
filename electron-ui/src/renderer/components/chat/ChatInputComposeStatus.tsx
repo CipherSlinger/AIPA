@@ -28,7 +28,7 @@ export default function ChatInputComposeStatus({ input, typingWpm, calcResult, h
   const isOverLimit = input.length > 10000
   const isNearLimit = input.length > 5000
 
-  const charColor = isOverLimit ? '#fca5a5' : isNearLimit ? '#fbbf24' : 'rgba(255,255,255,0.38)'
+  const charColor = isOverLimit ? '#fca5a5' : isNearLimit ? '#fbbf24' : 'var(--text-faint)'
 
   return (
     <>
@@ -37,14 +37,14 @@ export default function ChatInputComposeStatus({ input, typingWpm, calcResult, h
         <div style={{
           display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6,
           padding: '3px 12px',
-          background: 'rgba(15,15,25,0.85)',
+          background: 'var(--glass-bg-low)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
-          borderTop: '1px solid rgba(255,255,255,0.07)',
+          borderTop: '1px solid var(--glass-border)',
           transition: 'all 0.15s ease',
           lineHeight: 1.5,
         }}>
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
             {trimmed.split(/\s+/).filter(w => w.length > 0).length} {t('chat.words')}
           </span>
           {SEP}
@@ -52,13 +52,13 @@ export default function ChatInputComposeStatus({ input, typingWpm, calcResult, h
             {input.length.toLocaleString()} {t('chat.chars')}{isOverLimit ? ` (${t('chat.veryLong')})` : isNearLimit ? ` (${t('chat.long')})` : ''}
           </span>
           {SEP}
-          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
+          <span style={{ fontSize: 10, color: 'var(--text-faint)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
             {t('message.approxTokens', { count: String(Math.ceil(input.length / 4)) })}
           </span>
           {typingWpm > 0 && (
             <>
               {SEP}
-              <span style={{ fontSize: 10, color: typingWpm > 60 ? 'rgba(165,180,252,0.60)' : 'rgba(255,255,255,0.38)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
+              <span style={{ fontSize: 10, color: typingWpm > 60 ? 'rgba(165,180,252,0.60)' : 'var(--text-faint)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
                 {typingWpm} {t('chat.wpm')}
               </span>
             </>
@@ -69,26 +69,26 @@ export default function ChatInputComposeStatus({ input, typingWpm, calcResult, h
       {calcResult && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 6, padding: '3px 12px',
-          background: 'rgba(15,15,25,0.85)',
+          background: 'var(--glass-bg-low)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
-          borderTop: '1px solid rgba(255,255,255,0.07)',
+          borderTop: '1px solid var(--glass-border)',
         }}>
           <Calculator size={13} style={{ color: '#a5b4fc', opacity: 0.8 }} />
           <span style={{ fontSize: 11, color: '#a5b4fc', fontVariantNumeric: 'tabular-nums', fontWeight: 500 }}>= {calcResult}</span>
-          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)', marginLeft: 4 }}>{t('chat.calcTabHint')}</span>
+          <span style={{ fontSize: 9, color: 'var(--text-faint)', marginLeft: 4 }}>{t('chat.calcTabHint')}</span>
         </div>
       )}
       {/* Input history hint */}
       {input.length === 0 && hasInputHistory && (
         <div style={{
           display: 'flex', justifyContent: 'center', padding: '3px 12px',
-          background: 'rgba(15,15,25,0.85)',
+          background: 'var(--glass-bg-low)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
-          borderTop: '1px solid rgba(255,255,255,0.07)',
+          borderTop: '1px solid var(--glass-border)',
         }}>
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>{t('chat.inputHistoryHint')}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('chat.inputHistoryHint')}</span>
         </div>
       )}
     </>

@@ -43,7 +43,7 @@ export default function PinnedNoteStrip({ note, categories, onUnpin }: Props) {
         <span style={{
           flex: 1,
           fontSize: 12,
-          color: 'rgba(255,255,255,0.60)',
+          color: 'var(--text-secondary)',
           fontStyle: 'italic',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -66,8 +66,8 @@ export default function PinnedNoteStrip({ note, categories, onUnpin }: Props) {
           </span>
         )}
         {expanded
-          ? <ChevronUp size={12} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
-          : <ChevronDown size={12} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
+          ? <ChevronUp size={12} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+          : <ChevronDown size={12} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
         }
         <button
           onClick={(e) => { e.stopPropagation(); onUnpin() }}
@@ -76,7 +76,7 @@ export default function PinnedNoteStrip({ note, categories, onUnpin }: Props) {
             background: 'none',
             border: 'none',
             cursor: 'pointer',
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-faint)',
             display: 'flex',
             alignItems: 'center',
             padding: '2px 4px',
@@ -84,7 +84,7 @@ export default function PinnedNoteStrip({ note, categories, onUnpin }: Props) {
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={(e) => { e.currentTarget.style.color = '#fca5a5'; e.currentTarget.style.background = 'rgba(239,68,68,0.08)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.38)'; e.currentTarget.style.background = 'none' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-faint)'; e.currentTarget.style.background = 'none' }}
         >
           <X size={12} />
         </button>
@@ -95,7 +95,7 @@ export default function PinnedNoteStrip({ note, categories, onUnpin }: Props) {
         <div style={{
           padding: '4px 12px 8px 30px',
           fontSize: 12,
-          color: 'rgba(255,255,255,0.60)',
+          color: 'var(--text-secondary)',
           fontStyle: 'italic',
           lineHeight: 1.5,
           whiteSpace: 'pre-wrap',

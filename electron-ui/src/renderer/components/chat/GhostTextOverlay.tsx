@@ -31,7 +31,7 @@ export default function GhostTextOverlay({ input, ghostText }: GhostTextOverlayP
             fontSize: 10, fontWeight: 700, marginLeft: 5, fontFamily: 'monospace',
             letterSpacing: '0.07em',
             background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)',
-            borderRadius: 6, color: 'rgba(255,255,255,0.38)', padding: '1px 5px',
+            borderRadius: 6, color: 'var(--text-faint)', padding: '1px 5px',
             textTransform: 'uppercase',
           }}>Tab</span>
         </>
@@ -42,7 +42,7 @@ export default function GhostTextOverlay({ input, ghostText }: GhostTextOverlayP
             fontSize: 10, fontWeight: 700, marginLeft: 6, fontFamily: 'monospace',
             letterSpacing: '0.07em',
             background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)',
-            borderRadius: 6, color: 'rgba(255,255,255,0.38)', padding: '1px 5px',
+            borderRadius: 6, color: 'var(--text-faint)', padding: '1px 5px',
             textTransform: 'uppercase',
           }}>Tab</span>
         </>

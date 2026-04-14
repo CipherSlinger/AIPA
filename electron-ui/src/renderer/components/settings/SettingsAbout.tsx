@@ -19,13 +19,13 @@ const sectionLabelStyle: React.CSSProperties = {
   fontWeight: 700,
   letterSpacing: '0.07em',
   textTransform: 'uppercase',
-  color: 'rgba(255,255,255,0.38)',
+  color: 'var(--text-faint)',
   marginBottom: 10,
 }
 
 const sectionCardStyle: React.CSSProperties = {
   background: 'rgba(255,255,255,0.03)',
-  border: '1px solid rgba(255,255,255,0.07)',
+  border: '1px solid var(--glass-border)',
   borderRadius: 10,
   padding: '16px 20px',
   marginBottom: 12,
@@ -98,7 +98,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
       {/* App identity */}
       <div style={{ ...sectionCardStyle, textAlign: 'center', padding: '20px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
         <div style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.9)', letterSpacing: '-0.01em', lineHeight: 1.3 }}>AIPA</div>
-        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>{t('settings.about.aiPersonalAssistant')}</div>
+        <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>{t('settings.about.aiPersonalAssistant')}</div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' }}>
           <div style={{
             background: 'rgba(99,102,241,0.15)',
@@ -147,14 +147,14 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
                 display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                 padding: '6px 14px', marginBottom: 0,
                 background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.09)',
+                border: '1px solid var(--glass-border-md)',
                 borderRadius: 6,
                 color: '#818cf8', cursor: 'pointer', fontSize: 12,
                 textAlign: 'left',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.09)';
+                e.currentTarget.style.background = 'var(--glass-border-md)';
                 e.currentTarget.style.textDecoration = 'underline';
               }}
               onMouseLeave={(e) => {
@@ -179,13 +179,13 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
             display: 'flex', alignItems: 'center', gap: 8, width: '100%',
             padding: '10px 12px',
             background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            border: '1px solid var(--glass-border-md)',
             borderRadius: 6,
-            color: 'rgba(255,255,255,0.82)', cursor: 'pointer', fontSize: 12,
+            color: 'var(--text-primary)', cursor: 'pointer', fontSize: 12,
             justifyContent: 'space-between',
             transition: 'all 0.15s ease',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.09)')}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--glass-border-md)')}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
         >
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -193,9 +193,9 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
             {t('settings.about.viewAllShortcuts')}
           </span>
           <kbd style={{
-            fontSize: 10, color: 'rgba(255,255,255,0.38)',
+            fontSize: 10, color: 'var(--text-faint)',
             background: 'rgba(12,12,22,0.6)',
-            border: '1px solid rgba(255,255,255,0.09)', borderRadius: 6, padding: '1px 6px',
+            border: '1px solid var(--glass-border-md)', borderRadius: 6, padding: '1px 6px',
             fontFamily: 'inherit',
           }}>Ctrl+/</kbd>
         </button>
@@ -212,13 +212,13 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
               display: 'flex', alignItems: 'center', gap: 8, flex: 1,
               padding: '10px 12px',
               background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.09)',
+              border: '1px solid var(--glass-border-md)',
               borderRadius: 6,
-              color: 'rgba(255,255,255,0.82)', cursor: backupLoading ? 'wait' : 'pointer', fontSize: 12,
+              color: 'var(--text-primary)', cursor: backupLoading ? 'wait' : 'pointer', fontSize: 12,
               justifyContent: 'center', opacity: backupLoading ? 0.4 : 1,
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={(e) => { if (!backupLoading) e.currentTarget.style.background = 'rgba(255,255,255,0.09)' }}
+            onMouseEnter={(e) => { if (!backupLoading) e.currentTarget.style.background = 'var(--glass-border-md)' }}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
           >
             {backupLoading ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={14} style={{ color: '#a5b4fc' }} />}
@@ -231,20 +231,20 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
               display: 'flex', alignItems: 'center', gap: 8, flex: 1,
               padding: '10px 12px',
               background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.09)',
+              border: '1px solid var(--glass-border-md)',
               borderRadius: 6,
-              color: 'rgba(255,255,255,0.82)', cursor: restoreLoading ? 'wait' : 'pointer', fontSize: 12,
+              color: 'var(--text-primary)', cursor: restoreLoading ? 'wait' : 'pointer', fontSize: 12,
               justifyContent: 'center', opacity: restoreLoading ? 0.4 : 1,
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={(e) => { if (!restoreLoading) e.currentTarget.style.background = 'rgba(255,255,255,0.09)' }}
+            onMouseEnter={(e) => { if (!restoreLoading) e.currentTarget.style.background = 'var(--glass-border-md)' }}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
           >
             {restoreLoading ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Upload size={14} style={{ color: '#a5b4fc' }} />}
             {t('backup.import')}
           </button>
         </div>
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 8, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
           {t('backup.hint')}
         </div>
       </div>
@@ -258,13 +258,13 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
             display: 'flex', alignItems: 'center', gap: 8, width: '100%',
             padding: '10px 12px',
             background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            border: '1px solid var(--glass-border-md)',
             borderRadius: 6,
-            color: 'rgba(255,255,255,0.82)', cursor: 'pointer', fontSize: 12,
+            color: 'var(--text-primary)', cursor: 'pointer', fontSize: 12,
             justifyContent: 'space-between',
             transition: 'all 0.15s ease',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.09)')}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--glass-border-md)')}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
         >
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -288,7 +288,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
           ].map((row, i, arr) => (
             <React.Fragment key={row.key}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', fontVariantNumeric: 'tabular-nums' }}>{row.key}</span>
+                <span style={{ fontSize: 11, color: 'var(--text-faint)', fontVariantNumeric: 'tabular-nums' }}>{row.key}</span>
                 <span style={{
                   fontFamily: 'monospace', fontSize: 11, color: 'rgba(165,180,252,0.8)',
                   background: 'rgba(12,12,22,0.6)', borderRadius: 6, padding: '1px 5px',

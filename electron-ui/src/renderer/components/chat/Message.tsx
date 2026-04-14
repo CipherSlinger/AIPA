@@ -171,7 +171,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             borderRadius: 10,
             padding: '8px 14px',
             fontSize: 11,
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             maxWidth: 480,
             display: 'flex',
             gap: 8,
@@ -193,7 +193,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
       <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 20px' }}>
         <span style={{
           background: 'rgba(244, 71, 71, 0.08)', borderRadius: 6,
-          padding: '4px 12px', fontSize: 12, color: 'rgba(255,255,255,0.45)',
+          padding: '4px 12px', fontSize: 12, color: 'var(--text-muted)',
         }}>
           {content}
         </span>
@@ -251,7 +251,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             ? <User size={iconSize} color="#818cf8" />
             : isAssistant && activePersona
             ? <span style={{ fontSize: avatarSize * 0.55, lineHeight: 1 }}>{activePersona.emoji}</span>
-            : <Bot size={iconSize} color="rgba(255,255,255,0.60)" />
+            : <Bot size={iconSize} color="var(--text-secondary)" />
           }
         </div>
       ) : (
@@ -269,7 +269,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
               transform: 'translateY(-50%)',
               [isUser ? 'right' : 'left']: 'calc(100% + 8px)',
               fontSize: 11,
-              color: 'rgba(255,255,255,0.38)',
+              color: 'var(--text-faint)',
               whiteSpace: 'nowrap',
               pointerEvents: 'none',
               opacity: hovered ? 1 : 0,
@@ -289,7 +289,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             background: isUser ? 'rgba(99,102,241,0.12)' : 'transparent',
             borderRadius: isUser ? '12px 12px 4px 12px' : '4px 12px 12px 12px',
             padding: compact ? '8px 12px' : '10px 14px',
-            color: 'rgba(255,255,255,0.82)',
+            color: 'var(--text-primary)',
             lineHeight: isUser ? 1.5 : 1.6,
             border: copyFlash
               ? '1px solid rgba(34,197,94,0.4)'
@@ -297,7 +297,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             wordBreak: 'break-word',
             position: 'relative',
             boxShadow: isUser
-              ? (hovered ? '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.3)')
+              ? (hovered ? 'var(--glass-shadow)' : '0 2px 8px rgba(0,0,0,0.3)')
               : 'none',
             transition: 'box-shadow 0.15s ease, border-color 0.15s ease',
           }}
@@ -321,7 +321,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
               right: isUser ? (((message as StandardChatMessage).bookmarked) ? undefined : -6) : undefined,
               left: isUser ? undefined : (((message as StandardChatMessage).bookmarked) ? 6 : -6),
             }}>
-              <Pin size={12} style={{ color: 'rgba(255,255,255,0.38)', fill: 'rgba(255,255,255,0.38)', transform: 'rotate(-45deg)' }} />
+              <Pin size={12} style={{ color: 'var(--text-faint)', fill: 'var(--text-faint)', transform: 'rotate(-45deg)' }} />
             </div>
           )}
 

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Search, Download, ClipboardCopy, Maximize2, Minimize2, Plus, FolderOpen, FileText, FilePlus2, RefreshCw, MessageSquarePlus, X, GitBranch, Building2 } from 'lucide-react'
+import { Search, Download, ClipboardCopy, Maximize2, Minimize2, Plus, FolderOpen, FileText, FilePlus2, RefreshCw, MessageSquarePlus, X, GitBranch, Building2, Hash } from 'lucide-react'
 import { useChatStore, useSessionStore, usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import ModelPicker from './ModelPicker'
@@ -116,6 +116,8 @@ export default function ChatHeader({
   const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
   const personas = usePrefsStore(s => s.prefs.personas ?? EMPTY_PERSONAS)
   const sessionPersona = personas.find(p => p.id === sessionPersonaId)
+  const currentSessionId = useChatStore(s => s.currentSessionId)
+  const [sessionIdCopied, setSessionIdCopied] = useState(false)
 
   // Subscribe to system.init events from the CLI
   useEffect(() => {
@@ -152,6 +154,26 @@ export default function ChatHeader({
     setTempDraft('')
     setShowTempPrompt(false)
   }, [setTempSystemPrompt])
+
+  const copySessionId = useCallback(async () => {
+    if (!currentSessionId) return
+    try {
+      await navigator.clipboard.writeText(currentSessionId)
+      setSessionIdCopied(true)
+      setTimeout(() => setSessionIdCopied(false), 1800)
+    } catch {
+      // fallback: create a temp textarea
+      const ta = document.createElement('textarea')
+      ta.value = currentSessionId
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+      setSessionIdCopied(true)
+      setTimeout(() => setSessionIdCopied(false), 1800)
+    }
+  }, [currentSessionId])
+
   const workingDir = usePrefsStore(s => s.prefs.workingDir)
   const activeTabId = useChatStore(s => s.activeTabId)
   const tabs = useChatStore(s => s.tabs)
@@ -246,7 +268,7 @@ export default function ChatHeader({
         padding: '8px 12px',
         gap: 8,
         borderBottom: '1px solid var(--glass-border)',
-        background: 'rgba(15,15,25,0.92)',
+        background: 'var(--glass-bg-raised)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
       }}
@@ -385,6 +407,46 @@ ${t('chat.clickToChangeDir')}`}
           {sessionPersona.emoji} {sessionPersona.name}
         </span>
       ) : null}
+
+      {/* Copy session ID badge — shown when a session is active */}
+      {currentSessionId && (
+        <span
+          onClick={copySessionId}
+          title={`Session ID: ${currentSessionId}\nClick to copy (for --resume)`}
+          style={{
+            fontSize: 9,
+            fontFamily: 'monospace',
+            color: sessionIdCopied ? 'rgba(34,197,94,0.9)' : 'var(--text-faint)',
+            background: sessionIdCopied ? 'rgba(34,197,94,0.10)' : 'transparent',
+            border: `1px solid ${sessionIdCopied ? 'rgba(34,197,94,0.25)' : 'transparent'}`,
+            borderRadius: 6,
+            padding: '1px 5px',
+            whiteSpace: 'nowrap',
+            cursor: 'pointer',
+            userSelect: 'none' as const,
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 3,
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            if (!sessionIdCopied) {
+              e.currentTarget.style.color = 'var(--text-muted)'
+              e.currentTarget.style.border = '1px solid var(--glass-border)'
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!sessionIdCopied) {
+              e.currentTarget.style.color = 'var(--text-faint)'
+              e.currentTarget.style.border = '1px solid transparent'
+            }
+          }}
+        >
+          <Hash size={8} style={{ flexShrink: 0, opacity: 0.6 }} />
+          {sessionIdCopied ? 'copied!' : currentSessionId.slice(0, 8)}
+        </span>
+      )}
       </div>
 
       {/* Model quick-switcher (extracted) */}

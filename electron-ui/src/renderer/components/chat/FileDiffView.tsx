@@ -119,7 +119,7 @@ const CLR = {
   addBg: 'rgba(34,197,94,0.12)',
   addText: 'rgba(34,197,94,0.80)',
   addBorder: 'rgba(34,197,94,0.22)',
-  ctxText: 'rgba(255,255,255,0.45)',
+  ctxText: 'var(--text-muted)',
   lineNum: 'rgba(255,255,255,0.25)',
   sepText: 'rgba(99,102,241,0.70)',
   sepBg: 'rgba(99,102,241,0.07)',
@@ -280,7 +280,7 @@ export default function FileDiffView({ tool, path, oldString, newString, content
     <div style={{
       background: 'rgba(0,0,0,0.20)',
       borderRadius: 8,
-      border: '1px solid rgba(255,255,255,0.07)',
+      border: '1px solid var(--glass-border)',
       overflow: 'hidden',
       transition: 'all 0.15s ease',
     }}>
@@ -299,7 +299,7 @@ export default function FileDiffView({ tool, path, oldString, newString, content
           fontSize: 11,
           fontWeight: 700,
           letterSpacing: '0.07em',
-          color: 'rgba(255,255,255,0.45)',
+          color: 'var(--text-muted)',
           textTransform: 'uppercase',
           flex: 1,
           overflow: 'hidden',

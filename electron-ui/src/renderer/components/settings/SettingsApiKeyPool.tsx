@@ -14,11 +14,11 @@ interface SettingsApiKeyPoolProps {
 
 const glassInputStyle: React.CSSProperties = {
   background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(255,255,255,0.09)',
+  border: '1px solid var(--glass-border-md)',
   borderRadius: 6,
   padding: '5px 10px',
   fontSize: 12,
-  color: 'rgba(255,255,255,0.82)',
+  color: 'var(--text-primary)',
   outline: 'none',
   width: '100%',
   boxSizing: 'border-box' as const,
@@ -116,7 +116,7 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
           />
           {/* Key list */}
           {apiKeyPool.length === 0 ? (
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', textAlign: 'center', padding: 24 }}>{t('settings.noKeysInPool')}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-faint)', textAlign: 'center', padding: 24 }}>{t('settings.noKeysInPool')}</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
               {apiKeyPool.map((entry) => (
@@ -124,7 +124,7 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
                   key={entry.id}
                   style={{
                     background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.07)',
+                    border: '1px solid var(--glass-border)',
                     borderRadius: 8,
                     padding: '10px 12px',
                     display: 'flex',
@@ -132,7 +132,7 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
                     gap: 8,
                     transition: 'all 0.15s ease',
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--glass-border)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
                 >
                   <span style={{
@@ -140,7 +140,7 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
                     background: entry.exhausted ? '#f87171' : entry.enabled ? '#22c55e' : 'rgba(255,255,255,0.2)',
                     boxShadow: entry.enabled && !entry.exhausted ? '0 0 6px #4ade80' : 'none',
                   }} />
-                  <span style={{ fontSize: 11, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'rgba(255,255,255,0.82)' }}>{entry.label}</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>{entry.label}</span>
                   {entry.exhausted && (
                     <span style={{
                       fontSize: 10, color: '#f87171',
@@ -163,7 +163,7 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
                   )}
                   <button
                     onClick={() => savePool(apiKeyPool.map(k => k.id === entry.id ? { ...k, enabled: !k.enabled } : k))}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: entry.enabled ? '#818cf8' : 'rgba(255,255,255,0.38)', fontSize: 10, padding: '1px 4px' }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: entry.enabled ? '#818cf8' : 'var(--text-faint)', fontSize: 10, padding: '1px 4px' }}
                     title={entry.enabled ? 'Disable' : 'Enable'}
                   >{entry.enabled ? '✓' : '○'}</button>
                   <button
@@ -209,7 +209,7 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
               style={{
                 background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                 border: 'none', borderRadius: 8, padding: '7px 14px',
-                color: 'rgba(255,255,255,0.82)', cursor: newKeyValue.trim() ? 'pointer' : 'not-allowed',
+                color: 'var(--text-primary)', cursor: newKeyValue.trim() ? 'pointer' : 'not-allowed',
                 fontSize: 12, fontWeight: 600,
                 display: 'flex', alignItems: 'center', gap: 4,
                 opacity: newKeyValue.trim() ? 1 : 0.5,
@@ -236,9 +236,9 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
               style={{
                 flex: 1,
                 background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.07)',
+                border: '1px solid var(--glass-border)',
                 borderRadius: 8, padding: '5px 8px',
-                color: 'rgba(255,255,255,0.82)', cursor: 'pointer',
+                color: 'var(--text-primary)', cursor: 'pointer',
                 fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'center',
               }}
             ><Upload size={11} />{t('settings.importKeys')}</button>
@@ -248,16 +248,16 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
                 style={{
                   flex: 1,
                   background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.07)',
+                  border: '1px solid var(--glass-border)',
                   borderRadius: 8, padding: '5px 8px',
-                  color: 'rgba(255,255,255,0.82)', cursor: 'pointer',
+                  color: 'var(--text-primary)', cursor: 'pointer',
                   fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'center',
                 }}
               ><RefreshCw size={11} />{t('settings.resetExhausted')}</button>
             )}
           </div>
         </div>,
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)' }}>{t('settings.apiKeyPoolHint')}</span>
+        <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{t('settings.apiKeyPoolHint')}</span>
       )}
     </>
   )

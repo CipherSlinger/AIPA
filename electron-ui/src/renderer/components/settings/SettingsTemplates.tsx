@@ -68,14 +68,14 @@ export function SnippetsSection() {
   const snippetForm = (onSubmit: () => void) => (
     <div style={{
       padding: '12px 14px',
-      background: 'rgba(15,15,25,0.85)',
+      background: 'var(--glass-bg-low)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
       border: '1px solid rgba(99,102,241,0.30)',
       borderRadius: 10,
       marginBottom: editingId ? 0 : 12,
     }}>
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', marginBottom: 4 }}>{t('snippet.keyword')}</div>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 4 }}>{t('snippet.keyword')}</div>
       <input
         value={formKeyword}
         onChange={(e) => setFormKeyword(e.target.value.replace(/\s/g, '').slice(0, 20))}
@@ -84,7 +84,7 @@ export function SnippetsSection() {
         style={{ ...INPUT_STYLE, marginBottom: 8, fontFamily: 'monospace' }}
         autoFocus
       />
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', marginBottom: 4 }}>{t('snippet.content')}</div>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 4 }}>{t('snippet.content')}</div>
       <textarea
         value={formContent}
         onChange={(e) => setFormContent(e.target.value.slice(0, 2000))}
@@ -94,17 +94,17 @@ export function SnippetsSection() {
         style={{ ...INPUT_STYLE, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5, minHeight: 60, marginBottom: 8 }}
       />
       <div style={{ display: 'flex', gap: 6, justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)' }}>{t('snippet.triggerHint')}</span>
+        <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>{t('snippet.triggerHint')}</span>
         <div style={{ display: 'flex', gap: 6 }}>
           <button
             onClick={resetForm}
             style={{
               background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.09)',
+              border: '1px solid var(--glass-border-md)',
               borderRadius: 8,
               padding: '7px 14px',
               fontSize: 12,
-              color: 'rgba(255,255,255,0.60)',
+              color: 'var(--text-secondary)',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}
@@ -121,7 +121,7 @@ export function SnippetsSection() {
               padding: '7px 14px',
               fontSize: 12,
               fontWeight: 600,
-              color: 'rgba(255,255,255,0.82)',
+              color: 'var(--text-primary)',
               cursor: formKeyword.trim() && formContent.trim() ? 'pointer' : 'not-allowed',
               opacity: formKeyword.trim() && formContent.trim() ? 1 : 0.5,
             }}
@@ -133,21 +133,21 @@ export function SnippetsSection() {
 
   return (
     <>
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', margin: '16px 0 14px' }} />
+      <div style={{ borderTop: '1px solid var(--glass-border)', margin: '16px 0 14px' }} />
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-        <Type size={13} style={{ color: 'rgba(255,255,255,0.38)' }} />
-        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase' as const, color: 'rgba(255,255,255,0.38)' }}>
+        <Type size={13} style={{ color: 'var(--text-faint)' }} />
+        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase' as const, color: 'var(--text-faint)' }}>
           {t('snippet.title')} ({snippets.length}/50)
         </span>
       </div>
 
-      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', marginBottom: 10 }}>
+      <div style={{ fontSize: 10, color: 'var(--text-faint)', marginBottom: 10 }}>
         {t('snippet.hint')}
       </div>
 
       {snippets.length === 0 && !showAdd && (
-        <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: 12, textAlign: 'center', padding: 24 }}>
+        <div style={{ color: 'var(--text-faint)', fontSize: 12, textAlign: 'center', padding: 24 }}>
           {t('snippet.empty')}
         </div>
       )}
@@ -161,10 +161,10 @@ export function SnippetsSection() {
               <div
                 style={{
                   padding: '8px 12px',
-                  background: 'rgba(15,15,25,0.85)',
+                  background: 'var(--glass-bg-low)',
                   backdropFilter: 'blur(12px)',
                   WebkitBackdropFilter: 'blur(12px)',
-                  border: '1px solid rgba(255,255,255,0.07)',
+                  border: '1px solid var(--glass-border)',
                   borderRadius: 10,
                   display: 'flex',
                   alignItems: 'flex-start',
@@ -185,7 +185,7 @@ export function SnippetsSection() {
                   </div>
                   <div style={{
                     fontSize: 11,
-                    color: 'rgba(255,255,255,0.60)',
+                    color: 'var(--text-secondary)',
                     marginTop: 3,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -206,9 +206,9 @@ export function SnippetsSection() {
                       setShowAdd(false)
                     }}
                     title={t('common.edit')}
-                    style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.38)', cursor: 'pointer', display: 'flex', padding: 4, borderRadius: 8, transition: 'all 0.15s ease' }}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-faint)', cursor: 'pointer', display: 'flex', padding: 4, borderRadius: 8, transition: 'all 0.15s ease' }}
                     onMouseEnter={(e) => (e.currentTarget.style.color = 'rgba(165,180,252,0.9)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.38)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-faint)')}
                   >
                     <Pencil size={13} />
                   </button>
@@ -218,7 +218,7 @@ export function SnippetsSection() {
                     style={{
                       background: deletingId === s.id ? 'rgba(239,68,68,0.12)' : 'none',
                       border: 'none',
-                      color: deletingId === s.id ? '#fca5a5' : 'rgba(255,255,255,0.38)',
+                      color: deletingId === s.id ? '#fca5a5' : 'var(--text-faint)',
                       cursor: 'pointer',
                       display: 'flex',
                       padding: 4,
@@ -228,7 +228,7 @@ export function SnippetsSection() {
                       transition: 'all 0.15s ease',
                     }}
                     onMouseEnter={(e) => { if (deletingId !== s.id) e.currentTarget.style.color = '#fca5a5' }}
-                    onMouseLeave={(e) => { if (deletingId !== s.id) e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
+                    onMouseLeave={(e) => { if (deletingId !== s.id) e.currentTarget.style.color = 'var(--text-faint)' }}
                   >
                     {deletingId === s.id ? t('common.confirm') : <Trash2 size={13} />}
                   </button>
@@ -246,10 +246,10 @@ export function SnippetsSection() {
           onClick={() => { setShowAdd(true); setEditingId(null); setFormKeyword(''); setFormContent('') }}
           style={{
             background: 'rgba(255,255,255,0.04)',
-            border: '1px dashed rgba(255,255,255,0.09)',
+            border: '1px dashed var(--glass-border-md)',
             borderRadius: 8,
             padding: '8px 16px',
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             cursor: 'pointer',
             fontSize: 12,
             width: '100%',
@@ -265,8 +265,8 @@ export function SnippetsSection() {
             e.currentTarget.style.background = 'rgba(99,102,241,0.07)'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+            e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+            e.currentTarget.style.color = 'var(--text-muted)'
             e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
           }}
         >
@@ -275,7 +275,7 @@ export function SnippetsSection() {
         </button>
       )}
       {snippets.length >= 50 && !showAdd && (
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', textAlign: 'center', padding: 8 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-faint)', textAlign: 'center', padding: 8 }}>
           {t('snippet.limitReached')}
         </div>
       )}

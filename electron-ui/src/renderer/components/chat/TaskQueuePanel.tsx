@@ -129,10 +129,10 @@ function TaskRow({
 
   const titleColor =
     item.status === 'running'
-      ? 'rgba(255,255,255,0.82)'
+      ? 'var(--text-primary)'
       : item.status === 'done'
-      ? 'rgba(255,255,255,0.45)'
-      : 'rgba(255,255,255,0.82)'
+      ? 'var(--text-muted)'
+      : 'var(--text-primary)'
 
   return (
     <div
@@ -156,7 +156,7 @@ function TaskRow({
       {/* Sequence number */}
       <span style={{
         fontSize: 11,
-        color: 'rgba(255,255,255,0.38)',
+        color: 'var(--text-faint)',
         width: 16,
         textAlign: 'right',
         flexShrink: 0,
@@ -199,7 +199,7 @@ function TaskRow({
               padding: '1px 3px',
               borderRadius: 8,
               cursor: index === 0 ? 'not-allowed' : 'pointer',
-              color: upHovered && index !== 0 ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.3)',
+              color: upHovered && index !== 0 ? 'var(--text-primary)' : 'rgba(255,255,255,0.3)',
               display: 'flex',
               alignItems: 'center',
               flexShrink: 0,
@@ -223,7 +223,7 @@ function TaskRow({
               padding: '1px 3px',
               borderRadius: 8,
               cursor: index === totalCount - 1 ? 'not-allowed' : 'pointer',
-              color: downHovered && index !== totalCount - 1 ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.3)',
+              color: downHovered && index !== totalCount - 1 ? 'var(--text-primary)' : 'rgba(255,255,255,0.3)',
               display: 'flex',
               alignItems: 'center',
               flexShrink: 0,
@@ -246,12 +246,12 @@ function TaskRow({
               display: 'flex',
               alignItems: 'center',
               flexShrink: 0,
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               opacity: hovered ? 1 : 0,
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#f87171' }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.45)' }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)' }}
           >
             <X size={14} />
           </button>
@@ -315,12 +315,12 @@ export default function TaskQueuePanel() {
     <div
       style={{
         margin: '0 16px 8px 16px',
-        background: 'rgba(15,15,25,0.85)',
+        background: 'var(--glass-bg-low)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid rgba(255,255,255,0.09)',
+        border: '1px solid var(--glass-border-md)',
         borderRadius: 10,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+        boxShadow: 'var(--glass-shadow)',
         maxHeight: 208,
         overflowY: 'auto',
         flexShrink: 0,
@@ -341,10 +341,10 @@ export default function TaskQueuePanel() {
         {/* Left: title */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <AlignJustify size={14} style={{ color: '#818cf8', flexShrink: 0 }} />
-          <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.02em', color: 'rgba(255,255,255,0.82)' }}>
+          <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.02em', color: 'var(--text-primary)' }}>
             {t('taskQueue.title')}
           </span>
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginLeft: 2 }}>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 2 }}>
             ({pendingCount} {t('taskQueue.pending')} / {totalCount} {t('taskQueue.totalLabel')})
           </span>
         </div>
@@ -364,14 +364,14 @@ export default function TaskQueuePanel() {
               alignItems: 'center',
               gap: 4,
               fontSize: 11,
-              color: queuePaused ? '#fbbf24' : 'rgba(255,255,255,0.45)',
+              color: queuePaused ? '#fbbf24' : 'var(--text-muted)',
               padding: '2px 6px',
               borderRadius: 8,
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#fbbf24' }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = queuePaused ? '#fbbf24' : 'rgba(255,255,255,0.45)'
+              (e.currentTarget as HTMLButtonElement).style.color = queuePaused ? '#fbbf24' : 'var(--text-muted)'
             }}
           >
             {queuePaused ? <Play size={12} /> : <Pause size={12} />}
@@ -390,14 +390,14 @@ export default function TaskQueuePanel() {
               alignItems: 'center',
               gap: 4,
               fontSize: 11,
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               padding: '2px 6px',
               borderRadius: 8,
               marginLeft: 6,
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#f87171' }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.45)' }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)' }}
           >
             <Trash2 size={12} />
             <span>{t('taskQueue.clear')}</span>
@@ -413,7 +413,7 @@ export default function TaskQueuePanel() {
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               padding: '2px 4px',
               borderRadius: 8,
               marginLeft: 4,
@@ -422,12 +422,12 @@ export default function TaskQueuePanel() {
             onMouseEnter={(e) => {
               const btn = e.currentTarget as HTMLButtonElement
               btn.style.background = 'rgba(255,255,255,0.08)'
-              btn.style.color = 'rgba(255,255,255,0.82)'
+              btn.style.color = 'var(--text-primary)'
             }}
             onMouseLeave={(e) => {
               const btn = e.currentTarget as HTMLButtonElement
               btn.style.background = 'none'
-              btn.style.color = 'rgba(255,255,255,0.45)'
+              btn.style.color = 'var(--text-muted)'
             }}
           >
             <X size={13} />
@@ -443,7 +443,7 @@ export default function TaskQueuePanel() {
       >
         {taskQueue.length === 0 ? (
           <div style={{
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             fontSize: 12,
             textAlign: 'center',
             padding: 16,

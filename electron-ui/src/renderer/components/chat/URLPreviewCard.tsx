@@ -44,19 +44,19 @@ export default function URLPreviewCard({ url }: { url: string }) {
     return (
       <div style={{
         display: 'flex', gap: 10, padding: '10px 12px',
-        background: 'rgba(15,15,25,0.88)',
+        background: 'var(--glass-bg-card)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255,255,255,0.09)',
+        border: '1px solid var(--glass-border-md)',
         borderLeft: '3px solid rgba(99,102,241,0.5)',
         borderRadius: 10,
         boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
         marginTop: 6, marginBottom: 6,
         animation: 'pulse 1.5s ease-in-out infinite',
       }}>
-        <div style={{ width: 14, height: 14, borderRadius: 3, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
+        <div style={{ width: 14, height: 14, borderRadius: 3, background: 'var(--glass-border)', flexShrink: 0 }} />
         <div style={{ flex: 1 }}>
-          <div style={{ width: '60%', height: 12, borderRadius: 3, background: 'rgba(255,255,255,0.07)', marginBottom: 6 }} />
+          <div style={{ width: '60%', height: 12, borderRadius: 3, background: 'var(--glass-border)', marginBottom: 6 }} />
           <div style={{ width: '80%', height: 10, borderRadius: 3, background: 'rgba(255,255,255,0.06)' }} />
         </div>
       </div>
@@ -90,10 +90,10 @@ export default function URLPreviewCard({ url }: { url: string }) {
       onMouseLeave={() => setHovered(false)}
       style={{
         display: 'flex', gap: 10, padding: '10px 12px',
-        background: 'rgba(15,15,25,0.88)',
+        background: 'var(--glass-bg-card)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: hovered ? '1px solid rgba(255,255,255,0.09)' : '1px solid rgba(255,255,255,0.09)',
+        border: hovered ? '1px solid var(--glass-border-md)' : '1px solid var(--glass-border-md)',
         borderLeft: '3px solid rgba(99,102,241,0.5)',
         borderRadius: 10,
         boxShadow: hovered ? '0 4px 16px rgba(0,0,0,0.4)' : '0 2px 8px rgba(0,0,0,0.3)',
@@ -131,7 +131,7 @@ export default function URLPreviewCard({ url }: { url: string }) {
 
         {/* Page title */}
         <div style={{
-          fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.82)',
+          fontSize: 13, fontWeight: 600, color: 'var(--text-primary)',
           lineHeight: 1.3,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           marginBottom: 3,
@@ -142,7 +142,7 @@ export default function URLPreviewCard({ url }: { url: string }) {
         {/* Description snippet */}
         {meta.description && (
           <div style={{
-            fontSize: 12, color: 'rgba(255,255,255,0.60)', lineHeight: 1.5,
+            fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5,
             display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
             marginBottom: 3,
@@ -153,7 +153,7 @@ export default function URLPreviewCard({ url }: { url: string }) {
 
         {/* URL text */}
         <div style={{
-          fontSize: 10, color: 'rgba(255,255,255,0.38)',
+          fontSize: 10, color: 'var(--text-faint)',
           fontFamily: 'monospace',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
@@ -190,7 +190,7 @@ export default function URLPreviewCard({ url }: { url: string }) {
         style={{
           background: 'transparent',
           border: 'none',
-          color: dismissHovered ? 'rgba(255,255,255,0.60)' : 'rgba(255,255,255,0.38)',
+          color: dismissHovered ? 'var(--text-secondary)' : 'var(--text-faint)',
           borderRadius: 5,
           cursor: 'pointer',
           padding: '3px 5px',

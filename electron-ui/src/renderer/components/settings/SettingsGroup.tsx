@@ -27,7 +27,7 @@ export default function SettingsGroup({ title, icon, children, groupKey }: Setti
   return (
     <div style={{
       background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(255,255,255,0.07)',
+      border: '1px solid var(--glass-border)',
       borderRadius: 10,
       marginBottom: 12,
       overflow: 'hidden',
@@ -45,25 +45,25 @@ export default function SettingsGroup({ title, icon, children, groupKey }: Setti
           border: 'none',
           borderRadius: expanded ? '10px 10px 0 0' : 10,
           cursor: 'pointer',
-          color: 'rgba(255,255,255,0.82)',
+          color: 'var(--text-primary)',
           textAlign: 'left',
           transition: 'background 0.15s ease',
         }}
         onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
         onMouseLeave={e => (e.currentTarget.style.background = 'none')}
       >
-        <span style={{ color: 'rgba(255,255,255,0.38)', display: 'flex', alignItems: 'center', flexShrink: 0 }}>{icon}</span>
+        <span style={{ color: 'var(--text-faint)', display: 'flex', alignItems: 'center', flexShrink: 0 }}>{icon}</span>
         <span style={{
           flex: 1,
           fontSize: 11,
           fontWeight: 700,
           letterSpacing: '0.07em',
           textTransform: 'uppercase',
-          color: 'rgba(255,255,255,0.38)',
+          color: 'var(--text-faint)',
         }}>{title}</span>
         {expanded
-          ? <ChevronDown size={14} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
-          : <ChevronRight size={14} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
+          ? <ChevronDown size={14} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+          : <ChevronRight size={14} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
         }
       </button>
       <div style={{

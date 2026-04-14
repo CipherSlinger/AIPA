@@ -94,7 +94,7 @@ export function getActionsForType(contentType: PasteContentType): PasteAction[] 
 export const toolbarBtnStyle: React.CSSProperties = {
   background: 'transparent',
   border: 'none',
-  color: 'rgba(255,255,255,0.45)',
+  color: 'var(--text-muted)',
   cursor: 'pointer',
   display: 'flex',
   alignItems: 'center',
@@ -108,11 +108,11 @@ export const toolbarBtnStyle: React.CSSProperties = {
 }
 
 export const toolbarHoverIn = (e: React.MouseEvent<HTMLButtonElement>) => {
-  ;(e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.82)'
+  ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)'
   ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'
 }
 
 export const toolbarHoverOut = (e: React.MouseEvent<HTMLButtonElement>) => {
-  ;(e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.45)'
+  ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'
   ;(e.currentTarget as HTMLButtonElement).style.background = 'transparent'
 }

@@ -25,7 +25,7 @@ export default function MemoryAddForm({
   return (
     <div style={{
       padding: '14px 16px',
-      background: 'rgba(15,15,25,0.85)',
+      background: 'var(--glass-bg-low)',
       backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
       border: '1px solid rgba(255,255,255,0.08)',
@@ -37,7 +37,7 @@ export default function MemoryAddForm({
       <div style={{
         fontSize: 12,
         fontWeight: 600,
-        color: 'rgba(255,255,255,0.60)',
+        color: 'var(--text-secondary)',
         marginBottom: 8,
       }}>
         {t('memory.addTitle')}
@@ -53,10 +53,10 @@ export default function MemoryAddForm({
           minHeight: 80,
           padding: '7px 10px',
           background: 'rgba(255,255,255,0.06)',
-          border: '1px solid rgba(255,255,255,0.09)',
+          border: '1px solid var(--glass-border-md)',
           borderRadius: 6,
           fontSize: 13,
-          color: 'rgba(255,255,255,0.82)',
+          color: 'var(--text-primary)',
           resize: 'vertical',
           outline: 'none',
           boxSizing: 'border-box',
@@ -69,7 +69,7 @@ export default function MemoryAddForm({
           e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.45)'
         }}
         onBlur={e => {
-          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+          e.currentTarget.style.borderColor = 'var(--glass-border-md)'
           e.currentTarget.style.boxShadow = 'none'
         }}
         onKeyDown={e => {
@@ -120,10 +120,10 @@ export default function MemoryAddForm({
               top: '100%',
               left: 0,
               marginTop: 2,
-              background: 'rgba(15,15,25,0.95)',
+              background: 'var(--glass-bg-popup)',
               backdropFilter: 'blur(16px)',
               WebkitBackdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255,255,255,0.09)',
+              border: '1px solid var(--glass-border-md)',
               borderRadius: 8,
               boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
               zIndex: 50,
@@ -170,7 +170,7 @@ export default function MemoryAddForm({
           {/* Character counter */}
           <span style={{
             fontSize: 10,
-            color: newContent.length > MAX_CONTENT_LENGTH * 0.9 ? '#fbbf24' : 'rgba(255,255,255,0.38)',
+            color: newContent.length > MAX_CONTENT_LENGTH * 0.9 ? '#fbbf24' : 'var(--text-faint)',
             alignSelf: 'center',
             fontVariantNumeric: 'tabular-nums',
           }}>
@@ -181,15 +181,15 @@ export default function MemoryAddForm({
             onClick={onClose}
             style={{
               background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.09)',
+              border: '1px solid var(--glass-border-md)',
               borderRadius: 8,
               padding: '7px 14px',
               fontSize: 12,
-              color: 'rgba(255,255,255,0.60)',
+              color: 'var(--text-secondary)',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.09)')}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--glass-border-md)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
           >
             {t('memory.cancel')}
@@ -207,7 +207,7 @@ export default function MemoryAddForm({
               padding: '7px 14px',
               fontSize: 12,
               fontWeight: 600,
-              color: newContent.trim() ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.38)',
+              color: newContent.trim() ? 'var(--text-primary)' : 'var(--text-faint)',
               cursor: newContent.trim() ? 'pointer' : 'not-allowed',
               transition: 'all 0.15s ease',
               boxShadow: newContent.trim() ? '0 2px 8px rgba(99,102,241,0.30)' : 'none',

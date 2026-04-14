@@ -44,20 +44,20 @@ export default function ScrollToBottomFab({ show, unreadCount, onClick }: Props)
           height: 36,
           borderRadius: '50%',
           padding: 0,
-          background: 'rgba(15,15,25,0.92)',
+          background: 'var(--glass-bg-raised)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
-          border: '1px solid rgba(255,255,255,0.09)',
-          color: 'rgba(255,255,255,0.82)',
+          border: '1px solid var(--glass-border-md)',
+          color: 'var(--text-primary)',
           cursor: 'pointer',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+          boxShadow: 'var(--glass-shadow)',
           fontSize: 12,
           fontWeight: 600,
           transition: 'all 0.15s ease',
         }}
         onMouseEnter={(e) => {
           const el = e.currentTarget as HTMLButtonElement
-          el.style.background = 'rgba(15,15,25,0.95)'
+          el.style.background = 'var(--glass-bg-popup)'
           el.style.borderColor = 'rgba(99,102,241,0.40)'
           el.style.color = 'rgba(255,255,255,0.95)'
           el.style.boxShadow = '0 8px 32px rgba(0,0,0,0.5)'
@@ -65,9 +65,9 @@ export default function ScrollToBottomFab({ show, unreadCount, onClick }: Props)
         }}
         onMouseLeave={(e) => {
           const el = e.currentTarget as HTMLButtonElement
-          el.style.background = 'rgba(15,15,25,0.92)'
+          el.style.background = 'var(--glass-bg-raised)'
           el.style.borderColor = 'rgba(255,255,255,0.12)'
-          el.style.color = 'rgba(255,255,255,0.82)'
+          el.style.color = 'var(--text-primary)'
           el.style.boxShadow = '0 4px 16px rgba(0,0,0,0.4)'
           el.style.transform = 'scale(1)'
         }}

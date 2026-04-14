@@ -47,7 +47,7 @@ export default function ForkDialog({ msgIdx, sessionId, onConfirm, onCancel }: F
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(0,0,0,0.70)',
+        background: 'var(--glass-overlay)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         animation: 'fadeIn 0.15s ease',
@@ -56,10 +56,10 @@ export default function ForkDialog({ msgIdx, sessionId, onConfirm, onCancel }: F
     >
       <div
         style={{
-          background: 'rgba(15,15,25,0.97)',
+          background: 'var(--glass-bg-deep)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.09)',
+          border: '1px solid var(--glass-border-md)',
           borderRadius: 16,
           boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
           width: 340,
@@ -80,7 +80,7 @@ export default function ForkDialog({ msgIdx, sessionId, onConfirm, onCancel }: F
           }}
         >
           <GitBranch size={16} style={{ color: '#818cf8', flexShrink: 0 }} />
-          <span style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.82)', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
+          <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
             {t('fork.dialogTitle')}
           </span>
         </div>
@@ -100,7 +100,7 @@ export default function ForkDialog({ msgIdx, sessionId, onConfirm, onCancel }: F
                 fontWeight: 700,
                 letterSpacing: '0.07em',
                 textTransform: 'uppercase',
-                color: 'rgba(255,255,255,0.38)',
+                color: 'var(--text-faint)',
               }}
             >
               {t('fork.nameLabel')}
@@ -119,7 +119,7 @@ export default function ForkDialog({ msgIdx, sessionId, onConfirm, onCancel }: F
                 boxShadow: inputFocused ? '0 0 0 3px rgba(99,102,241,0.12)' : 'none',
                 borderRadius: 6,
                 padding: '7px 10px',
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
                 fontSize: 13,
                 outline: 'none',
                 width: '100%',
@@ -139,7 +139,7 @@ export default function ForkDialog({ msgIdx, sessionId, onConfirm, onCancel }: F
                 borderRadius: 8,
                 padding: '7px 16px',
                 fontSize: 13,
-                color: 'rgba(255,255,255,0.60)',
+                color: 'var(--text-secondary)',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
@@ -162,7 +162,7 @@ export default function ForkDialog({ msgIdx, sessionId, onConfirm, onCancel }: F
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
-                boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+                boxShadow: 'var(--glass-shadow)',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {

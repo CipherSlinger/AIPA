@@ -187,7 +187,7 @@ export default function StatsPanel({
                   cursor: 'default',
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.07)'
+                  (e.currentTarget as HTMLDivElement).style.background = 'var(--glass-border)'
                   ;(e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.12)'
                 }}
                 onMouseLeave={(e) => {

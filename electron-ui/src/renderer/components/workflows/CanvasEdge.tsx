@@ -222,7 +222,7 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
             style={{
               fontSize: '14px',
               fontWeight: 700,
-              fill: 'rgba(255,255,255,0.82)',
+              fill: 'var(--text-primary)',
               userSelect: 'none',
               pointerEvents: 'none',
             }}
@@ -244,7 +244,7 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
               height={14}
               rx={6}
               ry={6}
-              fill="rgba(15,15,25,0.85)"
+              fill="var(--glass-bg-low)"
               stroke={
                 status === 'done' || status === 'completed'
                   ? 'rgba(34,197,94,0.45)'
@@ -263,7 +263,7 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
               dominantBaseline="central"
               style={{
                 fontSize: 11,
-                fill: 'rgba(255,255,255,0.60)',
+                fill: 'var(--text-secondary)',
                 fontWeight: 600,
                 userSelect: 'none',
                 pointerEvents: 'none',
@@ -285,14 +285,14 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
           style={{ overflow: 'visible', pointerEvents: 'none' }}
         >
           <div style={{
-            background: 'rgba(15,15,25,0.88)',
+            background: 'var(--glass-bg-card)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            border: '1px solid var(--glass-border-md)',
             borderRadius: 6,
             padding: '2px 8px',
             fontSize: 11,
-            color: 'rgba(255,255,255,0.60)',
+            color: 'var(--text-secondary)',
             textAlign: 'center',
             whiteSpace: 'nowrap',
             boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
@@ -318,7 +318,7 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
             y={startY}
             textAnchor="middle"
             dominantBaseline="central"
-            style={{ fontSize: 7, fontWeight: 700, fill: 'rgba(255,255,255,0.45)', fontFamily: 'monospace', pointerEvents: 'none', userSelect: 'none' }}
+            style={{ fontSize: 7, fontWeight: 700, fill: 'var(--text-muted)', fontFamily: 'monospace', pointerEvents: 'none', userSelect: 'none' }}
           >
             {sourceStepIndex + 1}
           </text>
@@ -339,7 +339,7 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
             y={endY}
             textAnchor="middle"
             dominantBaseline="central"
-            style={{ fontSize: 7, fontWeight: 700, fill: 'rgba(255,255,255,0.45)', fontFamily: 'monospace', pointerEvents: 'none', userSelect: 'none' }}
+            style={{ fontSize: 7, fontWeight: 700, fill: 'var(--text-muted)', fontFamily: 'monospace', pointerEvents: 'none', userSelect: 'none' }}
           >
             {targetStepIndex + 1}
           </text>
@@ -388,7 +388,7 @@ export function CanvasEdgeDefs() {
     if (status === 'active') return 'rgba(99,102,241,0.8)'
     if (status === 'running') return 'rgba(99,102,241,0.8)'
     if (status === 'error') return 'rgba(239,68,68,0.7)'
-    return 'rgba(255,255,255,0.45)'
+    return 'var(--text-muted)'
   }
   return (
     <defs>

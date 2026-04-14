@@ -128,7 +128,7 @@ function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, conta
         background: 'rgba(12,12,22,0.90)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255,255,255,0.09)',
+        border: '1px solid var(--glass-border-md)',
         borderRadius: 8,
         overflow: 'hidden',
         width: MINIMAP_W,
@@ -802,7 +802,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         alignItems: 'center',
         justifyContent: 'center',
         background: 'rgba(8,8,16,1)',
-        color: 'rgba(255,255,255,0.45)',
+        color: 'var(--text-muted)',
         gap: 10,
       }}>
         <div style={{
@@ -815,8 +815,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         }}>
           <WorkflowIcon size={24} style={{ opacity: 0.45, color: 'rgba(99,102,241,0.8)' }} />
         </div>
-        <span style={{ fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.82)' }}>{t('workflow.canvasEmpty')}</span>
-        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{t('workflow.selectOrCreate')}</span>
+        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{t('workflow.canvasEmpty')}</span>
+        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('workflow.selectOrCreate')}</span>
       </div>
     )
   }
@@ -923,7 +923,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0, pointerEvents: 'all' }}>
           {/* Workflow name — inline-editable on double-click */}
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.82)', lineHeight: 1.2 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
             {editingName ? (
               <input
                 value={nameValue}
@@ -944,7 +944,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                   background: 'rgba(255,255,255,0.06)',
                   border: '1px solid #6366f1',
                   borderRadius: 4,
-                  color: 'rgba(255,255,255,0.82)',
+                  color: 'var(--text-primary)',
                   padding: '2px 6px',
                   outline: 'none',
                   width: 200,
@@ -964,7 +964,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           {workflow?.description && (
             <div style={{
               fontSize: 11,
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -991,10 +991,10 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             alignItems: 'center',
             gap: 6,
             padding: '3px 10px 3px 8px',
-            background: 'rgba(15,15,25,0.82)',
+            background: 'var(--glass-bg-low)',
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            border: '1px solid var(--glass-border-md)',
             borderRadius: 20,
             pointerEvents: 'none',
             animation: 'workflow-done-in 0.15s ease-out',
@@ -1003,7 +1003,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           <span style={{
             fontSize: 9,
             fontWeight: 700,
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             background: 'rgba(255,255,255,0.08)',
             borderRadius: 10,
             padding: '1px 5px',
@@ -1013,7 +1013,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           <span style={{
             fontSize: 11,
             fontWeight: 600,
-            color: 'rgba(255,255,255,0.82)',
+            color: 'var(--text-primary)',
             maxWidth: 200,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -1028,7 +1028,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               color: selectedStepStatus === 'completed' ? '#22c55e'
                 : selectedStepStatus === 'running' ? '#6366f1'
                 : selectedStepStatus === 'error' ? '#f87171'
-                : 'rgba(255,255,255,0.45)',
+                : 'var(--text-muted)',
               background: selectedStepStatus === 'completed' ? 'rgba(34,197,94,0.1)'
                 : selectedStepStatus === 'running' ? 'rgba(99,102,241,0.12)'
                 : selectedStepStatus === 'error' ? 'rgba(239,68,68,0.1)'
@@ -1057,7 +1057,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             background: 'rgba(10,10,20,0.9)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            border: '1px solid var(--glass-border-md)',
             borderRadius: 8,
             padding: '5px 8px',
             boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
@@ -1067,7 +1067,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           onMouseDown={e => e.stopPropagation()}
           onClick={e => e.stopPropagation()}
         >
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', flexShrink: 0 }}>🔍</span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>🔍</span>
           <input
             ref={findInputRef}
             value={findQuery}
@@ -1077,7 +1077,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               background: 'transparent',
               border: 'none',
               outline: 'none',
-              color: 'rgba(255,255,255,0.82)',
+              color: 'var(--text-primary)',
               fontSize: 12,
               flex: 1,
               minWidth: 0,
@@ -1096,9 +1096,9 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           )}
           <button
             onClick={() => { setFindOpen(false); setFindQuery('') }}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', padding: 2, fontSize: 14, lineHeight: 1, borderRadius: 4, transition: 'all 0.15s ease' }}
-            onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.82)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
-            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)'; e.currentTarget.style.background = 'none' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2, fontSize: 14, lineHeight: 1, borderRadius: 4, transition: 'all 0.15s ease' }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'none' }}
           >×</button>
         </div>
       )}
@@ -1145,7 +1145,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           borderRadius: 10, padding: '5px 16px',
           backdropFilter: 'blur(8px)',
           WebkitBackdropFilter: 'blur(8px)',
-          fontSize: 11, color: 'rgba(255,255,255,0.82)',
+          fontSize: 11, color: 'var(--text-primary)',
           whiteSpace: 'nowrap', maxWidth: '60%',
           overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
@@ -1214,7 +1214,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             <div style={{ fontSize: 13, fontWeight: 700, color: '#22c55e' }}>
               {t('workflow.canvasComplete')}
             </div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 1 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>
               {completionSummary.stepCount} {t('workflow.stepsLabel')} completed
             </div>
           </div>
@@ -1306,13 +1306,13 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               >+</text>
             </svg>
           </div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.82)', textAlign: 'center' }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', textAlign: 'center' }}>
             {t('workflow.emptyState')}
           </div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', textAlign: 'center', letterSpacing: '0.01em' }}>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', letterSpacing: '0.01em' }}>
             {t('workflow.canvasAddStepHint')}
           </div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', opacity: 0.5, letterSpacing: '0.01em', textAlign: 'center' }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', opacity: 0.5, letterSpacing: '0.01em', textAlign: 'center' }}>
             {t('workflow.canvasRightClickHint')}
           </div>
         </div>
@@ -1355,16 +1355,16 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           left: 158,  // 搜索框宽度约 150px + 8px offset
           zIndex: 11,
           fontSize: 10,
-          color: searchMatchCount > 0 ? '#6366f1' : 'rgba(255,255,255,0.45)',
+          color: searchMatchCount > 0 ? '#6366f1' : 'var(--text-muted)',
           background: searchMatchCount > 0
             ? 'rgba(99,102,241,0.12)'
-            : 'rgba(255,255,255,0.07)',
+            : 'var(--glass-border)',
           borderRadius: 20,
           padding: '2px 8px',
           pointerEvents: 'none',
           transition: 'all 0.15s ease',
           fontWeight: 600,
-          border: '1px solid rgba(255,255,255,0.09)',
+          border: '1px solid var(--glass-border-md)',
         }}>
           {searchMatchCount}
         </div>
@@ -1376,7 +1376,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)',
           zIndex: 20, pointerEvents: 'none',
           background: 'rgba(0,0,0,0.6)', borderRadius: 6,
-          padding: '3px 10px', fontSize: 10, color: 'rgba(255,255,255,0.60)',
+          padding: '3px 10px', fontSize: 10, color: 'var(--text-secondary)',
           letterSpacing: '0.01em',
         }}>
           {t('workflow.holdDragToPan')}
@@ -1391,13 +1391,13 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           left: '50%',
           transform: 'translateX(-50%)',
           fontSize: 10,
-          color: 'rgba(255,255,255,0.45)',
+          color: 'var(--text-muted)',
           background: 'rgba(20,20,20,0.8)',
           backdropFilter: 'blur(6px)',
           WebkitBackdropFilter: 'blur(6px)',
           borderRadius: 6,
           padding: '3px 10px',
-          border: '1px solid rgba(255,255,255,0.09)',
+          border: '1px solid var(--glass-border-md)',
           pointerEvents: 'none',
           zIndex: 15,
         }}>
@@ -1663,7 +1663,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                 zIndex: 5,
                 transition: 'all 0.15s ease',
                 opacity: isHovered ? 1 : 0.4,
-                color: isHovered ? 'rgba(255,255,255,0.82)' : '#6366f1',
+                color: isHovered ? 'var(--text-primary)' : '#6366f1',
                 fontSize: 18,
                 fontWeight: 300,
                 lineHeight: 1,
@@ -1749,13 +1749,13 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
       }}>
         <span style={{
           fontSize: 10,
-          color: 'rgba(255,255,255,0.45)',
+          color: 'var(--text-muted)',
           background: 'rgba(20,20,20,0.7)',
           backdropFilter: 'blur(6px)',
           WebkitBackdropFilter: 'blur(6px)',
           borderRadius: 5,
           padding: '2px 8px',
-          border: '1px solid rgba(255,255,255,0.09)',
+          border: '1px solid var(--glass-border-md)',
           fontVariantNumeric: 'tabular-nums',
           fontFeatureSettings: '"tnum"',
         }}>
@@ -1771,10 +1771,10 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             left: canvasCtxMenu.x,
             top: canvasCtxMenu.y,
             zIndex: 1000,
-            background: 'rgba(15,15,25,0.92)',
+            background: 'var(--glass-bg-raised)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            border: '1px solid var(--glass-border-md)',
             borderRadius: 10,
             boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
             minWidth: 168,
@@ -1800,7 +1800,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                 padding: '7px 12px',
                 fontSize: 12,
                 cursor: 'pointer',
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
@@ -1826,7 +1826,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           transform: 'translateX(-50%)',
           zIndex: 50,
           background: 'rgba(34,197,94,0.9)',
-          color: 'rgba(255,255,255,0.82)',
+          color: 'var(--text-primary)',
           fontSize: 11,
           fontWeight: 600,
           borderRadius: 6,
@@ -1849,7 +1849,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             bottom: summaryCollapsed ? 32 : 32,
             left: 12,
             zIndex: 11,
-            background: 'rgba(15,15,25,0.85)',
+            background: 'var(--glass-bg-low)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
             border: `1px solid ${execution.hasError && !execution.isRunning ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.08)'}`,
@@ -1871,7 +1871,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               gap: 7,
               padding: '7px 10px',
               cursor: 'pointer',
-              borderBottom: summaryCollapsed ? 'none' : '1px solid rgba(255,255,255,0.07)',
+              borderBottom: summaryCollapsed ? 'none' : '1px solid var(--glass-border)',
             }}
             onClick={() => setSummaryCollapsed(p => !p)}
           >
@@ -1881,10 +1881,10 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               flexShrink: 0,
               boxShadow: `0 0 6px ${execution.hasError && !execution.isRunning ? 'rgba(239,68,68,0.5)' : 'rgba(34,197,94,0.5)'}`,
             }} />
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.82)', flex: 1 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>
               {execution.hasError && !execution.isRunning ? 'Finished with errors' : 'Completed'}
             </span>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', opacity: 0.6 }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', opacity: 0.6 }}>
               {summaryCollapsed ? '▲' : '▼'}
             </span>
           </div>
@@ -1897,8 +1897,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                 { label: 'Output', value: `~${totalOutputWords}w` },
               ].map(({ label, value }) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>{label}</span>
-                  <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.82)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{value}</span>
+                  <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{label}</span>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{value}</span>
                 </div>
               ))}
             </div>
@@ -1922,7 +1922,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             background: 'rgba(10,10,15,0.85)',
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
-            borderTop: '1px solid rgba(255,255,255,0.07)',
+            borderTop: '1px solid var(--glass-border)',
             boxSizing: 'border-box',
           }}
           onClick={e => e.stopPropagation()}
@@ -1986,7 +1986,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           borderRadius: 10,
           padding: '2px 8px',
           fontSize: 9,
-          color: 'rgba(255,255,255,0.45)',
+          color: 'var(--text-muted)',
           fontWeight: 500,
           fontVariantNumeric: 'tabular-nums',
           fontFeatureSettings: '"tnum"',

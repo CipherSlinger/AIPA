@@ -14,7 +14,7 @@ export function CostBadge() {
   if (totalCost < 0.01) return null
 
   const costStr = totalCost < 1 ? `$${totalCost.toFixed(3)}` : `$${totalCost.toFixed(2)}`
-  const color = totalCost >= 5 ? '#f87171' : totalCost >= 1 ? '#fbbf24' : 'rgba(255,255,255,0.45)'
+  const color = totalCost >= 5 ? '#f87171' : totalCost >= 1 ? '#fbbf24' : 'var(--text-muted)'
   const bgColor = totalCost >= 5 ? 'rgba(239,68,68,0.12)' : totalCost >= 1 ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.04)'
   const borderColor = totalCost >= 5 ? 'rgba(239,68,68,0.3)' : totalCost >= 1 ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.08)'
 
@@ -90,7 +90,7 @@ export function ContextBadge({ onNewConversation }: { onNewConversation: () => v
 
   const isCritical = pct >= 90
   const isWarning = pct >= 80 && pct < 90
-  const color = isCritical ? '#f87171' : isWarning ? '#fbbf24' : 'rgba(255,255,255,0.45)'
+  const color = isCritical ? '#f87171' : isWarning ? '#fbbf24' : 'var(--text-muted)'
   const chipBg = isCritical ? 'rgba(239,68,68,0.08)' : isWarning ? 'rgba(245,158,11,0.08)' : 'rgba(99,102,241,0.08)'
   const chipBorder = isCritical ? 'rgba(239,68,68,0.2)' : isWarning ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.08)'
   const barFill = isCritical ? '#f87171' : isWarning ? '#fbbf24' : 'rgba(99,102,241,0.8)'
@@ -153,18 +153,18 @@ export function ContextBadge({ onNewConversation }: { onNewConversation: () => v
             right: 0,
             marginTop: 6,
             width: 260,
-            background: 'rgba(15,15,25,0.92)',
+            background: 'var(--glass-bg-raised)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.07)',
+            border: '1px solid var(--glass-border)',
             borderRadius: 10,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+            boxShadow: 'var(--glass-shadow)',
             padding: '14px 16px',
             zIndex: 100,
             animation: 'slideUp 0.15s ease',
           }}
         >
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)', marginBottom: 10 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 10 }}>
             {t('toolbar.contextPopoverTitle')}
           </div>
 
@@ -180,15 +180,15 @@ export function ContextBadge({ onNewConversation }: { onNewConversation: () => v
           </div>
 
           {/* Stats rows */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.45)', marginBottom: 6 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
             <span>{t('toolbar.contextPopoverUsed')}</span>
             <span style={{ color, fontWeight: 600, fontFamily: 'monospace' }}>{ctx.used.toLocaleString()}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.45)', marginBottom: 6 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
             <span>{t('toolbar.contextPopoverRemaining')}</span>
             <span style={{ fontWeight: 600, fontFamily: 'monospace' }}>{remaining.toLocaleString()}</span>
           </div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', marginBottom: 12, opacity: 0.8 }}>
+          <div style={{ fontSize: 10, color: 'var(--text-faint)', marginBottom: 12, opacity: 0.8 }}>
             {t('toolbar.contextPopoverEstMsgs', { count: String(estMsgsRemaining) })}
           </div>
 
@@ -203,7 +203,7 @@ export function ContextBadge({ onNewConversation }: { onNewConversation: () => v
               background: newSessionBg,
               border: pct >= 80 ? 'none' : '1px solid rgba(255,255,255,0.10)',
               borderRadius: 6,
-              color: pct >= 80 ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.82)',
+              color: pct >= 80 ? 'rgba(255,255,255,0.95)' : 'var(--text-primary)',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}
@@ -233,7 +233,7 @@ export function ContextProgressBar() {
       style={{
         height: 2,
         width: '100%',
-        background: 'rgba(255,255,255,0.07)',
+        background: 'var(--glass-border)',
         flexShrink: 0,
         transition: 'all 0.15s ease',
       }}

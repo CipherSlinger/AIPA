@@ -58,7 +58,7 @@ export default function DreamTaskCard({ events }: DreamTaskCardProps) {
         background: 'rgba(15,12,28,0.88)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        border: '1px solid var(--glass-border)',
         borderLeft: '3px solid rgba(139,92,246,0.60)',
         borderRadius: 10,
         padding: '6px 10px',
@@ -72,12 +72,12 @@ export default function DreamTaskCard({ events }: DreamTaskCardProps) {
       {/* Header row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <Brain size={12} color="rgba(167,139,250,0.82)" />
-        <span style={{ color: 'rgba(255,255,255,0.82)', fontWeight: 600 }}>
+        <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
           Memory Consolidation
         </span>
         <span
           style={{
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             fontSize: 10,
             fontStyle: 'italic',
           }}
@@ -87,7 +87,7 @@ export default function DreamTaskCard({ events }: DreamTaskCardProps) {
         <span
           style={{
             marginLeft: 'auto',
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-faint)',
             fontSize: 10,
             fontVariantNumeric: 'tabular-nums',
             fontFeatureSettings: '"tnum"',
@@ -120,7 +120,7 @@ export default function DreamTaskCard({ events }: DreamTaskCardProps) {
       <div
         style={{
           marginTop: 3,
-          color: 'rgba(255,255,255,0.60)',
+          color: 'var(--text-secondary)',
           fontSize: 10,
         }}
       >
@@ -134,7 +134,7 @@ export default function DreamTaskCard({ events }: DreamTaskCardProps) {
             marginTop: 6,
             padding: '4px 8px',
             background: 'rgba(0,0,0,0.25)',
-            border: '1px solid rgba(255,255,255,0.07)',
+            border: '1px solid var(--glass-border)',
             borderRadius: 6,
           }}
         >
@@ -146,7 +146,7 @@ export default function DreamTaskCard({ events }: DreamTaskCardProps) {
                 alignItems: 'center',
                 gap: 6,
                 padding: '2px 0',
-                color: 'rgba(255,255,255,0.60)',
+                color: 'var(--text-secondary)',
                 fontSize: 10,
               }}
             >
@@ -155,7 +155,7 @@ export default function DreamTaskCard({ events }: DreamTaskCardProps) {
                 {new Date(ev.timestamp).toLocaleTimeString()}
               </span>
               {ev.sessionsReviewed != null && (
-                <span style={{ color: 'rgba(255,255,255,0.38)' }}>
+                <span style={{ color: 'var(--text-faint)' }}>
                   · {ev.sessionsReviewed} session{ev.sessionsReviewed !== 1 ? 's' : ''} reviewed
                 </span>
               )}

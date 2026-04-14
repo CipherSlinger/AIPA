@@ -161,10 +161,10 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
         style={{
           fontSize: 11,
           background: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.09)',
+          border: '1px solid var(--glass-border-md)',
           borderRadius: 6,
           padding: '3px 8px',
-          color: 'rgba(255,255,255,0.82)',
+          color: 'var(--text-primary)',
           outline: 'none',
           width: 80,
         }}
@@ -177,10 +177,10 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
         style={{
           fontSize: 11,
           background: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.09)',
+          border: '1px solid var(--glass-border-md)',
           borderRadius: 6,
           padding: '3px 8px',
-          color: 'rgba(255,255,255,0.82)',
+          color: 'var(--text-primary)',
           outline: 'none',
           width: 140,
         }}
@@ -208,7 +208,7 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
         style={{
           background: 'none',
           border: 'none',
-          color: 'rgba(255,255,255,0.45)',
+          color: 'var(--text-muted)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -268,12 +268,12 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
               aria-label={chip.prompt}
               style={{
                 background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.09)',
+                border: '1px solid var(--glass-border-md)',
                 borderRadius: 20,
                 padding: '3px 10px',
                 fontSize: 12,
                 fontWeight: 500,
-                color: 'rgba(255,255,255,0.60)',
+                color: 'var(--text-secondary)',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
                 flexShrink: 0,
@@ -286,13 +286,13 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
                 const el = e.currentTarget as HTMLButtonElement
                 el.style.background = 'rgba(255,255,255,0.10)'
                 el.style.borderColor = 'rgba(99,102,241,0.40)'
-                el.style.color = 'rgba(255,255,255,0.82)'
+                el.style.color = 'var(--text-primary)'
               }}
               onMouseLeave={e => {
                 const el = e.currentTarget as HTMLButtonElement
                 el.style.background = 'rgba(255,255,255,0.05)'
-                el.style.borderColor = 'rgba(255,255,255,0.09)'
-                el.style.color = 'rgba(255,255,255,0.60)'
+                el.style.borderColor = 'var(--glass-border-md)'
+                el.style.color = 'var(--text-secondary)'
               }}
               onMouseDown={e => {
                 const el = e.currentTarget as HTMLButtonElement
@@ -329,18 +329,18 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
               cursor: 'pointer',
               flexShrink: 0,
               transition: 'all 0.15s ease',
-              color: 'rgba(255,255,255,0.38)',
+              color: 'var(--text-faint)',
               fontSize: 11,
             }}
             onMouseEnter={e => {
               ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)'
               ;(e.currentTarget as HTMLButtonElement).style.borderStyle = 'solid'
-              ;(e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.60)'
+              ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)'
             }}
             onMouseLeave={e => {
               ;(e.currentTarget as HTMLButtonElement).style.background = 'transparent'
               ;(e.currentTarget as HTMLButtonElement).style.borderStyle = 'dashed'
-              ;(e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.38)'
+              ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--text-faint)'
             }}
           >
             <Plus size={14} />
@@ -355,12 +355,12 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
             position: 'fixed',
             left: contextMenu.x,
             top: contextMenu.y,
-            background: 'rgba(15,15,25,0.96)',
+            background: 'var(--glass-bg-high)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            border: '1px solid var(--glass-border-md)',
             borderRadius: 8,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+            boxShadow: 'var(--glass-shadow)',
             padding: '4px 0',
             zIndex: 9999,
             minWidth: 120,
@@ -374,7 +374,7 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
               width: '100%',
               background: 'none',
               border: 'none',
-              color: 'rgba(255,255,255,0.82)',
+              color: 'var(--text-primary)',
               fontSize: 12,
               padding: '6px 14px',
               cursor: 'pointer',

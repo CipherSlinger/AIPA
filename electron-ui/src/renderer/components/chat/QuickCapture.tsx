@@ -99,7 +99,7 @@ export default function QuickCapture() {
             ? 'rgba(255,255,255,0.18)'
             : 'linear-gradient(135deg, #6366f1, #818cf8)',
           border: open
-            ? '1px solid rgba(255,255,255,0.38)'
+            ? '1px solid var(--text-faint)'
             : '1px solid rgba(99,102,241,0.50)',
           cursor: 'pointer',
           display: 'flex',
@@ -134,12 +134,12 @@ export default function QuickCapture() {
           bottom: 96,
           right: 20,
           width: 320,
-          background: 'rgba(15,15,25,0.96)',
+          background: 'var(--glass-bg-high)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.09)',
+          border: '1px solid var(--glass-border-md)',
           borderRadius: 14,
-          boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+          boxShadow: 'var(--glass-shadow)',
           padding: 14,
           zIndex: 51,
           animation: 'slideUp 0.15s ease',
@@ -147,21 +147,21 @@ export default function QuickCapture() {
           {/* Header */}
           <div style={{
             display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10,
-            paddingBottom: 10, borderBottom: '1px solid rgba(255,255,255,0.07)',
+            paddingBottom: 10, borderBottom: '1px solid var(--glass-border)',
           }}>
             <StickyNote size={13} color="#818cf8" />
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.82)', flex: 1 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>
               {t('notes.quickCapture')}
             </span>
             <kbd style={{
               fontSize: 9,
               fontWeight: 700,
               letterSpacing: '0.04em',
-              background: 'rgba(255,255,255,0.07)',
-              border: '1px solid rgba(255,255,255,0.09)',
+              background: 'var(--glass-border)',
+              border: '1px solid var(--glass-border-md)',
               borderRadius: 5,
               padding: '1px 5px',
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               fontFamily: 'monospace',
               lineHeight: '14px',
               backdropFilter: 'blur(8px)',
@@ -171,11 +171,11 @@ export default function QuickCapture() {
               onClick={() => setOpen(false)}
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
-                color: 'rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center',
+                color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
                 borderRadius: 6, padding: 3, transition: 'all 0.15s ease',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--glass-border)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-muted)' }}
             >
               <X size={14} />
             </button>
@@ -193,7 +193,7 @@ export default function QuickCapture() {
               e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.50)'
             }}
             onBlur={e => {
-              e.currentTarget.style.border = '1px solid rgba(255,255,255,0.09)'
+              e.currentTarget.style.border = '1px solid var(--glass-border-md)'
               e.currentTarget.style.boxShadow = 'none'
             }}
             style={{
@@ -202,10 +202,10 @@ export default function QuickCapture() {
               maxHeight: 130,
               resize: 'none',
               background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.09)',
+              border: '1px solid var(--glass-border-md)',
               borderRadius: 8,
               padding: '9px 11px',
-              color: 'rgba(255,255,255,0.82)',
+              color: 'var(--text-primary)',
               fontSize: 14,
               outline: 'none',
               fontFamily: 'inherit',
@@ -216,7 +216,7 @@ export default function QuickCapture() {
           />
 
           {/* Char counter */}
-          <div style={{ textAlign: 'right', marginTop: 4, fontSize: 10, color: 'rgba(255,255,255,0.38)' }}>
+          <div style={{ textAlign: 'right', marginTop: 4, fontSize: 10, color: 'var(--text-faint)' }}>
             {text.length}
           </div>
 
@@ -228,10 +228,10 @@ export default function QuickCapture() {
               style={{
                 flex: 1,
                 background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.09)',
+                border: '1px solid var(--glass-border-md)',
                 borderRadius: 8,
                 padding: '4px 8px',
-                color: 'rgba(255,255,255,0.60)',
+                color: 'var(--text-secondary)',
                 fontSize: 12,
                 outline: 'none',
                 cursor: 'pointer',

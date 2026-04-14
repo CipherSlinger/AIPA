@@ -82,7 +82,7 @@ export default function ThinkingIndicator() {
         {activePersona?.emoji ? (
           <span style={{ fontSize: 15, lineHeight: 1 }}>{activePersona.emoji}</span>
         ) : (
-          <Bot size={16} color="rgba(255,255,255,0.82)" />
+          <Bot size={16} color="var(--text-primary)" />
         )}
       </div>
 
@@ -124,7 +124,7 @@ export default function ThinkingIndicator() {
               fontStyle: 'italic',
               marginLeft: 2,
               whiteSpace: 'nowrap',
-              color: 'rgba(255,255,255,0.60)',
+              color: 'var(--text-secondary)',
             }}
           >
             {activityLabel}...
@@ -134,7 +134,7 @@ export default function ThinkingIndicator() {
         {/* Elapsed timer */}
         <div style={{
           fontSize: 10,
-          color: 'rgba(255,255,255,0.38)',
+          color: 'var(--text-faint)',
           flexShrink: 0,
           fontVariantNumeric: 'tabular-nums',
         }}>

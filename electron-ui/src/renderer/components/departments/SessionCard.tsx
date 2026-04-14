@@ -159,14 +159,14 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
             isActive
               ? 'rgba(99,102,241,0.35)'
               : hovered
-              ? 'rgba(255,255,255,0.09)'
-              : 'rgba(255,255,255,0.07)'
+              ? 'var(--glass-border-md)'
+              : 'var(--glass-border)'
           }`,
           background: isActive
             ? 'rgba(99,102,241,0.10)'
             : hovered
-            ? 'rgba(15,15,25,0.85)'
-            : 'rgba(15,15,25,0.85)',
+            ? 'var(--glass-bg-low)'
+            : 'var(--glass-bg-low)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
           cursor: 'pointer',
@@ -179,7 +179,7 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
           boxShadow: isActive
             ? '0 2px 8px rgba(0,0,0,0.3)'
             : hovered
-            ? '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)'
+            ? 'var(--glass-shadow)'
             : '0 2px 8px rgba(0,0,0,0.3)',
           flexShrink: 0,
           position: 'relative',
@@ -318,7 +318,7 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
               borderRadius: 4,
               border: 'none',
               background: 'rgba(239,68,68,0.85)',
-              color: 'rgba(255,255,255,0.82)',
+              color: 'var(--text-primary)',
               fontSize: 10,
               fontWeight: 600,
               cursor: 'pointer',
@@ -338,15 +338,15 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
               borderRadius: 4,
               border: '1px solid rgba(255,255,255,0.15)',
               background: 'rgba(0,0,0,0.4)',
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               fontSize: 10,
               cursor: 'pointer',
               backdropFilter: 'blur(4px)',
               WebkitBackdropFilter: 'blur(4px)',
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.4)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.4)'; e.currentTarget.style.color = 'var(--text-muted)' }}
           >
             {t('dept.cancel')}
           </button>
@@ -366,7 +366,7 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
             background: 'rgba(239,68,68,0)',
             border: 'none',
             cursor: 'pointer',
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             padding: 3,
             borderRadius: 4,
             display: 'flex',
@@ -379,7 +379,7 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
           }}
           onMouseLeave={e => {
             e.currentTarget.style.background = 'transparent'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+            e.currentTarget.style.color = 'var(--text-muted)'
           }}
           title={t('dept.deleteSession')}
         >
@@ -399,7 +399,7 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
             background: pinned ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0)',
             border: 'none',
             cursor: 'pointer',
-            color: pinned ? '#fbbf24' : 'rgba(255,255,255,0.45)',
+            color: pinned ? '#fbbf24' : 'var(--text-muted)',
             padding: 3,
             borderRadius: 4,
             display: 'flex',
@@ -414,7 +414,7 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
           }}
           onMouseLeave={e => {
             e.currentTarget.style.background = pinned ? 'rgba(251,191,36,0.15)' : 'transparent'
-            e.currentTarget.style.color = pinned ? '#fbbf24' : 'rgba(255,255,255,0.45)'
+            e.currentTarget.style.color = pinned ? '#fbbf24' : 'var(--text-muted)'
           }}
         >
           📌
@@ -439,14 +439,14 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
         <MessageSquare
           size={14}
-          color={isActive ? '#818cf8' : hovered ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.45)'}
+          color={isActive ? '#818cf8' : hovered ? 'rgba(255,255,255,0.5)' : 'var(--text-muted)'}
           style={{ flexShrink: 0, marginTop: 1, transition: 'all 0.15s ease' }}
         />
         <span
           style={{
             fontSize: 13,
             fontWeight: 600,
-            color: 'rgba(255,255,255,0.82)',
+            color: 'var(--text-primary)',
             lineHeight: 1.4,
             overflow: 'hidden',
             display: '-webkit-box',
@@ -465,7 +465,7 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
         <span
           style={{
             fontSize: 11,
-            color: 'rgba(255,255,255,0.60)',
+            color: 'var(--text-secondary)',
             lineHeight: 1.55,
             overflow: 'hidden',
             display: '-webkit-box',
@@ -513,7 +513,7 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
           paddingTop: 6,
         }}
       >
-        <Clock size={10} color="rgba(255,255,255,0.45)" style={{ opacity: 0.7, flexShrink: 0 }} />
+        <Clock size={10} color="var(--text-muted)" style={{ opacity: 0.7, flexShrink: 0 }} />
         {isToday && (
           <span style={{
             fontSize: 9,
@@ -528,12 +528,12 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
             {t('session.today')}
           </span>
         )}
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }} title={new Date(session.timestamp).toLocaleString()}>{timeStr}</span>
+        <span style={{ fontSize: 10, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }} title={new Date(session.timestamp).toLocaleString()}>{timeStr}</span>
 
         {wordCount > 0 && (
           <>
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', opacity: 0.4, margin: '0 1px' }}>·</span>
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', opacity: 0.65 }}>
+            <span style={{ fontSize: 10, color: 'var(--text-muted)', opacity: 0.4, margin: '0 1px' }}>·</span>
+            <span style={{ fontSize: 10, color: 'var(--text-muted)', opacity: 0.65 }}>
               {wordCount}w
             </span>
           </>
@@ -542,10 +542,10 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
         {/* Session duration (time from first to last message) */}
         {sessionDuration && (
           <>
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', opacity: 0.4, margin: '0 1px' }}>·</span>
+            <span style={{ fontSize: 10, color: 'var(--text-muted)', opacity: 0.4, margin: '0 1px' }}>·</span>
             <span style={{
               fontSize: 10,
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               opacity: 0.7,
             }} title="Session duration">
               {sessionDuration}
@@ -555,17 +555,17 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
 
         {session.messageCount !== undefined && session.messageCount > 0 && (
           <>
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', opacity: 0.4, margin: '0 1px' }}>·</span>
+            <span style={{ fontSize: 10, color: 'var(--text-muted)', opacity: 0.4, margin: '0 1px' }}>·</span>
             <span
               style={{
                 marginLeft: 'auto',
                 fontSize: 10,
                 fontWeight: 600,
-                color: isActive ? '#818cf8' : hovered ? 'rgba(255,255,255,0.60)' : 'rgba(255,255,255,0.45)',
+                color: isActive ? '#818cf8' : hovered ? 'var(--text-secondary)' : 'var(--text-muted)',
                 background: isActive
                   ? 'rgba(99,102,241,0.18)'
                   : hovered
-                  ? 'rgba(255,255,255,0.09)'
+                  ? 'var(--glass-border-md)'
                   : 'rgba(255,255,255,0.06)',
                 borderRadius: 20,
                 padding: '1px 7px',
@@ -600,7 +600,7 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
           }}
           onClick={e => e.stopPropagation()}
         >
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginBottom: 6, display: 'flex', gap: 8 }}>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 6, display: 'flex', gap: 8 }}>
             <span>{new Date(session.timestamp).toLocaleString()}</span>
             {session.messageCount !== undefined && (
               <span style={{ marginLeft: 'auto' }}>{session.messageCount} messages</span>
@@ -608,7 +608,7 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
           </div>
           <p style={{
             fontSize: 11,
-            color: 'rgba(255,255,255,0.60)',
+            color: 'var(--text-secondary)',
             lineHeight: 1.6,
             margin: 0,
             whiteSpace: 'pre-wrap',

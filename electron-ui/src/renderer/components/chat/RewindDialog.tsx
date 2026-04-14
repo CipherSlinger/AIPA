@@ -16,7 +16,7 @@ export default function RewindDialog({ count, onConfirm, onCancel }: RewindDialo
       style={{
         position: 'absolute', inset: 0, zIndex: 50,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(0,0,0,0.70)',
+        background: 'var(--glass-overlay)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         animation: 'fadeIn 0.15s ease',
@@ -26,10 +26,10 @@ export default function RewindDialog({ count, onConfirm, onCancel }: RewindDialo
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: 'rgba(15,15,25,0.96)',
+          background: 'var(--glass-bg-high)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.07)',
+          border: '1px solid var(--glass-border)',
           borderRadius: 16,
           boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
           maxWidth: 360,
@@ -42,10 +42,10 @@ export default function RewindDialog({ count, onConfirm, onCancel }: RewindDialo
         <div
           style={{
             padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.07)',
+            borderBottom: '1px solid var(--glass-border)',
           }}
         >
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.82)', textAlign: 'center', lineHeight: 1.3 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'center', lineHeight: 1.3 }}>
             {t('rewind.title')}
           </div>
         </div>
@@ -53,7 +53,7 @@ export default function RewindDialog({ count, onConfirm, onCancel }: RewindDialo
         {/* Body */}
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Description */}
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.60)', lineHeight: 1.6, textAlign: 'center' }}>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, textAlign: 'center' }}>
             {t('rewind.confirm', { count: String(count) })}
           </div>
 
@@ -86,20 +86,20 @@ export default function RewindDialog({ count, onConfirm, onCancel }: RewindDialo
                 fontSize: 13,
                 borderRadius: 8,
                 background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.09)',
-                color: 'rgba(255,255,255,0.60)',
+                border: '1px solid var(--glass-border-md)',
+                color: 'var(--text-secondary)',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
+                e.currentTarget.style.background = 'var(--glass-border-md)'
                 e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+                e.currentTarget.style.color = 'var(--text-primary)'
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+                e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+                e.currentTarget.style.color = 'var(--text-secondary)'
               }}
             >
               {t('common.cancel')}

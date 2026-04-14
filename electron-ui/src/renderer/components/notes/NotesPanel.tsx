@@ -82,7 +82,7 @@ export default function NotesPanel() {
 
   // ── List View ──
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'rgba(15,15,25,0.90)', borderRight: '1px solid rgba(255,255,255,0.07)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--glass-bg-mid)', borderRight: '1px solid var(--glass-border)' }}>
       {/* Header with sort, export, import, new note */}
       <NotesHeader
         noteCount={crud.notes.length}
@@ -104,14 +104,14 @@ export default function NotesPanel() {
             height: 32,
             padding: '0 8px',
             background: 'rgba(255,255,255,0.06)',
-            border: searchFocused ? '1px solid rgba(99,102,241,0.45)' : '1px solid rgba(255,255,255,0.09)',
+            border: searchFocused ? '1px solid rgba(99,102,241,0.45)' : '1px solid var(--glass-border-md)',
             borderRadius: 7,
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
             transition: 'all 0.15s ease',
             boxShadow: searchFocused ? '0 0 0 3px rgba(99,102,241,0.12)' : 'none',
           }}>
-            <Search size={14} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
+            <Search size={14} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
             <input
               type="text"
               value={searchQuery}
@@ -122,7 +122,7 @@ export default function NotesPanel() {
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
                 fontSize: 12,
                 fontFamily: 'inherit',
               }}
@@ -135,22 +135,22 @@ export default function NotesPanel() {
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: 'rgba(255,255,255,0.45)',
+                  color: 'var(--text-muted)',
                   cursor: 'pointer',
                   padding: 2,
                   display: 'flex',
                   alignItems: 'center',
                   flexShrink: 0,
                 }}
-                onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.82)')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
               >
                 <X size={12} />
               </button>
             )}
           </div>
           {searchQuery.trim() && (
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', padding: '4px 0 0' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-faint)', padding: '4px 0 0' }}>
               {filteredNotes.length > 0
                 ? t('notes.searchResults', { count: String(filteredNotes.length) })
                 : t('notes.noResults')

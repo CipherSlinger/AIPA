@@ -83,11 +83,11 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
             : chipHovered || show ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.06)',
           border: sessionPersona
             ? `1px solid ${sessionPersona.color}66`
-            : '1px solid rgba(255,255,255,0.09)',
+            : '1px solid var(--glass-border-md)',
           fontSize: 11,
           fontWeight: 500,
           whiteSpace: 'nowrap',
-          color: chipHovered || show ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.55)',
+          color: chipHovered || show ? 'var(--text-primary)' : 'rgba(255,255,255,0.55)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -117,10 +117,10 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
             bottom: '100%',
             right: 0,
             marginBottom: 4,
-            background: 'rgba(15,15,25,0.96)',
+            background: 'var(--glass-bg-high)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            border: '1px solid var(--glass-border-md)',
             borderRadius: 10,
             boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
             padding: '4px 0',
@@ -147,7 +147,7 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
               borderRight: 'none',
               borderBottom: 'none',
               borderRadius: !sessionPersonaId ? 0 : 5,
-              color: !sessionPersonaId ? '#818cf8' : 'rgba(255,255,255,0.60)',
+              color: !sessionPersonaId ? '#818cf8' : 'var(--text-secondary)',
               cursor: 'pointer',
               textAlign: 'left',
               transition: 'all 0.15s ease',
@@ -159,7 +159,7 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
               width: 28,
               height: 28,
               borderRadius: 7,
-              background: 'rgba(255,255,255,0.07)',
+              background: 'var(--glass-border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -185,7 +185,7 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
             const isHovered = hoveredId === p.id
             const displayName = p.presetKey ? t(`persona.preset.${p.presetKey}`) : p.name
             // Derive a safe CSS color for avatar bg — use persona.color with 0.15 alpha
-            const avatarBg = p.color ? `${p.color}26` : 'rgba(255,255,255,0.07)'
+            const avatarBg = p.color ? `${p.color}26` : 'var(--glass-border)'
             return (
               <button
                 key={p.id}
@@ -206,7 +206,7 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
                   borderRight: 'none',
                   borderBottom: 'none',
                   borderRadius: isActive ? 0 : 5,
-                  color: isActive ? '#818cf8' : 'rgba(255,255,255,0.60)',
+                  color: isActive ? '#818cf8' : 'var(--text-secondary)',
                   cursor: 'pointer',
                   textAlign: 'left',
                   transition: 'all 0.15s ease',
@@ -250,7 +250,7 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
                 fontWeight: 700,
                 letterSpacing: '0.07em',
                 textTransform: 'uppercase',
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--text-muted)',
               }}>
                 {t('workflow.title')}
               </div>
@@ -272,7 +272,7 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
                       background: isHovered ? 'rgba(255,255,255,0.06)' : 'transparent',
                       border: 'none',
                       borderRadius: 8,
-                      color: 'rgba(255,255,255,0.82)',
+                      color: 'var(--text-primary)',
                       cursor: 'pointer',
                       fontSize: 11,
                       textAlign: 'left',

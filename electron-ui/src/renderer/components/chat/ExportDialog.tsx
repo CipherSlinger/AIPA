@@ -146,17 +146,17 @@ export default function ExportDialog({ onClose }: Props) {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'rgba(0,0,0,0.70)',
+    background: 'var(--glass-overlay)',
     backdropFilter: 'blur(8px)',
     WebkitBackdropFilter: 'blur(8px)',
     animation: 'fadeIn 0.15s ease',
   }
 
   const dialogStyle: React.CSSProperties = {
-    background: 'rgba(15,15,25,0.97)',
+    background: 'var(--glass-bg-deep)',
     backdropFilter: 'blur(20px)',
     WebkitBackdropFilter: 'blur(20px)',
-    border: '1px solid rgba(255,255,255,0.09)',
+    border: '1px solid var(--glass-border-md)',
     borderRadius: 16,
     padding: 20,
     width: 480,
@@ -171,7 +171,7 @@ export default function ExportDialog({ onClose }: Props) {
   const labelStyle: React.CSSProperties = {
     fontSize: 10,
     fontWeight: 700,
-    color: 'rgba(255,255,255,0.38)',
+    color: 'var(--text-faint)',
     textTransform: 'uppercase',
     letterSpacing: '0.07em',
     marginBottom: 6,
@@ -190,7 +190,7 @@ export default function ExportDialog({ onClose }: Props) {
     borderRadius: 6,
     background: active ? 'rgba(99,102,241,0.88)' : 'transparent',
     border: 'none',
-    color: active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
+    color: active ? 'rgba(255,255,255,0.95)' : 'var(--text-muted)',
     fontSize: 12,
     fontWeight: active ? 600 : 400,
     cursor: 'pointer',
@@ -203,19 +203,19 @@ export default function ExportDialog({ onClose }: Props) {
     alignItems: 'center',
     gap: 8,
     fontSize: 12,
-    color: 'rgba(255,255,255,0.60)',
+    color: 'var(--text-secondary)',
     cursor: 'pointer',
     userSelect: 'none',
   }
 
   const previewBoxStyle: React.CSSProperties = {
     background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.09)',
+    border: '1px solid var(--glass-border-md)',
     borderRadius: 8,
     padding: '8px 10px',
     fontSize: 11,
     fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
-    color: 'rgba(255,255,255,0.60)',
+    color: 'var(--text-secondary)',
     whiteSpace: 'pre-wrap',
     overflowY: 'auto',
     maxHeight: 160,
@@ -240,14 +240,14 @@ export default function ExportDialog({ onClose }: Props) {
       <div ref={dialogRef} style={dialogStyle}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <span style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.82)', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
+          <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
             导出会话
           </span>
           <button
             onClick={onClose}
             style={{
               background: 'transparent', border: 'none', cursor: 'pointer',
-              color: 'rgba(255,255,255,0.45)', display: 'flex', padding: 4, borderRadius: 8,
+              color: 'var(--text-muted)', display: 'flex', padding: 4, borderRadius: 8,
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
@@ -307,16 +307,16 @@ export default function ExportDialog({ onClose }: Props) {
             style={{
               ...btnBase,
               background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.09)',
-              color: 'rgba(255,255,255,0.60)',
+              border: '1px solid var(--glass-border-md)',
+              color: 'var(--text-secondary)',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+              e.currentTarget.style.background = 'var(--glass-border-md)'
+              e.currentTarget.style.borderColor = 'var(--glass-border-md)'
             }}
             onMouseLeave={e => {
               e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+              e.currentTarget.style.borderColor = 'var(--glass-border-md)'
             }}
           >
             取消
@@ -329,7 +329,7 @@ export default function ExportDialog({ onClose }: Props) {
               background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
               border: 'none',
               color: 'rgba(255,255,255,0.95)',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+              boxShadow: 'var(--glass-shadow)',
               opacity: saving || messages.length === 0 ? 0.5 : 1,
               cursor: saving || messages.length === 0 ? 'not-allowed' : 'pointer',
             }}

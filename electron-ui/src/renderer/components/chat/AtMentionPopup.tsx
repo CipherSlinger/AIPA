@@ -74,10 +74,10 @@ export default function AtMentionPopup({ query, onSelect, onDismiss, anchorRef }
         bottom: '100%',
         left: 0,
         right: 0,
-        background: 'rgba(15,15,25,0.96)',
+        background: 'var(--glass-bg-high)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        border: '1px solid var(--glass-border)',
         borderRadius: 12,
         boxShadow: '0 16px 48px rgba(0,0,0,0.65), 0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
         zIndex: 1000,
@@ -93,9 +93,9 @@ export default function AtMentionPopup({ query, onSelect, onDismiss, anchorRef }
         fontWeight: 700,
         letterSpacing: '0.07em',
         textTransform: 'uppercase' as const,
-        color: 'rgba(255,255,255,0.38)',
+        color: 'var(--text-faint)',
         padding: '6px 12px 4px',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--glass-border)',
       }}>
         Files &amp; Folders
       </div>
@@ -158,7 +158,7 @@ export default function AtMentionPopup({ query, onSelect, onDismiss, anchorRef }
                 <div style={{
                   fontSize: 13,
                   fontWeight: 500,
-                  color: isSelected ? '#818cf8' : 'rgba(255,255,255,0.82)',
+                  color: isSelected ? '#818cf8' : 'var(--text-primary)',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
@@ -169,7 +169,7 @@ export default function AtMentionPopup({ query, onSelect, onDismiss, anchorRef }
                 {/* Subtle path description */}
                 <div style={{
                   fontSize: 11,
-                  color: 'rgba(255,255,255,0.38)',
+                  color: 'var(--text-faint)',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
@@ -202,7 +202,7 @@ export default function AtMentionPopup({ query, onSelect, onDismiss, anchorRef }
         alignItems: 'center',
         gap: 6,
         padding: '5px 12px',
-        borderTop: '1px solid rgba(255,255,255,0.07)',
+        borderTop: '1px solid var(--glass-border)',
         flexWrap: 'wrap' as const,
       }}>
         {[
@@ -215,18 +215,18 @@ export default function AtMentionPopup({ query, onSelect, onDismiss, anchorRef }
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'rgba(255,255,255,0.07)',
+              background: 'var(--glass-border)',
               border: '1px solid rgba(255,255,255,0.12)',
               borderRadius: 4,
               padding: '1px 5px',
               fontSize: 10,
               fontFamily: 'monospace',
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               lineHeight: 1.6,
             }}>
               {key}
             </kbd>
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)' }}>{label}</span>
+            <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>{label}</span>
           </span>
         ))}
       </div>

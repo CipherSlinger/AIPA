@@ -186,7 +186,7 @@ export default function CommandPalette({
         {/* Icon */}
         <span
           style={{
-            color: isSelected ? '#818cf8' : 'rgba(255,255,255,0.60)',
+            color: isSelected ? '#818cf8' : 'var(--text-secondary)',
             display: 'flex',
             alignItems: 'center',
             flexShrink: 0,
@@ -205,7 +205,7 @@ export default function CommandPalette({
             style={{
               fontSize: 13,
               fontWeight: 500,
-              color: isSelected ? '#a5b4fc' : 'rgba(255,255,255,0.82)',
+              color: isSelected ? '#a5b4fc' : 'var(--text-primary)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -218,7 +218,7 @@ export default function CommandPalette({
             <div
               style={{
                 fontSize: 11,
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--text-muted)',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
@@ -234,10 +234,10 @@ export default function CommandPalette({
           <kbd
             style={{
               fontSize: 11,
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               marginLeft: 'auto',
               background: 'rgba(255,255,255,0.08)',
-              border: '1px solid rgba(255,255,255,0.09)',
+              border: '1px solid var(--glass-border-md)',
               borderRadius: 5,
               padding: '2px 6px',
               fontFamily: 'monospace',
@@ -256,11 +256,11 @@ export default function CommandPalette({
               fontWeight: 700,
               letterSpacing: '0.07em',
               textTransform: 'uppercase',
-              color: 'rgba(255,255,255,0.38)',
+              color: 'var(--text-faint)',
               marginLeft: 'auto',
               flexShrink: 0,
               background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.07)',
+              border: '1px solid var(--glass-border)',
               borderRadius: 4,
               padding: '1px 5px',
             }}
@@ -304,10 +304,10 @@ export default function CommandPalette({
           transform: 'translateX(-50%)',
           width: 600,
           maxWidth: '90vw',
-          background: 'rgba(15,15,25,0.97)',
+          background: 'var(--glass-bg-deep)',
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
-          border: '1px solid rgba(255,255,255,0.09)',
+          border: '1px solid var(--glass-border-md)',
           borderRadius: 16,
           boxShadow: '0 32px 80px rgba(0,0,0,0.8), 0 8px 24px rgba(0,0,0,0.5)',
           overflow: 'hidden',
@@ -320,13 +320,13 @@ export default function CommandPalette({
         <div
           style={{
             padding: '14px 16px',
-            borderBottom: '1px solid rgba(255,255,255,0.07)',
+            borderBottom: '1px solid var(--glass-border)',
             display: 'flex',
             alignItems: 'center',
             gap: 10,
           }}
         >
-          <Search size={16} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
+          <Search size={16} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
           <input
             ref={inputRef}
             value={query}
@@ -338,7 +338,7 @@ export default function CommandPalette({
               border: 'none',
               outline: 'none',
               fontSize: 15,
-              color: 'rgba(255,255,255,0.82)',
+              color: 'var(--text-primary)',
               fontFamily: 'inherit',
             }}
           />
@@ -348,7 +348,7 @@ export default function CommandPalette({
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'rgba(255,255,255,0.38)',
+                color: 'var(--text-faint)',
                 cursor: 'pointer',
                 fontSize: 12,
                 padding: '2px 6px',
@@ -374,7 +374,7 @@ export default function CommandPalette({
             <div
               style={{
                 fontSize: 12,
-                color: 'rgba(255,255,255,0.38)',
+                color: 'var(--text-faint)',
                 textAlign: 'center',
                 padding: '24px 16px',
               }}
@@ -393,7 +393,7 @@ export default function CommandPalette({
                   fontWeight: 700,
                   letterSpacing: '0.07em',
                   textTransform: 'uppercase',
-                  color: 'rgba(255,255,255,0.38)',
+                  color: 'var(--text-faint)',
                 }}
               >
                 {CATEGORY_LABELS[category]}
@@ -413,11 +413,11 @@ export default function CommandPalette({
         <div
           style={{
             padding: '8px 16px',
-            borderTop: '1px solid rgba(255,255,255,0.07)',
+            borderTop: '1px solid var(--glass-border)',
             display: 'flex',
             gap: 12,
             fontSize: 10,
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-faint)',
             alignItems: 'center',
           }}
         >
@@ -441,7 +441,7 @@ export default function CommandPalette({
 
 const kbdStyle: React.CSSProperties = {
   background: 'rgba(255,255,255,0.08)',
-  border: '1px solid rgba(255,255,255,0.09)',
+  border: '1px solid var(--glass-border-md)',
   borderRadius: 5,
   padding: '1px 5px',
   fontSize: 9,

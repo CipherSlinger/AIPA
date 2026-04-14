@@ -187,7 +187,7 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Subtitle */}
-      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>
+      <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>
         {t('persona.subtitle')}
       </div>
 
@@ -202,9 +202,9 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
             background: isAtLimit
               ? 'rgba(255,255,255,0.04)'
               : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
-            border: isAtLimit ? '1px solid rgba(255,255,255,0.07)' : 'none',
+            border: isAtLimit ? '1px solid var(--glass-border)' : 'none',
             borderRadius: 8,
-            color: isAtLimit ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.95)',
+            color: isAtLimit ? 'var(--text-faint)' : 'rgba(255,255,255,0.95)',
             cursor: isAtLimit ? 'not-allowed' : 'pointer',
             fontSize: 13,
             fontWeight: 600,
@@ -255,12 +255,12 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
           borderRadius: 12,
         }}>
           <Sparkles size={28} style={{ opacity: 0.25, marginBottom: 10, color: 'rgba(255,255,255,0.6)' }} />
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.38)', fontWeight: 500 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-faint)', fontWeight: 500 }}>
             {t('persona.noPersonas')}
           </div>
           <div style={{
             fontSize: 11, marginTop: 5,
-            color: 'rgba(255,255,255,0.38)', lineHeight: 1.6,
+            color: 'var(--text-faint)', lineHeight: 1.6,
           }}>
             {t('persona.noPersonasHint')}
           </div>
@@ -298,19 +298,19 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.10)',
               borderRadius: 7,
-              color: 'rgba(255,255,255,0.60)',
+              color: 'var(--text-secondary)',
               cursor: 'pointer',
               fontSize: 11, fontWeight: 500,
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => {
               e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'
-              e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+              e.currentTarget.style.color = 'var(--text-primary)'
               e.currentTarget.style.background = 'rgba(99,102,241,0.09)'
             }}
             onMouseLeave={e => {
               e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
-              e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+              e.currentTarget.style.color = 'var(--text-secondary)'
               e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
             }}
           >
@@ -328,7 +328,7 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.10)',
               borderRadius: 7,
-              color: 'rgba(255,255,255,0.60)',
+              color: 'var(--text-secondary)',
               cursor: isAtLimit ? 'not-allowed' : 'pointer',
               fontSize: 11, fontWeight: 500,
               opacity: isAtLimit ? 0.45 : 1,
@@ -337,13 +337,13 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
             onMouseEnter={e => {
               if (!isAtLimit) {
                 e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+                e.currentTarget.style.color = 'var(--text-primary)'
                 e.currentTarget.style.background = 'rgba(99,102,241,0.09)'
               }
             }}
             onMouseLeave={e => {
               e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
-              e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+              e.currentTarget.style.color = 'var(--text-secondary)'
               e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
             }}
           >

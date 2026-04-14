@@ -75,7 +75,7 @@ export default function MessageBubbleContent({
             onClick={(e) => { e.stopPropagation(); onCollapse(message.id) }}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
-              color: isUser ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.45)',
+              color: isUser ? 'var(--text-muted)' : 'var(--text-muted)',
               display: 'flex', alignItems: 'center', padding: 0,
             }}
             title={isCollapsed ? t('message.expand') : t('message.collapse')}
@@ -103,7 +103,7 @@ export default function MessageBubbleContent({
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
                   background: 'none', border: 'none', cursor: 'pointer',
-                  color: isUser ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.45)',
+                  color: isUser ? 'var(--text-muted)' : 'var(--text-muted)',
                   fontSize: 11, padding: 0, marginBottom: 4,
                 }}
               >
@@ -115,7 +115,7 @@ export default function MessageBubbleContent({
                   background: 'rgba(99,102,241,0.08)',
                   border: '1px solid rgba(99,102,241,0.20)',
                   borderRadius: 8, padding: '8px 12px',
-                  fontSize: 12, color: 'rgba(255,255,255,0.45)',
+                  fontSize: 12, color: 'var(--text-muted)',
                   fontStyle: 'italic', lineHeight: 1.6,
                   whiteSpace: 'pre-wrap', maxHeight: 300, overflowY: 'auto',
                 }}>
@@ -148,7 +148,7 @@ export default function MessageBubbleContent({
           {!isPermission && message.toolUses && message.toolUses.length > 0 && (() => {
             const groups = groupToolUses(message.toolUses, t)
             return (
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: 8, paddingTop: 8 }}>
+              <div style={{ borderTop: '1px solid var(--glass-border)', marginTop: 8, paddingTop: 8 }}>
                 {groups.map((group, idx) => (
                   group.type === 'batch' ? (
                     <ToolBatchBlock key={`batch-${idx}`} group={group} />
@@ -190,9 +190,9 @@ export default function MessageBubbleContent({
                 <button
                   onClick={onEditCancel}
                   style={{
-                    background: 'transparent', border: '1px solid rgba(255,255,255,0.07)',
+                    background: 'transparent', border: '1px solid var(--glass-border)',
                     borderRadius: 6, padding: '4px 12px',
-                    color: 'rgba(255,255,255,0.45)', fontSize: 12, cursor: 'pointer',
+                    color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer',
                     transition: 'background 0.15s ease',
                   }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
@@ -223,9 +223,9 @@ export default function MessageBubbleContent({
                 <pre style={{
                   whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                   fontSize: 12, lineHeight: 1.6,
-                  color: 'rgba(255,255,255,0.82)',
+                  color: 'var(--text-primary)',
                   background: 'rgba(0,0,0,0.1)',
-                  border: '1px solid rgba(255,255,255,0.07)',
+                  border: '1px solid var(--glass-border)',
                   borderRadius: 4, padding: '8px 12px', margin: 0,
                   fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
                 }}>
@@ -252,7 +252,7 @@ export default function MessageBubbleContent({
                     height: 40,
                     background: isUser
                       ? 'linear-gradient(transparent, rgba(60,51,200,0.85))'
-                      : 'linear-gradient(transparent, rgba(15,15,25,0.95))',
+                      : 'linear-gradient(transparent, var(--glass-bg-popup))',
                     pointerEvents: 'none',
                   }} />
                   <button
@@ -266,7 +266,7 @@ export default function MessageBubbleContent({
                       padding: '6px 0',
                       background: 'none',
                       border: 'none',
-                      borderTop: '1px solid rgba(255,255,255,0.07)',
+                      borderTop: '1px solid var(--glass-border)',
                       color: '#818cf8',
                       cursor: 'pointer',
                       fontSize: 11,
@@ -295,7 +295,7 @@ export default function MessageBubbleContent({
                         padding: '6px 0',
                         background: 'none',
                         border: 'none',
-                        borderTop: '1px solid rgba(255,255,255,0.07)',
+                        borderTop: '1px solid var(--glass-border)',
                         color: '#818cf8',
                         cursor: 'pointer',
                         fontSize: 11,
@@ -317,7 +317,7 @@ export default function MessageBubbleContent({
             <div
               style={{
                 fontSize: 11,
-                color: 'rgba(255,255,255,0.38)',
+                color: 'var(--text-faint)',
                 display: 'flex', justifyContent: 'flex-end',
                 alignItems: 'center', gap: 4,
                 marginTop: 6, lineHeight: 1,

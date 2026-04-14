@@ -82,12 +82,12 @@ export default function AvatarPicker({ onClose, navExpanded, anchorRef }: Avatar
         left: pos.left,
         bottom: pos.bottom,
         width: 220,
-        background: 'rgba(15,15,25,0.85)',
+        background: 'var(--glass-bg-low)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        border: '1px solid var(--glass-border)',
         borderRadius: 12,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+        boxShadow: 'var(--glass-shadow)',
         padding: 10,
         zIndex: 10000,
         animation: 'slideUp 0.15s ease',
@@ -97,7 +97,7 @@ export default function AvatarPicker({ onClose, navExpanded, anchorRef }: Avatar
       <div style={{
         fontSize: 10,
         fontWeight: 700,
-        color: 'rgba(255,255,255,0.38)',
+        color: 'var(--text-faint)',
         textTransform: 'uppercase',
         letterSpacing: '0.07em',
         marginBottom: 10,
@@ -120,7 +120,7 @@ export default function AvatarPicker({ onClose, navExpanded, anchorRef }: Avatar
             width: 36,
             height: 36,
             borderRadius: 8,
-            border: !currentPreset ? '1px solid rgba(99,102,241,0.70)' : '1px solid rgba(255,255,255,0.07)',
+            border: !currentPreset ? '1px solid rgba(99,102,241,0.70)' : '1px solid var(--glass-border)',
             background: !currentPreset ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.06)',
             boxShadow: !currentPreset ? '0 0 0 2px rgba(99,102,241,0.25)' : 'none',
             display: 'flex',
@@ -139,11 +139,11 @@ export default function AvatarPicker({ onClose, navExpanded, anchorRef }: Avatar
           onMouseLeave={(e) => {
             if (currentPreset) {
               e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
+              e.currentTarget.style.borderColor = 'var(--glass-border)'
             }
           }}
         >
-          <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.82)' }}>U</span>
+          <span style={{ fontSize: 14, color: 'var(--text-primary)' }}>U</span>
         </button>
 
         {AVATAR_PRESETS.map(preset => (
@@ -155,7 +155,7 @@ export default function AvatarPicker({ onClose, navExpanded, anchorRef }: Avatar
               width: 36,
               height: 36,
               borderRadius: 8,
-              border: currentPreset === preset.id ? '1px solid rgba(99,102,241,0.70)' : '1px solid rgba(255,255,255,0.07)',
+              border: currentPreset === preset.id ? '1px solid rgba(99,102,241,0.70)' : '1px solid var(--glass-border)',
               background: currentPreset === preset.id ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.06)',
               boxShadow: currentPreset === preset.id ? '0 0 0 2px rgba(99,102,241,0.25)' : 'none',
               display: 'flex',
@@ -174,7 +174,7 @@ export default function AvatarPicker({ onClose, navExpanded, anchorRef }: Avatar
             onMouseLeave={(e) => {
               if (currentPreset !== preset.id) {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
+                e.currentTarget.style.borderColor = 'var(--glass-border)'
               }
             }}
           >

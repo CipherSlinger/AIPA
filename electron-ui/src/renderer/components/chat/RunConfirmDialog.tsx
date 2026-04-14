@@ -36,7 +36,7 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
       style={{
         position: 'fixed', inset: 0, zIndex: 9999,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(0,0,0,0.70)',
+        background: 'var(--glass-overlay)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         animation: 'fadeIn 0.15s ease',
@@ -46,14 +46,14 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: 'rgba(15,15,25,0.96)',
+          background: 'var(--glass-bg-high)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
           border: isDangerous
             ? '1px solid rgba(239,68,68,0.25)'
-            : '1px solid rgba(255,255,255,0.09)',
+            : '1px solid var(--glass-border-md)',
           borderRadius: 16,
-          boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+          boxShadow: 'var(--glass-shadow)',
           maxWidth: 480,
           width: '90%',
           overflow: 'hidden',
@@ -69,7 +69,7 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
             padding: '16px 20px',
             borderBottom: isDangerous
               ? '1px solid rgba(239,68,68,0.15)'
-              : '1px solid rgba(255,255,255,0.07)',
+              : '1px solid var(--glass-border)',
             background: isDangerous ? 'rgba(239,68,68,0.05)' : 'transparent',
           }}
         >
@@ -90,7 +90,7 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
               : <Terminal size={15} style={{ color: '#6366f1' }} />
             }
           </div>
-          <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.82)', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
             {t('codeAction.confirmRunTitle')}
           </span>
         </div>
@@ -98,7 +98,7 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
         {/* Body */}
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* Description */}
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.60)', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             {t('codeAction.confirmRunMessage')}
           </div>
 
@@ -106,7 +106,7 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
           <pre
             style={{
               background: 'rgba(8,8,16,0.80)',
-              border: `1px solid ${isDangerous ? 'rgba(239,68,68,0.35)' : 'rgba(255,255,255,0.09)'}`,
+              border: `1px solid ${isDangerous ? 'rgba(239,68,68,0.35)' : 'var(--glass-border-md)'}`,
               borderRadius: 8,
               padding: '12px 16px',
               fontSize: 12,
@@ -132,7 +132,7 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
               fontWeight: 700,
               letterSpacing: '0.07em',
               textTransform: 'uppercase',
-              color: 'rgba(255,255,255,0.38)',
+              color: 'var(--text-faint)',
               display: 'flex',
               gap: 6,
               alignItems: 'center',
@@ -145,7 +145,7 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
                 fontSize: 11,
                 textTransform: 'none',
                 letterSpacing: 'normal',
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--text-muted)',
               }}
             >
               {workingDir}
@@ -181,18 +181,18 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
                 fontSize: 13,
                 borderRadius: 8,
                 background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.09)',
-                color: 'rgba(255,255,255,0.60)',
+                border: '1px solid var(--glass-border-md)',
+                color: 'var(--text-secondary)',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+                e.currentTarget.style.background = 'var(--glass-border-md)'
+                e.currentTarget.style.color = 'var(--text-primary)'
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+                e.currentTarget.style.color = 'var(--text-secondary)'
               }}
             >
               {t('common.cancel')}

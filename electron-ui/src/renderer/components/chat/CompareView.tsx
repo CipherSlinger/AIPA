@@ -75,7 +75,7 @@ function SimpleMessageBubble({ message, side }: MessageBubbleProps) {
           border: isUser
             ? '1px solid rgba(99,102,241,0.25)'
             : '1px solid rgba(255,255,255,0.06)',
-          color: isUser ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.60)',
+          color: isUser ? 'var(--text-primary)' : 'var(--text-secondary)',
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-word',
           opacity: 0.85,
@@ -120,7 +120,7 @@ export default function CompareView({ sessionA, sessionB, titleA, titleB, forkMe
     >
       <div style={{
         background: 'rgba(13,13,20,0.95)',
-        borderTop: '1px solid rgba(255,255,255,0.07)',
+        borderTop: '1px solid var(--glass-border)',
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
@@ -135,14 +135,14 @@ export default function CompareView({ sessionA, sessionB, titleA, titleB, forkMe
           gap: 8,
           padding: '10px 16px',
           borderBottom: '1px solid rgba(255,255,255,0.06)',
-          background: 'rgba(15,15,25,0.85)',
+          background: 'var(--glass-bg-low)',
           backdropFilter: 'blur(14px)',
           WebkitBackdropFilter: 'blur(14px)',
           flexShrink: 0,
         }}
       >
         <GitBranch size={16} style={{ color: 'rgba(139,92,246,0.9)', flexShrink: 0 }} />
-        <span style={{ fontWeight: 700, fontSize: 13, color: 'rgba(255,255,255,0.82)' }}>
+        <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>
           {t('fork.compareTitle')}
         </span>
         <button
@@ -150,10 +150,10 @@ export default function CompareView({ sessionA, sessionB, titleA, titleB, forkMe
           title={t('error.close')}
           style={{
             marginLeft: 'auto',
-            background: 'rgba(255,255,255,0.07)',
+            background: 'var(--glass-border)',
             border: 'none',
             cursor: 'pointer',
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -163,15 +163,15 @@ export default function CompareView({ sessionA, sessionB, titleA, titleB, forkMe
             transition: 'all 0.15s ease',
             flexShrink: 0,
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--glass-border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
         >
           <X size={14} />
         </button>
       </div>
 
       {loading && (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.45)', fontSize: 13 }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
           {t('fork.loadingBranches')}
         </div>
       )}
@@ -190,7 +190,7 @@ export default function CompareView({ sessionA, sessionB, titleA, titleB, forkMe
                 background: 'rgba(139, 92, 246, 0.03)',
               }}
             >
-              <div style={{ padding: '0 16px 4px', fontSize: 10, color: 'rgba(255,255,255,0.38)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+              <div style={{ padding: '0 16px 4px', fontSize: 10, color: 'var(--text-faint)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                 {t('fork.sharedPrefix')}
               </div>
               {sharedMessages.map((msg) => (
@@ -206,7 +206,7 @@ export default function CompareView({ sessionA, sessionB, titleA, titleB, forkMe
               <div
                 style={{
                   padding: '5px 12px',
-                  borderBottom: '1px solid rgba(255,255,255,0.07)',
+                  borderBottom: '1px solid var(--glass-border)',
                   fontSize: 10,
                   fontWeight: 700,
                   letterSpacing: '0.07em',
@@ -230,7 +230,7 @@ export default function CompareView({ sessionA, sessionB, titleA, titleB, forkMe
               ) : (
                 <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
                   {divergingA.length === 0 && (
-                    <div style={{ padding: '24px 12px', textAlign: 'center', color: 'rgba(255,255,255,0.38)', fontSize: 12 }}>
+                    <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 12 }}>
                       {t('fork.noMessages')}
                     </div>
                   )}
@@ -242,14 +242,14 @@ export default function CompareView({ sessionA, sessionB, titleA, titleB, forkMe
             </div>
 
             {/* Split view divider */}
-            <div style={{ width: 1, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
+            <div style={{ width: 1, background: 'var(--glass-border)', flexShrink: 0 }} />
 
             {/* Column B */}
             <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', background: 'rgba(139,92,246,0.02)' }}>
               <div
                 style={{
                   padding: '5px 12px',
-                  borderBottom: '1px solid rgba(255,255,255,0.07)',
+                  borderBottom: '1px solid var(--glass-border)',
                   fontSize: 10,
                   fontWeight: 700,
                   letterSpacing: '0.07em',
@@ -273,7 +273,7 @@ export default function CompareView({ sessionA, sessionB, titleA, titleB, forkMe
               ) : (
                 <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
                   {divergingB.length === 0 && (
-                    <div style={{ padding: '24px 12px', textAlign: 'center', color: 'rgba(255,255,255,0.38)', fontSize: 12 }}>
+                    <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 12 }}>
                       {t('fork.noMessages')}
                     </div>
                   )}

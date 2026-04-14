@@ -34,7 +34,7 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.70)',
+        background: 'var(--glass-overlay)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         zIndex: 600,
@@ -64,9 +64,9 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
             e.currentTarget.style.color = '#a5b4fc'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(15,15,25,0.85)'
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+            e.currentTarget.style.background = 'var(--glass-bg-low)'
+            e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+            e.currentTarget.style.color = 'var(--text-primary)'
           }}
         >
           <ZoomIn size={16} />
@@ -81,9 +81,9 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
             e.currentTarget.style.color = '#a5b4fc'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(15,15,25,0.85)'
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+            e.currentTarget.style.background = 'var(--glass-bg-low)'
+            e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+            e.currentTarget.style.color = 'var(--text-primary)'
           }}
         >
           <ZoomOut size={16} />
@@ -98,9 +98,9 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
             e.currentTarget.style.color = '#a5b4fc'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(15,15,25,0.85)'
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+            e.currentTarget.style.background = 'var(--glass-bg-low)'
+            e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+            e.currentTarget.style.color = 'var(--text-primary)'
           }}
         >
           <RotateCw size={16} />
@@ -115,9 +115,9 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
             e.currentTarget.style.color = '#a5b4fc'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(15,15,25,0.85)'
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+            e.currentTarget.style.background = 'var(--glass-bg-low)'
+            e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+            e.currentTarget.style.color = 'var(--text-primary)'
           }}
         >
           <X size={16} />
@@ -131,9 +131,9 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
           bottom: 16,
           left: '50%',
           transform: 'translateX(-50%)',
-          background: 'rgba(15,15,25,0.85)',
-          border: '1px solid rgba(255,255,255,0.09)',
-          color: 'rgba(255,255,255,0.60)',
+          background: 'var(--glass-bg-low)',
+          border: '1px solid var(--glass-border-md)',
+          color: 'var(--text-secondary)',
           padding: '4px 12px',
           borderRadius: 12,
           fontSize: 12,
@@ -190,7 +190,7 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
           left: '50%',
           transform: 'translateX(-50%)',
           fontSize: 12,
-          color: 'rgba(255,255,255,0.60)',
+          color: 'var(--text-secondary)',
           textAlign: 'center',
           marginTop: 10,
           zIndex: 601,
@@ -209,13 +209,13 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
 }
 
 const btnStyle: React.CSSProperties = {
-  background: 'rgba(15,15,25,0.85)',
-  border: '1px solid rgba(255,255,255,0.09)',
+  background: 'var(--glass-bg-low)',
+  border: '1px solid var(--glass-border-md)',
   borderRadius: '50%',
   width: 36,
   height: 36,
   cursor: 'pointer',
-  color: 'rgba(255,255,255,0.82)',
+  color: 'var(--text-primary)',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',

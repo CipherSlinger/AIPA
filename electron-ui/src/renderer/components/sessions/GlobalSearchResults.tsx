@@ -64,10 +64,10 @@ export default function GlobalSearchResults({
 
   return (
     <div style={{
-      background: 'rgba(15,15,25,0.92)',
+      background: 'var(--glass-bg-raised)',
       backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
-      border: '1px solid rgba(255,255,255,0.07)',
+      border: '1px solid var(--glass-border)',
       borderRadius: 10,
       maxHeight: '50%',
       display: 'flex',
@@ -75,7 +75,7 @@ export default function GlobalSearchResults({
       flexShrink: 0,
       marginBottom: 4,
       overflow: 'hidden',
-      boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+      boxShadow: 'var(--glass-shadow)',
     }}>
       {/* Section header — micro-label style */}
       <div style={{
@@ -85,10 +85,10 @@ export default function GlobalSearchResults({
         padding: '8px 12px 4px',
         fontSize: 10,
         fontWeight: 700,
-        color: 'rgba(255,255,255,0.38)',
+        color: 'var(--text-faint)',
         textTransform: 'uppercase' as const,
         letterSpacing: '0.07em',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--glass-border)',
       }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <Globe size={10} />
@@ -102,9 +102,9 @@ export default function GlobalSearchResults({
           onClick={onClose}
           style={{
             background: 'transparent',
-            border: '1px solid rgba(255,255,255,0.07)',
+            border: '1px solid var(--glass-border)',
             borderRadius: 6,
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -113,11 +113,11 @@ export default function GlobalSearchResults({
           }}
           onMouseEnter={e => {
             e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+            e.currentTarget.style.color = 'var(--text-secondary)'
           }}
           onMouseLeave={e => {
             e.currentTarget.style.background = 'transparent'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+            e.currentTarget.style.color = 'var(--text-muted)'
           }}
         >
           <X size={12} />
@@ -148,7 +148,7 @@ export default function GlobalSearchResults({
           </div>
           <span style={{
             fontSize: 12,
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             textAlign: 'center',
             maxWidth: 180,
             lineHeight: 1.55,
@@ -205,7 +205,7 @@ export default function GlobalSearchResults({
               <div style={{
                 fontSize: 13,
                 fontWeight: 600,
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -235,7 +235,7 @@ export default function GlobalSearchResults({
                 {/* Session date/time */}
                 <span style={{
                   fontSize: 10,
-                  color: 'rgba(255,255,255,0.45)',
+                  color: 'var(--text-muted)',
                   fontVariantNumeric: 'tabular-nums',
                   fontFeatureSettings: '"tnum"',
                 }}>
@@ -246,7 +246,7 @@ export default function GlobalSearchResults({
               {result.matchType === 'content' && result.snippet && (
                 <div style={{
                   fontSize: 12,
-                  color: 'rgba(255,255,255,0.60)',
+                  color: 'var(--text-secondary)',
                   marginTop: 3,
                   lineHeight: 1.5,
                   overflow: 'hidden',

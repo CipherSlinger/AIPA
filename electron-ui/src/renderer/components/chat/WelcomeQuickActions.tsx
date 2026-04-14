@@ -52,8 +52,8 @@ export default function WelcomeQuickActions({
               onMouseEnter={() => setHoveredQuick(label)}
               onMouseLeave={() => setHoveredQuick(null)}
               style={{
-                background: isHovered ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.06)',
-                border: isHovered ? '1px solid rgba(255,255,255,0.09)' : '1px solid rgba(255,255,255,0.07)',
+                background: isHovered ? 'var(--glass-border-md)' : 'rgba(255,255,255,0.06)',
+                border: isHovered ? '1px solid var(--glass-border-md)' : '1px solid var(--glass-border)',
                 borderRadius: 10,
                 padding: '12px 14px',
                 cursor: 'pointer',
@@ -61,7 +61,7 @@ export default function WelcomeQuickActions({
                 alignItems: 'center',
                 gap: 8,
                 transform: isHovered ? 'translateY(-1px)' : 'translateY(0)',
-                boxShadow: isHovered ? '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)' : 'none',
+                boxShadow: isHovered ? 'var(--glass-shadow)' : 'none',
                 transition: 'all 0.15s ease',
               }}
             >
@@ -74,19 +74,19 @@ export default function WelcomeQuickActions({
                 <QIcon size={15} color={color} />
               </span>
               <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>{label}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{label}</span>
                 {description && (
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>{description}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>{description}</span>
                 )}
               </span>
               <kbd style={{
                 fontSize: 10,
                 fontFamily: 'monospace',
-                background: 'rgba(255,255,255,0.07)',
+                background: 'var(--glass-border)',
                 padding: '2px 5px',
                 borderRadius: 6,
                 border: '1px solid rgba(255,255,255,0.12)',
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--text-muted)',
                 marginLeft: 'auto',
                 flexShrink: 0,
               }}>{shortcut}</kbd>
@@ -100,14 +100,14 @@ export default function WelcomeQuickActions({
         display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center',
         padding: '10px 16px',
         background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.09)',
+        border: '1px solid var(--glass-border-md)',
         borderRadius: 12, width: '100%', maxWidth: 420,
       }}>
         <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
           <Zap size={11} color="#818cf8" />
           <span style={{
             fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-            letterSpacing: '0.07em', color: 'rgba(255,255,255,0.38)',
+            letterSpacing: '0.07em', color: 'var(--text-faint)',
           }}>
             {t('welcome.floatingBar')}
           </span>
@@ -123,9 +123,9 @@ export default function WelcomeQuickActions({
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px',
                 background: isHovered ? 'rgba(255,255,255,0.08)' : 'transparent',
-                border: isHovered ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(255,255,255,0.09)',
+                border: isHovered ? '1px solid rgba(255,255,255,0.15)' : '1px solid var(--glass-border-md)',
                 borderRadius: 8,
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
                 cursor: 'pointer', fontSize: 11,
                 transform: isHovered ? 'translateY(-1px)' : 'translateY(0)',
                 boxShadow: isHovered ? '0 4px 16px rgba(0,0,0,0.3)' : 'none',

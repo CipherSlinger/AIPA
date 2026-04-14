@@ -20,11 +20,11 @@ const EMPTY_WORKFLOWS: Workflow[] = []
 const GLASS_INPUT: React.CSSProperties = {
   ...INPUT_STYLE,
   background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(255,255,255,0.07)',
+  border: '1px solid var(--glass-border)',
   borderRadius: 7,
   padding: '7px 10px',
   fontSize: 12,
-  color: 'rgba(255,255,255,0.82)',
+  color: 'var(--text-primary)',
   outline: 'none',
   transition: 'all 0.15s ease',
 }
@@ -35,16 +35,16 @@ const MICRO_LABEL: React.CSSProperties = {
   fontWeight: 700,
   letterSpacing: '0.07em',
   textTransform: 'uppercase',
-  color: 'rgba(255,255,255,0.38)',
+  color: 'var(--text-faint)',
   marginBottom: 8,
 }
 
 // Form section card
 const SECTION_CARD: React.CSSProperties = {
-  background: 'rgba(15,15,25,0.85)',
+  background: 'var(--glass-bg-low)',
   backdropFilter: 'blur(12px)',
   WebkitBackdropFilter: 'blur(12px)',
-  border: '1px solid rgba(255,255,255,0.07)',
+  border: '1px solid var(--glass-border)',
   borderRadius: 12,
   padding: '16px 20px',
   marginBottom: 12,
@@ -57,7 +57,7 @@ const focusRingOn = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement 
   e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.45)'
 }
 const focusRingOff = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-  e.currentTarget.style.border = '1px solid rgba(255,255,255,0.07)'
+  e.currentTarget.style.border = '1px solid var(--glass-border)'
   e.currentTarget.style.boxShadow = 'none'
 }
 
@@ -176,10 +176,10 @@ export default function WorkflowEditorPage() {
       {/* Header */}
       <div style={{
         height: 44,
-        background: 'rgba(15,15,25,0.92)',
+        background: 'var(--glass-bg-raised)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--glass-border)',
         display: 'flex',
         alignItems: 'center',
         padding: '0 16px',
@@ -191,15 +191,15 @@ export default function WorkflowEditorPage() {
           title={t('settings.backToChat')}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            color: 'rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center',
+            color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
             padding: 4, borderRadius: 8, transition: 'all 0.15s ease',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)' }}
         >
           <ArrowLeft size={16} />
         </button>
-        <span style={{ fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.82)', flex: 1, lineHeight: 1.3, letterSpacing: '-0.01em' }}>
+        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', flex: 1, lineHeight: 1.3, letterSpacing: '-0.01em' }}>
           {pageTitle}
         </span>
         <button
@@ -214,7 +214,7 @@ export default function WorkflowEditorPage() {
             border: 'none',
             borderRadius: 8,
             cursor: canSubmit ? 'pointer' : 'not-allowed',
-            color: canSubmit ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.38)',
+            color: canSubmit ? 'var(--text-primary)' : 'var(--text-faint)',
             padding: '7px 14px',
             fontSize: 12,
             fontWeight: 600,
@@ -274,7 +274,7 @@ export default function WorkflowEditorPage() {
                   onClick={() => setFormIcon(emoji)}
                   style={{
                     width: 36, height: 36,
-                    border: formIcon === emoji ? '2px solid rgba(99,102,241,0.8)' : '1px solid rgba(255,255,255,0.09)',
+                    border: formIcon === emoji ? '2px solid rgba(99,102,241,0.8)' : '1px solid var(--glass-border-md)',
                     borderRadius: 8,
                     background: formIcon === emoji ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.04)',
                     cursor: 'pointer', fontSize: 18,
@@ -319,15 +319,15 @@ export default function WorkflowEditorPage() {
               <div
                 key={step.id}
                 style={{
-                  background: 'rgba(15,15,25,0.85)',
+                  background: 'var(--glass-bg-low)',
                   backdropFilter: 'blur(12px)',
                   WebkitBackdropFilter: 'blur(12px)',
-                  border: '1px solid rgba(255,255,255,0.07)',
+                  border: '1px solid var(--glass-border)',
                   borderRadius: 10,
                   padding: '14px 16px',
                   marginBottom: 10,
                   boxShadow: hoveredStepIdx === idx
-                    ? '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)'
+                    ? 'var(--glass-shadow)'
                     : '0 2px 8px rgba(0,0,0,0.3)',
                   transition: 'all 0.15s ease',
                 }}
@@ -338,7 +338,7 @@ export default function WorkflowEditorPage() {
                   {/* Drag handle — visible on hover */}
                   <GripVertical
                     size={14}
-                    color={hoveredStepIdx === idx ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.38)'}
+                    color={hoveredStepIdx === idx ? 'var(--text-muted)' : 'var(--text-faint)'}
                     style={{ flexShrink: 0, transition: 'all 0.15s ease', cursor: 'grab' }}
                   />
 
@@ -353,7 +353,7 @@ export default function WorkflowEditorPage() {
                     justifyContent: 'center',
                     fontSize: 10,
                     fontWeight: 700,
-                    color: 'rgba(255,255,255,0.82)',
+                    color: 'var(--text-primary)',
                     flexShrink: 0,
                   }}>
                     {idx + 1}
@@ -373,13 +373,13 @@ export default function WorkflowEditorPage() {
                       onClick={() => removeStep(idx)}
                       style={{
                         background: 'none', border: 'none',
-                        cursor: 'pointer', color: 'rgba(255,255,255,0.38)',
+                        cursor: 'pointer', color: 'var(--text-faint)',
                         display: 'flex', alignItems: 'center', padding: 4, borderRadius: 4,
                         flexShrink: 0, transition: 'all 0.15s ease',
                         opacity: hoveredStepIdx === idx ? 1 : 0,
                       }}
                       onMouseEnter={e => { e.currentTarget.style.color = '#fca5a5' }}
-                      onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
+                      onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-faint)' }}
                     >
                       <Trash2 size={13} />
                     </button>
@@ -413,10 +413,10 @@ export default function WorkflowEditorPage() {
               style={{
                 width: '100%',
                 background: addStepHovered && steps.length < 20 ? 'rgba(255,255,255,0.03)' : 'transparent',
-                border: `1.5px dashed ${steps.length >= 20 ? 'rgba(255,255,255,0.07)' : addStepHovered ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.09)'}`,
+                border: `1.5px dashed ${steps.length >= 20 ? 'var(--glass-border)' : addStepHovered ? 'var(--text-faint)' : 'var(--glass-border-md)'}`,
                 borderRadius: 8,
                 padding: '10px 16px',
-                color: steps.length >= 20 ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.45)',
+                color: steps.length >= 20 ? 'var(--text-faint)' : 'var(--text-muted)',
                 cursor: steps.length >= 20 ? 'not-allowed' : 'pointer',
                 fontSize: 12,
                 fontWeight: 500,
@@ -438,17 +438,17 @@ export default function WorkflowEditorPage() {
               onClick={goBack}
               style={{
                 background: 'transparent',
-                border: '1px solid rgba(255,255,255,0.09)',
+                border: '1px solid var(--glass-border-md)',
                 borderRadius: 8,
                 padding: '7px 14px',
-                color: 'rgba(255,255,255,0.60)',
+                color: 'var(--text-secondary)',
                 cursor: 'pointer',
                 fontSize: 12,
                 fontWeight: 500,
                 transition: 'all 0.15s ease',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.38)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'var(--text-faint)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--glass-border-md)' }}
             >
               {t('workflow.cancel')}
             </button>
@@ -465,7 +465,7 @@ export default function WorkflowEditorPage() {
                 borderRadius: 8,
                 padding: '7px 14px',
                 cursor: canSubmit ? 'pointer' : 'not-allowed',
-                color: canSubmit ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.38)',
+                color: canSubmit ? 'var(--text-primary)' : 'var(--text-faint)',
                 fontSize: 12,
                 fontWeight: 600,
                 display: 'flex',

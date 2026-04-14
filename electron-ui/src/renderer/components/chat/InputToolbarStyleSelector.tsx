@@ -42,9 +42,9 @@ export default function InputToolbarStyleSelector() {
           gap: 3,
           padding: '3px 8px',
           background: isActive ? 'rgba(99,102,241,0.14)' : 'rgba(255,255,255,0.06)',
-          border: `1px solid ${isActive ? 'rgba(99,102,241,0.3)' : 'rgba(255,255,255,0.09)'}`,
+          border: `1px solid ${isActive ? 'rgba(99,102,241,0.3)' : 'var(--glass-border-md)'}`,
           borderRadius: 6,
-          color: isActive ? '#818cf8' : 'rgba(255,255,255,0.60)',
+          color: isActive ? '#818cf8' : 'var(--text-secondary)',
           cursor: 'pointer',
           fontSize: 11,
           flexShrink: 0,
@@ -53,13 +53,13 @@ export default function InputToolbarStyleSelector() {
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-          e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
-          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+          e.currentTarget.style.color = 'var(--text-primary)'
+          e.currentTarget.style.borderColor = 'var(--glass-border-md)'
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.background = isActive ? 'rgba(99,102,241,0.14)' : 'rgba(255,255,255,0.06)'
-          e.currentTarget.style.color = isActive ? '#818cf8' : 'rgba(255,255,255,0.60)'
-          e.currentTarget.style.borderColor = isActive ? 'rgba(99,102,241,0.3)' : 'rgba(255,255,255,0.09)'
+          e.currentTarget.style.color = isActive ? '#818cf8' : 'var(--text-secondary)'
+          e.currentTarget.style.borderColor = isActive ? 'rgba(99,102,241,0.3)' : 'var(--glass-border-md)'
         }}
       >
         <Sparkles size={11} />
@@ -72,12 +72,12 @@ export default function InputToolbarStyleSelector() {
             bottom: '100%',
             left: 0,
             marginBottom: 4,
-            background: 'rgba(15,15,25,0.96)',
+            background: 'var(--glass-bg-high)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            border: '1px solid var(--glass-border-md)',
             borderRadius: 10,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+            boxShadow: 'var(--glass-shadow)',
             padding: '4px',
             minWidth: 200,
             zIndex: 100,
@@ -90,7 +90,7 @@ export default function InputToolbarStyleSelector() {
             fontWeight: 700,
             textTransform: 'uppercase',
             letterSpacing: '0.07em',
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-faint)',
           }}>
             {t('outputStyle.title')}
           </div>
@@ -111,7 +111,7 @@ export default function InputToolbarStyleSelector() {
                   background: isSelected ? 'rgba(99,102,241,0.12)' : 'none',
                   border: 'none',
                   borderLeft: isSelected ? '2px solid rgba(99,102,241,0.6)' : '2px solid transparent',
-                  color: isSelected ? '#818cf8' : 'rgba(255,255,255,0.60)',
+                  color: isSelected ? '#818cf8' : 'var(--text-secondary)',
                   cursor: 'pointer',
                   fontSize: 12,
                   fontWeight: isSelected ? 600 : 400,
@@ -121,17 +121,17 @@ export default function InputToolbarStyleSelector() {
                 onMouseEnter={(e) => {
                   if (!isSelected) {
                     e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-                    e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+                    e.currentTarget.style.color = 'var(--text-primary)'
                   }
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = isSelected ? 'rgba(99,102,241,0.12)' : 'none'
-                  e.currentTarget.style.color = isSelected ? '#818cf8' : 'rgba(255,255,255,0.60)'
+                  e.currentTarget.style.color = isSelected ? '#818cf8' : 'var(--text-secondary)'
                 }}
               >
                 <span style={{
                   width: 16, height: 16, display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', color: 'rgba(255,255,255,0.45)', flexShrink: 0,
+                  justifyContent: 'center', color: 'var(--text-muted)', flexShrink: 0,
                 }}>
                   <Sparkles size={12} />
                 </span>
@@ -140,7 +140,7 @@ export default function InputToolbarStyleSelector() {
                     <span>{t(`outputStyle.${style}`)}</span>
                     {isSelected && <span style={{ fontSize: 11 }}>{'\u2713'}</span>}
                   </span>
-                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', fontWeight: 400 }}>
+                  <span style={{ fontSize: 10, color: 'var(--text-faint)', fontWeight: 400 }}>
                     {t(`outputStyle.${style}.desc`)}
                   </span>
                 </span>

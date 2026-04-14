@@ -51,11 +51,11 @@ function PreviewButton({ active, onToggle }: { active: boolean; onToggle: () => 
       onClick={onToggle}
       title={active ? t('message.closePreview') : t('message.preview')}
       style={{
-        background: active ? 'rgba(99,102,241,0.3)' : 'rgba(255,255,255,0.07)',
+        background: active ? 'rgba(99,102,241,0.3)' : 'var(--glass-border)',
         border: `1px solid ${active ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.12)'}`,
         borderRadius: 8,
         padding: '2px 6px',
-        color: active ? '#a5b4fc' : 'rgba(255,255,255,0.45)',
+        color: active ? '#a5b4fc' : 'var(--text-muted)',
         cursor: 'pointer',
         fontSize: 11,
         display: 'flex',
@@ -128,11 +128,11 @@ export function CopyButton({ text }: { text: string }) {
     <button
       onClick={copy}
       style={{
-        background: copied ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.07)',
-        border: `1px solid ${copied ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.09)'}`,
+        background: copied ? 'rgba(74,222,128,0.15)' : 'var(--glass-border)',
+        border: `1px solid ${copied ? 'rgba(34,197,94,0.4)' : 'var(--glass-border-md)'}`,
         borderRadius: 6,
         padding: '3px 8px',
-        color: copied ? '#4ade80' : 'rgba(255,255,255,0.45)',
+        color: copied ? '#4ade80' : 'var(--text-muted)',
         cursor: 'pointer',
         fontSize: 11,
         display: 'flex',
@@ -206,11 +206,11 @@ function SaveButton({ code, langName }: { code: string; langName: string }) {
       aria-label={t('codeAction.saveToFile')}
       title={t('codeAction.saveToFile')}
       style={{
-        background: 'rgba(255,255,255,0.07)',
-        border: '1px solid rgba(255,255,255,0.09)',
+        background: 'var(--glass-border)',
+        border: '1px solid var(--glass-border-md)',
         borderRadius: 8,
         padding: '2px 6px',
-        color: 'rgba(255,255,255,0.45)',
+        color: 'var(--text-muted)',
         cursor: 'pointer',
         fontSize: 11,
         display: 'flex',
@@ -232,11 +232,11 @@ function WrapToggleButton({ wrapped, onToggle }: { wrapped: boolean; onToggle: (
       onClick={onToggle}
       title={wrapped ? t('message.disableWordWrap') : t('message.enableWordWrap')}
       style={{
-        background: wrapped ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.07)',
-        border: '1px solid rgba(255,255,255,0.09)',
+        background: wrapped ? 'rgba(255,255,255,0.18)' : 'var(--glass-border)',
+        border: '1px solid var(--glass-border-md)',
         borderRadius: 8,
         padding: '2px 5px',
-        color: wrapped ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
+        color: wrapped ? 'rgba(255,255,255,0.95)' : 'var(--text-muted)',
         cursor: 'pointer',
         fontSize: 11,
         display: 'flex',
@@ -270,7 +270,7 @@ function CollapsiblePre({ children, className }: { children: React.ReactNode; cl
         style={{
           margin: 0,
           borderRadius: '0 0 8px 8px',
-          borderTop: '1px solid rgba(255,255,255,0.07)',
+          borderTop: '1px solid var(--glass-border)',
           background: 'rgba(8,8,16,1)',
           lineHeight: 1.5,
           maxHeight: isOverflow && collapsed ? CODE_COLLAPSE_THRESHOLD : undefined,
@@ -290,8 +290,8 @@ function CollapsiblePre({ children, className }: { children: React.ReactNode; cl
             gap: 4,
             padding: '4px 0',
             background: collapsed ? 'linear-gradient(transparent, rgba(12,12,22,0.98))' : 'rgba(255,255,255,0.05)',
-            border: collapsed ? 'none' : '1px solid rgba(255,255,255,0.09)',
-            borderTop: collapsed ? 'none' : '1px solid rgba(255,255,255,0.09)',
+            border: collapsed ? 'none' : '1px solid var(--glass-border-md)',
+            borderTop: collapsed ? 'none' : '1px solid var(--glass-border-md)',
             borderRadius: collapsed ? 0 : '0 0 8px 8px',
             color: 'rgba(255,255,255,0.6)',
             cursor: 'pointer',
@@ -364,7 +364,7 @@ export default function CodeBlockWithHeader({
   }, [codeText, workingDir, addToast, t])
 
   return (
-    <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.07)', margin: '4px 0', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
+    <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--glass-border)', margin: '4px 0', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
       <div
         style={{
           display: 'flex',
@@ -375,10 +375,10 @@ export default function CodeBlockWithHeader({
           WebkitBackdropFilter: 'blur(12px)',
           padding: '4px 12px',
           borderRadius: '8px 8px 0 0',
-          borderBottom: '1px solid rgba(255,255,255,0.07)',
+          borderBottom: '1px solid var(--glass-border)',
         }}
       >
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
           {langColor && (
             <span style={{
               width: 8,
@@ -389,7 +389,7 @@ export default function CodeBlockWithHeader({
               display: 'inline-block',
             }} />
           )}
-          <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.07em', textTransform: 'uppercase' as const }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-faint)', letterSpacing: '0.07em', textTransform: 'uppercase' as const }}>
             {langName}
           </span>
           {lineCount > 1 && <span style={{ opacity: 0.6 }}>{t('tool.linesCount', { count: lineCount })}</span>}

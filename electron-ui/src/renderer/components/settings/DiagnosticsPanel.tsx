@@ -23,7 +23,7 @@ const statusIcon = (status: DiagnosticResult['status'] | 'loading', size = 16) =
     case 'error':
       return <XCircle size={size} style={{ color: '#f87171', flexShrink: 0 }} />
     case 'loading':
-      return <Loader size={size} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0, animation: 'spin 1s linear infinite' }} />
+      return <Loader size={size} style={{ color: 'var(--text-faint)', flexShrink: 0, animation: 'spin 1s linear infinite' }} />
   }
 }
 
@@ -142,25 +142,25 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
           onClick={onBack}
           style={{
             background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            border: '1px solid var(--glass-border-md)',
             cursor: 'pointer',
-            color: 'rgba(255,255,255,0.60)', padding: '4px 6px', borderRadius: 6,
+            color: 'var(--text-secondary)', padding: '4px 6px', borderRadius: 6,
             display: 'flex', alignItems: 'center',
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
-            e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
+            e.currentTarget.style.color = 'var(--text-primary)'
+            e.currentTarget.style.background = 'var(--glass-border-md)'
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+            e.currentTarget.style.color = 'var(--text-primary)'
             e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
           }}
           title={t('common.back')}
         >
           <ArrowLeft size={16} />
         </button>
-        <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>
+        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
           {t('diagnostics.title')}
         </span>
       </div>
@@ -171,7 +171,7 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
         overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
-        background: 'rgba(15,15,25,0.85)',
+        background: 'var(--glass-bg-low)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid rgba(255,255,255,0.08)',
@@ -193,12 +193,12 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
                 {loading ? statusIcon('loading') : statusIcon(result!.status)}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
                   {loading ? item.label : getLabel(result!)}
                 </div>
                 {!loading && result && (
                   <>
-                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.60)', marginTop: 3, lineHeight: 1.5 }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3, lineHeight: 1.5 }}>
                       {result.detail}
                     </div>
                     {result.subDetail && (
@@ -228,10 +228,10 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
                   title="Copy"
                   style={{
                     background: copiedId === item.id ? 'rgba(74,222,128,0.12)' : 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.09)',
+                    border: '1px solid var(--glass-border-md)',
                     borderRadius: 8,
                     padding: '3px 6px',
-                    color: copiedId === item.id ? '#4ade80' : 'rgba(255,255,255,0.38)',
+                    color: copiedId === item.id ? '#4ade80' : 'var(--text-faint)',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -239,7 +239,7 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
                     transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={e => {
-                    if (copiedId !== item.id) e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
+                    if (copiedId !== item.id) e.currentTarget.style.background = 'var(--glass-border-md)'
                   }}
                   onMouseLeave={e => {
                     if (copiedId !== item.id) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
@@ -256,7 +256,7 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
       {/* CLAUDE.md check */}
       <div style={{
         marginTop: 8,
-        background: 'rgba(15,15,25,0.85)',
+        background: 'var(--glass-bg-low)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid rgba(255,255,255,0.08)',
@@ -271,11 +271,11 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
             {extraLoading ? statusIcon('loading') : (claudeMdResult ? statusIcon(claudeMdResult.status) : statusIcon('loading'))}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
               {t('diagnostics.claudeMdStatus')}
             </div>
             {!extraLoading && claudeMdResult && (
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.60)', marginTop: 3, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3, lineHeight: 1.5 }}>
                 {claudeMdResult.detail}
               </div>
             )}
@@ -286,7 +286,7 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
       {/* MCP Connectivity */}
       <div style={{
         marginTop: 8,
-        background: 'rgba(15,15,25,0.85)',
+        background: 'var(--glass-bg-low)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid rgba(255,255,255,0.08)',
@@ -297,8 +297,8 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 16px' }}>
             <div style={{ paddingTop: 2 }}>{statusIcon('loading')}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>{t('diagnostics.mcpConnectivity')}</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', marginTop: 3, lineHeight: 1.5 }}>Loading…</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{t('diagnostics.mcpConnectivity')}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 3, lineHeight: 1.5 }}>Loading…</div>
             </div>
           </div>
         ) : mcpStatuses.length === 0 ? (
@@ -307,8 +307,8 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
               <Server size={16} style={{ color: 'rgba(255,255,255,0.30)', flexShrink: 0 }} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>{t('diagnostics.mcpConnectivity')}</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.60)', marginTop: 3, lineHeight: 1.5 }}>No MCP servers configured</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{t('diagnostics.mcpConnectivity')}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3, lineHeight: 1.5 }}>No MCP servers configured</div>
             </div>
           </div>
         ) : (
@@ -329,9 +329,9 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
                     : statusIcon('error')}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>{srv.name}</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{srv.name}</div>
                 {srv.detail && (
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.60)', marginTop: 3, lineHeight: 1.5 }}>{srv.detail}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3, lineHeight: 1.5 }}>{srv.detail}</div>
                 )}
               </div>
             </div>
@@ -347,14 +347,14 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           marginTop: 10, padding: '8px 16px',
           background: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.09)',
+          border: '1px solid var(--glass-border-md)',
           borderRadius: 6,
-          color: loading ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.60)',
+          color: loading ? 'var(--text-faint)' : 'var(--text-secondary)',
           cursor: isStillLoading ? 'not-allowed' : 'pointer', fontSize: 12,
           width: '100%',
           transition: 'all 0.15s ease',
         }}
-        onMouseEnter={e => { if (!isStillLoading) e.currentTarget.style.background = 'rgba(255,255,255,0.09)' }}
+        onMouseEnter={e => { if (!isStillLoading) e.currentTarget.style.background = 'var(--glass-border-md)' }}
         onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
       >
         <RefreshCw size={12} style={isStillLoading ? { animation: 'spin 1s linear infinite' } : undefined} />

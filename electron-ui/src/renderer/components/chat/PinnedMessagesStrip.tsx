@@ -63,13 +63,13 @@ export default function PinnedMessagesStrip({ messages, items, virtualizer }: Pr
           background: 'transparent',
           border: 'none',
           cursor: 'pointer',
-          color: 'rgba(255,255,255,0.45)',
+          color: 'var(--text-muted)',
           fontSize: 11,
           fontWeight: 600,
         }}
       >
         <Pin size={12} style={{ transform: 'rotate(-45deg)', color: '#818cf8' }} />
-        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)' }}>
+        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>
           {t('message.pinnedMessages')}
         </span>
         <span style={{
@@ -88,13 +88,13 @@ export default function PinnedMessagesStrip({ messages, items, virtualizer }: Pr
           style={{
             marginLeft: 'auto', marginRight: 8,
             background: 'transparent', border: 'none', cursor: 'pointer',
-            color: 'rgba(255,255,255,0.38)', fontSize: 10,
+            color: 'var(--text-faint)', fontSize: 10,
             display: 'flex', alignItems: 'center', gap: 2,
             padding: '2px 6px', borderRadius: 6,
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)'; e.currentTarget.style.color = '#fca5a5' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-faint)' }}
         >
           <X size={10} />
           {t('message.unpinAll')}
@@ -147,7 +147,7 @@ export default function PinnedMessagesStrip({ messages, items, virtualizer }: Pr
                   fontWeight: 700,
                   letterSpacing: '0.07em',
                   textTransform: 'uppercase',
-                  color: msg.role === 'user' ? '#fbbf24' : 'rgba(255,255,255,0.38)',
+                  color: msg.role === 'user' ? '#fbbf24' : 'var(--text-faint)',
                   flexShrink: 0,
                   minWidth: 32,
                 }}>
@@ -155,7 +155,7 @@ export default function PinnedMessagesStrip({ messages, items, virtualizer }: Pr
                 </span>
                 <span style={{
                   fontSize: 12,
-                  color: 'rgba(255,255,255,0.60)',
+                  color: 'var(--text-secondary)',
                   lineHeight: 1.6,
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',

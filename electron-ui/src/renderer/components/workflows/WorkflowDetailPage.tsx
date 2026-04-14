@@ -307,11 +307,11 @@ export default function WorkflowDetailPage() {
   if (!workflow) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'rgba(8,8,16,1)' }}>
-        <div style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(15,15,25,0.92)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
-          <button onClick={() => useUiStore.getState().setMainView('chat')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center' }}>
+        <div style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--glass-border)', background: 'var(--glass-bg-raised)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+          <button onClick={() => useUiStore.getState().setMainView('chat')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
             <ArrowLeft size={18} />
           </button>
-          <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)' }}>{t('workflow.notFound')}</span>
+          <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>{t('workflow.notFound')}</span>
         </div>
       </div>
     )
@@ -350,7 +350,7 @@ export default function WorkflowDetailPage() {
         <div style={{
           flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column',
           background: 'rgba(255,255,255,0.01)',
-          border: '1px solid rgba(255,255,255,0.07)',
+          border: '1px solid var(--glass-border)',
           borderRadius: 10,
           overflow: 'hidden',
         }}>
@@ -359,7 +359,7 @@ export default function WorkflowDetailPage() {
               <div style={{ background: 'rgba(99,102,241,0.08)', borderRadius: 16, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span style={{ fontSize: 24, opacity: 0.5 }}>⬡</span>
               </div>
-              <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>{t('workflow.loadingCanvas')}</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{t('workflow.loadingCanvas')}</span>
             </div>
           }>
             <WorkflowCanvas
@@ -392,10 +392,10 @@ export default function WorkflowDetailPage() {
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              background: 'rgba(15,15,25,0.85)',
+              background: 'var(--glass-bg-low)',
               backdropFilter: 'blur(20px)',
               WebkitBackdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255,255,255,0.09)',
+              border: '1px solid var(--glass-border-md)',
               borderRadius: 16,
               padding: '20px 24px',
               width: 380,
@@ -404,10 +404,10 @@ export default function WorkflowDetailPage() {
               animation: 'slideUp 0.15s ease',
             }}
           >
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.82)', marginBottom: 8, lineHeight: 1.3, letterSpacing: '-0.01em' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8, lineHeight: 1.3, letterSpacing: '-0.01em' }}>
               {t('workflow.unsavedDialogTitle')}
             </div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginBottom: 20, lineHeight: 1.6 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
               {t('workflow.unsavedDialogDesc')}
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -415,11 +415,11 @@ export default function WorkflowDetailPage() {
                 onClick={handleDialogStay}
                 style={{
                   padding: '7px 16px', fontSize: 12,
-                  background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)',
-                  borderRadius: 7, color: 'rgba(255,255,255,0.60)', cursor: 'pointer',
+                  background: 'rgba(255,255,255,0.06)', border: '1px solid var(--glass-border-md)',
+                  borderRadius: 7, color: 'var(--text-secondary)', cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--glass-border-md)' }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
               >
                 {t('workflow.unsavedStay')}
@@ -449,7 +449,7 @@ export default function WorkflowDetailPage() {
                   padding: '7px 16px', fontSize: 12,
                   background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                   border: 'none',
-                  borderRadius: 7, color: 'rgba(255,255,255,0.82)', cursor: 'pointer', fontWeight: 600,
+                  borderRadius: 7, color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 600,
                   boxShadow: '0 2px 8px rgba(99,102,241,0.30)',
                   transition: 'all 0.15s ease',
                 }}

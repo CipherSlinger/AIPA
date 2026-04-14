@@ -95,10 +95,10 @@ ${trimmedDesc}
       {/* Header */}
       <div style={{
         height: 44,
-        background: 'rgba(15,15,25,0.92)',
+        background: 'var(--glass-bg-raised)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--glass-border)',
         display: 'flex',
         alignItems: 'center',
         padding: '0 20px',
@@ -110,16 +110,16 @@ ${trimmedDesc}
           title={t('skill.cancelCreate')}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            color: 'rgba(255,255,255,0.60)', display: 'flex', alignItems: 'center',
+            color: 'var(--text-secondary)', display: 'flex', alignItems: 'center',
             padding: '5px', borderRadius: 6, transition: 'all 0.15s ease',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--glass-border)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-secondary)' }}
         >
           <ArrowLeft size={16} />
         </button>
         <Puzzle size={16} style={{ color: '#818cf8', flexShrink: 0 }} />
-        <span style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.82)', flex: 1, lineHeight: 1.3, letterSpacing: '-0.01em' }}>
+        <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', flex: 1, lineHeight: 1.3, letterSpacing: '-0.01em' }}>
           {t('skill.createTitle')}
         </span>
       </div>
@@ -142,10 +142,10 @@ ${trimmedDesc}
               alignItems: 'center',
               gap: 12,
               padding: '48px 0',
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
             }}>
               <CheckCircle size={48} style={{ color: '#4ade80' }} />
-              <span style={{ fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.82)' }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
                 {t('skill.createSuccess')}
               </span>
               <span style={{ fontSize: 12, opacity: 0.7 }}>{t('skill.redirecting')}</span>
@@ -156,8 +156,8 @@ ${trimmedDesc}
             <>
               {/* Skill Name section */}
               <div style={{
-                background: 'rgba(15,15,25,0.90)',
-                border: '1px solid rgba(255,255,255,0.09)',
+                background: 'var(--glass-bg-mid)',
+                border: '1px solid var(--glass-border-md)',
                 borderRadius: 12,
                 padding: '16px 20px',
                 marginBottom: 12,
@@ -166,7 +166,7 @@ ${trimmedDesc}
                   display: 'block',
                   fontSize: 10,
                   fontWeight: 700,
-                  color: 'rgba(255,255,255,0.38)',
+                  color: 'var(--text-faint)',
                   marginBottom: 10,
                   textTransform: 'uppercase',
                   letterSpacing: '0.07em',
@@ -187,9 +187,9 @@ ${trimmedDesc}
                     width: '100%',
                     padding: '7px 10px',
                     borderRadius: 6,
-                    border: '1px solid rgba(255,255,255,0.09)',
+                    border: '1px solid var(--glass-border-md)',
                     background: 'rgba(255,255,255,0.06)',
-                    color: 'rgba(255,255,255,0.82)',
+                    color: 'var(--text-primary)',
                     fontSize: 12,
                     fontFamily: 'inherit',
                     outline: 'none',
@@ -198,17 +198,17 @@ ${trimmedDesc}
                     opacity: isCreating ? 0.6 : 1,
                   }}
                   onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)' }}
-                  onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)' }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--glass-border-md)' }}
                 />
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', marginTop: 4, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
+                <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 4, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
                   {skillName.trim().length}/60
                 </div>
               </div>
 
               {/* Description / System Prompt section */}
               <div style={{
-                background: 'rgba(15,15,25,0.90)',
-                border: '1px solid rgba(255,255,255,0.09)',
+                background: 'var(--glass-bg-mid)',
+                border: '1px solid var(--glass-border-md)',
                 borderRadius: 12,
                 padding: '16px 20px',
                 marginBottom: 12,
@@ -217,7 +217,7 @@ ${trimmedDesc}
                   display: 'block',
                   fontSize: 10,
                   fontWeight: 700,
-                  color: 'rgba(255,255,255,0.38)',
+                  color: 'var(--text-faint)',
                   marginBottom: 10,
                   textTransform: 'uppercase',
                   letterSpacing: '0.07em',
@@ -236,7 +236,7 @@ ${trimmedDesc}
                     width: '100%',
                     padding: '12px 14px',
                     borderRadius: 8,
-                    border: '1px solid rgba(255,255,255,0.09)',
+                    border: '1px solid var(--glass-border-md)',
                     background: 'rgba(8,8,16,1)',
                     color: '#a5b4fc',
                     fontSize: 12,
@@ -250,9 +250,9 @@ ${trimmedDesc}
                     minHeight: 160,
                   }}
                   onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)' }}
-                  onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)' }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--glass-border-md)' }}
                 />
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', marginTop: 4 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 4 }}>
                   {t('skill.descHint')}
                 </div>
               </div>
@@ -284,9 +284,9 @@ ${trimmedDesc}
                   style={{
                     padding: '9px 20px',
                     borderRadius: 8,
-                    border: '1px solid rgba(255,255,255,0.09)',
+                    border: '1px solid var(--glass-border-md)',
                     background: 'rgba(255,255,255,0.04)',
-                    color: 'rgba(255,255,255,0.60)',
+                    color: 'var(--text-secondary)',
                     fontSize: 13,
                     fontWeight: 500,
                     cursor: isCreating ? 'not-allowed' : 'pointer',
@@ -295,15 +295,15 @@ ${trimmedDesc}
                   }}
                   onMouseEnter={(e) => {
                     if (!isCreating) {
-                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
-                      e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+                      e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+                      e.currentTarget.style.background = 'var(--glass-border)'
+                      e.currentTarget.style.color = 'var(--text-primary)'
                     }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+                    e.currentTarget.style.borderColor = 'var(--glass-border-md)'
                     e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
-                    e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+                    e.currentTarget.style.color = 'var(--text-secondary)'
                   }}
                 >
                   {t('skill.cancelCreate')}
@@ -318,7 +318,7 @@ ${trimmedDesc}
                     borderRadius: 8,
                     border: 'none',
                     background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
-                    color: 'rgba(255,255,255,0.82)',
+                    color: 'var(--text-primary)',
                     fontSize: 13,
                     fontWeight: 600,
                     cursor: canCreate ? 'pointer' : 'not-allowed',
@@ -336,7 +336,7 @@ ${trimmedDesc}
                       <span style={{
                         width: 12, height: 12, borderRadius: '50%',
                         border: '2px solid rgba(255,255,255,0.3)',
-                        borderTopColor: 'rgba(255,255,255,0.82)',
+                        borderTopColor: 'var(--text-primary)',
                         animation: 'spin 0.8s linear infinite',
                         flexShrink: 0,
                       }} />
@@ -353,7 +353,7 @@ ${trimmedDesc}
                 marginTop: 16,
                 textAlign: 'right',
                 fontSize: 11,
-                color: 'rgba(255,255,255,0.38)',
+                color: 'var(--text-faint)',
               }}>
                 {t('skill.submitHint')}
               </div>

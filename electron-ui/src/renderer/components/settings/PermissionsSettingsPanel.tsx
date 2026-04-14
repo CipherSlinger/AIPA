@@ -12,7 +12,7 @@ const sectionLabelStyle: React.CSSProperties = {
   fontWeight: 700,
   letterSpacing: '0.07em',
   textTransform: 'uppercase',
-  color: 'rgba(255,255,255,0.38)',
+  color: 'var(--text-faint)',
   marginBottom: 12,
 }
 
@@ -110,7 +110,7 @@ export default function PermissionsSettingsPanel() {
           borderTopColor: 'rgba(99,102,241,0.8)',
           animation: 'spin 0.8s linear infinite',
         }} />
-        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)' }}>
+        <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>
           {t('common.loading')}
         </span>
       </div>
@@ -131,11 +131,11 @@ export default function PermissionsSettingsPanel() {
           background: 'rgba(12,12,22,0.96)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
-          border: '1px solid rgba(255,255,255,0.09)',
+          border: '1px solid var(--glass-border-md)',
           borderRadius: 8,
           padding: '9px 18px',
-          fontSize: 12, color: 'rgba(255,255,255,0.82)', zIndex: 9999,
-          boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+          fontSize: 12, color: 'var(--text-primary)', zIndex: 9999,
+          boxShadow: 'var(--glass-shadow)',
           pointerEvents: 'none',
         }}>
           {toast}
@@ -152,7 +152,7 @@ export default function PermissionsSettingsPanel() {
         }}>
           <Shield size={32} color="rgba(255,255,255,0.18)" style={{ marginBottom: 12 }} />
           <div style={{
-            fontSize: 13, color: 'rgba(255,255,255,0.38)',
+            fontSize: 13, color: 'var(--text-faint)',
             fontWeight: 500, marginBottom: 4,
           }}>
             {t('permissions.emptyState')}
@@ -204,11 +204,11 @@ export default function PermissionsSettingsPanel() {
       <div style={{
         display: 'flex', alignItems: 'flex-start', gap: 10,
         background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        border: '1px solid var(--glass-border)',
         borderRadius: 12, padding: '12px 14px',
       }}>
-        <Info size={13} color="rgba(255,255,255,0.38)" style={{ marginTop: 1, flexShrink: 0 }} />
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.65 }}>
+        <Info size={13} color="var(--text-faint)" style={{ marginTop: 1, flexShrink: 0 }} />
+        <div style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.65 }}>
           {t('permissions.formatHelp')}
         </div>
       </div>
@@ -245,7 +245,7 @@ function RuleSection({
   return (
     <div style={{
       background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(255,255,255,0.07)',
+      border: '1px solid var(--glass-border)',
       borderRadius: 12,
       padding: '14px 16px',
     }}>
@@ -255,7 +255,7 @@ function RuleSection({
         justifyContent: 'space-between', marginBottom: 12,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
             {title}
           </span>
           {/* Count badge */}
@@ -274,22 +274,22 @@ function RuleSection({
           onClick={onToggleAdd}
           style={{
             display: 'flex', alignItems: 'center', gap: 4,
-            background: adding ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            background: adding ? 'var(--glass-border-md)' : 'rgba(255,255,255,0.06)',
+            border: '1px solid var(--glass-border-md)',
             borderRadius: 6, padding: '4px 10px',
             cursor: 'pointer', fontSize: 11, fontWeight: 500,
-            color: 'rgba(255,255,255,0.60)',
+            color: 'var(--text-secondary)',
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+            e.currentTarget.style.background = 'var(--glass-border-md)'
+            e.currentTarget.style.color = 'var(--text-primary)'
+            e.currentTarget.style.borderColor = 'var(--glass-border-md)'
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.background = adding ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.06)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+            e.currentTarget.style.background = adding ? 'var(--glass-border-md)' : 'rgba(255,255,255,0.06)'
+            e.currentTarget.style.color = 'var(--text-secondary)'
+            e.currentTarget.style.borderColor = 'var(--glass-border-md)'
           }}
           aria-label={t('permissions.addRule')}
         >
@@ -334,7 +334,7 @@ function RuleSection({
         ))}
         {rules.length === 0 && !adding && (
           <span style={{
-            fontSize: 11, color: 'rgba(255,255,255,0.38)',
+            fontSize: 11, color: 'var(--text-faint)',
             fontStyle: 'italic', padding: '4px 0',
           }}>
             {t('permissions.noRules')}
@@ -358,7 +358,7 @@ function RuleSection({
               flex: 1, padding: '7px 10px', fontSize: 13,
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 7, color: 'rgba(255,255,255,0.82)',
+              borderRadius: 7, color: 'var(--text-primary)',
               fontFamily: 'monospace', outline: 'none',
               transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
             }}
@@ -375,7 +375,7 @@ function RuleSection({
                 : 'rgba(255,255,255,0.06)',
               border: inputValue.trim() ? 'none' : '1px solid rgba(255,255,255,0.08)',
               borderRadius: 7,
-              color: inputValue.trim() ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.38)',
+              color: inputValue.trim() ? 'rgba(255,255,255,0.95)' : 'var(--text-faint)',
               cursor: inputValue.trim() ? 'pointer' : 'not-allowed',
               transition: 'all 0.15s ease',
             }}

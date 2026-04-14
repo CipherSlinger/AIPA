@@ -45,7 +45,7 @@ export default function NoteCategorySelector({
       flexShrink: 0,
       position: 'relative',
     }}>
-      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', flexShrink: 0 }}>
+      <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>
         {t('notes.categoryLabel')}:
       </span>
       <div ref={dropdownRef} style={{ position: 'relative' }}>
@@ -60,7 +60,7 @@ export default function NoteCategorySelector({
             borderRadius: 6,
             padding: '3px 8px',
             fontSize: 11,
-            color: 'rgba(255,255,255,0.82)',
+            color: 'var(--text-primary)',
             cursor: 'pointer',
             transition: 'all 0.15s ease',
           }}
@@ -88,10 +88,10 @@ export default function NoteCategorySelector({
             left: 0,
             marginTop: 4,
             minWidth: 160,
-            background: 'rgba(15,15,25,0.96)',
+            background: 'var(--glass-bg-high)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            border: '1px solid var(--glass-border-md)',
             borderRadius: 12,
             boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
             zIndex: 100,
@@ -111,7 +111,7 @@ export default function NoteCategorySelector({
                 padding: '7px 12px',
                 background: !note.categoryId ? 'rgba(99,102,241,0.12)' : 'none',
                 border: 'none',
-                color: !note.categoryId ? '#818cf8' : 'rgba(255,255,255,0.45)',
+                color: !note.categoryId ? '#818cf8' : 'var(--text-muted)',
                 fontSize: 12,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
@@ -138,7 +138,7 @@ export default function NoteCategorySelector({
                   padding: '7px 12px',
                   background: note.categoryId === cat.id ? 'rgba(99,102,241,0.12)' : 'none',
                   border: 'none',
-                  color: note.categoryId === cat.id ? '#818cf8' : 'rgba(255,255,255,0.82)',
+                  color: note.categoryId === cat.id ? '#818cf8' : 'var(--text-primary)',
                   fontSize: 12,
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',

@@ -42,7 +42,7 @@ export default function VirtualSeparatorRow({ type, label, virtualRow, measureEl
             fontWeight: 700,
             letterSpacing: '0.07em',
             textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-faint)',
             background: 'rgba(10,10,18,1)',
             padding: '0 10px',
             whiteSpace: 'nowrap',
@@ -73,7 +73,7 @@ export default function VirtualSeparatorRow({ type, label, virtualRow, measureEl
             fontSize: 11,
             fontWeight: 600,
             letterSpacing: '0.05em',
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-faint)',
             fontFamily: 'monospace',
           }}>
             {label}
@@ -99,7 +99,7 @@ export default function VirtualSeparatorRow({ type, label, virtualRow, measureEl
         }}>
           <span style={{
             fontSize: 11,
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-faint)',
             fontStyle: 'italic',
           }}>
             {label}

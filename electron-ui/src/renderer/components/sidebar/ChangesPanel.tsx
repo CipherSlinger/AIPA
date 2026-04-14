@@ -117,20 +117,20 @@ export default function ChangesPanel() {
       <div style={{
         padding: '12px 14px 10px',
         background: 'linear-gradient(180deg, rgba(99,102,241,0.05) 0%, transparent 100%)',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--glass-border)',
         display: 'flex',
         alignItems: 'center',
         gap: 8,
         flexShrink: 0,
       }}>
-        <GitBranch size={14} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
+        <GitBranch size={14} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
         <span
           style={{
             fontSize: 11,
             fontWeight: 700,
             letterSpacing: '0.07em',
             textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-faint)',
           }}
         >
           {t('changes.title')}
@@ -164,19 +164,19 @@ export default function ChangesPanel() {
                 height: 44,
                 borderRadius: 12,
                 background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.07)',
+                border: '1px solid var(--glass-border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <GitBranch size={20} style={{ color: 'rgba(255,255,255,0.38)' }} />
+              <GitBranch size={20} style={{ color: 'var(--text-faint)' }} />
             </span>
             <div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginBottom: 3 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 3 }}>
                 {t('changes.noChanges')}
               </div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>
                 {t('changes.noChangesHint')}
               </div>
             </div>
@@ -189,7 +189,7 @@ export default function ChangesPanel() {
                 padding: '4px 14px',
                 fontSize: 10,
                 fontWeight: 700,
-                color: 'rgba(255,255,255,0.38)',
+                color: 'var(--text-faint)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.07em',
               }}>
@@ -221,8 +221,8 @@ export default function ChangesPanel() {
                       onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = isOpen ? 'rgba(255,255,255,0.05)' : 'transparent' }}
                     >
                       {isOpen
-                        ? <ChevronDown size={11} style={{ flexShrink: 0, color: 'rgba(255,255,255,0.45)', transition: 'all 0.15s ease' }} />
-                        : <ChevronRight size={11} style={{ flexShrink: 0, color: 'rgba(255,255,255,0.38)', transition: 'all 0.15s ease' }} />
+                        ? <ChevronDown size={11} style={{ flexShrink: 0, color: 'var(--text-muted)', transition: 'all 0.15s ease' }} />
+                        : <ChevronRight size={11} style={{ flexShrink: 0, color: 'var(--text-faint)', transition: 'all 0.15s ease' }} />
                       }
                       {/* Status badge */}
                       <StatusBadge toolName={entry.toolName} />
@@ -230,7 +230,7 @@ export default function ChangesPanel() {
                       {/* Filename (basename) — primary */}
                       <span style={{
                         fontSize: 12,
-                        color: 'rgba(255,255,255,0.82)',
+                        color: 'var(--text-primary)',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
@@ -247,11 +247,11 @@ export default function ChangesPanel() {
                         {/* Full path — muted */}
                         <div style={{
                           fontSize: 10,
-                          color: 'rgba(255,255,255,0.45)',
+                          color: 'var(--text-muted)',
                           padding: '3px 7px 5px',
                           wordBreak: 'break-all',
                           background: 'rgba(255,255,255,0.03)',
-                          border: '1px solid rgba(255,255,255,0.07)',
+                          border: '1px solid var(--glass-border)',
                           borderRadius: 6,
                           marginBottom: 6,
                           fontFeatureSettings: '"tnum"',
@@ -260,7 +260,7 @@ export default function ChangesPanel() {
                           {entry.filePath}
                         </div>
                         {diffState?.loading && (
-                          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', padding: '8px 4px' }}>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '8px 4px' }}>
                             {t('changes.diffLoading')}
                           </div>
                         )}
@@ -272,7 +272,7 @@ export default function ChangesPanel() {
                         {diffState?.content !== null && diffState?.content !== undefined && !diffState.loading && !diffState.error && (
                           diffState.content.trim()
                             ? <DiffViewer diff={diffState.content} />
-                            : <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', padding: '8px 4px' }}>
+                            : <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '8px 4px' }}>
                                 {t('changes.noDiff')}
                               </div>
                         )}
@@ -290,7 +290,7 @@ export default function ChangesPanel() {
       {changedFiles.length > 0 && (
         <div style={{
           padding: '8px 12px',
-          borderTop: '1px solid rgba(255,255,255,0.07)',
+          borderTop: '1px solid var(--glass-border)',
           flexShrink: 0,
         }}>
           <button
@@ -298,10 +298,10 @@ export default function ChangesPanel() {
             style={{
               width: '100%',
               padding: '7px 12px',
-              border: '1px solid rgba(255,255,255,0.07)',
+              border: '1px solid var(--glass-border)',
               borderRadius: 7,
               background: 'rgba(255,255,255,0.03)',
-              color: 'rgba(255,255,255,0.60)',
+              color: 'var(--text-secondary)',
               cursor: 'pointer',
               fontSize: 12,
               display: 'flex',
@@ -314,13 +314,13 @@ export default function ChangesPanel() {
               const btn = e.currentTarget as HTMLButtonElement
               btn.style.background = 'rgba(99,102,241,0.08)'
               btn.style.borderColor = 'rgba(99,102,241,0.30)'
-              btn.style.color = 'rgba(255,255,255,0.82)'
+              btn.style.color = 'var(--text-primary)'
             }}
             onMouseLeave={e => {
               const btn = e.currentTarget as HTMLButtonElement
               btn.style.background = 'rgba(255,255,255,0.03)'
-              btn.style.borderColor = 'rgba(255,255,255,0.07)'
-              btn.style.color = 'rgba(255,255,255,0.60)'
+              btn.style.borderColor = 'var(--glass-border)'
+              btn.style.color = 'var(--text-secondary)'
             }}
           >
             <ExternalLink size={13} />
@@ -348,7 +348,7 @@ export default function ChangesPanel() {
               background: 'rgba(10,10,18,0.98)',
               backdropFilter: 'blur(20px)',
               WebkitBackdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255,255,255,0.07)',
+              border: '1px solid var(--glass-border)',
               borderRadius: 10,
               width: '80vw',
               maxWidth: 900,
@@ -363,13 +363,13 @@ export default function ChangesPanel() {
             <div style={{
               padding: '12px 16px',
               background: 'linear-gradient(180deg, rgba(99,102,241,0.05) 0%, transparent 100%)',
-              borderBottom: '1px solid rgba(255,255,255,0.07)',
+              borderBottom: '1px solid var(--glass-border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               flexShrink: 0,
             }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
                 {t('changes.gitDiffTitle')}
               </span>
               <button
@@ -378,14 +378,14 @@ export default function ChangesPanel() {
                   border: 'none',
                   background: 'transparent',
                   cursor: 'pointer',
-                  color: 'rgba(255,255,255,0.45)',
+                  color: 'var(--text-muted)',
                   fontSize: 18,
                   lineHeight: 1,
                   padding: '0 4px',
                   transition: 'all 0.15s ease',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)' }}
               >
                 ×
               </button>
@@ -393,7 +393,7 @@ export default function ChangesPanel() {
             {/* Modal body */}
             <div style={{ flex: 1, overflow: 'auto', padding: 12 }}>
               {allDiffState.loading && (
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', padding: 8 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 8 }}>
                   {t('changes.diffLoading')}
                 </div>
               )}
@@ -405,7 +405,7 @@ export default function ChangesPanel() {
               {allDiffState.content !== null && !allDiffState.loading && !allDiffState.error && (
                 allDiffState.content.trim()
                   ? <DiffViewer diff={allDiffState.content} />
-                  : <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', padding: 8 }}>
+                  : <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 8 }}>
                       {t('changes.noDiff')}
                     </div>
               )}

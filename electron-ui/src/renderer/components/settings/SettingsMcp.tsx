@@ -88,7 +88,7 @@ function KVEditor({
             onChange={e => set(i, 'key', e.target.value)}
             style={inputStyle}
             onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)'; e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.12)' }}
-            onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.boxShadow = 'none' }}
+            onBlur={e => { e.currentTarget.style.borderColor = 'var(--glass-border-md)'; e.currentTarget.style.boxShadow = 'none' }}
           />
           <input
             value={p.value}
@@ -96,7 +96,7 @@ function KVEditor({
             onChange={e => set(i, 'value', e.target.value)}
             style={inputStyle}
             onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)'; e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.12)' }}
-            onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.boxShadow = 'none' }}
+            onBlur={e => { e.currentTarget.style.borderColor = 'var(--glass-border-md)'; e.currentTarget.style.boxShadow = 'none' }}
           />
           {pairs.length > 1 && (
             <button onClick={() => remove(i)} style={iconBtnStyle} title={t('mcp.removeRow')}>×</button>
@@ -188,7 +188,7 @@ function McpAddWizard({
       key={type}
       onClick={() => set({ type })}
       style={{
-        border: `1px solid ${w.type === type ? 'rgba(99,102,241,0.6)' : 'rgba(255,255,255,0.07)'}`,
+        border: `1px solid ${w.type === type ? 'rgba(99,102,241,0.6)' : 'var(--glass-border)'}`,
         borderRadius: 8,
         padding: '10px 14px',
         cursor: 'pointer',
@@ -282,7 +282,7 @@ function McpAddWizard({
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 10, fontWeight: 700, flexShrink: 0,
             }}>{s}</div>
-            {i < 2 && <div style={{ flex: 1, height: 1, background: w.step > s ? 'rgba(99,102,241,0.6)' : 'rgba(255,255,255,0.07)' }} />}
+            {i < 2 && <div style={{ flex: 1, height: 1, background: w.step > s ? 'rgba(99,102,241,0.6)' : 'var(--glass-border)' }} />}
           </React.Fragment>
         ))}
         <span style={{ fontSize: 11, color: 'var(--text-faint)', marginLeft: 4 }}>
@@ -310,7 +310,7 @@ function McpAddWizard({
               placeholder="e.g. npx"
               style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }}
               onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)'; e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.12)' }}
-              onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.boxShadow = 'none' }}
+              onBlur={e => { e.currentTarget.style.borderColor = 'var(--glass-border-md)'; e.currentTarget.style.boxShadow = 'none' }}
               autoFocus
             />
           </div>
@@ -322,7 +322,7 @@ function McpAddWizard({
               placeholder={t('mcp.fieldArgsPlaceholder')}
               style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }}
               onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)'; e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.12)' }}
-              onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.boxShadow = 'none' }}
+              onBlur={e => { e.currentTarget.style.borderColor = 'var(--glass-border-md)'; e.currentTarget.style.boxShadow = 'none' }}
             />
           </div>
           <div>
@@ -347,7 +347,7 @@ function McpAddWizard({
               placeholder="https://api.example.com/mcp"
               style={{ ...inputStyle, width: '100%', boxSizing: 'border-box', borderColor: w.urlError ? 'rgba(239,68,68,0.60)' : undefined }}
               onFocus={e => { if (!w.urlError) { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)'; e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.12)' } }}
-              onBlur={e => { e.currentTarget.style.borderColor = w.urlError ? 'rgba(239,68,68,0.60)' : 'rgba(255,255,255,0.09)'; e.currentTarget.style.boxShadow = 'none' }}
+              onBlur={e => { e.currentTarget.style.borderColor = w.urlError ? 'rgba(239,68,68,0.60)' : 'var(--glass-border-md)'; e.currentTarget.style.boxShadow = 'none' }}
               autoFocus
             />
             {w.urlError && <div style={{ fontSize: 10, color: '#fca5a5', marginTop: 3 }}>{w.urlError}</div>}
@@ -377,7 +377,7 @@ function McpAddWizard({
               placeholder="my-mcp-server"
               style={{ ...inputStyle, width: '100%', boxSizing: 'border-box', borderColor: w.nameError ? 'rgba(239,68,68,0.60)' : undefined }}
               onFocus={e => { if (!w.nameError) { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)'; e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.12)' } }}
-              onBlur={e => { e.currentTarget.style.borderColor = w.nameError ? 'rgba(239,68,68,0.60)' : 'rgba(255,255,255,0.09)'; e.currentTarget.style.boxShadow = 'none' }}
+              onBlur={e => { e.currentTarget.style.borderColor = w.nameError ? 'rgba(239,68,68,0.60)' : 'var(--glass-border-md)'; e.currentTarget.style.boxShadow = 'none' }}
               autoFocus
               onKeyDown={e => { if (e.key === 'Enter') handleSubmit() }}
             />
@@ -545,7 +545,7 @@ function ServerCard({
             ...iconBtnStyle,
             display: 'flex', alignItems: 'center',
             color: hoveredReconnect ? 'var(--text-primary)' : 'var(--text-faint)',
-            background: hoveredReconnect ? 'rgba(255,255,255,0.07)' : 'none',
+            background: hoveredReconnect ? 'var(--glass-border)' : 'none',
             borderRadius: 8, padding: '3px 5px',
             transition: 'all 0.15s ease',
           }}
@@ -786,7 +786,7 @@ function LiveSessionStatus({ servers }: { servers: ActiveMcpServer[] }) {
         return (
           <div key={i} style={{
             padding: '8px 0',
-            borderBottom: i < servers.length - 1 ? '1px solid rgba(255,255,255,0.07)' : 'none',
+            borderBottom: i < servers.length - 1 ? '1px solid var(--glass-border)' : 'none',
           }}>
             {/* 服务器头部行 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

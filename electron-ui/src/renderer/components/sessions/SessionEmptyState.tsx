@@ -48,7 +48,7 @@ export default function SessionEmptyState({ onNewChat }: Props) {
       <div style={{
         fontSize: 14,
         fontWeight: 600,
-        color: 'rgba(255,255,255,0.60)',
+        color: 'var(--text-secondary)',
         marginBottom: 2,
         lineHeight: 1.3,
       }}>
@@ -58,7 +58,7 @@ export default function SessionEmptyState({ onNewChat }: Props) {
       {/* Subtitle */}
       <div style={{
         fontSize: 12,
-        color: 'rgba(255,255,255,0.38)',
+        color: 'var(--text-faint)',
         lineHeight: 1.55,
         maxWidth: 180,
       }}>
@@ -74,7 +74,7 @@ export default function SessionEmptyState({ onNewChat }: Props) {
           borderRadius: 8,
           background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
           border: '1px solid rgba(99,102,241,0.35)',
-          color: 'rgba(255,255,255,0.82)',
+          color: 'var(--text-primary)',
           fontSize: 12,
           fontWeight: 600,
           cursor: 'pointer',

@@ -120,7 +120,7 @@ export const iconBtnStyle: React.CSSProperties = {
   borderRadius: 3,
   padding: 2,
   cursor: 'pointer',
-  color: 'rgba(255,255,255,0.45)',
+  color: 'var(--text-muted)',
   display: 'flex',
   alignItems: 'center',
 }

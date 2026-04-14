@@ -47,10 +47,10 @@ export default function SessionFilters({
       : 'rgba(255,255,255,0.06)',
     border: isActive
       ? '1px solid rgba(99,102,241,0.45)'
-      : '1px solid rgba(255,255,255,0.09)',
+      : '1px solid var(--glass-border-md)',
     cursor: 'pointer',
     fontSize: 11,
-    color: isActive ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.60)',
+    color: isActive ? 'rgba(255,255,255,0.95)' : 'var(--text-secondary)',
     fontWeight: isActive ? 600 : 400,
     whiteSpace: 'nowrap' as const,
     flexShrink: 0,
@@ -60,8 +60,8 @@ export default function SessionFilters({
 
   const chipHoverEnter = (e: React.MouseEvent<HTMLButtonElement>, isActive: boolean) => {
     if (!isActive) {
-      e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
-      e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+      e.currentTarget.style.background = 'var(--glass-border-md)'
+      e.currentTarget.style.color = 'var(--text-primary)'
       e.currentTarget.style.borderColor = 'rgba(255,255,255,0.13)'
     }
   }
@@ -69,8 +69,8 @@ export default function SessionFilters({
   const chipHoverLeave = (e: React.MouseEvent<HTMLButtonElement>, isActive: boolean) => {
     if (!isActive) {
       e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-      e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
-      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+      e.currentTarget.style.color = 'var(--text-secondary)'
+      e.currentTarget.style.borderColor = 'var(--glass-border-md)'
     }
   }
 
@@ -136,14 +136,14 @@ export default function SessionFilters({
                 border: 'none',
                 cursor: 'pointer',
                 fontSize: 11,
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--text-muted)',
                 padding: '0 4px',
                 transition: 'all 0.15s ease',
                 flexShrink: 0,
                 borderRadius: 6,
               }}
-              onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
-              onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-secondary)' }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
             >
               {t('session.clearFilter') || '×'}
             </button>
@@ -214,14 +214,14 @@ export default function SessionFilters({
                 border: 'none',
                 cursor: 'pointer',
                 fontSize: 11,
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--text-muted)',
                 padding: '0 4px',
                 transition: 'all 0.15s ease',
                 flexShrink: 0,
                 borderRadius: 6,
               }}
-              onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
-              onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-secondary)' }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
             >
               {t('session.clearFilter') || '×'}
             </button>

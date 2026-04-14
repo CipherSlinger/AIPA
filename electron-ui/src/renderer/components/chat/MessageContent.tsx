@@ -42,8 +42,8 @@ function ClickableFilePath({ path }: { path: string }) {
       onClick={handleClick}
       title={t('codeAction.openInFileManager')}
       style={{
-        background: 'rgba(255,255,255,0.07)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        background: 'var(--glass-border)',
+        border: '1px solid var(--glass-border)',
         borderRadius: 3,
         padding: '1px 5px',
         fontSize: '0.9em',
@@ -102,14 +102,14 @@ function extractText(children: React.ReactNode): string {
 export default React.memo(function MessageContent({ content, isUser, searchQuery, searchCaseSensitive }: Props) {
   if (isUser) {
     return (
-      <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, color: 'rgba(255,255,255,0.82)', fontSize: 13 }}>
+      <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, color: 'var(--text-primary)', fontSize: 13 }}>
         {searchQuery ? <HighlightedText text={content} query={searchQuery} caseSensitive={searchCaseSensitive} /> : content}
       </div>
     )
   }
 
   return (
-    <div className="markdown-body" style={{ color: 'rgba(255,255,255,0.82)', fontSize: 13, lineHeight: 1.7 }}>
+    <div className="markdown-body" style={{ color: 'var(--text-primary)', fontSize: 13, lineHeight: 1.7 }}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight]}
@@ -129,8 +129,8 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
                 <code
                   className={className as string}
                   style={{
-                    background: 'rgba(255,255,255,0.07)',
-                    border: '1px solid rgba(255,255,255,0.07)',
+                    background: 'var(--glass-border)',
+                    border: '1px solid var(--glass-border)',
                     borderRadius: 4,
                     padding: '1px 4px',
                     fontSize: '0.85em',
@@ -229,7 +229,7 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
                     width: 14,
                     height: 14,
                     borderRadius: 3,
-                    border: checked ? 'none' : '1.5px solid rgba(255,255,255,0.45)',
+                    border: checked ? 'none' : '1.5px solid var(--text-muted)',
                     background: checked ? '#6366f1' : 'transparent',
                     color: 'rgba(255,255,255,0.95)',
                     fontSize: 10,
@@ -271,7 +271,7 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
                   <div style={{ fontSize: 12, fontWeight: 700, color: style.border, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                     {style.label}
                   </div>
-                  <div style={{ color: 'rgba(255,255,255,0.82)', fontSize: 13 }}>
+                  <div style={{ color: 'var(--text-primary)', fontSize: 13 }}>
                     {children}
                   </div>
                 </div>
@@ -284,7 +284,7 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
                   background: 'rgba(99,102,241,0.06)',
                   padding: '6px 12px',
                   borderRadius: '0 4px 4px 0',
-                  color: 'rgba(255,255,255,0.60)',
+                  color: 'var(--text-secondary)',
                   marginBottom: 10,
                   fontStyle: 'italic',
                 }}
@@ -295,7 +295,7 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
           },
           table({ children }) {
             return (
-              <div style={{ overflowX: 'auto', marginBottom: 12, borderRadius: 6, border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div style={{ overflowX: 'auto', marginBottom: 12, borderRadius: 6, border: '1px solid var(--glass-border)' }}>
                 <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12 }}>{children}</table>
               </div>
             )
@@ -336,16 +336,16 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
           td({ children }) {
             return (
               <td style={{
-                borderBottom: '1px solid rgba(255,255,255,0.07)',
+                borderBottom: '1px solid var(--glass-border)',
                 padding: '6px 12px',
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
               }}>
                 {children}
               </td>
             )
           },
           hr() {
-            return <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.07)', margin: '16px 0' }} />
+            return <hr style={{ border: 'none', borderTop: '1px solid var(--glass-border)', margin: '16px 0' }} />
           },
           img({ src, alt }) {
             return <MarkdownImage src={src} alt={alt} />

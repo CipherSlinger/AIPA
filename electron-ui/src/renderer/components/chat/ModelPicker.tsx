@@ -172,11 +172,11 @@ export default function ModelPicker({ model }: ModelPickerProps) {
         title={t('chat.switchModel')}
         style={{
           background: showPicker ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.06)',
-          border: `1px solid ${showPicker ? 'rgba(99,102,241,0.40)' : 'rgba(255,255,255,0.09)'}`,
+          border: `1px solid ${showPicker ? 'rgba(99,102,241,0.40)' : 'var(--glass-border-md)'}`,
           borderRadius: 8,
           padding: '2px 8px',
           cursor: 'pointer',
-          color: showPicker ? '#818cf8' : 'rgba(255,255,255,0.60)',
+          color: showPicker ? '#818cf8' : 'var(--text-secondary)',
           fontSize: 11,
           fontWeight: 600,
           display: 'flex',
@@ -188,14 +188,14 @@ export default function ModelPicker({ model }: ModelPickerProps) {
         }}
         onMouseEnter={(e) => {
           if (!showPicker) {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
+            e.currentTarget.style.background = 'var(--glass-border-md)'
             e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'
           }
         }}
         onMouseLeave={(e) => {
           if (!showPicker) {
             e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+            e.currentTarget.style.borderColor = 'var(--glass-border-md)'
           }
         }}
       >
@@ -214,10 +214,10 @@ export default function ModelPicker({ model }: ModelPickerProps) {
             width: 260,
             maxHeight: 400,
             overflowY: 'auto',
-            background: 'rgba(15,15,25,0.96)',
+            background: 'var(--glass-bg-high)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            border: '1px solid var(--glass-border-md)',
             borderRadius: 12,
             boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
             padding: '4px 0',
@@ -225,7 +225,7 @@ export default function ModelPicker({ model }: ModelPickerProps) {
             animation: 'slideUp 0.15s ease-out',
           }}
         >
-          <div style={{ padding: '8px 12px 2px', fontSize: 10, color: 'rgba(255,255,255,0.38)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: 6, marginBottom: 2 }}>
+          <div style={{ padding: '8px 12px 2px', fontSize: 10, color: 'var(--text-faint)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', borderBottom: '1px solid var(--glass-border)', paddingBottom: 6, marginBottom: 2 }}>
             {t('chat.switchModel')}
           </div>
 
@@ -236,13 +236,13 @@ export default function ModelPicker({ model }: ModelPickerProps) {
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '8px 12px 2px', fontSize: 10, fontWeight: 700,
                 textTransform: 'uppercase', letterSpacing: '0.07em',
-                color: 'rgba(255,255,255,0.38)',
+                color: 'var(--text-faint)',
               }}>
                 {/* Health dot */}
                 {group.healthStatus && (
                   <span style={{
                     width: 6, height: 6, borderRadius: '50%',
-                    background: HEALTH_DOT_COLORS[group.healthStatus] || 'rgba(255,255,255,0.38)',
+                    background: HEALTH_DOT_COLORS[group.healthStatus] || 'var(--text-faint)',
                     flexShrink: 0,
                   }} />
                 )}
@@ -269,7 +269,7 @@ export default function ModelPicker({ model }: ModelPickerProps) {
                       borderLeft: isActive ? '2px solid rgba(99,102,241,0.60)' : '2px solid transparent',
                       padding: '8px 12px 8px 22px',
                       cursor: 'pointer',
-                      color: isActive ? '#818cf8' : 'rgba(255,255,255,0.82)',
+                      color: isActive ? '#818cf8' : 'var(--text-primary)',
                       fontSize: 13,
                       fontWeight: 600,
                       borderRadius: 7,
@@ -280,7 +280,7 @@ export default function ModelPicker({ model }: ModelPickerProps) {
                     onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderLeftColor = 'rgba(99,102,241,0.40)' } }}
                     onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent' } }}
                   >
-                    <span style={{ flex: 1, fontWeight: 600, fontSize: 13, color: isActive ? '#818cf8' : 'rgba(255,255,255,0.82)' }}>{m.name}</span>
+                    <span style={{ flex: 1, fontWeight: 600, fontSize: 13, color: isActive ? '#818cf8' : 'var(--text-primary)' }}>{m.name}</span>
 
                     {/* Tier badge */}
                     {tier && <span style={TIER_STYLES[tier]}>{tier.charAt(0).toUpperCase() + tier.slice(1)}</span>}
@@ -288,12 +288,12 @@ export default function ModelPicker({ model }: ModelPickerProps) {
                     {/* Capability tags */}
                     <span style={{ display: 'flex', gap: 3 }}>
                       {m.capabilities?.vision && (
-                        <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>
+                        <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'var(--glass-border)', color: 'var(--text-muted)', fontWeight: 600 }}>
                           {t('provider.capabilities.vision')}
                         </span>
                       )}
                       {m.capabilities?.code && (
-                        <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>
+                        <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'var(--glass-border)', color: 'var(--text-muted)', fontWeight: 600 }}>
                           {t('provider.capabilities.code')}
                         </span>
                       )}
@@ -311,13 +311,13 @@ export default function ModelPicker({ model }: ModelPickerProps) {
 
               {/* Separator between provider groups */}
               {groupIdx < displayGroups.length - 1 && (
-                <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', margin: '4px 0' }} />
+                <div style={{ height: 1, background: 'var(--glass-border)', margin: '4px 0' }} />
               )}
             </div>
           ))}
 
           {/* Manage Providers link */}
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: 4, paddingTop: 2 }}>
+          <div style={{ borderTop: '1px solid var(--glass-border)', marginTop: 4, paddingTop: 2 }}>
             <button
               onClick={handleManageProviders}
               style={{
@@ -325,7 +325,7 @@ export default function ModelPicker({ model }: ModelPickerProps) {
                 width: '100%', textAlign: 'left',
                 padding: '7px 12px',
                 background: 'transparent', border: 'none',
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--text-muted)',
                 cursor: 'pointer', fontSize: 11,
                 borderRadius: 7,
                 transition: 'all 0.15s ease',
@@ -336,7 +336,7 @@ export default function ModelPicker({ model }: ModelPickerProps) {
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'transparent'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+                e.currentTarget.style.color = 'var(--text-muted)'
               }}
             >
               <Settings size={12} />

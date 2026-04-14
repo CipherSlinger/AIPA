@@ -27,10 +27,10 @@ export default function NotePopup({ query, notes, categories, selectedIndex, onS
         left: 0,
         right: 0,
         marginBottom: 4,
-        background: 'rgba(15,15,25,0.96)',
+        background: 'var(--glass-bg-high)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        border: '1px solid var(--glass-border)',
         borderRadius: 12,
         boxShadow: '0 16px 48px rgba(0,0,0,0.65), 0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
         zIndex: 1000,
@@ -47,11 +47,11 @@ export default function NotePopup({ query, notes, categories, selectedIndex, onS
         fontWeight: 700,
         letterSpacing: '0.07em',
         textTransform: 'uppercase' as const,
-        color: 'rgba(255,255,255,0.38)',
+        color: 'var(--text-faint)',
         display: 'flex',
         alignItems: 'center',
         gap: 4,
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--glass-border)',
         flexShrink: 0,
       }}>
         <StickyNote size={10} />
@@ -73,7 +73,7 @@ export default function NotePopup({ query, notes, categories, selectedIndex, onS
             <StickyNote size={20} style={{ color: 'rgba(255,255,255,0.20)' }} />
             <span style={{
               fontSize: 12,
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               textAlign: 'center',
               lineHeight: 1.5,
             }}>
@@ -117,7 +117,7 @@ export default function NotePopup({ query, notes, categories, selectedIndex, onS
                 <span style={{
                   fontSize: 13,
                   fontWeight: 600,
-                  color: isSelected ? '#818cf8' : 'rgba(255,255,255,0.82)',
+                  color: isSelected ? '#818cf8' : 'var(--text-primary)',
                   flexShrink: 0,
                   maxWidth: 140,
                   overflow: 'hidden',
@@ -130,7 +130,7 @@ export default function NotePopup({ query, notes, categories, selectedIndex, onS
                 {/* Content preview */}
                 <span style={{
                   fontSize: 11,
-                  color: 'rgba(255,255,255,0.45)',
+                  color: 'var(--text-muted)',
                   overflow: 'hidden',
                   display: '-webkit-box',
                   WebkitLineClamp: 1,
@@ -153,7 +153,7 @@ export default function NotePopup({ query, notes, categories, selectedIndex, onS
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '4px 12px',
-        borderTop: '1px solid rgba(255,255,255,0.07)',
+        borderTop: '1px solid var(--glass-border)',
         flexShrink: 0,
       }}>
         {onAddNote ? (
@@ -186,7 +186,7 @@ export default function NotePopup({ query, notes, categories, selectedIndex, onS
             {t('notes.add') || 'New note'}
           </button>
         ) : <span />}
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)' }}>
+        <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>
           ↑↓&nbsp;navigate · Enter&nbsp;select · Esc&nbsp;dismiss
         </span>
       </div>

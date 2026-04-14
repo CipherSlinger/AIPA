@@ -83,14 +83,14 @@ export default function NotesHeader({
       alignItems: 'center',
       justifyContent: 'space-between',
       padding: '12px 14px 8px',
-      background: 'rgba(15,15,25,0.85)',
+      background: 'var(--glass-bg-low)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
-      borderBottom: '1px solid rgba(255,255,255,0.07)',
+      borderBottom: '1px solid var(--glass-border)',
       flexShrink: 0,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-        <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '-0.01em', color: 'rgba(255,255,255,0.82)' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text-primary)' }}>
           {t('notes.title')}
         </span>
         {noteCount > 0 && (
@@ -114,9 +114,9 @@ export default function NotesHeader({
             title={`${t('notes.sort')}: ${noteSortBy === 'modified' ? t('notes.sortModified') : noteSortBy === 'created' ? t('notes.sortCreated') : t('notes.sortAlpha')}`}
             style={{
               background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.09)',
+              border: '1px solid var(--glass-border-md)',
               borderRadius: 8,
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -125,8 +125,8 @@ export default function NotesHeader({
               padding: '4px 7px',
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--glass-border-md)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'var(--text-muted)' }}
           >
             <ArrowUpDown size={11} />
             <span>{noteSortBy === 'modified' ? t('notes.sortMod') : noteSortBy === 'created' ? t('notes.sortNew') : 'A-Z'}</span>
@@ -140,9 +140,9 @@ export default function NotesHeader({
             title={t('notes.exportAll')}
             style={{
               background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.09)',
+              border: '1px solid var(--glass-border-md)',
               borderRadius: 8,
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -150,8 +150,8 @@ export default function NotesHeader({
               fontSize: 12,
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--glass-border-md)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'var(--text-muted)' }}
           >
             <FolderDown size={14} />
           </button>
@@ -164,9 +164,9 @@ export default function NotesHeader({
           disabled={atLimit}
           style={{
             background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            border: '1px solid var(--glass-border-md)',
             borderRadius: 8,
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             cursor: atLimit ? 'not-allowed' : 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -175,8 +175,8 @@ export default function NotesHeader({
             opacity: atLimit ? 0.5 : 1,
             transition: 'all 0.15s ease',
           }}
-          onMouseEnter={e => { if (!atLimit) { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' } }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+          onMouseEnter={e => { if (!atLimit) { e.currentTarget.style.background = 'var(--glass-border-md)'; e.currentTarget.style.color = 'var(--text-primary)' } }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'var(--text-muted)' }}
         >
           <FolderUp size={14} />
         </button>
@@ -239,10 +239,10 @@ export default function NotesHeader({
               top: '100%',
               right: 0,
               marginTop: 4,
-              background: 'rgba(15,15,25,0.92)',
+              background: 'var(--glass-bg-raised)',
               backdropFilter: 'blur(16px)',
               WebkitBackdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255,255,255,0.09)',
+              border: '1px solid var(--glass-border-md)',
               borderRadius: 8,
               boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
               padding: '4px 0',
@@ -254,7 +254,7 @@ export default function NotesHeader({
                 padding: '4px 12px 6px',
                 fontSize: 10,
                 fontWeight: 700,
-                color: 'rgba(255,255,255,0.38)',
+                color: 'var(--text-faint)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.07em',
                 lineHeight: 1,
@@ -271,7 +271,7 @@ export default function NotesHeader({
                     textAlign: 'left',
                     background: 'transparent',
                     border: 'none',
-                    color: 'rgba(255,255,255,0.82)',
+                    color: 'var(--text-primary)',
                     fontSize: 12,
                     padding: '6px 12px',
                     cursor: 'pointer',

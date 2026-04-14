@@ -111,7 +111,7 @@ export default function DiffView({ oldStr, newStr, filePath }: DiffViewProps) {
     return (
       <div style={{
         background: 'rgba(13,13,20,0.95)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        border: '1px solid var(--glass-border)',
         borderRadius: 10,
         overflow: 'hidden',
         fontFamily: 'monospace',
@@ -119,10 +119,10 @@ export default function DiffView({ oldStr, newStr, filePath }: DiffViewProps) {
       }}>
         {filePath && (
           <div style={{
-            fontSize: 10, color: 'rgba(255,255,255,0.82)', marginBottom: 4,
+            fontSize: 10, color: 'var(--text-primary)', marginBottom: 4,
             padding: '6px 12px',
             background: 'rgba(255,255,255,0.04)',
-            borderBottom: '1px solid rgba(255,255,255,0.07)',
+            borderBottom: '1px solid var(--glass-border)',
             fontFamily: 'monospace', fontWeight: 700,
             letterSpacing: '0.07em', textTransform: 'uppercase',
           }}>{filePath}</div>
@@ -147,7 +147,7 @@ export default function DiffView({ oldStr, newStr, filePath }: DiffViewProps) {
   return (
     <div style={{
       background: 'rgba(13,13,20,0.95)',
-      border: '1px solid rgba(255,255,255,0.07)',
+      border: '1px solid var(--glass-border)',
       borderRadius: 10,
       overflow: 'hidden',
     }}>
@@ -158,19 +158,19 @@ export default function DiffView({ oldStr, newStr, filePath }: DiffViewProps) {
           display: 'flex', alignItems: 'center', gap: 6,
           padding: '6px 12px',
           background: 'rgba(255,255,255,0.04)',
-          borderBottom: '1px solid rgba(255,255,255,0.07)',
+          borderBottom: '1px solid var(--glass-border)',
           cursor: 'pointer', fontSize: 11,
           transition: 'all 0.15s ease',
         }}
       >
         {isCollapsed
-          ? <ChevronRight size={11} style={{ color: 'rgba(255,255,255,0.45)' }} />
-          : <ChevronDown size={11} style={{ color: 'rgba(255,255,255,0.45)' }} />}
+          ? <ChevronRight size={11} style={{ color: 'var(--text-muted)' }} />
+          : <ChevronDown size={11} style={{ color: 'var(--text-muted)' }} />}
         <FileCode size={12} style={{ color: '#818cf8', flexShrink: 0 }} />
         {filePath && (
           <span style={{
             fontFamily: 'monospace', fontSize: 10, fontWeight: 700,
-            color: 'rgba(255,255,255,0.82)',
+            color: 'var(--text-primary)',
             letterSpacing: '0.07em', textTransform: 'uppercase',
             flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
@@ -294,7 +294,7 @@ export default function DiffView({ oldStr, newStr, filePath }: DiffViewProps) {
                     ? 'rgba(34,197,94,0.82)'
                     : isDel
                     ? 'rgba(239,68,68,0.82)'
-                    : 'rgba(255,255,255,0.45)',
+                    : 'var(--text-muted)',
                   fontStyle: isHunk ? 'italic' : undefined,
                 }}>
                   {line.content}
@@ -327,7 +327,7 @@ export default function DiffView({ oldStr, newStr, filePath }: DiffViewProps) {
       {!isCollapsed && (
         <div style={{
           display: 'flex', gap: 8, padding: '4px 12px',
-          borderTop: '1px solid rgba(255,255,255,0.07)', fontSize: 10,
+          borderTop: '1px solid var(--glass-border)', fontSize: 10,
           background: 'rgba(255,255,255,0.02)',
         }}>
           <button
@@ -336,7 +336,7 @@ export default function DiffView({ oldStr, newStr, filePath }: DiffViewProps) {
             onMouseLeave={() => setRawHovered(false)}
             style={{
               background: 'none', border: 'none',
-              color: rawHovered ? 'rgba(255,255,255,0.60)' : 'rgba(255,255,255,0.45)',
+              color: rawHovered ? 'var(--text-secondary)' : 'var(--text-muted)',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, fontSize: 10,
               transition: 'all 0.15s ease',
             }}
@@ -349,7 +349,7 @@ export default function DiffView({ oldStr, newStr, filePath }: DiffViewProps) {
             onMouseLeave={() => setCopyHovered(false)}
             style={{
               background: 'none', border: 'none',
-              color: copyHovered ? 'rgba(255,255,255,0.60)' : 'rgba(255,255,255,0.45)',
+              color: copyHovered ? 'var(--text-secondary)' : 'var(--text-muted)',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, fontSize: 10,
               transition: 'all 0.15s ease',
             }}

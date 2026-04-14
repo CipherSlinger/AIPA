@@ -76,7 +76,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
   return (
     <div
       style={{
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--glass-border)',
         borderLeft: (hovered || isExpanded) ? '3px solid rgba(99,102,241,0.75)' : '3px solid transparent',
         transition: 'all 0.15s ease',
         position: 'relative',
@@ -120,13 +120,13 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
           boxShadow: hovered ? '0 2px 8px rgba(0,0,0,0.3)' : 'none',
         }}>{wf.icon}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, display: 'flex', alignItems: 'center', gap: 5 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, display: 'flex', alignItems: 'center', gap: 5 }}>
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: '0 1 auto', minWidth: 0 }}>{displayName}</span>
             {(wf as any).category && (
               <span style={{
                 fontSize: 9,
                 fontWeight: 600,
-                color: CATEGORY_COLORS[(wf as any).category] ?? 'rgba(255,255,255,0.45)',
+                color: CATEGORY_COLORS[(wf as any).category] ?? 'var(--text-muted)',
                 background: `${CATEGORY_COLORS[(wf as any).category] ?? 'rgba(255,255,255,0.1)'}20`,
                 borderRadius: 8,
                 padding: '1px 5px',
@@ -143,7 +143,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
               title={displayDesc}
               style={{
                 fontSize: 11,
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--text-muted)',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
@@ -153,7 +153,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
               {displayDesc}
             </div>
           )}
-          <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 9, color: 'var(--text-muted)', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={{
               fontSize: 10,
               color: '#a5b4fc',
@@ -185,7 +185,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
               </span>
             )}
           </div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 3, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 3, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
             <span style={{ fontSize: 9, opacity: 0.7 }}>&#x1f552;</span>
             {formatWorkflowAge(wf.updatedAt)}
           </div>
@@ -197,9 +197,9 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
             title="Clone workflow"
             style={{
               background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.07)',
+              border: '1px solid var(--glass-border)',
               cursor: 'pointer',
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               padding: 4,
               borderRadius: 6,
               display: 'flex',
@@ -214,9 +214,9 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
               e.currentTarget.style.borderColor = 'rgba(99,102,241,0.3)'
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+              e.currentTarget.style.color = 'var(--text-muted)'
               e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+              e.currentTarget.style.borderColor = 'var(--glass-border-md)'
             }}
           >
             <Copy size={12} />
@@ -268,7 +268,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
             right: 0,
             marginBottom: 4,
             zIndex: 50,
-            background: 'rgba(15,15,25,0.95)',
+            background: 'var(--glass-bg-popup)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
             border: '1px solid rgba(255,255,255,0.08)',
@@ -278,7 +278,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
             pointerEvents: 'none',
           }}
         >
-          <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
             STEPS
           </div>
           {wf.steps.slice(0, 4).map((step, idx) => (
@@ -294,7 +294,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
                 {idx + 1}
               </span>
               <span style={{
-                fontSize: 10, color: 'rgba(255,255,255,0.60)',
+                fontSize: 10, color: 'var(--text-secondary)',
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>
                 {step.title}
@@ -302,7 +302,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
             </div>
           ))}
           {wf.steps.length > 4 && (
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', marginTop: 4, opacity: 0.6 }}>
+            <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 4, opacity: 0.6 }}>
               +{wf.steps.length - 4} more steps
             </div>
           )}
@@ -313,7 +313,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
       {isExpanded && (
         <div style={{ padding: '0 12px 8px', fontSize: 10 }}>
           {displayDesc && (
-            <div style={{ color: 'rgba(255,255,255,0.60)', marginBottom: 6 }}>
+            <div style={{ color: 'var(--text-secondary)', marginBottom: 6 }}>
               {displayDesc}
             </div>
           )}
@@ -328,7 +328,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
                 style={{
                   width: '100%', height: 26, padding: '0 8px',
                   background: 'rgba(255,255,255,0.05)', border: '1px solid #6366f1',
-                  borderRadius: 4, fontSize: 11, color: 'rgba(255,255,255,0.82)',
+                  borderRadius: 4, fontSize: 11, color: 'var(--text-primary)',
                   outline: 'none', boxSizing: 'border-box', marginBottom: 4,
                 }}
               />
@@ -339,8 +339,8 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
                 placeholder={t('workflow.descPlaceholder')}
                 style={{
                   width: '100%', height: 26, padding: '0 8px',
-                  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)',
-                  borderRadius: 4, fontSize: 10, color: 'rgba(255,255,255,0.60)',
+                  background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)',
+                  borderRadius: 4, fontSize: 10, color: 'var(--text-secondary)',
                   outline: 'none', boxSizing: 'border-box', marginBottom: 6,
                 }}
               />
@@ -350,7 +350,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
                   onClick={() => crud.setEditingId(null)}
                   style={{
                     background: 'transparent', border: 'none', borderRadius: 3,
-                    padding: '2px 8px', fontSize: 10, cursor: 'pointer', color: 'rgba(255,255,255,0.45)',
+                    padding: '2px 8px', fontSize: 10, cursor: 'pointer', color: 'var(--text-muted)',
                     display: 'flex', alignItems: 'center',
                   }}
                 >
@@ -358,7 +358,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
                 </button>
                 <button onClick={crud.saveEdit} style={{
                   background: '#6366f1', border: 'none', borderRadius: 4,
-                  padding: '2px 10px', fontSize: 10, color: 'rgba(255,255,255,0.82)', cursor: 'pointer',
+                  padding: '2px 10px', fontSize: 10, color: 'var(--text-primary)', cursor: 'pointer',
                 }}>
                   {t('workflow.save')}
                 </button>
@@ -386,11 +386,11 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
                       {idx + 1}
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.82)' }}>
+                      <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)' }}>
                         {getPresetStepText(wf.presetKey, idx, 'title', t, step.title)}
                       </div>
                       <div style={{
-                        fontSize: 9, color: 'rgba(255,255,255,0.45)', overflow: 'hidden',
+                        fontSize: 9, color: 'var(--text-muted)', overflow: 'hidden',
                         textOverflow: 'ellipsis', display: '-webkit-box',
                         WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.4,
                       }}>
@@ -411,9 +411,9 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
                 <button
                   onClick={() => crud.deleteWorkflow(wf.id)}
                   title={t('workflow.delete')}
-                  style={{ ...smallBtnStyle, color: 'rgba(255,255,255,0.45)' }}
+                  style={{ ...smallBtnStyle, color: 'var(--text-muted)' }}
                   onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
-                  onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
                 >
                   <Trash2 size={10} />
                 </button>

@@ -26,16 +26,16 @@ const SECTION_LABEL_STYLE: React.CSSProperties = {
   fontWeight: 700,
   letterSpacing: '0.07em',
   textTransform: 'uppercase',
-  color: 'rgba(255,255,255,0.38)',
+  color: 'var(--text-faint)',
   marginBottom: 4,
 }
 
 const GLASS_INPUT_STYLE: React.CSSProperties = {
   ...INPUT_STYLE,
   background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(255,255,255,0.09)',
+  border: '1px solid var(--glass-border-md)',
   borderRadius: 6,
-  color: 'rgba(255,255,255,0.82)',
+  color: 'var(--text-primary)',
   fontSize: 13,
   outline: 'none',
 }
@@ -52,15 +52,15 @@ export default function PersonaForm({
   const [cancelHovered, setCancelHovered] = useState(false)
 
   const focusedBorder = '1px solid rgba(99,102,241,0.5)'
-  const restingBorder = '1px solid rgba(255,255,255,0.09)'
+  const restingBorder = '1px solid var(--glass-border-md)'
 
   return (
     <div style={{
       padding: '14px 16px',
-      background: 'rgba(15,15,25,0.85)',
+      background: 'var(--glass-bg-low)',
       backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
-      border: '1px solid rgba(255,255,255,0.07)',
+      border: '1px solid var(--glass-border)',
       borderRadius: 16,
       boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
       marginBottom: 12,
@@ -69,10 +69,10 @@ export default function PersonaForm({
       <div style={{
         fontSize: 14,
         fontWeight: 700,
-        color: 'rgba(255,255,255,0.82)',
+        color: 'var(--text-primary)',
         marginBottom: 12,
         paddingBottom: 10,
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--glass-border)',
       }}>
         {editingId ? t('persona.editPersona') : t('persona.addPersona')}
       </div>
@@ -244,11 +244,11 @@ export default function PersonaForm({
           onMouseLeave={() => setCancelHovered(false)}
           style={{
             flex: 1,
-            background: cancelHovered ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            background: cancelHovered ? 'var(--glass-border-md)' : 'rgba(255,255,255,0.06)',
+            border: '1px solid var(--glass-border-md)',
             borderRadius: 8,
             padding: '7px 0',
-            color: 'rgba(255,255,255,0.60)',
+            color: 'var(--text-secondary)',
             cursor: 'pointer',
             fontSize: 13,
             fontWeight: 600,

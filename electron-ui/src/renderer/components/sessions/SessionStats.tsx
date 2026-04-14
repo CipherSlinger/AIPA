@@ -71,7 +71,7 @@ export default function SessionStats({ onBack }: SessionStatsProps) {
       .map(([tagId, count]) => {
         const preset = TAG_PRESETS.find(p => p.id === tagId)
         const idx = preset ? TAG_PRESETS.indexOf(preset) : -1
-        return { name: idx >= 0 ? tagNames[idx] : tagId, count, color: preset?.color || 'rgba(255,255,255,0.45)' }
+        return { name: idx >= 0 ? tagNames[idx] : tagId, count, color: preset?.color || 'var(--text-muted)' }
       })
     const maxTagCount = topTags.length > 0 ? topTags[0].count : 1
 
@@ -79,13 +79,13 @@ export default function SessionStats({ onBack }: SessionStatsProps) {
   }, [sessions, sessionTags, tagNames])
 
   const glassCard: React.CSSProperties = {
-    background: 'rgba(15,15,25,0.88)',
+    background: 'var(--glass-bg-card)',
     backdropFilter: 'blur(16px)',
     WebkitBackdropFilter: 'blur(16px)',
-    border: '1px solid rgba(255,255,255,0.07)',
+    border: '1px solid var(--glass-border)',
     borderRadius: 12,
     padding: '12px 14px',
-    boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+    boxShadow: 'var(--glass-shadow)',
     marginBottom: 12,
   }
 
@@ -94,7 +94,7 @@ export default function SessionStats({ onBack }: SessionStatsProps) {
     fontWeight: 700,
     letterSpacing: '0.07em',
     textTransform: 'uppercase',
-    color: 'rgba(255,255,255,0.38)',
+    color: 'var(--text-faint)',
     marginBottom: 10,
     display: 'flex',
     alignItems: 'center',
@@ -109,18 +109,18 @@ export default function SessionStats({ onBack }: SessionStatsProps) {
           onClick={onBack}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            color: 'rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center', gap: 4,
+            color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4,
             fontSize: 11, padding: '4px 6px', borderRadius: 8,
             transition: 'all 0.15s ease',
           }}
-          onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
-          onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+          onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
+          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
         >
           <ArrowLeft size={12} />
           {t('session.backToList')}
         </button>
         <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 4 }}>
           <BarChart3 size={13} color="#6366f1" />
           {t('session.statsTitle')}
         </span>
@@ -135,10 +135,10 @@ export default function SessionStats({ onBack }: SessionStatsProps) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {stats.weekDays.map((day, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', width: 24, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
+              <span style={{ fontSize: 10, color: 'var(--text-faint)', width: 24, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
                 {day.label}
               </span>
-              <div style={{ flex: 1, height: 14, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div style={{ flex: 1, height: 14, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
                 <div style={{
                   height: '100%',
                   width: `${(day.count / stats.maxWeekCount) * 100}%`,
@@ -148,7 +148,7 @@ export default function SessionStats({ onBack }: SessionStatsProps) {
                   minWidth: day.count > 0 ? 4 : 0,
                 }} />
               </div>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', width: 20, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
+              <span style={{ fontSize: 10, color: 'var(--text-muted)', width: 20, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
                 {day.count}
               </span>
             </div>
@@ -182,10 +182,10 @@ export default function SessionStats({ onBack }: SessionStatsProps) {
             {stats.topTags.map((tag, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Tag size={9} color={tag.color} />
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', width: 60, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)', width: 60, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {tag.name}
                 </span>
-                <div style={{ flex: 1, height: 10, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <div style={{ flex: 1, height: 10, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
                   <div style={{
                     height: '100%',
                     width: `${(tag.count / stats.maxTagCount) * 100}%`,
@@ -194,7 +194,7 @@ export default function SessionStats({ onBack }: SessionStatsProps) {
                     opacity: 0.75,
                   }} />
                 </div>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', width: 20, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)', width: 20, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
                   {tag.count}
                 </span>
               </div>
@@ -209,8 +209,8 @@ export default function SessionStats({ onBack }: SessionStatsProps) {
 function StatRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      <span style={{ color: 'rgba(255,255,255,0.38)' }}>{icon}</span>
-      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', flex: 1 }}>{label}</span>
+      <span style={{ color: 'var(--text-faint)' }}>{icon}</span>
+      <span style={{ fontSize: 10, color: 'var(--text-muted)', flex: 1 }}>{label}</span>
       <span style={{ fontSize: 22, fontWeight: 700, color: '#a5b4fc', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"', lineHeight: 1.3, letterSpacing: '-0.02em' }}>{value}</span>
     </div>
   )

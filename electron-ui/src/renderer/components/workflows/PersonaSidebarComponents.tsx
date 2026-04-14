@@ -78,7 +78,7 @@ export function PersonaSidebarCard({ persona, isActive, isDeleting, onDelete }: 
         background: isActive
           ? 'rgba(99,102,241,0.12)'
           : 'rgba(255,255,255,0.02)',
-        border: `1px solid ${isActive ? 'rgba(99,102,241,0.35)' : 'rgba(255,255,255,0.07)'}`,
+        border: `1px solid ${isActive ? 'rgba(99,102,241,0.35)' : 'var(--glass-border)'}`,
         borderRadius: 8,
         transition: 'all 0.15s ease',
         cursor: 'pointer',
@@ -104,7 +104,7 @@ export function PersonaSidebarCard({ persona, isActive, isDeleting, onDelete }: 
       onMouseLeave={e => {
         if (!isActive) {
           e.currentTarget.style.background = 'rgba(255,255,255,0.02)'
-          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
+          e.currentTarget.style.borderColor = 'var(--glass-border)'
           e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.18)'
           const avatar = e.currentTarget.querySelector('.persona-avatar') as HTMLElement | null
           if (avatar) {
@@ -139,7 +139,7 @@ export function PersonaSidebarCard({ persona, isActive, isDeleting, onDelete }: 
           <span style={{
             fontSize: 12,
             fontWeight: 600,
-            color: 'rgba(255,255,255,0.82)',
+            color: 'var(--text-primary)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -168,7 +168,7 @@ export function PersonaSidebarCard({ persona, isActive, isDeleting, onDelete }: 
             <span style={{
               fontSize: 8,
               background: `linear-gradient(135deg, ${p.color}, ${p.color}cc)`,
-              color: 'rgba(255,255,255,0.82)',
+              color: 'var(--text-primary)',
               padding: '1px 6px',
               borderRadius: 8,
               fontWeight: 700,
@@ -183,7 +183,7 @@ export function PersonaSidebarCard({ persona, isActive, isDeleting, onDelete }: 
         </div>
         <div style={{
           fontSize: 11,
-          color: 'rgba(255,255,255,0.45)',
+          color: 'var(--text-muted)',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -201,9 +201,9 @@ export function PersonaSidebarCard({ persona, isActive, isDeleting, onDelete }: 
             width: 26,
             height: 26,
             borderRadius: 6,
-            border: isDeleting ? '1px solid rgba(252,165,165,0.4)' : '1px solid rgba(255,255,255,0.07)',
+            border: isDeleting ? '1px solid rgba(252,165,165,0.4)' : '1px solid var(--glass-border)',
             background: isDeleting ? 'rgba(252,165,165,0.15)' : 'transparent',
-            color: isDeleting ? '#fca5a5' : 'rgba(255,255,255,0.38)',
+            color: isDeleting ? '#fca5a5' : 'var(--text-faint)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -222,8 +222,8 @@ export function PersonaSidebarCard({ persona, isActive, isDeleting, onDelete }: 
           onMouseLeave={e => {
             if (!isDeleting) {
               e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
-              e.currentTarget.style.color = 'rgba(255,255,255,0.38)'
+              e.currentTarget.style.borderColor = 'var(--glass-border)'
+              e.currentTarget.style.color = 'var(--text-faint)'
             }
           }}
         >
@@ -265,10 +265,10 @@ export function PersonaInlineForm({
     height: 26,
     padding: '0 8px',
     background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.09)',
+    border: '1px solid var(--glass-border-md)',
     borderRadius: 5,
     fontSize: 11,
-    color: 'rgba(255,255,255,0.82)',
+    color: 'var(--text-primary)',
     outline: 'none',
     boxSizing: 'border-box',
     marginBottom: 6,
@@ -290,11 +290,11 @@ export function PersonaInlineForm({
       <div style={{
         fontSize: 10,
         fontWeight: 700,
-        color: 'rgba(255,255,255,0.38)',
+        color: 'var(--text-faint)',
         marginBottom: 8,
         letterSpacing: '0.07em',
         textTransform: 'uppercase',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--glass-border)',
         paddingBottom: 4,
       }}>
         {editingId ? t('persona.editPersona') : t('persona.addPersona')}
@@ -319,7 +319,7 @@ export function PersonaInlineForm({
             style={{
               width: 28,
               height: 28,
-              border: formEmoji === emoji ? '2px solid #818cf8' : '1px solid rgba(255,255,255,0.07)',
+              border: formEmoji === emoji ? '2px solid #818cf8' : '1px solid var(--glass-border)',
               borderRadius: 5,
               background: formEmoji === emoji ? 'rgba(99,102,241,0.12)' : 'none',
               cursor: 'pointer',
@@ -375,7 +375,7 @@ export function PersonaInlineForm({
               height: 18,
               borderRadius: '50%',
               background: c,
-              border: formColor === c ? '2px solid rgba(255,255,255,0.82)' : '2px solid transparent',
+              border: formColor === c ? '2px solid var(--text-primary)' : '2px solid transparent',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}
@@ -395,10 +395,10 @@ export function PersonaInlineForm({
             background: canSubmit
               ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
               : 'rgba(255,255,255,0.04)',
-            border: canSubmit ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(255,255,255,0.07)',
+            border: canSubmit ? '1px solid rgba(99,102,241,0.4)' : '1px solid var(--glass-border)',
             borderRadius: 6,
             padding: '5px 0',
-            color: canSubmit ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.38)',
+            color: canSubmit ? 'var(--text-primary)' : 'var(--text-faint)',
             cursor: canSubmit ? 'pointer' : 'not-allowed',
             fontSize: 10,
             fontWeight: 700,
@@ -416,10 +416,10 @@ export function PersonaInlineForm({
           style={{
             flex: 1,
             background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            border: '1px solid var(--glass-border-md)',
             borderRadius: 6,
             padding: '5px 0',
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             cursor: 'pointer',
             fontSize: 10,
             fontWeight: 600,
@@ -429,13 +429,13 @@ export function PersonaInlineForm({
           }}
           onMouseEnter={e => {
             e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+            e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+            e.currentTarget.style.color = 'var(--text-primary)'
           }}
           onMouseLeave={e => {
             e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+            e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+            e.currentTarget.style.color = 'var(--text-muted)'
           }}
         >
           {t('persona.cancel')}

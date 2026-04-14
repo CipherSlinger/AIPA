@@ -43,7 +43,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
       <div style={{
         margin: '4px 16px 8px',
         padding: '7px 12px',
-        background: 'rgba(15,15,25,0.85)',
+        background: 'var(--glass-bg-low)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid rgba(34,197,94,0.30)',
@@ -64,7 +64,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
       <div style={{
         margin: '4px 16px 8px',
         padding: '7px 12px',
-        background: 'rgba(15,15,25,0.85)',
+        background: 'var(--glass-bg-low)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid rgba(239,68,68,0.20)',
@@ -86,7 +86,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
       <div style={{
         margin: '4px 16px 8px',
         padding: '8px 12px',
-        background: 'rgba(15,15,25,0.85)',
+        background: 'var(--glass-bg-low)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid rgba(99,102,241,0.25)',
@@ -113,10 +113,10 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
   return (
     <div style={{
       margin: '4px 16px 8px',
-      background: 'rgba(15,15,25,0.85)',
+      background: 'var(--glass-bg-low)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
-      border: '1px solid rgba(255,255,255,0.07)',
+      border: '1px solid var(--glass-border)',
       borderLeft: '3px solid rgba(99,102,241,0.55)',
       borderRadius: 10,
       boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
@@ -138,7 +138,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
           </span>
           {/* Subtitle — opacity 0.60 */}
           <div style={{
-            fontSize: 12, color: 'rgba(255,255,255,0.60)', fontStyle: 'italic',
+            fontSize: 12, color: 'var(--text-secondary)', fontStyle: 'italic',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             marginTop: 1,
           }}>
@@ -156,10 +156,10 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
             </span>
           )}
           {/* Timestamp / metadata — opacity 0.38 */}
-          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)' }}>
+          <span style={{ fontSize: 9, color: 'var(--text-faint)' }}>
             {Math.round(result.durationMs / 1000)}s
           </span>
-          {expanded ? <ChevronDown size={12} style={{ color: 'rgba(255,255,255,0.38)' }} /> : <ChevronRight size={12} style={{ color: 'rgba(255,255,255,0.38)' }} />}
+          {expanded ? <ChevronDown size={12} style={{ color: 'var(--text-faint)' }} /> : <ChevronRight size={12} style={{ color: 'var(--text-faint)' }} />}
         </div>
       </div>
 
@@ -169,11 +169,11 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
           {/* Response preview */}
           {previewText && (
             <div style={{
-              fontSize: 12, color: 'rgba(255,255,255,0.60)', lineHeight: 1.5,
+              fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5,
               marginBottom: 8,
               padding: '6px 10px',
               background: 'rgba(0,0,0,0.30)',
-              border: '1px solid rgba(255,255,255,0.07)',
+              border: '1px solid var(--glass-border)',
               borderRadius: 8,
               maxHeight: 120,
               overflowY: 'auto',
@@ -189,15 +189,15 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
           {/* Tool actions */}
           {hasTools && (
             <div style={{ marginBottom: 6 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 4 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-faint)', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 4 }}>
                 Tool calls ({result.toolActions.length})
               </div>
               {result.toolActions.slice(0, 3).map((ta, i) => (
                 <div key={i} style={{
-                  fontSize: 11, color: 'rgba(255,255,255,0.60)',
+                  fontSize: 11, color: 'var(--text-secondary)',
                   padding: '3px 8px', borderRadius: 8,
                   background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.07)',
+                  border: '1px solid var(--glass-border)',
                   marginBottom: 2,
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   fontFamily: 'monospace',
@@ -212,7 +212,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
           {/* Changed files */}
           {hasFiles && (
             <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 4 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-faint)', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 4 }}>
                 Files to be modified
               </div>
               {result.changedFiles.slice(0, 5).map((f, i) => (
@@ -221,18 +221,18 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
                   fontSize: 11, color: 'rgba(165,180,252,0.82)', marginBottom: 2,
                   padding: '3px 8px', borderRadius: 8,
                   background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.07)',
+                  border: '1px solid var(--glass-border)',
                   transition: 'all 0.15s ease',
                 }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'var(--glass-border)' }}
                 >
                   <FileEdit size={10} />
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>{f}</span>
                 </div>
               ))}
               {result.changedFiles.length > 5 && (
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)' }}>
+                <div style={{ fontSize: 9, color: 'var(--text-faint)' }}>
                   +{result.changedFiles.length - 5} more
                 </div>
               )}
@@ -272,7 +272,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
             padding: '3px 8px', borderRadius: 6, fontSize: 12,
             background: 'rgba(255,255,255,0.05)',
             border: '1px solid rgba(255,255,255,0.10)',
-            color: 'rgba(255,255,255,0.60)', cursor: 'pointer',
+            color: 'var(--text-secondary)', cursor: 'pointer',
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => {
@@ -283,14 +283,14 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
           onMouseLeave={e => {
             e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
             e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+            e.currentTarget.style.color = 'var(--text-secondary)'
           }}
         >
           <X size={10} />
           Discard
         </button>
         <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)', alignSelf: 'center' }}>
+        <span style={{ fontSize: 9, color: 'var(--text-faint)', alignSelf: 'center' }}>
           Pre-executed in sandbox
         </span>
       </div>

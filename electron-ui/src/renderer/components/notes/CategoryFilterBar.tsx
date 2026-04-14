@@ -42,15 +42,15 @@ export default function CategoryFilterBar({
             borderRadius: 20,
             padding: '0 8px',
             background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            border: '1px solid var(--glass-border-md)',
             cursor: 'pointer',
             fontSize: 10,
-            color: 'rgba(255,255,255,0.60)',
+            color: 'var(--text-secondary)',
             whiteSpace: 'nowrap',
             transition: 'all 0.15s ease',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
         >
           <Plus size={10} />
           {t('notes.manageCategories')}
@@ -72,7 +72,7 @@ export default function CategoryFilterBar({
         scrollbarWidth: 'none',
         alignItems: 'center',
         flexWrap: 'wrap',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--glass-border)',
       }}
     >
       {/* "All" pill */}
@@ -88,10 +88,10 @@ export default function CategoryFilterBar({
           borderRadius: 20,
           padding: '0 10px',
           background: activeCategoryFilter === null ? 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(139,92,246,0.20))' : 'rgba(255,255,255,0.06)',
-          border: `1px solid ${activeCategoryFilter === null ? 'rgba(99,102,241,0.45)' : 'rgba(255,255,255,0.09)'}`,
+          border: `1px solid ${activeCategoryFilter === null ? 'rgba(99,102,241,0.45)' : 'var(--glass-border-md)'}`,
           cursor: 'pointer',
           fontSize: 11,
-          color: activeCategoryFilter === null ? '#a5b4fc' : 'rgba(255,255,255,0.60)',
+          color: activeCategoryFilter === null ? '#a5b4fc' : 'var(--text-secondary)',
           fontWeight: activeCategoryFilter === null ? 600 : 400,
           whiteSpace: 'nowrap',
           flexShrink: 0,
@@ -100,13 +100,13 @@ export default function CategoryFilterBar({
         onMouseEnter={e => {
           if (activeCategoryFilter !== null) {
             e.currentTarget.style.background = 'rgba(99,102,241,0.10)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+            e.currentTarget.style.color = 'var(--text-primary)'
           }
         }}
         onMouseLeave={e => {
           if (activeCategoryFilter !== null) {
             e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+            e.currentTarget.style.color = 'var(--text-secondary)'
           }
         }}
       >
@@ -132,10 +132,10 @@ export default function CategoryFilterBar({
               borderRadius: 20,
               padding: '3px 10px',
               background: isActive ? 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(139,92,246,0.20))' : 'rgba(255,255,255,0.06)',
-              border: `1px solid ${isActive ? 'rgba(99,102,241,0.45)' : 'rgba(255,255,255,0.09)'}`,
+              border: `1px solid ${isActive ? 'rgba(99,102,241,0.45)' : 'var(--glass-border-md)'}`,
               cursor: 'pointer',
               fontSize: 11,
-              color: isActive ? '#a5b4fc' : 'rgba(255,255,255,0.60)',
+              color: isActive ? '#a5b4fc' : 'var(--text-secondary)',
               fontWeight: isActive ? 600 : 400,
               whiteSpace: 'nowrap',
               flexShrink: 0,
@@ -144,13 +144,13 @@ export default function CategoryFilterBar({
             onMouseEnter={e => {
               if (!isActive) {
                 e.currentTarget.style.background = 'rgba(99,102,241,0.10)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+                e.currentTarget.style.color = 'var(--text-primary)'
               }
             }}
             onMouseLeave={e => {
               if (!isActive) {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+                e.currentTarget.style.color = 'var(--text-secondary)'
               }
             }}
           >
@@ -173,16 +173,16 @@ export default function CategoryFilterBar({
           borderRadius: 20,
           padding: '0 6px',
           background: 'rgba(255,255,255,0.06)',
-          border: '1px solid rgba(255,255,255,0.09)',
+          border: '1px solid var(--glass-border-md)',
           cursor: 'pointer',
           fontSize: 10,
-          color: 'rgba(255,255,255,0.45)',
+          color: 'var(--text-muted)',
           whiteSpace: 'nowrap',
           flexShrink: 0,
           transition: 'all 0.15s ease',
         }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'var(--text-muted)' }}
       >
         <Settings size={10} />
       </button>

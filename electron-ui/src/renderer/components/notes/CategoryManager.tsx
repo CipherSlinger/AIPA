@@ -46,18 +46,18 @@ export default function CategoryManager({
   return (
     <div style={{
       padding: '10px 14px',
-      borderBottom: '1px solid rgba(255,255,255,0.09)',
-      background: 'rgba(15,15,25,0.96)',
+      borderBottom: '1px solid var(--glass-border-md)',
+      background: 'var(--glass-bg-high)',
       backdropFilter: 'blur(20px)',
       WebkitBackdropFilter: 'blur(20px)',
-      border: '1px solid rgba(255,255,255,0.09)',
+      border: '1px solid var(--glass-border-md)',
       borderRadius: 12,
       boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
       flexShrink: 0,
     }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
           {t('notes.manageCategories')}
         </span>
         <button
@@ -65,7 +65,7 @@ export default function CategoryManager({
           style={{
             background: 'transparent',
             border: 'none',
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             cursor: 'pointer',
             fontSize: 11,
             padding: '2px 8px',
@@ -73,12 +73,12 @@ export default function CategoryManager({
             transition: 'background 0.15s ease, color 0.15s ease',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
+            e.currentTarget.style.background = 'var(--glass-border)'
             e.currentTarget.style.color = 'rgba(255,255,255,0.85)'
           }}
           onMouseLeave={e => {
             e.currentTarget.style.background = 'transparent'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+            e.currentTarget.style.color = 'var(--text-muted)'
           }}
         >
           {t('notes.closeManage')}
@@ -100,7 +100,7 @@ export default function CategoryManager({
             border: '1px solid rgba(255,255,255,0.08)',
             borderRadius: 7,
             outline: 'none',
-            color: 'rgba(255,255,255,0.82)',
+            color: 'var(--text-primary)',
             fontSize: 11,
             padding: '4px 8px',
             fontFamily: 'inherit',
@@ -123,7 +123,7 @@ export default function CategoryManager({
                 height: 20,
                 borderRadius: '50%',
                 background: color,
-                border: newCategoryColor === color ? '2px solid rgba(255,255,255,0.82)' : '2px solid transparent',
+                border: newCategoryColor === color ? '2px solid var(--text-primary)' : '2px solid transparent',
                 cursor: 'pointer',
                 padding: 0,
                 transition: 'transform 0.15s ease, border 0.15s ease',
@@ -156,7 +156,7 @@ export default function CategoryManager({
 
       {/* Max categories notice */}
       {categories.length >= MAX_CATEGORIES && (
-        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', marginBottom: 6 }}>
+        <div style={{ fontSize: 10, color: 'var(--text-faint)', marginBottom: 6 }}>
           {t('notes.maxCategories')}
         </div>
       )}
@@ -194,7 +194,7 @@ export default function CategoryManager({
                 border: '1px solid rgba(99,102,241,0.5)',
                 borderRadius: 4,
                 outline: 'none',
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
                 fontSize: 11,
                 padding: '2px 6px',
                 fontFamily: 'inherit',
@@ -206,7 +206,7 @@ export default function CategoryManager({
               style={{
                 flex: 1,
                 fontSize: 12,
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
                 cursor: 'pointer',
               }}
               title={t('notes.clickToRename')}
@@ -214,7 +214,7 @@ export default function CategoryManager({
               {cat.name}
             </span>
           )}
-          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)' }}>
+          <span style={{ fontSize: 9, color: 'var(--text-faint)' }}>
             ({categoryCounts[cat.id] || 0})
           </span>
           <button

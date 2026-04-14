@@ -95,14 +95,14 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
 
   const getIconStyle = (key: string, destructive?: boolean): React.CSSProperties => ({
     flexShrink: 0,
-    color: destructive ? '#f87171' : 'rgba(255,255,255,0.45)',
+    color: destructive ? '#f87171' : 'var(--text-muted)',
     fontSize: 14,
     transition: 'all 0.15s ease',
   })
 
   const getShortcutStyle = (): React.CSSProperties => ({
     fontSize: 11,
-    color: 'rgba(255,255,255,0.38)',
+    color: 'var(--text-faint)',
     marginLeft: 'auto',
     fontFamily: 'monospace',
   })
@@ -123,12 +123,12 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
         top: y,
         zIndex: 100,
         minWidth: 160,
-        background: 'rgba(15,15,25,0.95)',
+        background: 'var(--glass-bg-popup)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid rgba(255,255,255,0.09)',
+        border: '1px solid var(--glass-border-md)',
         borderRadius: 12,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+        boxShadow: 'var(--glass-shadow)',
         padding: '4px 0',
         overflow: 'hidden',
         animation: 'slideUp 0.15s ease',

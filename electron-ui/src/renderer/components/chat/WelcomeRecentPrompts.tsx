@@ -39,21 +39,21 @@ export default function WelcomeRecentPrompts({
         <div style={{ width: '100%', maxWidth: 420 }}>
           <div style={{
             fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.38)', marginBottom: 6,
+            color: 'var(--text-faint)', marginBottom: 6,
             display: 'flex', alignItems: 'center', gap: 4,
           }}>
-            <History size={11} color="rgba(255,255,255,0.38)" />
+            <History size={11} color="var(--text-faint)" />
             <span style={{ flex: 1 }}>{t('welcome.recentPrompts')}</span>
             <button
               onClick={onClearHistory}
               title={t('welcome.clearHistory')}
               style={{
-                background: 'none', border: 'none', color: 'rgba(255,255,255,0.38)', cursor: 'pointer',
+                background: 'none', border: 'none', color: 'var(--text-faint)', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', padding: '1px 3px', borderRadius: 6,
                 fontSize: 10, gap: 2, transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#f87171' }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.38)' }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-faint)' }}
             >
               <X size={10} />
               {t('welcome.clearHistory')}
@@ -81,7 +81,7 @@ export default function WelcomeRecentPrompts({
                 >
                   <span style={{
                     flex: 1,
-                    fontSize: 12, color: 'rgba(255,255,255,0.60)', lineHeight: 1.4,
+                    fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4,
                     textAlign: 'left',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
@@ -104,10 +104,10 @@ export default function WelcomeRecentPrompts({
         <div style={{ width: '100%', maxWidth: 420 }}>
           <div style={{
             fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.38)', marginBottom: 6,
+            color: 'var(--text-faint)', marginBottom: 6,
             display: 'flex', alignItems: 'center', gap: 4,
           }}>
-            <TrendingUp size={11} color="rgba(255,255,255,0.38)" />
+            <TrendingUp size={11} color="var(--text-faint)" />
             <span>{t('welcome.topPrompts')}</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -133,13 +133,13 @@ export default function WelcomeRecentPrompts({
                   >
                     <span style={{
                       flex: 1,
-                      fontSize: 12, color: 'rgba(255,255,255,0.60)', lineHeight: 1.4,
+                      fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4,
                       textAlign: 'left',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
                       {item.text.length > 70 ? item.text.slice(0, 70) + '...' : item.text}
                     </span>
-                    <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.45)', flexShrink: 0, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
+                    <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-muted)', flexShrink: 0, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
                       {item.count}x
                     </span>
                     <ChevronRight
@@ -152,7 +152,7 @@ export default function WelcomeRecentPrompts({
                     onClick={() => onToggleFavorite(item.id)}
                     style={{
                       background: 'none', border: 'none', cursor: 'pointer', padding: 2,
-                      color: item.favorite ? '#fbbf24' : 'rgba(255,255,255,0.38)',
+                      color: item.favorite ? '#fbbf24' : 'var(--text-faint)',
                       transition: 'all 0.15s ease',
                       flexShrink: 0,
                     }}

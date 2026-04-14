@@ -116,7 +116,7 @@ export default function SessionItem({
     : isActive
       ? 'rgba(99,102,241,0.50)'
       : hovered
-        ? 'rgba(255,255,255,0.09)'
+        ? 'var(--glass-border-md)'
         : 'transparent'
 
   // Tags assigned to this session
@@ -165,16 +165,16 @@ export default function SessionItem({
         padding: compact ? '5px 12px' : '10px 12px',
         cursor: 'pointer',
         position: 'relative',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--glass-border)',
         borderLeft: '3px solid transparent',
         background: isSelected
           ? 'rgba(99,102,241,0.12)'
           : isActive
             ? 'rgba(99,102,241,0.08)'
             : hovered
-              ? 'rgba(255,255,255,0.07)'
+              ? 'var(--glass-border)'
               : 'transparent',
-        boxShadow: !isActive && hovered ? '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)' : 'none',
+        boxShadow: !isActive && hovered ? 'var(--glass-shadow)' : 'none',
         outline: isFocused ? '2px solid rgba(99,102,241,0.60)' : 'none',
         outlineOffset: isFocused ? -2 : 0,
         transition: 'background 0.15s ease, border-left-color 0.15s ease, box-shadow 0.15s ease',
@@ -197,10 +197,10 @@ export default function SessionItem({
             display: 'flex',
             alignItems: 'center',
             color: isSelectDisabled
-              ? 'rgba(255,255,255,0.45)'
+              ? 'var(--text-muted)'
               : isSelected
                 ? '#818cf8'
-                : 'rgba(255,255,255,0.45)',
+                : 'var(--text-muted)',
             opacity: isSelectDisabled ? 0.3 : 1,
             cursor: isSelectDisabled ? 'not-allowed' : 'pointer',
           }}
@@ -310,10 +310,10 @@ export default function SessionItem({
               style={{
                 flex: 1,
                 background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.07)',
+                border: '1px solid var(--glass-border)',
                 borderRadius: 6,
                 padding: '2px 6px',
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
                 fontSize: 12,
                 outline: 'none',
                 boxSizing: 'border-box' as const,
@@ -327,7 +327,7 @@ export default function SessionItem({
               style={{
                 fontSize: 13,
                 fontWeight: 600,
-                color: isActive ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.82)',
+                color: isActive ? 'var(--text-primary)' : 'var(--text-primary)',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
@@ -342,7 +342,7 @@ export default function SessionItem({
           {/* Timestamp + duration */}
           <span style={{
             fontSize: 10,
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-faint)',
             flexShrink: 0,
             whiteSpace: 'nowrap',
             display: 'flex',
@@ -371,7 +371,7 @@ export default function SessionItem({
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, lineHeight: 1.5 }}>
             <div style={{
               fontSize: 11,
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -405,7 +405,7 @@ export default function SessionItem({
                           padding: '1px 6px',
                           fontSize: 10,
                           background: preset.color ? hexToRgba(preset.color, 0.15) : 'rgba(128,128,128,0.15)',
-                          color: preset.color || 'rgba(255,255,255,0.45)',
+                          color: preset.color || 'var(--text-muted)',
                           flexShrink: 0,
                           transition: 'all 0.15s ease',
                           lineHeight: '16px',
@@ -417,7 +417,7 @@ export default function SessionItem({
                     )
                   })}
                   {overflow > 0 && (
-                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', opacity: 0.6 }}>+{overflow}</span>
+                    <span style={{ fontSize: 9, color: 'var(--text-muted)', opacity: 0.6 }}>+{overflow}</span>
                   )}
                 </div>
               )
@@ -434,10 +434,10 @@ export default function SessionItem({
                 style={{
                   fontSize: 9,
                   fontStyle: 'italic',
-                  color: 'rgba(255,255,255,0.45)',
+                  color: 'var(--text-muted)',
                   opacity: 0.7,
                   background: 'rgba(128,128,128,0.10)',
-                  border: '1px dashed rgba(255,255,255,0.07)',
+                  border: '1px dashed var(--glass-border)',
                   borderRadius: 8,
                   padding: '0px 5px',
                   lineHeight: '16px',
@@ -456,7 +456,7 @@ export default function SessionItem({
           return (
             <div style={{
               fontSize: 10,
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -501,7 +501,7 @@ export default function SessionItem({
               border: 'none',
               borderRadius: 6,
               padding: '2px 4px',
-              color: isPinned ? '#818cf8' : 'rgba(255,255,255,0.45)',
+              color: isPinned ? '#818cf8' : 'var(--text-muted)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -523,7 +523,7 @@ export default function SessionItem({
               border: 'none',
               borderRadius: 6,
               padding: '2px 4px',
-              color: thisTags.length > 0 ? '#818cf8' : 'rgba(255,255,255,0.45)',
+              color: thisTags.length > 0 ? '#818cf8' : 'var(--text-muted)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -544,7 +544,7 @@ export default function SessionItem({
               border: 'none',
               borderRadius: 6,
               padding: '2px 4px',
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -565,7 +565,7 @@ export default function SessionItem({
               border: 'none',
               borderRadius: 6,
               padding: '2px 4px',
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -586,7 +586,7 @@ export default function SessionItem({
               border: 'none',
               borderRadius: 6,
               padding: '2px 4px',
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -607,7 +607,7 @@ export default function SessionItem({
               border: 'none',
               borderRadius: 6,
               padding: '2px 4px',
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -628,7 +628,7 @@ export default function SessionItem({
               border: 'none',
               borderRadius: 6,
               padding: '2px 4px',
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -651,7 +651,7 @@ export default function SessionItem({
                 border: 'none',
                 borderRadius: 6,
                 padding: '2px 4px',
-                color: isArchived ? '#818cf8' : 'rgba(255,255,255,0.45)',
+                color: isArchived ? '#818cf8' : 'var(--text-muted)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',

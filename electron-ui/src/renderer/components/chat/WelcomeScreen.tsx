@@ -151,7 +151,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
         flexDirection: 'column',
         alignItems: 'center',
         height: '100%',
-        color: 'rgba(255,255,255,0.45)',
+        color: 'var(--text-muted)',
         overflow: 'hidden',
         background: 'transparent',
         animation: 'fadeIn 0.15s ease',
@@ -177,21 +177,21 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
           display: 'flex', gap: 20, justifyContent: 'center', alignItems: 'center',
           padding: '8px 16px',
           background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.07)',
+          border: '1px solid var(--glass-border)',
           borderRadius: 20,
           fontSize: 11,
-          color: 'rgba(255,255,255,0.45)',
+          color: 'var(--text-muted)',
           backdropFilter: 'blur(6px)',
           WebkitBackdropFilter: 'blur(6px)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <Layers size={12} style={{ opacity: 0.6 }} />
-            <span><b style={{ color: 'rgba(255,255,255,0.82)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{usageStats.totalSessions}</b> {t('welcome.statsSessions')}</span>
+            <span><b style={{ color: 'var(--text-primary)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{usageStats.totalSessions}</b> {t('welcome.statsSessions')}</span>
           </div>
           <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.12)', opacity: 0.5 }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <MessageSquare size={12} style={{ opacity: 0.6 }} />
-            <span><b style={{ color: 'rgba(255,255,255,0.82)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{usageStats.totalMessages}</b> {t('welcome.statsMessages')}</span>
+            <span><b style={{ color: 'var(--text-primary)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{usageStats.totalMessages}</b> {t('welcome.statsMessages')}</span>
           </div>
           {usageStats.sessionsToday > 0 && (
             <>
@@ -213,9 +213,9 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
             display: 'flex', alignItems: 'center', gap: 12,
             padding: '12px 20px',
             background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.07)',
+            border: '1px solid var(--glass-border)',
             borderRadius: 16,
-            color: 'rgba(255,255,255,0.82)', cursor: 'pointer', fontSize: 13,
+            color: 'var(--text-primary)', cursor: 'pointer', fontSize: 13,
             width: '100%', maxWidth: 420, transition: 'background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease', textAlign: 'left',
           }}
           onMouseEnter={(e) => {
@@ -225,7 +225,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.03)';
-            (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.07)';
+            (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--glass-border)';
             (e.currentTarget as HTMLButtonElement).style.boxShadow = 'none'
           }}
         >
@@ -239,11 +239,11 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
             <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('welcome.continueLastChat')}
             </div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {lastSession.title || lastSession.lastPrompt || t('session.untitled')}
             </div>
           </div>
-          <ArrowRight size={16} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
+          <ArrowRight size={16} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
         </button>
       )}
 
@@ -301,16 +301,16 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
         display: 'grid', gridTemplateColumns: 'repeat(3, auto)', gap: '8px 20px',
         padding: '14px 20px',
         background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        border: '1px solid var(--glass-border)',
         borderRadius: 12,
       }}>
         {shortcuts.map(({ keys, desc }) => (
           <div key={keys} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
             <kbd style={{
-              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 6,
-              padding: '2px 8px', fontSize: 10, fontFamily: 'monospace', color: 'rgba(255,255,255,0.60)', whiteSpace: 'nowrap',
+              background: 'rgba(255,255,255,0.06)', border: '1px solid var(--glass-border-md)', borderRadius: 6,
+              padding: '2px 8px', fontSize: 10, fontFamily: 'monospace', color: 'var(--text-secondary)', whiteSpace: 'nowrap',
             }}>{keys}</kbd>
-            <span style={{ color: 'rgba(255,255,255,0.45)' }}>{desc}</span>
+            <span style={{ color: 'var(--text-muted)' }}>{desc}</span>
           </div>
         ))}
       </div>
@@ -320,7 +320,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
       {showTips && tip && (
         <div style={{
           width: '100%', maxWidth: 420, padding: '10px 14px',
-          background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+          background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)',
           borderRadius: 10, display: 'flex', alignItems: 'flex-start', gap: 10,
         }}>
           <Lightbulb size={16} color="#fbbf24" style={{ flexShrink: 0, marginTop: 2 }} />
@@ -328,7 +328,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
             <div style={{ fontSize: 10, color: '#fbbf24', fontWeight: 600, marginBottom: 4 }}>
               {t('tips.title')}
             </div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.60)', lineHeight: 1.5 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
               {t(tip.contentKey)}
             </div>
           </div>
@@ -337,11 +337,11 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
               onClick={nextTip}
               title={t('tips.nextTip')}
               style={{
-                background: 'none', border: 'none', color: 'rgba(255,255,255,0.45)', cursor: 'pointer',
+                background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
                 padding: '2px 4px', borderRadius: 6, fontSize: 10, transition: 'color 0.15s ease',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.82)')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
             >
               {t('tips.nextTip')}
             </button>
@@ -349,11 +349,11 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
               onClick={dismissTip}
               title={t('tips.dismiss')}
               style={{
-                background: 'none', border: 'none', color: 'rgba(255,255,255,0.45)', cursor: 'pointer',
+                background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
                 padding: '2px', borderRadius: 6, transition: 'color 0.15s ease',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.82)')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
             >
               <X size={12} />
             </button>

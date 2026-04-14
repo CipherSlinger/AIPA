@@ -35,7 +35,7 @@ export default function ChannelPanel() {
     fontWeight: activeTab === tab ? 700 : 500,
     letterSpacing: '0.07em',
     textTransform: 'uppercase',
-    color: activeTab === tab ? '#818cf8' : 'rgba(255,255,255,0.38)',
+    color: activeTab === tab ? '#818cf8' : 'var(--text-faint)',
     background: 'none',
     border: 'none',
     borderBottom: activeTab === tab
@@ -52,23 +52,23 @@ export default function ChannelPanel() {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', height: '100%',
-      background: 'rgba(15,15,25,0.92)',
+      background: 'var(--glass-bg-raised)',
       backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
-      borderRight: '1px solid rgba(255,255,255,0.07)', overflow: 'hidden',
+      borderRight: '1px solid var(--glass-border)', overflow: 'hidden',
     }}>
       <style>{CHANNEL_STYLE}</style>
 
       {/* Panel header */}
       <div style={{
         padding: '12px 14px',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--glass-border)',
         flexShrink: 0,
         background: 'linear-gradient(180deg, rgba(99,102,241,0.06) 0%, transparent 100%)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
           <Radio size={14} color="#818cf8" />
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.82)', lineHeight: 1.3 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-primary)', lineHeight: 1.3 }}>
             {t('channel.title')}
           </span>
         </div>
@@ -78,8 +78,8 @@ export default function ChannelPanel() {
           <button
             style={tabStyle('providers')}
             onClick={() => setActiveTab('providers')}
-            onMouseEnter={e => { if (activeTab !== 'providers') e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
-            onMouseLeave={e => { if (activeTab !== 'providers') e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
+            onMouseEnter={e => { if (activeTab !== 'providers') e.currentTarget.style.color = 'var(--text-secondary)' }}
+            onMouseLeave={e => { if (activeTab !== 'providers') e.currentTarget.style.color = 'var(--text-faint)' }}
           >
             <Radio size={11} />
             {t('channel.providersTab')}
@@ -87,8 +87,8 @@ export default function ChannelPanel() {
           <button
             style={tabStyle('mcp')}
             onClick={() => setActiveTab('mcp')}
-            onMouseEnter={e => { if (activeTab !== 'mcp') e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
-            onMouseLeave={e => { if (activeTab !== 'mcp') e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
+            onMouseEnter={e => { if (activeTab !== 'mcp') e.currentTarget.style.color = 'var(--text-secondary)' }}
+            onMouseLeave={e => { if (activeTab !== 'mcp') e.currentTarget.style.color = 'var(--text-faint)' }}
           >
             <Server size={11} />
             {t('channel.mcpTab')}
@@ -102,10 +102,10 @@ export default function ChannelPanel() {
           <div style={{
             borderRadius: 10,
             background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.07)',
+            border: '1px solid var(--glass-border)',
             overflow: 'hidden',
           }}>
-            <React.Suspense fallback={<div style={{ padding: 20, color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>Loading...</div>}>
+            <React.Suspense fallback={<div style={{ padding: 20, color: 'var(--text-muted)', fontSize: 11 }}>Loading...</div>}>
               {activeTab === 'providers' ? <SettingsProviders /> : <SettingsMcp />}
             </React.Suspense>
           </div>
@@ -114,12 +114,12 @@ export default function ChannelPanel() {
 
       {/* Footer */}
       <div style={{
-        padding: '6px 12px', borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0,
+        padding: '6px 12px', borderTop: '1px solid var(--glass-border)', flexShrink: 0,
         display: 'flex', alignItems: 'center', gap: 6,
         background: 'rgba(255,255,255,0.02)',
       }}>
-        <MessageCircle size={10} color="rgba(255,255,255,0.38)" />
-        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+        <MessageCircle size={10} color="var(--text-faint)" />
+        <span style={{ fontSize: 9, color: 'var(--text-faint)', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
           {t('channel.footer')}
         </span>
       </div>

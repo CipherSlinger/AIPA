@@ -81,12 +81,12 @@ export function BranchBadge({ forkEntry, onCompare, onNavigate }: BranchBadgePro
             left: 0,
             marginBottom: 6,
             width: 220,
-            background: 'rgba(15,15,25,0.95)',
+            background: 'var(--glass-bg-popup)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            border: '1px solid var(--glass-border-md)',
             borderRadius: 8,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+            boxShadow: 'var(--glass-shadow)',
             padding: '8px 0',
             zIndex: 50,
             animation: 'slideUp 0.15s ease',
@@ -94,9 +94,9 @@ export function BranchBadge({ forkEntry, onCompare, onNavigate }: BranchBadgePro
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
-          <div style={{ padding: '0 12px 6px', fontSize: 11, color: 'rgba(255,255,255,0.45)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+          <div style={{ padding: '0 12px 6px', fontSize: 11, color: 'var(--text-muted)', borderBottom: '1px solid var(--glass-border)' }}>
             <GitBranch size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
-            {t('fork.forkedTo')}: <strong style={{ color: 'rgba(255,255,255,0.82)' }}>{forkedTitle}</strong>
+            {t('fork.forkedTo')}: <strong style={{ color: 'var(--text-primary)' }}>{forkedTitle}</strong>
           </div>
           {onNavigate && (
             <button
@@ -108,7 +108,7 @@ export function BranchBadge({ forkEntry, onCompare, onNavigate }: BranchBadgePro
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
                 fontSize: 11,
                 textAlign: 'left',
                 transition: 'all 0.15s ease',
@@ -129,7 +129,7 @@ export function BranchBadge({ forkEntry, onCompare, onNavigate }: BranchBadgePro
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
                 fontSize: 11,
                 textAlign: 'left',
                 transition: 'all 0.15s ease',

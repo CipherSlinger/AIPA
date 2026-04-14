@@ -39,7 +39,7 @@ export default function SettingsModal() {
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.70)',
+        background: 'var(--glass-overlay)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         zIndex: 300,
@@ -61,9 +61,9 @@ export default function SettingsModal() {
           background: 'rgba(14,14,24,0.97)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.09)',
+          border: '1px solid var(--glass-border-md)',
           borderRadius: 16,
-          boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+          boxShadow: 'var(--glass-shadow)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -77,11 +77,11 @@ export default function SettingsModal() {
             fallback={
               <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                height: '100%', color: 'rgba(255,255,255,0.45)', fontSize: 12,
+                height: '100%', color: 'var(--text-muted)', fontSize: 12,
               }}>
                 <div style={{
                   width: 20, height: 20,
-                  border: '2px solid rgba(255,255,255,0.09)',
+                  border: '2px solid var(--glass-border-md)',
                   borderTopColor: '#6366f1',
                   borderRadius: '50%',
                   animation: 'spin 0.8s linear infinite',

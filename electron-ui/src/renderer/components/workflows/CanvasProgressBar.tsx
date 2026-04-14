@@ -66,10 +66,10 @@ export default function CanvasProgressBar({ completedCount, totalSteps, isRunnin
       padding: '6px 12px',
       pointerEvents: 'none',
       opacity: isError ? 0.4 : 1,
-      background: 'rgba(15,15,25,0.88)',
+      background: 'var(--glass-bg-card)',
       backdropFilter: 'blur(14px)',
       WebkitBackdropFilter: 'blur(14px)',
-      border: '1px solid rgba(255,255,255,0.07)',
+      border: '1px solid var(--glass-border)',
       borderRadius: 10,
       boxShadow: '0 4px 16px rgba(0,0,0,0.40), 0 1px 4px rgba(0,0,0,0.30)',
     }}>
@@ -105,7 +105,7 @@ export default function CanvasProgressBar({ completedCount, totalSteps, isRunnin
             </span>
         }
         {!isError && etaText && (
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
             {etaText}
           </span>
         )}

@@ -76,18 +76,18 @@ const STATUS_STYLES: Record<string, {
   boxShadow?: string
 }> = {
   idle: {
-    borderColor: 'rgba(255,255,255,0.09)',
+    borderColor: 'var(--glass-border-md)',
     boxShadow: '0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)',
   },
   pending: {
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: 'var(--glass-border)',
     opacity: 0.55,
     boxShadow: '0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)',
   },
   running: {
     borderColor: 'rgba(99,102,241,0.5)',
     animation: 'canvas-node-pulse 1.5s ease-in-out infinite',
-    glowColor: 'rgba(15,15,25,0.90)',
+    glowColor: 'var(--glass-bg-mid)',
     boxShadow: '0 0 12px 3px rgba(99,102,241,0.35), 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)',
   },
   completed: {
@@ -108,7 +108,7 @@ function StatusBadge({ status }: { status: StepStatus }) {
       <div style={{
         position: 'absolute', top: -6, right: -6,
         width: 16, height: 16, borderRadius: '50%',
-        background: '#4ade80', color: 'rgba(255,255,255,0.82)',
+        background: '#4ade80', color: 'var(--text-primary)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         boxShadow: '0 0 4px rgba(74,222,128,0.6), 0 0 0 2px rgba(12,12,20,0.95)',
       }}>
@@ -121,7 +121,7 @@ function StatusBadge({ status }: { status: StepStatus }) {
       <div style={{
         position: 'absolute', top: -6, right: -6,
         width: 16, height: 16, borderRadius: '50%',
-        background: 'rgba(99,102,241,0.9)', color: 'rgba(255,255,255,0.82)',
+        background: 'rgba(99,102,241,0.9)', color: 'var(--text-primary)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         animation: 'canvas-spinner 1s linear infinite',
         boxShadow: '0 0 6px rgba(99,102,241,0.7), 0 0 0 2px rgba(12,12,20,0.95)',
@@ -135,7 +135,7 @@ function StatusBadge({ status }: { status: StepStatus }) {
       <div style={{
         position: 'absolute', top: -6, right: -6,
         width: 16, height: 16, borderRadius: '50%',
-        background: '#f87171', color: 'rgba(255,255,255,0.82)',
+        background: '#f87171', color: 'var(--text-primary)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         boxShadow: '0 0 4px rgba(248,113,113,0.6), 0 0 0 2px rgba(12,12,20,0.95)',
       }}>
@@ -184,7 +184,7 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, status, onCollapse, onClo
     background: 'rgba(18,18,30,0.97)',
     backdropFilter: 'blur(12px)',
     WebkitBackdropFilter: 'blur(12px)',
-    border: '1px solid rgba(255,255,255,0.09)',
+    border: '1px solid var(--glass-border-md)',
     borderRadius: 8,
     boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05)',
     minWidth: 168,
@@ -197,7 +197,7 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, status, onCollapse, onClo
     padding: '7px 12px',
     fontSize: 12,
     cursor: 'pointer',
-    color: 'rgba(255,255,255,0.82)',
+    color: 'var(--text-primary)',
     transition: 'all 0.15s ease',
   }
 
@@ -208,7 +208,7 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, status, onCollapse, onClo
 
   const dividerStyle: React.CSSProperties = {
     height: 1,
-    background: 'rgba(255,255,255,0.07)',
+    background: 'var(--glass-border)',
     margin: '3px 0',
   }
 
@@ -358,7 +358,7 @@ function NodeHeader({
   return (
     <div style={{
       padding: '8px 12px',
-      borderBottom: '1px solid rgba(255,255,255,0.07)',
+      borderBottom: '1px solid var(--glass-border)',
       borderLeft: headerBorderLeft,
       borderRadius: '12px 12px 0 0',
       flexShrink: 0,
@@ -375,7 +375,7 @@ function NodeHeader({
           style={{
             fontSize: 12,
             fontWeight: 700,
-            color: 'rgba(255,255,255,0.82)',
+            color: 'var(--text-primary)',
             width: '100%',
             background: 'rgba(255,255,255,0.06)',
             border: '1px solid rgba(99,102,241,0.6)',
@@ -392,7 +392,7 @@ function NodeHeader({
             fontSize: 13,
             fontWeight: 600,
             letterSpacing: '-0.01em',
-            color: 'rgba(255,255,255,0.82)',
+            color: 'var(--text-primary)',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -745,10 +745,10 @@ export default function CanvasNode({
     status === 'running' ? 'rgba(99,102,241,0.9)'
     : status === 'completed' ? '#4ade80'
     : status === 'error' ? '#f87171'
-    : 'rgba(255,255,255,0.38)'
+    : 'var(--text-faint)'
 
   const stepBadgeColor =
-    (status === 'idle' || status === 'pending') ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.82)'
+    (status === 'idle' || status === 'pending') ? 'var(--text-muted)' : 'var(--text-primary)'
 
   const nodeBorder = selected
     ? '1px solid rgba(99,102,241,0.60)'
@@ -760,10 +760,10 @@ export default function CanvasNode({
 
   // Node background
   const nodeBackground = status === 'running'
-    ? (statusStyle.glowColor || 'rgba(15,15,25,0.90)')
+    ? (statusStyle.glowColor || 'var(--glass-bg-mid)')
     : isMulti
       ? 'rgba(99,102,241,0.06)'
-      : 'rgba(15,15,25,0.90)'
+      : 'var(--glass-bg-mid)'
 
   // Improvement 1: output word count for Zone 3
   const outputWordCount = outputText ? outputText.trim().split(/\s+/).filter(Boolean).length : 0
@@ -901,7 +901,7 @@ export default function CanvasNode({
               top: '50%',
               transform: 'translateY(-50%)',
               cursor: 'ns-resize',
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               opacity: isNodeHovered ? 0.5 : 0,
               padding: '3px 2px',
               display: 'flex',
@@ -929,7 +929,7 @@ export default function CanvasNode({
               background: 'transparent',
               border: 'none',
               cursor: 'pointer',
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               padding: 2,
               borderRadius: 3,
               display: 'flex',
@@ -968,12 +968,12 @@ export default function CanvasNode({
               title="Move step up"
               style={{
                 background: 'none', border: 'none', cursor: onMoveUp ? 'pointer' : 'not-allowed',
-                color: onMoveUp ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.15)',
+                color: onMoveUp ? 'var(--text-muted)' : 'rgba(255,255,255,0.15)',
                 padding: '1px 3px', borderRadius: 3, fontSize: 10, lineHeight: 1,
                 display: 'flex', alignItems: 'center', transition: 'all 0.15s ease',
               }}
               onMouseEnter={e => { if (onMoveUp) e.currentTarget.style.color = '#818cf8' }}
-              onMouseLeave={e => { e.currentTarget.style.color = onMoveUp ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.15)' }}
+              onMouseLeave={e => { e.currentTarget.style.color = onMoveUp ? 'var(--text-muted)' : 'rgba(255,255,255,0.15)' }}
             >▲</button>
             <button
               onClick={e => { e.stopPropagation(); onMoveDown?.() }}
@@ -981,12 +981,12 @@ export default function CanvasNode({
               title="Move step down"
               style={{
                 background: 'none', border: 'none', cursor: onMoveDown ? 'pointer' : 'not-allowed',
-                color: onMoveDown ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.15)',
+                color: onMoveDown ? 'var(--text-muted)' : 'rgba(255,255,255,0.15)',
                 padding: '1px 3px', borderRadius: 3, fontSize: 10, lineHeight: 1,
                 display: 'flex', alignItems: 'center', transition: 'all 0.15s ease',
               }}
               onMouseEnter={e => { if (onMoveDown) e.currentTarget.style.color = '#818cf8' }}
-              onMouseLeave={e => { e.currentTarget.style.color = onMoveDown ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.15)' }}
+              onMouseLeave={e => { e.currentTarget.style.color = onMoveDown ? 'var(--text-muted)' : 'rgba(255,255,255,0.15)' }}
             >▼</button>
           </div>
         )}
@@ -1022,7 +1022,7 @@ export default function CanvasNode({
               }} />
               <span style={{
                 fontSize: 11, fontWeight: 600,
-                color: 'rgba(255,255,255,0.60)',
+                color: 'var(--text-secondary)',
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>
                 {step.title || `Step ${(stepIndex ?? 0) + 1}`}
@@ -1031,7 +1031,7 @@ export default function CanvasNode({
             {step.prompt && (
               <div style={{
                 fontSize: 10,
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--text-muted)',
                 opacity: 0.55,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -1058,7 +1058,7 @@ export default function CanvasNode({
               background: noteText ? 'rgba(234,179,8,0.15)' : 'transparent',
               border: 'none',
               cursor: 'pointer',
-              color: noteText ? '#fbbf24' : 'rgba(255,255,255,0.45)',
+              color: noteText ? '#fbbf24' : 'var(--text-muted)',
               padding: 2,
               borderRadius: 3,
               display: 'flex',
@@ -1088,7 +1088,7 @@ export default function CanvasNode({
               cursor: 'pointer',
               padding: 3,
               borderRadius: 4,
-              color: pinned ? '#fbbf24' : 'rgba(255,255,255,0.45)',
+              color: pinned ? '#fbbf24' : 'var(--text-muted)',
               display: 'flex',
               alignItems: 'center',
               opacity: isNodeHovered || pinned ? 1 : 0,
@@ -1115,7 +1115,7 @@ export default function CanvasNode({
               cursor: 'pointer',
               padding: 3,
               borderRadius: 4,
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               display: 'flex',
               alignItems: 'center',
               opacity: isNodeHovered ? 1 : 0,
@@ -1157,12 +1157,12 @@ export default function CanvasNode({
               boxSizing: 'border-box',
               overflow: 'hidden',
               fontSize: 12,
-              color: 'rgba(255,255,255,0.60)',
+              color: 'var(--text-secondary)',
               lineHeight: 1.5,
             }}>
               {status === 'completed' && outputText ? (
                 /* Completed: show output text */
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4, width: '100%' }}>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4, width: '100%' }}>
                   <div style={{
                     whiteSpace: outputExpanded ? 'pre-wrap' : undefined,
                     wordBreak: 'break-word',
@@ -1235,7 +1235,7 @@ export default function CanvasNode({
                 </div>
               ) : nodeType === 'condition' ? (
                 /* Condition node body — condition text + Yes/No chips */
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4, width: '100%' }}>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4, width: '100%' }}>
                   <div style={{
                     display: '-webkit-box',
                     WebkitLineClamp: 2,
@@ -1269,7 +1269,7 @@ export default function CanvasNode({
                 </div>
               ) : nodeType === 'parallel' ? (
                 /* Parallel node body — prompt preview + sub-task count */
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4, width: '100%' }}>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4, width: '100%' }}>
                   <div style={{
                     display: '-webkit-box',
                     WebkitLineClamp: 2,
@@ -1301,7 +1301,7 @@ export default function CanvasNode({
                         width: '100%',
                         minHeight: 48,
                         fontSize: 10,
-                        color: 'rgba(255,255,255,0.82)',
+                        color: 'var(--text-primary)',
                         background: 'rgba(255,255,255,0.06)',
                         border: '1px solid rgba(99,102,241,0.6)',
                         borderRadius: 3,
@@ -1316,14 +1316,14 @@ export default function CanvasNode({
                     <div style={{
                       textAlign: 'right',
                       fontSize: 10,
-                      color: editPromptValue.length > 1800 ? 'rgba(239,68,68,0.7)' : 'rgba(255,255,255,0.45)',
+                      color: editPromptValue.length > 1800 ? 'rgba(239,68,68,0.7)' : 'var(--text-muted)',
                       opacity: 0.7,
                       marginTop: 2,
                       transition: 'all 0.15s ease',
                     }}>
                       {editPromptValue.length} / 2000
                     </div>
-                    <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>
+                    <div style={{ fontSize: 8, color: 'var(--text-muted)', marginTop: 2 }}>
                       {t('canvas.promptEditHint')}
                     </div>
                   </div>
@@ -1332,7 +1332,7 @@ export default function CanvasNode({
                     <div
                       style={{
                         fontSize: 11,
-                        color: 'rgba(255,255,255,0.60)',
+                        color: 'var(--text-secondary)',
                         opacity: 0.8,
                         lineHeight: 1.4,
                         display: '-webkit-box',
@@ -1352,7 +1352,7 @@ export default function CanvasNode({
                         textAlign: 'right',
                         marginTop: 4,
                         fontSize: 9,
-                        color: 'rgba(255,255,255,0.45)',
+                        color: 'var(--text-muted)',
                         opacity: 0.45,
                         fontFamily: 'monospace',
                         pointerEvents: 'none',
@@ -1382,7 +1382,7 @@ export default function CanvasNode({
                           borderRadius: 4,
                           padding: '2px 5px',
                           cursor: 'pointer',
-                          color: promptCopied ? '#22c55e' : 'rgba(255,255,255,0.45)',
+                          color: promptCopied ? '#22c55e' : 'var(--text-muted)',
                           fontSize: 10,
                           display: 'flex', alignItems: 'center', gap: 3,
                           zIndex: 3,
@@ -1556,7 +1556,7 @@ export default function CanvasNode({
                     <span style={{
                       marginLeft: 'auto',
                       fontSize: 9,
-                      color: 'rgba(255,255,255,0.45)',
+                      color: 'var(--text-muted)',
                       opacity: 0.6,
                     }}>
                       {outputWordCount}w
@@ -1565,7 +1565,7 @@ export default function CanvasNode({
                   {outputTokenEstimate > 0 && (
                     <span style={{
                       fontSize: 9,
-                      color: 'rgba(255,255,255,0.45)',
+                      color: 'var(--text-muted)',
                       opacity: 0.5,
                       marginLeft: 2,
                     }}>
@@ -1588,11 +1588,11 @@ export default function CanvasNode({
                     position: 'absolute',
                     top: 6, right: 6,
                     background: outputCopied ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.06)',
-                    border: `1px solid ${outputCopied ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.09)'}`,
+                    border: `1px solid ${outputCopied ? 'rgba(34,197,94,0.4)' : 'var(--glass-border-md)'}`,
                     borderRadius: 4,
                     padding: '2px 6px',
                     cursor: 'pointer',
-                    color: outputCopied ? '#22c55e' : 'rgba(255,255,255,0.45)',
+                    color: outputCopied ? '#22c55e' : 'var(--text-muted)',
                     fontSize: 10,
                     display: 'flex', alignItems: 'center', gap: 3,
                     transition: 'all 0.15s ease',
@@ -1603,7 +1603,7 @@ export default function CanvasNode({
                 </button>
                 <div style={{
                   fontSize: 10,
-                  color: 'rgba(255,255,255,0.60)',
+                  color: 'var(--text-secondary)',
                   display: '-webkit-box',
                   WebkitLineClamp: 4,
                   WebkitBoxOrient: 'vertical',
@@ -1672,8 +1672,8 @@ export default function CanvasNode({
                 width: 10,
                 height: 10,
                 borderRadius: '50%',
-                border: '2px solid rgba(255,255,255,0.09)',
-                background: 'rgba(15,15,25,0.9)',
+                border: '2px solid var(--glass-border-md)',
+                background: 'var(--glass-bg-mid)',
                 zIndex: 4,
                 pointerEvents: 'none',
                 transition: 'all 0.15s ease',
@@ -1692,8 +1692,8 @@ export default function CanvasNode({
                 width: 10,
                 height: 10,
                 borderRadius: '50%',
-                border: '2px solid rgba(255,255,255,0.09)',
-                background: 'rgba(15,15,25,0.9)',
+                border: '2px solid var(--glass-border-md)',
+                background: 'var(--glass-bg-mid)',
                 zIndex: 4,
                 pointerEvents: 'none',
                 transition: 'all 0.15s ease',

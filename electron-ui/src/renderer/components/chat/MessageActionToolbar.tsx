@@ -27,7 +27,7 @@ function ActionButton({
   const [pressed, setPressed] = useState(false)
 
   let bg = 'transparent'
-  let color = 'rgba(255,255,255,0.45)'
+  let color = 'var(--text-muted)'
 
   if (isCopied) {
     bg = 'rgba(34,197,94,0.1)'
@@ -39,8 +39,8 @@ function ActionButton({
     bg = 'rgba(99,102,241,0.15)'
     color = '#818cf8'
   } else if (hovered && !skipHover) {
-    bg = isDestructive ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.09)'
-    color = isDestructive ? '#fca5a5' : 'rgba(255,255,255,0.82)'
+    bg = isDestructive ? 'rgba(239,68,68,0.12)' : 'var(--glass-border-md)'
+    color = isDestructive ? '#fca5a5' : 'var(--text-primary)'
   }
 
   return (
@@ -49,7 +49,7 @@ function ActionButton({
       style={{
         background: bg,
         border: hovered && !skipHover && !isActive && !isCopied
-          ? '1px solid rgba(255,255,255,0.09)'
+          ? '1px solid var(--glass-border-md)'
           : '1px solid transparent',
         borderRadius: 8,
         padding: '4px 6px',
@@ -79,7 +79,7 @@ function Sep() {
   return (
     <div
       style={{
-        background: 'rgba(255,255,255,0.07)',
+        background: 'var(--glass-border)',
         width: 1,
         height: 14,
         margin: '0 2px',
@@ -177,10 +177,10 @@ export default function MessageActionToolbar({
         alignItems: 'center',
         gap: 2,
         padding: '2px 4px',
-        background: 'rgba(15,15,25,0.92)',
+        background: 'var(--glass-bg-raised)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid rgba(255,255,255,0.09)',
+        border: '1px solid var(--glass-border-md)',
         boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3)',
         borderRadius: 10,
         zIndex: 20,
@@ -269,7 +269,7 @@ export default function MessageActionToolbar({
             style={{
               padding: '4px 2px',
               borderRadius: '0 5px 5px 0',
-              borderLeft: '1px solid rgba(255,255,255,0.09)',
+              borderLeft: '1px solid var(--glass-border-md)',
             }}
           >
             <ChevronDown size={10} />
@@ -286,32 +286,32 @@ export default function MessageActionToolbar({
               ...(isUser ? { left: 0 } : { right: 0 }),
               marginTop: 4,
               width: 180,
-              background: 'rgba(15,15,25,0.96)',
+              background: 'var(--glass-bg-high)',
               backdropFilter: 'blur(20px)',
               WebkitBackdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255,255,255,0.09)',
+              border: '1px solid var(--glass-border-md)',
               borderRadius: 10,
-              boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+              boxShadow: 'var(--glass-shadow)',
               padding: '4px 0',
               zIndex: 30,
               animation: 'slideUp 0.15s ease',
             }}
           >
             <DropdownItem
-              icon={<FileText size={12} color="rgba(255,255,255,0.45)" />}
+              icon={<FileText size={12} color="var(--text-muted)" />}
               label={t('copy.asText')}
               onClick={(e) => { e.stopPropagation(); onCopy(); setShowCopyMenu(false) }}
             />
             {onCopyMarkdown && (
               <DropdownItem
-                icon={<Braces size={12} color="rgba(255,255,255,0.45)" />}
+                icon={<Braces size={12} color="var(--text-muted)" />}
                 label={t('copy.asMarkdown')}
                 onClick={(e) => { e.stopPropagation(); onCopyMarkdown(); setShowCopyMenu(false) }}
               />
             )}
             {onCopyCodeBlocks && hasCodeBlocks && (
               <DropdownItem
-                icon={<Code2 size={12} color="rgba(255,255,255,0.45)" />}
+                icon={<Code2 size={12} color="var(--text-muted)" />}
                 label={t('copy.codeBlocksOnly')}
                 onClick={(e) => { e.stopPropagation(); onCopyCodeBlocks(); setShowCopyMenu(false) }}
               />
@@ -493,10 +493,10 @@ function DropdownItem({
         gap: 8,
         width: '100%',
         padding: '7px 14px',
-        background: hovered ? 'rgba(255,255,255,0.07)' : 'none',
+        background: hovered ? 'var(--glass-border)' : 'none',
         border: 'none',
         cursor: 'pointer',
-        color: 'rgba(255,255,255,0.82)',
+        color: 'var(--text-primary)',
         fontSize: 13,
         textAlign: 'left',
         transition: 'all 0.15s ease',

@@ -84,7 +84,7 @@ export default function SessionListHeader({
     background: 'transparent',
     border: 'none',
     borderRadius: 8,
-    color: 'rgba(255,255,255,0.45)',
+    color: 'var(--text-muted)',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
@@ -94,37 +94,37 @@ export default function SessionListHeader({
 
   const iconBtnHover = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
-    e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+    e.currentTarget.style.color = 'var(--text-primary)'
   }
   const iconBtnLeave = (e: React.MouseEvent<HTMLButtonElement>, active?: boolean) => {
     e.currentTarget.style.background = active ? '#6366f1' : 'transparent'
-    e.currentTarget.style.color = active ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.45)'
+    e.currentTarget.style.color = active ? 'var(--text-primary)' : 'var(--text-muted)'
   }
 
   return (
     <div style={{
       padding: '8px 10px',
-      background: 'rgba(15,15,25,0.95)',
+      background: 'var(--glass-bg-popup)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
-      borderBottom: '1px solid rgba(255,255,255,0.07)',
+      borderBottom: '1px solid var(--glass-border)',
       display: 'flex',
       gap: 4,
       flexShrink: 0,
       alignItems: 'center',
     }}>
       {/* Sessions label + count badge */}
-      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', flexShrink: 0 }}>
+      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)', flexShrink: 0 }}>
         Sessions
       </span>
       {filteredCount > 0 && (
         <span style={{
-          background: 'rgba(255,255,255,0.07)',
+          background: 'var(--glass-border)',
           borderRadius: 10,
           padding: '1px 6px',
           fontSize: 10,
           fontWeight: 600,
-          color: 'rgba(255,255,255,0.38)',
+          color: 'var(--text-faint)',
           flexShrink: 0,
           fontVariantNumeric: 'tabular-nums',
         }}>
@@ -133,7 +133,7 @@ export default function SessionListHeader({
       )}
       {/* Search input */}
       <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
-        <Search size={12} style={{ position: 'absolute', left: 8, color: 'rgba(255,255,255,0.38)', pointerEvents: 'none' }} />
+        <Search size={12} style={{ position: 'absolute', left: 8, color: 'var(--text-faint)', pointerEvents: 'none' }} />
         <input
           ref={searchInputRef}
           value={filter}
@@ -144,21 +144,21 @@ export default function SessionListHeader({
             flex: 1,
             width: '100%',
             background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.07)',
+            border: '1px solid var(--glass-border)',
             borderRadius: 6,
             padding: '4px 10px 4px 26px',
-            color: 'rgba(255,255,255,0.82)',
+            color: 'var(--text-primary)',
             fontSize: 12,
             outline: 'none',
             transition: 'all 0.15s ease',
           }}
           onFocus={(e) => {
             e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)'
-            e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
+            e.currentTarget.style.background = 'var(--glass-border)'
             e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)'
           }}
           onBlur={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
+            e.currentTarget.style.borderColor = 'var(--glass-border)'
             e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
             e.currentTarget.style.boxShadow = 'none'
           }}
@@ -168,7 +168,7 @@ export default function SessionListHeader({
             position: 'absolute',
             right: 8,
             fontSize: 10,
-            color: filteredCount === 0 ? '#f87171' : 'rgba(255,255,255,0.38)',
+            color: filteredCount === 0 ? '#f87171' : 'var(--text-faint)',
             pointerEvents: 'none',
             whiteSpace: 'nowrap',
             fontVariantNumeric: 'tabular-nums',
@@ -196,7 +196,7 @@ export default function SessionListHeader({
           style={{
             ...iconBtnStyle,
             background: showSortDropdown ? 'rgba(255,255,255,0.08)' : 'transparent',
-            color: showSortDropdown ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.45)',
+            color: showSortDropdown ? 'var(--text-primary)' : 'var(--text-muted)',
             gap: 2,
             fontSize: 10,
           }}
@@ -215,10 +215,10 @@ export default function SessionListHeader({
               top: '100%',
               left: 0,
               marginTop: 4,
-              background: 'rgba(15,15,25,0.97)',
+              background: 'var(--glass-bg-deep)',
               backdropFilter: 'blur(16px)',
               WebkitBackdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255,255,255,0.09)',
+              border: '1px solid var(--glass-border-md)',
               borderRadius: 8,
               boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
               padding: '4px 0',
@@ -243,7 +243,7 @@ export default function SessionListHeader({
                     border: 'none',
                     cursor: 'pointer',
                     fontSize: 11,
-                    color: isActive ? '#818cf8' : 'rgba(255,255,255,0.82)',
+                    color: isActive ? '#818cf8' : 'var(--text-primary)',
                     fontWeight: isActive ? 600 : 400,
                     textAlign: 'left',
                     borderRadius: 0,
@@ -255,7 +255,7 @@ export default function SessionListHeader({
                   <span style={{
                     width: 6, height: 6, borderRadius: '50%',
                     background: isActive ? '#818cf8' : 'transparent',
-                    border: `1.5px solid ${isActive ? '#818cf8' : 'rgba(255,255,255,0.38)'}`,
+                    border: `1.5px solid ${isActive ? '#818cf8' : 'var(--text-faint)'}`,
                     flexShrink: 0,
                   }} />
                   {opt.id === 'alpha' ? 'A-Z' : t(opt.labelKey)}
@@ -272,7 +272,7 @@ export default function SessionListHeader({
         style={{
           ...iconBtnStyle,
           background: selectMode ? '#6366f1' : 'transparent',
-          color: selectMode ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.45)',
+          color: selectMode ? 'var(--text-primary)' : 'var(--text-muted)',
           padding: selectMode ? '2px 5px' : '3px 4px',
         }}
         onMouseEnter={(e) => { if (!selectMode) iconBtnHover(e) }}
@@ -297,7 +297,7 @@ export default function SessionListHeader({
         style={{
           ...iconBtnStyle,
           background: showArchived ? '#6366f1' : 'transparent',
-          color: showArchived ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.45)',
+          color: showArchived ? 'var(--text-primary)' : 'var(--text-muted)',
           padding: showArchived ? '2px 5px' : '3px 4px',
           position: 'relative',
         }}
@@ -313,7 +313,7 @@ export default function SessionListHeader({
             padding: '1px 4px',
             fontSize: 8,
             fontWeight: 600,
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-faint)',
             lineHeight: 1.4,
             fontVariantNumeric: 'tabular-nums',
           }}>
@@ -328,7 +328,7 @@ export default function SessionListHeader({
         style={{
           ...iconBtnStyle,
           background: showStats ? '#6366f1' : 'transparent',
-          color: showStats ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.45)',
+          color: showStats ? 'var(--text-primary)' : 'var(--text-muted)',
           padding: showStats ? '2px 5px' : '3px 4px',
         }}
         onMouseEnter={(e) => { if (!showStats) iconBtnHover(e) }}
@@ -344,7 +344,7 @@ export default function SessionListHeader({
           style={{
             ...iconBtnStyle,
             background: sessionListCompact ? '#6366f1' : 'transparent',
-            color: sessionListCompact ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.45)',
+            color: sessionListCompact ? 'var(--text-primary)' : 'var(--text-muted)',
             padding: sessionListCompact ? '2px 5px' : '3px 4px',
           }}
           onMouseEnter={(e) => { if (!sessionListCompact) iconBtnHover(e) }}

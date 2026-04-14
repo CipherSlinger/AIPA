@@ -154,7 +154,7 @@ export default function ToolApprovalDialog({ onRespond }: Props) {
         position: 'fixed',
         inset: 0,
         zIndex: 9999,
-        background: 'rgba(0,0,0,0.70)',
+        background: 'var(--glass-overlay)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         display: 'flex',
@@ -168,12 +168,12 @@ export default function ToolApprovalDialog({ onRespond }: Props) {
       {/* Dialog card */}
       <div
         style={{
-          background: 'rgba(15,15,25,0.95)',
+          background: 'var(--glass-bg-popup)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
           borderRadius: 16,
-          border: '1px solid rgba(255,255,255,0.09)',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+          border: '1px solid var(--glass-border-md)',
+          boxShadow: 'var(--glass-shadow)',
           maxWidth: 480,
           width: '100%',
           padding: 24,
@@ -192,7 +192,7 @@ export default function ToolApprovalDialog({ onRespond }: Props) {
               height: 44,
               borderRadius: 12,
               background: tint,
-              border: '1px solid rgba(255,255,255,0.09)',
+              border: '1px solid var(--glass-border-md)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -207,7 +207,7 @@ export default function ToolApprovalDialog({ onRespond }: Props) {
               <span style={{
                 fontSize: 16,
                 fontWeight: 600,
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
                 lineHeight: 1.3,
               }}>
                 {title}
@@ -229,7 +229,7 @@ export default function ToolApprovalDialog({ onRespond }: Props) {
             </div>
             <div style={{
               fontSize: 12,
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               marginTop: 3,
               lineHeight: 1.4,
             }}>
@@ -244,7 +244,7 @@ export default function ToolApprovalDialog({ onRespond }: Props) {
           alignItems: 'center',
           gap: 8,
           background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.09)',
+          border: '1px solid var(--glass-border-md)',
           borderRadius: 8,
           padding: '8px 12px',
         }}>
@@ -265,7 +265,7 @@ export default function ToolApprovalDialog({ onRespond }: Props) {
             fontSize: 12,
             color: 'rgba(165,180,252,0.85)',
             background: 'rgba(0,0,0,0.35)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            border: '1px solid var(--glass-border-md)',
             borderRadius: 8,
             padding: '8px 12px',
             fontFamily: 'monospace',
@@ -293,7 +293,7 @@ export default function ToolApprovalDialog({ onRespond }: Props) {
             <pre style={{
               margin: 0,
               fontSize: 11,
-              color: 'rgba(255,255,255,0.60)',
+              color: 'var(--text-secondary)',
               background: 'rgba(0,0,0,0.30)',
               border: '1px solid rgba(255,255,255,0.06)',
               borderRadius: 8,

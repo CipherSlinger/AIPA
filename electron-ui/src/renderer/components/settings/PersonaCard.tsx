@@ -31,12 +31,12 @@ export default function PersonaCard({ persona, isActive, isDefault, isDeleting, 
         alignItems: 'center',
         gap: 10,
         padding: '8px 10px',
-        background: 'rgba(15,15,25,0.85)',
+        background: 'var(--glass-bg-low)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         border: hovered
           ? '1px solid rgba(255,255,255,0.14)'
-          : `1px solid rgba(255,255,255,0.09)`,
+          : `1px solid var(--glass-border-md)`,
         borderLeft: `3px solid ${p.color}`,
         borderRadius: 10,
         transform: hovered ? 'translateY(-1px)' : 'translateY(0)',
@@ -64,7 +64,7 @@ export default function PersonaCard({ persona, isActive, isDefault, isDeleting, 
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
             {p.presetKey ? t(`persona.preset.${p.presetKey}`) : p.name}
           </span>
           {isDefault && (
@@ -83,7 +83,7 @@ export default function PersonaCard({ persona, isActive, isDefault, isDeleting, 
         </div>
         <div style={{
           fontSize: 11,
-          color: 'rgba(255,255,255,0.45)',
+          color: 'var(--text-muted)',
           marginTop: 2,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -108,7 +108,7 @@ export default function PersonaCard({ persona, isActive, isDefault, isDeleting, 
             borderRadius: 8,
             border: 'none',
             background: isDefault ? p.color : checkHovered ? 'rgba(255,255,255,0.08)' : 'transparent',
-            color: isDefault ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
+            color: isDefault ? 'rgba(255,255,255,0.95)' : 'var(--text-muted)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -131,7 +131,7 @@ export default function PersonaCard({ persona, isActive, isDefault, isDeleting, 
             borderRadius: 8,
             border: 'none',
             background: editHovered ? 'rgba(99,102,241,0.15)' : 'transparent',
-            color: editHovered ? '#818cf8' : 'rgba(255,255,255,0.45)',
+            color: editHovered ? '#818cf8' : 'var(--text-muted)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -158,7 +158,7 @@ export default function PersonaCard({ persona, isActive, isDefault, isDeleting, 
               : deleteHovered ? 'rgba(239,68,68,0.12)' : 'transparent',
             color: isDeleting
               ? '#fca5a5'
-              : deleteHovered ? '#fca5a5' : 'rgba(255,255,255,0.45)',
+              : deleteHovered ? '#fca5a5' : 'var(--text-muted)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',

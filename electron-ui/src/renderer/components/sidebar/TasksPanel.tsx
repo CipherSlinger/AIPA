@@ -43,7 +43,7 @@ export default function TasksPanel() {
           justifyContent: 'space-between',
           padding: '12px 14px 10px',
           background: 'linear-gradient(180deg, rgba(99,102,241,0.05) 0%, transparent 100%)',
-          borderBottom: '1px solid rgba(255,255,255,0.07)',
+          borderBottom: '1px solid var(--glass-border)',
         }}
       >
         {/* Micro-label style */}
@@ -53,7 +53,7 @@ export default function TasksPanel() {
             fontWeight: 700,
             letterSpacing: '0.07em',
             textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-faint)',
             lineHeight: 1.3,
           }}
         >
@@ -65,7 +65,7 @@ export default function TasksPanel() {
               fontSize: 10,
               fontWeight: 700,
               letterSpacing: '0.07em',
-              color: 'rgba(255,255,255,0.60)',
+              color: 'var(--text-secondary)',
               fontVariantNumeric: 'tabular-nums',
               fontFeatureSettings: '"tnum"',
               background: 'rgba(99,102,241,0.15)',
@@ -97,7 +97,7 @@ export default function TasksPanel() {
               ? '1px solid rgba(99,102,241,0.40)'
               : '1px solid rgba(255,255,255,0.08)',
             background: 'rgba(255,255,255,0.06)',
-            color: 'rgba(255,255,255,0.82)',
+            color: 'var(--text-primary)',
             fontSize: 12,
             outline: 'none',
             transition: 'all 0.15s ease',
@@ -115,7 +115,7 @@ export default function TasksPanel() {
             background: inputValue.trim()
               ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
               : 'rgba(255,255,255,0.06)',
-            color: inputValue.trim() ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.38)',
+            color: inputValue.trim() ? 'rgba(255,255,255,0.95)' : 'var(--text-faint)',
             cursor: inputValue.trim() ? 'pointer' : 'not-allowed',
             display: 'flex',
             alignItems: 'center',
@@ -160,18 +160,18 @@ export default function TasksPanel() {
                 height: 40,
                 borderRadius: 12,
                 background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.07)',
+                border: '1px solid var(--glass-border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <CheckSquare size={20} style={{ color: 'rgba(255,255,255,0.38)' }} />
+              <CheckSquare size={20} style={{ color: 'var(--text-faint)' }} />
             </span>
             <span
               style={{
                 fontSize: 12,
-                color: 'rgba(255,255,255,0.38)',
+                color: 'var(--text-faint)',
                 lineHeight: 1.5,
               }}
             >
@@ -198,11 +198,11 @@ export default function TasksPanel() {
                 marginTop: 4,
               }}
             >
-              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.07)' }} />
+              <div style={{ flex: 1, height: 1, background: 'var(--glass-border)' }} />
               <span
                 style={{
                   fontSize: 10,
-                  color: 'rgba(255,255,255,0.38)',
+                  color: 'var(--text-faint)',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.07em',
@@ -211,14 +211,14 @@ export default function TasksPanel() {
               >
                 {t('tasks.completed', { count: String(crud.completedTasks.length) })}
               </span>
-              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.07)' }} />
+              <div style={{ flex: 1, height: 1, background: 'var(--glass-border)' }} />
               <button
                 onClick={crud.clearCompleted}
                 style={{
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
-                  color: 'rgba(255,255,255,0.38)',
+                  color: 'var(--text-faint)',
                   fontSize: 10,
                   display: 'flex',
                   alignItems: 'center',
@@ -233,7 +233,7 @@ export default function TasksPanel() {
                   e.currentTarget.style.background = 'rgba(239,68,68,0.10)'
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = 'rgba(255,255,255,0.38)'
+                  e.currentTarget.style.color = 'var(--text-faint)'
                   e.currentTarget.style.background = 'transparent'
                 }}
               >
@@ -254,7 +254,7 @@ export default function TasksPanel() {
               <span
                 style={{
                   fontSize: 10,
-                  color: 'rgba(255,255,255,0.45)',
+                  color: 'var(--text-muted)',
                   fontVariantNumeric: 'tabular-nums',
                   fontFeatureSettings: '"tnum"',
                   letterSpacing: '0.02em',
@@ -265,7 +265,7 @@ export default function TasksPanel() {
               <span
                 style={{
                   fontSize: 10,
-                  color: progressPct === 100 ? '#4ade80' : 'rgba(255,255,255,0.38)',
+                  color: progressPct === 100 ? '#4ade80' : 'var(--text-faint)',
                   fontVariantNumeric: 'tabular-nums',
                   fontFeatureSettings: '"tnum"',
                   transition: 'all 0.15s ease',
@@ -315,7 +315,7 @@ export default function TasksPanel() {
             fontSize: 10,
             color: '#fbbf24',
             textAlign: 'center',
-            borderTop: '1px solid rgba(255,255,255,0.07)',
+            borderTop: '1px solid var(--glass-border)',
             fontVariantNumeric: 'tabular-nums',
             fontFeatureSettings: '"tnum"',
           }}

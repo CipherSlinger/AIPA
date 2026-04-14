@@ -41,7 +41,7 @@ export function ElicitationCard({ message, onRespond }: Props) {
   const decisionColor: Record<string, string> = {
     accepted: 'rgba(34,197,94,0.9)',
     declined: '#fca5a5',
-    cancelled: 'rgba(255,255,255,0.45)',
+    cancelled: 'var(--text-muted)',
   }
 
   const decisionBg: Record<string, string> = {
@@ -74,7 +74,7 @@ export function ElicitationCard({ message, onRespond }: Props) {
             ? '3px solid rgba(34,197,94,0.5)'
             : '3px solid rgba(239,68,68,0.5)',
         borderRadius: 12,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+        boxShadow: 'var(--glass-shadow)',
         padding: '16px 18px',
         display: 'flex',
         flexDirection: 'column',
@@ -121,7 +121,7 @@ export function ElicitationCard({ message, onRespond }: Props) {
               </span>
             )}
           </div>
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)' }}>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>
             Requesting information
           </span>
         </div>
@@ -148,7 +148,7 @@ export function ElicitationCard({ message, onRespond }: Props) {
             alignItems: 'center',
             gap: 4,
             background: decisionBg[message.decision] || 'rgba(255,255,255,0.06)',
-            color: decisionColor[message.decision] || 'rgba(255,255,255,0.45)',
+            color: decisionColor[message.decision] || 'var(--text-muted)',
             borderRadius: 12,
             padding: '3px 10px',
             fontWeight: 500,
@@ -191,7 +191,7 @@ export function ElicitationCard({ message, onRespond }: Props) {
           {properties && Object.keys(properties).length > 0 ? (
             Object.entries(properties).map(([key, prop]) => (
               <div key={key} style={{ marginBottom: 10 }}>
-                <label style={{ display: 'block', fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 4, color: 'rgba(255,255,255,0.38)' }}>
+                <label style={{ display: 'block', fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 4, color: 'var(--text-faint)' }}>
                   {prop.title || key}
                   {required.includes(key) && <span style={{ color: '#fca5a5' }}> *</span>}
                 </label>
@@ -210,7 +210,7 @@ export function ElicitationCard({ message, onRespond }: Props) {
                     padding: '7px 10px',
                     fontSize: 12,
                     background: 'rgba(255,255,255,0.06)',
-                    color: 'rgba(255,255,255,0.82)',
+                    color: 'var(--text-primary)',
                     outline: 'none',
                     fontFamily: 'inherit',
                     transition: 'border-color 0.15s ease',
@@ -235,7 +235,7 @@ export function ElicitationCard({ message, onRespond }: Props) {
                 fontSize: 12,
                 resize: 'vertical',
                 background: 'rgba(255,255,255,0.06)',
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
                 marginBottom: 8,
                 fontFamily: 'inherit',
                 outline: 'none',
@@ -314,7 +314,7 @@ function ActionButtons({
           borderRadius: 6,
           border: '1px solid rgba(255,255,255,0.12)',
           background: 'rgba(255,255,255,0.06)',
-          color: 'rgba(255,255,255,0.60)',
+          color: 'var(--text-secondary)',
           fontWeight: 500,
           fontSize: 13,
           cursor: 'pointer',

@@ -45,10 +45,10 @@ function hookPreview(hook: HookEntry): string {
 
 function HookTypeIcon({ type }: { type: string }) {
   const size = 13
-  if (type === 'command') return <Terminal size={size} color="rgba(255,255,255,0.45)" />
-  if (type === 'prompt') return <MessageSquare size={size} color="rgba(255,255,255,0.45)" />
-  if (type === 'http') return <Globe size={size} color="rgba(255,255,255,0.45)" />
-  return <Zap size={size} color="rgba(255,255,255,0.45)" />
+  if (type === 'command') return <Terminal size={size} color="var(--text-muted)" />
+  if (type === 'prompt') return <MessageSquare size={size} color="var(--text-muted)" />
+  if (type === 'http') return <Globe size={size} color="var(--text-muted)" />
+  return <Zap size={size} color="var(--text-muted)" />
 }
 
 // Color palette for event-type badges
@@ -58,7 +58,7 @@ const EVENT_BADGE_STYLES: Record<string, { bg: string; color: string }> = {
   PostToolUseFailure: { bg: 'rgba(99,102,241,0.12)', color: 'rgba(165,180,252,0.75)' },
   SessionStart:  { bg: 'rgba(34,197,94,0.15)',   color: 'rgba(34,197,94,0.90)' },
   SessionEnd:    { bg: 'rgba(34,197,94,0.10)',   color: 'rgba(34,197,94,0.70)' },
-  Stop:          { bg: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.60)' },
+  Stop:          { bg: 'rgba(255,255,255,0.08)', color: 'var(--text-secondary)' },
   StopFailure:   { bg: 'rgba(239,68,68,0.12)',   color: 'rgba(252,165,165,0.80)' },
   Notification:  { bg: 'rgba(251,191,36,0.12)',  color: 'rgba(251,191,36,0.80)' },
   UserPromptSubmit: { bg: 'rgba(99,102,241,0.10)', color: 'rgba(165,180,252,0.70)' },
@@ -67,7 +67,7 @@ const EVENT_BADGE_STYLES: Record<string, { bg: string; color: string }> = {
 }
 
 function EventTypeBadge({ eventType }: { eventType: string }) {
-  const style = EVENT_BADGE_STYLES[eventType] ?? { bg: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.60)' }
+  const style = EVENT_BADGE_STYLES[eventType] ?? { bg: 'rgba(255,255,255,0.08)', color: 'var(--text-secondary)' }
   return (
     <span style={{
       borderRadius: 6,
@@ -125,10 +125,10 @@ function InlineEditor({ editState, onEditChange, onSave, onCancel }: InlineEdito
   const inputBase: React.CSSProperties = {
     width: '100%',
     background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.09)',
+    border: '1px solid var(--glass-border-md)',
     borderRadius: 8,
     padding: '6px 10px',
-    color: 'rgba(255,255,255,0.82)',
+    color: 'var(--text-primary)',
     fontSize: 13,
     outline: 'none',
     boxSizing: 'border-box',
@@ -138,7 +138,7 @@ function InlineEditor({ editState, onEditChange, onSave, onCancel }: InlineEdito
     display: 'block',
     fontSize: 11,
     fontWeight: 600,
-    color: 'rgba(255,255,255,0.45)',
+    color: 'var(--text-muted)',
     marginBottom: 4,
     letterSpacing: '0.04em',
   }
@@ -147,7 +147,7 @@ function InlineEditor({ editState, onEditChange, onSave, onCancel }: InlineEdito
     e.currentTarget.style.border = '1px solid rgba(99,102,241,0.45)'
   }
   const focusOut = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    e.currentTarget.style.border = '1px solid rgba(255,255,255,0.09)'
+    e.currentTarget.style.border = '1px solid var(--glass-border-md)'
   }
 
   return (
@@ -266,20 +266,20 @@ function InlineEditor({ editState, onEditChange, onSave, onCancel }: InlineEdito
           style={{
             padding: '7px 14px',
             background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            border: '1px solid var(--glass-border-md)',
             borderRadius: 8,
             cursor: 'pointer',
             fontSize: 12,
-            color: 'rgba(255,255,255,0.60)',
+            color: 'var(--text-secondary)',
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => {
             e.currentTarget.style.background = 'rgba(255,255,255,0.10)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+            e.currentTarget.style.color = 'var(--text-primary)'
           }}
           onMouseLeave={e => {
             e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+            e.currentTarget.style.color = 'var(--text-secondary)'
           }}
         >
           取消
@@ -444,7 +444,7 @@ export default function HooksSettingsPanel() {
 
   if (loading) {
     return (
-      <div style={{ padding: '24px 0', textAlign: 'center', color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>
+      <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
         {t('hooks.loading')}
       </div>
     )
@@ -455,10 +455,10 @@ export default function HooksSettingsPanel() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.82)', marginBottom: 2 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
             {t('hooks.title')}
           </div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
             {t('hooks.subtitle')}
           </div>
         </div>
@@ -470,7 +470,7 @@ export default function HooksSettingsPanel() {
               fontSize: 11,
               fontWeight: 700,
               letterSpacing: '0.07em',
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               textTransform: 'uppercase',
               userSelect: 'none',
             }}>
@@ -567,15 +567,15 @@ export default function HooksSettingsPanel() {
       {/* Empty state */}
       {eventTypes.length === 0 && !showWizard && (
         <div style={{
-          fontSize: 12, color: 'rgba(255,255,255,0.38)',
+          fontSize: 12, color: 'var(--text-faint)',
           textAlign: 'center', padding: 24,
-          border: '1px dashed rgba(255,255,255,0.09)', borderRadius: 12, marginTop: 8,
+          border: '1px dashed var(--glass-border-md)', borderRadius: 12, marginTop: 8,
         }}>
           <Zap size={28} color="rgba(255,255,255,0.2)" style={{ marginBottom: 10 }} />
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.60)', fontWeight: 500, marginBottom: 6 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500, marginBottom: 6 }}>
             {t('hooks.noHooksTitle')}
           </div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', maxWidth: 300, margin: '0 auto' }}>
+          <div style={{ fontSize: 11, color: 'var(--text-faint)', maxWidth: 300, margin: '0 auto' }}>
             {t('hooks.noHooksDesc')}
           </div>
         </div>
@@ -593,10 +593,10 @@ export default function HooksSettingsPanel() {
               <div
                 key={eventType}
                 style={{
-                  background: 'rgba(15,15,25,0.85)',
+                  background: 'var(--glass-bg-low)',
                   backdropFilter: 'blur(12px)',
                   WebkitBackdropFilter: 'blur(12px)',
-                  border: '1px solid rgba(255,255,255,0.07)',
+                  border: '1px solid var(--glass-border)',
                   borderRadius: 12,
                   overflow: 'hidden',
                 }}
@@ -612,14 +612,14 @@ export default function HooksSettingsPanel() {
                   }}
                 >
                   {collapsed
-                    ? <ChevronRight size={13} color="rgba(255,255,255,0.38)" />
-                    : <ChevronDown size={13} color="rgba(255,255,255,0.38)" />
+                    ? <ChevronRight size={13} color="var(--text-faint)" />
+                    : <ChevronDown size={13} color="var(--text-faint)" />
                   }
                   <EventTypeBadge eventType={eventType} />
                   <span style={{ flex: 1 }} />
                   <span style={{
                     fontSize: 10, fontWeight: 600,
-                    color: 'rgba(255,255,255,0.38)',
+                    color: 'var(--text-faint)',
                     flexShrink: 0,
                   }}>
                     {t('hooks.hookCount', { count: totalHooks })}
@@ -661,7 +661,7 @@ export default function HooksSettingsPanel() {
                                   background: isEditing ? 'rgba(99,102,241,0.05)' : 'rgba(255,255,255,0.03)',
                                   border: isEditing
                                     ? '1px solid rgba(99,102,241,0.25)'
-                                    : '1px solid rgba(255,255,255,0.07)',
+                                    : '1px solid var(--glass-border)',
                                   borderRadius: 8,
                                   padding: '10px 14px',
                                   transition: 'background 0.15s ease',
@@ -670,7 +670,7 @@ export default function HooksSettingsPanel() {
                                 <HookTypeIcon type={hook.type} />
                                 <HookTypeBadge type={hook.type} />
                                 <span style={{
-                                  background: 'rgba(15,15,25,0.70)',
+                                  background: 'var(--glass-bg-low)',
                                   borderRadius: 6,
                                   padding: '3px 8px',
                                   fontSize: 11,
@@ -695,7 +695,7 @@ export default function HooksSettingsPanel() {
                                   </span>
                                 )}
                                 {hook.timeout && (
-                                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', flexShrink: 0 }}>
+                                  <span style={{ fontSize: 10, color: 'var(--text-faint)', flexShrink: 0 }}>
                                     {hook.timeout}s
                                   </span>
                                 )}
@@ -711,17 +711,17 @@ export default function HooksSettingsPanel() {
                                       ? 'rgba(99,102,241,0.18)'
                                       : editHover === cardKey
                                         ? 'rgba(99,102,241,0.12)'
-                                        : 'rgba(255,255,255,0.07)',
+                                        : 'var(--glass-border)',
                                     border: isEditing
                                       ? '1px solid rgba(99,102,241,0.35)'
-                                      : '1px solid ' + (editHover === cardKey ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.07)'),
+                                      : '1px solid ' + (editHover === cardKey ? 'rgba(99,102,241,0.25)' : 'var(--glass-border)'),
                                     borderRadius: 6,
                                     cursor: 'pointer',
                                     color: isEditing
                                       ? '#a5b4fc'
                                       : editHover === cardKey
                                         ? '#a5b4fc'
-                                        : 'rgba(255,255,255,0.38)',
+                                        : 'var(--text-faint)',
                                     padding: '4px 6px', display: 'flex', alignItems: 'center',
                                     flexShrink: 0,
                                     transition: 'all 0.15s ease',
@@ -738,11 +738,11 @@ export default function HooksSettingsPanel() {
                                   onMouseLeave={() => setDeleteHover(null)}
                                   title={t('hooks.deleteHook')}
                                   style={{
-                                    background: deleteHover === cardKey ? 'rgba(252,165,165,0.1)' : 'rgba(255,255,255,0.07)',
-                                    border: '1px solid ' + (deleteHover === cardKey ? 'rgba(252,165,165,0.25)' : 'rgba(255,255,255,0.07)'),
+                                    background: deleteHover === cardKey ? 'rgba(252,165,165,0.1)' : 'var(--glass-border)',
+                                    border: '1px solid ' + (deleteHover === cardKey ? 'rgba(252,165,165,0.25)' : 'var(--glass-border)'),
                                     borderRadius: 6,
                                     cursor: 'pointer',
-                                    color: deleteHover === cardKey ? '#fca5a5' : 'rgba(255,255,255,0.38)',
+                                    color: deleteHover === cardKey ? '#fca5a5' : 'var(--text-faint)',
                                     padding: '4px 6px', display: 'flex', alignItems: 'center',
                                     flexShrink: 0,
                                     transition: 'all 0.15s ease',

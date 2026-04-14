@@ -21,7 +21,7 @@ const sectionLabelStyle: React.CSSProperties = {
   fontWeight: 700,
   letterSpacing: '0.07em',
   textTransform: 'uppercase',
-  color: 'rgba(255,255,255,0.38)',
+  color: 'var(--text-faint)',
   marginBottom: 12,
 }
 
@@ -118,8 +118,8 @@ export default function SettingsPlugins() {
   const inputStyle: React.CSSProperties = {
     flex: 1, padding: '7px 10px', fontSize: 13,
     background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.07)',
-    borderRadius: 7, color: 'rgba(255,255,255,0.82)',
+    border: '1px solid var(--glass-border)',
+    borderRadius: 7, color: 'var(--text-primary)',
     outline: 'none', boxSizing: 'border-box',
     transition: 'all 0.15s ease',
   }
@@ -141,10 +141,10 @@ export default function SettingsPlugins() {
             <Puzzle size={14} style={{ color: '#a5b4fc' }} />
           </div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
               {t('settingsPlugins.title')}
             </div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', marginTop: 1 }}>
+            <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 1 }}>
               {t('settingsPlugins.path')}
             </div>
           </div>
@@ -155,20 +155,20 @@ export default function SettingsPlugins() {
             title={t('common.refresh')}
             style={{
               background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.07)',
+              border: '1px solid var(--glass-border)',
               borderRadius: 6, cursor: 'pointer',
               display: 'flex', alignItems: 'center', padding: '5px 8px',
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
-              e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
-              e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
+              e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+              e.currentTarget.style.color = 'var(--text-primary)'
+              e.currentTarget.style.background = 'var(--glass-border)'
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
-              e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+              e.currentTarget.style.borderColor = 'var(--glass-border)'
+              e.currentTarget.style.color = 'var(--text-muted)'
               e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
             }}
           >
@@ -184,7 +184,7 @@ export default function SettingsPlugins() {
                 : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
               border: showInstallForm ? '1px solid rgba(99,102,241,0.4)' : 'none',
               borderRadius: 7,
-              color: 'rgba(255,255,255,0.82)', cursor: 'pointer',
+              color: 'var(--text-primary)', cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => {
@@ -205,7 +205,7 @@ export default function SettingsPlugins() {
 
       {/* Description */}
       <div style={{
-        fontSize: 12, color: 'rgba(255,255,255,0.45)',
+        fontSize: 12, color: 'var(--text-muted)',
         lineHeight: 1.6, marginTop: -12,
       }}>
         {t('settingsPlugins.description')}
@@ -215,7 +215,7 @@ export default function SettingsPlugins() {
       {showInstallForm && (
         <div style={{
           background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.07)',
+          border: '1px solid var(--glass-border)',
           borderRadius: 10, padding: '16px',
         }}>
           <div style={sectionLabelStyle}>{t('settingsPlugins.installLocal')}</div>
@@ -227,7 +227,7 @@ export default function SettingsPlugins() {
               placeholder={t('settingsPlugins.installPathPlaceholder')}
               style={inputStyle}
               onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)' }}
-              onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)' }}
+              onBlur={e => { e.currentTarget.style.borderColor = 'var(--glass-border)' }}
             />
             <button
               onClick={handleBrowseDir}
@@ -236,8 +236,8 @@ export default function SettingsPlugins() {
                 display: 'flex', alignItems: 'center', gap: 4,
                 padding: '7px 10px', fontSize: 12,
                 background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.07)',
-                borderRadius: 7, color: 'rgba(255,255,255,0.60)', cursor: 'pointer',
+                border: '1px solid var(--glass-border)',
+                borderRadius: 7, color: 'var(--text-secondary)', cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={e => {
@@ -246,8 +246,8 @@ export default function SettingsPlugins() {
                 e.currentTarget.style.background = 'rgba(99,102,241,0.10)'
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+                e.currentTarget.style.borderColor = 'var(--glass-border)'
+                e.currentTarget.style.color = 'var(--text-secondary)'
                 e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
               }}
             >
@@ -255,7 +255,7 @@ export default function SettingsPlugins() {
             </button>
           </div>
           <div style={{
-            fontSize: 11, color: 'rgba(255,255,255,0.38)',
+            fontSize: 11, color: 'var(--text-faint)',
             marginBottom: 12, lineHeight: 1.6,
           }}>
             {t('settingsPlugins.installDirHint')}
@@ -265,19 +265,19 @@ export default function SettingsPlugins() {
               onClick={() => { setShowInstallForm(false); setInstallPath('') }}
               style={{
                 background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.07)',
+                border: '1px solid var(--glass-border)',
                 borderRadius: 7, padding: '6px 14px',
                 cursor: 'pointer', fontSize: 12,
-                color: 'rgba(255,255,255,0.60)',
+                color: 'var(--text-secondary)',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+                e.currentTarget.style.background = 'var(--glass-border-md)'
+                e.currentTarget.style.color = 'var(--text-primary)'
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+                e.currentTarget.style.color = 'var(--text-secondary)'
               }}
             >
               {t('common.cancel')}
@@ -291,7 +291,7 @@ export default function SettingsPlugins() {
                   ? 'rgba(99,102,241,0.25)'
                   : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                 border: 'none', borderRadius: 7,
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
                 cursor: installing || !installPath.trim() ? 'not-allowed' : 'pointer',
                 opacity: installing || !installPath.trim() ? 0.6 : 1,
                 transition: 'all 0.15s ease',
@@ -342,7 +342,7 @@ export default function SettingsPlugins() {
             borderTopColor: 'rgba(99,102,241,0.8)',
             animation: 'spin 0.8s linear infinite',
           }} />
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)' }}>
+          <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>
             {t('common.loadingEllipsis')}
           </span>
         </div>
@@ -350,16 +350,16 @@ export default function SettingsPlugins() {
         <div style={{
           padding: '40px 0', textAlign: 'center',
           background: 'rgba(255,255,255,0.02)',
-          border: '1px dashed rgba(255,255,255,0.07)',
+          border: '1px dashed var(--glass-border)',
           borderRadius: 10,
         }}>
-          <Puzzle size={32} style={{ opacity: 0.18, marginBottom: 10, color: 'rgba(255,255,255,0.60)' }} />
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.38)', fontWeight: 500 }}>
+          <Puzzle size={32} style={{ opacity: 0.18, marginBottom: 10, color: 'var(--text-secondary)' }} />
+          <div style={{ fontSize: 13, color: 'var(--text-faint)', fontWeight: 500 }}>
             {t('settingsPlugins.noPlugins')}
           </div>
           <div style={{
             fontSize: 11, marginTop: 6,
-            color: 'rgba(255,255,255,0.38)', lineHeight: 1.5,
+            color: 'var(--text-faint)', lineHeight: 1.5,
           }}>
             {t('settingsPlugins.noPluginsHint')}
           </div>
@@ -385,7 +385,7 @@ export default function SettingsPlugins() {
                     background: plugin.enabled
                       ? 'rgba(255,255,255,0.04)'
                       : 'rgba(255,255,255,0.02)',
-                    border: '1px solid rgba(255,255,255,0.07)',
+                    border: '1px solid var(--glass-border)',
                     borderLeft: `3px solid ${accentColor}`,
                     borderRadius: 10,
                     overflow: 'hidden',
@@ -431,17 +431,17 @@ export default function SettingsPlugins() {
                       }}>
                         <span style={{
                           fontSize: 13, fontWeight: 600,
-                          color: 'rgba(255,255,255,0.82)',
+                          color: 'var(--text-primary)',
                         }}>
                           {plugin.name}
                         </span>
                         {plugin.version && (
                           <span style={{
-                            background: 'rgba(255,255,255,0.07)',
-                            border: '1px solid rgba(255,255,255,0.09)',
+                            background: 'var(--glass-border)',
+                            border: '1px solid var(--glass-border-md)',
                             borderRadius: 20,
                             padding: '1px 7px', fontSize: 10,
-                            color: 'rgba(255,255,255,0.45)',
+                            color: 'var(--text-muted)',
                           }}>
                             v{plugin.version}
                           </span>
@@ -458,7 +458,7 @@ export default function SettingsPlugins() {
                       </div>
                       {plugin.description && (
                         <div style={{
-                          fontSize: 12, color: 'rgba(255,255,255,0.38)',
+                          fontSize: 12, color: 'var(--text-faint)',
                           marginTop: 3, lineHeight: 1.5,
                         }}>
                           {plugin.description}
@@ -494,7 +494,7 @@ export default function SettingsPlugins() {
                         </div>
                       )}
                       <div style={{
-                        fontSize: 10, color: 'rgba(255,255,255,0.38)',
+                        fontSize: 10, color: 'var(--text-faint)',
                         marginTop: 5, overflow: 'hidden',
                         textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         fontFamily: 'monospace',
@@ -529,14 +529,14 @@ export default function SettingsPlugins() {
                             onClick={() => setConfirmDelete(null)}
                             style={{
                               background: 'rgba(255,255,255,0.05)',
-                              border: '1px solid rgba(255,255,255,0.07)',
+                              border: '1px solid var(--glass-border)',
                               borderRadius: 6, padding: '5px 8px',
-                              fontSize: 11, color: 'rgba(255,255,255,0.45)',
+                              fontSize: 11, color: 'var(--text-muted)',
                               cursor: 'pointer',
                               transition: 'all 0.15s ease',
                             }}
                             onMouseEnter={e => {
-                              e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
+                              e.currentTarget.style.background = 'var(--glass-border-md)'
                             }}
                             onMouseLeave={e => {
                               e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
@@ -557,12 +557,12 @@ export default function SettingsPlugins() {
                               : 'rgba(255,255,255,0.05)',
                             border: '1px solid ' + (deleteHover === plugin.name
                               ? 'rgba(239,68,68,0.28)'
-                              : 'rgba(255,255,255,0.07)'),
+                              : 'var(--glass-border)'),
                             borderRadius: 7,
                             cursor: 'pointer',
                             color: deleteHover === plugin.name
                               ? '#f87171'
-                              : 'rgba(255,255,255,0.38)',
+                              : 'var(--text-faint)',
                             padding: '5px 7px',
                             display: 'flex', alignItems: 'center',
                             transition: 'all 0.15s ease',

@@ -35,7 +35,7 @@ export default function IdleReturnDialog({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(0,0,0,0.70)',
+        background: 'var(--glass-overlay)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         zIndex: 200,
@@ -46,10 +46,10 @@ export default function IdleReturnDialog({
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: 'rgba(15,15,25,0.96)',
+          background: 'var(--glass-bg-high)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.07)',
+          border: '1px solid var(--glass-border)',
           borderRadius: 16,
           padding: '24px 28px',
           maxWidth: 420,
@@ -86,7 +86,7 @@ export default function IdleReturnDialog({
             }}>
               {t('idle.awayLabel') || 'Away'}
             </div>
-            <span style={{ fontSize: 15, fontWeight: 600, color: 'rgba(255,255,255,0.82)', letterSpacing: '-0.02em', lineHeight: 1.3 }}>
+            <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1.3 }}>
               {(() => {
                 const full = t('idle.title', { duration: idleDuration })
                 const idx = full.indexOf(idleDuration)
@@ -105,7 +105,7 @@ export default function IdleReturnDialog({
         </div>
 
         {/* Description */}
-        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', margin: '0 0 12px 0', lineHeight: 1.5 }}>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 12px 0', lineHeight: 1.5 }}>
           {t('idle.description')}
         </p>
 
@@ -121,7 +121,7 @@ export default function IdleReturnDialog({
           }}>
             <div style={{
               fontSize: 10,
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               display: 'flex',
               alignItems: 'center',
               gap: 6,
@@ -143,7 +143,7 @@ export default function IdleReturnDialog({
               <div style={{
                 fontSize: 13,
                 lineHeight: 1.5,
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
                 display: '-webkit-box',
                 WebkitLineClamp: 3,
                 WebkitBoxOrient: 'vertical' as const,
@@ -159,7 +159,7 @@ export default function IdleReturnDialog({
         {contextPct !== null && (
           <p style={{
             fontSize: 12,
-            color: contextPct >= 60 ? '#fbbf24' : 'rgba(255,255,255,0.45)',
+            color: contextPct >= 60 ? '#fbbf24' : 'var(--text-muted)',
             margin: '0 0 18px 0',
             fontVariantNumeric: 'tabular-nums',
             fontFeatureSettings: '"tnum"',
@@ -215,9 +215,9 @@ export default function IdleReturnDialog({
               gap: 8,
               padding: '9px 20px',
               borderRadius: 8,
-              border: '1px solid rgba(255,255,255,0.09)',
+              border: '1px solid var(--glass-border-md)',
               background: 'rgba(255,255,255,0.06)',
-              color: 'rgba(255,255,255,0.60)',
+              color: 'var(--text-secondary)',
               cursor: 'pointer',
               fontSize: 13,
               fontWeight: 500,
@@ -225,14 +225,14 @@ export default function IdleReturnDialog({
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
+              e.currentTarget.style.background = 'var(--glass-border-md)'
               e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)'
-              e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+              e.currentTarget.style.color = 'var(--text-primary)'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
-              e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+              e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+              e.currentTarget.style.color = 'var(--text-secondary)'
             }}
           >
             <X size={14} style={{ opacity: 0.7 }} />
@@ -249,13 +249,13 @@ export default function IdleReturnDialog({
             padding: '4px 8px',
             background: 'none',
             border: 'none',
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-faint)',
             fontSize: 11,
             cursor: 'pointer',
             transition: 'color 0.15s ease',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.60)')}
-          onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.38)')}
+          onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-faint)')}
         >
           {t('idle.neverAsk')}
         </button>

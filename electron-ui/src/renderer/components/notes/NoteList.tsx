@@ -74,7 +74,7 @@ export default function NoteList({
         height: '100%',
         gap: 12,
         fontSize: 12,
-        color: 'rgba(255,255,255,0.38)',
+        color: 'var(--text-faint)',
         textAlign: 'center',
         padding: '32px 16px',
       }}>
@@ -94,7 +94,7 @@ export default function NoteList({
         height: '100%',
         gap: 12,
         fontSize: 12,
-        color: 'rgba(255,255,255,0.38)',
+        color: 'var(--text-faint)',
         textAlign: 'center',
         padding: '32px 16px',
       }}>
@@ -125,7 +125,7 @@ export default function NoteList({
             }}
             onMouseEnter={e => {
               e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+              e.currentTarget.style.borderColor = 'var(--glass-border-md)'
               e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)'
             }}
             onMouseLeave={e => {
@@ -137,7 +137,7 @@ export default function NoteList({
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{
                 fontSize: 12,
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
                 fontWeight: 600,
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
@@ -160,7 +160,7 @@ export default function NoteList({
                 if (!snippet) return null
                 return (
                   <div style={{
-                    fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 2,
+                    fontSize: 11, color: 'var(--text-muted)', marginTop: 2,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     fontStyle: 'italic',
                   }}>
@@ -172,14 +172,14 @@ export default function NoteList({
                 {noteCat && (
                   <>
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: noteCat.color, flexShrink: 0 }} />
-                    <span style={{ maxWidth: '12ch', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.60)', background: 'rgba(255,255,255,0.07)', borderRadius: 20, padding: '1px 7px' }}>
+                    <span style={{ maxWidth: '12ch', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--glass-border)', borderRadius: 20, padding: '1px 7px' }}>
                       {noteCat.name}
                     </span>
                   </>
                 )}
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{formatRelativeTime(note.updatedAt, t)}</span>
-                <span style={{ opacity: 0.4, fontSize: 10, color: 'rgba(255,255,255,0.38)' }}>|</span>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{note.content.trim() ? note.content.trim().split(/\s+/).length : 0} {t('notes.words')}</span>
+                <span style={{ fontSize: 11, color: 'var(--text-faint)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{formatRelativeTime(note.updatedAt, t)}</span>
+                <span style={{ opacity: 0.4, fontSize: 10, color: 'var(--text-faint)' }}>|</span>
+                <span style={{ fontSize: 11, color: 'var(--text-faint)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{note.content.trim() ? note.content.trim().split(/\s+/).length : 0} {t('notes.words')}</span>
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
@@ -190,7 +190,7 @@ export default function NoteList({
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: note.pinned ? '#fbbf24' : 'rgba(255,255,255,0.38)',
+                  color: note.pinned ? '#fbbf24' : 'var(--text-faint)',
                   cursor: 'pointer',
                   padding: 4,
                   borderRadius: 8,
@@ -214,7 +214,7 @@ export default function NoteList({
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: 'rgba(255,255,255,0.38)',
+                  color: 'var(--text-faint)',
                   cursor: !note.title && !note.content ? 'not-allowed' : 'pointer',
                   padding: 4,
                   borderRadius: 8,
@@ -225,7 +225,7 @@ export default function NoteList({
                   flexShrink: 0,
                 }}
                 onMouseEnter={e => { if (note.title || note.content) { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = '#818cf8' } }}
-                onMouseLeave={e => { e.currentTarget.style.opacity = !note.title && !note.content ? '0.3' : '0.4'; e.currentTarget.style.color = 'rgba(255,255,255,0.38)' }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = !note.title && !note.content ? '0.3' : '0.4'; e.currentTarget.style.color = 'var(--text-faint)' }}
               >
                 <MessageSquareShare size={14} />
               </button>
@@ -236,7 +236,7 @@ export default function NoteList({
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: deletingNoteId === note.id ? '#fca5a5' : 'rgba(255,255,255,0.38)',
+                  color: deletingNoteId === note.id ? '#fca5a5' : 'var(--text-faint)',
                   cursor: 'pointer',
                   padding: 4,
                   borderRadius: 8,
@@ -247,7 +247,7 @@ export default function NoteList({
                   flexShrink: 0,
                 }}
                 onMouseEnter={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = '#fca5a5' }}
-                onMouseLeave={e => { if (deletingNoteId !== note.id) { e.currentTarget.style.opacity = '0.4'; e.currentTarget.style.color = 'rgba(255,255,255,0.38)' } }}
+                onMouseLeave={e => { if (deletingNoteId !== note.id) { e.currentTarget.style.opacity = '0.4'; e.currentTarget.style.color = 'var(--text-faint)' } }}
               >
                 <Trash2 size={14} />
               </button>

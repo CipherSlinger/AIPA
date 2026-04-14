@@ -31,10 +31,10 @@ export default function BulkActionBar({
         gap: 8,
         padding: '8px 12px',
         flexShrink: 0,
-        background: 'rgba(15,15,25,0.96)',
+        background: 'var(--glass-bg-high)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid rgba(255,255,255,0.09)',
+        border: '1px solid var(--glass-border-md)',
         borderRadius: 10,
         boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
       }}>
@@ -53,7 +53,7 @@ export default function BulkActionBar({
         }}>
           {selectedCount}
         </span>
-        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.60)', flex: 1 }}>
+        <span style={{ fontSize: 12, color: 'var(--text-secondary)', flex: 1 }}>
           {t('session.archiveSelected')}
         </span>
         {/* Archive button — ghost */}
@@ -62,11 +62,11 @@ export default function BulkActionBar({
           title={t('session.archiveSelected')}
           style={{
             background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            border: '1px solid var(--glass-border-md)',
             borderRadius: 8,
             padding: '4px 10px',
             fontSize: 12,
-            color: 'rgba(255,255,255,0.82)',
+            color: 'var(--text-primary)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -75,11 +75,11 @@ export default function BulkActionBar({
           }}
           onMouseEnter={e => {
             e.currentTarget.style.background = 'rgba(255,255,255,0.10)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+            e.currentTarget.style.color = 'var(--text-primary)'
           }}
           onMouseLeave={e => {
             e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+            e.currentTarget.style.color = 'var(--text-primary)'
           }}
         >
           <Archive size={11} />

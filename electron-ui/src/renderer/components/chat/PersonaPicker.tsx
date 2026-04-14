@@ -70,7 +70,7 @@ export default function PersonaPicker() {
           borderRadius: 8,
           padding: '2px 8px',
           cursor: 'pointer',
-          color: sessionPersona ? sessionPersona.color : 'rgba(255,255,255,0.45)',
+          color: sessionPersona ? sessionPersona.color : 'var(--text-muted)',
           fontSize: 11,
           fontWeight: 500,
           display: 'flex',
@@ -81,11 +81,11 @@ export default function PersonaPicker() {
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.color = sessionPersona ? sessionPersona.color : '#818cf8'
-          if (!sessionPersona) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
+          if (!sessionPersona) e.currentTarget.style.borderColor = 'var(--glass-border)'
         }}
         onMouseLeave={(e) => {
           if (!showPicker) {
-            e.currentTarget.style.color = sessionPersona ? sessionPersona.color : 'rgba(255,255,255,0.45)'
+            e.currentTarget.style.color = sessionPersona ? sessionPersona.color : 'var(--text-muted)'
             if (!sessionPersona) e.currentTarget.style.borderColor = 'transparent'
           }
         }}
@@ -113,10 +113,10 @@ export default function PersonaPicker() {
             left: 0,
             zIndex: 60,
             width: 260,
-            background: 'rgba(15,15,25,0.96)',
+            background: 'var(--glass-bg-high)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            border: '1px solid var(--glass-border-md)',
             borderRadius: 12,
             boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
             padding: '4px 0',
@@ -131,8 +131,8 @@ export default function PersonaPicker() {
             fontWeight: 700,
             letterSpacing: '0.07em',
             textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.38)',
-            borderBottom: '1px solid rgba(255,255,255,0.07)',
+            color: 'var(--text-faint)',
+            borderBottom: '1px solid var(--glass-border)',
             marginBottom: 2,
           }}>
             {t('persona.selectPersona')}
@@ -153,7 +153,7 @@ export default function PersonaPicker() {
               borderLeft: !sessionPersonaId ? '3px solid rgba(99,102,241,0.7)' : '3px solid transparent',
               padding: '7px 12px',
               cursor: 'pointer',
-              color: !sessionPersonaId ? '#818cf8' : 'rgba(255,255,255,0.60)',
+              color: !sessionPersonaId ? '#818cf8' : 'var(--text-secondary)',
               fontSize: 12,
               fontStyle: 'italic',
               fontWeight: !sessionPersonaId ? 600 : 400,
@@ -204,7 +204,7 @@ export default function PersonaPicker() {
                   borderLeft: isActive ? '3px solid rgba(99,102,241,0.7)' : '3px solid transparent',
                   padding: '7px 12px',
                   cursor: 'pointer',
-                  color: isActive ? '#818cf8' : 'rgba(255,255,255,0.82)',
+                  color: isActive ? '#818cf8' : 'var(--text-primary)',
                   fontSize: 12,
                   fontWeight: isActive ? 600 : 400,
                   borderRadius: isActive ? 0 : 6,
@@ -243,14 +243,14 @@ export default function PersonaPicker() {
           {/* Workflows section */}
           {workflows.length > 0 && (
             <>
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', margin: '4px 0' }} />
+              <div style={{ height: 1, background: 'var(--glass-border)', margin: '4px 0' }} />
               <div style={{
                 padding: '4px 12px 2px',
                 fontSize: 10,
                 fontWeight: 700,
                 letterSpacing: '0.07em',
                 textTransform: 'uppercase',
-                color: 'rgba(255,255,255,0.38)',
+                color: 'var(--text-faint)',
               }}>
                 {t('nav.workflows')}
               </div>
@@ -270,7 +270,7 @@ export default function PersonaPicker() {
                     borderRadius: 6,
                     padding: '7px 12px',
                     cursor: 'pointer',
-                    color: 'rgba(255,255,255,0.82)',
+                    color: 'var(--text-primary)',
                     fontSize: 12,
                     fontWeight: 400,
                     transition: 'all 0.15s ease',

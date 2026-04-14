@@ -26,12 +26,12 @@ export default function SnippetPopup({ snippets, selectedIndex, onSelect, onHove
       style={{
         position: 'absolute', bottom: '100%', left: 0, marginBottom: 4,
         width: 320,
-        background: 'rgba(15,15,25,0.96)',
+        background: 'var(--glass-bg-high)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255,255,255,0.09)',
+        border: '1px solid var(--glass-border-md)',
         borderRadius: 12,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+        boxShadow: 'var(--glass-shadow)',
         zIndex: 50,
         overflow: 'hidden',
       }}
@@ -44,9 +44,9 @@ export default function SnippetPopup({ snippets, selectedIndex, onSelect, onHove
         fontWeight: 700,
         letterSpacing: '0.07em',
         textTransform: 'uppercase' as const,
-        color: 'rgba(255,255,255,0.38)',
+        color: 'var(--text-faint)',
         padding: '6px 12px 4px',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--glass-border)',
       }}>
         {t('snippet.title')}
       </div>
@@ -100,7 +100,7 @@ export default function SnippetPopup({ snippets, selectedIndex, onSelect, onHove
                 {/* Keyword name */}
                 <div style={{
                   fontSize: 13, fontWeight: 600,
-                  color: isSelected ? '#818cf8' : 'rgba(255,255,255,0.82)',
+                  color: isSelected ? '#818cf8' : 'var(--text-primary)',
                   marginBottom: 2,
                   transition: 'all 0.15s ease',
                 }}>
@@ -110,7 +110,7 @@ export default function SnippetPopup({ snippets, selectedIndex, onSelect, onHove
                 <div style={{
                   fontSize: 11,
                   fontFamily: 'monospace',
-                  color: 'rgba(255,255,255,0.45)',
+                  color: 'var(--text-muted)',
                   lineHeight: 1.4,
                   overflow: 'hidden',
                   display: '-webkit-box',
@@ -131,7 +131,7 @@ export default function SnippetPopup({ snippets, selectedIndex, onSelect, onHove
         alignItems: 'center',
         gap: 6,
         padding: '5px 12px',
-        borderTop: '1px solid rgba(255,255,255,0.07)',
+        borderTop: '1px solid var(--glass-border)',
         flexWrap: 'wrap' as const,
       }}>
         {[
@@ -144,8 +144,8 @@ export default function SnippetPopup({ snippets, selectedIndex, onSelect, onHove
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'rgba(255,255,255,0.07)',
-              border: '1px solid rgba(255,255,255,0.09)',
+              background: 'var(--glass-border)',
+              border: '1px solid var(--glass-border-md)',
               borderRadius: 4,
               padding: '1px 5px',
               fontSize: 10,
@@ -155,7 +155,7 @@ export default function SnippetPopup({ snippets, selectedIndex, onSelect, onHove
             }}>
               {key}
             </kbd>
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)' }}>{label}</span>
+            <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>{label}</span>
           </span>
         ))}
       </div>

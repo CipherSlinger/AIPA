@@ -30,7 +30,7 @@ function PresetRow({ preset, onInstall, label, description, installTitle }: Pres
         gap: 8,
         padding: '12px 14px',
         background: hovered ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
-        border: hovered ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(255,255,255,0.07)',
+        border: hovered ? '1px solid rgba(255,255,255,0.12)' : '1px solid var(--glass-border)',
         borderRadius: 12,
         boxShadow: hovered ? '0 2px 8px rgba(0,0,0,0.3)' : 'none',
         transform: hovered ? 'translateY(-1px)' : 'translateY(0)',
@@ -53,12 +53,12 @@ function PresetRow({ preset, onInstall, label, description, installTitle }: Pres
         {preset.emoji}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.3, color: 'rgba(255,255,255,0.82)' }}>
+        <div style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.3, color: 'var(--text-primary)' }}>
           {label}
         </div>
         <div style={{
           fontSize: 11,
-          color: 'rgba(255,255,255,0.60)',
+          color: 'var(--text-secondary)',
           lineHeight: 1.4,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -109,13 +109,13 @@ export default function PersonaPresets({ personas, onInstall }: PersonaPresetsPr
   if (personas.length >= 10 || available.length === 0) return null
 
   return (
-    <div style={{ marginTop: 16, borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 12 }}>
+    <div style={{ marginTop: 16, borderTop: '1px solid var(--glass-border)', paddingTop: 12 }}>
       <div style={{
         fontSize: 10,
         fontWeight: 700,
         letterSpacing: '0.07em',
         textTransform: 'uppercase' as const,
-        color: 'rgba(255,255,255,0.38)',
+        color: 'var(--text-faint)',
         marginBottom: 8,
       }}>
         {t('persona.presets')}

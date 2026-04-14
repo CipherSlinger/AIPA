@@ -73,7 +73,7 @@ export default function KeyboardShortcutsModal({ onClose }: Props) {
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 9999,
-        background: 'rgba(0,0,0,0.70)',
+        background: 'var(--glass-overlay)',
         backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
@@ -81,9 +81,9 @@ export default function KeyboardShortcutsModal({ onClose }: Props) {
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: 'rgba(15,15,25,0.95)',
+          background: 'var(--glass-bg-popup)',
           backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.09)',
+          border: '1px solid var(--glass-border-md)',
           borderRadius: 16, padding: '24px 28px',
           maxWidth: 520, width: '90%',
           boxShadow: '0 24px 64px rgba(0,0,0,0.7), 0 8px 24px rgba(0,0,0,0.5)',
@@ -93,20 +93,20 @@ export default function KeyboardShortcutsModal({ onClose }: Props) {
         }}
       >
         {/* 头部 */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, paddingBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-          <span style={{ fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.82)', letterSpacing: '-0.01em' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, paddingBottom: 12, borderBottom: '1px solid var(--glass-border)' }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
             键盘快捷键
           </span>
           <button
             onClick={onClose}
             style={{
-              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)',
-              borderRadius: 6, cursor: 'pointer', color: 'rgba(255,255,255,0.45)',
+              background: 'rgba(255,255,255,0.06)', border: '1px solid var(--glass-border-md)',
+              borderRadius: 6, cursor: 'pointer', color: 'var(--text-muted)',
               padding: '4px 7px', display: 'flex', alignItems: 'center',
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--glass-border-md)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'var(--text-muted)' }}
           >
             <X size={14} />
           </button>
@@ -117,7 +117,7 @@ export default function KeyboardShortcutsModal({ onClose }: Props) {
           <div key={group.category} style={{ marginBottom: 20 }}>
             <div style={{
               fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
-              textTransform: 'uppercase' as const, color: 'rgba(255,255,255,0.38)',
+              textTransform: 'uppercase' as const, color: 'var(--text-faint)',
               marginBottom: 10,
             }}>
               {group.category}
@@ -128,10 +128,10 @@ export default function KeyboardShortcutsModal({ onClose }: Props) {
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '6px 10px',
                   background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.07)',
+                  border: '1px solid var(--glass-border)',
                   borderRadius: 8,
                 }}>
-                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.60)' }}>{item.desc}</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{item.desc}</span>
                   <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
                     {item.keys.map((key, ki) => (
                       <React.Fragment key={ki}>
@@ -141,14 +141,14 @@ export default function KeyboardShortcutsModal({ onClose }: Props) {
                           borderBottom: '2px solid rgba(255,255,255,0.20)',
                           borderRadius: 5, padding: '2px 7px',
                           fontSize: 11, fontWeight: 600,
-                          color: 'rgba(255,255,255,0.82)',
+                          color: 'var(--text-primary)',
                           fontFamily: 'monospace',
                           whiteSpace: 'nowrap',
                         }}>
                           {key}
                         </kbd>
                         {ki < item.keys.length - 1 && (
-                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)' }}>+</span>
+                          <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>+</span>
                         )}
                       </React.Fragment>
                     ))}
@@ -159,7 +159,7 @@ export default function KeyboardShortcutsModal({ onClose }: Props) {
           </div>
         ))}
 
-        <div style={{ textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.38)', marginTop: 4 }}>
+        <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-faint)', marginTop: 4 }}>
           按 Escape 关闭
         </div>
       </div>

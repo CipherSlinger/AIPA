@@ -27,25 +27,25 @@ const VARIANT_STYLES: Record<ToastType, { bg: string; border: string; color: str
   success: {
     bg: 'rgba(34,197,94,0.12)',
     border: '1px solid rgba(34,197,94,0.25)',
-    color: 'rgba(255,255,255,0.82)',
+    color: 'var(--text-primary)',
     iconColor: '#4ade80',
   },
   error: {
     bg: 'rgba(239,68,68,0.12)',
     border: '1px solid rgba(239,68,68,0.25)',
-    color: 'rgba(255,255,255,0.82)',
+    color: 'var(--text-primary)',
     iconColor: '#f87171',
   },
   info: {
     bg: 'rgba(99,102,241,0.10)',
     border: '1px solid rgba(99,102,241,0.22)',
-    color: 'rgba(255,255,255,0.82)',
+    color: 'var(--text-primary)',
     iconColor: '#818cf8',
   },
   warning: {
     bg: 'rgba(251,191,36,0.10)',
     border: '1px solid rgba(251,191,36,0.22)',
-    color: 'rgba(255,255,255,0.82)',
+    color: 'var(--text-primary)',
     iconColor: '#fbbf24',
   },
 }
@@ -79,9 +79,9 @@ export function Toast({ toast, onDismiss }: ToastProps) {
           alignItems: 'flex-start',
           gap: 10,
           padding: '10px 14px',
-          background: 'rgba(15,15,25,0.96)',
+          background: 'var(--glass-bg-high)',
           borderLeft: `3px solid ${v.iconColor}`,
-          border: `1px solid rgba(255,255,255,0.09)`,
+          border: `1px solid var(--glass-border-md)`,
           borderRadius: 12,
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
@@ -99,14 +99,14 @@ export function Toast({ toast, onDismiss }: ToastProps) {
           background: v.iconColor, borderRadius: '12px 0 0 12px',
         }} />
         <Icon size={16} color={v.iconColor} style={{ flexShrink: 0, marginTop: 1, marginLeft: 8 }} />
-        <span style={{ flex: 1, fontSize: 13, fontWeight: 500, lineHeight: 1.4, color: 'rgba(255,255,255,0.82)' }}>{message}</span>
+        <span style={{ flex: 1, fontSize: 13, fontWeight: 500, lineHeight: 1.4, color: 'var(--text-primary)' }}>{message}</span>
         <button
           onClick={() => onDismiss(id)}
           style={{
             background: closeBtnHover ? 'rgba(255,255,255,0.08)' : 'none',
             border: 'none',
             cursor: 'pointer',
-            color: 'rgba(255,255,255,0.60)',
+            color: 'var(--text-secondary)',
             padding: '3px 4px',
             marginLeft: 'auto',
             flexShrink: 0,

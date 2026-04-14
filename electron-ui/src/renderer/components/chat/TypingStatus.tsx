@@ -58,10 +58,10 @@ export default function TypingStatus() {
         borderTop: '1px solid rgba(255,255,255,0.06)',
         flexShrink: 0,
         minHeight: 28,
-        background: 'rgba(15,15,25,0.85)',
+        background: 'var(--glass-bg-low)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+        boxShadow: 'var(--glass-shadow)',
       }}
       aria-live="polite"
       aria-label={`${label}...`}
@@ -84,7 +84,7 @@ export default function TypingStatus() {
       <span
         style={{
           fontSize: 12,
-          color: 'rgba(255,255,255,0.45)',
+          color: 'var(--text-muted)',
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -95,7 +95,7 @@ export default function TypingStatus() {
       </span>
       {/* Elapsed time (shown after 3s to avoid flashing on fast responses) */}
       {streamStartRef.current > 0 && elapsed !== '0s' && elapsed !== '1s' && elapsed !== '2s' && (
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', marginLeft: 2, fontVariantNumeric: 'tabular-nums' }}>
+        <span style={{ fontSize: 10, color: 'var(--text-faint)', marginLeft: 2, fontVariantNumeric: 'tabular-nums' }}>
           {elapsed}
         </span>
       )}

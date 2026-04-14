@@ -36,10 +36,10 @@ export default function StatusBarTokenPopup({
         left: '50%',
         transform: 'translateX(-50%)',
         marginBottom: 4,
-        background: 'rgba(15,15,25,0.96)',
+        background: 'var(--glass-bg-high)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid rgba(255,255,255,0.09)',
+        border: '1px solid var(--glass-border-md)',
         boxShadow: '0 8px 28px rgba(0,0,0,0.55)',
         borderRadius: 10,
         padding: '12px 14px',
@@ -48,7 +48,7 @@ export default function StatusBarTokenPopup({
       }}
     >
       {/* Title */}
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', marginBottom: 6 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 6 }}>
         {t('token.contextWindow')}
       </div>
 
@@ -56,7 +56,7 @@ export default function StatusBarTokenPopup({
       {lastContextUsage && contextPct !== null && (
         <div style={{ marginBottom: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 3 }}>
-            <span style={{ color: 'rgba(255,255,255,0.82)' }}>
+            <span style={{ color: 'var(--text-primary)' }}>
               {fmtNumber(lastContextUsage.used)} / {fmtNumber(lastContextUsage.total)}
             </span>
             <span style={{ color: ctxColor, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{contextPct}%</span>
@@ -69,7 +69,7 @@ export default function StatusBarTokenPopup({
             style={{
               width: '100%',
               height: 4,
-              background: 'rgba(255,255,255,0.07)',
+              background: 'var(--glass-border)',
               borderRadius: 3,
               overflow: 'hidden',
             }}
@@ -93,7 +93,7 @@ export default function StatusBarTokenPopup({
       {lastUsage && (
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 6, marginBottom: 6 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 10, marginBottom: 4 }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-muted)', fontSize: 11 }}>
               <ArrowUp size={9} />
               {t('token.inputTokens')}
             </span>
@@ -102,7 +102,7 @@ export default function StatusBarTokenPopup({
             </span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 10, marginBottom: 4 }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-muted)', fontSize: 11 }}>
               <ArrowDown size={9} />
               {t('token.outputTokens')}
             </span>
@@ -111,11 +111,11 @@ export default function StatusBarTokenPopup({
             </span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 10 }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-muted)', fontSize: 11 }}>
               <Recycle size={9} />
               {t('token.cacheTokens')}
             </span>
-            <span style={{ color: lastUsage.cacheTokens > 0 ? '#818cf8' : 'rgba(255,255,255,0.45)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+            <span style={{ color: lastUsage.cacheTokens > 0 ? '#818cf8' : 'var(--text-muted)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
               {lastUsage.cacheTokens > 0 ? lastUsage.cacheTokens.toLocaleString() : 'N/A'}
             </span>
           </div>
@@ -126,7 +126,7 @@ export default function StatusBarTokenPopup({
       {totalSessionCost > 0 && (
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 6, marginBottom: 6 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 10 }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-muted)', fontSize: 11 }}>
               <Database size={9} />
               {t('token.sessionTotal')}
             </span>

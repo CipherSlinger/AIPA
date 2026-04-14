@@ -80,7 +80,7 @@ function PresetCard({
         <div style={{
           fontSize: 12,
           fontWeight: 700,
-          color: 'rgba(255,255,255,0.82)',
+          color: 'var(--text-primary)',
           marginBottom: 2,
           whiteSpace: 'nowrap',
           overflow: 'hidden',
@@ -91,7 +91,7 @@ function PresetCard({
         {desc && (
           <div style={{
             fontSize: 11,
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
@@ -134,7 +134,7 @@ export default function WorkflowPanel() {
       flexDirection: 'column',
       height: '100%',
       background: 'rgba(12,12,20,0.97)',
-      borderRight: '1px solid rgba(255,255,255,0.07)',
+      borderRight: '1px solid var(--glass-border)',
       overflow: 'hidden',
     }}>
       {/* Personas section — collapsible, sits above workflows */}
@@ -189,7 +189,7 @@ function WorkflowTabContent({ crud, t }: {
       {/* Workflows sub-header with search + create */}
       <div style={{
         padding: '12px 14px 8px',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--glass-border)',
         flexShrink: 0,
       }}>
         <div style={{
@@ -199,7 +199,7 @@ function WorkflowTabContent({ crud, t }: {
           marginBottom: 6,
         }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.82)', textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1.3 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1.3 }}>
               {t('workflow.title')}
             </span>
             <span style={{
@@ -264,9 +264,9 @@ function WorkflowTabContent({ crud, t }: {
               style={{
                 display: 'flex', alignItems: 'center', gap: 4,
                 padding: '5px 10px', borderRadius: 6,
-                border: '1px solid rgba(255,255,255,0.07)',
+                border: '1px solid var(--glass-border)',
                 background: 'transparent',
-                color: 'rgba(255,255,255,0.45)', fontSize: 11,
+                color: 'var(--text-muted)', fontSize: 11,
                 cursor: 'pointer', flexShrink: 0,
                 transition: 'all 0.15s ease',
               }}
@@ -276,8 +276,8 @@ function WorkflowTabContent({ crud, t }: {
                 e.currentTarget.style.background = 'rgba(99,102,241,0.06)'
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+                e.currentTarget.style.borderColor = 'var(--glass-border)'
+                e.currentTarget.style.color = 'var(--text-muted)'
                 e.currentTarget.style.background = 'transparent'
               }}
             >
@@ -295,7 +295,7 @@ function WorkflowTabContent({ crud, t }: {
                 borderRadius: 7,
                 padding: '5px 10px',
                 cursor: 'pointer',
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -332,9 +332,9 @@ function WorkflowTabContent({ crud, t }: {
                 fontSize: 10,
                 fontWeight: category === cat ? 600 : 400,
                 background: category === cat ? 'rgba(99,102,241,0.12)' : 'transparent',
-                border: `1px solid ${category === cat ? '#6366f1' : 'rgba(255,255,255,0.07)'}`,
+                border: `1px solid ${category === cat ? '#6366f1' : 'var(--glass-border)'}`,
                 borderRadius: 5,
-                color: category === cat ? '#6366f1' : 'rgba(255,255,255,0.45)',
+                color: category === cat ? '#6366f1' : 'var(--text-muted)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -353,7 +353,7 @@ function WorkflowTabContent({ crud, t }: {
         <div style={{ position: 'relative' }}>
           <Search size={12} style={{
             position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)',
-            color: 'rgba(255,255,255,0.45)', pointerEvents: 'none',
+            color: 'var(--text-muted)', pointerEvents: 'none',
           }} />
           <input
             type="text"
@@ -364,7 +364,7 @@ function WorkflowTabContent({ crud, t }: {
               width: '100%', height: 28, paddingLeft: 26, paddingRight: 8,
               background: 'rgba(255,255,255,0.05)',
               border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 8, fontSize: 11, color: 'rgba(255,255,255,0.82)', outline: 'none', boxSizing: 'border-box',
+              borderRadius: 8, fontSize: 11, color: 'var(--text-primary)', outline: 'none', boxSizing: 'border-box',
               backdropFilter: 'blur(8px)',
               WebkitBackdropFilter: 'blur(8px)',
               transition: 'all 0.15s ease',
@@ -385,7 +385,7 @@ function WorkflowTabContent({ crud, t }: {
       {crud.showCreateForm && (
         <div style={{
           padding: '8px 12px',
-          borderBottom: '1px solid rgba(255,255,255,0.07)',
+          borderBottom: '1px solid var(--glass-border)',
           background: 'rgba(99,102,241,0.03)',
           flexShrink: 0,
           maxHeight: '50%',
@@ -399,7 +399,7 @@ function WorkflowTabContent({ crud, t }: {
                   onClick={() => crud.setNewIcon(icon)}
                   style={{
                     background: crud.newIcon === icon ? '#6366f1' : 'transparent',
-                    border: crud.newIcon === icon ? '1px solid #6366f1' : '1px solid rgba(255,255,255,0.07)',
+                    border: crud.newIcon === icon ? '1px solid #6366f1' : '1px solid var(--glass-border)',
                     borderRadius: 4, padding: '2px 4px', fontSize: 14, cursor: 'pointer', lineHeight: 1,
                   }}
                 >
@@ -416,8 +416,8 @@ function WorkflowTabContent({ crud, t }: {
             autoFocus
             style={{
               width: '100%', height: 28, padding: '0 8px',
-              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 6, fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.82)',
+              background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)',
+              borderRadius: 6, fontSize: 11, fontWeight: 500, color: 'var(--text-primary)',
               outline: 'none', boxSizing: 'border-box', marginBottom: 4,
             }}
           />
@@ -428,8 +428,8 @@ function WorkflowTabContent({ crud, t }: {
             maxLength={MAX_DESC_LENGTH}
             style={{
               width: '100%', height: 28, padding: '0 8px',
-              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 6, fontSize: 10, color: 'rgba(255,255,255,0.60)',
+              background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)',
+              borderRadius: 6, fontSize: 10, color: 'var(--text-secondary)',
               outline: 'none', boxSizing: 'border-box', marginBottom: 6,
             }}
           />
@@ -441,7 +441,7 @@ function WorkflowTabContent({ crud, t }: {
               display: 'flex', alignItems: 'center', gap: 6,
               background: 'transparent', border: 'none', padding: '2px 0',
               cursor: 'pointer', marginBottom: 6,
-              color: crud.newTeamwork ? '#6366f1' : 'rgba(255,255,255,0.45)',
+              color: crud.newTeamwork ? '#6366f1' : 'var(--text-muted)',
             }}
           >
             {crud.newTeamwork
@@ -453,7 +453,7 @@ function WorkflowTabContent({ crud, t }: {
             </span>
             <Users2 size={10} style={{ opacity: 0.7 }} />
           </button>
-          <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.45)', marginBottom: 4 }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4 }}>
             {t('workflow.steps')}
           </div>
           <WorkflowStepEditor steps={crud.newSteps} setSteps={crud.setNewSteps} />
@@ -461,8 +461,8 @@ function WorkflowTabContent({ crud, t }: {
             <button
               onClick={() => { crud.setShowCreateForm(false); crud.setNewName(''); crud.setNewDesc(''); crud.setNewTeamwork(false); crud.setNewSteps([{ id: `step-${Date.now()}`, title: t('workflow.stepLabel', { n: 1 }), prompt: '' }]) }}
               style={{
-                background: 'transparent', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 4,
-                padding: '3px 10px', fontSize: 10, color: 'rgba(255,255,255,0.45)', cursor: 'pointer',
+                background: 'transparent', border: '1px solid var(--glass-border)', borderRadius: 4,
+                padding: '3px 10px', fontSize: 10, color: 'var(--text-muted)', cursor: 'pointer',
               }}
             >
               {t('workflow.cancel')}
@@ -473,7 +473,7 @@ function WorkflowTabContent({ crud, t }: {
               style={{
                 background: crud.newName.trim() ? '#6366f1' : 'rgba(255,255,255,0.08)',
                 border: 'none', borderRadius: 4, padding: '3px 12px', fontSize: 10, fontWeight: 600,
-                color: crud.newName.trim() ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.45)',
+                color: crud.newName.trim() ? 'var(--text-primary)' : 'var(--text-muted)',
                 cursor: crud.newName.trim() ? 'pointer' : 'not-allowed',
                 opacity: crud.newName.trim() ? 1 : 0.4,
                 transition: 'all 0.15s ease',
@@ -495,8 +495,8 @@ function WorkflowTabContent({ crud, t }: {
                 style={{
                   fontSize: 10, padding: '2px 9px', borderRadius: 20, cursor: 'pointer',
                   background: !categoryFilter ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.06)',
-                  border: !categoryFilter ? '1px solid rgba(99,102,241,0.30)' : '1px solid rgba(255,255,255,0.07)',
-                  color: !categoryFilter ? '#818cf8' : 'rgba(255,255,255,0.45)',
+                  border: !categoryFilter ? '1px solid rgba(99,102,241,0.30)' : '1px solid var(--glass-border)',
+                  color: !categoryFilter ? '#818cf8' : 'var(--text-muted)',
                   fontWeight: !categoryFilter ? 700 : 400,
                   transition: 'all 0.15s ease',
                 }}
@@ -507,8 +507,8 @@ function WorkflowTabContent({ crud, t }: {
                   style={{
                     fontSize: 10, padding: '2px 9px', borderRadius: 20, cursor: 'pointer',
                     background: categoryFilter === cat ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.06)',
-                    border: categoryFilter === cat ? '1px solid rgba(99,102,241,0.30)' : '1px solid rgba(255,255,255,0.07)',
-                    color: categoryFilter === cat ? '#818cf8' : 'rgba(255,255,255,0.45)',
+                    border: categoryFilter === cat ? '1px solid rgba(99,102,241,0.30)' : '1px solid var(--glass-border)',
+                    color: categoryFilter === cat ? '#818cf8' : 'var(--text-muted)',
                     fontWeight: categoryFilter === cat ? 700 : 400,
                     transition: 'all 0.15s ease',
                     textTransform: 'capitalize',
@@ -528,9 +528,9 @@ function WorkflowTabContent({ crud, t }: {
                     fontSize: 10,
                     padding: '2px 8px',
                     borderRadius: 6,
-                    border: `1px solid ${sortBy === s ? 'rgba(99,102,241,0.50)' : 'rgba(255,255,255,0.07)'}`,
+                    border: `1px solid ${sortBy === s ? 'rgba(99,102,241,0.50)' : 'var(--glass-border)'}`,
                     background: sortBy === s ? 'rgba(99,102,241,0.15)' : 'transparent',
-                    color: sortBy === s ? '#818cf8' : 'rgba(255,255,255,0.45)',
+                    color: sortBy === s ? '#818cf8' : 'var(--text-muted)',
                     cursor: 'pointer',
                     fontWeight: sortBy === s ? 600 : 400,
                     transition: 'all 0.15s ease',
@@ -544,7 +544,7 @@ function WorkflowTabContent({ crud, t }: {
           {categoryWorkflows.length === 0 && !crud.showCreateForm ? (
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            height: '50%', color: 'rgba(255,255,255,0.38)', gap: 8, padding: '0 16px',
+            height: '50%', color: 'var(--text-faint)', gap: 8, padding: '0 16px',
           }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
             <div style={{
@@ -556,17 +556,17 @@ function WorkflowTabContent({ crud, t }: {
               justifyContent: 'center',
             }}>
             {category === 'teamwork'
-              ? <Users2 size={28} style={{ color: 'rgba(255,255,255,0.38)', animation: 'wf-pulse 2s ease-in-out infinite' }} />
-              : <WorkflowIcon size={28} style={{ color: 'rgba(255,255,255,0.38)', animation: 'wf-pulse 2s ease-in-out infinite' }} />
+              ? <Users2 size={28} style={{ color: 'var(--text-faint)', animation: 'wf-pulse 2s ease-in-out infinite' }} />
+              : <WorkflowIcon size={28} style={{ color: 'var(--text-faint)', animation: 'wf-pulse 2s ease-in-out infinite' }} />
             }
             </div>
-            <span style={{ fontSize: 12, fontWeight: 600, textAlign: 'center', color: 'rgba(255,255,255,0.38)' }}>
+            <span style={{ fontSize: 12, fontWeight: 600, textAlign: 'center', color: 'var(--text-faint)' }}>
               {allCategoryWorkflows.length === 0 ? t('workflow.emptyState') : t('workflow.noResults')}
             </span>
             </div>
             {allCategoryWorkflows.length === 0 && category === 'singleAgent' && (
               <>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', opacity: 0.65, textAlign: 'center' }}>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)', opacity: 0.65, textAlign: 'center' }}>
                   {t('workflow.emptyHint')}
                 </span>
                 <button
@@ -577,7 +577,7 @@ function WorkflowTabContent({ crud, t }: {
                   style={{
                     fontSize: 11,
                     fontWeight: 600,
-                    color: 'rgba(255,255,255,0.82)',
+                    color: 'var(--text-primary)',
                     background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                     border: 'none',
                     borderRadius: 8,
@@ -605,7 +605,7 @@ function WorkflowTabContent({ crud, t }: {
                   <span style={{
                     fontSize: 9,
                     fontWeight: 700,
-                    color: 'rgba(255,255,255,0.45)',
+                    color: 'var(--text-muted)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.08em',
                     opacity: 0.7,
@@ -631,14 +631,14 @@ function WorkflowTabContent({ crud, t }: {
             )}
             {allCategoryWorkflows.length === 0 && category === 'teamwork' && (
               <>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', opacity: 0.7, textAlign: 'center' }}>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)', opacity: 0.7, textAlign: 'center' }}>
                   {t('workflow.teamworkEmptyHint')}
                 </span>
                 <div style={{ width: '100%', marginTop: 8 }}>
                   <span style={{
                     fontSize: 9,
                     fontWeight: 700,
-                    color: 'rgba(255,255,255,0.45)',
+                    color: 'var(--text-muted)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.08em',
                     opacity: 0.7,
@@ -681,7 +681,7 @@ function WorkflowTabContent({ crud, t }: {
             <div style={{
               fontSize: 9,
               fontWeight: 700,
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
               opacity: 0.7,
@@ -709,7 +709,7 @@ function WorkflowTabContent({ crud, t }: {
             <div style={{
               fontSize: 9,
               fontWeight: 700,
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
               opacity: 0.7,
@@ -736,16 +736,16 @@ function WorkflowTabContent({ crud, t }: {
       {/* Footer */}
       <div style={{
         padding: '6px 12px',
-        borderTop: '1px solid rgba(255,255,255,0.07)',
+        borderTop: '1px solid var(--glass-border)',
         flexShrink: 0,
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
       }}>
-        <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase' as const, color: 'rgba(255,255,255,0.38)' }}>
+        <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase' as const, color: 'var(--text-faint)' }}>
           {t('workflow.footer')}
         </span>
-        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)' }}>
+        <span style={{ fontSize: 9, color: 'var(--text-faint)' }}>
           {t('workflow.inspired')}
         </span>
       </div>

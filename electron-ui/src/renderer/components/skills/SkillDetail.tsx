@@ -31,7 +31,7 @@ function getSourceBadgeStyle(source: string): React.CSSProperties {
   return {
     background: 'rgba(255,255,255,0.08)',
     border: '1px solid rgba(255,255,255,0.12)',
-    color: 'rgba(255,255,255,0.60)',
+    color: 'var(--text-secondary)',
   }
 }
 
@@ -58,8 +58,8 @@ export default function SkillDetail({
         alignItems: 'center',
         gap: 8,
         padding: '14px 20px',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
-        background: 'rgba(15,15,25,0.92)',
+        borderBottom: '1px solid var(--glass-border)',
+        background: 'var(--glass-bg-raised)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         flexShrink: 0,
@@ -70,9 +70,9 @@ export default function SkillDetail({
           onMouseEnter={() => setBackHovered(true)}
           onMouseLeave={() => setBackHovered(false)}
           style={{
-            background: backHovered ? 'rgba(255,255,255,0.07)' : 'none',
+            background: backHovered ? 'var(--glass-border)' : 'none',
             border: 'none',
-            color: backHovered ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.60)',
+            color: backHovered ? 'var(--text-primary)' : 'var(--text-secondary)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -89,7 +89,7 @@ export default function SkillDetail({
         <span style={{
           fontSize: 22,
           fontWeight: 700,
-          color: 'rgba(255,255,255,0.82)',
+          color: 'var(--text-primary)',
           lineHeight: 1.3,
           letterSpacing: '-0.01em',
           flex: 1,
@@ -120,10 +120,10 @@ export default function SkillDetail({
       {/* Hero / description section */}
       <div style={{
         margin: '16px 20px 0',
-        background: 'rgba(15,15,25,0.92)',
+        background: 'var(--glass-bg-raised)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        border: '1px solid var(--glass-border)',
         borderRadius: 12,
         padding: '20px 24px',
         flexShrink: 0,
@@ -145,7 +145,7 @@ export default function SkillDetail({
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{
               fontSize: 12,
-              color: 'rgba(255,255,255,0.60)',
+              color: 'var(--text-secondary)',
               marginBottom: 10,
               lineHeight: 1.5,
             }}>
@@ -158,7 +158,7 @@ export default function SkillDetail({
                 fontWeight: 700,
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase' as const,
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--text-muted)',
                 display: 'block',
                 marginBottom: 2,
               }}>
@@ -166,7 +166,7 @@ export default function SkillDetail({
               </span>
               <span style={{
                 fontSize: 11,
-                color: 'rgba(255,255,255,0.60)',
+                color: 'var(--text-secondary)',
                 fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", monospace',
                 wordBreak: 'break-all' as const,
               }}>
@@ -245,7 +245,7 @@ export default function SkillDetail({
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 20px' }}>
         <div style={{
           background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.07)',
+          border: '1px solid var(--glass-border)',
           borderRadius: 12,
           padding: '16px 20px',
         }}>
@@ -254,7 +254,7 @@ export default function SkillDetail({
             fontWeight: 700,
             letterSpacing: '0.07em',
             textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-faint)',
             marginBottom: 10,
           }}>
             SKILL.md

@@ -33,12 +33,12 @@ export default function SessionTooltip({ session, pos, sessionTags, tagNames, pr
         top: Math.min(pos.top, window.innerHeight - (hasPreview ? 400 : 200)),
         left: pos.left,
         zIndex: 9999,
-        background: 'rgba(15,15,25,0.94)',
+        background: 'var(--glass-bg-raised)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid rgba(255,255,255,0.09)',
+        border: '1px solid var(--glass-border-md)',
         borderRadius: 10,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+        boxShadow: 'var(--glass-shadow)',
         maxWidth: 320,
         minWidth: 220,
         maxHeight: 400,
@@ -49,12 +49,12 @@ export default function SessionTooltip({ session, pos, sessionTags, tagNames, pr
       }}
     >
       {/* Header */}
-      <div style={{ padding: '8px 12px', borderBottom: hasPreview || previewLoading ? '1px solid rgba(255,255,255,0.07)' : 'none' }}>
+      <div style={{ padding: '8px 12px', borderBottom: hasPreview || previewLoading ? '1px solid var(--glass-border)' : 'none' }}>
         {/* Title */}
         <div style={{
           fontSize: 12,
           fontWeight: 600,
-          color: 'rgba(255,255,255,0.82)',
+          color: 'var(--text-primary)',
           marginBottom: 4,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -66,7 +66,7 @@ export default function SessionTooltip({ session, pos, sessionTags, tagNames, pr
         {/* Project + relative time */}
         <div style={{
           fontSize: 11,
-          color: 'rgba(255,255,255,0.45)',
+          color: 'var(--text-muted)',
           marginTop: 2,
           display: 'flex',
           alignItems: 'center',
@@ -93,7 +93,7 @@ export default function SessionTooltip({ session, pos, sessionTags, tagNames, pr
           return (
             <div style={{
               fontSize: 11,
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-muted)',
               marginTop: 2,
             }}>
               {t('session.tooltipDuration')}: {dur}
@@ -180,14 +180,14 @@ export default function SessionTooltip({ session, pos, sessionTags, tagNames, pr
                 <span style={{
                   fontSize: 10,
                   fontWeight: 600,
-                  color: msg.role === 'user' ? '#818cf8' : 'rgba(255,255,255,0.38)',
+                  color: msg.role === 'user' ? '#818cf8' : 'var(--text-faint)',
                 }}>
                   {msg.role === 'user' ? t('session.previewUser') : t('session.previewAI')}
                 </span>
                 {msg.timestamp && (
                   <span style={{
                     fontSize: 10,
-                    color: 'rgba(255,255,255,0.45)',
+                    color: 'var(--text-muted)',
                     fontVariantNumeric: 'tabular-nums',
                     fontFeatureSettings: '"tnum"',
                   }}>
@@ -198,7 +198,7 @@ export default function SessionTooltip({ session, pos, sessionTags, tagNames, pr
               {/* Content */}
               <div style={{
                 fontSize: 12,
-                color: 'rgba(255,255,255,0.60)',
+                color: 'var(--text-secondary)',
                 lineHeight: 1.5,
                 display: '-webkit-box',
                 WebkitLineClamp: 3,
@@ -221,7 +221,7 @@ export default function SessionTooltip({ session, pos, sessionTags, tagNames, pr
         <div style={{
           padding: '8px 12px',
           fontSize: 11,
-          color: 'rgba(255,255,255,0.45)',
+          color: 'var(--text-muted)',
           lineHeight: 1.5,
           display: '-webkit-box',
           WebkitLineClamp: 3,

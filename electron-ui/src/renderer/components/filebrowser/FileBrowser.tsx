@@ -19,9 +19,9 @@ const EXT_ICONS: Record<string, { icon: React.ElementType; color: string }> = {
   rs: { icon: FileCode, color: '#dea584' },
   go: { icon: FileCode, color: '#00add8' },
   java: { icon: FileCode, color: '#e76f00' },
-  c: { icon: FileCode, color: 'rgba(255,255,255,0.45)' },
+  c: { icon: FileCode, color: 'var(--text-muted)' },
   cpp: { icon: FileCode, color: '#6295cb' },
-  h: { icon: FileCode, color: 'rgba(255,255,255,0.45)' },
+  h: { icon: FileCode, color: 'var(--text-muted)' },
   cs: { icon: FileCode, color: '#68217a' },
   rb: { icon: FileCode, color: '#cc342d' },
   php: { icon: FileCode, color: '#777bb3' },
@@ -38,11 +38,11 @@ const EXT_ICONS: Record<string, { icon: React.ElementType; color: string }> = {
   ps1: { icon: FileCode, color: '#012456' },
   // Text / docs
   md: { icon: FileText, color: '#519aba' },
-  txt: { icon: FileText, color: 'rgba(255,255,255,0.45)' },
+  txt: { icon: FileText, color: 'var(--text-muted)' },
   pdf: { icon: FileText, color: '#e5252a' },
   doc: { icon: FileText, color: '#2b579a' },
   docx: { icon: FileText, color: '#2b579a' },
-  rtf: { icon: FileText, color: 'rgba(255,255,255,0.45)' },
+  rtf: { icon: FileText, color: 'var(--text-muted)' },
   // Data / config
   json: { icon: FileJson, color: '#f7df1e' },
   yaml: { icon: Settings, color: '#cb171e' },
@@ -87,7 +87,7 @@ function getFileIcon(name: string): { Icon: React.ElementType; color: string } {
   const ext = name.includes('.') ? name.split('.').pop()?.toLowerCase() || '' : ''
   const match = EXT_ICONS[ext]
   if (match) return { Icon: match.icon, color: match.color }
-  return { Icon: File, color: 'rgba(255,255,255,0.45)' }
+  return { Icon: File, color: 'var(--text-muted)' }
 }
 
 interface TreeNodeProps {
@@ -135,7 +135,7 @@ function TreeNode({ entry, depth, onSetCwd, t, filter }: TreeNodeProps) {
           padding: '3px 8px',
           paddingLeft: 8 + depth * 16,
           cursor: 'pointer',
-          color: 'rgba(255,255,255,0.60)',
+          color: 'var(--text-secondary)',
           fontSize: 12,
           userSelect: 'none',
         }}
@@ -144,8 +144,8 @@ function TreeNode({ entry, depth, onSetCwd, t, filter }: TreeNodeProps) {
       >
         {entry.isDirectory
           ? (expanded
-            ? <ChevronDown size={11} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
-            : <ChevronRight size={11} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />)
+            ? <ChevronDown size={11} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+            : <ChevronRight size={11} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />)
           : <span style={{ width: 11, flexShrink: 0 }} />}
 
         {entry.isDirectory
@@ -255,17 +255,17 @@ export default function FileBrowser() {
     : currentDir
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'rgba(15,15,25,0.92)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, overflow: 'hidden' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--glass-bg-raised)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid var(--glass-border)', borderRadius: 10, overflow: 'hidden' }}>
       {/* Header */}
       <div
         style={{
           padding: '8px 12px',
-          borderBottom: '1px solid rgba(255,255,255,0.07)',
+          borderBottom: '1px solid var(--glass-border)',
           display: 'flex',
           alignItems: 'center',
           gap: 6,
           flexShrink: 0,
-          background: 'rgba(15,15,25,0.95)',
+          background: 'var(--glass-bg-popup)',
         }}
       >
         <span
@@ -273,7 +273,7 @@ export default function FileBrowser() {
             flex: 1,
             fontSize: 11,
             fontFamily: 'monospace',
-            color: 'rgba(255,255,255,0.60)',
+            color: 'var(--text-secondary)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -287,7 +287,7 @@ export default function FileBrowser() {
           <span
             style={{
               fontSize: 9,
-              color: 'rgba(255,255,255,0.38)',
+              color: 'var(--text-faint)',
               flexShrink: 0,
               fontVariantNumeric: 'tabular-nums',
             }}
@@ -303,7 +303,7 @@ export default function FileBrowser() {
           style={{
             background: showFilter ? 'rgba(99,102,241,0.6)' : 'none',
             border: 'none',
-            color: showFilter ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
+            color: showFilter ? 'rgba(255,255,255,0.95)' : 'var(--text-muted)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -312,7 +312,7 @@ export default function FileBrowser() {
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => { if (!showFilter) e.currentTarget.style.color = '#818cf8' }}
-          onMouseLeave={e => { if (!showFilter) e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+          onMouseLeave={e => { if (!showFilter) e.currentTarget.style.color = 'var(--text-muted)' }}
         >
           <Search size={13} />
         </button>
@@ -323,14 +323,14 @@ export default function FileBrowser() {
           style={{
             background: 'none',
             border: 'none',
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => e.currentTarget.style.color = '#818cf8'}
-          onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
         >
           <RefreshCw size={13} />
         </button>
@@ -341,7 +341,7 @@ export default function FileBrowser() {
           style={{
             background: 'none',
             border: 'none',
-            color: canGoUp ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.45)',
+            color: canGoUp ? 'var(--text-muted)' : 'var(--text-muted)',
             cursor: canGoUp ? 'pointer' : 'not-allowed',
             display: 'flex',
             alignItems: 'center',
@@ -349,7 +349,7 @@ export default function FileBrowser() {
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => { if (canGoUp) e.currentTarget.style.color = '#818cf8' }}
-          onMouseLeave={e => { if (canGoUp) e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+          onMouseLeave={e => { if (canGoUp) e.currentTarget.style.color = 'var(--text-muted)' }}
         >
           <ArrowUp size={14} />
         </button>
@@ -359,7 +359,7 @@ export default function FileBrowser() {
           style={{
             background: 'none',
             border: 'none',
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -373,13 +373,13 @@ export default function FileBrowser() {
       {showFilter && (
         <div style={{
           padding: '4px 10px',
-          borderBottom: '1px solid rgba(255,255,255,0.07)',
+          borderBottom: '1px solid var(--glass-border)',
           display: 'flex',
           alignItems: 'center',
           gap: 4,
           flexShrink: 0,
         }}>
-          <Search size={11} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
+          <Search size={11} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
           <input
             autoFocus
             value={filter}
@@ -391,7 +391,7 @@ export default function FileBrowser() {
               background: 'transparent',
               border: 'none',
               outline: 'none',
-              color: 'rgba(255,255,255,0.82)',
+              color: 'var(--text-primary)',
               fontSize: 11,
               fontFamily: 'inherit',
               minWidth: 0,
@@ -400,12 +400,12 @@ export default function FileBrowser() {
           />
           {filter && (
             <>
-              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)', flexShrink: 0 }}>
+              <span style={{ fontSize: 9, color: 'var(--text-faint)', flexShrink: 0 }}>
                 {filteredEntries.length}/{rootEntries.length}
               </span>
               <button
                 onClick={() => setFilter('')}
-                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.38)', cursor: 'pointer', display: 'flex', padding: 0 }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-faint)', cursor: 'pointer', display: 'flex', padding: 0 }}
               >
                 <X size={11} />
               </button>
@@ -424,11 +424,11 @@ export default function FileBrowser() {
             <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.20)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <FolderPlus size={18} style={{ color: '#818cf8' }} />
             </div>
-            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{t('fileBrowser.chooseHint')}</span>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('fileBrowser.chooseHint')}</span>
           </div>
         )}
         {rootEntries.length > 0 && filteredEntries.length === 0 && filter && (
-          <div style={{ padding: '20px 12px', color: 'rgba(255,255,255,0.38)', fontSize: 12, textAlign: 'center' }}>
+          <div style={{ padding: '20px 12px', color: 'var(--text-faint)', fontSize: 12, textAlign: 'center' }}>
             {t('fileBrowser.noFilterResults')}
           </div>
         )}

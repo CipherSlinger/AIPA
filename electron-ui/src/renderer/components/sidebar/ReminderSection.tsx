@@ -56,7 +56,7 @@ export default function ReminderSection({
     <div
       style={{
         background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        border: '1px solid var(--glass-border)',
         borderRadius: 10,
         padding: '12px 14px',
         marginBottom: 8,
@@ -85,7 +85,7 @@ export default function ReminderSection({
               transform: remindersExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
             }}
           >
-            <ChevronDown size={12} color="rgba(255,255,255,0.38)" />
+            <ChevronDown size={12} color="var(--text-faint)" />
           </span>
           <Bell size={12} color="#fbbf24" />
           <span
@@ -94,7 +94,7 @@ export default function ReminderSection({
               fontWeight: 700,
               letterSpacing: '0.07em',
               textTransform: 'uppercase',
-              color: 'rgba(255,255,255,0.38)',
+              color: 'var(--text-faint)',
             }}
           >
             {t('reminders.title')}
@@ -120,10 +120,10 @@ export default function ReminderSection({
           onClick={(e) => { e.stopPropagation(); setShowReminderForm(true); setRemindersExpanded(true) }}
           style={{
             background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            border: '1px solid var(--glass-border-md)',
             borderRadius: 6,
             cursor: 'pointer',
-            color: 'rgba(255,255,255,0.60)',
+            color: 'var(--text-secondary)',
             display: 'flex',
             alignItems: 'center',
             padding: '2px 5px',
@@ -132,11 +132,11 @@ export default function ReminderSection({
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = 'rgba(255,255,255,0.10)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+            e.currentTarget.style.color = 'var(--text-primary)'
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+            e.currentTarget.style.color = 'var(--text-secondary)'
           }}
         >
           <Plus size={12} />
@@ -163,7 +163,7 @@ export default function ReminderSection({
                     ? '1px solid rgba(99,102,241,0.40)'
                     : '1px solid rgba(255,255,255,0.08)',
                   background: 'rgba(255,255,255,0.06)',
-                  color: 'rgba(255,255,255,0.82)',
+                  color: 'var(--text-primary)',
                   fontSize: 11,
                   outline: 'none',
                   transition: 'all 0.15s ease',
@@ -189,7 +189,7 @@ export default function ReminderSection({
                           ? '1px solid rgba(99,102,241,0.40)'
                           : '1px solid rgba(255,255,255,0.10)',
                         background: !cronMode ? 'rgba(99,102,241,0.15)' : 'transparent',
-                        color: !cronMode ? '#818cf8' : 'rgba(255,255,255,0.45)',
+                        color: !cronMode ? '#818cf8' : 'var(--text-muted)',
                         transition: 'all 0.15s ease',
                       }}
                     >
@@ -209,7 +209,7 @@ export default function ReminderSection({
                           ? '1px solid rgba(99,102,241,0.40)'
                           : '1px solid rgba(255,255,255,0.10)',
                         background: cronMode ? 'rgba(99,102,241,0.15)' : 'transparent',
-                        color: cronMode ? '#818cf8' : 'rgba(255,255,255,0.45)',
+                        color: cronMode ? '#818cf8' : 'var(--text-muted)',
                         display: 'flex',
                         alignItems: 'center',
                         gap: 3,
@@ -230,9 +230,9 @@ export default function ReminderSection({
                           style={{
                             padding: '3px 8px',
                             borderRadius: 10,
-                            border: '1px solid rgba(255,255,255,0.09)',
+                            border: '1px solid var(--glass-border-md)',
                             background: 'rgba(255,255,255,0.06)',
-                            color: 'rgba(255,255,255,0.60)',
+                            color: 'var(--text-secondary)',
                             fontSize: 10,
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
@@ -244,8 +244,8 @@ export default function ReminderSection({
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-                            e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
-                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+                            e.currentTarget.style.color = 'var(--text-secondary)'
+                            e.currentTarget.style.borderColor = 'var(--glass-border-md)'
                           }}
                         >
                           {t(preset.labelKey)}
@@ -257,22 +257,22 @@ export default function ReminderSection({
                         style={{
                           padding: '3px 8px',
                           borderRadius: 10,
-                          border: '1px solid rgba(255,255,255,0.09)',
+                          border: '1px solid var(--glass-border-md)',
                           background: 'rgba(255,255,255,0.04)',
-                          color: 'rgba(255,255,255,0.38)',
+                          color: 'var(--text-faint)',
                           fontSize: 10,
                           cursor: 'pointer',
                           transition: 'all 0.15s ease',
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
-                          e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
-                          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+                          e.currentTarget.style.background = 'var(--glass-border)'
+                          e.currentTarget.style.color = 'var(--text-secondary)'
+                          e.currentTarget.style.borderColor = 'var(--glass-border-md)'
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
-                          e.currentTarget.style.color = 'rgba(255,255,255,0.38)'
-                          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+                          e.currentTarget.style.color = 'var(--text-faint)'
+                          e.currentTarget.style.borderColor = 'var(--glass-border-md)'
                         }}
                       >
                         {t('reminders.cancel')}
@@ -296,7 +296,7 @@ export default function ReminderSection({
                                 ? '1px solid rgba(99,102,241,0.40)'
                                 : '1px solid rgba(255,255,255,0.08)',
                               background: cronExpr === p.cron ? 'rgba(99,102,241,0.15)' : 'transparent',
-                              color: cronExpr === p.cron ? '#818cf8' : 'rgba(255,255,255,0.38)',
+                              color: cronExpr === p.cron ? '#818cf8' : 'var(--text-faint)',
                               transition: 'all 0.15s ease',
                             }}
                           >
@@ -322,7 +322,7 @@ export default function ReminderSection({
                             ? '1px solid rgba(99,102,241,0.40)'
                             : '1px solid rgba(255,255,255,0.08)',
                           background: 'rgba(255,255,255,0.06)',
-                          color: 'rgba(255,255,255,0.82)',
+                          color: 'var(--text-primary)',
                           outline: 'none',
                           fontFamily: 'monospace',
                           transition: 'all 0.15s ease',
@@ -334,7 +334,7 @@ export default function ReminderSection({
                         <div
                           style={{
                             fontSize: 9,
-                            color: 'rgba(255,255,255,0.45)',
+                            color: 'var(--text-muted)',
                             paddingLeft: 2,
                             fontVariantNumeric: 'tabular-nums',
                           }}
@@ -356,7 +356,7 @@ export default function ReminderSection({
                             background: cronExpr.trim() && cronPreview
                               ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
                               : 'rgba(255,255,255,0.06)',
-                            color: cronExpr.trim() && cronPreview ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.38)',
+                            color: cronExpr.trim() && cronPreview ? 'rgba(255,255,255,0.95)' : 'var(--text-faint)',
                             transition: 'all 0.15s ease',
                             boxShadow: cronExpr.trim() && cronPreview ? '0 2px 8px rgba(99,102,241,0.35)' : 'none',
                           }}
@@ -385,20 +385,20 @@ export default function ReminderSection({
                             borderRadius: 8,
                             fontSize: 10,
                             cursor: 'pointer',
-                            border: '1px solid rgba(255,255,255,0.09)',
+                            border: '1px solid var(--glass-border-md)',
                             background: 'rgba(255,255,255,0.04)',
-                            color: 'rgba(255,255,255,0.38)',
+                            color: 'var(--text-faint)',
                             transition: 'all 0.15s ease',
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
-                            e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
-                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+                            e.currentTarget.style.background = 'var(--glass-border)'
+                            e.currentTarget.style.color = 'var(--text-secondary)'
+                            e.currentTarget.style.borderColor = 'var(--glass-border-md)'
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
-                            e.currentTarget.style.color = 'rgba(255,255,255,0.38)'
-                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+                            e.currentTarget.style.color = 'var(--text-faint)'
+                            e.currentTarget.style.borderColor = 'var(--glass-border-md)'
                           }}
                         >
                           {t('reminders.cancel')}
@@ -417,7 +417,7 @@ export default function ReminderSection({
               style={{
                 padding: '10px 4px 6px',
                 fontSize: 11,
-                color: 'rgba(255,255,255,0.38)',
+                color: 'var(--text-faint)',
                 textAlign: 'center',
                 lineHeight: 1.5,
               }}
@@ -466,7 +466,7 @@ function ReminderRow({ reminder, onDelete, formatTimeLeft }: {
   const iconColor = timeColor
 
   // Text color: overdue gets red tint, others normal
-  const textColor = isOverdue ? 'rgba(248,113,113,0.90)' : 'rgba(255,255,255,0.82)'
+  const textColor = isOverdue ? 'rgba(248,113,113,0.90)' : 'var(--text-primary)'
 
   return (
     <div
@@ -479,7 +479,7 @@ function ReminderRow({ reminder, onDelete, formatTimeLeft }: {
         padding: '7px 8px',
         borderRadius: 8,
         background: hovered ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        border: '1px solid var(--glass-border)',
         marginBottom: 4,
         transition: 'all 0.15s ease',
         boxShadow: hovered ? '0 2px 8px rgba(0,0,0,0.30)' : 'none',
@@ -514,7 +514,7 @@ function ReminderRow({ reminder, onDelete, formatTimeLeft }: {
           background: 'none',
           border: 'none',
           cursor: 'pointer',
-          color: hovered ? 'rgba(255,255,255,0.45)' : 'transparent',
+          color: hovered ? 'var(--text-muted)' : 'transparent',
           padding: '2px 3px',
           borderRadius: 4,
           display: 'flex',
@@ -527,7 +527,7 @@ function ReminderRow({ reminder, onDelete, formatTimeLeft }: {
           e.currentTarget.style.background = 'rgba(239,68,68,0.12)'
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.color = hovered ? 'rgba(255,255,255,0.45)' : 'transparent'
+          e.currentTarget.style.color = hovered ? 'var(--text-muted)' : 'transparent'
           e.currentTarget.style.background = 'transparent'
         }}
       >

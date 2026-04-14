@@ -257,7 +257,7 @@ export default function SessionList() {
       />
 
       {/* Folder filter */}
-      <div style={{ padding: '4px 10px', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0, background: 'rgba(15,15,25,0.85)' }}>
+      <div style={{ padding: '4px 10px', borderBottom: '1px solid var(--glass-border)', flexShrink: 0, background: 'var(--glass-bg-low)' }}>
         <SessionFolders
           activeFolder={activeFolderFilter}
           onFolderSelect={setActiveFolderFilter}
@@ -309,10 +309,10 @@ export default function SessionList() {
         <div style={{
           padding: '4px 12px',
           fontSize: 10,
-          color: 'rgba(255,255,255,0.38)',
+          color: 'var(--text-faint)',
           fontWeight: 600,
           letterSpacing: '0.05em',
-          borderBottom: '1px solid rgba(255,255,255,0.07)',
+          borderBottom: '1px solid var(--glass-border)',
           display: 'flex',
           alignItems: 'center',
           gap: 4,
@@ -366,7 +366,7 @@ export default function SessionList() {
         {!sessionLoading && filtered.length === 0 && filter && (
           <div style={{
             fontSize: 12,
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             textAlign: 'center',
             padding: '32px 16px',
             display: 'flex',
@@ -386,7 +386,7 @@ export default function SessionList() {
             }}>
               <MessageSquare size={22} style={{ color: '#818cf8' }} />
             </div>
-            <div style={{ fontWeight: 600, color: 'rgba(255,255,255,0.60)', lineHeight: 1.4 }}>
+            <div style={{ fontWeight: 600, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
               {t('session.noResults')}
             </div>
           </div>
@@ -435,13 +435,13 @@ export default function SessionList() {
                 <div style={{
                   fontSize: 9, fontWeight: 700, letterSpacing: '0.07em',
                   textTransform: 'uppercase' as const,
-                  color: 'rgba(255,255,255,0.38)', padding: '6px 12px 2px',
+                  color: 'var(--text-faint)', padding: '6px 12px 2px',
                 }}>
                   {t('session.pinned')}
                 </div>
               )}
               {showPinnedDivider && (
-                <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', margin: '4px 12px 6px' }} />
+                <div style={{ height: 1, background: 'var(--glass-border)', margin: '4px 12px 6px' }} />
               )}
               {dateHeader}
               {!isGroupCollapsed && (

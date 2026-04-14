@@ -164,9 +164,9 @@ export default function NoteEditor({
           width: '100%',
           padding: '12px 16px',
           border: 'none',
-          borderBottom: '1px solid rgba(255,255,255,0.07)',
+          borderBottom: '1px solid var(--glass-border)',
           background: 'transparent',
-          color: 'rgba(255,255,255,0.82)',
+          color: 'var(--text-primary)',
           fontSize: 22,
           fontWeight: 700,
           lineHeight: 1.2,
@@ -190,7 +190,7 @@ export default function NoteEditor({
           }}
         >
           {content.trim() ? (
-            <div className="markdown-body" style={{ color: 'rgba(255,255,255,0.82)', fontSize: 14, lineHeight: 1.7 }}>
+            <div className="markdown-body" style={{ color: 'var(--text-primary)', fontSize: 14, lineHeight: 1.7 }}>
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeHighlight]}
@@ -204,7 +204,7 @@ export default function NoteEditor({
               alignItems: 'center',
               justifyContent: 'center',
               height: '100%',
-              color: 'rgba(255,255,255,0.38)',
+              color: 'var(--text-faint)',
               fontSize: 13,
             }}>
               {t('notes.nothingToPreview')}
@@ -222,7 +222,7 @@ export default function NoteEditor({
             background: 'rgba(12,12,22,0.92)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
-            borderBottom: '1px solid rgba(255,255,255,0.07)',
+            borderBottom: '1px solid var(--glass-border)',
             flexShrink: 0,
           }}>
             {FORMAT_ACTIONS.map((action) => {
@@ -235,8 +235,8 @@ export default function NoteEditor({
                   aria-label={t(action.labelKey)}
                   style={{
                     background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(255,255,255,0.09)',
-                    color: 'rgba(255,255,255,0.45)',
+                    border: '1px solid var(--glass-border-md)',
+                    color: 'var(--text-muted)',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -247,12 +247,12 @@ export default function NoteEditor({
                     transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={e => {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
-                    e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+                    e.currentTarget.style.background = 'var(--glass-border-md)'
+                    e.currentTarget.style.color = 'var(--text-primary)'
                   }}
                   onMouseLeave={e => {
                     e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-                    e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+                    e.currentTarget.style.color = 'var(--text-muted)'
                   }}
                 >
                   <Icon size={14} />
@@ -273,7 +273,7 @@ export default function NoteEditor({
               padding: '14px 16px',
               border: 'none',
               background: 'transparent',
-              color: 'rgba(255,255,255,0.82)',
+              color: 'var(--text-primary)',
               fontSize: 14,
               lineHeight: 1.7,
               outline: 'none',
@@ -329,12 +329,12 @@ export default function NoteEditor({
       {/* Timestamps footer */}
       <div style={{
         padding: '6px 16px',
-        borderTop: '1px solid rgba(255,255,255,0.07)',
+        borderTop: '1px solid var(--glass-border)',
         fontSize: 10,
         fontWeight: 700,
         letterSpacing: '0.07em',
         textTransform: 'uppercase' as const,
-        color: 'rgba(255,255,255,0.38)',
+        color: 'var(--text-faint)',
         display: 'flex',
         justifyContent: 'space-between',
         flexShrink: 0,

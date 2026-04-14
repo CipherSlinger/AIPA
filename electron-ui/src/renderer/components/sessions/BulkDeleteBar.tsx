@@ -26,10 +26,10 @@ export default function BulkDeleteBar({
       alignItems: 'center',
       gap: 8,
       padding: '8px 12px',
-      background: 'rgba(15,15,25,0.96)',
+      background: 'var(--glass-bg-high)',
       backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
-      border: '1px solid rgba(255,255,255,0.09)',
+      border: '1px solid var(--glass-border-md)',
       borderRadius: 10,
       boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
     }}>
@@ -39,13 +39,13 @@ export default function BulkDeleteBar({
         padding: '2px 8px',
         fontSize: 11,
         fontWeight: 600,
-        color: 'rgba(255,255,255,0.82)',
+        color: 'var(--text-primary)',
         fontVariantNumeric: 'tabular-nums',
         fontFeatureSettings: '"tnum"',
       }}>
         {selectedCount}
       </span>
-      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.60)', flex: 1 }}>
+      <span style={{ fontSize: 12, color: 'var(--text-secondary)', flex: 1 }}>
         {t('session.selectedCount', { count: String(selectedCount) })}
       </span>
       <button
@@ -54,7 +54,7 @@ export default function BulkDeleteBar({
           background: 'none',
           border: 'none',
           cursor: 'pointer',
-          color: 'rgba(255,255,255,0.45)',
+          color: 'var(--text-muted)',
           padding: '4px 6px',
           display: 'flex',
           alignItems: 'center',
@@ -62,8 +62,8 @@ export default function BulkDeleteBar({
           fontSize: 12,
           transition: 'all 0.15s ease',
         }}
-        onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.82)')}
-        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}
+        onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
+        onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
       >
         <X size={11} />
         {t('common.cancel')}

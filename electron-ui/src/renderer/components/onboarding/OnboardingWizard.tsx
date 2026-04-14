@@ -110,7 +110,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                 }}>
                   {isDone
                     ? <Check size={10} color="rgba(0,0,0,0.82)" strokeWidth={3} />
-                    : <span style={{ fontSize: 9, fontWeight: 700, color: isActive ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.45)' }}>{s}</span>
+                    : <span style={{ fontSize: 9, fontWeight: 700, color: isActive ? 'var(--text-primary)' : 'var(--text-muted)' }}>{s}</span>
                   }
                 </div>
                 {s < 2 && (
@@ -137,8 +137,8 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                 color: isActive
                   ? '#818cf8'
                   : isDone
-                    ? 'rgba(255,255,255,0.60)'
-                    : 'rgba(255,255,255,0.38)',
+                    ? 'var(--text-secondary)'
+                    : 'var(--text-faint)',
                 transition: 'all 0.15s ease',
                 letterSpacing: '0.04em',
               }}>
@@ -197,7 +197,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                 onChange={(e) => setApiKey(e.target.value)}
                 style={{
                   ...styles.input,
-                  borderColor: inputFocused === 'apiKey' ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.09)',
+                  borderColor: inputFocused === 'apiKey' ? 'rgba(99,102,241,0.5)' : 'var(--glass-border-md)',
                   boxShadow: inputFocused === 'apiKey' ? 'rgba(99,102,241,0.50) 0 0 0 2px' : 'none',
                 }}
                 onFocus={() => setInputFocused('apiKey')}
@@ -216,7 +216,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                 onChange={(e) => setToken(e.target.value)}
                 style={{
                   ...styles.input,
-                  borderColor: inputFocused === 'token' ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.09)',
+                  borderColor: inputFocused === 'token' ? 'rgba(99,102,241,0.5)' : 'var(--glass-border-md)',
                   boxShadow: inputFocused === 'token' ? 'rgba(99,102,241,0.50) 0 0 0 2px' : 'none',
                 }}
                 onFocus={() => setInputFocused('token')}
@@ -235,7 +235,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                 onChange={(e) => setBaseUrl(e.target.value)}
                 style={{
                   ...styles.input,
-                  borderColor: inputFocused === 'baseUrl' ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.09)',
+                  borderColor: inputFocused === 'baseUrl' ? 'rgba(99,102,241,0.5)' : 'var(--glass-border-md)',
                   boxShadow: inputFocused === 'baseUrl' ? 'rgba(99,102,241,0.50) 0 0 0 2px' : 'none',
                   fontFamily: 'monospace',
                 }}
@@ -262,14 +262,14 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                 style={styles.secondaryBtn}
                 onClick={() => setStep(1)}
                 onMouseEnter={e => {
-                  e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
+                  e.currentTarget.style.color = 'var(--text-primary)'
+                  e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+                  e.currentTarget.style.background = 'var(--glass-border-md)'
                   e.currentTarget.style.transform = 'translateY(-1px)'
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
+                  e.currentTarget.style.color = 'var(--text-secondary)'
+                  e.currentTarget.style.borderColor = 'var(--glass-border)'
                   e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
                   e.currentTarget.style.transform = 'translateY(0)'
                 }}
@@ -328,10 +328,10 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'center',
   },
   card: {
-    background: 'rgba(15,15,25,0.96)',
+    background: 'var(--glass-bg-high)',
     backdropFilter: 'blur(20px)',
     WebkitBackdropFilter: 'blur(20px)',
-    border: '1px solid rgba(255,255,255,0.07)',
+    border: '1px solid var(--glass-border)',
     borderRadius: 16,
     width: '100%',
     maxWidth: '520px',
@@ -391,7 +391,7 @@ const styles: Record<string, React.CSSProperties> = {
   title: {
     fontSize: 18,
     fontWeight: 700,
-    color: 'rgba(255,255,255,0.82)',
+    color: 'var(--text-primary)',
     textAlign: 'center',
     margin: 0,
     letterSpacing: '-0.01em',
@@ -399,7 +399,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   subtitle: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.60)',
+    color: 'var(--text-secondary)',
     textAlign: 'center',
     lineHeight: 1.6,
     margin: 0,
@@ -407,7 +407,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   explanation: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.60)',
+    color: 'var(--text-secondary)',
     textAlign: 'center',
     lineHeight: 1.6,
     margin: 0,
@@ -422,23 +422,23 @@ const styles: Record<string, React.CSSProperties> = {
   fieldLabel: {
     fontSize: 10,
     fontWeight: 700,
-    color: 'rgba(255,255,255,0.38)',
+    color: 'var(--text-faint)',
     letterSpacing: '0.07em',
     textTransform: 'uppercase' as const,
   },
   fieldHint: {
     fontSize: '11px',
-    color: 'rgba(255,255,255,0.38)',
+    color: 'var(--text-faint)',
     lineHeight: '1.5',
   },
   input: {
     width: '100%',
     height: '42px',
     padding: '0 14px',
-    background: 'rgba(255,255,255,0.07)',
-    border: '1px solid rgba(255,255,255,0.09)',
+    background: 'var(--glass-border)',
+    border: '1px solid var(--glass-border-md)',
     borderRadius: 8,
-    color: 'rgba(255,255,255,0.82)',
+    color: 'var(--text-primary)',
     fontSize: 13,
     outline: 'none',
     fontFamily: 'monospace',
@@ -458,13 +458,13 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     gap: '10px',
     padding: '10px 14px',
-    background: 'rgba(255,255,255,0.07)',
-    border: '1px solid rgba(255,255,255,0.09)',
+    background: 'var(--glass-border)',
+    border: '1px solid var(--glass-border-md)',
     borderRadius: 8,
   },
   folderPath: {
     fontSize: '12px',
-    color: 'rgba(255,255,255,0.60)',
+    color: 'var(--text-secondary)',
     fontFamily: 'monospace',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -475,7 +475,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '10px 28px',
     height: '42px',
     background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
-    color: 'rgba(255,255,255,0.82)',
+    color: 'var(--text-primary)',
     border: 'none',
     borderRadius: 8,
     fontSize: 14,
@@ -491,8 +491,8 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '0 20px',
     height: '42px',
     background: 'rgba(255,255,255,0.06)',
-    color: 'rgba(255,255,255,0.60)',
-    border: '1px solid rgba(255,255,255,0.07)',
+    color: 'var(--text-secondary)',
+    border: '1px solid var(--glass-border)',
     borderRadius: 8,
     fontSize: '14px',
     cursor: 'pointer',
@@ -525,7 +525,7 @@ const styles: Record<string, React.CSSProperties> = {
   skipBtn: {
     background: 'transparent',
     border: 'none',
-    color: 'rgba(255,255,255,0.38)',
+    color: 'var(--text-faint)',
     fontSize: 12,
     cursor: 'pointer',
     marginTop: '4px',

@@ -47,9 +47,9 @@ export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, c
 
   const toggleBtnStyle = (active: boolean): React.CSSProperties => ({
     background: active ? '#6366f1' : 'none',
-    border: `1px solid ${active ? '#6366f1' : 'rgba(255,255,255,0.07)'}`,
+    border: `1px solid ${active ? '#6366f1' : 'var(--glass-border)'}`,
     borderRadius: 8,
-    color: active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
+    color: active ? 'rgba(255,255,255,0.95)' : 'var(--text-muted)',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
@@ -67,18 +67,18 @@ export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, c
         alignItems: 'center',
         gap: 6,
         padding: '4px 8px',
-        background: 'rgba(15,15,25,0.95)',
+        background: 'var(--glass-bg-popup)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        border: '1px solid var(--glass-border)',
         borderRadius: 10,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+        boxShadow: 'var(--glass-shadow)',
         flexShrink: 0,
         transition: 'border-color 0.15s ease',
         animation: 'slideUp 0.15s ease',
       }}
     >
-      <Search size={13} style={{ color: 'rgba(255,255,255,0.45)', flexShrink: 0 }} />
+      <Search size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
       <input
         ref={inputRef}
         value={query}
@@ -91,14 +91,14 @@ export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, c
         }}
         onBlur={(e) => {
           const parent = e.currentTarget.closest('div') as HTMLElement | null
-          if (parent) { parent.style.borderColor = 'rgba(255,255,255,0.07)'; parent.style.boxShadow = '0 4px 16px rgba(0,0,0,0.4)' }
+          if (parent) { parent.style.borderColor = 'var(--glass-border)'; parent.style.boxShadow = '0 4px 16px rgba(0,0,0,0.4)' }
         }}
         style={{
           flex: 1,
           background: 'transparent',
           border: 'none',
           outline: 'none',
-          color: 'rgba(255,255,255,0.82)',
+          color: 'var(--text-primary)',
           fontSize: 13,
           lineHeight: 1.5,
         }}
@@ -110,7 +110,7 @@ export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, c
           title={t('chat.searchCaseSensitive')}
           style={toggleBtnStyle(caseSensitive)}
           onMouseEnter={(e) => { if (!caseSensitive) e.currentTarget.style.borderColor = '#6366f1' }}
-          onMouseLeave={(e) => { if (!caseSensitive) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)' }}
+          onMouseLeave={(e) => { if (!caseSensitive) e.currentTarget.style.borderColor = 'var(--glass-border)' }}
         >
           <CaseSensitive size={14} />
         </button>
@@ -123,7 +123,7 @@ export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, c
             title={t('chat.searchFilterUser')}
             style={toggleBtnStyle(roleFilter === 'user')}
             onMouseEnter={(e) => { if (roleFilter !== 'user') e.currentTarget.style.borderColor = '#6366f1' }}
-            onMouseLeave={(e) => { if (roleFilter !== 'user') e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)' }}
+            onMouseLeave={(e) => { if (roleFilter !== 'user') e.currentTarget.style.borderColor = 'var(--glass-border)' }}
           >
             <User size={12} />
           </button>
@@ -132,14 +132,14 @@ export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, c
             title={t('chat.searchFilterClaude')}
             style={toggleBtnStyle(roleFilter === 'assistant')}
             onMouseEnter={(e) => { if (roleFilter !== 'assistant') e.currentTarget.style.borderColor = '#6366f1' }}
-            onMouseLeave={(e) => { if (roleFilter !== 'assistant') e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)' }}
+            onMouseLeave={(e) => { if (roleFilter !== 'assistant') e.currentTarget.style.borderColor = 'var(--glass-border)' }}
           >
             <Bot size={12} />
           </button>
         </>
       )}
       {query && (
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
           {matchCount > 0 ? t('chat.searchCount', { current: String(currentMatch + 1), total: String(matchCount) }) : t('chat.noMatches')}
         </span>
       )}
@@ -148,14 +148,14 @@ export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, c
         disabled={matchCount === 0}
         title={t('chat.previousMatch')}
         style={{
-          background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.45)',
+          background: 'transparent', border: 'none', color: 'var(--text-muted)',
           borderRadius: 8, padding: '3px 5px', transition: 'all 0.15s ease',
           cursor: matchCount > 0 ? 'pointer' : 'not-allowed',
           display: 'flex', alignItems: 'center',
           opacity: matchCount > 0 ? 1 : 0.3,
         }}
         onMouseEnter={(e) => { if (matchCount > 0) { e.currentTarget.style.background = 'rgba(99,102,241,0.10)'; e.currentTarget.style.color = '#a5b4fc' } }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
       >
         <ChevronUp size={14} />
       </button>
@@ -164,14 +164,14 @@ export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, c
         disabled={matchCount === 0}
         title={t('chat.nextMatch')}
         style={{
-          background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.45)',
+          background: 'transparent', border: 'none', color: 'var(--text-muted)',
           borderRadius: 8, padding: '3px 5px', transition: 'all 0.15s ease',
           cursor: matchCount > 0 ? 'pointer' : 'not-allowed',
           display: 'flex', alignItems: 'center',
           opacity: matchCount > 0 ? 1 : 0.3,
         }}
         onMouseEnter={(e) => { if (matchCount > 0) { e.currentTarget.style.background = 'rgba(99,102,241,0.10)'; e.currentTarget.style.color = '#a5b4fc' } }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
       >
         <ChevronDown size={14} />
       </button>
@@ -179,12 +179,12 @@ export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, c
         onClick={onClose}
         title={t('chat.closeSearch')}
         style={{
-          background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.45)',
+          background: 'transparent', border: 'none', color: 'var(--text-muted)',
           borderRadius: 8, padding: '3px 5px', transition: 'all 0.15s ease',
           cursor: 'pointer', display: 'flex', alignItems: 'center',
         }}
         onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.10)'; e.currentTarget.style.color = '#f87171' }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
       >
         <X size={14} />
       </button>

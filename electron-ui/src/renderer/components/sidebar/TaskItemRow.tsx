@@ -141,7 +141,7 @@ export default function TaskItemRow({ task, onCycle, onDelete }: TaskItemRowProp
       {/* Drag handle */}
       <span
         style={{
-          color: hovered ? 'rgba(255,255,255,0.38)' : 'transparent',
+          color: hovered ? 'var(--text-faint)' : 'transparent',
           display: 'flex',
           alignItems: 'center',
           flexShrink: 0,
@@ -179,10 +179,10 @@ export default function TaskItemRow({ task, onCycle, onDelete }: TaskItemRowProp
           fontSize: 12,
           lineHeight: 1.4,
           color: isCompleted
-            ? 'rgba(255,255,255,0.38)'
+            ? 'var(--text-faint)'
             : isInProgress
-              ? 'rgba(255,255,255,0.82)'
-              : 'rgba(255,255,255,0.60)',
+              ? 'var(--text-primary)'
+              : 'var(--text-secondary)',
           textDecoration: isCompleted ? 'line-through' : 'none',
           textDecorationColor: 'rgba(255,255,255,0.25)',
           wordBreak: 'break-word',
@@ -203,7 +203,7 @@ export default function TaskItemRow({ task, onCycle, onDelete }: TaskItemRowProp
           background: 'none',
           border: 'none',
           cursor: 'pointer',
-          color: hovered ? 'rgba(255,255,255,0.38)' : 'transparent',
+          color: hovered ? 'var(--text-faint)' : 'transparent',
           display: 'flex',
           alignItems: 'center',
           padding: 2,
@@ -216,7 +216,7 @@ export default function TaskItemRow({ task, onCycle, onDelete }: TaskItemRowProp
           e.currentTarget.style.background = 'rgba(239,68,68,0.12)'
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.color = hovered ? 'rgba(255,255,255,0.38)' : 'transparent'
+          e.currentTarget.style.color = hovered ? 'var(--text-faint)' : 'transparent'
           e.currentTarget.style.background = 'transparent'
         }}
       >

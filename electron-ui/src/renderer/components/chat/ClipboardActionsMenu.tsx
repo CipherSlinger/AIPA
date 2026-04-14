@@ -62,7 +62,7 @@ export default function ClipboardActionsMenu({ onSend }: ClipboardActionsMenuPro
         style={{
           ...toolbarBtnStyle,
           background: showMenu ? 'rgba(255,255,255,0.06)' : 'none',
-          color: showMenu ? '#818cf8' : 'rgba(255,255,255,0.45)',
+          color: showMenu ? '#818cf8' : 'var(--text-muted)',
         }}
         onMouseEnter={(e) => { if (!showMenu) toolbarHoverIn(e) }}
         onMouseLeave={(e) => { if (!showMenu) toolbarHoverOut(e) }}
@@ -75,21 +75,21 @@ export default function ClipboardActionsMenu({ onSend }: ClipboardActionsMenuPro
           bottom: '100%',
           left: 0,
           marginBottom: 6,
-          background: 'rgba(15,15,25,0.96)',
+          background: 'var(--glass-bg-high)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.09)',
+          border: '1px solid var(--glass-border-md)',
           borderRadius: 10,
-          boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+          boxShadow: 'var(--glass-shadow)',
           padding: '4px 0',
           minWidth: 180,
           zIndex: 100,
           animation: 'slideUp 0.15s ease',
         }}>
-          <div style={{ padding: '6px 12px 4px', fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)' }}>
+          <div style={{ padding: '6px 12px 4px', fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>
             {t('clipboard.pasteAndAsk')}
           </div>
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', margin: '3px 0' }} />
+          <div style={{ height: 1, background: 'var(--glass-border)', margin: '3px 0' }} />
           {CLIPBOARD_ACTIONS.map(({ id, icon: Icon, labelKey }) => (
             <button
               key={id}
@@ -102,10 +102,10 @@ export default function ClipboardActionsMenu({ onSend }: ClipboardActionsMenuPro
                 gap: 10,
                 width: '100%',
                 padding: '7px 12px',
-                background: hoveredItem === id ? 'rgba(255,255,255,0.07)' : 'transparent',
+                background: hoveredItem === id ? 'var(--glass-border)' : 'transparent',
                 border: 'none',
                 borderRadius: 6,
-                color: hoveredItem === id ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.82)',
+                color: hoveredItem === id ? 'rgba(255,255,255,0.92)' : 'var(--text-primary)',
                 cursor: 'pointer',
                 fontSize: 13,
                 textAlign: 'left',

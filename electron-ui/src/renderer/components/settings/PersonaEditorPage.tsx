@@ -15,11 +15,11 @@ const EMPTY_PERSONAS: Persona[] = []
 const GLASS_INPUT: React.CSSProperties = {
   ...INPUT_STYLE,
   background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(255,255,255,0.07)',
+  border: '1px solid var(--glass-border)',
   borderRadius: 7,
   padding: '7px 10px',
   fontSize: 12,
-  color: 'rgba(255,255,255,0.82)',
+  color: 'var(--text-primary)',
   outline: 'none',
   transition: 'all 0.15s ease',
 }
@@ -30,16 +30,16 @@ const MICRO_LABEL: React.CSSProperties = {
   fontWeight: 700,
   letterSpacing: '0.07em',
   textTransform: 'uppercase',
-  color: 'rgba(255,255,255,0.38)',
+  color: 'var(--text-faint)',
   marginBottom: 8,
 }
 
 // Form section card
 const SECTION_CARD: React.CSSProperties = {
-  background: 'rgba(15,15,25,0.85)',
+  background: 'var(--glass-bg-low)',
   backdropFilter: 'blur(12px)',
   WebkitBackdropFilter: 'blur(12px)',
-  border: '1px solid rgba(255,255,255,0.07)',
+  border: '1px solid var(--glass-border)',
   borderRadius: 12,
   padding: '16px 20px',
   marginBottom: 12,
@@ -150,10 +150,10 @@ export default function PersonaEditorPage() {
       {/* Header */}
       <div style={{
         height: 44,
-        background: 'rgba(15,15,25,0.92)',
+        background: 'var(--glass-bg-raised)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--glass-border)',
         display: 'flex',
         alignItems: 'center',
         padding: '0 16px',
@@ -165,15 +165,15 @@ export default function PersonaEditorPage() {
           title={t('settings.backToChat')}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            color: 'rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center',
+            color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
             padding: 4, borderRadius: 8, transition: 'all 0.15s ease',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)' }}
         >
           <ArrowLeft size={16} />
         </button>
-        <span style={{ fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.82)', flex: 1, lineHeight: 1.3, letterSpacing: '-0.01em' }}>
+        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', flex: 1, lineHeight: 1.3, letterSpacing: '-0.01em' }}>
           {pageTitle}
         </span>
         <button
@@ -188,7 +188,7 @@ export default function PersonaEditorPage() {
             border: 'none',
             borderRadius: 8,
             cursor: canSubmit ? 'pointer' : 'not-allowed',
-            color: canSubmit ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.38)',
+            color: canSubmit ? 'var(--text-primary)' : 'var(--text-faint)',
             fontSize: 12,
             fontWeight: 600,
             display: 'flex',
@@ -246,7 +246,7 @@ export default function PersonaEditorPage() {
                     justifyContent: 'center',
                     pointerEvents: 'none',
                   }}>
-                    <Camera size={18} color="rgba(255,255,255,0.82)" />
+                    <Camera size={18} color="var(--text-primary)" />
                   </div>
                 )}
               </div>
@@ -261,7 +261,7 @@ export default function PersonaEditorPage() {
                   maxLength={30}
                   style={{ ...GLASS_INPUT, fontSize: 14 }}
                   onFocus={e => { e.currentTarget.style.border = '1px solid rgba(99,102,241,0.45)'; e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.45)' }}
-                  onBlur={e => { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow = 'none' }}
+                  onBlur={e => { e.currentTarget.style.border = '1px solid var(--glass-border)'; e.currentTarget.style.boxShadow = 'none' }}
                   autoFocus
                 />
               </div>
@@ -278,7 +278,7 @@ export default function PersonaEditorPage() {
                   onClick={() => setFormEmoji(emoji)}
                   style={{
                     width: 36, height: 36,
-                    border: formEmoji === emoji ? '2px solid rgba(99,102,241,0.8)' : '1px solid rgba(255,255,255,0.09)',
+                    border: formEmoji === emoji ? '2px solid rgba(99,102,241,0.8)' : '1px solid var(--glass-border-md)',
                     borderRadius: 8,
                     background: formEmoji === emoji ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.04)',
                     cursor: 'pointer', fontSize: 18,
@@ -326,7 +326,7 @@ export default function PersonaEditorPage() {
               onChange={e => setFormModel(e.target.value)}
               style={{ ...GLASS_INPUT, cursor: 'pointer' }}
               onFocus={e => { e.currentTarget.style.border = '1px solid rgba(99,102,241,0.45)'; e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.45)' }}
-              onBlur={e => { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow = 'none' }}
+              onBlur={e => { e.currentTarget.style.border = '1px solid var(--glass-border)'; e.currentTarget.style.boxShadow = 'none' }}
             >
               {MODEL_OPTIONS.map(m => (
                 <option key={m.id} value={m.id}>{t(m.labelKey)}</option>
@@ -342,7 +342,7 @@ export default function PersonaEditorPage() {
               onChange={e => setFormTone(e.target.value)}
               style={{ ...GLASS_INPUT, cursor: 'pointer' }}
               onFocus={e => { e.currentTarget.style.border = '1px solid rgba(99,102,241,0.45)'; e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.45)' }}
-              onBlur={e => { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow = 'none' }}
+              onBlur={e => { e.currentTarget.style.border = '1px solid var(--glass-border)'; e.currentTarget.style.boxShadow = 'none' }}
             >
               <option value="default">{t('outputStyle.default')}</option>
               <option value="explanatory">{t('outputStyle.explanatory')}</option>
@@ -370,9 +370,9 @@ export default function PersonaEditorPage() {
                 boxSizing: 'border-box',
               }}
               onFocus={e => { e.currentTarget.style.border = '1px solid rgba(99,102,241,0.45)'; e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.20)' }}
-              onBlur={e => { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow = 'none' }}
+              onBlur={e => { e.currentTarget.style.border = '1px solid var(--glass-border)'; e.currentTarget.style.boxShadow = 'none' }}
             />
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', marginTop: 4, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+            <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 4, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
               {formPrompt.length} / 2000
             </div>
           </div>
@@ -390,7 +390,7 @@ export default function PersonaEditorPage() {
                 Danger Zone
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
                   {t('persona.deleteWarning')}
                 </span>
                 <button
@@ -426,17 +426,17 @@ export default function PersonaEditorPage() {
               onClick={goBack}
               style={{
                 background: 'transparent',
-                border: '1px solid rgba(255,255,255,0.09)',
+                border: '1px solid var(--glass-border-md)',
                 borderRadius: 8,
                 padding: '7px 14px',
-                color: 'rgba(255,255,255,0.60)',
+                color: 'var(--text-secondary)',
                 cursor: 'pointer',
                 fontSize: 12,
                 fontWeight: 500,
                 transition: 'all 0.15s ease',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.38)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'var(--text-faint)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--glass-border-md)' }}
             >
               {t('persona.cancel')}
             </button>
@@ -453,7 +453,7 @@ export default function PersonaEditorPage() {
                 borderRadius: 8,
                 padding: '7px 14px',
                 cursor: canSubmit ? 'pointer' : 'not-allowed',
-                color: canSubmit ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.38)',
+                color: canSubmit ? 'var(--text-primary)' : 'var(--text-faint)',
                 fontSize: 12,
                 fontWeight: 600,
                 display: 'flex',

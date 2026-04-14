@@ -173,11 +173,11 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
         alignItems: 'center',
         gap: 2,
         padding: '4px 6px',
-        background: 'rgba(15,15,25,0.96)',
+        background: 'var(--glass-bg-high)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255,255,255,0.09)',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+        border: '1px solid var(--glass-border-md)',
+        boxShadow: 'var(--glass-shadow)',
         borderRadius: 10,
         zIndex: 1000,
         animation: 'slideUp 0.15s ease',
@@ -196,21 +196,21 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
           display: 'flex',
           alignItems: 'center',
           gap: 3,
-          color: copied ? '#4ade80' : 'rgba(255,255,255,0.45)',
+          color: copied ? '#4ade80' : 'var(--text-muted)',
           fontSize: 12,
           fontWeight: 500,
           transition: 'all 0.15s ease',
           whiteSpace: 'nowrap',
         }}
         onMouseEnter={(e) => { if (!copied) { (e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.10)'; (e.currentTarget as HTMLElement).style.color = '#a5b4fc' } }}
-        onMouseLeave={(e) => { if (!copied) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.45)' } }}
+        onMouseLeave={(e) => { if (!copied) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)' } }}
       >
         {copied ? <Check size={13} /> : <Copy size={13} />}
         <span style={{ fontSize: 11, fontWeight: 500 }}>{copied ? t('message.copied') : t('selection.copy')}</span>
       </button>
 
       {/* Separator */}
-      <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.07)', margin: '0 2px', flexShrink: 0 }} />
+      <div style={{ width: 1, height: 16, background: 'var(--glass-border)', margin: '0 2px', flexShrink: 0 }} />
 
       {/* Quote reply */}
       <button
@@ -225,21 +225,21 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
           display: 'flex',
           alignItems: 'center',
           gap: 3,
-          color: 'rgba(255,255,255,0.45)',
+          color: 'var(--text-muted)',
           fontSize: 12,
           fontWeight: 500,
           transition: 'all 0.15s ease',
           whiteSpace: 'nowrap',
         }}
         onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.10)'; (e.currentTarget as HTMLElement).style.color = '#a5b4fc' }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.45)' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)' }}
       >
         <MessageSquareQuote size={13} />
         <span style={{ fontSize: 11, fontWeight: 500 }}>{t('selection.quote')}</span>
       </button>
 
       {/* Separator */}
-      <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.07)', margin: '0 2px', flexShrink: 0 }} />
+      <div style={{ width: 1, height: 16, background: 'var(--glass-border)', margin: '0 2px', flexShrink: 0 }} />
 
       {/* Save to notes */}
       <button
@@ -254,21 +254,21 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
           display: 'flex',
           alignItems: 'center',
           gap: 3,
-          color: 'rgba(255,255,255,0.45)',
+          color: 'var(--text-muted)',
           fontSize: 12,
           fontWeight: 500,
           transition: 'all 0.15s ease',
           whiteSpace: 'nowrap',
         }}
         onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.10)'; (e.currentTarget as HTMLElement).style.color = '#a5b4fc' }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.45)' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)' }}
       >
         <StickyNote size={13} />
         <span style={{ fontSize: 11, fontWeight: 500 }}>{t('selection.note')}</span>
       </button>
 
       {/* Separator */}
-      <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.07)', margin: '0 2px', flexShrink: 0 }} />
+      <div style={{ width: 1, height: 16, background: 'var(--glass-border)', margin: '0 2px', flexShrink: 0 }} />
 
       {/* Translate */}
       <button
@@ -283,14 +283,14 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
           display: 'flex',
           alignItems: 'center',
           gap: 3,
-          color: 'rgba(255,255,255,0.45)',
+          color: 'var(--text-muted)',
           fontSize: 12,
           fontWeight: 500,
           transition: 'all 0.15s ease',
           whiteSpace: 'nowrap',
         }}
         onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.10)'; (e.currentTarget as HTMLElement).style.color = '#a5b4fc' }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.45)' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)' }}
       >
         <Languages size={13} />
         <span style={{ fontSize: 11, fontWeight: 500 }}>{t('selection.translate')}</span>
@@ -309,14 +309,14 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
           display: 'flex',
           alignItems: 'center',
           gap: 3,
-          color: 'rgba(255,255,255,0.45)',
+          color: 'var(--text-muted)',
           fontSize: 12,
           fontWeight: 500,
           transition: 'all 0.15s ease',
           whiteSpace: 'nowrap',
         }}
         onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.10)'; (e.currentTarget as HTMLElement).style.color = '#a5b4fc' }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.45)' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)' }}
       >
         <Lightbulb size={13} />
         <span style={{ fontSize: 11, fontWeight: 500 }}>{t('selection.explain')}</span>

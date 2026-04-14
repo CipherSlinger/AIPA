@@ -143,7 +143,7 @@ export default function TokenUsageBar() {
           fontSize: 11,
           fontVariantNumeric: 'tabular-nums',
           fontFeatureSettings: '"tnum"',
-          color: 'rgba(255,255,255,0.38)',
+          color: 'var(--text-faint)',
           lineHeight: 1,
           flexShrink: 0,
           userSelect: 'none',
@@ -178,7 +178,7 @@ export default function TokenUsageBar() {
             ...(canCompact
               ? { ...(btnHovered ? { ...compactBase, ...compactHover } : compactBase) }
               : {
-                  border: '1px solid rgba(255,255,255,0.09)',
+                  border: '1px solid var(--glass-border-md)',
                   background: 'rgba(255,255,255,0.05)',
                   color: 'rgba(255,255,255,0.25)',
                 }),
@@ -204,23 +204,23 @@ export default function TokenUsageBar() {
             left: '50%',
             transform: 'translateX(-50%)',
             marginTop: 4,
-            background: 'rgba(15,15,25,0.92)',
+            background: 'var(--glass-bg-raised)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255,255,255,0.09)',
+            border: '1px solid var(--glass-border-md)',
             borderRadius: 8,
             padding: '8px 12px',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+            boxShadow: 'var(--glass-shadow)',
             zIndex: 100,
             whiteSpace: 'nowrap',
             fontSize: 11,
-            color: 'rgba(255,255,255,0.82)',
+            color: 'var(--text-primary)',
             lineHeight: 1.6,
           }}
         >
           <div>{t('context.usage', { used: usedStr, total: totalStr, percent: pctStr })}</div>
           {lastUsage && (
-            <div style={{ color: 'rgba(255,255,255,0.45)' }}>
+            <div style={{ color: 'var(--text-muted)' }}>
               {t('context.breakdown', {
                 input: fmtNum(lastUsage.inputTokens),
                 output: fmtNum(lastUsage.outputTokens),

@@ -48,7 +48,7 @@ const STEP_DOT_COLORS: Record<string, string> = {
   condition: '#fbbf24',
   parallel:  '#4ade80',
 }
-const STEP_DOT_DEFAULT = 'rgba(255,255,255,0.38)'
+const STEP_DOT_DEFAULT = 'var(--text-faint)'
 
 const WORKFLOW_EMOJIS = [
   '\u{1F4CB}', '\u{1F4CA}', '\u{1F4DD}', '\u2728', '\u{1F680}',
@@ -122,9 +122,9 @@ export default function WorkflowDetailHeader({
         display: 'flex',
         alignItems: 'center',
         gap: 10,
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--glass-border)',
         borderLeft: `3px solid ${accentColor}`,
-        background: saveFlash ? 'rgba(34,197,94, 0.08)' : 'rgba(15,15,25,0.94)',
+        background: saveFlash ? 'rgba(34,197,94, 0.08)' : 'var(--glass-bg-raised)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         flexShrink: 0,
@@ -135,8 +135,8 @@ export default function WorkflowDetailHeader({
           aria-label={t('workflow.back')}
           style={{
             ...iconBtnStyle,
-            background: backHover ? 'rgba(255,255,255,0.07)' : 'transparent',
-            color: backHover ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.45)',
+            background: backHover ? 'var(--glass-border)' : 'transparent',
+            color: backHover ? 'var(--text-primary)' : 'var(--text-muted)',
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={() => setBackHover(true)}
@@ -155,7 +155,7 @@ export default function WorkflowDetailHeader({
                 borderRadius: 6, cursor: 'pointer', padding: '2px 4px',
                 transition: 'all 0.15s ease',
               }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--glass-border)')}
               onMouseLeave={e => (e.currentTarget.style.borderColor = 'transparent')}
               title={t('workflow.changeIcon')}
             >
@@ -175,7 +175,7 @@ export default function WorkflowDetailHeader({
           {showIconPicker && isEditMode && (
             <div style={{
               position: 'absolute', top: '100%', left: 0, marginTop: 4,
-              background: 'rgba(15,15,25,0.95)', border: '1px solid rgba(255,255,255,0.09)',
+              background: 'var(--glass-bg-popup)', border: '1px solid var(--glass-border-md)',
               borderRadius: 8, padding: 8, display: 'flex', flexWrap: 'wrap', gap: 4,
               boxShadow: '0 4px 16px rgba(0,0,0,0.5)', zIndex: 20, width: 200,
               animation: 'slideUp 0.15s ease',
@@ -185,7 +185,7 @@ export default function WorkflowDetailHeader({
                   key={emoji}
                   onClick={() => { onUpdateIcon(emoji); setShowIconPicker(false) }}
                   style={{
-                    width: 32, height: 32, border: editIcon === emoji ? '2px solid #6366f1' : '1px solid rgba(255,255,255,0.07)',
+                    width: 32, height: 32, border: editIcon === emoji ? '2px solid #6366f1' : '1px solid var(--glass-border)',
                     borderRadius: 6, background: editIcon === emoji ? 'rgba(99,102,241,0.12)' : 'transparent',
                     cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}
@@ -249,7 +249,7 @@ export default function WorkflowDetailHeader({
           {/* Last run relative timestamp pill */}
           <span style={{
             fontSize: 11,
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             padding: '2px 8px',
             borderRadius: 6,
             background: 'rgba(255,255,255,0.05)',
@@ -297,8 +297,8 @@ export default function WorkflowDetailHeader({
                 onClick={onExitEditMode}
                 title={t('workflow.exitEditMode')}
                 style={{ ...actionBtnStyle, gap: 4 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--glass-border-md)'; e.currentTarget.style.borderColor = 'var(--glass-border-md)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--glass-border)'; e.currentTarget.style.borderColor = 'var(--glass-border-md)' }}
               >
                 <Eye size={14} />
                 <span style={{ fontSize: 12 }}>{t('workflow.viewMode')}</span>
@@ -312,11 +312,11 @@ export default function WorkflowDetailHeader({
                   background: hasUnsavedChanges && canSave
                     ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
                     : justSaved ? '#22c55e' : 'rgba(255,255,255,0.04)',
-                  color: hasUnsavedChanges && canSave ? 'rgba(255,255,255,0.82)' : justSaved ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.45)',
+                  color: hasUnsavedChanges && canSave ? 'var(--text-primary)' : justSaved ? 'var(--text-primary)' : 'var(--text-muted)',
                   opacity: hasUnsavedChanges && canSave ? 1 : justSaved ? 1 : 0.4,
                   cursor: hasUnsavedChanges && canSave ? 'pointer' : justSaved ? 'pointer' : 'not-allowed',
                   boxShadow: hasUnsavedChanges && canSave ? '0 2px 8px rgba(99,102,241,0.3)' : 'none',
-                  border: hasUnsavedChanges && canSave ? 'none' : '1px solid rgba(255,255,255,0.09)',
+                  border: hasUnsavedChanges && canSave ? 'none' : '1px solid var(--glass-border-md)',
                   borderRadius: 7,
                   padding: '5px 12px',
                   fontSize: 12,
@@ -334,8 +334,8 @@ export default function WorkflowDetailHeader({
             <>
               {/* Enter edit mode */}
               <button onClick={onEnterEditMode} title={t('workflow.edit')} style={actionBtnStyle}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--glass-border-md)'; e.currentTarget.style.borderColor = 'var(--glass-border-md)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--glass-border)'; e.currentTarget.style.borderColor = 'var(--glass-border-md)' }}
               >
                 <Edit3 size={14} />
                 <span style={{ fontSize: 12 }}>{t('workflow.edit')}</span>
@@ -348,8 +348,8 @@ export default function WorkflowDetailHeader({
       {/* Description bar (editable only in edit mode) */}
       <div style={{
         padding: '6px 20px',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
-        background: 'rgba(15,15,25,0.85)',
+        borderBottom: '1px solid var(--glass-border)',
+        background: 'var(--glass-bg-low)',
         flexShrink: 0,
       }}>
         {isEditMode ? (
@@ -359,14 +359,14 @@ export default function WorkflowDetailHeader({
             placeholder={t('workflow.descPlaceholder')}
             maxLength={200}
             style={{
-              width: '100%', fontSize: 12, color: 'rgba(255,255,255,0.45)',
+              width: '100%', fontSize: 12, color: 'var(--text-muted)',
               background: 'transparent', border: 'none', outline: 'none',
               padding: '2px 0', marginTop: 2, opacity: 0.8,
             }}
           />
         ) : (
           <div style={{
-            fontSize: 12, color: 'rgba(255,255,255,0.45)',
+            fontSize: 12, color: 'var(--text-muted)',
             padding: '2px 0', minHeight: 16, marginTop: 2, opacity: 0.8,
             lineHeight: 1.5,
           }}>
@@ -380,7 +380,7 @@ export default function WorkflowDetailHeader({
 
 const iconBtnStyle: React.CSSProperties = {
   background: 'transparent', border: 'none', cursor: 'pointer',
-  color: 'rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center',
+  color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
   padding: 6, borderRadius: 6,
 }
 
@@ -389,11 +389,11 @@ const actionBtnStyle: React.CSSProperties = {
   alignItems: 'center',
   gap: 4,
   padding: '5px 12px',
-  background: 'rgba(255,255,255,0.07)',
-  border: '1px solid rgba(255,255,255,0.09)',
+  background: 'var(--glass-border)',
+  border: '1px solid var(--glass-border-md)',
   borderRadius: 7,
   cursor: 'pointer',
-  color: 'rgba(255,255,255,0.82)',
+  color: 'var(--text-primary)',
   fontSize: 12,
   transition: 'all 0.15s ease',
 }
