@@ -174,6 +174,18 @@ const electronAPI = {
     return () => ipcRenderer.removeListener('cli:planApprovalRequest', handler)
   },
 
+  onApiError: (cb: (data: { sessionId: string; errorType: 'overloaded' | 'authentication'; message: string }) => void): Unsubscribe => {
+    const handler = (_: unknown, data: { sessionId: string; errorType: 'overloaded' | 'authentication'; message: string }) => cb(data)
+    ipcRenderer.on('cli:apiError', handler)
+    return () => ipcRenderer.removeListener('cli:apiError', handler)
+  },
+
+  onCustomTitle: (cb: (data: { sessionId: string; title: string }) => void): Unsubscribe => {
+    const handler = (_: unknown, data: { sessionId: string; title: string }) => cb(data)
+    ipcRenderer.on('cli:customTitle', handler)
+    return () => ipcRenderer.removeListener('cli:customTitle', handler)
+  },
+
   // ── Menu events ──────────────────────────
   onMenuEvent: (event: string, cb: (...args: unknown[]) => void): Unsubscribe => {
     const h = (_: unknown, ...args: unknown[]) => cb(...args)

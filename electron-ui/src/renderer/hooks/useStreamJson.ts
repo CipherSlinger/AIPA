@@ -873,6 +873,24 @@ Keep exercises focused and achievable. The goal is active learning through doing
           } as ElicitationMessage)
           break
         }
+        case 'cli:apiError': {
+          // Surface overloaded/auth errors as user-visible toasts
+          const d = data as { sessionId: string; errorType: 'overloaded' | 'authentication'; message: string }
+          if (d.errorType === 'authentication') {
+            useUiStore.getState().addToast('error', `Auth error: ${d.message}`, 8000)
+          } else if (d.errorType === 'overloaded') {
+            useUiStore.getState().addToast('warning', `API overloaded: ${d.message}`, 6000)
+          }
+          break
+        }
+        case 'cli:customTitle': {
+          // CLI has auto-generated a session title — update the store
+          const d = data as { sessionId: string; title: string }
+          if (d.title && !useChatStore.getState().currentSessionTitle) {
+            useChatStore.getState().setSessionTitle(d.title)
+          }
+          break
+        }
       }
     })
 

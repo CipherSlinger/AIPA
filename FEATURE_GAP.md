@@ -1,6 +1,6 @@
 # AIPA x Claude Code CLI — 功能差距文档
 
-> 更新日期：2026-04-13
+> 更新日期：2026-04-14
 > CLI 版本：claude-code 2.1.81（BUILD_TIME: 2026-03-20T21:25:42Z）
 > 分析目的：指导 AIPA UI 逐步对齐 CLI 全部能力
 
@@ -237,6 +237,36 @@ P2：`attribution`、`language`、`cleanupPeriodDays` 等次要配置字段的 U
 - `result.permission_denials[]`：被拒绝的权限请求记录，AIPA 未展示
 - `result.total_cost_usd` / `usage`：费用和 token 用量，AIPA 有 `TokenUsageBar` 但未在 result 事件中完整更新
 
+### 第二次扫描新发现（2026-04-14，P4 级差距）
+
+CLI 2.1.81 中发现以下事件类型 AIPA 未处理：
+
+| 事件类型 | 含义 | 处理状态 |
+|----------|------|----------|
+| `overloaded_error` | API 服务过载错误 | ✅ **P4-1 已实现** — stream-bridge 转发为 `apiError`，渲染器显示 toast |
+| `authentication_error` | API 认证失败（token 过期/无效 key） | ✅ **P4-1 已实现** — 同上，error 级 toast |
+| `custom-title` | CLI 自动生成会话标题 | ✅ **P4-2 已实现** — stream-bridge 转发为 `customTitle`，渲染器更新 sessionTitle |
+| `worktree-state` | worktree 状态变更通知 | ⚠️ stream-bridge 已转发，渲染器未消费 |
+| `task_completed` | 后台任务完成通知 | ⚠️ stream-bridge 已转发，渲染器未消费 |
+| `result.modelUsage` | 每个模型的 token/cost 分项用量 | ⚠️ 已部分解析但未在 UI 中展示分项 |
+| `result.uuid` | 结果 UUID 字段 | ❌ 未消费 |
+| `result.fast_mode_state` | API fast mode 状态（企业功能） | ❌ 未消费 |
+| `result` subtype: `error_max_structured_output_retries` | 结构化输出超出重试次数 | ❌ 未处理（只处理了 error_max_turns/budget） |
+
+**新发现的 CLI 设置字段（settings.json）**：
+
+| 配置段 | 字段 | 含义 | AIPA UI 状态 |
+|--------|------|------|--------------|
+| `sandbox.network` | `allowedDomains`, `allowManagedDomainsOnly`, `allowUnixSockets` | 沙箱网络访问控制 | ❌ 无 UI |
+| `sandbox.filesystem` | `allowWrite`, `denyWrite`, `denyRead`, `allowRead` | 沙箱文件系统路径控制 | ❌ 无 UI |
+| `sandbox.autoAllowBashIfSandboxed` | boolean | 沙箱内自动允许 Bash | ❌ 无 UI |
+| `sandbox.allowUnsandboxedCommands` | boolean | 允许通过参数绕过沙箱 | ❌ 无 UI |
+| `sandbox.ignoreViolations` | Record | 特定工具违规豁免 | ❌ 无 UI |
+| `plugins.enabledPlugins` | Record | 插件市场插件启用/禁用 | ⚠️ 有 plugin:list/setEnabled IPC，无市场 UI |
+
+**Copy Session ID 功能**：
+✅ **P4-3 已实现** — `ChatHeader` 中添加了 session ID 徽章，点击后复制完整 session ID 到剪贴板，可用于 `--resume` 手动恢复会话。显示 8 位前缀，复制成功后显示 "copied!" 反馈。
+
 ---
 
 ## 六、MCP 集成
@@ -428,6 +458,15 @@ AIPA 状态：❌ 无任何 compact 触发 UI
 6. **嵌套 CLAUDE.md 可视化**：在 Settings 或 Context 面板中展示 CLI 当前加载的 CLAUDE.md 文件路径链
 7. **TodoWrite 面板**：当 Claude 调用 `TodoWrite` 工具时，在侧边栏展示结构化待办列表
 
+### P4（第二次扫描发现，微优化）
+
+1. ✅ **overloaded_error / authentication_error 事件**：stream-bridge 已处理，渲染器 toast 展示
+2. ✅ **custom-title 事件**：CLI 自动生成标题时同步到 sessionTitle store
+3. ✅ **Copy Session ID 按钮**：ChatHeader 中点击复制完整 session ID 用于 `--resume`
+4. **Sandbox 设置 UI**：`settings.json` 的 `sandbox.network`/`sandbox.filesystem` 路径控制，需可视化编辑器
+5. **result.modelUsage 展示**：在 StatsPanel 中按模型展示分项 token/cost 用量
+6. **worktree-state / task_completed 事件消费**：stream-bridge 已转发，渲染器尚未更新状态
+
 ---
 
 ## 附：IPC 事件完整映射表
@@ -445,6 +484,11 @@ AIPA 状态：❌ 无任何 compact 触发 UI
 | stdout: `{"type":"content_block_delta","delta":{"type":"text_delta",...}}` | `cli:assistantText`（textDelta） | ✅ |
 | stdout: `{"type":"content_block_delta","delta":{"type":"thinking_delta",...}}` | `cli:thinkingDelta` | ✅ |
 | stdout: `{"type":"message_stop",...}` | `cli:messageEnd` | ✅ |
+| stdout: `{"type":"overloaded_error",...}` | `cli:apiError`（errorType: overloaded） | ✅ 已实现（2026-04-14）|
+| stdout: `{"type":"authentication_error",...}` | `cli:apiError`（errorType: authentication） | ✅ 已实现（2026-04-14）|
+| stdout: `{"type":"custom-title",...}` | `cli:customTitle` | ✅ 已实现（2026-04-14）|
+| stdout: `{"type":"worktree-state",...}` | `cli:worktreeState` | ⚠️ 已转发，渲染器未消费 |
+| stdout: `{"type":"task_completed",...}` | `cli:taskCompleted` | ⚠️ 已转发，渲染器未消费 |
 | stderr 任意内容 | `cli:error` | ✅ |
 | 进程退出 | `cli:processExit` | ✅ |
 | stdin: `{"type":"user","message":{...}}` | `cli:sendMessage` → bridge.sendMessage() | ✅ |
@@ -458,6 +502,41 @@ AIPA 状态：❌ 无任何 compact 触发 UI
 | CLI flag: `--dangerously-skip-permissions` | `skipPermissions → args.flags` | ✅（但默认开启有安全隐患）|
 | CLI flag: `--max-turns` | 通过 `args.flags` 可传 | ⚠️ 无 UI 但 prefsStore.maxTurns 存在 |
 | CLI flag: `--append-system-prompt` | 通过 `args.flags` 可传 | ⚠️ prefsStore.appendSystemPrompt 存在 |
+
+---
+
+## 十一、最新实现记录（2026-04-14）
+
+### 第二次 CLI 源码扫描 — 新事件支持
+
+**P4-1：overloaded_error / authentication_error 处理**
+
+- `stream-bridge.ts` 新增 `overloaded_error` 和 `authentication_error` case，转为 `apiError` 事件
+- IPC 层通过 `cli:apiError` 转发到渲染器
+- `preload/index.ts` 新增 `onApiError` 订阅方法
+- `useStreamJson.ts` 监听 `cli:apiError`，对 `overloaded` 显示 warning toast，对 `authentication` 显示 error toast（8s）
+- 解决了之前这两种错误静默丢失的问题
+
+**P4-2：custom-title 事件处理**
+
+- `stream-bridge.ts` 新增 `custom-title` case，转为 `customTitle` 事件
+- IPC 层通过 `cli:customTitle` 转发到渲染器
+- `preload/index.ts` 新增 `onCustomTitle` 订阅方法
+- `useStreamJson.ts` 监听 `cli:customTitle`，在会话尚无标题时自动设置 CLI 生成的标题
+- CLI 自动生成的会话摘要标题现在会同步到 AIPA UI
+
+**P4-3：Copy Session ID 按钮（ChatHeader）**
+
+- `ChatHeader` 订阅 `useChatStore(s => s.currentSessionId)`
+- 在 title 列底部添加 session ID 徽章（8 位前缀显示）
+- 点击后调用 `navigator.clipboard.writeText(sessionId)`，带 fallback textarea 方案
+- 复制成功后显示 "copied!" 绿色反馈，1.8s 后恢复
+- tooltip 显示完整 session ID 及用途提示（for --resume）
+
+**同步处理（stream-bridge 已转发，渲染器待实现）**：
+
+- `worktree-state` → `cli:worktreeState`（渲染器可订阅 worktree 变更）
+- `task_completed` → `cli:taskCompleted`（渲染器可订阅后台任务完成）
 
 ---
 

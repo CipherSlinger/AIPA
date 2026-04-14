@@ -224,6 +224,10 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
     bridge.on('systemInit', (d) => send('cli:systemInit', d))
     bridge.on('notification', (d) => send('cli:notification', d))
     bridge.on('planApprovalRequest', (d) => send('cli:planApprovalRequest', d))
+    bridge.on('apiError', (d) => send('cli:apiError', d))
+    bridge.on('worktreeState', (d) => send('cli:worktreeState', d))
+    bridge.on('customTitle', (d) => send('cli:customTitle', d))
+    bridge.on('taskCompleted', (d) => send('cli:taskCompleted', d))
 
     // Inject API key from prefs only when neither key nor auth token is already set.
     // Gateway scenario sets ANTHROPIC_API_KEY to '' intentionally — do not overwrite it.

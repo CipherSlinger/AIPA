@@ -314,6 +314,51 @@ export class StreamBridge extends EventEmitter {
         })
         break
       }
+      case 'overloaded_error': {
+        // API overload — surface as a user-visible error
+        this.emit('apiError', {
+          sessionId: sid,
+          errorType: 'overloaded',
+          message: (event.message as string) || 'The API is currently overloaded. Please try again.',
+        })
+        break
+      }
+      case 'authentication_error': {
+        // Auth failure (expired token, invalid API key, etc.)
+        this.emit('apiError', {
+          sessionId: sid,
+          errorType: 'authentication',
+          message: (event.message as string) || 'Authentication failed. Please check your API key.',
+        })
+        break
+      }
+      case 'worktree-state': {
+        // Worktree state change notification from CLI
+        this.emit('worktreeState', {
+          sessionId: sid,
+          worktreePath: (event.worktreePath as string) || '',
+          branch: (event.branch as string) || '',
+          state: (event.state as string) || '',
+        })
+        break
+      }
+      case 'custom-title': {
+        // CLI has auto-generated/set a custom session title
+        this.emit('customTitle', {
+          sessionId: sid,
+          title: (event.title as string) || '',
+        })
+        break
+      }
+      case 'task_completed': {
+        // Background task completed
+        this.emit('taskCompleted', {
+          sessionId: sid,
+          taskId: (event.taskId as string) || '',
+          result: event.result,
+        })
+        break
+      }
       case 'plan_approval_request': {
         this.emit('planApprovalRequest', {
           sessionId: sid,
