@@ -35,8 +35,8 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
             alignItems: 'center',
             gap: 6,
             padding: '5px 14px',
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid var(--glass-border-md)',
+            background: 'var(--bg-hover)',
+            border: '1px solid var(--border)',
             borderRadius: 7,
             cursor: 'pointer',
             color: '#818cf8',
@@ -50,8 +50,8 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
             e.currentTarget.style.color = '#a5b4fc'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-            e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+            e.currentTarget.style.background = 'var(--bg-hover)'
+            e.currentTarget.style.borderColor = 'var(--border)'
             e.currentTarget.style.color = '#818cf8'
           }}
         >
@@ -61,10 +61,10 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
             fontSize: 9,
             opacity: 0.5,
             fontFamily: 'monospace',
-            background: 'rgba(255,255,255,0.06)',
+            background: 'var(--bg-hover)',
             padding: '1px 5px',
             borderRadius: 6,
-            border: '1px solid rgba(255,255,255,0.1)',
+            border: '1px solid var(--border)',
             marginLeft: 2,
           }}>Ctrl+Shift+R</kbd>
         </button>
@@ -76,8 +76,8 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
             alignItems: 'center',
             padding: '6px 8px',
             marginLeft: 4,
-            background: showRegenModels ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.06)',
-            border: showRegenModels ? '1px solid rgba(99,102,241,0.40)' : '1px solid var(--glass-border-md)',
+            background: showRegenModels ? 'rgba(99,102,241,0.18)' : 'var(--bg-hover)',
+            border: showRegenModels ? '1px solid rgba(99,102,241,0.40)' : '1px solid var(--border)',
             borderRadius: 6,
             cursor: 'pointer',
             color: showRegenModels ? '#818cf8' : 'rgba(255,255,255,0.55)',
@@ -90,8 +90,8 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
             e.currentTarget.style.color = '#818cf8'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = showRegenModels ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.06)'
-            e.currentTarget.style.borderColor = showRegenModels ? 'rgba(99,102,241,0.40)' : 'var(--glass-border-md)'
+            e.currentTarget.style.background = showRegenModels ? 'rgba(99,102,241,0.18)' : 'var(--bg-hover)'
+            e.currentTarget.style.borderColor = showRegenModels ? 'rgba(99,102,241,0.40)' : 'var(--border)'
             e.currentTarget.style.color = showRegenModels ? '#818cf8' : 'rgba(255,255,255,0.55)'
           }}
         >
@@ -104,10 +104,10 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
               bottom: '100%',
               right: 0,
               marginBottom: 4,
-              background: 'var(--glass-bg-high)',
+              background: 'var(--popup-bg)',
               backdropFilter: 'blur(20px)',
               WebkitBackdropFilter: 'blur(20px)',
-              border: '1px solid var(--glass-border-md)',
+              border: '1px solid var(--border)',
               borderRadius: 12,
               boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
               padding: '4px 0',
@@ -116,7 +116,7 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
               animation: 'slideUp 0.15s ease',
             }}
           >
-            <div style={{ padding: '4px 12px 6px', fontSize: 10, color: 'var(--text-faint)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+            <div style={{ padding: '4px 12px 6px', fontSize: 10, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
               {t('chat.regenerateWithModel')}
             </div>
             {MODEL_OPTIONS.map(m => {
@@ -144,11 +144,11 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
                     lineHeight: 1.4,
                     transition: 'all 0.15s ease',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = isCurrent ? 'rgba(99,102,241,0.12)' : 'none' }}
                 >
                   <span>{t(m.labelKey)}</span>
-                  {isCurrent && <span style={{ fontSize: 9, color: 'var(--text-faint)' }}>{t('chat.currentModel')}</span>}
+                  {isCurrent && <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{t('chat.currentModel')}</span>}
                 </button>
               )
             })}

@@ -19,7 +19,7 @@ const CHANNEL_STYLE = `
     to   { opacity: 1; transform: translateY(0) scale(1); }
   }
   .channel-scroll::-webkit-scrollbar { width: 4px; }
-  .channel-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+  .channel-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 `
 
 // ── Main panel ────────────────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ export default function ChannelPanel() {
     fontWeight: activeTab === tab ? 700 : 500,
     letterSpacing: '0.07em',
     textTransform: 'uppercase',
-    color: activeTab === tab ? '#818cf8' : 'var(--text-faint)',
+    color: activeTab === tab ? '#818cf8' : 'var(--text-muted)',
     background: 'none',
     border: 'none',
     borderBottom: activeTab === tab
@@ -52,17 +52,17 @@ export default function ChannelPanel() {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', height: '100%',
-      background: 'var(--glass-bg-raised)',
+      background: 'var(--popup-bg)',
       backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
-      borderRight: '1px solid var(--glass-border)', overflow: 'hidden',
+      borderRight: '1px solid var(--border)', overflow: 'hidden',
     }}>
       <style>{CHANNEL_STYLE}</style>
 
       {/* Panel header */}
       <div style={{
         padding: '12px 14px',
-        borderBottom: '1px solid var(--glass-border)',
+        borderBottom: '1px solid var(--border)',
         flexShrink: 0,
         background: 'linear-gradient(180deg, rgba(99,102,241,0.06) 0%, transparent 100%)',
       }}>
@@ -79,7 +79,7 @@ export default function ChannelPanel() {
             style={tabStyle('providers')}
             onClick={() => setActiveTab('providers')}
             onMouseEnter={e => { if (activeTab !== 'providers') e.currentTarget.style.color = 'var(--text-secondary)' }}
-            onMouseLeave={e => { if (activeTab !== 'providers') e.currentTarget.style.color = 'var(--text-faint)' }}
+            onMouseLeave={e => { if (activeTab !== 'providers') e.currentTarget.style.color = 'var(--text-muted)' }}
           >
             <Radio size={11} />
             {t('channel.providersTab')}
@@ -88,7 +88,7 @@ export default function ChannelPanel() {
             style={tabStyle('mcp')}
             onClick={() => setActiveTab('mcp')}
             onMouseEnter={e => { if (activeTab !== 'mcp') e.currentTarget.style.color = 'var(--text-secondary)' }}
-            onMouseLeave={e => { if (activeTab !== 'mcp') e.currentTarget.style.color = 'var(--text-faint)' }}
+            onMouseLeave={e => { if (activeTab !== 'mcp') e.currentTarget.style.color = 'var(--text-muted)' }}
           >
             <Server size={11} />
             {t('channel.mcpTab')}
@@ -102,7 +102,7 @@ export default function ChannelPanel() {
           <div style={{
             borderRadius: 10,
             background: 'rgba(255,255,255,0.03)',
-            border: '1px solid var(--glass-border)',
+            border: '1px solid var(--border)',
             overflow: 'hidden',
           }}>
             <React.Suspense fallback={<div style={{ padding: 20, color: 'var(--text-muted)', fontSize: 11 }}>Loading...</div>}>
@@ -114,12 +114,12 @@ export default function ChannelPanel() {
 
       {/* Footer */}
       <div style={{
-        padding: '6px 12px', borderTop: '1px solid var(--glass-border)', flexShrink: 0,
+        padding: '6px 12px', borderTop: '1px solid var(--border)', flexShrink: 0,
         display: 'flex', alignItems: 'center', gap: 6,
         background: 'rgba(255,255,255,0.02)',
       }}>
-        <MessageCircle size={10} color="var(--text-faint)" />
-        <span style={{ fontSize: 9, color: 'var(--text-faint)', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+        <MessageCircle size={10} color="var(--text-muted)" />
+        <span style={{ fontSize: 9, color: 'var(--text-muted)', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
           {t('channel.footer')}
         </span>
       </div>

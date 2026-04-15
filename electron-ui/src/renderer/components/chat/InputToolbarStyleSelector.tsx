@@ -41,8 +41,8 @@ export default function InputToolbarStyleSelector() {
           alignItems: 'center',
           gap: 3,
           padding: '3px 8px',
-          background: isActive ? 'rgba(99,102,241,0.14)' : 'rgba(255,255,255,0.06)',
-          border: `1px solid ${isActive ? 'rgba(99,102,241,0.3)' : 'var(--glass-border-md)'}`,
+          background: isActive ? 'rgba(99,102,241,0.14)' : 'var(--bg-hover)',
+          border: `1px solid ${isActive ? 'rgba(99,102,241,0.3)' : 'var(--border)'}`,
           borderRadius: 6,
           color: isActive ? '#818cf8' : 'var(--text-secondary)',
           cursor: 'pointer',
@@ -52,14 +52,14 @@ export default function InputToolbarStyleSelector() {
           whiteSpace: 'nowrap',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+          e.currentTarget.style.background = 'var(--bg-hover)'
           e.currentTarget.style.color = 'var(--text-primary)'
-          e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+          e.currentTarget.style.borderColor = 'var(--border)'
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.background = isActive ? 'rgba(99,102,241,0.14)' : 'rgba(255,255,255,0.06)'
+          e.currentTarget.style.background = isActive ? 'rgba(99,102,241,0.14)' : 'var(--bg-hover)'
           e.currentTarget.style.color = isActive ? '#818cf8' : 'var(--text-secondary)'
-          e.currentTarget.style.borderColor = isActive ? 'rgba(99,102,241,0.3)' : 'var(--glass-border-md)'
+          e.currentTarget.style.borderColor = isActive ? 'rgba(99,102,241,0.3)' : 'var(--border)'
         }}
       >
         <Sparkles size={11} />
@@ -72,12 +72,12 @@ export default function InputToolbarStyleSelector() {
             bottom: '100%',
             left: 0,
             marginBottom: 4,
-            background: 'var(--glass-bg-high)',
+            background: 'var(--popup-bg)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid var(--glass-border-md)',
+            border: '1px solid var(--border)',
             borderRadius: 10,
-            boxShadow: 'var(--glass-shadow)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
             padding: '4px',
             minWidth: 200,
             zIndex: 100,
@@ -90,7 +90,7 @@ export default function InputToolbarStyleSelector() {
             fontWeight: 700,
             textTransform: 'uppercase',
             letterSpacing: '0.07em',
-            color: 'var(--text-faint)',
+            color: 'var(--text-muted)',
           }}>
             {t('outputStyle.title')}
           </div>
@@ -120,7 +120,7 @@ export default function InputToolbarStyleSelector() {
                 }}
                 onMouseEnter={(e) => {
                   if (!isSelected) {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                    e.currentTarget.style.background = 'var(--bg-hover)'
                     e.currentTarget.style.color = 'var(--text-primary)'
                   }
                 }}
@@ -140,7 +140,7 @@ export default function InputToolbarStyleSelector() {
                     <span>{t(`outputStyle.${style}`)}</span>
                     {isSelected && <span style={{ fontSize: 11 }}>{'\u2713'}</span>}
                   </span>
-                  <span style={{ fontSize: 10, color: 'var(--text-faint)', fontWeight: 400 }}>
+                  <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 400 }}>
                     {t(`outputStyle.${style}.desc`)}
                   </span>
                 </span>

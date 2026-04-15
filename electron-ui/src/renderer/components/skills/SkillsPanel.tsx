@@ -128,10 +128,10 @@ export default function SkillsPanel() {
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      background: 'var(--glass-bg-low)',
+      background: 'rgba(15,15,25,0.85)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
-      border: '1px solid var(--glass-border)',
+      border: '1px solid var(--border)',
       borderRadius: 10,
       overflow: 'hidden',
     }}>
@@ -141,7 +141,7 @@ export default function SkillsPanel() {
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '12px 14px',
-        borderBottom: '1px solid var(--glass-border)',
+        borderBottom: '1px solid var(--border)',
         flexShrink: 0,
       }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
@@ -154,7 +154,7 @@ export default function SkillsPanel() {
             title={t('skills.marketplace')}
             style={{
               background: 'none',
-              border: '1px solid var(--glass-border-md)',
+              border: '1px solid var(--border)',
               borderRadius: 6,
               color: 'var(--text-muted)',
               cursor: 'pointer',
@@ -167,7 +167,7 @@ export default function SkillsPanel() {
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; e.currentTarget.style.color = '#818cf8' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border-md)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
           >
             <Store size={14} />
             {t('skills.marketplace')}
@@ -178,7 +178,7 @@ export default function SkillsPanel() {
             title={t('skills.createSkill')}
             style={{
               background: 'none',
-              border: '1px solid var(--glass-border-md)',
+              border: '1px solid var(--border)',
               borderRadius: 6,
               color: 'var(--text-muted)',
               cursor: 'pointer',
@@ -191,7 +191,7 @@ export default function SkillsPanel() {
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; e.currentTarget.style.color = '#818cf8' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border-md)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
           >
             <Plus size={14} />
             {t('skills.create')}
@@ -203,7 +203,7 @@ export default function SkillsPanel() {
             disabled={loading}
             style={{
               background: 'none',
-              border: '1px solid var(--glass-border-md)',
+              border: '1px solid var(--border)',
               borderRadius: 6,
               color: 'var(--text-muted)',
               cursor: 'pointer',
@@ -215,7 +215,7 @@ export default function SkillsPanel() {
               opacity: loading ? 0.4 : 1,
             }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; e.currentTarget.style.color = '#818cf8' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border-md)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
           >
             <RefreshCw size={14} style={{ animation: loading ? 'spin 1s linear infinite' : undefined }} />
           </button>
@@ -230,12 +230,12 @@ export default function SkillsPanel() {
           gap: 6,
           height: 32,
           padding: '0 8px',
-          background: 'rgba(255,255,255,0.06)',
-          border: '1px solid var(--glass-border-md)',
+          background: 'var(--bg-hover)',
+          border: '1px solid var(--border)',
           borderRadius: 7,
           transition: 'all 0.15s ease',
         }}>
-          <Search size={14} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+          <Search size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
           <input
             type="text"
             value={searchQuery}
@@ -248,7 +248,7 @@ export default function SkillsPanel() {
             }}
             onBlur={e => {
               const p = e.currentTarget.parentElement as HTMLElement
-              p.style.borderColor = 'rgba(255,255,255,0.1)'
+              p.style.borderColor = 'var(--border)'
               p.style.boxShadow = 'none'
             }}
             style={{
@@ -267,7 +267,7 @@ export default function SkillsPanel() {
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'var(--text-faint)',
+                color: 'var(--text-muted)',
                 cursor: 'pointer',
                 padding: 2,
                 display: 'flex',
@@ -295,8 +295,8 @@ export default function SkillsPanel() {
                 borderRadius: 20,
                 cursor: 'pointer',
                 flexShrink: 0,
-                background: sourceFilter === src ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.06)',
-                border: sourceFilter === src ? '1px solid rgba(99,102,241,0.30)' : '1px solid rgba(255,255,255,0.08)',
+                background: sourceFilter === src ? 'rgba(99,102,241,0.15)' : 'var(--bg-hover)',
+                border: sourceFilter === src ? '1px solid rgba(99,102,241,0.30)' : '1px solid var(--border)',
                 color: sourceFilter === src ? '#818cf8' : 'var(--text-secondary)',
                 transition: 'all 0.15s ease',
                 textTransform: 'capitalize',
@@ -319,11 +319,11 @@ export default function SkillsPanel() {
             padding: '40px 20px',
             textAlign: 'center',
           }}>
-            <Puzzle size={40} style={{ color: 'var(--text-faint)', marginBottom: 12 }} />
-            <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 6, color: 'var(--text-faint)' }}>
+            <Puzzle size={40} style={{ color: 'var(--text-muted)', marginBottom: 12 }} />
+            <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 6, color: 'var(--text-muted)' }}>
               {t('skills.noSkills')}
             </div>
-            <div style={{ fontSize: 11, lineHeight: 1.5, maxWidth: 240, color: 'var(--text-faint)' }}>
+            <div style={{ fontSize: 11, lineHeight: 1.5, maxWidth: 240, color: 'var(--text-muted)' }}>
               {t('skills.noSkillsHint')}
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
@@ -363,9 +363,9 @@ export default function SkillsPanel() {
                   alignItems: 'center',
                   gap: 6,
                   padding: '8px 16px',
-                  background: 'rgba(255,255,255,0.04)',
+                  background: 'var(--bg-hover)',
                   color: 'var(--text-secondary)',
-                  border: '1px solid var(--glass-border-md)',
+                  border: '1px solid var(--border)',
                   borderRadius: 8,
                   fontSize: 12,
                   fontWeight: 500,
@@ -373,12 +373,12 @@ export default function SkillsPanel() {
                   transition: 'all 0.15s ease',
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+                  e.currentTarget.style.borderColor = 'var(--border)'
                   e.currentTarget.style.color = 'var(--text-primary)'
                   e.currentTarget.style.transform = 'translateY(-1px)'
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+                  e.currentTarget.style.borderColor = 'var(--border)'
                   e.currentTarget.style.color = 'var(--text-secondary)'
                   e.currentTarget.style.transform = 'translateY(0)'
                 }}
@@ -410,7 +410,7 @@ export default function SkillsPanel() {
               <div style={{
                 padding: '20px',
                 textAlign: 'center',
-                color: 'var(--text-faint)',
+                color: 'var(--text-muted)',
                 fontSize: 12,
               }}>
                 {t('skills.noResults')}

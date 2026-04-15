@@ -15,8 +15,8 @@ export function CostBadge() {
 
   const costStr = totalCost < 1 ? `$${totalCost.toFixed(3)}` : `$${totalCost.toFixed(2)}`
   const color = totalCost >= 5 ? '#f87171' : totalCost >= 1 ? '#fbbf24' : 'var(--text-muted)'
-  const bgColor = totalCost >= 5 ? 'rgba(239,68,68,0.12)' : totalCost >= 1 ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.04)'
-  const borderColor = totalCost >= 5 ? 'rgba(239,68,68,0.3)' : totalCost >= 1 ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.08)'
+  const bgColor = totalCost >= 5 ? 'rgba(239,68,68,0.12)' : totalCost >= 1 ? 'rgba(245,158,11,0.12)' : 'var(--bg-hover)'
+  const borderColor = totalCost >= 5 ? 'rgba(239,68,68,0.3)' : totalCost >= 1 ? 'rgba(245,158,11,0.3)' : 'var(--border)'
 
   return (
     <button
@@ -92,7 +92,7 @@ export function ContextBadge({ onNewConversation }: { onNewConversation: () => v
   const isWarning = pct >= 80 && pct < 90
   const color = isCritical ? '#f87171' : isWarning ? '#fbbf24' : 'var(--text-muted)'
   const chipBg = isCritical ? 'rgba(239,68,68,0.08)' : isWarning ? 'rgba(245,158,11,0.08)' : 'rgba(99,102,241,0.08)'
-  const chipBorder = isCritical ? 'rgba(239,68,68,0.2)' : isWarning ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.08)'
+  const chipBorder = isCritical ? 'rgba(239,68,68,0.2)' : isWarning ? 'rgba(245,158,11,0.2)' : 'var(--border)'
   const barFill = isCritical ? '#f87171' : isWarning ? '#fbbf24' : 'rgba(99,102,241,0.8)'
   const remaining = ctx.total - ctx.used
   // Rough estimate: avg ~800 tokens per exchange (user+assistant)
@@ -100,7 +100,7 @@ export function ContextBadge({ onNewConversation }: { onNewConversation: () => v
 
   const newSessionBg = pct >= 80
     ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
-    : 'rgba(255,255,255,0.06)'
+    : 'var(--bg-hover)'
 
   return (
     <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -130,7 +130,7 @@ export function ContextBadge({ onNewConversation }: { onNewConversation: () => v
       >
         <span style={{ fontSize: 9, opacity: 0.7, flexShrink: 0 }}>{t('toolbar.context')}</span>
         <div style={{
-          width: 40, height: 3, background: 'rgba(255,255,255,0.08)',
+          width: 40, height: 3, background: 'var(--border)',
           borderRadius: 2, overflow: 'hidden', position: 'relative', flexShrink: 0,
         }}>
           <div style={{
@@ -153,12 +153,12 @@ export function ContextBadge({ onNewConversation }: { onNewConversation: () => v
             right: 0,
             marginTop: 6,
             width: 260,
-            background: 'var(--glass-bg-raised)',
+            background: 'var(--popup-bg)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid var(--glass-border)',
+            border: '1px solid var(--border)',
             borderRadius: 10,
-            boxShadow: 'var(--glass-shadow)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
             padding: '14px 16px',
             zIndex: 100,
             animation: 'slideUp 0.15s ease',
@@ -170,7 +170,7 @@ export function ContextBadge({ onNewConversation }: { onNewConversation: () => v
 
           {/* Usage bar */}
           <div style={{
-            width: '100%', height: 6, background: 'rgba(255,255,255,0.08)',
+            width: '100%', height: 6, background: 'var(--border)',
             borderRadius: 3, overflow: 'hidden', marginBottom: 12,
           }}>
             <div style={{
@@ -188,7 +188,7 @@ export function ContextBadge({ onNewConversation }: { onNewConversation: () => v
             <span>{t('toolbar.contextPopoverRemaining')}</span>
             <span style={{ fontWeight: 600, fontFamily: 'monospace' }}>{remaining.toLocaleString()}</span>
           </div>
-          <div style={{ fontSize: 10, color: 'var(--text-faint)', marginBottom: 12, opacity: 0.8 }}>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 12, opacity: 0.8 }}>
             {t('toolbar.contextPopoverEstMsgs', { count: String(estMsgsRemaining) })}
           </div>
 
@@ -201,7 +201,7 @@ export function ContextBadge({ onNewConversation }: { onNewConversation: () => v
               fontSize: 11,
               fontWeight: 600,
               background: newSessionBg,
-              border: pct >= 80 ? 'none' : '1px solid rgba(255,255,255,0.10)',
+              border: pct >= 80 ? 'none' : '1px solid var(--border)',
               borderRadius: 6,
               color: pct >= 80 ? 'rgba(255,255,255,0.95)' : 'var(--text-primary)',
               cursor: 'pointer',
@@ -233,7 +233,7 @@ export function ContextProgressBar() {
       style={{
         height: 2,
         width: '100%',
-        background: 'var(--glass-border)',
+        background: 'var(--border)',
         flexShrink: 0,
         transition: 'all 0.15s ease',
       }}

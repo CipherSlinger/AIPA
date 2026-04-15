@@ -99,7 +99,7 @@ export default function ContextUsageMeter({ used, total, isStreaming, onCompact,
   return (
     <div style={{ position: 'relative' }}>
       <div style={{
-        background: 'var(--glass-bg-low)',
+        background: 'rgba(15,15,25,0.80)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         borderRadius: 8,
@@ -109,7 +109,7 @@ export default function ContextUsageMeter({ used, total, isStreaming, onCompact,
           display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4,
         }}>
           <div style={{
-            flex: 1, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden',
+            flex: 1, height: 4, background: 'var(--bg-hover)', borderRadius: 4, overflow: 'hidden',
           }}>
             <div style={{
               width: `${Math.min(pct, 100)}%`, height: '100%', background: barGradient,
@@ -133,7 +133,7 @@ export default function ContextUsageMeter({ used, total, isStreaming, onCompact,
               style={{
                 display: 'flex', alignItems: 'center',
                 padding: '1px 4px', fontSize: 9,
-                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+                background: 'var(--bg-hover)', border: '1px solid var(--border)',
                 borderRadius: 6, color: '#818cf8', cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
@@ -142,8 +142,8 @@ export default function ContextUsageMeter({ used, total, isStreaming, onCompact,
                 e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+                e.currentTarget.style.background = 'var(--bg-hover)'
+                e.currentTarget.style.borderColor = 'var(--border)'
               }}
             >
               <Lightbulb size={9} />
@@ -188,7 +188,7 @@ export default function ContextUsageMeter({ used, total, isStreaming, onCompact,
       {showSuggestions && hasSuggestions && (
         <div style={{
           position: 'absolute', bottom: '100%', right: 0, marginBottom: 6,
-          background: 'var(--glass-bg-high)', border: '1px solid var(--glass-border-md)',
+          background: 'var(--popup-bg)', border: '1px solid var(--border)',
           borderRadius: 10, padding: 10, width: 280, zIndex: 100,
           boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
           backdropFilter: 'blur(20px)',
@@ -197,7 +197,7 @@ export default function ContextUsageMeter({ used, total, isStreaming, onCompact,
         }}>
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            marginBottom: 8, borderBottom: '1px solid var(--glass-border)', paddingBottom: 6,
+            marginBottom: 8, borderBottom: '1px solid var(--border)', paddingBottom: 6,
           }}>
             <span style={{
               fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
@@ -212,7 +212,7 @@ export default function ContextUsageMeter({ used, total, isStreaming, onCompact,
                 color: 'var(--text-muted)', display: 'flex', padding: 2,
                 borderRadius: 8, transition: 'all 0.15s ease',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--glass-border)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--border)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
               <X size={12} />
@@ -222,7 +222,7 @@ export default function ContextUsageMeter({ used, total, isStreaming, onCompact,
             <div key={i} style={{
               padding: '8px 10px', borderRadius: 8, marginBottom: 4,
               background: 'rgba(255,255,255,0.03)',
-              border: '1px solid var(--glass-border)',
+              border: '1px solid var(--border)',
               borderLeft: `3px solid ${s.severity === 'warning' ? 'rgba(251,191,36,0.6)' : 'rgba(99,102,241,0.5)'}`,
             }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>

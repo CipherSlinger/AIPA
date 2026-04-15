@@ -173,11 +173,11 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
         alignItems: 'center',
         gap: 2,
         padding: '4px 6px',
-        background: 'var(--glass-bg-high)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid var(--glass-border-md)',
-        boxShadow: 'var(--glass-shadow)',
+        border: '1px solid var(--border)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
         borderRadius: 10,
         zIndex: 1000,
         animation: 'slideUp 0.15s ease',
@@ -210,7 +210,7 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
       </button>
 
       {/* Separator */}
-      <div style={{ width: 1, height: 16, background: 'var(--glass-border)', margin: '0 2px', flexShrink: 0 }} />
+      <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 2px', flexShrink: 0 }} />
 
       {/* Quote reply */}
       <button
@@ -239,7 +239,7 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
       </button>
 
       {/* Separator */}
-      <div style={{ width: 1, height: 16, background: 'var(--glass-border)', margin: '0 2px', flexShrink: 0 }} />
+      <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 2px', flexShrink: 0 }} />
 
       {/* Save to notes */}
       <button
@@ -268,7 +268,7 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
       </button>
 
       {/* Separator */}
-      <div style={{ width: 1, height: 16, background: 'var(--glass-border)', margin: '0 2px', flexShrink: 0 }} />
+      <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 2px', flexShrink: 0 }} />
 
       {/* Translate */}
       <button

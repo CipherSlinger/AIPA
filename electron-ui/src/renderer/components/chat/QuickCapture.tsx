@@ -99,7 +99,7 @@ export default function QuickCapture() {
             ? 'rgba(255,255,255,0.18)'
             : 'linear-gradient(135deg, #6366f1, #818cf8)',
           border: open
-            ? '1px solid var(--text-faint)'
+            ? '1px solid var(--text-muted)'
             : '1px solid rgba(99,102,241,0.50)',
           cursor: 'pointer',
           display: 'flex',
@@ -134,12 +134,12 @@ export default function QuickCapture() {
           bottom: 96,
           right: 20,
           width: 320,
-          background: 'var(--glass-bg-high)',
+          background: 'var(--popup-bg)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid var(--glass-border-md)',
+          border: '1px solid var(--border)',
           borderRadius: 14,
-          boxShadow: 'var(--glass-shadow)',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
           padding: 14,
           zIndex: 51,
           animation: 'slideUp 0.15s ease',
@@ -147,7 +147,7 @@ export default function QuickCapture() {
           {/* Header */}
           <div style={{
             display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10,
-            paddingBottom: 10, borderBottom: '1px solid var(--glass-border)',
+            paddingBottom: 10, borderBottom: '1px solid var(--border)',
           }}>
             <StickyNote size={13} color="#818cf8" />
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>
@@ -157,8 +157,8 @@ export default function QuickCapture() {
               fontSize: 9,
               fontWeight: 700,
               letterSpacing: '0.04em',
-              background: 'var(--glass-border)',
-              border: '1px solid var(--glass-border-md)',
+              background: 'var(--border)',
+              border: '1px solid var(--border)',
               borderRadius: 5,
               padding: '1px 5px',
               color: 'var(--text-muted)',
@@ -174,7 +174,7 @@ export default function QuickCapture() {
                 color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
                 borderRadius: 6, padding: 3, transition: 'all 0.15s ease',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--glass-border)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.color = 'var(--text-primary)' }}
               onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-muted)' }}
             >
               <X size={14} />
@@ -193,7 +193,7 @@ export default function QuickCapture() {
               e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.50)'
             }}
             onBlur={e => {
-              e.currentTarget.style.border = '1px solid var(--glass-border-md)'
+              e.currentTarget.style.border = '1px solid var(--border)'
               e.currentTarget.style.boxShadow = 'none'
             }}
             style={{
@@ -201,8 +201,8 @@ export default function QuickCapture() {
               minHeight: 64,
               maxHeight: 130,
               resize: 'none',
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid var(--glass-border-md)',
+              background: 'var(--bg-hover)',
+              border: '1px solid var(--border)',
               borderRadius: 8,
               padding: '9px 11px',
               color: 'var(--text-primary)',
@@ -216,7 +216,7 @@ export default function QuickCapture() {
           />
 
           {/* Char counter */}
-          <div style={{ textAlign: 'right', marginTop: 4, fontSize: 10, color: 'var(--text-faint)' }}>
+          <div style={{ textAlign: 'right', marginTop: 4, fontSize: 10, color: 'var(--text-muted)' }}>
             {text.length}
           </div>
 
@@ -227,8 +227,8 @@ export default function QuickCapture() {
               onChange={e => setCategoryId(e.target.value || undefined)}
               style={{
                 flex: 1,
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid var(--glass-border-md)',
+                background: 'var(--bg-hover)',
+                border: '1px solid var(--border)',
                 borderRadius: 8,
                 padding: '4px 8px',
                 color: 'var(--text-secondary)',

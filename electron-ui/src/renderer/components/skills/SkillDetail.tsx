@@ -29,8 +29,8 @@ function getSourceBadgeStyle(source: string): React.CSSProperties {
     }
   }
   return {
-    background: 'rgba(255,255,255,0.08)',
-    border: '1px solid rgba(255,255,255,0.12)',
+    background: 'var(--border)',
+    border: '1px solid var(--bg-active)',
     color: 'var(--text-secondary)',
   }
 }
@@ -51,15 +51,15 @@ export default function SkillDetail({
   const sourceBadge = getSourceBadgeStyle(skill.source)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'rgba(10,10,18,1)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-chat)' }}>
       {/* Header */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         gap: 8,
         padding: '14px 20px',
-        borderBottom: '1px solid var(--glass-border)',
-        background: 'var(--glass-bg-raised)',
+        borderBottom: '1px solid var(--border)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         flexShrink: 0,
@@ -70,7 +70,7 @@ export default function SkillDetail({
           onMouseEnter={() => setBackHovered(true)}
           onMouseLeave={() => setBackHovered(false)}
           style={{
-            background: backHovered ? 'var(--glass-border)' : 'none',
+            background: backHovered ? 'var(--border)' : 'none',
             border: 'none',
             color: backHovered ? 'var(--text-primary)' : 'var(--text-secondary)',
             cursor: 'pointer',
@@ -120,10 +120,10 @@ export default function SkillDetail({
       {/* Hero / description section */}
       <div style={{
         margin: '16px 20px 0',
-        background: 'var(--glass-bg-raised)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid var(--glass-border)',
+        border: '1px solid var(--border)',
         borderRadius: 12,
         padding: '20px 24px',
         flexShrink: 0,
@@ -223,7 +223,7 @@ export default function SkillDetail({
                 ? 'rgba(239,68,68,0.25)'
                 : deleteHovered
                   ? 'rgba(239,68,68,0.12)'
-                  : 'rgba(255,255,255,0.04)',
+                  : 'var(--bg-hover)',
               color: '#fca5a5',
               border: deletingSkillPath === skill.dirPath
                 ? '1px solid rgba(239,68,68,0.45)'
@@ -244,8 +244,8 @@ export default function SkillDetail({
       {/* Skill content preview */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 20px' }}>
         <div style={{
-          background: 'rgba(255,255,255,0.04)',
-          border: '1px solid var(--glass-border)',
+          background: 'var(--bg-hover)',
+          border: '1px solid var(--border)',
           borderRadius: 12,
           padding: '16px 20px',
         }}>
@@ -254,7 +254,7 @@ export default function SkillDetail({
             fontWeight: 700,
             letterSpacing: '0.07em',
             textTransform: 'uppercase',
-            color: 'var(--text-faint)',
+            color: 'var(--text-muted)',
             marginBottom: 10,
           }}>
             SKILL.md
@@ -270,7 +270,7 @@ export default function SkillDetail({
             background: 'rgba(0,0,0,0.35)',
             borderRadius: 8,
             padding: '12px 14px',
-            border: '1px solid rgba(255,255,255,0.06)',
+            border: '1px solid var(--bg-hover)',
           }}>
             {skillContent}
           </pre>

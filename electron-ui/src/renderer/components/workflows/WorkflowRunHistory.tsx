@@ -98,12 +98,12 @@ function RunSummaryCard({ run }: { run: WorkflowRun }) {
   return (
     <div style={{
       background: 'rgba(8,8,16,0.80)',
-      borderBottom: '1px solid var(--glass-border)',
+      borderBottom: '1px solid var(--border)',
       padding: '8px 12px',
     }}>
       {/* Summary row */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-        <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+        <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
           {t('workflow.runSummary')}
         </span>
         <span style={{
@@ -125,14 +125,14 @@ function RunSummaryCard({ run }: { run: WorkflowRun }) {
             return (
               <div key={stepId}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                  <span style={{ fontSize: 9, color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>
+                  <span style={{ fontSize: 9, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>
                     {label}
                   </span>
                   <span style={{ fontSize: 9, color: 'var(--text-muted)', flexShrink: 0, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
                     {formatDuration(ms)}
                   </span>
                 </div>
-                <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
+                <div style={{ height: 3, background: 'var(--bg-hover)', borderRadius: 2, overflow: 'hidden' }}>
                   <div style={{
                     height: '100%',
                     width: `${pct}%`,
@@ -192,12 +192,12 @@ export default function WorkflowRunHistory({
           padding: '3px 8px',
           background: isReplay
             ? 'rgba(99,102,241,0.18)'
-            : 'rgba(20,20,30,0.85)',
+            : 'var(--bg-secondary)',
           backdropFilter: 'blur(8px)',
           WebkitBackdropFilter: 'blur(8px)',
           border: isReplay
             ? '1px solid rgba(99,102,241,0.5)'
-            : '1px solid var(--glass-border)',
+            : '1px solid var(--border)',
           borderRadius: 6,
           cursor: 'pointer',
           color: isReplay ? '#818cf8' : 'var(--text-muted)',
@@ -207,10 +207,10 @@ export default function WorkflowRunHistory({
           whiteSpace: 'nowrap',
         }}
         onMouseEnter={e => {
-          if (!isReplay) { e.currentTarget.style.background = 'rgba(20,20,30,0.95)'; e.currentTarget.style.borderColor = 'var(--glass-border-md)' }
+          if (!isReplay) { e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.borderColor = 'var(--border)' }
         }}
         onMouseLeave={e => {
-          if (!isReplay) { e.currentTarget.style.background = 'rgba(20,20,30,0.85)'; e.currentTarget.style.borderColor = 'var(--glass-border)' }
+          if (!isReplay) { e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.borderColor = 'var(--border)' }
         }}
       >
         <span style={{ fontSize: 12 }}>&#128336;</span>
@@ -231,7 +231,7 @@ export default function WorkflowRunHistory({
             background: 'rgba(14,14,24,0.96)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid var(--glass-border-md)',
+            border: '1px solid var(--border)',
             borderRadius: 10,
             boxShadow: '0 8px 32px rgba(0,0,0,0.50)',
             zIndex: 100,
@@ -253,13 +253,13 @@ export default function WorkflowRunHistory({
               50%       { opacity: 0.4; transform: scale(0.7); }
             }
             .wf-history-scroll::-webkit-scrollbar { width: 4px; }
-            .wf-history-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+            .wf-history-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
           `}</style>
 
           {/* Section header */}
           <div style={{
             padding: '7px 12px 5px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            borderBottom: '1px solid var(--bg-hover)',
             borderLeft: '2px solid rgba(99,102,241,0.5)',
             paddingLeft: 10,
             display: 'flex',
@@ -271,13 +271,13 @@ export default function WorkflowRunHistory({
               fontSize: 10,
               letterSpacing: '0.07em',
               textTransform: 'uppercase' as const,
-              color: 'var(--text-faint)',
+              color: 'var(--text-muted)',
             }}>
               {t('workflow.history')}
             </span>
             {runs.length > 0 && (
               <span style={{
-                fontSize: 10, color: 'var(--text-faint)', fontWeight: 500,
+                fontSize: 10, color: 'var(--text-muted)', fontWeight: 500,
                 fontVariantNumeric: 'tabular-nums',
               }}>
                 {runs.length} {runs.length === 1 ? 'run' : 'runs'}
@@ -296,7 +296,7 @@ export default function WorkflowRunHistory({
               padding: '7px 12px',
               background: selectedRunId === null ? 'rgba(99,102,241,0.12)' : 'transparent',
               border: 'none',
-              borderBottom: '1px solid rgba(255,255,255,0.04)',
+              borderBottom: '1px solid var(--bg-hover)',
               cursor: 'pointer',
               color: selectedRunId === null ? '#818cf8' : 'var(--text-secondary)',
               fontSize: 10,
@@ -305,7 +305,7 @@ export default function WorkflowRunHistory({
               gap: 6,
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={e => { if (selectedRunId !== null) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+            onMouseEnter={e => { if (selectedRunId !== null) e.currentTarget.style.background = 'var(--bg-hover)' }}
             onMouseLeave={e => { if (selectedRunId !== null) e.currentTarget.style.background = 'transparent' }}
           >
             <span>{t('workflow.currentExecution')}</span>
@@ -336,10 +336,10 @@ export default function WorkflowRunHistory({
               }}>
                 🕐
               </div>
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-faint)' }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>
                 {t('workflow.noHistory')}
               </span>
-              <span style={{ color: 'var(--text-faint)', fontSize: 11 }}>
+              <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>
                 Run this workflow to see history here
               </span>
             </div>
@@ -366,7 +366,7 @@ export default function WorkflowRunHistory({
                           ? 'rgba(99,102,241,0.1)'
                           : 'transparent',
                         border: 'none',
-                        borderBottom: '1px solid var(--glass-border)',
+                        borderBottom: '1px solid var(--border)',
                         borderLeft: run.success === undefined
                           ? '3px solid rgba(99,102,241,0.6)'
                           : run.success
@@ -380,7 +380,7 @@ export default function WorkflowRunHistory({
                       }}
                       onMouseEnter={e => {
                         if (!isSelected)
-                          e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                          e.currentTarget.style.background = 'var(--bg-hover)'
                       }}
                       onMouseLeave={e => {
                         if (!isSelected)
@@ -394,7 +394,7 @@ export default function WorkflowRunHistory({
                             {formatRelativeTime(run.startedAt)}
                           </span>
                           <span style={{
-                            fontSize: 9, color: 'var(--text-faint)',
+                            fontSize: 9, color: 'var(--text-muted)',
                             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                             fontVariantNumeric: 'tabular-nums',
                             fontFeatureSettings: '"tnum"',
@@ -406,8 +406,8 @@ export default function WorkflowRunHistory({
                           {stepCount > 0 && (
                             <span style={{
                               fontSize: 9,
-                              color: 'var(--text-faint)',
-                              background: 'rgba(255,255,255,0.06)',
+                              color: 'var(--text-muted)',
+                              background: 'var(--bg-hover)',
                               borderRadius: 10,
                               padding: '1px 5px',
                               fontWeight: 600,
@@ -426,7 +426,7 @@ export default function WorkflowRunHistory({
                         </div>
                       </div>
                       {/* Duration bar */}
-                      <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
+                      <div style={{ height: 3, background: 'var(--bg-hover)', borderRadius: 2, overflow: 'hidden' }}>
                         <div style={{
                           height: '100%',
                           width: `${durationPct}%`,
@@ -454,9 +454,9 @@ export default function WorkflowRunHistory({
                 padding: '5px 12px',
                 background: 'transparent',
                 border: 'none',
-                borderTop: '1px solid rgba(255,255,255,0.06)',
+                borderTop: '1px solid var(--bg-hover)',
                 cursor: 'pointer',
-                color: 'var(--text-faint)',
+                color: 'var(--text-muted)',
                 fontSize: 9,
                 textAlign: 'center',
                 fontWeight: 500,
@@ -470,7 +470,7 @@ export default function WorkflowRunHistory({
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.background = 'transparent'
-                e.currentTarget.style.color = 'var(--text-faint)'
+                e.currentTarget.style.color = 'var(--text-muted)'
               }}
             >
               {t('workflow.clearHistory')}

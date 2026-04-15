@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
-import { BarChart3, ClipboardCopy, Check, FileText, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react'
+import { BarChart3, ClipboardCopy, Check, FileText, AlertTriangle } from 'lucide-react'
 import { useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import { useClickOutside } from '../../hooks/useClickOutside'
@@ -25,11 +25,9 @@ export default function StatsPanel({
   const permissionDenials = useChatStore(s => s.permissionDenials)
   const lastNumTurns = useChatStore(s => s.lastNumTurns)
   const lastDurationMs = useChatStore(s => s.lastDurationMs)
-  const modelUsage = useChatStore(s => s.modelUsage)
   const [showStats, setShowStats] = useState(false)
   const [statsCopied, setStatsCopied] = useState(false)
   const [summaryCopied, setSummaryCopied] = useState(false)
-  const [modelUsageExpanded, setModelUsageExpanded] = useState(false)
   const statsRef = useRef<HTMLDivElement>(null)
 
   const handleCopyStats = useCallback(() => {
@@ -145,12 +143,12 @@ export default function StatsPanel({
             right: 0,
             zIndex: 60,
             width: 240,
-            background: 'var(--glass-bg-high)',
+            background: 'var(--popup-bg)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid var(--glass-border-md)',
+            border: '1px solid var(--border)',
             borderRadius: 12,
-            boxShadow: 'var(--glass-shadow)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
             padding: '12px 14px',
             marginTop: 4,
             animation: 'slideUp 0.15s ease',
@@ -163,7 +161,7 @@ export default function StatsPanel({
             color: 'var(--text-primary)',
             marginBottom: 10,
             paddingBottom: 8,
-            borderBottom: '1px solid var(--glass-border)',
+            borderBottom: '1px solid var(--border)',
             lineHeight: 1.3,
             letterSpacing: '-0.01em',
           }}>
@@ -180,8 +178,8 @@ export default function StatsPanel({
                 key={label}
                 style={{
                   flex: 1,
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'var(--bg-hover)',
+                  border: '1px solid var(--border)',
                   borderRadius: 10,
                   padding: '10px 6px',
                   textAlign: 'center',
@@ -189,12 +187,12 @@ export default function StatsPanel({
                   cursor: 'default',
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.background = 'var(--glass-border)'
-                  ;(e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.12)'
+                  (e.currentTarget as HTMLDivElement).style.background = 'var(--border)'
+                  ;(e.currentTarget as HTMLDivElement).style.borderColor = 'var(--bg-active)'
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.04)'
-                  ;(e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.08)'
+                  (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-hover)'
+                  ;(e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border)'
                 }}
               >
                 <div style={{
@@ -212,7 +210,7 @@ export default function StatsPanel({
                   fontWeight: 700,
                   letterSpacing: '0.07em',
                   textTransform: 'uppercase',
-                  color: 'var(--text-faint)',
+                  color: 'var(--text-muted)',
                   marginTop: 3,
                 }}>
                   {label}
@@ -226,7 +224,7 @@ export default function StatsPanel({
             fontWeight: 700,
             letterSpacing: '0.07em',
             textTransform: 'uppercase',
-            color: 'var(--text-faint)',
+            color: 'var(--text-muted)',
             marginTop: 10,
             marginBottom: 5,
           }}>
@@ -252,10 +250,10 @@ export default function StatsPanel({
             fontWeight: 700,
             letterSpacing: '0.07em',
             textTransform: 'uppercase',
-            color: 'var(--text-faint)',
+            color: 'var(--text-muted)',
             marginTop: 10,
             paddingTop: 8,
-            borderTop: '1px solid rgba(255,255,255,0.06)',
+            borderTop: '1px solid var(--bg-hover)',
             marginBottom: 5,
           }}>
             {t('chat.statsActivitySection')}
@@ -281,7 +279,7 @@ export default function StatsPanel({
               justifyContent: 'space-between',
               padding: '6px 0 3px',
               fontSize: 11,
-              borderTop: '1px solid rgba(255,255,255,0.06)',
+              borderTop: '1px solid var(--bg-hover)',
               marginTop: 6,
             }}>
               <span style={{ color: 'var(--text-muted)' }}>{t('chat.statsSessionCost')}</span>
@@ -293,7 +291,7 @@ export default function StatsPanel({
             <div style={{
               marginTop: 10,
               paddingTop: 8,
-              borderTop: '1px solid rgba(255,255,255,0.06)',
+              borderTop: '1px solid var(--bg-hover)',
             }}>
               <div style={{
                 fontSize: 10,
@@ -330,109 +328,20 @@ export default function StatsPanel({
               </div>
             </div>
           )}
-          {/* Per-model usage section */}
-          {Object.keys(modelUsage).length > 0 && (() => {
-            const models = Object.keys(modelUsage)
-            const shouldCollapse = models.length > 2
-            const isOpen = !shouldCollapse || modelUsageExpanded
-            return (
-              <div style={{
-                marginTop: 10,
-                paddingTop: 8,
-                borderTop: '1px solid var(--glass-border)',
-              }}>
-                <button
-                  onClick={() => setModelUsageExpanded(v => !v)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    background: 'none',
-                    border: 'none',
-                    padding: 0,
-                    cursor: shouldCollapse ? 'pointer' : 'default',
-                    width: '100%',
-                    marginBottom: 6,
-                  }}
-                >
-                  <span style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    letterSpacing: '0.07em',
-                    textTransform: 'uppercase',
-                    color: 'var(--text-faint)',
-                  }}>
-                    {t('chat.statsModelUsage')}
-                  </span>
-                  {shouldCollapse && (
-                    isOpen
-                      ? <ChevronDown size={10} color="var(--text-faint)" />
-                      : <ChevronRight size={10} color="var(--text-faint)" />
-                  )}
-                </button>
-                {isOpen && models.map(model => {
-                  const mu = modelUsage[model]
-                  const shortName = model.length > 40 ? model.slice(0, 40) + '…' : model
-                  return (
-                    <div
-                      key={model}
-                      style={{
-                        paddingBottom: 6,
-                        marginBottom: 6,
-                        borderBottom: '1px solid var(--glass-border)',
-                      }}
-                    >
-                      <div style={{
-                        fontFamily: 'monospace',
-                        fontSize: 10,
-                        color: 'var(--text-secondary)',
-                        marginBottom: 3,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}>
-                        {shortName}
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>In</span>
-                        <span style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"', fontWeight: 600 }}>
-                          {mu.inputTokens.toLocaleString()}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Out</span>
-                        <span style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"', fontWeight: 600 }}>
-                          {mu.outputTokens.toLocaleString()}
-                        </span>
-                      </div>
-                      {mu.cacheTokens > 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}>
-                          <span style={{ color: 'var(--text-secondary)' }}>Cache</span>
-                          <span style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"', fontWeight: 600 }}>
-                            {mu.cacheTokens.toLocaleString()}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )
-          })()}
           {/* Collapse/Expand all actions */}
           <div style={{
             display: 'flex',
             gap: 6,
             marginTop: 10,
             paddingTop: 8,
-            borderTop: '1px solid rgba(255,255,255,0.06)',
+            borderTop: '1px solid var(--bg-hover)',
           }}>
             <button
               onClick={() => { useChatStore.getState().collapseAll(); setShowStats(false) }}
               style={{
                 flex: 1,
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid var(--glass-border-md)',
+                background: 'var(--bg-hover)',
+                border: '1px solid var(--border)',
                 borderRadius: 6,
                 padding: '5px 0',
                 color: 'var(--text-muted)',
@@ -443,11 +352,11 @@ export default function StatsPanel({
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+                e.currentTarget.style.background = 'var(--border)'
                 e.currentTarget.style.color = 'rgba(255,255,255,0.85)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+                e.currentTarget.style.background = 'var(--bg-hover)'
                 e.currentTarget.style.color = 'var(--text-muted)'
               }}
             >
@@ -457,8 +366,8 @@ export default function StatsPanel({
               onClick={() => { useChatStore.getState().expandAll(); setShowStats(false) }}
               style={{
                 flex: 1,
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid var(--glass-border-md)',
+                background: 'var(--bg-hover)',
+                border: '1px solid var(--border)',
                 borderRadius: 6,
                 padding: '5px 0',
                 color: 'var(--text-muted)',
@@ -469,11 +378,11 @@ export default function StatsPanel({
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+                e.currentTarget.style.background = 'var(--border)'
                 e.currentTarget.style.color = 'rgba(255,255,255,0.85)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+                e.currentTarget.style.background = 'var(--bg-hover)'
                 e.currentTarget.style.color = 'var(--text-muted)'
               }}
             >
@@ -486,8 +395,8 @@ export default function StatsPanel({
             style={{
               width: '100%',
               marginTop: 6,
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid var(--glass-border-md)',
+              background: 'var(--bg-hover)',
+              border: '1px solid var(--border)',
               borderRadius: 6,
               padding: '5px 0',
               color: statsCopied ? '#4ade80' : 'var(--text-muted)',
@@ -503,13 +412,13 @@ export default function StatsPanel({
             }}
             onMouseEnter={(e) => {
               if (!statsCopied) {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+                e.currentTarget.style.background = 'var(--border)'
                 e.currentTarget.style.color = 'rgba(255,255,255,0.85)'
               }
             }}
             onMouseLeave={(e) => {
               if (!statsCopied) {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+                e.currentTarget.style.background = 'var(--bg-hover)'
                 e.currentTarget.style.color = 'var(--text-muted)'
               }
             }}
@@ -523,8 +432,8 @@ export default function StatsPanel({
             style={{
               width: '100%',
               marginTop: 4,
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid var(--glass-border-md)',
+              background: 'var(--bg-hover)',
+              border: '1px solid var(--border)',
               borderRadius: 6,
               padding: '5px 0',
               color: summaryCopied ? '#4ade80' : 'var(--text-muted)',
@@ -540,13 +449,13 @@ export default function StatsPanel({
             }}
             onMouseEnter={(e) => {
               if (!summaryCopied) {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+                e.currentTarget.style.background = 'var(--border)'
                 e.currentTarget.style.color = 'rgba(255,255,255,0.85)'
               }
             }}
             onMouseLeave={(e) => {
               if (!summaryCopied) {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+                e.currentTarget.style.background = 'var(--bg-hover)'
                 e.currentTarget.style.color = 'var(--text-muted)'
               }
             }}

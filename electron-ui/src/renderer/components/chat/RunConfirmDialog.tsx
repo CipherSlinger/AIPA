@@ -36,7 +36,7 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
       style={{
         position: 'fixed', inset: 0, zIndex: 9999,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'var(--glass-overlay)',
+        background: 'rgba(0,0,0,0.70)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         animation: 'fadeIn 0.15s ease',
@@ -46,14 +46,14 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: 'var(--glass-bg-high)',
+          background: 'var(--popup-bg)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
           border: isDangerous
             ? '1px solid rgba(239,68,68,0.25)'
-            : '1px solid var(--glass-border-md)',
+            : '1px solid var(--border)',
           borderRadius: 16,
-          boxShadow: 'var(--glass-shadow)',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
           maxWidth: 480,
           width: '90%',
           overflow: 'hidden',
@@ -69,7 +69,7 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
             padding: '16px 20px',
             borderBottom: isDangerous
               ? '1px solid rgba(239,68,68,0.15)'
-              : '1px solid var(--glass-border)',
+              : '1px solid var(--border)',
             background: isDangerous ? 'rgba(239,68,68,0.05)' : 'transparent',
           }}
         >
@@ -106,7 +106,7 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
           <pre
             style={{
               background: 'rgba(8,8,16,0.80)',
-              border: `1px solid ${isDangerous ? 'rgba(239,68,68,0.35)' : 'var(--glass-border-md)'}`,
+              border: `1px solid ${isDangerous ? 'rgba(239,68,68,0.35)' : 'var(--border)'}`,
               borderRadius: 8,
               padding: '12px 16px',
               fontSize: 12,
@@ -132,7 +132,7 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
               fontWeight: 700,
               letterSpacing: '0.07em',
               textTransform: 'uppercase',
-              color: 'var(--text-faint)',
+              color: 'var(--text-muted)',
               display: 'flex',
               gap: 6,
               alignItems: 'center',
@@ -180,18 +180,18 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
                 padding: '7px 18px',
                 fontSize: 13,
                 borderRadius: 8,
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid var(--glass-border-md)',
+                background: 'var(--bg-hover)',
+                border: '1px solid var(--border)',
                 color: 'var(--text-secondary)',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.background = 'var(--glass-border-md)'
+                e.currentTarget.style.background = 'var(--border)'
                 e.currentTarget.style.color = 'var(--text-primary)'
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                e.currentTarget.style.background = 'var(--bg-hover)'
                 e.currentTarget.style.color = 'var(--text-secondary)'
               }}
             >

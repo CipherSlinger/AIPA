@@ -88,7 +88,7 @@ function LSPResultBody({ text }: { text: string }) {
         maxHeight: 300,
         overflowY: 'auto',
         background: 'rgba(12,12,22,0.9)',
-        border: '1px solid var(--glass-border)',
+        border: '1px solid var(--border)',
         borderRadius: 7,
         color: '#a5b4fc',
       }}
@@ -111,7 +111,7 @@ function LSPResultBody({ text }: { text: string }) {
         const isError = /^(No |Error |LSP server )/.test(trimmed) || trimmed.startsWith('Error')
 
         let color = 'var(--text-primary)'
-        if (isError) color = 'var(--text-faint)'
+        if (isError) color = 'var(--text-muted)'
         else if (isSummary) color = '#a5b4fc'
         else if (isFilePath) color = '#4ade80'
         else if (isLocation) color = 'rgba(255,255,255,0.6)'
@@ -165,12 +165,12 @@ export default function LSPResultCard({ data }: Props) {
   return (
     <div
       style={{
-        background: 'var(--glass-bg-mid)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid var(--glass-border-md)',
+        border: '1px solid var(--border)',
         borderRadius: 10,
-        boxShadow: 'var(--glass-shadow)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
         overflow: 'hidden',
         marginBottom: 4,
       }}
@@ -192,8 +192,8 @@ export default function LSPResultCard({ data }: Props) {
         }}
       >
         {expanded
-          ? <ChevronDown size={11} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
-          : <ChevronRight size={11} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+          ? <ChevronDown size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+          : <ChevronRight size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
         }
 
         {/* LSP icon */}
@@ -214,12 +214,12 @@ export default function LSPResultCard({ data }: Props) {
         </span>
 
         {/* Operation-specific icon */}
-        <OpIcon size={11} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+        <OpIcon size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
 
         {/* File path */}
         <span style={{
           fontSize: 10,
-          color: 'var(--text-faint)',
+          color: 'var(--text-muted)',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -239,7 +239,7 @@ export default function LSPResultCard({ data }: Props) {
             background: isEmpty
               ? 'rgba(120,120,120,0.12)'
               : 'rgba(99,102,241,0.15)',
-            color: isEmpty ? 'var(--text-faint)' : '#818cf8',
+            color: isEmpty ? 'var(--text-muted)' : '#818cf8',
             border: `1px solid ${isEmpty
               ? 'rgba(120,120,120,0.25)'
               : 'rgba(99,102,241,0.3)'}`,
@@ -253,7 +253,7 @@ export default function LSPResultCard({ data }: Props) {
 
       {/* Expandable body */}
       {expanded && (
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ borderTop: '1px solid var(--bg-hover)' }}>
           <LSPResultBody text={data.result} />
         </div>
       )}

@@ -244,7 +244,7 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
               height={14}
               rx={6}
               ry={6}
-              fill="var(--glass-bg-low)"
+              fill="rgba(15,15,25,0.85)"
               stroke={
                 status === 'done' || status === 'completed'
                   ? 'rgba(34,197,94,0.45)'
@@ -285,10 +285,10 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
           style={{ overflow: 'visible', pointerEvents: 'none' }}
         >
           <div style={{
-            background: 'var(--glass-bg-card)',
+            background: 'rgba(15,15,25,0.88)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
-            border: '1px solid var(--glass-border-md)',
+            border: '1px solid var(--border)',
             borderRadius: 6,
             padding: '2px 8px',
             fontSize: 11,
@@ -309,8 +309,8 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
             cx={startX}
             cy={startY}
             r={8}
-            fill="rgba(30,30,40,0.85)"
-            stroke="rgba(255,255,255,0.12)"
+            fill="var(--bg-secondary)"
+            stroke="var(--bg-active)"
             strokeWidth={1}
           />
           <text
@@ -330,8 +330,8 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
             cx={endX}
             cy={endY}
             r={8}
-            fill="rgba(30,30,40,0.85)"
-            stroke="rgba(255,255,255,0.12)"
+            fill="var(--bg-secondary)"
+            stroke="var(--bg-active)"
             strokeWidth={1}
           />
           <text

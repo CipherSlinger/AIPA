@@ -23,7 +23,7 @@ const statusIcon = (status: DiagnosticResult['status'] | 'loading', size = 16) =
     case 'error':
       return <XCircle size={size} style={{ color: '#f87171', flexShrink: 0 }} />
     case 'loading':
-      return <Loader size={size} style={{ color: 'var(--text-faint)', flexShrink: 0, animation: 'spin 1s linear infinite' }} />
+      return <Loader size={size} style={{ color: 'var(--text-muted)', flexShrink: 0, animation: 'spin 1s linear infinite' }} />
   }
 }
 
@@ -141,8 +141,8 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
         <button
           onClick={onBack}
           style={{
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid var(--glass-border-md)',
+            background: 'var(--bg-hover)',
+            border: '1px solid var(--border)',
             cursor: 'pointer',
             color: 'var(--text-secondary)', padding: '4px 6px', borderRadius: 6,
             display: 'flex', alignItems: 'center',
@@ -150,11 +150,11 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
           }}
           onMouseEnter={e => {
             e.currentTarget.style.color = 'var(--text-primary)'
-            e.currentTarget.style.background = 'var(--glass-border-md)'
+            e.currentTarget.style.background = 'var(--border)'
           }}
           onMouseLeave={e => {
             e.currentTarget.style.color = 'var(--text-primary)'
-            e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+            e.currentTarget.style.background = 'var(--bg-hover)'
           }}
           title={t('common.back')}
         >
@@ -171,10 +171,10 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
         overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
-        background: 'var(--glass-bg-low)',
+        background: 'rgba(15,15,25,0.85)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '1px solid var(--border)',
         borderRadius: 10,
       }}>
         {displayItems.map((item, idx) => {
@@ -186,7 +186,7 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
               style={{
                 display: 'flex', alignItems: 'flex-start', gap: 12,
                 padding: '12px 16px',
-                borderBottom: idx < displayItems.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                borderBottom: idx < displayItems.length - 1 ? '1px solid var(--bg-hover)' : 'none',
               }}
             >
               <div style={{ paddingTop: 2 }}>
@@ -227,11 +227,11 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
                   onClick={() => handleCopy(item.id, copyText)}
                   title="Copy"
                   style={{
-                    background: copiedId === item.id ? 'rgba(74,222,128,0.12)' : 'rgba(255,255,255,0.05)',
-                    border: '1px solid var(--glass-border-md)',
+                    background: copiedId === item.id ? 'rgba(74,222,128,0.12)' : 'var(--bg-hover)',
+                    border: '1px solid var(--border)',
                     borderRadius: 8,
                     padding: '3px 6px',
-                    color: copiedId === item.id ? '#4ade80' : 'var(--text-faint)',
+                    color: copiedId === item.id ? '#4ade80' : 'var(--text-muted)',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -239,10 +239,10 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
                     transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={e => {
-                    if (copiedId !== item.id) e.currentTarget.style.background = 'var(--glass-border-md)'
+                    if (copiedId !== item.id) e.currentTarget.style.background = 'var(--border)'
                   }}
                   onMouseLeave={e => {
-                    if (copiedId !== item.id) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+                    if (copiedId !== item.id) e.currentTarget.style.background = 'var(--bg-hover)'
                   }}
                 >
                   <Copy size={12} />
@@ -256,10 +256,10 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
       {/* CLAUDE.md check */}
       <div style={{
         marginTop: 8,
-        background: 'var(--glass-bg-low)',
+        background: 'rgba(15,15,25,0.85)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '1px solid var(--border)',
         borderRadius: 10,
         overflow: 'hidden',
       }}>
@@ -286,10 +286,10 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
       {/* MCP Connectivity */}
       <div style={{
         marginTop: 8,
-        background: 'var(--glass-bg-low)',
+        background: 'rgba(15,15,25,0.85)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '1px solid var(--border)',
         borderRadius: 10,
         overflow: 'hidden',
       }}>
@@ -298,7 +298,7 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
             <div style={{ paddingTop: 2 }}>{statusIcon('loading')}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{t('diagnostics.mcpConnectivity')}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 3, lineHeight: 1.5 }}>Loading…</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.5 }}>Loading…</div>
             </div>
           </div>
         ) : mcpStatuses.length === 0 ? (
@@ -318,7 +318,7 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
               style={{
                 display: 'flex', alignItems: 'flex-start', gap: 12,
                 padding: '12px 16px',
-                borderBottom: idx < mcpStatuses.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                borderBottom: idx < mcpStatuses.length - 1 ? '1px solid var(--bg-hover)' : 'none',
               }}
             >
               <div style={{ paddingTop: 2 }}>
@@ -346,16 +346,16 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           marginTop: 10, padding: '8px 16px',
-          background: 'rgba(255,255,255,0.05)',
-          border: '1px solid var(--glass-border-md)',
+          background: 'var(--bg-hover)',
+          border: '1px solid var(--border)',
           borderRadius: 6,
-          color: loading ? 'var(--text-faint)' : 'var(--text-secondary)',
+          color: loading ? 'var(--text-muted)' : 'var(--text-secondary)',
           cursor: isStillLoading ? 'not-allowed' : 'pointer', fontSize: 12,
           width: '100%',
           transition: 'all 0.15s ease',
         }}
-        onMouseEnter={e => { if (!isStillLoading) e.currentTarget.style.background = 'var(--glass-border-md)' }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
+        onMouseEnter={e => { if (!isStillLoading) e.currentTarget.style.background = 'var(--border)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
       >
         <RefreshCw size={12} style={isStillLoading ? { animation: 'spin 1s linear infinite' } : undefined} />
         {t('diagnostics.rerun')}

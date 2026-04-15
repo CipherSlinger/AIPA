@@ -146,17 +146,17 @@ export default function ExportDialog({ onClose }: Props) {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'var(--glass-overlay)',
+    background: 'rgba(0,0,0,0.70)',
     backdropFilter: 'blur(8px)',
     WebkitBackdropFilter: 'blur(8px)',
     animation: 'fadeIn 0.15s ease',
   }
 
   const dialogStyle: React.CSSProperties = {
-    background: 'var(--glass-bg-deep)',
+    background: 'var(--popup-bg)',
     backdropFilter: 'blur(20px)',
     WebkitBackdropFilter: 'blur(20px)',
-    border: '1px solid var(--glass-border-md)',
+    border: '1px solid var(--border)',
     borderRadius: 16,
     padding: 20,
     width: 480,
@@ -171,7 +171,7 @@ export default function ExportDialog({ onClose }: Props) {
   const labelStyle: React.CSSProperties = {
     fontSize: 10,
     fontWeight: 700,
-    color: 'var(--text-faint)',
+    color: 'var(--text-muted)',
     textTransform: 'uppercase',
     letterSpacing: '0.07em',
     marginBottom: 6,
@@ -179,7 +179,7 @@ export default function ExportDialog({ onClose }: Props) {
 
   const radioGroupStyle: React.CSSProperties = {
     display: 'flex',
-    background: 'rgba(255,255,255,0.05)',
+    background: 'var(--bg-hover)',
     borderRadius: 8,
     padding: 3,
     gap: 2,
@@ -209,8 +209,8 @@ export default function ExportDialog({ onClose }: Props) {
   }
 
   const previewBoxStyle: React.CSSProperties = {
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid var(--glass-border-md)',
+    background: 'var(--bg-hover)',
+    border: '1px solid var(--border)',
     borderRadius: 8,
     padding: '8px 10px',
     fontSize: 11,
@@ -239,7 +239,7 @@ export default function ExportDialog({ onClose }: Props) {
     <div style={overlayStyle}>
       <div ref={dialogRef} style={dialogStyle}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid var(--bg-hover)' }}>
           <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
             导出会话
           </span>
@@ -250,7 +250,7 @@ export default function ExportDialog({ onClose }: Props) {
               color: 'var(--text-muted)', display: 'flex', padding: 4, borderRadius: 8,
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
             <X size={15} />
@@ -306,17 +306,17 @@ export default function ExportDialog({ onClose }: Props) {
             onClick={onClose}
             style={{
               ...btnBase,
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid var(--glass-border-md)',
+              background: 'var(--bg-hover)',
+              border: '1px solid var(--border)',
               color: 'var(--text-secondary)',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = 'var(--glass-border-md)'
-              e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+              e.currentTarget.style.background = 'var(--border)'
+              e.currentTarget.style.borderColor = 'var(--border)'
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-              e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+              e.currentTarget.style.background = 'var(--bg-hover)'
+              e.currentTarget.style.borderColor = 'var(--border)'
             }}
           >
             取消
@@ -329,7 +329,7 @@ export default function ExportDialog({ onClose }: Props) {
               background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
               border: 'none',
               color: 'rgba(255,255,255,0.95)',
-              boxShadow: 'var(--glass-shadow)',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
               opacity: saving || messages.length === 0 ? 0.5 : 1,
               cursor: saving || messages.length === 0 ? 'not-allowed' : 'pointer',
             }}

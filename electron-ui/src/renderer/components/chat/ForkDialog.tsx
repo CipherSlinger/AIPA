@@ -47,7 +47,7 @@ export default function ForkDialog({ msgIdx, sessionId, onConfirm, onCancel }: F
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'var(--glass-overlay)',
+        background: 'rgba(0,0,0,0.70)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         animation: 'fadeIn 0.15s ease',
@@ -56,10 +56,10 @@ export default function ForkDialog({ msgIdx, sessionId, onConfirm, onCancel }: F
     >
       <div
         style={{
-          background: 'var(--glass-bg-deep)',
+          background: 'var(--popup-bg)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid var(--glass-border-md)',
+          border: '1px solid var(--border)',
           borderRadius: 16,
           boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
           width: 340,
@@ -76,7 +76,7 @@ export default function ForkDialog({ msgIdx, sessionId, onConfirm, onCancel }: F
             alignItems: 'center',
             gap: 8,
             padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            borderBottom: '1px solid var(--bg-hover)',
           }}
         >
           <GitBranch size={16} style={{ color: '#818cf8', flexShrink: 0 }} />
@@ -100,7 +100,7 @@ export default function ForkDialog({ msgIdx, sessionId, onConfirm, onCancel }: F
                 fontWeight: 700,
                 letterSpacing: '0.07em',
                 textTransform: 'uppercase',
-                color: 'var(--text-faint)',
+                color: 'var(--text-muted)',
               }}
             >
               {t('fork.nameLabel')}
@@ -114,8 +114,8 @@ export default function ForkDialog({ msgIdx, sessionId, onConfirm, onCancel }: F
               onBlur={() => setInputFocused(false)}
               placeholder={t('fork.namePlaceholder')}
               style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: `1px solid ${inputFocused ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.12)'}`,
+                background: 'var(--bg-hover)',
+                border: `1px solid ${inputFocused ? 'rgba(99,102,241,0.5)' : 'var(--bg-active)'}`,
                 boxShadow: inputFocused ? '0 0 0 3px rgba(99,102,241,0.12)' : 'none',
                 borderRadius: 6,
                 padding: '7px 10px',
@@ -134,8 +134,8 @@ export default function ForkDialog({ msgIdx, sessionId, onConfirm, onCancel }: F
             <button
               onClick={onCancel}
               style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.12)',
+                background: 'var(--bg-hover)',
+                border: '1px solid var(--bg-active)',
                 borderRadius: 8,
                 padding: '7px 16px',
                 fontSize: 13,
@@ -143,8 +143,8 @@ export default function ForkDialog({ msgIdx, sessionId, onConfirm, onCancel }: F
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--border)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-hover)' }}
             >
               {t('common.cancel')}
             </button>
@@ -162,7 +162,7 @@ export default function ForkDialog({ msgIdx, sessionId, onConfirm, onCancel }: F
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
-                boxShadow: 'var(--glass-shadow)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {

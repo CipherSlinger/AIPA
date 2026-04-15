@@ -136,7 +136,7 @@ export default function CommandPalette({
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'var(--glass-overlay)',
+        background: 'rgba(0,0,0,0.70)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         zIndex: 500,
@@ -154,10 +154,10 @@ export default function CommandPalette({
         aria-label={t('command.searchPlaceholder')}
         onKeyDown={handleKeyDown}
         style={{
-          background: 'var(--glass-bg-high)',
+          background: 'var(--popup-bg)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid var(--glass-border-md)',
+          border: '1px solid var(--border)',
           borderRadius: 16,
           boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
           width: '100%',
@@ -174,10 +174,10 @@ export default function CommandPalette({
             alignItems: 'center',
             gap: 10,
             padding: '14px 18px',
-            borderBottom: '1px solid var(--glass-border-md)',
+            borderBottom: '1px solid var(--border)',
           }}
         >
-          <Search size={17} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+          <Search size={17} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
           <input
             ref={inputRef}
             value={query}
@@ -209,7 +209,7 @@ export default function CommandPalette({
             <div
               style={{
                 fontSize: 12,
-                color: 'var(--text-faint)',
+                color: 'var(--text-muted)',
                 textAlign: 'center',
                 padding: '24px 16px',
               }}
@@ -280,8 +280,8 @@ export default function CommandPalette({
                     fontSize: 11,
                     color: 'var(--text-muted)',
                     marginLeft: 'auto',
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '1px solid var(--glass-border-md)',
+                    background: 'var(--border)',
+                    border: '1px solid var(--border)',
                     borderRadius: 5,
                     padding: '2px 6px',
                     fontFamily: 'monospace',
@@ -298,11 +298,11 @@ export default function CommandPalette({
                     fontWeight: 700,
                     letterSpacing: '0.07em',
                     textTransform: 'uppercase',
-                    color: 'var(--text-faint)',
+                    color: 'var(--text-muted)',
                     marginLeft: cmd.shortcut ? 0 : 'auto',
                     flexShrink: 0,
-                    background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid var(--glass-border)',
+                    background: 'var(--bg-hover)',
+                    border: '1px solid var(--border)',
                     borderRadius: 4,
                     padding: '1px 5px',
                   }}
@@ -320,12 +320,12 @@ export default function CommandPalette({
             display: 'flex',
             gap: 12,
             padding: '8px 16px',
-            borderTop: '1px solid rgba(255,255,255,0.05)',
+            borderTop: '1px solid var(--bg-hover)',
             fontSize: 10,
             fontWeight: 700,
             letterSpacing: '0.05em',
             textTransform: 'uppercase',
-            color: 'var(--text-faint)',
+            color: 'var(--text-muted)',
           }}
         >
           <span>{t('command.arrowKeysHint')}</span>

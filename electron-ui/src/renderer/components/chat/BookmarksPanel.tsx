@@ -60,7 +60,7 @@ export default function BookmarksPanel({
             fontSize: 9,
             fontWeight: 600,
             color: 'rgba(255,255,255,0.55)',
-            background: 'rgba(255,255,255,0.08)',
+            background: 'var(--border)',
             borderRadius: 10,
             minWidth: 14,
             height: 14,
@@ -82,16 +82,16 @@ export default function BookmarksPanel({
             width: 300,
             maxHeight: 320,
             overflowY: 'auto',
-            background: 'var(--glass-bg-raised)',
+            background: 'var(--popup-bg)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid var(--glass-border-md)',
+            border: '1px solid var(--border)',
             borderRadius: 12,
-            boxShadow: 'var(--glass-shadow)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
             padding: '4px 0',
             marginTop: 4,
             scrollbarWidth: 'thin',
-            scrollbarColor: 'rgba(255,255,255,0.12) transparent',
+            scrollbarColor: 'var(--bg-active) transparent',
             animation: 'slideUp 0.15s ease',
           } as React.CSSProperties}
         >
@@ -100,12 +100,12 @@ export default function BookmarksPanel({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '7px 12px',
-            borderBottom: '1px solid var(--glass-border)',
+            borderBottom: '1px solid var(--border)',
           }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
               {t('chat.bookmarks')}
               <span style={{
-                background: 'rgba(255,255,255,0.08)',
+                background: 'var(--border)',
                 borderRadius: 10,
                 padding: '1px 6px',
                 fontSize: 10,
@@ -129,7 +129,7 @@ export default function BookmarksPanel({
                   transition: 'all 0.15s ease',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+                  e.currentTarget.style.background = 'var(--border)'
                   e.currentTarget.style.color = 'rgba(255,255,255,0.85)'
                 }}
                 onMouseLeave={(e) => {
@@ -171,7 +171,7 @@ export default function BookmarksPanel({
                   borderRadius: '0 7px 7px 0',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                  e.currentTarget.style.background = 'var(--bg-hover)'
                   e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)'
                   e.currentTarget.style.borderLeftColor = 'rgba(99,102,241,0.75)'
                 }}
@@ -183,7 +183,7 @@ export default function BookmarksPanel({
               >
                 <div style={{
                   width: 20, height: 20, borderRadius: '50%',
-                  background: isUserMsg ? 'rgba(99,102,241,0.35)' : 'rgba(255,255,255,0.10)',
+                  background: isUserMsg ? 'rgba(99,102,241,0.35)' : 'var(--border)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0, marginTop: 1,
                 }}>
@@ -204,7 +204,7 @@ export default function BookmarksPanel({
                   {std.timestamp && (
                     <div style={{
                       fontSize: 10,
-                      color: 'var(--text-faint)',
+                      color: 'var(--text-muted)',
                       marginTop: 2,
                       fontVariantNumeric: 'tabular-nums',
                       fontFeatureSettings: '"tnum"',
@@ -226,12 +226,12 @@ export default function BookmarksPanel({
             right: 0,
             zIndex: 60,
             width: 220,
-            background: 'var(--glass-bg-raised)',
+            background: 'var(--popup-bg)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid var(--glass-border-md)',
+            border: '1px solid var(--border)',
             borderRadius: 12,
-            boxShadow: 'var(--glass-shadow)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
             padding: '20px 14px',
             marginTop: 4,
             textAlign: 'center',
@@ -239,7 +239,7 @@ export default function BookmarksPanel({
           } as React.CSSProperties}
         >
           <div style={{
-            color: 'var(--text-faint)',
+            color: 'var(--text-muted)',
             display: 'flex',
             justifyContent: 'center',
             marginBottom: 8,
@@ -257,9 +257,9 @@ export default function BookmarksPanel({
               <Bookmark size={20} style={{ color: '#818cf8' }} />
             </div>
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text-faint)', fontWeight: 500 }}>{t('chat.noBookmarks')}</div>
-          <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 5, lineHeight: 1.5 }}>{t('chat.bookmarkHint')}</div>
-          <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 3, lineHeight: 1.5 }}>{t('chat.bookmarkShortcutHint')}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>{t('chat.noBookmarks')}</div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 5, lineHeight: 1.5 }}>{t('chat.bookmarkHint')}</div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.5 }}>{t('chat.bookmarkShortcutHint')}</div>
         </div>
       )}
     </div>

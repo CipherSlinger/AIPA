@@ -51,10 +51,10 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
       style={{
         margin: '8px 16px',
         borderRadius: 10,
-        background: 'var(--glass-bg-low)',
+        background: 'rgba(15,15,25,0.85)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid var(--glass-border)',
+        border: '1px solid var(--border)',
         borderLeft: '3px solid rgba(99,102,241,0.60)',
         boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
         overflow: 'hidden',
@@ -67,7 +67,7 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
           alignItems: 'center',
           gap: 8,
           padding: '10px 14px',
-          borderBottom: '1px solid var(--glass-border)',
+          borderBottom: '1px solid var(--border)',
         }}
       >
         <ClipboardList size={13} style={{ color: '#818cf8', flexShrink: 0 }} />
@@ -77,7 +77,7 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
             fontWeight: 700,
             textTransform: 'uppercase',
             letterSpacing: '0.07em',
-            color: 'var(--text-faint)',
+            color: 'var(--text-muted)',
           }}
         >
           {t('plan.executionPlan')}
@@ -144,7 +144,7 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
                 background: 'transparent',
                 transition: 'background 0.15s ease',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
               {/* Bullet / step number */}
@@ -177,7 +177,7 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
                   fontSize: 12,
                   lineHeight: 1.6,
                   color: isCompleted
-                    ? 'var(--text-faint)'
+                    ? 'var(--text-muted)'
                     : isActive
                       ? 'rgba(255,255,255,0.92)'
                       : 'var(--text-secondary)',
@@ -201,7 +201,7 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
             display: 'flex',
             gap: 8,
             padding: '10px 14px',
-            borderTop: '1px solid var(--glass-border)',
+            borderTop: '1px solid var(--border)',
           }}
         >
           <button
@@ -238,12 +238,12 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
           <button
             onClick={onReject}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--glass-border)'
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'
+              e.currentTarget.style.background = 'var(--border)'
+              e.currentTarget.style.borderColor = 'var(--bg-active)'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+              e.currentTarget.style.borderColor = 'var(--border)'
             }}
             style={{
               flex: 1,
@@ -253,7 +253,7 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
               gap: 6,
               padding: '6px 12px',
               background: 'transparent',
-              border: '1px solid var(--glass-border-md)',
+              border: '1px solid var(--border)',
               borderRadius: 8,
               color: 'rgba(255,255,255,0.55)',
               fontSize: 12,

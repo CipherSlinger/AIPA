@@ -39,13 +39,13 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
           bottom: 20,
           left: '50%',
           transform: 'translateX(-50%)',
-          color: 'var(--text-faint)',
+          color: 'var(--text-muted)',
           fontSize: 11,
           fontStyle: 'italic',
-          background: 'var(--glass-bg-raised)',
+          background: 'var(--popup-bg)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
-          border: '1px solid var(--glass-border-md)',
+          border: '1px solid var(--border)',
           padding: '4px 14px',
           borderRadius: 6,
           whiteSpace: 'nowrap',
@@ -77,12 +77,12 @@ export default function MarkdownImage({ src, alt }: { src?: string; alt?: string
           overflow: 'hidden',
           border: errored
             ? '1px solid rgba(239,68,68,0.45)'
-            : '1px solid var(--glass-border)',
+            : '1px solid var(--border)',
           boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
           maxWidth: '100%',
           marginBottom: 8,
           transition: 'all 0.15s ease',
-          background: loaded && !errored ? undefined : 'var(--glass-bg-low)',
+          background: loaded && !errored ? undefined : 'rgba(15,15,25,0.85)',
         }}
       >
         {/* Loading skeleton — shown until image loads or errors */}
@@ -137,11 +137,11 @@ export default function MarkdownImage({ src, alt }: { src?: string; alt?: string
               position: 'absolute',
               bottom: 6,
               right: 6,
-              background: 'var(--glass-bg-low)',
+              background: 'rgba(15,15,25,0.85)',
               backdropFilter: 'blur(8px)',
               WebkitBackdropFilter: 'blur(8px)',
               borderRadius: 4,
-              border: '1px solid var(--glass-border)',
+              border: '1px solid var(--border)',
               padding: '2px 6px',
               display: 'flex',
               alignItems: 'center',
@@ -158,7 +158,7 @@ export default function MarkdownImage({ src, alt }: { src?: string; alt?: string
       {alt && (
         <div style={{
           fontSize: 12,
-          color: 'var(--text-faint)',
+          color: 'var(--text-muted)',
           textAlign: 'center',
           paddingTop: 4,
           fontStyle: 'italic',

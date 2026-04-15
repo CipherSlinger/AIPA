@@ -27,10 +27,10 @@ export default function NotePopup({ query, notes, categories, selectedIndex, onS
         left: 0,
         right: 0,
         marginBottom: 4,
-        background: 'var(--glass-bg-high)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid var(--glass-border)',
+        border: '1px solid var(--border)',
         borderRadius: 12,
         boxShadow: '0 16px 48px rgba(0,0,0,0.65), 0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
         zIndex: 1000,
@@ -47,11 +47,11 @@ export default function NotePopup({ query, notes, categories, selectedIndex, onS
         fontWeight: 700,
         letterSpacing: '0.07em',
         textTransform: 'uppercase' as const,
-        color: 'var(--text-faint)',
+        color: 'var(--text-muted)',
         display: 'flex',
         alignItems: 'center',
         gap: 4,
-        borderBottom: '1px solid var(--glass-border)',
+        borderBottom: '1px solid var(--border)',
         flexShrink: 0,
       }}>
         <StickyNote size={10} />
@@ -104,7 +104,7 @@ export default function NotePopup({ query, notes, categories, selectedIndex, onS
                 }}
                 onMouseOver={(e) => {
                   if (!isSelected) {
-                    (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)'
+                    (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-hover)'
                   }
                 }}
                 onMouseOut={(e) => {
@@ -153,7 +153,7 @@ export default function NotePopup({ query, notes, categories, selectedIndex, onS
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '4px 12px',
-        borderTop: '1px solid var(--glass-border)',
+        borderTop: '1px solid var(--border)',
         flexShrink: 0,
       }}>
         {onAddNote ? (
@@ -186,7 +186,7 @@ export default function NotePopup({ query, notes, categories, selectedIndex, onS
             {t('notes.add') || 'New note'}
           </button>
         ) : <span />}
-        <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>
+        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
           ↑↓&nbsp;navigate · Enter&nbsp;select · Esc&nbsp;dismiss
         </span>
       </div>

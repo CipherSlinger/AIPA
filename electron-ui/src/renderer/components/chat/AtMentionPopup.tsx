@@ -74,10 +74,10 @@ export default function AtMentionPopup({ query, onSelect, onDismiss, anchorRef }
         bottom: '100%',
         left: 0,
         right: 0,
-        background: 'var(--glass-bg-high)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid var(--glass-border)',
+        border: '1px solid var(--border)',
         borderRadius: 12,
         boxShadow: '0 16px 48px rgba(0,0,0,0.65), 0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
         zIndex: 1000,
@@ -85,7 +85,7 @@ export default function AtMentionPopup({ query, onSelect, onDismiss, anchorRef }
         overflow: 'hidden',
       }}
     >
-      <style>{`.at-popup-scroll::-webkit-scrollbar { width: 4px; } .at-popup-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); border-radius: 2px; }`}</style>
+      <style>{`.at-popup-scroll::-webkit-scrollbar { width: 4px; } .at-popup-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }`}</style>
 
       {/* Section header — micro-label */}
       <div style={{
@@ -93,9 +93,9 @@ export default function AtMentionPopup({ query, onSelect, onDismiss, anchorRef }
         fontWeight: 700,
         letterSpacing: '0.07em',
         textTransform: 'uppercase' as const,
-        color: 'var(--text-faint)',
+        color: 'var(--text-muted)',
         padding: '6px 12px 4px',
-        borderBottom: '1px solid var(--glass-border)',
+        borderBottom: '1px solid var(--border)',
       }}>
         Files &amp; Folders
       </div>
@@ -116,7 +116,7 @@ export default function AtMentionPopup({ query, onSelect, onDismiss, anchorRef }
               onMouseEnter={(e) => {
                 setSelectedIndex(i)
                 if (!isSelected) {
-                  (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.06)'
+                  (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-hover)'
                 }
               }}
               onMouseLeave={(e) => {
@@ -169,7 +169,7 @@ export default function AtMentionPopup({ query, onSelect, onDismiss, anchorRef }
                 {/* Subtle path description */}
                 <div style={{
                   fontSize: 11,
-                  color: 'var(--text-faint)',
+                  color: 'var(--text-muted)',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
@@ -202,7 +202,7 @@ export default function AtMentionPopup({ query, onSelect, onDismiss, anchorRef }
         alignItems: 'center',
         gap: 6,
         padding: '5px 12px',
-        borderTop: '1px solid var(--glass-border)',
+        borderTop: '1px solid var(--border)',
         flexWrap: 'wrap' as const,
       }}>
         {[
@@ -215,8 +215,8 @@ export default function AtMentionPopup({ query, onSelect, onDismiss, anchorRef }
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'var(--glass-border)',
-              border: '1px solid rgba(255,255,255,0.12)',
+              background: 'var(--border)',
+              border: '1px solid var(--bg-active)',
               borderRadius: 4,
               padding: '1px 5px',
               fontSize: 10,
@@ -226,7 +226,7 @@ export default function AtMentionPopup({ query, onSelect, onDismiss, anchorRef }
             }}>
               {key}
             </kbd>
-            <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>{label}</span>
+            <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{label}</span>
           </span>
         ))}
       </div>

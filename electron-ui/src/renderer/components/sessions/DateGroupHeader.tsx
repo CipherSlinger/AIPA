@@ -25,13 +25,13 @@ export default function DateGroupHeader({ group, count, isCollapsed, onToggle }:
         cursor: 'pointer',
         userSelect: 'none',
         transition: 'all 0.15s ease',
-        background: 'var(--glass-bg-high)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
       }}
     >
       {/* left divider line */}
-      <span style={{ flex: 1, height: 1, background: 'var(--glass-border)' }} />
+      <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
 
       {/* label — micro-label style */}
       <span style={{
@@ -43,7 +43,7 @@ export default function DateGroupHeader({ group, count, isCollapsed, onToggle }:
         fontWeight: 700,
         letterSpacing: '0.07em',
         textTransform: 'uppercase' as const,
-        color: 'var(--text-faint)',
+        color: 'var(--text-muted)',
         lineHeight: 1,
       }}>
         {isCollapsed ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
@@ -53,8 +53,8 @@ export default function DateGroupHeader({ group, count, isCollapsed, onToggle }:
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'rgba(255,255,255,0.08)',
-          color: 'var(--text-faint)',
+          background: 'var(--border)',
+          color: 'var(--text-muted)',
           borderRadius: 6,
           padding: '0 5px',
           fontSize: 10,
@@ -69,7 +69,7 @@ export default function DateGroupHeader({ group, count, isCollapsed, onToggle }:
       </span>
 
       {/* right divider line */}
-      <span style={{ flex: 1, height: 1, background: 'var(--glass-border)' }} />
+      <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
     </div>
   )
 }

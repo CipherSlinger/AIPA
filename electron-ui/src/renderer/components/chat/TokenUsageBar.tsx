@@ -121,7 +121,7 @@ export default function TokenUsageBar() {
         style={{
           flex: 1,
           height: 2,
-          background: 'rgba(255,255,255,0.06)',
+          background: 'var(--bg-hover)',
           overflow: 'hidden',
         }}
       >
@@ -143,7 +143,7 @@ export default function TokenUsageBar() {
           fontSize: 11,
           fontVariantNumeric: 'tabular-nums',
           fontFeatureSettings: '"tnum"',
-          color: 'var(--text-faint)',
+          color: 'var(--text-muted)',
           lineHeight: 1,
           flexShrink: 0,
           userSelect: 'none',
@@ -178,8 +178,8 @@ export default function TokenUsageBar() {
             ...(canCompact
               ? { ...(btnHovered ? { ...compactBase, ...compactHover } : compactBase) }
               : {
-                  border: '1px solid var(--glass-border-md)',
-                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg-hover)',
                   color: 'rgba(255,255,255,0.25)',
                 }),
           }}
@@ -204,13 +204,13 @@ export default function TokenUsageBar() {
             left: '50%',
             transform: 'translateX(-50%)',
             marginTop: 4,
-            background: 'var(--glass-bg-raised)',
+            background: 'var(--popup-bg)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
-            border: '1px solid var(--glass-border-md)',
+            border: '1px solid var(--border)',
             borderRadius: 8,
             padding: '8px 12px',
-            boxShadow: 'var(--glass-shadow)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
             zIndex: 100,
             whiteSpace: 'nowrap',
             fontSize: 11,

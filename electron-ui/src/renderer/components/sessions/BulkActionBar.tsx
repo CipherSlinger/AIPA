@@ -31,10 +31,10 @@ export default function BulkActionBar({
         gap: 8,
         padding: '8px 12px',
         flexShrink: 0,
-        background: 'var(--glass-bg-high)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid var(--glass-border-md)',
+        border: '1px solid var(--border)',
         borderRadius: 10,
         boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
       }}>
@@ -61,8 +61,8 @@ export default function BulkActionBar({
           onClick={onBulkArchive}
           title={t('session.archiveSelected')}
           style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid var(--glass-border-md)',
+            background: 'var(--bg-hover)',
+            border: '1px solid var(--border)',
             borderRadius: 8,
             padding: '4px 10px',
             fontSize: 12,
@@ -74,11 +74,11 @@ export default function BulkActionBar({
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.10)'
+            e.currentTarget.style.background = 'var(--border)'
             e.currentTarget.style.color = 'var(--text-primary)'
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+            e.currentTarget.style.background = 'var(--bg-hover)'
             e.currentTarget.style.color = 'var(--text-primary)'
           }}
         >

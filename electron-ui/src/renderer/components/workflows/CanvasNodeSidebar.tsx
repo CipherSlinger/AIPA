@@ -65,7 +65,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
         borderRadius: 4,
         padding: '2px 6px',
         cursor: 'pointer',
-        color: copied ? '#22c55e' : 'var(--text-faint)',
+        color: copied ? '#22c55e' : 'var(--text-muted)',
         display: 'flex',
         alignItems: 'center',
         gap: 3,
@@ -73,7 +73,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
         transition: 'all 0.15s ease',
       }}
       onMouseEnter={e => { if (!copied) e.currentTarget.style.color = 'var(--text-secondary)' }}
-      onMouseLeave={e => { if (!copied) e.currentTarget.style.color = 'var(--text-faint)' }}
+      onMouseLeave={e => { if (!copied) e.currentTarget.style.color = 'var(--text-muted)' }}
     >
       {copied ? <Check size={10} strokeWidth={2.5} /> : <Copy size={10} />}
       {copied ? t('workflow.canvasCopied') : t('workflow.canvasCopy')}
@@ -86,7 +86,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
       fontSize: 10, fontWeight: 700,
-      color: 'var(--text-faint)',
+      color: 'var(--text-muted)',
       textTransform: 'uppercase', letterSpacing: '0.07em',
       marginBottom: 6,
       borderLeft: '2px solid rgba(99,102,241,0.5)',
@@ -146,7 +146,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
   const statusColor = status === 'completed' ? '#22c55e'
     : status === 'running' ? '#818cf8'
     : status === 'error' ? '#f87171'
-    : 'var(--text-faint)'
+    : 'var(--text-muted)'
 
   // Output stats (only when outputText is present)
   const activeOutput = historyOutput ?? outputText
@@ -182,10 +182,10 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
         right: 0,
         bottom: 0,
         width: 284,
-        background: 'var(--glass-bg-popup)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        borderLeft: '1px solid var(--glass-border)',
+        borderLeft: '1px solid var(--border)',
         zIndex: 20,
         display: 'flex',
         flexDirection: 'column',
@@ -197,7 +197,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
       {/* Header */}
       <div style={{
         padding: '12px 14px',
-        borderBottom: '1px solid var(--glass-border)',
+        borderBottom: '1px solid var(--border)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -231,18 +231,18 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
           title="Close (Esc)"
           style={{
             flexShrink: 0,
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid var(--glass-border)',
+            background: 'var(--bg-hover)',
+            border: '1px solid var(--border)',
             borderRadius: 6,
             padding: 4,
             cursor: 'pointer',
-            color: 'var(--text-faint)',
+            color: 'var(--text-muted)',
             display: 'flex',
             lineHeight: 1,
             transition: 'all 0.15s ease',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'var(--glass-border-md)'; e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.borderColor = 'var(--glass-border-md)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'var(--text-faint)'; e.currentTarget.style.borderColor = 'var(--glass-border)' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.borderColor = 'var(--border)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)' }}
         >
           <X size={13} strokeWidth={2} />
         </button>
@@ -266,12 +266,12 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
                   style={{
                     background: isEditingPrompt
                       ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
-                      : 'rgba(255,255,255,0.05)',
-                    border: isEditingPrompt ? 'none' : '1px solid var(--glass-border)',
+                      : 'var(--bg-hover)',
+                    border: isEditingPrompt ? 'none' : '1px solid var(--border)',
                     borderRadius: 7,
                     padding: '2px 8px',
                     cursor: 'pointer',
-                    color: isEditingPrompt ? 'rgba(255,255,255,0.95)' : 'var(--text-faint)',
+                    color: isEditingPrompt ? 'rgba(255,255,255,0.95)' : 'var(--text-muted)',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 3,
@@ -279,8 +279,8 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
                     fontWeight: 600,
                     transition: 'all 0.15s ease',
                   }}
-                  onMouseEnter={e => { if (!isEditingPrompt) { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'var(--text-secondary)' } }}
-                  onMouseLeave={e => { if (!isEditingPrompt) { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = 'var(--text-faint)' } }}
+                  onMouseEnter={e => { if (!isEditingPrompt) { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)' } }}
+                  onMouseLeave={e => { if (!isEditingPrompt) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-muted)' } }}
                 >
                   <Pencil size={10} />
                   {isEditingPrompt ? t('workflow.canvasSave') : t('workflow.canvasEdit')}
@@ -307,7 +307,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
                   color: 'var(--text-primary)',
                   lineHeight: 1.5,
                   padding: '7px 9px',
-                  background: 'rgba(255,255,255,0.06)',
+                  background: 'var(--bg-hover)',
                   borderRadius: 7,
                   border: '1px solid rgba(99,102,241,0.40)',
                   boxShadow: '0 0 0 2px rgba(99,102,241,0.50)',
@@ -320,7 +320,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
                   transition: 'all 0.15s ease',
                 }}
               />
-              <div style={{ fontSize: 9, color: 'var(--text-faint)', marginTop: 3 }}>
+              <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 3 }}>
                 {t('workflow.canvasEditHint')}
               </div>
               {/* Save / cancel row */}
@@ -349,15 +349,15 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
                   style={{
                     padding: '5px 10px',
                     borderRadius: 7,
-                    border: '1px solid var(--glass-border)',
-                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid var(--border)',
+                    background: 'var(--bg-hover)',
                     color: 'var(--text-muted)',
                     fontSize: 10,
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-muted)' }}
                 >
                   {t('common.cancel') || 'Cancel'}
                 </button>
@@ -369,9 +369,9 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
               color: 'var(--text-primary)',
               lineHeight: 1.5,
               padding: '7px 9px',
-              background: 'rgba(255,255,255,0.06)',
+              background: 'var(--bg-hover)',
               borderRadius: 7,
-              border: '1px solid var(--glass-border)',
+              border: '1px solid var(--border)',
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
               transition: 'all 0.15s ease',
@@ -422,13 +422,13 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
               ? 'rgba(99,102,241,0.04)'
               : status === 'error'
                 ? 'rgba(239,68,68,0.06)'
-                : 'rgba(255,255,255,0.06)',
+                : 'var(--bg-hover)',
             borderRadius: 7,
             border: historyOutput
               ? '1px solid rgba(99,102,241,0.20)'
               : status === 'error'
                 ? '1px solid rgba(239,68,68,0.25)'
-                : outputText ? `1px solid ${status === 'completed' ? 'rgba(34,197,94,0.2)' : 'var(--glass-border)'}` : '1px solid var(--glass-border)',
+                : outputText ? `1px solid ${status === 'completed' ? 'rgba(34,197,94,0.2)' : 'var(--border)'}` : '1px solid var(--border)',
             fontFamily: 'monospace',
             fontStyle: (historyOutput || outputText || streamingText) ? 'normal' : (status === 'running' ? 'italic' : 'normal'),
             whiteSpace: (historyOutput || outputText || streamingText) ? 'pre-wrap' : 'normal',
@@ -444,8 +444,8 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
                   { label: `${lineCount}L` },
                 ].map(({ label }) => (
                   <span key={label} style={{
-                    fontSize: 9, color: 'var(--text-faint)',
-                    background: 'rgba(255,255,255,0.06)',
+                    fontSize: 9, color: 'var(--text-muted)',
+                    background: 'var(--bg-hover)',
                     borderRadius: 8, padding: '1px 6px',
                     fontFamily: 'monospace', letterSpacing: '0.02em',
                     fontVariantNumeric: 'tabular-nums',
@@ -502,7 +502,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
       {/* Status footer */}
       <div style={{
         padding: '6px 10px',
-        borderTop: '1px solid var(--glass-border)',
+        borderTop: '1px solid var(--border)',
         flexShrink: 0,
         fontSize: 9,
         color: statusColor,
@@ -524,7 +524,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
           </span>
         </div>
         {durationMs !== undefined && status === 'completed' && (
-          <span style={{ color: 'var(--text-faint)', fontWeight: 400, fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontVariantNumeric: 'tabular-nums' }}>
             {formatDuration(durationMs)}
           </span>
         )}

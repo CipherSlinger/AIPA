@@ -34,7 +34,7 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'var(--glass-overlay)',
+        background: 'rgba(0,0,0,0.70)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         zIndex: 600,
@@ -64,8 +64,8 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
             e.currentTarget.style.color = '#a5b4fc'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'var(--glass-bg-low)'
-            e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+            e.currentTarget.style.background = 'rgba(15,15,25,0.85)'
+            e.currentTarget.style.borderColor = 'var(--border)'
             e.currentTarget.style.color = 'var(--text-primary)'
           }}
         >
@@ -81,8 +81,8 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
             e.currentTarget.style.color = '#a5b4fc'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'var(--glass-bg-low)'
-            e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+            e.currentTarget.style.background = 'rgba(15,15,25,0.85)'
+            e.currentTarget.style.borderColor = 'var(--border)'
             e.currentTarget.style.color = 'var(--text-primary)'
           }}
         >
@@ -98,8 +98,8 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
             e.currentTarget.style.color = '#a5b4fc'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'var(--glass-bg-low)'
-            e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+            e.currentTarget.style.background = 'rgba(15,15,25,0.85)'
+            e.currentTarget.style.borderColor = 'var(--border)'
             e.currentTarget.style.color = 'var(--text-primary)'
           }}
         >
@@ -115,8 +115,8 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
             e.currentTarget.style.color = '#a5b4fc'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'var(--glass-bg-low)'
-            e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+            e.currentTarget.style.background = 'rgba(15,15,25,0.85)'
+            e.currentTarget.style.borderColor = 'var(--border)'
             e.currentTarget.style.color = 'var(--text-primary)'
           }}
         >
@@ -131,8 +131,8 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
           bottom: 16,
           left: '50%',
           transform: 'translateX(-50%)',
-          background: 'var(--glass-bg-low)',
-          border: '1px solid var(--glass-border-md)',
+          background: 'rgba(15,15,25,0.85)',
+          border: '1px solid var(--border)',
           color: 'var(--text-secondary)',
           padding: '4px 12px',
           borderRadius: 12,
@@ -209,8 +209,8 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
 }
 
 const btnStyle: React.CSSProperties = {
-  background: 'var(--glass-bg-low)',
-  border: '1px solid var(--glass-border-md)',
+  background: 'rgba(15,15,25,0.85)',
+  border: '1px solid var(--border)',
   borderRadius: '50%',
   width: 36,
   height: 36,

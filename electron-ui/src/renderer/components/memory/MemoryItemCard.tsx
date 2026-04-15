@@ -56,15 +56,15 @@ export default function MemoryItemCard({
     <div
       style={{
         padding: '10px 12px',
-        background: 'var(--glass-bg-low)',
+        background: 'rgba(15,15,25,0.85)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: mem.pinned
           ? '1px solid rgba(251,191,36,0.25)'
-          : '1px solid var(--glass-border)',
+          : '1px solid var(--border)',
         borderLeft: mem.pinned
           ? '3px solid rgba(251,191,36,0.55)'
-          : '1px solid var(--glass-border)',
+          : '1px solid var(--border)',
         borderRadius: 10,
         marginBottom: 6,
         boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
@@ -73,15 +73,15 @@ export default function MemoryItemCard({
       }}
       onMouseEnter={e => {
         e.currentTarget.style.background = 'rgba(20,20,35,0.90)'
-        e.currentTarget.style.boxShadow = 'var(--glass-shadow)'
+        e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)'
         e.currentTarget.style.transform = 'translateY(-1px)'
-        if (!mem.pinned) e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+        if (!mem.pinned) e.currentTarget.style.borderColor = 'var(--border)'
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.background = 'var(--glass-bg-low)'
+        e.currentTarget.style.background = 'rgba(15,15,25,0.85)'
         e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)'
         e.currentTarget.style.transform = 'translateY(0)'
-        if (!mem.pinned) e.currentTarget.style.borderColor = 'var(--glass-border)'
+        if (!mem.pinned) e.currentTarget.style.borderColor = 'var(--border)'
       }}
     >
       {isEditing ? (
@@ -96,8 +96,8 @@ export default function MemoryItemCard({
               width: '100%',
               height: 50,
               padding: 6,
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid var(--glass-border-md)',
+              background: 'var(--bg-hover)',
+              border: '1px solid var(--border)',
               borderRadius: 6,
               fontSize: 11,
               color: 'var(--text-primary)',
@@ -113,7 +113,7 @@ export default function MemoryItemCard({
               e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.12)'
             }}
             onBlur={e => {
-              e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+              e.currentTarget.style.borderColor = 'var(--border)'
               e.currentTarget.style.boxShadow = 'none'
             }}
             onKeyDown={e => {
@@ -186,8 +186,8 @@ export default function MemoryItemCard({
               <button
                 onClick={onCancelEdit}
                 style={{
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid var(--glass-border-md)',
+                  background: 'var(--bg-hover)',
+                  border: '1px solid var(--border)',
                   borderRadius: 4,
                   padding: '2px 7px',
                   cursor: 'pointer',
@@ -196,8 +196,8 @@ export default function MemoryItemCard({
                   alignItems: 'center',
                   transition: 'all 0.15s ease',
                 }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--glass-border-md)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
               >
                 <X size={14} />
               </button>
@@ -308,7 +308,7 @@ export default function MemoryItemCard({
                     {typeDisplay.label}
                   </span>
                 )}
-                <span style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
                   {formatRelativeTime(mem.updatedAt, t)}
                 </span>
                 {mem.pinned && (
@@ -327,7 +327,7 @@ export default function MemoryItemCard({
               display: 'none',
               gap: 2,
               background: 'rgba(10,10,20,0.94)',
-              border: '1px solid var(--glass-border-md)',
+              border: '1px solid var(--border)',
               borderRadius: 6,
               padding: '2px 2px',
               boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
@@ -344,11 +344,11 @@ export default function MemoryItemCard({
                 borderRadius: 4,
                 padding: 3,
                 cursor: 'pointer',
-                color: mem.pinned ? '#fbbf24' : 'var(--text-faint)',
+                color: mem.pinned ? '#fbbf24' : 'var(--text-muted)',
                 display: 'flex',
                 transition: 'all 0.15s ease',
               }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--glass-border)')}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'none')}
             >
               {mem.pinned ? <PinOff size={12} /> : <Pin size={12} />}
@@ -362,7 +362,7 @@ export default function MemoryItemCard({
                 borderRadius: 4,
                 padding: 3,
                 cursor: 'pointer',
-                color: 'var(--text-faint)',
+                color: 'var(--text-muted)',
                 display: 'flex',
                 transition: 'all 0.15s ease',
               }}
@@ -372,7 +372,7 @@ export default function MemoryItemCard({
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.background = 'none'
-                e.currentTarget.style.color = 'var(--text-faint)'
+                e.currentTarget.style.color = 'var(--text-muted)'
               }}
             >
               <Edit3 size={12} />
@@ -386,7 +386,7 @@ export default function MemoryItemCard({
                 borderRadius: 4,
                 padding: 3,
                 cursor: 'pointer',
-                color: 'var(--text-faint)',
+                color: 'var(--text-muted)',
                 display: 'flex',
                 transition: 'all 0.15s ease',
               }}
@@ -396,7 +396,7 @@ export default function MemoryItemCard({
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.background = 'none'
-                e.currentTarget.style.color = 'var(--text-faint)'
+                e.currentTarget.style.color = 'var(--text-muted)'
               }}
             >
               <Trash2 size={12} />

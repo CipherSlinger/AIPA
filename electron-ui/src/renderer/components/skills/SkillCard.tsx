@@ -16,7 +16,7 @@ export function SkillSection({ label, skills, onOpen, onUse }: {
         padding: '10px 14px 6px',
         fontSize: 10,
         fontWeight: 700,
-        color: 'var(--text-faint)',
+        color: 'var(--text-muted)',
         textTransform: 'uppercase',
         letterSpacing: '0.07em',
         display: 'flex',
@@ -25,7 +25,7 @@ export function SkillSection({ label, skills, onOpen, onUse }: {
       }}>
         {label}
         <span style={{
-          background: 'rgba(255,255,255,0.08)',
+          background: 'var(--border)',
           borderRadius: 10,
           padding: '1px 6px',
           fontSize: 10,
@@ -66,16 +66,16 @@ function getSourceBadgeStyle(source: string): React.CSSProperties {
   }
   // global
   return {
-    background: 'rgba(255,255,255,0.08)',
+    background: 'var(--border)',
     color: 'var(--text-secondary)',
-    border: '1px solid var(--glass-border-md)',
+    border: '1px solid var(--border)',
   }
 }
 
 function getIconStyle(source: string): { color: string; bg: string } {
   if (source === 'personal') return { color: '#a5b4fc', bg: 'rgba(99,102,241,0.15)' }
   if (source === 'project') return { color: '#4ade80', bg: 'rgba(34,197,94,0.12)' }
-  return { color: 'var(--text-secondary)', bg: 'rgba(255,255,255,0.08)' }
+  return { color: 'var(--text-secondary)', bg: 'var(--border)' }
 }
 
 export function SkillCard({ skill, onOpen, onUse }: {
@@ -102,16 +102,16 @@ export function SkillCard({ skill, onOpen, onUse }: {
         padding: '12px 14px',
         cursor: 'pointer',
         margin: '4px 8px',
-        background: hovered ? 'var(--glass-border)' : 'var(--glass-bg-low)',
+        background: hovered ? 'var(--border)' : 'rgba(15,15,25,0.85)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: hovered
-          ? '1px solid var(--glass-border-md)'
-          : '1px solid var(--glass-border)',
+          ? '1px solid var(--border)'
+          : '1px solid var(--border)',
         borderRadius: 12,
         transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
         boxShadow: hovered
-          ? 'var(--glass-shadow)'
+          ? '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)'
           : '0 2px 8px rgba(0,0,0,0.3)',
         transition: 'all 0.15s ease',
       }}
@@ -171,7 +171,7 @@ export function SkillCard({ skill, onOpen, onUse }: {
                 fontSize: 10,
                 borderRadius: 20,
                 padding: '1px 7px',
-                background: 'rgba(255,255,255,0.06)',
+                background: 'var(--bg-hover)',
                 color: 'var(--text-muted)',
               }}>
                 {tag}

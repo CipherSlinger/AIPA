@@ -81,7 +81,7 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
     color: destructive ? '#fca5a5' : 'rgba(255,255,255,0.78)',
     cursor: 'pointer',
     background: hoveredItem === key
-      ? (destructive ? 'rgba(239,68,68,0.10)' : 'rgba(255,255,255,0.06)')
+      ? (destructive ? 'rgba(239,68,68,0.10)' : 'var(--bg-hover)')
       : 'transparent',
     border: 'none',
     borderLeft: hoveredItem === key && !destructive
@@ -102,12 +102,12 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
 
   const getShortcutStyle = (): React.CSSProperties => ({
     fontSize: 11,
-    color: 'var(--text-faint)',
+    color: 'var(--text-muted)',
     marginLeft: 'auto',
     fontFamily: 'monospace',
   })
 
-  const separator = <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '4px 0' }} />
+  const separator = <div style={{ height: 1, background: 'var(--bg-hover)', margin: '4px 0' }} />
 
   const itemHandlers = (key: string) => ({
     onMouseEnter: () => setHoveredItem(key),
@@ -123,12 +123,12 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
         top: y,
         zIndex: 100,
         minWidth: 160,
-        background: 'var(--glass-bg-popup)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid var(--glass-border-md)',
+        border: '1px solid var(--border)',
         borderRadius: 12,
-        boxShadow: 'var(--glass-shadow)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
         padding: '4px 0',
         overflow: 'hidden',
         animation: 'slideUp 0.15s ease',

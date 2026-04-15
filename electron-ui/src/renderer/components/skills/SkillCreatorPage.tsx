@@ -90,15 +90,15 @@ ${trimmedDesc}
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      background: 'rgba(10,10,18,1)',
+      background: 'var(--bg-chat)',
     }}>
       {/* Header */}
       <div style={{
         height: 44,
-        background: 'var(--glass-bg-raised)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        borderBottom: '1px solid var(--glass-border)',
+        borderBottom: '1px solid var(--border)',
         display: 'flex',
         alignItems: 'center',
         padding: '0 20px',
@@ -113,7 +113,7 @@ ${trimmedDesc}
             color: 'var(--text-secondary)', display: 'flex', alignItems: 'center',
             padding: '5px', borderRadius: 6, transition: 'all 0.15s ease',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--glass-border)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.color = 'var(--text-primary)' }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-secondary)' }}
         >
           <ArrowLeft size={16} />
@@ -156,8 +156,8 @@ ${trimmedDesc}
             <>
               {/* Skill Name section */}
               <div style={{
-                background: 'var(--glass-bg-mid)',
-                border: '1px solid var(--glass-border-md)',
+                background: 'var(--popup-bg)',
+                border: '1px solid var(--border)',
                 borderRadius: 12,
                 padding: '16px 20px',
                 marginBottom: 12,
@@ -166,7 +166,7 @@ ${trimmedDesc}
                   display: 'block',
                   fontSize: 10,
                   fontWeight: 700,
-                  color: 'var(--text-faint)',
+                  color: 'var(--text-muted)',
                   marginBottom: 10,
                   textTransform: 'uppercase',
                   letterSpacing: '0.07em',
@@ -187,8 +187,8 @@ ${trimmedDesc}
                     width: '100%',
                     padding: '7px 10px',
                     borderRadius: 6,
-                    border: '1px solid var(--glass-border-md)',
-                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid var(--border)',
+                    background: 'var(--bg-hover)',
                     color: 'var(--text-primary)',
                     fontSize: 12,
                     fontFamily: 'inherit',
@@ -198,17 +198,17 @@ ${trimmedDesc}
                     opacity: isCreating ? 0.6 : 1,
                   }}
                   onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)' }}
-                  onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--glass-border-md)' }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
                 />
-                <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 4, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
                   {skillName.trim().length}/60
                 </div>
               </div>
 
               {/* Description / System Prompt section */}
               <div style={{
-                background: 'var(--glass-bg-mid)',
-                border: '1px solid var(--glass-border-md)',
+                background: 'var(--popup-bg)',
+                border: '1px solid var(--border)',
                 borderRadius: 12,
                 padding: '16px 20px',
                 marginBottom: 12,
@@ -217,7 +217,7 @@ ${trimmedDesc}
                   display: 'block',
                   fontSize: 10,
                   fontWeight: 700,
-                  color: 'var(--text-faint)',
+                  color: 'var(--text-muted)',
                   marginBottom: 10,
                   textTransform: 'uppercase',
                   letterSpacing: '0.07em',
@@ -236,7 +236,7 @@ ${trimmedDesc}
                     width: '100%',
                     padding: '12px 14px',
                     borderRadius: 8,
-                    border: '1px solid var(--glass-border-md)',
+                    border: '1px solid var(--border)',
                     background: 'rgba(8,8,16,1)',
                     color: '#a5b4fc',
                     fontSize: 12,
@@ -250,9 +250,9 @@ ${trimmedDesc}
                     minHeight: 160,
                   }}
                   onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)' }}
-                  onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--glass-border-md)' }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
                 />
-                <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 4 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
                   {t('skill.descHint')}
                 </div>
               </div>
@@ -284,8 +284,8 @@ ${trimmedDesc}
                   style={{
                     padding: '9px 20px',
                     borderRadius: 8,
-                    border: '1px solid var(--glass-border-md)',
-                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid var(--border)',
+                    background: 'var(--bg-hover)',
                     color: 'var(--text-secondary)',
                     fontSize: 13,
                     fontWeight: 500,
@@ -295,14 +295,14 @@ ${trimmedDesc}
                   }}
                   onMouseEnter={(e) => {
                     if (!isCreating) {
-                      e.currentTarget.style.borderColor = 'var(--glass-border-md)'
-                      e.currentTarget.style.background = 'var(--glass-border)'
+                      e.currentTarget.style.borderColor = 'var(--border)'
+                      e.currentTarget.style.background = 'var(--border)'
                       e.currentTarget.style.color = 'var(--text-primary)'
                     }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--glass-border-md)'
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                    e.currentTarget.style.borderColor = 'var(--border)'
+                    e.currentTarget.style.background = 'var(--bg-hover)'
                     e.currentTarget.style.color = 'var(--text-secondary)'
                   }}
                 >
@@ -353,7 +353,7 @@ ${trimmedDesc}
                 marginTop: 16,
                 textAlign: 'right',
                 fontSize: 11,
-                color: 'var(--text-faint)',
+                color: 'var(--text-muted)',
               }}>
                 {t('skill.submitHint')}
               </div>

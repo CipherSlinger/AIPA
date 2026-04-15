@@ -28,10 +28,10 @@ export default function SelectAllBar({ filtered, currentSessionId, selectedIds, 
       gap: 8,
       padding: '6px 10px',
       flexShrink: 0,
-      background: 'var(--glass-bg-popup)',
+      background: 'var(--popup-bg)',
       backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
-      border: '1px solid var(--glass-border)',
+      border: '1px solid var(--border)',
       borderRadius: 8,
       fontSize: 12,
       color: 'var(--text-secondary)',
@@ -61,7 +61,7 @@ export default function SelectAllBar({ filtered, currentSessionId, selectedIds, 
       >
         {allSelected
           ? <CheckSquare size={13} style={{ color: '#6366f1' }} />
-          : <Square size={13} style={{ color: 'var(--text-faint)' }} />
+          : <Square size={13} style={{ color: 'var(--text-muted)' }} />
         }
         <span>{t('session.selectAll')}</span>
       </button>

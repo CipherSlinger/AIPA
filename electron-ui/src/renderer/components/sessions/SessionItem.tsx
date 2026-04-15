@@ -116,7 +116,7 @@ export default function SessionItem({
     : isActive
       ? 'rgba(99,102,241,0.50)'
       : hovered
-        ? 'var(--glass-border-md)'
+        ? 'var(--border)'
         : 'transparent'
 
   // Tags assigned to this session
@@ -165,16 +165,16 @@ export default function SessionItem({
         padding: compact ? '5px 12px' : '10px 12px',
         cursor: 'pointer',
         position: 'relative',
-        borderBottom: '1px solid var(--glass-border)',
+        borderBottom: '1px solid var(--border)',
         borderLeft: '3px solid transparent',
         background: isSelected
           ? 'rgba(99,102,241,0.12)'
           : isActive
             ? 'rgba(99,102,241,0.08)'
             : hovered
-              ? 'var(--glass-border)'
+              ? 'var(--border)'
               : 'transparent',
-        boxShadow: !isActive && hovered ? 'var(--glass-shadow)' : 'none',
+        boxShadow: !isActive && hovered ? '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)' : 'none',
         outline: isFocused ? '2px solid rgba(99,102,241,0.60)' : 'none',
         outlineOffset: isFocused ? -2 : 0,
         transition: 'background 0.15s ease, border-left-color 0.15s ease, box-shadow 0.15s ease',
@@ -242,7 +242,7 @@ export default function SessionItem({
                 height: 10,
                 borderRadius: '50%',
                 background: '#818cf8',
-                border: '2px solid rgba(10,10,18,1)',
+                border: '2px solid var(--bg-chat)',
                 animation: 'pulse 2s ease infinite',
               }}
             />
@@ -266,7 +266,7 @@ export default function SessionItem({
                 alignItems: 'center',
                 justifyContent: 'center',
                 padding: '0 5px',
-                border: '2px solid rgba(10,10,18,1)',
+                border: '2px solid var(--bg-chat)',
                 lineHeight: 1,
                 textAlign: 'center' as const,
               }}
@@ -309,8 +309,8 @@ export default function SessionItem({
               onClick={(e) => e.stopPropagation()}
               style={{
                 flex: 1,
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid var(--glass-border)',
+                background: 'var(--bg-hover)',
+                border: '1px solid var(--border)',
                 borderRadius: 6,
                 padding: '2px 6px',
                 color: 'var(--text-primary)',
@@ -342,7 +342,7 @@ export default function SessionItem({
           {/* Timestamp + duration */}
           <span style={{
             fontSize: 10,
-            color: 'var(--text-faint)',
+            color: 'var(--text-muted)',
             flexShrink: 0,
             whiteSpace: 'nowrap',
             display: 'flex',
@@ -437,7 +437,7 @@ export default function SessionItem({
                   color: 'var(--text-muted)',
                   opacity: 0.7,
                   background: 'rgba(128,128,128,0.10)',
-                  border: '1px dashed var(--glass-border)',
+                  border: '1px dashed var(--border)',
                   borderRadius: 8,
                   padding: '0px 5px',
                   lineHeight: '16px',
@@ -487,7 +487,7 @@ export default function SessionItem({
             transform: hovered ? 'translateX(0)' : 'translateX(4px)',
             transition: 'opacity 0.15s ease, transform 0.15s ease',
             padding: '6px 10px 8px 20px',
-            background: 'linear-gradient(to right, transparent, rgba(10,10,20,0.98) 28%)',
+            background: 'linear-gradient(to right, transparent, var(--bg-chat) 28%)',
             pointerEvents: hovered ? 'auto' : 'none',
           }}
         >
@@ -507,7 +507,7 @@ export default function SessionItem({
               alignItems: 'center',
               transition: 'background 0.15s ease, color 0.15s ease',
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
             <Star size={11} style={{ fill: isPinned ? '#818cf8' : 'none' }} />
@@ -529,7 +529,7 @@ export default function SessionItem({
               alignItems: 'center',
               transition: 'background 0.15s ease, color 0.15s ease',
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
             <Tag size={11} />
@@ -550,7 +550,7 @@ export default function SessionItem({
               alignItems: 'center',
               transition: 'background 0.15s ease, color 0.15s ease',
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
             <Pencil size={11} />
@@ -571,7 +571,7 @@ export default function SessionItem({
               alignItems: 'center',
               transition: 'background 0.15s ease, color 0.15s ease',
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
             <GitBranch size={11} />
@@ -592,7 +592,7 @@ export default function SessionItem({
               alignItems: 'center',
               transition: 'background 0.15s ease, color 0.15s ease',
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
             <Copy size={11} />
@@ -613,7 +613,7 @@ export default function SessionItem({
               alignItems: 'center',
               transition: 'background 0.15s ease, color 0.15s ease',
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
             <RefreshCw size={11} />
@@ -634,7 +634,7 @@ export default function SessionItem({
               alignItems: 'center',
               transition: 'background 0.15s ease, color 0.15s ease',
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
             <Download size={11} />
@@ -657,7 +657,7 @@ export default function SessionItem({
                 alignItems: 'center',
                 transition: 'background 0.15s ease, color 0.15s ease',
               }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
               {isArchived ? <ArchiveRestore size={11} /> : <Archive size={11} />}

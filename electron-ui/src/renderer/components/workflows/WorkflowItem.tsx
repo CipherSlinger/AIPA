@@ -76,7 +76,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
   return (
     <div
       style={{
-        borderBottom: '1px solid var(--glass-border)',
+        borderBottom: '1px solid var(--border)',
         borderLeft: (hovered || isExpanded) ? '3px solid rgba(99,102,241,0.75)' : '3px solid transparent',
         transition: 'all 0.15s ease',
         position: 'relative',
@@ -86,7 +86,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
         zIndex: hovered ? 1 : 0,
         background: isExpanded
           ? 'rgba(99,102,241,0.08)'
-          : hovered ? 'rgba(255,255,255,0.05)' : 'transparent',
+          : hovered ? 'var(--bg-hover)' : 'transparent',
       }}
     >
       {/* Workflow header row */}
@@ -127,7 +127,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
                 fontSize: 9,
                 fontWeight: 600,
                 color: CATEGORY_COLORS[(wf as any).category] ?? 'var(--text-muted)',
-                background: `${CATEGORY_COLORS[(wf as any).category] ?? 'rgba(255,255,255,0.1)'}20`,
+                background: `${CATEGORY_COLORS[(wf as any).category] ?? 'var(--border)'}20`,
                 borderRadius: 8,
                 padding: '1px 5px',
                 flexShrink: 0,
@@ -197,7 +197,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
             title="Clone workflow"
             style={{
               background: 'transparent',
-              border: '1px solid var(--glass-border)',
+              border: '1px solid var(--border)',
               cursor: 'pointer',
               color: 'var(--text-muted)',
               padding: 4,
@@ -216,7 +216,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
             onMouseLeave={e => {
               e.currentTarget.style.color = 'var(--text-muted)'
               e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+              e.currentTarget.style.borderColor = 'var(--border)'
             }}
           >
             <Copy size={12} />
@@ -268,10 +268,10 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
             right: 0,
             marginBottom: 4,
             zIndex: 50,
-            background: 'var(--glass-bg-popup)',
+            background: 'var(--popup-bg)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid var(--border)',
             borderRadius: 8,
             padding: '8px 10px',
             boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
@@ -327,7 +327,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
                 maxLength={MAX_NAME_LENGTH}
                 style={{
                   width: '100%', height: 26, padding: '0 8px',
-                  background: 'rgba(255,255,255,0.05)', border: '1px solid #6366f1',
+                  background: 'var(--bg-hover)', border: '1px solid #6366f1',
                   borderRadius: 4, fontSize: 11, color: 'var(--text-primary)',
                   outline: 'none', boxSizing: 'border-box', marginBottom: 4,
                 }}
@@ -339,7 +339,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
                 placeholder={t('workflow.descPlaceholder')}
                 style={{
                   width: '100%', height: 26, padding: '0 8px',
-                  background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)',
+                  background: 'var(--bg-hover)', border: '1px solid var(--border)',
                   borderRadius: 4, fontSize: 10, color: 'var(--text-secondary)',
                   outline: 'none', boxSizing: 'border-box', marginBottom: 6,
                 }}
@@ -373,7 +373,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
                     key={step.id}
                     style={{
                       display: 'flex', alignItems: 'flex-start', gap: 6,
-                      padding: '4px 6px', background: 'rgba(255,255,255,0.05)', borderRadius: 4,
+                      padding: '4px 6px', background: 'var(--bg-hover)', borderRadius: 4,
                     }}
                   >
                     <span style={{

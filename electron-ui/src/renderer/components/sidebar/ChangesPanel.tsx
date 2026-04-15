@@ -117,20 +117,20 @@ export default function ChangesPanel() {
       <div style={{
         padding: '12px 14px 10px',
         background: 'linear-gradient(180deg, rgba(99,102,241,0.05) 0%, transparent 100%)',
-        borderBottom: '1px solid var(--glass-border)',
+        borderBottom: '1px solid var(--border)',
         display: 'flex',
         alignItems: 'center',
         gap: 8,
         flexShrink: 0,
       }}>
-        <GitBranch size={14} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+        <GitBranch size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
         <span
           style={{
             fontSize: 11,
             fontWeight: 700,
             letterSpacing: '0.07em',
             textTransform: 'uppercase',
-            color: 'var(--text-faint)',
+            color: 'var(--text-muted)',
           }}
         >
           {t('changes.title')}
@@ -163,20 +163,20 @@ export default function ChangesPanel() {
                 width: 44,
                 height: 44,
                 borderRadius: 12,
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid var(--glass-border)',
+                background: 'var(--bg-hover)',
+                border: '1px solid var(--border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <GitBranch size={20} style={{ color: 'var(--text-faint)' }} />
+              <GitBranch size={20} style={{ color: 'var(--text-muted)' }} />
             </span>
             <div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 3 }}>
                 {t('changes.noChanges')}
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                 {t('changes.noChangesHint')}
               </div>
             </div>
@@ -189,7 +189,7 @@ export default function ChangesPanel() {
                 padding: '4px 14px',
                 fontSize: 10,
                 fontWeight: 700,
-                color: 'var(--text-faint)',
+                color: 'var(--text-muted)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.07em',
               }}>
@@ -211,18 +211,18 @@ export default function ChangesPanel() {
                         gap: 6,
                         padding: '6px 12px',
                         border: 'none',
-                        background: isOpen ? 'rgba(255,255,255,0.05)' : 'transparent',
+                        background: isOpen ? 'var(--bg-hover)' : 'transparent',
                         cursor: 'pointer',
                         textAlign: 'left',
                         borderRadius: 6,
                         transition: 'all 0.15s ease',
                       }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.05)' }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = isOpen ? 'rgba(255,255,255,0.05)' : 'transparent' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-hover)' }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = isOpen ? 'var(--bg-hover)' : 'transparent' }}
                     >
                       {isOpen
                         ? <ChevronDown size={11} style={{ flexShrink: 0, color: 'var(--text-muted)', transition: 'all 0.15s ease' }} />
-                        : <ChevronRight size={11} style={{ flexShrink: 0, color: 'var(--text-faint)', transition: 'all 0.15s ease' }} />
+                        : <ChevronRight size={11} style={{ flexShrink: 0, color: 'var(--text-muted)', transition: 'all 0.15s ease' }} />
                       }
                       {/* Status badge */}
                       <StatusBadge toolName={entry.toolName} />
@@ -251,7 +251,7 @@ export default function ChangesPanel() {
                           padding: '3px 7px 5px',
                           wordBreak: 'break-all',
                           background: 'rgba(255,255,255,0.03)',
-                          border: '1px solid var(--glass-border)',
+                          border: '1px solid var(--border)',
                           borderRadius: 6,
                           marginBottom: 6,
                           fontFeatureSettings: '"tnum"',
@@ -290,7 +290,7 @@ export default function ChangesPanel() {
       {changedFiles.length > 0 && (
         <div style={{
           padding: '8px 12px',
-          borderTop: '1px solid var(--glass-border)',
+          borderTop: '1px solid var(--border)',
           flexShrink: 0,
         }}>
           <button
@@ -298,7 +298,7 @@ export default function ChangesPanel() {
             style={{
               width: '100%',
               padding: '7px 12px',
-              border: '1px solid var(--glass-border)',
+              border: '1px solid var(--border)',
               borderRadius: 7,
               background: 'rgba(255,255,255,0.03)',
               color: 'var(--text-secondary)',
@@ -319,7 +319,7 @@ export default function ChangesPanel() {
             onMouseLeave={e => {
               const btn = e.currentTarget as HTMLButtonElement
               btn.style.background = 'rgba(255,255,255,0.03)'
-              btn.style.borderColor = 'var(--glass-border)'
+              btn.style.borderColor = 'var(--border)'
               btn.style.color = 'var(--text-secondary)'
             }}
           >
@@ -348,7 +348,7 @@ export default function ChangesPanel() {
               background: 'rgba(10,10,18,0.98)',
               backdropFilter: 'blur(20px)',
               WebkitBackdropFilter: 'blur(20px)',
-              border: '1px solid var(--glass-border)',
+              border: '1px solid var(--border)',
               borderRadius: 10,
               width: '80vw',
               maxWidth: 900,
@@ -363,7 +363,7 @@ export default function ChangesPanel() {
             <div style={{
               padding: '12px 16px',
               background: 'linear-gradient(180deg, rgba(99,102,241,0.05) 0%, transparent 100%)',
-              borderBottom: '1px solid var(--glass-border)',
+              borderBottom: '1px solid var(--border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',

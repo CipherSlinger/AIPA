@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import ReactDOM from 'react-dom'
 import { ToolUseInfo } from '../../types/app.types'
-import { ChevronDown, Terminal, FileEdit, Search, Globe, Loader2, Check, X, Timer, ClipboardCopy, FileCode, FileText, Image, FileType, Palette, GitBranch, GitMerge, Clock, StopCircle, BookOpen, Network, Code2, CheckSquare, ClipboardList, Settings2, Send, Users, Compass, CheckCircle2, Layers, Database, FileInput, HelpCircle, Braces } from 'lucide-react'
+import { ChevronDown, Terminal, FileEdit, Search, Globe, Loader2, Check, X, Timer, ClipboardCopy, FileCode, FileText, Image, FileType, Palette, GitBranch, GitMerge, Clock, StopCircle, BookOpen, Network, Code2, CheckSquare, ClipboardList, Settings2, Send, Users, Compass, CheckCircle2, Layers, Database, FileInput, HelpCircle } from 'lucide-react'
 import { useT } from '../../i18n'
 import DiffView from './DiffView'
 import FileDiffView from './FileDiffView'
@@ -74,8 +74,6 @@ const TOOL_ICONS: Record<string, React.ElementType> = {
   ExitPlanMode: CheckCircle2,
   // Multi-edit
   MultiEdit: Layers,
-  // Structured output
-  StructuredOutput: Braces,
 }
 
 // File extension to icon mapping for more specific file type icons (Iteration 462)
@@ -229,7 +227,7 @@ function BashCommandBlock({ command }: { command: string }) {
     <div style={{
       background: 'rgba(0,0,0,0.30)',
       borderRadius: 8,
-      border: '1px solid var(--glass-border)',
+      border: '1px solid var(--border)',
       padding: '8px 12px',
       fontFamily: 'monospace',
       display: 'flex',
@@ -290,7 +288,7 @@ function BashOutputBlock({ output }: { output: string }) {
         whiteSpace: 'pre-wrap',
         wordBreak: 'break-word',
         scrollbarWidth: 'thin',
-        scrollbarColor: 'rgba(255,255,255,0.10) transparent',
+        scrollbarColor: 'var(--border) transparent',
       }}>
         {visibleLines.join('\n')}
       </pre>
@@ -486,10 +484,10 @@ function AgentToolCard({ input, result, isStreaming, tool, onAbort }: AgentToolC
   return (
     <div
       style={{
-        background: 'var(--glass-bg-low)',
+        background: 'rgba(15,15,25,0.60)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid var(--glass-border)',
+        border: '1px solid var(--border)',
         borderLeft: '3px solid rgba(139,92,246,0.60)',
         borderRadius: 10,
         marginBottom: 6,
@@ -515,7 +513,7 @@ function AgentToolCard({ input, result, isStreaming, tool, onAbort }: AgentToolC
           padding: '7px 12px',
           background: 'rgba(139,92,246,0.06)',
           border: 'none',
-          borderBottom: expanded ? '1px solid var(--glass-border)' : 'none',
+          borderBottom: expanded ? '1px solid var(--border)' : 'none',
           borderRadius: expanded ? '8px 8px 0 0' : 8,
           cursor: 'pointer',
           textAlign: 'left',
@@ -553,7 +551,7 @@ function AgentToolCard({ input, result, isStreaming, tool, onAbort }: AgentToolC
         {isRunning && elapsed >= 2 && (
           <span style={{
             fontSize: 10,
-            color: 'var(--text-faint)',
+            color: 'var(--text-muted)',
             flexShrink: 0,
             fontFamily: 'monospace',
             fontVariantNumeric: 'tabular-nums',
@@ -566,7 +564,7 @@ function AgentToolCard({ input, result, isStreaming, tool, onAbort }: AgentToolC
         {!isRunning && finalDuration !== null && finalDuration >= 1 && (
           <span style={{
             fontSize: 10,
-            color: 'var(--text-faint)',
+            color: 'var(--text-muted)',
             flexShrink: 0,
             fontFamily: 'monospace',
             fontVariantNumeric: 'tabular-nums',
@@ -675,7 +673,7 @@ function AgentToolCard({ input, result, isStreaming, tool, onAbort }: AgentToolC
                 fontWeight: 700,
                 letterSpacing: '0.07em',
                 textTransform: 'uppercase' as const,
-                color: 'var(--text-faint)',
+                color: 'var(--text-muted)',
                 marginBottom: 4,
               }}>
                 提示词
@@ -685,7 +683,7 @@ function AgentToolCard({ input, result, isStreaming, tool, onAbort }: AgentToolC
                 fontSize: 11,
                 fontFamily: 'monospace',
                 background: 'rgba(8,8,16,0.80)',
-                border: '1px solid var(--glass-border)',
+                border: '1px solid var(--border)',
                 borderRadius: 6,
                 padding: '6px 10px',
                 overflow: 'auto',
@@ -695,7 +693,7 @@ function AgentToolCard({ input, result, isStreaming, tool, onAbort }: AgentToolC
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
                 scrollbarWidth: 'thin',
-                scrollbarColor: 'rgba(255,255,255,0.10) transparent',
+                scrollbarColor: 'var(--border) transparent',
               }}>
                 {promptText}
               </pre>
@@ -710,7 +708,7 @@ function AgentToolCard({ input, result, isStreaming, tool, onAbort }: AgentToolC
                 fontWeight: 700,
                 letterSpacing: '0.07em',
                 textTransform: 'uppercase' as const,
-                color: 'var(--text-faint)',
+                color: 'var(--text-muted)',
                 marginBottom: 4,
                 display: 'flex',
                 alignItems: 'center',
@@ -724,7 +722,7 @@ function AgentToolCard({ input, result, isStreaming, tool, onAbort }: AgentToolC
                 fontSize: 11,
                 fontFamily: 'monospace',
                 background: 'rgba(8,8,16,0.80)',
-                border: '1px solid var(--glass-border)',
+                border: '1px solid var(--border)',
                 borderRadius: 6,
                 padding: '6px 10px',
                 overflow: 'auto',
@@ -734,7 +732,7 @@ function AgentToolCard({ input, result, isStreaming, tool, onAbort }: AgentToolC
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
                 scrollbarWidth: 'thin',
-                scrollbarColor: 'rgba(255,255,255,0.10) transparent',
+                scrollbarColor: 'var(--border) transparent',
               }}>
                 {result}
               </pre>
@@ -852,23 +850,13 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
     )
   }
 
-  // StructuredOutput tool: delegate to specialized card
-  if (tool.name === 'StructuredOutput') {
-    return (
-      <StructuredOutputCard
-        input={tool.input as Record<string, unknown>}
-        status={tool.status}
-      />
-    )
-  }
-
   return (
     <div
       style={{
-        background: 'var(--glass-bg-card)',
+        background: 'rgba(15,15,25,0.88)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '1px solid var(--border)',
         borderLeft: `2px solid ${leftBorderColor}`,
         borderRadius: 10,
         marginBottom: 6,
@@ -888,14 +876,14 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
           padding: '6px 10px',
           background: 'rgba(255,255,255,0.03)',
           border: 'none',
-          borderBottom: expanded ? '1px solid rgba(255,255,255,0.06)' : 'none',
+          borderBottom: expanded ? '1px solid var(--bg-hover)' : 'none',
           borderRadius: expanded ? '8px 8px 0 0' : 8,
           cursor: 'pointer',
           textAlign: 'left',
           color: 'var(--text-primary)',
           transition: 'all 0.15s ease',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)' }}
         onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
       >
         <ChevronDown
@@ -943,7 +931,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
         {showElapsed && (
           <span style={{
             fontSize: 10,
-            color: 'var(--text-faint)',
+            color: 'var(--text-muted)',
             flexShrink: 0,
             fontFamily: 'monospace',
             fontVariantNumeric: 'tabular-nums',
@@ -974,7 +962,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
         {showFinalDuration && (
           <span style={{
             fontSize: 10,
-            color: 'var(--text-faint)',
+            color: 'var(--text-muted)',
             flexShrink: 0,
             fontFamily: 'monospace',
             fontVariantNumeric: 'tabular-nums',
@@ -1012,10 +1000,10 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
       <div className={`tool-output-wrapper${expanded ? ' expanded' : ''}`}>
         <div>
         {expanded && (
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ borderTop: '1px solid var(--bg-hover)' }}>
           {/* Input section */}
           <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
               {t('tool.input')}
               {/* File path for non-file-path-highlight tools (legacy display) */}
               {!isFilePath && extractFilePath(tool.input || {}) && (
@@ -1060,7 +1048,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
             ) : tool.name === 'TodoWrite' || tool.name === 'todo_write' ? (
               <TodoListView todos={Array.isArray(tool.input.todos) ? (tool.input.todos as import('./TodoListView').TodoItem[]) : []} />
             ) : (
-              <pre style={{ fontSize: 11, margin: 0, fontFamily: 'monospace', background: 'rgba(8,8,16,1)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 4, padding: '6px 8px', overflow: 'auto', maxHeight: 200, color: '#a5b4fc', lineHeight: 1.5 }}>
+              <pre style={{ fontSize: 11, margin: 0, fontFamily: 'monospace', background: 'rgba(8,8,16,1)', border: '1px solid var(--bg-hover)', borderRadius: 4, padding: '6px 8px', overflow: 'auto', maxHeight: 200, color: '#a5b4fc', lineHeight: 1.5 }}>
                 {JSON.stringify(tool.input, null, 2)}
               </pre>
             )}
@@ -1073,8 +1061,8 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
               const lspData = parseLSPOutput(resultText)
               if (lspData) {
                 return (
-                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ borderTop: '1px solid var(--bg-hover)', padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{t('tool.output')}</span>
                       <CopyOutputBtn text={resultText} t={t} />
                     </div>
@@ -1088,9 +1076,9 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
             if (isSearchResult && resultText) {
               return (
                 <div>
-                  <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+                  <div style={{ height: 1, background: 'var(--bg-hover)' }} />
                   <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{t('tool.output')}</span>
                       <CopyOutputBtn text={resultText} t={t} />
                     </div>
@@ -1104,9 +1092,9 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
             if (isBash) {
               return (
                 <div>
-                  <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+                  <div style={{ height: 1, background: 'var(--bg-hover)' }} />
                   <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         {t('tool.output')}
                         {resultText && <BashStatusDot output={resultText} />}
@@ -1128,9 +1116,9 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
             return (
             <div>
               {/* Divider */}
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+              <div style={{ height: 1, background: 'var(--bg-hover)' }} />
               <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     {t('tool.output')}
                     {resultText && resultText.split('\n').length > 1 && (
@@ -1147,7 +1135,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
                   fontSize: 11, margin: 0, padding: '6px 8px',
                   fontFamily: 'monospace',
                   background: 'rgba(8,8,16,1)',
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  border: '1px solid var(--bg-hover)',
                   borderRadius: 4,
                   color: tool.status === 'error' ? '#fca5a5' : 'var(--text-secondary)',
                   overflow: 'auto', maxHeight: 200,
@@ -1163,7 +1151,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
 
           {/* Image preview thumbnails (Iteration 462) */}
           {imagePaths.length > 0 && (
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '6px 10px', display: 'flex', gap: 6, flexWrap: 'wrap', background: 'rgba(8,8,16,0.7)' }}>
+            <div style={{ borderTop: '1px solid var(--bg-hover)', padding: '6px 10px', display: 'flex', gap: 6, flexWrap: 'wrap', background: 'rgba(8,8,16,0.7)' }}>
               {imagePaths.map((imgPath, i) => (
                 <ImageThumbnail key={i} filePath={imgPath} onClick={() => setLightboxSrc(`file://${imgPath}`)} t={t} />
               ))}
@@ -1180,7 +1168,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
           onClick={() => setLightboxSrc(null)}
           style={{
             position: 'fixed', inset: 0, zIndex: 10001,
-            background: 'var(--glass-overlay)',
+            background: 'rgba(0,0,0,0.70)',
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1276,8 +1264,8 @@ function NotebookEditCard({ input }: { input: Record<string, unknown> }) {
             letterSpacing: '0.04em',
             padding: '1px 5px',
             borderRadius: 6,
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.10)',
+            background: 'var(--bg-hover)',
+            border: '1px solid var(--border)',
             color: 'var(--text-muted)',
             textTransform: 'uppercase',
             flexShrink: 0,
@@ -1294,7 +1282,7 @@ function NotebookEditCard({ input }: { input: Record<string, unknown> }) {
           fontSize: 11,
           fontFamily: "Consolas, 'Cascadia Code', 'Fira Code', monospace",
           background: 'rgba(8,8,16,1)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid var(--border)',
           borderRadius: 6,
           padding: '8px 10px',
           overflow: 'auto',
@@ -1332,7 +1320,7 @@ function ImageThumbnail({ filePath, onClick, t }: { filePath: string; onClick: (
     return (
       <div style={{
         width: 80, height: 60, borderRadius: 4,
-        background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)',
+        background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         fontSize: 9, color: 'var(--text-muted)', gap: 2,
       }}>
@@ -1352,355 +1340,8 @@ function ImageThumbnail({ filePath, onClick, t }: { filePath: string; onClick: (
       style={{
         maxWidth: 300, maxHeight: 200, objectFit: 'contain',
         borderRadius: 4, cursor: 'zoom-in',
-        border: '1px solid var(--glass-border)',
+        border: '1px solid var(--border)',
       }}
     />
-  )
-}
-
-// ── StructuredOutput specialized card ─────────────────────────────────────────
-
-/** Render a single JSON value with syntax-aware coloring */
-function JsonValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
-  const [collapsed, setCollapsed] = useState(depth > 2)
-
-  if (value === null) {
-    return <span style={{ color: 'rgba(148,163,184,0.82)' }}>null</span>
-  }
-  if (typeof value === 'boolean') {
-    return <span style={{ color: 'rgba(251,191,36,0.82)' }}>{String(value)}</span>
-  }
-  if (typeof value === 'number') {
-    return <span style={{ color: 'rgba(134,239,172,0.82)' }}>{String(value)}</span>
-  }
-  if (typeof value === 'string') {
-    return <span style={{ color: 'rgba(196,181,253,0.82)' }}>"{value}"</span>
-  }
-  if (Array.isArray(value)) {
-    if (value.length === 0) {
-      return <span style={{ color: 'var(--text-muted)' }}>[]</span>
-    }
-    return (
-      <span>
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'var(--text-muted)',
-            padding: '0 2px',
-            fontSize: 11,
-            fontFamily: 'monospace',
-            transition: 'all 0.15s ease',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(147,197,253,0.82)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)' }}
-        >
-          {collapsed ? `[…${value.length}]` : '['}
-        </button>
-        {!collapsed && (
-          <>
-            <div style={{ paddingLeft: 16 }}>
-              {value.map((item, i) => (
-                <div key={i} style={{ lineHeight: 1.6 }}>
-                  <JsonValue value={item} depth={depth + 1} />
-                  {i < value.length - 1 && <span style={{ color: 'var(--text-faint)' }}>,</span>}
-                </div>
-              ))}
-            </div>
-            <span style={{ color: 'var(--text-muted)' }}>]</span>
-          </>
-        )}
-      </span>
-    )
-  }
-  if (typeof value === 'object') {
-    const keys = Object.keys(value as Record<string, unknown>)
-    if (keys.length === 0) {
-      return <span style={{ color: 'var(--text-muted)' }}>{'{}'}</span>
-    }
-    return (
-      <span>
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'var(--text-muted)',
-            padding: '0 2px',
-            fontSize: 11,
-            fontFamily: 'monospace',
-            transition: 'all 0.15s ease',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(147,197,253,0.82)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)' }}
-        >
-          {collapsed ? `{…${keys.length}}` : '{'}
-        </button>
-        {!collapsed && (
-          <>
-            <div style={{ paddingLeft: 16 }}>
-              {keys.map((k, i) => (
-                <div key={k} style={{ lineHeight: 1.6 }}>
-                  <span style={{ color: 'rgba(147,197,253,0.82)' }}>"{k}"</span>
-                  <span style={{ color: 'var(--text-faint)' }}>: </span>
-                  <JsonValue value={(value as Record<string, unknown>)[k]} depth={depth + 1} />
-                  {i < keys.length - 1 && <span style={{ color: 'var(--text-faint)' }}>,</span>}
-                </div>
-              ))}
-            </div>
-            <span style={{ color: 'var(--text-muted)' }}>{'}'}</span>
-          </>
-        )}
-      </span>
-    )
-  }
-  return <span style={{ color: 'var(--text-secondary)' }}>{String(value)}</span>
-}
-
-interface StructuredOutputCardProps {
-  input: Record<string, unknown>
-  status: string
-}
-
-function StructuredOutputCard({ input, status }: StructuredOutputCardProps) {
-  const [expanded, setExpanded] = useState(true)
-  const [copied, setCopied] = useState(false)
-
-  const keys = Object.keys(input)
-  const isDone = status === 'done'
-  const isRunning = status === 'running'
-
-  const jsonText = JSON.stringify(input, null, 2)
-
-  const handleCopy = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
-    navigator.clipboard.writeText(jsonText).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
-    }).catch(() => {})
-  }, [jsonText])
-
-  // Field type summary for the header preview
-  const fieldSummary = keys.length === 0
-    ? '(空)'
-    : keys.length <= 3
-    ? keys.join(', ')
-    : `${keys.slice(0, 3).join(', ')} … +${keys.length - 3}`
-
-  return (
-    <div
-      style={{
-        background: 'var(--glass-bg-low)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid var(--glass-border)',
-        borderLeft: '3px solid rgba(96,165,250,0.60)',
-        borderRadius: 10,
-        marginBottom: 6,
-        overflow: 'hidden',
-        transition: 'all 0.15s ease',
-      }}
-    >
-      {/* Header */}
-      <button
-        onClick={() => setExpanded(!expanded)}
-        style={{
-          width: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '7px 12px',
-          background: 'rgba(96,165,250,0.06)',
-          border: 'none',
-          borderBottom: expanded ? '1px solid var(--glass-border)' : 'none',
-          borderRadius: expanded ? '8px 8px 0 0' : 8,
-          cursor: 'pointer',
-          textAlign: 'left',
-          transition: 'all 0.15s ease',
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(96,165,250,0.10)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(96,165,250,0.06)' }}
-      >
-        {/* Icon */}
-        <Braces size={13} style={{ color: 'rgba(147,197,253,0.82)', flexShrink: 0 }} />
-
-        {/* Title */}
-        <span style={{
-          fontSize: 10,
-          fontWeight: 700,
-          letterSpacing: '0.07em',
-          textTransform: 'uppercase' as const,
-          color: 'rgba(147,197,253,0.82)',
-          flexShrink: 0,
-        }}>
-          结构化输出
-        </span>
-
-        {/* Field preview */}
-        <span style={{
-          fontSize: 12,
-          color: 'var(--text-secondary)',
-          flex: 1,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          fontFamily: 'monospace',
-        }}>
-          {fieldSummary}
-        </span>
-
-        {/* Field count badge */}
-        {keys.length > 0 && (
-          <span style={{
-            fontSize: 9,
-            fontWeight: 700,
-            background: 'rgba(96,165,250,0.15)',
-            color: 'rgba(147,197,253,0.82)',
-            border: '1px solid rgba(96,165,250,0.25)',
-            borderRadius: 8,
-            padding: '1px 6px',
-            flexShrink: 0,
-          }}>
-            {keys.length} 字段
-          </span>
-        )}
-
-        {/* Status badge */}
-        <span style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 3,
-          padding: '1px 6px',
-          borderRadius: 10,
-          fontSize: 10,
-          fontWeight: 600,
-          flexShrink: 0,
-          ...(isRunning
-            ? { background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', color: '#818cf8' }
-            : isDone
-            ? { background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.25)', color: '#4ade80' }
-            : { background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5' }
-          ),
-        }}>
-          {isRunning
-            ? <Loader2 size={10} className="animate-spin" />
-            : isDone
-            ? <Check size={10} />
-            : <X size={10} />}
-        </span>
-
-        {/* Chevron */}
-        <ChevronDown
-          size={11}
-          style={{
-            color: 'var(--text-muted)',
-            transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)',
-            transition: 'transform 0.15s ease',
-            flexShrink: 0,
-          }}
-        />
-      </button>
-
-      {/* Expanded body */}
-      {expanded && (
-        <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {keys.length === 0 ? (
-            <div style={{
-              fontSize: 11,
-              color: 'var(--text-faint)',
-              fontStyle: 'italic',
-              fontFamily: 'monospace',
-            }}>
-              (无结构化数据)
-            </div>
-          ) : (
-            <>
-              {/* Header row: label + copy button */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}>
-                <span style={{
-                  fontSize: 9,
-                  fontWeight: 700,
-                  letterSpacing: '0.07em',
-                  textTransform: 'uppercase' as const,
-                  color: 'var(--text-faint)',
-                }}>
-                  输出数据
-                </span>
-                <button
-                  onClick={handleCopy}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '1px 4px',
-                    borderRadius: 6,
-                    color: copied ? '#4ade80' : 'var(--text-muted)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 3,
-                    fontSize: 9,
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => { if (!copied) e.currentTarget.style.color = 'rgba(147,197,253,0.82)' }}
-                  onMouseLeave={(e) => { if (!copied) e.currentTarget.style.color = 'var(--text-muted)' }}
-                >
-                  {copied ? <Check size={10} /> : <ClipboardCopy size={10} />}
-                  {copied ? '已复制' : '复制 JSON'}
-                </button>
-              </div>
-
-              {/* Structured field display */}
-              <div style={{
-                background: 'rgba(8,8,16,0.80)',
-                border: '1px solid var(--glass-border)',
-                borderRadius: 8,
-                padding: '10px 12px',
-                overflow: 'auto',
-                maxHeight: 320,
-                scrollbarWidth: 'thin',
-                scrollbarColor: 'rgba(255,255,255,0.10) transparent',
-              }}>
-                {/* Top-level fields rendered as a list for clarity */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {keys.map((key, i) => (
-                    <div key={key} style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: 0,
-                      lineHeight: 1.6,
-                      fontSize: 12,
-                      fontFamily: 'monospace',
-                      borderBottom: i < keys.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
-                      paddingBottom: i < keys.length - 1 ? 4 : 0,
-                    }}>
-                      <span style={{
-                        color: 'rgba(147,197,253,0.82)',
-                        fontWeight: 600,
-                        flexShrink: 0,
-                        minWidth: 0,
-                        marginRight: 4,
-                      }}>
-                        {key}
-                      </span>
-                      <span style={{ color: 'var(--text-faint)', flexShrink: 0, marginRight: 4 }}>:</span>
-                      <span style={{ flex: 1, minWidth: 0, wordBreak: 'break-word' }}>
-                        <JsonValue value={input[key]} depth={0} />
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-    </div>
   )
 }

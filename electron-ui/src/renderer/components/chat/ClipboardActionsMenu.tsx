@@ -61,7 +61,7 @@ export default function ClipboardActionsMenu({ onSend }: ClipboardActionsMenuPro
         title={t('clipboard.pasteAndAsk')}
         style={{
           ...toolbarBtnStyle,
-          background: showMenu ? 'rgba(255,255,255,0.06)' : 'none',
+          background: showMenu ? 'var(--bg-hover)' : 'none',
           color: showMenu ? '#818cf8' : 'var(--text-muted)',
         }}
         onMouseEnter={(e) => { if (!showMenu) toolbarHoverIn(e) }}
@@ -75,21 +75,21 @@ export default function ClipboardActionsMenu({ onSend }: ClipboardActionsMenuPro
           bottom: '100%',
           left: 0,
           marginBottom: 6,
-          background: 'var(--glass-bg-high)',
+          background: 'var(--popup-bg)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid var(--glass-border-md)',
+          border: '1px solid var(--border)',
           borderRadius: 10,
-          boxShadow: 'var(--glass-shadow)',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
           padding: '4px 0',
           minWidth: 180,
           zIndex: 100,
           animation: 'slideUp 0.15s ease',
         }}>
-          <div style={{ padding: '6px 12px 4px', fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>
+          <div style={{ padding: '6px 12px 4px', fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
             {t('clipboard.pasteAndAsk')}
           </div>
-          <div style={{ height: 1, background: 'var(--glass-border)', margin: '3px 0' }} />
+          <div style={{ height: 1, background: 'var(--border)', margin: '3px 0' }} />
           {CLIPBOARD_ACTIONS.map(({ id, icon: Icon, labelKey }) => (
             <button
               key={id}
@@ -102,7 +102,7 @@ export default function ClipboardActionsMenu({ onSend }: ClipboardActionsMenuPro
                 gap: 10,
                 width: '100%',
                 padding: '7px 12px',
-                background: hoveredItem === id ? 'var(--glass-border)' : 'transparent',
+                background: hoveredItem === id ? 'var(--border)' : 'transparent',
                 border: 'none',
                 borderRadius: 6,
                 color: hoveredItem === id ? 'rgba(255,255,255,0.92)' : 'var(--text-primary)',

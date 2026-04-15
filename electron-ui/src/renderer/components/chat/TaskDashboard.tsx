@@ -58,7 +58,7 @@ const StepNode: React.FC<StepNodeProps> = ({ item, isLast, prevDone }) => {
     // pending / failed
     return {
       ...base,
-      background: status === 'failed' ? '#f87171' : 'rgba(255,255,255,0.10)',
+      background: status === 'failed' ? '#f87171' : 'var(--border)',
       border: status === 'failed' ? 'none' : '1.5px solid rgba(255,255,255,0.18)',
     }
   })()
@@ -66,7 +66,7 @@ const StepNode: React.FC<StepNodeProps> = ({ item, isLast, prevDone }) => {
   const connectorColor =
     prevDone ? '#22c55e'
     : status === 'running' ? '#6366f1'
-    : 'rgba(255,255,255,0.12)'
+    : 'var(--bg-active)'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flex: isLast ? '0 0 auto' : '1 1 0' }}>
@@ -80,7 +80,7 @@ const StepNode: React.FC<StepNodeProps> = ({ item, isLast, prevDone }) => {
             <XCircle size={12} color="#fff" strokeWidth={2.5} style={{ animation: 'none' }} />
           )}
           {status === 'pending' && (
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-faint)' }} />
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-muted)' }} />
           )}
         </div>
         {/* Connector line */}
@@ -95,7 +95,7 @@ const StepNode: React.FC<StepNodeProps> = ({ item, isLast, prevDone }) => {
         lineHeight: '13px',
         color: status === 'done' ? '#86efac'
           : status === 'running' ? '#a5b4fc'
-          : 'var(--text-faint)',
+          : 'var(--text-muted)',
         textAlign: 'center',
         overflow: 'hidden',
         textOverflow: 'ellipsis',
@@ -111,7 +111,7 @@ const StepNode: React.FC<StepNodeProps> = ({ item, isLast, prevDone }) => {
 // ── Control button shared style factory ──────────────────────────────────────
 const ctrlBtn = (hoverColor?: string): React.CSSProperties => ({
   background: 'transparent',
-  border: '1px solid var(--glass-border-md)',
+  border: '1px solid var(--border)',
   borderRadius: 6,
   padding: '4px 10px',
   fontSize: 11,
@@ -140,10 +140,10 @@ const TaskDashboard: React.FC = () => {
   return (
     <div style={{
       margin: '0 16px 6px 16px',
-      background: 'var(--glass-bg-low)',
+      background: 'rgba(15,15,25,0.85)',
       backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
-      border: '1px solid var(--glass-border)',
+      border: '1px solid var(--border)',
       borderRadius: 12,
       overflow: 'hidden',
     }}>
@@ -204,7 +204,7 @@ const TaskDashboard: React.FC = () => {
           {/* Current task focus card */}
           {running && (
             <div style={{
-              background: 'var(--glass-bg-low)',
+              background: 'rgba(15,15,25,0.85)',
               backdropFilter: 'blur(12px)',
               WebkitBackdropFilter: 'blur(12px)',
               borderLeft: '3px solid rgba(99,102,241,0.60)',
@@ -215,7 +215,7 @@ const TaskDashboard: React.FC = () => {
               gap: 8,
             }}>
               <div>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 3 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 3 }}>
                   Now running
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', lineHeight: '1.4' }}>

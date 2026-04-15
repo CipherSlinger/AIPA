@@ -290,10 +290,10 @@ export default class ErrorBoundary extends Component<Props, State> {
               left: '50%',
               transform: 'translateX(-50%)',
               padding: '8px 20px',
-              background: 'var(--glass-bg-raised)',
+              background: 'var(--popup-bg)',
               backdropFilter: 'blur(12px)',
               WebkitBackdropFilter: 'blur(12px)',
-              border: '1px solid var(--glass-border)',
+              border: '1px solid var(--border)',
               borderRadius: '8px',
               color: 'var(--text-muted)',
               fontSize: '12px',
@@ -311,10 +311,10 @@ export default class ErrorBoundary extends Component<Props, State> {
           style={{
             padding: '16px',
             margin: '8px',
-            background: 'var(--glass-bg-low)',
+            background: 'rgba(15,15,25,0.85)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
-            border: '1px solid var(--glass-border)',
+            border: '1px solid var(--border)',
             borderRadius: '6px',
             color: 'var(--text-muted)',
             fontSize: '12px',
@@ -441,10 +441,10 @@ export default class ErrorBoundary extends Component<Props, State> {
         <button onClick={this.handleReportBug} style={btnStyle('rgba(239,68,68,0.08)', '1px solid rgba(239,68,68,0.25)')}>
           {t('error.reportBug')}
         </button>
-        <button onClick={this.handleReload} style={btnStyle('rgba(255,255,255,0.05)', '1px solid var(--glass-border)')}>
+        <button onClick={this.handleReload} style={btnStyle('var(--bg-hover)', '1px solid var(--border)')}>
           {t('error.reload')}
         </button>
-        <button onClick={this.handleCopyError} style={btnStyle('rgba(255,255,255,0.05)', '1px solid var(--glass-border)')}>
+        <button onClick={this.handleCopyError} style={btnStyle('var(--bg-hover)', '1px solid var(--border)')}>
           {t('error.copyError')}
         </button>
       </div>
@@ -471,7 +471,7 @@ export default class ErrorBoundary extends Component<Props, State> {
               transform: 'translateX(-50%)',
               width: '90%',
               maxWidth: 480,
-              background: 'var(--glass-bg-raised)',
+              background: 'var(--popup-bg)',
               backdropFilter: 'blur(12px)',
               WebkitBackdropFilter: 'blur(12px)',
               border: '1px solid rgba(239,68,68,0.25)',

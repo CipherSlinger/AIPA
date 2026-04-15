@@ -51,7 +51,7 @@ export default function HookProgressCard({ event }: HookProgressCardProps) {
       style={{
         display: 'inline-flex',
         flexDirection: 'column',
-        background: 'var(--glass-bg-card)',
+        background: 'rgba(15,15,25,0.88)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid rgba(99,102,241,0.12)',
@@ -69,14 +69,14 @@ export default function HookProgressCard({ event }: HookProgressCardProps) {
         <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{event.hookEvent}</span>
         <HookTypeIcon hookType={event.hookType} />
         <span style={{
-          color: event.status === 'running' ? '#818cf8' : event.status === 'success' ? '#4ade80' : 'var(--text-faint)',
+          color: event.status === 'running' ? '#818cf8' : event.status === 'success' ? '#4ade80' : 'var(--text-muted)',
           fontSize: 10,
           fontStyle: event.status === 'running' ? 'italic' : 'normal',
         }}>{event.hookType}</span>
         <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{
             fontSize: 10,
-            color: 'var(--text-faint)',
+            color: 'var(--text-muted)',
             fontVariantNumeric: 'tabular-nums',
             fontFeatureSettings: '"tnum"',
           }}>
@@ -90,7 +90,7 @@ export default function HookProgressCard({ event }: HookProgressCardProps) {
             onMouseEnter={() => setChevronHover(true)}
             onMouseLeave={() => setChevronHover(false)}
             style={{
-              background: chevronHover ? 'var(--glass-border)' : 'none',
+              background: chevronHover ? 'var(--border)' : 'none',
               border: 'none',
               cursor: 'pointer',
               padding: '1px 3px',
@@ -111,7 +111,7 @@ export default function HookProgressCard({ event }: HookProgressCardProps) {
           margin: '4px 0 0 0',
           padding: '6px 10px',
           background: 'rgba(0,0,0,0.30)',
-          border: '1px solid var(--glass-border)',
+          border: '1px solid var(--border)',
           borderRadius: 6,
           fontSize: 11,
           fontFamily: 'monospace',

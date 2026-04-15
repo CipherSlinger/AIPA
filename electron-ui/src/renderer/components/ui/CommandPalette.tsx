@@ -236,8 +236,8 @@ export default function CommandPalette({
               fontSize: 11,
               color: 'var(--text-muted)',
               marginLeft: 'auto',
-              background: 'rgba(255,255,255,0.08)',
-              border: '1px solid var(--glass-border-md)',
+              background: 'var(--border)',
+              border: '1px solid var(--border)',
               borderRadius: 5,
               padding: '2px 6px',
               fontFamily: 'monospace',
@@ -256,11 +256,11 @@ export default function CommandPalette({
               fontWeight: 700,
               letterSpacing: '0.07em',
               textTransform: 'uppercase',
-              color: 'var(--text-faint)',
+              color: 'var(--text-muted)',
               marginLeft: 'auto',
               flexShrink: 0,
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid var(--glass-border)',
+              background: 'var(--bg-hover)',
+              border: '1px solid var(--border)',
               borderRadius: 4,
               padding: '1px 5px',
             }}
@@ -304,10 +304,10 @@ export default function CommandPalette({
           transform: 'translateX(-50%)',
           width: 600,
           maxWidth: '90vw',
-          background: 'var(--glass-bg-deep)',
+          background: 'var(--popup-bg)',
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
-          border: '1px solid var(--glass-border-md)',
+          border: '1px solid var(--border)',
           borderRadius: 16,
           boxShadow: '0 32px 80px rgba(0,0,0,0.8), 0 8px 24px rgba(0,0,0,0.5)',
           overflow: 'hidden',
@@ -320,13 +320,13 @@ export default function CommandPalette({
         <div
           style={{
             padding: '14px 16px',
-            borderBottom: '1px solid var(--glass-border)',
+            borderBottom: '1px solid var(--border)',
             display: 'flex',
             alignItems: 'center',
             gap: 10,
           }}
         >
-          <Search size={16} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+          <Search size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
           <input
             ref={inputRef}
             value={query}
@@ -348,7 +348,7 @@ export default function CommandPalette({
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'var(--text-faint)',
+                color: 'var(--text-muted)',
                 cursor: 'pointer',
                 fontSize: 12,
                 padding: '2px 6px',
@@ -367,14 +367,14 @@ export default function CommandPalette({
             maxHeight: 380,
             overflowY: 'auto',
             scrollbarWidth: 'thin',
-            scrollbarColor: 'rgba(255,255,255,0.10) transparent',
+            scrollbarColor: 'var(--border) transparent',
           }}
         >
           {flatItems.length === 0 && (
             <div
               style={{
                 fontSize: 12,
-                color: 'var(--text-faint)',
+                color: 'var(--text-muted)',
                 textAlign: 'center',
                 padding: '24px 16px',
               }}
@@ -393,7 +393,7 @@ export default function CommandPalette({
                   fontWeight: 700,
                   letterSpacing: '0.07em',
                   textTransform: 'uppercase',
-                  color: 'var(--text-faint)',
+                  color: 'var(--text-muted)',
                 }}
               >
                 {CATEGORY_LABELS[category]}
@@ -413,11 +413,11 @@ export default function CommandPalette({
         <div
           style={{
             padding: '8px 16px',
-            borderTop: '1px solid var(--glass-border)',
+            borderTop: '1px solid var(--border)',
             display: 'flex',
             gap: 12,
             fontSize: 10,
-            color: 'var(--text-faint)',
+            color: 'var(--text-muted)',
             alignItems: 'center',
           }}
         >
@@ -440,8 +440,8 @@ export default function CommandPalette({
 }
 
 const kbdStyle: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.08)',
-  border: '1px solid var(--glass-border-md)',
+  background: 'var(--border)',
+  border: '1px solid var(--border)',
   borderRadius: 5,
   padding: '1px 5px',
   fontSize: 9,

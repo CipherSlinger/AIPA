@@ -39,18 +39,18 @@ export default function NoteEditorHeader({
       alignItems: 'center',
       justifyContent: 'space-between',
       padding: '8px 12px',
-      background: 'var(--glass-bg-popup)',
+      background: 'var(--popup-bg)',
       backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
-      borderBottom: '1px solid var(--glass-border)',
+      borderBottom: '1px solid var(--border)',
       flexShrink: 0,
     }}>
       <button
         onClick={onBack}
         aria-label={t('notes.back')}
         style={{
-          background: 'rgba(255,255,255,0.06)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--bg-hover)',
+          border: '1px solid var(--border)',
           color: 'var(--text-muted)',
           cursor: 'pointer',
           display: 'flex',
@@ -62,11 +62,11 @@ export default function NoteEditorHeader({
           transition: 'all 0.15s ease',
         }}
         onMouseEnter={e => {
-          e.currentTarget.style.background = 'var(--glass-border)'
+          e.currentTarget.style.background = 'var(--border)'
           e.currentTarget.style.color = 'var(--text-primary)'
         }}
         onMouseLeave={e => {
-          e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+          e.currentTarget.style.background = 'var(--bg-hover)'
           e.currentTarget.style.color = 'var(--text-muted)'
         }}
       >
@@ -77,9 +77,9 @@ export default function NoteEditorHeader({
       {/* Edit / Preview toggle */}
       <div style={{
         display: 'flex',
-        border: '1px solid rgba(255,255,255,0.1)',
+        border: '1px solid var(--border)',
         borderRadius: 6,
-        background: 'rgba(255,255,255,0.04)',
+        background: 'var(--bg-hover)',
         overflow: 'hidden',
       }}>
         <button
@@ -110,7 +110,7 @@ export default function NoteEditorHeader({
             background: previewMode ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))' : 'transparent',
             color: previewMode ? 'rgba(255,255,255,0.95)' : 'var(--text-muted)',
             border: 'none',
-            borderLeft: '1px solid rgba(255,255,255,0.1)',
+            borderLeft: '1px solid var(--border)',
             padding: '4px 10px',
             fontSize: 11,
             fontWeight: previewMode ? 600 : 400,
@@ -130,8 +130,8 @@ export default function NoteEditorHeader({
         aria-label={t('notes.exportNote')}
         title={t('notes.exportNote')}
         style={{
-          background: 'rgba(255,255,255,0.06)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--bg-hover)',
+          border: '1px solid var(--border)',
           color: 'var(--text-muted)',
           cursor: 'pointer',
           display: 'flex',
@@ -141,11 +141,11 @@ export default function NoteEditorHeader({
           transition: 'all 0.15s ease',
         }}
         onMouseEnter={e => {
-          e.currentTarget.style.background = 'var(--glass-border)'
+          e.currentTarget.style.background = 'var(--border)'
           e.currentTarget.style.color = 'var(--text-primary)'
         }}
         onMouseLeave={e => {
-          e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+          e.currentTarget.style.background = 'var(--bg-hover)'
           e.currentTarget.style.color = 'var(--text-muted)'
         }}
       >
@@ -159,8 +159,8 @@ export default function NoteEditorHeader({
           aria-label={t('notes.duplicate')}
           title={t('notes.duplicate')}
           style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'var(--bg-hover)',
+            border: '1px solid var(--border)',
             color: 'var(--text-muted)',
             cursor: 'pointer',
             display: 'flex',
@@ -170,11 +170,11 @@ export default function NoteEditorHeader({
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.background = 'var(--glass-border)'
+            e.currentTarget.style.background = 'var(--border)'
             e.currentTarget.style.color = 'var(--text-primary)'
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+            e.currentTarget.style.background = 'var(--bg-hover)'
             e.currentTarget.style.color = 'var(--text-muted)'
           }}
         >
@@ -188,8 +188,8 @@ export default function NoteEditorHeader({
         aria-label={note.pinned ? t('notes.unpin') : t('notes.pin')}
         title={note.pinned ? t('notes.unpin') : t('notes.pin')}
         style={{
-          background: note.pinned ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.06)',
-          border: note.pinned ? '1px solid rgba(251,191,36,0.30)' : '1px solid rgba(255,255,255,0.08)',
+          background: note.pinned ? 'rgba(251,191,36,0.12)' : 'var(--bg-hover)',
+          border: note.pinned ? '1px solid rgba(251,191,36,0.30)' : '1px solid var(--border)',
           color: note.pinned ? '#fbbf24' : 'var(--text-muted)',
           cursor: 'pointer',
           display: 'flex',
@@ -200,11 +200,11 @@ export default function NoteEditorHeader({
           transform: 'rotate(45deg)',
         }}
         onMouseEnter={e => {
-          e.currentTarget.style.background = note.pinned ? 'rgba(251,191,36,0.22)' : 'var(--glass-border)'
+          e.currentTarget.style.background = note.pinned ? 'rgba(251,191,36,0.22)' : 'var(--border)'
           e.currentTarget.style.color = '#fbbf24'
         }}
         onMouseLeave={e => {
-          e.currentTarget.style.background = note.pinned ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.06)'
+          e.currentTarget.style.background = note.pinned ? 'rgba(251,191,36,0.12)' : 'var(--bg-hover)'
           e.currentTarget.style.color = note.pinned ? '#fbbf24' : 'var(--text-muted)'
         }}
       >
@@ -217,8 +217,8 @@ export default function NoteEditorHeader({
         aria-label={t('notes.pinToChat')}
         title={t('notes.pinToChat')}
         style={{
-          background: 'rgba(255,255,255,0.06)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--bg-hover)',
+          border: '1px solid var(--border)',
           color: 'var(--text-muted)',
           cursor: 'pointer',
           display: 'flex',
@@ -228,18 +228,18 @@ export default function NoteEditorHeader({
           transition: 'all 0.15s ease',
         }}
         onMouseEnter={e => {
-          e.currentTarget.style.background = 'var(--glass-border)'
+          e.currentTarget.style.background = 'var(--border)'
           e.currentTarget.style.color = 'var(--text-primary)'
         }}
         onMouseLeave={e => {
-          e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+          e.currentTarget.style.background = 'var(--bg-hover)'
           e.currentTarget.style.color = 'var(--text-muted)'
         }}
       >
         <MessageSquare size={14} />
       </button>
 
-      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', color: 'var(--text-faint)', fontStyle: 'italic', display: 'flex', gap: 8, alignItems: 'center', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"', lineHeight: 1 }}>
+      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', color: 'var(--text-muted)', fontStyle: 'italic', display: 'flex', gap: 8, alignItems: 'center', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"', lineHeight: 1 }}>
         <span>{content.length} / {MAX_CONTENT_LENGTH.toLocaleString()} {t('notes.characters')}</span>
         <span>{content.trim() ? content.trim().split(/\s+/).length : 0} {t('notes.words')}</span>
         {content.trim() && (() => {

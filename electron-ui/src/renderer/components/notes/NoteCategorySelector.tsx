@@ -41,7 +41,7 @@ export default function NoteCategorySelector({
       alignItems: 'center',
       gap: 8,
       padding: '6px 14px',
-      borderBottom: '1px solid rgba(255,255,255,0.06)',
+      borderBottom: '1px solid var(--bg-hover)',
       flexShrink: 0,
       position: 'relative',
     }}>
@@ -55,8 +55,8 @@ export default function NoteCategorySelector({
             display: 'flex',
             alignItems: 'center',
             gap: 5,
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'var(--bg-hover)',
+            border: '1px solid var(--border)',
             borderRadius: 6,
             padding: '3px 8px',
             fontSize: 11,
@@ -69,8 +69,8 @@ export default function NoteCategorySelector({
             e.currentTarget.style.background = 'rgba(99,102,241,0.08)'
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
-            e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+            e.currentTarget.style.borderColor = 'var(--border)'
+            e.currentTarget.style.background = 'var(--bg-hover)'
           }}
         >
           {noteCategory && (
@@ -88,10 +88,10 @@ export default function NoteCategorySelector({
             left: 0,
             marginTop: 4,
             minWidth: 160,
-            background: 'var(--glass-bg-high)',
+            background: 'var(--popup-bg)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid var(--glass-border-md)',
+            border: '1px solid var(--border)',
             borderRadius: 12,
             boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
             zIndex: 100,
@@ -116,7 +116,7 @@ export default function NoteCategorySelector({
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
-              onMouseEnter={e => { if (note.categoryId) e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+              onMouseEnter={e => { if (note.categoryId) e.currentTarget.style.background = 'var(--bg-hover)' }}
               onMouseLeave={e => { e.currentTarget.style.background = !note.categoryId ? 'rgba(99,102,241,0.12)' : 'transparent' }}
             >
               <span style={{ width: 14, textAlign: 'center', color: '#818cf8' }}>
@@ -143,7 +143,7 @@ export default function NoteCategorySelector({
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
-                onMouseEnter={e => { if (note.categoryId !== cat.id) e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                onMouseEnter={e => { if (note.categoryId !== cat.id) e.currentTarget.style.background = 'var(--bg-hover)' }}
                 onMouseLeave={e => { e.currentTarget.style.background = note.categoryId === cat.id ? 'rgba(99,102,241,0.12)' : 'transparent' }}
               >
                 <span style={{ width: 14, textAlign: 'center', color: '#818cf8' }}>

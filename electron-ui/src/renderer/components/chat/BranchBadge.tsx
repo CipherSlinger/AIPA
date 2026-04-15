@@ -81,12 +81,12 @@ export function BranchBadge({ forkEntry, onCompare, onNavigate }: BranchBadgePro
             left: 0,
             marginBottom: 6,
             width: 220,
-            background: 'var(--glass-bg-popup)',
+            background: 'var(--popup-bg)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid var(--glass-border-md)',
+            border: '1px solid var(--border)',
             borderRadius: 8,
-            boxShadow: 'var(--glass-shadow)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
             padding: '8px 0',
             zIndex: 50,
             animation: 'slideUp 0.15s ease',
@@ -94,7 +94,7 @@ export function BranchBadge({ forkEntry, onCompare, onNavigate }: BranchBadgePro
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
-          <div style={{ padding: '0 12px 6px', fontSize: 11, color: 'var(--text-muted)', borderBottom: '1px solid var(--glass-border)' }}>
+          <div style={{ padding: '0 12px 6px', fontSize: 11, color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>
             <GitBranch size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
             {t('fork.forkedTo')}: <strong style={{ color: 'var(--text-primary)' }}>{forkedTitle}</strong>
           </div>
@@ -113,7 +113,7 @@ export function BranchBadge({ forkEntry, onCompare, onNavigate }: BranchBadgePro
                 textAlign: 'left',
                 transition: 'all 0.15s ease',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
             >
               {t('fork.openFork')}
@@ -134,7 +134,7 @@ export function BranchBadge({ forkEntry, onCompare, onNavigate }: BranchBadgePro
                 textAlign: 'left',
                 transition: 'all 0.15s ease',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
             >
               {t('fork.compareWithFork')}

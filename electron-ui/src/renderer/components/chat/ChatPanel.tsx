@@ -18,7 +18,6 @@ import MessageList from './MessageList'
 import SearchBar from './SearchBar'
 import TaskQueuePanel from './TaskQueuePanel'
 import TaskDashboard from './TaskDashboard'
-import DreamTaskCard from './DreamTaskCard'
 import ThinkingIndicator from './ThinkingIndicator'
 import WelcomeScreen from './WelcomeScreen'
 import FollowUpChips from './FollowUpChips'
@@ -32,7 +31,6 @@ import SpeculationStatusBar from './SpeculationStatusBar'
 import TabBar from './TabBar'
 import ExportDialog from './ExportDialog'
 import ToolApprovalDialog from './ToolApprovalDialog'
-import PlanApprovalCard from './PlanApprovalCard'
 import { getTemplateById } from '../../utils/promptTemplates'
 import { useT } from '../../i18n'
 import { useIdleReturn } from '../../hooks/useIdleReturn'
@@ -57,15 +55,10 @@ export default function ChatPanel() {
   const prepareRegeneration = useChatStore(s => s.prepareRegeneration)
   const lastContextUsage = useChatStore(s => s.lastContextUsage)
   const totalSessionCost = useChatStore(s => s.totalSessionCost)
-  const dreamEvents = useChatStore(s => s.dreamEvents)
   // Tab state (Iteration 515)
   const activeTabId = useChatStore(s => s.activeTabId)
   const setTabScrollTop = useChatStore(s => s.setTabScrollTop)
   const tabCount = useChatStore(s => s.tabs.length)
-
-  // Plan approval (multi-agent protocol)
-  const pendingPlanApproval = useChatStore(s => s.pendingPlanApproval)
-  const setPendingPlanApproval = useChatStore(s => s.setPendingPlanApproval)
 
   // Keep the active tab title in sync with session title changes
   const updateTabTitle = useChatStore(s => s.updateTabTitle)
@@ -155,21 +148,6 @@ export default function ChatPanel() {
     return () => window.removeEventListener('aipa:openExport', handleOpenExport)
   }, [])
 
-  // Subscribe to plan_approval_request events from CLI (multi-agent protocol)
-  useEffect(() => {
-    if (!window.electronAPI?.onPlanApprovalRequest) return
-    const unsub = window.electronAPI.onPlanApprovalRequest((data) => {
-      setPendingPlanApproval({
-        sessionId: data.sessionId,
-        requestId: data.requestId,
-        from: data.from,
-        planContent: data.planContent,
-        planFilePath: data.planFilePath,
-      })
-    })
-    return unsub
-  }, [setPendingPlanApproval])
-
   // Regeneration
   const canRegenerate = !isStreaming && messages.length >= 2 && messages[messages.length - 1]?.role === 'assistant'
 
@@ -222,20 +200,6 @@ export default function ChatPanel() {
     await sendMessage(text.trim())
   }
 
-  const handlePlanApprove = (requestId: string) => {
-    const approval = useChatStore.getState().pendingPlanApproval
-    if (!approval) return
-    window.electronAPI.cliRespondPlanApproval({ sessionId: approval.sessionId, requestId, approved: true })
-    setPendingPlanApproval(null)
-  }
-
-  const handlePlanReject = (requestId: string, feedback?: string) => {
-    const approval = useChatStore.getState().pendingPlanApproval
-    if (!approval) return
-    window.electronAPI.cliRespondPlanApproval({ sessionId: approval.sessionId, requestId, approved: false, feedback })
-    setPendingPlanApproval(null)
-  }
-
   const handleSummarize = useCallback(async () => {
     if (isStreaming || messages.length < 2) return
     await sendMessage(t('chat.summarizePrompt'))
@@ -277,7 +241,7 @@ export default function ChatPanel() {
   return (
     <div
       className="flex flex-col h-full"
-      style={{ background: 'rgba(10,10,18,1)', position: 'relative', borderRight: '1px solid var(--glass-border)' }}
+      style={{ background: 'var(--bg-chat)', position: 'relative', borderRight: '1px solid var(--border)' }}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -388,14 +352,14 @@ export default function ChatPanel() {
             placeholder={t('session.addNote')}
             maxLength={200}
             onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)' }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--glass-border)' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
             style={{
-              flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid var(--glass-border)',
+              flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border)',
               borderRadius: 6, padding: '2px 6px', fontSize: 12, color: 'var(--text-primary)', outline: 'none',
               transition: 'border-color 0.15s ease',
             }}
           />
-          <span style={{ fontSize: 10, color: 'var(--text-faint)', flexShrink: 0, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{noteText.length}/200</span>
+          <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{noteText.length}/200</span>
           <button onClick={() => { if (noteText.trim()) setSessionNote(currentSessionId, noteText.trim()); setEditingNote(false) }}
             style={{ background: 'none', border: 'none', color: '#4ade80', cursor: 'pointer', display: 'flex', padding: 2 }}>
             <Check size={12} />
@@ -584,7 +548,7 @@ export default function ChatPanel() {
               gap: 4,
               padding: '2px 10px',
               background: 'transparent',
-              border: '1px solid var(--glass-border)',
+              border: '1px solid var(--border)',
               borderRadius: 12,
               cursor: 'pointer',
               color: 'var(--text-muted)',
@@ -597,7 +561,7 @@ export default function ChatPanel() {
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.color = 'var(--text-muted)'
-              e.currentTarget.style.borderColor = 'var(--glass-border)'
+              e.currentTarget.style.borderColor = 'var(--border)'
             }}
           >
             {chatZoom}%
@@ -608,30 +572,8 @@ export default function ChatPanel() {
       {/* Task Dashboard — visual task flow (Iteration 550) */}
       <TaskDashboard />
 
-      {/* DreamTask card — shown when background memory consolidation completed this session */}
-      {dreamEvents.length > 0 && (
-        <div style={{ padding: '0 16px 4px' }}>
-          <DreamTaskCard events={dreamEvents} />
-        </div>
-      )}
-
       {/* Task Queue Panel */}
       <TaskQueuePanel />
-
-      {/* Plan Approval Card — shown when a sub-agent requests plan approval (multi-agent) */}
-      {pendingPlanApproval && (
-        <div style={{ padding: '4px 16px' }}>
-          <PlanApprovalCard
-            sessionId={pendingPlanApproval.sessionId}
-            requestId={pendingPlanApproval.requestId}
-            from={pendingPlanApproval.from}
-            planContent={pendingPlanApproval.planContent}
-            planFilePath={pendingPlanApproval.planFilePath}
-            onApprove={handlePlanApprove}
-            onReject={handlePlanReject}
-          />
-        </div>
-      )}
 
       {/* Speculation status bar — compact banner above input while speculation runs/is ready */}
       {!isStreaming && (specStatus === 'running' || specStatus === 'ready') && (

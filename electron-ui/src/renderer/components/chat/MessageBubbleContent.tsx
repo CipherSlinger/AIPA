@@ -148,7 +148,7 @@ export default function MessageBubbleContent({
           {!isPermission && message.toolUses && message.toolUses.length > 0 && (() => {
             const groups = groupToolUses(message.toolUses, t)
             return (
-              <div style={{ borderTop: '1px solid var(--glass-border)', marginTop: 8, paddingTop: 8 }}>
+              <div style={{ borderTop: '1px solid var(--border)', marginTop: 8, paddingTop: 8 }}>
                 {groups.map((group, idx) => (
                   group.type === 'batch' ? (
                     <ToolBatchBlock key={`batch-${idx}`} group={group} />
@@ -178,7 +178,7 @@ export default function MessageBubbleContent({
                 }}
                 style={{
                   width: '100%', minHeight: 60, padding: '8px 10px',
-                  background: 'rgba(255,255,255,0.05)',
+                  background: 'var(--bg-hover)',
                   border: '1px solid rgba(99,102,241,0.45)',
                   boxShadow: '0 0 0 2px rgba(99,102,241,0.15)',
                   borderRadius: 8, color: 'inherit', fontSize: 14,
@@ -190,12 +190,12 @@ export default function MessageBubbleContent({
                 <button
                   onClick={onEditCancel}
                   style={{
-                    background: 'transparent', border: '1px solid var(--glass-border)',
+                    background: 'transparent', border: '1px solid var(--border)',
                     borderRadius: 6, padding: '4px 12px',
                     color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer',
                     transition: 'background 0.15s ease',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                 >
                   {t('message.editCancel')}
@@ -225,7 +225,7 @@ export default function MessageBubbleContent({
                   fontSize: 12, lineHeight: 1.6,
                   color: 'var(--text-primary)',
                   background: 'rgba(0,0,0,0.1)',
-                  border: '1px solid var(--glass-border)',
+                  border: '1px solid var(--border)',
                   borderRadius: 4, padding: '8px 12px', margin: 0,
                   fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
                 }}>
@@ -252,7 +252,7 @@ export default function MessageBubbleContent({
                     height: 40,
                     background: isUser
                       ? 'linear-gradient(transparent, rgba(60,51,200,0.85))'
-                      : 'linear-gradient(transparent, var(--glass-bg-popup))',
+                      : 'linear-gradient(transparent, var(--popup-bg))',
                     pointerEvents: 'none',
                   }} />
                   <button
@@ -266,7 +266,7 @@ export default function MessageBubbleContent({
                       padding: '6px 0',
                       background: 'none',
                       border: 'none',
-                      borderTop: '1px solid var(--glass-border)',
+                      borderTop: '1px solid var(--border)',
                       color: '#818cf8',
                       cursor: 'pointer',
                       fontSize: 11,
@@ -295,7 +295,7 @@ export default function MessageBubbleContent({
                         padding: '6px 0',
                         background: 'none',
                         border: 'none',
-                        borderTop: '1px solid var(--glass-border)',
+                        borderTop: '1px solid var(--border)',
                         color: '#818cf8',
                         cursor: 'pointer',
                         fontSize: 11,
@@ -317,7 +317,7 @@ export default function MessageBubbleContent({
             <div
               style={{
                 fontSize: 11,
-                color: 'var(--text-faint)',
+                color: 'var(--text-muted)',
                 display: 'flex', justifyContent: 'flex-end',
                 alignItems: 'center', gap: 4,
                 marginTop: 6, lineHeight: 1,

@@ -66,7 +66,7 @@ const PERMISSION_TYPE_BADGE: Record<'bash' | 'file' | 'network' | 'other', { lab
   bash:    { label: 'bash',    bg: 'rgba(99,102,241,0.15)',  color: '#818cf8', border: 'rgba(99,102,241,0.30)' },
   file:    { label: 'file',    bg: 'rgba(251,191,36,0.15)',  color: '#fbbf24', border: 'rgba(251,191,36,0.30)' },
   network: { label: 'network', bg: 'rgba(67,229,229,0.15)',  color: '#67e8f9', border: 'rgba(67,229,229,0.30)' },
-  other:   { label: 'action',  bg: 'rgba(255,255,255,0.08)', color: 'var(--text-secondary)', border: 'rgba(255,255,255,0.15)' },
+  other:   { label: 'action',  bg: 'var(--border)', color: 'var(--text-secondary)', border: 'rgba(255,255,255,0.15)' },
 }
 
 // Map tool names to lucide icons + tint colors
@@ -354,10 +354,10 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
       style={{
         margin: '8px auto',
         maxWidth: 420,
-        background: 'var(--glass-bg-mid)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid var(--glass-border-md)',
+        border: '1px solid var(--border)',
         borderLeft: leftBorder,
         borderRadius: 10,
         boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
@@ -420,7 +420,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
             fontSize: 11,
             color: 'rgba(165,180,252,0.9)',
             background: 'rgba(0,0,0,0.35)',
-            border: '1px solid var(--glass-border)',
+            border: '1px solid var(--border)',
             borderRadius: 8,
             padding: '6px 10px',
             fontFamily: 'monospace',
@@ -503,7 +503,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
           {(onAlwaysAllow || onAlwaysDeny) && (
             <div style={{
               display: 'flex', gap: 8,
-              borderTop: '1px solid var(--glass-border)', paddingTop: 8,
+              borderTop: '1px solid var(--border)', paddingTop: 8,
             }}>
               {onAlwaysAllow && (
                 <button
@@ -564,7 +564,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
           {hasSuggestions && (
             <div style={{
               display: 'flex', flexDirection: 'column', gap: 6,
-              borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 10,
+              borderTop: '1px solid var(--bg-hover)', paddingTop: 10,
             }}>
               {/* Section micro-label */}
               <div style={{
@@ -572,7 +572,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
                 fontWeight: 700,
                 letterSpacing: '0.07em',
                 textTransform: 'uppercase',
-                color: 'var(--text-faint)',
+                color: 'var(--text-muted)',
                 marginBottom: 2,
               }}>
                 建议的永久规则 <span style={{ opacity: 0.6 }}>SUGGESTED RULES</span>
@@ -603,7 +603,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
                     {/* Checkbox */}
                     <div style={{
                       width: 14, height: 14, borderRadius: 4, flexShrink: 0,
-                      background: checked ? 'rgba(99,102,241,0.85)' : 'rgba(255,255,255,0.08)',
+                      background: checked ? 'rgba(99,102,241,0.85)' : 'var(--border)',
                       border: checked ? '1px solid rgba(99,102,241,0.40)' : '1px solid rgba(255,255,255,0.18)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       transition: 'all 0.15s ease',
@@ -651,7 +651,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
                   >
                     <div style={{
                       width: 14, height: 14, borderRadius: 4, flexShrink: 0,
-                      background: checked ? 'rgba(99,102,241,0.85)' : 'rgba(255,255,255,0.08)',
+                      background: checked ? 'rgba(99,102,241,0.85)' : 'var(--border)',
                       border: checked ? '1px solid rgba(99,102,241,0.40)' : '1px solid rgba(255,255,255,0.18)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       transition: 'all 0.15s ease',

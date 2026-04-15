@@ -93,7 +93,7 @@ export default function SessionListHeader({
   }
 
   const iconBtnHover = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+    e.currentTarget.style.background = 'var(--border)'
     e.currentTarget.style.color = 'var(--text-primary)'
   }
   const iconBtnLeave = (e: React.MouseEvent<HTMLButtonElement>, active?: boolean) => {
@@ -104,27 +104,27 @@ export default function SessionListHeader({
   return (
     <div style={{
       padding: '8px 10px',
-      background: 'var(--glass-bg-popup)',
+      background: 'var(--popup-bg)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
-      borderBottom: '1px solid var(--glass-border)',
+      borderBottom: '1px solid var(--border)',
       display: 'flex',
       gap: 4,
       flexShrink: 0,
       alignItems: 'center',
     }}>
       {/* Sessions label + count badge */}
-      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)', flexShrink: 0 }}>
+      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', flexShrink: 0 }}>
         Sessions
       </span>
       {filteredCount > 0 && (
         <span style={{
-          background: 'var(--glass-border)',
+          background: 'var(--border)',
           borderRadius: 10,
           padding: '1px 6px',
           fontSize: 10,
           fontWeight: 600,
-          color: 'var(--text-faint)',
+          color: 'var(--text-muted)',
           flexShrink: 0,
           fontVariantNumeric: 'tabular-nums',
         }}>
@@ -133,7 +133,7 @@ export default function SessionListHeader({
       )}
       {/* Search input */}
       <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
-        <Search size={12} style={{ position: 'absolute', left: 8, color: 'var(--text-faint)', pointerEvents: 'none' }} />
+        <Search size={12} style={{ position: 'absolute', left: 8, color: 'var(--text-muted)', pointerEvents: 'none' }} />
         <input
           ref={searchInputRef}
           value={filter}
@@ -143,8 +143,8 @@ export default function SessionListHeader({
           style={{
             flex: 1,
             width: '100%',
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid var(--glass-border)',
+            background: 'var(--bg-hover)',
+            border: '1px solid var(--border)',
             borderRadius: 6,
             padding: '4px 10px 4px 26px',
             color: 'var(--text-primary)',
@@ -154,12 +154,12 @@ export default function SessionListHeader({
           }}
           onFocus={(e) => {
             e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)'
-            e.currentTarget.style.background = 'var(--glass-border)'
+            e.currentTarget.style.background = 'var(--border)'
             e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)'
           }}
           onBlur={(e) => {
-            e.currentTarget.style.borderColor = 'var(--glass-border)'
-            e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+            e.currentTarget.style.borderColor = 'var(--border)'
+            e.currentTarget.style.background = 'var(--bg-hover)'
             e.currentTarget.style.boxShadow = 'none'
           }}
         />
@@ -168,7 +168,7 @@ export default function SessionListHeader({
             position: 'absolute',
             right: 8,
             fontSize: 10,
-            color: filteredCount === 0 ? '#f87171' : 'var(--text-faint)',
+            color: filteredCount === 0 ? '#f87171' : 'var(--text-muted)',
             pointerEvents: 'none',
             whiteSpace: 'nowrap',
             fontVariantNumeric: 'tabular-nums',
@@ -195,7 +195,7 @@ export default function SessionListHeader({
           title={`${t('session.sort')}: ${sortBy === 'newest' ? t('session.sortNewest') : sortBy === 'oldest' ? t('session.sortOldest') : sortBy === 'messages' ? t('session.sortMessages') : t('session.sortAlpha')}`}
           style={{
             ...iconBtnStyle,
-            background: showSortDropdown ? 'rgba(255,255,255,0.08)' : 'transparent',
+            background: showSortDropdown ? 'var(--border)' : 'transparent',
             color: showSortDropdown ? 'var(--text-primary)' : 'var(--text-muted)',
             gap: 2,
             fontSize: 10,
@@ -215,10 +215,10 @@ export default function SessionListHeader({
               top: '100%',
               left: 0,
               marginTop: 4,
-              background: 'var(--glass-bg-deep)',
+              background: 'var(--popup-bg)',
               backdropFilter: 'blur(16px)',
               WebkitBackdropFilter: 'blur(16px)',
-              border: '1px solid var(--glass-border-md)',
+              border: '1px solid var(--border)',
               borderRadius: 8,
               boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
               padding: '4px 0',
@@ -249,13 +249,13 @@ export default function SessionListHeader({
                     borderRadius: 0,
                     transition: 'all 0.15s ease',
                   }}
-                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'var(--bg-hover)' }}
                   onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
                 >
                   <span style={{
                     width: 6, height: 6, borderRadius: '50%',
                     background: isActive ? '#818cf8' : 'transparent',
-                    border: `1.5px solid ${isActive ? '#818cf8' : 'var(--text-faint)'}`,
+                    border: `1.5px solid ${isActive ? '#818cf8' : 'var(--text-muted)'}`,
                     flexShrink: 0,
                   }} />
                   {opt.id === 'alpha' ? 'A-Z' : t(opt.labelKey)}
@@ -308,12 +308,12 @@ export default function SessionListHeader({
         {!showArchived && archivedCount > 0 && (
           <span style={{
             position: 'absolute', top: -4, right: -5,
-            background: 'rgba(255,255,255,0.08)',
+            background: 'var(--border)',
             borderRadius: 10,
             padding: '1px 4px',
             fontSize: 8,
             fontWeight: 600,
-            color: 'var(--text-faint)',
+            color: 'var(--text-muted)',
             lineHeight: 1.4,
             fontVariantNumeric: 'tabular-nums',
           }}>

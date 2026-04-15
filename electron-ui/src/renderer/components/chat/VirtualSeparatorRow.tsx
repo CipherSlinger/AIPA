@@ -36,20 +36,20 @@ export default function VirtualSeparatorRow({ type, label, virtualRow, measureEl
           gap: 10,
           padding: '6px 20px',
         }}>
-          <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+          <div style={{ flex: 1, height: 1, background: 'var(--bg-hover)' }} />
           <span style={{
             fontSize: 11,
             fontWeight: 700,
             letterSpacing: '0.07em',
             textTransform: 'uppercase',
-            color: 'var(--text-faint)',
-            background: 'rgba(10,10,18,1)',
+            color: 'var(--text-muted)',
+            background: 'var(--bg-chat)',
             padding: '0 10px',
             whiteSpace: 'nowrap',
           }}>
             {label}
           </span>
-          <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+          <div style={{ flex: 1, height: 1, background: 'var(--bg-hover)' }} />
         </div>
       </div>
     )
@@ -73,7 +73,7 @@ export default function VirtualSeparatorRow({ type, label, virtualRow, measureEl
             fontSize: 11,
             fontWeight: 600,
             letterSpacing: '0.05em',
-            color: 'var(--text-faint)',
+            color: 'var(--text-muted)',
             fontFamily: 'monospace',
           }}>
             {label}
@@ -99,7 +99,7 @@ export default function VirtualSeparatorRow({ type, label, virtualRow, measureEl
         }}>
           <span style={{
             fontSize: 11,
-            color: 'var(--text-faint)',
+            color: 'var(--text-muted)',
             fontStyle: 'italic',
           }}>
             {label}

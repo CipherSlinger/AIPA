@@ -116,10 +116,10 @@ export default function ChangesPanel({
           style={{
             position: 'absolute', top: '100%', right: 0,
             width: 380, maxHeight: 420, overflowY: 'auto',
-            background: 'var(--glass-bg-raised)',
+            background: 'var(--popup-bg)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid var(--glass-border)',
+            border: '1px solid var(--border)',
             boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
             borderRadius: 12,
             zIndex: 200, marginTop: 4,
@@ -129,7 +129,7 @@ export default function ChangesPanel({
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '10px 14px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            borderBottom: '1px solid var(--bg-hover)',
           }}>
             <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-primary)' }}>
               {t('changes.title')}
@@ -145,7 +145,7 @@ export default function ChangesPanel({
                     display: 'flex', alignItems: 'center',
                     transition: 'background 0.15s ease',
                   }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--glass-border)' }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--border)' }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
                 >
                   {copied ? <Check size={14} /> : <ClipboardCopy size={14} />}
@@ -159,7 +159,7 @@ export default function ChangesPanel({
                   display: 'flex', alignItems: 'center',
                   transition: 'background 0.15s ease',
                 }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--glass-border)' }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--border)' }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
               >
                 <X size={14} />
@@ -175,12 +175,12 @@ export default function ChangesPanel({
             }}>
               <div style={{
                 width: 48, height: 48, borderRadius: 12,
-                background: 'rgba(255,255,255,0.04)',
+                background: 'var(--bg-hover)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 <GitCompareArrows size={20} style={{ color: 'rgba(255,255,255,0.2)' }} />
               </div>
-              <span style={{ fontSize: 12, color: 'var(--text-faint)', textAlign: 'center' }}>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>
                 {t('changes.noChanges')}
               </span>
             </div>
@@ -202,7 +202,7 @@ export default function ChangesPanel({
               </div>
 
               {/* File list */}
-              <div role="list" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+              <div role="list" style={{ borderTop: '1px solid var(--bg-hover)' }}>
                 {files.map(f => {
                   const isCreated = f.status === 'created'
                   const borderColor = isCreated ? 'rgba(74,222,128,0.5)' : 'rgba(99,102,241,0.5)'
@@ -216,12 +216,12 @@ export default function ChangesPanel({
                       style={{
                         display: 'flex', alignItems: 'center', gap: 8,
                         padding: '8px 12px',
-                        borderBottom: '1px solid rgba(255,255,255,0.04)',
+                        borderBottom: '1px solid var(--bg-hover)',
                         borderLeft: `3px solid ${borderColor}`,
                         borderRadius: 8,
                         transition: 'background 0.15s ease',
                       }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)' }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-hover)' }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
                     >
                       <span style={{
@@ -241,7 +241,7 @@ export default function ChangesPanel({
                       }}>
                         {f.basename}
                       </span>
-                      <span style={{ fontSize: 10, fontFamily: 'monospace', flexShrink: 0, display: 'flex', gap: 6, fontVariantNumeric: 'tabular-nums', color: 'var(--text-faint)' }}>
+                      <span style={{ fontSize: 10, fontFamily: 'monospace', flexShrink: 0, display: 'flex', gap: 6, fontVariantNumeric: 'tabular-nums', color: 'var(--text-muted)' }}>
                         {f.linesAdded > 0 && <span style={{ color: '#4ade80' }}>+{f.linesAdded}</span>}
                         {f.linesRemoved > 0 && <span style={{ color: '#f87171' }}>-{f.linesRemoved}</span>}
                       </span>
@@ -252,7 +252,7 @@ export default function ChangesPanel({
 
               {/* Per-turn breakdown */}
               {turns.length > 0 && (
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: 4 }}>
+                <div style={{ borderTop: '1px solid var(--bg-hover)', paddingTop: 4 }}>
                   {turns.map((turn, idx) => {
                     const isExpanded = expandedTurns.has(idx)
                     return (
@@ -267,7 +267,7 @@ export default function ChangesPanel({
                             color: 'var(--text-muted)', fontSize: 11,
                             transition: 'background 0.15s ease',
                           }}
-                          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--glass-border)' }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--border)' }}
                           onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none' }}
                         >
                           {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
@@ -284,7 +284,7 @@ export default function ChangesPanel({
                             <div key={f.filePath} style={{
                               display: 'flex', alignItems: 'center', gap: 8,
                               padding: '3px 12px 3px 32px', fontSize: 11,
-                              borderBottom: '1px solid rgba(255,255,255,0.04)',
+                              borderBottom: '1px solid var(--bg-hover)',
                               borderLeft: `3px solid ${isCreated ? 'rgba(34,197,94,0.3)' : 'rgba(99,102,241,0.3)'}`,
                             }}>
                               <span style={{
@@ -305,7 +305,7 @@ export default function ChangesPanel({
                               }}>
                                 {f.basename}
                               </span>
-                              <span style={{ fontFamily: 'monospace', flexShrink: 0, display: 'flex', gap: 4, fontSize: 10, fontVariantNumeric: 'tabular-nums', color: 'var(--text-faint)' }}>
+                              <span style={{ fontFamily: 'monospace', flexShrink: 0, display: 'flex', gap: 4, fontSize: 10, fontVariantNumeric: 'tabular-nums', color: 'var(--text-muted)' }}>
                                 {f.linesAdded > 0 && <span style={{ color: '#4ade80' }}>+{f.linesAdded}</span>}
                                 {f.linesRemoved > 0 && <span style={{ color: '#f87171' }}>-{f.linesRemoved}</span>}
                               </span>

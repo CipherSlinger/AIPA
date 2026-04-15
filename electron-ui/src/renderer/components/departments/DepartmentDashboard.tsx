@@ -132,10 +132,10 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
       <div style={{
         height: 56,
         flexShrink: 0,
-        background: 'rgba(15,15,25,0.92)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--border)',
         display: 'flex',
         alignItems: 'center',
         padding: '14px 20px',
@@ -160,7 +160,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
             background: 'none',
             border: 'none',
             cursor: 'pointer',
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -171,12 +171,12 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
             transition: 'background 0.15s, color 0.15s',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+            e.currentTarget.style.background = 'var(--border)'
+            e.currentTarget.style.color = 'var(--text-primary)'
           }}
           onMouseLeave={e => {
             e.currentTarget.style.background = 'none'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+            e.currentTarget.style.color = 'var(--text-muted)'
           }}
         >
           <ArrowLeft size={15} />
@@ -189,7 +189,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
           borderRadius: '50%',
           background: dept.color || '#6366f1',
           flexShrink: 0,
-          boxShadow: `0 0 0 2px rgba(255,255,255,0.08)`,
+          boxShadow: `0 0 0 2px var(--border)`,
         }} />
 
         {/* Dept name + dir */}
@@ -197,7 +197,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
           <div style={{
             fontSize: 15,
             fontWeight: 700,
-            color: 'rgba(255,255,255,0.82)',
+            color: 'var(--text-primary)',
             lineHeight: 1.3,
             display: 'flex',
             alignItems: 'center',
@@ -218,7 +218,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
           </div>
           <div style={{
             fontSize: 11,
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -243,9 +243,9 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
             gap: 5,
             padding: '5px 10px',
             borderRadius: 6,
-            border: `1px solid ${selectMode ? 'rgba(99,102,241,0.7)' : 'rgba(255,255,255,0.1)'}`,
+            border: `1px solid ${selectMode ? 'rgba(99,102,241,0.7)' : 'var(--border)'}`,
             background: selectMode ? 'rgba(99,102,241,0.1)' : 'transparent',
-            color: selectMode ? '#818cf8' : 'rgba(255,255,255,0.60)',
+            color: selectMode ? '#818cf8' : 'var(--text-secondary)',
             fontSize: 11,
             cursor: 'pointer',
             flexShrink: 0,
@@ -253,14 +253,14 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
           }}
           onMouseEnter={e => {
             if (!selectMode) {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.38)'
-              e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+              e.currentTarget.style.borderColor = 'var(--text-muted)'
+              e.currentTarget.style.color = 'var(--text-primary)'
             }
           }}
           onMouseLeave={e => {
             if (!selectMode) {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'
-              e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+              e.currentTarget.style.borderColor = 'var(--border)'
+              e.currentTarget.style.color = 'var(--text-secondary)'
             }
           }}
         >
@@ -292,9 +292,9 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
             gap: 4,
             padding: '5px 10px',
             borderRadius: 6,
-            border: '1px solid rgba(255,255,255,0.1)',
+            border: '1px solid var(--border)',
             background: 'transparent',
-            color: 'rgba(255,255,255,0.60)',
+            color: 'var(--text-secondary)',
             fontSize: 11,
             cursor: 'pointer',
             flexShrink: 0,
@@ -306,8 +306,8 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
             e.currentTarget.style.background = 'rgba(34,197,94,0.06)'
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+            e.currentTarget.style.borderColor = 'var(--border)'
+            e.currentTarget.style.color = 'var(--text-secondary)'
             e.currentTarget.style.background = 'transparent'
           }}
         >
@@ -323,9 +323,9 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
             gap: 5,
             padding: '5px 11px',
             borderRadius: 6,
-            border: '1px solid rgba(255,255,255,0.1)',
+            border: '1px solid var(--border)',
             background: 'transparent',
-            color: 'rgba(255,255,255,0.60)',
+            color: 'var(--text-secondary)',
             fontSize: 12,
             cursor: 'pointer',
             flexShrink: 0,
@@ -337,8 +337,8 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
             e.currentTarget.style.background = 'rgba(99,102,241,0.08)'
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+            e.currentTarget.style.borderColor = 'var(--border)'
+            e.currentTarget.style.color = 'var(--text-secondary)'
             e.currentTarget.style.background = 'transparent'
           }}
         >
@@ -346,7 +346,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
           {t('dept.files')}
         </button>
 
-        <div style={{ display: 'flex', gap: 2, background: 'rgba(255,255,255,0.05)', borderRadius: 6, padding: 2, flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 2, background: 'var(--bg-hover)', borderRadius: 6, padding: 2, flexShrink: 0 }}>
           {([['recent', '↓Time'], ['oldest', '↑Time'], ['msgs', 'Msgs']] as const).map(([val, label]) => (
             <button
               key={val}
@@ -356,7 +356,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
                 borderRadius: 4,
                 border: 'none',
                 background: sortOrder === val ? 'rgba(99,102,241,0.25)' : 'transparent',
-                color: sortOrder === val ? '#6366f1' : 'rgba(255,255,255,0.45)',
+                color: sortOrder === val ? '#6366f1' : 'var(--text-muted)',
                 fontSize: 10,
                 cursor: 'pointer',
                 fontWeight: sortOrder === val ? 600 : 400,
@@ -411,7 +411,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
       </div>
 
       {/* Sessions area */}
-      <div style={{ flex: 1, overflow: 'auto', padding: '24px 24px', background: 'rgba(10,10,18,1)' }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: '24px 24px', background: 'var(--bg-chat)' }}>
         {/* Section header */}
         <div style={{
           display: 'flex',
@@ -422,7 +422,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
           position: 'sticky',
           top: 0,
           zIndex: 5,
-          background: 'rgba(15,15,25,0.92)',
+          background: 'var(--popup-bg)',
           paddingTop: 4,
           paddingBottom: 10,
           marginBottom: 8,
@@ -430,7 +430,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
           WebkitBackdropFilter: 'blur(12px)',
         }}>
           <span style={{
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-muted)',
             fontSize: 10,
             fontWeight: 700,
             textTransform: 'uppercase',
@@ -439,12 +439,12 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
             {t('dept.sessions')}
           </span>
           <span style={{
-            background: 'rgba(255,255,255,0.08)',
+            background: 'var(--border)',
             borderRadius: 20,
             padding: '1px 7px',
             fontSize: 10,
             fontWeight: 500,
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-muted)',
           }}>
             {searchQuery.trim() ? pinnedFilteredSessions.length : deptSessions.length}
           </span>
@@ -459,7 +459,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
               marginBottom: 14,
               padding: '10px 14px',
               background: 'rgba(15,15,25,0.85)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid var(--border)',
               borderRadius: 12,
               boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
               backdropFilter: 'blur(12px)',
@@ -469,13 +469,13 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
             onMouseEnter={e => {
               const el = e.currentTarget as HTMLElement
               el.style.boxShadow = '0 4px 16px rgba(0,0,0,0.4)'
-              el.style.borderColor = 'rgba(255,255,255,0.09)'
+              el.style.borderColor = 'var(--border)'
               el.style.transform = 'translateY(-1px)'
             }}
             onMouseLeave={e => {
               const el = e.currentTarget as HTMLElement
               el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)'
-              el.style.borderColor = 'rgba(255,255,255,0.08)'
+              el.style.borderColor = 'var(--border)'
               el.style.transform = 'translateY(0)'
             }}
           >
@@ -493,20 +493,20 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
                 })(),
                 color: (() => {
                   const todayStart = new Date().setHours(0,0,0,0)
-                  return deptSessions.filter(s => s.timestamp >= todayStart).length > 0 ? '#22c55e' : 'rgba(255,255,255,0.82)'
+                  return deptSessions.filter(s => s.timestamp >= todayStart).length > 0 ? '#22c55e' : 'var(--text-primary)'
                 })(),
               },
               {
                 label: t('dept.msgCount'),
                 value: deptSessions.reduce((sum, s) => sum + (s.messageCount ?? 0), 0),
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
               },
             ].map(stat => (
               <div key={stat.label} style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1, textAlign: 'center' }}>
-                <div style={{ fontSize: 22, fontWeight: 700, color: 'rgba(255,255,255,0.82)', lineHeight: 1.2, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
                   {stat.value}
                 </div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '0.07em', lineHeight: 1.4 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', lineHeight: 1.4 }}>
                   {stat.label}
                 </div>
               </div>
@@ -523,7 +523,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
             left: 10,
             top: '50%',
             transform: 'translateY(-50%)',
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             pointerEvents: 'none',
             opacity: 0.6,
           }} />
@@ -537,9 +537,9 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
               width: '100%',
               padding: '6px 32px 6px 30px',
               borderRadius: 6,
-              border: `1px solid ${searchFocused ? 'rgba(99,102,241,0.40)' : 'rgba(255,255,255,0.1)'}`,
-              background: 'rgba(255,255,255,0.04)',
-              color: 'rgba(255,255,255,0.82)',
+              border: `1px solid ${searchFocused ? 'rgba(99,102,241,0.40)' : 'var(--border)'}`,
+              background: 'var(--bg-hover)',
+              color: 'var(--text-primary)',
               fontSize: 12,
               boxSizing: 'border-box',
               outline: 'none',
@@ -558,15 +558,15 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--text-muted)',
                 padding: 2,
                 display: 'flex',
                 alignItems: 'center',
                 borderRadius: 3,
                 transition: 'color 0.15s ease',
               }}
-              onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
-              onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
             >
               <X size={11} />
             </button>
@@ -589,7 +589,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
             </span>
             <button
               onClick={() => setSelectedSessions(new Set(pinnedFilteredSessions.map(s => s.sessionId)))}
-              style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', background: 'none', border: 'none', cursor: 'pointer' }}
+              style={{ fontSize: 11, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}
             >
               {t('session.selectAll')}
             </button>
@@ -634,9 +634,9 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
                   width: 240,
                   minHeight: 130,
                   borderRadius: 12,
-                  background: 'linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.04) 75%)',
+                  background: 'linear-gradient(90deg, var(--bg-hover) 25%, var(--border) 50%, var(--bg-hover) 75%)',
                   backgroundSize: '200% 100%',
-                  border: '1.5px solid rgba(255,255,255,0.06)',
+                  border: '1.5px solid var(--bg-hover)',
                   animation: 'shimmer 1.6s ease-in-out infinite',
                 }}
               />
@@ -650,7 +650,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
             justifyContent: 'center',
             padding: '56px 20px',
             gap: 16,
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             textAlign: 'center',
             animation: 'dept-empty-in 0.15s ease-out',
           }}>
@@ -667,7 +667,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
               <MessageSquarePlus size={30} style={{ opacity: 0.35, color: '#6366f1' }} />
             </div>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.60)', marginBottom: 6 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6 }}>
                 {t('dept.noSessions')}
               </div>
               <div style={{ fontSize: 12, opacity: 0.65, maxWidth: 240, lineHeight: 1.65 }}>
@@ -711,7 +711,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
           <div style={{
             padding: '40px 16px',
             textAlign: 'center',
-            color: 'rgba(255,255,255,0.38)',
+            color: 'var(--text-muted)',
             fontSize: 13,
             display: 'flex',
             flexDirection: 'column',
@@ -804,7 +804,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
                 {groups.map(group => (
                   <div key={group.label} style={{ marginBottom: 20 }}>
                     <div style={{
-                      fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.38)',
+                      fontSize: 10, fontWeight: 700, color: 'var(--text-muted)',
                       textTransform: 'uppercase', letterSpacing: '0.07em',
                       marginBottom: 10,
                       paddingLeft: 8,
@@ -935,16 +935,16 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
           padding: '40px 36px',
           borderRadius: 16,
           background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.07)',
+          border: '1px solid var(--border)',
           maxWidth: 300,
           textAlign: 'center',
         }}>
-          <Building2 size={48} color="rgba(255,255,255,0.45)" style={{ opacity: 0.2 }} />
+          <Building2 size={48} color="var(--text-muted)" style={{ opacity: 0.2 }} />
           <div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: 'rgba(255,255,255,0.60)', marginBottom: 6 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
               {t('dept.noSelection')}
             </div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.65, opacity: 0.8 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.65, opacity: 0.8 }}>
               {t('dept.noSelectionHint')}
             </div>
           </div>
@@ -973,12 +973,12 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
   }
 
   return (
-    <div style={{ flex: 1, overflow: 'auto', padding: '28px 24px', background: 'rgba(10,10,18,1)' }}>
+    <div style={{ flex: 1, overflow: 'auto', padding: '28px 24px', background: 'var(--bg-chat)' }}>
       <div style={{ marginBottom: 16, position: 'relative' }}>
         <Search size={12} style={{
           position: 'absolute', left: 10, top: '50%',
           transform: 'translateY(-50%)',
-          color: 'rgba(255,255,255,0.45)', opacity: 0.6,
+          color: 'var(--text-muted)', opacity: 0.6,
           pointerEvents: 'none',
         }} />
         <input
@@ -989,16 +989,16 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
             width: '100%',
             padding: '7px 30px 7px 30px',
             borderRadius: 7,
-            border: '1px solid rgba(255,255,255,0.1)',
-            background: 'rgba(255,255,255,0.04)',
-            color: 'rgba(255,255,255,0.82)',
+            border: '1px solid var(--border)',
+            background: 'var(--bg-hover)',
+            color: 'var(--text-primary)',
             fontSize: 12,
             outline: 'none',
             boxSizing: 'border-box',
             transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
           }}
           onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-          onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.boxShadow = 'none' }}
+          onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
         />
         {deptSearch && (
           <button
@@ -1007,13 +1007,13 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
               position: 'absolute', right: 8, top: '50%',
               transform: 'translateY(-50%)',
               background: 'none', border: 'none', cursor: 'pointer',
-              color: 'rgba(255,255,255,0.45)', padding: 2,
+              color: 'var(--text-muted)', padding: 2,
               display: 'flex', alignItems: 'center',
               borderRadius: 3,
               transition: 'color 0.15s ease',
             }}
-            onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.82)' }}
-            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
           >
             <X size={11} />
           </button>
@@ -1025,7 +1025,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
         <div style={{
           padding: '20px 10px',
           textAlign: 'center',
-          color: 'rgba(255,255,255,0.45)',
+          color: 'var(--text-muted)',
           fontSize: 12,
           opacity: 0.6,
         }}>
@@ -1048,7 +1048,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                 padding: '6px 10px',
                 borderRadius: 0,
                 margin: '0 -10px 14px',
-                background: isHovered ? 'rgba(255,255,255,0.04)' : 'rgba(15,15,25,0.92)',
+                background: isHovered ? 'var(--bg-hover)' : 'var(--popup-bg)',
                 transition: 'background 0.15s ease, border-color 0.15s ease, padding-left 0.15s ease',
                 borderLeft: `3px solid ${isHovered ? (dept.color || '#6366f1') : 'transparent'}`,
                 paddingLeft: isHovered ? 7 : 10,
@@ -1080,8 +1080,8 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                   background: dept.color || '#6366f1',
                   flexShrink: 0,
                   boxShadow: sessions.some(s => s.sessionId === currentSessionId)
-                    ? `0 0 0 2px rgba(255,255,255,0.12), 0 0 6px 2px ${dept.color || '#6366f1'}44`
-                    : `0 0 0 2px rgba(255,255,255,0.08)`,
+                    ? `0 0 0 2px var(--bg-active), 0 0 6px 2px ${dept.color || '#6366f1'}44`
+                    : `0 0 0 2px var(--border)`,
                   border: 'none',
                   cursor: 'pointer',
                   padding: 0,
@@ -1091,7 +1091,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                   transition: 'transform 0.15s, box-shadow 0.15s',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.3)'; e.currentTarget.style.boxShadow = `0 0 0 3px rgba(255,255,255,0.15)` }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = `0 0 0 2px rgba(255,255,255,0.08)` }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = `0 0 0 2px var(--border)` }}
                 title="View department stats"
               />
 
@@ -1099,7 +1099,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
               <span style={{
                 fontSize: 14,
                 fontWeight: 700,
-                color: 'rgba(255,255,255,0.82)',
+                color: 'var(--text-primary)',
               }}>
                 {dept.name}
               </span>
@@ -1107,8 +1107,8 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
               {/* Session count badge — pill */}
               <span style={{
                 fontSize: 10,
-                color: 'rgba(255,255,255,0.45)',
-                background: 'rgba(255,255,255,0.09)',
+                color: 'var(--text-muted)',
+                background: 'var(--border)',
                 borderRadius: 20,
                 padding: '1px 8px',
                 fontWeight: 600,
@@ -1137,14 +1137,14 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                 height: 1,
                 background: dept.color
                   ? `linear-gradient(to right, ${dept.color}55, transparent)`
-                  : 'rgba(255,255,255,0.08)',
+                  : 'var(--border)',
                 marginLeft: 2,
               }} />
 
               <ChevronRight
                 size={13}
                 style={{
-                  color: isHovered ? 'rgba(255,255,255,0.60)' : 'rgba(255,255,255,0.45)',
+                  color: isHovered ? 'var(--text-secondary)' : 'var(--text-muted)',
                   opacity: isHovered ? 0.8 : 0.4,
                   transition: 'color 0.15s, opacity 0.15s',
                 }}
@@ -1160,9 +1160,9 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                       width: 240,
                       height: 130,
                       borderRadius: 12,
-                      background: 'linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.04) 75%)',
+                      background: 'linear-gradient(90deg, var(--bg-hover) 25%, var(--border) 50%, var(--bg-hover) 75%)',
                       backgroundSize: '200% 100%',
-                      border: '1.5px solid rgba(255,255,255,0.06)',
+                      border: '1.5px solid var(--bg-hover)',
                       animation: 'shimmer 1.6s ease-in-out infinite',
                       animationDelay: `${i * 0.15}s`,
                     }}
@@ -1175,8 +1175,8 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                 style={{
                   padding: '16px 16px',
                   borderRadius: 8,
-                  border: '1px dashed rgba(255,255,255,0.1)',
-                  color: 'rgba(255,255,255,0.45)',
+                  border: '1px dashed var(--border)',
+                  color: 'var(--text-muted)',
                   fontSize: 11,
                   opacity: 0.65,
                   letterSpacing: '0.01em',
@@ -1196,8 +1196,8 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                 onMouseLeave={e => {
                   const el = e.currentTarget as HTMLElement
                   el.style.opacity = '0.65'
-                  el.style.borderColor = 'rgba(255,255,255,0.1)'
-                  el.style.color = 'rgba(255,255,255,0.45)'
+                  el.style.borderColor = 'var(--border)'
+                  el.style.color = 'var(--text-muted)'
                   el.style.background = 'transparent'
                 }}
               >
@@ -1249,22 +1249,22 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                         onClick={e => { e.stopPropagation(); onSelectDept(dept.id) }}
                         title="Open in department"
                         style={{
-                          background: 'rgba(15,15,25,0.92)',
+                          background: 'var(--popup-bg)',
                           backdropFilter: 'blur(12px)',
                           WebkitBackdropFilter: 'blur(12px)',
-                          border: '1px solid rgba(255,255,255,0.12)',
+                          border: '1px solid var(--bg-active)',
                           borderRadius: 6,
                           padding: '3px 7px',
                           fontSize: 9,
                           fontWeight: 600,
-                          color: 'rgba(255,255,255,0.60)',
+                          color: 'var(--text-secondary)',
                           cursor: 'pointer',
                           letterSpacing: '0.04em',
                           textTransform: 'uppercase',
                           transition: 'all 0.15s ease',
                         }}
                         onMouseEnter={e => { e.currentTarget.style.color = '#818cf8'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)' }}
-                        onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.65)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)' }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.65)'; e.currentTarget.style.borderColor = 'var(--bg-active)' }}
                       >
                         Open
                       </button>
@@ -1293,14 +1293,14 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                     style={{
                       minHeight: 130,
                       borderRadius: 12,
-                      border: '1.5px dashed rgba(255,255,255,0.12)',
+                      border: '1.5px dashed var(--bg-active)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexDirection: 'column',
                       gap: 6,
                       cursor: 'pointer',
-                      color: 'rgba(255,255,255,0.45)',
+                      color: 'var(--text-muted)',
                       fontSize: 11,
                       transition: 'border-color 0.15s, color 0.15s, background 0.15s',
                       background: 'rgba(255,255,255,0.02)',
@@ -1313,8 +1313,8 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                     }}
                     onMouseLeave={e => {
                       const el = e.currentTarget as HTMLElement
-                      el.style.borderColor = 'rgba(255,255,255,0.12)'
-                      el.style.color = 'rgba(255,255,255,0.45)'
+                      el.style.borderColor = 'var(--bg-active)'
+                      el.style.color = 'var(--text-muted)'
                       el.style.background = 'rgba(255,255,255,0.02)'
                     }}
                   >
@@ -1337,7 +1337,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                     flexDirection: 'column',
                     gap: 6,
                     cursor: 'pointer',
-                    color: 'rgba(255,255,255,0.45)',
+                    color: 'var(--text-muted)',
                     transition: 'border-color 0.15s, color 0.15s, background 0.15s',
                     background: 'rgba(255,255,255,0.02)',
                   }}
@@ -1350,7 +1350,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                   onMouseLeave={e => {
                     const el = e.currentTarget as HTMLElement
                     el.style.borderColor = 'rgba(255,255,255,0.15)'
-                    el.style.color = 'rgba(255,255,255,0.45)'
+                    el.style.color = 'var(--text-muted)'
                     el.style.background = 'rgba(255,255,255,0.02)'
                   }}
                 >
@@ -1382,7 +1382,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
               background: 'rgba(14,14,24,0.97)',
               backdropFilter: 'blur(16px)',
               WebkitBackdropFilter: 'blur(16px)',
-              border: `1px solid ${dept.color || 'rgba(255,255,255,0.12)'}`,
+              border: `1px solid ${dept.color || 'var(--bg-active)'}`,
               borderRadius: 10,
               padding: '12px 16px',
               minWidth: 200,
@@ -1394,8 +1394,8 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
               <div style={{ width: 10, height: 10, borderRadius: '50%', background: dept.color || '#6366f1', flexShrink: 0 }} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.82)' }}>{dept.name}</span>
-              <button onClick={() => setStatsPopoverId(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', padding: 2, borderRadius: 3, fontSize: 14, lineHeight: 1 }}>×</button>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{dept.name}</span>
+              <button onClick={() => setStatsPopoverId(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2, borderRadius: 3, fontSize: 14, lineHeight: 1 }}>×</button>
             </div>
             {[
               { label: 'Sessions', value: sessions.length },
@@ -1403,12 +1403,12 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
               { label: 'Messages', value: totalMessages },
               { label: 'Last Active', value: lastSession ? new Date(lastSession.timestamp).toLocaleDateString() : '—' },
             ].map(({ label, value }) => (
-              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>{label}</span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{value}</span>
+              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid var(--bg-hover)' }}>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{label}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{value}</span>
               </div>
             ))}
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginTop: 8, opacity: 0.6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 8, opacity: 0.6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {dept.directory}
             </div>
             <button
@@ -1466,9 +1466,9 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
             width: '100%',
             padding: '8px 12px',
             borderRadius: 8,
-            border: '1.5px dashed rgba(255,255,255,0.1)',
+            border: '1.5px dashed var(--border)',
             background: 'transparent',
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-muted)',
             fontSize: 12,
             cursor: 'pointer',
             display: 'flex',
@@ -1484,14 +1484,14 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
             e.currentTarget.style.background = 'rgba(99,102,241,0.05)'
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+            e.currentTarget.style.borderColor = 'var(--border)'
+            e.currentTarget.style.color = 'var(--text-muted)'
             e.currentTarget.style.background = 'transparent'
           }}
         >
           <span style={{ fontSize: 16, lineHeight: 1, fontWeight: 200 }}>+</span>
           New Department
-          <kbd style={{ fontSize: 9, background: 'rgba(255,255,255,0.08)', borderRadius: 3, padding: '0 4px', marginLeft: 2, fontFamily: 'monospace' }}>N</kbd>
+          <kbd style={{ fontSize: 9, background: 'var(--border)', borderRadius: 3, padding: '0 4px', marginLeft: 2, fontFamily: 'monospace' }}>N</kbd>
         </button>
       ) : (
         <div style={{
@@ -1520,9 +1520,9 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
               width: '100%',
               padding: '6px 10px',
               borderRadius: 7,
-              border: '1px solid rgba(255,255,255,0.08)',
-              background: 'rgba(255,255,255,0.06)',
-              color: 'rgba(255,255,255,0.82)',
+              border: '1px solid var(--border)',
+              background: 'var(--bg-hover)',
+              color: 'var(--text-primary)',
               fontSize: 12,
               outline: 'none',
               boxSizing: 'border-box',
@@ -1531,7 +1531,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
               lineHeight: 1.5,
             }}
             onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-            onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.boxShadow = 'none' }}
+            onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
           />
           <input
             placeholder="Directory path (e.g. ~/projects/frontend)"
@@ -1547,9 +1547,9 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
               width: '100%',
               padding: '6px 10px',
               borderRadius: 7,
-              border: '1px solid rgba(255,255,255,0.08)',
-              background: 'rgba(255,255,255,0.06)',
-              color: 'rgba(255,255,255,0.82)',
+              border: '1px solid var(--border)',
+              background: 'var(--bg-hover)',
+              color: 'var(--text-primary)',
               fontSize: 12,
               outline: 'none',
               boxSizing: 'border-box',
@@ -1558,7 +1558,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
               lineHeight: 1.5,
             }}
             onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-            onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.boxShadow = 'none' }}
+            onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
           />
           <div style={{ display: 'flex', gap: 6 }}>
             <button
@@ -1583,12 +1583,12 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
               onClick={() => { setShowAddDept(false); setNewDeptName(''); setNewDeptDir('') }}
               style={{
                 padding: '6px 12px', borderRadius: 7,
-                border: '1px solid rgba(255,255,255,0.08)',
-                background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.45)', fontSize: 11, cursor: 'pointer',
+                border: '1px solid var(--border)',
+                background: 'var(--bg-hover)', color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = 'rgba(255,255,255,0.60)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-muted)' }}
             >
               Cancel
             </button>
@@ -1660,7 +1660,7 @@ export default function DepartmentDashboard() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'rgba(10,10,18,1)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--bg-chat)' }}>
       <style>{`
         @keyframes dept-view-in {
           from { opacity: 0; transform: translateX(14px); }
@@ -1712,25 +1712,25 @@ export default function DepartmentDashboard() {
           <div style={{
             height: 56,
             flexShrink: 0,
-            background: 'rgba(15,15,25,0.92)',
+            background: 'var(--popup-bg)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
-            borderBottom: '1px solid rgba(255,255,255,0.07)',
+            borderBottom: '1px solid var(--border)',
             display: 'flex',
             alignItems: 'center',
             padding: '0 20px',
             gap: 9,
             boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
           }}>
-            <Building2 size={16} style={{ color: 'rgba(255,255,255,0.45)', opacity: 0.8 }} />
-            <span style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.82)', flex: 1, letterSpacing: '-0.01em', lineHeight: 1.3 }}>
+            <Building2 size={16} style={{ color: 'var(--text-muted)', opacity: 0.8 }} />
+            <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', flex: 1, letterSpacing: '-0.01em', lineHeight: 1.3 }}>
               {t('dept.orgChart')}
             </span>
             <span style={{
               fontSize: 11,
               fontWeight: 500,
-              color: 'rgba(255,255,255,0.45)',
-              background: 'rgba(255,255,255,0.07)',
+              color: 'var(--text-muted)',
+              background: 'var(--border)',
               borderRadius: 20,
               padding: '2px 10px',
             }}>

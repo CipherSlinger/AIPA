@@ -129,7 +129,7 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'var(--glass-overlay)',
+        background: 'rgba(0,0,0,0.70)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         zIndex: 500,
@@ -147,10 +147,10 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
         aria-label={t('session.quickSwitcher')}
         onKeyDown={handleKeyDown}
         style={{
-          background: 'var(--glass-bg-high)',
+          background: 'var(--popup-bg)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid var(--glass-border-md)',
+          border: '1px solid var(--border)',
           borderRadius: 16,
           boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
           width: '100%',
@@ -167,12 +167,12 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
           alignItems: 'center',
           gap: 10,
           padding: '14px 16px',
-          borderBottom: '1px solid var(--glass-border-md)',
-          background: inputFocused ? 'rgba(99,102,241,0.04)' : 'rgba(255,255,255,0.06)',
+          borderBottom: '1px solid var(--border)',
+          background: inputFocused ? 'rgba(99,102,241,0.04)' : 'var(--bg-hover)',
           transition: 'all 0.15s ease',
           boxShadow: inputFocused ? 'inset 0 0 0 1px rgba(99,102,241,0.40)' : 'none',
         }}>
-          <Search size={16} style={{ color: inputFocused ? '#818cf8' : 'var(--text-faint)', flexShrink: 0, transition: 'all 0.15s ease' }} />
+          <Search size={16} style={{ color: inputFocused ? '#818cf8' : 'var(--text-muted)', flexShrink: 0, transition: 'all 0.15s ease' }} />
           <input
             ref={inputRef}
             value={query}
@@ -192,9 +192,9 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
           />
           <kbd style={{
             fontSize: 10,
-            color: 'var(--text-faint)',
-            background: 'rgba(255,255,255,0.08)',
-            border: '1px solid var(--glass-border-md)',
+            color: 'var(--text-muted)',
+            background: 'var(--border)',
+            border: '1px solid var(--border)',
             borderRadius: 5,
             padding: '2px 6px',
             fontFamily: 'monospace',
@@ -204,11 +204,11 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
         </div>
 
         {/* Session list */}
-        <div ref={listRef} style={{ maxHeight: 380, overflowY: 'auto', padding: '6px', scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.10) transparent' }}>
+        <div ref={listRef} style={{ maxHeight: 380, overflowY: 'auto', padding: '6px', scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}>
           {filtered.length === 0 && (
             <div style={{
               fontSize: 12,
-              color: 'var(--text-faint)',
+              color: 'var(--text-muted)',
               textAlign: 'center',
               padding: '24px 16px',
               display: 'flex',
@@ -222,7 +222,7 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
                 padding: 12,
                 display: 'inline-flex',
               }}>
-                <Search size={18} style={{ color: 'var(--text-faint)', opacity: 0.6 }} />
+                <Search size={18} style={{ color: 'var(--text-muted)', opacity: 0.6 }} />
               </div>
               <span>
                 {sessions.length === 0 ? t('session.noSessions') : t('session.noResults')}
@@ -267,7 +267,7 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
                   {preview && preview !== title && (
                     <div style={{
                       fontSize: 11,
-                      color: 'var(--text-faint)',
+                      color: 'var(--text-muted)',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
@@ -290,7 +290,7 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
                 </div>
                 <span style={{
                   fontSize: 10,
-                  color: 'var(--text-faint)',
+                  color: 'var(--text-muted)',
                   whiteSpace: 'nowrap',
                   display: 'flex',
                   alignItems: 'center',
@@ -312,24 +312,24 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
           display: 'flex',
           gap: 12,
           padding: '8px 14px',
-          borderTop: '1px solid var(--glass-border-md)',
+          borderTop: '1px solid var(--border)',
           fontSize: 10,
           fontWeight: 700,
           letterSpacing: '0.07em',
           textTransform: 'uppercase',
-          color: 'var(--text-faint)',
+          color: 'var(--text-muted)',
           alignItems: 'center',
         }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <kbd style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid var(--glass-border-md)', borderRadius: 5, padding: '1px 5px', fontSize: 9, fontFamily: 'monospace' }}>↑↓</kbd>
+            <kbd style={{ background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 5, padding: '1px 5px', fontSize: 9, fontFamily: 'monospace' }}>↑↓</kbd>
             {t('command.arrowKeysHint')}
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <kbd style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid var(--glass-border-md)', borderRadius: 5, padding: '1px 5px', fontSize: 9, fontFamily: 'monospace' }}>↵</kbd>
+            <kbd style={{ background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 5, padding: '1px 5px', fontSize: 9, fontFamily: 'monospace' }}>↵</kbd>
             {t('command.enterHint')}
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <kbd style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid var(--glass-border-md)', borderRadius: 5, padding: '1px 5px', fontSize: 9, fontFamily: 'monospace' }}>Esc</kbd>
+            <kbd style={{ background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 5, padding: '1px 5px', fontSize: 9, fontFamily: 'monospace' }}>Esc</kbd>
             {t('command.escHint')}
           </span>
         </div>

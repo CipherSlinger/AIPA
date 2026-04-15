@@ -29,17 +29,17 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: hovered ? 'var(--glass-border)' : 'var(--glass-bg-low)',
+        background: hovered ? 'var(--border)' : 'rgba(15,15,25,0.85)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: hovered ? '1px solid var(--glass-border-md)' : '1px solid var(--glass-border)',
+        border: hovered ? '1px solid var(--border)' : '1px solid var(--border)',
         borderRadius: 12,
         padding: '14px 16px',
         cursor: 'pointer',
         transition: 'all 0.15s ease',
         transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
         boxShadow: hovered
-          ? 'var(--glass-shadow)'
+          ? '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)'
           : '0 2px 8px rgba(0,0,0,0.3)',
       }}
     >
@@ -70,7 +70,7 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
               fontSize: 10,
               padding: '2px 8px',
               borderRadius: 20,
-              background: 'rgba(255,255,255,0.06)',
+              background: 'var(--bg-hover)',
               color: 'var(--text-muted)',
               fontWeight: 600,
               letterSpacing: '0.04em',
@@ -100,7 +100,7 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
           </div>
           <div style={{
             fontSize: 10,
-            color: 'var(--text-faint)',
+            color: 'var(--text-muted)',
             display: 'flex',
             alignItems: 'center',
             gap: 6,
@@ -121,7 +121,7 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
                   gap: 3,
                   padding: '1px 6px',
                   borderRadius: 8,
-                  border: '1px solid var(--glass-border-md)',
+                  border: '1px solid var(--border)',
                   background: 'transparent',
                   color: 'var(--text-muted)',
                   fontSize: 9,
@@ -129,7 +129,7 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
                   transition: 'all 0.15s ease',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.color = '#a5b4fc'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)' }}
-                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--glass-border-md)' }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)' }}
               >
                 <ExternalLink size={9} />
                 {t('skills.source')}

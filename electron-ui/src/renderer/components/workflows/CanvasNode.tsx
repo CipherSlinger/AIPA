@@ -76,19 +76,19 @@ const STATUS_STYLES: Record<string, {
   boxShadow?: string
 }> = {
   idle: {
-    borderColor: 'var(--glass-border-md)',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)',
+    borderColor: 'var(--border)',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 var(--bg-hover)',
   },
   pending: {
-    borderColor: 'var(--glass-border)',
+    borderColor: 'var(--border)',
     opacity: 0.55,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 var(--bg-hover)',
   },
   running: {
     borderColor: 'rgba(99,102,241,0.5)',
     animation: 'canvas-node-pulse 1.5s ease-in-out infinite',
-    glowColor: 'var(--glass-bg-mid)',
-    boxShadow: '0 0 12px 3px rgba(99,102,241,0.35), 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)',
+    glowColor: 'var(--popup-bg)',
+    boxShadow: '0 0 12px 3px rgba(99,102,241,0.35), 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 var(--bg-hover)',
   },
   completed: {
     borderColor: '#22c55e',
@@ -184,9 +184,9 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, status, onCollapse, onClo
     background: 'rgba(18,18,30,0.97)',
     backdropFilter: 'blur(12px)',
     WebkitBackdropFilter: 'blur(12px)',
-    border: '1px solid var(--glass-border-md)',
+    border: '1px solid var(--border)',
     borderRadius: 8,
-    boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05)',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px var(--bg-hover)',
     minWidth: 168,
     padding: '4px 0',
     userSelect: 'none',
@@ -208,7 +208,7 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, status, onCollapse, onClo
 
   const dividerStyle: React.CSSProperties = {
     height: 1,
-    background: 'var(--glass-border)',
+    background: 'var(--border)',
     margin: '3px 0',
   }
 
@@ -216,7 +216,7 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, status, onCollapse, onClo
     <div ref={menuRef} style={menuStyle} onClick={e => e.stopPropagation()}>
       <div
         style={itemStyle}
-        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
         onMouseDown={() => { onCopyPrompt(); onClose() }}
       >
@@ -226,7 +226,7 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, status, onCollapse, onClo
       {hasOutput && (
         <div
           style={itemStyle}
-          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           onMouseDown={() => { onCopyOutput(); onClose() }}
         >
@@ -237,7 +237,7 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, status, onCollapse, onClo
       <div style={dividerStyle} />
       <div
         style={itemStyle}
-        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
         onMouseDown={() => { onCollapse(); onClose() }}
       >
@@ -247,7 +247,7 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, status, onCollapse, onClo
       {onInsertBefore && (
         <div
           style={itemStyle}
-          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           onMouseDown={() => { onInsertBefore(); onClose() }}
         >
@@ -258,7 +258,7 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, status, onCollapse, onClo
       {onInsertAfter && (
         <div
           style={itemStyle}
-          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           onMouseDown={() => { onInsertAfter(); onClose() }}
         >
@@ -269,7 +269,7 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, status, onCollapse, onClo
       {onRetry && status === 'error' && (
         <div
           style={itemStyle}
-          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           onMouseDown={() => { onRetry(); onClose() }}
         >
@@ -358,7 +358,7 @@ function NodeHeader({
   return (
     <div style={{
       padding: '8px 12px',
-      borderBottom: '1px solid var(--glass-border)',
+      borderBottom: '1px solid var(--border)',
       borderLeft: headerBorderLeft,
       borderRadius: '12px 12px 0 0',
       flexShrink: 0,
@@ -377,7 +377,7 @@ function NodeHeader({
             fontWeight: 700,
             color: 'var(--text-primary)',
             width: '100%',
-            background: 'rgba(255,255,255,0.06)',
+            background: 'var(--bg-hover)',
             border: '1px solid rgba(99,102,241,0.6)',
             borderRadius: 3,
             outline: 'none',
@@ -711,10 +711,10 @@ export default function CanvasNode({
   const baseBoxShadow = isMulti
     ? '0 0 0 1.5px #fbbf24, 0 4px 16px rgba(0,0,0,0.4)'
     : selected
-      ? '0 0 0 2px rgba(99,102,241,0.25), 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)'
+      ? '0 0 0 2px rgba(99,102,241,0.25), 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 var(--bg-hover)'
       : isActive
-        ? `0 0 12px 3px rgba(99,102,241,0.35), 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)`
-        : statusStyle.boxShadow ?? '0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)'
+        ? `0 0 12px 3px rgba(99,102,241,0.35), 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 var(--bg-hover)`
+        : statusStyle.boxShadow ?? '0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 var(--bg-hover)'
 
   // F8: flash glow when just completed; V10: highlighted glow for search match
   const boxShadow = justCompleted
@@ -745,7 +745,7 @@ export default function CanvasNode({
     status === 'running' ? 'rgba(99,102,241,0.9)'
     : status === 'completed' ? '#4ade80'
     : status === 'error' ? '#f87171'
-    : 'var(--text-faint)'
+    : 'var(--text-muted)'
 
   const stepBadgeColor =
     (status === 'idle' || status === 'pending') ? 'var(--text-muted)' : 'var(--text-primary)'
@@ -760,10 +760,10 @@ export default function CanvasNode({
 
   // Node background
   const nodeBackground = status === 'running'
-    ? (statusStyle.glowColor || 'var(--glass-bg-mid)')
+    ? (statusStyle.glowColor || 'var(--popup-bg)')
     : isMulti
       ? 'rgba(99,102,241,0.06)'
-      : 'var(--glass-bg-mid)'
+      : 'var(--popup-bg)'
 
   // Improvement 1: output word count for Zone 3
   const outputWordCount = outputText ? outputText.trim().split(/\s+/).filter(Boolean).length : 0
@@ -1302,7 +1302,7 @@ export default function CanvasNode({
                         minHeight: 48,
                         fontSize: 10,
                         color: 'var(--text-primary)',
-                        background: 'rgba(255,255,255,0.06)',
+                        background: 'var(--bg-hover)',
                         border: '1px solid rgba(99,102,241,0.6)',
                         borderRadius: 3,
                         padding: '3px 5px',
@@ -1377,8 +1377,8 @@ export default function CanvasNode({
                         style={{
                           position: 'absolute',
                           top: 4, right: 4,
-                          background: promptCopied ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.06)',
-                          border: `1px solid ${promptCopied ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                          background: promptCopied ? 'rgba(34,197,94,0.15)' : 'var(--bg-hover)',
+                          border: `1px solid ${promptCopied ? 'rgba(34,197,94,0.4)' : 'var(--border)'}`,
                           borderRadius: 4,
                           padding: '2px 5px',
                           cursor: 'pointer',
@@ -1587,8 +1587,8 @@ export default function CanvasNode({
                   style={{
                     position: 'absolute',
                     top: 6, right: 6,
-                    background: outputCopied ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.06)',
-                    border: `1px solid ${outputCopied ? 'rgba(34,197,94,0.4)' : 'var(--glass-border-md)'}`,
+                    background: outputCopied ? 'rgba(34,197,94,0.15)' : 'var(--bg-hover)',
+                    border: `1px solid ${outputCopied ? 'rgba(34,197,94,0.4)' : 'var(--border)'}`,
                     borderRadius: 4,
                     padding: '2px 6px',
                     cursor: 'pointer',
@@ -1672,8 +1672,8 @@ export default function CanvasNode({
                 width: 10,
                 height: 10,
                 borderRadius: '50%',
-                border: '2px solid var(--glass-border-md)',
-                background: 'var(--glass-bg-mid)',
+                border: '2px solid var(--border)',
+                background: 'rgba(15,15,25,0.9)',
                 zIndex: 4,
                 pointerEvents: 'none',
                 transition: 'all 0.15s ease',
@@ -1692,8 +1692,8 @@ export default function CanvasNode({
                 width: 10,
                 height: 10,
                 borderRadius: '50%',
-                border: '2px solid var(--glass-border-md)',
-                background: 'var(--glass-bg-mid)',
+                border: '2px solid var(--border)',
+                background: 'rgba(15,15,25,0.9)',
                 zIndex: 4,
                 pointerEvents: 'none',
                 transition: 'all 0.15s ease',

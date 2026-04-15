@@ -25,10 +25,10 @@ export default function MemoryAddForm({
   return (
     <div style={{
       padding: '14px 16px',
-      background: 'var(--glass-bg-low)',
+      background: 'rgba(15,15,25,0.85)',
       backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
-      border: '1px solid rgba(255,255,255,0.08)',
+      border: '1px solid var(--border)',
       borderRadius: 12,
       marginBottom: 6,
       flexShrink: 0,
@@ -52,8 +52,8 @@ export default function MemoryAddForm({
           width: '100%',
           minHeight: 80,
           padding: '7px 10px',
-          background: 'rgba(255,255,255,0.06)',
-          border: '1px solid var(--glass-border-md)',
+          background: 'var(--bg-hover)',
+          border: '1px solid var(--border)',
           borderRadius: 6,
           fontSize: 13,
           color: 'var(--text-primary)',
@@ -69,7 +69,7 @@ export default function MemoryAddForm({
           e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.45)'
         }}
         onBlur={e => {
-          e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+          e.currentTarget.style.borderColor = 'var(--border)'
           e.currentTarget.style.boxShadow = 'none'
         }}
         onKeyDown={e => {
@@ -120,10 +120,10 @@ export default function MemoryAddForm({
               top: '100%',
               left: 0,
               marginTop: 2,
-              background: 'var(--glass-bg-popup)',
+              background: 'var(--popup-bg)',
               backdropFilter: 'blur(16px)',
               WebkitBackdropFilter: 'blur(16px)',
-              border: '1px solid var(--glass-border-md)',
+              border: '1px solid var(--border)',
               borderRadius: 8,
               boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
               zIndex: 50,
@@ -144,7 +144,7 @@ export default function MemoryAddForm({
                     gap: 6,
                     width: '100%',
                     padding: '6px 10px',
-                    background: newCategory === cat ? 'rgba(255,255,255,0.06)' : 'transparent',
+                    background: newCategory === cat ? 'var(--bg-hover)' : 'transparent',
                     border: 'none',
                     color: CATEGORY_CONFIG[cat].color,
                     fontSize: 11,
@@ -153,7 +153,7 @@ export default function MemoryAddForm({
                     transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={e => {
-                    if (newCategory !== cat) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                    if (newCategory !== cat) e.currentTarget.style.background = 'var(--bg-hover)'
                   }}
                   onMouseLeave={e => {
                     if (newCategory !== cat) e.currentTarget.style.background = 'transparent'
@@ -170,7 +170,7 @@ export default function MemoryAddForm({
           {/* Character counter */}
           <span style={{
             fontSize: 10,
-            color: newContent.length > MAX_CONTENT_LENGTH * 0.9 ? '#fbbf24' : 'var(--text-faint)',
+            color: newContent.length > MAX_CONTENT_LENGTH * 0.9 ? '#fbbf24' : 'var(--text-muted)',
             alignSelf: 'center',
             fontVariantNumeric: 'tabular-nums',
           }}>
@@ -180,8 +180,8 @@ export default function MemoryAddForm({
           <button
             onClick={onClose}
             style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid var(--glass-border-md)',
+              background: 'var(--bg-hover)',
+              border: '1px solid var(--border)',
               borderRadius: 8,
               padding: '7px 14px',
               fontSize: 12,
@@ -189,8 +189,8 @@ export default function MemoryAddForm({
               cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'var(--glass-border-md)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
           >
             {t('memory.cancel')}
           </button>
@@ -201,13 +201,13 @@ export default function MemoryAddForm({
             style={{
               background: newContent.trim()
                 ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
-                : 'rgba(255,255,255,0.05)',
+                : 'var(--bg-hover)',
               border: 'none',
               borderRadius: 8,
               padding: '7px 14px',
               fontSize: 12,
               fontWeight: 600,
-              color: newContent.trim() ? 'var(--text-primary)' : 'var(--text-faint)',
+              color: newContent.trim() ? 'var(--text-primary)' : 'var(--text-muted)',
               cursor: newContent.trim() ? 'pointer' : 'not-allowed',
               transition: 'all 0.15s ease',
               boxShadow: newContent.trim() ? '0 2px 8px rgba(99,102,241,0.30)' : 'none',

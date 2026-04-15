@@ -58,7 +58,7 @@ const lineStyles: Record<LineType, React.CSSProperties> = {
     borderLeft: '2px solid transparent',
   },
   other: {
-    color: 'var(--text-faint)',
+    color: 'var(--text-muted)',
     background: 'transparent',
     borderLeft: '2px solid transparent',
   },
@@ -72,14 +72,14 @@ export default function DiffViewer({ diff }: DiffViewerProps) {
       <div
         style={{
           background: 'rgba(10,10,18,0.95)',
-          border: '1px solid var(--glass-border-md)',
+          border: '1px solid var(--border)',
           borderRadius: 8,
           overflow: 'hidden',
           fontFamily: 'monospace',
           fontSize: 11,
         }}
       >
-        <div style={{ fontSize: 12, color: 'var(--text-faint)', textAlign: 'center', padding: 24 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: 24 }}>
           No changes
         </div>
       </div>
@@ -94,7 +94,7 @@ export default function DiffViewer({ diff }: DiffViewerProps) {
     <div
       style={{
         background: 'rgba(10,10,18,0.95)',
-        border: '1px solid var(--glass-border-md)',
+        border: '1px solid var(--border)',
         borderRadius: 8,
         overflow: 'hidden',
         fontFamily: 'monospace',
@@ -112,7 +112,7 @@ export default function DiffViewer({ diff }: DiffViewerProps) {
             justifyContent: 'space-between',
             padding: '8px 12px',
             background: 'rgba(255,255,255,0.03)',
-            borderBottom: '1px solid var(--glass-border-md)',
+            borderBottom: '1px solid var(--border)',
           }}
         >
           <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
@@ -128,10 +128,10 @@ export default function DiffViewer({ diff }: DiffViewerProps) {
                 style={{
                   padding: '0 10px 0 8px',
                   userSelect: 'none',
-                  color: 'var(--text-faint)',
+                  color: 'var(--text-muted)',
                   textAlign: 'right',
                   minWidth: 36,
-                  borderRight: '1px solid var(--glass-border-md)',
+                  borderRight: '1px solid var(--border)',
                   fontSize: 10,
                   verticalAlign: 'top',
                   fontVariantNumeric: 'tabular-nums',

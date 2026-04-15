@@ -26,14 +26,14 @@ const SECTION_LABEL_STYLE: React.CSSProperties = {
   fontWeight: 700,
   letterSpacing: '0.07em',
   textTransform: 'uppercase',
-  color: 'var(--text-faint)',
+  color: 'var(--text-muted)',
   marginBottom: 4,
 }
 
 const GLASS_INPUT_STYLE: React.CSSProperties = {
   ...INPUT_STYLE,
-  background: 'rgba(255,255,255,0.06)',
-  border: '1px solid var(--glass-border-md)',
+  background: 'var(--bg-hover)',
+  border: '1px solid var(--border)',
   borderRadius: 6,
   color: 'var(--text-primary)',
   fontSize: 13,
@@ -52,15 +52,15 @@ export default function PersonaForm({
   const [cancelHovered, setCancelHovered] = useState(false)
 
   const focusedBorder = '1px solid rgba(99,102,241,0.5)'
-  const restingBorder = '1px solid var(--glass-border-md)'
+  const restingBorder = '1px solid var(--border)'
 
   return (
     <div style={{
       padding: '14px 16px',
-      background: 'var(--glass-bg-low)',
+      background: 'rgba(15,15,25,0.85)',
       backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
-      border: '1px solid var(--glass-border)',
+      border: '1px solid var(--border)',
       borderRadius: 16,
       boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
       marginBottom: 12,
@@ -72,7 +72,7 @@ export default function PersonaForm({
         color: 'var(--text-primary)',
         marginBottom: 12,
         paddingBottom: 10,
-        borderBottom: '1px solid var(--glass-border)',
+        borderBottom: '1px solid var(--border)',
       }}>
         {editingId ? t('persona.editPersona') : t('persona.addPersona')}
       </div>
@@ -106,9 +106,9 @@ export default function PersonaForm({
               height: 32,
               border: formEmoji === emoji
                 ? '2px solid rgba(99,102,241,0.7)'
-                : '1px solid rgba(255,255,255,0.1)',
+                : '1px solid var(--border)',
               borderRadius: 6,
-              background: formEmoji === emoji ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.04)',
+              background: formEmoji === emoji ? 'rgba(99,102,241,0.15)' : 'var(--bg-hover)',
               cursor: 'pointer',
               fontSize: 16,
               display: 'flex',
@@ -244,8 +244,8 @@ export default function PersonaForm({
           onMouseLeave={() => setCancelHovered(false)}
           style={{
             flex: 1,
-            background: cancelHovered ? 'var(--glass-border-md)' : 'rgba(255,255,255,0.06)',
-            border: '1px solid var(--glass-border-md)',
+            background: cancelHovered ? 'var(--border)' : 'var(--bg-hover)',
+            border: '1px solid var(--border)',
             borderRadius: 8,
             padding: '7px 0',
             color: 'var(--text-secondary)',

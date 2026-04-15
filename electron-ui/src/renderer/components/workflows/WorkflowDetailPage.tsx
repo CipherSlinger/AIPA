@@ -307,7 +307,7 @@ export default function WorkflowDetailPage() {
   if (!workflow) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'rgba(8,8,16,1)' }}>
-        <div style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--glass-border)', background: 'var(--glass-bg-raised)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+        <div style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--border)', background: 'var(--popup-bg)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
           <button onClick={() => useUiStore.getState().setMainView('chat')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
             <ArrowLeft size={18} />
           </button>
@@ -350,7 +350,7 @@ export default function WorkflowDetailPage() {
         <div style={{
           flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column',
           background: 'rgba(255,255,255,0.01)',
-          border: '1px solid var(--glass-border)',
+          border: '1px solid var(--border)',
           borderRadius: 10,
           overflow: 'hidden',
         }}>
@@ -392,10 +392,10 @@ export default function WorkflowDetailPage() {
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              background: 'var(--glass-bg-low)',
+              background: 'rgba(15,15,25,0.85)',
               backdropFilter: 'blur(20px)',
               WebkitBackdropFilter: 'blur(20px)',
-              border: '1px solid var(--glass-border-md)',
+              border: '1px solid var(--border)',
               borderRadius: 16,
               padding: '20px 24px',
               width: 380,
@@ -415,12 +415,12 @@ export default function WorkflowDetailPage() {
                 onClick={handleDialogStay}
                 style={{
                   padding: '7px 16px', fontSize: 12,
-                  background: 'rgba(255,255,255,0.06)', border: '1px solid var(--glass-border-md)',
+                  background: 'var(--bg-hover)', border: '1px solid var(--border)',
                   borderRadius: 7, color: 'var(--text-secondary)', cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'var(--glass-border-md)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--border)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
               >
                 {t('workflow.unsavedStay')}
               </button>

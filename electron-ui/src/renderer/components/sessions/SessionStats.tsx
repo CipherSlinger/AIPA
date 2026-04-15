@@ -79,13 +79,13 @@ export default function SessionStats({ onBack }: SessionStatsProps) {
   }, [sessions, sessionTags, tagNames])
 
   const glassCard: React.CSSProperties = {
-    background: 'var(--glass-bg-card)',
+    background: 'rgba(15,15,25,0.88)',
     backdropFilter: 'blur(16px)',
     WebkitBackdropFilter: 'blur(16px)',
-    border: '1px solid var(--glass-border)',
+    border: '1px solid var(--border)',
     borderRadius: 12,
     padding: '12px 14px',
-    boxShadow: 'var(--glass-shadow)',
+    boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
     marginBottom: 12,
   }
 
@@ -94,7 +94,7 @@ export default function SessionStats({ onBack }: SessionStatsProps) {
     fontWeight: 700,
     letterSpacing: '0.07em',
     textTransform: 'uppercase',
-    color: 'var(--text-faint)',
+    color: 'var(--text-muted)',
     marginBottom: 10,
     display: 'flex',
     alignItems: 'center',
@@ -102,7 +102,7 @@ export default function SessionStats({ onBack }: SessionStatsProps) {
   }
 
   return (
-    <div style={{ padding: '12px 14px', overflow: 'auto', height: '100%', scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.10) transparent' }}>
+    <div style={{ padding: '12px 14px', overflow: 'auto', height: '100%', scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
         <button
@@ -135,10 +135,10 @@ export default function SessionStats({ onBack }: SessionStatsProps) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {stats.weekDays.map((day, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 10, color: 'var(--text-faint)', width: 24, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
+              <span style={{ fontSize: 10, color: 'var(--text-muted)', width: 24, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
                 {day.label}
               </span>
-              <div style={{ flex: 1, height: 14, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
+              <div style={{ flex: 1, height: 14, background: 'var(--bg-hover)', borderRadius: 4, overflow: 'hidden', border: '1px solid var(--border)' }}>
                 <div style={{
                   height: '100%',
                   width: `${(day.count / stats.maxWeekCount) * 100}%`,
@@ -185,7 +185,7 @@ export default function SessionStats({ onBack }: SessionStatsProps) {
                 <span style={{ fontSize: 10, color: 'var(--text-muted)', width: 60, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {tag.name}
                 </span>
-                <div style={{ flex: 1, height: 10, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
+                <div style={{ flex: 1, height: 10, background: 'var(--bg-hover)', borderRadius: 4, overflow: 'hidden', border: '1px solid var(--border)' }}>
                   <div style={{
                     height: '100%',
                     width: `${(tag.count / stats.maxTagCount) * 100}%`,
@@ -209,7 +209,7 @@ export default function SessionStats({ onBack }: SessionStatsProps) {
 function StatRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      <span style={{ color: 'var(--text-faint)' }}>{icon}</span>
+      <span style={{ color: 'var(--text-muted)' }}>{icon}</span>
       <span style={{ fontSize: 10, color: 'var(--text-muted)', flex: 1 }}>{label}</span>
       <span style={{ fontSize: 22, fontWeight: 700, color: '#a5b4fc', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"', lineHeight: 1.3, letterSpacing: '-0.02em' }}>{value}</span>
     </div>

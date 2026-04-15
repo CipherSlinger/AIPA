@@ -91,10 +91,10 @@ export default function SlashCommandPopup({ query, onSelect, onDismiss, selected
         bottom: '100%',
         left: 0,
         right: 0,
-        background: 'var(--glass-bg-high)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid var(--glass-border)',
+        border: '1px solid var(--border)',
         borderRadius: 12,
         boxShadow: '0 16px 48px rgba(0,0,0,0.65), 0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
         zIndex: 1001,
@@ -102,7 +102,7 @@ export default function SlashCommandPopup({ query, onSelect, onDismiss, selected
         overflow: 'hidden',
       }}
     >
-      <style>{`.slash-popup-scroll::-webkit-scrollbar { width: 4px; } .slash-popup-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); border-radius: 2px; }`}</style>
+      <style>{`.slash-popup-scroll::-webkit-scrollbar { width: 4px; } .slash-popup-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }`}</style>
 
       {/* Top micro-label header */}
       <div style={{
@@ -110,9 +110,9 @@ export default function SlashCommandPopup({ query, onSelect, onDismiss, selected
         fontWeight: 700,
         letterSpacing: '0.07em',
         textTransform: 'uppercase' as const,
-        color: 'var(--text-faint)',
+        color: 'var(--text-muted)',
         padding: '6px 12px 4px',
-        borderBottom: '1px solid var(--glass-border)',
+        borderBottom: '1px solid var(--border)',
       }}>
         Commands
       </div>
@@ -162,7 +162,7 @@ export default function SlashCommandPopup({ query, onSelect, onDismiss, selected
         alignItems: 'center',
         gap: 6,
         padding: '5px 12px',
-        borderTop: '1px solid var(--glass-border)',
+        borderTop: '1px solid var(--border)',
         flexWrap: 'wrap' as const,
       }}>
         {[
@@ -175,18 +175,18 @@ export default function SlashCommandPopup({ query, onSelect, onDismiss, selected
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'var(--glass-border)',
-              border: '1px solid rgba(255,255,255,0.12)',
+              background: 'var(--border)',
+              border: '1px solid var(--bg-active)',
               borderRadius: 4,
               padding: '1px 5px',
               fontSize: 10,
               fontFamily: 'monospace',
-              color: 'var(--text-faint)',
+              color: 'rgba(255,255,255,0.55)',
               lineHeight: 1.6,
             }}>
               {key}
             </kbd>
-            <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>{label}</span>
+            <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{label}</span>
           </span>
         ))}
       </div>
@@ -208,7 +208,7 @@ function SectionDivider({ label }: { label: string }) {
         fontWeight: 700,
         letterSpacing: '0.08em',
         textTransform: 'uppercase' as const,
-        color: 'var(--text-faint)',
+        color: 'var(--text-muted)',
         flexShrink: 0,
       }}>
         {label}
@@ -216,7 +216,7 @@ function SectionDivider({ label }: { label: string }) {
       <div style={{
         flex: 1,
         height: 1,
-        background: 'var(--glass-border)',
+        background: 'var(--border)',
       }} />
     </div>
   )
@@ -243,7 +243,7 @@ function renderCommand(
       onMouseEnter={(e) => {
         onHover(flatIdx)
         if (!isSelected) {
-          (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.06)'
+          (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-hover)'
         }
       }}
       onMouseLeave={(e) => {
@@ -281,7 +281,7 @@ function renderCommand(
           <span style={{
             fontSize: 13,
             fontWeight: 500,
-            color: isSelected ? 'var(--text-primary)' : 'var(--text-primary)',
+            color: isSelected ? 'rgba(255,255,255,0.95)' : 'var(--text-primary)',
             transition: 'color 0.15s ease',
           }}>
             {cmdName}
@@ -306,14 +306,14 @@ function renderCommand(
           <kbd style={{
             display: 'inline-flex',
             alignItems: 'center',
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid var(--glass-border-md)',
+            background: 'var(--bg-hover)',
+            border: '1px solid var(--border)',
             borderRadius: 5,
             fontSize: 9,
             fontWeight: 700,
             letterSpacing: '0.04em',
             textTransform: 'uppercase' as const,
-            color: 'var(--text-faint)',
+            color: 'var(--text-muted)',
             padding: '1px 5px',
             fontFamily: 'monospace',
           }}>

@@ -109,7 +109,7 @@ export const toolbarBtnStyle: React.CSSProperties = {
 
 export const toolbarHoverIn = (e: React.MouseEvent<HTMLButtonElement>) => {
   ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)'
-  ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'
+  ;(e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-active)'
 }
 
 export const toolbarHoverOut = (e: React.MouseEvent<HTMLButtonElement>) => {

@@ -46,11 +46,11 @@ export default function CategoryManager({
   return (
     <div style={{
       padding: '10px 14px',
-      borderBottom: '1px solid var(--glass-border-md)',
-      background: 'var(--glass-bg-high)',
+      borderBottom: '1px solid var(--border)',
+      background: 'var(--popup-bg)',
       backdropFilter: 'blur(20px)',
       WebkitBackdropFilter: 'blur(20px)',
-      border: '1px solid var(--glass-border-md)',
+      border: '1px solid var(--border)',
       borderRadius: 12,
       boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
       flexShrink: 0,
@@ -73,7 +73,7 @@ export default function CategoryManager({
             transition: 'background 0.15s ease, color 0.15s ease',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.background = 'var(--glass-border)'
+            e.currentTarget.style.background = 'var(--border)'
             e.currentTarget.style.color = 'rgba(255,255,255,0.85)'
           }}
           onMouseLeave={e => {
@@ -96,8 +96,8 @@ export default function CategoryManager({
           onKeyDown={e => { if (e.key === 'Enter') onAdd() }}
           style={{
             flex: 1,
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'var(--bg-hover)',
+            border: '1px solid var(--border)',
             borderRadius: 7,
             outline: 'none',
             color: 'var(--text-primary)',
@@ -107,7 +107,7 @@ export default function CategoryManager({
             transition: 'border-color 0.15s ease',
           }}
           onFocus={e => (e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)')}
-          onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
+          onBlur={e => (e.currentTarget.style.borderColor = 'var(--border)')}
         />
         {/* Color picker circles */}
         <div style={{ display: 'flex', gap: 3 }}>
@@ -156,7 +156,7 @@ export default function CategoryManager({
 
       {/* Max categories notice */}
       {categories.length >= MAX_CATEGORIES && (
-        <div style={{ fontSize: 10, color: 'var(--text-faint)', marginBottom: 6 }}>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 6 }}>
           {t('notes.maxCategories')}
         </div>
       )}
@@ -173,7 +173,7 @@ export default function CategoryManager({
             borderRadius: 7,
             transition: 'background 0.15s ease',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 2px 8px rgba(0,0,0,0.20)' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 2px 8px rgba(0,0,0,0.20)' }}
           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; (e.currentTarget as HTMLDivElement).style.boxShadow = 'none' }}
         >
           <span style={{ width: 14, height: 14, borderRadius: '50%', background: cat.color, flexShrink: 0, display: 'inline-block' }} />
@@ -190,7 +190,7 @@ export default function CategoryManager({
               autoFocus
               style={{
                 flex: 1,
-                background: 'rgba(255,255,255,0.05)',
+                background: 'var(--bg-hover)',
                 border: '1px solid rgba(99,102,241,0.5)',
                 borderRadius: 4,
                 outline: 'none',
@@ -214,7 +214,7 @@ export default function CategoryManager({
               {cat.name}
             </span>
           )}
-          <span style={{ fontSize: 9, color: 'var(--text-faint)' }}>
+          <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>
             ({categoryCounts[cat.id] || 0})
           </span>
           <button

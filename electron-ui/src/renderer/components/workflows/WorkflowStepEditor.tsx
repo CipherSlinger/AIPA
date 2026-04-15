@@ -91,10 +91,10 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
         <div
           key={step.id}
           style={{
-            background: 'var(--glass-bg-card)',
+            background: 'rgba(15,15,25,0.88)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
-            border: '1px solid var(--glass-border)',
+            border: '1px solid var(--border)',
             borderRadius: 12,
             padding: '12px 14px',
             marginBottom: 8,
@@ -227,15 +227,15 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
           </div>
           {/* Node type selector */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: 'var(--text-faint)', flexShrink: 0 }}>{t('workflow.nodeType')}:</span>
+            <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: 'var(--text-muted)', flexShrink: 0 }}>{t('workflow.nodeType')}:</span>
             <select
               value={step.nodeType ?? 'prompt'}
               onChange={e => updateStepNodeType(setSteps, step.id, e.target.value as WorkflowNodeType)}
               onMouseDown={e => e.stopPropagation()}
               style={{
                 fontSize: 10,
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid var(--glass-border-md)',
+                background: 'var(--bg-hover)',
+                border: '1px solid var(--border)',
                 borderRadius: 6,
                 color: 'var(--text-primary)',
                 padding: '2px 6px',
@@ -251,7 +251,7 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
           </div>
 
           {/* Prompt / Condition Question */}
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-faint)', borderBottom: '1px solid var(--glass-border)', paddingBottom: 4, marginBottom: 8 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', paddingBottom: 4, marginBottom: 8 }}>
             {(step.nodeType ?? 'prompt') === 'condition' ? t('workflow.conditionQuestion') : 'Prompt'}
           </div>
           <textarea
@@ -263,8 +263,8 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
               width: '100%',
               height: 40,
               padding: '10px 12px',
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid var(--glass-border-md)',
+              background: 'var(--bg-hover)',
+              border: '1px solid var(--border)',
               borderRadius: 8,
               fontSize: 12,
               color: 'var(--text-primary)',
@@ -275,13 +275,13 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
               lineHeight: 1.6,
             }}
             onFocus={e => { e.currentTarget.style.border = '1px solid rgba(99,102,241,0.50)'; e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.15)' }}
-            onBlur={e => { e.currentTarget.style.border = '1px solid var(--glass-border-md)'; e.currentTarget.style.boxShadow = 'none' }}
+            onBlur={e => { e.currentTarget.style.border = '1px solid var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
           />
 
           {/* Template variable hints for steps with prior steps */}
           {idx > 0 && (
             <div style={{ marginTop: 4, padding: '6px 8px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 6 }}>
-              <div style={{ fontSize: 9, color: 'var(--text-faint)', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+              <div style={{ fontSize: 9, color: 'var(--text-muted)', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                 {t('workflow.availableVariables')}
               </div>
               {steps.slice(0, idx).map((priorStep, priorIdx) => {
@@ -304,8 +304,8 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
                   >
                     <code style={{
                       fontFamily: 'monospace',
-                      background: isUsed ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.06)',
-                      border: isUsed ? '1px solid rgba(99,102,241,0.25)' : '1px solid rgba(255,255,255,0.08)',
+                      background: isUsed ? 'rgba(99,102,241,0.12)' : 'var(--bg-hover)',
+                      border: isUsed ? '1px solid rgba(99,102,241,0.25)' : '1px solid var(--border)',
                       padding: '2px 7px',
                       borderRadius: 5,
                       fontSize: 9,
@@ -339,7 +339,7 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
                         width: '100%',
                         height: 36,
                         padding: '6px 10px',
-                        background: 'rgba(255,255,255,0.06)',
+                        background: 'var(--bg-hover)',
                         border: `1px solid ${bi === 0 ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
                         borderRadius: 8,
                         fontSize: 11,
@@ -374,7 +374,7 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
                       flex: 1,
                       height: 36,
                       padding: '6px 10px',
-                      background: 'rgba(255,255,255,0.06)',
+                      background: 'var(--bg-hover)',
                       border: '1px solid rgba(139,92,246,0.3)',
                       borderRadius: 8,
                       fontSize: 11,

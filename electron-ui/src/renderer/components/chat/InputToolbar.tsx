@@ -92,7 +92,7 @@ export default function InputToolbar({
   }
 
   return (
-    <div style={{ background: 'rgba(255,255,255,0.04)', borderTop: '1px solid var(--glass-border)', borderBottom: '1px solid var(--glass-border)', padding: '4px 8px', display: 'flex', gap: 2, alignItems: 'center' }}>
+    <div style={{ background: 'var(--bg-hover)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '4px 8px', display: 'flex', gap: 2, alignItems: 'center' }}>
       {/* @ mention */}
       <button
         onClick={onAtClick}
@@ -112,7 +112,7 @@ export default function InputToolbar({
             ...toolbarBtnStyle,
             color: fileAttachmentCount > 0 ? '#6366f1' : 'var(--text-muted)',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'var(--bg-active)' }}
           onMouseLeave={(e) => { e.currentTarget.style.color = fileAttachmentCount > 0 ? '#6366f1' : 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}
         >
           <Paperclip size={16} />
@@ -149,7 +149,7 @@ export default function InputToolbar({
         <Camera size={16} />
       </button>
       {/* Separator */}
-      <span style={{ background: 'var(--glass-border)', width: 1, height: 16, margin: '0 3px', flexShrink: 0 }} />
+      <span style={{ background: 'var(--border)', width: 1, height: 16, margin: '0 3px', flexShrink: 0 }} />
       {/* / slash command */}
       <button
         onClick={onSlashClick}
@@ -205,7 +205,7 @@ export default function InputToolbar({
         )}
       </div>
       {/* Separator */}
-      <span style={{ background: 'var(--glass-border)', width: 1, height: 16, margin: '0 3px', flexShrink: 0 }} />
+      <span style={{ background: 'var(--border)', width: 1, height: 16, margin: '0 3px', flexShrink: 0 }} />
       {/* Clipboard actions */}
       <ClipboardActionsMenu onSend={onSend} />
       {/* Text transform */}
@@ -318,12 +318,12 @@ export default function InputToolbar({
                 right: 0,
                 marginBottom: 8,
                 width: 320,
-                background: 'var(--glass-bg-high)',
+                background: 'var(--popup-bg)',
                 backdropFilter: 'blur(20px)',
                 WebkitBackdropFilter: 'blur(20px)',
-                border: '1px solid var(--glass-border-md)',
+                border: '1px solid var(--border)',
                 borderRadius: 10,
-                boxShadow: 'var(--glass-shadow)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
                 padding: '14px 14px 12px',
                 zIndex: 200,
                 display: 'flex',
@@ -333,7 +333,7 @@ export default function InputToolbar({
               }}
             >
               {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingBottom: 8, borderBottom: '1px solid var(--glass-border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>
                 <Sparkles size={14} style={{ color: '#a78bfa', flexShrink: 0 }} />
                 <span style={{ fontWeight: 700, fontSize: 11, color: 'var(--text-primary)' }}>Ultraplan</span>
               </div>
@@ -357,8 +357,8 @@ export default function InputToolbar({
                   placeholder="例：分析整个代码库并制定重构计划"
                   rows={3}
                   style={{
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(255,255,255,0.1)',
+                    background: 'var(--bg-input)',
+                    border: '1px solid var(--border)',
                     borderRadius: 6,
                     color: 'var(--text-primary)',
                     fontSize: 12,
@@ -372,11 +372,11 @@ export default function InputToolbar({
                     transition: 'border-color 0.15s ease',
                   }}
                   onFocus={e => { e.currentTarget.style.borderColor = 'rgba(139,92,246,0.5)' }}
-                  onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
                 />
               </div>
               {/* Warning */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: 'var(--text-faint)', fontFamily: 'monospace', opacity: 0.85 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: 'var(--text-muted)', fontFamily: 'monospace', opacity: 0.85 }}>
                 <span>⚡</span>
                 <span>将启动远程 AI 分析（约 5-10 分钟）</span>
               </div>
@@ -388,15 +388,15 @@ export default function InputToolbar({
                     padding: '5px 12px',
                     fontSize: 12,
                     fontWeight: 500,
-                    background: 'rgba(255,255,255,0.06)',
-                    color: 'rgba(255,255,255,0.55)',
-                    border: '1px solid rgba(255,255,255,0.1)',
+                    background: 'var(--bg-hover)',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border)',
                     borderRadius: 8,
                     cursor: 'pointer',
                     transition: 'background 0.15s ease',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-active)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
                 >
                   取消
                 </button>

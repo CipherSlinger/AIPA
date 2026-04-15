@@ -40,10 +40,10 @@ export default function TabBar() {
         display: 'flex',
         alignItems: 'stretch',
         flexShrink: 0,
-        background: 'var(--glass-bg-mid)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        borderBottom: '1px solid var(--glass-border)',
+        borderBottom: '1px solid var(--border)',
         height: 36,
         minHeight: 36,
       }}
@@ -86,7 +86,7 @@ export default function TabBar() {
                 color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
                 background: isActive ? 'rgba(99,102,241,0.12)' : 'transparent',
                 borderBottom: isActive ? '2px solid #6366f1' : '2px solid transparent',
-                borderRight: '1px solid rgba(255,255,255,0.06)',
+                borderRight: '1px solid var(--bg-hover)',
                 whiteSpace: 'nowrap',
                 flexShrink: 0,
                 maxWidth: 180,
@@ -97,7 +97,7 @@ export default function TabBar() {
               }}
               onMouseEnter={(e) => {
                 if (!isActive) {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+                  e.currentTarget.style.background = 'var(--bg-hover)'
                   e.currentTarget.style.color = 'var(--text-secondary)'
                 }
               }}
@@ -136,7 +136,7 @@ export default function TabBar() {
                   justifyContent: 'center',
                   padding: 2,
                   borderRadius: 4,
-                  color: 'var(--text-faint)',
+                  color: 'var(--text-muted)',
                   flexShrink: 0,
                   transition: 'all 0.15s ease',
                   width: 18,
@@ -147,7 +147,7 @@ export default function TabBar() {
                   e.currentTarget.style.background = 'rgba(239,68,68,0.15)'
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = 'var(--text-faint)'
+                  e.currentTarget.style.color = 'var(--text-muted)'
                   e.currentTarget.style.background = 'none'
                 }}
               >
@@ -171,17 +171,17 @@ export default function TabBar() {
             flexShrink: 0,
             background: 'none',
             border: 'none',
-            borderLeft: '1px solid var(--glass-border)',
+            borderLeft: '1px solid var(--border)',
             cursor: 'pointer',
-            color: 'var(--text-faint)',
-            transition: 'all 0.15s ease',
+            color: 'var(--text-muted)',
+            transition: 'color 0.15s ease, background 0.15s ease',
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.color = 'var(--text-secondary)'
-            e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+            e.currentTarget.style.background = 'var(--bg-hover)'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = 'var(--text-faint)'
+            e.currentTarget.style.color = 'var(--text-muted)'
             e.currentTarget.style.background = 'none'
           }}
         >

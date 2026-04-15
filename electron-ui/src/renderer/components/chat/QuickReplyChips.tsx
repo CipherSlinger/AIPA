@@ -160,8 +160,8 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
         placeholder={t('quickReply.labelPlaceholder')}
         style={{
           fontSize: 11,
-          background: 'rgba(255,255,255,0.05)',
-          border: '1px solid var(--glass-border-md)',
+          background: 'var(--bg-hover)',
+          border: '1px solid var(--border)',
           borderRadius: 6,
           padding: '3px 8px',
           color: 'var(--text-primary)',
@@ -176,8 +176,8 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
         placeholder={t('quickReply.promptPlaceholder')}
         style={{
           fontSize: 11,
-          background: 'rgba(255,255,255,0.05)',
-          border: '1px solid var(--glass-border-md)',
+          background: 'var(--bg-hover)',
+          border: '1px solid var(--border)',
           borderRadius: 6,
           padding: '3px 8px',
           color: 'var(--text-primary)',
@@ -267,8 +267,8 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
               title={chip.prompt}
               aria-label={chip.prompt}
               style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid var(--glass-border-md)',
+                background: 'var(--bg-hover)',
+                border: '1px solid var(--border)',
                 borderRadius: 20,
                 padding: '3px 10px',
                 fontSize: 12,
@@ -284,14 +284,14 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
               }}
               onMouseEnter={e => {
                 const el = e.currentTarget as HTMLButtonElement
-                el.style.background = 'rgba(255,255,255,0.10)'
+                el.style.background = 'var(--border)'
                 el.style.borderColor = 'rgba(99,102,241,0.40)'
                 el.style.color = 'var(--text-primary)'
               }}
               onMouseLeave={e => {
                 const el = e.currentTarget as HTMLButtonElement
-                el.style.background = 'rgba(255,255,255,0.05)'
-                el.style.borderColor = 'var(--glass-border-md)'
+                el.style.background = 'var(--bg-hover)'
+                el.style.borderColor = 'var(--border)'
                 el.style.color = 'var(--text-secondary)'
               }}
               onMouseDown={e => {
@@ -329,18 +329,18 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
               cursor: 'pointer',
               flexShrink: 0,
               transition: 'all 0.15s ease',
-              color: 'var(--text-faint)',
+              color: 'var(--text-muted)',
               fontSize: 11,
             }}
             onMouseEnter={e => {
-              ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)'
+              ;(e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-hover)'
               ;(e.currentTarget as HTMLButtonElement).style.borderStyle = 'solid'
               ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)'
             }}
             onMouseLeave={e => {
               ;(e.currentTarget as HTMLButtonElement).style.background = 'transparent'
               ;(e.currentTarget as HTMLButtonElement).style.borderStyle = 'dashed'
-              ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--text-faint)'
+              ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'
             }}
           >
             <Plus size={14} />
@@ -355,12 +355,12 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
             position: 'fixed',
             left: contextMenu.x,
             top: contextMenu.y,
-            background: 'var(--glass-bg-high)',
+            background: 'var(--popup-bg)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid var(--glass-border-md)',
+            border: '1px solid var(--border)',
             borderRadius: 8,
-            boxShadow: 'var(--glass-shadow)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
             padding: '4px 0',
             zIndex: 9999,
             minWidth: 120,
@@ -380,7 +380,7 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
               cursor: 'pointer',
               textAlign: 'left',
             }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-hover)' }}
             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
           >
             {t('common.edit')}

@@ -80,10 +80,10 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
           borderRadius: 6,
           background: sessionPersona
             ? `${sessionPersona.color}33`
-            : chipHovered || show ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.06)',
+            : chipHovered || show ? 'var(--border)' : 'var(--bg-hover)',
           border: sessionPersona
             ? `1px solid ${sessionPersona.color}66`
-            : '1px solid var(--glass-border-md)',
+            : '1px solid var(--border)',
           fontSize: 11,
           fontWeight: 500,
           whiteSpace: 'nowrap',
@@ -117,10 +117,10 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
             bottom: '100%',
             right: 0,
             marginBottom: 4,
-            background: 'var(--glass-bg-high)',
+            background: 'var(--popup-bg)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid var(--glass-border-md)',
+            border: '1px solid var(--border)',
             borderRadius: 10,
             boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
             padding: '4px 0',
@@ -141,7 +141,7 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
               padding: '7px 12px',
               background: !sessionPersonaId
                 ? 'rgba(99,102,241,0.12)'
-                : hoveredId === noPersonaKey ? 'rgba(255,255,255,0.06)' : 'transparent',
+                : hoveredId === noPersonaKey ? 'var(--bg-hover)' : 'transparent',
               borderLeft: !sessionPersonaId ? '2px solid rgba(99,102,241,0.6)' : '2px solid transparent',
               borderTop: 'none',
               borderRight: 'none',
@@ -159,7 +159,7 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
               width: 28,
               height: 28,
               borderRadius: 7,
-              background: 'var(--glass-border)',
+              background: 'var(--border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -185,7 +185,7 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
             const isHovered = hoveredId === p.id
             const displayName = p.presetKey ? t(`persona.preset.${p.presetKey}`) : p.name
             // Derive a safe CSS color for avatar bg — use persona.color with 0.15 alpha
-            const avatarBg = p.color ? `${p.color}26` : 'var(--glass-border)'
+            const avatarBg = p.color ? `${p.color}26` : 'var(--border)'
             return (
               <button
                 key={p.id}
@@ -200,7 +200,7 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
                   padding: '7px 12px',
                   background: isActive
                     ? 'rgba(99,102,241,0.12)'
-                    : isHovered ? 'rgba(255,255,255,0.06)' : 'transparent',
+                    : isHovered ? 'var(--bg-hover)' : 'transparent',
                   borderLeft: isActive ? '2px solid rgba(99,102,241,0.6)' : '2px solid transparent',
                   borderTop: 'none',
                   borderRight: 'none',
@@ -240,7 +240,7 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
               {/* Separator */}
               <div style={{
                 height: 1,
-                background: 'rgba(255,255,255,0.06)',
+                background: 'var(--bg-hover)',
                 margin: '4px 0',
               }} />
               {/* Workflows section label */}
@@ -269,7 +269,7 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
                       gap: 6,
                       width: '100%',
                       padding: '5px 12px',
-                      background: isHovered ? 'rgba(255,255,255,0.06)' : 'transparent',
+                      background: isHovered ? 'var(--bg-hover)' : 'transparent',
                       border: 'none',
                       borderRadius: 8,
                       color: 'var(--text-primary)',

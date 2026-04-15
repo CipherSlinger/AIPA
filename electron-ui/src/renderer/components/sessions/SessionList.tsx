@@ -257,7 +257,7 @@ export default function SessionList() {
       />
 
       {/* Folder filter */}
-      <div style={{ padding: '4px 10px', borderBottom: '1px solid var(--glass-border)', flexShrink: 0, background: 'var(--glass-bg-low)' }}>
+      <div style={{ padding: '4px 10px', borderBottom: '1px solid var(--border)', flexShrink: 0, background: 'rgba(15,15,25,0.85)' }}>
         <SessionFolders
           activeFolder={activeFolderFilter}
           onFolderSelect={setActiveFolderFilter}
@@ -309,10 +309,10 @@ export default function SessionList() {
         <div style={{
           padding: '4px 12px',
           fontSize: 10,
-          color: 'var(--text-faint)',
+          color: 'var(--text-muted)',
           fontWeight: 600,
           letterSpacing: '0.05em',
-          borderBottom: '1px solid var(--glass-border)',
+          borderBottom: '1px solid var(--border)',
           display: 'flex',
           alignItems: 'center',
           gap: 4,
@@ -351,7 +351,7 @@ export default function SessionList() {
             actions.deleteSession(fakeEvent, session.sessionId)
           }
         }}
-        style={{ flex: 1, overflowY: 'auto', outline: 'none', scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.10) transparent' }}
+        style={{ flex: 1, overflowY: 'auto', outline: 'none', scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}
       >
         {sessionLoading && (
           <div>
@@ -435,13 +435,13 @@ export default function SessionList() {
                 <div style={{
                   fontSize: 9, fontWeight: 700, letterSpacing: '0.07em',
                   textTransform: 'uppercase' as const,
-                  color: 'var(--text-faint)', padding: '6px 12px 2px',
+                  color: 'var(--text-muted)', padding: '6px 12px 2px',
                 }}>
                   {t('session.pinned')}
                 </div>
               )}
               {showPinnedDivider && (
-                <div style={{ height: 1, background: 'var(--glass-border)', margin: '4px 12px 6px' }} />
+                <div style={{ height: 1, background: 'var(--border)', margin: '4px 12px 6px' }} />
               )}
               {dateHeader}
               {!isGroupCollapsed && (

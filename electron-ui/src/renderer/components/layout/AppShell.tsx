@@ -38,7 +38,7 @@ function PanelSkeleton() {
             height: 14,
             width: `${w}%`,
             borderRadius: 6,
-            background: 'rgba(255,255,255,0.05)',
+            background: 'var(--bg-hover)',
             animation: 'shimmer 1.6s ease-in-out infinite',
             animationDelay: `${i * 0.12}s`,
           }}
@@ -148,7 +148,7 @@ export default function AppShell() {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden" style={{ background: 'rgba(10,10,18,1)' }} role="application" aria-label="AIPA">
+    <div className="flex flex-col h-full overflow-hidden" style={{ background: 'var(--bg-chat)' }} role="application" aria-label="AIPA">
       {/* Skip-to-content link for keyboard accessibility */}
       <a href="#main-content" className="skip-link">{t('a11y.skipToContent')}</a>
       {/* Title bar drag region -- spans all three columns */}
@@ -159,7 +159,7 @@ export default function AppShell() {
         style={{
           height: 32,
           background: 'rgba(8,8,16,1)',
-          borderBottom: '1px solid var(--glass-border)',
+          borderBottom: '1px solid var(--border)',
           flexShrink: 0,
           display: 'flex',
           alignItems: 'center',
@@ -169,7 +169,7 @@ export default function AppShell() {
       >
         <span style={{
           fontSize: 11,
-          color: 'var(--text-faint)',
+          color: 'var(--text-muted)',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -210,8 +210,8 @@ export default function AppShell() {
                 width: sidebarOpen ? sidebarWidth : 0,
                 flexShrink: 0,
                 overflow: 'hidden',
-                background: 'rgba(10,10,18,1)',
-                borderRight: sidebarOpen ? '1px solid var(--glass-border)' : 'none',
+                background: 'var(--bg-chat)',
+                borderRight: sidebarOpen ? '1px solid var(--border)' : 'none',
                 transition: 'all 0.15s ease',
                 opacity: sidebarOpen ? 1 : 0,
                 position: 'relative',
@@ -235,14 +235,14 @@ export default function AppShell() {
               style={{
                 width: 4,
                 flexShrink: 0,
-                background: isDragging ? 'rgba(99,102,241,0.40)' : 'rgba(255,255,255,0.04)',
+                background: isDragging ? 'rgba(99,102,241,0.40)' : 'var(--bg-hover)',
                 cursor: 'col-resize',
                 transition: 'all 0.15s ease',
               }}
               onMouseDown={startDrag('sidebar')}
               onDoubleClick={() => { setSidebarWidth(240); window.electronAPI.prefsSet('sidebarWidth', 240) }}
               onMouseEnter={(e) => { if (!isDragging) e.currentTarget.style.background = 'rgba(99,102,241,0.40)' }}
-              onMouseLeave={(e) => { if (!isDragging) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+              onMouseLeave={(e) => { if (!isDragging) e.currentTarget.style.background = 'var(--bg-hover)' }}
             />
             )}
           </>
@@ -256,7 +256,7 @@ export default function AppShell() {
           style={{
             flex: 1,
             overflow: 'hidden',
-            background: 'rgba(10,10,18,1)',
+            background: 'var(--bg-chat)',
             display: 'flex',
             flexDirection: 'column',
             transition: 'all 0.15s ease',
@@ -273,10 +273,10 @@ export default function AppShell() {
               {/* Settings page header */}
               <div style={{
                 height: 44,
-                background: 'var(--glass-bg-raised)',
+                background: 'var(--popup-bg)',
                 backdropFilter: 'blur(16px)',
                 WebkitBackdropFilter: 'blur(16px)',
-                borderBottom: '1px solid var(--glass-border)',
+                borderBottom: '1px solid var(--border)',
                 display: 'flex',
                 alignItems: 'center',
                 padding: '0 16px',
@@ -293,7 +293,7 @@ export default function AppShell() {
                     padding: 4, borderRadius: 8,
                     transition: 'all 0.15s ease',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'var(--bg-hover)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'none' }}
                 >
                   <ArrowLeft size={16} />

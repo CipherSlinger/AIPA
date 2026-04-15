@@ -65,7 +65,7 @@ export default function PersonaPicker() {
         onClick={() => setShowPicker(!showPicker)}
         title={sessionPersona ? t('persona.personaActive', { name: sessionPersona.name }) : t('persona.selectPersona')}
         style={{
-          background: showPicker ? 'rgba(255,255,255,0.08)' : sessionPersona ? `${sessionPersona.color}18` : 'none',
+          background: showPicker ? 'var(--border)' : sessionPersona ? `${sessionPersona.color}18` : 'none',
           border: `1px solid ${sessionPersona ? sessionPersona.color : 'transparent'}`,
           borderRadius: 8,
           padding: '2px 8px',
@@ -81,7 +81,7 @@ export default function PersonaPicker() {
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.color = sessionPersona ? sessionPersona.color : '#818cf8'
-          if (!sessionPersona) e.currentTarget.style.borderColor = 'var(--glass-border)'
+          if (!sessionPersona) e.currentTarget.style.borderColor = 'var(--border)'
         }}
         onMouseLeave={(e) => {
           if (!showPicker) {
@@ -113,10 +113,10 @@ export default function PersonaPicker() {
             left: 0,
             zIndex: 60,
             width: 260,
-            background: 'var(--glass-bg-high)',
+            background: 'var(--popup-bg)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid var(--glass-border-md)',
+            border: '1px solid var(--border)',
             borderRadius: 12,
             boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
             padding: '4px 0',
@@ -131,8 +131,8 @@ export default function PersonaPicker() {
             fontWeight: 700,
             letterSpacing: '0.07em',
             textTransform: 'uppercase',
-            color: 'var(--text-faint)',
-            borderBottom: '1px solid var(--glass-border)',
+            color: 'var(--text-muted)',
+            borderBottom: '1px solid var(--border)',
             marginBottom: 2,
           }}>
             {t('persona.selectPersona')}
@@ -177,7 +177,7 @@ export default function PersonaPicker() {
           >
             <span style={{
               width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-              background: 'rgba(255,255,255,0.06)',
+              background: 'var(--bg-hover)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 14,
             }}>–</span>
@@ -243,14 +243,14 @@ export default function PersonaPicker() {
           {/* Workflows section */}
           {workflows.length > 0 && (
             <>
-              <div style={{ height: 1, background: 'var(--glass-border)', margin: '4px 0' }} />
+              <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
               <div style={{
                 padding: '4px 12px 2px',
                 fontSize: 10,
                 fontWeight: 700,
                 letterSpacing: '0.07em',
                 textTransform: 'uppercase',
-                color: 'var(--text-faint)',
+                color: 'var(--text-muted)',
               }}>
                 {t('nav.workflows')}
               </div>
@@ -275,7 +275,7 @@ export default function PersonaPicker() {
                     fontWeight: 400,
                     transition: 'all 0.15s ease',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
                 >
                   <span style={{

@@ -82,7 +82,7 @@ export default function NotesPanel() {
 
   // ── List View ──
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--glass-bg-mid)', borderRight: '1px solid var(--glass-border)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--popup-bg)', borderRight: '1px solid var(--border)' }}>
       {/* Header with sort, export, import, new note */}
       <NotesHeader
         noteCount={crud.notes.length}
@@ -103,15 +103,15 @@ export default function NotesPanel() {
             gap: 6,
             height: 32,
             padding: '0 8px',
-            background: 'rgba(255,255,255,0.06)',
-            border: searchFocused ? '1px solid rgba(99,102,241,0.45)' : '1px solid var(--glass-border-md)',
+            background: 'var(--bg-hover)',
+            border: searchFocused ? '1px solid rgba(99,102,241,0.45)' : '1px solid var(--border)',
             borderRadius: 7,
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
             transition: 'all 0.15s ease',
             boxShadow: searchFocused ? '0 0 0 3px rgba(99,102,241,0.12)' : 'none',
           }}>
-            <Search size={14} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+            <Search size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
             <input
               type="text"
               value={searchQuery}
@@ -150,7 +150,7 @@ export default function NotesPanel() {
             )}
           </div>
           {searchQuery.trim() && (
-            <div style={{ fontSize: 11, color: 'var(--text-faint)', padding: '4px 0 0' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '4px 0 0' }}>
               {filteredNotes.length > 0
                 ? t('notes.searchResults', { count: String(filteredNotes.length) })
                 : t('notes.noResults')
@@ -198,7 +198,7 @@ export default function NotesPanel() {
       <div style={{
         flex: 1, overflowY: 'auto', padding: '4px 6px',
         scrollbarWidth: 'thin',
-        scrollbarColor: 'rgba(255,255,255,0.10) transparent',
+        scrollbarColor: 'var(--border) transparent',
       }}>
         <NoteList
           notes={crud.notes}

@@ -35,7 +35,7 @@ export default function IdleReturnDialog({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'var(--glass-overlay)',
+        background: 'rgba(0,0,0,0.70)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         zIndex: 200,
@@ -46,10 +46,10 @@ export default function IdleReturnDialog({
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: 'var(--glass-bg-high)',
+          background: 'var(--popup-bg)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid var(--glass-border)',
+          border: '1px solid var(--border)',
           borderRadius: 16,
           padding: '24px 28px',
           maxWidth: 420,
@@ -215,8 +215,8 @@ export default function IdleReturnDialog({
               gap: 8,
               padding: '9px 20px',
               borderRadius: 8,
-              border: '1px solid var(--glass-border-md)',
-              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid var(--border)',
+              background: 'var(--bg-hover)',
               color: 'var(--text-secondary)',
               cursor: 'pointer',
               fontSize: 13,
@@ -225,13 +225,13 @@ export default function IdleReturnDialog({
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--glass-border-md)'
+              e.currentTarget.style.background = 'var(--border)'
               e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)'
               e.currentTarget.style.color = 'var(--text-primary)'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-              e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+              e.currentTarget.style.background = 'var(--bg-hover)'
+              e.currentTarget.style.borderColor = 'var(--border)'
               e.currentTarget.style.color = 'var(--text-secondary)'
             }}
           >
@@ -249,13 +249,13 @@ export default function IdleReturnDialog({
             padding: '4px 8px',
             background: 'none',
             border: 'none',
-            color: 'var(--text-faint)',
+            color: 'var(--text-muted)',
             fontSize: 11,
             cursor: 'pointer',
             transition: 'color 0.15s ease',
           }}
           onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
-          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-faint)')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
         >
           {t('idle.neverAsk')}
         </button>

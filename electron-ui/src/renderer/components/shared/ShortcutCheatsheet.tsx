@@ -121,7 +121,7 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
         position: 'fixed',
         inset: 0,
         zIndex: 200,
-        background: 'var(--glass-overlay)',
+        background: 'rgba(0,0,0,0.70)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         display: 'flex',
@@ -136,10 +136,10 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
         aria-modal="true"
         aria-label={t('shortcutCheatsheet.title')}
         style={{
-          background: 'var(--glass-bg-high)',
+          background: 'var(--popup-bg)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid var(--glass-border-md)',
+          border: '1px solid var(--border)',
           borderRadius: 16,
           boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
           padding: '20px 24px',
@@ -148,11 +148,11 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
           maxHeight: '80vh',
           overflowY: 'auto',
           scrollbarWidth: 'thin',
-          scrollbarColor: 'rgba(255,255,255,0.10) transparent',
+          scrollbarColor: 'var(--border) transparent',
           animation: 'sc-slideUp 0.15s ease',
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--glass-border-md)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0, lineHeight: 1.4, letterSpacing: '-0.01em' }}>
             {t('shortcutCheatsheet.title')}
           </h2>
@@ -160,8 +160,8 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
             onClick={onClose}
             aria-label={t('common.close')}
             style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid var(--glass-border-md)',
+              background: 'var(--bg-hover)',
+              border: '1px solid var(--border)',
               borderRadius: '50%',
               width: 36,
               height: 36,
@@ -172,8 +172,8 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
               justifyContent: 'center',
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--glass-border-md)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--border)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-hover)' }}
           >
             <X size={16} />
           </button>
@@ -181,7 +181,7 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
 
         {/* Search filter */}
         <div style={{ position: 'relative', marginBottom: 12 }}>
-          <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-faint)', pointerEvents: 'none' }} />
+          <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
           <input
             ref={searchInputRef}
             type="text"
@@ -191,8 +191,8 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
             style={{
               width: '100%',
               padding: '6px 10px 6px 30px',
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid var(--glass-border-md)',
+              background: 'var(--bg-hover)',
+              border: '1px solid var(--border)',
               borderRadius: 6,
               color: 'var(--text-primary)',
               fontSize: 12,
@@ -200,7 +200,7 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
               boxSizing: 'border-box',
             }}
             onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--glass-border-md)'; e.currentTarget.style.boxShadow = 'none' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
             autoFocus
           />
         </div>
@@ -212,7 +212,7 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
               fontWeight: 700,
               letterSpacing: '0.07em',
               textTransform: 'uppercase',
-              color: 'var(--text-faint)',
+              color: 'var(--text-muted)',
               marginBottom: 8,
             }}>
               {t(`shortcutCheatsheet.${section.sectionKey}`)}
@@ -225,15 +225,15 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   padding: '6px 0',
-                  borderBottom: '1px solid var(--glass-border-md)',
+                  borderBottom: '1px solid var(--border)',
                 }}
               >
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t(`shortcutCheatsheet.${item.actionKey}`)}</span>
                 <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
                   <kbd
                     style={{
-                      background: 'rgba(255,255,255,0.08)',
-                      border: '1px solid var(--glass-border-md)',
+                      background: 'var(--border)',
+                      border: '1px solid var(--border)',
                       borderRadius: 5,
                       padding: '1px 5px',
                       fontSize: 11,
@@ -250,7 +250,7 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
           </div>
         ))}
 
-        <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-faint)', marginTop: 8 }}>
+        <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
           {t('shortcutCheatsheet.pressEscToClose')}
         </div>
       </div>

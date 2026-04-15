@@ -122,15 +122,15 @@ export default function DailySummaryCard() {
   return (
     <div style={{
       width: '100%', maxWidth: 420, padding: '12px 16px',
-      background: 'var(--glass-bg-card)',
+      background: 'rgba(15,15,25,0.88)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
-      border: '1px solid var(--glass-border)',
+      border: '1px solid var(--border)',
       borderLeft: '3px solid rgba(99,102,241,0.6)',
       borderRadius: 12,
       position: 'relative',
       transition: 'all 0.15s ease',
-      boxShadow: 'var(--glass-shadow)',
+      boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
     }}>
       {/* Dismiss button */}
       <button
@@ -141,7 +141,7 @@ export default function DailySummaryCard() {
           color: 'var(--text-muted)', padding: '3px 4px', borderRadius: 6,
           transition: 'all 0.15s ease',
         }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'var(--glass-border)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.color = 'var(--text-primary)' }}
         onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-muted)' }}
       >
         <X size={14} />
@@ -150,7 +150,7 @@ export default function DailySummaryCard() {
       {/* Title with greeting */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
         <Calendar size={13} color="#818cf8" />
-        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>
+        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
           {greeting}
         </span>
       </div>
@@ -161,7 +161,7 @@ export default function DailySummaryCard() {
           {stats.sessionsToday > 0 && (
             <>
               <div style={{
-                background: 'rgba(255,255,255,0.05)', borderRadius: 6,
+                background: 'var(--bg-hover)', borderRadius: 6,
                 padding: '3px 8px', fontSize: 11, fontWeight: 600,
                 display: 'flex', alignItems: 'center', gap: 4,
                 color: 'var(--text-primary)',
@@ -171,7 +171,7 @@ export default function DailySummaryCard() {
                 <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>{t('dailySummary.sessions')}</span>
               </div>
               <div style={{
-                background: 'rgba(255,255,255,0.05)', borderRadius: 6,
+                background: 'var(--bg-hover)', borderRadius: 6,
                 padding: '3px 8px', fontSize: 11, fontWeight: 600,
                 display: 'flex', alignItems: 'center', gap: 4,
                 color: 'var(--text-primary)',
@@ -184,7 +184,7 @@ export default function DailySummaryCard() {
           )}
           {stats.pendingTasks > 0 && (
             <div style={{
-              background: 'rgba(255,255,255,0.05)', borderRadius: 6,
+              background: 'var(--bg-hover)', borderRadius: 6,
               padding: '3px 8px', fontSize: 11, fontWeight: 600,
               display: 'flex', alignItems: 'center', gap: 4,
               color: 'var(--text-primary)',
@@ -231,7 +231,7 @@ export default function DailySummaryCard() {
         fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6,
         padding: '6px 8px', background: 'rgba(99,102,241,0.06)',
         borderRadius: 6, marginTop: 4,
-        borderTop: '1px solid rgba(255,255,255,0.06)',
+        borderTop: '1px solid var(--bg-hover)',
       }}>
         <Zap size={9} style={{ marginRight: 3, verticalAlign: 'middle', color: '#818cf8' }} />
         {t(tipKey)}
@@ -243,13 +243,13 @@ export default function DailySummaryCard() {
           onClick={navigateToTasks}
           style={{
             marginTop: 8, background: 'transparent',
-            border: '1px solid var(--glass-border)',
+            border: '1px solid var(--border)',
             cursor: 'pointer',
             color: '#818cf8', fontSize: 10, display: 'flex', alignItems: 'center', gap: 3,
             padding: '3px 8px', borderRadius: 8,
             transition: 'all 0.15s ease',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--border)' }}
           onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
         >
           {t('dailyBriefing.viewTasks')}

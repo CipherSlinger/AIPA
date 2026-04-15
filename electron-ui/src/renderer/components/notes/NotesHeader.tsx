@@ -83,10 +83,10 @@ export default function NotesHeader({
       alignItems: 'center',
       justifyContent: 'space-between',
       padding: '12px 14px 8px',
-      background: 'var(--glass-bg-low)',
+      background: 'rgba(15,15,25,0.85)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
-      borderBottom: '1px solid var(--glass-border)',
+      borderBottom: '1px solid var(--border)',
       flexShrink: 0,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -113,8 +113,8 @@ export default function NotesHeader({
             onClick={onSortChange}
             title={`${t('notes.sort')}: ${noteSortBy === 'modified' ? t('notes.sortModified') : noteSortBy === 'created' ? t('notes.sortCreated') : t('notes.sortAlpha')}`}
             style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid var(--glass-border-md)',
+              background: 'var(--bg-hover)',
+              border: '1px solid var(--border)',
               borderRadius: 8,
               color: 'var(--text-muted)',
               cursor: 'pointer',
@@ -125,8 +125,8 @@ export default function NotesHeader({
               padding: '4px 7px',
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--glass-border-md)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-muted)' }}
           >
             <ArrowUpDown size={11} />
             <span>{noteSortBy === 'modified' ? t('notes.sortMod') : noteSortBy === 'created' ? t('notes.sortNew') : 'A-Z'}</span>
@@ -139,8 +139,8 @@ export default function NotesHeader({
             aria-label={t('notes.exportAll')}
             title={t('notes.exportAll')}
             style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid var(--glass-border-md)',
+              background: 'var(--bg-hover)',
+              border: '1px solid var(--border)',
               borderRadius: 8,
               color: 'var(--text-muted)',
               cursor: 'pointer',
@@ -150,8 +150,8 @@ export default function NotesHeader({
               fontSize: 12,
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--glass-border-md)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-muted)' }}
           >
             <FolderDown size={14} />
           </button>
@@ -163,8 +163,8 @@ export default function NotesHeader({
           title={t('notes.importNotes')}
           disabled={atLimit}
           style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid var(--glass-border-md)',
+            background: 'var(--bg-hover)',
+            border: '1px solid var(--border)',
             borderRadius: 8,
             color: 'var(--text-muted)',
             cursor: atLimit ? 'not-allowed' : 'pointer',
@@ -175,8 +175,8 @@ export default function NotesHeader({
             opacity: atLimit ? 0.5 : 1,
             transition: 'all 0.15s ease',
           }}
-          onMouseEnter={e => { if (!atLimit) { e.currentTarget.style.background = 'var(--glass-border-md)'; e.currentTarget.style.color = 'var(--text-primary)' } }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+          onMouseEnter={e => { if (!atLimit) { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.color = 'var(--text-primary)' } }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-muted)' }}
         >
           <FolderUp size={14} />
         </button>
@@ -239,10 +239,10 @@ export default function NotesHeader({
               top: '100%',
               right: 0,
               marginTop: 4,
-              background: 'var(--glass-bg-raised)',
+              background: 'var(--popup-bg)',
               backdropFilter: 'blur(16px)',
               WebkitBackdropFilter: 'blur(16px)',
-              border: '1px solid var(--glass-border-md)',
+              border: '1px solid var(--border)',
               borderRadius: 8,
               boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
               padding: '4px 0',
@@ -254,14 +254,14 @@ export default function NotesHeader({
                 padding: '4px 12px 6px',
                 fontSize: 10,
                 fontWeight: 700,
-                color: 'var(--text-faint)',
+                color: 'var(--text-muted)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.07em',
                 lineHeight: 1,
               }}>
                 {t('notes.templates')}
               </div>
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '0 8px 4px' }} />
+              <div style={{ height: 1, background: 'var(--bg-hover)', margin: '0 8px 4px' }} />
               {NOTE_TEMPLATES.map((tmpl) => (
                 <button
                   key={tmpl.labelKey}
@@ -280,7 +280,7 @@ export default function NotesHeader({
                     width: 'calc(100% - 8px)',
                     transition: 'all 0.15s ease',
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
                   {t(tmpl.labelKey)}

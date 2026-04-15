@@ -69,7 +69,7 @@ export default function ThinkingIndicator() {
           borderRadius: '50%',
           background: activePersona?.color
             ? `${activePersona.color}22`
-            : 'rgba(25,25,35,0.95)',
+            : 'var(--bg-secondary)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -134,7 +134,7 @@ export default function ThinkingIndicator() {
         {/* Elapsed timer */}
         <div style={{
           fontSize: 10,
-          color: 'var(--text-faint)',
+          color: 'var(--text-muted)',
           flexShrink: 0,
           fontVariantNumeric: 'tabular-nums',
         }}>

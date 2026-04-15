@@ -14,13 +14,13 @@ interface Props {
 const PRIORITY_DOT_COLOR: Record<string, string> = {
   high: 'rgba(239,68,68,0.82)',
   medium: 'rgba(251,191,36,0.82)',
-  low: 'var(--text-faint)',
+  low: 'var(--text-muted)',
 }
 
 const PRIORITY_LABEL_COLOR: Record<string, string> = {
   high: 'rgba(239,68,68,0.82)',
   medium: 'rgba(251,191,36,0.82)',
-  low: 'var(--text-faint)',
+  low: 'var(--text-muted)',
 }
 
 function StatusIcon({ status }: { status: TodoItem['status'] }) {
@@ -98,7 +98,7 @@ function PriorityDot({ priority }: { priority: NonNullable<TodoItem['priority']>
         width: 6,
         height: 6,
         borderRadius: '50%',
-        background: PRIORITY_DOT_COLOR[priority] ?? 'var(--text-faint)',
+        background: PRIORITY_DOT_COLOR[priority] ?? 'var(--text-muted)',
         flexShrink: 0,
         marginTop: 5,
         transition: 'all 0.15s ease',
@@ -118,12 +118,12 @@ export default function TodoListView({ todos }: Props) {
     return (
       <div
         style={{
-          background: 'var(--glass-bg-low)',
-          border: '1px solid var(--glass-border)',
+          background: 'rgba(15,15,25,0.60)',
+          border: '1px solid var(--border)',
           borderRadius: 8,
           padding: '10px 12px',
           fontSize: 11,
-          color: 'var(--text-faint)',
+          color: 'var(--text-muted)',
           fontStyle: 'italic',
           transition: 'all 0.15s ease',
         }}
@@ -136,8 +136,8 @@ export default function TodoListView({ todos }: Props) {
   return (
     <div
       style={{
-        background: 'var(--glass-bg-low)',
-        border: '1px solid var(--glass-border)',
+        background: 'rgba(15,15,25,0.60)',
+        border: '1px solid var(--border)',
         borderRadius: 8,
         overflow: 'hidden',
         transition: 'all 0.15s ease',
@@ -150,7 +150,7 @@ export default function TodoListView({ todos }: Props) {
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '7px 12px',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          borderBottom: '1px solid var(--bg-hover)',
           background: 'rgba(255,255,255,0.03)',
         }}
       >
@@ -171,7 +171,7 @@ export default function TodoListView({ todos }: Props) {
               {inProgress} {t('tool.todoStatusInProgress').toLowerCase()}
             </span>
           )}
-          <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>
+          <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
             {completed}/{todos.length}
           </span>
         </div>
@@ -198,7 +198,7 @@ export default function TodoListView({ todos }: Props) {
                 padding: '5px 12px',
                 borderBottom:
                   idx < todos.length - 1
-                    ? '1px solid rgba(255,255,255,0.04)'
+                    ? '1px solid var(--bg-hover)'
                     : 'none',
                 transition: 'all 0.15s ease',
               }}
@@ -233,7 +233,7 @@ export default function TodoListView({ todos }: Props) {
                     flexShrink: 0,
                     fontSize: 9,
                     fontWeight: 700,
-                    color: PRIORITY_LABEL_COLOR[todo.priority] ?? 'var(--text-faint)',
+                    color: PRIORITY_LABEL_COLOR[todo.priority] ?? 'var(--text-muted)',
                     letterSpacing: '0.05em',
                     textTransform: 'uppercase',
                     marginTop: 2,

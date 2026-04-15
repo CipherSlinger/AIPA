@@ -26,8 +26,8 @@ function PanelFallback() {
       <div style={{
         width: 20,
         height: 20,
-        border: '2px solid var(--glass-border)',
-        borderTopColor: '#6366f1',
+        border: '2px solid var(--border)',
+        borderTopColor: 'var(--accent)',
         borderRadius: '50%',
         animation: 'spin 0.8s linear infinite',
       }} />
@@ -42,8 +42,8 @@ export default function Sidebar() {
     <div
       className="flex flex-col h-full"
       style={{
-        background: 'rgba(10,10,18,0.97)',
-        borderRight: '1px solid var(--glass-border)',
+        background: 'var(--bg-sidebar)',
+        borderRight: '1px solid var(--border)',
         overflow: 'hidden',
       }}
     >

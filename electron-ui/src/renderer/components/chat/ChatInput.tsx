@@ -329,9 +329,9 @@ export default function ChatInput({
   }, [input, isStreaming])
 
   return (
-    <div style={{ margin: '0 16px 12px', background: 'var(--glass-bg-raised)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid var(--glass-border-md)', borderRadius: 12, boxShadow: 'var(--glass-shadow)', flexShrink: 0 }}>
+    <div style={{ margin: '0 16px 12px', background: 'var(--popup-bg)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid var(--border)', borderRadius: 12, boxShadow: 'var(--popup-shadow)', flexShrink: 0 }}>
       {/* Toolbar row */}
-      <div style={{ borderBottom: '1px solid var(--glass-border)', padding: '6px 10px' }}>
+      <div style={{ borderBottom: '1px solid var(--border)', padding: '6px 10px' }}>
       <InputToolbar
         listening={listening}
         recordingSeconds={recordingSeconds}
@@ -397,8 +397,8 @@ export default function ChatInput({
           ref={inputWrapRef}
           style={{
             flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', gap: 0,
-            background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '0',
-            border: isPlanMode ? '1px solid #a78bfa' : '1px solid var(--glass-border)', transition: 'all 0.15s ease',
+            background: 'var(--bg-hover)', borderRadius: 8, padding: '0',
+            border: isPlanMode ? '1px solid #a78bfa' : '1px solid var(--border)', transition: 'border-color 0.15s ease',
           }}
         >
           {/* Plan Mode banner (Iteration 520) */}
@@ -414,7 +414,7 @@ export default function ChatInput({
           )}
           {/* Attachments (images + files) */}
           {(attachments.length > 0 || fileAttachments.length > 0) && (
-            <div style={{ padding: '6px 10px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <div style={{ padding: '6px 10px 0', borderBottom: '1px solid var(--border)' }}>
               <ChatInputAttachments
                 attachments={attachments}
                 fileAttachments={fileAttachments}
@@ -431,7 +431,7 @@ export default function ChatInput({
               <span style={{ flex: 1, opacity: 0.85 }}>{t('input.keepGoingHint')}</span>
               <button
                 onClick={() => { handleSend() }}
-                style={{ padding: '2px 8px', fontSize: 11, fontWeight: 500, background: 'var(--cta-gradient)', color: 'rgba(255,255,255,0.95)', border: 'none', borderRadius: 6, cursor: 'pointer', transition: 'all 0.15s ease' }}
+                style={{ padding: '2px 8px', fontSize: 11, fontWeight: 500, background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))', color: 'rgba(255,255,255,0.95)', border: 'none', borderRadius: 6, cursor: 'pointer', transition: 'all 0.15s ease' }}
               >
                 {t('input.keepGoingSend')}
               </button>
@@ -505,7 +505,7 @@ export default function ChatInput({
                 }
               }}
               onFocus={() => { if (inputWrapRef.current) inputWrapRef.current.style.borderColor = isPlanMode ? '#a78bfa' : 'rgba(99,102,241,0.45)' }}
-              onBlur={() => { setTextDragOver(false); if (inputWrapRef.current) inputWrapRef.current.style.borderColor = isPlanMode ? '#a78bfa' : 'var(--glass-border)' }}
+              onBlur={() => { setTextDragOver(false); if (inputWrapRef.current) inputWrapRef.current.style.borderColor = isPlanMode ? '#a78bfa' : 'var(--border)' }}
               placeholder={t(PLACEHOLDER_KEYS[placeholderIdx])}
               aria-label={t('chat.placeholder')}
               rows={1}
@@ -515,7 +515,7 @@ export default function ChatInput({
             <GhostTextOverlay input={input} ghostText={ghostText} />
           </div>
           {/* Separator between compose area and status row */}
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 4, marginBottom: 2 }} />
+          <div style={{ borderTop: '1px solid var(--border)', marginTop: 4, marginBottom: 2 }} />
           {/* Character & word counter */}
           <CharWordCounter input={input} />
           {/* Vim mode indicator */}
@@ -527,10 +527,10 @@ export default function ChatInput({
                 letterSpacing: 0.8,
                 padding: '1px 6px',
                 borderRadius: 6,
-                background: vim.mode === 'normal' ? 'var(--cta-gradient)' : 'rgba(255,255,255,0.08)',
+                background: vim.mode === 'normal' ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))' : 'var(--bg-active)',
                 color: vim.mode === 'normal' ? 'rgba(255,255,255,0.95)' : 'var(--text-muted)',
                 textTransform: 'uppercase',
-                transition: 'all 0.15s ease',
+                transition: 'background 0.15s ease, color 0.15s ease',
                 userSelect: 'none',
               }}>
                 {vim.mode === 'normal' ? 'NORMAL' : 'INSERT'}

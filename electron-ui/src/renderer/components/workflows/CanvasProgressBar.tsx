@@ -66,10 +66,10 @@ export default function CanvasProgressBar({ completedCount, totalSteps, isRunnin
       padding: '6px 12px',
       pointerEvents: 'none',
       opacity: isError ? 0.4 : 1,
-      background: 'var(--glass-bg-card)',
+      background: 'rgba(15,15,25,0.88)',
       backdropFilter: 'blur(14px)',
       WebkitBackdropFilter: 'blur(14px)',
-      border: '1px solid var(--glass-border)',
+      border: '1px solid var(--border)',
       borderRadius: 10,
       boxShadow: '0 4px 16px rgba(0,0,0,0.40), 0 1px 4px rgba(0,0,0,0.30)',
     }}>
@@ -112,7 +112,7 @@ export default function CanvasProgressBar({ completedCount, totalSteps, isRunnin
       </div>
       <div style={{
         height: 4,
-        background: 'var(--glass-border-md)',
+        background: 'var(--border)',
         borderRadius: 4,
         overflow: 'hidden',
       }}>
@@ -137,7 +137,7 @@ export default function CanvasProgressBar({ completedCount, totalSteps, isRunnin
             <div style={{
               position: 'absolute',
               inset: 0,
-              background: 'linear-gradient(90deg, transparent 0%, var(--text-faint) 50%, transparent 100%)',
+              background: 'linear-gradient(90deg, transparent 0%, var(--text-muted) 50%, transparent 100%)',
               animation: 'canvas-bar-shimmer 1.5s ease-in-out infinite, progressShimmer 1.5s ease-in-out infinite',
             }} />
           )}

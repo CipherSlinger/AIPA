@@ -67,17 +67,17 @@ export function HookCallbackCard({ message, onRespond }: Props) {
       style={{
         margin: '8px auto',
         maxWidth: 420,
-        background: 'var(--glass-bg-card)',
+        background: 'rgba(15,15,25,0.88)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '1px solid var(--border)',
         borderLeft: isPending ? '3px solid rgba(99,102,241,0.50)' : '3px solid rgba(99,102,241,0.20)',
         borderRadius: 10,
         padding: '16px 18px',
         display: 'flex',
         flexDirection: 'column',
         gap: 12,
-        boxShadow: 'var(--glass-shadow)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
       }}
     >
       {/* Header */}
@@ -99,7 +99,7 @@ export function HookCallbackCard({ message, onRespond }: Props) {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
               {hookEventName}
             </span>
             {isPending && (
@@ -120,7 +120,7 @@ export function HookCallbackCard({ message, onRespond }: Props) {
           {toolName && (
             <span style={{
               fontSize: 11,
-              color: 'var(--text-faint)',
+              color: 'var(--text-muted)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -145,7 +145,7 @@ export function HookCallbackCard({ message, onRespond }: Props) {
           fontSize: 11,
           color: '#a5b4fc',
           background: 'rgba(0,0,0,0.30)',
-          border: '1px solid var(--glass-border)',
+          border: '1px solid var(--border)',
           borderRadius: 6,
           padding: '6px 10px',
           fontFamily: 'monospace',
@@ -186,7 +186,7 @@ export function HookCallbackCard({ message, onRespond }: Props) {
               fontWeight: 700,
               letterSpacing: '0.07em',
               textTransform: 'uppercase',
-              color: 'var(--text-faint)',
+              color: 'var(--text-muted)',
               marginBottom: 2,
             }}>
               Select an option
@@ -205,10 +205,10 @@ export function HookCallbackCard({ message, onRespond }: Props) {
                     width: '100%',
                     padding: '8px 12px',
                     borderRadius: 7,
-                    background: isSelected ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.04)',
+                    background: isSelected ? 'rgba(99,102,241,0.12)' : 'var(--bg-hover)',
                     border: isSelected
                       ? '1px solid rgba(99,102,241,0.40)'
-                      : '1px solid rgba(255,255,255,0.08)',
+                      : '1px solid var(--border)',
                     borderLeft: isSelected
                       ? '3px solid rgba(99,102,241,0.75)'
                       : '3px solid transparent',
@@ -225,8 +225,8 @@ export function HookCallbackCard({ message, onRespond }: Props) {
                   }}
                   onMouseLeave={(e) => {
                     if (!isSelected) {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
-                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+                      e.currentTarget.style.background = 'var(--bg-hover)'
+                      e.currentTarget.style.borderColor = 'var(--border)'
                       e.currentTarget.style.borderLeft = '3px solid transparent'
                     }
                   }}
@@ -264,18 +264,18 @@ export function HookCallbackCard({ message, onRespond }: Props) {
                 width: '100%',
                 boxSizing: 'border-box',
                 borderRadius: 6,
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid var(--border)',
                 padding: '6px 10px',
                 fontSize: 12,
                 resize: 'vertical',
-                background: 'rgba(255,255,255,0.04)',
+                background: 'var(--bg-hover)',
                 color: 'var(--text-primary)',
                 fontFamily: 'inherit',
                 outline: 'none',
                 transition: 'border-color 0.15s ease',
               }}
               onFocus={(e) => { e.currentTarget.style.borderColor = '#6366f1' }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
             />
           )}
 
@@ -303,7 +303,7 @@ export function HookCallbackCard({ message, onRespond }: Props) {
                 border: 'none',
                 background: selectedOptionKey
                   ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
-                  : 'rgba(255,255,255,0.06)',
+                  : 'var(--bg-hover)',
                 color: selectedOptionKey ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.35)',
                 fontWeight: 600,
                 fontSize: 13,
@@ -320,12 +320,12 @@ export function HookCallbackCard({ message, onRespond }: Props) {
           </div>
 
           {/* Add reason toggle */}
-          <div style={{ display: 'flex', borderTop: '1px solid var(--glass-border)', paddingTop: 8 }}>
+          <div style={{ display: 'flex', borderTop: '1px solid var(--border)', paddingTop: 8 }}>
             <button
               onClick={() => setShowReason(!showReason)}
               onMouseEnter={(e) => {
                 e.currentTarget.style.opacity = '1'
-                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                e.currentTarget.style.background = 'var(--bg-hover)'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.opacity = '0.75'
@@ -366,18 +366,18 @@ export function HookCallbackCard({ message, onRespond }: Props) {
                 width: '100%',
                 boxSizing: 'border-box',
                 borderRadius: 6,
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid var(--border)',
                 padding: '6px 10px',
                 fontSize: 12,
                 resize: 'vertical',
-                background: 'rgba(255,255,255,0.04)',
+                background: 'var(--bg-hover)',
                 color: 'var(--text-primary)',
                 fontFamily: 'inherit',
                 outline: 'none',
                 transition: 'border-color 0.15s ease',
               }}
               onFocus={(e) => { e.currentTarget.style.borderColor = '#6366f1' }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
             />
           )}
 
@@ -425,15 +425,15 @@ export function HookCallbackCard({ message, onRespond }: Props) {
               }}
               onMouseLeave={(e) => {
                 setBlockHover(false)
-                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+                e.currentTarget.style.background = 'var(--bg-hover)'
+                e.currentTarget.style.borderColor = 'var(--border)'
               }}
               style={{
                 flex: 1,
                 height: 36,
                 borderRadius: 6,
-                border: '1px solid rgba(255,255,255,0.10)',
-                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid var(--border)',
+                background: 'var(--bg-hover)',
                 color: '#fca5a5',
                 fontWeight: 600,
                 fontSize: 13,
@@ -450,12 +450,12 @@ export function HookCallbackCard({ message, onRespond }: Props) {
           </div>
 
           {/* Add reason toggle */}
-          <div style={{ display: 'flex', borderTop: '1px solid var(--glass-border)', paddingTop: 8 }}>
+          <div style={{ display: 'flex', borderTop: '1px solid var(--border)', paddingTop: 8 }}>
             <button
               onClick={() => setShowReason(!showReason)}
               onMouseEnter={(e) => {
                 e.currentTarget.style.opacity = '1'
-                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                e.currentTarget.style.background = 'var(--bg-hover)'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.opacity = '0.75'

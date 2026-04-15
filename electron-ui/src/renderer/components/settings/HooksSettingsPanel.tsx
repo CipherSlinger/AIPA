@@ -58,16 +58,16 @@ const EVENT_BADGE_STYLES: Record<string, { bg: string; color: string }> = {
   PostToolUseFailure: { bg: 'rgba(99,102,241,0.12)', color: 'rgba(165,180,252,0.75)' },
   SessionStart:  { bg: 'rgba(34,197,94,0.15)',   color: 'rgba(34,197,94,0.90)' },
   SessionEnd:    { bg: 'rgba(34,197,94,0.10)',   color: 'rgba(34,197,94,0.70)' },
-  Stop:          { bg: 'rgba(255,255,255,0.08)', color: 'var(--text-secondary)' },
+  Stop:          { bg: 'var(--border)', color: 'var(--text-secondary)' },
   StopFailure:   { bg: 'rgba(239,68,68,0.12)',   color: 'rgba(252,165,165,0.80)' },
   Notification:  { bg: 'rgba(251,191,36,0.12)',  color: 'rgba(251,191,36,0.80)' },
   UserPromptSubmit: { bg: 'rgba(99,102,241,0.10)', color: 'rgba(165,180,252,0.70)' },
-  SubagentStop:  { bg: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.55)' },
+  SubagentStop:  { bg: 'var(--border)', color: 'rgba(255,255,255,0.55)' },
   PreCompact:    { bg: 'rgba(139,92,246,0.12)',  color: 'rgba(196,181,253,0.80)' },
 }
 
 function EventTypeBadge({ eventType }: { eventType: string }) {
-  const style = EVENT_BADGE_STYLES[eventType] ?? { bg: 'rgba(255,255,255,0.08)', color: 'var(--text-secondary)' }
+  const style = EVENT_BADGE_STYLES[eventType] ?? { bg: 'var(--border)', color: 'var(--text-secondary)' }
   return (
     <span style={{
       borderRadius: 6,
@@ -124,8 +124,8 @@ interface InlineEditorProps {
 function InlineEditor({ editState, onEditChange, onSave, onCancel }: InlineEditorProps) {
   const inputBase: React.CSSProperties = {
     width: '100%',
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid var(--glass-border-md)',
+    background: 'var(--bg-hover)',
+    border: '1px solid var(--border)',
     borderRadius: 8,
     padding: '6px 10px',
     color: 'var(--text-primary)',
@@ -147,7 +147,7 @@ function InlineEditor({ editState, onEditChange, onSave, onCancel }: InlineEdito
     e.currentTarget.style.border = '1px solid rgba(99,102,241,0.45)'
   }
   const focusOut = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    e.currentTarget.style.border = '1px solid var(--glass-border-md)'
+    e.currentTarget.style.border = '1px solid var(--border)'
   }
 
   return (
@@ -265,8 +265,8 @@ function InlineEditor({ editState, onEditChange, onSave, onCancel }: InlineEdito
           onClick={onCancel}
           style={{
             padding: '7px 14px',
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid var(--glass-border-md)',
+            background: 'var(--bg-hover)',
+            border: '1px solid var(--border)',
             borderRadius: 8,
             cursor: 'pointer',
             fontSize: 12,
@@ -274,11 +274,11 @@ function InlineEditor({ editState, onEditChange, onSave, onCancel }: InlineEdito
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.10)'
+            e.currentTarget.style.background = 'var(--border)'
             e.currentTarget.style.color = 'var(--text-primary)'
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+            e.currentTarget.style.background = 'var(--bg-hover)'
             e.currentTarget.style.color = 'var(--text-secondary)'
           }}
         >
@@ -487,7 +487,7 @@ export default function HooksSettingsPanel() {
                 borderRadius: 9,
                 background: disableAllHooks
                   ? 'rgba(239,68,68,0.35)'
-                  : 'rgba(255,255,255,0.12)',
+                  : 'var(--bg-active)',
                 border: disableAllHooks
                   ? '1px solid rgba(239,68,68,0.50)'
                   : '1px solid rgba(255,255,255,0.15)',
@@ -503,7 +503,7 @@ export default function HooksSettingsPanel() {
                 width: 12,
                 height: 12,
                 borderRadius: 6,
-                background: 'rgba(255,255,255,0.90)',
+                background: 'var(--text-primary)',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.35)',
                 transition: 'left 0.15s ease',
                 display: 'block',
@@ -567,15 +567,15 @@ export default function HooksSettingsPanel() {
       {/* Empty state */}
       {eventTypes.length === 0 && !showWizard && (
         <div style={{
-          fontSize: 12, color: 'var(--text-faint)',
+          fontSize: 12, color: 'var(--text-muted)',
           textAlign: 'center', padding: 24,
-          border: '1px dashed var(--glass-border-md)', borderRadius: 12, marginTop: 8,
+          border: '1px dashed var(--border)', borderRadius: 12, marginTop: 8,
         }}>
           <Zap size={28} color="rgba(255,255,255,0.2)" style={{ marginBottom: 10 }} />
           <div style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500, marginBottom: 6 }}>
             {t('hooks.noHooksTitle')}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-faint)', maxWidth: 300, margin: '0 auto' }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 300, margin: '0 auto' }}>
             {t('hooks.noHooksDesc')}
           </div>
         </div>
@@ -593,10 +593,10 @@ export default function HooksSettingsPanel() {
               <div
                 key={eventType}
                 style={{
-                  background: 'var(--glass-bg-low)',
+                  background: 'rgba(15,15,25,0.85)',
                   backdropFilter: 'blur(12px)',
                   WebkitBackdropFilter: 'blur(12px)',
-                  border: '1px solid var(--glass-border)',
+                  border: '1px solid var(--border)',
                   borderRadius: 12,
                   overflow: 'hidden',
                 }}
@@ -612,14 +612,14 @@ export default function HooksSettingsPanel() {
                   }}
                 >
                   {collapsed
-                    ? <ChevronRight size={13} color="var(--text-faint)" />
-                    : <ChevronDown size={13} color="var(--text-faint)" />
+                    ? <ChevronRight size={13} color="var(--text-muted)" />
+                    : <ChevronDown size={13} color="var(--text-muted)" />
                   }
                   <EventTypeBadge eventType={eventType} />
                   <span style={{ flex: 1 }} />
                   <span style={{
                     fontSize: 10, fontWeight: 600,
-                    color: 'var(--text-faint)',
+                    color: 'var(--text-muted)',
                     flexShrink: 0,
                   }}>
                     {t('hooks.hookCount', { count: totalHooks })}
@@ -661,7 +661,7 @@ export default function HooksSettingsPanel() {
                                   background: isEditing ? 'rgba(99,102,241,0.05)' : 'rgba(255,255,255,0.03)',
                                   border: isEditing
                                     ? '1px solid rgba(99,102,241,0.25)'
-                                    : '1px solid var(--glass-border)',
+                                    : '1px solid var(--border)',
                                   borderRadius: 8,
                                   padding: '10px 14px',
                                   transition: 'background 0.15s ease',
@@ -670,7 +670,7 @@ export default function HooksSettingsPanel() {
                                 <HookTypeIcon type={hook.type} />
                                 <HookTypeBadge type={hook.type} />
                                 <span style={{
-                                  background: 'var(--glass-bg-low)',
+                                  background: 'rgba(15,15,25,0.70)',
                                   borderRadius: 6,
                                   padding: '3px 8px',
                                   fontSize: 11,
@@ -695,7 +695,7 @@ export default function HooksSettingsPanel() {
                                   </span>
                                 )}
                                 {hook.timeout && (
-                                  <span style={{ fontSize: 10, color: 'var(--text-faint)', flexShrink: 0 }}>
+                                  <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>
                                     {hook.timeout}s
                                   </span>
                                 )}
@@ -711,17 +711,17 @@ export default function HooksSettingsPanel() {
                                       ? 'rgba(99,102,241,0.18)'
                                       : editHover === cardKey
                                         ? 'rgba(99,102,241,0.12)'
-                                        : 'var(--glass-border)',
+                                        : 'var(--border)',
                                     border: isEditing
                                       ? '1px solid rgba(99,102,241,0.35)'
-                                      : '1px solid ' + (editHover === cardKey ? 'rgba(99,102,241,0.25)' : 'var(--glass-border)'),
+                                      : '1px solid ' + (editHover === cardKey ? 'rgba(99,102,241,0.25)' : 'var(--border)'),
                                     borderRadius: 6,
                                     cursor: 'pointer',
                                     color: isEditing
                                       ? '#a5b4fc'
                                       : editHover === cardKey
                                         ? '#a5b4fc'
-                                        : 'var(--text-faint)',
+                                        : 'var(--text-muted)',
                                     padding: '4px 6px', display: 'flex', alignItems: 'center',
                                     flexShrink: 0,
                                     transition: 'all 0.15s ease',
@@ -738,11 +738,11 @@ export default function HooksSettingsPanel() {
                                   onMouseLeave={() => setDeleteHover(null)}
                                   title={t('hooks.deleteHook')}
                                   style={{
-                                    background: deleteHover === cardKey ? 'rgba(252,165,165,0.1)' : 'var(--glass-border)',
-                                    border: '1px solid ' + (deleteHover === cardKey ? 'rgba(252,165,165,0.25)' : 'var(--glass-border)'),
+                                    background: deleteHover === cardKey ? 'rgba(252,165,165,0.1)' : 'var(--border)',
+                                    border: '1px solid ' + (deleteHover === cardKey ? 'rgba(252,165,165,0.25)' : 'var(--border)'),
                                     borderRadius: 6,
                                     cursor: 'pointer',
-                                    color: deleteHover === cardKey ? '#fca5a5' : 'var(--text-faint)',
+                                    color: deleteHover === cardKey ? '#fca5a5' : 'var(--text-muted)',
                                     padding: '4px 6px', display: 'flex', alignItems: 'center',
                                     flexShrink: 0,
                                     transition: 'all 0.15s ease',

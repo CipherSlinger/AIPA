@@ -34,7 +34,7 @@ export default function TasksPanel() {
   const progressPct = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'rgba(10,10,18,1)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--bg-chat)' }}>
       {/* Header */}
       <div
         style={{
@@ -43,7 +43,7 @@ export default function TasksPanel() {
           justifyContent: 'space-between',
           padding: '12px 14px 10px',
           background: 'linear-gradient(180deg, rgba(99,102,241,0.05) 0%, transparent 100%)',
-          borderBottom: '1px solid var(--glass-border)',
+          borderBottom: '1px solid var(--border)',
         }}
       >
         {/* Micro-label style */}
@@ -53,7 +53,7 @@ export default function TasksPanel() {
             fontWeight: 700,
             letterSpacing: '0.07em',
             textTransform: 'uppercase',
-            color: 'var(--text-faint)',
+            color: 'var(--text-muted)',
             lineHeight: 1.3,
           }}
         >
@@ -95,8 +95,8 @@ export default function TasksPanel() {
             borderRadius: 7,
             border: inputFocused
               ? '1px solid rgba(99,102,241,0.40)'
-              : '1px solid rgba(255,255,255,0.08)',
-            background: 'rgba(255,255,255,0.06)',
+              : '1px solid var(--border)',
+            background: 'var(--bg-hover)',
             color: 'var(--text-primary)',
             fontSize: 12,
             outline: 'none',
@@ -114,8 +114,8 @@ export default function TasksPanel() {
             border: 'none',
             background: inputValue.trim()
               ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
-              : 'rgba(255,255,255,0.06)',
-            color: inputValue.trim() ? 'rgba(255,255,255,0.95)' : 'var(--text-faint)',
+              : 'var(--bg-hover)',
+            color: inputValue.trim() ? 'rgba(255,255,255,0.95)' : 'var(--text-muted)',
             cursor: inputValue.trim() ? 'pointer' : 'not-allowed',
             display: 'flex',
             alignItems: 'center',
@@ -159,19 +159,19 @@ export default function TasksPanel() {
                 width: 40,
                 height: 40,
                 borderRadius: 12,
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid var(--glass-border)',
+                background: 'var(--bg-hover)',
+                border: '1px solid var(--border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <CheckSquare size={20} style={{ color: 'var(--text-faint)' }} />
+              <CheckSquare size={20} style={{ color: 'var(--text-muted)' }} />
             </span>
             <span
               style={{
                 fontSize: 12,
-                color: 'var(--text-faint)',
+                color: 'var(--text-muted)',
                 lineHeight: 1.5,
               }}
             >
@@ -198,11 +198,11 @@ export default function TasksPanel() {
                 marginTop: 4,
               }}
             >
-              <div style={{ flex: 1, height: 1, background: 'var(--glass-border)' }} />
+              <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
               <span
                 style={{
                   fontSize: 10,
-                  color: 'var(--text-faint)',
+                  color: 'var(--text-muted)',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.07em',
@@ -211,14 +211,14 @@ export default function TasksPanel() {
               >
                 {t('tasks.completed', { count: String(crud.completedTasks.length) })}
               </span>
-              <div style={{ flex: 1, height: 1, background: 'var(--glass-border)' }} />
+              <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
               <button
                 onClick={crud.clearCompleted}
                 style={{
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
-                  color: 'var(--text-faint)',
+                  color: 'var(--text-muted)',
                   fontSize: 10,
                   display: 'flex',
                   alignItems: 'center',
@@ -233,7 +233,7 @@ export default function TasksPanel() {
                   e.currentTarget.style.background = 'rgba(239,68,68,0.10)'
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = 'var(--text-faint)'
+                  e.currentTarget.style.color = 'var(--text-muted)'
                   e.currentTarget.style.background = 'transparent'
                 }}
               >
@@ -265,7 +265,7 @@ export default function TasksPanel() {
               <span
                 style={{
                   fontSize: 10,
-                  color: progressPct === 100 ? '#4ade80' : 'var(--text-faint)',
+                  color: progressPct === 100 ? '#4ade80' : 'var(--text-muted)',
                   fontVariantNumeric: 'tabular-nums',
                   fontFeatureSettings: '"tnum"',
                   transition: 'all 0.15s ease',
@@ -278,7 +278,7 @@ export default function TasksPanel() {
               style={{
                 height: 3,
                 borderRadius: 99,
-                background: 'rgba(255,255,255,0.08)',
+                background: 'var(--border)',
                 overflow: 'hidden',
               }}
             >
@@ -315,7 +315,7 @@ export default function TasksPanel() {
             fontSize: 10,
             color: '#fbbf24',
             textAlign: 'center',
-            borderTop: '1px solid var(--glass-border)',
+            borderTop: '1px solid var(--border)',
             fontVariantNumeric: 'tabular-nums',
             fontFeatureSettings: '"tnum"',
           }}

@@ -128,7 +128,7 @@ export default function NoteEditor({
   }, [title, content, addToast, t])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: 0, background: 'rgba(10,10,18,0.95)', scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.10) transparent' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: 0, background: 'rgba(10,10,18,0.95)', scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}>
       {/* Editor header */}
       <NoteEditorHeader
         note={note}
@@ -164,7 +164,7 @@ export default function NoteEditor({
           width: '100%',
           padding: '12px 16px',
           border: 'none',
-          borderBottom: '1px solid var(--glass-border)',
+          borderBottom: '1px solid var(--border)',
           background: 'transparent',
           color: 'var(--text-primary)',
           fontSize: 22,
@@ -186,7 +186,7 @@ export default function NoteEditor({
             padding: '12px 16px',
             boxSizing: 'border-box',
             scrollbarWidth: 'thin',
-            scrollbarColor: 'rgba(255,255,255,0.10) transparent',
+            scrollbarColor: 'var(--border) transparent',
           }}
         >
           {content.trim() ? (
@@ -204,7 +204,7 @@ export default function NoteEditor({
               alignItems: 'center',
               justifyContent: 'center',
               height: '100%',
-              color: 'var(--text-faint)',
+              color: 'var(--text-muted)',
               fontSize: 13,
             }}>
               {t('notes.nothingToPreview')}
@@ -222,7 +222,7 @@ export default function NoteEditor({
             background: 'rgba(12,12,22,0.92)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
-            borderBottom: '1px solid var(--glass-border)',
+            borderBottom: '1px solid var(--border)',
             flexShrink: 0,
           }}>
             {FORMAT_ACTIONS.map((action) => {
@@ -234,8 +234,8 @@ export default function NoteEditor({
                   title={t(action.labelKey)}
                   aria-label={t(action.labelKey)}
                   style={{
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid var(--glass-border-md)',
+                    background: 'var(--bg-hover)',
+                    border: '1px solid var(--border)',
                     color: 'var(--text-muted)',
                     cursor: 'pointer',
                     display: 'flex',
@@ -247,11 +247,11 @@ export default function NoteEditor({
                     transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={e => {
-                    e.currentTarget.style.background = 'var(--glass-border-md)'
+                    e.currentTarget.style.background = 'var(--border)'
                     e.currentTarget.style.color = 'var(--text-primary)'
                   }}
                   onMouseLeave={e => {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                    e.currentTarget.style.background = 'var(--bg-hover)'
                     e.currentTarget.style.color = 'var(--text-muted)'
                   }}
                 >
@@ -281,7 +281,7 @@ export default function NoteEditor({
               fontFamily: 'inherit',
               boxSizing: 'border-box',
               scrollbarWidth: 'thin',
-              scrollbarColor: 'rgba(255,255,255,0.10) transparent',
+              scrollbarColor: 'var(--border) transparent',
             }}
           />
         </>
@@ -296,7 +296,7 @@ export default function NoteEditor({
           <div style={{
             height: 3,
             borderRadius: 2,
-            background: 'rgba(255,255,255,0.08)',
+            background: 'var(--border)',
             overflow: 'hidden',
           }}>
             <div style={{
@@ -329,12 +329,12 @@ export default function NoteEditor({
       {/* Timestamps footer */}
       <div style={{
         padding: '6px 16px',
-        borderTop: '1px solid var(--glass-border)',
+        borderTop: '1px solid var(--border)',
         fontSize: 10,
         fontWeight: 700,
         letterSpacing: '0.07em',
         textTransform: 'uppercase' as const,
-        color: 'var(--text-faint)',
+        color: 'var(--text-muted)',
         display: 'flex',
         justifyContent: 'space-between',
         flexShrink: 0,

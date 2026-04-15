@@ -69,8 +69,8 @@ export default function WorktreeDialog({ cwd, onClose, onSwitchCwd }: WorktreeDi
 
   const inputStyle: React.CSSProperties = {
     flex: 1, padding: '8px 12px', fontSize: 13,
-    background: 'rgba(255,255,255,0.06)',
-    border: inputFocused ? '1px solid rgba(99,102,241,0.55)' : '1px solid var(--glass-border-md)',
+    background: 'var(--bg-hover)',
+    border: inputFocused ? '1px solid rgba(99,102,241,0.55)' : '1px solid var(--border)',
     borderRadius: 8, color: 'var(--text-primary)', outline: 'none',
     transition: 'border-color 0.15s ease',
     boxShadow: inputFocused ? '0 0 0 3px rgba(99,102,241,0.12)' : 'none',
@@ -81,7 +81,7 @@ export default function WorktreeDialog({ cwd, onClose, onSwitchCwd }: WorktreeDi
     <div style={{
       position: 'fixed', inset: 0, zIndex: 1000,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'var(--glass-overlay)',
+      background: 'rgba(0,0,0,0.70)',
       backdropFilter: 'blur(8px)',
       WebkitBackdropFilter: 'blur(8px)',
       animation: 'fadeIn 0.15s ease',
@@ -89,10 +89,10 @@ export default function WorktreeDialog({ cwd, onClose, onSwitchCwd }: WorktreeDi
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div style={{
-        background: 'var(--glass-bg-high)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid var(--glass-border)',
+        border: '1px solid var(--border)',
         borderRadius: 16, padding: '20px 24px', width: 500,
         maxHeight: '80vh', display: 'flex', flexDirection: 'column',
         boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
@@ -103,7 +103,7 @@ export default function WorktreeDialog({ cwd, onClose, onSwitchCwd }: WorktreeDi
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           marginBottom: 14,
           paddingBottom: 14,
-          borderBottom: '1px solid var(--glass-border)',
+          borderBottom: '1px solid var(--border)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
@@ -125,18 +125,18 @@ export default function WorktreeDialog({ cwd, onClose, onSwitchCwd }: WorktreeDi
               style={{
                 background: 'transparent',
                 border: 'none', cursor: 'pointer',
-                color: 'var(--text-faint)',
+                color: 'var(--text-muted)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 padding: 6, borderRadius: 8,
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.background = 'var(--glass-border)'
+                e.currentTarget.style.background = 'var(--border)'
                 e.currentTarget.style.color = 'var(--text-secondary)'
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.background = 'transparent'
-                e.currentTarget.style.color = 'var(--text-faint)'
+                e.currentTarget.style.color = 'var(--text-muted)'
               }}
             >
               <RefreshCw size={13} />
@@ -146,18 +146,18 @@ export default function WorktreeDialog({ cwd, onClose, onSwitchCwd }: WorktreeDi
               style={{
                 background: 'transparent',
                 border: 'none', cursor: 'pointer',
-                color: 'var(--text-faint)',
+                color: 'var(--text-muted)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 padding: 6, borderRadius: 8,
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.background = 'var(--glass-border)'
+                e.currentTarget.style.background = 'var(--border)'
                 e.currentTarget.style.color = 'var(--text-secondary)'
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.background = 'transparent'
-                e.currentTarget.style.color = 'var(--text-faint)'
+                e.currentTarget.style.color = 'var(--text-muted)'
               }}
             >
               <X size={14} />
@@ -246,11 +246,11 @@ export default function WorktreeDialog({ cwd, onClose, onSwitchCwd }: WorktreeDi
         )}
 
         {/* Worktree list */}
-        <div style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.08) transparent' }}>
+        <div style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}>
           {loading ? (
-            <div style={{ padding: '28px 0', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>Loading…</div>
+            <div style={{ padding: '28px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>Loading…</div>
           ) : worktrees.length === 0 ? (
-            <div style={{ padding: '28px 0', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
+            <div style={{ padding: '28px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
               No worktrees found
             </div>
           ) : (
@@ -271,7 +271,7 @@ export default function WorktreeDialog({ cwd, onClose, onSwitchCwd }: WorktreeDi
                       border: '1px solid ' + (
                         isActive ? 'rgba(99,102,241,0.35)'
                         : isConflict ? 'rgba(239,68,68,0.25)'
-                        : 'var(--glass-border)'
+                        : 'var(--border)'
                       ),
                       background: isActive
                         ? 'rgba(99,102,241,0.08)'
@@ -300,7 +300,7 @@ export default function WorktreeDialog({ cwd, onClose, onSwitchCwd }: WorktreeDi
                           fontFamily: '"JetBrains Mono", "Fira Code", monospace',
                           color: isActive
                             ? 'rgba(165,180,252,0.82)'
-                            : isMerged ? 'var(--text-faint)'
+                            : isMerged ? 'var(--text-muted)'
                             : isConflict ? 'rgba(248,113,113,0.90)'
                             : 'rgba(165,180,252,0.82)',
                           overflow: 'hidden',
@@ -313,9 +313,9 @@ export default function WorktreeDialog({ cwd, onClose, onSwitchCwd }: WorktreeDi
                         {wt.isMain && (
                           <span style={{
                             fontSize: 9, fontWeight: 700,
-                            color: 'var(--text-faint)',
-                            background: 'rgba(255,255,255,0.06)',
-                            border: '1px solid var(--glass-border-md)',
+                            color: 'var(--text-muted)',
+                            background: 'var(--bg-hover)',
+                            border: '1px solid var(--border)',
                             padding: '1px 5px', borderRadius: 6,
                             letterSpacing: '0.05em', textTransform: 'uppercase',
                           }}>main</span>
@@ -333,9 +333,9 @@ export default function WorktreeDialog({ cwd, onClose, onSwitchCwd }: WorktreeDi
                         {isMerged && (
                           <span style={{
                             fontSize: 9, fontWeight: 700,
-                            background: 'rgba(255,255,255,0.04)',
-                            color: 'var(--text-faint)',
-                            border: '1px solid var(--glass-border)',
+                            background: 'var(--bg-hover)',
+                            color: 'var(--text-muted)',
+                            border: '1px solid var(--border)',
                             padding: '1px 6px', borderRadius: 6,
                             letterSpacing: '0.05em', textTransform: 'uppercase',
                           }}>merged</span>
@@ -354,7 +354,7 @@ export default function WorktreeDialog({ cwd, onClose, onSwitchCwd }: WorktreeDi
                       {/* Path */}
                       <div style={{
                         fontSize: 11,
-                        color: 'var(--text-faint)',
+                        color: 'var(--text-muted)',
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         fontFamily: '"JetBrains Mono", "Fira Code", monospace',
                         marginTop: 3,
@@ -415,18 +415,18 @@ export default function WorktreeDialog({ cwd, onClose, onSwitchCwd }: WorktreeDi
                             <button
                               onClick={() => setConfirmRemove(null)}
                               style={{
-                                background: 'rgba(255,255,255,0.06)',
-                                border: '1px solid var(--glass-border-md)',
+                                background: 'var(--bg-hover)',
+                                border: '1px solid var(--border)',
                                 borderRadius: 6, padding: '4px 8px', fontSize: 11,
                                 color: 'var(--text-muted)', cursor: 'pointer',
                                 transition: 'all 0.15s ease',
                               }}
                               onMouseEnter={e => {
-                                e.currentTarget.style.background = 'var(--glass-border-md)'
+                                e.currentTarget.style.background = 'var(--border)'
                                 e.currentTarget.style.color = 'var(--text-secondary)'
                               }}
                               onMouseLeave={e => {
-                                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                                e.currentTarget.style.background = 'var(--bg-hover)'
                                 e.currentTarget.style.color = 'var(--text-muted)'
                               }}
                             >

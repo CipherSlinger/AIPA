@@ -128,7 +128,7 @@ function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, conta
         background: 'rgba(12,12,22,0.90)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid var(--glass-border-md)',
+        border: '1px solid var(--border)',
         borderRadius: 8,
         overflow: 'hidden',
         width: MINIMAP_W,
@@ -182,7 +182,7 @@ function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, conta
         <rect
           x={vpX} y={vpY}
           width={Math.max(4, vpW)} height={Math.max(4, vpH)}
-          fill="rgba(255,255,255,0.06)"
+          fill="var(--bg-hover)"
           stroke="rgba(255,255,255,0.3)"
           strokeWidth={0.8}
           rx={1}
@@ -941,7 +941,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                 autoFocus
                 style={{
                   fontSize: 14, fontWeight: 700,
-                  background: 'rgba(255,255,255,0.06)',
+                  background: 'var(--bg-hover)',
                   border: '1px solid #6366f1',
                   borderRadius: 4,
                   color: 'var(--text-primary)',
@@ -991,10 +991,10 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             alignItems: 'center',
             gap: 6,
             padding: '3px 10px 3px 8px',
-            background: 'var(--glass-bg-low)',
+            background: 'rgba(15,15,25,0.82)',
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
-            border: '1px solid var(--glass-border-md)',
+            border: '1px solid var(--border)',
             borderRadius: 20,
             pointerEvents: 'none',
             animation: 'workflow-done-in 0.15s ease-out',
@@ -1004,7 +1004,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             fontSize: 9,
             fontWeight: 700,
             color: 'var(--text-muted)',
-            background: 'rgba(255,255,255,0.08)',
+            background: 'var(--border)',
             borderRadius: 10,
             padding: '1px 5px',
           }}>
@@ -1032,7 +1032,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               background: selectedStepStatus === 'completed' ? 'rgba(34,197,94,0.1)'
                 : selectedStepStatus === 'running' ? 'rgba(99,102,241,0.12)'
                 : selectedStepStatus === 'error' ? 'rgba(239,68,68,0.1)'
-                : 'rgba(255,255,255,0.06)',
+                : 'var(--bg-hover)',
               borderRadius: 8,
               padding: '1px 6px',
               textTransform: 'capitalize',
@@ -1057,7 +1057,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             background: 'rgba(10,10,20,0.9)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid var(--glass-border-md)',
+            border: '1px solid var(--border)',
             borderRadius: 8,
             padding: '5px 8px',
             boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
@@ -1097,7 +1097,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           <button
             onClick={() => { setFindOpen(false); setFindQuery('') }}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2, fontSize: 14, lineHeight: 1, borderRadius: 4, transition: 'all 0.15s ease' }}
-            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'var(--bg-hover)' }}
             onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'none' }}
           >×</button>
         </div>
@@ -1110,7 +1110,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           top: 0, left: 0, right: 0,
           height: 3,
           zIndex: 20,
-          background: 'rgba(255,255,255,0.06)',
+          background: 'var(--bg-hover)',
           overflow: 'hidden',
         }}>
           <div style={{
@@ -1175,7 +1175,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           {execution.isRunning && streamingWps !== null && streamingWps > 0 && (
             <span style={{
               fontSize: 10,
-              color: 'rgba(99,102,241,0.82)',
+              color: 'rgba(99,102,241,0.8)',
               background: 'rgba(99,102,241,0.08)',
               borderRadius: 8,
               padding: '1px 7px',
@@ -1245,7 +1245,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               cx={20 * layout.zoom / 2}
               cy={20 * layout.zoom / 2}
               r={Math.max(0.5, layout.zoom * 0.7)}
-              fill="rgba(255,255,255,0.06)"
+              fill="var(--bg-hover)"
             />
           </pattern>
         </defs>
@@ -1358,13 +1358,13 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           color: searchMatchCount > 0 ? '#6366f1' : 'var(--text-muted)',
           background: searchMatchCount > 0
             ? 'rgba(99,102,241,0.12)'
-            : 'var(--glass-border)',
+            : 'var(--border)',
           borderRadius: 20,
           padding: '2px 8px',
           pointerEvents: 'none',
           transition: 'all 0.15s ease',
           fontWeight: 600,
-          border: '1px solid var(--glass-border-md)',
+          border: '1px solid var(--border)',
         }}>
           {searchMatchCount}
         </div>
@@ -1397,7 +1397,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           WebkitBackdropFilter: 'blur(6px)',
           borderRadius: 6,
           padding: '3px 10px',
-          border: '1px solid var(--glass-border-md)',
+          border: '1px solid var(--border)',
           pointerEvents: 'none',
           zIndex: 15,
         }}>
@@ -1755,7 +1755,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           WebkitBackdropFilter: 'blur(6px)',
           borderRadius: 5,
           padding: '2px 8px',
-          border: '1px solid var(--glass-border-md)',
+          border: '1px solid var(--border)',
           fontVariantNumeric: 'tabular-nums',
           fontFeatureSettings: '"tnum"',
         }}>
@@ -1771,10 +1771,10 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             left: canvasCtxMenu.x,
             top: canvasCtxMenu.y,
             zIndex: 1000,
-            background: 'var(--glass-bg-raised)',
+            background: 'var(--popup-bg)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid var(--glass-border-md)',
+            border: '1px solid var(--border)',
             borderRadius: 10,
             boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
             minWidth: 168,
@@ -1803,7 +1803,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                 color: 'var(--text-primary)',
                 transition: 'all 0.15s ease',
               }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               onMouseDown={() => {
                 action()
@@ -1849,10 +1849,10 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             bottom: summaryCollapsed ? 32 : 32,
             left: 12,
             zIndex: 11,
-            background: 'var(--glass-bg-low)',
+            background: 'rgba(15,15,25,0.85)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: `1px solid ${execution.hasError && !execution.isRunning ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.08)'}`,
+            border: `1px solid ${execution.hasError && !execution.isRunning ? 'rgba(239,68,68,0.3)' : 'var(--border)'}`,
             borderRadius: 12,
             minWidth: 180,
             maxWidth: 240,
@@ -1871,7 +1871,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               gap: 7,
               padding: '7px 10px',
               cursor: 'pointer',
-              borderBottom: summaryCollapsed ? 'none' : '1px solid var(--glass-border)',
+              borderBottom: summaryCollapsed ? 'none' : '1px solid var(--border)',
             }}
             onClick={() => setSummaryCollapsed(p => !p)}
           >
@@ -1922,7 +1922,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             background: 'rgba(10,10,15,0.85)',
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
-            borderTop: '1px solid var(--glass-border)',
+            borderTop: '1px solid var(--border)',
             boxSizing: 'border-box',
           }}
           onClick={e => e.stopPropagation()}
@@ -1934,8 +1934,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             const bg = st === 'completed' ? '#22c55e'
               : st === 'running' ? '#6366f1'
               : st === 'error' ? '#f87171'
-              : st === 'pending' ? 'rgba(255,255,255,0.12)'
-              : 'rgba(255,255,255,0.06)'
+              : st === 'pending' ? 'var(--bg-active)'
+              : 'var(--bg-hover)'
             const title = `Step ${idx + 1}: ${step.title}${dur ? ` (${dur < 1000 ? dur + 'ms' : (dur/1000).toFixed(1) + 's'})` : ''}`
             return (
               <div
@@ -1982,7 +1982,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           background: 'rgba(0,0,0,0.55)',
           backdropFilter: 'blur(6px)',
           WebkitBackdropFilter: 'blur(6px)',
-          border: '1px solid rgba(255,255,255,0.1)',
+          border: '1px solid var(--border)',
           borderRadius: 10,
           padding: '2px 8px',
           fontSize: 9,

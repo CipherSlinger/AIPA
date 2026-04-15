@@ -26,17 +26,17 @@ export default function SnippetPopup({ snippets, selectedIndex, onSelect, onHove
       style={{
         position: 'absolute', bottom: '100%', left: 0, marginBottom: 4,
         width: 320,
-        background: 'var(--glass-bg-high)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid var(--glass-border-md)',
+        border: '1px solid var(--border)',
         borderRadius: 12,
-        boxShadow: 'var(--glass-shadow)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
         zIndex: 50,
         overflow: 'hidden',
       }}
     >
-      <style>{`.snippet-popup-scroll::-webkit-scrollbar { width: 4px; } .snippet-popup-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); border-radius: 2px; }`}</style>
+      <style>{`.snippet-popup-scroll::-webkit-scrollbar { width: 4px; } .snippet-popup-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }`}</style>
 
       {/* Section header — micro-label */}
       <div style={{
@@ -44,9 +44,9 @@ export default function SnippetPopup({ snippets, selectedIndex, onSelect, onHove
         fontWeight: 700,
         letterSpacing: '0.07em',
         textTransform: 'uppercase' as const,
-        color: 'var(--text-faint)',
+        color: 'var(--text-muted)',
         padding: '6px 12px 4px',
-        borderBottom: '1px solid var(--glass-border)',
+        borderBottom: '1px solid var(--border)',
       }}>
         {t('snippet.title')}
       </div>
@@ -70,7 +70,7 @@ export default function SnippetPopup({ snippets, selectedIndex, onSelect, onHove
               }}
               onMouseOver={(e) => {
                 if (!isSelected) {
-                  (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)'
+                  (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-hover)'
                 }
               }}
               onMouseOut={(e) => {
@@ -131,7 +131,7 @@ export default function SnippetPopup({ snippets, selectedIndex, onSelect, onHove
         alignItems: 'center',
         gap: 6,
         padding: '5px 12px',
-        borderTop: '1px solid var(--glass-border)',
+        borderTop: '1px solid var(--border)',
         flexWrap: 'wrap' as const,
       }}>
         {[
@@ -144,8 +144,8 @@ export default function SnippetPopup({ snippets, selectedIndex, onSelect, onHove
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'var(--glass-border)',
-              border: '1px solid var(--glass-border-md)',
+              background: 'var(--border)',
+              border: '1px solid var(--border)',
               borderRadius: 4,
               padding: '1px 5px',
               fontSize: 10,
@@ -155,7 +155,7 @@ export default function SnippetPopup({ snippets, selectedIndex, onSelect, onHove
             }}>
               {key}
             </kbd>
-            <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>{label}</span>
+            <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{label}</span>
           </span>
         ))}
       </div>

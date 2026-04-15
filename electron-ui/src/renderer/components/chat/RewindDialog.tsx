@@ -16,7 +16,7 @@ export default function RewindDialog({ count, onConfirm, onCancel }: RewindDialo
       style={{
         position: 'absolute', inset: 0, zIndex: 50,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'var(--glass-overlay)',
+        background: 'rgba(0,0,0,0.70)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         animation: 'fadeIn 0.15s ease',
@@ -26,10 +26,10 @@ export default function RewindDialog({ count, onConfirm, onCancel }: RewindDialo
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: 'var(--glass-bg-high)',
+          background: 'var(--popup-bg)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid var(--glass-border)',
+          border: '1px solid var(--border)',
           borderRadius: 16,
           boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
           maxWidth: 360,
@@ -42,7 +42,7 @@ export default function RewindDialog({ count, onConfirm, onCancel }: RewindDialo
         <div
           style={{
             padding: '16px 20px',
-            borderBottom: '1px solid var(--glass-border)',
+            borderBottom: '1px solid var(--border)',
           }}
         >
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'center', lineHeight: 1.3 }}>
@@ -85,20 +85,20 @@ export default function RewindDialog({ count, onConfirm, onCancel }: RewindDialo
                 padding: '7px 18px',
                 fontSize: 13,
                 borderRadius: 8,
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid var(--glass-border-md)',
+                background: 'var(--bg-hover)',
+                border: '1px solid var(--border)',
                 color: 'var(--text-secondary)',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.background = 'var(--glass-border-md)'
+                e.currentTarget.style.background = 'var(--border)'
                 e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)'
                 e.currentTarget.style.color = 'var(--text-primary)'
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-                e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+                e.currentTarget.style.background = 'var(--bg-hover)'
+                e.currentTarget.style.borderColor = 'var(--border)'
                 e.currentTarget.style.color = 'var(--text-secondary)'
               }}
             >

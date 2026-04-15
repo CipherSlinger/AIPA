@@ -464,7 +464,7 @@ export default function NavRail() {
           background: 'transparent',
           cursor: 'pointer',
           marginTop: 4,
-          color: 'rgba(255,255,255,0.38)',
+          color: 'var(--text-muted)',
           gap: navExpanded ? 6 : 0,
           paddingLeft: navExpanded ? 10 : 0,
           paddingRight: navExpanded ? 8 : 0,
@@ -472,12 +472,12 @@ export default function NavRail() {
           transition: 'all 0.15s ease',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
-          e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
+          e.currentTarget.style.background = 'var(--bg-hover)'
+          e.currentTarget.style.color = 'var(--text-secondary)'
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.background = 'transparent'
-          e.currentTarget.style.color = 'rgba(255,255,255,0.38)'
+          e.currentTarget.style.color = 'var(--text-muted)'
         }}
       >
         {navExpanded

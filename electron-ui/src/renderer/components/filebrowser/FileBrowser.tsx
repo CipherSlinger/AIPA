@@ -139,13 +139,13 @@ function TreeNode({ entry, depth, onSetCwd, t, filter }: TreeNodeProps) {
           fontSize: 12,
           userSelect: 'none',
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
         onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
       >
         {entry.isDirectory
           ? (expanded
-            ? <ChevronDown size={11} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
-            : <ChevronRight size={11} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />)
+            ? <ChevronDown size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+            : <ChevronRight size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />)
           : <span style={{ width: 11, flexShrink: 0 }} />}
 
         {entry.isDirectory
@@ -255,17 +255,17 @@ export default function FileBrowser() {
     : currentDir
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--glass-bg-raised)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid var(--glass-border)', borderRadius: 10, overflow: 'hidden' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--popup-bg)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
       {/* Header */}
       <div
         style={{
           padding: '8px 12px',
-          borderBottom: '1px solid var(--glass-border)',
+          borderBottom: '1px solid var(--border)',
           display: 'flex',
           alignItems: 'center',
           gap: 6,
           flexShrink: 0,
-          background: 'var(--glass-bg-popup)',
+          background: 'var(--popup-bg)',
         }}
       >
         <span
@@ -287,7 +287,7 @@ export default function FileBrowser() {
           <span
             style={{
               fontSize: 9,
-              color: 'var(--text-faint)',
+              color: 'var(--text-muted)',
               flexShrink: 0,
               fontVariantNumeric: 'tabular-nums',
             }}
@@ -373,13 +373,13 @@ export default function FileBrowser() {
       {showFilter && (
         <div style={{
           padding: '4px 10px',
-          borderBottom: '1px solid var(--glass-border)',
+          borderBottom: '1px solid var(--border)',
           display: 'flex',
           alignItems: 'center',
           gap: 4,
           flexShrink: 0,
         }}>
-          <Search size={11} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+          <Search size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
           <input
             autoFocus
             value={filter}
@@ -400,12 +400,12 @@ export default function FileBrowser() {
           />
           {filter && (
             <>
-              <span style={{ fontSize: 9, color: 'var(--text-faint)', flexShrink: 0 }}>
+              <span style={{ fontSize: 9, color: 'var(--text-muted)', flexShrink: 0 }}>
                 {filteredEntries.length}/{rootEntries.length}
               </span>
               <button
                 onClick={() => setFilter('')}
-                style={{ background: 'none', border: 'none', color: 'var(--text-faint)', cursor: 'pointer', display: 'flex', padding: 0 }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: 0 }}
               >
                 <X size={11} />
               </button>
@@ -428,7 +428,7 @@ export default function FileBrowser() {
           </div>
         )}
         {rootEntries.length > 0 && filteredEntries.length === 0 && filter && (
-          <div style={{ padding: '20px 12px', color: 'var(--text-faint)', fontSize: 12, textAlign: 'center' }}>
+          <div style={{ padding: '20px 12px', color: 'var(--text-muted)', fontSize: 12, textAlign: 'center' }}>
             {t('fileBrowser.noFilterResults')}
           </div>
         )}

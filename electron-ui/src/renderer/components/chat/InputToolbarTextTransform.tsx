@@ -55,19 +55,19 @@ export default function InputToolbarTextTransform({ inputText, onSend }: TextTra
             bottom: '100%',
             left: 0,
             marginBottom: 4,
-            background: 'var(--glass-bg-high)',
+            background: 'var(--popup-bg)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid var(--glass-border-md)',
+            border: '1px solid var(--border)',
             borderRadius: 10,
-            boxShadow: 'var(--glass-shadow)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
             padding: '6px 0',
             minWidth: 180,
             zIndex: 100,
             animation: 'slideUp 0.15s ease',
           }}
         >
-          <div style={{ padding: '4px 12px 6px', fontSize: 10, color: 'var(--text-faint)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+          <div style={{ padding: '4px 12px 6px', fontSize: 10, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
             {t('transform.title')}
           </div>
           {TRANSFORM_ACTIONS.map(action => (

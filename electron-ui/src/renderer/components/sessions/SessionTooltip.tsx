@@ -33,12 +33,12 @@ export default function SessionTooltip({ session, pos, sessionTags, tagNames, pr
         top: Math.min(pos.top, window.innerHeight - (hasPreview ? 400 : 200)),
         left: pos.left,
         zIndex: 9999,
-        background: 'var(--glass-bg-raised)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid var(--glass-border-md)',
+        border: '1px solid var(--border)',
         borderRadius: 10,
-        boxShadow: 'var(--glass-shadow)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
         maxWidth: 320,
         minWidth: 220,
         maxHeight: 400,
@@ -49,7 +49,7 @@ export default function SessionTooltip({ session, pos, sessionTags, tagNames, pr
       }}
     >
       {/* Header */}
-      <div style={{ padding: '8px 12px', borderBottom: hasPreview || previewLoading ? '1px solid var(--glass-border)' : 'none' }}>
+      <div style={{ padding: '8px 12px', borderBottom: hasPreview || previewLoading ? '1px solid var(--border)' : 'none' }}>
         {/* Title */}
         <div style={{
           fontSize: 12,
@@ -126,7 +126,7 @@ export default function SessionTooltip({ session, pos, sessionTags, tagNames, pr
                       gap: 4,
                       fontSize: 10,
                       color: preset.color,
-                      background: 'rgba(255,255,255,0.08)',
+                      background: 'var(--border)',
                       border: `1px solid ${preset.color}40`,
                       borderRadius: 10,
                       padding: '1px 6px',
@@ -180,7 +180,7 @@ export default function SessionTooltip({ session, pos, sessionTags, tagNames, pr
                 <span style={{
                   fontSize: 10,
                   fontWeight: 600,
-                  color: msg.role === 'user' ? '#818cf8' : 'var(--text-faint)',
+                  color: msg.role === 'user' ? '#818cf8' : 'var(--text-muted)',
                 }}>
                   {msg.role === 'user' ? t('session.previewUser') : t('session.previewAI')}
                 </span>

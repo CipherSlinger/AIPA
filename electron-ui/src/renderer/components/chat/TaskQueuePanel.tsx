@@ -32,7 +32,7 @@ function ensureKeyframes() {
       to   { transform: rotate(360deg); }
     }
     .task-queue-scroll::-webkit-scrollbar { width: 4px; }
-    .task-queue-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+    .task-queue-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
   `
   document.head.appendChild(style)
 }
@@ -106,7 +106,7 @@ function TaskRow({
       : item.status === 'failed'
       ? 'rgba(239,68,68,0.06)'
       : hovered
-      ? 'rgba(255,255,255,0.04)'
+      ? 'var(--bg-hover)'
       : 'rgba(255,255,255,0.03)'
 
   const rowBorderLeft =
@@ -118,7 +118,7 @@ function TaskRow({
       ? '2px solid rgba(239,68,68,0.4)'
       : hovered
       ? '2px solid rgba(255,255,255,0.18)'
-      : '2px solid rgba(255,255,255,0.10)'
+      : '2px solid var(--border)'
 
   const rowBoxShadow =
     hovered && item.status !== 'done'
@@ -156,7 +156,7 @@ function TaskRow({
       {/* Sequence number */}
       <span style={{
         fontSize: 11,
-        color: 'var(--text-faint)',
+        color: 'var(--text-muted)',
         width: 16,
         textAlign: 'right',
         flexShrink: 0,
@@ -315,12 +315,12 @@ export default function TaskQueuePanel() {
     <div
       style={{
         margin: '0 16px 8px 16px',
-        background: 'var(--glass-bg-low)',
+        background: 'rgba(15,15,25,0.85)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid var(--glass-border-md)',
+        border: '1px solid var(--border)',
         borderRadius: 10,
-        boxShadow: 'var(--glass-shadow)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
         maxHeight: 208,
         overflowY: 'auto',
         flexShrink: 0,
@@ -335,7 +335,7 @@ export default function TaskQueuePanel() {
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '8px 12px',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        borderBottom: '1px solid var(--bg-hover)',
         flexShrink: 0,
       }}>
         {/* Left: title */}
@@ -421,7 +421,7 @@ export default function TaskQueuePanel() {
             }}
             onMouseEnter={(e) => {
               const btn = e.currentTarget as HTMLButtonElement
-              btn.style.background = 'rgba(255,255,255,0.08)'
+              btn.style.background = 'var(--border)'
               btn.style.color = 'var(--text-primary)'
             }}
             onMouseLeave={(e) => {

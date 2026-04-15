@@ -25,10 +25,10 @@ export default function TagPicker({ sessionId, pos, sessionTags, tagNames, onTog
         top: Math.min(pos.top, window.innerHeight - 200),
         left: pos.left,
         zIndex: 10000,
-        background: 'var(--glass-bg-high)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid var(--glass-border)',
+        border: '1px solid var(--border)',
         borderRadius: 12,
         padding: 6,
         boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
@@ -65,8 +65,8 @@ export default function TagPicker({ sessionId, pos, sessionTags, tagNames, onTog
             }}
             onMouseEnter={(e) => {
               if (!assigned) {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-                e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+                e.currentTarget.style.background = 'var(--bg-hover)'
+                e.currentTarget.style.borderColor = 'var(--border)'
               }
             }}
             onMouseLeave={(e) => {

@@ -111,8 +111,8 @@ export default function CompactButton({
     : t('compact.buttonHint')
 
   const btnStyle: React.CSSProperties = {
-    background: isPressed ? 'rgba(99,102,241,0.20)' : isHovered ? 'var(--glass-border-md)' : 'rgba(255,255,255,0.06)',
-    border: isPressed ? '1px solid rgba(99,102,241,0.40)' : isHovered ? '1px solid rgba(255,255,255,0.12)' : '1px solid var(--glass-border-md)',
+    background: isPressed ? 'rgba(99,102,241,0.20)' : isHovered ? 'var(--border)' : 'var(--bg-hover)',
+    border: isPressed ? '1px solid rgba(99,102,241,0.40)' : isHovered ? '1px solid var(--bg-active)' : '1px solid var(--border)',
     borderRadius: 8,
     padding: '4px 6px',
     color: isPressed ? '#a5b4fc' : isHovered ? 'var(--text-primary)' : 'var(--text-secondary)',
@@ -167,15 +167,15 @@ export default function CompactButton({
             top: '100%',
             right: 0,
             marginTop: 6,
-            background: 'var(--glass-bg-low)',
+            background: 'rgba(15,15,25,0.85)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid var(--glass-border)',
+            border: '1px solid var(--border)',
             borderRadius: 12,
             padding: 10,
             width: 280,
             zIndex: 100,
-            boxShadow: 'var(--glass-shadow)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
             animation: 'slideUp 0.15s ease',
           }}
         >
@@ -194,8 +194,8 @@ export default function CompactButton({
               width: '100%',
               fontSize: 12,
               padding: '6px 8px',
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'var(--bg-hover)',
+              border: '1px solid var(--border)',
               borderRadius: 6,
               color: 'var(--text-primary)',
               outline: 'none',

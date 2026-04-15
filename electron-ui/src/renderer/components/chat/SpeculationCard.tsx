@@ -43,7 +43,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
       <div style={{
         margin: '4px 16px 8px',
         padding: '7px 12px',
-        background: 'var(--glass-bg-low)',
+        background: 'rgba(15,15,25,0.85)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid rgba(34,197,94,0.30)',
@@ -64,7 +64,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
       <div style={{
         margin: '4px 16px 8px',
         padding: '7px 12px',
-        background: 'var(--glass-bg-low)',
+        background: 'rgba(15,15,25,0.85)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid rgba(239,68,68,0.20)',
@@ -86,7 +86,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
       <div style={{
         margin: '4px 16px 8px',
         padding: '8px 12px',
-        background: 'var(--glass-bg-low)',
+        background: 'rgba(15,15,25,0.85)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid rgba(99,102,241,0.25)',
@@ -113,10 +113,10 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
   return (
     <div style={{
       margin: '4px 16px 8px',
-      background: 'var(--glass-bg-low)',
+      background: 'rgba(15,15,25,0.85)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
-      border: '1px solid var(--glass-border)',
+      border: '1px solid var(--border)',
       borderLeft: '3px solid rgba(99,102,241,0.55)',
       borderRadius: 10,
       boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
@@ -126,7 +126,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
         padding: '8px 12px',
-        borderBottom: expanded ? '1px solid rgba(255,255,255,0.06)' : 'none',
+        borderBottom: expanded ? '1px solid var(--bg-hover)' : 'none',
         cursor: 'pointer',
         transition: 'all 0.15s ease',
       }} onClick={() => setExpanded(e => !e)}>
@@ -156,10 +156,10 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
             </span>
           )}
           {/* Timestamp / metadata — opacity 0.38 */}
-          <span style={{ fontSize: 9, color: 'var(--text-faint)' }}>
+          <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>
             {Math.round(result.durationMs / 1000)}s
           </span>
-          {expanded ? <ChevronDown size={12} style={{ color: 'var(--text-faint)' }} /> : <ChevronRight size={12} style={{ color: 'var(--text-faint)' }} />}
+          {expanded ? <ChevronDown size={12} style={{ color: 'var(--text-muted)' }} /> : <ChevronRight size={12} style={{ color: 'var(--text-muted)' }} />}
         </div>
       </div>
 
@@ -173,14 +173,14 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
               marginBottom: 8,
               padding: '6px 10px',
               background: 'rgba(0,0,0,0.30)',
-              border: '1px solid var(--glass-border)',
+              border: '1px solid var(--border)',
               borderRadius: 8,
               maxHeight: 120,
               overflowY: 'auto',
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
               scrollbarWidth: 'thin',
-              scrollbarColor: 'rgba(255,255,255,0.12) transparent',
+              scrollbarColor: 'var(--bg-active) transparent',
             } as React.CSSProperties}>
               {previewText}{result.text.length > 300 ? '…' : ''}
             </div>
@@ -189,15 +189,15 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
           {/* Tool actions */}
           {hasTools && (
             <div style={{ marginBottom: 6 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-faint)', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 4 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 4 }}>
                 Tool calls ({result.toolActions.length})
               </div>
               {result.toolActions.slice(0, 3).map((ta, i) => (
                 <div key={i} style={{
                   fontSize: 11, color: 'var(--text-secondary)',
                   padding: '3px 8px', borderRadius: 8,
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid var(--glass-border)',
+                  background: 'var(--bg-hover)',
+                  border: '1px solid var(--border)',
                   marginBottom: 2,
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   fontFamily: 'monospace',
@@ -212,7 +212,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
           {/* Changed files */}
           {hasFiles && (
             <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-faint)', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 4 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 4 }}>
                 Files to be modified
               </div>
               {result.changedFiles.slice(0, 5).map((f, i) => (
@@ -220,19 +220,19 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
                   display: 'flex', alignItems: 'center', gap: 6,
                   fontSize: 11, color: 'rgba(165,180,252,0.82)', marginBottom: 2,
                   padding: '3px 8px', borderRadius: 8,
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid var(--glass-border)',
+                  background: 'var(--bg-hover)',
+                  border: '1px solid var(--border)',
                   transition: 'all 0.15s ease',
                 }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'var(--glass-border)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.borderColor = 'var(--border)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.borderColor = 'var(--border)' }}
                 >
                   <FileEdit size={10} />
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>{f}</span>
                 </div>
               ))}
               {result.changedFiles.length > 5 && (
-                <div style={{ fontSize: 9, color: 'var(--text-faint)' }}>
+                <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>
                   +{result.changedFiles.length - 5} more
                 </div>
               )}
@@ -244,7 +244,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
       {/* Accept / Reject bar */}
       <div style={{
         display: 'flex', gap: 6, padding: '6px 12px',
-        borderTop: '1px solid rgba(255,255,255,0.06)',
+        borderTop: '1px solid var(--bg-hover)',
         background: 'rgba(8,8,16,0.5)',
       }}>
         {/* Accept — indigo gradient CTA */}
@@ -270,8 +270,8 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
           style={{
             display: 'flex', alignItems: 'center', gap: 4,
             padding: '3px 8px', borderRadius: 6, fontSize: 12,
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.10)',
+            background: 'var(--bg-hover)',
+            border: '1px solid var(--border)',
             color: 'var(--text-secondary)', cursor: 'pointer',
             transition: 'all 0.15s ease',
           }}
@@ -281,8 +281,8 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
             e.currentTarget.style.color = '#fca5a5'
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+            e.currentTarget.style.background = 'var(--bg-hover)'
+            e.currentTarget.style.borderColor = 'var(--border)'
             e.currentTarget.style.color = 'var(--text-secondary)'
           }}
         >
@@ -290,7 +290,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
           Discard
         </button>
         <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 9, color: 'var(--text-faint)', alignSelf: 'center' }}>
+        <span style={{ fontSize: 9, color: 'var(--text-muted)', alignSelf: 'center' }}>
           Pre-executed in sandbox
         </span>
       </div>

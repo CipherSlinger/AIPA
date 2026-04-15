@@ -164,14 +164,14 @@ export default function SessionCard({ session, onClick, isActive, isStreaming, i
             isActive
               ? 'rgba(99,102,241,0.35)'
               : hovered
-              ? 'var(--glass-border-md)'
-              : 'var(--glass-border)'
+              ? 'var(--border)'
+              : 'var(--border)'
           }`,
           background: isActive
             ? 'rgba(99,102,241,0.10)'
             : hovered
-            ? 'var(--glass-bg-low)'
-            : 'var(--glass-bg-low)',
+            ? 'rgba(15,15,25,0.85)'
+            : 'rgba(15,15,25,0.85)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
           cursor: 'pointer',
@@ -179,12 +179,12 @@ export default function SessionCard({ session, onClick, isActive, isStreaming, i
           display: 'flex',
           flexDirection: 'column',
           gap: 6,
-          transition: 'all 0.15s ease',
+          transition: 'border-color 0.15s ease, background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease',
           transform: hovered && !isActive ? 'translateY(-1px)' : 'none',
           boxShadow: isActive
             ? '0 2px 8px rgba(0,0,0,0.3)'
             : hovered
-            ? 'var(--glass-shadow)'
+            ? '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)'
             : '0 2px 8px rgba(0,0,0,0.3)',
           flexShrink: 0,
           position: 'relative',
@@ -196,7 +196,7 @@ export default function SessionCard({ session, onClick, isActive, isStreaming, i
             ? `3px solid rgba(99,102,241,0.35)`
             : currentLabel
             ? `3px solid ${currentLabel}55`
-            : '1px solid rgba(255,255,255,0.08)',
+            : '1px solid var(--border)',
           borderTop: pinned ? '2px solid #fbbf24' : undefined,
           opacity: isLoading ? 0.4 : 1,
           pointerEvents: isLoading ? 'none' : undefined,
@@ -323,7 +323,7 @@ export default function SessionCard({ session, onClick, isActive, isStreaming, i
               borderRadius: 4,
               border: 'none',
               background: 'rgba(239,68,68,0.85)',
-              color: 'var(--text-primary)',
+              color: 'rgba(255,255,255,0.95)',
               fontSize: 10,
               fontWeight: 600,
               cursor: 'pointer',
@@ -350,7 +350,7 @@ export default function SessionCard({ session, onClick, isActive, isStreaming, i
               WebkitBackdropFilter: 'blur(4px)',
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.color = 'var(--text-primary)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.4)'; e.currentTarget.style.color = 'var(--text-muted)' }}
           >
             {t('dept.cancel')}
@@ -376,7 +376,7 @@ export default function SessionCard({ session, onClick, isActive, isStreaming, i
             borderRadius: 4,
             display: 'flex',
             alignItems: 'center',
-            transition: 'all 0.15s ease',
+            transition: 'background 0.15s ease, color 0.15s ease',
           }}
           onMouseEnter={e => {
             e.currentTarget.style.background = 'rgba(252,165,165,0.12)'
@@ -411,7 +411,7 @@ export default function SessionCard({ session, onClick, isActive, isStreaming, i
             alignItems: 'center',
             fontSize: 12,
             lineHeight: 1,
-            transition: 'all 0.15s ease',
+            transition: 'background 0.15s ease, color 0.15s ease',
           }}
           onMouseEnter={e => {
             e.currentTarget.style.background = 'rgba(251,191,36,0.15)'
@@ -445,7 +445,7 @@ export default function SessionCard({ session, onClick, isActive, isStreaming, i
         <MessageSquare
           size={14}
           color={isActive ? '#818cf8' : hovered ? 'rgba(255,255,255,0.5)' : 'var(--text-muted)'}
-          style={{ flexShrink: 0, marginTop: 1, transition: 'all 0.15s ease' }}
+          style={{ flexShrink: 0, marginTop: 1, transition: 'color 0.15s ease' }}
         />
         <span
           style={{
@@ -457,7 +457,7 @@ export default function SessionCard({ session, onClick, isActive, isStreaming, i
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
-            transition: 'all 0.15s ease',
+            transition: 'color 0.15s ease',
             paddingRight: statusPill || isActive ? 72 : 0,
           }}
         >
@@ -498,7 +498,7 @@ export default function SessionCard({ session, onClick, isActive, isStreaming, i
           color: '#818cf8',
           opacity: 0.85,
           pointerEvents: 'none',
-          transition: 'all 0.15s ease',
+          transition: 'opacity 0.15s ease',
         }}>
           <span>Open</span>
           <ArrowRight size={10} />
@@ -570,12 +570,12 @@ export default function SessionCard({ session, onClick, isActive, isStreaming, i
                 background: isActive
                   ? 'rgba(99,102,241,0.18)'
                   : hovered
-                  ? 'var(--glass-border-md)'
-                  : 'rgba(255,255,255,0.06)',
+                  ? 'var(--border)'
+                  : 'var(--bg-hover)',
                 borderRadius: 20,
                 padding: '1px 7px',
                 lineHeight: '16px',
-                transition: 'all 0.15s ease',
+                transition: 'background 0.15s ease, color 0.15s ease',
                 flexShrink: 0,
               }}
             >
@@ -597,7 +597,7 @@ export default function SessionCard({ session, onClick, isActive, isStreaming, i
             background: 'rgba(8,8,16,1)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255,255,255,0.1)',
+            border: '1px solid var(--border)',
             borderRadius: 10,
             padding: '10px 12px',
             boxShadow: '0 8px 32px rgba(0,0,0,0.5)',

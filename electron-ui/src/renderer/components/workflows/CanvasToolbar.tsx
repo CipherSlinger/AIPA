@@ -12,7 +12,7 @@ import { Maximize2, ChevronsDownUp, ChevronsUpDown, Map, Download, ArrowDownUp, 
 import { useT } from '../../i18n'
 
 const toolbarBtnStyle: React.CSSProperties = {
-  background: 'var(--glass-border)',
+  background: 'var(--border)',
   border: 'none',
   borderRadius: 8,
   padding: '6px 8px',
@@ -24,7 +24,7 @@ const toolbarBtnStyle: React.CSSProperties = {
 }
 
 const toolbarZoomBtnStyle: React.CSSProperties = {
-  background: 'var(--glass-border)',
+  background: 'var(--border)',
   border: 'none',
   borderRadius: 8,
   padding: '1px 5px',
@@ -39,17 +39,17 @@ const toolbarZoomBtnStyle: React.CSSProperties = {
 const separatorStyle: React.CSSProperties = {
   width: 1,
   height: 16,
-  background: 'rgba(255,255,255,0.08)',
+  background: 'var(--border)',
   margin: '0 4px',
   flexShrink: 0,
 }
 
 function hoverIn(e: React.MouseEvent<HTMLButtonElement>) {
-  e.currentTarget.style.background = 'rgba(255,255,255,0.10)'
+  e.currentTarget.style.background = 'var(--border)'
   e.currentTarget.style.color = 'var(--text-primary)'
 }
 function hoverOut(e: React.MouseEvent<HTMLButtonElement>) {
-  e.currentTarget.style.background = 'var(--glass-border)'
+  e.currentTarget.style.background = 'var(--border)'
   e.currentTarget.style.color = 'var(--text-muted)'
 }
 
@@ -150,12 +150,12 @@ export default function CanvasToolbar({
           zIndex: 10,
           display: 'flex',
           alignItems: 'center',
-          background: 'var(--glass-bg-raised)',
+          background: 'var(--popup-bg)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
           borderRadius: 12,
           padding: '4px 8px',
-          border: '1px solid var(--glass-border)',
+          border: '1px solid var(--border)',
           boxShadow: '0 4px 16px rgba(0,0,0,0.40), 0 1px 4px rgba(0,0,0,0.30)',
           gap: 4,
           transition: 'all 0.15s ease',
@@ -205,12 +205,12 @@ export default function CanvasToolbar({
         display: 'flex',
         gap: 4,
         alignItems: 'center',
-        background: 'var(--glass-bg-raised)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
         borderRadius: 12,
         padding: '4px 8px',
-        border: '1px solid var(--glass-border)',
+        border: '1px solid var(--border)',
         boxShadow: '0 4px 16px rgba(0,0,0,0.40), 0 1px 4px rgba(0,0,0,0.30)',
         transition: 'all 0.15s ease',
         // needed so the shortcuts popup anchors to this element
@@ -384,7 +384,7 @@ export default function CanvasToolbar({
             textAlign: 'center',
             userSelect: 'none',
             cursor: 'pointer',
-            background: 'rgba(255,255,255,0.06)',
+            background: 'var(--bg-hover)',
             border: 'none',
             padding: '2px 6px',
             borderRadius: 6,
@@ -394,11 +394,11 @@ export default function CanvasToolbar({
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.10)'
+            e.currentTarget.style.background = 'var(--border)'
             e.currentTarget.style.color = 'var(--text-primary)'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+            e.currentTarget.style.background = 'var(--bg-hover)'
             e.currentTarget.style.color = 'var(--text-muted)'
           }}
         >
@@ -527,7 +527,7 @@ export default function CanvasToolbar({
             style={{
               display: 'flex', alignItems: 'center', gap: 4,
               padding: '4px 8px', borderRadius: 6,
-              border: '1px solid var(--glass-border)',
+              border: '1px solid var(--border)',
               background: 'transparent',
               color: 'var(--text-muted)', fontSize: 11,
               cursor: 'pointer', flexShrink: 0,
@@ -539,7 +539,7 @@ export default function CanvasToolbar({
               e.currentTarget.style.background = 'rgba(239,68,68,0.06)'
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.borderColor = 'var(--glass-border)'
+              e.currentTarget.style.borderColor = 'var(--border)'
               e.currentTarget.style.color = 'var(--text-muted)'
               e.currentTarget.style.background = 'transparent'
             }}
@@ -552,10 +552,10 @@ export default function CanvasToolbar({
           <span style={{
             fontSize: 11,
             color: 'var(--text-muted)',
-            background: 'rgba(255,255,255,0.06)',
+            background: 'var(--bg-hover)',
             borderRadius: 5,
             padding: '3px 8px',
-            border: '1px solid var(--glass-border)',
+            border: '1px solid var(--border)',
             flexShrink: 0,
             fontVariantNumeric: 'tabular-nums',
           }}>
@@ -569,7 +569,7 @@ export default function CanvasToolbar({
             title="Keyboard shortcuts"
             style={{
               background: showShortcuts ? 'rgba(99,102,241,0.15)' : 'transparent',
-              border: showShortcuts ? '1px solid rgba(99,102,241,0.4)' : '1px solid var(--glass-border)',
+              border: showShortcuts ? '1px solid rgba(99,102,241,0.4)' : '1px solid var(--border)',
               borderRadius: 6,
               color: showShortcuts ? '#818cf8' : 'var(--text-muted)',
               cursor: 'pointer',
@@ -591,14 +591,14 @@ export default function CanvasToolbar({
                 right: 0,
                 marginTop: 6,
                 zIndex: 200,
-                background: 'var(--glass-bg-high)',
+                background: 'var(--popup-bg)',
                 backdropFilter: 'blur(16px)',
                 WebkitBackdropFilter: 'blur(16px)',
-                border: '1px solid var(--glass-border)',
+                border: '1px solid var(--border)',
                 borderRadius: 12,
                 padding: '12px 16px',
                 minWidth: 220,
-                boxShadow: 'var(--glass-shadow)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
                 animation: 'slideUp 0.15s ease',
               }}
               onMouseDown={e => e.stopPropagation()}
@@ -616,9 +616,9 @@ export default function CanvasToolbar({
                 { key: '+/-', desc: 'Zoom in/out' },
                 { key: 'Ctrl+Z', desc: 'Undo (coming soon)' },
               ].map(({ key, desc }) => (
-                <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid var(--glass-border)' }}>
+                <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
                   <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{desc}</span>
-                  <kbd style={{ fontSize: 10, fontFamily: 'monospace', background: 'rgba(255,255,255,0.1)', borderRadius: 4, padding: '1px 5px', color: 'var(--text-secondary)', border: '1px solid var(--glass-border-md)' }}>{key}</kbd>
+                  <kbd style={{ fontSize: 10, fontFamily: 'monospace', background: 'var(--border)', borderRadius: 4, padding: '1px 5px', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>{key}</kbd>
                 </div>
               ))}
             </div>

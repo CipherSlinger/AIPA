@@ -36,10 +36,10 @@ export default function StatusBarTokenPopup({
         left: '50%',
         transform: 'translateX(-50%)',
         marginBottom: 4,
-        background: 'var(--glass-bg-high)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid var(--glass-border-md)',
+        border: '1px solid var(--border)',
         boxShadow: '0 8px 28px rgba(0,0,0,0.55)',
         borderRadius: 10,
         padding: '12px 14px',
@@ -48,7 +48,7 @@ export default function StatusBarTokenPopup({
       }}
     >
       {/* Title */}
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 6 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>
         {t('token.contextWindow')}
       </div>
 
@@ -69,7 +69,7 @@ export default function StatusBarTokenPopup({
             style={{
               width: '100%',
               height: 4,
-              background: 'var(--glass-border)',
+              background: 'var(--border)',
               borderRadius: 3,
               overflow: 'hidden',
             }}
@@ -91,7 +91,7 @@ export default function StatusBarTokenPopup({
 
       {/* Token breakdown */}
       {lastUsage && (
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 6, marginBottom: 6 }}>
+        <div style={{ borderTop: '1px solid var(--bg-hover)', paddingTop: 6, marginBottom: 6 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 10, marginBottom: 4 }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-muted)', fontSize: 11 }}>
               <ArrowUp size={9} />
@@ -124,7 +124,7 @@ export default function StatusBarTokenPopup({
 
       {/* Session cost */}
       {totalSessionCost > 0 && (
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 6, marginBottom: 6 }}>
+        <div style={{ borderTop: '1px solid var(--bg-hover)', paddingTop: 6, marginBottom: 6 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 10 }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-muted)', fontSize: 11 }}>
               <Database size={9} />

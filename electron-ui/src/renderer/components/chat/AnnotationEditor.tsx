@@ -69,10 +69,10 @@ export default function AnnotationEditor({
           display: 'flex',
           flexDirection: 'column',
           gap: 0,
-          background: 'var(--glass-bg-raised)',
+          background: 'var(--popup-bg)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
-          border: '1px solid var(--glass-border)',
+          border: '1px solid var(--border)',
           borderRadius: 10,
           boxShadow: '0 8px 28px rgba(0,0,0,0.5)',
           overflow: 'hidden',
@@ -86,13 +86,13 @@ export default function AnnotationEditor({
             placeholder={t('message.annotationPlaceholder')}
             maxLength={500}
             onFocus={(e) => { (e.currentTarget as HTMLTextAreaElement).style.border = '1px solid rgba(99,102,241,0.5)'; (e.currentTarget as HTMLTextAreaElement).style.boxShadow = '0 0 0 2px rgba(99,102,241,0.45)' }}
-            onBlur={(e) => { (e.currentTarget as HTMLTextAreaElement).style.border = '1px solid var(--glass-border)'; (e.currentTarget as HTMLTextAreaElement).style.boxShadow = 'none' }}
+            onBlur={(e) => { (e.currentTarget as HTMLTextAreaElement).style.border = '1px solid var(--border)'; (e.currentTarget as HTMLTextAreaElement).style.boxShadow = 'none' }}
             style={{
               minWidth: 200,
               minHeight: 40,
               maxHeight: 100,
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid var(--glass-border)',
+              background: 'var(--bg-hover)',
+              border: '1px solid var(--border)',
               borderRadius: 8,
               outline: 'none',
               color: 'var(--text-primary)',
@@ -108,7 +108,7 @@ export default function AnnotationEditor({
             }}
           />
           <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center', padding: '4px 8px 8px' }}>
-            <span style={{ fontSize: 10, color: 'var(--text-faint)', marginRight: 'auto', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
+            <span style={{ fontSize: 10, color: 'var(--text-muted)', marginRight: 'auto', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
               {annotationDraft.length}/500
             </span>
             {currentAnnotation && (
@@ -129,12 +129,12 @@ export default function AnnotationEditor({
             <button
               onClick={() => onEditorOpenChange(false)}
               style={{
-                background: 'rgba(255,255,255,0.06)', border: '1px solid var(--glass-border-md)', cursor: 'pointer',
+                background: 'var(--bg-hover)', border: '1px solid var(--border)', cursor: 'pointer',
                 color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500, padding: '3px 8px',
                 borderRadius: 6, transition: 'all 0.15s ease',
               }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--glass-border-md)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.16)' }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--glass-border-md)' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--border)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--bg-active)' }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-hover)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)' }}
             >
               {t('message.editCancel')}
             </button>

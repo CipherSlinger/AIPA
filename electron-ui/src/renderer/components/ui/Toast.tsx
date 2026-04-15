@@ -79,9 +79,9 @@ export function Toast({ toast, onDismiss }: ToastProps) {
           alignItems: 'flex-start',
           gap: 10,
           padding: '10px 14px',
-          background: 'var(--glass-bg-high)',
+          background: 'var(--popup-bg)',
           borderLeft: `3px solid ${v.iconColor}`,
-          border: `1px solid var(--glass-border-md)`,
+          border: `1px solid var(--border)`,
           borderRadius: 12,
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
@@ -103,7 +103,7 @@ export function Toast({ toast, onDismiss }: ToastProps) {
         <button
           onClick={() => onDismiss(id)}
           style={{
-            background: closeBtnHover ? 'rgba(255,255,255,0.08)' : 'none',
+            background: closeBtnHover ? 'var(--border)' : 'none',
             border: 'none',
             cursor: 'pointer',
             color: 'var(--text-secondary)',

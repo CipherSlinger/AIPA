@@ -159,10 +159,10 @@ export default function StatusBar() {
       aria-label={t('a11y.statusBar')}
       style={{
         height: 24,
-        background: 'rgba(10,10,18,0.97)',
+        background: 'var(--bg-chat)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
-        borderTop: '1px solid var(--glass-border)',
+        borderTop: '1px solid var(--border)',
         color: 'var(--text-muted)',
         display: 'flex',
         alignItems: 'center',
@@ -180,7 +180,7 @@ export default function StatusBar() {
           onMouseEnter={() => setHoverSidebar(true)}
           onMouseLeave={() => setHoverSidebar(false)}
           style={{
-            background: hoverSidebar ? 'var(--glass-border)' : 'transparent',
+            background: hoverSidebar ? 'var(--border)' : 'transparent',
             border: 'none', color: hoverSidebar ? 'var(--text-primary)' : 'var(--text-secondary)', cursor: 'pointer',
             display: 'flex', alignItems: 'center',
             padding: '2px 6px', borderRadius: 6,
@@ -212,7 +212,7 @@ export default function StatusBar() {
               width: 6,
               height: 6,
               borderRadius: '50%',
-              background: isStreaming ? '#4ade80' : 'var(--text-faint)',
+              background: isStreaming ? '#4ade80' : 'var(--text-muted)',
               boxShadow: isStreaming ? '0 0 4px rgba(74,222,128,0.6)' : undefined,
               transition: 'all 0.15s ease',
               animation: isStreaming ? 'pulse 1.2s ease-in-out infinite' : undefined,
@@ -303,7 +303,7 @@ export default function StatusBar() {
                 aria-valuenow={contextPct}
                 aria-valuemin={0}
                 aria-valuemax={100}
-                style={{ width: 60, height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden' }}
+                style={{ width: 60, height: 4, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}
               >
                 <div style={{
                   width: `${contextPct}%`, height: '100%',
@@ -368,7 +368,7 @@ export default function StatusBar() {
             style={{
               background: focusTimer.active
                 ? 'rgba(255,255,255,0.15)'
-                : hoverFocusTimer ? 'var(--glass-border)' : 'transparent',
+                : hoverFocusTimer ? 'var(--border)' : 'transparent',
               border: 'none',
               color: 'var(--text-primary)',
               cursor: 'pointer',
@@ -403,7 +403,7 @@ export default function StatusBar() {
               className="popup-enter"
               style={{
                 position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)',
-                marginBottom: 4, background: 'var(--glass-bg-popup)', border: '1px solid var(--glass-border-md)',
+                marginBottom: 4, background: 'var(--popup-bg)', border: '1px solid var(--border)',
                 boxShadow: '0 8px 32px rgba(0,0,0,0.5)', borderRadius: 8, padding: '4px',
                 display: 'flex', gap: 2, zIndex: 100, whiteSpace: 'nowrap',
                 backdropFilter: 'blur(16px)',
@@ -420,7 +420,7 @@ export default function StatusBar() {
                     color: 'var(--text-primary)', fontSize: 11, cursor: 'pointer',
                     transition: 'all 0.15s ease',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--glass-border)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--border)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                 >
                   {preset.label}
@@ -454,7 +454,7 @@ export default function StatusBar() {
               opacity: 0.85, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 3,
               fontSize: 10, color: 'var(--text-muted)',
               fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"',
-              background: hoverTokens ? 'var(--glass-border)' : 'transparent',
+              background: hoverTokens ? 'var(--border)' : 'transparent',
               border: 'none', cursor: 'pointer',
               padding: '2px 6px', borderRadius: 6,
               transition: 'all 0.15s ease',
@@ -484,7 +484,7 @@ export default function StatusBar() {
               style={{
                 opacity: 0.85, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 2, fontSize: 10,
                 fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"',
-                background: hoverCost ? 'var(--glass-border)' : 'transparent',
+                background: hoverCost ? 'var(--border)' : 'transparent',
                 border: 'none', cursor: 'pointer',
                 padding: '2px 6px', borderRadius: 6,
                 color: totalSessionCost >= 5 ? '#f87171' : totalSessionCost >= 1 ? '#fbbf24' : '#4ade80',
@@ -499,7 +499,7 @@ export default function StatusBar() {
                 className="popup-enter"
                 style={{
                   position: 'absolute', bottom: '100%', right: 0, marginBottom: 4,
-                  background: 'var(--glass-bg-popup)', border: '1px solid var(--glass-border-md)',
+                  background: 'var(--popup-bg)', border: '1px solid var(--border)',
                   boxShadow: '0 8px 32px rgba(0,0,0,0.5)', borderRadius: 8, padding: '8px 12px',
                   minWidth: 220, zIndex: 100, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
                   animation: 'slideUp 0.15s ease',
@@ -519,7 +519,7 @@ export default function StatusBar() {
                       ? `$${Number.isInteger(pricing[0]) ? pricing[0] : pricing[0].toFixed(2)}/$${Number.isInteger(pricing[1]) ? pricing[1] : pricing[1].toFixed(2)} ${t('cost.perMtok')}`
                       : null
                     return (
-                      <div key={model} style={{ marginBottom: 5, borderBottom: '1px solid var(--glass-border)', paddingBottom: 5 }}>
+                      <div key={model} style={{ marginBottom: 5, borderBottom: '1px solid var(--border)', paddingBottom: 5 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11 }}>
                           <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{shortName}</span>
                           <span style={{ color: usage.costUsd >= 1 ? '#fbbf24' : '#4ade80', fontWeight: 600, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
@@ -571,7 +571,7 @@ export default function StatusBar() {
           onMouseEnter={() => setHoverThinking(true)}
           onMouseLeave={() => setHoverThinking(false)}
           style={{
-            background: hoverThinking ? 'var(--glass-border)' : 'transparent',
+            background: hoverThinking ? 'var(--border)' : 'transparent',
             border: 'none',
             color: thinkingEnabled ? '#a78bfa' : hoverThinking ? 'var(--text-primary)' : 'var(--text-secondary)',
             cursor: 'pointer', display: 'flex', alignItems: 'center',
@@ -594,7 +594,7 @@ export default function StatusBar() {
           onMouseEnter={() => setHoverPin(true)}
           onMouseLeave={() => setHoverPin(false)}
           style={{
-            background: hoverPin ? 'var(--glass-border)' : 'transparent',
+            background: hoverPin ? 'var(--border)' : 'transparent',
             border: 'none', color: alwaysOnTop || hoverPin ? 'var(--text-primary)' : 'var(--text-secondary)', cursor: 'pointer',
             display: 'flex', alignItems: 'center',
             padding: '2px 6px', borderRadius: 6,
@@ -636,7 +636,7 @@ export default function StatusBar() {
           onMouseEnter={() => setHoverSettings(true)}
           onMouseLeave={() => setHoverSettings(false)}
           style={{
-            background: hoverSettings ? 'var(--glass-border)' : 'transparent',
+            background: hoverSettings ? 'var(--border)' : 'transparent',
             border: 'none', color: hoverSettings ? 'var(--text-primary)' : 'var(--text-secondary)', cursor: 'pointer',
             display: 'flex', alignItems: 'center',
             padding: '2px 6px', borderRadius: 6,

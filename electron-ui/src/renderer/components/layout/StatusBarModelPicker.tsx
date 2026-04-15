@@ -99,8 +99,8 @@ export default function StatusBarModelPicker({ modelLabel, shortModel, isClaudeM
         style={{
           padding: '2px 8px',
           borderRadius: 6,
-          background: chipHovered || show ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.06)',
-          border: '1px solid var(--glass-border-md)',
+          background: chipHovered || show ? 'var(--border)' : 'var(--bg-hover)',
+          border: '1px solid var(--border)',
           fontSize: 11,
           fontWeight: 500,
           whiteSpace: 'nowrap',
@@ -129,10 +129,10 @@ export default function StatusBarModelPicker({ modelLabel, shortModel, isClaudeM
             bottom: '100%',
             right: 0,
             marginBottom: 4,
-            background: 'var(--glass-bg-high)',
+            background: 'var(--popup-bg)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid var(--glass-border-md)',
+            border: '1px solid var(--border)',
             borderRadius: 10,
             boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
             padding: '4px 0',
@@ -175,7 +175,7 @@ export default function StatusBarModelPicker({ modelLabel, shortModel, isClaudeM
                       padding: '7px 12px 7px 20px',
                       background: isActive
                         ? 'rgba(99,102,241,0.12)'
-                        : isHovered ? 'rgba(255,255,255,0.06)' : 'transparent',
+                        : isHovered ? 'var(--bg-hover)' : 'transparent',
                       borderLeft: isActive ? '2px solid rgba(99,102,241,0.6)' : '2px solid transparent',
                       borderTop: 'none',
                       borderRight: 'none',

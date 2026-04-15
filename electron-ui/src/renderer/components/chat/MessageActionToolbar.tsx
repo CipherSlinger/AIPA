@@ -39,7 +39,7 @@ function ActionButton({
     bg = 'rgba(99,102,241,0.15)'
     color = '#818cf8'
   } else if (hovered && !skipHover) {
-    bg = isDestructive ? 'rgba(239,68,68,0.12)' : 'var(--glass-border-md)'
+    bg = isDestructive ? 'rgba(239,68,68,0.12)' : 'var(--border)'
     color = isDestructive ? '#fca5a5' : 'var(--text-primary)'
   }
 
@@ -49,7 +49,7 @@ function ActionButton({
       style={{
         background: bg,
         border: hovered && !skipHover && !isActive && !isCopied
-          ? '1px solid var(--glass-border-md)'
+          ? '1px solid var(--border)'
           : '1px solid transparent',
         borderRadius: 8,
         padding: '4px 6px',
@@ -79,7 +79,7 @@ function Sep() {
   return (
     <div
       style={{
-        background: 'var(--glass-border)',
+        background: 'var(--border)',
         width: 1,
         height: 14,
         margin: '0 2px',
@@ -177,10 +177,10 @@ export default function MessageActionToolbar({
         alignItems: 'center',
         gap: 2,
         padding: '2px 4px',
-        background: 'var(--glass-bg-raised)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid var(--glass-border-md)',
+        border: '1px solid var(--border)',
         boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3)',
         borderRadius: 10,
         zIndex: 20,
@@ -269,7 +269,7 @@ export default function MessageActionToolbar({
             style={{
               padding: '4px 2px',
               borderRadius: '0 5px 5px 0',
-              borderLeft: '1px solid var(--glass-border-md)',
+              borderLeft: '1px solid var(--border)',
             }}
           >
             <ChevronDown size={10} />
@@ -286,12 +286,12 @@ export default function MessageActionToolbar({
               ...(isUser ? { left: 0 } : { right: 0 }),
               marginTop: 4,
               width: 180,
-              background: 'var(--glass-bg-high)',
+              background: 'var(--popup-bg)',
               backdropFilter: 'blur(20px)',
               WebkitBackdropFilter: 'blur(20px)',
-              border: '1px solid var(--glass-border-md)',
+              border: '1px solid var(--border)',
               borderRadius: 10,
-              boxShadow: 'var(--glass-shadow)',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
               padding: '4px 0',
               zIndex: 30,
               animation: 'slideUp 0.15s ease',
@@ -493,7 +493,7 @@ function DropdownItem({
         gap: 8,
         width: '100%',
         padding: '7px 14px',
-        background: hovered ? 'var(--glass-border)' : 'none',
+        background: hovered ? 'var(--border)' : 'none',
         border: 'none',
         cursor: 'pointer',
         color: 'var(--text-primary)',

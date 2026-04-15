@@ -47,7 +47,7 @@ export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, c
 
   const toggleBtnStyle = (active: boolean): React.CSSProperties => ({
     background: active ? '#6366f1' : 'none',
-    border: `1px solid ${active ? '#6366f1' : 'var(--glass-border)'}`,
+    border: `1px solid ${active ? '#6366f1' : 'var(--border)'}`,
     borderRadius: 8,
     color: active ? 'rgba(255,255,255,0.95)' : 'var(--text-muted)',
     cursor: 'pointer',
@@ -67,12 +67,12 @@ export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, c
         alignItems: 'center',
         gap: 6,
         padding: '4px 8px',
-        background: 'var(--glass-bg-popup)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid var(--glass-border)',
+        border: '1px solid var(--border)',
         borderRadius: 10,
-        boxShadow: 'var(--glass-shadow)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
         flexShrink: 0,
         transition: 'border-color 0.15s ease',
         animation: 'slideUp 0.15s ease',
@@ -91,7 +91,7 @@ export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, c
         }}
         onBlur={(e) => {
           const parent = e.currentTarget.closest('div') as HTMLElement | null
-          if (parent) { parent.style.borderColor = 'var(--glass-border)'; parent.style.boxShadow = '0 4px 16px rgba(0,0,0,0.4)' }
+          if (parent) { parent.style.borderColor = 'var(--border)'; parent.style.boxShadow = '0 4px 16px rgba(0,0,0,0.4)' }
         }}
         style={{
           flex: 1,
@@ -110,7 +110,7 @@ export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, c
           title={t('chat.searchCaseSensitive')}
           style={toggleBtnStyle(caseSensitive)}
           onMouseEnter={(e) => { if (!caseSensitive) e.currentTarget.style.borderColor = '#6366f1' }}
-          onMouseLeave={(e) => { if (!caseSensitive) e.currentTarget.style.borderColor = 'var(--glass-border)' }}
+          onMouseLeave={(e) => { if (!caseSensitive) e.currentTarget.style.borderColor = 'var(--border)' }}
         >
           <CaseSensitive size={14} />
         </button>
@@ -123,7 +123,7 @@ export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, c
             title={t('chat.searchFilterUser')}
             style={toggleBtnStyle(roleFilter === 'user')}
             onMouseEnter={(e) => { if (roleFilter !== 'user') e.currentTarget.style.borderColor = '#6366f1' }}
-            onMouseLeave={(e) => { if (roleFilter !== 'user') e.currentTarget.style.borderColor = 'var(--glass-border)' }}
+            onMouseLeave={(e) => { if (roleFilter !== 'user') e.currentTarget.style.borderColor = 'var(--border)' }}
           >
             <User size={12} />
           </button>
@@ -132,7 +132,7 @@ export default function SearchBar({ onSearch, onNavigate, onClose, matchCount, c
             title={t('chat.searchFilterClaude')}
             style={toggleBtnStyle(roleFilter === 'assistant')}
             onMouseEnter={(e) => { if (roleFilter !== 'assistant') e.currentTarget.style.borderColor = '#6366f1' }}
-            onMouseLeave={(e) => { if (roleFilter !== 'assistant') e.currentTarget.style.borderColor = 'var(--glass-border)' }}
+            onMouseLeave={(e) => { if (roleFilter !== 'assistant') e.currentTarget.style.borderColor = 'var(--border)' }}
           >
             <Bot size={12} />
           </button>

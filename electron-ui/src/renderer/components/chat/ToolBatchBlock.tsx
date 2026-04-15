@@ -55,10 +55,10 @@ export default function ToolBatchBlock({ group, onAbort }: ToolBatchBlockProps) 
   return (
     <div
       style={{
-        background: 'var(--glass-bg-card)',
+        background: 'rgba(15,15,25,0.88)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid var(--glass-border-md)',
+        border: '1px solid var(--border)',
         borderLeft: '2px solid rgba(99,102,241,0.40)',
         borderRadius: 10,
         marginBottom: 8,
@@ -79,13 +79,13 @@ export default function ToolBatchBlock({ group, onAbort }: ToolBatchBlockProps) 
           padding: '6px 10px',
           background: 'rgba(255,255,255,0.03)',
           border: 'none',
-          borderBottom: expanded ? '1px solid rgba(255,255,255,0.06)' : 'none',
+          borderBottom: expanded ? '1px solid var(--bg-hover)' : 'none',
           cursor: 'pointer',
           textAlign: 'left',
           color: '#818cf8',
           transition: 'all 0.15s ease',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)' }}
         onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
       >
         {expanded
@@ -137,20 +137,20 @@ export default function ToolBatchBlock({ group, onAbort }: ToolBatchBlockProps) 
 
       {/* Expanded: show individual tools with tree lines */}
       {expanded && (
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '4px 0 4px 8px' }}>
+        <div style={{ borderTop: '1px solid var(--bg-hover)', padding: '4px 0 4px 8px' }}>
           {tools.map((tool, idx) => {
             const isLast = idx === tools.length - 1
             const treeLine = isLast ? '\u2514\u2500\u2500' : '\u251C\u2500\u2500'
             return (
               <div key={tool.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 4, marginBottom: 2 }}>
-                <span style={{ fontSize: 11, color: 'var(--text-faint)', fontFamily: 'monospace', lineHeight: '22px', flexShrink: 0, userSelect: 'none' }}>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace', lineHeight: '22px', flexShrink: 0, userSelect: 'none' }}>
                   {treeLine}
                 </span>
                 <div style={{
                   flex: 1,
                   minWidth: 0,
                   padding: '5px 10px',
-                  borderBottom: '1px solid rgba(255,255,255,0.06)',
+                  borderBottom: '1px solid var(--bg-hover)',
                 }}>
                   <ToolUseBlock tool={tool} onAbort={onAbort} />
                 </div>
