@@ -47,6 +47,9 @@ const KNOWN_FLAGS = new Set([
   '--output-format',
   '--input-format',
   '--effort',
+  '--print',
+  '--permission-mode',
+  '--resume',
 ])
 
 /**

@@ -264,7 +264,7 @@ export default function App() {
     const applyEffectiveTheme = (effective: 'vscode' | 'light') => {
       if (effective === 'vscode') {
         document.documentElement.removeAttribute('data-theme')
-        window.electronAPI.windowSetTitleBarOverlay({ color: 'var(--bg-chat)', symbolColor: '#cccccc' })
+        window.electronAPI.windowSetTitleBarOverlay({ color: '#0f0f19', symbolColor: '#cccccc' })
       } else {
         document.documentElement.setAttribute('data-theme', 'light')
         window.electronAPI.windowSetTitleBarOverlay({ color: '#f8f8f8', symbolColor: '#1a1a1a' })
