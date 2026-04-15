@@ -1,6 +1,6 @@
 # AIPA x Claude Code CLI — 功能差距文档
 
-> 更新日期：2026-04-15
+> 更新日期：2026-04-15（Iteration 539）
 > CLI 版本：claude-code 2.1.81（BUILD_TIME: 2026-03-20T21:25:42Z）
 > 分析目的：指导 AIPA UI 逐步对齐 CLI 全部能力
 
@@ -154,11 +154,11 @@ CLI 定义了 5 种权限模式（`ExternalPermissionMode`）：
 | `permissions.deny` | array | 拒绝规则 | ❌ |
 | `permissions.ask` | array | 总是询问规则 | ❌ |
 | `permissions.additionalDirectories` | array | 额外工作目录 | ❌ |
-| `env` | Record | 会话环境变量 | ❌ 无 UI（但 `cli:updateEnv` IPC 存在） |
+| `env` | Record | 会话环境变量 | ✅（SettingsAdvanced 键值对编辑器，读写 ~/.claude/settings.json） |
 | `hooks` | HooksSettings | 钩子配置 | ⚠️ 能读写 CLI settings.json，无可视化 hooks 编辑器 |
 | `mcpServers` | Record | MCP 服务器配置 | ✅（mcp:add/remove/list）|
-| `cleanupPeriodDays` | number | 会话保留天数 | ❌ |
-| `language` | string | 响应语言偏好 | ❌ |
+| `cleanupPeriodDays` | number | 会话保留天数 | ✅（SettingsGeneral 数字输入，读写 ~/.claude/settings.json） |
+| `language` | string | 响应语言偏好 | ✅（SettingsGeneral AI 回复语言下拉，读写 ~/.claude/settings.json） |
 | `attribution.commit/pr` | string | commit/PR 署名 | ❌ |
 | `includeCoAuthoredBy` | boolean | 是否包含 Co-authored-by | ❌ |
 | `includeGitInstructions` | boolean | 是否包含 git workflow 指令 | ❌ |
@@ -199,9 +199,9 @@ AIPA 还实现了 `config:readCLISettings` / `config:writeCLISettings` IPC，可
 ### 差距 & 优先级
 
 P0：`permissions.defaultMode` 需要 UI 选择器（dropdown）。
-P1：`env` 环境变量编辑器（键值对表格）。
+P1：`env` 环境变量编辑器 ✅ 已实现（Iteration 539）。
 P1：`hooks` 钩子配置 UI（列表编辑器，各 hook 事件支持 command/http/prompt/agent 类型）。
-P2：`attribution`、`language`、`cleanupPeriodDays` 等次要配置字段的 UI 暴露。
+P2：`attribution`、`language` ✅ 已实现、`cleanupPeriodDays` ✅ 已实现 等次要配置字段的 UI 暴露。
 
 ---
 
