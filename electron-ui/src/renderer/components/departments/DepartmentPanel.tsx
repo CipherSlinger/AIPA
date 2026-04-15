@@ -1,6 +1,6 @@
 // DepartmentPanel — sidebar panel listing departments (部门) and allowing add/edit/delete
 import React, { useState, useRef, useEffect, useMemo } from 'react'
-import { Building2, Plus, MoreHorizontal, Pencil, Trash2, FolderOpen, Check, X, FolderPlus, ChevronsUpDown, ChevronsDownUp, GripVertical } from 'lucide-react'
+import { Building2, Plus, MoreHorizontal, Pencil, Trash2, FolderOpen, Check, X, FolderPlus, ChevronsUpDown, ChevronsDownUp, GripVertical, ChevronRight, LogIn } from 'lucide-react'
 import { useDepartmentStore, useSessionStore, Department } from '../../store'
 import { useUiStore } from '../../store'
 import { useT } from '../../i18n'
@@ -413,6 +413,10 @@ function DepartmentRow({
     setMainView('department')
   }
 
+  const toggleCollapse = () => {
+    if (!editing) setIsCollapsed(c => !c)
+  }
+
   const saveEdit = () => {
     if (editName.trim()) updateDepartment(dept.id, { name: editName.trim() })
     setEditing(false)
@@ -448,7 +452,7 @@ function DepartmentRow({
       onDragEnd={onDragEnd}
       onDragOver={e => onDragOver(e, dept.id)}
       onDrop={() => onDrop(dept.id)}
-      onClick={editing ? undefined : select}
+      onClick={editing ? undefined : toggleCollapse}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => { setHovered(false); setMenuOpen(false); setConfirmDelete(false) }}
       tabIndex={0}
@@ -458,7 +462,7 @@ function DepartmentRow({
         if (editing) return
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
-          select()
+          toggleCollapse()
         }
         if ((e.key === 'Delete' || e.key === 'Backspace') && !editing) {
           e.preventDefault()
@@ -616,6 +620,55 @@ function DepartmentRow({
         }}>
           {unreadCount}
         </span>
+      )}
+
+      {/* Collapse chevron indicator */}
+      {!editing && (
+        <ChevronRight
+          size={11}
+          style={{
+            color: 'rgba(255,255,255,0.38)',
+            flexShrink: 0,
+            transform: isCollapsed ? 'rotate(0deg)' : 'rotate(90deg)',
+            transition: 'transform 0.15s ease, opacity 0.15s ease',
+            opacity: hovered || focused ? 0.7 : 0.3,
+          }}
+        />
+      )}
+
+      {/* "Enter" button — shown on hover, navigates into the dept */}
+      {!editing && (hovered || isActive) && (
+        <button
+          onClick={e => { e.stopPropagation(); select() }}
+          onMouseDown={e => e.stopPropagation()}
+          title={t('dept.enter')}
+          style={{
+            border: 'none',
+            background: isActive ? 'rgba(99,102,241,0.25)' : 'rgba(99,102,241,0.12)',
+            cursor: 'pointer',
+            color: isActive ? '#818cf8' : 'rgba(99,102,241,0.85)',
+            padding: '3px 7px',
+            borderRadius: 5,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 3,
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: '0.04em',
+            flexShrink: 0,
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(99,102,241,0.28)'
+            e.currentTarget.style.color = '#818cf8'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = isActive ? 'rgba(99,102,241,0.25)' : 'rgba(99,102,241,0.12)'
+            e.currentTarget.style.color = isActive ? '#818cf8' : 'rgba(99,102,241,0.85)'
+          }}
+        >
+          <LogIn size={9} />
+        </button>
       )}
 
       {editing && (

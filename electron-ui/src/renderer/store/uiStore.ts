@@ -50,6 +50,10 @@ interface UiState {
   mainView: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor' | 'workflow-detail' | 'notes' | 'skill-creator' | 'skill-marketplace' | 'department'
   setMainView: (view: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor' | 'workflow-detail' | 'notes' | 'skill-creator' | 'skill-marketplace' | 'department') => void
 
+  // Track whether the current chat was entered from a department view (Iteration 538)
+  fromDepartment: boolean
+  setFromDepartment: (v: boolean) => void
+
   // Persona/Workflow editor: ID of item being edited (null = new)
   editingPersonaId: string | null
   editingWorkflowId: string | null
@@ -164,6 +168,8 @@ export const useUiStore = create<UiState>((set) => ({
   clearPendingSettingsTab: () => set({ pendingSettingsTab: null }),
   mainView: 'chat' as const,
   setMainView: (view) => set({ mainView: view }),
+  fromDepartment: false,
+  setFromDepartment: (v) => set({ fromDepartment: v }),
   editingPersonaId: null,
   editingWorkflowId: null,
   personaEditorReturnView: 'settings' as const,

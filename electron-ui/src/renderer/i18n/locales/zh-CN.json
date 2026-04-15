@@ -2338,7 +2338,9 @@
     "collapseAll": "全部折叠",
     "keyboardHint": "按 + 创建部门",
     "collapsedCount": "个部门已折叠",
-    "msgCount": "消息数"
+    "msgCount": "消息数",
+    "enter": "进入",
+    "backToDept": "返回部门"
   },
   "canvas": {
     "copyPrompt": "复制提示词",

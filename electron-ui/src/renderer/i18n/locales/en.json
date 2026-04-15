@@ -2319,7 +2319,9 @@
     "collapseAll": "Collapse all",
     "keyboardHint": "Press + to create a department",
     "collapsedCount": "departments hidden",
-    "msgCount": "Messages"
+    "msgCount": "Messages",
+    "enter": "Enter",
+    "backToDept": "Back to department"
   },
   "canvas": {
     "copyPrompt": "Copy Prompt",

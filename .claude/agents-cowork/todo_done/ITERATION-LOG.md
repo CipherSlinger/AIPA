@@ -5985,3 +5985,31 @@ Status: SUCCESS (vite build OK in 10.89s; zero new TS errors in all modified fil
 - [x] PersonaPicker dropdown shows Workflows section below personas when workflows exist
 - [x] Clicking a workflow in PersonaPicker fires `aipa:runWorkflow` CustomEvent and closes dropdown
 - [x] Build passes with no new TypeScript errors
+
+## Iteration 538 — Department feature multi-fix (5 requirements)
+_Date: 2026-04-15 | Sprint ongoing_
+
+### Summary
+Five targeted fixes for the department feature: (1) Dept sidebar cards now support collapse/expand on click; an "Enter" button (LogIn icon) appears on hover to navigate into the department. (2) The "Recent" sessions section is removed from the org chart view. (3) A "Back to department" button (Building2 icon, highlighted in indigo) now appears in ChatHeader only when the current chat was entered from a department view; tracked via new `fromDepartment` boolean in uiStore. (4) Clicking the "Departments" nav item now also resets `sidebarTab` to 'history', making dept tab mutually exclusive. (5) SessionCard's "ACTIVE" badge now only shows when `isActive && isStreaming` (both are true), preventing stale "Active" labels.
+
+### Files Changed
+- `src/renderer/store/uiStore.ts` — add `fromDepartment: boolean` + `setFromDepartment` action
+- `src/renderer/components/departments/DepartmentDashboard.tsx` — set `fromDepartment=true` on openSessionCore/newSession/newSessionInDept; add `isStreaming` to DeptView and OrgChart; pass `isStreaming` prop to all SessionCard calls; remove recentSessions useMemo and its render block from OrgChart
+- `src/renderer/components/departments/SessionCard.tsx` — add optional `isStreaming` prop; update statusPill logic so Active badge only shows when `isActive && isStreaming`
+- `src/renderer/components/departments/DepartmentPanel.tsx` — import ChevronRight + LogIn; add toggleCollapse handler; change main row onClick from select to toggleCollapse; add collapse chevron indicator; add "Enter" hover button
+- `src/renderer/components/chat/ChatHeader.tsx` — subscribe to fromDepartment from uiStore; wrap Building2 button conditionally; clear fromDepartment on back click
+- `src/renderer/components/layout/NavRail.tsx` — add setSidebarTab('history') to department onClick for mutual exclusivity
+- `src/renderer/i18n/locales/en.json` + `zh-CN.json` — add dept.enter and dept.backToDept keys
+
+### Build
+Status: SUCCESS (vite build 2297 modules in 11.83s; tsc --noEmit zero new errors; npm run check 0 new errors from our changes)
+
+### Acceptance Criteria
+- [x] Dept sidebar card: clicking card header toggles collapse/expand
+- [x] Dept sidebar card: "Enter" button (LogIn icon) shows on hover and navigates into dept
+- [x] "Recent" section removed from org chart view
+- [x] ChatHeader shows "Back to department" button only when chat was entered from a department
+- [x] Returning via that button clears fromDepartment state
+- [x] Clicking "Departments" nav in NavRail clears other sidebar tab active states
+- [x] SessionCard ACTIVE badge only shows when session is both active and currently streaming
+- [x] Build passes with no new TypeScript errors

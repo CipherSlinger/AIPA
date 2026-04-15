@@ -59,7 +59,7 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
         background: isActive
           ? 'rgba(99,102,241,0.10)'
           : hovered
-          ? 'var(--glass-border)'
+          ? 'var(--bg-hover)'
           : 'transparent',
         position: 'relative',
         marginBottom: 1,
@@ -127,8 +127,6 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
             borderRadius: 8,
             background: badgeColor || '#6366f1',
             color: 'var(--text-primary)',
-            fontSize: 9,
-            fontWeight: 600,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -153,7 +151,7 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
             height: 8,
             borderRadius: '50%',
             background: '#4ade80',
-            border: '1.5px solid rgba(10,10,18,1)',
+            border: '1.5px solid var(--bg-nav)',
             animation: 'pulse 2s ease infinite',
             zIndex: 2,
           }}
@@ -169,10 +167,10 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
             top: '50%',
             transform: 'translateY(-50%)',
             marginLeft: 8,
-            background: 'var(--glass-bg-high)',
+            background: 'var(--popup-bg)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
-            border: '1px solid var(--glass-border-md)',
+            border: '1px solid var(--border)',
             borderRadius: 7,
             padding: '5px 10px',
             fontSize: 12,
@@ -191,7 +189,7 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
               marginLeft: 6,
               padding: '1px 4px',
               borderRadius: 6,
-              background: 'var(--glass-border-md)',
+              background: 'var(--bg-hover)',
               fontSize: 10,
               fontWeight: 400,
               color: 'var(--text-muted)',
@@ -263,8 +261,8 @@ export default function NavRail() {
       style={{
         width: navExpanded ? 152 : 48,
         flexShrink: 0,
-        background: 'rgba(10,10,18,0.97)',
-        borderRight: '1px solid var(--glass-border)',
+        background: 'var(--bg-nav)',
+        borderRight: '1px solid var(--border)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: navExpanded ? 'stretch' : 'center',
@@ -284,7 +282,11 @@ export default function NavRail() {
         label={t('nav.departments')}
         shortcut="Ctrl+1"
         isActive={isDepartmentActive}
-        onClick={() => useUiStore.getState().setMainView('department')}
+        onClick={() => {
+          // Requirement 4: dept tab must be mutually exclusive — clear sidebar tab state
+          useUiStore.getState().setMainView('department')
+          useUiStore.getState().setSidebarTab('history')
+        }}
         pulseDot={isStreaming && !isDepartmentActive}
         badge={unreadSessionCount > 0 ? unreadSessionCount : undefined}
         badgeColor="#f87171"
@@ -368,7 +370,7 @@ export default function NavRail() {
 
       {/* Bottom section separator */}
       <div style={{
-        borderTop: '1px solid var(--glass-border)',
+        borderTop: '1px solid var(--border)',
         marginBottom: 6,
         marginTop: 4,
         marginLeft: navExpanded ? -6 : -4,
@@ -423,9 +425,6 @@ export default function NavRail() {
               fontSize: 10,
               fontWeight: 500,
               color: 'var(--text-muted)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
             }}>
               {activePersona ? activePersona.name : selectedAvatar ? t(selectedAvatar.nameKey) : t('nav.userProfile')}
             </span>
@@ -465,7 +464,7 @@ export default function NavRail() {
           background: 'transparent',
           cursor: 'pointer',
           marginTop: 4,
-          color: 'var(--text-faint)',
+          color: 'rgba(255,255,255,0.38)',
           gap: navExpanded ? 6 : 0,
           paddingLeft: navExpanded ? 10 : 0,
           paddingRight: navExpanded ? 8 : 0,
@@ -473,12 +472,12 @@ export default function NavRail() {
           transition: 'all 0.15s ease',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'var(--glass-border)'
-          e.currentTarget.style.color = 'var(--text-secondary)'
+          e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
+          e.currentTarget.style.color = 'rgba(255,255,255,0.60)'
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.background = 'transparent'
-          e.currentTarget.style.color = 'var(--text-faint)'
+          e.currentTarget.style.color = 'rgba(255,255,255,0.38)'
         }}
       >
         {navExpanded

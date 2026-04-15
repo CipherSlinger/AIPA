@@ -26,6 +26,8 @@ interface SessionCardProps {
   session: SessionListItem
   onClick: () => void
   isActive?: boolean
+  /** Whether the session is currently streaming (Iteration 538: ACTIVE badge only shows when streaming) */
+  isStreaming?: boolean
   isLoading?: boolean
   onDelete?: () => void
 }
@@ -44,7 +46,7 @@ function formatRelativeTime(timestamp: number, t: (key: string) => string): stri
   return new Date(timestamp).toLocaleDateString()
 }
 
-export default function SessionCard({ session, onClick, isActive, isLoading, onDelete }: SessionCardProps) {
+export default function SessionCard({ session, onClick, isActive, isStreaming, isLoading, onDelete }: SessionCardProps) {
   const t = useT()
   const sessionColorLabels = usePrefsStore(s => s.prefs?.sessionColorLabels ?? EMPTY_COLOR_LABELS)
   const setPrefs = usePrefsStore(s => s.setPrefs)
@@ -90,11 +92,14 @@ export default function SessionCard({ session, onClick, isActive, isLoading, onD
   })()
 
   // Derive status from props for the status pill
+  // Requirement 538: ACTIVE badge only shows when actually streaming (not just because it's the current session)
   const statusPill: { label: string; color: string; bg: string; dot: string } | null = isLoading
     ? { label: 'Running', color: '#818cf8', bg: 'rgba(99,102,241,0.14)', dot: '#6366f1' }
-    : isActive
+    : isActive && isStreaming
     ? { label: 'Active', color: '#4ade80', bg: 'rgba(34,197,94,0.13)', dot: 'rgba(34,197,94,0.85)' }
-    : isToday
+    : isActive && isToday
+    ? { label: 'Idle', color: '#fbbf24', bg: 'rgba(251,191,36,0.12)', dot: 'rgba(251,191,36,0.75)' }
+    : isToday && !isActive
     ? { label: 'Idle', color: '#fbbf24', bg: 'rgba(251,191,36,0.12)', dot: 'rgba(251,191,36,0.75)' }
     : null
 
