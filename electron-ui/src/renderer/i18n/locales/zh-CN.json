@@ -87,6 +87,7 @@
     "statsNumTurns": "轮次（CLI）",
     "statsCliDuration": "CLI 耗时",
     "statsPermissionDenials": "权限拒绝记录",
+    "statsModelUsage": "每模型用量",
     "statsContentSection": "内容统计",
     "statsActivitySection": "活动统计",
     "statsUserWords": "你的字数",
@@ -422,7 +423,8 @@
       "memory": "记忆",
       "plugins": "插件",
       "advanced": "高级",
-      "about": "关于"
+      "about": "关于",
+      "sandbox": "沙盒"
     },
     "groups": {
       "aiEngine": "AI 引擎",
@@ -2380,5 +2382,17 @@
     "clearSearchLabel": "清除搜索",
     "copyOutput": "复制输出",
     "copied": "已复制"
+  },
+  "sandbox": {
+    "title": "沙盒",
+    "autoAllowBash": "沙盒中自动允许 bash",
+    "network": "网络",
+    "allowedDomains": "允许的域名",
+    "filesystem": "文件系统",
+    "allowWrite": "允许写入",
+    "denyWrite": "拒绝写入",
+    "denyRead": "拒绝读取",
+    "addDomain": "添加域名...",
+    "addPath": "添加路径..."
   }
 }

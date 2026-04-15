@@ -87,6 +87,7 @@
     "statsNumTurns": "Turns (CLI)",
     "statsCliDuration": "CLI duration",
     "statsPermissionDenials": "Permission denials",
+    "statsModelUsage": "Per-model usage",
     "statsContentSection": "Content",
     "statsActivitySection": "Activity",
     "statsUserWords": "Your words",
@@ -422,7 +423,8 @@
       "memory": "Memory",
       "plugins": "Plugins",
       "advanced": "Advanced",
-      "about": "About"
+      "about": "About",
+      "sandbox": "Sandbox"
     },
     "groups": {
       "aiEngine": "AI Engine",
@@ -2361,5 +2363,17 @@
     "clearSearchLabel": "Clear search",
     "copyOutput": "Copy output",
     "copied": "Copied"
+  },
+  "sandbox": {
+    "title": "Sandbox",
+    "autoAllowBash": "Auto-allow bash in sandbox",
+    "network": "Network",
+    "allowedDomains": "Allowed Domains",
+    "filesystem": "Filesystem",
+    "allowWrite": "Allow Write",
+    "denyWrite": "Deny Write",
+    "denyRead": "Deny Read",
+    "addDomain": "Add domain...",
+    "addPath": "Add path..."
   }
 }

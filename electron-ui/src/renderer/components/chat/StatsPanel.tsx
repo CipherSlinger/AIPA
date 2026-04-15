@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
-import { BarChart3, ClipboardCopy, Check, FileText, AlertTriangle } from 'lucide-react'
+import { BarChart3, ClipboardCopy, Check, FileText, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react'
 import { useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import { useClickOutside } from '../../hooks/useClickOutside'
@@ -25,9 +25,11 @@ export default function StatsPanel({
   const permissionDenials = useChatStore(s => s.permissionDenials)
   const lastNumTurns = useChatStore(s => s.lastNumTurns)
   const lastDurationMs = useChatStore(s => s.lastDurationMs)
+  const modelUsage = useChatStore(s => s.modelUsage)
   const [showStats, setShowStats] = useState(false)
   const [statsCopied, setStatsCopied] = useState(false)
   const [summaryCopied, setSummaryCopied] = useState(false)
+  const [modelUsageExpanded, setModelUsageExpanded] = useState(false)
   const statsRef = useRef<HTMLDivElement>(null)
 
   const handleCopyStats = useCallback(() => {
@@ -328,6 +330,95 @@ export default function StatsPanel({
               </div>
             </div>
           )}
+          {/* Per-model usage section */}
+          {Object.keys(modelUsage).length > 0 && (() => {
+            const models = Object.keys(modelUsage)
+            const shouldCollapse = models.length > 2
+            const isOpen = !shouldCollapse || modelUsageExpanded
+            return (
+              <div style={{
+                marginTop: 10,
+                paddingTop: 8,
+                borderTop: '1px solid var(--glass-border)',
+              }}>
+                <button
+                  onClick={() => setModelUsageExpanded(v => !v)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    cursor: shouldCollapse ? 'pointer' : 'default',
+                    width: '100%',
+                    marginBottom: 6,
+                  }}
+                >
+                  <span style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    letterSpacing: '0.07em',
+                    textTransform: 'uppercase',
+                    color: 'var(--text-faint)',
+                  }}>
+                    {t('chat.statsModelUsage')}
+                  </span>
+                  {shouldCollapse && (
+                    isOpen
+                      ? <ChevronDown size={10} color="var(--text-faint)" />
+                      : <ChevronRight size={10} color="var(--text-faint)" />
+                  )}
+                </button>
+                {isOpen && models.map(model => {
+                  const mu = modelUsage[model]
+                  const shortName = model.length > 40 ? model.slice(0, 40) + '…' : model
+                  return (
+                    <div
+                      key={model}
+                      style={{
+                        paddingBottom: 6,
+                        marginBottom: 6,
+                        borderBottom: '1px solid var(--glass-border)',
+                      }}
+                    >
+                      <div style={{
+                        fontFamily: 'monospace',
+                        fontSize: 10,
+                        color: 'var(--text-secondary)',
+                        marginBottom: 3,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {shortName}
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>In</span>
+                        <span style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"', fontWeight: 600 }}>
+                          {mu.inputTokens.toLocaleString()}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>Out</span>
+                        <span style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"', fontWeight: 600 }}>
+                          {mu.outputTokens.toLocaleString()}
+                        </span>
+                      </div>
+                      {mu.cacheTokens > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}>
+                          <span style={{ color: 'var(--text-secondary)' }}>Cache</span>
+                          <span style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"', fontWeight: 600 }}>
+                            {mu.cacheTokens.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })()}
           {/* Collapse/Expand all actions */}
           <div style={{
             display: 'flex',
