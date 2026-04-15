@@ -287,11 +287,22 @@ const MEMDIR_TYPE_COLORS: Record<string, string> = {
   unknown: 'var(--text-muted)',
 }
 
+const MEMDIR_TYPE_LABELS: Record<string, string> = {
+  user: '用户',
+  feedback: '反馈',
+  project: '项目',
+  reference: '参考',
+  unknown: '其他',
+}
+
+type MemdirTypeFilter = 'all' | 'user' | 'feedback' | 'project' | 'reference'
+
 function MemdirTab() {
   const t = useT()
   const [files, setFiles] = useState<MemdirFile[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [typeFilter, setTypeFilter] = useState<MemdirTypeFilter>('all')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -305,6 +316,13 @@ function MemdirTab() {
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  // Derive filtered files and type counts
+  const filteredFiles = typeFilter === 'all' ? files : files.filter(f => f.type === typeFilter)
+  const typeCounts: Record<string, number> = { all: files.length }
+  for (const f of files) {
+    typeCounts[f.type] = (typeCounts[f.type] || 0) + 1
+  }
 
   if (loading) {
     return (
@@ -357,9 +375,61 @@ function MemdirTab() {
         </button>
       </div>
 
+      {/* Type filter pills */}
+      <div style={{
+        display: 'flex', gap: 4, padding: '6px 10px', flexWrap: 'wrap',
+        borderBottom: '1px solid var(--border)', flexShrink: 0,
+      }}>
+        {/* All pill */}
+        <button
+          onClick={() => setTypeFilter('all')}
+          style={{
+            background: typeFilter === 'all' ? 'rgba(99,102,241,0.20)' : 'var(--bg-hover)',
+            color: typeFilter === 'all' ? 'rgba(165,180,252,0.90)' : 'var(--text-muted)',
+            border: typeFilter === 'all' ? '1px solid rgba(99,102,241,0.40)' : '1px solid var(--border)',
+            borderRadius: 20, padding: '2px 10px', fontSize: 10, cursor: 'pointer',
+            fontWeight: typeFilter === 'all' ? 600 : 400, transition: 'all 0.15s ease',
+          }}
+        >
+          全部 {typeCounts.all || 0}
+        </button>
+        {(['user', 'feedback', 'project', 'reference'] as const).map(type => {
+          const color = MEMDIR_TYPE_COLORS[type]
+          const isActive = typeFilter === type
+          return (
+            <button
+              key={type}
+              onClick={() => setTypeFilter(isActive ? 'all' : type)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                background: isActive ? `${color}22` : 'var(--bg-hover)',
+                color: isActive ? color : 'var(--text-muted)',
+                border: isActive ? `1px solid ${color}55` : '1px solid var(--border)',
+                borderRadius: 20, padding: '2px 9px', fontSize: 10, cursor: 'pointer',
+                fontWeight: isActive ? 600 : 400, transition: 'all 0.15s ease',
+              }}
+            >
+              <span style={{
+                display: 'inline-block', width: 5, height: 5, borderRadius: '50%',
+                background: color, flexShrink: 0,
+              }} />
+              {MEMDIR_TYPE_LABELS[type]}
+              <span style={{ fontSize: 9, opacity: 0.7, fontVariantNumeric: 'tabular-nums' }}>
+                {typeCounts[type] || 0}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
       {/* File list */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '6px 8px', scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}>
-        {files.map(f => {
+        {filteredFiles.length === 0 && files.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60%', color: 'var(--text-muted)', gap: 8, textAlign: 'center' }}>
+            <Brain size={24} style={{ opacity: 0.3 }} />
+            <span style={{ fontSize: 12 }}>没有 {MEMDIR_TYPE_LABELS[typeFilter] || typeFilter} 类型的记忆</span>
+          </div>
+        ) : filteredFiles.map(f => {
           const typeColor = MEMDIR_TYPE_COLORS[f.type] || MEMDIR_TYPE_COLORS.unknown
           const isOpen = expanded === f.filePath
           return (

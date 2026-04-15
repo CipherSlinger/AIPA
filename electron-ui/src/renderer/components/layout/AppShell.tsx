@@ -158,7 +158,7 @@ export default function AppShell() {
         onDoubleClick={() => window.electronAPI.windowToggleMaximize()}
         style={{
           height: 32,
-          background: 'rgba(8,8,16,1)',
+          background: 'var(--bg-nav)',
           borderBottom: '1px solid var(--border)',
           flexShrink: 0,
           display: 'flex',

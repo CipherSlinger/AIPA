@@ -139,6 +139,8 @@ const electronAPI = {
       'cli:hookEvent',
       'cli:hookCallback',
       'cli:elicitation',
+      'cli:worktreeState',
+      'cli:taskCompleted',
     ]
     const handlers = channels.map((ch) => {
       const h = (_: unknown, d: Record<string, unknown>) => {

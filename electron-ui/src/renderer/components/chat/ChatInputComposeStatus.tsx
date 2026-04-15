@@ -16,7 +16,7 @@ const SEP = (
   <span style={{
     display: 'inline-block',
     width: 3, height: 3, borderRadius: '50%',
-    background: 'rgba(255,255,255,0.15)',
+    background: 'var(--border)',
     flexShrink: 0,
   }} />
 )
@@ -37,7 +37,7 @@ export default function ChatInputComposeStatus({ input, typingWpm, calcResult, h
         <div style={{
           display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6,
           padding: '3px 12px',
-          background: 'rgba(15,15,25,0.85)',
+          background: 'var(--glass-bg-mid)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
           borderTop: '1px solid var(--border)',
@@ -69,7 +69,7 @@ export default function ChatInputComposeStatus({ input, typingWpm, calcResult, h
       {calcResult && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 6, padding: '3px 12px',
-          background: 'rgba(15,15,25,0.85)',
+          background: 'var(--glass-bg-mid)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
           borderTop: '1px solid var(--border)',
@@ -83,7 +83,7 @@ export default function ChatInputComposeStatus({ input, typingWpm, calcResult, h
       {input.length === 0 && hasInputHistory && (
         <div style={{
           display: 'flex', justifyContent: 'center', padding: '3px 12px',
-          background: 'rgba(15,15,25,0.85)',
+          background: 'var(--glass-bg-mid)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
           borderTop: '1px solid var(--border)',

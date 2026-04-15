@@ -252,6 +252,7 @@ export class StreamBridge extends EventEmitter {
           claudeSessionId: re.session_id,
           totalCostUsd: re.total_cost_usd,
           usage: re.usage,
+          modelUsage: re.model_usage ?? re.modelUsage,
           permissionDenials: (re.permission_denials as Array<{ tool_name: string; reason?: string }> | undefined) ?? [],
           numTurns: re.num_turns,
           durationMs: re.duration_ms,

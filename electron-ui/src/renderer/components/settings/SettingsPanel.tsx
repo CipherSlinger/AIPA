@@ -135,7 +135,7 @@ export default function SettingsPanel() {
         flexDirection: 'column',
         gap: 2,
         overflowY: 'auto',
-        background: 'rgba(12,12,22,0.97)',
+        background: 'var(--bg-sidebar)',
       }}>
         <div style={{
           fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',

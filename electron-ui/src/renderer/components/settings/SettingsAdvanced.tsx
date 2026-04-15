@@ -1,8 +1,8 @@
-// SettingsAdvanced — Permission Mode + System Prompt + Tool Access Control (Iterations 523, 527, 535)
-import React, { useState, useCallback } from 'react'
+// SettingsAdvanced — Permission Mode + System Prompt + Tool Access Control + Env Vars (Iterations 523, 527, 535, 539)
+import React, { useState, useCallback, useEffect } from 'react'
 import { usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, Plus, Trash2 } from 'lucide-react'
 import type { PermissionMode } from '../../types/app.types'
 
 const MAX_CHARS = 2000
@@ -135,6 +135,43 @@ export default function SettingsAdvanced() {
   // Permission mode state
   const currentPermissionMode: PermissionMode = prefs.permissionMode || 'default'
 
+  // ── Env vars state (reads/writes ~/.claude/settings.json `env` field) ─────
+  const [envEntries, setEnvEntries] = useState<[string, string][]>([])
+  const [newEnvKey, setNewEnvKey] = useState('')
+  const [newEnvValue, setNewEnvValue] = useState('')
+
+  useEffect(() => {
+    window.electronAPI.configReadCLISettings().then((s: Record<string, unknown>) => {
+      if (s.env && typeof s.env === 'object' && !Array.isArray(s.env)) {
+        setEnvEntries(Object.entries(s.env as Record<string, string>))
+      }
+    }).catch(() => {})
+  }, [])
+
+  const persistEnv = useCallback((entries: [string, string][]) => {
+    const envObj: Record<string, string> = {}
+    for (const [k, v] of entries) {
+      if (k.trim()) envObj[k.trim()] = v
+    }
+    window.electronAPI.configWriteCLISettings({ env: envObj }).catch(() => {})
+  }, [])
+
+  const handleEnvAdd = useCallback(() => {
+    const key = newEnvKey.trim()
+    if (!key) return
+    const updated: [string, string][] = [...envEntries.filter(([k]) => k !== key), [key, newEnvValue]]
+    setEnvEntries(updated)
+    setNewEnvKey('')
+    setNewEnvValue('')
+    persistEnv(updated)
+  }, [newEnvKey, newEnvValue, envEntries, persistEnv])
+
+  const handleEnvDelete = useCallback((key: string) => {
+    const updated = envEntries.filter(([k]) => k !== key)
+    setEnvEntries(updated)
+    persistEnv(updated)
+  }, [envEntries, persistEnv])
+
   const handlePermissionModeChange = useCallback(async (mode: PermissionMode) => {
     setPermissionMode(mode)
     await window.electronAPI.prefsSet('permissionMode', mode)
@@ -244,7 +281,113 @@ export default function SettingsAdvanced() {
         )}
       </div>
 
-      {/* ── Section 1: System Prompt ─────────────────────────────────── */}
+      {/* ── Section 1: Session Env Vars ──────────────────────────────── */}
+      <div style={sectionCardStyle}>
+        <div style={sectionTitleStyle}>{t('settings.sessionEnvVars')}</div>
+        <div style={descStyle}>{t('settings.sessionEnvVarsHint')}</div>
+
+        {/* Existing entries */}
+        {envEntries.length === 0 ? (
+          <div style={{ fontSize: 12, color: 'var(--text-faint)', fontStyle: 'italic', marginBottom: 10 }}>
+            {t('settings.sessionEnvVarsEmpty')}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }}>
+            {envEntries.map(([key, value]) => (
+              <div key={key} style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid var(--glass-border)',
+                borderRadius: 6, padding: '5px 8px',
+              }}>
+                <code style={{
+                  fontSize: 11, fontFamily: 'monospace',
+                  color: 'rgba(165,180,252,0.85)',
+                  background: 'rgba(99,102,241,0.10)', borderRadius: 4,
+                  padding: '1px 5px', flexShrink: 0,
+                }}>{key}</code>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>=</span>
+                <span style={{
+                  fontSize: 12, color: 'var(--text-secondary)',
+                  flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  fontFamily: 'monospace',
+                }}>{value}</span>
+                <button
+                  onClick={() => handleEnvDelete(key)}
+                  aria-label={`${t('settings.sessionEnvVarsDelete')} ${key}`}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = '#f87171'; e.currentTarget.style.background = 'rgba(239,68,68,0.08)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}
+                  style={{
+                    background: 'transparent', border: 'none',
+                    color: 'var(--text-muted)', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', padding: '2px 4px',
+                    borderRadius: 4, flexShrink: 0, transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Add new entry row */}
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <input
+            value={newEnvKey}
+            onChange={(e) => setNewEnvKey(e.target.value)}
+            placeholder={t('settings.sessionEnvVarsAddKey')}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleEnvAdd() }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.boxShadow = 'none' }}
+            style={{
+              flex: '0 0 110px', background: 'rgba(255,255,255,0.05)',
+              border: '1px solid var(--glass-border)', borderRadius: 6,
+              color: 'var(--text-primary)', padding: '5px 8px',
+              fontSize: 11, fontFamily: 'monospace', outline: 'none',
+              transition: 'all 0.15s ease',
+            }}
+          />
+          <span style={{ fontSize: 11, color: 'var(--text-faint)', flexShrink: 0 }}>=</span>
+          <input
+            value={newEnvValue}
+            onChange={(e) => setNewEnvValue(e.target.value)}
+            placeholder={t('settings.sessionEnvVarsAddValue')}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleEnvAdd() }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.boxShadow = 'none' }}
+            style={{
+              flex: 1, background: 'rgba(255,255,255,0.05)',
+              border: '1px solid var(--glass-border)', borderRadius: 6,
+              color: 'var(--text-primary)', padding: '5px 8px',
+              fontSize: 11, fontFamily: 'monospace', outline: 'none',
+              transition: 'all 0.15s ease',
+            }}
+          />
+          <button
+            onClick={handleEnvAdd}
+            disabled={!newEnvKey.trim()}
+            aria-label={t('settings.sessionEnvVarsAdd')}
+            onMouseEnter={(e) => { if (newEnvKey.trim()) { e.currentTarget.style.background = 'rgba(99,102,241,0.35)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)' } }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(99,102,241,0.25)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)' }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '5px 10px', fontSize: 11,
+              background: newEnvKey.trim() ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${newEnvKey.trim() ? 'rgba(99,102,241,0.4)' : 'var(--glass-border)'}`,
+              borderRadius: 6,
+              color: newEnvKey.trim() ? '#a5b4fc' : 'var(--text-faint)',
+              cursor: newEnvKey.trim() ? 'pointer' : 'default',
+              flexShrink: 0, transition: 'all 0.15s ease',
+            }}
+          >
+            <Plus size={11} />
+            {t('settings.sessionEnvVarsAdd')}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Section 2: System Prompt ─────────────────────────────────── */}
       <div style={sectionCardStyle}>
         <div style={sectionTitleStyle}>{t('systemPrompt.title')}</div>
         <div style={descStyle}>{t('systemPrompt.hint')}</div>
@@ -337,7 +480,7 @@ export default function SettingsAdvanced() {
         </div>
       </div>
 
-      {/* ── Section 2: Tool Access Control ────��──────────────────────── */}
+      {/* ── Section 3: Tool Access Control ────────────────────────────── */}
       <div style={sectionCardStyle}>
         <div style={sectionTitleStyle}>{t('settings.toolAccessControl')}</div>
         <div style={descStyle}>{t('settings.toolAccessControlHint')}</div>

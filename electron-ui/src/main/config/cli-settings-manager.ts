@@ -16,7 +16,7 @@ import { createLogger } from '../utils/logger'
 const log = createLogger('cli-settings')
 
 // Only these top-level fields can be modified via the UI
-const WRITABLE_FIELDS = new Set(['permissions', 'hooks', 'language', 'cleanupPeriodDays'])
+const WRITABLE_FIELDS = new Set(['permissions', 'hooks', 'language', 'cleanupPeriodDays', 'env'])
 
 function getSettingsPath(): string {
   return path.join(os.homedir(), '.claude', 'settings.json')
@@ -83,11 +83,13 @@ export function writeCLISettings(patch: Record<string, unknown>): void {
   // Apply only whitelisted fields from the patch
   for (const key of Object.keys(patch)) {
     if (WRITABLE_FIELDS.has(key)) {
-      // Empty string means "remove the field" (e.g. language = "" → follow system)
-      if (patch[key] === '' || patch[key] === null) {
+      // Empty string or null means "remove the field" (e.g. language = "" → follow system)
+      // Empty object means "remove the field" (e.g. env = {} → no env vars configured)
+      const val = patch[key]
+      if (val === '' || val === null || (typeof val === 'object' && val !== null && !Array.isArray(val) && Object.keys(val).length === 0)) {
         delete current[key]
       } else {
-        current[key] = patch[key]
+        current[key] = val
       }
     } else {
       log.warn(`writeCLISettings: ignoring protected field "${key}"`)

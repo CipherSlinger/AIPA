@@ -531,6 +531,13 @@
     "cleanupPeriodDays": "会话历史保留天数",
     "cleanupPeriodDaysHint": "自动删除超过指定天数的会话文件，设为 0 表示禁用自动清理。",
     "cleanupPeriodDaysDisabled": "（禁用）",
+    "sessionEnvVars": "会话环境变量",
+    "sessionEnvVarsHint": "这些键值对将作为环境变量在 CLI 会话中可用。",
+    "sessionEnvVarsEmpty": "暂无已配置的环境变量。",
+    "sessionEnvVarsAddKey": "变量名",
+    "sessionEnvVarsAddValue": "值",
+    "sessionEnvVarsAdd": "添加",
+    "sessionEnvVarsDelete": "删除",
     "save": "保存设置",
     "saved": "已保存",
     "unlimited": "无限制",
@@ -783,7 +790,8 @@
     "alwaysAllowTool": "始终允许",
     "alwaysDenyTool": "始终拒绝",
     "ruleAddedAllow": "规则已添加: {{rule}} -> 始终允许",
-    "ruleAddedDeny": "规则已添加: {{rule}} -> 始终拒绝"
+    "ruleAddedDeny": "规则已添加: {{rule}} -> 始终拒绝",
+    "denialsCount": "本轮有 {{count}} 个权限请求被拒绝"
   },
   "permissions": {
     "allowRules": "允许规则",
@@ -816,6 +824,9 @@
     "addToQueue": "加入队列",
     "addToQueueShortcut": "加入队列 (Ctrl+Shift+Q)",
     "queueComplete": "队列完成：{{count}} 个任务已执行"
+  },
+  "task": {
+    "backgroundCompleted": "后台任务{{id}}已完成"
   },
   "terminal": {
     "title": "终端",

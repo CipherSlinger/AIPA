@@ -1,5 +1,5 @@
 import React from 'react'
-import { Trash2, Archive, HelpCircle, Minus, Terminal, Zap, FileText, LayoutList, RotateCcw, Download, Compass, Shield, Webhook, Server, Brain, Cpu, DollarSign, BookOpen, FolderOpen } from 'lucide-react'
+import { Trash2, Archive, HelpCircle, Terminal, Zap, FileText, LayoutList, RotateCcw, Download, Compass, Shield, Webhook, Server, Brain, Cpu, DollarSign, BookOpen, FolderOpen, GitBranch, GitCommit, GitPullRequest, GitFork, Code, Settings, LogOut, LogIn, Keyboard, Rewind, History, Mic, Info, Layers, Flag } from 'lucide-react'
 import { useT } from '../../i18n'
 
 export interface SlashCommand {
@@ -13,10 +13,15 @@ export interface SlashCommand {
 }
 
 export const SLASH_COMMANDS: SlashCommand[] = [
+  // Session
   { name: '/compact', description: 'Compact conversation history to reduce tokens', descriptionKey: 'command.compactDesc', icon: Archive, category: 'Session' },
   { name: '/clear', description: 'Clear current conversation (client-only)', descriptionKey: 'command.clearConversationDesc', icon: Trash2, clientOnly: true, category: 'Session' },
   { name: '/rename', description: 'Rename current session', icon: FileText, clientOnly: true, category: 'Session' },
   { name: '/export', description: 'Export current conversation', icon: Download, clientOnly: true, category: 'Session' },
+  { name: '/resume', description: 'Resume a previous session', icon: History, category: 'Session' },
+  { name: '/rewind', description: 'Rewind to message N', icon: Rewind, category: 'Session' },
+  { name: '/fork', description: 'Fork session branch', icon: GitFork, category: 'Session' },
+  // General
   { name: '/help', description: 'Show available commands', descriptionKey: 'command.showHelpDesc', icon: HelpCircle, clientOnly: true, category: 'General' },
   { name: '/vim', description: 'Toggle Vim input mode', icon: Terminal, clientOnly: true, category: 'General' },
   { name: '/fast', description: 'Toggle fast model (Haiku)', icon: Zap, clientOnly: true, category: 'General' },
@@ -24,13 +29,30 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { name: '/statusline', description: 'Show/hide status bar', icon: LayoutList, clientOnly: true, category: 'General' },
   { name: '/plan', description: 'Toggle plan mode (ultraplan)', icon: Compass, clientOnly: true, category: 'General' },
   { name: '/init', description: 'Initialize project (send /init to CLI)', icon: RotateCcw, category: 'General' },
+  { name: '/voice', description: 'Voice input', icon: Mic, clientOnly: true, category: 'General' },
+  // Settings
   { name: '/model', description: 'Open model picker', icon: Cpu, clientOnly: true, category: 'Settings' },
   { name: '/permissions', description: 'Open permissions settings', icon: Shield, clientOnly: true, category: 'Settings' },
   { name: '/hooks', description: 'Open hooks settings', icon: Webhook, clientOnly: true, category: 'Settings' },
   { name: '/mcp', description: 'Open MCP settings', icon: Server, clientOnly: true, category: 'Settings' },
   { name: '/memory', description: 'Open memory panel', icon: Brain, clientOnly: true, category: 'Settings' },
+  { name: '/config', description: 'View/edit configuration', icon: Settings, category: 'Settings' },
+  { name: '/effort', description: 'Set effort level', icon: Flag, category: 'Settings' },
+  { name: '/keybindings', description: 'View keyboard shortcuts', icon: Keyboard, clientOnly: true, category: 'Settings' },
+  { name: '/login', description: 'Log in', icon: LogIn, category: 'Settings' },
+  { name: '/logout', description: 'Log out', icon: LogOut, category: 'Settings' },
+  // Stats
   { name: '/cost', description: 'Show conversation stats', icon: DollarSign, clientOnly: true, category: 'Stats' },
+  { name: '/status', description: 'View current session status', icon: Info, category: 'Stats' },
+  { name: '/context', description: 'View current context', icon: Layers, category: 'Stats' },
   { name: '/skills', description: 'Open skills panel', icon: BookOpen, clientOnly: true, category: 'Stats' },
+  // Git
+  { name: '/commit', description: 'Create a git commit', icon: GitCommit, category: 'Git' },
+  { name: '/pr', description: 'Create a Pull Request', icon: GitPullRequest, category: 'Git' },
+  { name: '/review', description: 'Code review', icon: Code, category: 'Git' },
+  { name: '/diff', description: 'View file diff', icon: GitBranch, category: 'Git' },
+  { name: '/worktree', description: 'Manage git worktrees', icon: GitFork, category: 'Git' },
+  { name: '/branch', description: 'Manage session branches', icon: Layers, category: 'Git' },
 ]
 
 interface Props {

@@ -458,7 +458,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
               gap: 12,
               marginBottom: 14,
               padding: '10px 14px',
-              background: 'rgba(15,15,25,0.85)',
+              background: 'var(--glass-bg-low)',
               border: '1px solid var(--border)',
               borderRadius: 12,
               boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
@@ -934,7 +934,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
           gap: 14,
           padding: '40px 36px',
           borderRadius: 16,
-          background: 'rgba(255,255,255,0.03)',
+          background: 'var(--bg-secondary)',
           border: '1px solid var(--border)',
           maxWidth: 300,
           textAlign: 'center',
@@ -1303,7 +1303,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                       color: 'var(--text-muted)',
                       fontSize: 11,
                       transition: 'border-color 0.15s, color 0.15s, background 0.15s',
-                      background: 'rgba(255,255,255,0.02)',
+                      background: 'var(--bg-hover)',
                     }}
                     onMouseEnter={e => {
                       const el = e.currentTarget as HTMLElement
@@ -1315,7 +1315,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                       const el = e.currentTarget as HTMLElement
                       el.style.borderColor = 'var(--bg-active)'
                       el.style.color = 'var(--text-muted)'
-                      el.style.background = 'rgba(255,255,255,0.02)'
+                      el.style.background = 'var(--bg-hover)'
                     }}
                   >
                     <span style={{ fontSize: 18, fontWeight: 700 }}>+{sessions.length - 6}</span>
@@ -1330,7 +1330,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                   style={{
                     minHeight: 130,
                     borderRadius: 12,
-                    border: '1.5px dashed rgba(255,255,255,0.15)',
+                    border: '1.5px dashed var(--border)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -1339,7 +1339,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                     cursor: 'pointer',
                     color: 'var(--text-muted)',
                     transition: 'border-color 0.15s, color 0.15s, background 0.15s',
-                    background: 'rgba(255,255,255,0.02)',
+                    background: 'var(--bg-hover)',
                   }}
                   onMouseEnter={e => {
                     const el = e.currentTarget as HTMLElement
@@ -1349,9 +1349,9 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                   }}
                   onMouseLeave={e => {
                     const el = e.currentTarget as HTMLElement
-                    el.style.borderColor = 'rgba(255,255,255,0.15)'
+                    el.style.borderColor = 'var(--border)'
                     el.style.color = 'var(--text-muted)'
-                    el.style.background = 'rgba(255,255,255,0.02)'
+                    el.style.background = 'var(--bg-hover)'
                   }}
                 >
                   <span style={{ fontSize: 28, fontWeight: 200, lineHeight: 1 }}>+</span>
@@ -1379,7 +1379,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
               left: statsPopoverPos.x,
               top: statsPopoverPos.y,
               zIndex: 200,
-              background: 'rgba(14,14,24,0.97)',
+              background: 'var(--glass-bg-deep)',
               backdropFilter: 'blur(16px)',
               WebkitBackdropFilter: 'blur(16px)',
               border: `1px solid ${dept.color || 'var(--bg-active)'}`,

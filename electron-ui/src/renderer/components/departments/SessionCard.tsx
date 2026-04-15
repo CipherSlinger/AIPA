@@ -170,8 +170,8 @@ export default function SessionCard({ session, onClick, isActive, isStreaming, i
           background: isActive
             ? 'rgba(99,102,241,0.10)'
             : hovered
-            ? 'rgba(15,15,25,0.85)'
-            : 'rgba(15,15,25,0.85)',
+            ? 'var(--glass-bg-low)'
+            : 'var(--glass-bg-low)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
           cursor: 'pointer',
@@ -279,7 +279,7 @@ export default function SessionCard({ session, onClick, isActive, isStreaming, i
           height: 6,
           borderRadius: '50%',
           background: currentLabel,
-          boxShadow: `0 0 0 1px rgba(255,255,255,0.2)`,
+          boxShadow: `0 0 0 1px var(--border)`,
           zIndex: 2,
           pointerEvents: 'none',
         }} />
@@ -294,7 +294,7 @@ export default function SessionCard({ session, onClick, isActive, isStreaming, i
           width: 14,
           height: 14,
           borderRadius: '50%',
-          border: '2px solid rgba(255,255,255,0.15)',
+          border: '2px solid var(--border)',
           borderTopColor: '#6366f1',
           animation: 'sc-spin 0.8s linear infinite',
         }} />
@@ -341,8 +341,8 @@ export default function SessionCard({ session, onClick, isActive, isStreaming, i
             style={{
               padding: '2px 6px',
               borderRadius: 4,
-              border: '1px solid rgba(255,255,255,0.15)',
-              background: 'rgba(0,0,0,0.4)',
+              border: '1px solid var(--border)',
+              background: 'var(--bg-secondary)',
               color: 'var(--text-muted)',
               fontSize: 10,
               cursor: 'pointer',
@@ -351,7 +351,7 @@ export default function SessionCard({ session, onClick, isActive, isStreaming, i
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.4)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.color = 'var(--text-muted)' }}
           >
             {t('dept.cancel')}
           </button>
@@ -594,7 +594,7 @@ export default function SessionCard({ session, onClick, isActive, isStreaming, i
             right: 0,
             marginBottom: 6,
             zIndex: 50,
-            background: 'rgba(8,8,16,1)',
+            background: 'var(--glass-bg-deep)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
             border: '1px solid var(--border)',

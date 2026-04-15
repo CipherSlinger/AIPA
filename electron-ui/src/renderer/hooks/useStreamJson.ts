@@ -548,6 +548,13 @@ Keep exercises focused and achievable. The goal is active learning through doing
             const numTurns = (data.numTurns as number | undefined) ?? null
             const durationMs = (data.durationMs as number | undefined) ?? null
             useChatStore.getState().setResultStats(denials, numTurns, durationMs)
+            // Show toast if any permissions were denied during this turn
+            if (denials.length > 0) {
+              useUiStore.getState().addToast('warning',
+                t('permission.denialsCount', { count: String(denials.length) }),
+                5000
+              )
+            }
           }
           const ev = data.event as Record<string, unknown>
           // Compact diff toast: when result metadata indicates compaction happened
@@ -889,6 +896,21 @@ Keep exercises focused and achievable. The goal is active learning through doing
           if (d.title && !useChatStore.getState().currentSessionTitle) {
             useChatStore.getState().setSessionTitle(d.title)
           }
+          break
+        }
+        case 'cli:worktreeState': {
+          // Worktree state change from CLI — store active worktree info
+          const d = data as { sessionId: string; worktreePath: string; branch: string; state: string }
+          useChatStore.getState().setActiveWorktree(
+            d.worktreePath ? { path: d.worktreePath, branch: d.branch, state: d.state } : null
+          )
+          break
+        }
+        case 'cli:taskCompleted': {
+          // Background task completed — show toast notification
+          const d = data as { sessionId: string; taskId: string; result: unknown }
+          const taskId = d.taskId ? ` #${d.taskId.slice(0, 8)}` : ''
+          useUiStore.getState().addToast('success', t('task.backgroundCompleted', { id: taskId }), 5000)
           break
         }
       }

@@ -235,6 +235,10 @@ interface ChatState {
   setResultStats: (denials: Array<{ tool_name: string; reason?: string }>, numTurns: number | null, durationMs: number | null) => void
   clearResultStats: () => void
 
+  // Active worktree state (P4-6): updated when CLI emits worktree-state event
+  activeWorktree: { path: string; branch: string; state: string } | null
+  setActiveWorktree: (wt: { path: string; branch: string; state: string } | null) => void
+
   // system.init data — updated at the start of each CLI session
   availableTools: string[]
   mcpServers: Array<{ name: string; status: string }>
@@ -285,6 +289,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   permissionDenials: [],
   lastNumTurns: null,
   lastDurationMs: null,
+  activeWorktree: null,
   availableTools: [],
   mcpServers: [],
   activeModel: '',
@@ -669,6 +674,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   // Result stats setters (P0-5)
   setResultStats: (denials, numTurns, durationMs) => set({ permissionDenials: denials, lastNumTurns: numTurns, lastDurationMs: durationMs }),
   clearResultStats: () => set({ permissionDenials: [], lastNumTurns: null, lastDurationMs: null }),
+
+  // Active worktree setter (P4-6)
+  setActiveWorktree: (wt) => set({ activeWorktree: wt }),
 
   // system.init handler
   setSystemInit: (data) => set({
