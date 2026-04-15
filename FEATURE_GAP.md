@@ -1,6 +1,6 @@
 # AIPA x Claude Code CLI — 功能差距文档
 
-> 更新日期：2026-04-14
+> 更新日期：2026-04-15
 > CLI 版本：claude-code 2.1.81（BUILD_TIME: 2026-03-20T21:25:42Z）
 > 分析目的：指导 AIPA UI 逐步对齐 CLI 全部能力
 
@@ -214,7 +214,7 @@ P2：`attribution`、`language`、`cleanupPeriodDays` 等次要配置字段的 U
 | `system`（init）| `tools[]`, `mcp_servers[]`, `model`, `permissionMode`, `session_id`, `skills[]`, `plugins[]` | ⚠️ 接收但未完整消费（`tools[]` 未渲染到 UI） |
 | `assistant` | `message.content[]` (text/tool_use/thinking blocks) | ✅ 处理 text 和 tool_use |
 | `user` | `message.content[]` (tool_result blocks) | ✅ 处理 tool_result |
-| `result`（success）| `session_id`, `total_cost_usd`, `duration_ms`, `num_turns`, `usage`, `modelUsage`, `permission_denials` | ✅ 提取 `session_id`，⚠️ `permission_denials` 未展示 |
+| `result`（success）| `session_id`, `total_cost_usd`, `duration_ms`, `num_turns`, `usage`, `modelUsage`, `permission_denials` | ✅ 完整消费：session_id、cost、usage、modelUsage、permission_denials（toast 提醒）、numTurns、durationMs 全部存入 store（Iteration 539） |
 | `result`（error） | `subtype`（error_max_turns/error_max_budget_usd 等）, `errors[]` | ✅ 触发 `cli:error` |
 | `control_request.can_use_tool` | `tool_name`, `input`, `tool_use_id`, `request_id`, `title`, `description`, `permission_suggestions` | ✅ 完整处理，发送到 PermissionCard |
 | `control_request.hook_callback` | `callback_id`, `input`, `tool_use_id`, `request_id` | ✅ 通过 `cli:hookCallback` 处理 |
@@ -246,9 +246,9 @@ CLI 2.1.81 中发现以下事件类型 AIPA 未处理：
 | `overloaded_error` | API 服务过载错误 | ✅ **P4-1 已实现** — stream-bridge 转发为 `apiError`，渲染器显示 toast |
 | `authentication_error` | API 认证失败（token 过期/无效 key） | ✅ **P4-1 已实现** — 同上，error 级 toast |
 | `custom-title` | CLI 自动生成会话标题 | ✅ **P4-2 已实现** — stream-bridge 转发为 `customTitle`，渲染器更新 sessionTitle |
-| `worktree-state` | worktree 状态变更通知 | ⚠️ stream-bridge 已转发，渲染器未消费 |
-| `task_completed` | 后台任务完成通知 | ⚠️ stream-bridge 已转发，渲染器未消费 |
-| `result.modelUsage` | 每个模型的 token/cost 分项用量 | ⚠️ 已部分解析但未在 UI 中展示分项 |
+| `worktree-state` | worktree 状态变更通知 | ✅ **P4-6 已实现** — preload 已订阅 `cli:worktreeState`，渲染器更新 `chatStore.activeWorktree`（Iteration 539） |
+| `task_completed` | 后台任务完成通知 | ✅ **P4-6 已实现** — preload 已订阅 `cli:taskCompleted`，渲染器显示完成 toast（Iteration 539） |
+| `result.modelUsage` | 每个模型的 token/cost 分项用量 | ✅ **P0-5 已实现** — stream-bridge 转发 `modelUsage` 字段，存入 chatStore.modelUsage（Iteration 539） |
 | `result.uuid` | 结果 UUID 字段 | ❌ 未消费 |
 | `result.fast_mode_state` | API fast mode 状态（企业功能） | ❌ 未消费 |
 | `result` subtype: `error_max_structured_output_retries` | 结构化输出超出重试次数 | ❌ 未处理（只处理了 error_max_turns/budget） |
@@ -438,7 +438,7 @@ AIPA 状态：❌ 无任何 compact 触发 UI
 2. ✅ **FileEdit/FileWrite 差异对比 UI**：`FileDiffView.tsx` 通过 LCS 算法实现行级 diff 渲染，`ToolUseBlock` 已接入，用户批准前可预览变更内容
 3. ✅ **会话压缩（/compact）入口**：`TokenUsageBar` 在 75%/90% token 使用率时显示 COMPACT 按钮，向 CLI stdin 发送 `/compact`，处理 `PreCompact`/`PostCompact` hook 事件
 4. ✅ **system.init 事件完整消费**：`stream-bridge.ts` 完整解析 `system.init`，通过 `cli:systemInit` IPC 更新 ChatHeader 的权限模式指示器、模型名称、可用工具数
-5. **result 事件完整消费**：从 `result` 事件中读取 `total_cost_usd`、`usage`（input/output tokens）、`permission_denials[]`，显示在 SessionStats 面板
+5. ✅ **result 事件完整消费**：从 `result` 事件中读取 `total_cost_usd`、`usage`（input/output tokens）、`permission_denials[]`、`modelUsage`、`numTurns`、`durationMs`，全部存入 store；permission_denials > 0 时显示 warning toast（Iteration 539）
 
 ### P1（中优先级，增强体验）
 
@@ -450,8 +450,8 @@ AIPA 状态：❌ 无任何 compact 触发 UI
 
 ### P2（低优先级，锦上添花）
 
-1. **内置斜杠命令映射**：`SlashCommandPopup` 展示所有 CLI 内置命令（`/compact`、`/model`、`/clear` 等）并提供说明
-2. **记忆类型过滤器**：Memory 面板支持按 `user/feedback/project/reference` 类型过滤和搜索
+1. ✅ **内置斜杠命令映射**：`SlashCommandPopup` 展示所有 CLI 内置命令（`/compact`、`/model`、`/clear` 等）并提供说明（2026-04-15）
+2. ✅ **记忆类型过滤器**：Memory 面板 memdir tab 支持按 `user/feedback/project/reference` 类型过滤（2026-04-15）
 3. **多代理可视化**：当 `AgentTool` 被调用时，显示子代理嵌套树结构（agent ID、任务、状态）
 4. **会话 Cleanup 设置**：在 Settings 中添加 `cleanupPeriodDays` 数字输入（0 = 禁用）
 5. **语言偏好设置**：在 Settings 中添加 `language` 字段（对应 `settings.json`）
@@ -464,8 +464,8 @@ AIPA 状态：❌ 无任何 compact 触发 UI
 2. ✅ **custom-title 事件**：CLI 自动生成标题时同步到 sessionTitle store
 3. ✅ **Copy Session ID 按钮**：ChatHeader 中点击复制完整 session ID 用于 `--resume`
 4. **Sandbox 设置 UI**：`settings.json` 的 `sandbox.network`/`sandbox.filesystem` 路径控制，需可视化编辑器
-5. **result.modelUsage 展示**：在 StatsPanel 中按模型展示分项 token/cost 用量
-6. **worktree-state / task_completed 事件消费**：stream-bridge 已转发，渲染器尚未更新状态
+5. ✅ **result.modelUsage 存储**：stream-bridge 转发 `modelUsage` 字段，`setLastCost` 存入 chatStore.modelUsage 分项（Iteration 539）
+6. ✅ **worktree-state / task_completed 事件消费**：preload 订阅两个 channel，渲染器更新 `activeWorktree` 状态并显示 toast（Iteration 539）
 
 ---
 
@@ -487,8 +487,8 @@ AIPA 状态：❌ 无任何 compact 触发 UI
 | stdout: `{"type":"overloaded_error",...}` | `cli:apiError`（errorType: overloaded） | ✅ 已实现（2026-04-14）|
 | stdout: `{"type":"authentication_error",...}` | `cli:apiError`（errorType: authentication） | ✅ 已实现（2026-04-14）|
 | stdout: `{"type":"custom-title",...}` | `cli:customTitle` | ✅ 已实现（2026-04-14）|
-| stdout: `{"type":"worktree-state",...}` | `cli:worktreeState` | ⚠️ 已转发，渲染器未消费 |
-| stdout: `{"type":"task_completed",...}` | `cli:taskCompleted` | ⚠️ 已转发，渲染器未消费 |
+| stdout: `{"type":"worktree-state",...}` | `cli:worktreeState` | ✅ 已实现（Iteration 539）— 渲染器更新 activeWorktree |
+| stdout: `{"type":"task_completed",...}` | `cli:taskCompleted` | ✅ 已实现（Iteration 539）— 渲染器显示 toast |
 | stderr 任意内容 | `cli:error` | ✅ |
 | 进程退出 | `cli:processExit` | ✅ |
 | stdin: `{"type":"user","message":{...}}` | `cli:sendMessage` → bridge.sendMessage() | ✅ |

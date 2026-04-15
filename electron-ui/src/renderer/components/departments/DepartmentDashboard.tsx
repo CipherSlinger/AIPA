@@ -1,6 +1,6 @@
 // DepartmentDashboard — org chart (all depts) or single dept session list
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Building2, FolderOpen, MessageSquarePlus, ChevronRight, ArrowLeft, Search, X } from 'lucide-react'
+import { Building2, FolderOpen, MessageSquarePlus, ChevronRight, ChevronDown, ArrowLeft, Search, X } from 'lucide-react'
 import { useDepartmentStore, useSessionStore, useChatStore, useUiStore, usePrefsStore } from '../../store'
 import { SessionListItem } from '../../types/app.types'
 import SessionCard from './SessionCard'
@@ -38,6 +38,77 @@ async function openSessionCore(session: SessionListItem, deptDirectory: string):
   window.electronAPI.prefsSet('workingDir', deptDirectory)
 }
 
+// ── Pending Session (new session card not yet navigated to) ──────────────────
+interface PendingSession {
+  id: string
+  createdAt: number
+}
+
+function PendingSessionCard({ onEnter, onCancel }: { onEnter: () => void; onCancel: () => void }) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <div
+      style={{
+        width: '100%',
+        minHeight: 130,
+        borderRadius: 10,
+        border: '1.5px dashed rgba(99,102,241,0.5)',
+        background: hovered ? 'rgba(99,102,241,0.09)' : 'rgba(99,102,241,0.04)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        cursor: 'pointer',
+        padding: '12px 14px 11px 14px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 6,
+        transition: 'border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease',
+        position: 'relative',
+        boxShadow: hovered ? '0 4px 16px rgba(99,102,241,0.2)' : 'none',
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={onEnter}
+    >
+      {/* Cancel button */}
+      <button
+        onClick={e => { e.stopPropagation(); onCancel() }}
+        title="Cancel"
+        style={{
+          position: 'absolute',
+          top: 8, right: 8,
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          color: 'var(--text-muted)',
+          padding: 3,
+          borderRadius: 4,
+          display: 'flex',
+          alignItems: 'center',
+          transition: 'color 0.15s ease',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
+        onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
+      >
+        <X size={12} />
+      </button>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <MessageSquarePlus size={14} color="#818cf8" style={{ flexShrink: 0 }} />
+        <span style={{ fontSize: 13, fontWeight: 600, color: '#818cf8', lineHeight: 1.4 }}>
+          New Session
+        </span>
+      </div>
+      <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.55 }}>
+        Click to start this session
+      </span>
+      <div style={{ marginTop: 'auto', paddingTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+        <span style={{ fontSize: 10, color: '#6366f1', fontWeight: 600 }}>Open</span>
+        <ChevronRight size={10} color="#6366f1" />
+      </div>
+    </div>
+  )
+}
+
 // ── Single Department View ──────────────────────────────────────────────────
 interface DeptViewProps {
   deptId: string
@@ -72,6 +143,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
   const [selectedSessions, setSelectedSessions] = useState<Set<string>>(new Set())
   const [selectMode, setSelectMode] = useState(false)
   const [sortOrder, setSortOrder] = useState<'recent' | 'oldest' | 'msgs'>('recent')
+  const [pendingSessions, setPendingSessions] = useState<PendingSession[]>([])
 
   const sortedSessions = useMemo(() => {
     const arr = [...deptSessions]
@@ -97,6 +169,12 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
 
   const newSession = useCallback(() => {
     if (!dept) return
+    setPendingSessions(prev => [{ id: `pending-${Date.now()}`, createdAt: Date.now() }, ...prev])
+  }, [dept])
+
+  const enterNewSession = useCallback((pendingId: string) => {
+    if (!dept) return
+    setPendingSessions(prev => prev.filter(p => p.id !== pendingId))
     setPrefs({ workingDir: dept.directory })
     window.electronAPI.prefsSet('workingDir', dept.directory)
     useChatStore.getState().clearMessages()
@@ -642,7 +720,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
               />
             ))}
           </div>
-        ) : deptSessions.length === 0 ? (
+        ) : deptSessions.length === 0 && pendingSessions.length === 0 ? (
           <div style={{
             display: 'flex',
             flexDirection: 'column',
@@ -778,6 +856,9 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
             if (sortOrder !== 'recent') {
               return (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+                  {pendingSessions.map(ps => (
+                    <PendingSessionCard key={ps.id} onEnter={() => enterNewSession(ps.id)} onCancel={() => setPendingSessions(prev => prev.filter(p => p.id !== ps.id))} />
+                  ))}
                   {pinnedFilteredSessions.map(renderSessionCard)}
                 </div>
               )
@@ -801,6 +882,24 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
 
             return (
               <div>
+                {pendingSessions.length > 0 && (
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{
+                      fontSize: 10, fontWeight: 700, color: 'var(--text-muted)',
+                      textTransform: 'uppercase', letterSpacing: '0.07em',
+                      marginBottom: 10,
+                      paddingLeft: 8,
+                      borderLeft: `2px solid ${dept.color || '#6366f1'}`,
+                    }}>
+                      {t('session.today')}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+                      {pendingSessions.map(ps => (
+                        <PendingSessionCard key={ps.id} onEnter={() => enterNewSession(ps.id)} onCancel={() => setPendingSessions(prev => prev.filter(p => p.id !== ps.id))} />
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {groups.map(group => (
                   <div key={group.label} style={{ marginBottom: 20 }}>
                     <div style={{
@@ -852,6 +951,17 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
   const [newDeptName, setNewDeptName] = useState('')
   const [newDeptDir, setNewDeptDir] = useState('')
   const addNewDept = useDepartmentStore(s => s.addDepartment)
+  const [collapsedDepts, setCollapsedDepts] = useState<Set<string>>(new Set())
+
+  const toggleDeptCollapse = (deptId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setCollapsedDepts(prev => {
+      const next = new Set(prev)
+      if (next.has(deptId)) next.delete(deptId)
+      else next.add(deptId)
+      return next
+    })
+  }
 
   useEffect(() => {
     if (!statsPopoverId) return
@@ -1036,6 +1146,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
       {filteredDepts.map(dept => {
         const sessions = sessionsByDept[dept.id] || []
         const isHovered = hoveredDept === dept.id
+        const isCollapsed = collapsedDepts.has(dept.id)
         return (
           <div key={dept.id} style={{ marginBottom: 36 }}>
             {/* Dept header — clickable to enter dept view */}
@@ -1061,7 +1172,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                 paddingBottom: 4,
                 marginBottom: 10,
               }}
-              onClick={() => onSelectDept(dept.id)}
+              onClick={e => toggleDeptCollapse(dept.id, e)}
               onMouseEnter={() => setHoveredDept(dept.id)}
               onMouseLeave={() => setHoveredDept(null)}
             >
@@ -1141,17 +1252,39 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                 marginLeft: 2,
               }} />
 
-              <ChevronRight
-                size={13}
-                style={{
-                  color: isHovered ? 'var(--text-secondary)' : 'var(--text-muted)',
-                  opacity: isHovered ? 0.8 : 0.4,
-                  transition: 'color 0.15s, opacity 0.15s',
-                }}
-              />
+              {isCollapsed
+                ? <ChevronRight size={13} style={{ color: isHovered ? 'var(--text-secondary)' : 'var(--text-muted)', opacity: isHovered ? 0.8 : 0.4, transition: 'color 0.15s, opacity 0.15s' }} />
+                : <ChevronDown size={13} style={{ color: isHovered ? 'var(--text-secondary)' : 'var(--text-muted)', opacity: isHovered ? 0.8 : 0.4, transition: 'color 0.15s, opacity 0.15s' }} />
+              }
+              {isHovered && (
+                <button
+                  onClick={e => { e.stopPropagation(); onSelectDept(dept.id) }}
+                  title="Enter department"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    padding: '3px 8px',
+                    borderRadius: 5,
+                    border: '1px solid rgba(99,102,241,0.4)',
+                    background: 'rgba(99,102,241,0.10)',
+                    color: '#818cf8',
+                    fontSize: 10,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                    transition: 'all 0.15s ease',
+                    letterSpacing: '0.03em',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.20)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.65)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.10)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)' }}
+                >
+                  Enter <ChevronRight size={9} />
+                </button>
+              )}
             </div>
 
-            {sessionsLoading ? (
+            {!isCollapsed && (sessionsLoading ? (
               <div style={{ display: 'flex', gap: 10 }}>
                 {[1, 2].map(i => (
                   <div
@@ -1359,7 +1492,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                 </div>
                 )}
               </div>
-            )}
+            ))}
           </div>
         )
       })}
