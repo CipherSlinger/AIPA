@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Search, Download, ClipboardCopy, Maximize2, Minimize2, Plus, FolderOpen, FileText, FilePlus2, RefreshCw, MessageSquarePlus, X, GitBranch, Building2 } from 'lucide-react'
+import { Search, Download, ClipboardCopy, Maximize2, Minimize2, FolderOpen, FileText, FilePlus2, RefreshCw, MessageSquarePlus, X, GitBranch, Building2 } from 'lucide-react'
 import { useChatStore, useSessionStore, usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import ModelPicker from './ModelPicker'
@@ -672,17 +672,6 @@ ${t('chat.clickToChangeDir')}`}
           {elapsedStr}
         </span>
       )}
-
-      {/* New conversation */}
-      <button
-        onClick={onNewConversation}
-        title={t('chat.newConversation')}
-        style={headerBtnStyle}
-        onMouseEnter={(e) => hoverIn(e)}
-        onMouseLeave={(e) => hoverOut(e)}
-      >
-        <Plus size={15} />
-      </button>
 
       {/* Save as Template dialog */}
       {showSaveTemplate && (
