@@ -107,7 +107,7 @@ export default function SaveTemplateDialog({ onClose }: Props) {
           paddingBottom: 14,
           borderBottom: '1px solid var(--border)',
         }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.92)' }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
             {t('convTemplate.saveAsTemplate')}
           </span>
           <button
@@ -270,7 +270,7 @@ export default function SaveTemplateDialog({ onClose }: Props) {
               background: name.trim()
                 ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
                 : 'var(--bg-hover)',
-              border: 'none', color: 'rgba(255,255,255,0.95)', fontWeight: 600,
+              border: 'none', color: 'var(--text-bright)', fontWeight: 600,
               opacity: !name.trim() ? 0.5 : 1,
               transition: 'all 0.15s ease',
             }}

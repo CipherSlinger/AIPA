@@ -126,7 +126,7 @@ export default function StatsPanel({
         style={{
           ...headerBtnStyle,
           background: showStats ? '#6366f1' : 'none',
-          color: showStats ? 'rgba(255,255,255,0.95)' : 'var(--text-muted)',
+          color: showStats ? 'var(--text-bright)' : 'var(--text-muted)',
           cursor: messageCount === 0 ? 'not-allowed' : 'pointer',
           opacity: messageCount === 0 ? 0.3 : 1,
         }}
@@ -353,7 +353,7 @@ export default function StatsPanel({
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'var(--border)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.85)'
+                e.currentTarget.style.color = 'var(--text-primary)'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'var(--bg-hover)'
@@ -379,7 +379,7 @@ export default function StatsPanel({
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'var(--border)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.85)'
+                e.currentTarget.style.color = 'var(--text-primary)'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'var(--bg-hover)'
@@ -413,7 +413,7 @@ export default function StatsPanel({
             onMouseEnter={(e) => {
               if (!statsCopied) {
                 e.currentTarget.style.background = 'var(--border)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.85)'
+                e.currentTarget.style.color = 'var(--text-primary)'
               }
             }}
             onMouseLeave={(e) => {
@@ -450,7 +450,7 @@ export default function StatsPanel({
             onMouseEnter={(e) => {
               if (!summaryCopied) {
                 e.currentTarget.style.background = 'var(--border)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.85)'
+                e.currentTarget.style.color = 'var(--text-primary)'
               }
             }}
             onMouseLeave={(e) => {

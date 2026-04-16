@@ -332,7 +332,7 @@ export default function ModelPicker({ model }: ModelPickerProps) {
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'var(--bg-hover)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.80)'
+                e.currentTarget.style.color = 'var(--text-secondary)'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'transparent'

@@ -194,7 +194,7 @@ export default function WorktreeDialog({ cwd, onClose, onSwitchCwd }: WorktreeDi
               padding: '8px 16px', fontSize: 13, fontWeight: 600,
               background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
               border: 'none', borderRadius: 8,
-              color: 'rgba(255,255,255,0.95)',
+              color: 'var(--text-bright)',
               cursor: creating || !newName.trim() ? 'not-allowed' : 'pointer',
               opacity: creating || !newName.trim() ? 0.45 : 1,
               whiteSpace: 'nowrap',
@@ -276,7 +276,7 @@ export default function WorktreeDialog({ cwd, onClose, onSwitchCwd }: WorktreeDi
                       background: isActive
                         ? 'rgba(99,102,241,0.08)'
                         : isConflict ? 'rgba(239,68,68,0.05)'
-                        : 'rgba(255,255,255,0.025)',
+                        : 'var(--glass-shimmer)',
                       transition: 'all 0.15s ease',
                     }}
                   >
@@ -286,9 +286,9 @@ export default function WorktreeDialog({ cwd, onClose, onSwitchCwd }: WorktreeDi
                     ) : isConflict ? (
                       <AlertCircle size={14} style={{ color: '#f87171', flexShrink: 0 }} />
                     ) : isMerged ? (
-                      <GitMerge size={14} style={{ color: 'rgba(255,255,255,0.28)', flexShrink: 0 }} />
+                      <GitMerge size={14} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
                     ) : (
-                      <GitBranch size={13} style={{ color: 'rgba(255,255,255,0.30)', flexShrink: 0 }} />
+                      <GitBranch size={13} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
                     )}
 
                     <div style={{ flex: 1, minWidth: 0 }}>

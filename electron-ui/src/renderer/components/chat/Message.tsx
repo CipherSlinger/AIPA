@@ -232,7 +232,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
         padding: compact ? `6px 20px` : `8px 20px`,
         maxWidth: '100%',
         position: 'relative',
-        background: hovered ? 'rgba(255,255,255,0.01)' : undefined,
+        background: hovered ? 'var(--glass-shimmer)' : undefined,
       }}
       aria-label={isUser ? `You said: ${((message as StandardChatMessage).content || '').slice(0, 100)}` : `Claude said: ${((message as StandardChatMessage).content || '').slice(0, 100)}`}
     >
@@ -242,7 +242,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           style={{
             width: avatarSize, height: avatarSize,
             borderRadius: '50%',
-            background: isUser ? 'rgba(99,102,241,0.25)' : (isAssistant && activePersona ? `${activePersona.color}30` : 'rgba(255,255,255,0.08)'),
+            background: isUser ? 'rgba(99,102,241,0.25)' : (isAssistant && activePersona ? `${activePersona.color}30` : 'var(--bg-input)'),
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0, marginTop: 2,
           }}

@@ -201,10 +201,10 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
             )
           },
           ul({ children }) {
-            return <ul style={{ paddingLeft: 20, marginBottom: 10, lineHeight: 1.7, color: 'rgba(255,255,255,0.75)' }}>{children}</ul>
+            return <ul style={{ paddingLeft: 20, marginBottom: 10, lineHeight: 1.7, color: 'var(--text-secondary)' }}>{children}</ul>
           },
           ol({ children }) {
-            return <ol style={{ paddingLeft: 20, marginBottom: 10, lineHeight: 1.7, color: 'rgba(255,255,255,0.75)' }}>{children}</ol>
+            return <ol style={{ paddingLeft: 20, marginBottom: 10, lineHeight: 1.7, color: 'var(--text-secondary)' }}>{children}</ol>
           },
           li({ children, ...props }) {
             // Detect task list items (GFM checkboxes)
@@ -231,7 +231,7 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
                     borderRadius: 3,
                     border: checked ? 'none' : '1.5px solid var(--text-muted)',
                     background: checked ? '#6366f1' : 'transparent',
-                    color: 'rgba(255,255,255,0.95)',
+                    color: 'var(--text-bright)',
                     fontSize: 10,
                     flexShrink: 0,
                     marginTop: 3,
@@ -302,14 +302,14 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
           },
           thead({ children }) {
             return (
-              <thead style={{ background: 'rgba(255,255,255,0.06)' }}>{children}</thead>
+              <thead style={{ background: 'var(--bg-input)' }}>{children}</thead>
             )
           },
           tr({ children, ...props }) {
             return (
               <tr
                 style={{ transition: 'background 0.15s ease' }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--glass-shimmer)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = '')}
               >
                 {children}
