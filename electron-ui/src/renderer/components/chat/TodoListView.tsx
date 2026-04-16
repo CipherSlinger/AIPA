@@ -82,7 +82,7 @@ function StatusIcon({ status }: { status: TodoItem['status'] }) {
         width: 16,
         height: 16,
         borderRadius: '50%',
-        border: '1.5px solid rgba(255,255,255,0.20)',
+        border: '1.5px solid var(--border)',
         flexShrink: 0,
         transition: 'all 0.15s ease',
       }}
@@ -146,7 +146,7 @@ export default function TodoListView({ todos }: Props) {
           justifyContent: 'space-between',
           padding: '7px 12px',
           borderBottom: '1px solid var(--bg-hover)',
-          background: 'rgba(255,255,255,0.03)',
+          background: 'var(--glass-bg-low)',
         }}
       >
         <span

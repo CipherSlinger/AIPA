@@ -180,7 +180,7 @@ export default function TokenUsageBar() {
               : {
                   border: '1px solid var(--border)',
                   background: 'var(--bg-hover)',
-                  color: 'rgba(255,255,255,0.25)',
+                  color: 'var(--text-faint)',
                 }),
           }}
         >
