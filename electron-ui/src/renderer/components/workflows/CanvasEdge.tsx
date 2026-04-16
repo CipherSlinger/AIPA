@@ -33,14 +33,6 @@ interface CanvasEdgeProps {
   label?: string                               // condition/branch label shown always at midpoint
 }
 
-function edgeColor(status: EdgeStatus, isRunningFromSource = false): string {
-  if (status === 'done' || status === 'completed') return 'rgba(34,197,94,0.6)'
-  if (status === 'active') return 'var(--accent)'
-  if (status === 'running' || isRunningFromSource) return 'rgba(99,102,241,0.8)'
-  if (status === 'error') return 'rgba(239,68,68,0.6)'
-  return 'rgba(255,255,255,0.12)'
-}
-
 function formatOutputLength(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
   return String(n)
@@ -51,9 +43,73 @@ function formatDuration(ms: number): string {
   return `${ms}ms`
 }
 
+// Iter 563: derive edge stroke style from sourceStatus for full visual differentiation
+interface SourceEdgeStyle {
+  color: string
+  strokeDasharray?: string
+  strokeWidth: number
+  opacity: number
+  animated: boolean
+  animationName?: string
+  filter?: string
+}
+
+function edgeStyleFromSourceStatus(sourceStatus: string | undefined): SourceEdgeStyle {
+  switch (sourceStatus) {
+    case 'running':
+      return {
+        color: '#6366f1',
+        strokeDasharray: '8 4',
+        strokeWidth: 2,
+        opacity: 0.9,
+        animated: true,
+        animationName: 'dashFlow',
+        filter: 'drop-shadow(0 0 6px rgba(99,102,241,0.6))',
+      }
+    case 'completed':
+    case 'success':
+    case 'done':
+      return {
+        color: '#22c55e',
+        strokeWidth: 2,
+        opacity: 0.8,
+        animated: false,
+        filter: 'drop-shadow(0 0 4px rgba(34,197,94,0.4))',
+      }
+    case 'error':
+    case 'failed':
+      return {
+        color: '#ef4444',
+        strokeWidth: 2,
+        opacity: 0.8,
+        animated: false,
+        filter: 'drop-shadow(0 0 4px rgba(239,68,68,0.4))',
+      }
+    case 'skipped':
+      return {
+        color: 'rgba(150,150,150,0.4)',
+        strokeDasharray: '4 6',
+        strokeWidth: 1.5,
+        opacity: 0.5,
+        animated: false,
+      }
+    case 'pending':
+    case 'idle':
+    default:
+      return {
+        color: 'rgba(100,100,100,0.4)',
+        strokeDasharray: '4 6',
+        strokeWidth: 1.5,
+        opacity: 0.35,
+        animated: false,
+      }
+  }
+}
+
 export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, layoutDirection = 'vertical', onHoverChange, highlighted, onAddBetween, onDelete, outputLength, durationMs, sourceStepIndex, targetStepIndex, label }: CanvasEdgeProps) {
   const [isHoveredLocally, setIsHoveredLocally] = useState(false)
-  const isRunningFromSource = sourceStatus === 'running'
+  // Iter 563: full source-status-driven style replaces the old binary isRunningFromSource approach
+  const srcStyle = edgeStyleFromSourceStatus(sourceStatus)
 
   let startX: number, startY: number, endX: number, endY: number, d: string
   let midX: number, midY: number
@@ -75,14 +131,9 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
     midY = (startY + endY) / 2
     d = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`
   }
-  const color = edgeColor(status, isRunningFromSource)
   const markerId = `canvas-arrowhead-${status}`
 
-  // D8: boost visibility when highlighted
-  const strokeOpacity = highlighted
-    ? 0.95
-    : status === 'idle' ? 0.35 : 0.85
-  // B3.4: done 状态主线加粗为 2
+  // B3.4: done 状态主线加粗为 2 — still used by the highlighted glow path
   const strokeWidth = highlighted
     ? (status === 'active' || status === 'running' ? 2.5 : 2)
     : (status === 'done' || status === 'completed' ? 2 : status === 'active' || status === 'running' ? 2 : 1.5)
@@ -139,25 +190,26 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
         />
       )}
 
-      {/* Base path — B3.1: idle 状态改为虚线 */}
+      {/* Base path — Iter 563: use srcStyle (sourceStatus-driven) unless highlighted overrides */}
       <path
         d={d}
         fill="none"
-        stroke={highlighted ? 'rgba(99,102,241,0.8)' : color}
-        strokeWidth={highlighted ? 2.5 : (status === 'running' || isRunningFromSource ? 2 : strokeWidth)}
-        strokeOpacity={strokeOpacity}
-        strokeDasharray={
-          status === 'idle' ? '4 6' :
-          (status === 'running' || isRunningFromSource) ? '6 3' :
-          status === 'error' ? '3 3' :
-          undefined
-        }
-        strokeDashoffset={(status === 'running' || isRunningFromSource) ? '0' : undefined}
+        stroke={highlighted ? 'rgba(99,102,241,0.8)' : srcStyle.color}
+        strokeWidth={highlighted ? 2.5 : srcStyle.strokeWidth}
+        strokeOpacity={highlighted ? 0.95 : srcStyle.opacity}
+        strokeDasharray={highlighted ? undefined : srcStyle.strokeDasharray}
+        strokeDashoffset={(!highlighted && srcStyle.animated) ? '0' : undefined}
         markerEnd={`url(#${markerId})`}
         style={{
           pointerEvents: 'none',
-          ...(status === 'running' || isRunningFromSource ? { animation: 'dashFlow 1.2s linear infinite' } : {}),
-          ...((highlighted || status === 'running' || isRunningFromSource) ? { filter: 'drop-shadow(0 0 4px rgba(99,102,241,0.5))' } : {}),
+          ...(!highlighted && srcStyle.animated
+            ? { animation: `${srcStyle.animationName ?? 'dashFlow'} 1.2s linear infinite` }
+            : {}),
+          ...(highlighted
+            ? { filter: 'drop-shadow(0 0 4px rgba(99,102,241,0.5))' }
+            : srcStyle.filter
+              ? { filter: srcStyle.filter }
+              : {}),
         }}
       />
 
@@ -186,12 +238,24 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
         />
       )}
 
-      {/* B3.4: Done glow — stronger effect */}
-      {(status === 'done' || status === 'completed') && !highlighted && (
+      {/* B3.4 + Iter 563: Done/success glow — also triggered by sourceStatus */}
+      {((status === 'done' || status === 'completed') || (sourceStatus === 'completed' || sourceStatus === 'success' || sourceStatus === 'done')) && !highlighted && (
         <path
           d={d}
           fill="none"
           stroke="rgba(34,197,94,0.6)"
+          strokeWidth={2.5}
+          strokeOpacity={0.2}
+          style={{ filter: 'blur(2px)', pointerEvents: 'none' }}
+        />
+      )}
+
+      {/* Iter 563: Error/failed glow */}
+      {(sourceStatus === 'error' || sourceStatus === 'failed') && !highlighted && (
+        <path
+          d={d}
+          fill="none"
+          stroke="rgba(239,68,68,0.6)"
           strokeWidth={2.5}
           strokeOpacity={0.2}
           style={{ filter: 'blur(2px)', pointerEvents: 'none' }}
