@@ -1,6 +1,6 @@
 // SessionCard — displays a single session as a clickable card in the DepartmentDashboard
 import React, { useState, useEffect } from 'react'
-import { MessageSquare, Clock, Trash2, ArrowRight } from 'lucide-react'
+import { MessageSquare, Clock, Trash2 } from 'lucide-react'
 import { SessionListItem } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { usePrefsStore } from '../../store'
@@ -482,30 +482,6 @@ export default function SessionCard({ session, onClick, isActive, isStreaming, i
         >
           {preview}
         </span>
-      )}
-
-      {/* Hover "Open" indicator — bottom-right, above footer */}
-      {hovered && !isActive && !isLoading && (
-        <div style={{
-          position: 'absolute',
-          bottom: 10,
-          right: 12,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 3,
-          fontSize: 10,
-          fontWeight: 600,
-          color: '#818cf8',
-          opacity: 0.85,
-          pointerEvents: 'none',
-          transition: 'opacity 0.15s ease',
-        }}>
-          <span>Open</span>
-          <ArrowRight size={10} />
-          {currentLabel && (
-            <span style={{ fontSize: 9, color: currentLabel, opacity: 0.8 }}>●</span>
-          )}
-        </div>
       )}
 
       {/* Footer: time + message count */}
