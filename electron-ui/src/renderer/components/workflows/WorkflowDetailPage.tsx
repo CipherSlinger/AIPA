@@ -366,6 +366,51 @@ export default function WorkflowDetailPage() {
         t={t}
       />
 
+      {/* Execution progress bar — only shown when execution has started */}
+      {(() => {
+        const total = execution.totalSteps
+        const completed = execution.completedCount
+        const running = execution.isRunning
+        const hasFailed = execution.hasError
+        const hasStarted = total > 0 && (completed > 0 || running || hasFailed)
+        if (!hasStarted) return null
+        const progress = total > 0 ? (completed / total) * 100 : 0
+        const barColor = hasFailed
+          ? '#ef4444'
+          : (completed === total && total > 0)
+            ? '#22c55e'
+            : '#6366f1'
+        return (
+          <div style={{ padding: '0 8px 4px 8px', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{
+                flex: 1,
+                height: 3,
+                background: 'var(--border)',
+                borderRadius: 2,
+                overflow: 'hidden',
+              }}>
+                <div style={{
+                  width: `${progress}%`,
+                  height: '100%',
+                  background: barColor,
+                  borderRadius: 2,
+                  transition: 'width 0.4s ease, background 0.3s ease',
+                }} />
+              </div>
+              <span style={{
+                fontSize: 11,
+                color: 'var(--text-muted)',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+              }}>
+                {completed}/{total} steps
+              </span>
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Canvas fills the full content area */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', padding: '8px', background: 'rgba(255,255,255,0.005)' }}>
         <div style={{
