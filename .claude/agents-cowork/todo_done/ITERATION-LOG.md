@@ -6554,6 +6554,30 @@ Status: SUCCESS (npm run check: 0 errors, vite build: 13.44s)
 - [x] TOOL_ICONS updated for all three browser name variants + PowerShell
 - [x] npm run check passes (only pre-existing TS1149 casing error unrelated to this iteration)
 
+## Iteration 565 — CronCreate/CronDelete/CronList display cards in ToolUseBlock
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Added CronCard inline component to ToolUseBlock.tsx for the three Cron scheduling tools. CronCreate input shows cron expression chip (Clock icon), prompt text preview (first 100 chars, expandable), recurring/one-shot badge, and persistent badge. CronCreate result shows green "Scheduled" badge with job ID chip. CronDelete input shows red "Delete" badge with job ID. CronList result parses JSON array of jobs and shows compact rows: cron expression chip + prompt preview (40 chars) + status badge; falls back to "No scheduled jobs" message for empty list. Also added CronJob interface and parseCronJobs() helper.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/ToolUseBlock.tsx` — add CronJob interface, parseCronJobs(), CronCard component; wire input routing (CronCreate/CronDelete); wire output routing (CronCreate/CronDelete/CronList); TOOL_ICONS already had Clock entries
+
+### Build
+Status: SUCCESS (npx tsc --noEmit: 0 errors, vite build: SUCCESS)
+
+### Acceptance Criteria
+- [x] CronCreate input shows cron expression chip with Clock icon
+- [x] CronCreate input shows prompt preview (first 100 chars, expandable)
+- [x] CronCreate input shows recurring/one-shot badge (green/blue)
+- [x] CronCreate input shows persistent badge if durable=true
+- [x] CronCreate result shows green "Scheduled" badge + job ID chip
+- [x] CronDelete input shows red "Delete" badge with job ID chip (X icon)
+- [x] CronList result shows compact job rows (cron chip + prompt + status badge)
+- [x] CronList result shows "No scheduled jobs" when list is empty
+- [x] TOOL_ICONS has Clock for CronCreate, CronDelete, CronList (already present)
+- [x] npx tsc --noEmit passes with 0 errors
+
 ## Iteration 566 — RemoteTrigger action display card
 _Date: 2026-04-16 | Sprint ongoing_
 
