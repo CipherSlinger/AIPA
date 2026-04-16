@@ -7331,6 +7331,31 @@ Status: SUCCESS (0 errors, 204 pre-existing warnings)
 - [x] `npm run check` passes with 0 errors
 - [x] No regressions introduced
 
+---
+
+## Iteration 605 — CSS variable migration for ui/shared/onboarding components
+
+_Date: 2026-04-16 | Sprint CSS Variable Migration_
+
+### Summary
+Replaced hardcoded `rgba(255,255,255,...)` values with CSS custom properties in five ui/shared/onboarding components. Skipped pure-white QR code canvas background (functional requirement for scannability) and white-on-colored-button text values per migration rules.
+
+### Files Changed
+- `ui/Toggle.tsx` — inactive track bg 0.15 → `var(--bg-input)`
+- `ui/Skeleton.tsx` — shimmer gradient stops 0.05/0.08 → `var(--glass-bg-low)` / `var(--bg-hover)`
+- `ui/KeyboardShortcutsModal.tsx` — kbd border 0.15 and border-bottom 0.20 → `var(--border)` (2 sites)
+- `ui/QRCodeDisplay.tsx` — canvas border 0.12 → `var(--border)`; white bg skipped (QR scannability)
+- `onboarding/OnboardingWizard.tsx` — inactive step disc bg 0.15 → `var(--bg-input)`; 0.95 text on indigo disc skipped
+
+### Build
+Status: SUCCESS (5 files changed, 6 insertions/6 deletions, 0 errors, 204 warnings pre-existing)
+
+### Acceptance Criteria
+- [x] All in-scope rgba(255,255,255,...) values replaced with appropriate CSS variables
+- [x] Skipped values correctly identified (pure white QR bg, white text on colored buttons, box-shadows)
+- [x] npm run check passes with 0 errors
+- [x] Committed and pushed to origin/master (commit c2f895a)
+
 ## Iteration 606 — CSS variable migration for remaining chat/skills/notes/filebrowser/ui components
 
 _Date: 2026-04-16 | Sprint CSS Variable Migration_

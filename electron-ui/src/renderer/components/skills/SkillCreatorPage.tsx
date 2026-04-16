@@ -335,7 +335,7 @@ ${trimmedDesc}
                     <>
                       <span style={{
                         width: 12, height: 12, borderRadius: '50%',
-                        border: '2px solid rgba(255,255,255,0.3)',
+                        border: '2px solid var(--text-faint)',
                         borderTopColor: 'var(--text-primary)',
                         animation: 'spin 0.8s linear infinite',
                         flexShrink: 0,

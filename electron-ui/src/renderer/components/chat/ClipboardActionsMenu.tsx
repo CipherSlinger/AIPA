@@ -105,7 +105,7 @@ export default function ClipboardActionsMenu({ onSend }: ClipboardActionsMenuPro
                 background: hoveredItem === id ? 'var(--border)' : 'transparent',
                 border: 'none',
                 borderRadius: 6,
-                color: hoveredItem === id ? 'rgba(255,255,255,0.92)' : 'var(--text-primary)',
+                color: hoveredItem === id ? 'var(--text-primary)' : 'var(--text-primary)',
                 cursor: 'pointer',
                 fontSize: 13,
                 textAlign: 'left',

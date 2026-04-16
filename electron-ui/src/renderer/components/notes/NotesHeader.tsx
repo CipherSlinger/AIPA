@@ -216,7 +216,7 @@ export default function NotesHeader({
               style={{
                 background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                 border: 'none',
-                borderLeft: '1px solid rgba(255,255,255,0.15)',
+                borderLeft: '1px solid var(--border)',
                 borderRadius: '0 7px 7px 0',
                 color: 'var(--text-bright)',
                 cursor: atLimit ? 'not-allowed' : 'pointer',
