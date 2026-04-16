@@ -99,7 +99,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                     ? 'rgba(74,222,128,0.85)'
                     : isActive
                       ? 'rgba(99,102,241,0.85)'
-                      : 'rgba(255,255,255,0.15)',
+                      : 'var(--bg-input)',
                   boxShadow: isActive
                     ? '0 0 0 3px rgba(99,102,241,0.20)'
                     : isDone

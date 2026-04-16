@@ -317,7 +317,7 @@ export default function QRCodeDisplay({ url, size = 160, label }: QRCodeDisplayP
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: 16 }}>
       <canvas
         ref={canvasRef}
-        style={{ width: size, height: size, borderRadius: 8, border: '2px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,1)', padding: 8 }}
+        style={{ width: size, height: size, borderRadius: 8, border: '2px solid var(--border)', background: 'rgba(255,255,255,1)', padding: 8 }}
       />
       {label && (
         <span style={{ fontSize: 12, color: 'var(--text-secondary)', textAlign: 'center' }}>{label}</span>

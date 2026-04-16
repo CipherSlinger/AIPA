@@ -36,7 +36,7 @@ export default function Skeleton({ width = '100%', height = 16, borderRadius = 6
         width,
         height,
         borderRadius,
-        background: 'linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.05) 100%)',
+        background: 'linear-gradient(90deg, var(--glass-bg-low) 0%, var(--bg-hover) 50%, var(--glass-bg-low) 100%)',
         backgroundSize: '200%',
         animation: 'skeleton-shimmer 1.5s infinite',
         overflow: 'hidden',

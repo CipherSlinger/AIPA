@@ -137,8 +137,8 @@ export default function KeyboardShortcutsModal({ onClose }: Props) {
                       <React.Fragment key={ki}>
                         <kbd style={{
                           background: 'var(--border)',
-                          border: '1px solid rgba(255,255,255,0.15)',
-                          borderBottom: '2px solid rgba(255,255,255,0.20)',
+                          border: '1px solid var(--border)',
+                          borderBottom: '2px solid var(--border)',
                           borderRadius: 5, padding: '2px 7px',
                           fontSize: 11, fontWeight: 600,
                           color: 'var(--text-primary)',

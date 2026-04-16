@@ -18,7 +18,7 @@ export default function Toggle({ value, onChange, disabled, 'aria-label': ariaLa
         width: 36,
         height: 20,
         borderRadius: 12,
-        background: value ? '#6366f1' : 'rgba(255,255,255,0.15)',
+        background: value ? '#6366f1' : 'var(--bg-input)',
         border: 'none',
         cursor: disabled ? 'not-allowed' : 'pointer',
         position: 'relative',
