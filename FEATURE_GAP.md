@@ -452,7 +452,7 @@ AIPA 状态：❌ 无任何 compact 触发 UI
 
 1. ✅ **内置斜杠命令映射**：`SlashCommandPopup` 展示所有 CLI 内置命令（`/compact`、`/model`、`/clear` 等）并提供说明（2026-04-15）
 2. ✅ **记忆类型过滤器**：Memory 面板 memdir tab 支持按 `user/feedback/project/reference` 类型过滤（2026-04-15）
-3. **多代理可视化**：当 `AgentTool` 被调用时，显示子代理嵌套树结构（agent ID、任务、状态）
+3. ✅ **多代理可视化**：当 `AgentTool` 被调用时，渲染专用 `AgentToolCard` 组件，显示子代理调用的嵌套结构（描述预览、subagent_type chip、prompt 展开/折叠、结果输出、状态指示器 running/done/error、elapsed timer）（Iteration 544）
 4. **会话 Cleanup 设置**：在 Settings 中添加 `cleanupPeriodDays` 数字输入（0 = 禁用）
 5. **语言偏好设置**：在 Settings 中添加 `language` 字段（对应 `settings.json`）
 6. ✅ **嵌套 CLAUDE.md 可视化**：Memory 面板"指令文件"Tab 内置"CLI 当前加载的 CLAUDE.md 文件"折叠区，显示全局/项目/本地三个路径的存在状态（✓绿/○灰），不存在的文件有一键创建按钮（2026-04-15）
