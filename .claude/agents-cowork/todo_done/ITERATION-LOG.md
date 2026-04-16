@@ -6765,3 +6765,15 @@ Status: SUCCESS (tsc --noEmit: 0 errors; commit: 510fc84)
 - [x] All extracted components imported back and used in ToolUseBlock
 - [x] TypeScript check passes (0 errors)
 - [x] No behavior change -- only file organization refactor
+
+## Iteration 573 — Remove redundant Open→ label from session card hover
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Removed the bottom-right "Open→" hover label (ArrowRight icon + "Open" text, 24 lines) from SessionCard.tsx. The top-right "Open" button in DepartmentDashboard.tsx remains untouched. Also cleaned up now-unused ArrowRight import.
+
+### Files Changed
+- `electron-ui/src/renderer/components/departments/SessionCard.tsx` — remove hover "Open→" block and unused ArrowRight import
+
+### Build
+Status: SUCCESS
