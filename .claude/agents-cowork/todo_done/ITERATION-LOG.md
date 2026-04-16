@@ -6069,3 +6069,31 @@ Status: SUCCESS
 - [x] Tool count badge shows correct count from system.init; tooltip lists tool names
 - [x] No new TypeScript errors (pre-existing WorkflowCanvas error unchanged)
 - [x] Build passes
+
+---
+
+## Iteration 546 — TaskCreate/Update/List/Get inline card UI
+_Date: 2026-04-15 | Sprint ongoing_
+
+### Summary
+Implemented chat-stream UI for the CLI's async task management tools (gated by `isTodoV2Enabled`). Created `TaskDashboardCard.tsx` with two display modes: a Kanban 3-column layout for larger task lists, and a flat list for single-task / small sets. Status badges use gray=pending, blue=in_progress (pulse animation), green=completed. Wired into `ToolUseBlock.tsx` with early-return inline badge cards for `TaskCreate` (green "created" badge with subject) and `TaskUpdate` (indigo "updated" badge with task ID + new status), plus structured result rendering for `TaskList`/`TaskGet` that parses JSON arrays or single objects into the `TaskDashboardCard`. Added safe JSON parsing helpers and set constants. Updated `FEATURE_GAP.md` to mark this gap as resolved.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/TaskDashboardCard.tsx` — new component: TaskItem types, StatusDot/StatusBadge/ShortId/TaskRow/KanbanColumn sub-components, main TaskDashboardCard with flat-list/Kanban auto-selection
+- `electron-ui/src/renderer/components/chat/ToolUseBlock.tsx` — add TaskDashboardCard import, TASK_CREATE/UPDATE/LIST/GET_TOOLS constants, safeParseJSON + parseTaskItems helpers; inline badge renders for TaskCreate/TaskUpdate; TaskList/TaskGet output section with TaskDashboardCard
+- `FEATURE_GAP.md` — update TaskCreate/Get/Update/List row from ❌ to ✅
+
+### Build
+Status: SUCCESS (npm run check: 0 errors, 0 new warnings from our files; npm run build: 12.76s)
+
+### Acceptance Criteria
+- [x] TaskCreate tool renders inline green badge with subject text
+- [x] TaskUpdate tool renders inline indigo badge with task ID (6-char short) and new status
+- [x] TaskList result parsed and rendered as TaskDashboardCard (Kanban for >3 tasks, flat list for <=3)
+- [x] TaskGet result parsed and rendered as TaskDashboardCard (single-task flat list)
+- [x] Status badges: gray=pending, blue/pulse=in_progress, green=completed
+- [x] Task rows show: short ID, subject, owner (if any), blocked-by count badge (if any)
+- [x] Safe JSON parsing with try/catch — malformed result falls through to default pre block
+- [x] CSS variables only for all colors
+- [x] FEATURE_GAP.md updated from ❌ to ✅
+- [x] Build passes with no new TypeScript errors

@@ -7,7 +7,7 @@ export function Separator() {
     style: {
       width: 1,
       height: 12,
-      background: 'rgba(255,255,255,0.06)',
+      background: 'var(--border)',
       borderRadius: 1,
       margin: '0 4px',
       flexShrink: 0,

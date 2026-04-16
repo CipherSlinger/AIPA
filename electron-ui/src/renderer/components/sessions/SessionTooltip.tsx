@@ -152,7 +152,7 @@ export default function SessionTooltip({ session, pos, sessionTags, tagNames, pr
               style={{
                 height: 10,
                 width: `${width}%`,
-                background: 'rgba(255,255,255,0.15)',
+                background: 'var(--bg-active)',
                 borderRadius: 4,
                 marginBottom: 8,
                 animation: 'pulse 1.5s ease-in-out infinite',

@@ -114,7 +114,7 @@ export default function StatusBarModelPicker({ modelLabel, shortModel, isClaudeM
         title={t('chat.switchModel')}
       >
         {!isClaudeModel && (
-          <span style={{ fontSize: 8, opacity: 0.7, padding: '0 3px', borderRadius: 6, background: 'rgba(255,255,255,0.15)' }}>
+          <span style={{ fontSize: 8, opacity: 0.7, padding: '0 3px', borderRadius: 6, background: 'var(--bg-hover)' }}>
             {modelLabel.includes('gpt') ? 'OpenAI' : modelLabel.includes('deepseek') ? 'DeepSeek' : 'API'}
           </span>
         )}

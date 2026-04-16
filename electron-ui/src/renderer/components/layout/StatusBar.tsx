@@ -367,7 +367,7 @@ export default function StatusBar() {
             onMouseLeave={() => setHoverFocusTimer(false)}
             style={{
               background: focusTimer.active
-                ? 'rgba(255,255,255,0.15)'
+                ? 'var(--bg-active)'
                 : hoverFocusTimer ? 'var(--border)' : 'transparent',
               border: 'none',
               color: 'var(--text-primary)',
