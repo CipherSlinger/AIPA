@@ -7330,3 +7330,29 @@ Status: SUCCESS (0 errors, 204 pre-existing warnings)
 - [x] Skip rationale documented for each occurrence
 - [x] `npm run check` passes with 0 errors
 - [x] No regressions introduced
+
+## Iteration 606 — CSS variable migration for remaining chat/skills/notes/filebrowser/ui components
+
+_Date: 2026-04-16 | Sprint CSS Variable Migration_
+
+### Summary
+Swept 10 target files for hardcoded `rgba(255,255,255,...)` values. Applied 3 migrations in this iteration's target files (ClipboardActionsMenu, SkillCreatorPage, NotesHeader) and included 5 additional stashed migrations from prior sessions (OnboardingWizard, KeyboardShortcutsModal, QRCodeDisplay, Skeleton, Toggle). All `rgba(255,255,255,0.85-0.95)` values on colored/gradient buttons were correctly skipped per rules.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/ClipboardActionsMenu.tsx` — rgba(255,255,255,0.92) hover text → var(--text-primary)
+- `electron-ui/src/renderer/components/skills/SkillCreatorPage.tsx` — rgba(255,255,255,0.3) spinner border → var(--text-faint)
+- `electron-ui/src/renderer/components/notes/NotesHeader.tsx` — rgba(255,255,255,0.15) borderLeft → var(--border)
+- `electron-ui/src/renderer/components/onboarding/OnboardingWizard.tsx` — rgba(255,255,255,0.15) step circle bg → var(--bg-input)
+- `electron-ui/src/renderer/components/ui/KeyboardShortcutsModal.tsx` — rgba(255,255,255,0.15/0.20) kbd borders → var(--border)
+- `electron-ui/src/renderer/components/ui/QRCodeDisplay.tsx` — rgba(255,255,255,0.12) canvas border → var(--border)
+- `electron-ui/src/renderer/components/ui/Skeleton.tsx` — shimmer gradient rgba(255,255,255,0.05/0.08) → var(--glass-bg-low) / var(--bg-hover)
+- `electron-ui/src/renderer/components/ui/Toggle.tsx` — rgba(255,255,255,0.15) off-state bg → var(--bg-input)
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings; 8 files changed)
+
+### Acceptance Criteria
+- [x] All actionable rgba(255,255,255,...) values replaced with correct CSS vars per mapping table
+- [x] White text on colored/gradient buttons left untouched (ExportDialog, SpeculationCard, MessageBubbleContent, CompactButton, ElicitationCard, FileBrowser)
+- [x] WorkflowItem fallback inside var(--text-faint, rgba(...)) left untouched (already wrapped)
+- [x] npm run check passes with 0 errors
