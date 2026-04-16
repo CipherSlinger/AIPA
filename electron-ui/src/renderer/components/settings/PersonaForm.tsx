@@ -194,7 +194,7 @@ export default function PersonaForm({
               background: c,
               border: 'none',
               cursor: 'pointer',
-              boxShadow: formColor === c ? '0 0 0 2px rgba(255,255,255,0.8)' : 'none',
+              boxShadow: formColor === c ? '0 0 0 2px var(--text-primary)' : 'none',
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.2)')}
@@ -216,7 +216,7 @@ export default function PersonaForm({
             border: 'none',
             borderRadius: 8,
             padding: '7px 0',
-            color: 'rgba(255,255,255,0.95)',
+            color: 'var(--text-bright)',
             cursor: canSubmit ? 'pointer' : 'not-allowed',
             fontSize: 13,
             fontWeight: 600,

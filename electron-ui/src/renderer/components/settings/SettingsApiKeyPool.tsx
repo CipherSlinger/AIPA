@@ -13,7 +13,7 @@ interface SettingsApiKeyPoolProps {
 }
 
 const glassInputStyle: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.06)',
+  background: 'var(--bg-input)',
   border: '1px solid var(--glass-border-md)',
   borderRadius: 6,
   padding: '5px 10px',
@@ -123,7 +123,7 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
                 <div
                   key={entry.id}
                   style={{
-                    background: 'rgba(255,255,255,0.04)',
+                    background: 'var(--glass-bg-low)',
                     border: '1px solid var(--glass-border)',
                     borderRadius: 8,
                     padding: '10px 12px',
@@ -133,11 +133,11 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
                     transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--glass-border)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'var(--glass-bg-low)')}
                 >
                   <span style={{
                     width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                    background: entry.exhausted ? '#f87171' : entry.enabled ? '#22c55e' : 'rgba(255,255,255,0.2)',
+                    background: entry.exhausted ? '#f87171' : entry.enabled ? '#22c55e' : 'var(--text-muted)',
                     boxShadow: entry.enabled && !entry.exhausted ? '0 0 6px #4ade80' : 'none',
                   }} />
                   <span style={{ fontSize: 11, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>{entry.label}</span>
@@ -235,7 +235,7 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
               onClick={() => fileInputRef.current?.click()}
               style={{
                 flex: 1,
-                background: 'rgba(255,255,255,0.04)',
+                background: 'var(--glass-bg-low)',
                 border: '1px solid var(--glass-border)',
                 borderRadius: 8, padding: '5px 8px',
                 color: 'var(--text-primary)', cursor: 'pointer',
@@ -247,7 +247,7 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
                 onClick={handleResetExhausted}
                 style={{
                   flex: 1,
-                  background: 'rgba(255,255,255,0.04)',
+                  background: 'var(--glass-bg-low)',
                   border: '1px solid var(--glass-border)',
                   borderRadius: 8, padding: '5px 8px',
                   color: 'var(--text-primary)', cursor: 'pointer',

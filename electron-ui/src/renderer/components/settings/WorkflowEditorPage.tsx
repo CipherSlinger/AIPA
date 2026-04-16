@@ -412,7 +412,7 @@ export default function WorkflowEditorPage() {
               onMouseLeave={() => setAddStepHovered(false)}
               style={{
                 width: '100%',
-                background: addStepHovered && steps.length < 20 ? 'rgba(255,255,255,0.03)' : 'transparent',
+                background: addStepHovered && steps.length < 20 ? 'var(--glass-bg-low)' : 'transparent',
                 border: `1.5px dashed ${steps.length >= 20 ? 'var(--border)' : addStepHovered ? 'var(--text-muted)' : 'var(--border)'}`,
                 borderRadius: 8,
                 padding: '10px 16px',

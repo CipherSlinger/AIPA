@@ -52,7 +52,7 @@ const sectionLabelStyle: React.CSSProperties = {
 }
 
 const cardStyle: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.04)',
+  background: 'var(--glass-bg-low)',
   border: '1px solid var(--glass-border)',
   borderRadius: 10,
   padding: '16px',
@@ -176,7 +176,7 @@ export default function SettingsStats() {
               }}
               onMouseEnter={(e) => {
                 (e.currentTarget as HTMLDivElement).style.background = card.accentBgHover
-                ;(e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.12)'
+                ;(e.currentTarget as HTMLDivElement).style.borderColor = 'var(--bg-secondary)'
               }}
               onMouseLeave={(e) => {
                 (e.currentTarget as HTMLDivElement).style.background = card.accentBg
@@ -244,7 +244,7 @@ export default function SettingsStats() {
                     </div>
                     {/* Bar track */}
                     <div style={{
-                      flex: 1, background: 'rgba(255,255,255,0.05)',
+                      flex: 1, background: 'var(--bg-hover)',
                       borderRadius: 4, height: 8, overflow: 'hidden',
                     }}>
                       <div style={{
@@ -266,7 +266,7 @@ export default function SettingsStats() {
                     </div>
                   </div>
                   {idx < arr.length - 1 && (
-                    <div style={{ height: 1, background: 'rgba(255,255,255,0.04)' }} />
+                    <div style={{ height: 1, background: 'var(--glass-bg-low)' }} />
                   )}
                 </React.Fragment>
               )
@@ -284,7 +284,7 @@ export default function SettingsStats() {
           <div style={sectionLabelStyle}>{t('stats.activityTrend')}</div>
           <div style={{
             display: 'flex', gap: 4,
-            background: 'rgba(255,255,255,0.04)',
+            background: 'var(--glass-bg-low)',
             border: '1px solid var(--glass-border)',
             borderRadius: 6, padding: 2,
           }}>
@@ -350,7 +350,7 @@ export default function SettingsStats() {
                         height: `${barH}px`,
                         background: isActive
                           ? 'linear-gradient(180deg, rgba(139,92,246,0.85), rgba(99,102,241,0.85))'
-                          : 'rgba(255,255,255,0.06)',
+                          : 'var(--bg-input)',
                         borderRadius: '3px 3px 0 0',
                         transition: 'all 0.15s ease',
                         boxShadow: isActive ? '0 -2px 8px rgba(99,102,241,0.3)' : 'none',

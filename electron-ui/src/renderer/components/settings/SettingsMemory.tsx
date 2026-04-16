@@ -44,7 +44,7 @@ function freshNew(): NewMemoryState {
 }
 
 const glassInputStyle: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.06)',
+  background: 'var(--bg-input)',
   border: '1px solid var(--glass-border)',
   borderRadius: 6,
   padding: '5px 10px',
@@ -216,7 +216,7 @@ export default function SettingsMemory() {
       {/* New memory form */}
       {showNew && (
         <div style={{
-          background: 'rgba(255,255,255,0.03)',
+          background: 'var(--glass-bg-low)',
           border: '1px solid var(--glass-border)',
           borderRadius: 12, padding: 14, marginBottom: 12,
         }}>
@@ -299,7 +299,7 @@ export default function SettingsMemory() {
               <div
                 key={mem.filePath}
                 style={{
-                  background: hoveredRow === mem.filePath ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.03)',
+                  background: hoveredRow === mem.filePath ? 'var(--bg-hover)' : 'var(--glass-bg-low)',
                   border: hoveredRow === mem.filePath ? '1px solid var(--glass-border-md)' : '1px solid var(--glass-border)',
                   borderRadius: 8,
                   overflow: 'hidden',
@@ -383,7 +383,7 @@ export default function SettingsMemory() {
                           rows={6}
                           style={{
                             width: '100%', padding: '6px 8px', fontSize: 11, lineHeight: 1.5,
-                            background: 'rgba(255,255,255,0.06)',
+                            background: 'var(--bg-input)',
                             border: '1px solid rgba(99,102,241,0.5)',
                             borderRadius: 6, color: 'var(--text-primary)',
                             outline: 'none', resize: 'vertical', fontFamily: 'monospace',

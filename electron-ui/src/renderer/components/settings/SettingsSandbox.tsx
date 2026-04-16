@@ -131,7 +131,7 @@ function ChipList({ items, placeholder, color, bgColor, borderColor, onAdd, onRe
                 : 'var(--bg-input)',
               border: inputValue.trim() ? 'none' : '1px solid var(--border)',
               borderRadius: 6,
-              color: inputValue.trim() ? 'rgba(255,255,255,0.95)' : 'var(--text-faint)',
+              color: inputValue.trim() ? 'var(--text-bright)' : 'var(--text-faint)',
               cursor: inputValue.trim() ? 'pointer' : 'not-allowed',
               transition: 'all 0.15s ease',
             }}

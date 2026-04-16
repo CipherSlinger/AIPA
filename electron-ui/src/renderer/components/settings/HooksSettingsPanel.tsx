@@ -62,7 +62,7 @@ const EVENT_BADGE_STYLES: Record<string, { bg: string; color: string }> = {
   StopFailure:   { bg: 'rgba(239,68,68,0.12)',   color: 'rgba(252,165,165,0.80)' },
   Notification:  { bg: 'rgba(251,191,36,0.12)',  color: 'rgba(251,191,36,0.80)' },
   UserPromptSubmit: { bg: 'rgba(99,102,241,0.10)', color: 'rgba(165,180,252,0.70)' },
-  SubagentStop:  { bg: 'var(--border)', color: 'rgba(255,255,255,0.55)' },
+  SubagentStop:  { bg: 'var(--border)', color: 'var(--text-secondary)' },
   PreCompact:    { bg: 'rgba(139,92,246,0.12)',  color: 'rgba(196,181,253,0.80)' },
 }
 
@@ -93,7 +93,7 @@ function HookTypeBadge({ type }: { type: string }) {
     http:    'rgba(34,197,94,0.80)',
     prompt:  'rgba(251,191,36,0.80)',
   }
-  const color = colorMap[type] ?? 'rgba(255,255,255,0.55)'
+  const color = colorMap[type] ?? 'var(--text-secondary)'
   return (
     <span style={{
       borderRadius: 5,
@@ -247,7 +247,7 @@ function InlineEditor({ editState, onEditChange, onSave, onCancel }: InlineEdito
             cursor: 'pointer',
             fontSize: 12,
             fontWeight: 600,
-            color: 'rgba(255,255,255,0.95)',
+            color: 'var(--text-bright)',
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => {
@@ -490,7 +490,7 @@ export default function HooksSettingsPanel() {
                   : 'var(--bg-active)',
                 border: disableAllHooks
                   ? '1px solid rgba(239,68,68,0.50)'
-                  : '1px solid rgba(255,255,255,0.15)',
+                  : '1px solid var(--bg-secondary)',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
                 flexShrink: 0,
@@ -523,7 +523,7 @@ export default function HooksSettingsPanel() {
                 ? 'linear-gradient(135deg, rgba(99,102,241,0.95), rgba(139,92,246,0.95))'
                 : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
               border: 'none',
-              color: 'rgba(255,255,255,0.95)', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+              color: 'var(--text-bright)', cursor: 'pointer', fontSize: 12, fontWeight: 600,
               transition: 'all 0.15s ease',
               boxShadow: addBtnHover ? '0 4px 16px rgba(99,102,241,0.35)' : 'none',
             }}
@@ -571,7 +571,7 @@ export default function HooksSettingsPanel() {
           textAlign: 'center', padding: 24,
           border: '1px dashed var(--border)', borderRadius: 12, marginTop: 8,
         }}>
-          <Zap size={28} color="rgba(255,255,255,0.2)" style={{ marginBottom: 10 }} />
+          <Zap size={28} color="var(--text-muted)" style={{ marginBottom: 10 }} />
           <div style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500, marginBottom: 6 }}>
             {t('hooks.noHooksTitle')}
           </div>
@@ -607,7 +607,7 @@ export default function HooksSettingsPanel() {
                   style={{
                     width: '100%', display: 'flex', alignItems: 'center', gap: 8,
                     padding: '10px 14px',
-                    background: 'rgba(255,255,255,0.03)', border: 'none',
+                    background: 'var(--glass-bg-low)', border: 'none',
                     cursor: 'pointer', textAlign: 'left',
                   }}
                 >
@@ -658,7 +658,7 @@ export default function HooksSettingsPanel() {
                               <div
                                 style={{
                                   display: 'flex', alignItems: 'center', gap: 8,
-                                  background: isEditing ? 'rgba(99,102,241,0.05)' : 'rgba(255,255,255,0.03)',
+                                  background: isEditing ? 'rgba(99,102,241,0.05)' : 'var(--glass-bg-low)',
                                   border: isEditing
                                     ? '1px solid rgba(99,102,241,0.25)'
                                     : '1px solid var(--border)',

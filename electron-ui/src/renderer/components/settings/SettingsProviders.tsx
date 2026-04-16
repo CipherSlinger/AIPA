@@ -230,7 +230,7 @@ export default function SettingsProviders() {
       <div
         key={provider.id}
         style={{
-          background: 'rgba(255,255,255,0.03)',
+          background: 'var(--glass-bg-low)',
           border: '1px solid ' + (isExpanded ? 'rgba(99,102,241,0.30)' : 'var(--border)'),
           borderRadius: 12,
           marginBottom: 12,

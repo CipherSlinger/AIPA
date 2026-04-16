@@ -200,11 +200,11 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '9px 16px',
             background: isAtLimit
-              ? 'rgba(255,255,255,0.04)'
+              ? 'var(--bg-hover)'
               : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
             border: isAtLimit ? '1px solid var(--glass-border)' : 'none',
             borderRadius: 8,
-            color: isAtLimit ? 'var(--text-faint)' : 'rgba(255,255,255,0.95)',
+            color: isAtLimit ? 'var(--text-faint)' : 'var(--text-bright)',
             cursor: isAtLimit ? 'not-allowed' : 'pointer',
             fontSize: 13,
             fontWeight: 600,
@@ -250,11 +250,11 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
         <div style={{
           textAlign: 'center',
           padding: '32px 16px',
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px dashed rgba(255,255,255,0.08)',
+          background: 'var(--glass-bg-low)',
+          border: '1px dashed var(--glass-border-md)',
           borderRadius: 12,
         }}>
-          <Sparkles size={28} style={{ opacity: 0.25, marginBottom: 10, color: 'rgba(255,255,255,0.6)' }} />
+          <Sparkles size={28} style={{ opacity: 0.25, marginBottom: 10, color: 'var(--text-secondary)' }} />
           <div style={{ fontSize: 13, color: 'var(--text-faint)', fontWeight: 500 }}>
             {t('persona.noPersonas')}
           </div>
@@ -295,8 +295,8 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
               display: 'flex', alignItems: 'center',
               justifyContent: 'center', gap: 5,
               padding: '7px 0',
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.10)',
+              background: 'var(--bg-input)',
+              border: '1px solid var(--bg-secondary)',
               borderRadius: 7,
               color: 'var(--text-secondary)',
               cursor: 'pointer',
@@ -309,9 +309,9 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
               e.currentTarget.style.background = 'rgba(99,102,241,0.09)'
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+              e.currentTarget.style.borderColor = 'var(--bg-secondary)'
               e.currentTarget.style.color = 'var(--text-secondary)'
-              e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+              e.currentTarget.style.background = 'var(--bg-input)'
             }}
           >
             <Download size={12} />
@@ -325,8 +325,8 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
               display: 'flex', alignItems: 'center',
               justifyContent: 'center', gap: 5,
               padding: '7px 0',
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.10)',
+              background: 'var(--bg-input)',
+              border: '1px solid var(--bg-secondary)',
               borderRadius: 7,
               color: 'var(--text-secondary)',
               cursor: isAtLimit ? 'not-allowed' : 'pointer',
@@ -342,9 +342,9 @@ export default function SettingsPersonas({ personas, setPersonas, activePersonaI
               }
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+              e.currentTarget.style.borderColor = 'var(--bg-secondary)'
               e.currentTarget.style.color = 'var(--text-secondary)'
-              e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+              e.currentTarget.style.background = 'var(--bg-input)'
             }}
           >
             <Upload size={12} />

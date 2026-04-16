@@ -35,7 +35,7 @@ export default function PersonaCard({ persona, isActive, isDefault, isDeleting, 
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         border: hovered
-          ? '1px solid rgba(255,255,255,0.14)'
+          ? '1px solid var(--bg-secondary)'
           : `1px solid var(--border)`,
         borderLeft: `3px solid ${p.color}`,
         borderRadius: 10,
@@ -108,7 +108,7 @@ export default function PersonaCard({ persona, isActive, isDefault, isDeleting, 
             borderRadius: 8,
             border: 'none',
             background: isDefault ? p.color : checkHovered ? 'var(--border)' : 'transparent',
-            color: isDefault ? 'rgba(255,255,255,0.95)' : 'var(--text-muted)',
+            color: isDefault ? 'var(--text-bright)' : 'var(--text-muted)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',

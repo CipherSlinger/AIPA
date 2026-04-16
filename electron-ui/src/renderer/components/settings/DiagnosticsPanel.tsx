@@ -304,7 +304,7 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
         ) : mcpStatuses.length === 0 ? (
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 16px' }}>
             <div style={{ paddingTop: 2 }}>
-              <Server size={16} style={{ color: 'rgba(255,255,255,0.30)', flexShrink: 0 }} />
+              <Server size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{t('diagnostics.mcpConnectivity')}</div>
@@ -325,7 +325,7 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
                 {srv.status === 'ok'
                   ? statusIcon('ok')
                   : srv.status === 'disabled'
-                    ? <Server size={16} style={{ color: 'rgba(255,255,255,0.30)', flexShrink: 0 }} />
+                    ? <Server size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                     : statusIcon('error')}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>

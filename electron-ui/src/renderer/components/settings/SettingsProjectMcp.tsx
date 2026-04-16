@@ -399,7 +399,7 @@ export default function SettingsProjectMcp() {
               padding: '8px 16px', borderRadius: 8,
               background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
               border: 'none', cursor: creating ? 'wait' : 'pointer',
-              color: 'rgba(255,255,255,0.95)', fontSize: 12, fontWeight: 600,
+              color: 'var(--text-bright)', fontSize: 12, fontWeight: 600,
               transition: 'opacity 0.15s ease',
               opacity: creating ? 0.7 : 1,
             }}

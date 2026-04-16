@@ -146,11 +146,11 @@ export default function PermissionsSettingsPanel() {
       {isEmpty && !addingAllow && !addingDeny && (
         <div style={{
           textAlign: 'center', padding: '32px 16px',
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px dashed rgba(255,255,255,0.08)',
+          background: 'var(--glass-bg-low)',
+          border: '1px dashed var(--glass-border-md)',
           borderRadius: 12,
         }}>
-          <Shield size={32} color="rgba(255,255,255,0.18)" style={{ marginBottom: 12 }} />
+          <Shield size={32} color="var(--text-muted)" style={{ marginBottom: 12 }} />
           <div style={{
             fontSize: 13, color: 'var(--text-faint)',
             fontWeight: 500, marginBottom: 4,
@@ -203,7 +203,7 @@ export default function PermissionsSettingsPanel() {
       {/* Format help */}
       <div style={{
         display: 'flex', alignItems: 'flex-start', gap: 10,
-        background: 'rgba(255,255,255,0.03)',
+        background: 'var(--glass-bg-low)',
         border: '1px solid var(--glass-border)',
         borderRadius: 12, padding: '12px 14px',
       }}>
@@ -244,7 +244,7 @@ function RuleSection({
 }: RuleSectionProps) {
   return (
     <div style={{
-      background: 'rgba(255,255,255,0.03)',
+      background: 'var(--glass-bg-low)',
       border: '1px solid var(--glass-border)',
       borderRadius: 12,
       padding: '14px 16px',
@@ -274,7 +274,7 @@ function RuleSection({
           onClick={onToggleAdd}
           style={{
             display: 'flex', alignItems: 'center', gap: 4,
-            background: adding ? 'var(--glass-border-md)' : 'rgba(255,255,255,0.06)',
+            background: adding ? 'var(--glass-border-md)' : 'var(--bg-input)',
             border: '1px solid var(--glass-border-md)',
             borderRadius: 6, padding: '4px 10px',
             cursor: 'pointer', fontSize: 11, fontWeight: 500,
@@ -287,7 +287,7 @@ function RuleSection({
             e.currentTarget.style.borderColor = 'var(--glass-border-md)'
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.background = adding ? 'var(--glass-border-md)' : 'rgba(255,255,255,0.06)'
+            e.currentTarget.style.background = adding ? 'var(--glass-border-md)' : 'var(--bg-input)'
             e.currentTarget.style.color = 'var(--text-secondary)'
             e.currentTarget.style.borderColor = 'var(--glass-border-md)'
           }}
@@ -356,14 +356,14 @@ function RuleSection({
             placeholder={t('permissions.rulePlaceholder')}
             style={{
               flex: 1, padding: '7px 10px', fontSize: 13,
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'var(--bg-input)',
+              border: '1px solid var(--glass-border-md)',
               borderRadius: 7, color: 'var(--text-primary)',
               fontFamily: 'monospace', outline: 'none',
               transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
             }}
             onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-            onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.boxShadow = 'none' }}
+            onBlur={e => { e.currentTarget.style.borderColor = 'var(--glass-border-md)'; e.currentTarget.style.boxShadow = 'none' }}
           />
           <button
             onClick={() => onAdd(inputValue)}
@@ -372,10 +372,10 @@ function RuleSection({
               padding: '7px 14px', fontSize: 12, fontWeight: 600,
               background: inputValue.trim()
                 ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
-                : 'rgba(255,255,255,0.06)',
-              border: inputValue.trim() ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                : 'var(--bg-input)',
+              border: inputValue.trim() ? 'none' : '1px solid var(--glass-border-md)',
               borderRadius: 7,
-              color: inputValue.trim() ? 'rgba(255,255,255,0.95)' : 'var(--text-faint)',
+              color: inputValue.trim() ? 'var(--text-bright)' : 'var(--text-faint)',
               cursor: inputValue.trim() ? 'pointer' : 'not-allowed',
               transition: 'all 0.15s ease',
             }}

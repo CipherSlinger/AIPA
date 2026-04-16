@@ -26,7 +26,7 @@ export default function SettingsGroup({ title, icon, children, groupKey }: Setti
 
   return (
     <div style={{
-      background: 'rgba(255,255,255,0.03)',
+      background: 'var(--glass-bg-low)',
       border: '1px solid var(--glass-border)',
       borderRadius: 10,
       marginBottom: 12,
@@ -49,7 +49,7 @@ export default function SettingsGroup({ title, icon, children, groupKey }: Setti
           textAlign: 'left',
           transition: 'background 0.15s ease',
         }}
-        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
         onMouseLeave={e => (e.currentTarget.style.background = 'none')}
       >
         <span style={{ color: 'var(--text-faint)', display: 'flex', alignItems: 'center', flexShrink: 0 }}>{icon}</span>

@@ -306,7 +306,7 @@ export default function PersonaEditorPage() {
                     borderRadius: '50%',
                     background: c,
                     border: 'none',
-                    outline: formColor === c ? '2px solid rgba(255,255,255,0.85)' : '2px solid transparent',
+                    outline: formColor === c ? '2px solid var(--text-primary)' : '2px solid transparent',
                     outlineOffset: 2,
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',

@@ -132,7 +132,7 @@ const primaryBtnStyle: React.CSSProperties = {
   background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
   border: 'none',
   borderRadius: 8,
-  color: 'rgba(255,255,255,0.95)',
+  color: 'var(--text-bright)',
   cursor: 'pointer',
   fontSize: 12,
   fontWeight: 600,
@@ -154,7 +154,7 @@ const secondaryBtnStyle: React.CSSProperties = {
 const iconBtnStyle: React.CSSProperties = {
   background: 'none',
   border: 'none',
-  color: 'rgba(255,255,255,0.3)',
+  color: 'var(--text-muted)',
   cursor: 'pointer',
   fontSize: 14,
   lineHeight: 1,
@@ -282,7 +282,7 @@ function McpAddWizard({
             <div style={{
               width: 22, height: 22, borderRadius: '50%',
               background: w.step >= s ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))' : 'var(--border)',
-              color: w.step >= s ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)',
+              color: w.step >= s ? 'var(--text-bright)' : 'var(--text-muted)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 10, fontWeight: 700, flexShrink: 0,
             }}>{s}</div>
@@ -388,7 +388,7 @@ function McpAddWizard({
             {w.nameError && <div style={{ fontSize: 10, color: '#fca5a5', marginTop: 3 }}>{w.nameError}</div>}
           </div>
           {/* Summary */}
-          <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 6, padding: '6px 10px', fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+          <div style={{ background: 'var(--glass-bg-low)', borderRadius: 6, padding: '6px 10px', fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace' }}>
             {w.type === 'stdio'
               ? `${w.command} ${w.args}`
               : w.url}
@@ -474,7 +474,7 @@ function ServerCard({
     ? 'rgba(34,197,94,0.90)'
     : srv.liveStatus === 'disconnected'
     ? 'rgba(239,68,68,0.90)'
-    : 'rgba(255,255,255,0.25)'
+    : 'var(--text-muted)'
   const liveDotShadow = srv.liveStatus === 'connected' && !isDisabled
     ? '0 0 5px rgba(34,197,94,0.50)'
     : 'none'
@@ -701,7 +701,7 @@ function ServerToolList({ tools }: { tools: McpToolInfo[] }) {
       <div style={{
         marginTop: 6,
         padding: '5px 8px',
-        background: 'rgba(255,255,255,0.03)',
+        background: 'var(--glass-bg-low)',
         borderLeft: '2px solid rgba(165,180,252,0.20)',
         borderRadius: '0 4px 4px 0',
         fontSize: 10,
@@ -739,7 +739,7 @@ function ServerToolList({ tools }: { tools: McpToolInfo[] }) {
         <div style={{
           marginTop: 4,
           padding: '6px 8px',
-          background: 'rgba(255,255,255,0.03)',
+          background: 'var(--glass-bg-low)',
           borderLeft: '2px solid rgba(165,180,252,0.20)',
           borderRadius: '0 4px 4px 0',
           display: 'flex',
@@ -782,7 +782,7 @@ function LiveSessionStatus({ servers }: { servers: ActiveMcpServer[] }) {
       }}>
         <span style={{
           width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-          background: 'rgba(255,255,255,0.18)',
+          background: 'var(--text-muted)',
         }} />
         <span style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>
           启动新会话后将显示 MCP 连接状态
@@ -888,7 +888,7 @@ function LiveSessionStatus({ servers }: { servers: ActiveMcpServer[] }) {
               <div style={{
                 marginTop: 6,
                 padding: '5px 8px',
-                background: 'rgba(255,255,255,0.03)',
+                background: 'var(--glass-bg-low)',
                 borderLeft: '2px solid rgba(165,180,252,0.20)',
                 borderRadius: '0 4px 4px 0',
                 fontSize: 10,
