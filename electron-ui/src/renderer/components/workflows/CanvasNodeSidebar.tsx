@@ -271,7 +271,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
                     borderRadius: 7,
                     padding: '2px 8px',
                     cursor: 'pointer',
-                    color: isEditingPrompt ? 'rgba(255,255,255,0.95)' : 'var(--text-muted)',
+                    color: isEditingPrompt ? 'var(--text-primary)' : 'var(--text-muted)',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 3,
@@ -510,7 +510,7 @@ export default function CanvasNodeSidebar({ step, stepIndex, presetKey, status, 
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        background: 'rgba(255,255,255,0.01)',
+        background: 'var(--bg-hover)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           {status === 'completed' && <Check size={10} strokeWidth={3} />}

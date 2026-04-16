@@ -66,7 +66,7 @@ export default function CanvasProgressBar({ completedCount, totalSteps, isRunnin
       padding: '6px 12px',
       pointerEvents: 'none',
       opacity: isError ? 0.4 : 1,
-      background: 'rgba(15,15,25,0.88)',
+      background: 'var(--bg-primary)',
       backdropFilter: 'blur(14px)',
       WebkitBackdropFilter: 'blur(14px)',
       border: '1px solid var(--border)',

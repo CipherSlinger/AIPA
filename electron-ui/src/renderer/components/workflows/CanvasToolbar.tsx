@@ -293,7 +293,7 @@ export default function CanvasToolbar({
               <span>{t('workflow.run')}</span>
               <kbd style={{
                 fontSize: 9,
-                background: 'rgba(255,255,255,0.15)',
+                background: 'var(--bg-active)',
                 borderRadius: 3,
                 padding: '0px 4px',
                 lineHeight: '14px',
@@ -343,7 +343,7 @@ export default function CanvasToolbar({
               <span>{hasError && !allDone ? t('workflow.restart') : t('workflow.rerun')}</span>
               <kbd style={{
                 fontSize: 9,
-                background: 'rgba(255,255,255,0.15)',
+                background: 'var(--bg-active)',
                 borderRadius: 3,
                 padding: '0px 4px',
                 lineHeight: '14px',

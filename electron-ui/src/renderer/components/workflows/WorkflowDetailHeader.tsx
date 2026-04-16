@@ -483,7 +483,7 @@ export default function WorkflowDetailHeader({
       <div style={{
         padding: '6px 20px',
         borderBottom: '1px solid var(--border)',
-        background: 'rgba(15,15,25,0.85)',
+        background: 'var(--bg-primary)',
         flexShrink: 0,
       }}>
         {isEditMode ? (

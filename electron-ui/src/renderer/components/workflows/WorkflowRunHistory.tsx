@@ -328,7 +328,7 @@ export default function WorkflowRunHistory({
               textAlign: 'center',
             }}>
               <div style={{
-                background: 'rgba(255,255,255,0.15)',
+                background: 'var(--bg-active)',
                 borderRadius: 16,
                 padding: 16,
                 fontSize: 22,
