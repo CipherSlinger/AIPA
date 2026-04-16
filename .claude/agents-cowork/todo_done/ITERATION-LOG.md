@@ -7609,6 +7609,48 @@ Status: SUCCESS (0 errors, 204 pre-existing warnings)
 
 ---
 
+## Iteration 612 — NavRail tab highlight fix + uiStore NavItem type update
+_Date: 2026-04-16_
+
+### Summary
+Fixed stale tab highlight in NavRail where `isDepartmentActive` used `mainView === 'department'` independently and `isNotesActive` had a stale `||mainView==='notes'` branch. Both caused incorrect highlights when switching tabs because `mainView` was not cleared. Unified all tab highlight states to use `activeNavItem` as the single source of truth. Also added `'department'` to the `NavItem` union type so `setActiveNavItem('department')` is type-safe.
+
+### Files Changed
+- `electron-ui/src/renderer/components/layout/NavRail.tsx` — removed `sidebarTab`/`mainView` checks from all `is*Active` booleans; department onClick uses `setActiveNavItem('department')` instead of `setMainView`
+- `electron-ui/src/renderer/store/uiStore.ts` — added `'department'` to `NavItem` type; added `department` branch in `setActiveNavItem` that sets `mainView: 'department'`; initial `activeNavItem` set to `'department'`
+
+### Build
+Status: SUCCESS (0 errors, pre-existing warnings only)
+
+### Acceptance Criteria
+- [x] Department tab highlights correctly when active and clears when switching to another tab
+- [x] Notes/history/other tabs highlight correctly using `activeNavItem` alone
+- [x] `NavItem` type includes `'department'` — no TypeScript errors on `activeNavItem === 'department'`
+- [x] `npm run check` passes with 0 errors
+
+---
+
+## Iteration 613 — Layout/sidebar/session CSS variable migration audit
+_Date: 2026-04-16_
+
+### Summary
+Audited all `.tsx` files in `layout/`, `sidebar/`, and `sessions/` directories for hardcoded `rgba(255,255,255,...)` values. Found zero occurrences in `layout/` and `sidebar/` (already migrated in prior sweeps). Found one occurrence in `sessions/SessionFilters.tsx` line 53: `rgba(255,255,255,0.95)` as white text color on an active indigo gradient button — **exempt** per migration rules (white text on colored/gradient buttons). No code changes required.
+
+### Files Audited (0 new changes)
+- `layout/` (13 files) — 0 occurrences
+- `sidebar/` (6 files) — 0 occurrences
+- `sessions/SessionFilters.tsx` — 1 exempt occurrence (white text on indigo gradient button)
+
+### Build
+Status: SUCCESS (0 errors, pre-existing warnings only)
+
+### Acceptance Criteria
+- [x] All `rgba(255,255,255,...)` in target directories reviewed
+- [x] Exempt values correctly identified and left unchanged
+- [x] `npm run check` passes with 0 errors
+
+---
+
 ## Iteration 614 — Comprehensive CSS variable migration audit (final sweep)
 
 ### Summary

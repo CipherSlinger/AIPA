@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import { ToastItem, ToastType } from '../components/ui/Toast'
 
 export type SidebarTab = 'history' | 'files' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel' | 'tasks' | 'changes'
-export type NavItem = 'chat' | 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel' | 'tasks' | 'changes'
+export type NavItem = 'chat' | 'department' | 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel' | 'tasks' | 'changes'
 
 interface UiState {
   sidebarTab: SidebarTab
@@ -105,7 +105,7 @@ export const useUiStore = create<UiState>((set) => ({
   commandPaletteOpen: false,
   focusMode: false,
   toasts: [],
-  activeNavItem: savedSidebarTab,
+  activeNavItem: 'department' as NavItem,
   quotedText: null,
   alwaysOnTop: false,
   setSidebarTab: (tab) => {
@@ -138,6 +138,10 @@ export const useUiStore = create<UiState>((set) => ({
     if (item === 'settings') {
       return { settingsModalOpen: true }
     }
+    // Department opens the department dashboard in main content area (Iteration 612)
+    if (item === 'department') {
+      return { activeNavItem: 'department', mainView: 'department' as const, sidebarTab: 'history' as const }
+    }
     // Notes opens in the main content area (Iteration 534)
     if (item === 'notes') {
       // Toggle: if already in notes main view, go back to chat
@@ -151,7 +155,7 @@ export const useUiStore = create<UiState>((set) => ({
       try { localStorage.setItem('aipa:sidebar-tab', item) } catch { }
       // Clear all unread badges when viewing History
       const extra = item === 'history' ? { unreadCounts: {} as Record<string, number>, unreadSessionCount: 0 } : {}
-      return { activeNavItem: item, sidebarTab: item, sidebarOpen: true, ...extra }
+      return { activeNavItem: item, sidebarTab: item, sidebarOpen: true, mainView: 'chat' as const, ...extra }
     }
     return { activeNavItem: item }
   }),

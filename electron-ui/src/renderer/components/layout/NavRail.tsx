@@ -208,10 +208,7 @@ export default function NavRail() {
   const {
     activeNavItem,
     setActiveNavItem,
-    sidebarTab,
   } = useUiStore()
-
-  const mainView = useUiStore(s => s.mainView)
 
   const navExpanded = usePrefsStore(s => !!s.prefs.navExpanded)
   const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
@@ -235,16 +232,19 @@ export default function NavRail() {
     window.electronAPI.prefsSet('navExpanded', next)
   }
 
-  // The active panel item (history/files/settings) matches activeNavItem
-  const isHistoryActive = activeNavItem === 'history' && sidebarTab === 'history'
-  const isDepartmentActive = mainView === 'department'
-  const isNotesActive = mainView === 'notes' || (activeNavItem === 'notes' && sidebarTab === 'notes')
-  const isSkillsActive = activeNavItem === 'skills' && sidebarTab === 'skills'
-  const isMemoryActive = activeNavItem === 'memory' && sidebarTab === 'memory'
-  const isWorkflowsActive = activeNavItem === 'workflows' && sidebarTab === 'workflows'
-  const isChannelActive = activeNavItem === 'channel' && sidebarTab === 'channel'
-  const isTasksActive = activeNavItem === 'tasks' && sidebarTab === 'tasks'
-  const isChangesActive = activeNavItem === 'changes' && sidebarTab === 'changes'
+  // Use activeNavItem as the single source of truth for all tab highlight states.
+  // Previously, isDepartmentActive used mainView === 'department' independently, and
+  // isNotesActive had an ||mainView==='notes' branch — both caused stale highlights
+  // when switching tabs because mainView was not cleared (Iteration 612 fix).
+  const isHistoryActive = activeNavItem === 'history'
+  const isDepartmentActive = activeNavItem === 'department'
+  const isNotesActive = activeNavItem === 'notes'
+  const isSkillsActive = activeNavItem === 'skills'
+  const isMemoryActive = activeNavItem === 'memory'
+  const isWorkflowsActive = activeNavItem === 'workflows'
+  const isChannelActive = activeNavItem === 'channel'
+  const isTasksActive = activeNavItem === 'tasks'
+  const isChangesActive = activeNavItem === 'changes'
   const changedFiles = useChatStore(s => s.changedFiles)
   const changedFilesCount = useMemo(() => new Set(changedFiles.map(f => f.filePath)).size, [changedFiles])
   const isStreaming = useChatStore(s => s.isStreaming)
@@ -283,9 +283,8 @@ export default function NavRail() {
         shortcut="Ctrl+1"
         isActive={isDepartmentActive}
         onClick={() => {
-          // Requirement 4: dept tab must be mutually exclusive — clear sidebar tab state
-          useUiStore.getState().setMainView('department')
-          useUiStore.getState().setSidebarTab('history')
+          // Use setActiveNavItem to keep activeNavItem as single source of truth (Iteration 612)
+          useUiStore.getState().setActiveNavItem('department')
         }}
         pulseDot={isStreaming && !isDepartmentActive}
         badge={unreadSessionCount > 0 ? unreadSessionCount : undefined}
