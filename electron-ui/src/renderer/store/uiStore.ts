@@ -42,8 +42,8 @@ interface UiState {
   openSettingsModal: () => void
   closeSettingsModal: () => void
   // Pending settings tab — consumed by SettingsPanel on open to jump to a specific tab
-  pendingSettingsTab: 'general' | 'permissions' | 'stats' | 'hooks' | 'plugins' | 'advanced' | 'sandbox' | 'about' | null
-  openSettingsAt: (tab: 'general' | 'permissions' | 'stats' | 'hooks' | 'plugins' | 'advanced' | 'sandbox' | 'about') => void
+  pendingSettingsTab: 'general' | 'permissions' | 'stats' | 'hooks' | 'plugins' | 'mcp' | 'advanced' | 'sandbox' | 'about' | null
+  openSettingsAt: (tab: 'general' | 'permissions' | 'stats' | 'hooks' | 'plugins' | 'mcp' | 'advanced' | 'sandbox' | 'about') => void
   clearPendingSettingsTab: () => void
 
   // Main content area view (Iteration 412: settings; Iteration 414: editors; Iteration 460: workflow-detail; Iteration 534: notes; Iteration 535: skill-creator; department: department dashboard)
