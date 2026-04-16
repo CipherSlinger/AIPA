@@ -471,7 +471,7 @@ export default function SettingsAdvanced() {
           </button>
           {draft.trim() && (
             <button onClick={() => setDraft('')}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)' }}
               onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-muted)' }}
               style={{ padding: '7px 12px', fontSize: 12, background: 'none', border: '1px solid var(--glass-border)', borderRadius: 6, color: 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.15s ease' }}>
               {t('common.clear')}

@@ -146,7 +146,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
               style={{
                 display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                 padding: '6px 14px', marginBottom: 0,
-                background: 'rgba(255,255,255,0.06)',
+                background: 'var(--bg-hover)',
                 border: '1px solid var(--glass-border-md)',
                 borderRadius: 6,
                 color: '#818cf8', cursor: 'pointer', fontSize: 12,
@@ -158,7 +158,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
                 e.currentTarget.style.textDecoration = 'underline';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                e.currentTarget.style.background = 'var(--bg-hover)';
                 e.currentTarget.style.textDecoration = 'none';
               }}
             >
@@ -178,7 +178,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
           style={{
             display: 'flex', alignItems: 'center', gap: 8, width: '100%',
             padding: '10px 12px',
-            background: 'rgba(255,255,255,0.06)',
+            background: 'var(--bg-hover)',
             border: '1px solid var(--glass-border-md)',
             borderRadius: 6,
             color: 'var(--text-primary)', cursor: 'pointer', fontSize: 12,
@@ -186,7 +186,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--glass-border-md)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
         >
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Keyboard size={14} style={{ color: '#a5b4fc' }} />
@@ -194,7 +194,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
           </span>
           <kbd style={{
             fontSize: 10, color: 'var(--text-faint)',
-            background: 'rgba(12,12,22,0.6)',
+            background: 'var(--bg-primary)',
             border: '1px solid var(--glass-border-md)', borderRadius: 6, padding: '1px 6px',
             fontFamily: 'inherit',
           }}>Ctrl+/</kbd>
@@ -211,7 +211,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
             style={{
               display: 'flex', alignItems: 'center', gap: 8, flex: 1,
               padding: '10px 12px',
-              background: 'rgba(255,255,255,0.06)',
+              background: 'var(--bg-hover)',
               border: '1px solid var(--glass-border-md)',
               borderRadius: 6,
               color: 'var(--text-primary)', cursor: backupLoading ? 'wait' : 'pointer', fontSize: 12,
@@ -219,7 +219,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={(e) => { if (!backupLoading) e.currentTarget.style.background = 'var(--glass-border-md)' }}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
           >
             {backupLoading ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={14} style={{ color: '#a5b4fc' }} />}
             {t('backup.export')}
@@ -230,7 +230,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
             style={{
               display: 'flex', alignItems: 'center', gap: 8, flex: 1,
               padding: '10px 12px',
-              background: 'rgba(255,255,255,0.06)',
+              background: 'var(--bg-hover)',
               border: '1px solid var(--glass-border-md)',
               borderRadius: 6,
               color: 'var(--text-primary)', cursor: restoreLoading ? 'wait' : 'pointer', fontSize: 12,
@@ -238,7 +238,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={(e) => { if (!restoreLoading) e.currentTarget.style.background = 'var(--glass-border-md)' }}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
           >
             {restoreLoading ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Upload size={14} style={{ color: '#a5b4fc' }} />}
             {t('backup.import')}
@@ -257,7 +257,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
           style={{
             display: 'flex', alignItems: 'center', gap: 8, width: '100%',
             padding: '10px 12px',
-            background: 'rgba(255,255,255,0.06)',
+            background: 'var(--bg-hover)',
             border: '1px solid var(--glass-border-md)',
             borderRadius: 6,
             color: 'var(--text-primary)', cursor: 'pointer', fontSize: 12,
@@ -265,7 +265,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--glass-border-md)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
         >
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Activity size={14} style={{ color: '#a5b4fc' }} />
@@ -291,7 +291,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
                 <span style={{ fontSize: 11, color: 'var(--text-faint)', fontVariantNumeric: 'tabular-nums' }}>{row.key}</span>
                 <span style={{
                   fontFamily: 'monospace', fontSize: 11, color: 'rgba(165,180,252,0.8)',
-                  background: 'rgba(12,12,22,0.6)', borderRadius: 6, padding: '1px 5px',
+                  background: 'var(--bg-primary)', borderRadius: 6, padding: '1px 5px',
                 }}>{row.val}</span>
               </div>
               {i < arr.length - 1 && <div style={dividerStyle} />}

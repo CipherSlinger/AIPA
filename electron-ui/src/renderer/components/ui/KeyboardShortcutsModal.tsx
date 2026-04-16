@@ -127,7 +127,7 @@ export default function KeyboardShortcutsModal({ onClose }: Props) {
                 <div key={i} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '6px 10px',
-                  background: 'rgba(255,255,255,0.03)',
+                  background: 'var(--bg-hover)',
                   border: '1px solid var(--border)',
                   borderRadius: 8,
                 }}>
