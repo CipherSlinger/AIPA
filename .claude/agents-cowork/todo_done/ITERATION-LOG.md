@@ -6907,3 +6907,17 @@ Migrated hardcoded rgba() color values to CSS variables in SessionCard.tsx and C
 
 ### Build
 Status: SUCCESS (npm run check: 0 errors, 0 TS errors)
+
+## Iteration 586 — Chat input components CSS variable migration
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+CSS variable migration for chat input-area components. Replaced hardcoded rgba() white values with semantic CSS custom properties. SlashCommandPopup: kbd text color migrated. BookmarksPanel: 3 replacements (badge text, hover text). ChangesPanel: empty-state icon color. ChatInput.tsx and CompactButton.tsx had only indigo accent values (excluded per rules).
+
+### Files Changed
+- `src/renderer/components/chat/SlashCommandPopup.tsx` — 1 replacement (kbd text rgba → var(--text-muted))
+- `src/renderer/components/chat/BookmarksPanel.tsx` — 3 replacements (badge text, hover text → var(--text-muted)/var(--text-secondary))
+- `src/renderer/components/chat/ChangesPanel.tsx` — 1 replacement (empty-state icon → var(--text-muted))
+
+### Build
+Status: SUCCESS (vite build: 11.64s, 0 TypeScript errors)
