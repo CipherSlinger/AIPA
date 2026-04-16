@@ -6565,3 +6565,25 @@ Added RemoteTriggerCard inline component in ToolUseBlock.tsx. Input display show
 
 ### Build
 Status: SUCCESS
+
+## Iteration 567 — SendMessage agent communication display card
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Added `SendMessageCard` inline component to ToolUseBlock.tsx for the CLI's `SendMessage` tool (used by agents to send messages to other agents). Displays recipient (`to` field with Users icon), message text preview (first 120 chars, expandable), and a green "Delivered" badge on success or red "Failed" badge on error. The card uses the indigo left-border style (`rgba(99,102,241,0.5)`) consistent with other agent-related cards. The whole tool routing is an early return (like Agent/AskUserQuestion), so the card handles both input and output display in one component.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/ToolUseBlock.tsx` — add SendMessageCard component; add `tool.name === 'SendMessage'` early-return routing; SendMessage already present in TOOL_ICONS
+
+### Build
+Status: SUCCESS (npm run check: 0 errors, vite build: 14.63s)
+
+### Acceptance Criteria
+- [x] SendMessage tool shows "To:" field with recipient name/ID and Users icon
+- [x] SendMessage tool shows message text preview (first 120 chars)
+- [x] Message preview has expand toggle when text exceeds 120 chars
+- [x] Result shows green "Delivered" badge (Check icon) on success
+- [x] Result shows red "Failed" badge (X icon) on error
+- [x] Card has indigo left-border matching agent card style
+- [x] SendMessage: Send already in TOOL_ICONS (no change needed)
+- [x] npm run check passes, vite build succeeds
