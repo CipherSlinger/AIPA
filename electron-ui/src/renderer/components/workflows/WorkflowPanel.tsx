@@ -133,7 +133,7 @@ export default function WorkflowPanel() {
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      background: 'rgba(12,12,20,0.97)',
+      background: 'var(--bg-primary)',
       borderRight: '1px solid var(--glass-border)',
       overflow: 'hidden',
     }}>
@@ -362,8 +362,8 @@ function WorkflowTabContent({ crud, t }: {
             placeholder={t('workflow.searchPlaceholder')}
             style={{
               width: '100%', height: 28, paddingLeft: 26, paddingRight: 8,
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'var(--bg-hover)',
+              border: '1px solid var(--border)',
               borderRadius: 8, fontSize: 11, color: 'var(--text-primary)', outline: 'none', boxSizing: 'border-box',
               backdropFilter: 'blur(8px)',
               WebkitBackdropFilter: 'blur(8px)',
@@ -374,7 +374,7 @@ function WorkflowTabContent({ crud, t }: {
               e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)'
             }}
             onBlur={e => {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+              e.currentTarget.style.borderColor = 'var(--border)'
               e.currentTarget.style.boxShadow = 'none'
             }}
           />
@@ -416,7 +416,7 @@ function WorkflowTabContent({ crud, t }: {
             autoFocus
             style={{
               width: '100%', height: 28, padding: '0 8px',
-              background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)',
+              background: 'var(--bg-hover)', border: '1px solid var(--glass-border)',
               borderRadius: 6, fontSize: 11, fontWeight: 500, color: 'var(--text-primary)',
               outline: 'none', boxSizing: 'border-box', marginBottom: 4,
             }}
@@ -428,7 +428,7 @@ function WorkflowTabContent({ crud, t }: {
             maxLength={MAX_DESC_LENGTH}
             style={{
               width: '100%', height: 28, padding: '0 8px',
-              background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)',
+              background: 'var(--bg-hover)', border: '1px solid var(--glass-border)',
               borderRadius: 6, fontSize: 10, color: 'var(--text-secondary)',
               outline: 'none', boxSizing: 'border-box', marginBottom: 6,
             }}
@@ -471,7 +471,7 @@ function WorkflowTabContent({ crud, t }: {
               onClick={crud.createWorkflow}
               disabled={!crud.newName.trim() || crud.newSteps.every(s => !s.prompt.trim())}
               style={{
-                background: crud.newName.trim() ? '#6366f1' : 'rgba(255,255,255,0.08)',
+                background: crud.newName.trim() ? '#6366f1' : 'var(--bg-active)',
                 border: 'none', borderRadius: 4, padding: '3px 12px', fontSize: 10, fontWeight: 600,
                 color: crud.newName.trim() ? 'var(--text-primary)' : 'var(--text-muted)',
                 cursor: crud.newName.trim() ? 'pointer' : 'not-allowed',
@@ -494,7 +494,7 @@ function WorkflowTabContent({ crud, t }: {
                 onClick={() => setCategoryFilter(null)}
                 style={{
                   fontSize: 10, padding: '2px 9px', borderRadius: 20, cursor: 'pointer',
-                  background: !categoryFilter ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.06)',
+                  background: !categoryFilter ? 'rgba(99,102,241,0.15)' : 'var(--bg-active)',
                   border: !categoryFilter ? '1px solid rgba(99,102,241,0.30)' : '1px solid var(--glass-border)',
                   color: !categoryFilter ? '#818cf8' : 'var(--text-muted)',
                   fontWeight: !categoryFilter ? 700 : 400,
@@ -506,7 +506,7 @@ function WorkflowTabContent({ crud, t }: {
                   onClick={() => setCategoryFilter(cat)}
                   style={{
                     fontSize: 10, padding: '2px 9px', borderRadius: 20, cursor: 'pointer',
-                    background: categoryFilter === cat ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.06)',
+                    background: categoryFilter === cat ? 'rgba(99,102,241,0.15)' : 'var(--bg-active)',
                     border: categoryFilter === cat ? '1px solid rgba(99,102,241,0.30)' : '1px solid var(--glass-border)',
                     color: categoryFilter === cat ? '#818cf8' : 'var(--text-muted)',
                     fontWeight: categoryFilter === cat ? 700 : 400,
@@ -548,7 +548,7 @@ function WorkflowTabContent({ crud, t }: {
           }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
             <div style={{
-              background: 'rgba(255,255,255,0.08)',
+              background: 'var(--bg-active)',
               borderRadius: 20,
               padding: 20,
               display: 'flex',
@@ -798,7 +798,7 @@ function WorkflowTabContent({ crud, t }: {
           50% { opacity: 0.5; transform: scale(1.05); }
         }
         .wf-panel-scroll::-webkit-scrollbar { width: 4px; }
-        .wf-panel-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+        .wf-panel-scroll::-webkit-scrollbar-thumb { background: var(--bg-active); border-radius: 2px; }
       `}</style>
     </>
   )

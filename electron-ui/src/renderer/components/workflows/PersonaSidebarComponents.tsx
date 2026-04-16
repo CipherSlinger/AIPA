@@ -80,7 +80,7 @@ export function PersonaSidebarCard({ persona, isActive, isDeleting, onDelete }: 
         padding: '8px 12px',
         background: isActive
           ? 'rgba(99,102,241,0.12)'
-          : 'rgba(255,255,255,0.02)',
+          : 'var(--bg-hover)',
         border: `1px solid ${isActive ? 'rgba(99,102,241,0.35)' : 'var(--glass-border)'}`,
         borderRadius: 8,
         transition: 'all 0.15s ease',
@@ -241,7 +241,7 @@ export function PersonaInlineForm({
     width: '100%',
     height: 26,
     padding: '0 8px',
-    background: 'rgba(255,255,255,0.06)',
+    background: 'var(--bg-active)',
     border: '1px solid var(--glass-border-md)',
     borderRadius: 5,
     fontSize: 11,
@@ -371,7 +371,7 @@ export function PersonaInlineForm({
             flex: 1,
             background: canSubmit
               ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
-              : 'rgba(255,255,255,0.04)',
+              : 'var(--bg-hover)',
             border: canSubmit ? '1px solid rgba(99,102,241,0.4)' : '1px solid var(--glass-border)',
             borderRadius: 6,
             padding: '5px 0',
@@ -392,7 +392,7 @@ export function PersonaInlineForm({
           onClick={onCancel}
           style={{
             flex: 1,
-            background: 'rgba(255,255,255,0.04)',
+            background: 'var(--bg-hover)',
             border: '1px solid var(--glass-border-md)',
             borderRadius: 6,
             padding: '5px 0',
@@ -405,12 +405,12 @@ export function PersonaInlineForm({
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+            e.currentTarget.style.background = 'var(--bg-active)'
             e.currentTarget.style.borderColor = 'var(--glass-border-md)'
             e.currentTarget.style.color = 'var(--text-primary)'
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+            e.currentTarget.style.background = 'var(--bg-hover)'
             e.currentTarget.style.borderColor = 'var(--glass-border-md)'
             e.currentTarget.style.color = 'var(--text-muted)'
           }}
