@@ -82,7 +82,7 @@ export default function MarkdownImage({ src, alt }: { src?: string; alt?: string
           maxWidth: '100%',
           marginBottom: 8,
           transition: 'all 0.15s ease',
-          background: loaded && !errored ? undefined : 'rgba(15,15,25,0.85)',
+          background: loaded && !errored ? undefined : 'var(--bg-primary)',
         }}
       >
         {/* Loading skeleton — shown until image loads or errors */}
@@ -137,10 +137,7 @@ export default function MarkdownImage({ src, alt }: { src?: string; alt?: string
               position: 'absolute',
               bottom: 6,
               right: 6,
-              background: 'rgba(15,15,25,0.85)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
-              borderRadius: 4,
+              background: 'var(--popup-bg)',
               border: '1px solid var(--border)',
               padding: '2px 6px',
               display: 'flex',

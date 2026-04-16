@@ -189,7 +189,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
         <div
           style={{
             height: 2,
-            background: 'rgba(255,255,255,0.05)',
+            background: 'var(--border)',
             flexShrink: 0,
             position: 'relative',
             overflow: 'hidden',

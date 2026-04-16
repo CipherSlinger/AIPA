@@ -58,7 +58,7 @@ export default function TypingStatus() {
         borderTop: '1px solid var(--bg-hover)',
         flexShrink: 0,
         minHeight: 28,
-        background: 'rgba(15,15,25,0.85)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',

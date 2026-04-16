@@ -43,10 +43,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
       <div style={{
         margin: '4px 16px 8px',
         padding: '7px 12px',
-        background: 'rgba(15,15,25,0.85)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(34,197,94,0.30)',
+        background: 'var(--popup-bg)',
         borderLeft: '3px solid rgba(34,197,94,0.55)',
         borderRadius: 10,
         boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
@@ -64,7 +61,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
       <div style={{
         margin: '4px 16px 8px',
         padding: '7px 12px',
-        background: 'rgba(15,15,25,0.85)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid rgba(239,68,68,0.20)',
@@ -86,7 +83,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
       <div style={{
         margin: '4px 16px 8px',
         padding: '8px 12px',
-        background: 'rgba(15,15,25,0.85)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid rgba(99,102,241,0.25)',

@@ -135,7 +135,7 @@ export default function CompareView({ sessionA, sessionB, titleA, titleB, forkMe
           gap: 8,
           padding: '10px 16px',
           borderBottom: '1px solid var(--bg-hover)',
-          background: 'rgba(15,15,25,0.85)',
+          background: 'var(--popup-bg)',
           backdropFilter: 'blur(14px)',
           WebkitBackdropFilter: 'blur(14px)',
           flexShrink: 0,

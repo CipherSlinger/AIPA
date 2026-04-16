@@ -55,7 +55,7 @@ export default function ToolBatchBlock({ group, onAbort }: ToolBatchBlockProps) 
   return (
     <div
       style={{
-        background: 'rgba(15,15,25,0.88)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid var(--border)',

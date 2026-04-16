@@ -353,10 +353,10 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
             return <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12, marginTop: 16, color: 'var(--text-primary)' }}>{children}</h1>
           },
           h2({ children }) {
-            return <h2 style={{ fontSize: 17, fontWeight: 600, marginBottom: 10, marginTop: 14, color: 'rgba(255,255,255,0.88)' }}>{children}</h2>
+            return <h2 style={{ fontSize: 17, fontWeight: 600, marginBottom: 10, marginTop: 14, color: 'var(--text-primary)' }}>{children}</h2>
           },
           h3({ children }) {
-            return <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 8, marginTop: 12, color: 'rgba(255,255,255,0.88)' }}>{children}</h3>
+            return <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 8, marginTop: 12, color: 'var(--text-primary)' }}>{children}</h3>
           },
         }}
       >

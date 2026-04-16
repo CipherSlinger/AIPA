@@ -44,7 +44,7 @@ export default function URLPreviewCard({ url }: { url: string }) {
     return (
       <div style={{
         display: 'flex', gap: 10, padding: '10px 12px',
-        background: 'rgba(15,15,25,0.88)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid var(--border)',
@@ -90,7 +90,7 @@ export default function URLPreviewCard({ url }: { url: string }) {
       onMouseLeave={() => setHovered(false)}
       style={{
         display: 'flex', gap: 10, padding: '10px 12px',
-        background: 'rgba(15,15,25,0.88)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: hovered ? '1px solid var(--border)' : '1px solid var(--border)',

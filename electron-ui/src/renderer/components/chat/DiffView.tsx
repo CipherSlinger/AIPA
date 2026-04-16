@@ -121,9 +121,7 @@ export default function DiffView({ oldStr, newStr, filePath }: DiffViewProps) {
           <div style={{
             fontSize: 10, color: 'var(--text-primary)', marginBottom: 4,
             padding: '6px 12px',
-            background: 'rgba(255,255,255,0.04)',
-            borderBottom: '1px solid var(--glass-border)',
-            fontFamily: 'monospace', fontWeight: 700,
+            background: 'var(--bg-hover)',
             letterSpacing: '0.07em', textTransform: 'uppercase',
           }}>{filePath}</div>
         )}
@@ -157,7 +155,7 @@ export default function DiffView({ oldStr, newStr, filePath }: DiffViewProps) {
         style={{
           display: 'flex', alignItems: 'center', gap: 6,
           padding: '6px 12px',
-          background: 'rgba(255,255,255,0.04)',
+          background: 'var(--bg-hover)',
           borderBottom: '1px solid var(--glass-border)',
           cursor: 'pointer', fontSize: 11,
           transition: 'all 0.15s ease',
@@ -263,7 +261,7 @@ export default function DiffView({ oldStr, newStr, filePath }: DiffViewProps) {
                   fontVariantNumeric: 'tabular-nums',
                   fontFeatureSettings: '"tnum"',
                   userSelect: 'none', flexShrink: 0,
-                  borderRight: '1px solid rgba(255,255,255,0.05)',
+                  borderRight: '1px solid var(--border)',
                 }}>
                   {line.type !== 'del' ? line.newNum : ''}
                 </span>

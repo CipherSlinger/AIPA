@@ -99,7 +99,7 @@ export default function ContextUsageMeter({ used, total, isStreaming, onCompact,
   return (
     <div style={{ position: 'relative' }}>
       <div style={{
-        background: 'rgba(15,15,25,0.80)',
+        background: 'var(--bg-primary)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         borderRadius: 8,

@@ -51,7 +51,7 @@ export default function HookProgressCard({ event }: HookProgressCardProps) {
       style={{
         display: 'inline-flex',
         flexDirection: 'column',
-        background: 'rgba(15,15,25,0.88)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid rgba(99,102,241,0.12)',

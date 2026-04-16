@@ -149,7 +149,7 @@ function LineRow({ line }: LineRowProps) {
         padding: '1px 0',
       }}>
         <span style={{ width: 36, flexShrink: 0 }} />
-        <span style={{ width: 36, flexShrink: 0, borderRight: '1px solid rgba(255,255,255,0.05)' }} />
+        <span style={{ width: 36, flexShrink: 0, borderRight: '1px solid var(--border)' }} />
         <span style={{ width: 16, textAlign: 'center', flexShrink: 0, fontWeight: 700 }}>⋯</span>
         <span style={{ flex: 1, padding: '0 8px', fontStyle: 'italic', fontSize: 10 }}>
           {line.oldNum !== undefined ? '' : ''}
@@ -197,7 +197,7 @@ function LineRow({ line }: LineRowProps) {
         userSelect: 'none',
         flexShrink: 0,
         opacity: 0.38,
-        borderRight: '1px solid rgba(255,255,255,0.05)',
+        borderRight: '1px solid var(--border)',
       }}>
         {line.type !== 'del' ? line.newNum ?? '' : ''}
       </span>

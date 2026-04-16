@@ -385,11 +385,7 @@ export default function TaskDashboardCard({ tasks, singleTask }: Props) {
     return (
       <div
         style={{
-          background: 'rgba(15,15,25,0.60)',
-          border: '1px solid var(--border)',
-          borderRadius: 8,
-          padding: '10px 12px',
-          fontSize: 11,
+          background: 'var(--bg-secondary)',
           color: 'var(--text-muted)',
           fontStyle: 'italic',
         }}
@@ -410,10 +406,7 @@ export default function TaskDashboardCard({ tasks, singleTask }: Props) {
   return (
     <div
       style={{
-        background: 'rgba(15,15,25,0.60)',
-        border: '1px solid var(--border)',
-        borderRadius: 8,
-        overflow: 'hidden',
+        background: 'var(--bg-secondary)',
         transition: 'all 0.15s ease',
       }}
     >

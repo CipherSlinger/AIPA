@@ -315,7 +315,7 @@ export default function TaskQueuePanel() {
     <div
       style={{
         margin: '0 16px 8px 16px',
-        background: 'rgba(15,15,25,0.85)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
         border: '1px solid var(--border)',
