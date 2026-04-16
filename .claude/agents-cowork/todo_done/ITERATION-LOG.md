@@ -7381,3 +7381,87 @@ Status: SUCCESS (0 errors, 204 pre-existing warnings; 8 files changed)
 - [x] White text on colored/gradient buttons left untouched (ExportDialog, SpeculationCard, MessageBubbleContent, CompactButton, ElicitationCard, FileBrowser)
 - [x] WorkflowItem fallback inside var(--text-faint, rgba(...)) left untouched (already wrapped)
 - [x] npm run check passes with 0 errors
+
+---
+
+## Iteration 603 — Fix SessionCard top-right overlay overlap
+
+**Agent:** a2bdeaa8300ab5425
+**Commit:** 3569872
+
+### Summary
+Fixed the UI bug where hover-state action buttons (pin icon, delete button) and the status pill overlapped in department dashboard session cards. Replaced three individually `position: absolute`-placed elements with a single flex-row container.
+
+### Root Cause
+- Status pill: `top: 8, right: 10` (always visible when active)
+- Delete button: `top: 8, right: 8` (hover only)
+- Pin button: `top: 8, right: onDelete ? 30 : 8` (hover only)
+
+The `right: 30` offset for pin button cleared the delete button but still collided with the status pill at `right: 10`.
+
+### Fix
+Unified container: `position: absolute, top: 6, right: 6, display: flex, gap: 4, pointerEvents: none`. Children (pin → delete → status pill from left to right) each set `pointerEvents: auto` as needed. Title `paddingRight` updated from `statusPill || isActive ? 72 : 0` to `statusPill || hovered ? 80 : 0`.
+
+### Files Changed
+- `electron-ui/src/renderer/components/departments/SessionCard.tsx`
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+---
+
+## Iteration 604 — Departments/sessions CSS variable migration audit
+
+**Agent:** a4b3c876be76af48b
+**Commit:** 39b417b
+
+### Summary
+Audited `DepartmentPanel.tsx`, `DepartmentDashboard.tsx`, `SessionCard.tsx`, `SessionFilters.tsx` for `rgba(255,255,255,...)` values. All 10+ occurrences were correctly skipped — all were `rgba(255,255,255,0.95)` white text on indigo/red gradient buttons, or `rgba(255,255,255,0.15)` in `boxShadow` values.
+
+### Files Changed
+None (audit only — all values correctly exempt per migration rules)
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+---
+
+## Iteration 605 — UI/shared/onboarding CSS variable migration
+
+**Agent:** aecc86fe79f57e2e2
+**Commit:** c2f895a
+
+### Summary
+Migrated hardcoded `rgba(255,255,255,...)` to CSS custom properties in ui, shared, and onboarding components.
+
+### Files Changed
+- `electron-ui/src/renderer/components/ui/Toggle.tsx` — inactive track bg `rgba(255,255,255,0.15)` → `var(--bg-input)`
+- `electron-ui/src/renderer/components/ui/Skeleton.tsx` — shimmer gradient stops → `var(--glass-bg-low)` / `var(--bg-hover)`
+- `electron-ui/src/renderer/components/ui/KeyboardShortcutsModal.tsx` — kbd borders `0.15/0.20` → `var(--border)`
+- `electron-ui/src/renderer/components/ui/QRCodeDisplay.tsx` — canvas border `0.12` → `var(--border)`
+- `electron-ui/src/renderer/components/onboarding/OnboardingWizard.tsx` — inactive step disc bg `0.15` → `var(--bg-input)`
+
+Skipped: Toggle knob (white structural element), QRCode canvas background (functional requirement), ErrorBoundary/OnboardingWizard white text on colored buttons.
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+---
+
+## Iteration 606 — Remaining chat/skills/notes/filebrowser CSS variable migration
+
+**Agent:** a7892b8c830024f81
+**Commit:** 4fa84a4
+
+### Summary
+Swept 10 remaining files. Applied 3 migrations. 7 files had only exempt values (white text on colored buttons).
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/ClipboardActionsMenu.tsx` — hover text `rgba(255,255,255,0.92)` → `var(--text-primary)`
+- `electron-ui/src/renderer/components/skills/SkillCreatorPage.tsx` — spinner border `rgba(255,255,255,0.3)` → `var(--text-faint)`
+- `electron-ui/src/renderer/components/notes/NotesHeader.tsx` — borderLeft `rgba(255,255,255,0.15)` → `var(--border)`
+
+Skipped (white text on colored/gradient buttons): ExportDialog, SpeculationCard, MessageBubbleContent, CompactButton, ElicitationCard, FileBrowser, WorkflowItem (already wrapped in var() fallback).
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
