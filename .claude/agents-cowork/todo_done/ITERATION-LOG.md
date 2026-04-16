@@ -6817,6 +6817,43 @@ Established CSS variable-based z-index hierarchy (--z-base:1, --z-sidebar:10, --
 ### Build
 Status: SUCCESS (vite build: 18.79s)
 
+## Iteration 580 — Migrate settings components to CSS variables
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Replaced hardcoded rgba(255,255,255,...) and rgba(0,0,0,...) color values in 18 settings components with semantic CSS variables. Accent indigo colors (rgba(99,102,241,...)) and status colors (red/green/yellow/orange) were preserved. Box-shadows and modal backdrops with black rgba were kept. Key mappings: rgba(255,255,255,0.03) → var(--glass-bg-low), rgba(255,255,255,0.06) → var(--bg-input), rgba(255,255,255,0.95) → var(--text-bright), rgba(255,255,255,0.55/0.6) → var(--text-secondary), rgba(255,255,255,0.18/0.2/0.3) → var(--text-muted).
+
+### Files Changed
+- `src/renderer/components/settings/SettingsGroup.tsx` — 2 replacements
+- `src/renderer/components/settings/PermissionsSettingsPanel.tsx` — 13 replacements
+- `src/renderer/components/settings/HooksSettingsPanel.tsx` — 7 replacements
+- `src/renderer/components/settings/HookAddWizard.tsx` — 3 replacements
+- `src/renderer/components/settings/SettingsStats.tsx` — 6 replacements
+- `src/renderer/components/settings/SettingsMcp.tsx` — 9 replacements
+- `src/renderer/components/settings/SettingsSandbox.tsx` — 1 replacement
+- `src/renderer/components/settings/SettingsProjectMcp.tsx` — 1 replacement
+- `src/renderer/components/settings/SettingsApiKeyPool.tsx` — 4 replacements
+- `src/renderer/components/settings/SettingsMemory.tsx` — 4 replacements
+- `src/renderer/components/settings/SettingsPersonas.tsx` — 10 replacements
+- `src/renderer/components/settings/DiagnosticsPanel.tsx` — 2 replacements
+- `src/renderer/components/settings/PersonaCard.tsx` — 2 replacements
+- `src/renderer/components/settings/PersonaEditorPage.tsx` — 1 replacement
+- `src/renderer/components/settings/PersonaForm.tsx` — 2 replacements
+- `src/renderer/components/settings/PersonaPresets.tsx` — 3 replacements
+- `src/renderer/components/settings/SettingsProviders.tsx` — 1 replacement
+- `src/renderer/components/settings/WorkflowEditorPage.tsx` — 1 replacement
+
+### Build
+Status: SUCCESS (npm run check: 0 errors, vite build: 11.83s)
+
+### Acceptance Criteria
+- [x] All rgba(255,255,255,...) background/text/border colors replaced with CSS variables
+- [x] Accent colors (rgba(99,102,241,...)) preserved
+- [x] Status colors (red/green/yellow) preserved
+- [x] Box-shadows with rgba(0,0,0,...) preserved
+- [x] TypeScript type check: 0 errors
+- [x] Vite build: SUCCESS
+
 ## Iteration 581 — WorkflowDetailPage execution progress bar
 _Date: 2026-04-16 | Sprint ongoing_
 
