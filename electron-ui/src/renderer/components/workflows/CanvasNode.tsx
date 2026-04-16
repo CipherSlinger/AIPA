@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useRef, useEffect } from 'react'
-import { Check, Loader, ChevronUp, ChevronDown, Copy, MessageSquare, AlertCircle, GripVertical, PlusCircle, RefreshCw, Trash2, Play, Star, GitBranch, Layers } from 'lucide-react'
+import { Check, Loader, ChevronUp, ChevronDown, Copy, MessageSquare, AlertCircle, GripVertical, PlusCircle, RefreshCw, Trash2, Play, Star, GitBranch, Layers, Users } from 'lucide-react'
 import { WorkflowStep } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { getPresetStepText } from './workflowConstants'
@@ -27,6 +27,7 @@ interface CanvasNodeProps {
   liveElapsedMs?: number    // D5: real-time step execution timer
   stepIndex?: number        // V7: step number shown in collapsed state
   highlighted?: boolean     // V10: search match glow
+  activeSubAgentCount?: number  // Iteration 561: Agent tool sub-agent count badge
   onSelect: (stepId: string) => void
   onDragStart: (stepId: string, e: React.MouseEvent) => void
   onToggleCollapse?: (stepId: string) => void
@@ -71,6 +72,10 @@ const NODE_DOT_BOUNCE_STYLE = `
 @keyframes canvas-spinner {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
+}
+@keyframes canvas-subagent-pulse {
+  0%, 100% { opacity: 0.75; transform: scale(1); }
+  50%      { opacity: 1;    transform: scale(1.04); }
 }
 `
 
@@ -534,6 +539,7 @@ export default function CanvasNode({
   liveElapsedMs,
   stepIndex,
   highlighted = false,
+  activeSubAgentCount = 0,
   onSelect,
   onDragStart,
   onToggleCollapse,
@@ -910,6 +916,36 @@ export default function CanvasNode({
 
         {/* B5: Status badge (top-right) — spinner/check/error icon */}
         <StatusBadge status={status} />
+
+        {/* Iteration 561: Sub-agent badge — shown when Agent tool is active on a running node */}
+        {activeSubAgentCount > 0 && (
+          <div
+            title={`${activeSubAgentCount} sub-agent${activeSubAgentCount > 1 ? 's' : ''} running`}
+            style={{
+              position: 'absolute',
+              top: 10,
+              right: -8,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 3,
+              padding: '2px 6px 2px 4px',
+              borderRadius: 8,
+              background: 'rgba(99,102,241,0.15)',
+              border: '1px solid rgba(99,102,241,0.3)',
+              color: '#818cf8',
+              fontSize: 9,
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+              animation: 'canvas-subagent-pulse 2s ease-in-out infinite',
+              boxShadow: '0 0 6px rgba(99,102,241,0.25)',
+              zIndex: 3,
+              pointerEvents: 'none',
+            }}
+          >
+            <Users size={8} strokeWidth={2.5} />
+            {`${activeSubAgentCount} sub-agent${activeSubAgentCount > 1 ? 's' : ''}`}
+          </div>
+        )}
 
         {/* Reorder drag handle — shown on left side */}
         {onReorderDragStart && !collapsed && (

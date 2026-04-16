@@ -244,6 +244,15 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     return ''
   })
 
+  // Iteration 561: count active Agent tool uses from pendingToolUses for sub-agent badge
+  const activeSubAgentCount = useChatStore(s => {
+    let count = 0
+    s.pendingToolUses.forEach((info) => {
+      if (info.name === 'Agent') count++
+    })
+    return count
+  })
+
   // Direction 13: search query state
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -1609,6 +1618,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               // D5: live elapsed timer
               liveElapsedMs={liveElapsedMs[step.id]}
               stepIndex={idx}
+              // Iteration 561: sub-agent badge — only shown on the currently-running step
+              activeSubAgentCount={stepStatus === 'running' ? activeSubAgentCount : 0}
               onSelect={handleNodeSelect}
               onDragStart={(stepId, e) => {
                 // Direction F: if this node is part of multi-selection, drag all
