@@ -195,6 +195,20 @@
   --queue-panel-border: rgba(0, 0, 0, 0.1);
   --queue-panel-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 
+  /* Accent variants */
+  --accent-bg:       rgba(37,99,235,0.08);
+  --accent-border:   rgba(37,99,235,0.20);
+  --accent-muted:    #2563eb;
+
+  /* Status colors */
+  --color-error:    #dc2626;
+  --color-success:  #16a34a;
+  --color-warning:  #d97706;
+  --color-violet:   #7c3aed;
+
+  /* CTA gradient (blue-to-violet for light mode) */
+  --cta-gradient: linear-gradient(135deg, rgba(37,99,235,0.88), rgba(124,58,237,0.88));
+
   /* Glass-morphism surfaces (light theme overrides) */
   --glass-bg-low:    rgba(240,242,250,0.85);
   --glass-bg-mid:    rgba(240,242,250,0.90);
