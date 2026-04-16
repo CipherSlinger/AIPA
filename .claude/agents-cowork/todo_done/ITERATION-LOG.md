@@ -7465,3 +7465,57 @@ Skipped (white text on colored/gradient buttons): ExportDialog, SpeculationCard,
 
 ### Build
 Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+---
+
+## Iteration 607 — CSS variable migration audit for chat input/toolbar components
+
+**Agent:** aipa-frontend
+**Date:** 2026-04-16
+
+### Summary
+Audited 7 chat input/toolbar files for `rgba(255,255,255,...)` migration candidates. All 12 occurrences found were exempt per migration rules: white text on colored/indigo gradient buttons, icons on colored button backgrounds (0.85–0.95 opacity), and one disabled-state text on indigo-bg button. No code changes required.
+
+### Files Changed
+- None — all `rgba(255,255,255,...)` values in target files are white-on-colored-bg exemptions.
+
+### Files Audited (No Changes)
+- `electron-ui/src/renderer/components/chat/ChatInput.tsx` — 2 occurrences, both `0.95` on indigo gradient buttons
+- `electron-ui/src/renderer/components/chat/InputToolbar.tsx` — 3 occurrences: two `0.95` on colored badges, one `0.3` disabled text on `rgba(99,102,241,0.2)` button
+- `electron-ui/src/renderer/components/chat/SlashCommandPopup.tsx` — 1 occurrence, `0.95` on selected-item colored bg
+- `electron-ui/src/renderer/components/chat/QuickCapture.tsx` — 2 occurrences: `0.85` icon on colored button, `0.95` on gradient button
+- `electron-ui/src/renderer/components/chat/SearchBar.tsx` — 1 occurrence, `0.95` active state on indigo bg
+- `electron-ui/src/renderer/components/chat/MessageActionToolbar.tsx` — 1 occurrence, `0.95` on `#6366f1` bg
+- `electron-ui/src/renderer/components/chat/ScrollToBottomFab.tsx` — 2 occurrences, both `0.95` on indigo/colored bg
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] All 7 target files audited for `rgba(255,255,255,...)` occurrences
+- [x] Migration rules applied: all exempt values correctly identified and preserved
+- [x] `npm run check` passes with 0 errors
+
+---
+
+## Iteration 610 — CSS variable migration sweep for chat message/code/header components
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Swept 8 target chat component files for `rgba(255,255,255,...)` occurrences. Found 8 total occurrences across 8 files — all were exempt per migration rules (white text on colored/gradient buttons, or opaque `rgba(255,255,255,1)` for functional iframe background). No code changes were made.
+
+### Files Changed
+- No files modified — all occurrences were exempt from substitution
+
+### Exempt Analysis
+- `MessageList.tsx` line 324: `rgba(255,255,255,0.95)` — icon color on amber scroll-lock button (colored bg, exempt)
+- `MessageErrorBoundary.tsx` line 109: `rgba(255,255,255,0.95)` — text on indigo gradient button (exempt)
+- `AnnotationEditor.tsx` line 147: `rgba(255,255,255,0.95)` — text on indigo gradient button (exempt)
+- `CodeBlock.tsx` line 108: `rgba(255,255,255,1)` — opaque white iframe sandbox bg (functional, not in mapping)
+- `ChangesPanel.tsx` line 100: `rgba(255,255,255,0.95)` — text on indigo badge (colored bg, exempt)
+- `ChatHeader.tsx` line 439: `rgba(255,255,255,0.95)` — text on indigo gradient button (exempt)
+- `TemplatesSection.tsx` line 179: `rgba(255,255,255,0.92)` — text on indigo gradient button (exempt)
+- `ChatInputSendButton.tsx` line 64: `rgba(255,255,255,0.95)` — text on indigo gradient button (exempt)
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings — no changes to build)

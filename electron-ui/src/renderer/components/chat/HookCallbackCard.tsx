@@ -304,7 +304,7 @@ export function HookCallbackCard({ message, onRespond }: Props) {
                 background: selectedOptionKey
                   ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
                   : 'var(--bg-hover)',
-                color: selectedOptionKey ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.35)',
+                color: selectedOptionKey ? 'rgba(255,255,255,0.95)' : 'var(--text-faint)',
                 fontWeight: 600,
                 fontSize: 13,
                 cursor: selectedOptionKey ? 'pointer' : 'not-allowed',

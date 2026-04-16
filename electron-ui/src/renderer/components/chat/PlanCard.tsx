@@ -179,7 +179,7 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
                   color: isCompleted
                     ? 'var(--text-muted)'
                     : isActive
-                      ? 'rgba(255,255,255,0.92)'
+                      ? 'var(--text-primary)'
                       : 'var(--text-secondary)',
                   textDecoration: isCompleted ? 'line-through' : 'none',
                   opacity: isCompleted ? 0.6 : 1,
