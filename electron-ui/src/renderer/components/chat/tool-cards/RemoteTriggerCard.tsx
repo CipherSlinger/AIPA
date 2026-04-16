@@ -63,7 +63,7 @@ export function RemoteTriggerInputCard({ input }: { input: Record<string, unknow
       </div>
       {prompt && (
         <div style={{
-          fontSize: 11, color: 'rgba(255,255,255,0.55)', fontStyle: 'italic',
+          fontSize: 11, color: 'var(--text-secondary)', fontStyle: 'italic',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 380,
         }}>
           &ldquo;{prompt.length > 60 ? prompt.slice(0, 60) + '\u2026' : prompt}&rdquo;
@@ -115,9 +115,9 @@ export function RemoteTriggerResultCard({ action, resultText }: { action: Remote
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
             <ClipboardList size={10} style={{ color: '#94a3b8', flexShrink: 0 }} />
             <span style={{ fontFamily: 'monospace', color: '#a5b4fc', fontSize: 10 }}>{item.id ?? '\u2014'}</span>
-            {item.cron && <span style={{ color: 'rgba(255,255,255,0.40)', fontSize: 10 }}>{item.cron}</span>}
+            {item.cron && <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>{item.cron}</span>}
             {item.name && (
-              <span style={{ color: 'rgba(255,255,255,0.70)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
+              <span style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
                 {item.name}
               </span>
             )}
@@ -153,7 +153,7 @@ export function RemoteTriggerResultCard({ action, resultText }: { action: Remote
         {trigger.prompt && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ color: 'var(--text-muted)', minWidth: 44, fontSize: 10 }}>prompt</span>
-            <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 280 }}>
+            <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 280 }}>
               &ldquo;{trigger.prompt.length > 60 ? trigger.prompt.slice(0, 60) + '\u2026' : trigger.prompt}&rdquo;
             </span>
           </div>

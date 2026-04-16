@@ -143,7 +143,7 @@ export function AskUserQuestionCard({ question, options, isAnswered, answer }: A
                 borderRadius: 8,
                 border: 'none',
                 background: customText.trim() ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))' : 'rgba(99,102,241,0.25)',
-                color: 'rgba(255,255,255,0.95)',
+                color: 'var(--text-bright)',
                 cursor: customText.trim() ? 'pointer' : 'not-allowed',
                 fontWeight: 600,
                 transition: 'all 0.15s ease',
