@@ -319,7 +319,7 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
             aria-label={t('quickReply.addTemplate')}
             style={{
               background: 'transparent',
-              border: '1px dashed rgba(255,255,255,0.15)',
+              border: '1px dashed var(--border)',
               borderRadius: 14,
               width: 28,
               height: 24,

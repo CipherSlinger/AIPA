@@ -32,7 +32,7 @@ interface BashCommandBlockProps {
 export function BashCommandBlock({ command }: BashCommandBlockProps) {
   return (
     <div style={{
-      background: 'rgba(0,0,0,0.30)',
+      background: 'var(--tool-card-bg)',
       borderRadius: 8,
       border: '1px solid var(--border)',
       padding: '8px 12px',
@@ -83,7 +83,7 @@ export function BashOutputBlock({ output }: BashOutputBlockProps) {
 
   return (
     <div style={{
-      background: 'rgba(0,0,0,0.20)',
+      background: 'var(--tool-card-bg)',
       borderRadius: 6,
       padding: '6px 10px',
       transition: 'all 0.15s ease',

@@ -91,7 +91,7 @@ export default function SpeculationStatusBar({
             background: 'transparent',
             border: 'none',
             borderRadius: 8,
-            color: 'rgba(255,255,255,0.4)',
+            color: 'var(--text-muted)',
             cursor: 'pointer',
             transition: 'all 0.15s ease',
             flexShrink: 0,
@@ -100,7 +100,7 @@ export default function SpeculationStatusBar({
             e.currentTarget.style.color = '#fca5a5'
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.color = 'rgba(255,255,255,0.4)'
+            e.currentTarget.style.color = 'var(--text-muted)'
           }}
           title="中止预测"
         >
@@ -212,7 +212,7 @@ export default function SpeculationStatusBar({
             background: 'transparent',
             border: 'none',
             borderRadius: 8,
-            color: 'rgba(255,255,255,0.4)',
+            color: 'var(--text-muted)',
             cursor: 'pointer',
             flexShrink: 0,
             transition: 'all 0.15s ease',
@@ -221,7 +221,7 @@ export default function SpeculationStatusBar({
             e.currentTarget.style.color = '#fca5a5'
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.color = 'rgba(255,255,255,0.4)'
+            e.currentTarget.style.color = 'var(--text-muted)'
           }}
           title="拒绝预测结果，丢弃所有变更"
         >

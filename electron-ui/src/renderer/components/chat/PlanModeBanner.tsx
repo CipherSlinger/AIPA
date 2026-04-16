@@ -246,7 +246,7 @@ export default function PlanModeBanner({ onExit, onSend }: PlanModeBannerProps) 
           padding: '2px 8px',
           fontSize: 11,
           fontWeight: 500,
-          background: 'rgba(255,255,255,0.06)',
+          background: 'var(--bg-hover)',
           color: 'var(--text-muted)',
           border: '1px solid var(--glass-border-md)',
           borderRadius: 6,
@@ -259,7 +259,7 @@ export default function PlanModeBanner({ onExit, onSend }: PlanModeBannerProps) 
           e.currentTarget.style.color = 'var(--text-primary)'
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+          e.currentTarget.style.background = 'var(--bg-hover)'
           e.currentTarget.style.borderColor = 'var(--glass-border-md)'
           e.currentTarget.style.color = 'var(--text-muted)'
         }}

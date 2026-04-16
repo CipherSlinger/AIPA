@@ -71,7 +71,7 @@ function SimpleMessageBubble({ message, side }: MessageBubbleProps) {
           lineHeight: '1.5',
           background: isUser
             ? 'rgba(99,102,241,0.14)'
-            : 'rgba(255,255,255,0.03)',
+            : 'var(--glass-bg-low)',
           border: isUser
             ? '1px solid rgba(99,102,241,0.25)'
             : '1px solid var(--bg-hover)',
@@ -212,7 +212,7 @@ export default function CompareView({ sessionA, sessionB, titleA, titleB, forkMe
                   letterSpacing: '0.07em',
                   textTransform: 'uppercase',
                   color: 'rgba(99,102,241,0.60)',
-                  background: 'rgba(255,255,255,0.02)',
+                  background: 'var(--glass-shimmer)',
                   flexShrink: 0,
                   display: 'flex',
                   alignItems: 'center',
@@ -255,7 +255,7 @@ export default function CompareView({ sessionA, sessionB, titleA, titleB, forkMe
                   letterSpacing: '0.07em',
                   textTransform: 'uppercase',
                   color: 'rgba(139,92,246,0.60)',
-                  background: 'rgba(255,255,255,0.02)',
+                  background: 'var(--glass-shimmer)',
                   flexShrink: 0,
                   display: 'flex',
                   alignItems: 'center',

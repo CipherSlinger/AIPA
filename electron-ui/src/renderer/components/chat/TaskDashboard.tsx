@@ -59,7 +59,7 @@ const StepNode: React.FC<StepNodeProps> = ({ item, isLast, prevDone }) => {
     return {
       ...base,
       background: status === 'failed' ? '#f87171' : 'var(--border)',
-      border: status === 'failed' ? 'none' : '1.5px solid rgba(255,255,255,0.18)',
+      border: status === 'failed' ? 'none' : '1.5px solid var(--border)',
     }
   })()
 
@@ -247,7 +247,7 @@ const TaskDashboard: React.FC = () => {
                   onMouseLeave={e => {
                     const el = e.currentTarget as HTMLButtonElement
                     el.style.background = 'transparent'
-                    el.style.color = 'rgba(255,255,255,0.72)'
+                    el.style.color = 'var(--text-secondary)'
                   }}
                   title="Skip this task"
                 >

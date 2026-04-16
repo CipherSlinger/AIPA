@@ -221,7 +221,7 @@ export default function ContextUsageMeter({ used, total, isStreaming, onCompact,
           {suggestions.map((s, i) => (
             <div key={i} style={{
               padding: '8px 10px', borderRadius: 8, marginBottom: 4,
-              background: 'rgba(255,255,255,0.03)',
+              background: 'var(--glass-bg-low)',
               border: '1px solid var(--border)',
               borderLeft: `3px solid ${s.severity === 'warning' ? 'rgba(251,191,36,0.6)' : 'rgba(99,102,241,0.5)'}`,
             }}>

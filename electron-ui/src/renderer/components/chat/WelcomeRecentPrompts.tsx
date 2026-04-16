@@ -70,7 +70,7 @@ export default function WelcomeRecentPrompts({
                   onMouseLeave={() => setHoveredRecent(null)}
                   title={prompt}
                   style={{
-                    background: isHovered ? 'rgba(255,255,255,0.06)' : 'transparent',
+                    background: isHovered ? 'var(--bg-hover)' : 'transparent',
                     border: 'none',
                     borderRadius: 8,
                     padding: '7px 10px',
@@ -89,7 +89,7 @@ export default function WelcomeRecentPrompts({
                   </span>
                   <ChevronRight
                     size={12}
-                    color="rgba(255,255,255,0.4)"
+                    color="var(--text-muted)"
                     style={{ flexShrink: 0, opacity: isHovered ? 1 : 0, transition: 'all 0.15s ease' }}
                   />
                 </button>
@@ -122,7 +122,7 @@ export default function WelcomeRecentPrompts({
                     title={item.text}
                     style={{
                       flex: 1,
-                      background: isHovered ? 'rgba(255,255,255,0.06)' : 'transparent',
+                      background: isHovered ? 'var(--bg-hover)' : 'transparent',
                       border: 'none',
                       borderRadius: 8,
                       padding: '7px 10px',
@@ -144,7 +144,7 @@ export default function WelcomeRecentPrompts({
                     </span>
                     <ChevronRight
                       size={12}
-                      color="rgba(255,255,255,0.4)"
+                      color="var(--text-muted)"
                       style={{ flexShrink: 0, opacity: isHovered ? 1 : 0, transition: 'all 0.15s ease' }}
                     />
                   </button>

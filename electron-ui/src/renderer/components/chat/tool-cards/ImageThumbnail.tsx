@@ -23,7 +23,7 @@ export function ImageThumbnail({ filePath, onClick, t: _t }: ImageThumbnailProps
     return (
       <div style={{
         width: 80, height: 60, borderRadius: 4,
-        background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)',
+        background: 'var(--tool-card-bg)', border: '1px solid var(--border)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         fontSize: 9, color: 'var(--text-muted)', gap: 2,
       }}>

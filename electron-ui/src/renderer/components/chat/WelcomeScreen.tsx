@@ -176,7 +176,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
         <div style={{
           display: 'flex', gap: 20, justifyContent: 'center', alignItems: 'center',
           padding: '8px 16px',
-          background: 'rgba(255,255,255,0.03)',
+          background: 'var(--glass-bg-low)',
           border: '1px solid var(--border)',
           borderRadius: 20,
           fontSize: 11,
@@ -212,7 +212,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
           style={{
             display: 'flex', alignItems: 'center', gap: 12,
             padding: '12px 20px',
-            background: 'rgba(255,255,255,0.03)',
+            background: 'var(--glass-bg-low)',
             border: '1px solid var(--border)',
             borderRadius: 16,
             color: 'var(--text-primary)', cursor: 'pointer', fontSize: 13,
@@ -224,7 +224,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
             (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 16px rgba(99,102,241,0.12)'
           }}
           onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.03)';
+            (e.currentTarget as HTMLButtonElement).style.background = 'var(--glass-bg-low)';
             (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)';
             (e.currentTarget as HTMLButtonElement).style.boxShadow = 'none'
           }}
@@ -300,7 +300,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(3, auto)', gap: '8px 20px',
         padding: '14px 20px',
-        background: 'rgba(255,255,255,0.03)',
+        background: 'var(--glass-bg-low)',
         border: '1px solid var(--border)',
         borderRadius: 12,
       }}>
@@ -320,7 +320,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
       {showTips && tip && (
         <div style={{
           width: '100%', maxWidth: 420, padding: '10px 14px',
-          background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)',
+          background: 'var(--glass-bg-low)', border: '1px solid var(--border)',
           borderRadius: 10, display: 'flex', alignItems: 'flex-start', gap: 10,
         }}>
           <Lightbulb size={16} color="#fbbf24" style={{ flexShrink: 0, marginTop: 2 }} />

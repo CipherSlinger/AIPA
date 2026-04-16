@@ -253,7 +253,7 @@ export function WebResultBlock({ resultText, toolName }: WebResultBlockProps) {
 
       {/* Content preview */}
       <div style={{
-        background: 'rgba(0,0,0,0.20)',
+        background: 'var(--tool-card-bg)',
         borderRadius: 6,
         padding: '6px 10px',
       }}>

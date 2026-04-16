@@ -52,7 +52,7 @@ function PreviewButton({ active, onToggle }: { active: boolean; onToggle: () => 
       title={active ? t('message.closePreview') : t('message.preview')}
       style={{
         background: active ? 'rgba(99,102,241,0.3)' : 'var(--glass-border)',
-        border: `1px solid ${active ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.12)'}`,
+        border: `1px solid ${active ? 'rgba(99,102,241,0.5)' : 'var(--border)'}`,
         borderRadius: 8,
         padding: '2px 6px',
         color: active ? '#a5b4fc' : 'var(--text-muted)',
@@ -232,11 +232,11 @@ function WrapToggleButton({ wrapped, onToggle }: { wrapped: boolean; onToggle: (
       onClick={onToggle}
       title={wrapped ? t('message.disableWordWrap') : t('message.enableWordWrap')}
       style={{
-        background: wrapped ? 'rgba(255,255,255,0.18)' : 'var(--glass-border)',
+        background: wrapped ? 'var(--bg-active)' : 'var(--glass-border)',
         border: '1px solid var(--glass-border-md)',
         borderRadius: 8,
         padding: '2px 5px',
-        color: wrapped ? 'rgba(255,255,255,0.95)' : 'var(--text-muted)',
+        color: wrapped ? 'var(--text-bright)' : 'var(--text-muted)',
         cursor: 'pointer',
         fontSize: 11,
         display: 'flex',
@@ -293,7 +293,7 @@ function CollapsiblePre({ children, className }: { children: React.ReactNode; cl
             border: collapsed ? 'none' : '1px solid var(--glass-border-md)',
             borderTop: collapsed ? 'none' : '1px solid var(--glass-border-md)',
             borderRadius: collapsed ? 0 : '0 0 8px 8px',
-            color: 'rgba(255,255,255,0.6)',
+            color: 'var(--text-secondary)',
             cursor: 'pointer',
             fontSize: 11,
             position: collapsed ? 'absolute' : 'relative',
@@ -434,7 +434,7 @@ export default function CodeBlockWithHeader({
                 paddingTop: 14,
                 paddingBottom: 14,
                 borderRight: '1px solid var(--border)',
-                color: 'rgba(255,255,255,0.25)',
+                color: 'var(--text-faint)',
                 fontSize: 11,
                 lineHeight: '1.5',
                 fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",

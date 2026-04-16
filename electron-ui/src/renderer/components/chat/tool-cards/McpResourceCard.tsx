@@ -119,7 +119,7 @@ export function McpResourceReadCard({ uri, content, t }: { uri: string; content:
         </button>
       </div>
       {/* Content preview */}
-      <div style={{ background: 'rgba(0,0,0,0.20)', borderRadius: 6, padding: '6px 10px' }}>
+      <div style={{ background: 'var(--tool-card-bg)', borderRadius: 6, padding: '6px 10px' }}>
         <pre style={{
           margin: 0, fontSize: 11, fontFamily: 'inherit',
           color: 'var(--text-secondary)', lineHeight: 1.6,

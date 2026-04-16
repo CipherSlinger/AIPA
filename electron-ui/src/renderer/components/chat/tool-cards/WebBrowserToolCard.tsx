@@ -62,7 +62,7 @@ export function WebBrowserInputCard({ input }: { input: Record<string, unknown> 
           <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>selector</span>
           <code style={{
             fontSize: 11, fontFamily: 'monospace',
-            background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(99,102,241,0.20)',
+            background: 'var(--tool-card-bg)', border: '1px solid rgba(99,102,241,0.20)',
             borderRadius: 4, padding: '1px 6px',
             color: 'rgba(196,181,253,0.85)',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
@@ -86,7 +86,7 @@ export function WebBrowserInputCard({ input }: { input: Record<string, unknown> 
       )}
       {/* Fallback: show raw input if no fields recognised */}
       {!action && !url && !selector && !text && (
-        <pre style={{ fontSize: 11, margin: 0, fontFamily: 'monospace', background: 'rgba(8,8,16,1)', border: '1px solid var(--bg-hover)', borderRadius: 4, padding: '6px 8px', overflow: 'auto', maxHeight: 120, color: '#a5b4fc', lineHeight: 1.5 }}>
+        <pre style={{ fontSize: 11, margin: 0, fontFamily: 'monospace', background: 'var(--bg-primary)', border: '1px solid var(--bg-hover)', borderRadius: 4, padding: '6px 8px', overflow: 'auto', maxHeight: 120, color: '#a5b4fc', lineHeight: 1.5 }}>
           {JSON.stringify(input, null, 2)}
         </pre>
       )}
@@ -145,7 +145,7 @@ export function WebBrowserResultCard({ result, status, t: _t }: { result: string
         </div>
       ) : result ? (
         /* Text result preview */
-        <div style={{ background: 'rgba(0,0,0,0.20)', borderRadius: 6, padding: '6px 10px' }}>
+        <div style={{ background: 'var(--tool-card-bg)', borderRadius: 6, padding: '6px 10px' }}>
           <pre style={{
             margin: 0, fontSize: 11, fontFamily: 'monospace',
             color: isError ? '#fca5a5' : 'var(--text-secondary)',

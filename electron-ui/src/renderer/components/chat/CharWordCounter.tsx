@@ -37,9 +37,9 @@ export default function CharWordCounter({ input }: CharWordCounterProps) {
         userSelect: 'none',
       }}>
         {wordCount} {t('chat.words')}
-        <span style={{ color: 'rgba(255,255,255,0.18)', margin: '0 4px' }}>|</span>
+        <span style={{ color: 'var(--text-faint)', margin: '0 4px' }}>|</span>
         {input.length.toLocaleString()} {t('chat.chars')}
-        <span style={{ color: 'rgba(255,255,255,0.18)', margin: '0 4px' }}>|</span>
+        <span style={{ color: 'var(--text-faint)', margin: '0 4px' }}>|</span>
         ~{tokenEst.toLocaleString()} {t('chat.tokens')}
       </span>
     </div>

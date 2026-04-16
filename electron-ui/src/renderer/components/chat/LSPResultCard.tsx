@@ -114,7 +114,7 @@ function LSPResultBody({ text }: { text: string }) {
         if (isError) color = 'var(--text-muted)'
         else if (isSummary) color = '#a5b4fc'
         else if (isFilePath) color = '#4ade80'
-        else if (isLocation) color = 'rgba(255,255,255,0.6)'
+        else if (isLocation) color = 'var(--text-secondary)'
 
         return (
           <div

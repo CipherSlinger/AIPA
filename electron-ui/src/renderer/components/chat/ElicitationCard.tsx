@@ -47,7 +47,7 @@ export function ElicitationCard({ message, onRespond }: Props) {
   const decisionBg: Record<string, string> = {
     accepted: 'rgba(34,197,94,0.12)',
     declined: 'rgba(239,68,68,0.12)',
-    cancelled: 'rgba(255,255,255,0.06)',
+    cancelled: 'var(--bg-hover)',
   }
 
   return (
@@ -93,14 +93,14 @@ export function ElicitationCard({ message, onRespond }: Props) {
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
-          color: 'rgba(255,255,255,0.95)',
+          color: 'var(--text-bright)',
         }}>
           <MessageSquare size={18} />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{
-              fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.9)',
+              fontSize: 13, fontWeight: 600, color: 'var(--text-bright)',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
               {message.serverName}
@@ -130,9 +130,9 @@ export function ElicitationCard({ message, onRespond }: Props) {
       {/* Message text */}
       <div style={{
         fontSize: 12,
-        color: 'rgba(255,255,255,0.6)',
-        background: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.12)',
+        color: 'var(--text-secondary)',
+        background: 'var(--bg-hover)',
+        border: '1px solid var(--border)',
         borderRadius: 6,
         padding: '8px 12px',
         lineHeight: 1.6,
@@ -147,7 +147,7 @@ export function ElicitationCard({ message, onRespond }: Props) {
             display: 'inline-flex',
             alignItems: 'center',
             gap: 4,
-            background: decisionBg[message.decision] || 'rgba(255,255,255,0.06)',
+            background: decisionBg[message.decision] || 'var(--bg-hover)',
             color: decisionColor[message.decision] || 'var(--text-muted)',
             borderRadius: 12,
             padding: '3px 10px',
@@ -196,7 +196,7 @@ export function ElicitationCard({ message, onRespond }: Props) {
                   {required.includes(key) && <span style={{ color: '#fca5a5' }}> *</span>}
                 </label>
                 {prop.description && (
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginBottom: 4, lineHeight: 1.6 }}>{prop.description}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4, lineHeight: 1.6 }}>{prop.description}</div>
                 )}
                 <input
                   type="text"
@@ -306,14 +306,14 @@ function ActionButtons({
       </button>
       <button
         onClick={onCancel}
-        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)' }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-active)'; e.currentTarget.style.borderColor = 'var(--border-strong)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.borderColor = 'var(--border)' }}
         style={{
           padding: '0 14px',
           height: 36,
           borderRadius: 6,
-          border: '1px solid rgba(255,255,255,0.12)',
-          background: 'rgba(255,255,255,0.06)',
+          border: '1px solid var(--border)',
+          background: 'var(--bg-hover)',
           color: 'var(--text-secondary)',
           fontWeight: 500,
           fontSize: 13,
