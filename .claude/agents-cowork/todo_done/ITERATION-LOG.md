@@ -6816,3 +6816,15 @@ Established CSS variable-based z-index hierarchy (--z-base:1, --z-sidebar:10, --
 
 ### Build
 Status: SUCCESS (vite build: 18.79s)
+
+## Iteration 581 — WorkflowDetailPage execution progress bar
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Added 3px horizontal progress bar between WorkflowDetailHeader and canvas area in WorkflowDetailPage.tsx. Reuses execution object from useWorkflowExecution hook (completedCount, totalSteps, isRunning, hasError). Color-coded: red when failed, green when all complete, indigo otherwise. Shows only when execution has started (total > 0 && any step non-pending). Text label shows "{completed}/{total} steps".
+
+### Files Changed
+- `electron-ui/src/renderer/components/workflows/WorkflowDetailPage.tsx` — add 45-line progress bar block
+
+### Build
+Status: SUCCESS (npm run check: 0 errors, vite build: 14.07s)
