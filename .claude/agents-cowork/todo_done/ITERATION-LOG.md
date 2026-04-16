@@ -6490,3 +6490,30 @@ Tightened pendingSettingsTab type from string|null to strict union including 'sa
 
 ### Build
 Status: SUCCESS (npm run check: 0 errors)
+
+## Iteration 561 — CanvasNode sub-agent count badge
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Added activeSubAgentCount prop to CanvasNode. When >0, shows a Users icon badge below the main status badge with text "N sub-agent(s)", styled in indigo (rgba(99,102,241,0.15) bg, rgba(99,102,241,0.3) border, #818cf8 text) with pulse animation. Wired from WorkflowCanvas via useChatStore active tool uses filter.
+
+### Files Changed
+- `electron-ui/src/renderer/components/workflows/CanvasNode.tsx` — add activeSubAgentCount prop + indigo sub-agent badge
+- `electron-ui/src/renderer/components/workflows/WorkflowCanvas.tsx` — compute and pass activeSubAgentCount from active Agent tool uses
+
+### Build
+Status: SUCCESS
+
+## Iteration 562 — .mcp.json project MCP config viewer panel
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Created SettingsProjectMcp.tsx panel that reads {workingDir}/.mcp.json and displays MCP server cards with type chip (stdio/sse/http), command/URL preview, enabled/disabled toggle (auto-saves to file). Empty state shows "Create" button that writes minimal template. Wired 'mcp' tab into SettingsPanel and uiStore. Named SettingsProjectMcp to avoid conflict with existing SettingsMcp.tsx (global MCP manager).
+
+### Files Changed
+- `electron-ui/src/renderer/components/settings/SettingsProjectMcp.tsx` — NEW: project .mcp.json viewer/editor
+- `electron-ui/src/renderer/components/settings/SettingsPanel.tsx` — add 'mcp' tab
+- `electron-ui/src/renderer/store/uiStore.ts` — add 'mcp' to pendingSettingsTab union
+
+### Build
+Status: SUCCESS (npm run check: 0 errors, vite build: 56.21s)
