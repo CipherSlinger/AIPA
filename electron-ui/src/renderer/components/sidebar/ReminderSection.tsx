@@ -464,7 +464,7 @@ function ReminderRow({ reminder, onDelete, formatTimeLeft }: {
         gap: 8,
         padding: '7px 8px',
         borderRadius: 8,
-        background: hovered ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.04)',
+        background: hovered ? 'var(--bg-hover)' : 'var(--bg-hover)',
         border: '1px solid var(--glass-border)',
         marginBottom: 4,
         transition: 'all 0.15s ease',
