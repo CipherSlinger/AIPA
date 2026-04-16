@@ -166,7 +166,7 @@ export const useUiStore = create<UiState>((set) => ({
   pendingSettingsTab: null,
   openSettingsAt: (tab) => set({ settingsModalOpen: true, mainView: 'settings', pendingSettingsTab: tab }),
   clearPendingSettingsTab: () => set({ pendingSettingsTab: null }),
-  mainView: 'chat' as const,
+  mainView: 'department' as const,
   setMainView: (view) => set({ mainView: view }),
   fromDepartment: false,
   setFromDepartment: (v) => set({ fromDepartment: v }),
