@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import ReactDOM from 'react-dom'
 import { ToolUseInfo } from '../../types/app.types'
-import { ChevronDown, Terminal, FileEdit, Search, Globe, Loader2, Check, X, Timer, ClipboardCopy, FileCode, FileText, Image, Palette, GitBranch, GitMerge, Clock, StopCircle, BookOpen, Network, Code2, CheckSquare, ClipboardList, Settings2, Send, Users, Compass, CheckCircle2, Layers, Database, FileInput, HelpCircle } from 'lucide-react'
+import { Terminal, FileEdit, Search, Globe, Check, X, ClipboardCopy, FileCode, FileText, Image, Palette, GitBranch, GitMerge, Clock, StopCircle, BookOpen, Network, Code2, CheckSquare, ClipboardList, Settings2, Send, Users, Compass, CheckCircle2, Layers, Database, FileInput, HelpCircle } from 'lucide-react'
 import { useT } from '../../i18n'
 import DiffView from './DiffView'
 import FileDiffView from './FileDiffView'
@@ -18,6 +18,10 @@ import { CronCard } from './tool-cards/CronToolCard'
 import { BashCommandBlock, BashOutputBlock, BashStatusDot, BASH_TOOLS } from './tool-cards/BashToolCard'
 import { SearchResultSummary, WebResultBlock } from './tool-cards/SearchResultCard'
 import { NotebookEditCard } from './tool-cards/NotebookEditCard'
+import { AskUserQuestionCard } from './tool-cards/AskUserQuestionCard'
+import { TaskCreateBadge, TaskUpdateBadge, TASK_CREATE_TOOLS, TASK_UPDATE_TOOLS } from './tool-cards/TaskBadgeCard'
+import { ImageThumbnail } from './tool-cards/ImageThumbnail'
+import { ToolCardHeader } from './tool-cards/ToolCardHeader'
 
 interface Props {
   tool: ToolUseInfo
@@ -167,18 +171,10 @@ const WEB_RESULT_TOOLS = new Set(['WebSearch', 'WebFetch', 'web_fetch'])
 // Browser automation tools
 const BROWSER_TOOLS = new Set(['WebBrowserTool', 'web_browser', 'browser'])
 
-function formatElapsed(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`
-  const m = Math.floor(seconds / 60)
-  const s = seconds % 60
-  return `${m}m ${s}s`
-}
-
 const FILE_WRITE_TOOLS = new Set(['Write', 'create_file'])
 
 // Task management tools (isTodoV2Enabled feature gate)
-const TASK_CREATE_TOOLS = new Set(['TaskCreate', 'task_create'])
-const TASK_UPDATE_TOOLS = new Set(['TaskUpdate', 'task_update'])
+// TASK_CREATE_TOOLS and TASK_UPDATE_TOOLS are imported from ./tool-cards/TaskBadgeCard
 const TASK_LIST_TOOLS = new Set(['TaskList', 'task_list'])
 const TASK_GET_TOOLS = new Set(['TaskGet', 'task_get'])
 
@@ -278,164 +274,6 @@ function FilePathHighlight({ filePath }: { filePath: string }) {
   )
 }
 
-// ── AskUserQuestionCard ────────────────────────────────────────────────────────
-
-interface AskUserQuestionCardProps {
-  question: string
-  options?: string[]
-  isAnswered: boolean
-  answer?: string
-}
-
-function AskUserQuestionCard({ question, options, isAnswered, answer }: AskUserQuestionCardProps) {
-  const t = useT()
-  const [selected, setSelected] = useState<string | null>(null)
-  const [customText, setCustomText] = useState('')
-  const [sent, setSent] = useState(false)
-
-  const sendReply = (text: string) => {
-    if (!text.trim() || sent) return
-    setSent(true)
-    window.dispatchEvent(new CustomEvent('aipa:sendMessage', { detail: { text } }))
-  }
-
-  // If the tool has already been answered (result exists), show the answered state
-  if (isAnswered && answer) {
-    return (
-      <div style={{
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border)',
-        borderLeft: '3px solid rgba(99,102,241,0.60)',
-        borderRadius: 10,
-        marginBottom: 6,
-        overflow: 'hidden',
-      }}>
-        <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-            <HelpCircle size={14} style={{ color: '#818cf8', flexShrink: 0 }} />
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>
-              {question}
-            </span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
-            <Check size={11} style={{ color: '#4ade80', flexShrink: 0 }} />
-            <span style={{ color: 'var(--text-secondary)' }}>{answer}</span>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div style={{
-      background: 'var(--bg-secondary)',
-      backdropFilter: 'blur(12px)',
-      WebkitBackdropFilter: 'blur(12px)',
-      border: '1px solid rgba(99,102,241,0.30)',
-      borderLeft: '3px solid rgba(99,102,241,0.60)',
-      borderRadius: 10,
-      marginBottom: 6,
-      overflow: 'hidden',
-    }}>
-      <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {/* Question label + text */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-          <HelpCircle size={15} style={{ color: '#818cf8', flexShrink: 0, marginTop: 1 }} />
-          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.5 }}>
-            {question}
-          </span>
-        </div>
-
-        {/* Option buttons (if provided) */}
-        {options && options.length > 0 && !sent && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, paddingLeft: 23 }}>
-            {options.map((opt, i) => (
-              <button
-                key={i}
-                onClick={() => { setSelected(opt); sendReply(opt) }}
-                disabled={sent}
-                style={{
-                  fontSize: 12,
-                  padding: '5px 12px',
-                  borderRadius: 8,
-                  border: `1px solid ${selected === opt ? 'rgba(99,102,241,0.60)' : 'rgba(99,102,241,0.30)'}`,
-                  background: selected === opt ? 'rgba(99,102,241,0.25)' : 'rgba(99,102,241,0.10)',
-                  color: 'rgba(165,180,252,0.90)',
-                  cursor: 'pointer',
-                  fontWeight: 500,
-                  transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(99,102,241,0.22)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.55)' }}
-                onMouseLeave={(e) => {
-                  if (selected !== opt) {
-                    e.currentTarget.style.background = 'rgba(99,102,241,0.10)'
-                    e.currentTarget.style.borderColor = 'rgba(99,102,241,0.30)'
-                  }
-                }}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Custom text input (always shown when no options, or as fallback) */}
-        {!sent && (
-          <div style={{ display: 'flex', gap: 6, paddingLeft: options && options.length > 0 ? 23 : 0, alignItems: 'flex-end' }}>
-            <input
-              type="text"
-              value={customText}
-              onChange={(e) => setCustomText(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); sendReply(customText) } }}
-              placeholder={options && options.length > 0 ? t('askUser.customReply') : t('askUser.typeReply')}
-              style={{
-                flex: 1,
-                fontSize: 12,
-                padding: '6px 10px',
-                background: 'var(--bg-input)',
-                border: '1px solid var(--border)',
-                borderRadius: 8,
-                color: 'var(--text-primary)',
-                outline: 'none',
-                fontFamily: 'inherit',
-                transition: 'border-color 0.15s ease',
-              }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)' }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
-            />
-            <button
-              onClick={() => sendReply(customText)}
-              disabled={!customText.trim()}
-              style={{
-                fontSize: 12,
-                padding: '6px 14px',
-                borderRadius: 8,
-                border: 'none',
-                background: customText.trim() ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))' : 'rgba(99,102,241,0.25)',
-                color: 'rgba(255,255,255,0.95)',
-                cursor: customText.trim() ? 'pointer' : 'not-allowed',
-                fontWeight: 600,
-                transition: 'all 0.15s ease',
-                flexShrink: 0,
-              }}
-            >
-              {t('askUser.send')}
-            </button>
-          </div>
-        )}
-
-        {/* Sent indicator */}
-        {sent && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#4ade80', paddingLeft: 23 }}>
-            <Check size={11} />
-            {t('askUser.sent')}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
 // ── Main ToolUseBlock ──────────────────────────────────────────────────────────
 
 export default function ToolUseBlock({ tool, onAbort }: Props) {
@@ -504,12 +342,6 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
   const imagePaths = !isRunning ? extractImagePaths(tool) : []
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
 
-  const statusIcon = isRunning
-    ? <Loader2 size={11} className="animate-spin" style={{ color: '#818cf8' }} />
-    : tool.status === 'done'
-    ? <Check size={11} style={{ color: '#4ade80' }} />
-    : <X size={11} style={{ color: '#f87171' }} />
-
   const resultText = typeof tool.result === 'string'
     ? tool.result
     : tool.result != null ? JSON.stringify(tool.result, null, 2) : ''
@@ -567,81 +399,24 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
   // TaskCreate: compact inline "created" badge
   if (TASK_CREATE_TOOLS.has(tool.name)) {
     const subject = typeof tool.input?.subject === 'string' ? tool.input.subject : '(unnamed task)'
-    const isDone = tool.status === 'done'
-    const isRunning = tool.status === 'running'
     return (
-      <div style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        padding: '4px 10px',
-        borderRadius: 8,
-        background: isDone ? 'rgba(34,197,94,0.12)' : isRunning ? 'rgba(99,102,241,0.10)' : 'rgba(239,68,68,0.10)',
-        border: `1px solid ${isDone ? 'rgba(34,197,94,0.28)' : isRunning ? 'rgba(99,102,241,0.28)' : 'rgba(239,68,68,0.28)'}`,
-        marginBottom: 4,
-        fontSize: 12,
-        color: isDone ? 'rgba(74,222,128,0.90)' : isRunning ? 'rgba(165,180,252,0.90)' : 'rgba(252,165,165,0.90)',
-        fontWeight: 500,
-        maxWidth: '100%',
-        overflow: 'hidden',
-        transition: 'all 0.15s ease',
-      }}>
-        {isDone
-          ? <Check size={12} style={{ flexShrink: 0 }} />
-          : isRunning
-          ? <Loader2 size={12} className="animate-spin" style={{ flexShrink: 0 }} />
-          : <X size={12} style={{ flexShrink: 0 }} />
-        }
-        <span style={{ fontWeight: 700, flexShrink: 0, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.75 }}>
-          TaskCreate
-        </span>
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {subject}
-        </span>
-      </div>
+      <TaskCreateBadge
+        subject={subject}
+        status={tool.status as 'running' | 'done' | 'error'}
+      />
     )
   }
 
   // TaskUpdate: compact inline "updated" badge
   if (TASK_UPDATE_TOOLS.has(tool.name)) {
     const taskId = typeof tool.input?.taskId === 'string' ? tool.input.taskId : ''
-    const status = typeof tool.input?.status === 'string' ? tool.input.status : ''
-    const shortId = taskId.length > 6 ? taskId.slice(0, 6) : taskId
-    const isDone = tool.status === 'done'
-    const isRunning = tool.status === 'running'
+    const updateStatus = typeof tool.input?.status === 'string' ? tool.input.status : ''
     return (
-      <div style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        padding: '4px 10px',
-        borderRadius: 8,
-        background: isDone ? 'rgba(99,102,241,0.10)' : isRunning ? 'rgba(99,102,241,0.08)' : 'rgba(239,68,68,0.10)',
-        border: `1px solid ${isDone ? 'rgba(99,102,241,0.28)' : isRunning ? 'rgba(99,102,241,0.20)' : 'rgba(239,68,68,0.28)'}`,
-        marginBottom: 4,
-        fontSize: 12,
-        color: isDone ? 'rgba(165,180,252,0.90)' : isRunning ? 'rgba(165,180,252,0.75)' : 'rgba(252,165,165,0.90)',
-        fontWeight: 500,
-        maxWidth: '100%',
-        overflow: 'hidden',
-        transition: 'all 0.15s ease',
-      }}>
-        {isDone
-          ? <Check size={12} style={{ flexShrink: 0 }} />
-          : isRunning
-          ? <Loader2 size={12} className="animate-spin" style={{ flexShrink: 0 }} />
-          : <X size={12} style={{ flexShrink: 0 }} />
-        }
-        <span style={{ fontWeight: 700, flexShrink: 0, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.75 }}>
-          TaskUpdate
-        </span>
-        {shortId && (
-          <span style={{ fontFamily: 'monospace', fontSize: 10, opacity: 0.75 }}>#{shortId}</span>
-        )}
-        {status && (
-          <span style={{ fontSize: 10, opacity: 0.80 }}>{'\u2192'} {status}</span>
-        )}
-      </div>
+      <TaskUpdateBadge
+        taskId={taskId}
+        status={tool.status as 'running' | 'done' | 'error'}
+        updateStatus={updateStatus}
+      />
     )
   }
 
@@ -661,135 +436,24 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
       }}
     >
       {/* Header */}
-      <button
-        onClick={() => { userToggledRef.current = true; setExpanded(!expanded) }}
-        style={{
-          width: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          padding: '6px 10px',
-          background: 'var(--bg-hover)',
-          border: 'none',
-          borderBottom: expanded ? '1px solid var(--bg-hover)' : 'none',
-          borderRadius: expanded ? '8px 8px 0 0' : 8,
-          cursor: 'pointer',
-          textAlign: 'left',
-          color: 'var(--text-primary)',
-          transition: 'all 0.15s ease',
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-active)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-hover)' }}
-      >
-        <ChevronDown
-          size={11}
-          style={{
-            color: 'var(--text-muted)',
-            transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)',
-            transition: 'transform 0.15s ease',
-            flexShrink: 0,
-          }}
-        />
-        <Icon size={13} style={{ color: 'rgba(165,180,252,0.8)', flexShrink: 0 }} />
-        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, display: 'flex', alignItems: 'center', gap: 5 }}>
-          {/* For file path tools, show path-highlighted summary; otherwise show normal summary */}
-          {isFilePath && highlightFilePath ? (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 5, overflow: 'hidden', minWidth: 0 }}>
-              <span style={{ flexShrink: 0, color: 'var(--text-secondary)', fontWeight: 400 }}>
-                {tool.name === 'Read' ? '读取' : tool.name === 'Write' ? '写入' : tool.name === 'Edit' ? '编辑' : tool.name === 'MultiEdit' ? '多段编辑' : tool.name}
-              </span>
-              <FilePathHighlight filePath={highlightFilePath} />
-            </span>
-          ) : (
-            summaryLabel
-          )}
-          {tool.name.startsWith('mcp__') && (() => {
-            const parts = tool.name.split('__')
-            const serverName = parts[1]
-            return serverName ? (
-              <span style={{
-                fontSize: 9,
-                fontWeight: 700,
-                background: 'rgba(99,102,241,0.15)',
-                color: '#6366f1',
-                borderRadius: 6,
-                padding: '1px 4px',
-                flexShrink: 0,
-                letterSpacing: '0.02em',
-                border: '1px solid rgba(99,102,241,0.3)',
-              }}>
-                {serverName}
-              </span>
-            ) : null
-          })()}
-        </span>
-        {showElapsed && (
-          <span style={{
-            fontSize: 10,
-            color: 'var(--text-muted)',
-            flexShrink: 0,
-            fontFamily: 'monospace',
-            fontVariantNumeric: 'tabular-nums',
-          }}>
-            {formatElapsed(elapsed)}
-          </span>
-        )}
-        <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
-          {/* Status badge */}
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 3,
-            padding: '1px 6px',
-            borderRadius: 10,
-            fontSize: 10,
-            fontWeight: 600,
-            ...(isRunning
-              ? { background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', color: '#818cf8' }
-              : tool.status === 'done'
-              ? { background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.25)', color: '#4ade80' }
-              : { background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5' }
-            ),
-          }}>
-            {statusIcon}
-          </span>
-        </span>
-        {showFinalDuration && (
-          <span style={{
-            fontSize: 10,
-            color: 'var(--text-muted)',
-            flexShrink: 0,
-            fontFamily: 'monospace',
-            fontVariantNumeric: 'tabular-nums',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 3,
-          }}>
-            <Timer size={9} />
-            {formatElapsed(finalDuration)}
-          </span>
-        )}
-        {showElapsed && onAbort && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onAbort() }}
-            title={t('toolbar.cancelTool')}
-            style={{
-              padding: '1px 6px',
-              background: 'rgba(239,68,68,0.15)',
-              border: '1px solid rgba(239,68,68,0.3)',
-              borderRadius: 10,
-              color: '#fca5a5',
-              cursor: 'pointer',
-              fontSize: 10,
-              fontWeight: 600,
-              flexShrink: 0,
-              transition: 'all 0.15s ease',
-            }}
-          >
-            {t('common.cancel')}
-          </button>
-        )}
-      </button>
+      <ToolCardHeader
+        expanded={expanded}
+        onToggle={() => { userToggledRef.current = true; setExpanded(!expanded) }}
+        Icon={Icon}
+        leftBorderColor={leftBorderColor}
+        summaryLabel={summaryLabel}
+        isFilePath={isFilePath}
+        filePath={highlightFilePath}
+        toolName={tool.name}
+        status={tool.status}
+        showElapsed={showElapsed}
+        showFinalDuration={showFinalDuration}
+        elapsed={elapsed}
+        finalDuration={finalDuration}
+        onAbort={onAbort}
+        t={t}
+        FilePathHighlightComponent={FilePathHighlight}
+      />
 
       {/* Expanded detail with animated height */}
       <div className={`tool-output-wrapper${expanded ? ' expanded' : ''}`}>
@@ -1205,38 +869,3 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
   )
 }
 
-
-/** Image thumbnail with error fallback */
-function ImageThumbnail({ filePath, onClick, t }: { filePath: string; onClick: () => void; t: (key: string) => string }) {
-  const [error, setError] = useState(false)
-  const fileName = filePath.split(/[/\\]/).pop() || filePath
-
-  if (error) {
-    return (
-      <div style={{
-        width: 80, height: 60, borderRadius: 4,
-        background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        fontSize: 9, color: 'var(--text-muted)', gap: 2,
-      }}>
-        <Image size={14} style={{ opacity: 0.5 }} />
-        <span style={{ maxWidth: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileName}</span>
-      </div>
-    )
-  }
-
-  return (
-    <img
-      src={`file://${filePath}`}
-      alt={fileName}
-      title={fileName}
-      onClick={onClick}
-      onError={() => setError(true)}
-      style={{
-        maxWidth: 300, maxHeight: 200, objectFit: 'contain',
-        borderRadius: 4, cursor: 'zoom-in',
-        border: '1px solid var(--border)',
-      }}
-    />
-  )
-}
