@@ -78,7 +78,7 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
     gap: 10,
     padding: '7px 14px',
     fontSize: 13,
-    color: destructive ? '#fca5a5' : 'rgba(255,255,255,0.78)',
+    color: destructive ? '#fca5a5' : 'var(--text-secondary)',
     cursor: 'pointer',
     background: hoveredItem === key
       ? (destructive ? 'rgba(239,68,68,0.10)' : 'var(--bg-hover)')

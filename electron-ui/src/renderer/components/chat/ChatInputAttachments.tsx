@@ -26,7 +26,7 @@ export default function ChatInputAttachments({ attachments, fileAttachments, onR
               key={img.id}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
-                background: 'rgba(255,255,255,0.06)',
+                background: 'var(--bg-hover)',
                 border: '1px solid var(--glass-border-md)',
                 borderRadius: 8,
                 padding: '4px 8px 4px 6px',
@@ -35,12 +35,12 @@ export default function ChatInputAttachments({ attachments, fileAttachments, onR
               }}
               onMouseEnter={(e) => {
                 const el = e.currentTarget as HTMLDivElement
-                el.style.background = 'rgba(255,255,255,0.10)'
-                el.style.borderColor = 'rgba(255,255,255,0.15)'
+                el.style.background = 'var(--bg-input)'
+                el.style.borderColor = 'var(--border-strong)'
               }}
               onMouseLeave={(e) => {
                 const el = e.currentTarget as HTMLDivElement
-                el.style.background = 'rgba(255,255,255,0.06)'
+                el.style.background = 'var(--bg-hover)'
                 el.style.borderColor = 'var(--glass-border-md)'
               }}
             >
@@ -89,19 +89,19 @@ export default function ChatInputAttachments({ attachments, fileAttachments, onR
             <div key={file.id} style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '4px 8px 4px 6px',
-              background: 'rgba(255,255,255,0.06)',
+              background: 'var(--bg-hover)',
               border: '1px solid var(--glass-border-md)',
               borderRadius: 8,
               transition: 'all 0.15s ease',
             }}
               onMouseEnter={(e) => {
                 const el = e.currentTarget as HTMLDivElement
-                el.style.background = 'rgba(255,255,255,0.10)'
-                el.style.borderColor = 'rgba(255,255,255,0.15)'
+                el.style.background = 'var(--bg-input)'
+                el.style.borderColor = 'var(--border-strong)'
               }}
               onMouseLeave={(e) => {
                 const el = e.currentTarget as HTMLDivElement
-                el.style.background = 'rgba(255,255,255,0.06)'
+                el.style.background = 'var(--bg-hover)'
                 el.style.borderColor = 'var(--glass-border-md)'
               }}
             >

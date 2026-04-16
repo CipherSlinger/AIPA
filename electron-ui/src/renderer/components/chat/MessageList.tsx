@@ -216,7 +216,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       role="log"
       aria-label={t('a11y.conversationMessages')}
       aria-live="polite"
-      style={{ flex: 1, overflowY: 'auto', padding: '16px 0', position: 'relative', background: 'transparent', scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.12) transparent' }}
+      style={{ flex: 1, overflowY: 'auto', padding: '16px 0', position: 'relative', background: 'transparent', scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}
     >
       <div
         style={{
