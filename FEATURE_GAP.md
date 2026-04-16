@@ -1,6 +1,6 @@
 # AIPA x Claude Code CLI — 功能差距文档
 
-> 更新日期：2026-04-16（Iteration 555）
+> 更新日期：2026-04-16（Iteration 567）
 > CLI 版本：claude-code 2.1.81（BUILD_TIME: 2026-03-20T21:25:42Z）
 > 分析目的：指导 AIPA UI 逐步对齐 CLI 全部能力
 
@@ -20,7 +20,7 @@
 | `Grep` | 正则内容搜索（ripgrep 封装） | ✅ 结构化展示：file:line:content 格式，可折叠展开（Iteration 540） |
 | `WebFetch` | 抓取 URL 内容并 AI 处理 | ✅ URL chip 可点击，内容前200字符预览，可展开全文（Iteration 540） |
 | `WebSearch` | 网络搜索 | ✅ URL chip 可点击（标注 Sources），内容前200字符预览，可展开全文（Iteration 540） |
-| `NotebookEdit` | 编辑 Jupyter notebook 单元格 | ❌ 无 UI |
+| `NotebookEdit` | 编辑 Jupyter notebook 单元格 | ✅ `NotebookEditCard`：文件名 header、单元格类型色标（code=蓝/markdown=紫）、可展开源代码预览、结果徽标（Iteration 559） |
 | `TodoWrite` | 写待办列表（结构化任务管理） | ✅ `TodoListView.tsx` 组件已实现，pending/in_progress/completed 状态，high/medium/low 优先级色标 |
 | `Agent` (子代理) | 产生并行/串行子代理 | ❌ AIPA 无子代理拓扑可视化 |
 | `TaskOutputTool` | 读取后台任务输出 | ⚠️ 有 TaskDashboard 组件但连接不完整 |
@@ -34,14 +34,14 @@
 | `ListMcpResources` / `ReadMcpResource` | 读取 MCP 服务器资源 | ⚠️ 有结果卡片（ListMcpResources→URI chips，ReadMcpResource→内容预览+复制）；输入展示用通用 JSON（Iteration 555） |
 | `ToolSearchTool` | 延迟工具搜索 | ❌ 无 UI |
 | `BriefTool` | 读取 /brief 简报 | ❌ 无 UI |
-| `SendMessageTool` | 跨代理消息传递 | ❌ 无多代理 UI |
+| `SendMessageTool` | 跨代理消息传递 | ✅ `SendMessageCard`：indigo 左边框、to/message 字段、Delivered/Failed 状态徽标（Iteration 567） |
 | `TeamCreate/Delete` | 多代理团队管理（AGENT_SWARMS） | ❌ 无 UI |
 | `SleepTool` | 代理主动等待（PROACTIVE/KAIROS） | ❌ 无 UI |
-| `ScheduleCronTool` / `CronCreate/Delete/List` | 定时任务（AGENT_TRIGGERS） | ❌ 无 UI |
-| `RemoteTriggerTool` | 远程触发代理（AGENT_TRIGGERS_REMOTE） | ❌ 无 UI |
-| `PowerShellTool` | Windows PowerShell 支持 | ❌ |
+| `ScheduleCronTool` / `CronCreate/Delete/List` | 定时任务（AGENT_TRIGGERS） | ✅ `CronCard`：cron 表达式 chip、prompt 预览、recurring/one-shot 徽标、job ID；`CronList` 结果显示任务行列表（Iteration 565） |
+| `RemoteTriggerTool` | 远程触发代理（AGENT_TRIGGERS_REMOTE） | ✅ `RemoteTriggerCard`：action chip（list/get/create/update/run 色标）、trigger_id、prompt 预览、action 感知结果展示（Iteration 566） |
+| `PowerShellTool` | Windows PowerShell 支持 | ✅ 通过 Bash 工具 BASH_TOOLS 路由渲染 PowerShell 卡片（Iteration 564） |
 | `REPLTool` | 安全 REPL VM 环境（ant-only） | ❌ |
-| `WebBrowserTool` | 浏览器操作（WEB_BROWSER_TOOL） | ❌ |
+| `WebBrowserTool` | 浏览器操作（WEB_BROWSER_TOOL） | ✅ `WebBrowserInputCard`（action badge/URL/selector/text）+ `WebBrowserResultCard`（截图缩略图或文本预览）（Iteration 564） |
 | `ConfigTool` | 读写配置（ant-only） | ❌ |
 | MCP 工具（动态） | 来自外部 MCP 服务器的工具 | ⚠️ 能列出 MCP 服务器，无动态工具 UI 渲染 |
 
@@ -293,7 +293,7 @@ CLI 2.1.81 中发现以下事件类型 AIPA 未处理：
 - ✅ `mcp:getTools` — 从 `system.init` 工具名中按 `mcp__serverName__toolName` 前缀推断，缓存在 main 进程返回（Iteration 542）
 - ⚠️ `mcp:reconnect` — 已有 IPC 但返回 `error: 'Reconnect not supported'`
 - ✅ MCP 服务器连接状态实时展示 — `SettingsMcp.tsx` 每个服务器行显示彩色状态点（绿=已连接/红=断开/灰=未知）和工具数徽标，tooltip 显示工具列表（Iteration 542）
-- ❌ `.mcp.json` 项目级配置管理 UI（仅全局 `settings.json`）
+- ✅ `.mcp.json` 项目级配置查看/编辑 UI（Settings → MCP → 'mcp' 子标签，读写项目 `.mcp.json`，Iteration 562）
 - ❌ MCP OAuth 认证流程 UI
 - ⚠️ MCP 资源浏览器（ListMcpResources→URI chips，ReadMcpResource→内容预览，Iteration 555；无专用侧边栏面板）
 
@@ -301,7 +301,7 @@ CLI 2.1.81 中发现以下事件类型 AIPA 未处理：
 
 ~~P1：`mcp:getTools` 实现真实工具枚举（需建立 MCP 客户端连接，或解析 CLI `system.init.mcp_servers` 事件）。~~ ✅ 已实现（Iteration 542）
 ~~P1：MCP 服务器连接状态实时展示（connected/disconnected/error）。~~ ✅ 已实现（Iteration 542）
-P2：`.mcp.json` 项目级管理。
+~~P2：`.mcp.json` 项目级管理。~~ ✅ 已实现（Iteration 562）
 
 ---
 
@@ -643,3 +643,85 @@ AIPA 状态：❌ 无任何 compact 触发 UI
 - `CanvasToolbar.tsx`、`CanvasNodeSidebar.tsx`、`CanvasProgressBar.tsx`、`WorkflowDetailHeader.tsx`、`WorkflowRunHistory.tsx`、`WorkflowStepEditor.tsx`
 
 迁移后，浅色主题（`Ctrl+Shift+D`）下所有卡片、面板、弹窗均正确显示为浅色背景，文字为深色，无硬编码暗色残留。
+
+---
+
+## 十三、最新实现记录（2026-04-16，Iterations 556-567）
+
+### Iteration 555-558 — LSP 工具卡片 + MCP 资源内联卡片
+
+- **LSPTool**：专用内联卡片，展示语言服务器协议操作（`hover`/`definition`/`references` 等类型 chip、文件路径+行列坐标、结果预览）
+- **ListMcpResources**：URI chips 列表展示
+- **ReadMcpResource**：内容预览 + 复制按钮（Iteration 555）
+- `FEATURE_GAP.md` 同步更新
+
+### Iteration 559 — NotebookEdit 单元格展示卡片
+
+- **`NotebookEditCard`**：增强的 Jupyter notebook 编辑展示
+  - 文件名 header（Notebook 图标 + basename）
+  - 单元格类型色标：`code` = 蓝色、`markdown` = 紫色
+  - 可展开的源代码预览（前 8 行折叠，点击展开全部）
+  - 结果徽标：edit_mode chip（replace/insert/delete）+ cell_number
+- `ToolUseBlock.tsx` 新增 `NotebookEdit` 早返回路由
+
+### Iteration 560 — uiStore pendingSettingsTab 类型修复
+
+- 将 `'sandbox'` 添加到 `pendingSettingsTab` 严格联合类型
+- 修复 `/memory` 斜杠命令触发 `openSettingsAt('memory')` 时类型校验失败的 bug
+- 根因：uiStore 未包含所有有效 Settings 标签值
+
+### Iteration 561 — CanvasNode 子代理计数徽标
+
+- 当 `AgentTool` 运行中时，画布节点右上角显示 Users 图标徽标 + 子代理数量
+- 徽标使用 indigo 背景，随代理状态实时更新
+
+### Iteration 562 — .mcp.json 项目级 MCP 配置查看器
+
+- Settings → MCP 新增 `mcp` 子标签，专门读写项目 `.mcp.json` 文件
+- 支持查看、编辑项目级 MCP 服务器配置（与全局 `~/.claude/settings.json` 的 `mcpServers` 分离）
+- IPC：`mcp:readProjectConfig` / `mcp:writeProjectConfig`
+
+### Iteration 563 — CanvasEdge sourceStatus 6 态样式
+
+- 6 种边线状态样式：
+  - `running` = indigo 动画流动虚线（`stroke-dashoffset` CSS 动画）
+  - `success` = 绿色实线
+  - `error` = 红色实线
+  - `skipped` = 灰色虚线
+  - `pending` = 浅灰色实线
+  - 默认 = 中性灰
+- `CanvasEdge.tsx` 按 `sourceStatus` prop 动态切换颜色和 dash 样式
+
+### Iteration 564 — WebBrowserTool + PowerShell 内联卡片
+
+- **WebBrowserInputCard**：action badge（navigate/click/type/screenshot/scroll 等）、URL 展示、selector/text 字段
+- **WebBrowserResultCard**：截图 base64 缩略图预览（最大 320px），或文本内容预览（前 300 字符可展开）
+- **PowerShellTool**：通过 `BASH_TOOLS` 类型路由到 Bash 卡片渲染，支持 Windows PowerShell 命令展示
+- `ToolUseBlock.tsx` 新增 `WebBrowserTool` 和 `PowerShellTool` 路由分支
+
+### Iteration 565 — CronCreate/CronDelete/CronList 内联卡片
+
+- **`CronCard`**（输入展示）：
+  - cron 表达式 chip（灰底等宽字体）
+  - prompt 预览（前 80 字符）
+  - `recurring` / `one-shot` 徽标区分重复/一次性任务
+  - job ID 展示
+- **CronList 结果**：解析任务数组，每行显示 job_id + cron expression + prompt 摘要
+- `ToolUseBlock.tsx` 新增 `CronCreate`/`CronDelete`/`CronList` 三个路由分支
+
+### Iteration 566 — RemoteTrigger 内联卡片
+
+- **`RemoteTriggerCard`**：
+  - action chip：`list`=灰、`get`=蓝、`create`=绿、`update`=琥珀、`run`=indigo（带 Play 图标）
+  - trigger_id 和 body.prompt 预览
+  - 结果展示按 action 类型区分：list 显示 ID 列表；get/create/update 显示详情；run 显示绿色 "Triggered" 徽标
+- `TOOL_ICONS` 新增 `RemoteTrigger` → `Send` 图标映射
+
+### Iteration 567 — SendMessage 跨代理消息展示卡片
+
+- **`SendMessageCard`**：
+  - indigo 左边框（`rgba(99,102,241,0.5)`），与其他代理相关卡片风格一致
+  - `to` 字段展示收件人（Users 图标 + 名称/ID）
+  - 消息文本预览（前 120 字符，超出可展开）
+  - 结果：绿色 "Delivered" 徽标（Check 图标）或红色 "Failed" 徽标（X 图标）
+- `ToolUseBlock.tsx` 新增 `SendMessage` 早返回路由（SendMessage 已存在于 `TOOL_ICONS`）

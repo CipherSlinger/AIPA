@@ -59,9 +59,16 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 - **System Diagnostics** — one-click health checks for CLI, API key, network, disk space, and system load
 - **API Error Visibility** — `overloaded_error` and `authentication_error` events from the CLI (previously silently dropped) now surface as toast notifications (warning for overload, error for auth failure), so users know exactly why a response stopped
 - **Copy Session ID** — a session ID badge in ChatHeader (shows 8-char prefix) copies the full session ID to clipboard on click; use it with `--resume` to manually resume any session
-- **Sub-agent Visualization (AgentToolCard)** — when Claude invokes the Agent tool, a dedicated card shows real-time elapsed timer (running/done/error states), task description summary, and collapsible full prompt + output
+- **Sub-agent Visualization (AgentToolCard)** — when Claude invokes the Agent tool, a dedicated card shows real-time elapsed timer (running/done/error states), task description summary, and collapsible full prompt + output; **sub-agent count badge** on Canvas nodes shows a Users icon with live sub-agent count during Agent tool execution
 - **Task Management Inline Cards (TaskCreate/Update/List/Get)** — CLI async task tools render inline cards in the chat stream: TaskCreate/TaskUpdate show status badges; TaskList/TaskGet render a Kanban 3-column view (pending/in_progress/completed) with animated status badges
 - **Startup Protection** — IPC pre-registration eliminates race conditions, non-blocking menu construction, 10s hard splash timeout, renderer error recovery, preferences reset for bulletproof launches
+- **Rich CLI Tool Cards** — specialized inline cards for every major CLI tool:
+  - `NotebookEdit` — filename header, cell type color badges (code=blue/markdown=purple), expandable source preview, edit_mode chip
+  - `WebBrowserTool` — action badge (navigate/click/type/screenshot), URL display, screenshot thumbnail or text preview
+  - `PowerShellTool` — rendered via Bash card routing for Windows PowerShell commands
+  - `CronCreate/Delete/List` — cron expression chip, prompt preview, recurring/one-shot badge, job ID; list result shows job rows
+  - `RemoteTriggerTool` — action chip (list/get/create/update/run with color coding), trigger_id, prompt preview, action-aware result display
+  - `SendMessage` — indigo left-border card, recipient (to field), message preview, Delivered/Failed status badge
 
 ### Input Power Tools
 - **Slash commands** (`/`) with client-side commands: `/vim` toggle Vim editing, `/fast` switch to Haiku fast model, `/output-style` cycle response style, `/statusline` toggle status bar; **@mention** file picker
@@ -112,6 +119,8 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
   - **First/Last Node Visual Differentiation** — the first node gets an indigo left border + ▶ marker; the last node gets an amber border + ⚑ marker, making pipeline flow immediately clear
   - **Viewport Culling** — off-screen nodes render as lightweight placeholders instead of full components, significantly improving frame rate when scrolling large workflows (50+ steps)
   - **Context-Aware Toolbar** — a red "⏹ Abort" button appears on the left of the toolbar during execution; a green "▶ Rerun" button appears when all steps complete; both buttons auto-show/hide based on execution state
+  - **Sub-Agent Count Badge** — Canvas nodes show a Users icon badge with live sub-agent count when the Agent tool is actively running inside a step
+  - **6-State Edge Styling** — Canvas edges reflect execution status with distinct visuals: running=indigo animated flowing dash, success=green, error=red, skipped=gray dashed, pending=light gray
 - 6 preset workflows to get started instantly (weekly reports, code reviews, daily summaries, and more)
 - **Preset localization** — workflow names and descriptions automatically switch with system language
 
@@ -128,7 +137,7 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 
 ### CLI Integration & Automation
 - **Hooks Configuration** — Settings → Hooks tab to visually manage all Claude Code CLI hooks (28 event types: PreToolUse, PostToolUse, Stop, etc.); multi-step add wizard supporting command/prompt/HTTP hook types; live hook execution progress shown in the chat panel
-- **MCP Server Manager** — Settings → MCP tab for full MCP server management (stdio/http/sse); add/delete/reconnect servers; expand tool lists per server; tool-use blocks auto-badge MCP-sourced tools with `[serverName]`
+- **MCP Server Manager** — Settings → MCP tab for full MCP server management (stdio/http/sse); add/delete/reconnect servers; expand tool lists per server; tool-use blocks auto-badge MCP-sourced tools with `[serverName]`; **Project MCP Config** — a dedicated sub-tab reads and edits the project-level `.mcp.json` file separately from the global `~/.claude/settings.json` mcpServers
 - **Tool Access Control** — Settings → Advanced tab with 4 preset modes (All Tools / Read Only / No Network / Analysis Only); per-tool checkboxes grouped by category; disabled tools injected via `--disallowedTools`
 - **Hook Callback Approval** — PreToolUse/PostToolUse hooks requiring human intervention show an inline approve/block card directly in the chat; optional reason textarea; response relayed to the CLI in real time
 - **MCP Elicitation** — when an MCP server requests user input, an inline card collects structured form data (schema-driven fields or free-text) or opens a browser URL flow; submit/decline/cancel responses are relayed back to the MCP server
