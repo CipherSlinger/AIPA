@@ -227,7 +227,7 @@ export function useInputPopups({
         } else if (cmd.name === '/mcp') {
           useUiStore.getState().openSettingsAt('plugins')
         } else if (cmd.name === '/memory') {
-          useUiStore.getState().openSettingsAt('memory')
+          useUiStore.getState().setActiveNavItem('memory')
         } else if (cmd.name === '/model') {
           useUiStore.getState().openSettingsAt('general')
           useUiStore.getState().addToast('info', 'Model settings → General tab')

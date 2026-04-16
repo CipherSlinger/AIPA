@@ -1466,7 +1466,7 @@
     "addStep": "Add step",
     "stepN": "Step {{n}}",
     "stepTitlePlaceholder": "Step title (optional)",
-    "stepPromptPlaceholder": "What should AIPA do in this step?",
+    "stepPromptPlaceholder": "Describe what this step should accomplish...",
     "cancel": "Cancel",
     "save": "Save",
     "run": "Run",
