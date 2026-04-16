@@ -962,6 +962,7 @@ function OrgChart({ onSelectDept, onNewSessionInDept, onOpenSession, loadingSess
   const [newDeptDir, setNewDeptDir] = useState('')
   const addNewDept = useDepartmentStore(s => s.addDepartment)
   const [collapsedDepts, setCollapsedDepts] = useState<Set<string>>(new Set())
+  const [pendingNewDeptId, setPendingNewDeptId] = useState<string | null>(null)
 
   const toggleDeptCollapse = (deptId: string, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -1016,7 +1017,7 @@ function OrgChart({ onSelectDept, onNewSessionInDept, onOpenSession, loadingSess
   }, [departments, allSessions])
 
   const newSessionInDept = (deptObj: { id: string; directory: string; name: string; color?: string }) => {
-    onNewSessionInDept(deptObj.id)
+    setPendingNewDeptId(deptObj.id)
   }
 
   const handleAdd = () => {
@@ -1355,7 +1356,13 @@ function OrgChart({ onSelectDept, onNewSessionInDept, onOpenSession, loadingSess
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
-                {sessions.slice(0, 6).map(session => (
+                {pendingNewDeptId === dept.id && (
+                  <PendingSessionCard
+                    onEnter={() => { onNewSessionInDept(dept.id); setPendingNewDeptId(null) }}
+                    onCancel={() => setPendingNewDeptId(null)}
+                  />
+                )}
+                {sessions.map(session => (
                   <div
                     key={session.sessionId}
                     style={{ position: 'relative', transition: 'box-shadow 0.15s ease, transform 0.15s ease' }}
@@ -1436,43 +1443,7 @@ function OrgChart({ onSelectDept, onNewSessionInDept, onOpenSession, loadingSess
                     </div>
                   </div>
                 ))}
-                {sessions.length > 6 && (
-                  <div
-                    onClick={() => onSelectDept(dept.id)}
-                    style={{
-                      minHeight: 130,
-                      borderRadius: 12,
-                      border: '1.5px dashed var(--bg-active)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexDirection: 'column',
-                      gap: 6,
-                      cursor: 'pointer',
-                      color: 'var(--text-muted)',
-                      fontSize: 11,
-                      transition: 'border-color 0.15s, color 0.15s, background 0.15s',
-                      background: 'var(--bg-hover)',
-                    }}
-                    onMouseEnter={e => {
-                      const el = e.currentTarget as HTMLElement
-                      el.style.borderColor = '#6366f1'
-                      el.style.color = '#6366f1'
-                      el.style.background = 'rgba(99,102,241,0.06)'
-                    }}
-                    onMouseLeave={e => {
-                      const el = e.currentTarget as HTMLElement
-                      el.style.borderColor = 'var(--bg-active)'
-                      el.style.color = 'var(--text-muted)'
-                      el.style.background = 'var(--bg-hover)'
-                    }}
-                  >
-                    <span style={{ fontSize: 18, fontWeight: 700 }}>+{sessions.length - 6}</span>
-                    <span style={{ letterSpacing: '0.03em' }}>{t('dept.sessions')}</span>
-                  </div>
-                )}
-                {/* New session card — only shown when ≤6 sessions (no "+N more" card visible) */}
-                {sessions.length <= 6 && (
+                {/* New session card — always visible */}
                 <div
                   onClick={() => newSessionInDept(dept)}
                   title={t('dept.newSession')}
@@ -1506,7 +1477,6 @@ function OrgChart({ onSelectDept, onNewSessionInDept, onOpenSession, loadingSess
                   <span style={{ fontSize: 28, fontWeight: 200, lineHeight: 1 }}>+</span>
                   <span style={{ fontSize: 10, letterSpacing: '0.03em' }}>{t('dept.newSession')}</span>
                 </div>
-                )}
               </div>
             ))}
           </div>
