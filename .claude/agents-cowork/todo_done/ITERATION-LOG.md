@@ -6670,3 +6670,49 @@ Fixed all hardcoded strings in department components to use t() i18n keys. Added
 
 ### Build
 Status: SUCCESS
+
+## Iteration 571 — Z-index layering system for chat/layout dropdowns
+
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Established a consistent z-index hierarchy across all chat and layout dropdown/popover components. Added CSS custom properties (`--z-base` through `--z-overlay`) to `globals.css` as the canonical layering reference. Audited 25 components that were using scattered z-index values (50/60/100) and raised them to the correct semantic layer (dropdowns: 200, tooltips: 250, modals: 500). Root cause was that ModelPicker, PersonaPicker, StatsPanel, BookmarksPanel and several StatusBar popovers all used `zIndex: 60` or `zIndex: 100`, putting them at risk of being obscured by structural elements or sibling components creating stacking contexts.
+
+### Files Changed
+- `electron-ui/src/renderer/styles/globals.css` — add `--z-base/sidebar/header/fab/dropdown/popover/modal/toast/tooltip/overlay` CSS variables
+- `electron-ui/src/renderer/components/chat/ModelPicker.tsx` — z:60 → z:200
+- `electron-ui/src/renderer/components/chat/PersonaPicker.tsx` — z:60 → z:200
+- `electron-ui/src/renderer/components/chat/StatsPanel.tsx` — z:60 → z:200
+- `electron-ui/src/renderer/components/chat/BookmarksPanel.tsx` — both occurrences z:60 → z:200
+- `electron-ui/src/renderer/components/chat/SnippetPopup.tsx` — z:50 → z:200
+- `electron-ui/src/renderer/components/chat/BranchBadge.tsx` — z:50 → z:200
+- `electron-ui/src/renderer/components/chat/MessageActionToolbar.tsx` — toolbar z:20 → z:100, submenu z:30 → z:200
+- `electron-ui/src/renderer/components/chat/EffortPicker.tsx` — z:100 → z:200
+- `electron-ui/src/renderer/components/chat/ContextUsageMeter.tsx` — z:100 → z:200
+- `electron-ui/src/renderer/components/chat/ContextIndicator.tsx` — z:100 → z:200
+- `electron-ui/src/renderer/components/chat/TokenUsageBar.tsx` — z:100 → z:200
+- `electron-ui/src/renderer/components/chat/CompactButton.tsx` — z:100 → z:200
+- `electron-ui/src/renderer/components/chat/RegenerateButton.tsx` — z:100 → z:200
+- `electron-ui/src/renderer/components/chat/InputToolbarStyleSelector.tsx` — z:100 → z:200
+- `electron-ui/src/renderer/components/chat/InputToolbarTextTransform.tsx` — z:100 → z:200
+- `electron-ui/src/renderer/components/chat/MessageContextMenu.tsx` — z:100 → z:200
+- `electron-ui/src/renderer/components/chat/ClipboardActionsMenu.tsx` — z:100 → z:200
+- `electron-ui/src/renderer/components/chat/QuickCapture.tsx` — FAB z:50 → z:30, panel z:51 → z:200
+- `electron-ui/src/renderer/components/chat/RewindDialog.tsx` — overlay z:50 → z:500 (modal layer)
+- `electron-ui/src/renderer/components/layout/NavRail.tsx` — tooltip z:100 → z:250
+- `electron-ui/src/renderer/components/layout/StatusBar.tsx` — focus-timer/cost popovers z:100 → z:200
+- `electron-ui/src/renderer/components/layout/StatusBarModelPicker.tsx` — z:100 → z:200
+- `electron-ui/src/renderer/components/layout/StatusBarPersonaPicker.tsx` — z:100 → z:200
+- `electron-ui/src/renderer/components/layout/StatusBarTokenPopup.tsx` — z:100 → z:200
+- `electron-ui/src/renderer/components/departments/DepartmentDashboard.tsx` — autoNewSession prop (from Iter 570)
+
+### Build
+Status: SUCCESS (npm run check: 0 errors, vite build: 18.79s)
+
+### Acceptance Criteria
+- [x] Z-index CSS variables defined in globals.css (:root block)
+- [x] All chat panel dropdowns (ModelPicker, PersonaPicker, StatsPanel, BookmarksPanel) at z:200+
+- [x] All StatusBar popovers at z:200+
+- [x] SlashCommandPopup remains highest priority at z:1001
+- [x] Structural/overlay elements (drag overlay, scroll sentinels, FAB) remain at lower layers
+- [x] TypeScript check passes, build succeeds (26 files, 0 errors)
