@@ -7519,3 +7519,24 @@ Swept 8 target chat component files for `rgba(255,255,255,...)` occurrences. Fou
 
 ### Build
 Status: SUCCESS (0 errors, 204 pre-existing warnings — no changes to build)
+
+---
+
+## Iteration 609 — CSS variable migration for chat dialog/card components
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Swept 8 target dialog/card files (PlanModeBanner, PlanApprovalCard, PlanCard, PermissionCard, RunConfirmDialog, HookCallbackCard, ForkDialog, IdleReturnDialog) for `rgba(255,255,255,...)` migration candidates. Applied 2 substitutions; remaining occurrences were all white text on colored/gradient buttons (exempt). Note: the 2 code changes landed in Iteration 610's commit via stash.
+
+### Files Changed (code committed in Iteration 610's stash-pop)
+- `electron-ui/src/renderer/components/chat/PlanCard.tsx` — active plan line text `rgba(255,255,255,0.92)` → `var(--text-primary)` (plain text color, no colored background)
+- `electron-ui/src/renderer/components/chat/HookCallbackCard.tsx` — disabled confirm button text `rgba(255,255,255,0.35)` → `var(--text-faint)` (unselected state on neutral `var(--bg-hover)` background)
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] All 8 target files swept for `rgba(255,255,255,...)` values
+- [x] Exempt values (white text on colored/gradient buttons) preserved unchanged
+- [x] 2 eligible values replaced with correct CSS variables per mapping
+- [x] `npm run check` passes with 0 errors
