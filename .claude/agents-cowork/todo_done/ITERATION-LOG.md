@@ -6407,3 +6407,86 @@ Status: SUCCESS (npm run check: 0 errors, 202 warnings — all pre-existing)
 - [x] `--cta-gradient` uses blue-to-violet for light mode
 - [x] App.tsx theme switching confirmed correct (`setAttribute('data-theme', 'light')` on documentElement)
 - [x] `npm run check` passes with 0 errors
+
+## Iteration 556 — NotebookEdit specialized tool card in ToolUseBlock
+_Date: 2026-04-15 | Sprint ongoing_
+
+### Summary
+Enhanced the `NotebookEditCard` component in `ToolUseBlock.tsx` with a richer, more informative display. Added notebook filename header with BookOpen icon, improved cell number display as a `Cell #N` badge, added color-coded cell type chips (blue for `code`, purple for `markdown`), expandable source preview (first 8 lines with "show more" button), and specialized result rendering showing a green "Cell updated" badge on success or red error text on failure.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/ToolUseBlock.tsx` — rewrite `NotebookEditCard` with filename header + colored type badges + expandable source preview; add `NotebookEdit` output section with success/error badge; add `NOTEBOOK_CELL_TYPE_STYLES` constant
+
+### Build
+Status: SUCCESS (npm run check: 0 errors, 203 warnings — all pre-existing)
+
+### Acceptance Criteria
+- [x] Notebook filename (basename of `notebook_path`) shown with BookOpen icon as header
+- [x] Cell number shown as `Cell #N` badge with indigo styling
+- [x] Cell type chip: blue for `code`, purple for `markdown`
+- [x] Edit mode chip: indigo for `replace`, green for `insert`, red for `delete`
+- [x] `new_source` preview limited to first 8 lines with expandable "show more" button
+- [x] Result section shows green "Cell updated" badge on success, red error text on failure
+- [x] All colors use CSS variables or theme-consistent rgba values
+- [x] `npm run check` passes with 0 errors
+- [x] Build succeeds
+
+## Iteration 557 — CanvasNode execution state @keyframes + transition fix
+_Date: 2026-04-15 | Sprint ongoing_
+
+### Summary
+Found and fixed 3 missing @keyframes animations in CanvasNode.tsx that were referenced in STATUS_STYLES but never defined: canvas-node-pulse (box-shadow oscillation for running state), canvas-bar-shimmer (shimmer sweep for progress bar), canvas-spinner (rotation for loader icon). Also improved CSS transition from 'all 0.15s ease' to specific properties to prevent animation flicker.
+
+### Files Changed
+- `electron-ui/src/renderer/components/workflows/CanvasNode.tsx` — add canvas-node-pulse, canvas-bar-shimmer, canvas-spinner @keyframes; fix transition specificity
+
+### Build
+Status: SUCCESS (npm run check: 0 errors)
+
+## Iteration 558 — LSP wiring + MCP resource inline cards in ToolUseBlock
+_Date: 2026-04-15 | Sprint ongoing_
+
+### Summary
+Verified LSP tool was already wired to LSPResultCard (commit 9135f36). Added inline MCP resource result cards for ListMcpResources (URI chip list) and ReadMcpResource (URI header + content preview + copy button). Added parseMcpResourceList() parser for JSON array of {uri, name, description, mimeType}. Updated FEATURE_GAP.md from ❌ to ⚠️.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/ToolUseBlock.tsx` — add McpResourceItem, parseMcpResourceList(), McpResourceListCard, McpResourceReadCard
+- `FEATURE_GAP.md` — ListMcpResources/ReadMcpResource ❌ → ⚠️
+
+### Build
+Status: SUCCESS (npm run check: 0 errors)
+
+### Acceptance Criteria
+- [x] LSP tool result → LSPResultCard (already wired, confirmed)
+- [x] ListMcpResources result → URI chip list
+- [x] ReadMcpResource result → URI header + content preview + copy button
+- [x] CSS variables only, no hardcoded colors
+- [x] FEATURE_GAP.md updated ❌ → ⚠️
+- [x] `npm run check` passes with 0 errors
+
+## Iteration 559 — NotebookEdit cell display card enhancement
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Enhanced NotebookEditCard in ToolUseBlock.tsx. Added filename header (basename from notebook_path with BookOpen icon), NOTEBOOK_CELL_TYPE_STYLES color system (code=blue #60a5fa, markdown=purple #a78bfa), expandable source preview (8 lines default, "+ N more lines" button), and result section routing (green "Cell updated" badge on success, red error text on failure).
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/ToolUseBlock.tsx` — rewrite NotebookEditCard with filename header, cell type colors, expandable preview, result badges
+
+### Build
+Status: SUCCESS (npm run check: 0 errors, npm run build: 17.36s)
+
+## Iteration 560 — pendingSettingsTab type strict union + WorkflowStepEditor i18n placeholder
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Tightened pendingSettingsTab type from string|null to strict union including 'sandbox'. Compiler then exposed hidden bug: useInputPopups.ts was calling openSettingsAt('memory') for /memory slash command, but Memory tab was removed in an earlier iteration. Fixed to call setActiveNavItem('memory') instead. Updated WorkflowStepEditor placeholder text via i18n keys in en.json and zh-CN.json.
+
+### Files Changed
+- `electron-ui/src/renderer/store/uiStore.ts` — pendingSettingsTab strict union type with 'sandbox'
+- `electron-ui/src/renderer/components/chat/useInputPopups.ts` — fix /memory slash command to open sidebar instead of nonexistent settings tab
+- `electron-ui/src/renderer/i18n/locales/en.json` — stepPromptPlaceholder improved
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` — stepPromptPlaceholder improved
+
+### Build
+Status: SUCCESS (npm run check: 0 errors)
