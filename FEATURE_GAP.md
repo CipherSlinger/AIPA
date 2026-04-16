@@ -54,9 +54,9 @@
 **中优先：** Agent 子代理需要嵌套展示（当前只显示 toolUse 名称）。
 
 **新发现（2026-04-13）：**
-- `StructuredOutput` 工具：CLI 可在调用时按 JSON Schema 约束返回结构化数据，AIPA 无专用 UI
-- `DreamTask`（`dream` 类型后台任务）：自动记忆整合子代理，AIPA 无 UI
-- `plan_approval_request/response`：多代理计划审批协议，AIPA 无 UI
+- ✅ `StructuredOutput` 工具：`StructuredOutputCard.tsx` 新增，渲染 JSON Schema 折叠预览 + 语法着色结果树 + 复制按钮；`ToolUseBlock` 已接入（Iteration 617）
+- ✅ `DreamTask`（`dream` 类型后台任务）：`DreamTaskCard.tsx` 已存在，`ChatPanel` 已接入渲染（Iteration 617）
+- ✅ `plan_approval_request/response`：`PlanApprovalCard.tsx` 已存在，`useStreamJson` 订阅 `onPlanApprovalRequest`，`ChatPanel` 渲染并接入 `cliRespondPlanApproval`（Iteration 617）
 
 ---
 
