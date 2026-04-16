@@ -38,12 +38,12 @@ function normalizePath(p: string, homeDir?: string): string {
   return normalized.replace(/\/+$/, '')
 }
 
-function formatLastActive(ts: number): string {
+function formatLastActive(ts: number, t: (key: string) => string): string {
   const diff = Date.now() - ts
   const m = Math.floor(diff / 60000)
   const h = Math.floor(diff / 3600000)
   const d = Math.floor(diff / 86400000)
-  if (m < 1) return 'just now'
+  if (m < 1) return t('dept.justNow')
   if (m < 60) return `${m}m ago`
   if (h < 24) return `${h}h ago`
   if (d < 7) return `${d}d ago`
@@ -579,7 +579,7 @@ function DepartmentRow({
               marginTop: 3,
               lineHeight: 1.4,
             }}>
-              {formatLastActive(lastActive)}
+              {formatLastActive(lastActive, t)}
             </div>
           )}
         </div>
@@ -1109,9 +1109,9 @@ export default function DepartmentPanel() {
               justifyContent: 'center',
               opacity: 0.6,
             }}>
-              <span>Press</span>
+              <span>{t('dept.pressToCreate')}</span>
               <kbd style={{ fontSize: 9, background: 'var(--border)', borderRadius: 3, padding: '0 4px', border: '1px solid rgba(255,255,255,0.15)' }}>N</kbd>
-              <span>to create</span>
+              <span>{t('dept.toCreate')}</span>
             </div>
           </div>
         ) : (

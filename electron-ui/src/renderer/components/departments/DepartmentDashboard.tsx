@@ -45,6 +45,7 @@ interface PendingSession {
 }
 
 function PendingSessionCard({ onEnter, onCancel }: { onEnter: () => void; onCancel: () => void }) {
+  const t = useT()
   const [hovered, setHovered] = useState(false)
   return (
     <div
@@ -95,14 +96,14 @@ function PendingSessionCard({ onEnter, onCancel }: { onEnter: () => void; onCanc
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <MessageSquarePlus size={14} color="#818cf8" style={{ flexShrink: 0 }} />
         <span style={{ fontSize: 13, fontWeight: 600, color: '#818cf8', lineHeight: 1.4 }}>
-          New Session
+          {t('dept.newSession')}
         </span>
       </div>
       <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.55 }}>
-        Click to start this session
+        {t('dept.pendingSessionHint')}
       </span>
       <div style={{ marginTop: 'auto', paddingTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-        <span style={{ fontSize: 10, color: '#6366f1', fontWeight: 600 }}>Open</span>
+        <span style={{ fontSize: 10, color: '#6366f1', fontWeight: 600 }}>{t('dept.pendingSessionOpen')}</span>
         <ChevronRight size={10} color="#6366f1" />
       </div>
     </div>
@@ -389,7 +390,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
             e.currentTarget.style.background = 'transparent'
           }}
         >
-          ↓ Export
+          {t('dept.export')}
         </button>
 
         <button
@@ -1026,6 +1027,17 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
     setNewDeptDir('')
   }
 
+  const handleBrowseDir = async () => {
+    const p = await window.electronAPI.fsShowOpenDialog()
+    if (p) {
+      setNewDeptDir(p)
+      if (!newDeptName.trim()) {
+        const parts = p.replace(/\\/g, '/').replace(/\/+$/, '').split('/')
+        setNewDeptName(parts[parts.length - 1] || p)
+      }
+    }
+  }
+
   if (departments.length === 0) {
     return (
       <div style={{
@@ -1279,7 +1291,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                   onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.20)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.65)' }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.10)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)' }}
                 >
-                  Enter <ChevronRight size={9} />
+                  {t('dept.enter')} <ChevronRight size={9} />
                 </button>
               )}
             </div>
@@ -1399,7 +1411,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                         onMouseEnter={e => { e.currentTarget.style.color = '#818cf8'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)' }}
                         onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.65)'; e.currentTarget.style.borderColor = 'var(--bg-active)' }}
                       >
-                        Open
+                        {t('dept.openInDept')}
                       </button>
                     </div>
                     <div style={{
@@ -1531,10 +1543,10 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
               <button onClick={() => setStatsPopoverId(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2, borderRadius: 3, fontSize: 14, lineHeight: 1 }}>×</button>
             </div>
             {[
-              { label: 'Sessions', value: sessions.length },
-              { label: 'Today', value: todayCount },
-              { label: 'Messages', value: totalMessages },
-              { label: 'Last Active', value: lastSession ? new Date(lastSession.timestamp).toLocaleDateString() : '—' },
+              { label: t('dept.sessions'), value: sessions.length },
+              { label: t('dept.statsToday'), value: todayCount },
+              { label: t('dept.msgCount'), value: totalMessages },
+              { label: t('dept.statsLastActive'), value: lastSession ? new Date(lastSession.timestamp).toLocaleDateString() : '—' },
             ].map(({ label, value }) => (
               <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid var(--bg-hover)' }}>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{label}</span>
@@ -1585,7 +1597,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
                 e.currentTarget.style.borderColor = 'rgba(34,197,94,0.3)'
               }}
             >
-              ↓ Export sessions
+              {t('dept.exportSessions')}
             </button>
           </div>
         )
@@ -1623,7 +1635,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
           }}
         >
           <span style={{ fontSize: 16, lineHeight: 1, fontWeight: 200 }}>+</span>
-          New Department
+          {t('dept.addTitle')}
           <kbd style={{ fontSize: 9, background: 'var(--border)', borderRadius: 3, padding: '0 4px', marginLeft: 2, fontFamily: 'monospace' }}>N</kbd>
         </button>
       ) : (
@@ -1640,7 +1652,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
         }}>
           <input
             autoFocus
-            placeholder="Department name"
+            placeholder={t('dept.namePlaceholder')}
             value={newDeptName}
             onChange={e => setNewDeptName(e.target.value)}
             onKeyDown={e => {
@@ -1666,33 +1678,64 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
             onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
             onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
           />
-          <input
-            placeholder="Directory path (e.g. ~/projects/frontend)"
-            value={newDeptDir}
-            onChange={e => setNewDeptDir(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Escape') { setShowAddDept(false); setNewDeptName(''); setNewDeptDir('') }
-              if (e.key === 'Enter' && newDeptName.trim() && newDeptDir.trim()) {
-                handleAdd()
-              }
-            }}
-            style={{
-              width: '100%',
-              padding: '6px 10px',
-              borderRadius: 7,
-              border: '1px solid var(--border)',
-              background: 'var(--bg-hover)',
-              color: 'var(--text-primary)',
-              fontSize: 12,
-              outline: 'none',
-              boxSizing: 'border-box',
-              marginBottom: 6,
-              transition: 'border-color 0.15s, box-shadow 0.15s',
-              lineHeight: 1.5,
-            }}
-            onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-            onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
-          />
+          {/* Directory row: text input + browse button */}
+          <div style={{ display: 'flex', gap: 5, marginBottom: 6, alignItems: 'center' }}>
+            <input
+              placeholder={t('dept.dirPlaceholder')}
+              value={newDeptDir}
+              onChange={e => setNewDeptDir(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Escape') { setShowAddDept(false); setNewDeptName(''); setNewDeptDir('') }
+                if (e.key === 'Enter' && newDeptName.trim() && newDeptDir.trim()) {
+                  handleAdd()
+                }
+              }}
+              style={{
+                flex: 1,
+                padding: '6px 10px',
+                borderRadius: 7,
+                border: '1px solid var(--border)',
+                background: 'var(--bg-hover)',
+                color: 'var(--text-primary)',
+                fontSize: 12,
+                outline: 'none',
+                boxSizing: 'border-box',
+                transition: 'border-color 0.15s, box-shadow 0.15s',
+                lineHeight: 1.5,
+              }}
+              onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
+              onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
+            />
+            <button
+              onClick={handleBrowseDir}
+              title={t('dept.selectWorkingDir')}
+              style={{
+                padding: '6px 9px',
+                borderRadius: 7,
+                border: '1px dashed rgba(255,255,255,0.15)',
+                background: 'transparent',
+                color: 'var(--text-muted)',
+                fontSize: 11,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                flexShrink: 0,
+                transition: 'border-color 0.15s ease, color 0.15s ease, background 0.15s ease',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = '#6366f1'
+                e.currentTarget.style.color = '#6366f1'
+                e.currentTarget.style.background = 'rgba(99,102,241,0.06)'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
+                e.currentTarget.style.color = 'var(--text-muted)'
+                e.currentTarget.style.background = 'transparent'
+              }}
+            >
+              <FolderOpen size={13} />
+            </button>
+          </div>
           <div style={{ display: 'flex', gap: 6 }}>
             <button
               onClick={handleAdd}
@@ -1710,7 +1753,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
               onMouseEnter={e => { if (newDeptName.trim() && newDeptDir.trim()) { e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'; e.currentTarget.style.transform = 'translateY(-1px)' } }}
               onMouseLeave={e => { e.currentTarget.style.boxShadow = newDeptName.trim() && newDeptDir.trim() ? '0 2px 10px rgba(99,102,241,0.3)' : 'none'; e.currentTarget.style.transform = 'translateY(0)' }}
             >
-              Create
+              {t('dept.create')}
             </button>
             <button
               onClick={() => { setShowAddDept(false); setNewDeptName(''); setNewDeptDir('') }}
@@ -1723,7 +1766,7 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
               onMouseEnter={e => { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
               onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-muted)' }}
             >
-              Cancel
+              {t('dept.cancel')}
             </button>
           </div>
         </div>
