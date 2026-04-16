@@ -412,10 +412,10 @@ export default function WorkflowDetailPage() {
       })()}
 
       {/* Canvas fills the full content area */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', padding: '8px', background: 'rgba(255,255,255,0.005)' }}>
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', padding: '8px', background: 'transparent' }}>
         <div style={{
           flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column',
-          background: 'rgba(255,255,255,0.01)',
+          background: 'var(--glass-bg-low)',
           border: '1px solid var(--border)',
           borderRadius: 10,
           overflow: 'hidden',

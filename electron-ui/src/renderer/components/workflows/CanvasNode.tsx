@@ -385,7 +385,7 @@ function NodeHeader({
       borderLeft: headerBorderLeft,
       borderRadius: '12px 12px 0 0',
       flexShrink: 0,
-      background: 'rgba(255,255,255,0.03)',
+      background: 'var(--glass-bg-low)',
     }}>
       {isEditingTitle ? (
         <input
