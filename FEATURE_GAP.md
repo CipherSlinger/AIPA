@@ -339,12 +339,12 @@ CLI 有两套记忆机制，概念不同：
 - ❌ 无嵌套 CLAUDE.md 扫描可视化（用户不知道哪些 CLAUDE.md 被 CLI 加载）
 - ❌ 无记忆衰减/过期指示器
 - ❌ 无团队记忆 vs 私有记忆视觉区分
-- ❌ CLAUDE.md 文件编辑器（`/memory` 命令等价 UI）与 memdir 结构化记忆 UI 分离不清晰
+- ✅ CLAUDE.md 文件编辑器（`/memory` 命令等价 UI）与 memdir 结构化记忆 UI 概念区分已实现（2026-04-15）
 
 ### 差距 & 优先级
 
-P1：CLAUDE.md 文件（指令记忆）与 memdir 结构化记忆（`user/feedback/project/reference` 类型）在 UI 中应有明确的概念区分，目前混在一起让用户困惑。
-P2：嵌套 CLAUDE.md 加载路径可视化。
+✅ P1：CLAUDE.md 文件（指令记忆）与 memdir 结构化记忆（`user/feedback/project/reference` 类型）在 UI 中有明确的概念区分——Tab 切换时显示说明 banner，指令文件 Tab 顶部有路径状态汇总。（2026-04-15）
+✅ P2：嵌套 CLAUDE.md 加载路径可视化——指令文件 Tab 内置"CLI 当前加载的 CLAUDE.md 文件"折叠面板，显示三个路径（全局/项目/本地）的存在状态，不存在的路径可一键创建。（2026-04-15）
 P2：记忆类型过滤器（仅显示 `feedback` 类型等）。
 
 ---
@@ -446,7 +446,7 @@ AIPA 状态：❌ 无任何 compact 触发 UI
 2. ✅ **权限规则管理 UI**：`PermissionsSettingsPanel.tsx` 中 allow/deny 规则列表编辑器，标签式 UI + 行内输入 + 冲突检测，写入 `~/.claude/settings.json`
 3. **MCP getTools 真实实现**：通过解析 `system.init.mcp_servers` 或建立 MCP 客户端连接，真实枚举服务器工具列表
 4. **MCP 服务器连接状态**：在 MCP 管理 UI 中显示每个服务器的实时连接状态（`connected`/`connecting`/`error`）
-5. **CLAUDE.md vs memdir 概念分离**：Memory 管理 UI 中明确区分"指令文件（CLAUDE.md）"和"结构化记忆（memdir）"，避免用户混淆
+5. ✅ **CLAUDE.md vs memdir 概念分离**：Memory 管理 UI 中明确区分"指令文件（CLAUDE.md）"和"结构化记忆（memdir）"，Tab 切换时显示概念说明 banner（2026-04-15）
 
 ### P2（低优先级，锦上添花）
 
@@ -455,7 +455,7 @@ AIPA 状态：❌ 无任何 compact 触发 UI
 3. **多代理可视化**：当 `AgentTool` 被调用时，显示子代理嵌套树结构（agent ID、任务、状态）
 4. **会话 Cleanup 设置**：在 Settings 中添加 `cleanupPeriodDays` 数字输入（0 = 禁用）
 5. **语言偏好设置**：在 Settings 中添加 `language` 字段（对应 `settings.json`）
-6. **嵌套 CLAUDE.md 可视化**：在 Settings 或 Context 面板中展示 CLI 当前加载的 CLAUDE.md 文件路径链
+6. ✅ **嵌套 CLAUDE.md 可视化**：Memory 面板"指令文件"Tab 内置"CLI 当前加载的 CLAUDE.md 文件"折叠区，显示全局/项目/本地三个路径的存在状态（✓绿/○灰），不存在的文件有一键创建按钮（2026-04-15）
 7. ✅ **TodoWrite 面板**：当 Claude 调用 `TodoWrite` 工具时，渲染结构化待办列表（Iteration 以前已完成）；**Glob/Grep 结构化展示**：路径列表高亮 + 折叠（Iteration 540）；**WebSearch/WebFetch 富化展示**：URL chip + 内容预览（Iteration 540）
 
 ### P4（第二次扫描发现，微优化）

@@ -496,6 +496,192 @@ function MemdirTab() {
 
 // ─── Instruction Files Tab (CLAUDE.md viewer) ───────────────────────────────
 
+// LoadedPathsPanel — Shows all CLAUDE.md paths and their existence status
+interface PathStatus {
+  scope: InstructionScope
+  label: string
+  path: string
+  displayPath: string
+  exists: boolean
+  loading: boolean
+}
+
+interface LoadedPathsPanelProps {
+  homeDir: string
+  workingDir: string
+  onSwitchScope: (scope: InstructionScope) => void
+  onCreateFile: (scope: InstructionScope) => void
+}
+
+function LoadedPathsPanel({ homeDir, workingDir, onSwitchScope, onCreateFile }: LoadedPathsPanelProps) {
+  const [collapsed, setCollapsed] = useState(false)
+  const [statuses, setStatuses] = useState<PathStatus[]>([])
+
+  useEffect(() => {
+    const paths: Array<{ scope: InstructionScope; label: string; path: string; displayPath: string }> = [
+      {
+        scope: 'global',
+        label: '~/.claude/CLAUDE.md',
+        path: `${homeDir}/.claude/CLAUDE.md`,
+        displayPath: '~/.claude/CLAUDE.md',
+      },
+      {
+        scope: 'project',
+        label: 'CLAUDE.md',
+        path: `${workingDir}/CLAUDE.md`,
+        displayPath: `${workingDir}/CLAUDE.md`,
+      },
+      {
+        scope: 'local',
+        label: '.claude/CLAUDE.local.md',
+        path: `${workingDir}/.claude/CLAUDE.local.md`,
+        displayPath: `${workingDir}/.claude/CLAUDE.local.md`,
+      },
+    ]
+
+    // Initialize with loading state
+    setStatuses(paths.map(p => ({ ...p, exists: false, loading: true })))
+
+    // Check each file existence
+    Promise.all(
+      paths.map(async (p) => {
+        try {
+          const result = await window.electronAPI.fsReadFile(p.path)
+          return { ...p, exists: !!(result && 'content' in result), loading: false }
+        } catch {
+          return { ...p, exists: false, loading: false }
+        }
+      })
+    ).then(setStatuses)
+  }, [homeDir, workingDir])
+
+  const existingCount = statuses.filter(s => s.exists).length
+  const totalCount = statuses.length
+
+  return (
+    <div style={{
+      borderBottom: '1px solid var(--border)',
+      flexShrink: 0,
+      background: 'rgba(99,102,241,0.04)',
+    }}>
+      {/* Collapse header */}
+      <div
+        onClick={() => setCollapsed(v => !v)}
+        style={{
+          padding: '5px 12px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          cursor: 'pointer',
+          userSelect: 'none',
+        }}
+        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.03)' }}
+        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)' }}>
+            CLI 当前加载的 CLAUDE.md 文件
+          </span>
+          <span style={{
+            fontSize: 9, fontWeight: 600,
+            background: existingCount > 0 ? 'rgba(74,222,128,0.15)' : 'var(--border)',
+            color: existingCount > 0 ? '#4ade80' : 'var(--text-muted)',
+            borderRadius: 8, padding: '1px 6px',
+            fontVariantNumeric: 'tabular-nums',
+          }}>
+            {existingCount}/{totalCount} 已存在
+          </span>
+        </div>
+        <span style={{
+          fontSize: 10, color: 'var(--text-muted)',
+          transform: collapsed ? 'rotate(-90deg)' : 'none',
+          transition: 'transform 0.15s ease',
+        }}>��</span>
+      </div>
+
+      {/* Path list */}
+      {!collapsed && (
+        <div style={{ padding: '0 12px 8px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {statuses.map(s => (
+            <div key={s.scope} style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '4px 8px',
+              borderRadius: 6,
+              background: s.exists ? 'rgba(74,222,128,0.05)' : 'rgba(255,255,255,0.02)',
+              border: `1px solid ${s.exists ? 'rgba(74,222,128,0.2)' : 'var(--border)'}`,
+            }}>
+              {/* Status indicator */}
+              {s.loading ? (
+                <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0, width: 14, textAlign: 'center' }}>…</span>
+              ) : s.exists ? (
+                <span style={{ fontSize: 11, color: '#4ade80', flexShrink: 0, width: 14, textAlign: 'center' }}>✓</span>
+              ) : (
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0, width: 14, textAlign: 'center', opacity: 0.4 }}>○</span>
+              )}
+
+              {/* Path */}
+              <span
+                onClick={() => onSwitchScope(s.scope)}
+                style={{
+                  flex: 1,
+                  fontSize: 10,
+                  fontFamily: 'monospace',
+                  color: s.exists ? 'var(--text-secondary)' : 'var(--text-muted)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer',
+                  opacity: s.exists ? 1 : 0.6,
+                }}
+                title={s.path}
+              >
+                {s.displayPath}
+              </span>
+
+              {/* Scope badge */}
+              <span style={{
+                fontSize: 8, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' as const,
+                color: SCOPE_COLORS[s.scope], background: `${SCOPE_COLORS[s.scope]}1a`,
+                borderRadius: 6, padding: '1px 5px', flexShrink: 0,
+              }}>
+                {s.scope === 'global' ? '全局' : s.scope === 'project' ? '项目' : '本地'}
+              </span>
+
+              {/* Create button for non-existing files */}
+              {!s.loading && !s.exists && (
+                <button
+                  onClick={() => onCreateFile(s.scope)}
+                  style={{
+                    background: 'rgba(99,102,241,0.12)',
+                    border: '1px solid rgba(99,102,241,0.25)',
+                    borderRadius: 4,
+                    color: '#a5b4fc',
+                    fontSize: 9,
+                    cursor: 'pointer',
+                    padding: '2px 6px',
+                    flexShrink: 0,
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap' as const,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.2)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.12)' }}
+                >
+                  创建
+                </button>
+              )}
+            </div>
+          ))}
+          <div style={{ fontSize: 9, color: 'var(--text-muted)', paddingTop: 2, paddingLeft: 2 }}>
+            CLI 会按优先级从下到上覆盖：本地 &gt; 项目 &gt; 全局
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 const CLAUDE_MD_TEMPLATE = `# CLAUDE.md
 
 ## Rules
@@ -669,6 +855,18 @@ function InstructionFilesTab() {
 
   const hasUnsavedChanges = editing && editValue !== content
 
+  // Handle "create" from LoadedPathsPanel — switch to scope and open editor with template
+  const handleCreateFromPanel = (scope: InstructionScope) => {
+    setActiveScope(scope)
+    // startEdit will be triggered after load completes (content will be empty)
+    // We schedule it after the scope switch causes a reload
+    setTimeout(() => {
+      setEditing(true)
+      setEditValue(scope === 'project' ? CLAUDE_MD_TEMPLATE : '')
+      setTimeout(() => textareaRef.current?.focus(), 50)
+    }, 300)
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {/* Hint bar */}
@@ -685,6 +883,14 @@ function InstructionFilesTab() {
           {t('memory.instructionHint')}
         </span>
       </div>
+
+      {/* Loaded paths panel — P2-6 nested CLAUDE.md visualization */}
+      <LoadedPathsPanel
+        homeDir={homeDir}
+        workingDir={workingDir}
+        onSwitchScope={setActiveScope}
+        onCreateFile={handleCreateFromPanel}
+      />
 
       {/* Scope sub-tabs */}
       <div style={{
@@ -1103,6 +1309,38 @@ export default function MemoryPanel() {
             {t('memory.instructionTab')}
           </button>
         </div>
+
+        {/* Section concept banner — P1-5: clearly distinguish CLAUDE.md vs memdir */}
+        {(activeTab === 'memdir' || activeTab === 'config') && (
+          <div style={{
+            padding: '5px 12px 4px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 6,
+            background: activeTab === 'config'
+              ? 'linear-gradient(90deg, rgba(165,180,252,0.06) 0%, transparent 100%)'
+              : 'linear-gradient(90deg, rgba(74,222,128,0.05) 0%, transparent 100%)',
+            borderBottom: '1px solid var(--border)',
+          }}>
+            {activeTab === 'config' ? (
+              <>
+                <FileText size={10} style={{ color: '#a5b4fc', flexShrink: 0, marginTop: 1 }} />
+                <span style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                  <span style={{ color: '#a5b4fc', fontWeight: 600 }}>指令文件 (CLAUDE.md)</span>
+                  {' '}— 每次对话时自动注入给 Claude，用于设置行为规则和项目背景
+                </span>
+              </>
+            ) : (
+              <>
+                <Brain size={10} style={{ color: '#4ade80', flexShrink: 0, marginTop: 1 }} />
+                <span style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                  <span style={{ color: '#4ade80', fontWeight: 600 }}>结构化记忆 (memdir)</span>
+                  {' '}— Claude 自动记录的用户偏好、反馈和项目上下文，按需检索
+                </span>
+              </>
+            )}
+          </div>
+        )}
 
         {/* Personal tab: search + category filter */}
         {activeTab === 'personal' && (
