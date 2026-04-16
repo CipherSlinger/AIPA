@@ -109,7 +109,7 @@ export default function TemplatesSection({ onUseTemplate }: Props) {
               key={tpl.id}
               style={{
                 display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 12px',
-                background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)',
+                background: 'var(--bg-hover)', border: '1px solid var(--glass-border)',
                 borderRadius: 10, cursor: 'pointer', textAlign: 'left',
                 transition: 'all 0.15s ease',
                 position: 'relative',
@@ -124,7 +124,7 @@ export default function TemplatesSection({ onUseTemplate }: Props) {
               }}
               onMouseLeave={e => {
                 const el = e.currentTarget as HTMLDivElement;
-                el.style.background = 'rgba(255,255,255,0.04)';
+                el.style.background = 'var(--bg-hover)';
                 el.style.borderColor = 'var(--glass-border)';
                 el.style.transform = 'translateY(0)';
                 el.style.boxShadow = '0 2px 8px rgba(0,0,0,0)';

@@ -88,7 +88,7 @@ export default function ForkDialog({ msgIdx, sessionId, onConfirm, onCancel }: F
         {/* Body */}
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Info */}
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             {t('fork.dialogInfo', { index: String(msgIdx + 1) })}
           </div>
 

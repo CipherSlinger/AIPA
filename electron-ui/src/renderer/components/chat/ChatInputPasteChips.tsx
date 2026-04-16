@@ -252,7 +252,7 @@ export default function ChatInputPasteChips({ paste, inputLength }: ChatInputPas
 
 function QuoteBanner({ quote, onClose, t }: { quote: string; onClose: () => void; t: (key: string) => string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 10px', marginBottom: 6, background: 'rgba(255,255,255,0.04)', borderLeft: '3px solid rgba(99,102,241,0.6)', borderRadius: '0 6px 6px 0', fontSize: 12, color: 'rgba(165,180,252,0.60)', lineHeight: 1.5 }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 10px', marginBottom: 6, background: 'var(--bg-hover)', borderLeft: '3px solid rgba(99,102,241,0.6)', borderRadius: '0 6px 6px 0', fontSize: 12, color: 'rgba(165,180,252,0.60)', lineHeight: 1.5 }}>
       <MessageSquareQuote size={14} style={{ color: 'rgba(165,180,252,0.6)', flexShrink: 0, marginTop: 2 }} />
       <div style={{ flex: 1, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', wordBreak: 'break-word' }}>
         {quote.length > 150 ? quote.slice(0, 150) + '...' : quote}

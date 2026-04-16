@@ -206,17 +206,17 @@ export function ElicitationCard({ message, onRespond }: Props) {
                     width: '100%',
                     boxSizing: 'border-box',
                     borderRadius: 6,
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    border: '1px solid var(--border)',
                     padding: '7px 10px',
                     fontSize: 12,
-                    background: 'rgba(255,255,255,0.06)',
+                    background: 'var(--bg-hover)',
                     color: 'var(--text-primary)',
                     outline: 'none',
                     fontFamily: 'inherit',
                     transition: 'border-color 0.15s ease',
                   }}
                   onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)' }}
-                  onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)' }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
                 />
               </div>
             ))
@@ -230,11 +230,11 @@ export function ElicitationCard({ message, onRespond }: Props) {
                 width: '100%',
                 boxSizing: 'border-box',
                 borderRadius: 6,
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid var(--border)',
                 padding: '7px 10px',
                 fontSize: 12,
                 resize: 'vertical',
-                background: 'rgba(255,255,255,0.06)',
+                background: 'var(--bg-hover)',
                 color: 'var(--text-primary)',
                 marginBottom: 8,
                 fontFamily: 'inherit',
@@ -242,7 +242,7 @@ export function ElicitationCard({ message, onRespond }: Props) {
                 transition: 'border-color 0.15s ease',
               }}
               onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)' }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
             />
           )}
           <ActionButtons onSubmit={handleSubmit} onDecline={handleDecline} onCancel={handleCancel} />

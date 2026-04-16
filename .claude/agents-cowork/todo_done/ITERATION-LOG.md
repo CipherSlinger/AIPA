@@ -6178,3 +6178,23 @@ Status: SUCCESS (npm run check 0 errors, vite build 19.68s)
 - [x] Ports hidden when node is selected
 - [x] Port uses var(--accent) fill with var(--bg-primary) border ring
 - [x] CanvasEdge sourceStatus='running' triggers dash animation
+
+## Iteration 550 — Light theme: migrate settings & popup components to CSS variables
+_Date: 2026-04-15 | Sprint ongoing_
+
+### Summary
+Replaced hardcoded RGBA colors in settings and popup components: SettingsAbout (8 values: sectionCard bg, divider, title text, build date, button bgs, kbd bg), SettingsAdvanced (hover button bg), KeyboardShortcutsModal (shortcut row bg). SettingsGeneral and SettingsPanel were already using CSS variables. CommandPalette and Toast were also already migrated.
+
+### Files Changed
+- `electron-ui/src/renderer/components/settings/SettingsAbout.tsx` — 8 hardcoded values → CSS vars
+- `electron-ui/src/renderer/components/settings/SettingsAdvanced.tsx` — 1 hover value
+- `electron-ui/src/renderer/components/ui/KeyboardShortcutsModal.tsx` — shortcut row bg
+
+### Build
+Status: SUCCESS (npm run check 0 errors, vite build 12.37s)
+
+### Acceptance Criteria
+- [x] SettingsAbout fully uses CSS variables for bg/text colors
+- [x] SettingsAdvanced hover state uses var(--bg-hover)
+- [x] KeyboardShortcutsModal shortcut rows use var(--bg-hover)
+- [x] Build passes with no new errors

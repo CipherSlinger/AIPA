@@ -1519,6 +1519,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                 from={fromPos}
                 to={toPos}
                 status={edgeStatus}
+                sourceStatus={srcStatus}
                 layoutDirection={layout.layoutDirection}
                 onHoverChange={(hovered) => setHoveredEdgeKey(hovered ? edgeKey : null)}
                 highlighted={isHighlighted}

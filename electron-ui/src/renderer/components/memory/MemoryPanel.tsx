@@ -434,7 +434,7 @@ function MemdirTab() {
           const isOpen = expanded === f.filePath
           return (
             <div key={f.filePath} style={{
-              background: 'rgba(15,15,25,0.85)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+              background: 'var(--bg-primary)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
               border: '1px solid var(--border)', borderRadius: 10, marginBottom: 6,
               overflow: 'hidden', transition: 'all 0.15s ease',
             }}>
@@ -442,7 +442,7 @@ function MemdirTab() {
               <div
                 onClick={() => setExpanded(isOpen ? null : f.filePath)}
                 style={{ padding: '9px 12px', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.03)' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-hover)' }}
                 onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
               >
                 <span style={{ width: 7, height: 7, borderRadius: '50%', background: typeColor, flexShrink: 0, boxShadow: `0 0 6px ${typeColor}80` }} />
@@ -469,7 +469,7 @@ function MemdirTab() {
                   <pre style={{
                     margin: '8px 0 0', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 11, lineHeight: 1.6,
                     color: 'var(--text-secondary)', fontFamily: 'monospace',
-                    background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '8px 10px',
+                    background: 'var(--bg-hover)', borderRadius: 6, padding: '8px 10px',
                     border: '1px solid var(--border)',
                   }}>
                     {f.content || <span style={{ color: 'var(--text-muted)' }}>(empty)</span>}
@@ -575,7 +575,7 @@ function LoadedPathsPanel({ homeDir, workingDir, onSwitchScope, onCreateFile }: 
           cursor: 'pointer',
           userSelect: 'none',
         }}
-        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.03)' }}
+        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-hover)' }}
         onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -609,7 +609,7 @@ function LoadedPathsPanel({ homeDir, workingDir, onSwitchScope, onCreateFile }: 
               gap: 6,
               padding: '4px 8px',
               borderRadius: 6,
-              background: s.exists ? 'rgba(74,222,128,0.05)' : 'rgba(255,255,255,0.02)',
+              background: s.exists ? 'rgba(74,222,128,0.05)' : 'var(--bg-hover)',
               border: `1px solid ${s.exists ? 'rgba(74,222,128,0.2)' : 'var(--border)'}`,
             }}>
               {/* Status indicator */}
@@ -1053,7 +1053,7 @@ function InstructionFilesTab() {
                 width: '100%',
                 height: '100%',
                 minHeight: 300,
-                background: 'rgba(8,8,16,0.8)',
+                background: 'var(--bg-primary)',
                 border: '1px solid var(--border)',
                 borderRadius: 6,
                 color: 'var(--text-primary)',

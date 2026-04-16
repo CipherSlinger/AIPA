@@ -56,7 +56,7 @@ export default function MemoryItemCard({
     <div
       style={{
         padding: '10px 12px',
-        background: 'rgba(15,15,25,0.85)',
+        background: 'var(--bg-primary)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: mem.pinned
@@ -72,13 +72,13 @@ export default function MemoryItemCard({
         position: 'relative',
       }}
       onMouseEnter={e => {
-        e.currentTarget.style.background = 'rgba(20,20,35,0.90)'
+        e.currentTarget.style.background = 'var(--bg-secondary)'
         e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)'
         e.currentTarget.style.transform = 'translateY(-1px)'
         if (!mem.pinned) e.currentTarget.style.borderColor = 'var(--border)'
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.background = 'rgba(15,15,25,0.85)'
+        e.currentTarget.style.background = 'var(--bg-primary)'
         e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)'
         e.currentTarget.style.transform = 'translateY(0)'
         if (!mem.pinned) e.currentTarget.style.borderColor = 'var(--border)'
@@ -326,7 +326,7 @@ export default function MemoryItemCard({
               right: 8,
               display: 'none',
               gap: 2,
-              background: 'rgba(10,10,20,0.94)',
+              background: 'var(--bg-primary)',
               border: '1px solid var(--border)',
               borderRadius: 6,
               padding: '2px 2px',

@@ -354,7 +354,11 @@ export default function WorkflowDetailPage() {
         onExitEditMode={exitEditMode}
         onSave={handleSave}
         onRun={runWorkflow}
-        onStop={() => { /* TODO: cancel queue */ addToast('info', 'Stop not yet implemented') }}
+        onStop={() => {
+          // Abort the current stream and clear pending queue items
+          window.dispatchEvent(new CustomEvent('aipa:abortStream'))
+          useChatStore.getState().clearQueue()
+        }}
         onDelete={handleDeleteWorkflow}
         onUpdateIcon={updateIcon}
         onUpdateName={(v: string) => { setEditName(v); markDirty() }}

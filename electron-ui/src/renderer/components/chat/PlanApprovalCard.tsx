@@ -245,18 +245,18 @@ export default function PlanApprovalCard({
                 width: '100%',
                 boxSizing: 'border-box',
                 borderRadius: 6,
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid var(--border)',
                 padding: '6px 10px',
                 fontSize: 12,
                 resize: 'vertical',
-                background: 'rgba(255,255,255,0.04)',
+                background: 'var(--bg-hover)',
                 color: 'var(--text-primary)',
                 fontFamily: 'inherit',
                 outline: 'none',
                 transition: 'border-color 0.15s ease',
               }}
               onFocus={(e) => { e.currentTarget.style.borderColor = '#fbbf24' }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
             />
           )}
 

@@ -99,7 +99,7 @@ export default function WelcomeQuickActions({
       <div style={{
         display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center',
         padding: '10px 16px',
-        background: 'rgba(255,255,255,0.04)',
+        background: 'var(--bg-hover)',
         border: '1px solid var(--glass-border-md)',
         borderRadius: 12, width: '100%', maxWidth: 420,
       }}>
@@ -122,7 +122,7 @@ export default function WelcomeQuickActions({
               onMouseLeave={() => setHoveredFloat(null)}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px',
-                background: isHovered ? 'rgba(255,255,255,0.08)' : 'transparent',
+                background: isHovered ? 'var(--bg-active)' : 'transparent',
                 border: isHovered ? '1px solid rgba(255,255,255,0.15)' : '1px solid var(--glass-border-md)',
                 borderRadius: 8,
                 color: 'var(--text-primary)',
