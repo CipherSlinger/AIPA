@@ -7276,3 +7276,57 @@ Migrated remaining `rgba(255,255,255,...)` values across workflow/canvas compone
 
 ### Build
 Status: SUCCESS (15 files changed, 51 insertions/49 deletions)
+
+---
+
+## Iteration 603 — SessionCard overlay overlap fix
+
+_Date: 2026-04-16 | Sprint UI Bug Fix_
+
+### Summary
+Fixed a UI bug where the status pill, delete button, and pin button all individually used `position: absolute` at the same `top: 8` coordinate, causing them to visually overlap on hover. Replaced the three separate absolutely-positioned elements with a single unified flex-row container (`top: 6, right: 6`) that holds pin, delete, and status pill in left-to-right order with `gap: 4`. Also updated title `paddingRight` from `statusPill || isActive ? 72` to `statusPill || hovered ? 80` to match the wider unified container.
+
+### Files Changed
+- `electron-ui/src/renderer/components/departments/SessionCard.tsx` — remove three individually-positioned overlay elements; add unified flex container; fix title paddingRight
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings; 1 file changed, 106 insertions/113 deletions)
+
+### Acceptance Criteria
+- [x] No overlap between pin button, delete button, and status pill on hover
+- [x] Delete confirm flow still works (separate absolute element, shown when `showDeleteConfirm`)
+- [x] Pin button retains toggle behavior and visual states (pinned/unpinned colors)
+- [x] Pin indicator still shown when pinned and not hovered
+- [x] Status pill rightmost in the action row
+- [x] `npm run check` passes with 0 errors
+
+---
+
+## Iteration 604 — CSS variable migration audit: department/session components
+
+_Date: 2026-04-16 | Sprint CSS Sweep_
+
+### Summary
+Audited all `rgba(255,255,255,...)` occurrences in `DepartmentPanel.tsx`, `DepartmentDashboard.tsx`, `SessionCard.tsx` (departments folder), and `SessionFilters.tsx` for CSS variable substitution eligibility. After reading full context around each of the 10 occurrences found, all were determined to fall into the skip categories per migration rules: every occurrence is either `rgba(255,255,255,0.95)` used as white text on a colored/gradient button (indigo or red), `rgba(255,255,255,0.15)` inside a box-shadow value, or `rgba(255,255,255,0.15)` as a highlight background on a `<kbd>` element inside a colored button. No substitutions were made.
+
+### Files Changed
+- None — all occurrences are exempt from substitution per rules
+
+### Skip Rationale
+- `DepartmentPanel.tsx` lines 234, 342: white text on indigo gradient button — skip (white text on colored bg rule)
+- `DepartmentPanel.tsx` line 612: white text on `#f87171` red badge — skip (white text on colored bg rule)
+- `DepartmentPanel.tsx` line 829: white text on `#f87171` red button — skip (white text on colored bg rule)
+- `DepartmentDashboard.tsx` lines 470, 773, 1752: white text on indigo gradient button — skip
+- `DepartmentDashboard.tsx` line 491: `rgba(255,255,255,0.15)` as `<kbd>` bg inside indigo button — skip (colored surface highlight)
+- `DepartmentDashboard.tsx` line 1220: `rgba(255,255,255,0.15)` in boxShadow — skip (box-shadow rule)
+- `SessionCard.tsx` line 290: white text on `rgba(239,68,68,0.85)` red status button — skip (status color + white text on colored bg)
+- `SessionFilters.tsx` line 53: white text on indigo gradient active chip — skip
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] All target files audited for `rgba(255,255,255,...)` occurrences
+- [x] Skip rationale documented for each occurrence
+- [x] `npm run check` passes with 0 errors
+- [x] No regressions introduced
