@@ -74,30 +74,36 @@ const STATUS_STYLES: Record<string, {
   animation?: string
   glowColor?: string
   boxShadow?: string
+  hoverBoxShadow?: string
 }> = {
   idle: {
     borderColor: 'var(--border)',
     boxShadow: '0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 var(--bg-hover)',
+    hoverBoxShadow: '0 6px 20px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 var(--bg-hover)',
   },
   pending: {
     borderColor: 'var(--border)',
     opacity: 0.55,
     boxShadow: '0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 var(--bg-hover)',
+    hoverBoxShadow: '0 6px 20px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 var(--bg-hover)',
   },
   running: {
     borderColor: 'rgba(99,102,241,0.5)',
     animation: 'canvas-node-pulse 1.5s ease-in-out infinite',
-    glowColor: 'var(--popup-bg)',
+    glowColor: 'var(--bg-secondary)',
     boxShadow: '0 0 12px 3px rgba(99,102,241,0.35), 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 var(--bg-hover)',
+    hoverBoxShadow: '0 0 16px 4px rgba(99,102,241,0.45), 0 8px 24px rgba(0,0,0,0.5), inset 0 1px 0 var(--bg-hover)',
   },
   completed: {
     borderColor: '#22c55e',
     borderLeft: '2px solid #22c55e',
     boxShadow: '0 0 0 2px rgba(34,197,94,0.15), 0 4px 16px rgba(0,0,0,0.4)',
+    hoverBoxShadow: '0 0 0 2px rgba(34,197,94,0.25), 0 8px 24px rgba(0,0,0,0.5)',
   },
   error: {
     borderColor: '#f87171',
     boxShadow: '0 0 0 2px rgba(239,68,68,0.15), 0 4px 16px rgba(0,0,0,0.4)',
+    hoverBoxShadow: '0 0 0 2px rgba(239,68,68,0.25), 0 8px 24px rgba(0,0,0,0.5)',
   },
 }
 
@@ -707,14 +713,16 @@ export default function CanvasNode({
   // D4: focused but not selected — dashed outline
   const isFocusedOnly = focused && !selected && !isMulti
 
-  // Box shadow by selection state — richer glows
+  // Box shadow by selection state — richer glows; hover lifts the shadow
   const baseBoxShadow = isMulti
     ? '0 0 0 1.5px #fbbf24, 0 4px 16px rgba(0,0,0,0.4)'
     : selected
       ? '0 0 0 2px rgba(99,102,241,0.25), 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 var(--bg-hover)'
       : isActive
         ? `0 0 12px 3px rgba(99,102,241,0.35), 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 var(--bg-hover)`
-        : statusStyle.boxShadow ?? '0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 var(--bg-hover)'
+        : (isNodeHovered && !isMulti && !selected && !isActive)
+          ? (statusStyle.hoverBoxShadow ?? statusStyle.boxShadow ?? '0 6px 20px rgba(0,0,0,0.45), inset 0 1px 0 var(--bg-hover)')
+          : statusStyle.boxShadow ?? '0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 var(--bg-hover)'
 
   // F8: flash glow when just completed; V10: highlighted glow for search match
   const boxShadow = justCompleted
@@ -758,12 +766,12 @@ export default function CanvasNode({
         ? `1.5px solid ${nodeTypeColor}`
         : `1px solid ${statusStyle.borderColor}`
 
-  // Node background
+  // Node background — use var(--bg-secondary) as base card background
   const nodeBackground = status === 'running'
-    ? (statusStyle.glowColor || 'var(--popup-bg)')
+    ? (statusStyle.glowColor || 'var(--bg-secondary)')
     : isMulti
       ? 'rgba(99,102,241,0.06)'
-      : 'var(--popup-bg)'
+      : 'var(--bg-secondary)'
 
   // Improvement 1: output word count for Zone 3
   const outputWordCount = outputText ? outputText.trim().split(/\s+/).filter(Boolean).length : 0
@@ -819,8 +827,9 @@ export default function CanvasNode({
             ? '2px solid rgba(99,102,241,0.6)'
             : isFocusedOnly ? '2px dashed rgba(99,102,241,0.55)' : 'none',
           outlineOffset: 3,
-          // B1: transition
+          // B1: transition + hover-lift
           transition: 'all 0.15s ease',
+          transform: (isNodeHovered && !dimmed && !selected && !isActive && !isMulti) ? 'translateY(-2px)' : undefined,
           userSelect: 'none',
           boxSizing: 'border-box',
           opacity: dimmed ? 0.2 : (statusStyle.opacity ?? 1),

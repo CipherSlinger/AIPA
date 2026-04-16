@@ -8,7 +8,7 @@
 // Iteration 530: B4 — toolbar UI refinement (search float, shadows, transitions, separators, icons)
 
 import React, { useRef, useState, useEffect } from 'react'
-import { Maximize2, ChevronsDownUp, ChevronsUpDown, Map, Download, ArrowDownUp, ArrowLeftRight, Upload, Terminal, Search, X, Square, Play, HelpCircle } from 'lucide-react'
+import { Maximize2, Minimize2, ChevronsDownUp, ChevronsUpDown, Map, Download, ArrowDownUp, ArrowLeftRight, Upload, Terminal, Search, X, Square, Play, HelpCircle } from 'lucide-react'
 import { useT } from '../../i18n'
 
 const toolbarBtnStyle: React.CSSProperties = {
@@ -89,6 +89,9 @@ interface CanvasToolbarProps {
   completedCount?: number
   // Step count indicator
   stepCount?: number
+  // Fullscreen toggle
+  isFullscreen?: boolean
+  onToggleFullscreen?: () => void
 }
 
 export default function CanvasToolbar({
@@ -111,6 +114,8 @@ export default function CanvasToolbar({
   onClearOutputs,
   completedCount = 0,
   stepCount,
+  isFullscreen = false,
+  onToggleFullscreen,
 }: CanvasToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [showShortcuts, setShowShortcuts] = useState(false)
@@ -563,6 +568,21 @@ export default function CanvasToolbar({
           </span>
         )}
         {/* Keyboard shortcuts help button */}
+        {onToggleFullscreen && (
+          <>
+            <div style={separatorStyle} />
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleFullscreen() }}
+              aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+              title={isFullscreen ? 'Exit fullscreen (F11)' : 'Fullscreen canvas (F11)'}
+              style={{ ...toolbarBtnStyle, background: isFullscreen ? 'rgba(99,102,241,0.15)' : 'transparent', color: isFullscreen ? '#818cf8' : 'var(--text-muted)', boxShadow: isFullscreen ? 'inset 0 0 0 1px rgba(99,102,241,0.4)' : 'none' }}
+              onMouseEnter={hoverIn}
+              onMouseLeave={e => { e.currentTarget.style.background = isFullscreen ? 'rgba(99,102,241,0.15)' : 'transparent'; e.currentTarget.style.color = isFullscreen ? '#818cf8' : 'var(--text-muted)' }}
+            >
+              {isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+            </button>
+          </>
+        )}
         <div style={{ position: 'relative' }} onMouseDown={e => e.stopPropagation()}>
           <button
             onClick={() => setShowShortcuts(prev => !prev)}

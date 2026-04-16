@@ -204,6 +204,22 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   const [editingName, setEditingName] = useState(false)
   const [nameValue, setNameValue] = useState(workflow?.name ?? '')
 
+  // Fullscreen state
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const handleToggleFullscreen = useCallback(() => {
+    if (!containerRef.current) return
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {})
+    } else {
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {})
+    }
+  }, [])
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', onFsChange)
+    return () => document.removeEventListener('fullscreenchange', onFsChange)
+  }, [])
+
   // Sync nameValue when workflow changes
   useEffect(() => {
     setNameValue(workflow?.name ?? '')
@@ -1312,6 +1328,55 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           <div style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', letterSpacing: '0.01em' }}>
             {t('workflow.canvasAddStepHint')}
           </div>
+          {/* Quick-add node type buttons */}
+          {onWorkflowUpdate && (
+            <div style={{ display: 'flex', gap: 8, marginTop: 4, pointerEvents: 'all' }}>
+              {[
+                { label: 'Prompt', color: '#818cf8', bg: 'rgba(99,102,241,0.12)', border: 'rgba(99,102,241,0.35)', nodeType: 'prompt' as const },
+                { label: 'Condition', color: '#fbbf24', bg: 'rgba(251,191,36,0.10)', border: 'rgba(251,191,36,0.35)', nodeType: 'condition' as const },
+                { label: 'Parallel', color: '#a78bfa', bg: 'rgba(167,139,250,0.10)', border: 'rgba(167,139,250,0.35)', nodeType: 'parallel' as const },
+              ].map(({ label, color, bg, border, nodeType }) => (
+                <button
+                  key={nodeType}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const newStep = {
+                      id: `step-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                      title: label,
+                      prompt: '',
+                      nodeType,
+                    }
+                    onWorkflowUpdate({ ...workflow, steps: [newStep], updatedAt: Date.now() })
+                  }}
+                  onMouseDown={e => e.stopPropagation()}
+                  style={{
+                    background: bg,
+                    border: `1px solid ${border}`,
+                    borderRadius: 8,
+                    padding: '6px 14px',
+                    cursor: 'pointer',
+                    color,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    transition: 'all 0.15s ease',
+                    letterSpacing: '0.01em',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = color + '28'
+                    e.currentTarget.style.borderColor = color + '80'
+                    e.currentTarget.style.transform = 'translateY(-1px)'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = bg
+                    e.currentTarget.style.borderColor = border
+                    e.currentTarget.style.transform = ''
+                  }}
+                >
+                  + {label}
+                </button>
+              ))}
+            </div>
+          )}
           <div style={{ fontSize: 11, color: 'var(--text-muted)', opacity: 0.5, letterSpacing: '0.01em', textAlign: 'center' }}>
             {t('workflow.canvasRightClickHint')}
           </div>
@@ -1346,6 +1411,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         onClearOutputs={clearQueue}
         completedCount={execution.completedCount}
         stepCount={workflow?.steps.length ?? 0}
+        isFullscreen={isFullscreen}
+        onToggleFullscreen={handleToggleFullscreen}
       />
 
       {searchMatchCount !== null && (
