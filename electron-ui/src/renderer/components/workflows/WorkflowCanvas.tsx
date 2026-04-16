@@ -71,29 +71,6 @@ interface MinimapProps {
 }
 
 function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, containerW, containerH, onClickNode, onViewportDrag }: MinimapProps) {
-  if (stepIds.length === 0) return null
-
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
-  for (const id of stepIds) {
-    const p = nodePositions[id]
-    if (!p) continue
-    minX = Math.min(minX, p.x); minY = Math.min(minY, p.y)
-    maxX = Math.max(maxX, p.x + p.width); maxY = Math.max(maxY, p.y + p.height)
-  }
-  if (!isFinite(minX)) return null
-
-  const pad = 10
-  const contentW = maxX - minX + pad * 2
-  const contentH = maxY - minY + pad * 2
-  const scaleX = MINIMAP_W / contentW
-  const scaleY = MINIMAP_H / contentH
-  const scale = Math.min(scaleX, scaleY)
-
-  const vpX = (-panX / zoom - minX + pad) * scale
-  const vpY = (-panY / zoom - minY + pad) * scale
-  const vpW = (containerW / zoom) * scale
-  const vpH = (containerH / zoom) * scale
-
   const vpDragRef = React.useRef<{ mouseX: number; mouseY: number; startPanX: number; startPanY: number } | null>(null)
 
   const handleVpMouseDown = onViewportDrag ? (e: React.MouseEvent) => {
@@ -1526,6 +1503,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                 onAddBetween={onInsertBetween ? () => {
                   onInsertBetween(prevStep.id, step.id)
                 } : undefined}
+                // Iter 542: delete edge — removes the target step from the workflow
+                onDelete={onDeleteSteps && !execution.isRunning ? () => onDeleteSteps([step.id]) : undefined}
                 // Direction 4: pass output length and duration from previous step
                 outputLength={execution.stepOutputs[prevStep.id]?.length}
                 durationMs={execution.stepDurations[prevStep.id]}

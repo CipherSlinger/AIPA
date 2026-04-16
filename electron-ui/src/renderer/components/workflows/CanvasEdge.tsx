@@ -24,6 +24,7 @@ interface CanvasEdgeProps {
   onHoverChange?: (hovered: boolean) => void  // D8: hover callback
   highlighted?: boolean                        // D8: highlight when connected nodes are hovered
   onAddBetween?: () => void                    // D4: insert step between nodes
+  onDelete?: () => void                        // Iter 542: delete edge (removes target step)
   outputLength?: number                        // D7: upstream output char count
   durationMs?: number                          // D7: upstream step duration in ms
   sourceStepIndex?: number                     // tooltip: source step number
@@ -49,7 +50,7 @@ function formatDuration(ms: number): string {
   return `${ms}ms`
 }
 
-export default function CanvasEdge({ from, to, status = 'idle', layoutDirection = 'vertical', onHoverChange, highlighted, onAddBetween, outputLength, durationMs, sourceStepIndex, targetStepIndex, label }: CanvasEdgeProps) {
+export default function CanvasEdge({ from, to, status = 'idle', layoutDirection = 'vertical', onHoverChange, highlighted, onAddBetween, onDelete, outputLength, durationMs, sourceStepIndex, targetStepIndex, label }: CanvasEdgeProps) {
   const [isHoveredLocally, setIsHoveredLocally] = useState(false)
 
   let startX: number, startY: number, endX: number, endY: number, d: string
@@ -114,7 +115,7 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
     <g
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      style={{ pointerEvents: (onHoverChange || onAddBetween) ? 'stroke' : 'none' }}
+      style={{ pointerEvents: (onHoverChange || onAddBetween || onDelete) ? 'stroke' : 'none' }}
     >
       <style>{`
         @keyframes dashFlow {
@@ -126,7 +127,7 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
         }
       `}</style>
       {/* D8: invisible wide hit area for easier hover detection — wider when highlighted */}
-      {(onHoverChange || onAddBetween) && (
+      {(onHoverChange || onAddBetween || onDelete) && (
         <path
           d={d}
           fill="none"
@@ -229,6 +230,50 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
           >
             +
           </text>
+        </g>
+      )}
+
+      {/* Iter 542: delete edge button — shown on hover at midpoint (offset right when add-between present) */}
+      {onDelete && (
+        <g
+          style={{
+            opacity: isHoveredLocally ? 1 : 0,
+            transition: 'all 0.15s ease',
+            cursor: 'pointer',
+            pointerEvents: 'all',
+            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))',
+          }}
+          onClick={(e) => { e.stopPropagation(); onDelete() }}
+        >
+          <circle
+            cx={onAddBetween ? midX + 24 : midX}
+            cy={midY}
+            r={8}
+            fill="rgba(239,68,68,0.85)"
+            stroke="none"
+            style={{ transition: 'fill 0.15s ease' }}
+          />
+          {/* X icon drawn as two crossing lines */}
+          <line
+            x1={(onAddBetween ? midX + 24 : midX) - 4}
+            y1={midY - 4}
+            x2={(onAddBetween ? midX + 24 : midX) + 4}
+            y2={midY + 4}
+            stroke="white"
+            strokeWidth={1.5}
+            strokeLinecap="round"
+            style={{ pointerEvents: 'none' }}
+          />
+          <line
+            x1={(onAddBetween ? midX + 24 : midX) + 4}
+            y1={midY - 4}
+            x2={(onAddBetween ? midX + 24 : midX) - 4}
+            y2={midY + 4}
+            stroke="white"
+            strokeWidth={1.5}
+            strokeLinecap="round"
+            style={{ pointerEvents: 'none' }}
+          />
         </g>
       )}
 
