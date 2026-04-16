@@ -461,7 +461,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
         {expanded && (
         <div style={{ borderTop: '1px solid var(--bg-hover)' }}>
           {/* Input section */}
-          <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
+          <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
             <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
               {t('tool.input')}
               {/* File path for non-file-path-highlight tools (legacy display) */}
@@ -510,7 +510,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
               <TodoListView todos={Array.isArray(tool.input.todos) ? (tool.input.todos as import('./TodoListView').TodoItem[]) : []} />
             ) : TASK_LIST_TOOLS.has(tool.name) || TASK_GET_TOOLS.has(tool.name) ? (
               /* TaskList/TaskGet: show compact task cards in input section (query params) */
-              <pre style={{ fontSize: 11, margin: 0, fontFamily: 'monospace', background: 'rgba(8,8,16,1)', border: '1px solid var(--bg-hover)', borderRadius: 4, padding: '6px 8px', overflow: 'auto', maxHeight: 100, color: '#a5b4fc', lineHeight: 1.5 }}>
+              <pre style={{ fontSize: 11, margin: 0, fontFamily: 'monospace', background: 'var(--code-bg)', border: '1px solid var(--bg-hover)', borderRadius: 4, padding: '6px 8px', overflow: 'auto', maxHeight: 100, color: '#a5b4fc', lineHeight: 1.5 }}>
                 {JSON.stringify(tool.input, null, 2)}
               </pre>
             ) : tool.name === 'CronCreate' ? (
@@ -520,7 +520,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
             ) : BROWSER_TOOLS.has(tool.name) ? (
               <WebBrowserInputCard input={tool.input} />
             ) : (
-              <pre style={{ fontSize: 11, margin: 0, fontFamily: 'monospace', background: 'rgba(8,8,16,1)', border: '1px solid var(--bg-hover)', borderRadius: 4, padding: '6px 8px', overflow: 'auto', maxHeight: 200, color: '#a5b4fc', lineHeight: 1.5 }}>
+              <pre style={{ fontSize: 11, margin: 0, fontFamily: 'monospace', background: 'var(--code-bg)', border: '1px solid var(--bg-hover)', borderRadius: 4, padding: '6px 8px', overflow: 'auto', maxHeight: 200, color: '#a5b4fc', lineHeight: 1.5 }}>
                 {JSON.stringify(tool.input, null, 2)}
               </pre>
             )}
@@ -534,7 +534,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
               return (
                 <div>
                   <div style={{ height: 1, background: 'var(--bg-hover)' }} />
-                  <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
+                  <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>
                       {t('tool.output')}
                     </div>
@@ -569,7 +569,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
               const lspData = parseLSPOutput(resultText)
               if (lspData) {
                 return (
-                  <div style={{ borderTop: '1px solid var(--bg-hover)', padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
+                  <div style={{ borderTop: '1px solid var(--bg-hover)', padding: '8px 10px', background: 'var(--section-bg)' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{t('tool.output')}</span>
                       <CopyOutputBtn text={resultText} t={t} />
@@ -585,7 +585,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
               return (
                 <div>
                   <div style={{ height: 1, background: 'var(--bg-hover)' }} />
-                  <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
+                  <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{t('tool.output')}</span>
                       <CopyOutputBtn text={resultText} t={t} />
@@ -603,7 +603,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
                 return (
                   <div>
                     <div style={{ height: 1, background: 'var(--bg-hover)' }} />
-                    <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
+                    <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                       <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span>{t('tool.output')}</span>
                         <CopyOutputBtn text={resultText} t={t} />
@@ -621,7 +621,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
               return (
                 <div>
                   <div style={{ height: 1, background: 'var(--bg-hover)' }} />
-                  <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
+                  <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{t('tool.output')}</span>
                     </div>
@@ -638,7 +638,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
                 return (
                   <div>
                     <div style={{ height: 1, background: 'var(--bg-hover)' }} />
-                    <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
+                    <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                       <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span>{t('tool.output')}</span>
                         <CopyOutputBtn text={resultText} t={t} />
@@ -656,7 +656,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
               return (
                 <div>
                   <div style={{ height: 1, background: 'var(--bg-hover)' }} />
-                  <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
+                  <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{t('tool.output')}</span>
                       <CopyOutputBtn text={resultText} t={t} />
@@ -672,7 +672,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
               return (
                 <div>
                   <div style={{ height: 1, background: 'var(--bg-hover)' }} />
-                  <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
+                  <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>
                       {t('tool.output')}
                     </div>
@@ -688,7 +688,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
               return (
                 <div>
                   <div style={{ height: 1, background: 'var(--bg-hover)' }} />
-                  <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
+                  <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>
                       {t('tool.output')}
                     </div>
@@ -723,7 +723,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
               return (
                 <div>
                   <div style={{ height: 1, background: 'var(--bg-hover)' }} />
-                  <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
+                  <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{t('tool.output')}</span>
                       <CopyOutputBtn text={resultText} t={t} />
@@ -739,7 +739,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
               return (
                 <div>
                   <div style={{ height: 1, background: 'var(--bg-hover)' }} />
-                  <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
+                  <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{t('tool.output')}</span>
                       <CopyOutputBtn text={resultText} t={t} />
@@ -755,7 +755,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
               return (
                 <div>
                   <div style={{ height: 1, background: 'var(--bg-hover)' }} />
-                  <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
+                  <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{t('tool.output')}</span>
                       <CopyOutputBtn text={resultText} t={t} />
@@ -771,7 +771,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
               return (
                 <div>
                   <div style={{ height: 1, background: 'var(--bg-hover)' }} />
-                  <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
+                  <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         {t('tool.output')}
@@ -782,7 +782,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
                     {resultText ? (
                       <BashOutputBlock output={resultText} />
                     ) : (
-                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)', fontStyle: 'italic', fontFamily: 'monospace' }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-faint)', fontStyle: 'italic', fontFamily: 'monospace' }}>
                         {t('tool.noOutput')}
                       </div>
                     )}
@@ -795,7 +795,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
             <div>
               {/* Divider */}
               <div style={{ height: 1, background: 'var(--bg-hover)' }} />
-              <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
+              <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                 <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     {t('tool.output')}
@@ -812,7 +812,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
                 <pre style={{
                   fontSize: 11, margin: 0, padding: '6px 8px',
                   fontFamily: 'monospace',
-                  background: 'rgba(8,8,16,1)',
+                  background: 'var(--code-bg)',
                   border: '1px solid var(--bg-hover)',
                   borderRadius: 4,
                   color: tool.status === 'error' ? '#fca5a5' : 'var(--text-secondary)',
@@ -829,7 +829,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
 
           {/* Image preview thumbnails (Iteration 462) */}
           {imagePaths.length > 0 && (
-            <div style={{ borderTop: '1px solid var(--bg-hover)', padding: '6px 10px', display: 'flex', gap: 6, flexWrap: 'wrap', background: 'rgba(8,8,16,0.7)' }}>
+            <div style={{ borderTop: '1px solid var(--bg-hover)', padding: '6px 10px', display: 'flex', gap: 6, flexWrap: 'wrap', background: 'var(--section-bg)' }}>
               {imagePaths.map((imgPath, i) => (
                 <ImageThumbnail key={i} filePath={imgPath} onClick={() => setLightboxSrc(`file://${imgPath}`)} t={t} />
               ))}
