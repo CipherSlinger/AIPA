@@ -82,7 +82,7 @@ export default function AvatarPicker({ onClose, navExpanded, anchorRef }: Avatar
         left: pos.left,
         bottom: pos.bottom,
         width: 220,
-        background: 'rgba(15,15,25,0.85)',
+        background: 'var(--popup-bg)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
         border: '1px solid var(--border)',

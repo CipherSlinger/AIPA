@@ -87,7 +87,7 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
           fontSize: 11,
           fontWeight: 500,
           whiteSpace: 'nowrap',
-          color: chipHovered || show ? 'var(--text-primary)' : 'rgba(255,255,255,0.55)',
+          color: chipHovered || show ? 'var(--text-primary)' : 'var(--text-secondary)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',

@@ -94,7 +94,7 @@ function detectPreset(disallowed: string[]): PresetKey {
 }
 
 const sectionCardStyle: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.03)',
+  background: 'var(--bg-hover)',
   border: '1px solid var(--glass-border)',
   borderRadius: 10,
   padding: '16px 20px',
@@ -230,7 +230,7 @@ export default function SettingsAdvanced() {
         {/* Button group */}
         <div style={{
           display: 'flex', flexWrap: 'wrap', gap: 4,
-          background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 4,
+          background: 'var(--bg-hover)', borderRadius: 8, padding: 4,
         }}>
           {PERMISSION_MODE_OPTIONS.map(opt => {
             const isSelected = currentPermissionMode === opt.mode
@@ -296,7 +296,7 @@ export default function SettingsAdvanced() {
             {envEntries.map(([key, value]) => (
               <div key={key} style={{
                 display: 'flex', alignItems: 'center', gap: 6,
-                background: 'rgba(255,255,255,0.03)',
+                background: 'var(--bg-hover)',
                 border: '1px solid var(--glass-border)',
                 borderRadius: 6, padding: '5px 8px',
               }}>
@@ -341,7 +341,7 @@ export default function SettingsAdvanced() {
             onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
             onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.boxShadow = 'none' }}
             style={{
-              flex: '0 0 110px', background: 'rgba(255,255,255,0.05)',
+              flex: '0 0 110px', background: 'var(--bg-hover)',
               border: '1px solid var(--glass-border)', borderRadius: 6,
               color: 'var(--text-primary)', padding: '5px 8px',
               fontSize: 11, fontFamily: 'monospace', outline: 'none',
@@ -357,7 +357,7 @@ export default function SettingsAdvanced() {
             onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
             onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.boxShadow = 'none' }}
             style={{
-              flex: 1, background: 'rgba(255,255,255,0.05)',
+              flex: 1, background: 'var(--bg-hover)',
               border: '1px solid var(--glass-border)', borderRadius: 6,
               color: 'var(--text-primary)', padding: '5px 8px',
               fontSize: 11, fontFamily: 'monospace', outline: 'none',
@@ -373,7 +373,7 @@ export default function SettingsAdvanced() {
             style={{
               display: 'flex', alignItems: 'center', gap: 4,
               padding: '5px 10px', fontSize: 11,
-              background: newEnvKey.trim() ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)',
+              background: newEnvKey.trim() ? 'rgba(99,102,241,0.25)' : 'var(--bg-hover)',
               border: `1px solid ${newEnvKey.trim() ? 'rgba(99,102,241,0.4)' : 'var(--glass-border)'}`,
               borderRadius: 6,
               color: newEnvKey.trim() ? '#a5b4fc' : 'var(--text-faint)',
@@ -404,7 +404,7 @@ export default function SettingsAdvanced() {
                 onClick={() => applyPreset(prompt)}
                 aria-label={`${t('systemPrompt.preset')}: ${label}`}
                 style={{
-                  background: isActive ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.05)',
+                  background: isActive ? 'rgba(99,102,241,0.25)' : 'var(--bg-hover)',
                   border: isActive ? '1px solid rgba(99,102,241,0.5)' : '1px solid var(--glass-border-md)',
                   borderRadius: 8, padding: '3px 10px', fontSize: 11,
                   color: isActive ? '#a5b4fc' : 'var(--text-secondary)',
@@ -422,7 +422,7 @@ export default function SettingsAdvanced() {
         {replaceConfirm && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8,
-            background: 'rgba(255,255,255,0.04)', borderRadius: 6, padding: '7px 12px',
+            background: 'var(--bg-hover)', borderRadius: 6, padding: '7px 12px',
             border: '1px solid var(--glass-border)',
           }}>
             <span style={{ fontSize: 11, color: 'var(--text-secondary)', flex: 1 }}>
@@ -446,7 +446,7 @@ export default function SettingsAdvanced() {
             rows={5}
             style={{
               width: '100%',
-              background: 'rgba(255,255,255,0.05)',
+              background: 'var(--bg-hover)',
               border: '1px solid var(--glass-border)',
               borderRadius: 7, padding: '8px 10px',
               color: 'var(--text-primary)',
@@ -494,7 +494,7 @@ export default function SettingsAdvanced() {
                 key={p.key}
                 onClick={() => applyToolPreset(p)}
                 style={{
-                  background: isActive ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.05)',
+                  background: isActive ? 'rgba(99,102,241,0.25)' : 'var(--bg-hover)',
                   border: isActive ? '1px solid rgba(99,102,241,0.5)' : '1px solid var(--glass-border-md)',
                   borderRadius: 5, padding: '3px 10px',
                   fontSize: 11, color: isActive ? '#a5b4fc' : 'var(--text-secondary)',
@@ -564,7 +564,7 @@ export default function SettingsAdvanced() {
                       )}
                     </label>
                     {idx < arr.length - 1 && (
-                      <div style={{ height: 1, background: 'rgba(255,255,255,0.05)' }} />
+                      <div style={{ height: 1, background: 'var(--border)' }} />
                     )}
                   </React.Fragment>
                 )

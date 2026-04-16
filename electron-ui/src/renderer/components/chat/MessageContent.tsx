@@ -323,8 +323,7 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
                 padding: '8px 12px',
                 textAlign: 'left',
                 fontWeight: 600,
-                color: 'rgba(255,255,255,0.88)',
-                fontSize: 11,
+                color: 'var(--text-primary)',
                 textTransform: 'uppercase',
                 letterSpacing: 0.3,
                 whiteSpace: 'nowrap',
@@ -351,7 +350,7 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
             return <MarkdownImage src={src} alt={alt} />
           },
           h1({ children }) {
-            return <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12, marginTop: 16, color: 'rgba(255,255,255,0.88)' }}>{children}</h1>
+            return <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12, marginTop: 16, color: 'var(--text-primary)' }}>{children}</h1>
           },
           h2({ children }) {
             return <h2 style={{ fontSize: 17, fontWeight: 600, marginBottom: 10, marginTop: 14, color: 'rgba(255,255,255,0.88)' }}>{children}</h2>

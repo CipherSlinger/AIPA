@@ -44,7 +44,7 @@ export default function SessionFilters({
     padding: '0 10px',
     background: isActive
       ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
-      : 'rgba(255,255,255,0.06)',
+      : 'var(--bg-input)',
     border: isActive
       ? '1px solid rgba(99,102,241,0.45)'
       : '1px solid var(--glass-border-md)',
@@ -62,13 +62,13 @@ export default function SessionFilters({
     if (!isActive) {
       e.currentTarget.style.background = 'var(--glass-border-md)'
       e.currentTarget.style.color = 'var(--text-primary)'
-      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.13)'
+      e.currentTarget.style.borderColor = 'var(--border)'
     }
   }
 
   const chipHoverLeave = (e: React.MouseEvent<HTMLButtonElement>, isActive: boolean) => {
     if (!isActive) {
-      e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+      e.currentTarget.style.background = 'var(--bg-input)'
       e.currentTarget.style.color = 'var(--text-secondary)'
       e.currentTarget.style.borderColor = 'var(--glass-border-md)'
     }

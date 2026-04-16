@@ -24,7 +24,7 @@ const sectionLabelStyle: React.CSSProperties = {
 }
 
 const sectionCardStyle: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.03)',
+  background: 'var(--bg-hover)',
   border: '1px solid var(--glass-border)',
   borderRadius: 10,
   padding: '16px 20px',
@@ -33,7 +33,7 @@ const sectionCardStyle: React.CSSProperties = {
 
 const dividerStyle: React.CSSProperties = {
   height: 1,
-  background: 'rgba(255,255,255,0.05)',
+  background: 'var(--border)',
   margin: '8px 0',
 }
 
@@ -97,7 +97,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
       {/* App identity */}
       <div style={{ ...sectionCardStyle, textAlign: 'center', padding: '20px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
-        <div style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.9)', letterSpacing: '-0.01em', lineHeight: 1.3 }}>AIPA</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em', lineHeight: 1.3 }}>AIPA</div>
         <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>{t('settings.about.aiPersonalAssistant')}</div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' }}>
           <div style={{
@@ -125,7 +125,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
             CLI v{__CLI_VERSION__}
           </div>
         </div>
-        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)', fontFamily: 'monospace', marginTop: 8 }}>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'monospace', marginTop: 8 }}>
           Built {__BUILD_DATE__} · {__COMMIT_HASH__}
         </div>
       </div>

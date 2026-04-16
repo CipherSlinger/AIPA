@@ -257,7 +257,7 @@ export default function SessionList() {
       />
 
       {/* Folder filter */}
-      <div style={{ padding: '4px 10px', borderBottom: '1px solid var(--border)', flexShrink: 0, background: 'rgba(15,15,25,0.85)' }}>
+      <div style={{ padding: '4px 10px', borderBottom: '1px solid var(--border)', flexShrink: 0, background: 'var(--bg-sidebar)' }}>
         <SessionFolders
           activeFolder={activeFolderFilter}
           onFolderSelect={setActiveFolderFilter}

@@ -1,265 +1,557 @@
-import React, { useState, useEffect } from 'react'
-import { X, Plus } from 'lucide-react'
+import React, { useCallback, useEffect, useState } from 'react'
+import { Shield, Globe, FolderOpen, Plus, X, AlertTriangle, Info } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import SettingsGroup from './SettingsGroup'
 import Toggle from '../ui/Toggle'
-import { Shield, Globe, FolderLock } from 'lucide-react'
-import { INPUT_STYLE } from './settingsConstants'
 
-interface SandboxConfig {
-  autoAllowBashIfSandboxed?: boolean
-  network?: {
-    allowedDomains?: string[]
-  }
+// ── Types ────────────────────────────────────────────────────────────────────
+
+interface SandboxNetwork {
+  allowedDomains?: string[]
+  allowManagedDomainsOnly?: boolean
+  allowUnixSockets?: boolean
+}
+
+interface SandboxFilesystem {
   allowWrite?: string[]
   denyWrite?: string[]
+  allowRead?: string[]
   denyRead?: string[]
 }
 
-function ChipList({
-  items,
-  onRemove,
-  addPlaceholder,
-  onAdd,
-  chipColor,
-}: {
+interface SandboxConfig {
+  network?: SandboxNetwork
+  filesystem?: SandboxFilesystem
+  autoAllowBashIfSandboxed?: boolean
+  allowUnsandboxedCommands?: boolean
+}
+
+// ── ChipList ─────────────────────────────────────────────────────────────────
+
+interface ChipListProps {
   items: string[]
+  placeholder: string
+  color: string
+  bgColor: string
+  borderColor: string
+  onAdd: (item: string) => void
   onRemove: (index: number) => void
-  addPlaceholder: string
-  onAdd: (value: string) => void
-  chipColor?: string
-}) {
-  const [input, setInput] = useState('')
+}
 
-  const commit = () => {
-    const trimmed = input.trim()
-    if (trimmed && !items.includes(trimmed)) {
-      onAdd(trimmed)
-    }
-    setInput('')
-  }
+function ChipList({ items, placeholder, color, bgColor, borderColor, onAdd, onRemove }: ChipListProps) {
+  const [adding, setAdding] = useState(false)
+  const [inputValue, setInputValue] = useState('')
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') { e.preventDefault(); commit() }
-    if (e.key === 'Escape') setInput('')
+  const handleAdd = () => {
+    const trimmed = inputValue.trim()
+    if (!trimmed) return
+    onAdd(trimmed)
+    setInputValue('')
+    setAdding(false)
   }
 
   return (
     <div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: items.length ? 8 : 0 }}>
+      {/* Tags */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, minHeight: 24, marginBottom: 6 }}>
         {items.map((item, idx) => (
           <span
-            key={idx}
+            key={`chip-${idx}`}
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-              background: chipColor ?? 'var(--glass-bg-mid)',
-              border: '1px solid var(--glass-border)',
-              borderRadius: 6,
-              padding: '2px 8px',
-              fontSize: 12,
-              color: 'var(--text-primary)',
-              fontFamily: 'monospace',
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              background: bgColor, color,
+              border: `1px solid ${borderColor}`,
+              borderRadius: 5, padding: '3px 8px',
+              fontSize: 11, fontWeight: 500, fontFamily: 'monospace',
             }}
           >
             {item.length > 40 ? item.slice(0, 40) + '…' : item}
             <button
               onClick={() => onRemove(idx)}
-              aria-label={`Remove ${item}`}
               style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-faint)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                padding: 0,
-                lineHeight: 1,
+                background: 'none', border: 'none', cursor: 'pointer',
+                padding: 0, display: 'inline-flex',
+                color: 'inherit', opacity: 0.55,
+                transition: 'opacity 0.15s ease',
               }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-faint)')}
+              onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
+              onMouseLeave={e => { e.currentTarget.style.opacity = '0.55' }}
+              aria-label={`Remove ${item}`}
             >
-              <X size={11} />
+              <X size={10} />
             </button>
           </span>
         ))}
+        {items.length === 0 && !adding && (
+          <span style={{
+            fontSize: 11, color: 'var(--text-faint)',
+            fontStyle: 'italic', padding: '3px 0',
+          }}>
+            None configured
+          </span>
+        )}
       </div>
-      <div style={{ display: 'flex', gap: 6 }}>
-        <input
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={addPlaceholder}
-          onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-          onBlur={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.boxShadow = 'none' }}
-          style={{ ...INPUT_STYLE, flex: 1 }}
-        />
+
+      {/* Add row */}
+      {adding ? (
+        <div style={{ display: 'flex', gap: 6 }}>
+          <input
+            autoFocus
+            value={inputValue}
+            onChange={e => setInputValue(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') handleAdd()
+              if (e.key === 'Escape') { setAdding(false); setInputValue('') }
+            }}
+            placeholder={placeholder}
+            style={{
+              flex: 1, padding: '6px 10px', fontSize: 12,
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 6, color: 'var(--text-primary)',
+              fontFamily: 'monospace', outline: 'none',
+              transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+            }}
+            onFocus={e => {
+              e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'
+              e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)'
+            }}
+            onBlur={e => {
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+              e.currentTarget.style.boxShadow = 'none'
+            }}
+          />
+          <button
+            onClick={handleAdd}
+            disabled={!inputValue.trim()}
+            style={{
+              padding: '6px 12px', fontSize: 11, fontWeight: 600,
+              background: inputValue.trim()
+                ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
+                : 'rgba(255,255,255,0.06)',
+              border: inputValue.trim() ? 'none' : '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 6,
+              color: inputValue.trim() ? 'rgba(255,255,255,0.95)' : 'var(--text-faint)',
+              cursor: inputValue.trim() ? 'pointer' : 'not-allowed',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            Add
+          </button>
+          <button
+            onClick={() => { setAdding(false); setInputValue('') }}
+            style={{
+              padding: '6px 10px', fontSize: 11,
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: 6, color: 'var(--text-faint)',
+              cursor: 'pointer', transition: 'all 0.15s ease',
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      ) : (
         <button
-          onClick={commit}
-          aria-label="Add"
+          onClick={() => setAdding(true)}
           style={{
-            background: 'var(--glass-bg-mid)',
-            border: '1px solid var(--glass-border)',
-            borderRadius: 7,
-            padding: '0 10px',
-            color: 'var(--text-secondary)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid var(--glass-border-md)',
+            borderRadius: 6, padding: '4px 10px',
+            cursor: 'pointer', fontSize: 11, fontWeight: 500,
+            color: 'var(--text-faint)',
             transition: 'all 0.15s ease',
           }}
-          onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
-          onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+            e.currentTarget.style.color = 'var(--text-secondary)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+            e.currentTarget.style.color = 'var(--text-faint)'
+          }}
         >
-          <Plus size={14} />
+          <Plus size={11} /> Add
         </button>
-      </div>
+      )}
     </div>
   )
 }
 
+// ── ToggleField ───────────────────────────────────────────────────────────────
+
+interface ToggleFieldProps {
+  label: string
+  description: string
+  checked: boolean
+  onChange: (v: boolean) => void
+  warning?: boolean
+}
+
+function ToggleField({ label, description, checked, onChange, warning }: ToggleFieldProps) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'flex-start', gap: 12,
+      padding: '8px 0',
+    }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>
+            {label}
+          </span>
+          {warning && checked && (
+            <AlertTriangle size={12} color="rgba(239,68,68,0.80)" />
+          )}
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 2, lineHeight: 1.5 }}>
+          {description}
+        </div>
+        {warning && checked && (
+          <div style={{
+            marginTop: 5, fontSize: 11,
+            color: 'rgba(239,68,68,0.80)',
+            background: 'rgba(239,68,68,0.08)',
+            border: '1px solid rgba(239,68,68,0.18)',
+            borderRadius: 5, padding: '3px 8px',
+            lineHeight: 1.5,
+          }}>
+            Warning: this weakens security isolation
+          </div>
+        )}
+      </div>
+      <Toggle value={checked} onChange={onChange} />
+    </div>
+  )
+}
+
+// ── PathListSection ───────────────────────────────────────────────────────────
+
+interface PathListSectionProps {
+  label: string
+  description: string
+  items: string[]
+  placeholder: string
+  color: string
+  bgColor: string
+  borderColor: string
+  onAdd: (item: string) => void
+  onRemove: (index: number) => void
+}
+
+function PathListSection({ label, description, items, placeholder, color, bgColor, borderColor, onAdd, onRemove }: PathListSectionProps) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+        <span style={{
+          fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
+          textTransform: 'uppercase', color,
+        }}>
+          {label}
+        </span>
+        {items.length > 0 && (
+          <span style={{
+            background: bgColor, color,
+            border: `1px solid ${borderColor}`,
+            borderRadius: 10, padding: '0px 6px',
+            fontSize: 9, fontWeight: 700,
+          }}>
+            {items.length}
+          </span>
+        )}
+      </div>
+      <div style={{ fontSize: 10, color: 'var(--text-faint)', marginBottom: 6 }}>{description}</div>
+      <ChipList
+        items={items}
+        placeholder={placeholder}
+        color={color}
+        bgColor={bgColor}
+        borderColor={borderColor}
+        onAdd={onAdd}
+        onRemove={onRemove}
+      />
+    </div>
+  )
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
 export default function SettingsSandbox() {
   const { t } = useI18n()
-  const [config, setConfig] = useState<SandboxConfig>({})
+  const [config, setConfig] = useState<SandboxConfig>({
+    network: { allowedDomains: [], allowManagedDomainsOnly: false, allowUnixSockets: true },
+    filesystem: { allowWrite: [], denyWrite: [], allowRead: [], denyRead: [] },
+    autoAllowBashIfSandboxed: false,
+    allowUnsandboxedCommands: false,
+  })
   const [loading, setLoading] = useState(true)
+  const [toast, setToast] = useState<string | null>(null)
 
-  useEffect(() => {
-    window.electronAPI.configReadCLISettings().then((raw: Record<string, unknown>) => {
-      const network = raw.network as Record<string, unknown> | undefined
-      setConfig({
-        autoAllowBashIfSandboxed: typeof raw.autoAllowBashIfSandboxed === 'boolean'
-          ? raw.autoAllowBashIfSandboxed
-          : false,
-        network: {
-          allowedDomains: Array.isArray(network?.allowedDomains)
-            ? (network!.allowedDomains as string[])
-            : [],
-        },
-        allowWrite: Array.isArray(raw.allowWrite) ? (raw.allowWrite as string[]) : [],
-        denyWrite: Array.isArray(raw.denyWrite) ? (raw.denyWrite as string[]) : [],
-        denyRead: Array.isArray(raw.denyRead) ? (raw.denyRead as string[]) : [],
-      })
-      setLoading(false)
-    }).catch(() => setLoading(false))
+  const showToast = useCallback((msg: string) => {
+    setToast(msg)
+    setTimeout(() => setToast(null), 3000)
   }, [])
 
-  const patch = (partial: Partial<SandboxConfig>) => {
-    const next = { ...config, ...partial }
-    setConfig(next)
-    // Build the flat patch to write (network is a nested object)
-    const writePatch: Record<string, unknown> = {}
-    if (partial.autoAllowBashIfSandboxed !== undefined) {
-      writePatch.autoAllowBashIfSandboxed = partial.autoAllowBashIfSandboxed
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const settings = await window.electronAPI.configReadCLISettings()
+        const raw = (settings.sandbox ?? {}) as Record<string, unknown>
+        const net = (raw.network ?? {}) as Record<string, unknown>
+        const fs_ = (raw.filesystem ?? {}) as Record<string, unknown>
+        setConfig({
+          network: {
+            allowedDomains: Array.isArray(net.allowedDomains) ? (net.allowedDomains as string[]) : [],
+            allowManagedDomainsOnly: !!net.allowManagedDomainsOnly,
+            allowUnixSockets: net.allowUnixSockets !== false,
+          },
+          filesystem: {
+            allowWrite: Array.isArray(fs_.allowWrite) ? (fs_.allowWrite as string[]) : [],
+            denyWrite: Array.isArray(fs_.denyWrite) ? (fs_.denyWrite as string[]) : [],
+            allowRead: Array.isArray(fs_.allowRead) ? (fs_.allowRead as string[]) : [],
+            denyRead: Array.isArray(fs_.denyRead) ? (fs_.denyRead as string[]) : [],
+          },
+          autoAllowBashIfSandboxed: !!raw.autoAllowBashIfSandboxed,
+          allowUnsandboxedCommands: !!raw.allowUnsandboxedCommands,
+        })
+      } catch {
+        showToast(t('sandbox.loadError'))
+      } finally {
+        setLoading(false)
+      }
     }
-    if (partial.network !== undefined) {
-      writePatch.network = next.network
+    load()
+  }, [showToast, t])
+
+  const persist = useCallback(async (updated: SandboxConfig) => {
+    try {
+      const result = await window.electronAPI.configWriteCLISettings({ sandbox: updated as unknown as Record<string, unknown> })
+      if (result.error) showToast(t('sandbox.saveFailed'))
+      else showToast(t('sandbox.saveSuccess'))
+    } catch {
+      showToast(t('sandbox.saveFailed'))
     }
-    if (partial.allowWrite !== undefined) writePatch.allowWrite = partial.allowWrite
-    if (partial.denyWrite !== undefined) writePatch.denyWrite = partial.denyWrite
-    if (partial.denyRead !== undefined) writePatch.denyRead = partial.denyRead
-    window.electronAPI.configWriteCLISettings(writePatch).catch(() => {})
-  }
+  }, [showToast, t])
 
-  const domains = config.network?.allowedDomains ?? []
-  const allowWrite = config.allowWrite ?? []
-  const denyWrite = config.denyWrite ?? []
-  const denyRead = config.denyRead ?? []
+  const handleTopToggle = useCallback((field: 'autoAllowBashIfSandboxed' | 'allowUnsandboxedCommands') => {
+    setConfig(prev => {
+      const updated = { ...prev, [field]: !prev[field] }
+      persist(updated)
+      return updated
+    })
+  }, [persist])
 
-  const row = (label: string, control: React.ReactNode, hint?: string) => (
-    <div style={{ marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-      <div>
-        <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>{label}</div>
-        {hint && <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 2, lineHeight: 1.5 }}>{hint}</div>}
-      </div>
-      {control}
-    </div>
-  )
+  const handleNetworkToggle = useCallback((field: keyof SandboxNetwork) => {
+    setConfig(prev => {
+      const updated: SandboxConfig = {
+        ...prev,
+        network: { ...prev.network, [field]: !prev.network?.[field] },
+      }
+      persist(updated)
+      return updated
+    })
+  }, [persist])
 
-  const field = (label: string, content: React.ReactNode, labelColor?: string) => (
-    <div style={{ marginBottom: 16 }}>
-      <div style={{
-        fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
-        textTransform: 'uppercase',
-        color: labelColor ?? 'var(--text-faint)',
-        marginBottom: 6,
-      }}>
-        {label}
-      </div>
-      {content}
-    </div>
-  )
+  const handleDomainAdd = useCallback((domain: string) => {
+    setConfig(prev => {
+      const existing = prev.network?.allowedDomains ?? []
+      if (existing.includes(domain)) { showToast(t('sandbox.itemExists')); return prev }
+      const updated: SandboxConfig = { ...prev, network: { ...prev.network, allowedDomains: [...existing, domain] } }
+      persist(updated)
+      return updated
+    })
+  }, [persist, showToast, t])
+
+  const handleDomainRemove = useCallback((idx: number) => {
+    setConfig(prev => {
+      const list = [...(prev.network?.allowedDomains ?? [])]
+      list.splice(idx, 1)
+      const updated: SandboxConfig = { ...prev, network: { ...prev.network, allowedDomains: list } }
+      persist(updated)
+      return updated
+    })
+  }, [persist])
+
+  const makeFsHandlers = useCallback((field: keyof SandboxFilesystem) => ({
+    add: (path: string) => {
+      setConfig(prev => {
+        const existing = prev.filesystem?.[field] ?? []
+        if (existing.includes(path)) { showToast(t('sandbox.itemExists')); return prev }
+        const updated: SandboxConfig = { ...prev, filesystem: { ...prev.filesystem, [field]: [...existing, path] } }
+        persist(updated)
+        return updated
+      })
+    },
+    remove: (idx: number) => {
+      setConfig(prev => {
+        const list = [...(prev.filesystem?.[field] ?? [])]
+        list.splice(idx, 1)
+        const updated: SandboxConfig = { ...prev, filesystem: { ...prev.filesystem, [field]: list } }
+        persist(updated)
+        return updated
+      })
+    },
+  }), [persist, showToast, t])
+
+  const allowWriteH = makeFsHandlers('allowWrite')
+  const denyWriteH = makeFsHandlers('denyWrite')
+  const allowReadH = makeFsHandlers('allowRead')
+  const denyReadH = makeFsHandlers('denyRead')
 
   if (loading) return (
-    <div style={{ color: 'var(--text-faint)', fontSize: 13, padding: 16 }}>
-      {t('common.loading') || 'Loading…'}
+    <div style={{ color: 'var(--text-faint)', fontSize: 13, padding: '24px 0', textAlign: 'center' }}>
+      {t('common.loading')}
     </div>
   )
+
+  const network = config.network ?? {}
+  const filesystem = config.filesystem ?? {}
 
   return (
     <>
-      {/* Section 1: Auto bash */}
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(12,12,22,0.96)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          border: '1px solid var(--glass-border-md)',
+          borderRadius: 8, padding: '9px 18px',
+          fontSize: 12, color: 'var(--text-primary)', zIndex: 9999,
+          boxShadow: 'var(--glass-shadow)', pointerEvents: 'none',
+        }}>
+          {toast}
+        </div>
+      )}
+
+      {/* Header info */}
+      <div style={{
+        display: 'flex', alignItems: 'flex-start', gap: 8,
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid var(--glass-border)',
+        borderRadius: 8, padding: '10px 12px',
+        marginBottom: 12,
+      }}>
+        <Info size={12} color="var(--text-faint)" style={{ marginTop: 1, flexShrink: 0 }} />
+        <div style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.6 }}>
+          {t('sandbox.subtitle')}
+        </div>
+      </div>
+
+      {/* Section: General */}
       <SettingsGroup title={t('sandbox.title')} icon={<Shield size={14} />} groupKey="sandbox-general">
-        {row(
-          t('sandbox.autoAllowBash'),
-          <Toggle
-            value={config.autoAllowBashIfSandboxed ?? false}
-            onChange={v => patch({ autoAllowBashIfSandboxed: v })}
-          />,
-        )}
+        <ToggleField
+          label={t('sandbox.autoAllowBash')}
+          description={t('sandbox.autoAllowBashDesc')}
+          checked={!!config.autoAllowBashIfSandboxed}
+          onChange={() => handleTopToggle('autoAllowBashIfSandboxed')}
+        />
+        <div style={{ height: 1, background: 'var(--glass-border)', margin: '4px 0' }} />
+        <ToggleField
+          label={t('sandbox.allowUnsandboxed')}
+          description={t('sandbox.allowUnsandboxedDesc')}
+          checked={!!config.allowUnsandboxedCommands}
+          onChange={() => handleTopToggle('allowUnsandboxedCommands')}
+          warning
+        />
       </SettingsGroup>
 
-      {/* Section 2: Network */}
+      {/* Section: Network */}
       <SettingsGroup title={t('sandbox.network')} icon={<Globe size={14} />} groupKey="sandbox-network">
-        {field(
-          t('sandbox.allowedDomains'),
-          <ChipList
-            items={domains}
-            addPlaceholder={t('sandbox.addDomain')}
-            onAdd={v => patch({ network: { allowedDomains: [...domains, v] } })}
-            onRemove={i => patch({ network: { allowedDomains: domains.filter((_, idx) => idx !== i) } })}
-          />,
-        )}
+        <ToggleField
+          label={t('sandbox.allowManagedOnly')}
+          description={t('sandbox.allowManagedOnlyDesc')}
+          checked={!!network.allowManagedDomainsOnly}
+          onChange={() => handleNetworkToggle('allowManagedDomainsOnly')}
+        />
+        <div style={{ height: 1, background: 'var(--glass-border)', margin: '4px 0' }} />
+        <ToggleField
+          label={t('sandbox.allowUnixSockets')}
+          description={t('sandbox.allowUnixSocketsDesc')}
+          checked={network.allowUnixSockets !== false}
+          onChange={() => handleNetworkToggle('allowUnixSockets')}
+        />
+        <div style={{ height: 1, background: 'var(--glass-border)', margin: '8px 0' }} />
+        <PathListSection
+          label={t('sandbox.allowedDomains')}
+          description={t('sandbox.allowedDomainsDesc')}
+          items={network.allowedDomains ?? []}
+          placeholder={t('sandbox.addDomain')}
+          color="#67e8f9"
+          bgColor="rgba(103,232,249,0.10)"
+          borderColor="rgba(103,232,249,0.20)"
+          onAdd={handleDomainAdd}
+          onRemove={handleDomainRemove}
+        />
       </SettingsGroup>
 
-      {/* Section 3: Filesystem */}
-      <SettingsGroup title={t('sandbox.filesystem')} icon={<FolderLock size={14} />} groupKey="sandbox-fs">
-        {field(
-          t('sandbox.allowWrite'),
-          <ChipList
-            items={allowWrite}
-            addPlaceholder={t('sandbox.addPath')}
-            onAdd={v => patch({ allowWrite: [...allowWrite, v] })}
-            onRemove={i => patch({ allowWrite: allowWrite.filter((_, idx) => idx !== i) })}
-            chipColor="rgba(34,197,94,0.12)"
-          />,
-          'var(--color-success, #22c55e)',
-        )}
-        <div style={{ height: 1, background: 'var(--glass-border)', marginBottom: 14 }} />
-        {field(
-          t('sandbox.denyWrite'),
-          <ChipList
-            items={denyWrite}
-            addPlaceholder={t('sandbox.addPath')}
-            onAdd={v => patch({ denyWrite: [...denyWrite, v] })}
-            onRemove={i => patch({ denyWrite: denyWrite.filter((_, idx) => idx !== i) })}
-            chipColor="rgba(239,68,68,0.12)"
-          />,
-          'var(--color-error, #ef4444)',
-        )}
-        <div style={{ height: 1, background: 'var(--glass-border)', marginBottom: 14 }} />
-        {field(
-          t('sandbox.denyRead'),
-          <ChipList
-            items={denyRead}
-            addPlaceholder={t('sandbox.addPath')}
-            onAdd={v => patch({ denyRead: [...denyRead, v] })}
-            onRemove={i => patch({ denyRead: denyRead.filter((_, idx) => idx !== i) })}
-            chipColor="rgba(239,68,68,0.12)"
-          />,
-          'var(--color-error, #ef4444)',
-        )}
+      {/* Section: Filesystem */}
+      <SettingsGroup title={t('sandbox.filesystem')} icon={<FolderOpen size={14} />} groupKey="sandbox-fs">
+        <PathListSection
+          label={t('sandbox.allowWrite')}
+          description={t('sandbox.allowWriteDesc')}
+          items={filesystem.allowWrite ?? []}
+          placeholder={t('sandbox.addPath')}
+          color="#4ade80"
+          bgColor="rgba(74,222,128,0.10)"
+          borderColor="rgba(74,222,128,0.20)"
+          onAdd={allowWriteH.add}
+          onRemove={allowWriteH.remove}
+        />
+        <PathListSection
+          label={t('sandbox.denyWrite')}
+          description={t('sandbox.denyWriteDesc')}
+          items={filesystem.denyWrite ?? []}
+          placeholder={t('sandbox.addPath')}
+          color="#f87171"
+          bgColor="rgba(239,68,68,0.10)"
+          borderColor="rgba(239,68,68,0.20)"
+          onAdd={denyWriteH.add}
+          onRemove={denyWriteH.remove}
+        />
+        <PathListSection
+          label={t('sandbox.allowRead')}
+          description={t('sandbox.allowReadDesc')}
+          items={filesystem.allowRead ?? []}
+          placeholder={t('sandbox.addPath')}
+          color="#a78bfa"
+          bgColor="rgba(167,139,250,0.10)"
+          borderColor="rgba(167,139,250,0.20)"
+          onAdd={allowReadH.add}
+          onRemove={allowReadH.remove}
+        />
+        <PathListSection
+          label={t('sandbox.denyRead')}
+          description={t('sandbox.denyReadDesc')}
+          items={filesystem.denyRead ?? []}
+          placeholder={t('sandbox.addPath')}
+          color="#fbbf24"
+          bgColor="rgba(251,191,36,0.10)"
+          borderColor="rgba(251,191,36,0.20)"
+          onAdd={denyReadH.add}
+          onRemove={denyReadH.remove}
+        />
       </SettingsGroup>
+
+      {/* Footer note */}
+      <div style={{
+        display: 'flex', alignItems: 'flex-start', gap: 8,
+        padding: '10px 12px',
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid var(--glass-border)',
+        borderRadius: 8, marginTop: 4,
+      }}>
+        <Shield size={12} color="var(--text-faint)" style={{ marginTop: 1, flexShrink: 0 }} />
+        <div style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.6 }}>
+          Settings are written to{' '}
+          <code style={{ fontFamily: 'monospace', fontSize: 10, opacity: 0.85 }}>~/.claude/settings.json</code>
+          {' '}under the{' '}
+          <code style={{ fontFamily: 'monospace', fontSize: 10, opacity: 0.85 }}>sandbox</code>
+          {' '}key and take effect on the next CLI invocation.
+        </div>
+      </div>
     </>
   )
 }

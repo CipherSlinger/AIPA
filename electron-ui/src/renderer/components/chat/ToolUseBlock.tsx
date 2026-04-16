@@ -659,7 +659,7 @@ function AskUserQuestionCard({ question, options, isAnswered, answer }: AskUserQ
   if (isAnswered && answer) {
     return (
       <div style={{
-        background: 'rgba(15,15,25,0.60)',
+        background: 'var(--bg-secondary)',
         border: '1px solid var(--border)',
         borderLeft: '3px solid rgba(99,102,241,0.60)',
         borderRadius: 10,
@@ -684,7 +684,7 @@ function AskUserQuestionCard({ question, options, isAnswered, answer }: AskUserQ
 
   return (
     <div style={{
-      background: 'rgba(15,15,25,0.80)',
+      background: 'var(--bg-secondary)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
       border: '1px solid rgba(99,102,241,0.30)',
@@ -999,7 +999,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
   return (
     <div
       style={{
-        background: 'rgba(15,15,25,0.88)',
+        background: 'var(--bg-primary)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid var(--border)',
@@ -1020,7 +1020,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
           alignItems: 'center',
           gap: 6,
           padding: '6px 10px',
-          background: 'rgba(255,255,255,0.03)',
+          background: 'var(--bg-hover)',
           border: 'none',
           borderBottom: expanded ? '1px solid var(--bg-hover)' : 'none',
           borderRadius: expanded ? '8px 8px 0 0' : 8,
@@ -1029,8 +1029,8 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
           color: 'var(--text-primary)',
           transition: 'all 0.15s ease',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-active)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-hover)' }}
       >
         <ChevronDown
           size={11}
