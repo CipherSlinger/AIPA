@@ -7675,3 +7675,49 @@ None — all remaining values are exempt per migration rules.
 
 ### Build
 Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+---
+
+## Iteration 611 — Org chart: show all sessions + pending card on new session
+
+_Date: 2026-04-16_
+
+### Summary
+Fixed two UI behaviors in `OrgChart` component inside `DepartmentDashboard`. Removed the 6-session cap and "+N more" overflow card so all sessions are always visible in the auto-fill grid. Changed "New session" click behavior from navigating into the dept view to showing an inline `PendingSessionCard` — clicking the pending card navigates and auto-starts; clicking X dismisses it. The "New session" dashed button is now always visible for all departments.
+
+### Files Changed
+- `electron-ui/src/renderer/components/departments/DepartmentDashboard.tsx` — added `pendingNewDeptId` local state; changed `newSessionInDept` to set pending state; replaced `sessions.slice(0,6)` with `sessions`; removed `{sessions.length > 6 && ...}` overflow block; removed `sessions.length <= 6` gate on new session card; prepended `PendingSessionCard` when dept has pending session
+
+### Build
+Status: SUCCESS (typecheck passed for DepartmentDashboard; 1 pre-existing error in NavRail.tsx unrelated to this change)
+
+### Acceptance Criteria
+- [x] All sessions shown in org chart grid (no 6-session cap)
+- [x] "+N more" overflow card removed
+- [x] "New session" button always visible regardless of session count
+- [x] Clicking "New session" shows `PendingSessionCard` inline (no navigation)
+- [x] Clicking `PendingSessionCard` calls `onNewSessionInDept` and navigates
+- [x] Clicking X on `PendingSessionCard` dismisses it without navigating
+- [x] Only one pending card shown per dept at a time
+
+---
+
+## Iteration 612 — Fix sidebar tab multiple-highlight bug
+
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Fixed a UI bug where switching between NavRail sidebar tabs left the previously-selected tab highlighted — multiple tabs appeared active simultaneously. Root cause: `isDepartmentActive` used `mainView === 'department'` as an independent condition that was never cleared when switching to other tabs (since `setActiveNavItem` for sidebar tabs did not update `mainView`). Similarly, `isNotesActive` had an `||mainView==='notes'` branch with the same issue.
+
+### Files Changed
+- `electron-ui/src/renderer/components/layout/NavRail.tsx` — Rewrote all `isXxxActive` booleans to use `activeNavItem === 'xxx'` as the single source of truth; updated Departments button onClick to call `setActiveNavItem('department')` instead of raw `setMainView`+`setSidebarTab`; removed now-unused `sidebarTab` and `mainView` destructuring
+- `electron-ui/src/renderer/store/uiStore.ts` — Added `'department'` to `NavItem` type; added `'department'` handler in `setActiveNavItem` (sets `mainView: 'department'`); all sidebar-tab items now also set `mainView: 'chat'` to clear department view; initial `activeNavItem` changed from `savedSidebarTab` to `'department'` (matches initial `mainView: 'department'`)
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] Clicking any NavRail tab highlights exactly that tab and no other
+- [x] Clicking Departments tab shows Department view and highlights Departments
+- [x] Clicking any sidebar tab (History, Skills, etc.) clears Department highlight
+- [x] TypeScript/ESLint check passes with 0 errors
