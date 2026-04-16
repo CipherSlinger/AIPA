@@ -255,7 +255,7 @@ export default function PlanCard({ message, onAccept, onReject }: Props) {
               background: 'transparent',
               border: '1px solid var(--border)',
               borderRadius: 8,
-              color: 'rgba(255,255,255,0.55)',
+              color: 'var(--text-secondary)',
               fontSize: 12,
               cursor: 'pointer',
               fontWeight: 600,

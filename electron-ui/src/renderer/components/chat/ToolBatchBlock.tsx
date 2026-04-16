@@ -77,7 +77,7 @@ export default function ToolBatchBlock({ group, onAbort }: ToolBatchBlockProps) 
           alignItems: 'center',
           gap: 6,
           padding: '6px 10px',
-          background: 'rgba(255,255,255,0.03)',
+          background: 'var(--glass-bg-low)',
           border: 'none',
           borderBottom: expanded ? '1px solid var(--bg-hover)' : 'none',
           cursor: 'pointer',
@@ -86,7 +86,7 @@ export default function ToolBatchBlock({ group, onAbort }: ToolBatchBlockProps) 
           transition: 'all 0.15s ease',
         }}
         onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--glass-bg-low)' }}
       >
         {expanded
           ? <ChevronDown size={11} style={{ color: 'var(--text-muted)', transition: 'all 0.15s ease', fontSize: 11 }} />

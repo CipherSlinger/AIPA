@@ -226,7 +226,7 @@ export default function IdleReturnDialog({
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = 'var(--border)'
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)'
+              e.currentTarget.style.borderColor = 'var(--border-strong)'
               e.currentTarget.style.color = 'var(--text-primary)'
             }}
             onMouseLeave={(e) => {

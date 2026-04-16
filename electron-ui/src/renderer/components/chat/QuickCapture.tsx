@@ -96,7 +96,7 @@ export default function QuickCapture() {
           height: 36,
           borderRadius: '50%',
           background: open
-            ? 'rgba(255,255,255,0.18)'
+            ? 'var(--bg-active)'
             : 'linear-gradient(135deg, #6366f1, #818cf8)',
           border: open
             ? '1px solid var(--text-muted)'

@@ -150,11 +150,11 @@ export function getPresetStepText(
 
 export const smallBtnStyle: React.CSSProperties = {
   background: 'transparent',
-  border: '1px solid rgba(255,255,255,0.1)',
+  border: '1px solid var(--border)',
   borderRadius: 4,
   padding: '2px 8px',
   fontSize: 10,
-  color: 'rgba(255,255,255,0.55)',
+  color: 'var(--text-muted)',
   cursor: 'pointer',
   display: 'flex',
   alignItems: 'center',

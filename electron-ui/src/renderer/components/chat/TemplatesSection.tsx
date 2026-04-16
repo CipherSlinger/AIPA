@@ -66,8 +66,8 @@ export default function TemplatesSection({ onUseTemplate }: Props) {
           onClick={() => setActiveCategory('all')}
           style={{
             padding: '2px 8px', borderRadius: 10, fontSize: 10, cursor: 'pointer',
-            border: activeCategory === 'all' ? '1px solid rgba(99,102,241,0.5)' : '1px solid rgba(255,255,255,0.10)',
-            background: activeCategory === 'all' ? 'rgba(99,102,241,0.20)' : 'rgba(255,255,255,0.06)',
+            border: activeCategory === 'all' ? '1px solid rgba(99,102,241,0.5)' : '1px solid var(--border)',
+            background: activeCategory === 'all' ? 'rgba(99,102,241,0.20)' : 'var(--bg-hover)',
             color: activeCategory === 'all' ? '#818cf8' : 'var(--text-muted)',
             fontWeight: 700,
             letterSpacing: '0.05em',
@@ -83,8 +83,8 @@ export default function TemplatesSection({ onUseTemplate }: Props) {
             onClick={() => setActiveCategory(cat.key)}
             style={{
               padding: '2px 8px', borderRadius: 10, fontSize: 10, cursor: 'pointer',
-              border: activeCategory === cat.key ? '1px solid rgba(99,102,241,0.5)' : '1px solid rgba(255,255,255,0.10)',
-              background: activeCategory === cat.key ? 'rgba(99,102,241,0.20)' : 'rgba(255,255,255,0.06)',
+              border: activeCategory === cat.key ? '1px solid rgba(99,102,241,0.5)' : '1px solid var(--border)',
+              background: activeCategory === cat.key ? 'rgba(99,102,241,0.20)' : 'var(--bg-hover)',
               color: activeCategory === cat.key ? '#818cf8' : 'var(--text-muted)',
               fontWeight: 700,
               letterSpacing: '0.05em',
@@ -118,7 +118,7 @@ export default function TemplatesSection({ onUseTemplate }: Props) {
               onMouseEnter={e => {
                 const el = e.currentTarget as HTMLDivElement;
                 el.style.background = 'var(--glass-border)';
-                el.style.borderColor = 'rgba(255,255,255,0.12)';
+                el.style.borderColor = 'var(--border)';
                 el.style.transform = 'translateY(-1px)';
                 el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
               }}

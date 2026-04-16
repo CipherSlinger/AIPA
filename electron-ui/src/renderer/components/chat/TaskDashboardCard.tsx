@@ -246,7 +246,7 @@ function KanbanColumn({
       style={{
         flex: 1,
         minWidth: 0,
-        background: 'rgba(255,255,255,0.02)',
+        background: 'var(--glass-shimmer)',
         border: `1px solid var(--border)`,
         borderTop: `2px solid ${s.border}`,
         borderRadius: 8,
@@ -261,7 +261,7 @@ function KanbanColumn({
           alignItems: 'center',
           gap: 6,
           borderBottom: '1px solid var(--bg-hover)',
-          background: 'rgba(255,255,255,0.02)',
+          background: 'var(--glass-shimmer)',
         }}
       >
         <StatusDot status={status} />
@@ -418,7 +418,7 @@ export default function TaskDashboardCard({ tasks, singleTask }: Props) {
           justifyContent: 'space-between',
           padding: '6px 12px',
           borderBottom: '1px solid var(--bg-hover)',
-          background: 'rgba(255,255,255,0.03)',
+          background: 'var(--glass-bg-low)',
         }}
       >
         <span

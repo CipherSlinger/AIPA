@@ -72,8 +72,8 @@ function StatusIcon({ status }: { status: TaskQueueItem['status'] }) {
   // pending
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
-      <circle cx="7" cy="7" r="6" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
-      <circle cx="7" cy="7" r="2" fill="rgba(255,255,255,0.3)" />
+      <circle cx="7" cy="7" r="6" stroke="var(--border)" strokeWidth="1.5" />
+      <circle cx="7" cy="7" r="2" fill="var(--border)" />
     </svg>
   )
 }
@@ -107,7 +107,7 @@ function TaskRow({
       ? 'rgba(239,68,68,0.06)'
       : hovered
       ? 'var(--bg-hover)'
-      : 'rgba(255,255,255,0.03)'
+      : 'var(--glass-bg-low)'
 
   const rowBorderLeft =
     item.status === 'running'
@@ -117,7 +117,7 @@ function TaskRow({
       : item.status === 'failed'
       ? '2px solid rgba(239,68,68,0.4)'
       : hovered
-      ? '2px solid rgba(255,255,255,0.18)'
+      ? '2px solid var(--border-strong)'
       : '2px solid var(--border)'
 
   const rowBoxShadow =
@@ -199,7 +199,7 @@ function TaskRow({
               padding: '1px 3px',
               borderRadius: 8,
               cursor: index === 0 ? 'not-allowed' : 'pointer',
-              color: upHovered && index !== 0 ? 'var(--text-primary)' : 'rgba(255,255,255,0.3)',
+              color: upHovered && index !== 0 ? 'var(--text-primary)' : 'var(--text-muted)',
               display: 'flex',
               alignItems: 'center',
               flexShrink: 0,
@@ -223,7 +223,7 @@ function TaskRow({
               padding: '1px 3px',
               borderRadius: 8,
               cursor: index === totalCount - 1 ? 'not-allowed' : 'pointer',
-              color: downHovered && index !== totalCount - 1 ? 'var(--text-primary)' : 'rgba(255,255,255,0.3)',
+              color: downHovered && index !== totalCount - 1 ? 'var(--text-primary)' : 'var(--text-muted)',
               display: 'flex',
               alignItems: 'center',
               flexShrink: 0,

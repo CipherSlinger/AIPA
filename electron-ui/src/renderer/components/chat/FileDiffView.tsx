@@ -120,7 +120,7 @@ const CLR = {
   addText: 'rgba(34,197,94,0.80)',
   addBorder: 'rgba(34,197,94,0.22)',
   ctxText: 'var(--text-muted)',
-  lineNum: 'rgba(255,255,255,0.25)',
+  lineNum: 'var(--text-faint)',
   sepText: 'rgba(99,102,241,0.70)',
   sepBg: 'rgba(99,102,241,0.07)',
 } as const
@@ -162,7 +162,7 @@ function LineRow({ line }: LineRowProps) {
   const borderColor = isAdd ? CLR.addBorder : isDel ? CLR.delBorder : 'transparent'
   const textColor = isAdd ? CLR.addText : isDel ? CLR.delText : CLR.ctxText
   const marker = isAdd ? '+' : isDel ? '-' : ' '
-  const markerColor = isAdd ? CLR.addText : isDel ? CLR.delText : 'rgba(255,255,255,0.22)'
+  const markerColor = isAdd ? CLR.addText : isDel ? CLR.delText : 'var(--text-faint)'
 
   return (
     <div style={{
@@ -290,8 +290,8 @@ export default function FileDiffView({ tool, path, oldString, newString, content
         alignItems: 'center',
         gap: 6,
         padding: '5px 10px',
-        background: 'rgba(255,255,255,0.03)',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        background: 'var(--glass-bg-low)',
+        borderBottom: '1px solid var(--border)',
       }}>
         <FileCode size={12} style={{ color: '#818cf8', flexShrink: 0 }} />
         {/* File path */}
@@ -364,7 +364,7 @@ export default function FileDiffView({ tool, path, oldString, newString, content
         <div style={{
           padding: '8px 12px',
           fontSize: 11,
-          color: 'rgba(255,255,255,0.30)',
+          color: 'var(--text-faint)',
           fontStyle: 'italic',
           fontFamily: 'monospace',
         }}>
@@ -376,7 +376,7 @@ export default function FileDiffView({ tool, path, oldString, newString, content
           overflowY: 'auto',
           maxHeight: 380,
           scrollbarWidth: 'thin',
-          scrollbarColor: 'rgba(255,255,255,0.10) transparent',
+          scrollbarColor: 'var(--border) transparent',
         }}>
           {visibleLines.map((line, idx) => (
             <LineRow key={idx} line={line} />
@@ -392,7 +392,7 @@ export default function FileDiffView({ tool, path, oldString, newString, content
             width: '100%',
             background: 'rgba(99,102,241,0.07)',
             border: 'none',
-            borderTop: '1px solid rgba(255,255,255,0.06)',
+            borderTop: '1px solid var(--border)',
             color: '#818cf8',
             cursor: 'pointer',
             fontSize: 10,

@@ -105,6 +105,7 @@
   --glass-bg-deep:   rgba(15,15,25,0.97);
   --glass-border:    rgba(255,255,255,0.07);
   --glass-border-md: rgba(255,255,255,0.09);
+  --border-strong:   rgba(255,255,255,0.16);
   --glass-shadow:    0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3);
   --glass-overlay:   rgba(0,0,0,0.70);
   --text-faint:      rgba(255,255,255,0.38);
@@ -239,6 +240,7 @@
   --glass-bg-deep:   rgba(240,242,250,0.97);
   --glass-border:    rgba(0,0,0,0.07);
   --glass-border-md: rgba(0,0,0,0.09);
+  --border-strong:   rgba(0,0,0,0.18);
   --glass-shadow:    0 4px 8px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08);
   --glass-overlay:   rgba(0,0,0,0.50);
   --text-faint:      rgba(15,15,35,0.38);
@@ -273,11 +275,11 @@ html, body, #root {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.12);
+  background: var(--border);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255,255,255,0.20);
+  background: var(--bg-input);
 }
 ::-webkit-scrollbar-corner {
   background: transparent;
@@ -307,7 +309,7 @@ html, body, #root {
 /* Code block styling */
 pre {
   background: #1a1a1a;
-  border: 1px solid rgba(255,255,255,0.07);
+  border: 1px solid var(--border);
   border-radius: 4px;
   padding: 12px;
   overflow-x: auto;
@@ -616,13 +618,13 @@ button, a, [role="button"] {
 
 /* Chat input textarea placeholder color */
 .chat-textarea::placeholder {
-  color: rgba(255,255,255,0.45);
+  color: var(--text-muted);
   opacity: 1;
 }
 
 /* Search bar input placeholder color */
 .search-bar-input::placeholder {
-  color: rgba(255,255,255,0.45);
+  color: var(--text-muted);
   opacity: 1;
 }
 

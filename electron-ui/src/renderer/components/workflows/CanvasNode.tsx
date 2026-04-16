@@ -1025,12 +1025,12 @@ export default function CanvasNode({
               title="Move step up"
               style={{
                 background: 'none', border: 'none', cursor: onMoveUp ? 'pointer' : 'not-allowed',
-                color: onMoveUp ? 'var(--text-muted)' : 'rgba(255,255,255,0.15)',
+                color: onMoveUp ? 'var(--text-muted)' : 'var(--text-faint)',
                 padding: '1px 3px', borderRadius: 3, fontSize: 10, lineHeight: 1,
                 display: 'flex', alignItems: 'center', transition: 'all 0.15s ease',
               }}
               onMouseEnter={e => { if (onMoveUp) e.currentTarget.style.color = '#818cf8' }}
-              onMouseLeave={e => { e.currentTarget.style.color = onMoveUp ? 'var(--text-muted)' : 'rgba(255,255,255,0.15)' }}
+              onMouseLeave={e => { e.currentTarget.style.color = onMoveUp ? 'var(--text-muted)' : 'var(--text-faint)' }}
             >▲</button>
             <button
               onClick={e => { e.stopPropagation(); onMoveDown?.() }}
@@ -1038,12 +1038,12 @@ export default function CanvasNode({
               title="Move step down"
               style={{
                 background: 'none', border: 'none', cursor: onMoveDown ? 'pointer' : 'not-allowed',
-                color: onMoveDown ? 'var(--text-muted)' : 'rgba(255,255,255,0.15)',
+                color: onMoveDown ? 'var(--text-muted)' : 'var(--text-faint)',
                 padding: '1px 3px', borderRadius: 3, fontSize: 10, lineHeight: 1,
                 display: 'flex', alignItems: 'center', transition: 'all 0.15s ease',
               }}
               onMouseEnter={e => { if (onMoveDown) e.currentTarget.style.color = '#818cf8' }}
-              onMouseLeave={e => { e.currentTarget.style.color = onMoveDown ? 'var(--text-muted)' : 'rgba(255,255,255,0.15)' }}
+              onMouseLeave={e => { e.currentTarget.style.color = onMoveDown ? 'var(--text-muted)' : 'var(--text-faint)' }}
             >▼</button>
           </div>
         )}

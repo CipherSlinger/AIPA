@@ -39,7 +39,7 @@ export default function ReactionChips({ messageId, reactions, hovered }: Reactio
             style={{
               display: 'flex', alignItems: 'center', gap: 3,
               padding: '2px 8px', fontSize: 12,
-              background: active ? 'rgba(99,102,241,0.20)' : 'rgba(255,255,255,0.06)',
+              background: active ? 'rgba(99,102,241,0.20)' : 'var(--bg-hover)',
               border: active ? '1px solid rgba(99,102,241,0.4)' : '1px solid var(--glass-border-md)',
               borderRadius: 20, cursor: 'pointer',
               color: active ? '#a5b4fc' : 'var(--text-secondary)',
@@ -50,14 +50,14 @@ export default function ReactionChips({ messageId, reactions, hovered }: Reactio
             onMouseEnter={(e) => {
               e.currentTarget.style.opacity = '1'
               if (!active) {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.10)'
+                e.currentTarget.style.background = 'var(--bg-input)'
                 e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'
               }
             }}
             onMouseLeave={(e) => {
               if (!active) {
                 e.currentTarget.style.opacity = hovered ? '1' : '0'
-                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                e.currentTarget.style.background = 'var(--bg-hover)'
                 e.currentTarget.style.borderColor = 'var(--glass-border-md)'
               }
             }}

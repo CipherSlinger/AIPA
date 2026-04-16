@@ -169,7 +169,7 @@ function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, conta
                   y={ry + rectH / 2 + 3}
                   textAnchor="middle"
                   fontSize={Math.max(4, Math.min(7, rectW * 0.35))}
-                  fill="rgba(255,255,255,0.75)"
+                  fill="var(--text-secondary)"
                   fontWeight="800"
                   style={{ pointerEvents: 'none', userSelect: 'none' }}
                 >
@@ -183,7 +183,7 @@ function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, conta
           x={vpX} y={vpY}
           width={Math.max(4, vpW)} height={Math.max(4, vpH)}
           fill="var(--bg-hover)"
-          stroke="rgba(255,255,255,0.3)"
+          stroke="var(--text-faint)"
           strokeWidth={0.8}
           rx={1}
           style={{ pointerEvents: onViewportDrag ? 'all' : 'none', cursor: onViewportDrag ? 'grab' : 'default' }}
@@ -2040,7 +2040,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                   <div style={{
                     position: 'absolute',
                     inset: 0,
-                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+                    background: 'linear-gradient(90deg, transparent, var(--text-faint), transparent)',
                     backgroundSize: '200% 100%',
                     animation: 'canvas-bar-shimmer 1.2s ease-in-out infinite',
                   }} />

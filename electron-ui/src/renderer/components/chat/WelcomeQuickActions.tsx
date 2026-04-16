@@ -52,7 +52,7 @@ export default function WelcomeQuickActions({
               onMouseEnter={() => setHoveredQuick(label)}
               onMouseLeave={() => setHoveredQuick(null)}
               style={{
-                background: isHovered ? 'var(--glass-border-md)' : 'rgba(255,255,255,0.06)',
+                background: isHovered ? 'var(--glass-border-md)' : 'var(--bg-hover)',
                 border: isHovered ? '1px solid var(--glass-border-md)' : '1px solid var(--glass-border)',
                 borderRadius: 10,
                 padding: '12px 14px',
@@ -85,7 +85,7 @@ export default function WelcomeQuickActions({
                 background: 'var(--glass-border)',
                 padding: '2px 5px',
                 borderRadius: 6,
-                border: '1px solid rgba(255,255,255,0.12)',
+                border: '1px solid var(--border)',
                 color: 'var(--text-muted)',
                 marginLeft: 'auto',
                 flexShrink: 0,
@@ -123,7 +123,7 @@ export default function WelcomeQuickActions({
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px',
                 background: isHovered ? 'var(--bg-active)' : 'transparent',
-                border: isHovered ? '1px solid rgba(255,255,255,0.15)' : '1px solid var(--glass-border-md)',
+                border: isHovered ? '1px solid var(--border-strong)' : '1px solid var(--glass-border-md)',
                 borderRadius: 8,
                 color: 'var(--text-primary)',
                 cursor: 'pointer', fontSize: 11,

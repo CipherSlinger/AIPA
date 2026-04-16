@@ -66,7 +66,7 @@ const PERMISSION_TYPE_BADGE: Record<'bash' | 'file' | 'network' | 'other', { lab
   bash:    { label: 'bash',    bg: 'rgba(99,102,241,0.15)',  color: '#818cf8', border: 'rgba(99,102,241,0.30)' },
   file:    { label: 'file',    bg: 'rgba(251,191,36,0.15)',  color: '#fbbf24', border: 'rgba(251,191,36,0.30)' },
   network: { label: 'network', bg: 'rgba(67,229,229,0.15)',  color: '#67e8f9', border: 'rgba(67,229,229,0.30)' },
-  other:   { label: 'action',  bg: 'var(--border)', color: 'var(--text-secondary)', border: 'rgba(255,255,255,0.15)' },
+  other:   { label: 'action',  bg: 'var(--border)', color: 'var(--text-secondary)', border: 'var(--border)' },
 }
 
 // Map tool names to lucide icons + tint colors
@@ -604,7 +604,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
                     <div style={{
                       width: 14, height: 14, borderRadius: 4, flexShrink: 0,
                       background: checked ? 'rgba(99,102,241,0.85)' : 'var(--border)',
-                      border: checked ? '1px solid rgba(99,102,241,0.40)' : '1px solid rgba(255,255,255,0.18)',
+                      border: checked ? '1px solid rgba(99,102,241,0.40)' : '1px solid var(--border)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       transition: 'all 0.15s ease',
                     }}>
@@ -652,7 +652,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
                     <div style={{
                       width: 14, height: 14, borderRadius: 4, flexShrink: 0,
                       background: checked ? 'rgba(99,102,241,0.85)' : 'var(--border)',
-                      border: checked ? '1px solid rgba(99,102,241,0.40)' : '1px solid rgba(255,255,255,0.18)',
+                      border: checked ? '1px solid rgba(99,102,241,0.40)' : '1px solid var(--border)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       transition: 'all 0.15s ease',
                     }}>
