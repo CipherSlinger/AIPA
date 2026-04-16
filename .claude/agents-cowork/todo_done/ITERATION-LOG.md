@@ -6641,3 +6641,32 @@ Status: SUCCESS (npm run check: 0 errors, vite build: 17.82s)
 - [x] Banner "Open" button calls openSettingsAt('ai-engine') to navigate directly
 - [x] i18n keys present for both English and Chinese
 - [x] TypeScript check passes, build succeeds
+
+## Iteration 569 — AI Engine settings tab + Provider migration from Channel
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Created SettingsAIEngine.tsx as a new Settings tab that wraps SettingsProviders via React.lazy. Added 'ai-engine' to SettingsPanel nav tabs, SettingsTab type, valid array, pendingSettingsTab union in uiStore. Added i18n keys (settings.tabs.ai-engine) to en.json and zh-CN.json. In ChannelPanel, added a compact shortcut banner above the Providers tab content with "Open in Settings → AI Engine" button that calls openSettingsAt('ai-engine'). Original SettingsProviders in Channel panel remains functional (no duplication — same component, two entry points via React.lazy).
+
+### Files Changed
+- `electron-ui/src/renderer/components/settings/SettingsAIEngine.tsx` — NEW: wrapper tab for SettingsProviders
+- `electron-ui/src/renderer/components/settings/SettingsPanel.tsx` — add 'ai-engine' tab
+- `electron-ui/src/renderer/store/uiStore.ts` — add 'ai-engine' to pendingSettingsTab type
+- `electron-ui/src/renderer/components/channel/ChannelPanel.tsx` — add shortcut banner to Providers tab
+- `electron-ui/src/renderer/i18n/locales/en.json` — add settings.tabs.ai-engine
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` — add settings.tabs.ai-engine
+
+## Iteration 570 — Department i18n + office directory picker
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Fixed all hardcoded strings in department components to use t() i18n keys. Added missing department keys to en.json and zh-CN.json. Added FolderOpen button to the office/working directory field that opens an fsOpenDialog directory chooser (properties: ['openDirectory']).
+
+### Files Changed
+- `electron-ui/src/renderer/components/departments/DepartmentDashboard.tsx` — replace hardcoded strings with t() calls
+- `electron-ui/src/renderer/components/departments/DepartmentPanel.tsx` — replace hardcoded strings with t() calls, add FolderOpen button with fsOpenDialog
+- `electron-ui/src/renderer/i18n/locales/en.json` — add department i18n keys
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` — add department i18n keys
+
+### Build
+Status: SUCCESS
