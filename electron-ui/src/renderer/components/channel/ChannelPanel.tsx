@@ -1,8 +1,9 @@
 // Channel panel — Providers + MCP — Iteration 536
 
 import React, { useState } from 'react'
-import { Radio, MessageCircle, Server } from 'lucide-react'
+import { Radio, MessageCircle, Server, ExternalLink } from 'lucide-react'
 import { useT } from '../../i18n'
+import { useUiStore } from '../../store'
 
 const SettingsProviders = React.lazy(() => import('../settings/SettingsProviders'))
 const SettingsMcp = React.lazy(() => import('../settings/SettingsMcp'))
@@ -27,6 +28,7 @@ const CHANNEL_STYLE = `
 export default function ChannelPanel() {
   const t = useT()
   const [activeTab, setActiveTab] = useState<ChannelTab>('providers')
+  const openSettingsAt = useUiStore(s => s.openSettingsAt)
 
   const tabStyle = (tab: ChannelTab): React.CSSProperties => ({
     flex: 1,
@@ -99,6 +101,35 @@ export default function ChannelPanel() {
       {/* Tab content — glass card wrapper */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <div className="channel-scroll" style={{ padding: '10px 12px', overflowY: 'auto', flex: 1 }}>
+          {/* Shortcut banner — visible on Providers tab */}
+          {activeTab === 'providers' && (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '7px 12px', marginBottom: 8,
+              borderRadius: 8,
+              background: 'rgba(99,102,241,0.07)',
+              border: '1px solid rgba(99,102,241,0.18)',
+            }}>
+              <span style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                Provider settings also available in <strong style={{ color: 'var(--text-secondary)' }}>Settings → AI Engine</strong>
+              </span>
+              <button
+                onClick={() => openSettingsAt('ai-engine')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 3,
+                  padding: '3px 8px', borderRadius: 5, border: 'none',
+                  background: 'rgba(99,102,241,0.15)', color: '#a5b4fc',
+                  cursor: 'pointer', fontSize: 10, fontWeight: 600, flexShrink: 0,
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.28)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)' }}
+              >
+                <ExternalLink size={9} />
+                Open
+              </button>
+            </div>
+          )}
           <div style={{
             borderRadius: 10,
             background: 'rgba(255,255,255,0.03)',

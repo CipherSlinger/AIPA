@@ -414,6 +414,7 @@
     "backToChat": "Back to chat",
     "tabs": {
       "general": "General",
+      "ai-engine": "AI Engine",
       "providers": "Providers",
       "permissions": "Permissions",
       "personas": "Personas",
@@ -2345,7 +2346,20 @@
     "collapsedCount": "departments hidden",
     "msgCount": "Messages",
     "enter": "Enter",
-    "backToDept": "Back to department"
+    "backToDept": "Back to department",
+    "confirmDelete": "Delete this department?",
+    "pendingSessionHint": "Click to start this session",
+    "pendingSessionOpen": "Open",
+    "export": "↓ Export",
+    "exportSessions": "↓ Export sessions",
+    "statsToday": "Today",
+    "statsLastActive": "Last Active",
+    "openInDept": "Open",
+    "dirPlaceholder": "Directory path (e.g. ~/projects/frontend)",
+    "selectWorkingDir": "Select Department Directory",
+    "justNow": "just now",
+    "pressToCreate": "Press",
+    "toCreate": "to create"
   },
   "canvas": {
     "copyPrompt": "Copy Prompt",

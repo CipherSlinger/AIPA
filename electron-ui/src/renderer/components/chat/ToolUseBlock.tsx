@@ -178,8 +178,6 @@ const TASK_UPDATE_TOOLS = new Set(['TaskUpdate', 'task_update'])
 const TASK_LIST_TOOLS = new Set(['TaskList', 'task_list'])
 const TASK_GET_TOOLS = new Set(['TaskGet', 'task_get'])
 
-// Cron scheduling tools
-const CRON_TOOLS = new Set(['CronCreate', 'CronDelete', 'CronList'])
 
 /** Safely parse a JSON string, returning null on failure */
 function safeParseJSON(text: string): unknown {
@@ -1545,6 +1543,11 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
         answer={answer}
       />
     )
+  }
+
+  // SendMessage: delegate to specialized card
+  if (tool.name === 'SendMessage') {
+    return <SendMessageCard tool={tool} />
   }
 
   // TaskCreate: compact inline "created" badge

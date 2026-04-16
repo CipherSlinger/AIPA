@@ -414,6 +414,7 @@
     "backToChat": "返回对话",
     "tabs": {
       "general": "常规",
+      "ai-engine": "AI 引擎",
       "providers": "提供商",
       "permissions": "权限",
       "personas": "角色",
@@ -2364,7 +2365,19 @@
     "collapsedCount": "个部门已折叠",
     "msgCount": "消息数",
     "enter": "进入",
-    "backToDept": "返回部门"
+    "backToDept": "返回部门",
+    "pendingSessionHint": "点击开始此会话",
+    "pendingSessionOpen": "打开",
+    "export": "↓ 导出",
+    "exportSessions": "↓ 导出会话",
+    "statsToday": "今日",
+    "statsLastActive": "最近活跃",
+    "openInDept": "打开",
+    "dirPlaceholder": "目录路径（如 ~/projects/frontend）",
+    "selectWorkingDir": "选择部门目录",
+    "justNow": "刚刚",
+    "pressToCreate": "按",
+    "toCreate": "创建"
   },
   "canvas": {
     "copyPrompt": "复制提示词",
