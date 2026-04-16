@@ -1,6 +1,6 @@
 # AIPA x Claude Code CLI — 功能差距文档
 
-> 更新日期：2026-04-15（Iteration 539）
+> 更新日期：2026-04-15（Iteration 540）
 > CLI 版本：claude-code 2.1.81（BUILD_TIME: 2026-03-20T21:25:42Z）
 > 分析目的：指导 AIPA UI 逐步对齐 CLI 全部能力
 
@@ -16,12 +16,12 @@
 | `FileRead` | 读取文件，支持行范围限制 | ❌ Chat 面板无独立文件读取操作 UI |
 | `FileEdit` | 精确字符串替换编辑文件 | ❌ 无差异对比/批准 UI |
 | `FileWrite` | 创建/覆盖文件 | ❌ 无独立文件写入 UI |
-| `Glob` | 文件模式匹配搜索 | ❌ 无 UI 展示 |
-| `Grep` | 正则内容搜索（ripgrep 封装） | ❌ 无 UI 展示 |
-| `WebFetch` | 抓取 URL 内容并 AI 处理 | ❌ 无 UI 展示 |
-| `WebSearch` | 网络搜索 | ❌ 无 UI 展示 |
+| `Glob` | 文件模式匹配搜索 | ✅ 结构化展示：文件路径列表，目录部分淡色，文件名加粗，超过10条折叠（Iteration 540） |
+| `Grep` | 正则内容搜索（ripgrep 封装） | ✅ 结构化展示：file:line:content 格式，可折叠展开（Iteration 540） |
+| `WebFetch` | 抓取 URL 内容并 AI 处理 | ✅ URL chip 可点击，内容前200字符预览，可展开全文（Iteration 540） |
+| `WebSearch` | 网络搜索 | ✅ URL chip 可点击（标注 Sources），内容前200字符预览，可展开全文（Iteration 540） |
 | `NotebookEdit` | 编辑 Jupyter notebook 单元格 | ❌ 无 UI |
-| `TodoWrite` | 写待办列表（结构化任务管理） | ❌ 无专用 Todo 面板 |
+| `TodoWrite` | 写待办列表（结构化任务管理） | ✅ `TodoListView.tsx` 组件已实现，pending/in_progress/completed 状态，high/medium/low 优先级色标 |
 | `Agent` (子代理) | 产生并行/串行子代理 | ❌ AIPA 无子代理拓扑可视化 |
 | `TaskOutputTool` | 读取后台任务输出 | ⚠️ 有 TaskDashboard 组件但连接不完整 |
 | `TaskStopTool` | 停止后台任务 | ⚠️ 部分实现 |
@@ -49,7 +49,7 @@
 
 **最高优先：** ✅ **P0-3 已实现** — `FileDiffView.tsx` 通过 LCS 算法渲染 FileEdit/FileWrite 的文件内容差异预览，`ToolUseBlock` 已接入，用户批准前可查看变更内容。
 
-**P2-7 已实现：** ✅ **TodoWrite 面板** — `TodoListView.tsx` 组件已实现，`ToolUseBlock` 在检测到 `TodoWrite`/`todo_write` 工具时渲染结构化待办列表（支持 pending/in_progress/completed 状态，high/medium/low 优先级色标）。
+**P2-7 已实现：** ✅ **TodoWrite + Glob/Grep + WebSearch/WebFetch 结构化展示** — `TodoListView.tsx` 组件展示结构化待办列表（pending/in_progress/completed，high/medium/low 优先级）；Glob 工具结果以目录淡色+文件名加粗的路径列表展示；Grep 工具结果以 `file:line:content` 格式展示；WebSearch/WebFetch 结果提取 URL 渲染为可点击 chip，内容截取 200 字符预览可展开（Iteration 540）。
 
 **中优先：** Agent 子代理需要嵌套展示（当前只显示 toolUse 名称）。
 
@@ -456,7 +456,7 @@ AIPA 状态：❌ 无任何 compact 触发 UI
 4. **会话 Cleanup 设置**：在 Settings 中添加 `cleanupPeriodDays` 数字输入（0 = 禁用）
 5. **语言偏好设置**：在 Settings 中添加 `language` 字段（对应 `settings.json`）
 6. **嵌套 CLAUDE.md 可视化**：在 Settings 或 Context 面板中展示 CLI 当前加载的 CLAUDE.md 文件路径链
-7. **TodoWrite 面板**：当 Claude 调用 `TodoWrite` 工具时，在侧边栏展示结构化待办列表
+7. ✅ **TodoWrite 面板**：当 Claude 调用 `TodoWrite` 工具时，渲染结构化待办列表（Iteration 以前已完成）；**Glob/Grep 结构化展示**：路径列表高亮 + 折叠（Iteration 540）；**WebSearch/WebFetch 富化展示**：URL chip + 内容预览（Iteration 540）
 
 ### P4（第二次扫描发现，微优化）
 

@@ -144,6 +144,9 @@ const FILE_PATH_TOOLS = new Set(['Read', 'Write', 'Edit', 'MultiEdit', 'read_fil
 // Glob/Grep result summary tools
 const SEARCH_RESULT_TOOLS = new Set(['Glob', 'Grep'])
 
+// Web result tools (URL linking + truncated summary)
+const WEB_RESULT_TOOLS = new Set(['WebSearch', 'WebFetch', 'web_fetch'])
+
 // Error keywords for Bash output detection
 const ERROR_KEYWORDS = /exit code|error|Error|FAILED|fatal/
 
@@ -344,13 +347,74 @@ function BashStatusDot({ output }: { output: string }) {
   )
 }
 
-/** Glob/Grep result summary */
-function SearchResultSummary({ resultText }: { resultText: string }) {
+/** Render a single file path with dim directory prefix */
+function GlobPathRow({ line }: { line: string }) {
+  const normalized = line.replace(/\\/g, '/')
+  const lastSlash = normalized.lastIndexOf('/')
+  const dir = lastSlash >= 0 ? normalized.slice(0, lastSlash + 1) : ''
+  const fileName = lastSlash >= 0 ? normalized.slice(lastSlash + 1) : normalized
+  return (
+    <div style={{
+      fontSize: 11,
+      fontFamily: 'monospace',
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      lineHeight: 1.6,
+    }}>
+      {dir && <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>{dir}</span>}
+      <span style={{ color: 'rgba(165,180,252,0.90)', fontWeight: 600 }}>{fileName}</span>
+    </div>
+  )
+}
+
+/** Render a single grep match line, highlighting the file:line: prefix */
+function GrepMatchRow({ line }: { line: string }) {
+  // Grep output is typically: path/to/file.ext:42:matched content
+  const match = line.match(/^([^:]+):(\d+):(.*)$/)
+  if (match) {
+    const [, filePath, lineNum, content] = match
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'baseline',
+        gap: 0,
+        fontSize: 11,
+        fontFamily: 'monospace',
+        lineHeight: 1.6,
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+      }}>
+        <span style={{ color: 'rgba(165,180,252,0.70)', flexShrink: 0 }}>{filePath}</span>
+        <span style={{ color: 'var(--text-muted)', flexShrink: 0 }}>:{lineNum}:</span>
+        <span style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{content}</span>
+      </div>
+    )
+  }
+  return (
+    <div style={{
+      fontSize: 11,
+      fontFamily: 'monospace',
+      color: 'var(--text-secondary)',
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      lineHeight: 1.6,
+    }}>
+      {line}
+    </div>
+  )
+}
+
+/** Glob/Grep result summary with tool-aware rendering */
+function SearchResultSummary({ resultText, toolName }: { resultText: string; toolName: string }) {
   const [showAll, setShowAll] = useState(false)
   const lines = resultText.split('\n').filter(l => l.trim().length > 0)
   const total = lines.length
-  const PREVIEW_LIMIT = 5
+  const PREVIEW_LIMIT = 10
   const visibleLines = (!showAll && total > PREVIEW_LIMIT) ? lines.slice(0, PREVIEW_LIMIT) : lines
+  const isGlob = toolName === 'Glob'
 
   return (
     <div style={{
@@ -373,23 +437,15 @@ function SearchResultSummary({ resultText }: { resultText: string }) {
           border: '1px solid rgba(34,197,94,0.25)',
           letterSpacing: '0.03em',
         }}>
-          找到 {total} 项
+          {isGlob ? `${total} files` : `${total} matches`}
         </span>
       </div>
       {/* Results list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
         {visibleLines.map((line, idx) => (
-          <div key={idx} style={{
-            fontSize: 11,
-            fontFamily: 'monospace',
-            color: 'var(--text-secondary)',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            lineHeight: 1.5,
-          }}>
-            {line}
-          </div>
+          isGlob
+            ? <GlobPathRow key={idx} line={line} />
+            : <GrepMatchRow key={idx} line={line} />
         ))}
         {total > PREVIEW_LIMIT && !showAll && (
           <button
@@ -408,7 +464,134 @@ function SearchResultSummary({ resultText }: { resultText: string }) {
             onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,1)' }}
             onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,0.70)' }}
           >
-            + {total - PREVIEW_LIMIT} 更多...
+            + {total - PREVIEW_LIMIT} more...
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** Extract URLs from text */
+function extractUrls(text: string): string[] {
+  const urlRegex = /https?:\/\/[^\s"'<>)}\]]+/g
+  return Array.from(new Set(text.match(urlRegex) ?? []))
+}
+
+/** Web result block: clickable URLs + truncated content preview */
+function WebResultBlock({ resultText, toolName }: { resultText: string; toolName: string }) {
+  const [expanded, setExpanded] = useState(false)
+  const SUMMARY_LIMIT = 200
+  const urls = extractUrls(resultText)
+  const isSearch = toolName === 'WebSearch'
+  const preview = resultText.length > SUMMARY_LIMIT && !expanded
+    ? resultText.slice(0, SUMMARY_LIMIT) + '…'
+    : resultText
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {/* URL chips */}
+      {urls.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <span style={{
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            color: 'var(--text-muted)',
+          }}>
+            {isSearch ? 'Sources' : 'URL'}
+          </span>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {urls.slice(0, 5).map((url, i) => {
+              let host = url
+              try { host = new URL(url).hostname } catch { /* use full url */ }
+              return (
+                <a
+                  key={i}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => { e.preventDefault(); window.open(url, '_blank') }}
+                  title={url}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '2px 7px',
+                    borderRadius: 8,
+                    background: 'rgba(99,102,241,0.12)',
+                    border: '1px solid rgba(99,102,241,0.25)',
+                    color: 'rgba(165,180,252,0.90)',
+                    fontSize: 10,
+                    fontFamily: 'monospace',
+                    textDecoration: 'none',
+                    maxWidth: 200,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(99,102,241,0.22)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(99,102,241,0.12)' }}
+                >
+                  <Globe size={9} style={{ flexShrink: 0, opacity: 0.7 }} />
+                  {host}
+                </a>
+              )
+            })}
+            {urls.length > 5 && (
+              <span style={{
+                fontSize: 10,
+                color: 'var(--text-muted)',
+                alignSelf: 'center',
+                fontFamily: 'monospace',
+              }}>
+                +{urls.length - 5} more
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Content preview */}
+      <div style={{
+        background: 'rgba(0,0,0,0.20)',
+        borderRadius: 6,
+        padding: '6px 10px',
+      }}>
+        <pre style={{
+          margin: 0,
+          fontSize: 11,
+          fontFamily: 'inherit',
+          color: 'var(--text-secondary)',
+          lineHeight: 1.6,
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+          maxHeight: expanded ? 'none' : 160,
+          overflow: expanded ? 'visible' : 'hidden',
+        }}>
+          {preview}
+        </pre>
+        {resultText.length > SUMMARY_LIMIT && (
+          <button
+            onClick={() => setExpanded(!expanded)}
+            style={{
+              marginTop: 4,
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'rgba(165,180,252,0.70)',
+              fontSize: 11,
+              fontFamily: 'monospace',
+              padding: '2px 0',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,1)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,0.70)' }}
+          >
+            {expanded ? 'Show less' : `Show all ${resultText.length} chars`}
           </button>
         )}
       </div>
@@ -744,6 +927,164 @@ function AgentToolCard({ input, result, isStreaming, tool, onAbort }: AgentToolC
   )
 }
 
+// ── AskUserQuestionCard ────────────────────────────────────────────────────────
+
+interface AskUserQuestionCardProps {
+  question: string
+  options?: string[]
+  isAnswered: boolean
+  answer?: string
+}
+
+function AskUserQuestionCard({ question, options, isAnswered, answer }: AskUserQuestionCardProps) {
+  const t = useT()
+  const [selected, setSelected] = useState<string | null>(null)
+  const [customText, setCustomText] = useState('')
+  const [sent, setSent] = useState(false)
+
+  const sendReply = (text: string) => {
+    if (!text.trim() || sent) return
+    setSent(true)
+    window.dispatchEvent(new CustomEvent('aipa:sendMessage', { detail: { text } }))
+  }
+
+  // If the tool has already been answered (result exists), show the answered state
+  if (isAnswered && answer) {
+    return (
+      <div style={{
+        background: 'rgba(15,15,25,0.60)',
+        border: '1px solid var(--border)',
+        borderLeft: '3px solid rgba(99,102,241,0.60)',
+        borderRadius: 10,
+        marginBottom: 6,
+        overflow: 'hidden',
+      }}>
+        <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <HelpCircle size={14} style={{ color: '#818cf8', flexShrink: 0 }} />
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>
+              {question}
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+            <Check size={11} style={{ color: '#4ade80', flexShrink: 0 }} />
+            <span style={{ color: 'var(--text-secondary)' }}>{answer}</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{
+      background: 'rgba(15,15,25,0.80)',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
+      border: '1px solid rgba(99,102,241,0.30)',
+      borderLeft: '3px solid rgba(99,102,241,0.60)',
+      borderRadius: 10,
+      marginBottom: 6,
+      overflow: 'hidden',
+    }}>
+      <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* Question label + text */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+          <HelpCircle size={15} style={{ color: '#818cf8', flexShrink: 0, marginTop: 1 }} />
+          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.5 }}>
+            {question}
+          </span>
+        </div>
+
+        {/* Option buttons (if provided) */}
+        {options && options.length > 0 && !sent && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, paddingLeft: 23 }}>
+            {options.map((opt, i) => (
+              <button
+                key={i}
+                onClick={() => { setSelected(opt); sendReply(opt) }}
+                disabled={sent}
+                style={{
+                  fontSize: 12,
+                  padding: '5px 12px',
+                  borderRadius: 8,
+                  border: `1px solid ${selected === opt ? 'rgba(99,102,241,0.60)' : 'rgba(99,102,241,0.30)'}`,
+                  background: selected === opt ? 'rgba(99,102,241,0.25)' : 'rgba(99,102,241,0.10)',
+                  color: 'rgba(165,180,252,0.90)',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(99,102,241,0.22)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.55)' }}
+                onMouseLeave={(e) => {
+                  if (selected !== opt) {
+                    e.currentTarget.style.background = 'rgba(99,102,241,0.10)'
+                    e.currentTarget.style.borderColor = 'rgba(99,102,241,0.30)'
+                  }
+                }}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Custom text input (always shown when no options, or as fallback) */}
+        {!sent && (
+          <div style={{ display: 'flex', gap: 6, paddingLeft: options && options.length > 0 ? 23 : 0, alignItems: 'flex-end' }}>
+            <input
+              type="text"
+              value={customText}
+              onChange={(e) => setCustomText(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); sendReply(customText) } }}
+              placeholder={options && options.length > 0 ? t('askUser.customReply') : t('askUser.typeReply')}
+              style={{
+                flex: 1,
+                fontSize: 12,
+                padding: '6px 10px',
+                background: 'var(--bg-input)',
+                border: '1px solid var(--border)',
+                borderRadius: 8,
+                color: 'var(--text-primary)',
+                outline: 'none',
+                fontFamily: 'inherit',
+                transition: 'border-color 0.15s ease',
+              }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)' }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
+            />
+            <button
+              onClick={() => sendReply(customText)}
+              disabled={!customText.trim()}
+              style={{
+                fontSize: 12,
+                padding: '6px 14px',
+                borderRadius: 8,
+                border: 'none',
+                background: customText.trim() ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))' : 'rgba(99,102,241,0.25)',
+                color: 'rgba(255,255,255,0.95)',
+                cursor: customText.trim() ? 'pointer' : 'not-allowed',
+                fontWeight: 600,
+                transition: 'all 0.15s ease',
+                flexShrink: 0,
+              }}
+            >
+              {t('askUser.send')}
+            </button>
+          </div>
+        )}
+
+        {/* Sent indicator */}
+        {sent && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#4ade80', paddingLeft: 23 }}>
+            <Check size={11} />
+            {t('askUser.sent')}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Main ToolUseBlock ──────────────────────────────────────────────────────────
 
 export default function ToolUseBlock({ tool, onAbort }: Props) {
@@ -806,6 +1147,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
   const isFileEdit = FILE_EDIT_TOOLS.has(tool.name)
   const isFilePath = FILE_PATH_TOOLS.has(tool.name)
   const isSearchResult = SEARCH_RESULT_TOOLS.has(tool.name)
+  const isWebResult = WEB_RESULT_TOOLS.has(tool.name)
   const showElapsed = isRunning && elapsed >= 2
   const showFinalDuration = !isRunning && finalDuration !== null && finalDuration >= 1
   const imagePaths = !isRunning ? extractImagePaths(tool) : []
@@ -846,6 +1188,22 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
         isStreaming={tool.status === 'running'}
         tool={tool}
         onAbort={onAbort}
+      />
+    )
+  }
+
+  // AskUserQuestion: render specialized interactive question card
+  if (tool.name === 'AskUserQuestion' || tool.name === 'ask_user_question') {
+    const question = typeof tool.input?.question === 'string' ? tool.input.question : ''
+    const options = Array.isArray(tool.input?.options) ? tool.input.options as string[] : undefined
+    const isAnswered = tool.status !== 'running'
+    const answer = typeof tool.result === 'string' ? tool.result : undefined
+    return (
+      <AskUserQuestionCard
+        question={question}
+        options={options}
+        isAnswered={isAnswered}
+        answer={answer}
       />
     )
   }
@@ -1082,7 +1440,23 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
                       <span>{t('tool.output')}</span>
                       <CopyOutputBtn text={resultText} t={t} />
                     </div>
-                    <SearchResultSummary resultText={resultText} />
+                    <SearchResultSummary resultText={resultText} toolName={tool.name} />
+                  </div>
+                </div>
+              )
+            }
+
+            // WebSearch/WebFetch: URL links + content preview
+            if (isWebResult && resultText) {
+              return (
+                <div>
+                  <div style={{ height: 1, background: 'var(--bg-hover)' }} />
+                  <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span>{t('tool.output')}</span>
+                      <CopyOutputBtn text={resultText} t={t} />
+                    </div>
+                    <WebResultBlock resultText={resultText} toolName={tool.name} />
                   </div>
                 </div>
               )
