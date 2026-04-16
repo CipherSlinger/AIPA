@@ -7753,3 +7753,28 @@ Status: SUCCESS (0 errors, 204 pre-existing warnings)
 - [x] Clicking Departments tab shows Department view and highlights Departments
 - [x] Clicking any sidebar tab (History, Skills, etc.) clears Department highlight
 - [x] TypeScript/ESLint check passes with 0 errors
+
+---
+
+## Iteration 616 — Final CSS Variable Migration Sweep
+_Date: 2026-04-16 | Sprint CSS_
+
+### Summary
+Final audit of all renderer files containing `rgba(255,255,255,...)` values. Audited 38 files, confirmed all `rgba(255,255,255,0.95)` and `rgba(255,255,255,0.85)` values are exempt (all on colored/gradient button backgrounds). Migrated the 4 remaining non-exempt values: three `rgba(255,255,255,1)` → `#fff` (iframe preview bg, toggle thumb, QR code canvas bg) and one `rgba(255,255,255,0.15)` background → `var(--bg-input)` (kbd shortcut badge in DepartmentDashboard).
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/CodeBlock.tsx` — iframe preview bg: rgba(255,255,255,1) → #fff
+- `electron-ui/src/renderer/components/ui/Toggle.tsx` — toggle thumb bg: rgba(255,255,255,1) → #fff
+- `electron-ui/src/renderer/components/ui/QRCodeDisplay.tsx` — QR canvas bg: rgba(255,255,255,1) → #fff
+- `electron-ui/src/renderer/components/departments/DepartmentDashboard.tsx` — kbd badge bg: rgba(255,255,255,0.15) → var(--bg-input)
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] All `rgba(255,255,255,1)` values replaced with `#fff`
+- [x] All applicable `rgba(255,255,255,0.15)` backgrounds replaced with `var(--bg-input)`
+- [x] All `rgba(255,255,255,0.95)` on colored/gradient buttons correctly left untouched
+- [x] Box-shadow values correctly left untouched
+- [x] `npm run check` passes with 0 errors
+- [x] Committed and pushed as d7fa226
