@@ -30,7 +30,7 @@ export function TabButton({ label, icon, isActive, count, onClick }: {
         background: 'none',
         border: 'none',
         borderBottom: isActive ? '2px solid #6366f1' : '2px solid transparent',
-        color: isActive ? 'rgba(255,255,255,0.88)' : 'var(--text-muted)',
+        color: isActive ? 'var(--text-bright)' : 'var(--text-muted)',
         fontSize: 12,
         fontWeight: isActive ? 600 : 400,
         cursor: 'pointer',
@@ -78,16 +78,16 @@ export function CategoryPill({ label, isActive, color, count, onClick }: {
         border: isActive
           ? `1px solid ${color ? `${color}4d` : 'rgba(99,102,241,0.30)'}`
           : hovered
-            ? '1px solid rgba(255,255,255,0.13)'
+            ? '1px solid var(--border)'
             : '1px solid var(--glass-border-md)',
         background: isActive
           ? color ? `${color}20` : 'rgba(99,102,241,0.15)'
           : hovered
-            ? 'rgba(255,255,255,0.08)'
-            : 'rgba(255,255,255,0.06)',
+            ? 'var(--bg-hover)'
+            : 'var(--bg-input)',
         color: isActive
           ? color ? color : '#a5b4fc'
-          : 'rgba(255,255,255,0.55)',
+          : 'var(--text-secondary)',
         fontSize: 11,
         fontWeight: isActive ? 600 : 400,
         cursor: 'pointer',

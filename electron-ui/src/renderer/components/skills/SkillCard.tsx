@@ -102,7 +102,7 @@ export function SkillCard({ skill, onOpen, onUse }: {
         padding: '12px 14px',
         cursor: 'pointer',
         margin: '4px 8px',
-        background: hovered ? 'var(--border)' : 'rgba(15,15,25,0.85)',
+        background: hovered ? 'var(--border)' : 'var(--bg-primary)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: hovered

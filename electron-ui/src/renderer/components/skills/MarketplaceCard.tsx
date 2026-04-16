@@ -29,7 +29,7 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: hovered ? 'var(--border)' : 'rgba(15,15,25,0.85)',
+        background: hovered ? 'var(--border)' : 'var(--bg-primary)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: hovered ? '1px solid var(--border)' : '1px solid var(--border)',

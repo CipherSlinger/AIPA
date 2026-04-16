@@ -128,7 +128,7 @@ export default function NoteEditor({
   }, [title, content, addToast, t])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: 0, background: 'rgba(10,10,18,0.95)', scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: 0, background: 'var(--bg-primary)', scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}>
       {/* Editor header */}
       <NoteEditorHeader
         note={note}
@@ -219,7 +219,7 @@ export default function NoteEditor({
             alignItems: 'center',
             gap: 2,
             padding: '5px 10px',
-            background: 'rgba(12,12,22,0.92)',
+            background: 'var(--bg-primary)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
             borderBottom: '1px solid var(--border)',

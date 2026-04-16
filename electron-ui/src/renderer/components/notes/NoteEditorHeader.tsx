@@ -86,7 +86,7 @@ export default function NoteEditorHeader({
           onClick={() => { if (previewMode) { onSetPreviewMode(false) } }}
           style={{
             background: !previewMode ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))' : 'transparent',
-            color: !previewMode ? 'rgba(255,255,255,0.95)' : 'var(--text-muted)',
+            color: !previewMode ? 'var(--text-bright)' : 'var(--text-muted)',
             border: 'none',
             padding: '4px 10px',
             fontSize: 11,
@@ -94,7 +94,7 @@ export default function NoteEditorHeader({
             cursor: 'pointer',
             transition: 'all 0.15s ease',
           }}
-          onMouseEnter={e => { if (previewMode) e.currentTarget.style.color = 'rgba(255,255,255,0.85)' }}
+          onMouseEnter={e => { if (previewMode) e.currentTarget.style.color = 'var(--text-bright)' }}
           onMouseLeave={e => { if (previewMode) e.currentTarget.style.color = 'var(--text-muted)' }}
         >
           {t('notes.edit')}
@@ -108,7 +108,7 @@ export default function NoteEditorHeader({
           }}
           style={{
             background: previewMode ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))' : 'transparent',
-            color: previewMode ? 'rgba(255,255,255,0.95)' : 'var(--text-muted)',
+            color: previewMode ? 'var(--text-bright)' : 'var(--text-muted)',
             border: 'none',
             borderLeft: '1px solid var(--border)',
             padding: '4px 10px',
@@ -117,7 +117,7 @@ export default function NoteEditorHeader({
             cursor: 'pointer',
             transition: 'all 0.15s ease',
           }}
-          onMouseEnter={e => { if (!previewMode) e.currentTarget.style.color = 'rgba(255,255,255,0.85)' }}
+          onMouseEnter={e => { if (!previewMode) e.currentTarget.style.color = 'var(--text-bright)' }}
           onMouseLeave={e => { if (!previewMode) e.currentTarget.style.color = 'var(--text-muted)' }}
         >
           {t('notes.preview')}

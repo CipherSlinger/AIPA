@@ -237,7 +237,7 @@ ${trimmedDesc}
                     padding: '12px 14px',
                     borderRadius: 8,
                     border: '1px solid var(--border)',
-                    background: 'rgba(8,8,16,1)',
+                    background: 'var(--bg-primary)',
                     color: '#a5b4fc',
                     fontSize: 12,
                     fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", monospace',

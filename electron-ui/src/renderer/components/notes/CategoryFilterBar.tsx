@@ -41,7 +41,7 @@ export default function CategoryFilterBar({
             height: 20,
             borderRadius: 20,
             padding: '0 8px',
-            background: 'rgba(255,255,255,0.06)',
+            background: 'var(--bg-input)',
             border: '1px solid var(--glass-border-md)',
             cursor: 'pointer',
             fontSize: 10,
@@ -49,8 +49,8 @@ export default function CategoryFilterBar({
             whiteSpace: 'nowrap',
             transition: 'all 0.15s ease',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-input)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
         >
           <Plus size={10} />
           {t('notes.manageCategories')}
@@ -87,7 +87,7 @@ export default function CategoryFilterBar({
           height: 20,
           borderRadius: 20,
           padding: '0 10px',
-          background: activeCategoryFilter === null ? 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(139,92,246,0.20))' : 'rgba(255,255,255,0.06)',
+          background: activeCategoryFilter === null ? 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(139,92,246,0.20))' : 'var(--bg-input)',
           border: `1px solid ${activeCategoryFilter === null ? 'rgba(99,102,241,0.45)' : 'var(--glass-border-md)'}`,
           cursor: 'pointer',
           fontSize: 11,
@@ -105,7 +105,7 @@ export default function CategoryFilterBar({
         }}
         onMouseLeave={e => {
           if (activeCategoryFilter !== null) {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+            e.currentTarget.style.background = 'var(--bg-input)'
             e.currentTarget.style.color = 'var(--text-secondary)'
           }
         }}
@@ -131,7 +131,7 @@ export default function CategoryFilterBar({
               height: 20,
               borderRadius: 20,
               padding: '3px 10px',
-              background: isActive ? 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(139,92,246,0.20))' : 'rgba(255,255,255,0.06)',
+              background: isActive ? 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(139,92,246,0.20))' : 'var(--bg-input)',
               border: `1px solid ${isActive ? 'rgba(99,102,241,0.45)' : 'var(--glass-border-md)'}`,
               cursor: 'pointer',
               fontSize: 11,
@@ -149,7 +149,7 @@ export default function CategoryFilterBar({
             }}
             onMouseLeave={e => {
               if (!isActive) {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                e.currentTarget.style.background = 'var(--bg-input)'
                 e.currentTarget.style.color = 'var(--text-secondary)'
               }
             }}
@@ -172,7 +172,7 @@ export default function CategoryFilterBar({
           height: 20,
           borderRadius: 20,
           padding: '0 6px',
-          background: 'rgba(255,255,255,0.06)',
+          background: 'var(--bg-input)',
           border: '1px solid var(--glass-border-md)',
           cursor: 'pointer',
           fontSize: 10,
@@ -181,8 +181,8 @@ export default function CategoryFilterBar({
           flexShrink: 0,
           transition: 'all 0.15s ease',
         }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-input)'; e.currentTarget.style.color = 'var(--text-muted)' }}
       >
         <Settings size={10} />
       </button>

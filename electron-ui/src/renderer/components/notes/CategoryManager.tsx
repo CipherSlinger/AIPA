@@ -74,7 +74,7 @@ export default function CategoryManager({
           }}
           onMouseEnter={e => {
             e.currentTarget.style.background = 'var(--border)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.85)'
+            e.currentTarget.style.color = 'var(--text-bright)'
           }}
           onMouseLeave={e => {
             e.currentTarget.style.background = 'transparent'
@@ -141,7 +141,7 @@ export default function CategoryManager({
               : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
             border: 'none',
             borderRadius: 7,
-            color: 'rgba(255,255,255,0.95)',
+            color: 'var(--text-bright)',
             fontWeight: 600,
             cursor: !newCategoryName.trim() || categories.length >= MAX_CATEGORIES ? 'not-allowed' : 'pointer',
             fontSize: 11,

@@ -124,7 +124,7 @@ export default function NoteList({
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+              e.currentTarget.style.background = 'var(--glass-bg-low)'
               e.currentTarget.style.borderColor = 'var(--glass-border-md)'
               e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)'
             }}

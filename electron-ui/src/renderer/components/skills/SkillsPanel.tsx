@@ -128,7 +128,7 @@ export default function SkillsPanel() {
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      background: 'rgba(15,15,25,0.85)',
+      background: 'var(--bg-primary)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
       border: '1px solid var(--border)',
