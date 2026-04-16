@@ -6766,7 +6766,7 @@ Status: SUCCESS (tsc --noEmit: 0 errors; commit: 510fc84)
 - [x] TypeScript check passes (0 errors)
 - [x] No behavior change -- only file organization refactor
 
-## Iteration 573 — Remove redundant Open→ label from session card hover
+## Iteration 574 — Remove redundant Open→ label from session card hover
 _Date: 2026-04-16 | Sprint ongoing_
 
 ### Summary
@@ -6777,3 +6777,42 @@ Removed the bottom-right "Open→" hover label (ArrowRight icon + "Open" text, 2
 
 ### Build
 Status: SUCCESS
+
+## Iteration 575 — Minimap toggle localStorage persistence
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Added localStorage persistence to WorkflowCanvas minimap toggle in useCanvasLayout.ts. The toggle button already existed in CanvasToolbar. Changed useState(true) to lazy initializer reading localStorage('aipa:canvas-minimap'), and added useEffect to write on every change. Default is true (visible) when key is absent. M keyboard shortcut automatically benefits.
+
+### Files Changed
+- `electron-ui/src/renderer/components/workflows/useCanvasLayout.ts` — lazy localStorage initializer + persist effect
+
+### Build
+Status: SUCCESS
+
+## Iteration 576 — Slash commands for new settings tabs + /mcp fix
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Added slash commands for new settings tabs: /sandbox → openSettingsAt('sandbox'), /ai-engine and /providers → openSettingsAt('ai-engine'). Fixed existing /mcp handler which was incorrectly calling openSettingsAt('plugins') — changed to openSettingsAt('mcp'). Added command palette entries for sandbox and ai-engine. Verified /memory uses setActiveNavItem('memory') (correct, not openSettingsAt).
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/SlashCommandPopup.tsx` — add /sandbox, /ai-engine, /providers entries
+- `electron-ui/src/renderer/components/chat/useInputPopups.ts` — fix /mcp handler, add /sandbox and /ai-engine handlers
+- `electron-ui/src/renderer/components/shared/commandPaletteCommands.tsx` — add slash-sandbox, slash-ai-engine commands
+
+### Build
+Status: SUCCESS
+
+## Iteration 577 — Z-index layering system for chat/layout dropdowns
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Established CSS variable-based z-index hierarchy (--z-base:1, --z-sidebar:10, --z-header:20, --z-fab:30, --z-dropdown:200, --z-popover:250, --z-modal:500, --z-toast:300, --z-tooltip:900, --z-overlay:9999). Fixed 25 component files where dropdowns/popovers used z:60 and were covered by siblings. Key fixes: ModelPicker/PersonaPicker/StatsPanel/BookmarksPanel z:60→z:200, RewindDialog z:50→z:500. Total: 26 files changed.
+
+### Files Changed
+- `electron-ui/src/renderer/styles/globals.css` — add --z-* CSS variables
+- 25 component files — update z-index to use proper layering
+
+### Build
+Status: SUCCESS (vite build: 18.79s)
