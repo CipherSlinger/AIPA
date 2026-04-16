@@ -7012,3 +7012,17 @@ CSS variable migration across 12 notes and skills components (memory/ had 0 repl
 
 ### Build
 Status: SUCCESS (vite build: 12.88s, 0 TypeScript errors)
+
+## Iteration 590 — NavRail + shared UI components CSS variable migration
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+CSS variable migration for layout/UI/shared components. Most files had only indigo accent or depth rgba values (excluded per rules). ImageLightbox.tsx: 6 replacements (dark toolbar bg → var(--glass-bg-low)). AskUserQuestionCard.tsx (1) and RemoteTriggerCard.tsx (4) were also migrated opportunistically. NavRail, AppShell, Sidebar, Toast, CommandPalette, Toggle, Skeleton — all 0 replacements (correct per rules: indigo/status/depth/gradient-incompatible values).
+
+### Files Changed
+- `src/renderer/components/shared/ImageLightbox.tsx` — 6 replacements (dark-bg → var(--glass-bg-low))
+- `src/renderer/components/chat/tool-cards/AskUserQuestionCard.tsx` — 1 replacement
+- `src/renderer/components/chat/tool-cards/RemoteTriggerCard.tsx` — 4 replacements
+
+### Build
+Status: SUCCESS (vite build: 20.19s, 0 TypeScript errors)
