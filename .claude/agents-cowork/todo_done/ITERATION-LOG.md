@@ -6921,3 +6921,40 @@ CSS variable migration for chat input-area components. Replaced hardcoded rgba()
 
 ### Build
 Status: SUCCESS (vite build: 11.64s, 0 TypeScript errors)
+
+## Iteration 584 — Sidebar + session components CSS variable migration
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+CSS variable migration across sidebar and session list components. Replaced generic rgba() white/black values with semantic CSS custom properties. Files: TaskItemRow (hover bg, border, text), TasksPanel (button text), ChangesPanel (5 replacements: glass-shimmer, overlay, popup bg), DiffViewer (4 replacements), ReminderSection (shadow, borders, text), SessionItem (badge text, shadow, tag bg), SessionFolders (dropdown shadow), SessionListHeader (sort dropdown shadow). Total ~20 replacements across 8 files.
+
+### Files Changed
+- `src/renderer/components/sidebar/TaskItemRow.tsx` — 3 replacements
+- `src/renderer/components/sidebar/TasksPanel.tsx` — 1 replacement
+- `src/renderer/components/sidebar/ChangesPanel.tsx` — 5 replacements
+- `src/renderer/components/sidebar/DiffViewer.tsx` — 4 replacements
+- `src/renderer/components/sidebar/ReminderSection.tsx` — 3 replacements
+- `src/renderer/components/sessions/SessionItem.tsx` — 3 replacements
+- `src/renderer/components/sessions/SessionFolders.tsx` — 1 replacement
+- `src/renderer/components/sessions/SessionListHeader.tsx` — 1 replacement
+
+### Build
+Status: SUCCESS (vite build: 18.50s, 0 TypeScript errors)
+
+## Iteration 585 — ToolUseBlock phase 3: extract AskUserQuestion, TaskBadge, ImageThumbnail, ToolCardHeader
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Final major decomposition of ToolUseBlock.tsx. Extracted 4 new tool-cards modules: AskUserQuestionCard.tsx (interactive question card with option buttons, dispatches aipa:sendMessage), TaskBadgeCard.tsx (TaskCreateBadge + TaskUpdateBadge + TASK_CREATE_TOOLS/TASK_UPDATE_TOOLS sets), ImageThumbnail.tsx (clickable image with error fallback), ToolCardHeader.tsx (full collapsible header: tool icon, file-path highlight, MCP badge, elapsed timer, status badge, abort button). ToolUseBlock.tsx reduced from 1243 → 871 lines (target: <900 achieved). Also cleaned 3 unused lucide imports and removed formatElapsed/statusIcon helpers.
+
+### Files Changed
+- `src/renderer/components/chat/ToolUseBlock.tsx` — 1243→871 lines; 4 new imports, removed 130-line header block + inline components
+- `src/renderer/components/chat/tool-cards/AskUserQuestionCard.tsx` — NEW (168 lines)
+- `src/renderer/components/chat/tool-cards/TaskBadgeCard.tsx` — NEW (106 lines)
+- `src/renderer/components/chat/tool-cards/ImageThumbnail.tsx` — NEW (50 lines)
+- `src/renderer/components/chat/tool-cards/ToolCardHeader.tsx` — NEW (224 lines)
+
+### Build
+Status: SUCCESS (vite build: 12.33s, 0 TypeScript errors)
+
+### tool-cards/ directory: 12 files total
