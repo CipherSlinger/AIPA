@@ -206,7 +206,7 @@ export default function SlashCommandPopup({ query, onSelect, onDismiss, selected
               padding: '1px 5px',
               fontSize: 10,
               fontFamily: 'monospace',
-              color: 'rgba(255,255,255,0.55)',
+              color: 'var(--text-muted)',
               lineHeight: 1.6,
             }}>
               {key}

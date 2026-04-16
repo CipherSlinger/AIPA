@@ -178,7 +178,7 @@ export default function ChangesPanel({
                 background: 'var(--bg-hover)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <GitCompareArrows size={20} style={{ color: 'rgba(255,255,255,0.2)' }} />
+                <GitCompareArrows size={20} style={{ color: 'var(--text-muted)' }} />
               </div>
               <span style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>
                 {t('changes.noChanges')}

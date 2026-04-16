@@ -59,7 +59,7 @@ export default function BookmarksPanel({
             right: 2,
             fontSize: 9,
             fontWeight: 600,
-            color: 'rgba(255,255,255,0.55)',
+            color: 'var(--text-muted)',
             background: 'var(--border)',
             borderRadius: 10,
             minWidth: 14,
@@ -110,7 +110,7 @@ export default function BookmarksPanel({
                 padding: '1px 6px',
                 fontSize: 10,
                 fontWeight: 600,
-                color: 'rgba(255,255,255,0.55)',
+                color: 'var(--text-muted)',
               }}>{bookmarkedMessages.length}</span>
             </span>
             {onExportBookmarks && (
@@ -130,7 +130,7 @@ export default function BookmarksPanel({
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = 'var(--border)'
-                  e.currentTarget.style.color = 'rgba(255,255,255,0.85)'
+                  e.currentTarget.style.color = 'var(--text-secondary)'
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = 'none'
