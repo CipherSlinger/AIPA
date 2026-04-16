@@ -6283,3 +6283,48 @@ Status: SUCCESS (npm run check 0 errors, 202 warnings all pre-existing)
 - [x] onMouseEnter sets both background (bg-active) and color (text-primary)
 - [x] onMouseLeave restores both background and color
 - [x] TypeScript check passes with 0 errors
+
+## Iteration 548 — Light theme: migrate layout & session components to CSS variables
+_Date: 2026-04-15 | Sprint ongoing_
+
+### Summary
+Audited all layout and session components for hardcoded RGBA colors. Most were already migrated by prior commits. Remaining 4 files patched: StatusBar active timer button, StatusBarModelPicker provider badge + inactive chip color, statusBarConstants separator color, SessionTooltip skeleton loader.
+
+### Files Changed
+- `electron-ui/src/renderer/components/layout/StatusBar.tsx` — active timer button bg → var(--bg-active)
+- `electron-ui/src/renderer/components/layout/StatusBarModelPicker.tsx` — provider badge + chip text → CSS vars
+- `electron-ui/src/renderer/components/layout/statusBarConstants.ts` — separator color → var(--border)
+- `electron-ui/src/renderer/components/sessions/SessionTooltip.tsx` — skeleton loader → var(--bg-active)
+
+### Build
+Status: SUCCESS (npm run check 0 errors, vite build 12.84s)
+
+### Acceptance Criteria
+- [x] StatusBar, StatusBarModelPicker, statusBarConstants use CSS variables
+- [x] SessionTooltip skeleton uses CSS variables
+- [x] Confirmed: Sidebar, NavRail, ChatHeader, SessionList, SessionItem all already migrated
+- [x] Build passes with no new errors
+
+## Iteration 551 — Light theme: migrate popup & misc components to CSS variables
+_Date: 2026-04-15 | Sprint ongoing_
+
+### Summary
+Migrated memory, sidebar, and dialog/popup components: MemoryPanel (concept banners + list items), MemoryAddForm, MemoryItemCard, ElicitationCard, ForkDialog, PlanApprovalCard, WelcomeQuickActions, ReminderSection. Fixed broken style object in ReminderSection (onMouseEnter statement erroneously placed inside style object literal).
+
+### Files Changed
+- `electron-ui/src/renderer/components/memory/MemoryPanel.tsx`
+- `electron-ui/src/renderer/components/memory/MemoryAddForm.tsx`
+- `electron-ui/src/renderer/components/memory/MemoryItemCard.tsx`
+- `electron-ui/src/renderer/components/chat/ElicitationCard.tsx`
+- `electron-ui/src/renderer/components/chat/ForkDialog.tsx`
+- `electron-ui/src/renderer/components/chat/PlanApprovalCard.tsx`
+- `electron-ui/src/renderer/components/chat/WelcomeQuickActions.tsx`
+- `electron-ui/src/renderer/components/sidebar/ReminderSection.tsx`
+
+### Build
+Status: SUCCESS (npm run check 0 errors)
+
+### Acceptance Criteria
+- [x] Memory panel components use CSS variables for bg/text
+- [x] Chat dialog/popup components use CSS variables
+- [x] ReminderSection style object syntax fixed
