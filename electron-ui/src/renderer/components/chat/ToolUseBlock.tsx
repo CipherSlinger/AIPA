@@ -915,6 +915,87 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
     )
   }
 
+  // TaskCreate: compact inline "created" badge
+  if (TASK_CREATE_TOOLS.has(tool.name)) {
+    const subject = typeof tool.input?.subject === 'string' ? tool.input.subject : '(unnamed task)'
+    const isDone = tool.status === 'done'
+    const isRunning = tool.status === 'running'
+    return (
+      <div style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '4px 10px',
+        borderRadius: 8,
+        background: isDone ? 'rgba(34,197,94,0.12)' : isRunning ? 'rgba(99,102,241,0.10)' : 'rgba(239,68,68,0.10)',
+        border: `1px solid ${isDone ? 'rgba(34,197,94,0.28)' : isRunning ? 'rgba(99,102,241,0.28)' : 'rgba(239,68,68,0.28)'}`,
+        marginBottom: 4,
+        fontSize: 12,
+        color: isDone ? 'rgba(74,222,128,0.90)' : isRunning ? 'rgba(165,180,252,0.90)' : 'rgba(252,165,165,0.90)',
+        fontWeight: 500,
+        maxWidth: '100%',
+        overflow: 'hidden',
+        transition: 'all 0.15s ease',
+      }}>
+        {isDone
+          ? <Check size={12} style={{ flexShrink: 0 }} />
+          : isRunning
+          ? <Loader2 size={12} className="animate-spin" style={{ flexShrink: 0 }} />
+          : <X size={12} style={{ flexShrink: 0 }} />
+        }
+        <span style={{ fontWeight: 700, flexShrink: 0, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.75 }}>
+          TaskCreate
+        </span>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {subject}
+        </span>
+      </div>
+    )
+  }
+
+  // TaskUpdate: compact inline "updated" badge
+  if (TASK_UPDATE_TOOLS.has(tool.name)) {
+    const taskId = typeof tool.input?.taskId === 'string' ? tool.input.taskId : ''
+    const status = typeof tool.input?.status === 'string' ? tool.input.status : ''
+    const shortId = taskId.length > 6 ? taskId.slice(0, 6) : taskId
+    const isDone = tool.status === 'done'
+    const isRunning = tool.status === 'running'
+    return (
+      <div style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '4px 10px',
+        borderRadius: 8,
+        background: isDone ? 'rgba(99,102,241,0.10)' : isRunning ? 'rgba(99,102,241,0.08)' : 'rgba(239,68,68,0.10)',
+        border: `1px solid ${isDone ? 'rgba(99,102,241,0.28)' : isRunning ? 'rgba(99,102,241,0.20)' : 'rgba(239,68,68,0.28)'}`,
+        marginBottom: 4,
+        fontSize: 12,
+        color: isDone ? 'rgba(165,180,252,0.90)' : isRunning ? 'rgba(165,180,252,0.75)' : 'rgba(252,165,165,0.90)',
+        fontWeight: 500,
+        maxWidth: '100%',
+        overflow: 'hidden',
+        transition: 'all 0.15s ease',
+      }}>
+        {isDone
+          ? <Check size={12} style={{ flexShrink: 0 }} />
+          : isRunning
+          ? <Loader2 size={12} className="animate-spin" style={{ flexShrink: 0 }} />
+          : <X size={12} style={{ flexShrink: 0 }} />
+        }
+        <span style={{ fontWeight: 700, flexShrink: 0, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.75 }}>
+          TaskUpdate
+        </span>
+        {shortId && (
+          <span style={{ fontFamily: 'monospace', fontSize: 10, opacity: 0.75 }}>#{shortId}</span>
+        )}
+        {status && (
+          <span style={{ fontSize: 10, opacity: 0.80 }}>{'\u2192'} {status}</span>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div
       style={{
@@ -1112,6 +1193,11 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
               <NotebookEditCard input={tool.input} />
             ) : tool.name === 'TodoWrite' || tool.name === 'todo_write' ? (
               <TodoListView todos={Array.isArray(tool.input.todos) ? (tool.input.todos as import('./TodoListView').TodoItem[]) : []} />
+            ) : TASK_LIST_TOOLS.has(tool.name) || TASK_GET_TOOLS.has(tool.name) ? (
+              /* TaskList/TaskGet: show compact task cards in input section (query params) */
+              <pre style={{ fontSize: 11, margin: 0, fontFamily: 'monospace', background: 'rgba(8,8,16,1)', border: '1px solid var(--bg-hover)', borderRadius: 4, padding: '6px 8px', overflow: 'auto', maxHeight: 100, color: '#a5b4fc', lineHeight: 1.5 }}>
+                {JSON.stringify(tool.input, null, 2)}
+              </pre>
             ) : (
               <pre style={{ fontSize: 11, margin: 0, fontFamily: 'monospace', background: 'rgba(8,8,16,1)', border: '1px solid var(--bg-hover)', borderRadius: 4, padding: '6px 8px', overflow: 'auto', maxHeight: 200, color: '#a5b4fc', lineHeight: 1.5 }}>
                 {JSON.stringify(tool.input, null, 2)}
@@ -1132,6 +1218,25 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
                       <CopyOutputBtn text={resultText} t={t} />
                     </div>
                     <LSPResultCard data={lspData} />
+                  </div>
+                )
+              }
+            }
+
+            // TaskList / TaskGet: parse JSON result into TaskDashboardCard
+            if ((TASK_LIST_TOOLS.has(tool.name) || TASK_GET_TOOLS.has(tool.name)) && resultText) {
+              const taskItems = parseTaskItems(resultText)
+              if (taskItems) {
+                return (
+                  <div>
+                    <div style={{ height: 1, background: 'var(--bg-hover)' }} />
+                    <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span>{t('tool.output')}</span>
+                        <CopyOutputBtn text={resultText} t={t} />
+                      </div>
+                      <TaskDashboardCard tasks={taskItems} singleTask={TASK_GET_TOOLS.has(tool.name)} />
+                    </div>
                   </div>
                 )
               }
