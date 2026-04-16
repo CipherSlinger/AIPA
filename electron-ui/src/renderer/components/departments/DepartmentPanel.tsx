@@ -102,7 +102,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
   return (
     <div style={{
       padding: '14px 12px',
-      background: 'rgba(255,255,255,0.025)',
+      background: 'var(--bg-hover)',
       borderTop: '1px solid var(--border)',
     }}>
       <div style={{
@@ -271,7 +271,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
               flex: 1,
               padding: '6px 8px',
               borderRadius: 6,
-              border: '1px dashed rgba(255,255,255,0.15)',
+              border: '1px dashed var(--border)',
               background: 'transparent',
               color: 'var(--text-muted)',
               fontSize: 11,
@@ -287,7 +287,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
               e.currentTarget.style.background = 'rgba(99,102,241,0.06)'
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
+              e.currentTarget.style.borderColor = 'var(--border)'
               e.currentTarget.style.color = 'var(--text-muted)'
               e.currentTarget.style.background = 'transparent'
             }}
@@ -301,7 +301,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
             style={{
               padding: '6px 9px',
               borderRadius: 6,
-              border: '1px dashed rgba(255,255,255,0.15)',
+              border: '1px dashed var(--border)',
               background: 'transparent',
               color: 'var(--text-muted)',
               fontSize: 11,
@@ -317,7 +317,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
               e.currentTarget.style.background = 'rgba(99,102,241,0.06)'
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
+              e.currentTarget.style.borderColor = 'var(--border)'
               e.currentTarget.style.color = 'var(--text-muted)'
               e.currentTarget.style.background = 'transparent'
             }}
@@ -1110,7 +1110,7 @@ export default function DepartmentPanel() {
               opacity: 0.6,
             }}>
               <span>{t('dept.pressToCreate')}</span>
-              <kbd style={{ fontSize: 9, background: 'var(--border)', borderRadius: 3, padding: '0 4px', border: '1px solid rgba(255,255,255,0.15)' }}>N</kbd>
+              <kbd style={{ fontSize: 9, background: 'var(--border)', borderRadius: 3, padding: '0 4px', border: '1px solid var(--border)' }}>N</kbd>
               <span>{t('dept.toCreate')}</span>
             </div>
           </div>
@@ -1181,7 +1181,7 @@ export default function DepartmentPanel() {
             lineHeight: '14px',
             fontFamily: 'monospace',
             marginLeft: 4,
-            color: 'rgba(255,255,255,0.6)',
+            color: 'var(--text-muted)',
           }}>N</kbd>
         </button>
       )}

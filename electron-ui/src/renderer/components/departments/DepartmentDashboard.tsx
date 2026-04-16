@@ -831,7 +831,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
                     top: 8, left: 8,
                     width: 18, height: 18,
                     borderRadius: 4,
-                    border: `2px solid ${selectedSessions.has(session.sessionId) ? '#6366f1' : 'rgba(255,255,255,0.3)'}`,
+                    border: `2px solid ${selectedSessions.has(session.sessionId) ? '#6366f1' : 'var(--border)'}`,
                     background: selectedSessions.has(session.sessionId) ? '#6366f1' : 'transparent',
                     zIndex: 5,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1413,7 +1413,7 @@ function OrgChart({ onSelectDept, onNewSessionInDept, onOpenSession, loadingSess
                           transition: 'all 0.15s ease',
                         }}
                         onMouseEnter={e => { e.currentTarget.style.color = '#818cf8'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)' }}
-                        onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.65)'; e.currentTarget.style.borderColor = 'var(--bg-active)' }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.borderColor = 'var(--bg-active)' }}
                       >
                         {t('dept.openInDept')}
                       </button>
@@ -1716,7 +1716,7 @@ function OrgChart({ onSelectDept, onNewSessionInDept, onOpenSession, loadingSess
               style={{
                 padding: '6px 9px',
                 borderRadius: 7,
-                border: '1px dashed rgba(255,255,255,0.15)',
+                border: '1px dashed var(--border)',
                 background: 'transparent',
                 color: 'var(--text-muted)',
                 fontSize: 11,
@@ -1732,7 +1732,7 @@ function OrgChart({ onSelectDept, onNewSessionInDept, onOpenSession, loadingSess
                 e.currentTarget.style.background = 'rgba(99,102,241,0.06)'
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
+                e.currentTarget.style.borderColor = 'var(--border)'
                 e.currentTarget.style.color = 'var(--text-muted)'
                 e.currentTarget.style.background = 'transparent'
               }}

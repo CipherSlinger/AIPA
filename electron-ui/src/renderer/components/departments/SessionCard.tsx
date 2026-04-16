@@ -444,7 +444,7 @@ export default function SessionCard({ session, onClick, isActive, isStreaming, i
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
         <MessageSquare
           size={14}
-          color={isActive ? '#818cf8' : hovered ? 'rgba(255,255,255,0.5)' : 'var(--text-muted)'}
+          color={isActive ? '#818cf8' : hovered ? 'var(--text-secondary)' : 'var(--text-muted)'}
           style={{ flexShrink: 0, marginTop: 1, transition: 'color 0.15s ease' }}
         />
         <span
