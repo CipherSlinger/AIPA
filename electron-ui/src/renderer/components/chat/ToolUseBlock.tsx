@@ -373,6 +373,287 @@ function McpResourceReadCard({ uri, content, t }: { uri: string; content: string
   )
 }
 
+// ── SendMessage card ────────────────────────────────────────────────────────────
+
+/** SendMessage: shows recipient + message preview with indigo left-border style */
+function SendMessageCard({ tool }: { tool: ToolUseInfo }) {
+  const to = typeof tool.input?.to === 'string' ? tool.input.to : ''
+  const message = typeof tool.input?.message === 'string' ? tool.input.message : ''
+  const [msgExpanded, setMsgExpanded] = useState(false)
+  const MSG_LIMIT = 120
+  const isMsgLong = message.length > MSG_LIMIT
+  const msgPreview = isMsgLong && !msgExpanded ? message.slice(0, MSG_LIMIT) + '…' : message
+
+  const isDone = tool.status === 'done'
+  const isRunning = tool.status === 'running'
+  const isError = tool.status === 'error'
+  const resultText = typeof tool.result === 'string' ? tool.result : tool.result != null ? JSON.stringify(tool.result) : ''
+  const isSuccess = isDone && !isError
+
+  return (
+    <div style={{
+      background: 'var(--bg-primary)',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
+      border: '1px solid var(--border)',
+      borderLeft: '2px solid rgba(99,102,241,0.5)',
+      borderRadius: 10,
+      marginBottom: 6,
+      overflow: 'hidden',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+    }}>
+      {/* Header row */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        padding: '7px 10px', background: 'var(--bg-hover)',
+        borderBottom: '1px solid var(--border)',
+      }}>
+        <Send size={12} style={{ color: 'rgba(165,180,252,0.8)', flexShrink: 0 }} />
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>SendMessage</span>
+        {isRunning && <Loader2 size={11} className="animate-spin" style={{ color: 'rgba(165,180,252,0.7)', flexShrink: 0 }} />}
+        {isSuccess && (
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            padding: '2px 7px', borderRadius: 8,
+            background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.28)',
+            color: '#4ade80', fontSize: 10, fontWeight: 600,
+          }}>
+            <Check size={9} style={{ flexShrink: 0 }} />
+            Delivered
+          </span>
+        )}
+        {isError && (
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            padding: '2px 7px', borderRadius: 8,
+            background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.28)',
+            color: '#fca5a5', fontSize: 10, fontWeight: 600,
+          }}>
+            <X size={9} style={{ flexShrink: 0 }} />
+            Failed
+          </span>
+        )}
+      </div>
+      {/* Body */}
+      <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {to && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Users size={11} style={{ color: 'rgba(165,180,252,0.6)', flexShrink: 0 }} />
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>To:</span>
+            <span style={{
+              fontSize: 11, fontWeight: 600, color: 'rgba(165,180,252,0.9)',
+              fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {to}
+            </span>
+          </div>
+        )}
+        {message && (
+          <div style={{ background: 'rgba(99,102,241,0.06)', borderRadius: 6, padding: '6px 9px', border: '1px solid rgba(99,102,241,0.14)' }}>
+            <pre style={{
+              margin: 0, fontSize: 11, fontFamily: 'inherit',
+              color: 'var(--text-secondary)', lineHeight: 1.6,
+              whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+            }}>
+              {msgPreview}
+            </pre>
+            {isMsgLong && (
+              <button
+                onClick={() => setMsgExpanded(!msgExpanded)}
+                style={{
+                  marginTop: 3, background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'rgba(165,180,252,0.65)', fontSize: 10, padding: '0',
+                  transition: 'color 0.15s ease',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,1)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,0.65)' }}
+              >
+                {msgExpanded ? 'Show less' : `+ ${message.length - MSG_LIMIT} more chars`}
+              </button>
+            )}
+          </div>
+        )}
+        {tool.result !== undefined && !isSuccess && resultText && (
+          <div style={{
+            fontSize: 11,
+            color: isError ? '#fca5a5' : 'var(--text-secondary)',
+            fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+            maxHeight: 100, overflow: 'auto',
+          }}>
+            {resultText.slice(0, 150)}{resultText.length > 150 ? '…' : ''}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── RemoteTrigger cards ─────────────────────────────────────────────────────────
+
+type RemoteTriggerAction = 'list' | 'get' | 'create' | 'update' | 'run'
+
+interface RemoteTriggerItem {
+  id?: string
+  cron?: string
+  prompt?: string
+  name?: string
+  [key: string]: unknown
+}
+
+const REMOTE_TRIGGER_ACTION_CONFIG: Record<RemoteTriggerAction, {
+  label: string
+  icon: React.ElementType
+  bg: string
+  border: string
+  color: string
+}> = {
+  list:   { label: 'List',   icon: ClipboardList, bg: 'rgba(100,116,139,0.14)', border: 'rgba(100,116,139,0.30)', color: '#94a3b8' },
+  get:    { label: 'Get',    icon: FileText,       bg: 'rgba(59,130,246,0.14)',  border: 'rgba(59,130,246,0.30)',  color: '#93c5fd' },
+  create: { label: 'Create', icon: Check,          bg: 'rgba(34,197,94,0.14)',   border: 'rgba(34,197,94,0.30)',   color: '#4ade80' },
+  update: { label: 'Update', icon: FileEdit,       bg: 'rgba(234,179,8,0.14)',   border: 'rgba(234,179,8,0.30)',   color: '#fde047' },
+  run:    { label: 'Run',    icon: Send,            bg: 'rgba(99,102,241,0.14)',  border: 'rgba(99,102,241,0.30)',  color: '#a5b4fc' },
+}
+
+/** RemoteTrigger input display — action chip + trigger_id + prompt preview */
+function RemoteTriggerInputCard({ input }: { input: Record<string, unknown> }) {
+  const action = (typeof input.action === 'string' ? input.action : 'list') as RemoteTriggerAction
+  const cfg = REMOTE_TRIGGER_ACTION_CONFIG[action] ?? REMOTE_TRIGGER_ACTION_CONFIG.list
+  const ActionIcon = cfg.icon
+  const triggerId = typeof input.trigger_id === 'string' ? input.trigger_id : null
+  const body = input.body && typeof input.body === 'object' ? (input.body as Record<string, unknown>) : null
+  const prompt = body && typeof body.prompt === 'string' ? body.prompt : null
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          padding: '3px 8px', borderRadius: 8,
+          background: cfg.bg, border: `1px solid ${cfg.border}`,
+          color: cfg.color, fontSize: 11, fontWeight: 600,
+        }}>
+          <ActionIcon size={10} style={{ flexShrink: 0 }} />
+          {cfg.label}
+        </span>
+        {triggerId && (
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 3,
+            padding: '2px 7px', borderRadius: 6,
+            background: 'rgba(8,8,16,0.6)', border: '1px solid rgba(99,102,241,0.22)',
+            color: '#a5b4fc', fontSize: 10, fontFamily: 'monospace',
+          }}>
+            {triggerId}
+          </span>
+        )}
+      </div>
+      {prompt && (
+        <div style={{
+          fontSize: 11, color: 'rgba(255,255,255,0.55)', fontStyle: 'italic',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 380,
+        }}>
+          "{prompt.length > 60 ? prompt.slice(0, 60) + '…' : prompt}"
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** RemoteTrigger result card */
+function RemoteTriggerResultCard({ action, resultText }: { action: RemoteTriggerAction; resultText: string }) {
+  const parsed = (() => { try { return JSON.parse(resultText) } catch { return null } })()
+
+  if (action === 'run') {
+    const success = !resultText.toLowerCase().includes('error')
+    return (
+      <div style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5,
+        padding: '3px 9px', borderRadius: 8,
+        background: success ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
+        border: `1px solid ${success ? 'rgba(34,197,94,0.28)' : 'rgba(239,68,68,0.28)'}`,
+        color: success ? '#4ade80' : '#fca5a5', fontSize: 11, fontWeight: 500,
+      }}>
+        {success
+          ? <Check size={11} style={{ flexShrink: 0 }} />
+          : <X size={11} style={{ flexShrink: 0 }} />}
+        {success ? 'Triggered' : 'Trigger failed'}
+      </div>
+    )
+  }
+
+  if (action === 'list') {
+    const raw: unknown[] = Array.isArray(parsed) ? parsed
+      : (parsed !== null && typeof parsed === 'object' && Array.isArray((parsed as Record<string, unknown>).triggers)
+        ? (parsed as Record<string, unknown>).triggers as unknown[]
+        : [])
+    const items = raw as RemoteTriggerItem[]
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <span style={{
+          display: 'inline-flex', alignItems: 'center',
+          padding: '2px 7px', borderRadius: 6,
+          background: 'rgba(100,116,139,0.14)', border: '1px solid rgba(100,116,139,0.28)',
+          color: '#94a3b8', fontSize: 10, fontWeight: 700,
+        }}>
+          {items.length} trigger{items.length !== 1 ? 's' : ''}
+        </span>
+        {items.slice(0, 5).map((item, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+            <ClipboardList size={10} style={{ color: '#94a3b8', flexShrink: 0 }} />
+            <span style={{ fontFamily: 'monospace', color: '#a5b4fc', fontSize: 10 }}>{item.id ?? '—'}</span>
+            {item.cron && <span style={{ color: 'rgba(255,255,255,0.40)', fontSize: 10 }}>{item.cron}</span>}
+            {item.name && (
+              <span style={{ color: 'rgba(255,255,255,0.70)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
+                {item.name}
+              </span>
+            )}
+          </div>
+        ))}
+        {items.length > 5 && (
+          <span style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'monospace' }}>+{items.length - 5} more</span>
+        )}
+      </div>
+    )
+  }
+
+  // get / create / update: show trigger detail fields
+  const trigger: RemoteTriggerItem | null =
+    parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed as RemoteTriggerItem
+      : null
+  if (trigger) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        {trigger.id && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ color: 'var(--text-muted)', minWidth: 44, fontSize: 10 }}>id</span>
+            <span style={{ fontFamily: 'monospace', color: '#a5b4fc', fontSize: 10 }}>{trigger.id}</span>
+          </div>
+        )}
+        {trigger.cron && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ color: 'var(--text-muted)', minWidth: 44, fontSize: 10 }}>cron</span>
+            <span style={{ fontFamily: 'monospace', color: '#fde047', fontSize: 10 }}>{trigger.cron}</span>
+          </div>
+        )}
+        {trigger.prompt && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ color: 'var(--text-muted)', minWidth: 44, fontSize: 10 }}>prompt</span>
+            <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 280 }}>
+              "{trigger.prompt.length > 60 ? trigger.prompt.slice(0, 60) + '…' : trigger.prompt}"
+            </span>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <pre style={{ fontSize: 11, margin: 0, fontFamily: 'monospace', background: 'rgba(8,8,16,1)', border: '1px solid var(--bg-hover)', borderRadius: 4, padding: '6px 8px', overflow: 'auto', maxHeight: 120, color: '#a5b4fc', lineHeight: 1.5 }}>
+      {resultText}
+    </pre>
+  )
+}
+
 // ── WebBrowserTool card ─────────────────────────────────────────────────────────
 
 /** Input section for browser automation tools */
@@ -1542,6 +1823,8 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
               />
             ) : tool.name === 'NotebookEdit' ? (
               <NotebookEditCard input={tool.input} />
+            ) : tool.name === 'RemoteTrigger' ? (
+              <RemoteTriggerInputCard input={tool.input} />
             ) : tool.name === 'TodoWrite' || tool.name === 'todo_write' ? (
               <TodoListView todos={Array.isArray(tool.input.todos) ? (tool.input.todos as import('./TodoListView').TodoItem[]) : []} />
             ) : TASK_LIST_TOOLS.has(tool.name) || TASK_GET_TOOLS.has(tool.name) ? (
@@ -1549,6 +1832,10 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
               <pre style={{ fontSize: 11, margin: 0, fontFamily: 'monospace', background: 'rgba(8,8,16,1)', border: '1px solid var(--bg-hover)', borderRadius: 4, padding: '6px 8px', overflow: 'auto', maxHeight: 100, color: '#a5b4fc', lineHeight: 1.5 }}>
                 {JSON.stringify(tool.input, null, 2)}
               </pre>
+            ) : tool.name === 'CronCreate' ? (
+              <CronCard mode='create' input={tool.input} />
+            ) : tool.name === 'CronDelete' ? (
+              <CronCard mode='delete' input={tool.input} />
             ) : BROWSER_TOOLS.has(tool.name) ? (
               <WebBrowserInputCard input={tool.input} />
             ) : (
@@ -1680,6 +1967,90 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
                   </div>
                 )
               }
+            }
+
+            // RemoteTrigger: action-aware result card
+            if (tool.name === 'RemoteTrigger' && resultText) {
+              const rtAction = (typeof tool.input?.action === 'string' ? tool.input.action : 'list') as RemoteTriggerAction
+              return (
+                <div>
+                  <div style={{ height: 1, background: 'var(--bg-hover)' }} />
+                  <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span>{t('tool.output')}</span>
+                      <CopyOutputBtn text={resultText} t={t} />
+                    </div>
+                    <RemoteTriggerResultCard action={rtAction} resultText={resultText} />
+                  </div>
+                </div>
+              )
+            }
+
+            // CronCreate: show scheduled badge with job ID
+            if (tool.name === 'CronCreate' && resultText) {
+              return (
+                <div>
+                  <div style={{ height: 1, background: 'var(--bg-hover)' }} />
+                  <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>
+                      {t('tool.output')}
+                    </div>
+                    <CronCard mode='create' input={tool.input} resultText={resultText} isResult />
+                  </div>
+                </div>
+              )
+            }
+
+            // CronDelete: show success/error badge
+            if (tool.name === 'CronDelete') {
+              const isError = tool.status === 'error'
+              return (
+                <div>
+                  <div style={{ height: 1, background: 'var(--bg-hover)' }} />
+                  <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>
+                      {t('tool.output')}
+                    </div>
+                    {isError ? (
+                      <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        padding: '3px 9px', borderRadius: 8,
+                        background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.28)',
+                        color: '#fca5a5', fontSize: 11, fontWeight: 500,
+                      }}>
+                        <X size={11} style={{ flexShrink: 0 }} />
+                        {resultText || 'Delete failed'}
+                      </div>
+                    ) : (
+                      <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        padding: '3px 9px', borderRadius: 8,
+                        background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.28)',
+                        color: '#4ade80', fontSize: 11, fontWeight: 500,
+                      }}>
+                        <Check size={11} style={{ flexShrink: 0 }} />
+                        Job deleted
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            }
+
+            // CronList: parse job list and show compact cards
+            if (tool.name === 'CronList' && resultText) {
+              return (
+                <div>
+                  <div style={{ height: 1, background: 'var(--bg-hover)' }} />
+                  <div style={{ padding: '8px 10px', background: 'rgba(8,8,16,0.7)' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span>{t('tool.output')}</span>
+                      <CopyOutputBtn text={resultText} t={t} />
+                    </div>
+                    <CronCard mode='list' input={tool.input} resultText={resultText} isResult />
+                  </div>
+                </div>
+              )
             }
 
             // Glob/Grep: structured result summary
@@ -2017,6 +2388,242 @@ function NotebookEditCard({ input }: { input: Record<string, unknown> }) {
       )}
     </div>
   )
+}
+
+
+// ── Cron scheduling display cards ───────────────────────────────────────────────
+
+/** CronCard — input/result display for CronCreate, CronDelete, CronList */
+function CronCard({
+  mode,
+  input,
+  resultText,
+  isResult,
+}: {
+  mode: 'create' | 'delete' | 'list'
+  input: Record<string, unknown>
+  resultText?: string
+  isResult?: boolean
+}) {
+  const [promptExpanded, setPromptExpanded] = useState(false)
+
+  // ── CronCreate result ─────────────────────────────────────────
+  if (mode === 'create' && isResult) {
+    const jobId = typeof input.trigger_id === 'string' ? input.trigger_id
+      : typeof input.id === 'string' ? input.id
+      : resultText?.trim() ?? ''
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 5,
+          padding: '3px 9px', borderRadius: 8,
+          background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.28)',
+          color: '#4ade80', fontSize: 11, fontWeight: 600,
+        }}>
+          <Clock size={11} style={{ flexShrink: 0 }} />
+          Scheduled
+        </div>
+        {jobId && (
+          <span style={{
+            fontSize: 11, fontFamily: 'monospace',
+            padding: '2px 7px', borderRadius: 6,
+            background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)',
+            color: '#a5b4fc',
+          }}>
+            {jobId}
+          </span>
+        )}
+      </div>
+    )
+  }
+
+  // ── CronCreate input ──────────────────────────────────────────
+  if (mode === 'create') {
+    const cron = typeof input.cron === 'string' ? input.cron : ''
+    const prompt = typeof input.prompt === 'string' ? input.prompt : ''
+    const recurring = input.recurring !== false // default true
+    const durable = !!input.durable
+    const PROMPT_LIMIT = 100
+    const needsExpand = prompt.length > PROMPT_LIMIT
+    const displayPrompt = needsExpand && !promptExpanded ? prompt.slice(0, PROMPT_LIMIT) + '\u2026' : prompt
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {/* Cron expression chip */}
+        {cron && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Clock size={11} style={{ color: 'rgba(165,180,252,0.7)', flexShrink: 0 }} />
+            <span style={{
+              fontSize: 12, fontFamily: 'monospace', fontWeight: 600,
+              padding: '2px 8px', borderRadius: 6,
+              background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)',
+              color: '#a5b4fc',
+            }}>
+              {cron}
+            </span>
+          </div>
+        )}
+
+        {/* Prompt preview */}
+        {prompt && (
+          <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+            {displayPrompt}
+            {needsExpand && (
+              <button
+                onClick={() => setPromptExpanded(v => !v)}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: '#a5b4fc', fontSize: 10, padding: '0 4px', marginLeft: 2,
+                }}
+              >
+                {promptExpanded ? 'less' : 'more'}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Badges row */}
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+          <span style={{
+            fontSize: 9, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
+            padding: '2px 7px', borderRadius: 8,
+            background: recurring ? 'rgba(34,197,94,0.12)' : 'rgba(59,130,246,0.12)',
+            border: recurring ? '1px solid rgba(34,197,94,0.28)' : '1px solid rgba(59,130,246,0.28)',
+            color: recurring ? '#4ade80' : '#93c5fd',
+          }}>
+            {recurring ? 'recurring' : 'one-shot'}
+          </span>
+          {durable && (
+            <span style={{
+              fontSize: 9, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
+              padding: '2px 7px', borderRadius: 8,
+              background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.28)',
+              color: '#c084fc',
+            }}>
+              persistent
+            </span>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // ── CronDelete input ──────────────────────────────────────────
+  if (mode === 'delete') {
+    const jobId = typeof input.trigger_id === 'string' ? input.trigger_id
+      : typeof input.id === 'string' ? input.id
+      : ''
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{
+          fontSize: 9, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
+          padding: '2px 7px', borderRadius: 8,
+          background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.28)',
+          color: '#fca5a5',
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+        }}>
+          <X size={9} style={{ flexShrink: 0 }} />
+          Delete
+        </span>
+        {jobId && (
+          <span style={{
+            fontSize: 11, fontFamily: 'monospace',
+            padding: '2px 7px', borderRadius: 6,
+            background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.20)',
+            color: '#fca5a5',
+          }}>
+            {jobId}
+          </span>
+        )}
+      </div>
+    )
+  }
+
+  // ── CronList result ───────────────────────────────────────────
+  if (mode === 'list' && isResult && resultText) {
+    const jobs = parseCronJobs(resultText)
+    if (jobs && jobs.length > 0) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          {jobs.slice(0, 20).map((job, i) => {
+            const cronExpr = job.cron ?? job.schedule ?? ''
+            const promptText = job.prompt ?? job.description ?? ''
+            const status = job.status ?? 'active'
+            const jobId = job.id ?? job.trigger_id ?? ''
+            return (
+              <div
+                key={i}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
+                  padding: '4px 6px', borderRadius: 6,
+                  background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.16)',
+                }}
+              >
+                {cronExpr && (
+                  <span style={{
+                    fontSize: 10, fontFamily: 'monospace',
+                    padding: '1px 5px', borderRadius: 4,
+                    background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.28)',
+                    color: '#a5b4fc', flexShrink: 0,
+                  }}>
+                    {cronExpr}
+                  </span>
+                )}
+                {promptText && (
+                  <span
+                    style={{
+                      fontSize: 11, color: 'var(--text-secondary)', flex: 1,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      minWidth: 0,
+                    }}
+                    title={promptText}
+                  >
+                    {promptText.length > 40 ? promptText.slice(0, 40) + '\u2026' : promptText}
+                  </span>
+                )}
+                {jobId && !promptText && (
+                  <span style={{
+                    fontSize: 10, fontFamily: 'monospace', color: 'rgba(165,180,252,0.6)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    maxWidth: 180,
+                  }}>
+                    {jobId}
+                  </span>
+                )}
+                <span style={{
+                  fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+                  padding: '1px 5px', borderRadius: 5,
+                  background: status === 'active' ? 'rgba(34,197,94,0.12)' : 'rgba(100,116,139,0.15)',
+                  border: status === 'active' ? '1px solid rgba(34,197,94,0.25)' : '1px solid rgba(100,116,139,0.25)',
+                  color: status === 'active' ? '#4ade80' : '#94a3b8',
+                  flexShrink: 0,
+                }}>
+                  {status}
+                </span>
+              </div>
+            )
+          })}
+          {jobs.length > 20 && (
+            <span style={{ fontSize: 10, color: 'var(--text-muted)', paddingLeft: 4 }}>
+              +{jobs.length - 20} more
+            </span>
+          )}
+        </div>
+      )
+    }
+    // Empty list
+    return (
+      <div style={{
+        fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic',
+        display: 'flex', alignItems: 'center', gap: 6,
+      }}>
+        <Clock size={11} style={{ opacity: 0.5 }} />
+        No scheduled jobs
+      </div>
+    )
+  }
+
+  return null
 }
 
 /** Image thumbnail with error fallback */
