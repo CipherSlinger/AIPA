@@ -26,22 +26,22 @@ export default function GhostTextOverlay({ input, ghostText }: GhostTextOverlayP
       {input.trim() ? (
         <>
           <span style={{ visibility: 'hidden' }}>{input}</span>
-          <span style={{ color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>{ghostText}</span>
+          <span style={{ color: 'var(--text-faint)', fontStyle: 'italic' }}>{ghostText}</span>
           <span style={{
             fontSize: 10, fontWeight: 700, marginLeft: 5, fontFamily: 'monospace',
             letterSpacing: '0.07em',
-            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)',
+            background: 'var(--bg-hover)', border: '1px solid var(--border)',
             borderRadius: 6, color: 'var(--text-faint)', padding: '1px 5px',
             textTransform: 'uppercase',
           }}>Tab</span>
         </>
       ) : (
         <>
-          <span style={{ color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>{ghostText}</span>
+          <span style={{ color: 'var(--text-faint)', fontStyle: 'italic' }}>{ghostText}</span>
           <span style={{
             fontSize: 10, fontWeight: 700, marginLeft: 6, fontFamily: 'monospace',
             letterSpacing: '0.07em',
-            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)',
+            background: 'var(--bg-hover)', border: '1px solid var(--border)',
             borderRadius: 6, color: 'var(--text-faint)', padding: '1px 5px',
             textTransform: 'uppercase',
           }}>Tab</span>
