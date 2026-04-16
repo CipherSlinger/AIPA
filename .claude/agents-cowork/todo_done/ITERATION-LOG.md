@@ -7604,7 +7604,32 @@ Skipped (white text on colored buttons): PlanModeBanner, PlanApprovalCard, ForkD
 Swept 8 chat message/code/header components. All occurrences were white text on colored buttons (0.92/0.95 range on indigo/amber backgrounds) or pure white for iframe sandbox backgrounds — all exempt. No new code changes beyond stash-popped Iteration 609 migrations.
 
 ### Files Audited (0 new changes)
-MessageList.tsx, MessageErrorBoundary.tsx, AnnotationEditor.tsx, CodeBlock.tsx, ChangesPanel.tsx, ChatHeader.tsx, TemplatesSection.tsx, ChatInputSendButton.tsx
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+---
+
+## Iteration 614 — Comprehensive CSS variable migration audit (final sweep)
+
+### Summary
+Conducted a comprehensive audit of ALL remaining renderer files with hardcoded `rgba(255,255,255,...)` values. Found 40+ occurrences across 30+ files. After applying the exemption rules, every remaining value falls into an exempt category — no code changes were required. The CSS variable migration sweep for the renderer is now complete.
+
+### Audit Findings
+
+**Files outside previously-handled directories:**
+- `utils/formatHtml.ts` — 12 occurrences, all in inline CSS strings for a standalone HTML export template. CSS vars (`var(--border)` etc.) do not resolve in exported standalone HTML files. Kept as-is intentionally.
+
+**Files in previously-handled directories with remaining occurrences:**
+All remaining values in `chat/`, `departments/`, `sessions/`, `shared/`, `onboarding/`, `ui/`, `workflows/` are exempt:
+- `rgba(255,255,255,0.95)` (and 0.92, 0.85) — white text on colored/gradient buttons (indigo, amber, red) — **exempt**
+- `rgba(255,255,255,0.30)` in InputToolbar.tsx — disabled state on indigo-tinted button — **exempt** (white on colored bg)
+- `rgba(255,255,255,0.15)` in DepartmentDashboard.tsx:491 — `<kbd>` inside indigo gradient button — **exempt**
+- `rgba(255,255,255,0.15)` in DepartmentDashboard.tsx:1221 — `box-shadow` value — **exempt**
+- `rgba(255,255,255,1)` in CodeBlock.tsx, QRCodeDisplay.tsx, Toggle.tsx — functional pure-white elements (iframe sandbox, QR code bg, toggle thumb) — **exempt**
+- `rgba(255,255,255,0.2)` in WorkflowItem.tsx — CSS variable fallback inside `var(--text-faint, ...)` — **keep as-is**
+
+### Files Changed
+None — all remaining values are exempt per migration rules.
 
 ### Build
 Status: SUCCESS (0 errors, 204 pre-existing warnings)
