@@ -80,7 +80,7 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
             border: showRegenModels ? '1px solid rgba(99,102,241,0.40)' : '1px solid var(--border)',
             borderRadius: 6,
             cursor: 'pointer',
-            color: showRegenModels ? '#818cf8' : 'rgba(255,255,255,0.55)',
+            color: showRegenModels ? '#818cf8' : 'var(--text-secondary)',
             fontSize: 12,
             transition: 'all 0.15s ease',
           }}
@@ -92,7 +92,7 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
           onMouseLeave={(e) => {
             e.currentTarget.style.background = showRegenModels ? 'rgba(99,102,241,0.18)' : 'var(--bg-hover)'
             e.currentTarget.style.borderColor = showRegenModels ? 'rgba(99,102,241,0.40)' : 'var(--border)'
-            e.currentTarget.style.color = showRegenModels ? '#818cf8' : 'rgba(255,255,255,0.55)'
+            e.currentTarget.style.color = showRegenModels ? '#818cf8' : 'var(--text-secondary)'
           }}
         >
           <ChevronDown size={12} />
@@ -137,7 +137,7 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
                     border: 'none',
                     borderLeft: isCurrent ? '2px solid rgba(99,102,241,0.60)' : '2px solid transparent',
                     borderRadius: 0,
-                    color: isCurrent ? '#818cf8' : 'rgba(255,255,255,0.80)',
+                    color: isCurrent ? '#818cf8' : 'var(--text-secondary)',
                     cursor: 'pointer',
                     fontSize: 12,
                     fontWeight: isCurrent ? 600 : 400,

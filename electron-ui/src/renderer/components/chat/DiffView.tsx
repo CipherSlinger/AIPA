@@ -203,7 +203,7 @@ export default function DiffView({ oldStr, newStr, filePath }: DiffViewProps) {
         <div style={{
           maxHeight: 400, overflowY: 'auto',
           scrollbarWidth: 'thin',
-          scrollbarColor: 'rgba(255,255,255,0.1) transparent',
+          scrollbarColor: 'var(--border) transparent',
         }}>
           {diffLines.map((line, idx) => {
             const isAdd = line.type === 'add'
@@ -221,7 +221,7 @@ export default function DiffView({ oldStr, newStr, filePath }: DiffViewProps) {
                     ? 'rgba(34,197,94,0.12)'
                     : isDel
                     ? 'rgba(239,68,68,0.10)'
-                    : 'rgba(255,255,255,0.03)',
+                    : 'var(--glass-bg-low)',
                   borderLeft: isHunk
                     ? '2px solid rgba(99,102,241,0.30)'
                     : isAdd
@@ -241,7 +241,7 @@ export default function DiffView({ oldStr, newStr, filePath }: DiffViewProps) {
                     ? 'rgba(34,197,94,0.4)'
                     : isDel
                     ? 'rgba(239,68,68,0.4)'
-                    : 'rgba(255,255,255,0.25)',
+                    : 'var(--text-faint)',
                   fontSize: 11,
                   fontVariantNumeric: 'tabular-nums',
                   fontFeatureSettings: '"tnum"',
@@ -256,7 +256,7 @@ export default function DiffView({ oldStr, newStr, filePath }: DiffViewProps) {
                     ? 'rgba(34,197,94,0.4)'
                     : isDel
                     ? 'rgba(239,68,68,0.4)'
-                    : 'rgba(255,255,255,0.25)',
+                    : 'var(--text-faint)',
                   fontSize: 11,
                   fontVariantNumeric: 'tabular-nums',
                   fontFeatureSettings: '"tnum"',
@@ -275,7 +275,7 @@ export default function DiffView({ oldStr, newStr, filePath }: DiffViewProps) {
                     ? '#4ade80'
                     : isDel
                     ? '#f87171'
-                    : 'rgba(255,255,255,0.25)',
+                    : 'var(--text-faint)',
                   fontWeight: 600,
                 }}>
                   {line.type === 'add' ? '+' : line.type === 'del' ? '-' : ' '}
@@ -326,7 +326,7 @@ export default function DiffView({ oldStr, newStr, filePath }: DiffViewProps) {
         <div style={{
           display: 'flex', gap: 8, padding: '4px 12px',
           borderTop: '1px solid var(--glass-border)', fontSize: 10,
-          background: 'rgba(255,255,255,0.02)',
+          background: 'var(--glass-shimmer)',
         }}>
           <button
             onClick={() => setShowRaw(true)}
