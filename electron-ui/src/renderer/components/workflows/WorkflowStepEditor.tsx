@@ -194,7 +194,8 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
               style={{
                 flex: 1,
                 background: 'transparent',
-                border: 'none',
+                border: step.title.trim() === '' ? '1px solid rgba(239,68,68,0.45)' : 'none',
+                borderRadius: step.title.trim() === '' ? 4 : 0,
                 fontSize: 14,
                 fontWeight: 600,
                 color: 'var(--text-primary)',
@@ -225,6 +226,12 @@ export default function WorkflowStepEditor({ steps, setSteps }: WorkflowStepEdit
               )}
             </div>
           </div>
+          {/* Step name validation error */}
+          {step.title.trim() === '' && (
+            <div style={{ fontSize: 9, color: 'rgba(239,68,68,0.85)', marginBottom: 4, paddingLeft: 28 }}>
+              {t('workflow.stepNameRequired') || 'Step name is required'}
+            </div>
+          )}
           {/* Node type selector */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
             <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: 'var(--text-muted)', flexShrink: 0 }}>{t('workflow.nodeType')}:</span>

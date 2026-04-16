@@ -1,11 +1,9 @@
-// WorkflowDetailHeader -- header bar for WorkflowDetailPage (extracted Iteration 511, updated 513)
-// Contains: back button, icon picker, execution badge, edit/run/save buttons.
-// Iteration 513: Added isEditMode prop to toggle between view/edit header states,
-// saveFlash for green flash on Ctrl+S, enterEditMode/exitEditMode callbacks.
-// Enhanced: category accent bar, run count badge with pulse, relative last-run time, step dots preview.
+// WorkflowDetailHeader -- header bar for WorkflowDetailPage (extracted Iteration 511, updated 513, 539)
+// Contains: breadcrumb nav, icon picker, inline title edit, execution badge, run/stop/delete + edit/save buttons.
+// Iteration 539: Added breadcrumb navigation, inline title editing, Run/Stop/Delete semantic buttons, CSS variables.
 
-import React, { useState } from 'react'
-import { ArrowLeft, Edit3, Check, Save, Eye } from 'lucide-react'
+import React, { useState, useRef, useEffect } from 'react'
+import { ArrowLeft, Edit3, Check, Save, Eye, Play, Square, Trash2 } from 'lucide-react'
 import type { WorkflowExecutionState } from './useWorkflowExecution'
 import type { WorkflowStep } from '../../types/app.types'
 
@@ -58,6 +56,7 @@ const WORKFLOW_EMOJIS = [
 
 interface Props {
   editIcon: string
+  editName: string
   editDesc: string
   hasUnsavedChanges: boolean
   justSaved: boolean
@@ -76,20 +75,42 @@ interface Props {
   onEnterEditMode: () => void
   onExitEditMode: () => void
   onSave: () => void
+  onRun: () => void
+  onStop: () => void
+  onDelete: () => void
   onUpdateIcon: (emoji: string) => void
+  onUpdateName: (v: string) => void
   onUpdateDesc: (v: string) => void
   t: (key: string, params?: Record<string, string>) => string
 }
 
 export default function WorkflowDetailHeader({
-  editIcon, editDesc, hasUnsavedChanges, justSaved, canSave,
+  editIcon, editName, editDesc, hasUnsavedChanges, justSaved, canSave,
   execution, isEditMode, saveFlash, steps, runCount, lastRunAt,
   onGoBack, onOpenEditor,
   onEnterEditMode, onExitEditMode, onSave,
-  onUpdateIcon, onUpdateDesc, t,
+  onRun, onStop, onDelete,
+  onUpdateIcon, onUpdateName, onUpdateDesc, t,
 }: Props) {
   const [showIconPicker, setShowIconPicker] = useState(false)
-  const [backHover, setBackHover] = useState(false)
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const titleInputRef = useRef<HTMLInputElement>(null)
+
+  // Auto-focus title input when entering inline edit
+  useEffect(() => {
+    if (editingTitle && titleInputRef.current) {
+      titleInputRef.current.focus()
+      titleInputRef.current.select()
+    }
+  }, [editingTitle])
+
+  // Reset delete confirm after 2.5s
+  useEffect(() => {
+    if (!deleteConfirm) return
+    const t2 = setTimeout(() => setDeleteConfirm(false), 2500)
+    return () => clearTimeout(t2)
+  }, [deleteConfirm])
 
   const accentColor = iconToAccent(editIcon)
   const dotSteps = steps.slice(0, 8)
@@ -116,6 +137,65 @@ export default function WorkflowDetailHeader({
         opacity: 0.85,
       }} />
 
+      {/* Breadcrumb navigation bar */}
+      <div style={{
+        padding: '5px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        borderBottom: '1px solid var(--border)',
+        background: 'var(--bg-primary, rgba(12,12,20,0.97))',
+        flexShrink: 0,
+      }}>
+        <button
+          onClick={onGoBack}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 4,
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--text-muted)', fontSize: 11, padding: '1px 4px',
+            borderRadius: 4, transition: 'color 0.15s ease',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+        >
+          <ArrowLeft size={11} />
+          {t('workflow.breadcrumbList') || 'Workflows'}
+        </button>
+        <span style={{ fontSize: 11, color: 'var(--text-faint)', flexShrink: 0 }}>›</span>
+        {/* Inline editable title */}
+        {editingTitle ? (
+          <input
+            ref={titleInputRef}
+            value={editName}
+            onChange={e => onUpdateName(e.target.value)}
+            onBlur={() => setEditingTitle(false)}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setEditingTitle(false) }}
+            style={{
+              fontSize: 11, fontWeight: 600, color: 'var(--text-primary)',
+              background: 'var(--bg-hover)', border: '1px solid var(--accent, rgba(99,102,241,0.5))',
+              borderRadius: 4, padding: '1px 6px', outline: 'none',
+              minWidth: 80, maxWidth: 200,
+            }}
+          />
+        ) : (
+          <span
+            onClick={() => setEditingTitle(true)}
+            title={t('workflow.clickToEditTitle') || 'Click to edit title'}
+            style={{
+              fontSize: 11, fontWeight: 600, color: 'var(--text-primary)',
+              cursor: 'text', padding: '1px 4px', borderRadius: 4,
+              border: '1px solid transparent',
+              transition: 'border-color 0.15s ease',
+              maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = 'transparent')}
+          >
+            {editName}
+          </span>
+        )}
+      </div>
+
       {/* Header */}
       <div style={{
         padding: '10px 16px',
@@ -130,21 +210,6 @@ export default function WorkflowDetailHeader({
         flexShrink: 0,
         transition: 'all 0.15s ease',
       }}>
-        <button
-          onClick={onGoBack}
-          aria-label={t('workflow.back')}
-          style={{
-            ...iconBtnStyle,
-            background: backHover ? 'var(--border)' : 'transparent',
-            color: backHover ? 'var(--text-primary)' : 'var(--text-muted)',
-            transition: 'all 0.15s ease',
-          }}
-          onMouseEnter={() => setBackHover(true)}
-          onMouseLeave={() => setBackHover(false)}
-        >
-          <ArrowLeft size={18} />
-        </button>
-
         {/* Icon (clickable to pick in edit mode, static in view mode) */}
         <div style={{ position: 'relative' }}>
           {isEditMode ? (
@@ -185,7 +250,7 @@ export default function WorkflowDetailHeader({
                   key={emoji}
                   onClick={() => { onUpdateIcon(emoji); setShowIconPicker(false) }}
                   style={{
-                    width: 32, height: 32, border: editIcon === emoji ? '2px solid #6366f1' : '1px solid var(--border)',
+                    width: 32, height: 32, border: editIcon === emoji ? '2px solid var(--accent, #6366f1)' : '1px solid var(--border)',
                     borderRadius: 6, background: editIcon === emoji ? 'rgba(99,102,241,0.12)' : 'transparent',
                     cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}
@@ -204,8 +269,8 @@ export default function WorkflowDetailHeader({
             <div
               style={{
                 display: 'flex', alignItems: 'center', gap: 3,
-                background: 'rgba(99,102,241,0.12)',
-                border: '1px solid rgba(99,102,241,0.25)',
+                background: 'var(--accent-bg, rgba(99,102,241,0.12))',
+                border: '1px solid var(--accent-border, rgba(99,102,241,0.25))',
                 borderRadius: 8, padding: '4px 10px',
               }}
               title={`${steps.length} ${t('workflow.stepsLabel')}`}
@@ -224,7 +289,7 @@ export default function WorkflowDetailHeader({
                 />
               ))}
               {extraSteps > 0 && (
-                <span style={{ fontSize: 9, color: '#818cf8', fontWeight: 700, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>+{extraSteps}</span>
+                <span style={{ fontSize: 9, color: 'var(--accent-muted, #818cf8)', fontWeight: 700, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>+{extraSteps}</span>
               )}
             </div>
           )}
@@ -233,7 +298,7 @@ export default function WorkflowDetailHeader({
           {runCount > 0 && (
             <span style={{
               fontSize: 11,
-              color: '#a78bfa',
+              color: 'var(--color-violet, #a78bfa)',
               fontWeight: 600,
               padding: '2px 8px',
               borderRadius: 6,
@@ -270,23 +335,60 @@ export default function WorkflowDetailHeader({
           {/* Execution summary badge */}
           {execution.isRunning && (
             <span style={{
-              fontSize: 10, color: '#818cf8', fontWeight: 500,
+              fontSize: 10, color: 'var(--accent-muted, #818cf8)', fontWeight: 500,
               padding: '2px 8px', borderRadius: 20,
-              background: 'rgba(99,102,241,0.1)',
-              border: '1px solid rgba(99,102,241,0.2)',
+              background: 'var(--accent-bg, rgba(99,102,241,0.1))',
+              border: '1px solid var(--accent-border, rgba(99,102,241,0.2))',
             }}>
               {execution.completedCount}/{execution.totalSteps}
             </span>
           )}
           {!execution.isRunning && execution.completedCount === execution.totalSteps && execution.totalSteps > 0 && (
             <span style={{
-              fontSize: 10, color: '#22c55e', fontWeight: 500,
+              fontSize: 10, color: 'var(--color-success, #22c55e)', fontWeight: 500,
               padding: '2px 8px', borderRadius: 20,
               background: 'rgba(34,197,94,0.1)',
               border: '1px solid rgba(34,197,94,0.2)',
             }}>
               {t('workflow.canvasComplete')}
             </span>
+          )}
+
+          {/* Run / Stop button — semantic color */}
+          {execution.isRunning ? (
+            <button
+              onClick={onStop}
+              title={t('workflow.stop') || 'Stop'}
+              style={{
+                ...actionBtnStyle,
+                background: 'rgba(239,68,68,0.12)',
+                border: '1px solid rgba(239,68,68,0.3)',
+                color: 'var(--color-error, #f87171)',
+                gap: 4,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.22)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.55)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)' }}
+            >
+              <Square size={13} />
+              <span style={{ fontSize: 12 }}>{t('workflow.stop') || 'Stop'}</span>
+            </button>
+          ) : (
+            <button
+              onClick={onRun}
+              title={t('workflow.run') || 'Run'}
+              style={{
+                ...actionBtnStyle,
+                background: 'rgba(34,197,94,0.12)',
+                border: '1px solid rgba(34,197,94,0.3)',
+                color: 'var(--color-success, #22c55e)',
+                gap: 4,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(34,197,94,0.22)'; e.currentTarget.style.borderColor = 'rgba(34,197,94,0.55)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(34,197,94,0.12)'; e.currentTarget.style.borderColor = 'rgba(34,197,94,0.3)' }}
+            >
+              <Play size={13} />
+              <span style={{ fontSize: 12 }}>{t('workflow.run') || 'Run'}</span>
+            </button>
           )}
 
           {/* Mode-specific buttons */}
@@ -311,7 +413,7 @@ export default function WorkflowDetailHeader({
                   ...actionBtnStyle,
                   background: hasUnsavedChanges && canSave
                     ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
-                    : justSaved ? '#22c55e' : 'var(--bg-hover)',
+                    : justSaved ? 'var(--color-success, #22c55e)' : 'var(--bg-hover)',
                   color: hasUnsavedChanges && canSave ? 'var(--text-primary)' : justSaved ? 'var(--text-primary)' : 'var(--text-muted)',
                   opacity: hasUnsavedChanges && canSave ? 1 : justSaved ? 1 : 0.4,
                   cursor: hasUnsavedChanges && canSave ? 'pointer' : justSaved ? 'pointer' : 'not-allowed',
@@ -342,6 +444,38 @@ export default function WorkflowDetailHeader({
               </button>
             </>
           )}
+
+          {/* Delete button — destructive, semantic red */}
+          <button
+            onClick={() => {
+              if (deleteConfirm) { onDelete(); setDeleteConfirm(false) }
+              else setDeleteConfirm(true)
+            }}
+            title={deleteConfirm ? (t('workflow.deleteConfirm') || 'Click again to confirm') : (t('workflow.delete') || 'Delete')}
+            style={{
+              ...actionBtnStyle,
+              background: deleteConfirm ? 'rgba(239,68,68,0.20)' : 'transparent',
+              border: `1px solid ${deleteConfirm ? 'rgba(239,68,68,0.5)' : 'var(--border)'}`,
+              color: deleteConfirm ? 'var(--color-error, #f87171)' : 'var(--text-muted)',
+              padding: '5px 8px',
+            }}
+            onMouseEnter={e => {
+              if (!deleteConfirm) {
+                e.currentTarget.style.background = 'rgba(239,68,68,0.12)'
+                e.currentTarget.style.borderColor = 'rgba(239,68,68,0.35)'
+                e.currentTarget.style.color = 'var(--color-error, #f87171)'
+              }
+            }}
+            onMouseLeave={e => {
+              if (!deleteConfirm) {
+                e.currentTarget.style.background = 'transparent'
+                e.currentTarget.style.borderColor = 'var(--border)'
+                e.currentTarget.style.color = 'var(--text-muted)'
+              }
+            }}
+          >
+            <Trash2 size={13} />
+          </button>
         </div>
       </div>
 
@@ -376,12 +510,6 @@ export default function WorkflowDetailHeader({
       </div>
     </>
   )
-}
-
-const iconBtnStyle: React.CSSProperties = {
-  background: 'transparent', border: 'none', cursor: 'pointer',
-  color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
-  padding: 6, borderRadius: 6,
 }
 
 const actionBtnStyle: React.CSSProperties = {

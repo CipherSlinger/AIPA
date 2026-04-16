@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Trash2, Edit3, Copy } from 'lucide-react'
+import { Trash2, Edit3, Copy, Play } from 'lucide-react'
 import { Workflow } from '../../types/app.types'
 import { useT } from '../../i18n'
-import { useUiStore } from '../../store'
+import { useUiStore, useChatStore } from '../../store'
 import { smallBtnStyle, MAX_NAME_LENGTH, MAX_DESC_LENGTH, getPresetStepText } from './workflowConstants'
 import WorkflowStepEditor from './WorkflowStepEditor'
 import type { useWorkflowCrud } from './useWorkflowCrud'
@@ -52,6 +52,9 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
   const [showStepsPreview, setShowStepsPreview] = useState(false)
   const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Workflow status: derive from execution state (running if in queue)
+  const isRunning = false // placeholder; actual execution tracked at detail level
+
   // Reset confirmation state after 2.5s without a second click
   useEffect(() => {
     if (!deleteConfirming) return
@@ -69,6 +72,22 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
     }
   }
 
+  const handleRunClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!wf.steps.length) return
+    let count = 0
+    wf.steps.forEach((step, idx) => {
+      const prompt = getPresetStepText(wf.presetKey, idx, 'prompt', t, step.prompt)
+      if (prompt.trim()) {
+        useChatStore.getState().addToQueue(prompt, { workflowId: wf.id, stepIndex: idx })
+        count++
+      }
+    })
+    if (count > 0) {
+      useUiStore.getState().addToast('info', t('workflow.running', { name: displayName, count: String(count) }))
+    }
+  }
+
   // Use localized name/description for installed presets
   const displayName = wf.presetKey ? t(`workflow.preset.${wf.presetKey}`) : wf.name
   const displayDesc = wf.presetKey ? t(`workflow.preset.${wf.presetKey}Desc`) : wf.description
@@ -77,7 +96,7 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
     <div
       style={{
         borderBottom: '1px solid var(--border)',
-        borderLeft: (hovered || isExpanded) ? '3px solid rgba(99,102,241,0.75)' : '3px solid transparent',
+        borderLeft: (hovered || isExpanded) ? '3px solid var(--accent, rgba(99,102,241,0.75))' : '3px solid transparent',
         transition: 'all 0.15s ease',
         position: 'relative',
         borderRadius: 8,
@@ -103,22 +122,36 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
         onMouseEnter={_e => { setHovered(true); previewTimer.current = setTimeout(() => setShowStepsPreview(true), 600) }}
         onMouseLeave={_e => { setHovered(false); if (previewTimer.current) { clearTimeout(previewTimer.current); previewTimer.current = null } setShowStepsPreview(false) }}
       >
-        <span style={{
-          fontSize: 15,
-          flexShrink: 0,
-          width: 28,
-          height: 28,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: 7,
-          overflow: 'hidden',
-          background: 'rgba(99,102,241,0.12)',
-          border: `1px solid ${iconColor(wf.icon)}33`,
-          transition: 'all 0.15s ease',
-          transform: hovered ? 'scale(1.05)' : 'scale(1)',
-          boxShadow: hovered ? '0 2px 8px rgba(0,0,0,0.3)' : 'none',
-        }}>{wf.icon}</span>
+        {/* Status dot + icon */}
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <span style={{
+            fontSize: 15,
+            width: 28,
+            height: 28,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 7,
+            overflow: 'hidden',
+            background: 'rgba(99,102,241,0.12)',
+            border: `1px solid ${iconColor(wf.icon)}33`,
+            transition: 'all 0.15s ease',
+            transform: hovered ? 'scale(1.05)' : 'scale(1)',
+            boxShadow: hovered ? '0 2px 8px rgba(0,0,0,0.3)' : 'none',
+          }}>{wf.icon}</span>
+          {/* Status dot — bottom-right of icon */}
+          <span style={{
+            position: 'absolute',
+            bottom: -2,
+            right: -2,
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            background: isRunning ? 'var(--color-warning, #fbbf24)' : (wf.runCount > 0 ? 'var(--color-success, #22c55e)' : 'var(--text-faint, rgba(255,255,255,0.2))'),
+            border: '2px solid var(--bg-primary, rgba(12,12,20,0.97))',
+            transition: 'background 0.3s ease',
+          }} title={isRunning ? 'Running' : wf.runCount > 0 ? 'Has runs' : 'Never run'} />
+        </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, display: 'flex', alignItems: 'center', gap: 5 }}>
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: '0 1 auto', minWidth: 0 }}>{displayName}</span>
@@ -156,13 +189,13 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
           <div style={{ fontSize: 9, color: 'var(--text-muted)', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={{
               fontSize: 10,
-              color: '#a5b4fc',
-              background: 'rgba(99,102,241,0.15)',
+              color: 'var(--accent-muted, #a5b4fc)',
+              background: 'var(--accent-bg, rgba(99,102,241,0.15))',
               borderRadius: 10,
               padding: '1px 6px',
               fontWeight: 600,
               flexShrink: 0,
-              border: '1px solid rgba(99,102,241,0.25)',
+              border: '1px solid var(--accent-border, rgba(99,102,241,0.25))',
               fontVariantNumeric: 'tabular-nums',
               fontFeatureSettings: '"tnum"',
             }}>
@@ -171,13 +204,13 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
             {wf.runCount > 0 && (
               <span style={{
                 fontSize: 10,
-                color: '#a5b4fc',
-                background: 'rgba(99,102,241,0.15)',
+                color: 'var(--accent-muted, #a5b4fc)',
+                background: 'var(--accent-bg, rgba(99,102,241,0.15))',
                 borderRadius: 10,
                 padding: '1px 6px',
                 fontWeight: 600,
                 flexShrink: 0,
-                border: '1px solid rgba(99,102,241,0.25)',
+                border: '1px solid var(--accent-border, rgba(99,102,241,0.25))',
                 fontVariantNumeric: 'tabular-nums',
                 fontFeatureSettings: '"tnum"',
               }}>
@@ -190,49 +223,107 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
             {formatWorkflowAge(wf.updatedAt)}
           </div>
         </div>
-        {/* Clone button — visible on hover */}
+        {/* Hover action buttons: Run + Edit */}
         {hovered && (
-          <button
-            onClick={e => { e.stopPropagation(); crud.duplicateWorkflow(wf) }}
-            title="Clone workflow"
-            style={{
-              background: 'transparent',
-              border: '1px solid var(--border)',
-              cursor: 'pointer',
-              color: 'var(--text-muted)',
-              padding: 4,
-              borderRadius: 6,
-              display: 'flex',
-              alignItems: 'center',
-              transition: 'all 0.15s ease',
-              flexShrink: 0,
-              opacity: 1,
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.color = '#a5b4fc'
-              e.currentTarget.style.background = 'rgba(99,102,241,0.12)'
-              e.currentTarget.style.borderColor = 'rgba(99,102,241,0.3)'
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.color = 'var(--text-muted)'
-              e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.borderColor = 'var(--border)'
-            }}
-          >
-            <Copy size={12} />
-          </button>
+          <>
+            <button
+              onClick={handleRunClick}
+              title={t('workflow.run') || 'Run'}
+              style={{
+                background: 'rgba(34,197,94,0.12)',
+                border: '1px solid rgba(34,197,94,0.3)',
+                cursor: 'pointer',
+                color: 'var(--color-success, #22c55e)',
+                padding: '4px 6px',
+                borderRadius: 6,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 3,
+                fontSize: 10,
+                fontWeight: 600,
+                transition: 'all 0.15s ease',
+                flexShrink: 0,
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(34,197,94,0.22)'
+                e.currentTarget.style.borderColor = 'rgba(34,197,94,0.55)'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'rgba(34,197,94,0.12)'
+                e.currentTarget.style.borderColor = 'rgba(34,197,94,0.3)'
+              }}
+            >
+              <Play size={10} />
+            </button>
+            <button
+              onClick={e => { e.stopPropagation(); useUiStore.getState().openWorkflowEditor(wf.id) }}
+              title={t('workflow.edit')}
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--border)',
+                cursor: 'pointer',
+                color: 'var(--text-muted)',
+                padding: 4,
+                borderRadius: 6,
+                display: 'flex',
+                alignItems: 'center',
+                transition: 'all 0.15s ease',
+                flexShrink: 0,
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.color = 'var(--accent-muted, #a5b4fc)'
+                e.currentTarget.style.background = 'var(--accent-bg, rgba(99,102,241,0.12))'
+                e.currentTarget.style.borderColor = 'var(--accent-border, rgba(99,102,241,0.3))'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.color = 'var(--text-muted)'
+                e.currentTarget.style.background = 'transparent'
+                e.currentTarget.style.borderColor = 'var(--border)'
+              }}
+            >
+              <Edit3 size={12} />
+            </button>
+            <button
+              onClick={e => { e.stopPropagation(); crud.duplicateWorkflow(wf) }}
+              title="Clone workflow"
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--border)',
+                cursor: 'pointer',
+                color: 'var(--text-muted)',
+                padding: 4,
+                borderRadius: 6,
+                display: 'flex',
+                alignItems: 'center',
+                transition: 'all 0.15s ease',
+                flexShrink: 0,
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.color = 'var(--accent-muted, #a5b4fc)'
+                e.currentTarget.style.background = 'var(--accent-bg, rgba(99,102,241,0.12))'
+                e.currentTarget.style.borderColor = 'var(--accent-border, rgba(99,102,241,0.3))'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.color = 'var(--text-muted)'
+                e.currentTarget.style.background = 'transparent'
+                e.currentTarget.style.borderColor = 'var(--border)'
+              }}
+            >
+              <Copy size={12} />
+            </button>
+          </>
         )}
         {/* Delete button with two-click confirmation */}
         <button
           onClick={handleDeleteClick}
           title={deleteConfirming ? t('workflow.deleteConfirm') : t('workflow.delete')}
           style={{
-            background: deleteConfirming ? 'rgba(239,68,68,0.20)' : 'rgba(239,68,68,0.12)',
-            border: deleteConfirming ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(239,68,68,0.25)',
+            background: deleteConfirming ? 'rgba(239,68,68,0.20)' : (hovered ? 'rgba(239,68,68,0.12)' : 'transparent'),
+            border: deleteConfirming ? '1px solid rgba(239,68,68,0.5)' : (hovered ? '1px solid rgba(239,68,68,0.25)' : '1px solid transparent'),
             borderRadius: 6,
             padding: '4px',
             cursor: 'pointer',
-            color: '#fca5a5',
+            color: hovered ? '#fca5a5' : 'var(--text-faint)',
             display: 'flex',
             alignItems: 'center',
             gap: 3,
@@ -245,12 +336,14 @@ export default function WorkflowItem({ wf, isExpanded, isEditing, crud }: Workfl
             if (!deleteConfirming) {
               (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.20)'
               ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(239,68,68,0.45)'
+              ;(e.currentTarget as HTMLElement).style.color = '#fca5a5'
             }
           }}
           onMouseLeave={e => {
             if (!deleteConfirming) {
-              (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.12)'
-              ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(239,68,68,0.25)'
+              (e.currentTarget as HTMLElement).style.background = hovered ? 'rgba(239,68,68,0.12)' : 'transparent'
+              ;(e.currentTarget as HTMLElement).style.borderColor = hovered ? 'rgba(239,68,68,0.25)' : 'transparent'
+              ;(e.currentTarget as HTMLElement).style.color = hovered ? '#fca5a5' : 'var(--text-faint)'
             }
           }}
         >

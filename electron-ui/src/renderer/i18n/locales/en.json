@@ -1660,7 +1660,11 @@
     "verticalLayout": "Vertical layout",
     "exportJSON": "Export JSON",
     "exportScript": "Export Script",
-    "runFromStep": "Run from this step"
+    "runFromStep": "Run from this step",
+    "stop": "Stop",
+    "breadcrumbList": "Workflows",
+    "clickToEditTitle": "Click to edit title",
+    "stepNameRequired": "Step name is required"
   },
   "snippet": {
     "title": "Text Snippets",

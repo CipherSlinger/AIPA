@@ -735,19 +735,60 @@ function WorkflowTabContent({ crud, t }: {
 
       {/* Footer */}
       <div style={{
-        padding: '6px 12px',
+        padding: '0',
         borderTop: '1px solid var(--glass-border)',
         flexShrink: 0,
         display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+        flexDirection: 'column',
       }}>
-        <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase' as const, color: 'var(--text-faint)' }}>
-          {t('workflow.footer')}
-        </span>
-        <span style={{ fontSize: 9, color: 'var(--text-faint)' }}>
-          {t('workflow.inspired')}
-        </span>
+        {/* New workflow CTA bar */}
+        <button
+          onClick={() => {
+            crud.setNewTeamwork(category === 'teamwork')
+            useUiStore.getState().openWorkflowEditor(null)
+          }}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            padding: '9px 12px',
+            background: 'transparent',
+            border: 'none',
+            borderBottom: '1px solid var(--glass-border)',
+            cursor: 'pointer',
+            color: 'var(--text-muted)',
+            fontSize: 11,
+            fontWeight: 600,
+            transition: 'all 0.15s ease',
+            letterSpacing: '0.02em',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(99,102,241,0.07)'
+            e.currentTarget.style.color = '#818cf8'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'transparent'
+            e.currentTarget.style.color = 'var(--text-muted)'
+          }}
+        >
+          <Plus size={13} />
+          {t('workflow.create')}
+        </button>
+        <div style={{
+          padding: '5px 12px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
+          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase' as const, color: 'var(--text-faint)' }}>
+            {t('workflow.footer')}
+          </span>
+          <span style={{ fontSize: 9, color: 'var(--text-faint)' }}>
+            {t('workflow.inspired')}
+          </span>
+        </div>
       </div>
 
       {/* CSS animations */}

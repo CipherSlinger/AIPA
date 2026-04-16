@@ -1678,7 +1678,11 @@
     "verticalLayout": "垂直布局",
     "exportJSON": "导出 JSON",
     "exportScript": "导出脚本",
-    "runFromStep": "从此步骤运行"
+    "runFromStep": "从此步骤运行",
+    "stop": "停止",
+    "breadcrumbList": "工作流",
+    "clickToEditTitle": "点击编辑标题",
+    "stepNameRequired": "步骤名称不能为空"
   },
   "snippet": {
     "title": "文本片段",

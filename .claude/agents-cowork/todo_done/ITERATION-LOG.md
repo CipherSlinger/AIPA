@@ -6013,3 +6013,59 @@ Status: SUCCESS (vite build 2297 modules in 11.83s; tsc --noEmit zero new errors
 - [x] Clicking "Departments" nav in NavRail clears other sidebar tab active states
 - [x] SessionCard ACTIVE badge only shows when session is both active and currently streaming
 - [x] Build passes with no new TypeScript errors
+
+## Iteration 539 — Canvas node beautification + fullscreen + empty-state quick-add
+_Date: 2026-04-15 | Sprint ongoing_
+
+### Summary
+Six visual and UX improvements to the workflow canvas: (1) Node background switched from `var(--popup-bg)` to `var(--bg-secondary)` for better contrast. (2) Per-status `hoverBoxShadow` added to STATUS_STYLES and applied when node is hovered but not selected/active, giving a shadow-lift effect. (3) `translateY(-2px)` hover-lift transform applied to idle hovered nodes for tactile feedback. (4) Running node `glowColor` also updated to `--bg-secondary`. (5) CanvasToolbar gains a fullscreen toggle button (Maximize2/Minimize2, with `isFullscreen` active state glow); WorkflowCanvas wires `document.requestFullscreen` + `fullscreenchange` event. (6) Empty canvas guide gains three quick-add buttons (Prompt / Condition / Parallel) when `onWorkflowUpdate` is available — each button creates a first step of the corresponding node type.
+
+### Files Changed
+- `src/renderer/components/workflows/CanvasNode.tsx` — add hoverBoxShadow to STATUS_STYLES type and values; update baseBoxShadow to apply hover shadow; change nodeBackground to var(--bg-secondary); add translateY(-2px) hover-lift; glowColor updated for running state
+- `src/renderer/components/workflows/CanvasToolbar.tsx` — add Minimize2 import; add isFullscreen/onToggleFullscreen props + destructuring; render fullscreen toggle button before shortcuts help button
+- `src/renderer/components/workflows/WorkflowCanvas.tsx` — add isFullscreen state + handleToggleFullscreen via document.fullscreenElement; fullscreenchange listener; pass props to CanvasToolbar; add quick-add node-type buttons to empty canvas guide
+
+### Build
+Status: SUCCESS (vite build 13.06s, tsc main+preload 0 errors, 0 new errors from our files; pre-existing WorkflowCanvas Minimap useRef conditional hook warning unchanged)
+
+### Acceptance Criteria
+- [x] Node background uses var(--bg-secondary) instead of var(--popup-bg)
+- [x] Hovering a node (not selected/active/multi) shows lifted shadow and translateY(-2px) transform
+- [x] Running node glowColor updated to --bg-secondary
+- [x] CanvasToolbar has fullscreen toggle button (Maximize2 / Minimize2)
+- [x] Fullscreen enters/exits native document fullscreen; button reflects active state
+- [x] Empty canvas guide shows Prompt / Condition / Parallel quick-add buttons
+- [x] Quick-add buttons create a first step of the selected node type
+- [x] Build passes with no new errors
+
+---
+
+## Iteration 543 — MCP P1-3 + P1-4: real tool enumeration + live connection status
+_Date: 2026-04-15 | Sprint ongoing_
+
+### Summary
+Implemented two P1 MCP gaps: (1) `mcp:getTools` now returns real tool names by parsing
+the `mcp__serverName__toolName` prefix in the tool list from `system.init`, cached in the
+main process. (2) `SettingsMcp.tsx` server cards now show a live status dot (green/red/grey)
+and a tool count badge with tooltip, derived from `activeMcpServers` + new `mcpServerTools`
+store state populated on every `system.init` event.
+
+### Files Changed
+- `electron-ui/src/main/pty/stream-bridge.ts` — parse system.init tools[], infer per-server tool list by mcp__ prefix, emit enriched mcpServers with tools field
+- `electron-ui/src/main/ipc/index.ts` — add mcpServerToolsCache, update systemInit handler to populate cache, fix mcp:getTools to return real tools from cache
+- `electron-ui/src/preload/index.ts` — extend SystemInitData.mcpServers to include optional tools field
+- `electron-ui/src/renderer/App.tsx` — on systemInit, extract per-server tool map and call setMcpServerTools
+- `electron-ui/src/renderer/store/index.ts` — add mcpServerTools: Record<string, string[]> + setMcpServerTools to PrefsState
+- `electron-ui/src/renderer/components/settings/SettingsMcp.tsx` — McpServer interface adds liveStatus/liveToolCount/liveToolNames; ServerCard shows status dot + tool badge with tooltip; SettingsMcp enriches servers before render
+
+### Build
+Status: SUCCESS
+
+### Acceptance Criteria
+- [x] mcp:getTools returns tool list (not empty) after a session with MCP servers has been started
+- [x] SettingsMcp server card shows green dot when server appeared in system.init
+- [x] SettingsMcp server card shows red dot when server is configured but absent from system.init
+- [x] SettingsMcp server card shows grey dot before any session is started
+- [x] Tool count badge shows correct count from system.init; tooltip lists tool names
+- [x] No new TypeScript errors (pre-existing WorkflowCanvas error unchanged)
+- [x] Build passes

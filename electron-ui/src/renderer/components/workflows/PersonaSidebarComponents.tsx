@@ -52,6 +52,7 @@ export interface PersonaSidebarCardProps {
 export function PersonaSidebarCard({ persona, isActive, isDeleting, onDelete }: PersonaSidebarCardProps) {
   const { t } = useI18n()
   const p = persona
+  const [hovered, setHovered] = React.useState(false)
 
   // Use localized name for installed presets
   const displayName = p.presetKey ? t(`persona.preset.${p.presetKey}`) : p.name
@@ -70,6 +71,8 @@ export function PersonaSidebarCard({ persona, isActive, isDeleting, onDelete }: 
     <div
       onClick={() => useUiStore.getState().openPersonaEditor(p.id, 'chat')}
       title={cardTooltip}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -82,37 +85,11 @@ export function PersonaSidebarCard({ persona, isActive, isDeleting, onDelete }: 
         borderRadius: 8,
         transition: 'all 0.15s ease',
         cursor: 'pointer',
-        borderLeft: isActive ? '3px solid rgba(99,102,241,0.7)' : '3px solid transparent',
+        borderLeft: isActive ? '3px solid var(--accent, rgba(99,102,241,0.7))' : '3px solid transparent',
         boxShadow: isActive
           ? `0 0 0 1px ${p.color}30, 0 2px 8px rgba(0,0,0,0.25)`
-          : '0 1px 3px rgba(0,0,0,0.18)',
+          : hovered ? '0 2px 8px rgba(0,0,0,0.25)' : '0 1px 3px rgba(0,0,0,0.18)',
         animation: 'personaCardIn 0.15s ease both',
-      }}
-    onMouseEnter={e => {
-        if (!isActive) {
-          e.currentTarget.style.background = 'rgba(99,102,241,0.06)'
-          e.currentTarget.style.borderColor = 'rgba(99,102,241,0.25)'
-          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)'
-          const avatar = e.currentTarget.querySelector('.persona-avatar') as HTMLElement | null
-          if (avatar) {
-            avatar.style.borderColor = 'rgba(99,102,241,0.60)'
-            avatar.style.transform = 'scale(1.05)'
-            avatar.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3), 0 0 10px rgba(99,102,241,0.30)'
-          }
-        }
-      }}
-      onMouseLeave={e => {
-        if (!isActive) {
-          e.currentTarget.style.background = 'rgba(255,255,255,0.02)'
-          e.currentTarget.style.borderColor = 'var(--glass-border)'
-          e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.18)'
-          const avatar = e.currentTarget.querySelector('.persona-avatar') as HTMLElement | null
-          if (avatar) {
-            avatar.style.borderColor = `${p.color}60`
-            avatar.style.transform = 'scale(1)'
-            avatar.style.boxShadow = `0 0 6px ${p.color}40`
-          }
-        }
       }}
     >
       {/* Emoji avatar — circular with colored ring */}
@@ -192,8 +169,8 @@ export function PersonaSidebarCard({ persona, isActive, isDeleting, onDelete }: 
         </div>
       </div>
 
-      {/* Action buttons — glass morphism style */}
-      <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+      {/* Action buttons — only visible on hover or when deleting */}
+      <div style={{ display: 'flex', gap: 2, flexShrink: 0, visibility: (hovered || isDeleting) ? 'visible' : 'hidden' }}>
         <button
           onClick={e => { e.stopPropagation(); onDelete(p.id) }}
           title={isDeleting ? t('persona.deleteConfirm') : t('persona.deletePersona')}

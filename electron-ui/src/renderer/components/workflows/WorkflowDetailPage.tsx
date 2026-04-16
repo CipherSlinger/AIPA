@@ -266,6 +266,18 @@ export default function WorkflowDetailPage() {
     addToast('success', t('workflow.updated'))
   }, [addToast, t])
 
+  // Delete this workflow and navigate back
+  const handleDeleteWorkflow = useCallback(() => {
+    if (!workflow) return
+    const prefs = usePrefsStore.getState()
+    const currentWorkflows = prefs.prefs.workflows || []
+    const updated = currentWorkflows.filter(w => w.id !== workflow.id)
+    prefs.setPrefs({ workflows: updated })
+    window.electronAPI.prefsSet('workflows', updated)
+    addToast('success', t('workflow.deleted') || 'Workflow deleted')
+    navigateBack()
+  }, [workflow, addToast, t, navigateBack])
+
   const handleSave = () => {
     if (!workflow) return
     const name = editName.trim()
@@ -325,6 +337,7 @@ export default function WorkflowDetailPage() {
 
       <WorkflowDetailHeader
         editIcon={isEditMode ? editIcon : workflow.icon}
+        editName={isEditMode ? editName : displayName}
         editDesc={isEditMode ? editDesc : (workflow.description || '')}
         hasUnsavedChanges={hasUnsavedChanges}
         justSaved={justSaved}
@@ -340,7 +353,11 @@ export default function WorkflowDetailPage() {
         onEnterEditMode={enterEditMode}
         onExitEditMode={exitEditMode}
         onSave={handleSave}
+        onRun={runWorkflow}
+        onStop={() => { /* TODO: cancel queue */ addToast('info', 'Stop not yet implemented') }}
+        onDelete={handleDeleteWorkflow}
         onUpdateIcon={updateIcon}
+        onUpdateName={(v: string) => { setEditName(v); markDirty() }}
         onUpdateDesc={updateDesc}
         t={t}
       />
