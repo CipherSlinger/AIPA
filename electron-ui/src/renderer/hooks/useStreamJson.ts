@@ -935,10 +935,18 @@ Keep exercises focused and achievable. The goal is active learning through doing
     }
     window.addEventListener('aipa:abortStream', handleAbortStream)
 
+    // Listen for send-message events dispatched by tool cards (e.g. AskUserQuestionCard) (Iteration 540)
+    const handleSendMessage = (e: Event) => {
+      const text = (e as CustomEvent<{ text: string }>).detail?.text
+      if (text) sendMessageRef.current?.(text)
+    }
+    window.addEventListener('aipa:sendMessage', handleSendMessage)
+
     return () => {
       unsub()
       unsubFailover()
       window.removeEventListener('aipa:abortStream', handleAbortStream)
+      window.removeEventListener('aipa:sendMessage', handleSendMessage)
     }
   }, [])
 

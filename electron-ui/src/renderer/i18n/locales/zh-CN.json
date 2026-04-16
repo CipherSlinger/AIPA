@@ -991,7 +991,16 @@
     "disabled": "规划模式已禁用",
     "approvalRequired": "需要计划审批",
     "planDetails": "计划详情",
-    "from": "来自"
+    "from": "来自",
+    "rejectFeedbackTitle": "拒绝/修改计划",
+    "rejectFeedbackPlaceholder": "描述需要修改的内容...（Ctrl+Enter 发送）",
+    "rejectSend": "发送反馈"
+  },
+  "askUser": {
+    "typeReply": "输入回复...",
+    "customReply": "或输入自定义回复...",
+    "send": "发送",
+    "sent": "回复已发送"
   },
   "tool": {
     "input": "输入",

@@ -1,6 +1,6 @@
 # AIPA x Claude Code CLI — 功能差距文档
 
-> 更新日期：2026-04-15（Iteration 540）
+> 更新日期：2026-04-15（Iteration 541）
 > CLI 版本：claude-code 2.1.81（BUILD_TIME: 2026-03-20T21:25:42Z）
 > 分析目的：指导 AIPA UI 逐步对齐 CLI 全部能力
 
@@ -26,10 +26,10 @@
 | `TaskOutputTool` | 读取后台任务输出 | ⚠️ 有 TaskDashboard 组件但连接不完整 |
 | `TaskStopTool` | 停止后台任务 | ⚠️ 部分实现 |
 | `TaskCreate/Get/Update/List` | 异步任务 CRUD（isTodoV2Enabled） | ❌ 无 UI |
-| `EnterPlanMode` / `ExitPlanMode` | 进入/退出计划模式 | ⚠️ 有 PlanModeBanner 但无深度控制 |
+| `EnterPlanMode` / `ExitPlanMode` | 进入/退出计划模式 | ✅ 有 PlanModeBanner（含批准/拒绝按钮，Iteration 541）；PlanCard 深度控制已实现 |
 | `EnterWorktree` / `ExitWorktree` | Git worktree 沙箱隔离 | ⚠️ 有 WorktreeDialog 但为独立 CRUD，未与会话绑定 |
 | `SkillTool` | 加载和调用 skills 片段 | ⚠️ 有 skillsList/Read/Install IPC，无 Skill 调用追踪 UI |
-| `AskUserQuestion` | 代理主动询问用户 | ⚠️ 未见专用 UI，仅通过 permissionRequest 间接处理 |
+| `AskUserQuestion` | 代理主动询问用户 | ✅ 有专用 `AskUserQuestionCard`：展示问题文本、可点击选项按钮、自由文本输入框，通过 `aipa:sendMessage` 事件回复 CLI（Iteration 541） |
 | `LSPTool` | LSP 语言服务（ENABLE_LSP_TOOL） | ❌ 无 LSP 集成 |
 | `ListMcpResources` / `ReadMcpResource` | 读取 MCP 服务器资源 | ❌ 无 UI |
 | `ToolSearchTool` | 延迟工具搜索 | ❌ 无 UI |
@@ -91,7 +91,7 @@
 - ✅ `cli:generateAwaySummary` — 生成"离开摘要"
 - ✅ `/compact` — ✅ **P0-4 已实现** — `TokenUsageBar` 在 75%/90% token 使用率时显示 COMPACT 按钮，点击后向 CLI stdin 发送 `/compact` 命令
 - ❌ 无 `cleanupPeriodDays` UI 设置入口（仅在 CLI settings.json 层面）
-- ❌ 无会话导出为 Markdown 的完整实现（有 `useConversationExport.ts` 但未关联 CLI `/export`）
+- ✅ 会话本地导出（Iteration 541）：`useConversationExport.ts` 已完整实现 — 支持 Markdown/HTML/JSON 三种格式，包含工具输入/输出（`<details>` 折叠块），ChatHeader 下载按钮已接入 `exportConversation`
 
 ### 差距 & 优先级
 

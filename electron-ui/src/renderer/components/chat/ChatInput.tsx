@@ -401,9 +401,9 @@ export default function ChatInput({
             border: isPlanMode ? '1px solid #a78bfa' : '1px solid var(--border)', transition: 'border-color 0.15s ease',
           }}
         >
-          {/* Plan Mode banner (Iteration 520) */}
+          {/* Plan Mode banner (Iteration 520; Iteration 540: approve/reject) */}
           {isPlanMode && (
-            <PlanModeBanner onExit={handleTogglePlanMode} />
+            <PlanModeBanner onExit={handleTogglePlanMode} onSend={onSend} />
           )}
           {/* Active persona indicator */}
           {activePersona && (

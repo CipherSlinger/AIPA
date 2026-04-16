@@ -974,7 +974,16 @@
     "disabled": "Plan Mode disabled",
     "approvalRequired": "Plan Approval Required",
     "planDetails": "Plan Details",
-    "from": "From"
+    "from": "From",
+    "rejectFeedbackTitle": "Reject / Modify Plan",
+    "rejectFeedbackPlaceholder": "Describe what to change... (Ctrl+Enter to send)",
+    "rejectSend": "Send Feedback"
+  },
+  "askUser": {
+    "typeReply": "Type your reply...",
+    "customReply": "Or type a custom reply...",
+    "send": "Send",
+    "sent": "Reply sent"
   },
   "tool": {
     "input": "INPUT",
