@@ -7096,3 +7096,32 @@ None (all work already done in Iteration 596)
 
 ### Build
 Status: SUCCESS
+
+---
+
+## Iteration 599 — ToolUseBlock + ToolApprovalDialog dark section bg migration
+
+**Agent:** afb0b9bb938c0bfc4
+**Commit:** fef282a
+
+### Summary
+Migrated `rgba(8,8,16,...)` dark background pattern and `rgba(0,0,0,...)` background patterns to CSS variables for light/dark theme compatibility.
+
+### New CSS Variable
+- Added `--section-bg` to `globals.css`:
+  - Dark (`:root`): `rgba(8, 8, 16, 0.70)`
+  - Light (`[data-theme="light"]`): `rgba(0, 0, 0, 0.05)`
+
+### Files Changed
+- `electron-ui/src/renderer/styles/globals.css` — added `--section-bg` to dark and light theme blocks
+- `electron-ui/src/renderer/components/chat/ToolUseBlock.tsx`:
+  - All `rgba(8,8,16,0.7)` → `var(--section-bg)` (output section panel backgrounds, ~15 occurrences)
+  - Both `rgba(8,8,16,1)` pre blocks → `var(--code-bg)` (TaskList/TaskGet input pre, fallthrough pre)
+- `electron-ui/src/renderer/components/chat/ToolApprovalDialog.tsx`:
+  - `rgba(0,0,0,0.35)` → `var(--code-bg)` (detail/file path box)
+  - `rgba(0,0,0,0.30)` → `var(--code-bg)` (params preview pre)
+  - `rgba(0,0,0,0.70)` → `var(--glass-overlay)` (full-screen backdrop)
+- `MessageContent.tsx` — audited, no migratable values (all indigo/status colors exempt)
+
+### Build
+Status: SUCCESS (0 errors, 204 warnings — all pre-existing)
