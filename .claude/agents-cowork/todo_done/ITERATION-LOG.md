@@ -7145,3 +7145,80 @@ Audited all StatusBar and layout components for remaining `rgba(255,255,255,...)
 
 ### Build
 Status: SUCCESS (verified npm run check 0 errors, build:renderer success)
+
+---
+
+## Iteration 600 — Layout/StatusBar CSS variable audit + globals.css utility migration
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Audited all 7 target layout files (NavRail, SidebarPanel/Sidebar, StatusBarTokenPopup, StatusBarModelPicker, StatusBarPersonaPicker, useStatusBarTimers, statusBarConstants) for `rgba(255,255,255,...)` values. All target layout files were clean — zero migratable values found. All remaining rgba values in those files are exempt (indigo accents, status colors, box-shadows). Migrated the global utility rules in globals.css that did have hardcoded white rgba values.
+
+### Files Changed
+- `electron-ui/src/renderer/styles/globals.css`:
+  - Scrollbar thumb: `rgba(255,255,255,0.12)` → `var(--border)`
+  - Scrollbar thumb hover: `rgba(255,255,255,0.20)` → `var(--bg-input)`
+  - `pre` border: `rgba(255,255,255,0.07)` → `var(--border)`
+  - `.chat-textarea::placeholder` color: `rgba(255,255,255,0.45)` → `var(--text-muted)`
+  - `.search-bar-input::placeholder` color: `rgba(255,255,255,0.45)` → `var(--text-muted)`
+  - Added `--border-strong` variable definition to `:root` and `[data-theme="light"]`
+
+### Build
+Status: SUCCESS (0 errors, 204 warnings — all pre-existing)
+
+### Acceptance Criteria
+- [x] All 7 target layout files audited for rgba(255,255,255,...) values
+- [x] Target layout files confirmed clean (all exempt values)
+- [x] globals.css utility rules migrated to CSS variables
+- [x] npm run check passes with 0 errors
+
+---
+
+## Iteration 601 — Chat components CSS variable migration sweep
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Migrated `rgba(255,255,255,...)` hardcoded values to CSS custom properties across 11 chat component files. Covers border, background, color, and scrollbar-color properties.
+
+### Files Changed
+- `FileDiffView.tsx` — lineNum, markerColor, header bg/border, scrollbarColor, expand button border → CSS vars
+- `IdleReturnDialog.tsx` — border → `--border`
+- `PermissionCard.tsx` — unchecked border → `--border` (2 sites)
+- `PlanCard.tsx` — border → `--border`
+- `QuickCapture.tsx` — border → `--border`
+- `ReactionChips.tsx` — category filter border/bg → `--border`/`--bg-hover`
+- `TaskDashboardCard.tsx` — border/bg → `--border`/`--bg-hover`
+- `TaskQueuePanel.tsx` — bg/border/color → `--glass-bg-low`/`--border`/`--text-muted`
+- `TemplatesSection.tsx` — hover bg/border (inactive state) → `--bg-hover`/`--border`
+- `ToolBatchBlock.tsx` — bg/border → CSS vars
+- `WelcomeQuickActions.tsx` — border/bg → `--border`/`--bg-hover`
+
+### Build
+Status: SUCCESS (0 errors, 204 warnings — all pre-existing)
+
+### Acceptance Criteria
+- [x] All rgba(255,255,255,...) non-exempt values replaced in 11 chat files
+- [x] Only indigo/status/box-shadow values left as rgba
+- [x] npm run check passes with 0 errors
+
+---
+
+## Iteration 602 — Workflow/Canvas CSS variable migration sweep
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Migrated `rgba(255,255,255,...)` hardcoded values to CSS custom properties in workflow canvas components. Covers SVG fill/stroke, shimmer gradient, disabled button color, and node border/text.
+
+### Files Changed
+- `CanvasNode.tsx` — disabled move-up/move-down button color `rgba(255,255,255,0.15)` → `var(--text-faint)` (4 sites)
+- `WorkflowCanvas.tsx` — SVG fill `0.75` → `var(--text-secondary)`, SVG stroke `0.3` → `var(--text-faint)`, shimmer gradient → `var(--text-faint)`
+- `workflowConstants.ts` — default node border `rgba(255,255,255,0.1)` → `var(--border)`, node color `rgba(255,255,255,0.55)` → `var(--text-muted)`
+
+### Build
+Status: SUCCESS (0 errors, 204 warnings — all pre-existing)
+Commit: 324bc4a
+
+### Acceptance Criteria
+- [x] All rgba(255,255,255,...) non-exempt values replaced in workflow files
+- [x] SVG attributes use CSS vars via inline style
+- [x] npm run check passes with 0 errors
