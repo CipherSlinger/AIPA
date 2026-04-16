@@ -70,7 +70,7 @@ export default function NotePopup({ query, notes, categories, selectedIndex, onS
             padding: '20px 16px',
             gap: 6,
           }}>
-            <StickyNote size={20} style={{ color: 'rgba(255,255,255,0.20)' }} />
+            <StickyNote size={20} style={{ color: 'var(--text-faint)' }} />
             <span style={{
               fontSize: 12,
               color: 'var(--text-muted)',
