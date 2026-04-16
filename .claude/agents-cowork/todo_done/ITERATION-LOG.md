@@ -6328,3 +6328,62 @@ Status: SUCCESS (npm run check 0 errors)
 - [x] Memory panel components use CSS variables for bg/text
 - [x] Chat dialog/popup components use CSS variables
 - [x] ReminderSection style object syntax fixed
+
+## Iteration 554 — Light theme: migrate workflow components to CSS variables
+
+_Date: 2026-04-15 | Sprint Theme Migration_
+
+### Summary
+Migrated 6 workflow-related components from hardcoded inline RGBA colors to CSS variables (`--bg-primary`, `--bg-hover`, `--bg-active`, `--text-primary`, `--border`). WorkflowPanel and PersonaSidebarComponents had already been migrated in the preceding commit (Iteration 553 follow-up). Skipped blocked files (WorkflowCanvas, CanvasNode, CanvasEdge, WorkflowDetailPage) and intentionally excluded semantic/shadow colors and CSS-variable-fallback expressions.
+
+### Files Changed
+- `electron-ui/src/renderer/components/workflows/CanvasToolbar.tsx` — kbd badge backgrounds (2 occurrences)
+- `electron-ui/src/renderer/components/workflows/CanvasNodeSidebar.tsx` — edit-mode text color, row bg
+- `electron-ui/src/renderer/components/workflows/CanvasProgressBar.tsx` — overlay background
+- `electron-ui/src/renderer/components/workflows/WorkflowDetailHeader.tsx` — description bar background
+- `electron-ui/src/renderer/components/workflows/WorkflowRunHistory.tsx` — empty-state icon circle bg
+- `electron-ui/src/renderer/components/workflows/WorkflowStepEditor.tsx` — step card background
+
+### Build
+Status: SUCCESS (npm run check 0 errors, vite build passed)
+
+### Acceptance Criteria
+- [x] All targeted workflow components use CSS variables for bg/text
+- [x] Blocked files (WorkflowCanvas, CanvasNode, CanvasEdge, WorkflowDetailPage) untouched
+- [x] Shadow/semantic/fallback RGBA values intentionally skipped
+- [x] `npm run check` 0 errors
+
+## Iteration 552 — Wire sourceStatus to CanvasEdge + fix ReminderSection syntax
+_Date: 2026-04-15 | Sprint ongoing_
+
+### Summary
+Verified sourceStatus={srcStatus} wiring in WorkflowCanvas.tsx was already complete (committed in Iter 551). Verified onStop wiring in WorkflowDetailPage.tsx was already wired to abortStream + clearQueue. Fixed secondary syntax error in ReminderSection.tsx — incomplete onMouseEnter handler caused TS1005 error.
+
+### Files Changed
+- `electron-ui/src/renderer/components/sidebar/ReminderSection.tsx` — fix broken style object, restore full onMouseEnter handler
+
+### Build
+Status: SUCCESS (npm run check 0 errors)
+
+### Acceptance Criteria
+- [x] sourceStatus prop is wired in WorkflowCanvas.tsx CanvasEdge render
+- [x] WorkflowDetailPage onStop calls abortStream + clearQueue
+- [x] ReminderSection.tsx TypeScript syntax error fixed
+
+## Iteration 553 — Light theme: migrate HookAddWizard + WorkflowPersonasSection
+_Date: 2026-04-15 | Sprint ongoing_
+
+### Summary
+Final verification pass: grepped all remaining components for hardcoded RGBA values. HookAddWizard.tsx and WorkflowPersonasSection.tsx were the two largest files still with hardcoded background/text colors. Migrated bg/text values to CSS variables.
+
+### Files Changed
+- `electron-ui/src/renderer/components/settings/HookAddWizard.tsx` — bg + text colors → CSS vars
+- `electron-ui/src/renderer/components/workflows/WorkflowPersonasSection.tsx` — bg + text colors → CSS vars
+
+### Build
+Status: SUCCESS (npm run check 0 errors)
+
+### Acceptance Criteria
+- [x] HookAddWizard uses CSS variables throughout
+- [x] WorkflowPersonasSection uses CSS variables throughout
+- [x] All major component directories now use CSS variable colors
