@@ -6879,3 +6879,31 @@ CSS variable migration across 3 department-related components. Replaced 13 hardc
 
 ### Build
 Status: SUCCESS (vite build: 12.31s)
+
+## Iteration 578 — ToolUseBlock refactor: extract BashCommandBlock, SearchResultCard, NotebookEditCard
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Continued ToolUseBlock.tsx decomposition (phase 2). Extracted 3 new tool-cards modules: BashToolCard.tsx (BashCommandBlock + BashOutputBlock + BashStatusDot + shared BASH_TOOLS/ERROR_KEYWORDS constants), SearchResultCard.tsx (GlobPathRow + GrepMatchRow + SearchResultSummary + extractUrls + WebResultBlock), and NotebookEditCard.tsx (NotebookEditCard with mode/cell-type style maps). ToolUseBlock.tsx reduced from 1820 → 1243 lines (exceeded <1400 target).
+
+### Files Changed
+- `src/renderer/components/chat/ToolUseBlock.tsx` — removed inlined components, added 3 new imports; 1820→1243 lines
+- `src/renderer/components/chat/tool-cards/BashToolCard.tsx` — NEW (162 lines): BashCommandBlock, BashOutputBlock, BashStatusDot, BASH_TOOLS, ERROR_KEYWORDS
+- `src/renderer/components/chat/tool-cards/SearchResultCard.tsx` — NEW (296 lines): GlobPathRow, GrepMatchRow, SearchResultSummary, extractUrls, WebResultBlock
+- `src/renderer/components/chat/tool-cards/NotebookEditCard.tsx` — NEW (190 lines): NotebookEditCard with mode/cell-type style maps
+
+### Build
+Status: SUCCESS (vite build: 12.28s, 0 TypeScript errors)
+
+## Iteration 582 — Migrate SessionCard and ChannelPanel to CSS variables
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Migrated hardcoded rgba() color values to CSS variables in SessionCard.tsx and ChannelPanel.tsx. SessionCard: replaced rgba(255,255,255,0) pin button transparent bg with `transparent`. ChannelPanel: replaced rgba(255,255,255,0.03) content wrapper bg and rgba(255,255,255,0.02) footer bg with var(--bg-hover). Retained all accent indigo, red/green/yellow status colors, box-shadow depth colors, and always-white text on red delete button.
+
+### Files Changed
+- `electron-ui/src/renderer/components/departments/SessionCard.tsx` — 1 replacement (rgba transparent → transparent)
+- `electron-ui/src/renderer/components/channel/ChannelPanel.tsx` — 2 replacements (rgba white → var(--bg-hover))
+
+### Build
+Status: SUCCESS (npm run check: 0 errors, 0 TS errors)
