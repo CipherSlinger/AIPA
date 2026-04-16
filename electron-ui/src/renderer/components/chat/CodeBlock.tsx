@@ -105,7 +105,7 @@ function PreviewPane({ code, lang }: { code: string; lang: string }) {
           width: '100%',
           height: 200,
           border: 'none',
-          background: 'rgba(255,255,255,1)',
+          background: '#fff',
         }}
         title={t('tool.codePreview')}
       />

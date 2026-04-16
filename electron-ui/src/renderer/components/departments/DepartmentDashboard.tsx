@@ -488,7 +488,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
           {t('dept.newSession')}
           <kbd style={{
             fontSize: 9,
-            background: 'rgba(255,255,255,0.15)',
+            background: 'var(--bg-input)',
             borderRadius: 3,
             padding: '0px 4px',
             lineHeight: '14px',
