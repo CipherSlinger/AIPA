@@ -64,6 +64,8 @@
   --tool-card-bg:         rgba(0, 0, 0, 0.15);
   --tool-card-border:     rgba(255, 255, 255, 0.06);
   --tool-card-header-bg:  rgba(0, 0, 0, 0.08);
+  /* Code / content block dark overlay inside tool cards */
+  --code-bg:              rgba(0, 0, 0, 0.25);
 
   /* Structured diff */
   --diff-add-bg:          rgba(46, 160, 67, 0.15);
@@ -180,6 +182,8 @@
   --tool-card-bg:         rgba(0, 0, 0, 0.04);
   --tool-card-border:     rgba(0, 0, 0, 0.08);
   --tool-card-header-bg:  rgba(0, 0, 0, 0.05);
+  /* Code / content block overlay inside tool cards */
+  --code-bg:              rgba(0, 0, 0, 0.06);
   --diff-add-bg:          rgba(46, 160, 67, 0.10);
   --diff-add-text:        #1a7f37;
   --diff-del-bg:          rgba(248, 81, 73, 0.10);

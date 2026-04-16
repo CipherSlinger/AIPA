@@ -203,7 +203,7 @@ export function ContextBadge({ onNewConversation }: { onNewConversation: () => v
               background: newSessionBg,
               border: pct >= 80 ? 'none' : '1px solid var(--border)',
               borderRadius: 6,
-              color: pct >= 80 ? 'rgba(255,255,255,0.95)' : 'var(--text-primary)',
+              color: pct >= 80 ? 'var(--text-bright)' : 'var(--text-primary)',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}

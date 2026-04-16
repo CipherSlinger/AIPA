@@ -330,7 +330,7 @@ export default function ToolApprovalDialog({ onRespond }: Props) {
               borderRadius: 8,
               padding: '0',
               height: 40,
-              color: 'rgba(255,255,255,0.95)',
+              color: 'var(--text-bright)',
               cursor: 'pointer',
               fontSize: 13,
               fontWeight: 600,

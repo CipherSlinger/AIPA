@@ -150,7 +150,7 @@ export default function SnippetPopup({ snippets, selectedIndex, onSelect, onHove
               padding: '1px 5px',
               fontSize: 10,
               fontFamily: 'monospace',
-              color: 'rgba(255,255,255,0.55)',
+              color: 'var(--text-secondary)',
               lineHeight: 1.6,
             }}>
               {key}
