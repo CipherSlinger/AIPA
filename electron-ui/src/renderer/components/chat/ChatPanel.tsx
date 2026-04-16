@@ -31,6 +31,8 @@ import SpeculationStatusBar from './SpeculationStatusBar'
 import TabBar from './TabBar'
 import ExportDialog from './ExportDialog'
 import ToolApprovalDialog from './ToolApprovalDialog'
+import PlanApprovalCard from './PlanApprovalCard'
+import DreamTaskCard from './DreamTaskCard'
 import { getTemplateById } from '../../utils/promptTemplates'
 import { useT } from '../../i18n'
 import { useIdleReturn } from '../../hooks/useIdleReturn'
@@ -55,6 +57,9 @@ export default function ChatPanel() {
   const prepareRegeneration = useChatStore(s => s.prepareRegeneration)
   const lastContextUsage = useChatStore(s => s.lastContextUsage)
   const totalSessionCost = useChatStore(s => s.totalSessionCost)
+  const pendingPlanApproval = useChatStore(s => s.pendingPlanApproval)
+  const setPendingPlanApproval = useChatStore(s => s.setPendingPlanApproval)
+  const dreamEvents = useChatStore(s => s.dreamEvents)
   // Tab state (Iteration 515)
   const activeTabId = useChatStore(s => s.activeTabId)
   const setTabScrollTop = useChatStore(s => s.setTabScrollTop)
@@ -589,6 +594,39 @@ export default function ChatPanel() {
           onReject={specReject}
           onAbort={specAbort}
         />
+      )}
+
+      {/* Plan Approval Card — multi-agent plan approval protocol (P3-3) */}
+      {pendingPlanApproval && (
+        <PlanApprovalCard
+          sessionId={pendingPlanApproval.sessionId}
+          requestId={pendingPlanApproval.requestId}
+          from={pendingPlanApproval.from}
+          planContent={pendingPlanApproval.planContent}
+          planFilePath={pendingPlanApproval.planFilePath}
+          onApprove={(requestId) => {
+            window.electronAPI?.cliRespondPlanApproval?.({
+              sessionId: pendingPlanApproval.sessionId,
+              requestId,
+              approved: true,
+            })
+            setPendingPlanApproval(null)
+          }}
+          onReject={(requestId, feedback) => {
+            window.electronAPI?.cliRespondPlanApproval?.({
+              sessionId: pendingPlanApproval.sessionId,
+              requestId,
+              approved: false,
+              feedback,
+            })
+            setPendingPlanApproval(null)
+          }}
+        />
+      )}
+
+      {/* Dream Task Card — memory consolidation events (P3-2) */}
+      {dreamEvents.length > 0 && (
+        <DreamTaskCard events={dreamEvents} />
       )}
 
       {/* Input bar */}

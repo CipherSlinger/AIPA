@@ -22,6 +22,7 @@ import { AskUserQuestionCard } from './tool-cards/AskUserQuestionCard'
 import { TaskCreateBadge, TaskUpdateBadge, TASK_CREATE_TOOLS, TASK_UPDATE_TOOLS } from './tool-cards/TaskBadgeCard'
 import { ImageThumbnail } from './tool-cards/ImageThumbnail'
 import { ToolCardHeader } from './tool-cards/ToolCardHeader'
+import { StructuredOutputCard } from './tool-cards/StructuredOutputCard'
 
 interface Props {
   tool: ToolUseInfo
@@ -72,6 +73,9 @@ const TOOL_ICONS: Record<string, React.ElementType> = {
   // MCP resource tools
   ListMcpResources: Database,
   ReadMcpResource: FileInput,
+  // Structured output (P3-1)
+  StructuredOutput: Database,
+  structured_output: Database,
   // Agent / workflow
   Agent: Network,
   Workflow: Network,
@@ -394,6 +398,11 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
   // SendMessage: delegate to specialized card
   if (tool.name === 'SendMessage') {
     return <SendMessageCard tool={tool} />
+  }
+
+  // StructuredOutput: render specialized JSON schema output card (P3-1)
+  if (tool.name === 'StructuredOutput' || tool.name === 'structured_output') {
+    return <StructuredOutputCard tool={tool} />
   }
 
   // TaskCreate: compact inline "created" badge

@@ -916,6 +916,17 @@ Keep exercises focused and achievable. The goal is active learning through doing
       }
     })
 
+    // Listen for multi-agent plan approval requests (P3-3)
+    const unsubPlanApproval = window.electronAPI.onPlanApprovalRequest?.((data) => {
+      useChatStore.getState().setPendingPlanApproval({
+        sessionId: data.sessionId,
+        requestId: data.requestId,
+        from: data.from,
+        planContent: data.planContent,
+        planFilePath: data.planFilePath,
+      })
+    })
+
     // Listen for provider failover events
     const unsubFailover = window.electronAPI.onProviderFailover((data) => {
       useUiStore.getState().addToast('warning',
@@ -945,6 +956,7 @@ Keep exercises focused and achievable. The goal is active learning through doing
     return () => {
       unsub()
       unsubFailover()
+      unsubPlanApproval?.()
       window.removeEventListener('aipa:abortStream', handleAbortStream)
       window.removeEventListener('aipa:sendMessage', handleSendMessage)
     }
