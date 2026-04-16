@@ -12,6 +12,10 @@ interface McpServer {
   disabled?: boolean
   toolCount?: number
   status?: string
+  // Live session connection status (from system.init)
+  liveStatus?: 'connected' | 'disconnected' | 'unknown'
+  liveToolCount?: number
+  liveToolNames?: string[]
 }
 
 type ServerType = 'stdio' | 'http' | 'sse'
@@ -463,6 +467,20 @@ function ServerCard({
   const isLoading = !isDisabled && srv.status === 'loading'
   const hasError = !isDisabled && !isLoading && (srv.status === 'error' || (srv.toolCount === 0 && srv.status != null && srv.status !== 'connected'))
 
+  // Live session dot: 'connected' = green, 'disconnected' = red, 'unknown' = grey
+  const liveDotColor = isDisabled
+    ? 'var(--text-muted)'
+    : srv.liveStatus === 'connected'
+    ? 'rgba(34,197,94,0.90)'
+    : srv.liveStatus === 'disconnected'
+    ? 'rgba(239,68,68,0.90)'
+    : 'rgba(255,255,255,0.25)'
+  const liveDotShadow = srv.liveStatus === 'connected' && !isDisabled
+    ? '0 0 5px rgba(34,197,94,0.50)'
+    : 'none'
+  const liveToolCount = srv.liveToolCount ?? 0
+  const liveToolNames = srv.liveToolNames ?? []
+
   // Status pill styles & labels
   const statusPill: React.CSSProperties = isDisabled
     ? { background: 'var(--bg-hover)', border: '1px solid var(--border)', color: 'var(--text-muted)' }
@@ -500,6 +518,23 @@ function ServerCard({
         {/* Name + command + status pill row */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            {/* Live session status dot */}
+            <span
+              title={
+                srv.liveStatus === 'connected'
+                  ? `Connected — ${liveToolCount} tool${liveToolCount !== 1 ? 's' : ''}${liveToolNames.length > 0 ? ': ' + liveToolNames.join(', ') : ''}`
+                  : srv.liveStatus === 'disconnected'
+                  ? 'Disconnected — server did not appear in last session'
+                  : 'Unknown — start a new session to check status'
+              }
+              style={{
+                width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                background: liveDotColor,
+                boxShadow: liveDotShadow,
+                display: 'inline-block',
+                cursor: 'default',
+              }}
+            />
             {srv.name}
             {/* Connection status pill */}
             <span style={{
@@ -515,8 +550,26 @@ function ServerCard({
             }}>
               {statusLabel}
             </span>
-            {/* Tool count badge */}
-            {srv.toolCount != null && srv.toolCount > 0 && (
+            {/* Live tool count badge (from system.init) */}
+            {liveToolCount > 0 && (
+              <span
+                title={liveToolNames.join('\n')}
+                style={{
+                  fontSize: 10,
+                  color: 'rgba(165,180,252,0.82)',
+                  background: 'rgba(99,102,241,0.12)',
+                  border: '1px solid rgba(99,102,241,0.20)',
+                  borderRadius: 6,
+                  padding: '1px 6px',
+                  flexShrink: 0,
+                  cursor: 'default',
+                }}
+              >
+                {liveToolCount} {t('mcp.tools')}
+              </span>
+            )}
+            {/* Fallback: static tool count badge if no live data */}
+            {liveToolCount === 0 && srv.toolCount != null && srv.toolCount > 0 && (
               <span style={{
                 fontSize: 10,
                 color: 'var(--text-muted)',
@@ -862,6 +915,7 @@ export default function SettingsMcp() {
   const [reconnectMsg, setReconnectMsg] = useState<string | null>(null)
   const rawActiveMcpServers = usePrefsStore(s => s.activeMcpServers)
   const activeMcpServers = rawActiveMcpServers as unknown as ActiveMcpServer[]
+  const mcpServerTools = usePrefsStore(s => s.mcpServerTools)
 
   const reload = () => {
     window.electronAPI.mcpList().then(list => setMcpServers(list as McpServer[]))
@@ -886,6 +940,24 @@ export default function SettingsMcp() {
     await window.electronAPI.mcpSetEnabled(name, enabled)
     setMcpServers(prev => prev.map(s => s.name === name ? { ...s, disabled: !enabled } : s))
   }
+
+  // Enrich configured servers with live session status from system.init data
+  const connectedNames = new Set(activeMcpServers.map(s => s.name))
+  // If no session has been started yet (activeMcpServers is empty), status is 'unknown'
+  const sessionStarted = activeMcpServers.length > 0
+  const enrichedServers: McpServer[] = mcpServers.map(srv => {
+    const isConnected = connectedNames.has(srv.name)
+    const toolNames = mcpServerTools[srv.name] ?? []
+    // Extract display names (strip mcp__serverName__ prefix)
+    const prefix = `mcp__${srv.name}__`
+    const displayToolNames = toolNames.map(tn => tn.startsWith(prefix) ? tn.slice(prefix.length) : tn)
+    return {
+      ...srv,
+      liveStatus: !sessionStarted ? 'unknown' : isConnected ? 'connected' : 'disconnected',
+      liveToolCount: toolNames.length,
+      liveToolNames: displayToolNames,
+    }
+  })
 
   return (
     <div>
@@ -949,7 +1021,7 @@ export default function SettingsMcp() {
           <span style={{ fontSize: 11, display: 'block', color: 'var(--text-muted)' }}>{t('settings.mcpHint')}</span>
         </div>
       ) : (
-        mcpServers.map(srv => (
+        enrichedServers.map(srv => (
           <ServerCard
             key={srv.name}
             srv={srv}

@@ -156,9 +156,19 @@ export default function App() {
     if (!window.electronAPI?.onSystemInit) return
     const unsub = window.electronAPI.onSystemInit((data) => {
       if (data.model) usePrefsStore.getState().setActiveModel(data.model)
-      if (data.mcpServers) usePrefsStore.getState().setActiveMcpServers(
-        data.mcpServers as unknown as Record<string, unknown>[]
-      )
+      if (data.mcpServers) {
+        usePrefsStore.getState().setActiveMcpServers(
+          data.mcpServers as unknown as Record<string, unknown>[]
+        )
+        // Build serverName -> toolNames map from the enriched mcpServers data
+        const toolMap: Record<string, string[]> = {}
+        for (const srv of data.mcpServers) {
+          if (srv.tools && srv.tools.length > 0) {
+            toolMap[srv.name] = srv.tools
+          }
+        }
+        usePrefsStore.getState().setMcpServerTools(toolMap)
+      }
     })
     return () => unsub?.()
   }, [])

@@ -231,10 +231,29 @@ export class StreamBridge extends EventEmitter {
       case 'system': {
         const parsed = event as Record<string, unknown>
         if (parsed.subtype === 'init') {
+          const allTools = (parsed.tools as string[] | undefined) ?? []
+          const rawMcpServers = (parsed.mcp_servers as Array<{ name: string; status: string }> | undefined) ?? []
+          // Infer per-server tool lists from tool names: mcp__serverName__toolName
+          const serverToolMap: Record<string, string[]> = {}
+          for (const toolName of allTools) {
+            if (toolName.startsWith('mcp__')) {
+              const withoutPrefix = toolName.slice('mcp__'.length)
+              const sepIdx = withoutPrefix.indexOf('__')
+              if (sepIdx !== -1) {
+                const serverName = withoutPrefix.slice(0, sepIdx)
+                if (!serverToolMap[serverName]) serverToolMap[serverName] = []
+                serverToolMap[serverName].push(toolName)
+              }
+            }
+          }
+          const mcpServers = rawMcpServers.map(srv => ({
+            ...srv,
+            tools: serverToolMap[srv.name] ?? [],
+          }))
           this.emit('systemInit', {
             sessionId: sid,
-            tools: (parsed.tools as string[] | undefined) ?? [],
-            mcpServers: (parsed.mcp_servers as Array<{ name: string; status: string }> | undefined) ?? [],
+            tools: allTools,
+            mcpServers,
             model: (parsed.model as string | undefined) ?? '',
             permissionMode: (parsed.permissionMode as string | undefined) ?? 'default',
             cwd: (parsed.cwd as string | undefined) ?? '',

@@ -5,7 +5,7 @@ type Unsubscribe = () => void
 export interface SystemInitData {
   sessionId: string
   tools: string[]
-  mcpServers: Array<{ name: string; status: string }>
+  mcpServers: Array<{ name: string; status: string; tools?: string[] }>
   model: string
   permissionMode: string
   cwd: string

@@ -25,6 +25,10 @@ import { createLogger } from '../utils/logger'
 
 const log = createLogger('ipc')
 
+// Cache for MCP server tools populated from system.init events
+// Maps serverName -> list of tool names (e.g. "mcp__myserver__tool1")
+const mcpServerToolsCache: Record<string, string[]> = {}
+
 // Guard against double-registration (e.g., when createWindow is called
 // from app.on('activate') on macOS). Registering a handler twice on the
 // same channel crashes Electron with "Attempted to register a second handler".
@@ -221,7 +225,18 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
     })
     bridge.on('hookCallback', (d) => send('cli:hookCallback', d))
     bridge.on('mcpElicitation', (d) => send('cli:elicitation', d))
-    bridge.on('systemInit', (d) => send('cli:systemInit', d))
+    bridge.on('systemInit', (d) => {
+      send('cli:systemInit', d)
+      // Cache per-server tool lists for mcp:getTools handler
+      const initData = d as { mcpServers?: Array<{ name: string; status: string; tools?: string[] }> }
+      if (initData.mcpServers) {
+        for (const srv of initData.mcpServers) {
+          if (srv.tools && srv.tools.length > 0) {
+            mcpServerToolsCache[srv.name] = srv.tools
+          }
+        }
+      }
+    })
     bridge.on('notification', (d) => send('cli:notification', d))
     bridge.on('planApprovalRequest', (d) => send('cli:planApprovalRequest', d))
     bridge.on('apiError', (d) => send('cli:apiError', d))
@@ -457,9 +472,18 @@ function registerConfigHandlers(): void {
     }
   })
 
-  safeHandle('mcp:getTools', async (_e, { serverName: _serverName }: { serverName: string }) => {
-    // Real tool enumeration requires MCP protocol integration; return empty for now
-    return { tools: [] }
+  safeHandle('mcp:getTools', async (_e, { serverName }: { serverName: string }) => {
+    // Return tools from system.init cache; fall back to empty array if not yet populated
+    const cachedTools = mcpServerToolsCache[serverName] ?? []
+    const tools = cachedTools.map((toolFullName: string) => {
+      // Parse display name from mcp__serverName__toolName format
+      const prefix = `mcp__${serverName}__`
+      const displayName = toolFullName.startsWith(prefix)
+        ? toolFullName.slice(prefix.length)
+        : toolFullName
+      return { name: displayName, fullName: toolFullName }
+    })
+    return { tools }
   })
 
   safeHandle('mcp:reconnect', async (_e, { serverName: _serverName }: { serverName: string }) => {

@@ -51,6 +51,9 @@ interface PrefsState {
   setActiveModel: (model: string) => void
   activeMcpServers: Record<string, unknown>[]
   setActiveMcpServers: (servers: Record<string, unknown>[]) => void
+  // MCP server tools: serverName -> list of tool names (populated from system.init)
+  mcpServerTools: Record<string, string[]>
+  setMcpServerTools: (tools: Record<string, string[]>) => void
 }
 
 const DEFAULT_PREFS: ClaudePrefs = {
@@ -101,4 +104,6 @@ export const usePrefsStore = create<PrefsState>((set) => ({
   setActiveModel: (model) => set({ activeModel: model }),
   activeMcpServers: [],
   setActiveMcpServers: (servers) => set({ activeMcpServers: servers }),
+  mcpServerTools: {},
+  setMcpServerTools: (tools) => set({ mcpServerTools: tools }),
 }))
