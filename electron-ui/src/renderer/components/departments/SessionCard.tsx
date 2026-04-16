@@ -217,43 +217,7 @@ export default function SessionCard({ session, onClick, isActive, isStreaming, i
         />
       )}
 
-      {/* Status pill — top right (active or running) */}
-      {statusPill && !isLoading && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 8,
-            right: 10,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            background: statusPill.bg,
-            borderRadius: 6,
-            padding: '2px 7px 2px 5px',
-            pointerEvents: 'none',
-          }}
-        >
-          <div style={{
-            width: 6,
-            height: 6,
-            borderRadius: '50%',
-            background: statusPill.dot,
-            boxShadow: `0 0 0 2px ${statusPill.dot}33, 0 0 6px ${statusPill.dot}88`,
-            flexShrink: 0,
-          }} />
-          <span style={{
-            fontSize: 9,
-            fontWeight: 700,
-            color: statusPill.color,
-            letterSpacing: '0.03em',
-            textTransform: 'uppercase',
-          }}>
-            {statusPill.label}
-          </span>
-        </div>
-      )}
-
-      {/* Active glow dot — top right (shown only when no status pill or loading) */}
+      {/* Active glow dot — top right (shown only when loading) */}
       {isActive && isLoading && (
         <div
           style={{
@@ -300,7 +264,7 @@ export default function SessionCard({ session, onClick, isActive, isStreaming, i
         }} />
       )}
 
-      {/* Delete confirm — top right */}
+      {/* Delete confirm — top right (shown when delete confirmation is active) */}
       {showDeleteConfirm && (
         <div
           style={{
@@ -358,85 +322,114 @@ export default function SessionCard({ session, onClick, isActive, isStreaming, i
         </div>
       )}
 
-      {/* Delete icon — top right, shown on hover */}
-      {hovered && !isActive && !isLoading && !showDeleteConfirm && onDelete && (
-        <button
-          onClick={e => {
-            e.stopPropagation()
-            setShowDeleteConfirm(true)
-          }}
-          style={{
-            position: 'absolute',
-            top: 8, right: 8,
-            background: 'rgba(239,68,68,0)',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'var(--text-muted)',
-            padding: 3,
-            borderRadius: 4,
-            display: 'flex',
-            alignItems: 'center',
-            transition: 'background 0.15s ease, color 0.15s ease',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(252,165,165,0.12)'
-            e.currentTarget.style.color = '#fca5a5'
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = 'transparent'
-            e.currentTarget.style.color = 'var(--text-muted)'
-          }}
-          title={t('dept.deleteSession')}
-        >
-          <Trash2 size={12} />
-        </button>
-      )}
-
-      {/* Pin button — shown on hover, left of delete */}
-      {hovered && !isActive && !isLoading && !showDeleteConfirm && (
-        <button
-          onClick={togglePin}
-          title={pinned ? 'Unpin session' : 'Pin session to top'}
-          style={{
-            position: 'absolute',
-            top: 8,
-            right: onDelete ? 30 : 8,
-            background: pinned ? 'rgba(251,191,36,0.15)' : 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            color: pinned ? '#fbbf24' : 'var(--text-muted)',
-            padding: 3,
-            borderRadius: 4,
-            display: 'flex',
-            alignItems: 'center',
-            fontSize: 12,
-            lineHeight: 1,
-            transition: 'background 0.15s ease, color 0.15s ease',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(251,191,36,0.15)'
-            e.currentTarget.style.color = '#fbbf24'
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = pinned ? 'rgba(251,191,36,0.15)' : 'transparent'
-            e.currentTarget.style.color = pinned ? '#fbbf24' : 'var(--text-muted)'
-          }}
-        >
-          📌
-        </button>
-      )}
-
-      {/* Pin indicator — visible when pinned and not hovered */}
-      {pinned && !hovered && (
+      {/* Top-right action row: unified container prevents pin/delete/status overlap */}
+      {!showDeleteConfirm && (
         <div style={{
           position: 'absolute',
-          top: 5,
+          top: 6,
           right: 6,
-          fontSize: 10,
-          opacity: 0.75,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
           pointerEvents: 'none',
+          zIndex: 2,
         }}>
-          📌
+          {/* Pin button — leftmost in the row */}
+          {hovered && !isActive && !isLoading && (
+            <button
+              onClick={togglePin}
+              title={pinned ? 'Unpin session' : 'Pin session to top'}
+              style={{
+                pointerEvents: 'auto',
+                background: pinned ? 'rgba(251,191,36,0.15)' : 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: pinned ? '#fbbf24' : 'var(--text-muted)',
+                padding: 3,
+                borderRadius: 4,
+                display: 'flex',
+                alignItems: 'center',
+                fontSize: 12,
+                lineHeight: 1,
+                transition: 'background 0.15s ease, color 0.15s ease',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(251,191,36,0.15)'
+                e.currentTarget.style.color = '#fbbf24'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = pinned ? 'rgba(251,191,36,0.15)' : 'transparent'
+                e.currentTarget.style.color = pinned ? '#fbbf24' : 'var(--text-muted)'
+              }}
+            >
+              📌
+            </button>
+          )}
+          {/* Pin indicator — visible when pinned and not hovered */}
+          {pinned && !hovered && (
+            <span style={{ fontSize: 10, opacity: 0.75 }}>📌</span>
+          )}
+          {/* Delete icon — shown on hover */}
+          {hovered && !isActive && !isLoading && onDelete && (
+            <button
+              onClick={e => {
+                e.stopPropagation()
+                setShowDeleteConfirm(true)
+              }}
+              style={{
+                pointerEvents: 'auto',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text-muted)',
+                padding: 3,
+                borderRadius: 4,
+                display: 'flex',
+                alignItems: 'center',
+                transition: 'background 0.15s ease, color 0.15s ease',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(252,165,165,0.12)'
+                e.currentTarget.style.color = '#fca5a5'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'transparent'
+                e.currentTarget.style.color = 'var(--text-muted)'
+              }}
+              title={t('dept.deleteSession')}
+            >
+              <Trash2 size={12} />
+            </button>
+          )}
+          {/* Status pill — rightmost, shown when there is a status and not loading */}
+          {statusPill && !isLoading && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              background: statusPill.bg,
+              borderRadius: 6,
+              padding: '2px 7px 2px 5px',
+            }}>
+              <div style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: statusPill.dot,
+                boxShadow: `0 0 0 2px ${statusPill.dot}33, 0 0 6px ${statusPill.dot}88`,
+                flexShrink: 0,
+              }} />
+              <span style={{
+                fontSize: 9,
+                fontWeight: 700,
+                color: statusPill.color,
+                letterSpacing: '0.03em',
+                textTransform: 'uppercase',
+              }}>
+                {statusPill.label}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
@@ -458,7 +451,7 @@ export default function SessionCard({ session, onClick, isActive, isStreaming, i
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
             transition: 'color 0.15s ease',
-            paddingRight: statusPill || isActive ? 72 : 0,
+            paddingRight: statusPill || hovered ? 80 : 0,
           }}
         >
           {title}
