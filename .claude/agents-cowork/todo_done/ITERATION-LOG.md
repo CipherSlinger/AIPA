@@ -6553,3 +6553,15 @@ Status: SUCCESS (npm run check: 0 errors, vite build: 13.44s)
 - [x] PowerShell uses same display as Bash (command block + output block)
 - [x] TOOL_ICONS updated for all three browser name variants + PowerShell
 - [x] npm run check passes (only pre-existing TS1149 casing error unrelated to this iteration)
+
+## Iteration 566 — RemoteTrigger action display card
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Added RemoteTriggerCard inline component in ToolUseBlock.tsx. Input display shows action chip (list=gray, get=blue, create=green, update=amber, run=indigo with Play icon) and trigger_id/body.prompt preview. Result display: list shows count + trigger IDs; get/create/update shows trigger details (id, cron, prompt preview); run shows green "Triggered" badge. Added RemoteTrigger to TOOL_ICONS with Send icon.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/ToolUseBlock.tsx` — add RemoteTriggerCard, action chip mapping, result routing
+
+### Build
+Status: SUCCESS
