@@ -308,33 +308,6 @@ export default function ChatHeader({
         </span>
       )}
 
-      {/* Working directory indicator */}
-      <span
-        onClick={handleChangeDir}
-        title={`${t('chat.workingDir')}: ${effectiveWorkingDir || t('chat.workingDirDefault')}${currentTab?.cwd ? '' : ' (global)'}
-${t('chat.clickToChangeDir')}`}
-        style={{
-          fontSize: 10,
-          color: 'var(--text-muted)',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 3,
-          transition: 'color 0.15s ease',
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = '#818cf8')}
-        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
-      >
-        <FolderOpen size={10} style={{ flexShrink: 0, opacity: 0.7 }} />
-        {effectiveWorkingDir ? truncatePath(effectiveWorkingDir) : t('chat.workingDirDefault')}
-        {!currentTab?.cwd && effectiveWorkingDir && (
-          <span style={{ fontSize: 8, opacity: 0.5, marginLeft: 2 }}>(global)</span>
-        )}
-      </span>
-
       {/* Active model pill removed — model already shown in settings */}
 
       {/* MCP connection status pill — shown only when servers are active */}
