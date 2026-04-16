@@ -146,7 +146,7 @@ export default function SessionFolders({ activeFolder, onFolderSelect, folderCou
             WebkitBackdropFilter: 'blur(20px)',
             border: '1px solid var(--border)',
             borderRadius: 12,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+            boxShadow: 'var(--glass-shadow)',
             padding: 6,
             zIndex: 300,
             animation: 'slideUp 0.15s ease',

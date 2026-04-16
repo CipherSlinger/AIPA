@@ -378,7 +378,7 @@ export default function SessionList() {
               width: 48,
               height: 48,
               borderRadius: 12,
-              background: 'rgba(99,102,241,0.12)',
+            background: 'rgba(99,102,241,0.12)',
               border: '1px solid rgba(99,102,241,0.20)',
               display: 'flex',
               alignItems: 'center',

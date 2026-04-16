@@ -250,7 +250,7 @@ export default function ChangesPanel() {
                           color: 'var(--text-muted)',
                           padding: '3px 7px 5px',
                           wordBreak: 'break-all',
-                          background: 'rgba(255,255,255,0.03)',
+          background: 'var(--glass-shimmer)',
                           border: '1px solid var(--border)',
                           borderRadius: 6,
                           marginBottom: 6,
@@ -300,7 +300,7 @@ export default function ChangesPanel() {
               padding: '7px 12px',
               border: '1px solid var(--border)',
               borderRadius: 7,
-              background: 'rgba(255,255,255,0.03)',
+              background: 'var(--glass-shimmer)',
               color: 'var(--text-secondary)',
               cursor: 'pointer',
               fontSize: 12,
@@ -318,7 +318,7 @@ export default function ChangesPanel() {
             }}
             onMouseLeave={e => {
               const btn = e.currentTarget as HTMLButtonElement
-              btn.style.background = 'rgba(255,255,255,0.03)'
+              btn.style.background = 'var(--glass-shimmer)'
               btn.style.borderColor = 'var(--border)'
               btn.style.color = 'var(--text-secondary)'
             }}
@@ -336,7 +336,7 @@ export default function ChangesPanel() {
             position: 'fixed',
             inset: 0,
             zIndex: 1000,
-            background: 'rgba(0,0,0,0.6)',
+            background: 'var(--glass-overlay)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -345,7 +345,7 @@ export default function ChangesPanel() {
         >
           <div
             style={{
-              background: 'rgba(10,10,18,0.98)',
+              background: 'var(--glass-bg-popup)',
               backdropFilter: 'blur(20px)',
               WebkitBackdropFilter: 'blur(20px)',
               border: '1px solid var(--border)',

@@ -49,7 +49,7 @@ const lineStyles: Record<LineType, React.CSSProperties> = {
   },
   header: {
     color: 'var(--text-secondary)',
-    background: 'rgba(255,255,255,0.03)',
+    background: 'var(--glass-shimmer)',
     borderLeft: '2px solid transparent',
   },
   context: {
@@ -71,7 +71,7 @@ export default function DiffViewer({ diff }: DiffViewerProps) {
     return (
       <div
         style={{
-          background: 'rgba(10,10,18,0.95)',
+          background: 'var(--glass-bg-high)',
           border: '1px solid var(--border)',
           borderRadius: 8,
           overflow: 'hidden',
@@ -93,7 +93,7 @@ export default function DiffViewer({ diff }: DiffViewerProps) {
   return (
     <div
       style={{
-        background: 'rgba(10,10,18,0.95)',
+        background: 'var(--glass-bg-high)',
         border: '1px solid var(--border)',
         borderRadius: 8,
         overflow: 'hidden',
@@ -111,7 +111,7 @@ export default function DiffViewer({ diff }: DiffViewerProps) {
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '8px 12px',
-            background: 'rgba(255,255,255,0.03)',
+            background: 'var(--glass-shimmer)',
             borderBottom: '1px solid var(--border)',
           }}
         >

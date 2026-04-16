@@ -220,7 +220,7 @@ export default function SessionListHeader({
               WebkitBackdropFilter: 'blur(16px)',
               border: '1px solid var(--border)',
               borderRadius: 8,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
+              boxShadow: 'var(--popup-shadow)',
               padding: '4px 0',
               zIndex: 100,
               minWidth: 130,

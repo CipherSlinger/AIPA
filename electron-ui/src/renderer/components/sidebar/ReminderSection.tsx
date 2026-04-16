@@ -173,7 +173,7 @@ export default function ReminderSection({
                         cursor: 'pointer',
                         border: !cronMode
                           ? '1px solid rgba(99,102,241,0.40)'
-                          : '1px solid rgba(255,255,255,0.10)',
+                          : '1px solid var(--border)',
                         background: !cronMode ? 'rgba(99,102,241,0.15)' : 'transparent',
                         color: !cronMode ? '#818cf8' : 'var(--text-muted)',
                         transition: 'all 0.15s ease',
@@ -193,7 +193,7 @@ export default function ReminderSection({
                         cursor: 'pointer',
                         border: cronMode
                           ? '1px solid rgba(99,102,241,0.40)'
-                          : '1px solid rgba(255,255,255,0.10)',
+                          : '1px solid var(--border)',
                         background: cronMode ? 'rgba(99,102,241,0.15)' : 'transparent',
                         color: cronMode ? '#818cf8' : 'var(--text-muted)',
                         display: 'flex',
@@ -342,7 +342,7 @@ export default function ReminderSection({
                             background: cronExpr.trim() && cronPreview
                               ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
                               : 'var(--bg-hover)',
-                            color: cronExpr.trim() && cronPreview ? 'rgba(255,255,255,0.95)' : 'var(--text-faint)',
+                            color: cronExpr.trim() && cronPreview ? 'var(--text-bright)' : 'var(--text-faint)',
                             transition: 'all 0.15s ease',
                             boxShadow: cronExpr.trim() && cronPreview ? '0 2px 8px rgba(99,102,241,0.35)' : 'none',
                           }}
@@ -468,7 +468,7 @@ function ReminderRow({ reminder, onDelete, formatTimeLeft }: {
         border: '1px solid var(--glass-border)',
         marginBottom: 4,
         transition: 'all 0.15s ease',
-        boxShadow: hovered ? '0 2px 8px rgba(0,0,0,0.30)' : 'none',
+        boxShadow: hovered ? 'var(--glass-shadow)' : 'none',
       }}
     >
       <Clock size={12} style={{ color: iconColor, flexShrink: 0, marginTop: 2, filter: `drop-shadow(0 0 3px ${iconColor}66)` }} />

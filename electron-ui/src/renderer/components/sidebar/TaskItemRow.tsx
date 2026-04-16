@@ -110,7 +110,7 @@ export default function TaskItemRow({ task, onCycle, onDelete }: TaskItemRowProp
           width: 14,
           height: 14,
           borderRadius: 3,
-          border: hovered ? '1.5px solid rgba(251,191,36,0.55)' : '1.5px solid rgba(255,255,255,0.25)',
+          border: hovered ? '1.5px solid rgba(251,191,36,0.55)' : '1.5px solid var(--border-strong, var(--border))',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -133,7 +133,7 @@ export default function TaskItemRow({ task, onCycle, onDelete }: TaskItemRowProp
         gap: 6,
         padding: '7px 10px',
         borderRadius: 8,
-        background: hovered ? 'rgba(255,255,255,0.05)' : 'transparent',
+        background: hovered ? 'var(--bg-hover)' : 'transparent',
         transition: 'all 0.15s ease',
         cursor: 'default',
       }}
@@ -184,7 +184,7 @@ export default function TaskItemRow({ task, onCycle, onDelete }: TaskItemRowProp
               ? 'var(--text-primary)'
               : 'var(--text-secondary)',
           textDecoration: isCompleted ? 'line-through' : 'none',
-          textDecorationColor: 'rgba(255,255,255,0.25)',
+          textDecorationColor: 'var(--text-muted)',
           wordBreak: 'break-word',
           transition: 'all 0.15s ease',
           fontFeatureSettings: '"tnum"',
