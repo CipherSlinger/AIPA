@@ -6971,3 +6971,21 @@ CSS variable migration for workflow and canvas components. WorkflowDetailPage: c
 
 ### Build
 Status: SUCCESS (vite build: 11.83s, 0 TypeScript errors)
+
+## Iteration 589 — Chat message + dialog components CSS variable migration
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+CSS variable migration across 7 chat message and dialog components. 21 total replacements: Message.tsx (hover bg, avatar bg), MessageContent.tsx (list text, checkbox fill, table head/row), StatsPanel.tsx (active button text, hover text ×4), ModelPicker.tsx (hover text), WorktreeDialog.tsx (button text, item bg, icon colors), SaveTemplateDialog.tsx (header title, save button), RewindDialog.tsx (cancel hover border, confirm button). PersonaPicker.tsx skipped — only indigo accent values.
+
+### Files Changed
+- `src/renderer/components/chat/Message.tsx` — 2 replacements
+- `src/renderer/components/chat/MessageContent.tsx` — 5 replacements
+- `src/renderer/components/chat/StatsPanel.tsx` — 5 replacements
+- `src/renderer/components/chat/ModelPicker.tsx` — 1 replacement
+- `src/renderer/components/chat/WorktreeDialog.tsx` — 4 replacements
+- `src/renderer/components/chat/SaveTemplateDialog.tsx` — 2 replacements
+- `src/renderer/components/chat/RewindDialog.tsx` — 2 replacements
+
+### Build
+Status: SUCCESS (vite build: 12.60s, 0 TypeScript errors)
