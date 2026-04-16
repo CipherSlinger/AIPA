@@ -6097,3 +6097,84 @@ Status: SUCCESS (npm run check: 0 errors, 0 new warnings from our files; npm run
 - [x] CSS variables only for all colors
 - [x] FEATURE_GAP.md updated from ❌ to ✅
 - [x] Build passes with no new TypeScript errors
+
+## Iteration 544 — AgentToolCard nested sub-agent visualization
+_Date: 2026-04-15 | Sprint ongoing_
+
+### Summary
+Extracted inline AgentToolCard from ToolUseBlock.tsx into a dedicated `AgentToolCard.tsx` file. The card shows sub-agent calls with: subagent_type chip, description, prompt preview (120 chars with expand), result preview (200 chars), and status indicator (running/completed/failed). ToolUseBlock.tsx reduced from ~1722 to ~1393 lines.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/AgentToolCard.tsx` — new standalone component
+- `electron-ui/src/renderer/components/chat/ToolUseBlock.tsx` — replace inline definition with import
+- `FEATURE_GAP.md` — mark P2-3 as ✅ implemented
+
+### Build
+Status: SUCCESS (npm run check 0 errors, vite build 12.94s)
+
+### Acceptance Criteria
+- [x] AgentToolCard renders subagent_type chip, description, prompt preview
+- [x] Expand/collapse toggle for full prompt
+- [x] Result preview with status indicator
+- [x] ToolUseBlock.tsx routes toolName='Agent' to AgentToolCard
+- [x] CSS variables used throughout
+
+## Iteration 545 — Sandbox network/filesystem settings panel
+_Date: 2026-04-15 | Sprint ongoing_
+
+### Summary
+New `SettingsSandbox` settings tab implementing UI for `sandbox.*` keys in `~/.claude/settings.json`. Covers network section (allowedDomains tag list, allowManagedDomainsOnly/allowUnixSockets toggles), filesystem section (allowWrite/denyWrite/allowRead/denyRead glob path lists), and other toggles (autoAllowBashIfSandboxed, allowUnsandboxedCommands with security warning). SettingsPanel wired with new 'sandbox' tab.
+
+### Files Changed
+- `electron-ui/src/renderer/components/settings/SettingsSandbox.tsx` — new settings panel
+- `electron-ui/src/renderer/components/settings/SettingsPanel.tsx` — add sandbox tab import, type, nav, render
+- `FEATURE_GAP.md` — mark P4-4 as ✅ implemented
+
+### Build
+Status: SUCCESS (npm run check 0 errors)
+
+### Acceptance Criteria
+- [x] Sandbox tab visible in Settings left nav
+- [x] Network section: allowedDomains tag/chip list, toggle switches
+- [x] Filesystem section: 4 path glob lists (allowWrite/denyWrite/allowRead/denyRead)
+- [x] allowUnsandboxedCommands shows security warning badge
+- [x] Reads/writes ~/.claude/settings.json via configReadCLISettings/configWriteCLISettings
+
+## Iteration 546 — TaskCreate/Update/List/Get inline card UI
+_Date: 2026-04-15 | Sprint ongoing_
+
+### Summary
+New `TaskDashboardCard.tsx` for structured display of async task tool calls. TaskCreate/TaskUpdate show inline status badges; TaskList renders a compact Kanban-style board (Pending/In Progress/Completed columns); TaskGet renders a full task detail card with dependencies. Wired into ToolUseBlock.tsx.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/TaskDashboardCard.tsx` — new component
+- `electron-ui/src/renderer/i18n/locales/en.json` + `zh-CN.json` — task.* i18n keys
+- `FEATURE_GAP.md` — mark TaskCreate/Get/Update/List as ✅ implemented
+
+### Build
+Status: SUCCESS (npm run check 0 errors)
+
+### Acceptance Criteria
+- [x] TaskCreate tool shows "✓ Created: {subject}" green badge
+- [x] TaskUpdate tool shows "→ Updated #{taskId}: {status}" inline
+- [x] TaskList result renders compact Kanban columns with status badges
+- [x] TaskGet result renders task detail with dependencies
+
+## Iteration 547 — Canvas connection port indicators + animated running edges
+_Date: 2026-04-15 | Sprint ongoing_
+
+### Summary
+Replaced always-visible top/bottom port dots on CanvasNode with left (input) and right (output) port circles that fade in on hover (0→1 opacity, 0.15s) and hide when node is selected. CanvasEdge gains `sourceStatus` prop: when source node is 'running', edge animates with strokeDasharray:'6 3' + dashFlow keyframe. Edge active color switched to var(--accent).
+
+### Files Changed
+- `electron-ui/src/renderer/components/workflows/CanvasNode.tsx` — left/right hover ports with fade-in
+- `electron-ui/src/renderer/components/workflows/CanvasEdge.tsx` — sourceStatus prop + running animation
+
+### Build
+Status: SUCCESS (npm run check 0 errors, vite build 19.68s)
+
+### Acceptance Criteria
+- [x] Left and right port circles appear on node hover (opacity fade-in 0.15s)
+- [x] Ports hidden when node is selected
+- [x] Port uses var(--accent) fill with var(--bg-primary) border ring
+- [x] CanvasEdge sourceStatus='running' triggers dash animation
