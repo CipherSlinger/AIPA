@@ -6517,3 +6517,15 @@ Created SettingsProjectMcp.tsx panel that reads {workingDir}/.mcp.json and displ
 
 ### Build
 Status: SUCCESS (npm run check: 0 errors, vite build: 56.21s)
+
+## Iteration 563 — CanvasEdge sourceStatus color/animation styling
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Replaced binary isRunningFromSource flag with full edgeStyleFromSourceStatus() function in CanvasEdge.tsx. Maps 6 status groups to distinct visual styles: running (indigo #6366f1, dashed 8/4, animated, glow), completed/success (green #22c55e, solid, glow), error/failed (red #ef4444, solid, red glow + blurred glow path), skipped (gray dashed 50% opacity), pending/default (gray dashed 35% opacity). Added SourceEdgeStyle interface for type safety.
+
+### Files Changed
+- `electron-ui/src/renderer/components/workflows/CanvasEdge.tsx` — add SourceEdgeStyle interface, edgeStyleFromSourceStatus() switch function, 6-status stroke/dash/glow mapping, error glow blur-path
+
+### Build
+Status: SUCCESS (npm run check: 0 errors, vite build: 12.63s)
