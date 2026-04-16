@@ -6865,3 +6865,17 @@ Added 3px horizontal progress bar between WorkflowDetailHeader and canvas area i
 
 ### Build
 Status: SUCCESS (npm run check: 0 errors, vite build: 14.07s)
+
+## Iteration 583 — Department component CSS variable migration
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+CSS variable migration across 3 department-related components. Replaced 13 hardcoded rgba() values with semantic CSS custom properties for light/dark theme compatibility.
+
+### Files Changed
+- `electron-ui/src/renderer/components/departments/DepartmentDashboard.tsx` — 4 replacements (checkbox border rgba→var(--border), button hover text, browse button borders)
+- `electron-ui/src/renderer/components/departments/SessionCard.tsx` — 1 replacement (icon hover color → var(--text-secondary))
+- `electron-ui/src/renderer/components/departments/DepartmentPanel.tsx` — 8 replacements (form bg → var(--bg-input), pick-dir button borders ×4, kbd border/text)
+
+### Build
+Status: SUCCESS (vite build: 12.31s)
