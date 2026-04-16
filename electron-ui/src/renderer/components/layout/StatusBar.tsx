@@ -3,7 +3,7 @@
 //              StatusBarModelPicker, StatusBarPersonaPicker, StatusBarTokenPopup
 
 import React, { useState, useCallback } from 'react'
-import { PanelLeft, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Square, Pin, Settings, Gauge, Brain, Calendar, Wifi, Archive, ClipboardList } from 'lucide-react'
+import { PanelLeft, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Square, Pin, Gauge, Brain, Calendar, Wifi, Archive, ClipboardList } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore, useSessionStore } from '../../store'
 import { StandardChatMessage } from '../../types/app.types'
 import { useT } from '../../i18n'
@@ -83,7 +83,6 @@ export default function StatusBar() {
   const [hoverFocusTimer, setHoverFocusTimer] = useState(false)
   const [hoverThinking, setHoverThinking] = useState(false)
   const [hoverPin, setHoverPin] = useState(false)
-  const [hoverSettings, setHoverSettings] = useState(false)
   const [hoverPlan, setHoverPlan] = useState(false)
   const costPopupRef = React.useRef<HTMLDivElement>(null)
   const tokenPopupRef = React.useRef<HTMLDivElement>(null)
@@ -629,22 +628,6 @@ export default function StatusBar() {
             {(memoryUsage.heapUsed / 1024 / 1024).toFixed(0)}MB
           </span>
         )}
-        {/* Settings gear */}
-        <button
-          onClick={() => useUiStore.getState().openSettingsModal()}
-          title={t('nav.settings') + ' (Ctrl+,)'}
-          onMouseEnter={() => setHoverSettings(true)}
-          onMouseLeave={() => setHoverSettings(false)}
-          style={{
-            background: hoverSettings ? 'var(--border)' : 'transparent',
-            border: 'none', color: hoverSettings ? 'var(--text-primary)' : 'var(--text-secondary)', cursor: 'pointer',
-            display: 'flex', alignItems: 'center',
-            padding: '2px 6px', borderRadius: 6,
-            transition: 'all 0.15s ease',
-          }}
-        >
-          <Settings size={12} />
-        </button>
       </div>
     </div>
   )
