@@ -401,7 +401,7 @@ export default function SessionCard({ session, onClick, isActive, isStreaming, i
             position: 'absolute',
             top: 8,
             right: onDelete ? 30 : 8,
-            background: pinned ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0)',
+            background: pinned ? 'rgba(251,191,36,0.15)' : 'transparent',
             border: 'none',
             cursor: 'pointer',
             color: pinned ? '#fbbf24' : 'var(--text-muted)',

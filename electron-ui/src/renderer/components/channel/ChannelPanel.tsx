@@ -132,7 +132,7 @@ export default function ChannelPanel() {
           )}
           <div style={{
             borderRadius: 10,
-            background: 'rgba(255,255,255,0.03)',
+            background: 'var(--bg-hover)',
             border: '1px solid var(--border)',
             overflow: 'hidden',
           }}>
@@ -147,7 +147,7 @@ export default function ChannelPanel() {
       <div style={{
         padding: '6px 12px', borderTop: '1px solid var(--border)', flexShrink: 0,
         display: 'flex', alignItems: 'center', gap: 6,
-        background: 'rgba(255,255,255,0.02)',
+        background: 'var(--bg-hover)',
       }}>
         <MessageCircle size={10} color="var(--text-muted)" />
         <span style={{ fontSize: 9, color: 'var(--text-muted)', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
