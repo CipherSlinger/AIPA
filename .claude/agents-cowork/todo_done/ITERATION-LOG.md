@@ -6739,3 +6739,29 @@ Status: SUCCESS (0 TypeScript errors, vite build 12.45s)
 - [x] Clicking X on pending card dismisses it without navigating
 - [x] Back button returns to org chart; autoNewSessionDeptId is cleared
 - [x] TypeScript check passes (0 errors), build succeeds
+
+
+## Iteration 573 — ToolUseBlock.tsx refactor: extract tool cards into sub-modules
+
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Split the monolithic ToolUseBlock.tsx (2665 lines) into smaller files by extracting 5 groups of inline tool card components into a new tool-cards/ sub-directory. Each group is now an independent module with its own interfaces, helpers, and component exports. ToolUseBlock.tsx reduced from 2665 to 1820 lines (31.7% reduction). All imports are wired back into ToolUseBlock so runtime behavior is unchanged. (Commit message says Iteration 571 due to concurrent agent numbering collision.)
+
+### Files Changed
+- electron-ui/src/renderer/components/chat/ToolUseBlock.tsx -- remove 5 inline component groups; add tool-cards/ imports; remove unused FileType icon (2665 to 1820 lines)
+- electron-ui/src/renderer/components/chat/tool-cards/McpResourceCard.tsx -- NEW: McpResourceListCard, McpResourceReadCard, parseMcpResourceList
+- electron-ui/src/renderer/components/chat/tool-cards/SendMessageCard.tsx -- NEW: SendMessageCard
+- electron-ui/src/renderer/components/chat/tool-cards/RemoteTriggerCard.tsx -- NEW: RemoteTriggerInputCard, RemoteTriggerResultCard, RemoteTriggerAction
+- electron-ui/src/renderer/components/chat/tool-cards/WebBrowserToolCard.tsx -- NEW: WebBrowserInputCard, WebBrowserResultCard, isBase64Image
+- electron-ui/src/renderer/components/chat/tool-cards/CronToolCard.tsx -- NEW: CronCard, CronJob, parseCronJobs
+
+### Build
+Status: SUCCESS (tsc --noEmit: 0 errors; commit: 510fc84)
+
+### Acceptance Criteria
+- [x] ToolUseBlock.tsx reduced from 2665 to 1820 lines
+- [x] 5 new tool-card modules created in tool-cards/ sub-directory
+- [x] All extracted components imported back and used in ToolUseBlock
+- [x] TypeScript check passes (0 errors)
+- [x] No behavior change -- only file organization refactor
