@@ -7125,3 +7125,23 @@ Migrated `rgba(8,8,16,...)` dark background pattern and `rgba(0,0,0,...)` backgr
 
 ### Build
 Status: SUCCESS (0 errors, 204 warnings — all pre-existing)
+
+---
+
+## Iteration 598 — StatusBar / Layout components CSS variable audit
+
+**Agent:** ab5b7599c35e700e9
+**Commit:** none (no changes needed)
+
+### Summary
+Audited all StatusBar and layout components for remaining `rgba(255,255,255,...)` values. All target files were already fully using CSS variables from prior iterations (596 series). Zero replacements made.
+
+### Files Audited (all clean)
+- `StatusBar.tsx` — remaining rgba values: green glow, purple accent, red/amber status, indigo gradient, black shadows (all exempt)
+- `StatusBarModelPicker.tsx` — remaining: black shadow, indigo active state (exempt)
+- `StatusBarPersonaPicker.tsx` — remaining: black shadow, indigo active state (exempt)
+- `StatusBarTokenPopup.tsx` — remaining: black shadow, indigo gradient/buttons (exempt)
+- `AppShell.tsx` — remaining: black overlay, indigo resizer (exempt)
+
+### Build
+Status: SUCCESS (verified npm run check 0 errors, build:renderer success)
