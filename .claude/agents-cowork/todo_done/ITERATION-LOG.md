@@ -6611,3 +6611,33 @@ Status: SUCCESS (npm run check: 0 errors, vite build: 14.63s)
 - [x] Card has indigo left-border matching agent card style
 - [x] SendMessage: Send already in TOOL_ICONS (no change needed)
 - [x] npm run check passes, vite build succeeds
+- [x] npm run check passes, vite build succeeds
+
+---
+
+## Iteration 568 — Settings AI Engine tab + Channel panel shortcut
+
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Migrated Provider settings from the Channel panel into a new "AI Engine" tab in the Settings modal. Created `SettingsAIEngine.tsx` which wraps the existing `SettingsProviders` component under a dedicated Settings tab. Added `'ai-engine'` to the `pendingSettingsTab` type union in `uiStore.ts` and to all relevant arrays in `SettingsPanel.tsx` (valid tab list, nav tab array, content render chain). Added i18n keys `settings.tabs.ai-engine` in both `en.json` ("AI Engine") and `zh-CN.json` ("AI 引擎"). Added a shortcut banner in `ChannelPanel`'s Providers tab that links directly to Settings → AI Engine via `openSettingsAt('ai-engine')`.
+
+### Files Changed
+- `electron-ui/src/renderer/components/settings/SettingsAIEngine.tsx` — new; wraps SettingsProviders with header + description, lazy-loaded
+- `electron-ui/src/renderer/components/settings/SettingsPanel.tsx` — import SettingsAIEngine; add 'ai-engine' to SettingsTab type, valid[], tab nav array, and content render chain
+- `electron-ui/src/renderer/store/uiStore.ts` — add 'ai-engine' to pendingSettingsTab and openSettingsAt type unions
+- `electron-ui/src/renderer/components/channel/ChannelPanel.tsx` — import useUiStore + ExternalLink; add openSettingsAt selector; add shortcut banner above provider cards
+- `electron-ui/src/renderer/i18n/locales/en.json` — add settings.tabs.ai-engine: "AI Engine"
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` — add settings.tabs.ai-engine: "AI 引擎"
+
+### Build
+Status: SUCCESS (npm run check: 0 errors, vite build: 17.82s)
+
+### Acceptance Criteria
+- [x] New "AI Engine" tab appears in Settings nav after "General"
+- [x] AI Engine tab renders SettingsProviders content (all provider cards, API keys, health checks)
+- [x] `openSettingsAt('ai-engine')` navigates to the AI Engine tab
+- [x] Channel panel Providers tab shows "Also available in Settings → AI Engine" banner
+- [x] Banner "Open" button calls openSettingsAt('ai-engine') to navigate directly
+- [x] i18n keys present for both English and Chinese
+- [x] TypeScript check passes, build succeeds
