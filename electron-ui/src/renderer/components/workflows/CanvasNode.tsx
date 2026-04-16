@@ -79,10 +79,10 @@ const NODE_DOT_BOUNCE_STYLE = `
 }
 `
 
-export const NODE_WIDTH = 260
-export const NODE_MIN_HEIGHT = 68
-export const NODE_COLLAPSED_HEIGHT = 30
-export const NODE_GAP_Y = 100
+export const NODE_WIDTH = 280
+export const NODE_MIN_HEIGHT = 96
+export const NODE_COLLAPSED_HEIGHT = 36
+export const NODE_GAP_Y = 108
 
 const STATUS_STYLES: Record<string, {
   borderColor: string
@@ -749,12 +749,9 @@ export default function CanvasNode({
       ? `${baseBoxShadow}, 0 0 0 2px #818cf8, 0 0 16px rgba(99,102,241,0.35)`
       : baseBoxShadow
 
-  // Dynamic height: expand when showing output preview
-  const nodeHeight = collapsed
-    ? NODE_COLLAPSED_HEIGHT
-    : (status === 'completed' && outputExpanded && outputText)
-      ? NODE_MIN_HEIGHT + 48
-      : NODE_MIN_HEIGHT
+  // Dynamic height: collapsed = fixed; expanded = minHeight so content can grow naturally
+  const nodeHeight = collapsed ? NODE_COLLAPSED_HEIGHT : undefined
+  const nodeMinHeight = collapsed ? undefined : NODE_MIN_HEIGHT
 
   // D5: format elapsed time
   const elapsedSec = liveElapsedMs !== undefined ? Math.floor(liveElapsedMs / 1000) : 0
@@ -832,6 +829,7 @@ export default function CanvasNode({
           top: y,
           width: width,
           height: nodeHeight,
+          minHeight: nodeMinHeight,
           background: nodeBackground,
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
