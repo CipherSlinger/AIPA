@@ -6989,3 +6989,26 @@ CSS variable migration across 7 chat message and dialog components. 21 total rep
 
 ### Build
 Status: SUCCESS (vite build: 12.60s, 0 TypeScript errors)
+
+## Iteration 588 — Notes, Memory, Skills components CSS variable migration
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+CSS variable migration across 12 notes and skills components (memory/ had 0 replaceable values — only accent/status/type-badge colors). 32 total replacements. CategoryFilterBar (10: input/hover bg), NoteEditorHeader (4: text-bright), NoteEditor (2: bg-primary), CategoryManager (2: text-bright), NoteList (1: glass-bg-low), NotesHeader (3: bg-primary + text-bright), skillsShared (5: text/bg/border), SkillCard/MarketplaceCard/SkillsPanel/SkillCreatorPage (1 each: dark-bg → bg-primary). Two intentional white-rgba borders preserved inside indigo gradient buttons.
+
+### Files Changed
+- `src/renderer/components/notes/CategoryFilterBar.tsx` — 10 replacements
+- `src/renderer/components/notes/NoteEditorHeader.tsx` — 4 replacements
+- `src/renderer/components/notes/NoteEditor.tsx` — 2 replacements
+- `src/renderer/components/notes/CategoryManager.tsx` — 2 replacements
+- `src/renderer/components/notes/NoteList.tsx` — 1 replacement
+- `src/renderer/components/notes/NotesHeader.tsx` — 3 replacements
+- `src/renderer/components/skills/skillsShared.tsx` — 5 replacements
+- `src/renderer/components/skills/SkillCard.tsx` — 1 replacement
+- `src/renderer/components/skills/MarketplaceCard.tsx` — 1 replacement
+- `src/renderer/components/skills/SkillDetail.tsx` — 1 replacement
+- `src/renderer/components/skills/SkillsPanel.tsx` — 1 replacement
+- `src/renderer/components/skills/SkillCreatorPage.tsx` — 1 replacement
+
+### Build
+Status: SUCCESS (vite build: 12.88s, 0 TypeScript errors)
