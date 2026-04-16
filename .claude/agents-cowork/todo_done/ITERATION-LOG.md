@@ -7051,3 +7051,48 @@ Per user request: removed the Settings gear button (⚙) from the far-right of t
 
 ### Build
 Status: SUCCESS (npm run check: 0 errors)
+
+## Iteration 591 — Tool-cards CSS variable migration
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+CSS variable migration for all 12 tool-cards/ components. Most files contained only accent indigo and status colors (excluded per rules). Migrated AskUserQuestionCard (1: text-bright on send button), RemoteTriggerCard (4: text-secondary/muted). Dark rgba(0,0,0,...) code-block backgrounds noted for follow-up --code-bg variable work. Total: 5 replacements across 2 files.
+
+### Files Changed
+- `src/renderer/components/chat/tool-cards/AskUserQuestionCard.tsx` — 1 replacement
+- `src/renderer/components/chat/tool-cards/RemoteTriggerCard.tsx` — 4 replacements
+
+### Build
+Status: SUCCESS (vite build: 12.36s, 0 TypeScript errors)
+
+## Iteration 596 — Comprehensive chat CSS variable migration (596b–596i)
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Large-scale CSS variable migration sweep across all remaining chat components. 9 sub-commits in sequence:
+- 596b: ChatInputAttachments, MessageContextMenu, MessageList
+- 596c: TodoListView, TokenUsageBar
+- 596d: ContextIndicator, SnippetPopup, ToolApprovalDialog + add `--code-bg` CSS variable to globals.css
+- 596e: PlanApprovalCard
+- 596f: GhostTextOverlay
+- 596g: DiffView, RegenerateButton
+- 596h: NotePopup
+- 596i: ChatInputSendButton
+
+### Files Changed
+Multiple files across `src/renderer/components/chat/` — see individual git commits 7380b01 through cfc6d55.
+
+### Build
+Status: SUCCESS across all sub-commits (0 TypeScript errors)
+
+## Iteration 597 — Token/context/approval chat utils CSS migration (audit)
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Audit pass on TokenUsageBar, ContextIndicator, SpeculationStatusBar, ChatInputComposeStatus, ToolApprovalDialog. All replacements had already been performed by the Iteration 596 sweep. SpeculationStatusBar and ChatInputComposeStatus contained only indigo accent values (excluded per rules).
+
+### Files Changed
+None (all work already done in Iteration 596)
+
+### Build
+Status: SUCCESS
