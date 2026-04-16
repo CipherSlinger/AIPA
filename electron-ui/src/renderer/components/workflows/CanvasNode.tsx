@@ -60,6 +60,18 @@ const NODE_DOT_BOUNCE_STYLE = `
   50%  { opacity: 1;   transform: scaleX(1); }
   100% { opacity: 0.5; transform: scaleX(0.6); }
 }
+@keyframes canvas-node-pulse {
+  0%, 100% { box-shadow: 0 0 12px 3px rgba(99,102,241,0.35), 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 var(--bg-hover); }
+  50%      { box-shadow: 0 0 20px 6px rgba(99,102,241,0.55), 0 4px 20px rgba(0,0,0,0.5), inset 0 1px 0 var(--bg-hover); }
+}
+@keyframes canvas-bar-shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+@keyframes canvas-spinner {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
 `
 
 export const NODE_WIDTH = 260
@@ -827,8 +839,8 @@ export default function CanvasNode({
             ? '2px solid rgba(99,102,241,0.6)'
             : isFocusedOnly ? '2px dashed rgba(99,102,241,0.55)' : 'none',
           outlineOffset: 3,
-          // B1: transition + hover-lift
-          transition: 'all 0.15s ease',
+          // B1: transition + hover-lift (explicit properties to avoid interfering with animation shorthand)
+          transition: 'box-shadow 0.2s ease, opacity 0.2s ease, transform 0.15s ease, border-color 0.2s ease',
           transform: (isNodeHovered && !dimmed && !selected && !isActive && !isMulti) ? 'translateY(-2px)' : undefined,
           userSelect: 'none',
           boxSizing: 'border-box',
