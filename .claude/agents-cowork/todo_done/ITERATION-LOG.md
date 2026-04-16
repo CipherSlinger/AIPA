@@ -6529,3 +6529,27 @@ Replaced binary isRunningFromSource flag with full edgeStyleFromSourceStatus() f
 
 ### Build
 Status: SUCCESS (npm run check: 0 errors, vite build: 12.63s)
+
+## Iteration 564 — WebBrowserTool and PowerShell display cards
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Added specialized display cards for WebBrowserTool (browser automation) and PowerShell in ToolUseBlock.tsx. WebBrowserInputCard shows action badge (color-coded per action type: navigate/click/type/screenshot/scroll/wait), URL with globe icon, CSS selector as code chip, and type text preview. WebBrowserResultCard shows success/error status badge, screenshot thumbnail (detects base64 images, max 200px), or expandable text preview (first 200 chars). PowerShell reuses the existing Bash output display (BashCommandBlock + BashOutputBlock) by adding it to BASH_TOOLS. Also added BROWSER_TOOLS set and isBase64Image() helper.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/ToolUseBlock.tsx` — add BROWSER_TOOLS set, WebBrowserInputCard, isBase64Image(), WebBrowserResultCard; wire input/output routing; add PowerShell to BASH_TOOLS; add WebBrowserTool/web_browser/browser/PowerShell to TOOL_ICONS
+
+### Build
+Status: SUCCESS (npm run check: 0 errors, vite build: 13.44s)
+
+### Acceptance Criteria
+- [x] WebBrowserTool input shows action badge with per-action color coding
+- [x] WebBrowserTool input shows URL with Globe icon
+- [x] WebBrowserTool input shows selector as code chip
+- [x] WebBrowserTool input shows text preview for type actions
+- [x] WebBrowserTool result shows success/error status badge
+- [x] WebBrowserTool result shows base64 screenshot thumbnail (max 200px)
+- [x] WebBrowserTool result shows expandable text preview (200 char limit)
+- [x] PowerShell uses same display as Bash (command block + output block)
+- [x] TOOL_ICONS updated for all three browser name variants + PowerShell
+- [x] npm run check passes (only pre-existing TS1149 casing error unrelated to this iteration)
