@@ -20,6 +20,7 @@ interface CanvasEdgeProps {
   from: { x: number; y: number; width: number; height: number }
   to: { x: number; y: number; width: number; height: number }
   status?: EdgeStatus
+  sourceStatus?: string                        // Iter 547: source node status for animated running edges
   layoutDirection?: 'vertical' | 'horizontal'
   onHoverChange?: (hovered: boolean) => void  // D8: hover callback
   highlighted?: boolean                        // D8: highlight when connected nodes are hovered
@@ -32,12 +33,12 @@ interface CanvasEdgeProps {
   label?: string                               // condition/branch label shown always at midpoint
 }
 
-function edgeColor(status: EdgeStatus): string {
+function edgeColor(status: EdgeStatus, isRunningFromSource = false): string {
   if (status === 'done' || status === 'completed') return 'rgba(34,197,94,0.6)'
-  if (status === 'active') return '#6366f1'
-  if (status === 'running') return 'rgba(99,102,241,0.8)'
+  if (status === 'active') return 'var(--accent)'
+  if (status === 'running' || isRunningFromSource) return 'rgba(99,102,241,0.8)'
   if (status === 'error') return 'rgba(239,68,68,0.6)'
-  return 'rgba(255,255,255,0.15)'
+  return 'rgba(255,255,255,0.12)'
 }
 
 function formatOutputLength(n: number): string {
@@ -50,8 +51,9 @@ function formatDuration(ms: number): string {
   return `${ms}ms`
 }
 
-export default function CanvasEdge({ from, to, status = 'idle', layoutDirection = 'vertical', onHoverChange, highlighted, onAddBetween, onDelete, outputLength, durationMs, sourceStepIndex, targetStepIndex, label }: CanvasEdgeProps) {
+export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, layoutDirection = 'vertical', onHoverChange, highlighted, onAddBetween, onDelete, outputLength, durationMs, sourceStepIndex, targetStepIndex, label }: CanvasEdgeProps) {
   const [isHoveredLocally, setIsHoveredLocally] = useState(false)
+  const isRunningFromSource = sourceStatus === 'running'
 
   let startX: number, startY: number, endX: number, endY: number, d: string
   let midX: number, midY: number
@@ -73,7 +75,7 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
     midY = (startY + endY) / 2
     d = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`
   }
-  const color = edgeColor(status)
+  const color = edgeColor(status, isRunningFromSource)
   const markerId = `canvas-arrowhead-${status}`
 
   // D8: boost visibility when highlighted
@@ -142,20 +144,20 @@ export default function CanvasEdge({ from, to, status = 'idle', layoutDirection 
         d={d}
         fill="none"
         stroke={highlighted ? 'rgba(99,102,241,0.8)' : color}
-        strokeWidth={highlighted ? 2.5 : (status === 'running' ? 2 : strokeWidth)}
+        strokeWidth={highlighted ? 2.5 : (status === 'running' || isRunningFromSource ? 2 : strokeWidth)}
         strokeOpacity={strokeOpacity}
         strokeDasharray={
           status === 'idle' ? '4 6' :
-          status === 'running' ? '6 4' :
+          (status === 'running' || isRunningFromSource) ? '6 3' :
           status === 'error' ? '3 3' :
           undefined
         }
-        strokeDashoffset={status === 'running' ? '0' : undefined}
+        strokeDashoffset={(status === 'running' || isRunningFromSource) ? '0' : undefined}
         markerEnd={`url(#${markerId})`}
         style={{
           pointerEvents: 'none',
-          ...(status === 'running' ? { animation: 'dashFlow 1.2s linear infinite' } : {}),
-          ...((highlighted || status === 'running') ? { filter: 'drop-shadow(0 0 4px rgba(99,102,241,0.5))' } : {}),
+          ...(status === 'running' || isRunningFromSource ? { animation: 'dashFlow 1.2s linear infinite' } : {}),
+          ...((highlighted || status === 'running' || isRunningFromSource) ? { filter: 'drop-shadow(0 0 4px rgba(99,102,241,0.5))' } : {}),
         }}
       />
 

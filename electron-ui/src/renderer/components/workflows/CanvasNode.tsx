@@ -1669,51 +1669,45 @@ export default function CanvasNode({
         {/* B7: Progress bar at node bottom */}
         <ProgressBar status={status} />
 
-        {/* Port circles — top (input) and bottom (output) connection indicators */}
-        {!collapsed && (
-          <>
-            <div
-              style={{
-                position: 'absolute',
-                top: -5,
-                left: '50%',
-                transform: isNodeHovered ? 'translateX(-50%) scale(1.2)' : 'translateX(-50%)',
-                width: 10,
-                height: 10,
-                borderRadius: '50%',
-                border: '2px solid var(--border)',
-                background: 'rgba(15,15,25,0.9)',
-                zIndex: 4,
-                pointerEvents: 'none',
-                transition: 'all 0.15s ease',
-                ...(isNodeHovered ? {
-                  borderColor: 'rgba(99,102,241,0.6)',
-                  background: 'rgba(99,102,241,0.15)',
-                } : {}),
-              }}
-            />
-            <div
-              style={{
-                position: 'absolute',
-                bottom: -5,
-                left: '50%',
-                transform: isNodeHovered ? 'translateX(-50%) scale(1.2)' : 'translateX(-50%)',
-                width: 10,
-                height: 10,
-                borderRadius: '50%',
-                border: '2px solid var(--border)',
-                background: 'rgba(15,15,25,0.9)',
-                zIndex: 4,
-                pointerEvents: 'none',
-                transition: 'all 0.15s ease',
-                ...(isNodeHovered ? {
-                  borderColor: 'rgba(99,102,241,0.6)',
-                  background: 'rgba(99,102,241,0.15)',
-                } : {}),
-              }}
-            />
-          </>
-        )}
+        {/* Connection port indicators — left (input) and right (output), visible on hover */}
+        {/* Left input port */}
+        <div
+          style={{
+            position: 'absolute',
+            left: -5,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            background: 'var(--accent)',
+            border: '2px solid var(--bg-primary)',
+            zIndex: 5,
+            pointerEvents: 'none',
+            opacity: isNodeHovered && !selected ? 1 : 0,
+            transition: 'opacity 0.15s ease',
+            boxShadow: '0 0 6px rgba(99,102,241,0.5)',
+          }}
+        />
+        {/* Right output port */}
+        <div
+          style={{
+            position: 'absolute',
+            right: -5,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            background: 'var(--accent)',
+            border: '2px solid var(--bg-primary)',
+            zIndex: 5,
+            pointerEvents: 'none',
+            opacity: isNodeHovered && !selected ? 1 : 0,
+            transition: 'opacity 0.15s ease',
+            boxShadow: '0 0 6px rgba(99,102,241,0.5)',
+          }}
+        />
       </div>
 
       {/* Context menu */}
