@@ -6198,3 +6198,88 @@ Status: SUCCESS (npm run check 0 errors, vite build 12.37s)
 - [x] SettingsAdvanced hover state uses var(--bg-hover)
 - [x] KeyboardShortcutsModal shortcut rows use var(--bg-hover)
 - [x] Build passes with no new errors
+
+## Iteration 549 — Light theme: migrate chat components to CSS variables
+_Date: 2026-04-15 | Sprint ongoing_
+
+### Summary
+Replaced hardcoded `rgba(15,15,25,...)`, `rgba(255,255,255,0.04/0.05/0.07/0.08)`, and `rgba(255,255,255,0.88/0.65)` colors in 29 chat components with CSS variables (`--bg-primary`, `--bg-secondary`, `--popup-bg`, `--bg-hover`, `--bg-active`, `--border`, `--text-primary`, `--text-secondary`) so the light theme renders correctly. Also fixed corrupted `onMouseEnter` handler accidentally embedded in a `style={{}}` object in `ReminderSection.tsx`.
+
+### Files Changed
+- `chat/ToolUseBlock.tsx` — 4 bg values (answered/active/collapsed + header hover)
+- `chat/MessageContent.tsx` — h1/h2/h3 + th color → var(--text-primary)
+- `chat/ContextUsageMeter.tsx` — panel bg → var(--bg-primary)
+- `chat/CompactButton.tsx` — popover bg → var(--popup-bg)
+- `chat/SpeculationCard.tsx` — all 4 state bg → var(--popup-bg)
+- `chat/TaskDashboard.tsx` — panel + expanded bg → var(--popup-bg)
+- `chat/CompareView.tsx` — header bg → var(--popup-bg)
+- `chat/DailySummaryCard.tsx` — card bg → var(--popup-bg)
+- `chat/CodeBlock.tsx` — header bg + line-number border + show-more bg
+- `chat/DiffView.tsx` — file header bg + diff header bg + line-number border
+- `chat/FileDiffView.tsx` — 2 line-number borderRight → var(--border)
+- `chat/MessageList.tsx` — separator bar → var(--border)
+- `chat/TodoListView.tsx` — empty + list bg → var(--bg-secondary)
+- `chat/AgentToolCard.tsx` — card bg → var(--bg-secondary)
+- `chat/HookCallbackCard.tsx` — card bg → var(--popup-bg)
+- `chat/ToolBatchBlock.tsx` — card bg → var(--popup-bg)
+- `chat/TaskQueuePanel.tsx` — panel bg → var(--popup-bg)
+- `chat/PlanCard.tsx` — card bg → var(--popup-bg)
+- `chat/MarkdownImage.tsx` — loading skeleton + tooltip bg
+- `chat/TypingStatus.tsx` — status bar bg → var(--popup-bg)
+- `chat/URLPreviewCard.tsx` — 2 card state bg → var(--popup-bg)
+- `chat/HookProgressCard.tsx` — card bg → var(--popup-bg)
+- `chat/TaskDashboardCard.tsx` — empty + list bg → var(--bg-secondary)
+- `chat/PlanApprovalCard.tsx` — textarea border + bg + onBlur color
+- `chat/ElicitationCard.tsx` — 2 input border + bg + onBlur color
+- `chat/WelcomeQuickActions.tsx` — container bg + hover button bg
+- `chat/ForkDialog.tsx` — info text color → var(--text-secondary)
+- `chat/TemplatesSection.tsx` — card bg + onMouseLeave bg
+- `chat/ChatInputPasteChips.tsx` — quote banner bg → var(--bg-hover)
+- `sidebar/ReminderSection.tsx` — fix broken onMouseEnter inside style block
+
+### Build
+Status: SUCCESS (npm run check 0 errors, 202 warnings pre-existing; vite build 26.37s)
+
+### Acceptance Criteria
+- [x] 29 chat components migrated from hardcoded RGBA to CSS variables
+- [x] Light theme renders card backgrounds as light grey instead of near-black
+- [x] Light theme renders text as dark instead of near-white
+- [x] No new TypeScript errors introduced
+- [x] Build passes
+
+## Iteration 551 — Wire sourceStatus to CanvasEdge + connect onStop + CSS variable migration
+_Date: 2026-04-15 | Sprint ongoing_
+
+### Summary
+Completed three related polish tasks: (1) Wired `sourceStatus={srcStatus}` to `<CanvasEdge>` in WorkflowCanvas — the prop was defined in Iter 547 but never passed, so running-edge animation was not activating. (2) Replaced stub `onStop` in WorkflowDetailPage with real implementation: dispatches `aipa:abortStream` and calls `clearQueue()`. (3) Migrated popup and misc chat components to CSS variables (ChatInputPasteChips, ElicitationCard, ForkDialog, PlanApprovalCard, TemplatesSection, WelcomeQuickActions, MemoryAddForm, MemoryItemCard, MemoryPanel, ReminderSection).
+
+### Files Changed
+- `electron-ui/src/renderer/components/workflows/WorkflowCanvas.tsx` — add sourceStatus={srcStatus} to CanvasEdge render
+- `electron-ui/src/renderer/components/workflows/WorkflowDetailPage.tsx` — onStop wired to abortStream + clearQueue
+- 11 renderer component files — hardcoded rgba → CSS variables
+
+### Build
+Status: SUCCESS (npm run check 0 errors)
+
+### Acceptance Criteria
+- [x] CanvasEdge receives sourceStatus and animates when source node is 'running'
+- [x] Stop button in WorkflowDetailPage aborts stream and clears pending queue
+- [x] Popup/misc components use CSS variables for light theme support
+
+## Iteration 552 — Fix broken style object in ReminderSection.tsx
+_Date: 2026-04-15 | Sprint ongoing_
+
+### Summary
+Bug fix: Iteration 551's CSS variable migration introduced a syntax error in ReminderSection.tsx — a style assignment `e.currentTarget.style.color = ...` was placed inside a `style={{}}` JSX object literal instead of an `onMouseEnter` handler. The linter partially auto-fixed it (moved line to onMouseEnter) but missed restoring background mutation and the default color. Full fix: added `color: 'var(--text-secondary)'` to base style, updated onMouseEnter to also set background to var(--bg-active).
+
+### Files Changed
+- `electron-ui/src/renderer/components/sidebar/ReminderSection.tsx` — fix broken style object, restore full onMouseEnter handler
+
+### Build
+Status: SUCCESS (npm run check 0 errors, 202 warnings all pre-existing)
+
+### Acceptance Criteria
+- [x] ReminderSection + button has correct base style (bg-hover, text-secondary)
+- [x] onMouseEnter sets both background (bg-active) and color (text-primary)
+- [x] onMouseLeave restores both background and color
+- [x] TypeScript check passes with 0 errors
