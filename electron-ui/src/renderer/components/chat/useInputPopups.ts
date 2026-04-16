@@ -225,7 +225,11 @@ export function useInputPopups({
         } else if (cmd.name === '/hooks') {
           useUiStore.getState().openSettingsAt('hooks')
         } else if (cmd.name === '/mcp') {
-          useUiStore.getState().openSettingsAt('plugins')
+          useUiStore.getState().openSettingsAt('mcp')
+        } else if (cmd.name === '/sandbox') {
+          useUiStore.getState().openSettingsAt('sandbox')
+        } else if (cmd.name === '/ai-engine' || cmd.name === '/providers') {
+          useUiStore.getState().openSettingsAt('ai-engine')
         } else if (cmd.name === '/memory') {
           useUiStore.getState().setActiveNavItem('memory')
         } else if (cmd.name === '/model') {

@@ -81,8 +81,10 @@ export function useCanvasLayout(
   // Collapsed nodes (compact mode)
   const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set())
 
-  // Minimap visibility
-  const [showMinimap, setShowMinimap] = useState(true)
+  // Minimap visibility — persisted in localStorage
+  const [showMinimap, setShowMinimap] = useState<boolean>(() => {
+    try { return localStorage.getItem('aipa:canvas-minimap') !== 'false' } catch { return true }
+  })
 
   // Container size for minimap viewport rect
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 })
@@ -286,6 +288,11 @@ export function useCanvasLayout(
       localStorage.setItem(`aipa:canvas-collapsed:${workflow.id}`, JSON.stringify([...collapsedNodes]))
     } catch { }
   }, [collapsedNodes, workflow?.id])
+
+  // Persist minimap visibility preference to localStorage
+  useEffect(() => {
+    try { localStorage.setItem('aipa:canvas-minimap', String(showMinimap)) } catch { }
+  }, [showMinimap])
 
   // F1: save custom positions to localStorage (debounced 800ms)
   useEffect(() => {
