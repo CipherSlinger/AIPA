@@ -6958,3 +6958,16 @@ Final major decomposition of ToolUseBlock.tsx. Extracted 4 new tool-cards module
 Status: SUCCESS (vite build: 12.33s, 0 TypeScript errors)
 
 ### tool-cards/ directory: 12 files total
+
+## Iteration 587 — Workflow/Canvas components CSS variable migration
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+CSS variable migration for workflow and canvas components. WorkflowDetailPage: canvas wrapper bg transparent, canvas card bg → var(--glass-bg-low). CanvasNode: node header bg → var(--glass-bg-low). WorkflowStepEditor/WorkflowDetailHeader/WorkflowEditorPage had only indigo/status/dark-opaque colors (all excluded per rules). WorkflowList.tsx does not exist.
+
+### Files Changed
+- `src/renderer/components/workflows/WorkflowDetailPage.tsx` — 2 replacements
+- `src/renderer/components/workflows/CanvasNode.tsx` — 1 replacement
+
+### Build
+Status: SUCCESS (vite build: 11.83s, 0 TypeScript errors)
