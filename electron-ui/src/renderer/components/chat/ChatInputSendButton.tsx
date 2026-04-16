@@ -56,12 +56,12 @@ export default function ChatInputSendButton({ isStreaming, inputLength, hasConte
           background: isStreaming
             ? 'rgba(239,68,68,0.15)'
             : !hasContent
-              ? 'rgba(255,255,255,0.08)'
+              ? 'var(--bg-hover)'
               : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
           border: isStreaming ? '1px solid rgba(239,68,68,0.40)' : 'none',
           borderRadius: 8, width: 36, height: 36,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: isStreaming ? '#f87171' : !hasContent ? 'rgba(255,255,255,0.30)' : 'rgba(255,255,255,0.95)',
+          color: isStreaming ? '#f87171' : !hasContent ? 'var(--text-muted)' : 'rgba(255,255,255,0.95)',
           fontWeight: 700,
           cursor: isStreaming || hasContent ? 'pointer' : 'not-allowed',
           boxShadow: isStreaming || !hasContent ? 'none' : '0 2px 12px rgba(99,102,241,0.4)',
