@@ -196,7 +196,7 @@ export default function ToolApprovalDialog({ onRespond }: Props) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'rgba(255,255,255,0.85)',
+              color: 'var(--text-bright)',
               flexShrink: 0,
             }}
           >
@@ -285,7 +285,7 @@ export default function ToolApprovalDialog({ onRespond }: Props) {
               fontWeight: 700,
               letterSpacing: '0.07em',
               textTransform: 'uppercase',
-              color: 'rgba(255,255,255,0.35)',
+              color: 'var(--text-faint)',
               marginBottom: 6,
             }}>
               Parameters
@@ -375,7 +375,7 @@ export default function ToolApprovalDialog({ onRespond }: Props) {
         {/* Keyboard hint */}
         <div style={{
           fontSize: 10,
-          color: 'rgba(255,255,255,0.28)',
+          color: 'var(--text-faint)',
           textAlign: 'center',
           marginTop: -6,
         }}>
