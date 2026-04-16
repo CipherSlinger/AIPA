@@ -166,7 +166,7 @@ export default function PlanApprovalCard({
             fontWeight: 700,
             letterSpacing: '0.06em',
             textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.30)',
+            color: 'var(--text-faint)',
             marginBottom: 6,
           }}
         >
@@ -184,7 +184,7 @@ export default function PlanApprovalCard({
             lineHeight: 1.65,
             color: 'var(--text-secondary)',
             background: 'rgba(0,0,0,0.25)',
-            border: '1px solid rgba(255,255,255,0.06)',
+            border: '1px solid var(--border)',
             borderRadius: 7,
             padding: '8px 10px',
             fontFamily: 'inherit',
