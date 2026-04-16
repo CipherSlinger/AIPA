@@ -106,8 +106,8 @@ function ChipList({ items, placeholder, color, bgColor, borderColor, onAdd, onRe
             placeholder={placeholder}
             style={{
               flex: 1, padding: '6px 10px', fontSize: 12,
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'var(--bg-hover)',
+              border: '1px solid var(--border)',
               borderRadius: 6, color: 'var(--text-primary)',
               fontFamily: 'monospace', outline: 'none',
               transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
@@ -117,7 +117,7 @@ function ChipList({ items, placeholder, color, bgColor, borderColor, onAdd, onRe
               e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)'
             }}
             onBlur={e => {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+              e.currentTarget.style.borderColor = 'var(--border)'
               e.currentTarget.style.boxShadow = 'none'
             }}
           />
@@ -128,8 +128,8 @@ function ChipList({ items, placeholder, color, bgColor, borderColor, onAdd, onRe
               padding: '6px 12px', fontSize: 11, fontWeight: 600,
               background: inputValue.trim()
                 ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
-                : 'rgba(255,255,255,0.06)',
-              border: inputValue.trim() ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                : 'var(--bg-input)',
+              border: inputValue.trim() ? 'none' : '1px solid var(--border)',
               borderRadius: 6,
               color: inputValue.trim() ? 'rgba(255,255,255,0.95)' : 'var(--text-faint)',
               cursor: inputValue.trim() ? 'pointer' : 'not-allowed',
@@ -142,7 +142,7 @@ function ChipList({ items, placeholder, color, bgColor, borderColor, onAdd, onRe
             onClick={() => { setAdding(false); setInputValue('') }}
             style={{
               padding: '6px 10px', fontSize: 11,
-              background: 'rgba(255,255,255,0.04)',
+              background: 'var(--bg-hover)',
               border: '1px solid var(--glass-border)',
               borderRadius: 6, color: 'var(--text-faint)',
               cursor: 'pointer', transition: 'all 0.15s ease',
@@ -156,7 +156,7 @@ function ChipList({ items, placeholder, color, bgColor, borderColor, onAdd, onRe
           onClick={() => setAdding(true)}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,
-            background: 'rgba(255,255,255,0.04)',
+            background: 'var(--bg-hover)',
             border: '1px solid var(--glass-border-md)',
             borderRadius: 6, padding: '4px 10px',
             cursor: 'pointer', fontSize: 11, fontWeight: 500,
@@ -164,11 +164,11 @@ function ChipList({ items, placeholder, color, bgColor, borderColor, onAdd, onRe
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+            e.currentTarget.style.background = 'var(--border)'
             e.currentTarget.style.color = 'var(--text-secondary)'
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+            e.currentTarget.style.background = 'var(--bg-hover)'
             e.currentTarget.style.color = 'var(--text-faint)'
           }}
         >
@@ -414,7 +414,7 @@ export default function SettingsSandbox() {
         <div style={{
           position: 'fixed', bottom: 24, left: '50%',
           transform: 'translateX(-50%)',
-          background: 'rgba(12,12,22,0.96)',
+          background: 'var(--glass-bg-high)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
           border: '1px solid var(--glass-border-md)',
@@ -429,7 +429,7 @@ export default function SettingsSandbox() {
       {/* Header info */}
       <div style={{
         display: 'flex', alignItems: 'flex-start', gap: 8,
-        background: 'rgba(255,255,255,0.02)',
+        background: 'var(--glass-shimmer)',
         border: '1px solid var(--glass-border)',
         borderRadius: 8, padding: '10px 12px',
         marginBottom: 12,
@@ -539,7 +539,7 @@ export default function SettingsSandbox() {
       <div style={{
         display: 'flex', alignItems: 'flex-start', gap: 8,
         padding: '10px 12px',
-        background: 'rgba(255,255,255,0.02)',
+        background: 'var(--glass-shimmer)',
         border: '1px solid var(--glass-border)',
         borderRadius: 8, marginTop: 4,
       }}>

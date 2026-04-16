@@ -90,8 +90,8 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
 
   const inputStyle: React.CSSProperties = {
     width: '100%',
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.08)',
+    background: 'var(--bg-input)',
+    border: '1px solid var(--border)',
     borderRadius: 7,
     padding: '8px 10px',
     color: 'var(--text-primary)',
@@ -177,8 +177,8 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
     <div style={{
       display: 'flex', alignItems: 'center', gap: 0,
       marginBottom: 20, padding: '10px 14px',
-      background: 'rgba(255,255,255,0.02)',
-      border: '1px solid rgba(255,255,255,0.06)',
+      background: 'var(--glass-shimmer)',
+      border: '1px solid var(--glass-border)',
       borderRadius: 8,
     }}>
       {([1, 2, 3] as const).map((s) => (
@@ -198,7 +198,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                 ? '1px solid rgba(74,222,128,0.5)'
                 : step === s
                   ? '1px solid rgba(99,102,241,0.7)'
-                  : '1px solid rgba(255,255,255,0.12)',
+                  : '1px solid var(--glass-border-md)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 10, fontWeight: 700,
               color: step >= s ? 'rgba(255,255,255,0.95)' : 'var(--text-faint)',
@@ -230,8 +230,8 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
   )
 
   const backBtnStyle: React.CSSProperties = {
-    background: 'rgba(255,255,255,0.05)',
-    border: '1px solid rgba(255,255,255,0.08)',
+    background: 'var(--bg-hover)',
+    border: '1px solid var(--border)',
     borderRadius: 7, padding: '8px 16px',
     cursor: 'pointer', fontSize: 12,
     color: 'var(--text-secondary)',
@@ -240,7 +240,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
 
   return (
     <div style={{
-      background: 'rgba(12,12,22,0.97)',
+      background: 'var(--glass-bg-deep)',
       backdropFilter: 'blur(20px)',
       WebkitBackdropFilter: 'blur(20px)',
       border: '1px solid var(--glass-border-md)',
@@ -260,7 +260,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
         <button
           onClick={onCancel}
           style={{
-            background: 'rgba(255,255,255,0.06)',
+            background: 'var(--bg-input)',
             border: '1px solid var(--glass-border-md)',
             borderRadius: 6, cursor: 'pointer',
             color: 'var(--text-muted)',
@@ -268,11 +268,11 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.10)'
+            e.currentTarget.style.background = 'var(--bg-active)'
             e.currentTarget.style.color = 'var(--text-primary)'
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+            e.currentTarget.style.background = 'var(--bg-input)'
             e.currentTarget.style.color = 'var(--text-muted)'
           }}
         >
@@ -312,7 +312,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                             : 'var(--glass-border-md)'),
                           background: isSelected
                             ? 'rgba(99,102,241,0.18)'
-                            : 'rgba(255,255,255,0.05)',
+                            : 'var(--bg-hover)',
                           color: isSelected ? '#a5b4fc' : 'var(--text-secondary)',
                           fontSize: 12, cursor: 'pointer',
                           fontWeight: isSelected ? 600 : 400,
@@ -332,7 +332,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                         }}
                         onMouseLeave={e => {
                           if (!isSelected) {
-                            e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+                            e.currentTarget.style.background = 'var(--bg-hover)'
                             e.currentTarget.style.borderColor = 'var(--glass-border-md)'
                             e.currentTarget.style.color = 'var(--text-secondary)'
                           }
@@ -340,7 +340,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                       >
                         <span style={{ fontWeight: isSelected ? 700 : 500 }}>{ev}</span>
                         {desc && !desc.startsWith('hooks.wizard.eventDesc') && (
-                          <span style={{ fontSize: 10, color: isSelected ? 'rgba(165,180,252,0.70)' : 'rgba(255,255,255,0.35)', lineHeight: 1.4, fontWeight: 400 }}>
+                          <span style={{ fontSize: 10, color: isSelected ? 'rgba(165,180,252,0.70)' : 'var(--text-faint)', lineHeight: 1.4, fontWeight: 400 }}>
                             {desc}
                           </span>
                         )}
@@ -377,10 +377,10 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                     borderRadius: 9,
                     border: '1px solid ' + (isSelected
                       ? 'rgba(99,102,241,0.45)'
-                      : 'rgba(255,255,255,0.08)'),
+                      : 'var(--border)'),
                     background: isSelected
                       ? 'rgba(99,102,241,0.14)'
-                      : 'rgba(255,255,255,0.04)',
+                      : 'var(--bg-hover)',
                     color: isSelected ? '#a5b4fc' : 'var(--text-secondary)',
                     cursor: 'pointer',
                     display: 'flex', flexDirection: 'column',
@@ -395,8 +395,8 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                   }}
                   onMouseLeave={e => {
                     if (!isSelected) {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
-                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+                      e.currentTarget.style.background = 'var(--bg-hover)'
+                      e.currentTarget.style.borderColor = 'var(--border)'
                     }
                   }}
                 >
@@ -419,7 +419,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
               e.currentTarget.style.color = 'var(--text-primary)'
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+              e.currentTarget.style.background = 'var(--bg-hover)'
               e.currentTarget.style.color = 'var(--text-secondary)'
             }}
           >
@@ -447,7 +447,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                 placeholder="e.g. echo hello"
                 style={textareaStyle}
                 onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)' }}
-                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
               />
             </div>
           )}
@@ -465,7 +465,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                   placeholder="e.g. Summarize the tool result"
                   style={textareaStyle}
                   onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)' }}
-                  onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
                 />
               </div>
               <div>
@@ -476,7 +476,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                   placeholder="e.g. claude-haiku-3-5"
                   style={inputStyle}
                   onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)' }}
-                  onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
                 />
               </div>
             </>
@@ -495,7 +495,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                   placeholder="https://example.com/webhook"
                   style={inputStyle}
                   onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)' }}
-                  onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
                 />
               </div>
               <div>
@@ -506,7 +506,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                   placeholder={'Authorization=Bearer token\nContent-Type=application/json'}
                   style={{ ...textareaStyle, minHeight: 52 }}
                   onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)' }}
-                  onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
                 />
               </div>
             </>
@@ -524,7 +524,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                 placeholder="Describe what the sub-agent should do"
                 style={textareaStyle}
                 onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)' }}
-                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
               />
             </div>
           )}
@@ -532,7 +532,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
           {/* Command preview */}
           {hookType === 'command' && command.trim() && (
             <div style={{
-              background: 'rgba(10,10,20,0.90)',
+              background: 'var(--bg-secondary)',
               border: '1px solid rgba(99,102,241,0.15)',
               borderRadius: 7,
               padding: '9px 12px',
@@ -556,7 +556,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                 placeholder={t('hooks.wizard.matcherPlaceholder')}
                 style={inputStyle}
                 onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)' }}
-                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
               />
               <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 4, lineHeight: 1.5 }}>
                 {t('hooks.wizard.matcherHint')}
@@ -571,7 +571,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                 type="number" min="1"
                 style={inputStyle}
                 onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)' }}
-                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
               />
             </div>
           </div>
@@ -586,7 +586,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                 placeholder="e.g. input.tool_name === 'Bash'"
                 style={inputStyle}
                 onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)' }}
-                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
               />
               <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 4, lineHeight: 1.5 }}>
                 JavaScript 表达式，为真时才触发此 Hook。可访问 input 对象（如 input.tool_name）。
@@ -604,7 +604,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                 placeholder="/bin/bash"
                 style={inputStyle}
                 onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.boxShadow = 'none' }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
               />
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
                 指定执行命令的 shell（默认 /bin/bash）
@@ -621,7 +621,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
               placeholder="正在执行检查..."
               style={inputStyle}
               onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-              onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.boxShadow = 'none' }}
+              onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
             />
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
               Hook 执行时显示在状态栏的提示文字
@@ -634,7 +634,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
             <div
               style={{
                 flex: 1,
-                background: 'rgba(255,255,255,0.03)',
+                background: 'var(--glass-shimmer)',
                 border: '1px solid var(--glass-border)',
                 borderRadius: 8,
                 padding: '10px 12px',
@@ -659,7 +659,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                     cursor: 'pointer',
                     background: once
                       ? 'rgba(99,102,241,0.85)'
-                      : 'rgba(255,255,255,0.12)',
+                      : 'var(--glass-border-md)',
                     position: 'relative',
                     flexShrink: 0,
                     transition: 'background 0.15s ease',
@@ -688,7 +688,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
             <div
               style={{
                 flex: 1,
-                background: 'rgba(255,255,255,0.03)',
+                background: 'var(--glass-shimmer)',
                 border: '1px solid var(--glass-border)',
                 borderRadius: 8,
                 padding: '10px 12px',
@@ -713,7 +713,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                     cursor: 'pointer',
                     background: asyncMode
                       ? 'rgba(99,102,241,0.85)'
-                      : 'rgba(255,255,255,0.12)',
+                      : 'var(--glass-border-md)',
                     position: 'relative',
                     flexShrink: 0,
                     transition: 'background 0.15s ease',
@@ -762,7 +762,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                 e.currentTarget.style.color = 'var(--text-primary)'
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+                e.currentTarget.style.background = 'var(--bg-hover)'
                 e.currentTarget.style.color = 'var(--text-secondary)'
               }}
             >
@@ -807,7 +807,7 @@ export default function HookAddWizard({ onSave, onCancel }: HookAddWizardProps) 
                 e.currentTarget.style.color = 'var(--text-primary)'
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+                e.currentTarget.style.background = 'var(--bg-hover)'
                 e.currentTarget.style.color = 'var(--text-secondary)'
               }}
             >

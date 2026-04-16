@@ -117,7 +117,7 @@ export default function SettingsPlugins() {
 
   const inputStyle: React.CSSProperties = {
     flex: 1, padding: '7px 10px', fontSize: 13,
-    background: 'rgba(255,255,255,0.06)',
+    background: 'var(--bg-input)',
     border: '1px solid var(--glass-border)',
     borderRadius: 7, color: 'var(--text-primary)',
     outline: 'none', boxSizing: 'border-box',
@@ -154,7 +154,7 @@ export default function SettingsPlugins() {
             onClick={load}
             title={t('common.refresh')}
             style={{
-              background: 'rgba(255,255,255,0.05)',
+              background: 'var(--bg-hover)',
               border: '1px solid var(--glass-border)',
               borderRadius: 6, cursor: 'pointer',
               display: 'flex', alignItems: 'center', padding: '5px 8px',
@@ -169,7 +169,7 @@ export default function SettingsPlugins() {
             onMouseLeave={e => {
               e.currentTarget.style.borderColor = 'var(--glass-border)'
               e.currentTarget.style.color = 'var(--text-muted)'
-              e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+              e.currentTarget.style.background = 'var(--bg-hover)'
             }}
           >
             <RefreshCw size={13} />
@@ -214,7 +214,7 @@ export default function SettingsPlugins() {
       {/* Install form */}
       {showInstallForm && (
         <div style={{
-          background: 'rgba(255,255,255,0.03)',
+          background: 'var(--glass-shimmer)',
           border: '1px solid var(--glass-border)',
           borderRadius: 10, padding: '16px',
         }}>
@@ -235,7 +235,7 @@ export default function SettingsPlugins() {
               style={{
                 display: 'flex', alignItems: 'center', gap: 4,
                 padding: '7px 10px', fontSize: 12,
-                background: 'rgba(255,255,255,0.06)',
+                background: 'var(--bg-input)',
                 border: '1px solid var(--glass-border)',
                 borderRadius: 7, color: 'var(--text-secondary)', cursor: 'pointer',
                 transition: 'all 0.15s ease',
@@ -248,7 +248,7 @@ export default function SettingsPlugins() {
               onMouseLeave={e => {
                 e.currentTarget.style.borderColor = 'var(--glass-border)'
                 e.currentTarget.style.color = 'var(--text-secondary)'
-                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                e.currentTarget.style.background = 'var(--bg-input)'
               }}
             >
               <FolderOpen size={13} />
@@ -264,7 +264,7 @@ export default function SettingsPlugins() {
             <button
               onClick={() => { setShowInstallForm(false); setInstallPath('') }}
               style={{
-                background: 'rgba(255,255,255,0.05)',
+                background: 'var(--bg-hover)',
                 border: '1px solid var(--glass-border)',
                 borderRadius: 7, padding: '6px 14px',
                 cursor: 'pointer', fontSize: 12,
@@ -276,7 +276,7 @@ export default function SettingsPlugins() {
                 e.currentTarget.style.color = 'var(--text-primary)'
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+                e.currentTarget.style.background = 'var(--bg-hover)'
                 e.currentTarget.style.color = 'var(--text-secondary)'
               }}
             >
@@ -349,7 +349,7 @@ export default function SettingsPlugins() {
       ) : plugins.length === 0 ? (
         <div style={{
           padding: '40px 0', textAlign: 'center',
-          background: 'rgba(255,255,255,0.02)',
+          background: 'var(--glass-shimmer)',
           border: '1px dashed var(--glass-border)',
           borderRadius: 10,
         }}>
@@ -383,8 +383,8 @@ export default function SettingsPlugins() {
                   key={plugin.name}
                   style={{
                     background: plugin.enabled
-                      ? 'rgba(255,255,255,0.04)'
-                      : 'rgba(255,255,255,0.02)',
+                      ? 'var(--bg-hover)'
+                      : 'var(--glass-shimmer)',
                     border: '1px solid var(--glass-border)',
                     borderLeft: `3px solid ${accentColor}`,
                     borderRadius: 10,
@@ -407,7 +407,7 @@ export default function SettingsPlugins() {
                         cursor: isToggling ? 'wait' : 'pointer',
                         background: plugin.enabled
                           ? 'rgba(99,102,241,0.70)'
-                          : 'rgba(255,255,255,0.12)',
+                          : 'var(--glass-border-md)',
                         position: 'relative', flexShrink: 0,
                         transition: 'all 0.15s ease',
                         boxShadow: plugin.enabled
@@ -528,7 +528,7 @@ export default function SettingsPlugins() {
                           <button
                             onClick={() => setConfirmDelete(null)}
                             style={{
-                              background: 'rgba(255,255,255,0.05)',
+                              background: 'var(--bg-hover)',
                               border: '1px solid var(--glass-border)',
                               borderRadius: 6, padding: '5px 8px',
                               fontSize: 11, color: 'var(--text-muted)',
@@ -539,7 +539,7 @@ export default function SettingsPlugins() {
                               e.currentTarget.style.background = 'var(--glass-border-md)'
                             }}
                             onMouseLeave={e => {
-                              e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+                              e.currentTarget.style.background = 'var(--bg-hover)'
                             }}
                           >
                             {t('common.cancel')}
@@ -554,7 +554,7 @@ export default function SettingsPlugins() {
                           style={{
                             background: deleteHover === plugin.name
                               ? 'rgba(239,68,68,0.12)'
-                              : 'rgba(255,255,255,0.05)',
+                              : 'var(--bg-hover)',
                             border: '1px solid ' + (deleteHover === plugin.name
                               ? 'rgba(239,68,68,0.28)'
                               : 'var(--glass-border)'),
