@@ -22,6 +22,7 @@ import { registerWindowHandlers } from './window-handlers'
 import { registerDiagnosticsHandlers } from './diagnostics-handlers'
 import { registerBackupHandlers } from './backup-handlers'
 import { createLogger } from '../utils/logger'
+import { notifyClawdState, isClawdRunning, launchClawd } from '../clawd-bridge'
 
 const log = createLogger('ipc')
 
@@ -71,6 +72,7 @@ export function registerAllHandlers(win: BrowserWindow): void {
     registerDiagnosticsHandlers()
     registerBackupHandlers()
     registerSpeculationHandlers()
+    registerClawdHandlers()
     log.info('All IPC handlers registered successfully')
   } catch (err) {
     log.error('Failed to register some IPC handlers:', String(err))
@@ -243,6 +245,16 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
     bridge.on('worktreeState', (d) => send('cli:worktreeState', d))
     bridge.on('customTitle', (d) => send('cli:customTitle', d))
     bridge.on('taskCompleted', (d) => send('cli:taskCompleted', d))
+
+    // Clawd desktop pet state notifications (Iteration 615)
+    // These are side-effects on the same events — existing renderer forwarding above is unchanged.
+    bridge.on('textDelta', () => notifyClawdState('thinking', bridgeId))
+    bridge.on('thinkingDelta', () => notifyClawdState('thinking', bridgeId))
+    bridge.on('toolUse', () => notifyClawdState('working', bridgeId))
+    bridge.on('result', () => notifyClawdState('happy', bridgeId))
+    bridge.on('apiError', () => notifyClawdState('error', bridgeId))
+    bridge.on('notification', () => notifyClawdState('notification', bridgeId))
+    bridge.on('processExit', () => notifyClawdState('idle', bridgeId))
 
     // Inject API key from prefs only when neither key nor auth token is already set.
     // Gateway scenario sets ANTHROPIC_API_KEY to '' intentionally — do not overwrite it.
@@ -686,5 +698,31 @@ function registerSpeculationHandlers(): void {
   safeHandle('speculation:abort', (_e, { id }: { id: string }) => {
     speculationManager.abort(id)
     return { ok: true }
+  })
+}
+
+// ----------------------------------------
+// Clawd desktop pet handlers (Iteration 615)
+// ----------------------------------------
+function registerClawdHandlers(): void {
+  safeHandle('clawd:launch', async () => {
+    try {
+      const running = await isClawdRunning()
+      if (!running) {
+        launchClawd()
+      }
+      return { success: true, alreadyRunning: running }
+    } catch (err) {
+      log.warn('clawd:launch error:', String(err))
+      return { success: false, error: String(err) }
+    }
+  })
+
+  safeHandle('clawd:isRunning', async () => {
+    try {
+      return { running: await isClawdRunning() }
+    } catch {
+      return { running: false }
+    }
   })
 }

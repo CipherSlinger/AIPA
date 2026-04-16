@@ -4,7 +4,39 @@ All iterations appended chronologically.
 
 ---
 
-## Iteration 53 — WeChat 风格 UI 重构 P0
+## Iteration 615 — Clawd Desktop Pet Integration (Backend)
+_Date: 2026-04-16 | Sprint Backend_
+
+### Summary
+Integrated the clawd-on-desk desktop pet with AIPA by creating a fire-and-forget HTTP bridge module that reads the Clawd runtime port from `~/.clawd/runtime.json` and notifies the pet of AI session state changes. Stream-bridge events (textDelta, toolUse, result, apiError, notification, processExit) are wired to corresponding Clawd states with a 500 ms debounce to prevent flooding. A `clawd:launch` IPC handler detached-spawns the pet process, exposed via `window.electronAPI.clawdLaunch()`. A settings toggle in SettingsGeneral lets users enable the pet and auto-launches it on first enable.
+
+### Files Changed
+- `electron-ui/src/main/clawd-bridge.ts` — new module: port resolution, fire-and-forget HTTP POST, debounce, `notifyClawdState()`, `isClawdRunning()`, `launchClawd()`
+- `electron-ui/src/main/ipc/index.ts` — import clawd-bridge; add Clawd state side-effects to stream-bridge event listeners; add `registerClawdHandlers()` (clawd:launch, clawd:isRunning)
+- `electron-ui/src/preload/index.ts` — expose `clawdLaunch` and `clawdIsRunning` on `window.electronAPI`
+- `electron-ui/src/renderer/types/app.types.ts` — add `clawdEnabled?: boolean` to `ClaudePrefs`
+- `electron-ui/src/renderer/store/index.ts` — add `clawdEnabled: false` to `DEFAULT_PREFS`
+- `electron-ui/src/renderer/components/settings/SettingsGeneral.tsx` — add Clawd toggle row in Behavior group
+
+### API Changes
+- New IPC channel: `clawd:launch` (renderer → main, invoke) — launches Clawd if not running; returns `{ success, alreadyRunning? }`
+- New IPC channel: `clawd:isRunning` (renderer → main, invoke) — health-checks Clawd; returns `{ running: boolean }`
+- New preload API: `window.electronAPI.clawdLaunch()`, `window.electronAPI.clawdIsRunning()`
+
+### Build
+Status: SUCCESS (tsc main + preload: 0 errors; vite build: success; npm run check: 0 errors)
+
+### Acceptance Criteria
+- [x] Build passes (main + preload + renderer three targets)
+- [x] `npm run check` passes with 0 errors
+- [x] Clawd state notifications wired to all stream-bridge events with 500 ms debounce
+- [x] Errors silently swallowed — Clawd offline = no-op
+- [x] `clawd:launch` IPC handler registered and callable from renderer
+- [x] Settings toggle added in Behavior group
+
+---
+
+
 
 _Date: 2026-03-26 | Sprint UI Redesign_
 

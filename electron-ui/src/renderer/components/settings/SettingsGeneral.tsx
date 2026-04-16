@@ -588,6 +588,20 @@ export default function SettingsGeneral({
           t('effort.preventSleepHint')
         )}
 
+        {row(
+          '桌宠 / Desktop Pet (Clawd)',
+          <Toggle
+            value={local.clawdEnabled === true}
+            onChange={(v) => {
+              updateLocal({ clawdEnabled: v })
+              if (v) {
+                window.electronAPI.clawdLaunch?.().catch(() => {})
+              }
+            }}
+          />,
+          'Show Clawd desktop pet that reacts to AI session state'
+        )}
+
         {field(
           t('settings.cleanupPeriodDays'),
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

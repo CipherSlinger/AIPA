@@ -327,6 +327,12 @@ const electronAPI = {
     platform: process.platform,
     arch: process.arch,
   },
+
+  // ── Clawd desktop pet (Iteration 615) ──
+  clawdLaunch: () =>
+    ipcRenderer.invoke('clawd:launch') as Promise<{ success: boolean; alreadyRunning?: boolean; error?: string }>,
+  clawdIsRunning: () =>
+    ipcRenderer.invoke('clawd:isRunning') as Promise<{ running: boolean }>,
 }
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI)
