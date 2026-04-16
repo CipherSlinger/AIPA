@@ -6387,3 +6387,23 @@ Status: SUCCESS (npm run check 0 errors)
 - [x] HookAddWizard uses CSS variables throughout
 - [x] WorkflowPersonasSection uses CSS variables throughout
 - [x] All major component directories now use CSS variable colors
+
+## Iteration 555 — Light theme: complete missing CSS variables in globals.css
+_Date: 2026-04-15 | Sprint ongoing_
+
+### Summary
+Audited all CSS variable references in components against the `[data-theme="light"]` section. Found 8 variables used in components (WorkflowDetailHeader, WorkflowItem, SettingsMemory) that had dark-mode fallback values in the light theme: `--accent-bg`, `--accent-border`, `--accent-muted`, `--color-error`, `--color-success`, `--color-warning`, `--color-violet`, `--cta-gradient`. Added proper light-mode values. Also verified App.tsx correctly applies `document.documentElement.setAttribute('data-theme', 'light')`.
+
+### Files Changed
+- `electron-ui/src/renderer/styles/globals.css` — add 8 missing light theme CSS variables in `[data-theme="light"]` block
+
+### Build
+Status: SUCCESS (npm run check: 0 errors, 202 warnings — all pre-existing)
+
+### Acceptance Criteria
+- [x] All CSS variables used in components have explicit light theme definitions
+- [x] `--accent-bg`, `--accent-border`, `--accent-muted` use blue-toned light values
+- [x] `--color-*` status variables use accessible WCAG-compliant light mode colors
+- [x] `--cta-gradient` uses blue-to-violet for light mode
+- [x] App.tsx theme switching confirmed correct (`setAttribute('data-theme', 'light')` on documentElement)
+- [x] `npm run check` passes with 0 errors

@@ -1,6 +1,6 @@
 # AIPA x Claude Code CLI — 功能差距文档
 
-> 更新日期：2026-04-15（Iteration 542）
+> 更新日期：2026-04-16（Iteration 555）
 > CLI 版本：claude-code 2.1.81（BUILD_TIME: 2026-03-20T21:25:42Z）
 > 分析目的：指导 AIPA UI 逐步对齐 CLI 全部能力
 
@@ -31,7 +31,7 @@
 | `SkillTool` | 加载和调用 skills 片段 | ⚠️ 有 skillsList/Read/Install IPC，无 Skill 调用追踪 UI |
 | `AskUserQuestion` | 代理主动询问用户 | ✅ 有专用 `AskUserQuestionCard`：展示问题文本、可点击选项按钮、自由文本输入框，通过 `aipa:sendMessage` 事件回复 CLI（Iteration 541） |
 | `LSPTool` | LSP 语言服务（ENABLE_LSP_TOOL） | ❌ 无 LSP 集成 |
-| `ListMcpResources` / `ReadMcpResource` | 读取 MCP 服务器资源 | ❌ 无 UI |
+| `ListMcpResources` / `ReadMcpResource` | 读取 MCP 服务器资源 | ⚠️ 有结果卡片（ListMcpResources→URI chips，ReadMcpResource→内容预览+复制）；输入展示用通用 JSON（Iteration 555） |
 | `ToolSearchTool` | 延迟工具搜索 | ❌ 无 UI |
 | `BriefTool` | 读取 /brief 简报 | ❌ 无 UI |
 | `SendMessageTool` | 跨代理消息传递 | ❌ 无多代理 UI |
@@ -257,10 +257,10 @@ CLI 2.1.81 中发现以下事件类型 AIPA 未处理：
 
 | 配置段 | 字段 | 含义 | AIPA UI 状态 |
 |--------|------|------|--------------|
-| `sandbox.network` | `allowedDomains`, `allowManagedDomainsOnly`, `allowUnixSockets` | 沙箱网络访问控制 | ❌ 无 UI |
-| `sandbox.filesystem` | `allowWrite`, `denyWrite`, `denyRead`, `allowRead` | 沙箱文件系统路径控制 | ❌ 无 UI |
-| `sandbox.autoAllowBashIfSandboxed` | boolean | 沙箱内自动允许 Bash | ❌ 无 UI |
-| `sandbox.allowUnsandboxedCommands` | boolean | 允许通过参数绕过沙箱 | ❌ 无 UI |
+| `sandbox.network` | `allowedDomains`, `allowManagedDomainsOnly`, `allowUnixSockets` | 沙箱网络访问控制 | ✅ `SandboxSettingsPanel.tsx` 标签式路径编辑器（Iteration 545） |
+| `sandbox.filesystem` | `allowWrite`, `denyWrite`, `denyRead`, `allowRead` | 沙箱文件系统路径控制 | ✅ `SandboxSettingsPanel.tsx` 标签式路径编辑器（Iteration 545） |
+| `sandbox.autoAllowBashIfSandboxed` | boolean | 沙箱内自动允许 Bash | ✅ Toggle 开关（Iteration 545） |
+| `sandbox.allowUnsandboxedCommands` | boolean | 允许通过参数绕过沙箱 | ✅ Toggle 开关（Iteration 545） |
 | `sandbox.ignoreViolations` | Record | 特定工具违规豁免 | ❌ 无 UI |
 | `plugins.enabledPlugins` | Record | 插件市场插件启用/禁用 | ⚠️ 有 plugin:list/setEnabled IPC，无市场 UI |
 
@@ -295,7 +295,7 @@ CLI 2.1.81 中发现以下事件类型 AIPA 未处理：
 - ✅ MCP 服务器连接状态实时展示 — `SettingsMcp.tsx` 每个服务器行显示彩色状态点（绿=已连接/红=断开/灰=未知）和工具数徽标，tooltip 显示工具列表（Iteration 542）
 - ❌ `.mcp.json` 项目级配置管理 UI（仅全局 `settings.json`）
 - ❌ MCP OAuth 认证流程 UI
-- ❌ MCP 资源浏览器（ListMcpResources/ReadMcpResource 工具结果无专用 UI）
+- ⚠️ MCP 资源浏览器（ListMcpResources→URI chips，ReadMcpResource→内容预览，Iteration 555；无专用侧边栏面板）
 
 ### 差距 & 优先级
 
@@ -457,13 +457,14 @@ AIPA 状态：❌ 无任何 compact 触发 UI
 5. **语言偏好设置**：在 Settings 中添加 `language` 字段（对应 `settings.json`）
 6. ✅ **嵌套 CLAUDE.md 可视化**：Memory 面板"指令文件"Tab 内置"CLI 当前加载的 CLAUDE.md 文件"折叠区，显示全局/项目/本地三个路径的存在状态（✓绿/○灰），不存在的文件有一键创建按钮（2026-04-15）
 7. ✅ **TodoWrite 面板**：当 Claude 调用 `TodoWrite` 工具时，渲染结构化待办列表（Iteration 以前已完成）；**Glob/Grep 结构化展示**：路径列表高亮 + 折叠（Iteration 540）；**WebSearch/WebFetch 富化展示**：URL chip + 内容预览（Iteration 540）
+8. ✅ **Canvas 连接端口与动态边线**：节点悬停时显示连接端口指示点；运行中边线（sourceStatus=running）显示流动虚线动画（Iteration 547）
 
 ### P4（第二次扫描发现，微优化）
 
 1. ✅ **overloaded_error / authentication_error 事件**：stream-bridge 已处理，渲染器 toast 展示
 2. ✅ **custom-title 事件**：CLI 自动生成标题时同步到 sessionTitle store
 3. ✅ **Copy Session ID 按钮**：ChatHeader 中点击复制完整 session ID 用于 `--resume`
-4. **Sandbox 设置 UI**：`settings.json` 的 `sandbox.network`/`sandbox.filesystem` 路径控制，需可视化编辑器
+4. ✅ **Sandbox 设置 UI**：`SandboxSettingsPanel.tsx` 实现 `sandbox.network`（allowedDomains 标签式编辑器）和 `sandbox.filesystem`（allowWrite/denyWrite/allowRead/denyRead 路径列表）的可视化编辑器，以及 `autoAllowBashIfSandboxed` 和 `allowUnsandboxedCommands` Toggle 开关（Iteration 545）
 5. ✅ **result.modelUsage 存储**：stream-bridge 转发 `modelUsage` 字段，`setLastCost` 存入 chatStore.modelUsage 分项（Iteration 539）
 6. ✅ **worktree-state / task_completed 事件消费**：preload 订阅两个 channel，渲染器更新 `activeWorktree` 状态并显示 toast（Iteration 539）
 
@@ -563,3 +564,82 @@ AIPA 状态：❌ 无任何 compact 触发 UI
 - 开启后显示橙色警告 banner：`rgba(251,146,60,0.12)` 背景 + `rgba(251,146,60,0.25)` 边框
 - 写入 `~/.claude/settings.json` 的 `disableAllHooks: true` 字段
 - 开关状态与规则列表联动（禁用时规则列表置灰）
+
+---
+
+## 十二、最新实现记录（2026-04-15，Iterations 541-555）
+
+### Iteration 540 — 工具结果富化展示
+
+- **Glob**：结果以目录部分淡色 + 文件名加粗的路径列表展示，超过 10 条折叠
+- **Grep**：结果以 `file:line:content` 格式展示，可折叠展开
+- **WebSearch / WebFetch**：URL chip 可点击（标注 Sources），内容前 200 字符预览，可展开全文
+
+### Iteration 541 — PlanModeBanner 批准/拒绝 + AskUserQuestion 卡片
+
+- `PlanModeBanner.tsx`：计划模式横幅新增批准/拒绝按钮，通过 `cli:respondPermission` 回写 CLI
+- `AskUserQuestionCard.tsx`：展示代理提问文本、可点击选项按钮、自由文本输入框，通过 `aipa:sendMessage` 事件回复 CLI
+
+### Iteration 542 — Canvas 边线删除按钮 + 工具栏全屏切换
+
+- 画布边线悬停时显示删除按钮（`×`），点击删除该连接
+- `CanvasToolbar.tsx` 新增全屏切换按钮，通过 `document.requestFullscreen` 进入原生全屏
+
+### Iteration 543 — MCP 真实工具枚举 + 实时连接状态
+
+- `mcp:getTools` 通过解析 `system.init` 中 `mcp__serverName__toolName` 前缀推断各服务器工具列表
+- `SettingsMcp.tsx` 服务器卡片显示实时状态点（绿=连接/红=断开/灰=未知）+ 工具数徽标 + tooltip
+
+### Iteration 544 — AgentToolCard 子代理可视化
+
+- `AgentToolCard.tsx`：Claude 调用 Agent 工具时渲染专用卡片
+- 实时计时器（running/done/error 三态）、任务描述摘要（前 120 字符）
+- 可折叠展开完整提示词和输出结果
+- subagent_type chip（task/background/sync 样式区分）
+
+### Iteration 545 — Sandbox 设置 UI
+
+- `SandboxSettingsPanel.tsx`：`sandbox.network` 和 `sandbox.filesystem` 的可视化编辑器
+- `allowedDomains`、`allowWrite`/`denyWrite`/`allowRead`/`denyRead`：标签式路径/域名编辑器（回车添加，×删除）
+- `autoAllowBashIfSandboxed` 和 `allowUnsandboxedCommands`：Toggle 开关
+- 写入 `~/.claude/settings.json` 对应字段
+
+### Iteration 546 — TaskCreate/Update/List/Get 内联卡片 UI
+
+- `TaskDashboardCard.tsx`：Kanban 3 列（pending/in_progress/completed）+ 平铺列表两种视图模式
+- `ToolUseBlock.tsx` 早返回：`TaskCreate` 渲染绿色 badge，`TaskUpdate` 渲染靛蓝 badge
+- `TaskList`/`TaskGet` 结果解析 JSON 数组或单对象，渲染 `TaskDashboardCard`
+- 状态徽章：灰色=待办、蓝色脉冲=进行中、绿色=已完成
+
+### Iteration 547 — Canvas 连接端口 + 动态边线动画
+
+- 节点悬停时显示连接端口指���点（输入/输出端）
+- 运行中边线（`sourceStatus=running`）显示流动虚线动画（CSS `stroke-dashoffset` 动画）
+- `WorkflowCanvas.tsx` 将 `sourceStatus={srcStatus}` 正确传入 `CanvasEdge`
+
+### Iterations 548-554 — 浅色主题 CSS 变量全面迁移
+
+将所有硬编码的 RGBA 颜色替换为 CSS 变量，使浅色主题正常渲染：
+
+**Iteration 548**（布局 / 会话组件）：
+- `StatusBar.tsx`、`StatusBarModelPicker.tsx`、`statusBarConstants.ts`、`SessionTooltip.tsx`
+
+**Iteration 549**（Chat 组件，29 个文件）：
+- `ToolUseBlock.tsx`、`MessageContent.tsx`、`ContextUsageMeter.tsx`、`CompactButton.tsx`、`SpeculationCard.tsx`、`TaskDashboard.tsx`、`CompareView.tsx`、`DailySummaryCard.tsx`、`CodeBlock.tsx`、`DiffView.tsx`、`FileDiffView.tsx`、`MessageList.tsx`、`TodoListView.tsx`、`AgentToolCard.tsx`、`HookCallbackCard.tsx`、`ToolBatchBlock.tsx`、`TaskQueuePanel.tsx`、`PlanCard.tsx`、`MarkdownImage.tsx`、`TypingStatus.tsx`、`URLPreviewCard.tsx`、`HookProgressCard.tsx`、`TaskDashboardCard.tsx`、`PlanApprovalCard.tsx`、`ElicitationCard.tsx`、`WelcomeQuickActions.tsx`、`ForkDialog.tsx`、`TemplatesSection.tsx`、`ChatInputPasteChips.tsx`
+
+**Iteration 550**（Settings / 弹窗组件）：
+- SettingsAbout.tsx、SettingsAdvanced.tsx、KeyboardShortcutsModal.tsx 等
+
+**Iteration 551**（Memory / Sidebar / 对话框）：
+- `MemoryPanel.tsx`、`MemoryAddForm.tsx`、`MemoryItemCard.tsx`、`ElicitationCard.tsx`、`ForkDialog.tsx`、`PlanApprovalCard.tsx`、`WelcomeQuickActions.tsx`、`ReminderSection.tsx`
+
+**Iteration 552**（Bug 修复）：
+- `ReminderSection.tsx` 修复 onMouseEnter 语句误放入 style 对象内的语法错误
+
+**Iteration 553**（HookAddWizard / WorkflowPersonasSection）：
+- `HookAddWizard.tsx`、`WorkflowPersonasSection.tsx`
+
+**Iteration 554**（Workflow 组件）：
+- `CanvasToolbar.tsx`、`CanvasNodeSidebar.tsx`、`CanvasProgressBar.tsx`、`WorkflowDetailHeader.tsx`、`WorkflowRunHistory.tsx`、`WorkflowStepEditor.tsx`
+
+迁移后，浅色主题（`Ctrl+Shift+D`）下所有卡片、面板、弹窗均正确显示为浅色背景，文字为深色，无硬编码暗色残留。
