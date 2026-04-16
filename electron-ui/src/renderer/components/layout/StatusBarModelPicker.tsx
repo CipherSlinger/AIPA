@@ -137,7 +137,7 @@ export default function StatusBarModelPicker({ modelLabel, shortModel, isClaudeM
             boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
             padding: '4px 0',
             minWidth: 220,
-            zIndex: 100,
+            zIndex: 200,
           }}
         >
           {(providerModels.length > 0 ? providerModels : [{ providerId: 'claude-cli', providerName: 'Claude', models: MODEL_OPTIONS.map(o => ({ id: o.id, name: o.id, provider: 'claude-cli' })) }]).map(group => (

@@ -210,7 +210,7 @@ export default function ModelPicker({ model }: ModelPickerProps) {
             position: 'absolute',
             top: '100%',
             left: 0,
-            zIndex: 60,
+            zIndex: 200,
             width: 260,
             maxHeight: 400,
             overflowY: 'auto',

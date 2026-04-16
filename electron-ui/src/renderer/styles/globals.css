@@ -116,6 +116,18 @@
   --queue-panel-bg:     rgba(30, 30, 30, 0.97);
   --queue-panel-border: rgba(64, 64, 64, 0.6);
   --queue-panel-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+
+  /* Z-index layering system */
+  --z-base:       1;
+  --z-sidebar:    10;
+  --z-header:     20;
+  --z-fab:        30;
+  --z-dropdown:   200;
+  --z-popover:    250;
+  --z-modal:      500;
+  --z-toast:      800;
+  --z-tooltip:    900;
+  --z-overlay:    9999;
 }
 
 /* Light theme */

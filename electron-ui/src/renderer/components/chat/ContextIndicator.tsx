@@ -160,7 +160,7 @@ export function ContextBadge({ onNewConversation }: { onNewConversation: () => v
             borderRadius: 10,
             boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
             padding: '14px 16px',
-            zIndex: 100,
+            zIndex: 200,
             animation: 'slideUp 0.15s ease',
           }}
         >

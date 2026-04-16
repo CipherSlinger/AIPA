@@ -405,7 +405,7 @@ export default function StatusBar() {
                 position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)',
                 marginBottom: 4, background: 'var(--popup-bg)', border: '1px solid var(--border)',
                 boxShadow: '0 8px 32px rgba(0,0,0,0.5)', borderRadius: 8, padding: '4px',
-                display: 'flex', gap: 2, zIndex: 100, whiteSpace: 'nowrap',
+                display: 'flex', gap: 2, zIndex: 200, whiteSpace: 'nowrap',
                 backdropFilter: 'blur(16px)',
                 WebkitBackdropFilter: 'blur(16px)',
               }}
@@ -501,7 +501,7 @@ export default function StatusBar() {
                   position: 'absolute', bottom: '100%', right: 0, marginBottom: 4,
                   background: 'var(--popup-bg)', border: '1px solid var(--border)',
                   boxShadow: '0 8px 32px rgba(0,0,0,0.5)', borderRadius: 8, padding: '8px 12px',
-                  minWidth: 220, zIndex: 100, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+                  minWidth: 220, zIndex: 200, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
                   animation: 'slideUp 0.15s ease',
                 }}
               >

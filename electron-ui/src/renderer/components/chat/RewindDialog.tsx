@@ -14,7 +14,7 @@ export default function RewindDialog({ count, onConfirm, onCancel }: RewindDialo
   return (
     <div
       style={{
-        position: 'absolute', inset: 0, zIndex: 50,
+        position: 'absolute', inset: 0, zIndex: 500,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: 'rgba(0,0,0,0.70)',
         backdropFilter: 'blur(8px)',

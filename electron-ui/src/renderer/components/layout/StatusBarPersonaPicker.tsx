@@ -125,7 +125,7 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
             boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
             padding: '4px 0',
             minWidth: 200,
-            zIndex: 100,
+            zIndex: 200,
           }}
         >
           {/* No Persona option */}

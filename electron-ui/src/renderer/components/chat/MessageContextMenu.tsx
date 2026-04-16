@@ -121,7 +121,7 @@ export default function MessageContextMenu({ x, y, message, onCopy, onCopyMarkdo
         position: 'fixed',
         left: x,
         top: y,
-        zIndex: 100,
+        zIndex: 200,
         minWidth: 160,
         background: 'var(--popup-bg)',
         backdropFilter: 'blur(16px)',

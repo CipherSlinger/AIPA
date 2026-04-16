@@ -63,7 +63,7 @@ export default function InputToolbarTextTransform({ inputText, onSend }: TextTra
             boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
             padding: '6px 0',
             minWidth: 180,
-            zIndex: 100,
+            zIndex: 200,
             animation: 'slideUp 0.15s ease',
           }}
         >

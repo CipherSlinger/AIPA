@@ -108,7 +108,7 @@ export default function QuickCapture() {
           boxShadow: open
             ? '0 2px 8px rgba(0,0,0,0.25)'
             : '0 4px 16px rgba(99,102,241,0.40)',
-          zIndex: 50,
+          zIndex: 30,
           transition: 'all 0.15s ease',
           backdropFilter: open ? 'blur(12px)' : 'none',
           WebkitBackdropFilter: open ? 'blur(12px)' : 'none',
@@ -141,7 +141,7 @@ export default function QuickCapture() {
           borderRadius: 14,
           boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
           padding: 14,
-          zIndex: 51,
+          zIndex: 200,
           animation: 'slideUp 0.15s ease',
         }}>
           {/* Header */}

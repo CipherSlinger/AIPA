@@ -44,7 +44,7 @@ export default function StatusBarTokenPopup({
         borderRadius: 10,
         padding: '12px 14px',
         minWidth: 240,
-        zIndex: 100,
+        zIndex: 200,
       }}
     >
       {/* Title */}

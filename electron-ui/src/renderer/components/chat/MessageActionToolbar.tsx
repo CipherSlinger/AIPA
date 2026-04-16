@@ -183,7 +183,7 @@ export default function MessageActionToolbar({
         border: '1px solid var(--border)',
         boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3)',
         borderRadius: 10,
-        zIndex: 20,
+        zIndex: 100,
         animation: 'slideUp 0.15s ease',
       }}
     >
@@ -293,7 +293,7 @@ export default function MessageActionToolbar({
               borderRadius: 10,
               boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
               padding: '4px 0',
-              zIndex: 30,
+              zIndex: 200,
               animation: 'slideUp 0.15s ease',
             }}
           >

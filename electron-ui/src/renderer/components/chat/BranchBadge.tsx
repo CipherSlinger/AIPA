@@ -88,7 +88,7 @@ export function BranchBadge({ forkEntry, onCompare, onNavigate }: BranchBadgePro
             borderRadius: 8,
             boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
             padding: '8px 0',
-            zIndex: 50,
+            zIndex: 200,
             animation: 'slideUp 0.15s ease',
           }}
           onMouseEnter={handleMouseEnter}

@@ -141,7 +141,7 @@ export default function StatsPanel({
             position: 'absolute',
             top: '100%',
             right: 0,
-            zIndex: 60,
+            zIndex: 200,
             width: 240,
             background: 'var(--popup-bg)',
             backdropFilter: 'blur(20px)',

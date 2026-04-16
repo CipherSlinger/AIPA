@@ -189,7 +189,7 @@ export default function ContextUsageMeter({ used, total, isStreaming, onCompact,
         <div style={{
           position: 'absolute', bottom: '100%', right: 0, marginBottom: 6,
           background: 'var(--popup-bg)', border: '1px solid var(--border)',
-          borderRadius: 10, padding: 10, width: 280, zIndex: 100,
+          borderRadius: 10, padding: 10, width: 280, zIndex: 200,
           boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',

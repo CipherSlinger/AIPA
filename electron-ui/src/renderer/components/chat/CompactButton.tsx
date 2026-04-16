@@ -174,7 +174,7 @@ export default function CompactButton({
             borderRadius: 12,
             padding: 10,
             width: 280,
-            zIndex: 100,
+            zIndex: 200,
             boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
             animation: 'slideUp 0.15s ease',
           }}

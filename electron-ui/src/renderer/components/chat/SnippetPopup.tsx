@@ -32,7 +32,7 @@ export default function SnippetPopup({ snippets, selectedIndex, onSelect, onHove
         border: '1px solid var(--border)',
         borderRadius: 12,
         boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
-        zIndex: 50,
+        zIndex: 200,
         overflow: 'hidden',
       }}
     >

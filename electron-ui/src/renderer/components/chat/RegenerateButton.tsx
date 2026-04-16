@@ -112,7 +112,7 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
               boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
               padding: '4px 0',
               minWidth: 200,
-              zIndex: 100,
+              zIndex: 200,
               animation: 'slideUp 0.15s ease',
             }}
           >

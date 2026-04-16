@@ -111,7 +111,7 @@ export default function PersonaPicker() {
             position: 'absolute',
             top: '100%',
             left: 0,
-            zIndex: 60,
+            zIndex: 200,
             width: 260,
             background: 'var(--popup-bg)',
             backdropFilter: 'blur(20px)',

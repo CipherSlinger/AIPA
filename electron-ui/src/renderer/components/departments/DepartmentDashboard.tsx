@@ -117,9 +117,10 @@ interface DeptViewProps {
   onOpenSession: (session: SessionListItem) => void
   loadingSessionId?: string | null
   onDeleteSession?: (sessionId: string) => void
+  autoNewSession?: boolean
 }
 
-function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSession }: DeptViewProps) {
+function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSession, autoNewSession }: DeptViewProps) {
   const t = useT()
   const departments = useDepartmentStore(s => s.departments)
   const dept = departments.find(d => d.id === deptId) ?? null
@@ -172,6 +173,14 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
     if (!dept) return
     setPendingSessions(prev => [{ id: `pending-${Date.now()}`, createdAt: Date.now() }, ...prev])
   }, [dept])
+
+  // Auto-create a pending session card when coming from OrgChart "New Session" button
+  useEffect(() => {
+    if (autoNewSession && dept) {
+      newSession()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // One-shot on mount only
 
   const enterNewSession = useCallback((pendingId: string) => {
     if (!dept) return
@@ -929,19 +938,19 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
 // ── Org Chart — all departments ──────────────────────────────────────────────
 interface OrgChartProps {
   onSelectDept: (deptId: string) => void
+  onNewSessionInDept: (deptId: string) => void
   onOpenSession: (session: SessionListItem, deptDirectory: string) => void
   loadingSessionId?: string | null
   onDeleteSession?: (sessionId: string) => void
 }
 
-function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSession }: OrgChartProps) {
+function OrgChart({ onSelectDept, onNewSessionInDept, onOpenSession, loadingSessionId, onDeleteSession }: OrgChartProps) {
   const t = useT()
   const departments = useDepartmentStore(s => s.departments)
   const allSessions = useSessionStore(s => s.sessions)
   const sessionsLoading = useSessionStore(s => s.loading)
   const currentSessionId = useChatStore(s => s.currentSessionId)
   const isStreaming = useChatStore(s => s.isStreaming)
-  const setPrefs = usePrefsStore(s => s.setPrefs)
   const sessionColorLabels = usePrefsStore(s => s.prefs?.sessionColorLabels ?? EMPTY_COLOR_LABELS)
 
   const [hoveredDept, setHoveredDept] = useState<string | null>(null)
@@ -1006,13 +1015,8 @@ function OrgChart({ onSelectDept, onOpenSession, loadingSessionId, onDeleteSessi
     return map
   }, [departments, allSessions])
 
-  const newSessionInDept = (dept: { id: string; directory: string; name: string; color?: string }) => {
-    setPrefs({ workingDir: dept.directory })
-    window.electronAPI.prefsSet('workingDir', dept.directory)
-    useChatStore.getState().clearMessages()
-    // Set fromDepartment so the back button shows in chat (Iteration 538)
-    useUiStore.getState().setFromDepartment(true)
-    useUiStore.getState().setMainView('chat')
+  const newSessionInDept = (deptObj: { id: string; directory: string; name: string; color?: string }) => {
+    onNewSessionInDept(deptObj.id)
   }
 
   const handleAdd = () => {
@@ -1787,6 +1791,8 @@ export default function DepartmentDashboard() {
   // Local state: which dept is being drilled into (null = org chart)
   const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null)
   const [loadingSession, setLoadingSession] = useState<string | null>(null)
+  // When coming from OrgChart "New Session", auto-create a pending card in DeptView
+  const [autoNewSessionDeptId, setAutoNewSessionDeptId] = useState<string | null>(null)
 
   // Always reload sessions when DepartmentDashboard mounts
   useEffect(() => {
@@ -1806,8 +1812,16 @@ export default function DepartmentDashboard() {
     setSelectedDeptId(deptId)
   }
 
+  // Called from OrgChart "New Session" — drill into dept and auto-create a pending card
+  const handleNewSessionInDept = (deptId: string) => {
+    setActiveDepartmentId(deptId)
+    setAutoNewSessionDeptId(deptId)
+    setSelectedDeptId(deptId)
+  }
+
   const handleBack = () => {
     setSelectedDeptId(null)
+    setAutoNewSessionDeptId(null)
   }
 
   // Shared openSession handler passed down to both DeptView and OrgChart
@@ -1880,6 +1894,7 @@ export default function DepartmentDashboard() {
             onOpenSession={session => handleOpenSession(session, departments.find(d => d.id === selectedDeptId)?.directory ?? '')}
             loadingSessionId={loadingSession}
             onDeleteSession={handleDeleteSession}
+            autoNewSession={autoNewSessionDeptId === selectedDeptId}
           />
         </div>
       ) : (
@@ -1915,6 +1930,7 @@ export default function DepartmentDashboard() {
           </div>
           <OrgChart
             onSelectDept={handleSelectDept}
+            onNewSessionInDept={handleNewSessionInDept}
             onOpenSession={handleOpenSession}
             loadingSessionId={loadingSession}
             onDeleteSession={handleDeleteSession}

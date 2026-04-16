@@ -83,7 +83,7 @@ export default function ClipboardActionsMenu({ onSend }: ClipboardActionsMenuPro
           boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
           padding: '4px 0',
           minWidth: 180,
-          zIndex: 100,
+          zIndex: 200,
           animation: 'slideUp 0.15s ease',
         }}>
           <div style={{ padding: '6px 12px 4px', fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
