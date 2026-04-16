@@ -25,7 +25,7 @@
 | `Agent` (子代理) | 产生并行/串行子代理 | ❌ AIPA 无子代理拓扑可视化 |
 | `TaskOutputTool` | 读取后台任务输出 | ⚠️ 有 TaskDashboard 组件但连接不完整 |
 | `TaskStopTool` | 停止后台任务 | ⚠️ 部分实现 |
-| `TaskCreate/Get/Update/List` | 异步任务 CRUD（isTodoV2Enabled） | ❌ 无 UI |
+| `TaskCreate/Get/Update/List` | 异步任务 CRUD（isTodoV2Enabled） | ✅ TaskCreate/TaskUpdate 渲染内联 badge；TaskList/TaskGet 结果渲染 TaskDashboardCard（Kanban/列表视图，含状态徽章、owner、blocked-by，Iteration 546） |
 | `EnterPlanMode` / `ExitPlanMode` | 进入/退出计划模式 | ✅ 有 PlanModeBanner（含批准/拒绝按钮，Iteration 541）；PlanCard 深度控制已实现 |
 | `EnterWorktree` / `ExitWorktree` | Git worktree 沙箱隔离 | ⚠️ 有 WorktreeDialog 但为独立 CRUD，未与会话绑定 |
 | `SkillTool` | 加载和调用 skills 片段 | ⚠️ 有 skillsList/Read/Install IPC，无 Skill 调用追踪 UI |
