@@ -7540,3 +7540,71 @@ Status: SUCCESS (0 errors, 204 pre-existing warnings)
 - [x] Exempt values (white text on colored/gradient buttons) preserved unchanged
 - [x] 2 eligible values replaced with correct CSS variables per mapping
 - [x] `npm run check` passes with 0 errors
+
+---
+
+## Iteration 607 — Fix canvas node text overflow and sizing
+
+**Agent:** a4ca01d82b0aca449
+**Commit:** 8aac105
+
+### Summary
+Fixed the workflow canvas bug where node boxes were too small to display their text content, causing text overflow and ugly rendering. The root cause was a fixed `height: 68px` constraint that left insufficient room for the header + body text, combined with a node width of 260px that was too narrow for longer step titles.
+
+### Fix
+- `NODE_WIDTH`: 260 → 280px (more room for titles)
+- `NODE_MIN_HEIGHT`: 68 → 96px (fits header ~36px + body ~60px comfortably)
+- `NODE_COLLAPSED_HEIGHT`: 30 → 36px (better proportions for collapsed row)
+- `NODE_GAP_Y`: 100 → 108px (adjusted for taller nodes)
+- Expanded node container: replaced fixed `height: nodeHeight` with `minHeight: nodeMinHeight` — nodes now grow to fit content naturally instead of clipping it
+
+### Files Changed
+- `electron-ui/src/renderer/components/workflows/CanvasNode.tsx`
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+---
+
+## Iteration 608 — Chat input/toolbar CSS variable migration audit
+
+**Agent:** a49d6f76e1efb41e0
+**Commit:** (no new commit — audit only, all values exempt)
+
+### Summary
+Audited 7 chat input/toolbar files for `rgba(255,255,255,...)`. All 12 occurrences across all 7 files were white text/icons on colored/indigo gradient buttons — correctly exempt per migration rules. No code changes needed.
+
+### Files Audited (0 changes)
+ChatInput.tsx, InputToolbar.tsx, SlashCommandPopup.tsx, QuickCapture.tsx, SearchBar.tsx, MessageActionToolbar.tsx, ScrollToBottomFab.tsx
+
+---
+
+## Iteration 609 — Chat dialog/card CSS variable migration
+
+**Agent:** a3cdaef01947fc929
+**Commit:** 1a15f5e (via Iteration 610 stash pop + 609 log commit)
+
+### Summary
+Swept 8 chat dialog and card components. Applied 2 migrations; 6 files fully exempt.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/PlanCard.tsx` — active plan step text `rgba(255,255,255,0.92)` → `var(--text-primary)`
+- `electron-ui/src/renderer/components/chat/HookCallbackCard.tsx` — disabled confirm button text `rgba(255,255,255,0.35)` → `var(--text-faint)`
+
+Skipped (white text on colored buttons): PlanModeBanner, PlanApprovalCard, ForkDialog, IdleReturnDialog, RunConfirmDialog, PermissionCard
+
+---
+
+## Iteration 610 — Chat message/code/header CSS variable migration audit
+
+**Agent:** a4eb740d577be7e78
+**Commit:** 2e29a2c
+
+### Summary
+Swept 8 chat message/code/header components. All occurrences were white text on colored buttons (0.92/0.95 range on indigo/amber backgrounds) or pure white for iframe sandbox backgrounds — all exempt. No new code changes beyond stash-popped Iteration 609 migrations.
+
+### Files Audited (0 new changes)
+MessageList.tsx, MessageErrorBoundary.tsx, AnnotationEditor.tsx, CodeBlock.tsx, ChangesPanel.tsx, ChatHeader.tsx, TemplatesSection.tsx, ChatInputSendButton.tsx
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
