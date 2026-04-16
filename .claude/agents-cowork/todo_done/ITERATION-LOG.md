@@ -7026,3 +7026,28 @@ CSS variable migration for layout/UI/shared components. Most files had only indi
 
 ### Build
 Status: SUCCESS (vite build: 20.19s, 0 TypeScript errors)
+
+## Iteration 594 — Remove Providers tab from Channel panel
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Per user request: removed the "提供商/Providers" tab entirely from the Channel sidebar panel. Provider settings are now exclusively accessible via Settings → AI Engine. ChannelPanel.tsx simplified from 2-tab (providers+mcp) to single MCP-only view with a clean header. Removed SettingsProviders lazy-import, tab bar, shortcut banner, and ChannelTab type. Also fixed a syntax error in ToolApprovalDialog.tsx introduced by a parallel agent (missing closing `}}` after color replacement).
+
+### Files Changed
+- `src/renderer/components/channel/ChannelPanel.tsx` — removed Providers tab; MCP-only layout; -86 lines
+- `src/renderer/components/chat/ToolApprovalDialog.tsx` — fix missing `}}` after CSS var migration
+
+### Build
+Status: SUCCESS (npm run check: 0 errors)
+
+## Iteration 595 — Remove Settings gear button from status bar right end
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Per user request: removed the Settings gear button (⚙) from the far-right of the bottom status bar. Cleaned up unused `hoverSettings` state and `Settings` lucide icon import.
+
+### Files Changed
+- `src/renderer/components/layout/StatusBar.tsx` — remove Settings button, hoverSettings state, Settings import
+
+### Build
+Status: SUCCESS (npm run check: 0 errors)
