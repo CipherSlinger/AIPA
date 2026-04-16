@@ -6716,3 +6716,26 @@ Status: SUCCESS (npm run check: 0 errors, vite build: 18.79s)
 - [x] SlashCommandPopup remains highest priority at z:1001
 - [x] Structural/overlay elements (drag overlay, scroll sentinels, FAB) remain at lower layers
 - [x] TypeScript check passes, build succeeds (26 files, 0 errors)
+
+## Iteration 572 — New Session in org chart creates empty card in department view
+
+_Date: 2026-04-16 | Sprint ongoing_
+
+### Summary
+Fixed the department/org chart "New Session" interaction so it no longer immediately navigates to the chat interface. Instead, clicking "New Session" from the org chart view now drills into the department's session list and auto-creates a `PendingSessionCard` (the animated indigo-bordered dashed card with "Click to open" hint). The user can then click the card to enter chat, or click X to dismiss. This matches the existing `DeptView` behavior where the "New Session" button (header) already created a pending card — now the org chart entry points do the same.
+
+### Files Changed
+- `electron-ui/src/renderer/components/departments/DepartmentDashboard.tsx` — Added `autoNewSession?: boolean` to `DeptViewProps`; added `onNewSessionInDept` prop to `OrgChartProps`; `OrgChart.newSessionInDept()` now calls `onNewSessionInDept(dept.id)` instead of navigating to chat; `DepartmentDashboard` tracks `autoNewSessionDeptId` state; `handleNewSessionInDept` sets dept ID + navigates to dept view; `DeptView` useEffect fires `newSession()` on mount when `autoNewSession` is true; removed unused `setPrefs` from OrgChart
+
+### Build
+Status: SUCCESS (0 TypeScript errors, vite build 12.45s)
+
+### Acceptance Criteria
+- [x] Clicking "New Session" button (header) in dept view still creates pending card (unchanged)
+- [x] Clicking "New Session" card (grid, sessions <= 6) in org chart navigates to dept view and auto-creates pending card
+- [x] Clicking empty-state "New Session" link in org chart navigates to dept view and auto-creates pending card
+- [x] Pending card shows indigo dashed border, "New Session" label, hint text, and ChevronRight "open" affordance
+- [x] Clicking the pending card enters chat with dept directory set as working dir
+- [x] Clicking X on pending card dismisses it without navigating
+- [x] Back button returns to org chart; autoNewSessionDeptId is cleared
+- [x] TypeScript check passes (0 errors), build succeeds
