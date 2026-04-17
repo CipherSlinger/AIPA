@@ -8749,3 +8749,150 @@ Status: SUCCESS (0 errors, 203 warnings)
 - [x] Falls back gracefully through electron detection strategies
 - [x] ELECTRON_RUN_AS_NODE correctly removed from child env
 - [x] npm run check passes with 0 errors
+
+## Iteration 668 — FEATURE_GAP.md update for Iterations 664-667
+_Date: 2026-04-17 | Sprint Docs_
+
+### Summary
+Updated FEATURE_GAP.md: date line → Iteration 667; fixed 5 config table rows (permissions.defaultMode/allow/deny/ask/additionalDirectories) ❌→✅; fixed Section 三 three ❌ bullets → ✅; fixed Section 八.2 /compact button ❌→✅; fixed Section 八.7 compact trigger UI ❌→✅; appended Section 二十一 recording Iterations 664-667.
+
+### Files Changed
+- `FEATURE_GAP.md` — date, 5 config rows, 3 Section 三 bullets, 2 Section 八 items, Section 二十一 appended
+
+### Build
+Status: N/A (docs-only)
+
+### Acceptance Criteria
+- [x] Date updated to Iteration 667
+- [x] permissions.* rows marked ✅
+- [x] Section 二十一 appended
+- [x] Committed and pushed (0b59c9c)
+
+## Iteration 669 — Git attribution settings UI
+_Date: 2026-04-17 | Sprint Features_
+
+### Summary
+Added "Git 署名设置 / Git Settings" section to SettingsGeneral.tsx with 4 fields: attribution.commit (text input), attribution.pr (text input), includeCoAuthoredBy (toggle), includeGitInstructions (toggle). Reads on mount via configReadCLISettings, writes on blur/change via configWriteCLISettings. Caches full settings object to avoid overwriting unrelated keys. Added 8 i18n keys to en.json and zh-CN.json.
+
+### Files Changed
+- `electron-ui/src/renderer/components/settings/SettingsGeneral.tsx` — added 4 state vars, cliSettingsCache ref, git section UI
+- `electron-ui/src/renderer/i18n/locales/en.json` — 8 new gitAttribution/includeCoAuthoredBy/includeGitInstructions keys
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` — same 8 keys in Chinese
+
+### Build
+Status: SUCCESS (0 errors, 203 warnings)
+
+### Acceptance Criteria
+- [x] attribution.commit and attribution.pr text inputs save on blur
+- [x] includeCoAuthoredBy and includeGitInstructions toggles save immediately
+- [x] Safe merge: existing settings.json keys preserved on write
+- [x] npm run check passes (0 errors)
+- [x] Committed and pushed (bc3c50b)
+
+## Iteration 670 — Worktree symlink/sparse paths settings UI
+_Date: 2026-04-17 | Sprint Features_
+
+### Summary
+Added "Worktree 设置 / Worktree Settings" section to SettingsAdvanced.tsx with two tag-style list editors: worktree.symlinkDirectories (indigo pill tags) and worktree.sparsePaths (green pill tags). Follows SandboxSettingsPanel's ChipList pattern. Reads/writes via configReadCLISettings/configWriteCLISettings, merging the worktree key safely.
+
+### Files Changed
+- `electron-ui/src/renderer/components/settings/SettingsAdvanced.tsx` — added Section 4 with two tag editors
+- `electron-ui/src/renderer/i18n/locales/en.json` — 6 new worktree* keys
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` — 6 new worktree* keys
+
+### Build
+Status: SUCCESS (0 errors)
+
+### Acceptance Criteria
+- [x] Tag-style add/remove for symlinkDirectories
+- [x] Tag-style add/remove for sparsePaths
+- [x] Writes to worktree key in ~/.claude/settings.json safely
+- [x] npm run check passes (0 errors)
+- [x] Committed and pushed
+
+## Iteration 671 — Hook event trigger history in HooksSettingsPanel
+_Date: 2026-04-17 | Sprint Features_
+
+### Summary
+Added "Hook 触发历史 / Hook Event History" section at the bottom of HooksSettingsPanel.tsx. Root cause of gap: useChatStore already had hookEvents array (from Iter 525) but cli:hookEvent handler in useStreamJson.ts was not populating it. Fixed by extending the cli:hookEvent case to push entries (capped at 50, newest first) into useChatStore.hookEvents. HookEventHistory component shows last 20 events with status icon, event-type badge, hook-type badge, tool name snippet, and relative timestamp.
+
+### Files Changed
+- `electron-ui/src/renderer/hooks/useStreamJson.ts` — extended cli:hookEvent to push to hookEvents store
+- `electron-ui/src/renderer/components/settings/HooksSettingsPanel.tsx` — added HookEventHistory component
+- `electron-ui/src/renderer/i18n/locales/en.json` — 3 new hooks.eventHistory* keys
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` — 3 new Chinese keys
+
+### Build
+Status: SUCCESS (0 errors, 208 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] Hook events appear in history when hooks fire during a session
+- [x] Shows up to 20 events, newest first
+- [x] Empty state shown when no events yet
+- [x] npm run check passes (0 errors)
+- [x] Committed and pushed (9d75e53)
+
+## Iteration 672 — SleepTool + BriefTool inline cards
+_Date: 2026-04-17 | Sprint Features_
+
+### Summary
+Created SleepToolCard.tsx (purple/violet theme) and BriefToolCard.tsx (cyan theme) for two previously ❌ tool types. SleepToolCard extracts duration_ms/seconds, shows "Pausing..." pulsing animation while running and green "Wait complete" badge on done. BriefToolCard shows path/Global Brief header, brief content as 20-line expandable code block with copy button. Both routed in ToolUseBlock.tsx.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/tool-cards/SleepToolCard.tsx` — NEW
+- `electron-ui/src/renderer/components/chat/tool-cards/BriefToolCard.tsx` — NEW
+- `electron-ui/src/renderer/components/chat/ToolUseBlock.tsx` — added routing for SleepTool/sleep and BriefTool/brief/read_brief
+- `electron-ui/src/renderer/i18n/locales/en.json` — 6 new tool.sleep.*/tool.brief.* keys
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` — 6 Chinese translations
+
+### Build
+Status: SUCCESS (0 errors)
+
+### Acceptance Criteria
+- [x] SleepTool renders purple card with formatted duration and status
+- [x] BriefTool renders cyan card with content preview and copy button
+- [x] Both routed in ToolUseBlock
+- [x] npm run check passes (0 errors)
+- [x] Committed and pushed (1d94063)
+
+## Iteration 673 — Memory decay indicator + team/private scope distinction
+_Date: 2026-04-17 | Sprint Features_
+
+### Summary
+Added two visual improvements to MemoryPanel's memdir tab: (1) age/decay indicator — colored 4px dot based on mtime: green (<7d), amber (7-30d), red (>30d) with tooltip; (2) scope badge — Lock icon+"私有" for global memories, Users icon+"项目" for project-scoped memories. Required adding mtime field to memory-manager.ts MemoryFile interface (via fs.statSync).
+
+### Files Changed
+- `electron-ui/src/main/sessions/memory-manager.ts` — added mtime field to MemoryFile interface and parseMemoryFile()
+- `electron-ui/src/renderer/components/memory/MemoryPanel.tsx` — added age dot + scope badge to MemdirTab cards
+- `electron-ui/src/renderer/i18n/locales/en.json` — 5 new memory.* keys
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` — 5 new Chinese keys
+
+### Build
+Status: SUCCESS (0 errors, 203 warnings)
+
+### Acceptance Criteria
+- [x] Age dot shows green/amber/red based on file mtime
+- [x] Scope badge distinguishes private (global) vs project memories
+- [x] npm run check passes (0 errors)
+- [x] Committed and pushed (164088a)
+
+## Iteration 674 — Fix: clawd Windows launch failure (no built entry file)
+_Date: 2026-04-17 | Sprint BugFix_
+
+### Summary
+Fixed second Windows clawd launch failure: "Unable to find Electron app / Cannot find module 'clawd-on-desk'". Root cause: the fallback path in launchClawd() passed CLAWD_DIR as the Electron app argument, but if clawd-on-desk has never been built (no npm install/build), the package.json `main` file doesn't exist, causing Electron to fail with the module-not-found error.
+
+Fix: In the fallback branch (no clawd electron binary found), now reads clawd-on-desk/package.json, resolves the `main` field to an absolute path, checks if it exists, and only spawns if the entry file is present. If not found, logs a clear actionable message: "Please run: cd clawd-on-desk && npm install && npm run build" and returns without launching.
+
+### Files Changed
+- `electron-ui/src/main/clawd-bridge.ts` — fallback spawn branch now validates entry file existence before spawning
+
+### Build
+Status: SUCCESS (0 errors, 203 warnings)
+
+### Acceptance Criteria
+- [x] No more "Cannot find module" Electron error when clawd-on-desk is not built
+- [x] Clear log message guides user to run npm install && npm run build
+- [x] When clawd IS built, fallback still works correctly (passes entry file path)
+- [x] npm run check passes (0 errors)
+- [x] Committed and pushed (3b058a8)
