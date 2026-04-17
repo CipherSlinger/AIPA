@@ -55,7 +55,7 @@ export default function DreamTaskCard({ events }: DreamTaskCardProps) {
       style={{
         display: 'inline-flex',
         flexDirection: 'column',
-        background: 'rgba(15,12,28,0.88)',
+        background: 'var(--glass-bg-card)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid var(--glass-border)',
@@ -133,7 +133,7 @@ export default function DreamTaskCard({ events }: DreamTaskCardProps) {
           style={{
             marginTop: 6,
             padding: '4px 8px',
-            background: 'rgba(0,0,0,0.25)',
+            background: 'var(--code-bg)',
             border: '1px solid var(--glass-border)',
             borderRadius: 6,
           }}

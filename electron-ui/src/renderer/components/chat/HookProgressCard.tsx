@@ -110,7 +110,7 @@ export default function HookProgressCard({ event }: HookProgressCardProps) {
         <pre style={{
           margin: '4px 0 0 0',
           padding: '6px 10px',
-          background: 'rgba(0,0,0,0.30)',
+          background: 'var(--code-bg)',
           border: '1px solid var(--border)',
           borderRadius: 6,
           fontSize: 11,

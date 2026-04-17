@@ -855,7 +855,7 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
           onClick={() => setLightboxSrc(null)}
           style={{
             position: 'fixed', inset: 0, zIndex: 10001,
-            background: 'rgba(0,0,0,0.70)',
+            background: 'var(--glass-overlay)',
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
