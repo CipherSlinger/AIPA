@@ -1503,7 +1503,12 @@
     "instructionProjectDesc": "CLAUDE.md — project-level instructions (git-tracked)",
     "instructionLocalDesc": ".claude/CLAUDE.local.md — local overrides (not git-tracked)",
     "instructionBadge": "Instruction File",
-    "instructionHint": "CLAUDE.md files contain behavioral instructions loaded by Claude Code automatically on every session."
+    "instructionHint": "CLAUDE.md files contain behavioral instructions loaded by Claude Code automatically on every session.",
+    "scopePrivate": "Private",
+    "scopeProject": "Project",
+    "ageRecent": "Recent",
+    "ageAging": "Aging ({days}d)",
+    "ageOld": "Old ({days}d) — may be outdated"
   },
   "workflow": {
     "title": "Workflows",
@@ -2495,5 +2500,11 @@
     "loadError": "Failed to load sandbox settings",
     "itemExists": "Already in list",
     "warningUnsandboxed": "Warning: allowing unsandboxed commands weakens security isolation"
-  }
+  },
+  "worktreeSettings": "Worktree Settings",
+  "worktreeSymlinkDirs": "Symlink Directories",
+  "worktreeSymlinkDirsDesc": "Directories to symlink automatically when creating a worktree",
+  "worktreeSparsePaths": "Sparse Checkout Paths",
+  "worktreeSparsePathsDesc": "Path patterns for sparse checkout in worktrees",
+  "worktreeAddPath": "Add path..."
 }

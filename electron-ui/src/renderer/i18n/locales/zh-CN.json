@@ -1084,7 +1084,13 @@
     "todoPriorityMedium": "中",
     "todoPriorityLow": "低",
     "todoHeader": "待办列表",
-    "todoCount": "共 {{count}} 项"
+    "todoCount": "共 {{count}} 项",
+    "sleep.waiting": "暂停中...",
+    "sleep.done": "等待完成",
+    "sleep.duration": "等待 {{duration}}",
+    "brief.title": "读取简报",
+    "brief.global": "全局 Brief",
+    "brief.result": "简报内容"
   },
   "diff": {
     "showDiff": "显示差异",
@@ -1515,7 +1521,12 @@
     "instructionProjectDesc": "CLAUDE.md — 项目级指令（随 Git 检入）",
     "instructionLocalDesc": ".claude/CLAUDE.local.md — 本地覆盖指令（不检入 Git）",
     "instructionBadge": "指令文件",
-    "instructionHint": "CLAUDE.md 文件包含 Claude Code 在每次会话时自动加载的行为指令。"
+    "instructionHint": "CLAUDE.md 文件包含 Claude Code 在每次会话时自动加载的行为指令。",
+    "scopePrivate": "私有",
+    "scopeProject": "项目",
+    "ageRecent": "最近",
+    "ageAging": "已有 {days} 天，建议回顾",
+    "ageOld": "已有 {days} 天，可能已过时"
   },
   "workflow": {
     "title": "工作流",
