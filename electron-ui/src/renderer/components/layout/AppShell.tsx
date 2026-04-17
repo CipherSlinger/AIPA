@@ -223,7 +223,7 @@ export default function AppShell() {
                 <div style={{
                   position: 'absolute',
                   inset: 0,
-                  background: 'rgba(0,0,0,0.02)',
+                  background: 'var(--glass-bg-low)',
                   pointerEvents: 'none',
                 }} />
               )}
