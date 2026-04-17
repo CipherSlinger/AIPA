@@ -2,11 +2,16 @@
  * AgentToolCard — specialized card for the `Agent` tool (sub-agent calls)
  *
  * Extracted from ToolUseBlock.tsx into its own file for maintainability.
- * Iteration 544.
+ * Iteration 544. Enhanced in Iteration 638 with:
+ *   - Foreground/Background execution mode badge
+ *   - Worktree isolation badge
+ *   - Expandable prompt preview (>150 chars)
+ *   - Expandable result preview (>200 chars)
+ *   - Indigo left border consistent with other agent-related cards
  */
 
 import React, { useState, useEffect, useRef } from 'react'
-import { ChevronDown, Check, X, Timer } from 'lucide-react'
+import { Users, ChevronDown, Check, X, Timer, Loader2, GitBranch } from 'lucide-react'
 import { ToolUseInfo } from '../../types/app.types'
 
 // CopyOutputBtn inline (avoids circular import with ToolUseBlock)
@@ -22,7 +27,7 @@ function CopyOutputBtn({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      title="复制"
+      title="Copy"
       style={{
         background: 'none',
         border: 'none',
@@ -40,7 +45,7 @@ function CopyOutputBtn({ text }: { text: string }) {
       onMouseLeave={(e) => { if (!copied) e.currentTarget.style.color = 'var(--text-muted)' }}
     >
       {copied ? <Check size={10} /> : null}
-      {copied ? '已复制' : '复制'}
+      {copied ? 'Copied' : 'Copy'}
     </button>
   )
 }
@@ -57,6 +62,8 @@ export interface AgentToolCardProps {
     description?: string
     prompt?: string
     subagent_type?: string
+    run_in_background?: boolean
+    isolation?: string
     [key: string]: unknown
   }
   result?: string | null
@@ -65,16 +72,27 @@ export interface AgentToolCardProps {
   onAbort?: () => void
 }
 
+const PROMPT_LIMIT = 150
+const RESULT_LIMIT = 200
+
 export function AgentToolCard({ input, result, tool, onAbort }: AgentToolCardProps) {
   const isRunning = tool.status === 'running'
   const isDone = tool.status === 'done'
-  const description = input.description || input.prompt || ''
-  const subagentType = input.subagent_type || ''
+  const isError = tool.status === 'error'
+
+  const description = typeof input.description === 'string' ? input.description : ''
+  const promptText = typeof input.prompt === 'string' ? input.prompt : ''
+  const subagentType = typeof input.subagent_type === 'string' ? input.subagent_type : ''
+  const runInBackground = input.run_in_background === true
+  const isWorktree = input.isolation === 'worktree'
+
   const [elapsed, setElapsed] = useState(0)
   const [finalDuration, setFinalDuration] = useState<number | null>(null)
   const startTimeRef = useRef<number | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [expanded, setExpanded] = useState(false)
+  const [promptExpanded, setPromptExpanded] = useState(false)
+  const [resultExpanded, setResultExpanded] = useState(false)
 
   useEffect(() => {
     if (isRunning) {
@@ -105,37 +123,34 @@ export function AgentToolCard({ input, result, tool, onAbort }: AgentToolCardPro
     }
   }, [isRunning]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const statusColor = isRunning
-    ? 'rgba(251,191,36,0.82)'
-    : isDone
-    ? 'rgba(134,239,172,0.82)'
-    : 'rgba(239,68,68,0.82)'
+  // Prompt preview logic
+  const isPromptLong = promptText.length > PROMPT_LIMIT
+  const promptPreview = isPromptLong && !promptExpanded
+    ? promptText.slice(0, PROMPT_LIMIT) + '...'
+    : promptText
 
-  const statusLabel = isRunning ? '运行中' : isDone ? '已完成' : '出错'
-
-  const promptText = typeof input.prompt === 'string' ? input.prompt : ''
+  // Result preview logic
+  const resultText = result ?? ''
+  const isResultLong = resultText.length > RESULT_LIMIT
+  const resultPreview = isResultLong && !resultExpanded
+    ? resultText.slice(0, RESULT_LIMIT) + '...'
+    : resultText
 
   return (
     <div
       style={{
-        background: 'var(--bg-secondary)',
+        background: 'var(--bg-primary)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid var(--border)',
-        borderLeft: '3px solid rgba(139,92,246,0.60)',
+        borderLeft: '4px solid rgba(99,102,241,0.5)',
         borderRadius: 10,
         marginBottom: 6,
         overflow: 'hidden',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
         transition: 'all 0.15s ease',
       }}
     >
-      <style>{`
-        @keyframes agent-pulse {
-          0%, 100% { opacity: 0.8; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(0.85); }
-        }
-      `}</style>
-
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
@@ -143,45 +158,87 @@ export function AgentToolCard({ input, result, tool, onAbort }: AgentToolCardPro
           width: '100%',
           display: 'flex',
           alignItems: 'center',
-          gap: 8,
-          padding: '7px 12px',
-          background: 'rgba(139,92,246,0.06)',
+          gap: 7,
+          padding: '7px 10px',
+          background: 'var(--bg-hover)',
           border: 'none',
           borderBottom: expanded ? '1px solid var(--border)' : 'none',
-          borderRadius: expanded ? '8px 8px 0 0' : 8,
           cursor: 'pointer',
           textAlign: 'left',
-          transition: 'all 0.15s ease',
+          transition: 'background 0.15s ease',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(139,92,246,0.10)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(139,92,246,0.06)' }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(99,102,241,0.08)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-hover)' }}
       >
-        {/* Sub-agent label */}
+        {/* Icon */}
+        <Users size={12} style={{ color: 'rgba(165,180,252,0.85)', flexShrink: 0 }} />
+
+        {/* "Sub-agent" label */}
         <span style={{
-          fontSize: 10,
-          fontWeight: 700,
-          letterSpacing: '0.07em',
-          textTransform: 'uppercase' as const,
-          color: 'rgba(192,132,252,0.82)',
+          fontSize: 12,
+          fontWeight: 600,
+          color: 'var(--text-primary)',
           flexShrink: 0,
         }}>
-          子代理
+          Sub-agent
         </span>
 
-        {/* Description preview */}
+        {/* subagent_type badge */}
+        {subagentType && (
+          <span style={{
+            fontSize: 10,
+            padding: '1px 6px',
+            borderRadius: 8,
+            background: 'rgba(107,114,128,0.15)',
+            border: '1px solid rgba(107,114,128,0.25)',
+            color: 'var(--text-muted)',
+            fontWeight: 500,
+            flexShrink: 0,
+          }}>
+            {subagentType}
+          </span>
+        )}
+
+        {/* Foreground / Background badge */}
         <span style={{
-          fontSize: 13,
-          fontWeight: 500,
-          color: 'var(--text-primary)',
-          flex: 1,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
+          fontSize: 10,
+          padding: '1px 6px',
+          borderRadius: 8,
+          background: runInBackground
+            ? 'rgba(249,115,22,0.12)'
+            : 'rgba(34,197,94,0.12)',
+          border: `1px solid ${runInBackground ? 'rgba(249,115,22,0.28)' : 'rgba(34,197,94,0.28)'}`,
+          color: runInBackground ? '#fb923c' : '#4ade80',
+          fontWeight: 600,
+          flexShrink: 0,
         }}>
-          {description || '(无描述)'}
+          {runInBackground ? 'Background' : 'Foreground'}
         </span>
 
-        {/* Elapsed timer */}
+        {/* Worktree badge */}
+        {isWorktree && (
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 3,
+            fontSize: 10,
+            padding: '1px 6px',
+            borderRadius: 8,
+            background: 'rgba(59,130,246,0.12)',
+            border: '1px solid rgba(59,130,246,0.28)',
+            color: '#60a5fa',
+            fontWeight: 600,
+            flexShrink: 0,
+          }}>
+            <GitBranch size={9} style={{ flexShrink: 0 }} />
+            Worktree
+          </span>
+        )}
+
+        {/* Spacer */}
+        <span style={{ flex: 1 }} />
+
+        {/* Elapsed timer (running) */}
         {isRunning && elapsed >= 2 && (
           <span style={{
             fontSize: 10,
@@ -211,33 +268,16 @@ export function AgentToolCard({ input, result, tool, onAbort }: AgentToolCardPro
           </span>
         )}
 
-        {/* Status badge */}
-        <span style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 5,
-          fontSize: 10,
-          fontWeight: 600,
-          color: statusColor,
-          flexShrink: 0,
-        }}>
-          {isRunning ? (
-            <span style={{
-              width: 6,
-              height: 6,
-              borderRadius: '50%',
-              background: statusColor,
-              display: 'inline-block',
-              flexShrink: 0,
-              animation: 'agent-pulse 1.5s ease-in-out infinite',
-            }} />
-          ) : isDone ? (
-            <Check size={10} style={{ color: statusColor }} />
-          ) : (
-            <X size={10} style={{ color: statusColor }} />
-          )}
-          {statusLabel}
-        </span>
+        {/* Status indicator */}
+        {isRunning && (
+          <Loader2 size={11} className="animate-spin" style={{ color: 'rgba(165,180,252,0.7)', flexShrink: 0 }} />
+        )}
+        {isDone && (
+          <Check size={11} style={{ color: 'rgba(134,239,172,0.85)', flexShrink: 0 }} />
+        )}
+        {isError && (
+          <X size={11} style={{ color: 'rgba(239,68,68,0.85)', flexShrink: 0 }} />
+        )}
 
         {/* Abort button */}
         {isRunning && onAbort && (
@@ -256,7 +296,7 @@ export function AgentToolCard({ input, result, tool, onAbort }: AgentToolCardPro
               transition: 'all 0.15s ease',
             }}
           >
-            取消
+            Abort
           </button>
         )}
 
@@ -275,31 +315,19 @@ export function AgentToolCard({ input, result, tool, onAbort }: AgentToolCardPro
       {/* Expanded body */}
       {expanded && (
         <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {/* Subagent type tag */}
-          {subagentType && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{
-                fontSize: 9,
-                fontWeight: 700,
-                letterSpacing: '0.07em',
-                textTransform: 'uppercase' as const,
-                color: 'var(--text-muted)',
-              }}>类型</span>
-              <span style={{
-                fontSize: 11,
-                color: 'rgba(192,132,252,0.60)',
-                background: 'rgba(139,92,246,0.10)',
-                border: '1px solid rgba(139,92,246,0.20)',
-                borderRadius: 6,
-                padding: '1px 6px',
-                fontWeight: 500,
-              }}>
-                {subagentType}
-              </span>
+          {/* Description row */}
+          {description && (
+            <div style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: 'var(--text-primary)',
+              lineHeight: 1.4,
+            }}>
+              {description}
             </div>
           )}
 
-          {/* Prompt content */}
+          {/* Prompt preview */}
           {promptText && (
             <div>
               <div style={{
@@ -310,27 +338,45 @@ export function AgentToolCard({ input, result, tool, onAbort }: AgentToolCardPro
                 color: 'var(--text-muted)',
                 marginBottom: 4,
               }}>
-                提示词
+                Prompt
               </div>
-              <pre style={{
-                margin: 0,
-                fontSize: 11,
-                fontFamily: 'monospace',
-                background: 'var(--code-bg)',
-                border: '1px solid var(--border)',
+              <div style={{
+                background: 'rgba(99,102,241,0.06)',
+                border: '1px solid rgba(99,102,241,0.14)',
                 borderRadius: 6,
-                padding: '6px 10px',
-                overflow: 'auto',
-                maxHeight: 160,
-                color: 'var(--text-secondary)',
-                lineHeight: 1.5,
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                scrollbarWidth: 'thin',
-                scrollbarColor: 'var(--border) transparent',
+                padding: '6px 9px',
               }}>
-                {promptText}
-              </pre>
+                <pre style={{
+                  margin: 0,
+                  fontSize: 11,
+                  fontFamily: 'inherit',
+                  color: 'var(--text-secondary)',
+                  lineHeight: 1.6,
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                }}>
+                  {promptPreview}
+                </pre>
+                {isPromptLong && (
+                  <button
+                    onClick={() => setPromptExpanded(!promptExpanded)}
+                    style={{
+                      marginTop: 3,
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'rgba(165,180,252,0.65)',
+                      fontSize: 10,
+                      padding: '0',
+                      transition: 'color 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,1)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,0.65)' }}
+                  >
+                    {promptExpanded ? 'Show less' : `+ ${promptText.length - PROMPT_LIMIT} more chars`}
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
@@ -348,28 +394,48 @@ export function AgentToolCard({ input, result, tool, onAbort }: AgentToolCardPro
                 alignItems: 'center',
                 justifyContent: 'space-between',
               }}>
-                <span>子代理输出</span>
-                {result && <CopyOutputBtn text={result} />}
+                <span>Agent Output</span>
+                {resultText && <CopyOutputBtn text={resultText} />}
               </div>
-              <pre style={{
-                margin: 0,
-                fontSize: 11,
-                fontFamily: 'monospace',
+              <div style={{
                 background: 'var(--code-bg)',
                 border: '1px solid var(--border)',
                 borderRadius: 6,
-                padding: '6px 10px',
-                overflow: 'auto',
-                maxHeight: 200,
-                color: 'var(--text-secondary)',
-                lineHeight: 1.5,
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                scrollbarWidth: 'thin',
-                scrollbarColor: 'var(--border) transparent',
+                padding: '6px 9px',
               }}>
-                {result}
-              </pre>
+                <pre style={{
+                  margin: 0,
+                  fontSize: 11,
+                  fontFamily: 'monospace',
+                  color: isError ? '#fca5a5' : 'var(--text-secondary)',
+                  lineHeight: 1.5,
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  scrollbarWidth: 'thin',
+                  scrollbarColor: 'var(--border) transparent',
+                }}>
+                  {resultPreview}
+                </pre>
+                {isResultLong && (
+                  <button
+                    onClick={() => setResultExpanded(!resultExpanded)}
+                    style={{
+                      marginTop: 3,
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'rgba(165,180,252,0.65)',
+                      fontSize: 10,
+                      padding: '0',
+                      transition: 'color 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,1)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,0.65)' }}
+                  >
+                    {resultExpanded ? 'Show less' : `+ ${resultText.length - RESULT_LIMIT} more chars`}
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>
