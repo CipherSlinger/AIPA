@@ -174,13 +174,34 @@ export function launchClawd(): void {
 
     let child
     if (electronBin) {
-      // clawd has its own electron installed — run it directly
+      // clawd has its own electron installed — run it directly in its own directory
       child = spawn(electronBin, ['.'], { detached: true, stdio: 'ignore', cwd: CLAWD_DIR, env })
     } else {
-      // No separate electron found — use AIPA's own Electron binary to launch clawd.
-      // process.execPath is the Electron binary; running it with `cwd=CLAWD_DIR` and
-      // passing the app directory as the first argument starts clawd as an Electron app.
-      child = spawn(process.execPath, [CLAWD_DIR], { detached: true, stdio: 'ignore', env })
+      // No separate electron found — use AIPA's own Electron binary.
+      // We must pass a built entry file, not the directory, because Electron will
+      // fail with "Cannot find module '<dir>'" if the package.json main is missing/unbuilt.
+      let clawdEntry = ''
+      const pkgJsonPath = path.join(CLAWD_DIR, 'package.json')
+      if (fs.existsSync(pkgJsonPath)) {
+        try {
+          const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8')) as { main?: string }
+          if (pkg.main) {
+            const candidate = path.join(CLAWD_DIR, pkg.main)
+            if (fs.existsSync(candidate)) {
+              clawdEntry = candidate
+            }
+          }
+        } catch {
+          // malformed package.json
+        }
+      }
+      if (!clawdEntry) {
+        log.warn(
+          'clawd-on-desk entry file not found. Please run: cd clawd-on-desk && npm install && npm run build'
+        )
+        return
+      }
+      child = spawn(process.execPath, [clawdEntry], { detached: true, stdio: 'ignore', env })
     }
     child.unref()
     log.info('Clawd launch requested, pid:', child.pid, 'bin:', electronBin || process.execPath)
