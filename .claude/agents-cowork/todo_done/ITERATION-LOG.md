@@ -8098,3 +8098,26 @@ Status: SUCCESS (0 errors, 204 pre-existing warnings)
 - [x] StructuredOutputCard code areas (x3) -> var(--code-bg)
 - [x] All box-shadow, indigo/purple/amber/red/green values correctly skipped
 - [x] npm run check passes with 0 errors
+
+## Iteration 632 — CSS Variable Migration: final comprehensive audit (memory + all components)
+_Date: 2026-04-16 | Sprint CSS-Migration_
+
+### Summary
+Performed a final comprehensive audit scan across all renderer components for remaining hard-coded `rgba()` values that could be migrated to CSS variables. The scan produced 60+ hits; after systematic categorization, all remaining values were identified as exempt: box-shadow/drop-shadow strings (SkillCard, MarketplaceCard, SessionCard, CanvasNode, CanvasEdge, PersonaSidebarComponents, TaskItemRow), semantic indigo accent palette (MemoryPanel indicators, DiffViewer, ChatInputPasteChips), purple/violet workflow accents (StatusBar plan badge, WorkflowDetailHeader, PersonaSidebarComponents, CanvasNodeSidebar, WorkflowStepEditor, WorkflowCanvas), amber note-state colors (CanvasNode), white-on-colored-button text (DepartmentPanel, DepartmentDashboard, SessionCard), a dynamic rgba-from-hex JS function (SessionItem.tsx), and fully-opaque canvas-specific backgrounds (WorkflowDetailPage, WorkflowCanvas rgba(8,8,16,1)) that have no matching CSS variable. No code edits were needed — the migration sweep is complete.
+
+### Files Changed
+- `.claude/agents-cowork/todo_done/ITERATION-LOG.md` — append Iteration 632 entry
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings — unchanged from Iteration 629)
+
+### Acceptance Criteria
+- [x] Comprehensive rgba() audit scan executed across all renderer component .tsx files
+- [x] All 60+ hits categorized as: box-shadow, semantic accent color, white-on-button, dynamic JS, or opaque canvas bg
+- [x] MemoryPanel rgba(165,180,252,...) indigo indicators correctly identified as semantic — skipped
+- [x] ChatInputPasteChips rgba(165,180,252,...) indigo paste chip UI correctly identified as semantic — skipped
+- [x] Workflow rgba(167,139,250,...) purple accents correctly identified as semantic — skipped
+- [x] WorkflowStepEditor rgba(139,92,246,...) violet borders correctly identified as semantic — skipped
+- [x] CanvasNode rgba(234,179,8,...) amber note states correctly identified as semantic — skipped
+- [x] rgba(8,8,16,1) canvas backgrounds confirmed as having no matching CSS variable — skipped
+- [x] npm run check passes with 0 errors
