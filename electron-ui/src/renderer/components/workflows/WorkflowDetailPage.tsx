@@ -8,8 +8,95 @@ import { usePrefsStore, useUiStore, useChatStore } from '../../store'
 import { useT } from '../../i18n'
 import type { WorkflowStep, Workflow } from '../../types/app.types'
 import { useWorkflowExecution } from './useWorkflowExecution'
+import { useWorkflowHistory } from './useWorkflowHistory'
 import WorkflowDetailHeader from './WorkflowDetailHeader'
 import { getPresetStepText } from './workflowConstants'
+
+// --- RunStatsBar: compact aggregate stats above the canvas (Iteration 662) ---
+function formatRelative(epochMs: number): string {
+  const diffMs = Date.now() - epochMs
+  const s = Math.floor(diffMs / 1000)
+  if (s < 60) return 'just now'
+  const m = Math.floor(s / 60)
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ago`
+  const d = Math.floor(h / 24)
+  if (d < 7) return `${d}d ago`
+  const wk = Math.floor(d / 7)
+  if (wk < 5) return `${wk}w ago`
+  return `${Math.floor(d / 30)}mo ago`
+}
+
+interface RunStatsBarProps {
+  workflowId: string | null
+}
+
+function RunStatsBar({ workflowId }: RunStatsBarProps) {
+  const { runs } = useWorkflowHistory(workflowId)
+  if (runs.length === 0) return null
+
+  const completedRuns = runs.filter(r => r.success !== undefined)
+  const successCount = completedRuns.filter(r => r.success).length
+  const successRate = completedRuns.length > 0 ? Math.round((successCount / completedRuns.length) * 100) : null
+  const lastRun = runs[0] // runs are newest-first
+
+  const successColor = successRate === null ? 'var(--text-muted)'
+    : successRate >= 80 ? '#4ade80'
+    : successRate >= 50 ? '#fbbf24'
+    : '#f87171'
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 0,
+      padding: '4px 12px',
+      borderBottom: '1px solid var(--border)',
+      background: 'var(--glass-bg-low)',
+      flexShrink: 0,
+      fontSize: 10,
+      fontWeight: 600,
+      letterSpacing: '0.03em',
+      color: 'var(--text-muted)',
+      fontVariantNumeric: 'tabular-nums',
+      fontFeatureSettings: '"tnum"',
+      overflow: 'hidden',
+    }}>
+      {/* Total runs */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, paddingRight: 12, borderRight: '1px solid var(--border)' }}>
+        <span style={{ fontSize: 11, opacity: 0.6 }}>⏱</span>
+        <span>{runs.length} {runs.length === 1 ? 'run' : 'runs'}</span>
+      </div>
+      {/* Success rate */}
+      {successRate !== null && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 12px', borderRight: '1px solid var(--border)' }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: successColor, display: 'inline-block', flexShrink: 0 }} />
+          <span style={{ color: successColor }}>{successRate}% ok</span>
+        </div>
+      )}
+      {/* Last run time */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, paddingLeft: 12 }}>
+        <span style={{ opacity: 0.55 }}>last:</span>
+        <span>{formatRelative(lastRun.startedAt)}</span>
+        {lastRun.success !== undefined && (
+          <span style={{
+            padding: '0 5px',
+            borderRadius: 8,
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: '0.06em',
+            color: lastRun.success ? '#4ade80' : '#f87171',
+            background: lastRun.success ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
+            border: `1px solid ${lastRun.success ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`,
+          }}>
+            {lastRun.success ? 'OK' : 'ERR'}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
 
 const WorkflowCanvas = lazy(() => import('./WorkflowCanvas'))
 
@@ -410,6 +497,9 @@ export default function WorkflowDetailPage() {
           </div>
         )
       })()}
+
+      {/* Run stats summary bar — shows aggregate stats from run history (Iteration 662) */}
+      <RunStatsBar workflowId={workflow.id} />
 
       {/* Canvas fills the full content area */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', padding: '8px', background: 'transparent' }}>
