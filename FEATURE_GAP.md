@@ -1,6 +1,6 @@
 # AIPA x Claude Code CLI — 功能差距文档
 
-> 更新日期：2026-04-16（Iteration 646）
+> 更新日期：2026-04-16（Iteration 653）
 > CLI 版本：claude-code 2.1.81（BUILD_TIME: 2026-03-20T21:25:42Z）
 > 分析目的：指导 AIPA UI 逐步对齐 CLI 全部能力
 
@@ -138,7 +138,7 @@ CLI 定义了 5 种权限模式（`ExternalPermissionMode`）：
 - ❌ 无规则级别权限 UI（用户不能在 UI 中添加/编辑 allow/deny/ask 规则列表）
 - ❌ 无权限模式切换 UI（无法在 UI 中从 `default` 切换到 `acceptEdits` 等模式）
 - ❌ 无 `additionalDirectories` UI 管理
-- ❌ 无权限决策历史展示
+- ✅ 权限决策历史已展示 — PermissionsSettingsPanel 新增 SessionPermissionHistory 子组件，从 useChatStore.messages 筛选 role==='permission' 条目，展示最近20条工具权限决策（工具名、decision 状态、时间戳）（Iteration 645）
 
 ### 差距 & 优先级
 
@@ -170,13 +170,13 @@ CLI 定义了 5 种权限模式（`ExternalPermissionMode`）：
 | `worktree.symlinkDirectories` | array | worktree 符号链接目录 | ❌ |
 | `worktree.sparsePaths` | array | sparse checkout 路径 | ❌ |
 | `disableAllHooks` | boolean | 禁用所有 hooks | ❌ |
-| `defaultShell` | enum | bash/powershell | ❌ |
+| `defaultShell` | enum | bash/powershell | ✅ — Settings → General，bash/powershell 下拉选择器，读写 ~/.claude/settings.json（Iteration 648） |
 | `outputStyle` | string | 输出样式控制 | ❌ |
 | `statusLine` | object | 自定义状态栏命令 | ❌ |
 | `enabledPlugins` | Record | 启用插件列表 | ⚠️ 有 plugin:list/setEnabled IPC |
 | `apiKeyHelper` | string | 自定义 API key 脚本 | ❌ |
 | `fileSuggestion` | object | @ 提及文件建议命令 | ❌ |
-| `respectGitignore` | boolean | 文件选择器是否遵守 .gitignore | ❌ |
+| `respectGitignore` | boolean | 文件选择器是否遵守 .gitignore | ✅ — Settings → General，布尔开关（默认 true），读写 ~/.claude/settings.json（Iteration 648） |
 
 ### AIPA 当前自有偏好（electron-store，非 CLI settings.json）
 
@@ -865,3 +865,28 @@ AIPA 状态：❌ 无任何 compact 触发 UI
 
 ### Iteration 646 — README 文档更新至 Iteration 642
 更新 `README.md`（中文）和 `README_EN.md`（英文）：扩展 AgentToolCard 条目描述（subagent_type/前台后台/Worktree 徽标）；新增 FileReadCard 和 FileWriteCard 子弹点；Design System 章节重写为语义化 CSS 变量体系说明和 clawd-on-desk 集成描述。
+
+---
+
+## 十八、最新实现记录（2026-04-16，Iterations 647-653）
+
+### Iteration 647 — FEATURE_GAP.md 文档更新（迭代 643-646）
+更新 FEATURE_GAP.md 日期行至 Iteration 646；将 FileEdit（643）在工具表格中标记为 ✅，附 FileEditCard 描述；新增 FileEdit 优先级 bullet；新增第十七节记录迭代 643-646。
+
+### Iteration 648 — CLI Settings 新增字段 UI（defaultShell / respectGitignore）
+在 SettingsGeneral 新增两个 CLI settings 字段 UI：`defaultShell`（bash/powershell 下拉）和 `respectGitignore`（布尔开关，默认 true）。确认 `disableAllHooks` 已在 HooksSettingsPanel 中实现（跳过）。同步更新 i18n（en.json + zh-CN.json）。
+
+### Iteration 649 — Session 列表 UX 改进
+改进会话列表搜索体验：Escape 键现在可同时清除 filter 文本（原逻辑只清 global results）；非交互的匹配数文字提示替换为可点击的 X 清除按钮；计数 badge 过滤时显示 "N/总数" 格式（如 "3/47"，紫色），让用户知道总会话数量。
+
+### Iteration 650 — ChatHeader 工具调用计数徽标
+在 ChatHeader 新增 Wrench 图标 + 计数 chip，实时显示当前会话已执行的工具调用总数（从 useChatStore.messages 聚合 toolUses 数组长度）。仅在 toolUseCount > 0 时显示，tooltip 显示中文描述。
+
+### Iteration 651 — 修复：部门空状态"新建会话"按钮无响应
+根因：PendingSessionCard 只在 sessions.length > 0 的 else 分支渲染，当部门无会话时点击后 pendingNewDeptId 被设置，但渲染仍停在 sessions.length === 0 分支，PendingSessionCard 永远不显示。修复：在空状态分支内嵌套 pendingNewDeptId === dept.id 判断，命中时显示 PendingSessionCard。
+
+### Iteration 652 — AI引擎设置迁移至专属标签页
+将 API Key、模型选择、思考模式（thinking mode）、Max Turns、Budget Limit、AI回复语言等 AI 引擎相关设置从"常规（General）"标签页迁移至"AI引擎（AI Engine）"专属标签页。SettingsGeneral 缩减约154行，SettingsAIEngine 扩展为完整的 AI 引擎配置页。SettingsPanel 传参更新。
+
+### Iteration 653 — 修复：Windows 启动 IPC 双重加载超时
+根因：AppShell.tsx 在挂载时独立发起 prefsGetAll() IPC 调用（仅读 sidebarWidth），与 App.tsx 已成功的第一次批量加载形成竞争。Windows IPC 延迟较高，第二次调用超过 3000ms 超时。修复：AppShell 改为从 Zustand prefsStore 响应式读取 sidebarWidth（prefsLoaded 为 true 后同步），不再发独立 IPC。
