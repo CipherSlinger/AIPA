@@ -1,6 +1,6 @@
 # AIPA x Claude Code CLI — 功能差距文档
 
-> 更新日期：2026-04-16（Iteration 567）
+> 更新日期：2026-04-16（Iteration 634）
 > CLI 版本：claude-code 2.1.81（BUILD_TIME: 2026-03-20T21:25:42Z）
 > 分析目的：指导 AIPA UI 逐步对齐 CLI 全部能力
 
@@ -725,3 +725,91 @@ AIPA 状态：❌ 无任何 compact 触发 UI
   - 消息文本预览（前 120 字符，超出可展开）
   - 结果：绿色 "Delivered" 徽标（Check 图标）或红色 "Failed" 徽标（X 图标）
 - `ToolUseBlock.tsx` 新增 `SendMessage` 早返回路由（SendMessage 已存在于 `TOOL_ICONS`）
+
+---
+
+## 十四、CSS 变量迁移全记录（Iterations 568-634）
+
+### Iteration 568-596 — CSS 变量迁移第一阶段（白色 rgba 值）
+
+将 renderer 所有组件中硬编码的 `rgba(255,255,255,...)` 白色值全面替换为 CSS 自定义属性，实现浅色/深色主题动态切换。
+
+**映射规则：**
+- `rgba(255,255,255,0.03-0.08)` → `var(--glass-bg-low)`（超低透明度玻璃背景）或 `var(--border)`（边框）或 `var(--bg-hover)`（悬停状态）
+- `rgba(255,255,255,0.10-0.18)` → `var(--bg-input)`（输入框背景）或 `var(--bg-hover)`
+- `rgba(255,255,255,0.25-0.35)` → `var(--text-faint)`（极浅文字）或 `var(--border)`
+- `rgba(255,255,255,0.45-0.65)` → `var(--text-muted)`（次要文字）
+- `rgba(255,255,255,0.70-0.80)` → `var(--text-secondary)`（辅助文字）或 `var(--text-primary)`
+- `rgba(255,255,255,0.85-0.95)` → `var(--text-primary)`（主文字）或 `var(--text-bright)`（非彩色按钮上的高亮文字）
+- `rgba(255,255,255,1)` → `var(--text-bright)`（纯白文字）
+
+**保留豁免（不迁移）：**
+- `box-shadow` 属性值中的所有 rgba — 始终跳过
+- indigo accent `rgba(99,102,241,...)` — 保留语义色彩
+- 状态色（green、red、amber、orange 系）— 保留
+- 彩色/渐变按钮上的 `rgba(255,255,255,0.85-0.95)` — 保留（白字在彩色背景上是语义，不是主题色）
+- `var(--x, rgba(...))` 回退值内部 — 保留（由变量定义侧控制）
+- 语义调色板色（cyan、purple、teal 等工作流节点类型色）— 保留
+
+**覆盖范围：** 约 30+ 个 renderer 组件文件，涵盖 ChatPanel、MessageList、Message、ToolUseBlock、各 ToolCard 组件、WorkflowCanvas、TasksPanel、MemoryPanel、SettingsGeneral、SettingsPersonas、SessionList 等所有核心 UI 层。
+
+### Iteration 597-614 — 功能迭代与 CSS 迁移并行
+
+此阶段在持续推进 CSS 迁移的同时，完成了若干功能增强：
+- P3 功能差距项（PlanApprovalCard、DreamTaskCard、StructuredOutputCard）接入（Iteration 617）
+- clawd-on-desk 桌宠集成（Iteration 615，详见下节）
+- CSS 迁移范围扩展至 Workflow 编辑器、Settings 面板等剩余组件
+
+### Iteration 615 — clawd-on-desk 桌宠集成
+
+将 clawd-on-desk 桌面宠物与 AIPA 事件桥接，实现 AI 助手状态的可爱视觉化反馈。
+
+**新增文件：**
+- `electron-ui/src/main/clawd-bridge.ts`：fire-and-forget HTTP 桥接模块，500ms 防抖，仅在 `clawdEnabled` 开启时发送通知
+
+**IPC 扩展：**
+- `clawd:launch`：启动 clawd-on-desk 进程
+- `clawd:isRunning`：查询 clawd 是否正在运行
+
+**事件映射（CLI 事件 → Clawd 状态）：**
+- `textDelta` → `thinking`（思考中）
+- `toolUse` → `working`（工具调用中）
+- `result` → `happy`（完成）
+
+**偏好设置：**
+- `clawdEnabled` 字段加入 `ClaudePrefs`，默认值 `false`
+- Settings → General 新增开关 toggle
+- `prefsStore` 中 `clawdEnabled: false` 作为默认值
+
+### Iteration 616-634 — CSS 变量迁移第二阶段（黑色 rgba 值与近黑色变体）
+
+将 renderer 所有组件中硬编码的 `rgba(0,0,0,...)` 及近黑色变体（`rgba(8-20,8-20,16-30,...)`）全面替换为 CSS 自定义属性。
+
+**映射规则：**
+- `rgba(0,0,0,0.50-0.70)` 背景遮罩/overlay → `var(--glass-overlay)`
+- `rgba(0,0,0,0.18-0.35)` 代码/内容区域背景 → `var(--code-bg)`
+- `rgba(10,10,20,0.85-0.90)` 近黑色面板 → `var(--glass-bg-mid)` 或 `var(--glass-bg-low)`
+- `rgba(12,12,22,0.60-0.96)` 近黑色容器 → `var(--code-bg)` 或 `var(--glass-bg-deep)`
+- `rgba(14,14,24,0.96-0.97)` 深色面板 → `var(--glass-bg-deep)` 或 `var(--glass-bg-high)`
+- `rgba(15,15,25,0.85-0.90)` 中层玻璃背景 → `var(--glass-bg-low)`
+- `rgba(18,18,30,0.97)` 最深层上下文 → `var(--glass-bg-deep)`
+- `rgba(20,20,20,0.70-0.80)` overlay 标签背景 → `var(--glass-overlay)` 或 `var(--glass-bg-low)`
+- `rgba(8,8,16,1)` 完全不透明画布背景 → `var(--bg-primary)`
+- SVG fill 中的灰色/禁用色 → `var(--text-faint)`
+- `rgba(0,0,0,0.75)` 文字颜色 → `var(--text-primary)`
+
+**Iteration 633 — globals.css 深色主题变量补全**
+
+向 `globals.css` 深色 `:root` 块追加 9 个缺失变量，实现与浅色主题的完整对等：
+- `--accent-bg`、`--accent-border`、`--accent-muted`（accent 色系背景/边框/柔和变体）
+- `--color-error: #f87171`（红色错误）
+- `--color-success: #4ade80`（绿色成功）
+- `--color-warning: #fbbf24`（琥珀色警告）
+- `--color-violet: #a78bfa`（紫罗兰辅助色）
+
+**Iteration 634 — 迁移完成最终审计**
+
+对所有 renderer 组件进行最终扫描，确认：
+- 所有剩余 rgba 值均属于以下豁免类别：`box-shadow`、indigo 语义 accent 色（`rgba(99,102,241,...)`）、状态色（green/red/amber）、渐变/彩色按钮配色
+- 无漏网的主题相关 rgba 值
+- CSS 变量迁移全面完成，浅色/深色主题切换（`Ctrl+Shift+D`）在所有组件下均正确响应
