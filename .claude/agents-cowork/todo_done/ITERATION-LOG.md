@@ -8504,3 +8504,49 @@ Status: SUCCESS (0 errors, 206 pre-existing warnings)
 - [x] Tooltip with full Chinese description
 - [x] npm run check passes with 0 errors
 - [x] Committed and pushed to origin
+
+## Iteration 651 — Fix: Department empty-state "新建会话" button
+_Date: 2026-04-16 | Sprint BugFix_
+
+### Summary
+Fixed the "该部门暂无会话 — 新建会话" empty-state button in the OrgChart department view. Previously clicking it had no effect. Root cause: the ternary rendering chain had `sessions.length === 0` show the empty-state div and `PendingSessionCard` only in the else-branch (when sessions exist). Clicking the empty-state div set `pendingNewDeptId` via `newSessionInDept`, but that value was never consumed because the component kept rendering the `sessions.length === 0` branch instead of switching to the `PendingSessionCard`. Fix: replaced the plain empty-state div branch with a nested conditional — when `pendingNewDeptId === dept.id`, render `PendingSessionCard` directly in the zero-sessions case; otherwise show the original empty-state prompt.
+
+### Files Changed
+- `electron-ui/src/renderer/components/departments/DepartmentDashboard.tsx` — modified the `sessions.length === 0` render branch to check `pendingNewDeptId` and show `PendingSessionCard` when pending, or the empty-state prompt when not pending
+
+### Build
+Status: SUCCESS (0 errors, warnings are all pre-existing)
+
+### Acceptance Criteria
+- [x] Empty-state "新建会话" button in OrgChart triggers new session flow (shows PendingSessionCard)
+- [x] Button has correct pointer cursor
+- [x] Clicking it shows PendingSessionCard inline within the department's zero-sessions area
+- [x] PendingSessionCard onEnter calls onNewSessionInDept and clears pendingNewDeptId
+- [x] PendingSessionCard onCancel correctly dismisses back to empty-state prompt
+- [x] npm run check passes with 0 errors
+- [x] Committed and pushed to origin
+
+## Iteration 652 — Move AI Engine Settings to Dedicated Tab
+_Date: 2026-04-16 | Sprint UX_
+
+### Summary
+Moved AI engine settings (API key, API key pool, model selector, advisor model, thinking mode, max turns, budget limit, AI reply language) from the General (常规) tab to the dedicated AI Engine (AI引擎) tab in the Settings modal. The AI Engine tab now shows model/API configuration at the top, followed by the existing SettingsProviders multi-provider config below a divider. General tab is lighter and now focuses only on prompts, appearance, workspace, and behavior settings.
+
+### Files Changed
+- `electron-ui/src/renderer/components/settings/SettingsAIEngine.tsx` — rewrote to accept local/setLocal/showKey/setShowKey/saved/onSave props and render the AI engine fields group plus Save button, then SettingsProviders section
+- `electron-ui/src/renderer/components/settings/SettingsGeneral.tsx` — removed AI engine group (API key, model, advisor model, thinking, max turns, budget, AI reply language), removed Brain/Eye/EyeOff/SettingsApiKeyPool/MODEL_OPTIONS imports, removed aiReplyLanguage state and its useEffect loading, removed aiEngine groupKeywords entry, removed showKey/setShowKey props
+- `electron-ui/src/renderer/components/settings/SettingsPanel.tsx` — updated SettingsAIEngine call to pass required props; removed showKey/setShowKey from SettingsGeneral call
+
+### Build
+Status: SUCCESS (0 errors, all pre-existing warnings unchanged)
+
+### Acceptance Criteria
+- [x] AI engine settings removed from General tab
+- [x] AI engine settings present and functional in AI Engine tab
+- [x] Model selector works in new location (bound to local.model via setLocal)
+- [x] API key field works in new location (bound to local.apiKey via setLocal)
+- [x] AI reply language writes directly to CLI settings (configWriteCLISettings)
+- [x] SettingsProviders section preserved in AI Engine tab below divider
+- [x] Save button present in AI Engine tab (saves via shared onSave from SettingsPanel)
+- [x] npm run check passes with 0 errors
+- [x] Committed and pushed to origin
