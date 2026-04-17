@@ -1,6 +1,6 @@
 # AIPA x Claude Code CLI — 功能差距文档
 
-> 更新日期：2026-04-16（Iteration 653）
+> 更新日期：2026-04-16（Iteration 658）
 > CLI 版本：claude-code 2.1.81（BUILD_TIME: 2026-03-20T21:25:42Z）
 > 分析目的：指导 AIPA UI 逐步对齐 CLI 全部能力
 
@@ -171,7 +171,7 @@ CLI 定义了 5 种权限模式（`ExternalPermissionMode`）：
 | `worktree.sparsePaths` | array | sparse checkout 路径 | ❌ |
 | `disableAllHooks` | boolean | 禁用所有 hooks | ❌ |
 | `defaultShell` | enum | bash/powershell | ✅ — Settings → General，bash/powershell 下拉选择器，读写 ~/.claude/settings.json（Iteration 648） |
-| `outputStyle` | string | 输出样式控制 | ❌ |
+| `outputStyle` | string | 输出样式控制 | ✅ — Settings → AI Engine 标签页，auto/text/json 下拉选择器，读写 ~/.claude/settings.json（Iteration 656） |
 | `statusLine` | object | 自定义状态栏命令 | ❌ |
 | `enabledPlugins` | Record | 启用插件列表 | ⚠️ 有 plugin:list/setEnabled IPC |
 | `apiKeyHelper` | string | 自定义 API key 脚本 | ❌ |
@@ -890,3 +890,22 @@ AIPA 状态：❌ 无任何 compact 触发 UI
 
 ### Iteration 653 — 修复：Windows 启动 IPC 双重加载超时
 根因：AppShell.tsx 在挂载时独立发起 prefsGetAll() IPC 调用（仅读 sidebarWidth），与 App.tsx 已成功的第一次批量加载形成竞争。Windows IPC 延迟较高，第二次调用超过 3000ms 超时。修复：AppShell 改为从 Zustand prefsStore 响应式读取 sidebarWidth（prefsLoaded 为 true 后同步），不再发独立 IPC。
+
+---
+
+## 十九、最新实现记录（2026-04-16，Iterations 654-658）
+
+### Iteration 654 — FEATURE_GAP.md 文档更新（迭代 647-653）
+更新日期至 Iteration 653；权限决策历史、defaultShell、respectGitignore 标记为 ✅；追加第十八节（647-653 记录）。
+
+### Iteration 655 — UI 小项优化（ChatHeader、Department、Session）
+评估了4个优化项：①工具调用计数重置（已正确工作，跳过）；②部门取消按钮（已正确工作，跳过）；③会话搜索键盘提示（新增 "/" 快捷键提示到 session.search i18n 键，同时修复17个 SessionListHeader 缺失的 i18n 键）；④会话空状态（SessionEmptyState.tsx 已在 Iter 461 实现，跳过）。
+
+### Iteration 656 — outputStyle CLI 设置 UI
+在 AI Engine 标签页新增 `outputStyle` 设置下拉（auto/text/json），读写 `~/.claude/settings.json`。使用 `cliOutputStyle*` i18n 前缀区分已有的 UI 层 outputStyle 概念。同步更新 en.json 和 zh-CN.json。
+
+### Iteration 657 — clawd 桌宠运行状态指示器
+增强 SettingsGeneral 中的 clawd 开关：新增 checking/running/stopped 三态状态点（橙色脉冲/绿色/灰色），enabled 时每5秒轮询 `clawdIsRunning()`，开启时显示2秒启动确认反馈，运行/未运行状态文本提示。
+
+### Iteration 658 — 会话搜索 i18n 修复与 UI 微调
+修复 SessionListHeader 中17个缺失的 i18n 键（en.json + zh-CN.json）。session.search 占位符新增 "(/) " 键盘快捷键提示（"/" 是聚焦会话搜索的全局快捷键）。其余3个 polish 项（工具计数重置、部门取消、会话空状态）均已正常工作，跳过。
