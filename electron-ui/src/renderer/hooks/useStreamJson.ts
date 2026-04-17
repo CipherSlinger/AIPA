@@ -554,6 +554,20 @@ Keep exercises focused and achievable. The goal is active learning through doing
           break
         }
         case 'cli:result': {
+          // Handle error subtypes before normal result processing
+          const resultSubtype = (data.subtype as string | undefined) ?? 'success'
+          if (resultSubtype === 'error_max_structured_output_retries') {
+            useUiStore.getState().addToast('error', t('error.structuredOutputRetries'), 8000)
+            stopStreamingAndReleaseSleep()
+            break
+          }
+          // Log enterprise / diagnostic fields — no UI exposure needed
+          if (data.uuid) {
+            console.debug('[cli:result] session result UUID:', data.uuid)
+          }
+          if (data.fastModeState !== undefined) {
+            console.debug('[cli:result] fast_mode_state:', data.fastModeState)
+          }
           const msgCountBefore = useChatStore.getState().messages.length
           const claudeSessionId = data.claudeSessionId as string | undefined
           if (claudeSessionId) {

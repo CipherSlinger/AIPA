@@ -266,9 +266,16 @@ export class StreamBridge extends EventEmitter {
       case 'result': {
         // result event contains session_id and rich stats for the completed turn
         const re = event as Record<string, unknown>
+        const resultSubtype = (re.subtype as string | undefined) ?? 'success'
+        if (resultSubtype === 'error_max_structured_output_retries') {
+          log.warn('[result] Structured output retries exceeded for session:', sid)
+        }
         this.emit('result', {
           sessionId: sid,
+          subtype: resultSubtype,
           claudeSessionId: re.session_id,
+          uuid: re.uuid,
+          fastModeState: re.fast_mode_state,
           totalCostUsd: re.total_cost_usd,
           usage: re.usage,
           modelUsage: re.model_usage ?? re.modelUsage,
