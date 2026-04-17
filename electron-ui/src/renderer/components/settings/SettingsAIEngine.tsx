@@ -33,11 +33,15 @@ export default function SettingsAIEngine({
 
   // aiReplyLanguage — reads/writes `language` field in ~/.claude/settings.json via IPC
   const [aiReplyLanguage, setAiReplyLanguage] = useState<string>('')
+  // cliOutputStyle — reads/writes `outputStyle` field in ~/.claude/settings.json via IPC
+  const [cliOutputStyle, setCliOutputStyle] = useState<string>('auto')
 
   useEffect(() => {
     window.electronAPI.configReadCLISettings().then((cliSettings: Record<string, unknown>) => {
       const lang = typeof cliSettings.language === 'string' ? cliSettings.language : ''
       setAiReplyLanguage(lang)
+      const style = typeof cliSettings.outputStyle === 'string' ? cliSettings.outputStyle : 'auto'
+      setCliOutputStyle(style)
     }).catch(() => {})
   }, [])
 
@@ -188,6 +192,41 @@ export default function SettingsAIEngine({
           </select>,
           <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
             {t('settings.aiReplyLanguageHint')}
+          </span>
+        )}
+
+        {field(
+          t('settings.cliOutputStyle'),
+          <select
+            value={cliOutputStyle}
+            onChange={(e) => {
+              const next = e.target.value
+              setCliOutputStyle(next)
+              window.electronAPI.configWriteCLISettings({ outputStyle: next }).catch(() => {})
+            }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
+            style={{
+              background: 'var(--bg-hover)',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+              color: 'var(--text-primary)',
+              padding: '6px 10px',
+              fontSize: 13,
+              outline: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              appearance: 'none',
+              WebkitAppearance: 'none',
+              width: '100%',
+            }}
+          >
+            <option value="auto">{t('settings.cliOutputStyleAuto')}</option>
+            <option value="text">{t('settings.cliOutputStyleText')}</option>
+            <option value="json">{t('settings.cliOutputStyleJson')}</option>
+          </select>,
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            {t('settings.cliOutputStyleHint')}
           </span>
         )}
       </SettingsGroup>
