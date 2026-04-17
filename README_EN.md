@@ -59,7 +59,9 @@ AIPA is not a chat window. It's a **desktop agent** that lives alongside you —
 - **System Diagnostics** — one-click health checks for CLI, API key, network, disk space, and system load
 - **API Error Visibility** — `overloaded_error` and `authentication_error` events from the CLI (previously silently dropped) now surface as toast notifications (warning for overload, error for auth failure), so users know exactly why a response stopped
 - **Copy Session ID** — a session ID badge in ChatHeader (shows 8-char prefix) copies the full session ID to clipboard on click; use it with `--resume` to manually resume any session
-- **Sub-agent Visualization (AgentToolCard)** — when Claude invokes the Agent tool, a dedicated card shows real-time elapsed timer (running/done/error states), task description summary, and collapsible full prompt + output; **sub-agent count badge** on Canvas nodes shows a Users icon with live sub-agent count during Agent tool execution
+- **Sub-agent Visualization (AgentToolCard)** — when Claude invokes the Agent tool, a dedicated card shows real-time elapsed timer (running/done/error states), task description summary, subagent_type badge, foreground (green) / background (orange) chip, Worktree isolation (blue) chip; collapsible full prompt preview (>150 chars) and output result (>200 chars); **sub-agent count badge** on Canvas nodes shows a Users icon with live sub-agent count during Agent tool execution
+- **File Read Card (FileReadCard)** — CLI `Read` tool calls render a dedicated card: file path display (directory dimmed, filename highlighted), line-range badge (offset/limit), first-20-lines code preview (expandable), copy button, in-progress state indicator
+- **File Write Card (FileWriteCard)** — CLI `Write` tool calls render a dedicated card: green theme, file path display, content preview (first 20 lines, expandable), copy button, "File written" confirmation badge
 - **Task Management Inline Cards (TaskCreate/Update/List/Get)** — CLI async task tools render inline cards in the chat stream: TaskCreate/TaskUpdate show status badges; TaskList/TaskGet render a Kanban 3-column view (pending/in_progress/completed) with animated status badges
 - **Startup Protection** — IPC pre-registration eliminates race conditions, non-blocking menu construction, 10s hard splash timeout, renderer error recovery, preferences reset for bulletproof launches
 - **Rich CLI Tool Cards** — specialized inline cards for every major CLI tool:
@@ -249,13 +251,15 @@ The CLI is bridged in two modes:
 
 ## Design System
 
-AIPA uses a unified glass-morphism design system with full light/dark theme support:
+AIPA uses a unified glass-morphism design system with complete light/dark theme support via CSS custom properties:
 
-- **Light/Dark Theme** — `Ctrl+Shift+D` cycles Dark / Light / System; all components use CSS variables so both themes render correctly
-- **Glass backgrounds**: `rgba(15,15,25,0.85–0.96)` (dark) / light-mode variants, with `backdropFilter: blur(12–20px)`
-- **Text opacity ladder**: primary=0.82, secondary=0.60, muted=0.45, micro=0.38
+- **CSS Design Token System** — 185+ components fully migrated to CSS custom properties; all hardcoded `rgba()` values replaced with semantic tokens (`var(--glass-bg-*)`, `var(--text-*)`, `var(--border)`, etc.); `Ctrl+Shift+D` cycles Dark / Light / System seamlessly
+- **Light/Dark Theme** — all cards, panels, and popovers render correctly in both themes with no hardcoded dark-mode colors leaking into light mode
+- **Glass backgrounds**: `var(--glass-bg-low)` / `var(--glass-bg-mid)` / `var(--glass-bg-deep)` with `backdropFilter: blur(12–20px)`
+- **Text opacity ladder**: `var(--text-primary)` / `var(--text-secondary)` / `var(--text-muted)` / `var(--text-faint)`
 - **Indigo accent**: `#6366f1`/`#818cf8`/`#a5b4fc` throughout
 - **Transitions**: Unified `0.15s ease` on all interactive elements
+- **clawd-on-desk Integration** — optional desktop pet that reflects AI state; animates through thinking / working / happy states as the assistant thinks, uses tools, and completes tasks
 
 ---
 
