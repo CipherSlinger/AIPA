@@ -45,6 +45,12 @@ export default function SettingsGeneral({
   // aiReplyLanguage — reads/writes `language` field in ~/.claude/settings.json via IPC
   const [aiReplyLanguage, setAiReplyLanguage] = useState<string>('')
 
+  // defaultShell — reads/writes `defaultShell` field in ~/.claude/settings.json via IPC
+  const [defaultShell, setDefaultShell] = useState<string>('bash')
+
+  // respectGitignore — reads/writes `respectGitignore` field in ~/.claude/settings.json via IPC
+  const [respectGitignore, setRespectGitignore] = useState<boolean>(true)
+
   useEffect(() => {
     window.electronAPI.configReadCLISettings().then((cliSettings: Record<string, unknown>) => {
       const raw = typeof cliSettings.cleanupPeriodDays === 'number' ? cliSettings.cleanupPeriodDays : 30
@@ -54,6 +60,11 @@ export default function SettingsGeneral({
       cleanupDaysLastValid.current = val
       const lang = typeof cliSettings.language === 'string' ? cliSettings.language : ''
       setAiReplyLanguage(lang)
+      const shell = typeof cliSettings.defaultShell === 'string' ? cliSettings.defaultShell : 'bash'
+      setDefaultShell(shell)
+      // respectGitignore defaults to true if not explicitly set to false
+      const gitignore = cliSettings.respectGitignore === false ? false : true
+      setRespectGitignore(gitignore)
     }).catch(() => {})
   }, [])
 
@@ -62,7 +73,7 @@ export default function SettingsGeneral({
     prompts: [t('settings.promptTemplate'), t('settings.systemPrompt'), t('settings.groups.prompts')].join(' ').toLowerCase(),
     appearance: [t('settings.language'), t('settings.displayName'), t('settings.theme'), t('settings.fontSize'), t('settings.fontFamily'), t('settings.compactMode'), t('settings.groups.appearance')].join(' ').toLowerCase(),
     workspace: [t('settings.workingFolder'), t('tags.sectionTitle'), t('settings.groups.workspace')].join(' ').toLowerCase(),
-    behavior: [t('settings.skipPermissions'), t('settings.verbose'), t('settings.completionSound'), t('settings.desktopNotifications'), t('settings.resumeLastSession'), t('outputStyle.title'), t('thinking.title'), t('settings.systemPresence'), t('compact.autoCompact'), t('autoMemory.enabled'), t('settings.groups.behavior'), t('settings.cleanupPeriodDays')].join(' ').toLowerCase(),
+    behavior: [t('settings.skipPermissions'), t('settings.verbose'), t('settings.completionSound'), t('settings.desktopNotifications'), t('settings.resumeLastSession'), t('outputStyle.title'), t('thinking.title'), t('settings.systemPresence'), t('compact.autoCompact'), t('autoMemory.enabled'), t('settings.groups.behavior'), t('settings.cleanupPeriodDays'), t('settings.defaultShell'), t('settings.respectGitignore'), 'shell', 'bash', 'powershell', 'gitignore'].join(' ').toLowerCase(),
   }), [t])
 
   const isGroupVisible = (groupKey: string): boolean => {
@@ -601,6 +612,39 @@ export default function SettingsGeneral({
             }}
           />,
           'Show Clawd desktop pet that reacts to AI session state'
+        )}
+
+        {field(
+          t('settings.defaultShell'),
+          <select
+            value={defaultShell}
+            onChange={(e) => {
+              const next = e.target.value
+              setDefaultShell(next)
+              window.electronAPI.configWriteCLISettings({ defaultShell: next }).catch(() => {})
+            }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
+            style={{ ...INPUT_STYLE }}
+          >
+            <option value="bash">bash</option>
+            <option value="powershell">powershell</option>
+          </select>,
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            {t('settings.defaultShellHint')}
+          </span>
+        )}
+
+        {row(
+          t('settings.respectGitignore'),
+          <Toggle
+            value={respectGitignore}
+            onChange={(v) => {
+              setRespectGitignore(v)
+              window.electronAPI.configWriteCLISettings({ respectGitignore: v }).catch(() => {})
+            }}
+          />,
+          t('settings.respectGitignoreHint')
         )}
 
         {field(
