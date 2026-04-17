@@ -2,9 +2,10 @@
 // Contains model selector, API key, advisor model, thinking mode, max turns,
 // budget limit, AI reply language — moved from SettingsGeneral.
 // Also wraps SettingsProviders for provider/API-key config.
+// Iteration 683: added availableModels enterprise whitelist section.
 
-import React, { useState, useEffect, Suspense } from 'react'
-import { Brain, Eye, EyeOff, Save, Cpu } from 'lucide-react'
+import React, { useState, useEffect, useRef, Suspense } from 'react'
+import { Brain, Eye, EyeOff, Save, Cpu, X, Plus } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import { MODEL_OPTIONS, INPUT_STYLE } from './settingsConstants'
 import SettingsGroup from './SettingsGroup'

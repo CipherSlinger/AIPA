@@ -1,6 +1,6 @@
 # AIPA x Claude Code CLI — 功能差距文档
 
-> 更新日期：2026-04-17（Iteration 674）
+> 更新日期：2026-04-17（Iteration 680）
 > CLI 版本：claude-code 2.1.81（BUILD_TIME: 2026-03-20T21:25:42Z）
 > 分析目的：指导 AIPA UI 逐步对齐 CLI 全部能力
 
