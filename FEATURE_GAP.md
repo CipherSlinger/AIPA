@@ -1,6 +1,6 @@
 # AIPA x Claude Code CLI — 功能差距文档
 
-> 更新日期：2026-04-16（Iteration 634）
+> 更新日期：2026-04-16（Iteration 638）
 > CLI 版本：claude-code 2.1.81（BUILD_TIME: 2026-03-20T21:25:42Z）
 > 分析目的：指导 AIPA UI 逐步对齐 CLI 全部能力
 
@@ -13,7 +13,7 @@
 | 工具名 | 功能描述 | AIPA 是否有 UI |
 |--------|----------|----------------|
 | `Bash` | 执行 shell 命令，支持沙箱、权限检查 | ✅ PTY 终端可执行，但无结构化工具 UI |
-| `FileRead` | 读取文件，支持行范围限制 | ❌ Chat 面板无独立文件读取操作 UI |
+| `FileRead` | 读取文件，支持行范围限制 | ✅ `FileReadCard`：文件路径展示（目录淡色+文件名高亮）、行范围徽标（offset/limit）、代码块预览（前20行可展开）、复制按钮、读取中状态（Iteration 637） |
 | `FileEdit` | 精确字符串替换编辑文件 | ❌ 无差异对比/批准 UI |
 | `FileWrite` | 创建/覆盖文件 | ❌ 无独立文件写入 UI |
 | `Glob` | 文件模式匹配搜索 | ✅ 结构化展示：文件路径列表，目录部分淡色，文件名加粗，超过10条折叠（Iteration 540） |
@@ -22,7 +22,7 @@
 | `WebSearch` | 网络搜索 | ✅ URL chip 可点击（标注 Sources），内容前200字符预览，可展开全文（Iteration 540） |
 | `NotebookEdit` | 编辑 Jupyter notebook 单元格 | ✅ `NotebookEditCard`：文件名 header、单元格类型色标（code=蓝/markdown=紫）、可展开源代码预览、结果徽标（Iteration 559） |
 | `TodoWrite` | 写待办列表（结构化任务管理） | ✅ `TodoListView.tsx` 组件已实现，pending/in_progress/completed 状态，high/medium/low 优先级色标 |
-| `Agent` (子代理) | 产生并行/串行子代理 | ❌ AIPA 无子代理拓扑可视化 |
+| `Agent` (子代理) | 产生并行/串行子代理 | ✅ `AgentToolCard`：indigo 左边框、subagent_type 徽标、前台/后台徽标（Foreground/Background chip）、Worktree 隔离徽标、description 展示、prompt 预览（可展开）、result 预览（可展开）（Iteration 638） |
 | `TaskOutputTool` | 读取后台任务输出 | ⚠️ 有 TaskDashboard 组件但连接不完整 |
 | `TaskStopTool` | 停止后台任务 | ⚠️ 部分实现 |
 | `TaskCreate/Get/Update/List` | 异步任务 CRUD（isTodoV2Enabled） | ✅ TaskCreate/TaskUpdate 渲染内联 badge；TaskList/TaskGet 结果渲染 TaskDashboardCard（Kanban/列表视图，含状态徽章、owner、blocked-by，Iteration 546） |
@@ -57,6 +57,8 @@
 - ✅ `StructuredOutput` 工具：`StructuredOutputCard.tsx` 新增，渲染 JSON Schema 折叠预览 + 语法着色结果树 + 复制按钮；`ToolUseBlock` 已接入（Iteration 617）
 - ✅ `DreamTask`（`dream` 类型后台任务）：`DreamTaskCard.tsx` 已存在，`ChatPanel` 已接入渲染（Iteration 617）
 - ✅ `plan_approval_request/response`：`PlanApprovalCard.tsx` 已存在，`useStreamJson` 订阅 `onPlanApprovalRequest`，`ChatPanel` 渲染并接入 `cliRespondPlanApproval`（Iteration 617）
+- ✅ `FileRead` 工具：`FileReadCard.tsx` 新增，渲染文件路径（目录淡色+文件名高亮）、行范围徽标（offset/limit 字段）、代码块预览（前20行，可展开）、复制按钮（Iteration 637）
+- ✅ `Agent` 工具：`AgentToolCard.tsx` 增强，新增 indigo 左边框、subagent_type 徽标、前台/后台 badge、worktree 隔离 badge、prompt 可展开预览、result 可展开预览（Iteration 638）
 
 ---
 
@@ -813,3 +815,19 @@ AIPA 状态：❌ 无任何 compact 触发 UI
 - 所有剩余 rgba 值均属于以下豁免类别：`box-shadow`、indigo 语义 accent 色（`rgba(99,102,241,...)`）、状态色（green/red/amber）、渐变/彩色按钮配色
 - 无漏网的主题相关 rgba 值
 - CSS 变量迁移全面完成，浅色/深色主题切换（`Ctrl+Shift+D`）在所有组件下均正确响应
+
+---
+
+## 十五、最新实现记录（2026-04-16，Iterations 635-638）
+
+### Iteration 635 — FEATURE_GAP.md 文档更新（迭代 568-634）
+更新 FEATURE_GAP.md 顶部日期行至 Iteration 634；新增第十四节，完整记录 CSS 变量迁移第一阶段（568-596，白色 rgba）、第二阶段（618-634，黑色 rgba 及近黑色变体）、clawd-on-desk 集成（615）及 globals.css 完整性审计（633）。
+
+### Iteration 636 — formatHtml.ts CSS 变量迁移
+将 `formatHtml.ts` CSS 模板字符串中的 12 个 `rgba(255,255,255,...)` 白色值迁移为 CSS 变量（border×8、glass-bg-low×4）；保留 3 个语义状态色（蓝色用户消息边框、红色系统消息边框、绿色计划消息边框）。将已完成的 clawd api-spec 文档从 todo/ 移入 todo_done/。
+
+### Iteration 637 — FileReadCard 文件读取内联卡片
+新增 `FileReadCard.tsx` 组件，渲染 CLI `Read` 工具调用：文件路径（目录淡色+文件名高亮）、行范围徽标（offset/limit）、前20行代码预览（可展开）、复制按钮、读取中状态指示。`ToolUseBlock` 已接入 `'Read'` 和 `'read_file'` 路由。
+
+### Iteration 638 — AgentToolCard 子代理可视化增强
+增强已有 `AgentToolCard.tsx`：新增 indigo 左边框（`rgba(99,102,241,0.5)`）、subagent_type 徽标、前台（绿色）/后台（橙色）chip、Worktree 隔离（蓝色）chip、description 显示、prompt 可展开预览（>150 字符）、result 内嵌框（可展开，>200 字符）。
