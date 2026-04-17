@@ -593,7 +593,7 @@ export default function HooksSettingsPanel() {
               <div
                 key={eventType}
                 style={{
-                  background: 'rgba(15,15,25,0.85)',
+                  background: 'var(--glass-bg-low)',
                   backdropFilter: 'blur(12px)',
                   WebkitBackdropFilter: 'blur(12px)',
                   border: '1px solid var(--border)',
@@ -670,7 +670,7 @@ export default function HooksSettingsPanel() {
                                 <HookTypeIcon type={hook.type} />
                                 <HookTypeBadge type={hook.type} />
                                 <span style={{
-                                  background: 'rgba(15,15,25,0.70)',
+                                  background: 'var(--glass-bg-low)',
                                   borderRadius: 6,
                                   padding: '3px 8px',
                                   fontSize: 11,

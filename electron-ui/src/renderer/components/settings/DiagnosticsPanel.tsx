@@ -171,7 +171,7 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
         overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
-        background: 'rgba(15,15,25,0.85)',
+        background: 'var(--glass-bg-low)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid var(--border)',
@@ -256,7 +256,7 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
       {/* CLAUDE.md check */}
       <div style={{
         marginTop: 8,
-        background: 'rgba(15,15,25,0.85)',
+        background: 'var(--glass-bg-low)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid var(--border)',
@@ -286,7 +286,7 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
       {/* MCP Connectivity */}
       <div style={{
         marginTop: 8,
-        background: 'rgba(15,15,25,0.85)',
+        background: 'var(--glass-bg-low)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid var(--border)',

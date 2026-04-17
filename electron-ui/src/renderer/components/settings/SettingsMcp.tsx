@@ -497,7 +497,7 @@ function ServerCard({
       onMouseEnter={() => setCardHovered(true)}
       onMouseLeave={() => setCardHovered(false)}
       style={{
-      background: 'rgba(15,15,25,0.85)',
+      background: 'var(--glass-bg-low)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
       border: '1px solid var(--border)',
@@ -771,7 +771,7 @@ function LiveSessionStatus({ servers }: { servers: ActiveMcpServer[] }) {
   if (servers.length === 0) {
     return (
       <div style={{
-        background: 'rgba(15,15,25,0.85)',
+        background: 'var(--glass-bg-low)',
         border: '1px solid var(--bg-hover)',
         borderRadius: 10,
         padding: '10px 14px',
@@ -792,7 +792,7 @@ function LiveSessionStatus({ servers }: { servers: ActiveMcpServer[] }) {
   }
   return (
     <div style={{
-      background: 'rgba(15,15,25,0.85)',
+      background: 'var(--glass-bg-low)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
       border: '1px solid var(--border)',
