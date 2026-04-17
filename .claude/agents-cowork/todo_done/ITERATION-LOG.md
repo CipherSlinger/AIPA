@@ -8294,6 +8294,25 @@ Status: SUCCESS (0 errors, pre-existing warnings unchanged)
 - [x] ToolUseBlock routes 'Write' tool to FileWriteCard
 - [x] npm run check passes with 0 errors
 
+## Iteration 641 — Light Theme CSS Variable Parity Audit
+_Date: 2026-04-16 | Sprint CSS_
+
+### Summary
+Audited globals.css for CSS variable parity between dark :root and [data-theme="light"]. Performed a systematic comparison of all 80 variables defined in :root. All color/opacity variables are already present in [data-theme="light"] with appropriate light-theme values. The only un-overridden variables are the z-index layering system (--z-base, --z-sidebar, --z-header, --z-fab, --z-dropdown, --z-popover, --z-modal, --z-toast, --z-tooltip, --z-overlay) which are non-color values and correctly inherit from :root. No gaps found — parity is complete.
+
+### Files Changed
+- `electron-ui/src/renderer/styles/globals.css` — No changes needed. All color variables already have light theme overrides.
+
+### Build
+Status: SUCCESS (0 errors, 205 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] All color/opacity variables in :root also present in [data-theme="light"]
+- [x] Light theme values are appropriate (light bg, dark text, subtle borders)
+- [x] Non-color variables (z-index) correctly inherit from :root — no override needed
+- [x] npm run check passes with 0 errors
+- [x] npm run build succeeds
+
 ## Iteration 636 — CSS Variable Migration: formatHtml.ts injected styles
 _Date: 2026-04-16 | Sprint CSS_
 
