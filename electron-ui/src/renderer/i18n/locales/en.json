@@ -422,7 +422,8 @@
     "compactViewTooltip": "Toggle compact view",
     "noResults": "No sessions found",
     "globalSearchHint": "Press Enter to search all sessions",
-    "untitledSession": "Untitled Session"
+    "untitledSession": "Untitled Session",
+    "titleGenerated": "Session title updated"
   },
   "settings": {
     "title": "Settings",

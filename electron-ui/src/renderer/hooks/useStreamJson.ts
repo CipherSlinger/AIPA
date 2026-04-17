@@ -697,6 +697,7 @@ Keep exercises focused and achievable. The goal is active learning through doing
                 window.electronAPI.sessionRename(claudeSessionId, title)
                 // Update the session title in the store for toolbar display
                 setSessionTitle(title)
+                useUiStore.getState().addToast('info', t('session.titleGenerated'), 2000)
                 // Refresh session list in sidebar to show the new title
                 window.electronAPI.sessionList().then((list: any) => {
                   if (list) {
@@ -891,10 +892,11 @@ Keep exercises focused and achievable. The goal is active learning through doing
           break
         }
         case 'cli:customTitle': {
-          // CLI has auto-generated a session title — update the store
+          // CLI has auto-generated a session title — update the store and notify user
           const d = data as { sessionId: string; title: string }
           if (d.title && !useChatStore.getState().currentSessionTitle) {
             useChatStore.getState().setSessionTitle(d.title)
+            useUiStore.getState().addToast('info', t('session.titleGenerated'), 2000)
           }
           break
         }

@@ -422,7 +422,8 @@
     "compactViewTooltip": "切换紧凑视图",
     "noResults": "未找到会话",
     "globalSearchHint": "按 Enter 搜索所有会话",
-    "untitledSession": "无标题会话"
+    "untitledSession": "无标题会话",
+    "titleGenerated": "会话标题已更新"
   },
   "settings": {
     "title": "设置",
