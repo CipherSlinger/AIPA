@@ -112,6 +112,17 @@
   --glass-shimmer:   rgba(255,255,255,0.04);
   --cta-gradient:    linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88));
 
+  /* Accent variants (mirrors light-theme additions for parity) */
+  --accent-bg:       rgba(99,102,241,0.10);
+  --accent-border:   rgba(99,102,241,0.25);
+  --accent-muted:    #818cf8;
+
+  /* Status color aliases (semantic, mirrors light-theme parity) */
+  --color-error:    #f87171;
+  --color-success:  #4ade80;
+  --color-warning:  #fbbf24;
+  --color-violet:   #a78bfa;
+
   /* Task queue */
   --queue-accent:       #818cf8;
   --queue-accent-deep:  #8b5cf6;
