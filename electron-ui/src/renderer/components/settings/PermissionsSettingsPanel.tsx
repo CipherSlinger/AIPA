@@ -666,3 +666,194 @@ function RuleSection({
     </div>
   )
 }
+
+// ── AdditionalDirectoriesSection sub-component ──────────────────────────
+
+interface AdditionalDirectoriesSectionProps {
+  dirs: string[]
+  onAdd: (path: string) => void
+  onRemove: (index: number) => void
+  t: (key: string, params?: Record<string, string>) => string
+}
+
+function AdditionalDirectoriesSection({ dirs, onAdd, onRemove, t }: AdditionalDirectoriesSectionProps) {
+  const [manualInput, setManualInput] = useState('')
+  const [showInput, setShowInput] = useState(false)
+
+  const handleBrowse = async () => {
+    const selected = await window.electronAPI.fsShowOpenDialog()
+    if (selected) {
+      onAdd(selected)
+    }
+  }
+
+  const handleManualAdd = () => {
+    if (manualInput.trim()) {
+      onAdd(manualInput.trim())
+      setManualInput('')
+      setShowInput(false)
+    }
+  }
+
+  return (
+    <div style={{
+      background: 'var(--glass-bg-low)',
+      border: '1px solid var(--glass-border)',
+      borderRadius: 12,
+      padding: '14px 16px',
+    }}>
+      {/* Section header */}
+      <div style={{
+        display: 'flex', alignItems: 'flex-start',
+        justifyContent: 'space-between', marginBottom: 10, gap: 12,
+      }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
+            {t('permissions.additionalDirs')}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.5 }}>
+            {t('permissions.additionalDirsDesc')}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+          <button
+            onClick={handleBrowse}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              background: 'var(--bg-input)',
+              border: '1px solid var(--glass-border-md)',
+              borderRadius: 6, padding: '4px 10px',
+              cursor: 'pointer', fontSize: 11, fontWeight: 500,
+              color: 'var(--text-secondary)',
+              transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'var(--glass-border-md)'
+              e.currentTarget.style.color = 'var(--text-primary)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'var(--bg-input)'
+              e.currentTarget.style.color = 'var(--text-secondary)'
+            }}
+            aria-label={t('permissions.addDirectory')}
+          >
+            <Plus size={12} /> {t('permissions.addDirectory')}
+          </button>
+          <button
+            onClick={() => setShowInput(v => !v)}
+            title="手动输入路径"
+            style={{
+              display: 'flex', alignItems: 'center',
+              background: showInput ? 'var(--glass-border-md)' : 'var(--bg-input)',
+              border: '1px solid var(--glass-border-md)',
+              borderRadius: 6, padding: '4px 8px',
+              cursor: 'pointer', fontSize: 12,
+              color: 'var(--text-secondary)',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'var(--glass-border-md)'
+              e.currentTarget.style.color = 'var(--text-primary)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = showInput ? 'var(--glass-border-md)' : 'var(--bg-input)'
+              e.currentTarget.style.color = 'var(--text-secondary)'
+            }}
+            aria-label="手动输入路径"
+          >
+            ···
+          </button>
+        </div>
+      </div>
+
+      {/* Directory list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minHeight: 28 }}>
+        {dirs.length === 0 && !showInput && (
+          <span style={{
+            fontSize: 11, color: 'var(--text-faint)',
+            fontStyle: 'italic', padding: '4px 0',
+          }}>
+            {t('permissions.noAdditionalDirs')}
+          </span>
+        )}
+        {dirs.map((dir, idx) => (
+          <div
+            key={`dir-${idx}`}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: 'rgba(99,102,241,0.07)',
+              border: '1px solid rgba(99,102,241,0.18)',
+              borderRadius: 6, padding: '5px 10px',
+            }}
+          >
+            <span style={{
+              fontSize: 12, fontFamily: 'monospace',
+              color: 'var(--text-primary)', flex: 1,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {dir}
+            </span>
+            <button
+              onClick={() => onRemove(idx)}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                padding: 0, display: 'inline-flex', flexShrink: 0,
+                color: 'var(--text-faint)', opacity: 0.6,
+                transition: 'opacity 0.15s ease',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
+              onMouseLeave={e => { e.currentTarget.style.opacity = '0.6' }}
+              aria-label={t('common.remove')}
+            >
+              <X size={12} />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Manual path input */}
+      {showInput && (
+        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+          <input
+            autoFocus
+            value={manualInput}
+            onChange={e => setManualInput(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') handleManualAdd()
+              if (e.key === 'Escape') { setShowInput(false); setManualInput('') }
+            }}
+            placeholder="/path/to/directory"
+            style={{
+              flex: 1, padding: '7px 10px', fontSize: 13,
+              background: 'var(--bg-input)',
+              border: '1px solid var(--glass-border-md)',
+              borderRadius: 7, color: 'var(--text-primary)',
+              fontFamily: 'monospace', outline: 'none',
+              transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+            }}
+            onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
+            onBlur={e => { e.currentTarget.style.borderColor = 'var(--glass-border-md)'; e.currentTarget.style.boxShadow = 'none' }}
+          />
+          <button
+            onClick={handleManualAdd}
+            disabled={!manualInput.trim()}
+            style={{
+              padding: '7px 14px', fontSize: 12, fontWeight: 600,
+              background: manualInput.trim()
+                ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
+                : 'var(--bg-input)',
+              border: manualInput.trim() ? 'none' : '1px solid var(--glass-border-md)',
+              borderRadius: 7,
+              color: manualInput.trim() ? 'var(--text-bright)' : 'var(--text-faint)',
+              cursor: manualInput.trim() ? 'pointer' : 'not-allowed',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {t('common.add')}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
