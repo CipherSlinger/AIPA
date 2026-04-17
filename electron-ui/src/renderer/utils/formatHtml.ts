@@ -169,7 +169,7 @@ export function formatHtml(
       margin-bottom: 24px;
       background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
       border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.1);
+      border: 1px solid var(--border);
     }
     .header h1 { font-size: 24px; color: #fff; margin-bottom: 12px; font-weight: 700; }
     .meta { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; font-size: 12px; color: #8b95a5; }
@@ -178,7 +178,7 @@ export function formatHtml(
     .message {
       padding: 16px 20px;
       border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.08);
+      border: 1px solid var(--border);
     }
     .message.user {
       background: #1e3a5f;
@@ -187,7 +187,7 @@ export function formatHtml(
     }
     .message.assistant {
       background: #1e1e2e;
-      border-color: rgba(255,255,255,0.08);
+      border-color: var(--border);
       margin-right: 40px;
     }
     .message.system {
@@ -221,7 +221,7 @@ export function formatHtml(
     .message-content ul { margin: 8px 0; padding-left: 20px; }
     .message-content li { margin-bottom: 4px; }
     .inline-code {
-      background: rgba(255,255,255,0.08);
+      background: var(--glass-bg-low);
       padding: 2px 6px;
       border-radius: 4px;
       font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
@@ -232,7 +232,7 @@ export function formatHtml(
       margin: 12px 0;
       background: #0d1117;
       border-radius: 8px;
-      border: 1px solid rgba(255,255,255,0.08);
+      border: 1px solid var(--border);
       overflow: hidden;
     }
     .code-block .code-lang {
@@ -240,7 +240,7 @@ export function formatHtml(
       padding: 6px 12px;
       font-size: 11px;
       color: #565f89;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+      border-bottom: 1px solid var(--border);
       font-weight: 500;
     }
     .code-block pre {
@@ -255,9 +255,9 @@ export function formatHtml(
     .tool-uses { margin-top: 12px; }
     .tool-use {
       margin: 8px 0;
-      background: rgba(255,255,255,0.03);
+      background: var(--glass-bg-low);
       border-radius: 8px;
-      border: 1px solid rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
       overflow: hidden;
     }
     .tool-use summary {
@@ -267,7 +267,7 @@ export function formatHtml(
       color: #9ece6a;
       font-weight: 500;
     }
-    .tool-use summary:hover { background: rgba(255,255,255,0.03); }
+    .tool-use summary:hover { background: var(--glass-bg-low); }
     .tool-label { font-size: 11px; color: #565f89; display: block; margin-bottom: 4px; font-weight: 500; }
     .tool-input, .tool-result { padding: 8px 12px; }
     .tool-input pre, .tool-result pre {
@@ -281,9 +281,9 @@ export function formatHtml(
     }
     .thinking {
       margin-top: 12px;
-      background: rgba(255,255,255,0.02);
+      background: var(--glass-bg-low);
       border-radius: 8px;
-      border: 1px solid rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
     }
     .thinking summary {
       padding: 8px 12px;
@@ -299,7 +299,7 @@ export function formatHtml(
       padding: 16px;
       font-size: 11px;
       color: #565f89;
-      border-top: 1px solid rgba(255,255,255,0.06);
+      border-top: 1px solid var(--border);
     }
     .task-done { list-style: none; color: #9ece6a; }
     .task-todo { list-style: none; color: #565f89; }
