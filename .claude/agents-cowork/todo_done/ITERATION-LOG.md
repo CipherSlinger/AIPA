@@ -8332,3 +8332,49 @@ Status: SUCCESS (0 errors, 204 pre-existing warnings)
 - [x] Status/accent color values (blue, red, green rgba) correctly preserved
 - [x] api-spec todo file moved to done
 - [x] npm run check passes with 0 errors
+
+---
+
+## Iteration 640 — FEATURE_GAP.md update for Iterations 635-638
+_Date: 2026-04-16 | Sprint Docs_
+
+### Summary
+Updated FEATURE_GAP.md: updated date line to Iteration 638; marked FileRead (637) and Agent tool (638) as ✅ in the tools table and priority section; appended iteration log entries 635-638 at bottom.
+
+### Files Changed
+- `FEATURE_GAP.md` — date line updated; FileRead/Agent rows updated; new iteration log entries 635-638 appended
+
+### Build
+Status: N/A (docs-only)
+
+### Acceptance Criteria
+- [x] Date line updated to Iteration 638
+- [x] FileRead row marked ✅ with FileReadCard description
+- [x] Agent row marked ✅ with AgentToolCard description
+- [x] Iteration 635-638 entries appended at bottom
+
+---
+
+## Iteration 642 — cleanupPeriodDays UI Setting
+_Date: 2026-04-16 | Sprint Features_
+
+### Summary
+Added UI enforcement for the CLI's `cleanupPeriodDays` session auto-cleanup setting. The IPC layer (`config:readCLISettings` / `config:writeCLISettings`) and core UI were already present from Iteration 518; this iteration tightens the range constraints to min=1, max=365 (per spec), clamps the value on mount, removes the "0=disabled" escape hatch, and updates i18n hints in both en and zh-CN. FEATURE_GAP.md gap item updated to ✅.
+
+### Files Changed
+- `electron-ui/src/renderer/components/settings/SettingsGeneral.tsx` — min=1/max=365 enforced on input and blur validation; value clamped on mount; "disabled" badge removed
+- `electron-ui/src/renderer/i18n/locales/en.json` — cleanupPeriodDaysHint updated to reflect 1-365 range
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` — cleanupPeriodDaysHint updated
+- `FEATURE_GAP.md` — line 95 updated from ❌ to ✅
+
+### Build
+Status: SUCCESS (0 errors, 205 warnings — all pre-existing)
+
+### Acceptance Criteria
+- [x] IPC reads/writes cleanupPeriodDays from ~/.claude/settings.json
+- [x] Number input shown in settings UI (Behavior group)
+- [x] Default value 30 shown when not set
+- [x] Min 1, max 365 enforced (input attr + blur validation + mount clamp)
+- [x] Value saved to ~/.claude/settings.json on blur/Enter
+- [x] npm run check passes with 0 errors
+- [x] Committed and pushed

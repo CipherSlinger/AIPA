@@ -47,7 +47,8 @@ export default function SettingsGeneral({
 
   useEffect(() => {
     window.electronAPI.configReadCLISettings().then((cliSettings: Record<string, unknown>) => {
-      const val = typeof cliSettings.cleanupPeriodDays === 'number' ? cliSettings.cleanupPeriodDays : 30
+      const raw = typeof cliSettings.cleanupPeriodDays === 'number' ? cliSettings.cleanupPeriodDays : 30
+      const val = Math.min(365, Math.max(1, raw))
       setCleanupDays(val)
       setCleanupDaysInput(String(val))
       cleanupDaysLastValid.current = val
@@ -607,7 +608,8 @@ export default function SettingsGeneral({
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <input
               type="number"
-              min={0}
+              min={1}
+              max={365}
               step={1}
               value={cleanupDaysInput}
               onChange={(e) => setCleanupDaysInput(e.target.value)}
@@ -622,7 +624,7 @@ export default function SettingsGeneral({
                 e.currentTarget.style.borderColor = 'var(--border)'
                 e.currentTarget.style.boxShadow = 'none'
                 const parsed = parseInt(cleanupDaysInput, 10)
-                if (!isNaN(parsed) && parsed >= 0) {
+                if (!isNaN(parsed) && parsed >= 1 && parsed <= 365) {
                   const newVal = parsed
                   setCleanupDays(newVal)
                   setCleanupDaysInput(String(newVal))
@@ -646,9 +648,6 @@ export default function SettingsGeneral({
               }}
             />
             <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{t('common.days')}</span>
-            {cleanupDays === 0 && (
-              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('settings.cleanupPeriodDaysDisabled')}</span>
-            )}
           </div>,
           <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
             {t('settings.cleanupPeriodDaysHint')}

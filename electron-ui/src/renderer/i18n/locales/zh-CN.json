@@ -530,7 +530,7 @@
     "speculation": "投机执行",
     "speculationHint": "在隔离沙箱中预执行预测的下一条提示词 — 接受即注入结果，拒绝即丢弃。需开启提示建议功能。",
     "cleanupPeriodDays": "会话历史保留天数",
-    "cleanupPeriodDaysHint": "自动删除超过指定天数的会话文件，设为 0 表示禁用自动清理。",
+    "cleanupPeriodDaysHint": "自动删除超过指定天数的会话文件（1-365 天），默认为 30 天。",
     "cleanupPeriodDaysDisabled": "（禁用）",
     "sessionEnvVars": "会话环境变量",
     "sessionEnvVarsHint": "这些键值对将作为环境变量在 CLI 会话中可用。",

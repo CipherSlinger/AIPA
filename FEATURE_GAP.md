@@ -92,7 +92,7 @@
 - ✅ `resumeLastSession` 偏好项 — 重启时自动恢复
 - ✅ `cli:generateAwaySummary` — 生成"离开摘要"
 - ✅ `/compact` — ✅ **P0-4 已实现** — `TokenUsageBar` 在 75%/90% token 使用率时显示 COMPACT 按钮，点击后向 CLI stdin 发送 `/compact` 命令
-- ❌ 无 `cleanupPeriodDays` UI 设置入口（仅在 CLI settings.json 层面）
+- ✅ `cleanupPeriodDays` UI 设置入口 — SettingsGeneral 数字输入，读写 ~/.claude/settings.json（Iteration 642）
 - ✅ 会话本地导出（Iteration 541）：`useConversationExport.ts` 已完整实现 — 支持 Markdown/HTML/JSON 三种格式，包含工具输入/输出（`<details>` 折叠块），ChatHeader 下载按钮已接入 `exportConversation`
 
 ### 差距 & 优先级
