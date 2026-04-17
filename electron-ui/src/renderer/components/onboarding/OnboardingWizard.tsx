@@ -109,7 +109,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                   transition: 'all 0.15s ease',
                 }}>
                   {isDone
-                    ? <Check size={10} color="rgba(0,0,0,0.75)" strokeWidth={3} />
+                    ? <Check size={10} color="var(--text-primary)" strokeWidth={3} />
                     : <span style={{ fontSize: 9, fontWeight: 700, color: isActive ? 'rgba(255,255,255,0.95)' : 'var(--text-muted)' }}>{s}</span>
                   }
                 </div>
@@ -320,7 +320,7 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'fixed',
     inset: 0,
     zIndex: 9999,
-    background: 'rgba(0,0,0,0.80)',
+    background: 'var(--glass-overlay)',
     backdropFilter: 'blur(16px)',
     WebkitBackdropFilter: 'blur(16px)',
     display: 'flex',

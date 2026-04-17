@@ -16,7 +16,7 @@ function StatusBadge({ toolName }: { toolName: string }) {
   const lower = toolName.toLowerCase()
   let label = 'MOD'
   let bg = 'rgba(251,191,36,0.85)'
-  let color = 'rgba(0,0,0,0.75)'
+  let color = 'var(--text-primary)'
   if (lower.includes('create') || lower.includes('write') || lower.includes('new')) {
     label = 'ADD'
     bg = 'rgba(34,197,94,0.85)'

@@ -46,7 +46,7 @@ function PriorityBadge({ priority }: { priority?: string }) {
         fontWeight: 700,
         letterSpacing: '0.07em',
         textTransform: 'uppercase',
-        color: 'rgba(0,0,0,0.75)',
+        color: 'var(--text-primary)',
         background: bg,
         borderRadius: 6,
         padding: '1px 5px',
