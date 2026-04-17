@@ -26,7 +26,8 @@ const log = createLogger('clawd-bridge')
 // Runtime config path matches hooks/server-config.js RUNTIME_CONFIG_PATH
 const RUNTIME_CONFIG_PATH = path.join(os.homedir(), '.clawd', 'runtime.json')
 const DEFAULT_PORT = 23333
-const CLAWD_LAUNCH_PATH = path.join(__dirname, '..', '..', '..', 'clawd-on-desk', 'launch.js')
+const CLAWD_DIR = path.join(__dirname, '..', '..', '..', 'clawd-on-desk')
+const CLAWD_LAUNCH_PATH = path.join(CLAWD_DIR, 'launch.js')
 
 // Valid port range used by Clawd (23333–23337)
 const PORT_MIN = 23333
@@ -150,17 +151,39 @@ export function notifyClawdState(state: string, sessionId: string): void {
  */
 export function launchClawd(): void {
   try {
-    const child = spawn(process.execPath, [CLAWD_LAUNCH_PATH], {
-      detached: true,
-      stdio: 'ignore',
-      env: {
-        ...process.env,
-        // Strip ELECTRON_RUN_AS_NODE so the child launch.js can start Electron in GUI mode
-        ELECTRON_RUN_AS_NODE: undefined as unknown as string,
-      },
-    })
+    if (!fs.existsSync(CLAWD_DIR)) {
+      log.warn('clawd-on-desk directory not found at:', CLAWD_DIR)
+      return
+    }
+    // Prefer clawd-on-desk's own electron binary (present after `npm install`).
+    const clawdElectronCmd = path.join(CLAWD_DIR, 'node_modules', '.bin',
+      process.platform === 'win32' ? 'electron.cmd' : 'electron')
+    const clawdElectronExe = path.join(CLAWD_DIR, 'node_modules', 'electron',
+      'dist', process.platform === 'win32' ? 'electron.exe' : 'electron')
+
+    let electronBin = ''
+    if (fs.existsSync(clawdElectronCmd)) {
+      electronBin = clawdElectronCmd
+    } else if (fs.existsSync(clawdElectronExe)) {
+      electronBin = clawdElectronExe
+    }
+
+    // Strip ELECTRON_RUN_AS_NODE so Electron starts in GUI (browser) mode.
+    const env = { ...process.env }
+    delete env.ELECTRON_RUN_AS_NODE
+
+    let child
+    if (electronBin) {
+      // clawd has its own electron installed — run it directly
+      child = spawn(electronBin, ['.'], { detached: true, stdio: 'ignore', cwd: CLAWD_DIR, env })
+    } else {
+      // No separate electron found — use AIPA's own Electron binary to launch clawd.
+      // process.execPath is the Electron binary; running it with `cwd=CLAWD_DIR` and
+      // passing the app directory as the first argument starts clawd as an Electron app.
+      child = spawn(process.execPath, [CLAWD_DIR], { detached: true, stdio: 'ignore', env })
+    }
     child.unref()
-    log.info('Clawd launch requested, pid:', child.pid)
+    log.info('Clawd launch requested, pid:', child.pid, 'bin:', electronBin || process.execPath)
   } catch (err) {
     log.warn('Failed to launch Clawd:', String(err))
   }
