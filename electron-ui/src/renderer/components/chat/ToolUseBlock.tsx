@@ -23,6 +23,7 @@ import { TaskCreateBadge, TaskUpdateBadge, TASK_CREATE_TOOLS, TASK_UPDATE_TOOLS 
 import { ImageThumbnail } from './tool-cards/ImageThumbnail'
 import { ToolCardHeader } from './tool-cards/ToolCardHeader'
 import { StructuredOutputCard } from './tool-cards/StructuredOutputCard'
+import { FileReadCard } from './tool-cards/FileReadCard'
 
 interface Props {
   tool: ToolUseInfo
@@ -403,6 +404,18 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
   // StructuredOutput: render specialized JSON schema output card (P3-1)
   if (tool.name === 'StructuredOutput' || tool.name === 'structured_output') {
     return <StructuredOutputCard tool={tool} />
+  }
+
+  // Read (FileRead): structured file content card
+  if (tool.name === 'Read' || tool.name === 'read_file') {
+    const fileResult = typeof tool.result === 'string' ? tool.result : null
+    return (
+      <FileReadCard
+        input={tool.input || {}}
+        result={fileResult}
+        isStreaming={tool.status === 'running'}
+      />
+    )
   }
 
   // TaskCreate: compact inline "created" badge
