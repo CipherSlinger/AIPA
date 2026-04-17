@@ -1,14 +1,12 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react'
-import { Save, Eye, EyeOff, Brain, MessageSquare, Palette, FolderOpen, Settings2, Search, X } from 'lucide-react'
+import { Save, MessageSquare, Palette, FolderOpen, Settings2, Search, X } from 'lucide-react'
 import { usePrefsStore } from '../../store'
 import { useI18n } from '../../i18n'
 import { PROMPT_TEMPLATES } from '../../utils/promptTemplates'
 import SettingsGroup from './SettingsGroup'
-import SettingsApiKeyPool from './SettingsApiKeyPool'
 import Toggle from '../ui/Toggle'
 import {
   TAG_PRESETS_SETTINGS,
-  MODEL_OPTIONS,
   FONT_FAMILIES,
   THEMES,
   INPUT_STYLE,
@@ -17,8 +15,6 @@ import {
 interface SettingsGeneralProps {
   local: any
   setLocal: (updater: (prev: any) => any) => void
-  showKey: boolean
-  setShowKey: (v: boolean) => void
   saved: boolean
   onSave: () => void
 }
@@ -26,8 +22,6 @@ interface SettingsGeneralProps {
 export default function SettingsGeneral({
   local,
   setLocal,
-  showKey,
-  setShowKey,
   saved,
   onSave,
 }: SettingsGeneralProps) {
@@ -42,9 +36,6 @@ export default function SettingsGeneral({
   const [cleanupDaysInput, setCleanupDaysInput] = useState<string>('30')
   const cleanupDaysLastValid = useRef<number>(30)
 
-  // aiReplyLanguage — reads/writes `language` field in ~/.claude/settings.json via IPC
-  const [aiReplyLanguage, setAiReplyLanguage] = useState<string>('')
-
   // defaultShell — reads/writes `defaultShell` field in ~/.claude/settings.json via IPC
   const [defaultShell, setDefaultShell] = useState<string>('bash')
 
@@ -58,8 +49,6 @@ export default function SettingsGeneral({
       setCleanupDays(val)
       setCleanupDaysInput(String(val))
       cleanupDaysLastValid.current = val
-      const lang = typeof cliSettings.language === 'string' ? cliSettings.language : ''
-      setAiReplyLanguage(lang)
       const shell = typeof cliSettings.defaultShell === 'string' ? cliSettings.defaultShell : 'bash'
       setDefaultShell(shell)
       // respectGitignore defaults to true if not explicitly set to false
@@ -69,7 +58,6 @@ export default function SettingsGeneral({
   }, [])
 
   const groupKeywords = useMemo(() => ({
-    aiEngine: [t('settings.apiKey'), t('settings.model'), t('settings.advisorModel'), t('settings.thinkingMode'), t('settings.maxTurns'), t('settings.budgetLimit'), t('settings.aiReplyLanguage'), 'API', 'Claude', 'Opus', 'Sonnet', 'Haiku', t('settings.groups.aiEngine'), 'advisor', 'language'].join(' ').toLowerCase(),
     prompts: [t('settings.promptTemplate'), t('settings.systemPrompt'), t('settings.groups.prompts')].join(' ').toLowerCase(),
     appearance: [t('settings.language'), t('settings.displayName'), t('settings.theme'), t('settings.fontSize'), t('settings.fontFamily'), t('settings.compactMode'), t('settings.groups.appearance')].join(' ').toLowerCase(),
     workspace: [t('settings.workingFolder'), t('tags.sectionTitle'), t('settings.groups.workspace')].join(' ').toLowerCase(),
@@ -131,148 +119,7 @@ export default function SettingsGeneral({
         )}
       </div>
 
-      {/* Group 1: AI Engine */}
-      {isGroupVisible('aiEngine') && (
-      <SettingsGroup title={t('settings.groups.aiEngine')} icon={<Brain size={14} />} groupKey="aiEngine">
-        {field(
-          t('settings.apiKey'),
-          <div style={{ position: 'relative' }}>
-            <input
-              type={showKey ? 'text' : 'password'}
-              value={local.apiKey}
-              onChange={(e) => updateLocal({ apiKey: e.target.value })}
-              placeholder="sk-ant-..."
-              onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
-              style={{ ...INPUT_STYLE, paddingRight: 36 }}
-            />
-            <button
-              onClick={() => setShowKey(!showKey)}
-              aria-label={showKey ? t('settingsAdvanced.hideApiKey') : t('settingsAdvanced.showApiKey')}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--border)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-              style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3px 4px', borderRadius: 4, transition: 'all 0.15s ease' }}
-            >
-              {showKey ? <EyeOff size={13} /> : <Eye size={13} />}
-            </button>
-          </div>
-        )}
-
-        <SettingsApiKeyPool field={field} />
-
-        {field(t('settings.model'), (
-          <select value={local.model} onChange={(e) => updateLocal({ model: e.target.value })} style={{ ...INPUT_STYLE }}>
-            {MODEL_OPTIONS.map((m) => <option key={m.id} value={m.id}>{t(m.labelKey)}</option>)}
-          </select>
-        ))}
-
-        {field(t('settings.advisorModel'), (
-          <select
-            value={local.advisorModel ?? ''}
-            onChange={(e) => updateLocal({ advisorModel: e.target.value || undefined })}
-            style={{ ...INPUT_STYLE }}
-          >
-            <option value="">{t('settings.advisorModelSame')}</option>
-            {MODEL_OPTIONS.map((m) => <option key={m.id} value={m.id}>{t(m.labelKey)}</option>)}
-          </select>
-        ),
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>{t('settings.advisorModelHint')}</span>
-        )}
-
-        {field(t('settings.thinkingMode'), (
-          <select
-            value={local.thinkingLevel ?? 'off'}
-            onChange={(e) => updateLocal({ thinkingLevel: e.target.value as 'off' | 'adaptive' })}
-            style={{ ...INPUT_STYLE }}
-          >
-            <option value="off">{t('settings.thinkingOff')}</option>
-            <option value="adaptive">{t('settings.thinkingAdaptive')}</option>
-          </select>
-        ),
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>{t('settings.thinkingHint')}</span>
-        )}
-
-        {field(
-          t('settings.maxTurns'),
-          <input
-            type="number"
-            min={1}
-            max={200}
-            value={local.maxTurns ?? ''}
-            onChange={(e) => updateLocal({ maxTurns: e.target.value ? Number(e.target.value) : undefined })}
-            placeholder={t('settings.unlimited')}
-            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
-            style={{ ...INPUT_STYLE, width: 120 }}
-          />,
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-            {t('settings.maxTurnsHint')}
-          </span>
-        )}
-
-        {field(
-          t('settings.budgetLimit'),
-          <input
-            type="number"
-            min={0.01}
-            step={0.01}
-            value={local.maxBudgetUsd ?? ''}
-            onChange={(e) => updateLocal({ maxBudgetUsd: e.target.value ? Number(e.target.value) : undefined })}
-            placeholder={t('settings.unlimited')}
-            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
-            style={{ ...INPUT_STYLE, width: 120 }}
-          />,
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-            {t('settings.budgetHint')}
-          </span>
-        )}
-
-        {field(
-          t('settings.aiReplyLanguage'),
-          <select
-            value={aiReplyLanguage}
-            onChange={(e) => {
-              const next = e.target.value
-              setAiReplyLanguage(next)
-              // Empty string = remove the field (follow system)
-              window.electronAPI.configWriteCLISettings({ language: next || '' }).catch(() => {})
-            }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
-            style={{
-              background: 'var(--bg-hover)',
-              border: '1px solid var(--border)',
-              borderRadius: 6,
-              color: 'var(--text-primary)',
-              padding: '6px 10px',
-              fontSize: 13,
-              outline: 'none',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-              appearance: 'none',
-              WebkitAppearance: 'none',
-              width: '100%',
-            }}
-          >
-            <option value="">{t('settings.aiReplyLanguageSystem')}</option>
-            <option value="zh-CN">{t('settings.aiReplyLanguageZhCN')}</option>
-            <option value="zh-TW">{t('settings.aiReplyLanguageZhTW')}</option>
-            <option value="en">{t('settings.aiReplyLanguageEn')}</option>
-            <option value="ja">{t('settings.aiReplyLanguageJa')}</option>
-            <option value="ko">{t('settings.aiReplyLanguageKo')}</option>
-            <option value="fr">{t('settings.aiReplyLanguageFr')}</option>
-            <option value="de">{t('settings.aiReplyLanguageDe')}</option>
-            <option value="es">{t('settings.aiReplyLanguageEs')}</option>
-          </select>,
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-            {t('settings.aiReplyLanguageHint')}
-          </span>
-        )}
-      </SettingsGroup>
-      )}
-
-      {/* Group 2: Prompts */}
+      {/* Group 1: Prompts */}
       {isGroupVisible('prompts') && (
       <SettingsGroup title={t('settings.groups.prompts')} icon={<MessageSquare size={14} />} groupKey="prompts">
         {field(

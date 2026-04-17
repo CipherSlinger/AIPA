@@ -187,13 +187,18 @@ export default function SettingsPanel() {
           <SettingsGeneral
             local={local}
             setLocal={handleSetLocal}
+            saved={saved}
+            onSave={save}
+          />
+        ) : settingsTab === 'ai-engine' ? (
+          <SettingsAIEngine
+            local={local}
+            setLocal={handleSetLocal}
             showKey={showKey}
             setShowKey={setShowKey}
             saved={saved}
             onSave={save}
           />
-        ) : settingsTab === 'ai-engine' ? (
-          <SettingsAIEngine />
         ) : settingsTab === 'permissions' ? (
           <PermissionsSettingsPanel />
         ) : settingsTab === 'stats' ? (
