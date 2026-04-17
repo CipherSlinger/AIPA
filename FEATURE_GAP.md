@@ -1,6 +1,6 @@
 # AIPA x Claude Code CLI — 功能差距文档
 
-> 更新日期：2026-04-17（Iteration 663）
+> 更新日期：2026-04-17（Iteration 667）
 > CLI 版本：claude-code 2.1.81（BUILD_TIME: 2026-03-20T21:25:42Z）
 > 分析目的：指导 AIPA UI 逐步对齐 CLI 全部能力
 
@@ -135,9 +135,9 @@ CLI 定义了 5 种权限模式（`ExternalPermissionMode`）：
 - ✅ `cli:respondPermission` — 回写 `control_response` 给 CLI
 - ✅ `--dangerously-skip-permissions` 标志 — 通过 `skipPermissions` 偏好控制
 - ⚠️ 偏好中有 `skipPermissions: true` 默认值 — 实际默认绕过了所有权限（相当于 `bypassPermissions`）
-- ❌ 无规则级别权限 UI（用户不能在 UI 中添加/编辑 allow/deny/ask 规则列表）
-- ❌ 无权限模式切换 UI（无法在 UI 中从 `default` 切换到 `acceptEdits` 等模式）
-- ❌ 无 `additionalDirectories` UI 管理
+- ✅ 规则级别权限 UI — PermissionsSettingsPanel 中 allow/deny/ask 规则列表编辑器，标签式 UI + 行内输入 + 冲突检测（Iteration 665）
+- ✅ 权限模式切换 UI — DefaultModeSelector 子组件，4 个模式按钮（default/acceptEdits/autoEdit/plan）（Iteration 665）
+- ✅ `additionalDirectories` UI 管理 — AdditionalDirectoriesSection 子组件，原生目录选择器 + 手动路径输入 + 删除（Iteration 666）
 - ✅ 权限决策历史已展示 — PermissionsSettingsPanel 新增 SessionPermissionHistory 子组件，从 useChatStore.messages 筛选 role==='permission' 条目，展示最近20条工具权限决策（工具名、decision 状态、时间戳）（Iteration 645）
 
 ### 差距 & 优先级
@@ -153,11 +153,11 @@ CLI 定义了 5 种权限模式（`ExternalPermissionMode`）：
 | 配置键 | 类型 | 描述 | AIPA 是否有 UI |
 |--------|------|------|----------------|
 | `model` | string | 覆盖默认模型 | ✅（ModelPicker + prefsStore.model） |
-| `permissions.defaultMode` | enum | 默认权限模式 | ❌ |
-| `permissions.allow` | array | 允许规则 | ❌ |
-| `permissions.deny` | array | 拒绝规则 | ❌ |
-| `permissions.ask` | array | 总是询问规则 | ❌ |
-| `permissions.additionalDirectories` | array | 额外工作目录 | ❌ |
+| `permissions.defaultMode` | enum | 默认权限模式 | ✅ — PermissionsSettingsPanel DefaultModeSelector，4个模式（default/acceptEdits/autoEdit/plan）按钮选择器（Iteration 665） |
+| `permissions.allow` | array | 允许规则 | ✅ — PermissionsSettingsPanel allow规则列表，标签式编辑器，冲突检测（Iteration 665） |
+| `permissions.deny` | array | 拒绝规则 | ✅ — PermissionsSettingsPanel deny规则列表，红色主题，冲突检测（Iteration 665） |
+| `permissions.ask` | array | 总是询问规则 | ✅ — PermissionsSettingsPanel ask规则列表，琥珀色主题（Iteration 665） |
+| `permissions.additionalDirectories` | array | 额外工作目录 | ✅ — PermissionsSettingsPanel附加目录管理，原生目录选择器+手动路径输入（Iteration 666） |
 | `env` | Record | 会话环境变量 | ✅（SettingsAdvanced 键值对编辑器，读写 ~/.claude/settings.json） |
 | `hooks` | HooksSettings | 钩子配置 | ⚠️ 能读写 CLI settings.json，无可视化 hooks 编辑器 |
 | `mcpServers` | Record | MCP 服务器配置 | ✅（mcp:add/remove/list）|
@@ -383,7 +383,7 @@ AIPA 状态：
 - ✅ 有 `SlashCommandPopup.tsx` 组件
 - ✅ `fs:listCommands` 扫描 `.claude/commands/` 目录（��户自定义命令）
 - ⚠️ 仅扫描了用户自定义命令，未暴露 CLI 内置斜杠命令列表
-- ❌ 无完整内置命令映射到 UI 操作（如 `/compact` 按钮）
+- ✅ 完整内置命令映射到 UI 操作 — CompactButton 已在 ChatHeader 实现，支持 /compact 命令及 Shift+点击自定义指令（Iteration 519/667）
 
 ### 8.3 上下文感知（Context / @ 提及）
 
@@ -430,7 +430,7 @@ CLI 有 4 种压缩策略：
 3. Reactive Compact — 响应式触发（上下文快满时自动触发）
 4. Micro-compact — 轻量级压缩
 
-AIPA 状态：❌ 无任何 compact 触发 UI
+AIPA 状态：✅ compact 触发 UI 已实现 — CompactButton 组件集成于 ChatHeader，Archive 图标按钮，点击发送 /compact 命令，Shift+点击支持自定义压缩指令（Iteration 519/667）
 
 ---
 
@@ -928,3 +928,19 @@ AIPA 状态：❌ 无任何 compact 触发 UI
 
 ### Iteration 663 — 修复：clawd Windows 启动失败（launch.js 不存在）
 根因：`launchClawd()` 依赖 `launch.js` 作为 Electron 入口脚本，但该文件在 clawd 包中不存在（不同构建版本路径差异），导致 Windows 下报 "Cannot find module launch.js" 错误。修复：重写 `clawd-bridge.ts` 中的 `launchClawd()` 函数，完全绕过 `launch.js`——优先尝试 clawd 自带 electron 二进制（`node_modules/.bin/electron[.cmd]` 或 `node_modules/electron/dist/electron[.exe]`），回退至 AIPA 自身 `process.execPath` 并以 `CLAWD_DIR` 为 app 参数；同时删除子进程环境中的 `ELECTRON_RUN_AS_NODE` 变量（防止 Electron 以 Node.js 模式运行）。
+
+---
+
+## 二十一、最新实现记录（2026-04-17，Iterations 664-667）
+
+### Iteration 664 — FEATURE_GAP.md 文档更新（迭代 659-663）
+更新日期至 Iteration 663；disableAllHooks 在配置表格中修正为 ✅；追加第二十节记录迭代 659-663。
+
+### Iteration 665 — 权限规则 UI（allow/deny/ask 列表 + defaultMode 选择器）
+在 PermissionsSettingsPanel.tsx 新增：DefaultModeSelector 子组件（4 个模式按钮：default/acceptEdits/autoEdit/plan）置于面板顶部；ask 规则列表（琥珀色主题）；CLIPermissions 接口扩展 ask 和 defaultMode 字段。IPC 使用 configReadCLISettings / configWriteCLISettings，写入 ~/.claude/settings.json。
+
+### Iteration 666 — additionalDirectories 附加工作目录 UI
+在 PermissionsSettingsPanel.tsx 新增 AdditionalDirectoriesSection 子组件：列出当前附加目录，支持原生 OS 目录选择器（fsShowOpenDialog）和手动文本输入两种添加方式，每项带 × 删除按钮，空状态提示。写入 permissions.additionalDirectories 字段。
+
+### Iteration 667 — /compact 按钮 i18n 键补全
+确认 CompactButton 组件已在 Iteration 519 完整实现并集成至 ChatHeader（Archive 图标按钮，发送 /compact 命令，Shift+点击支持自定义压缩指令）。本次补全三个缺失 i18n 键：chat.compact、chat.compactTriggered、chat.compactTooltip（en.json + zh-CN.json）。
