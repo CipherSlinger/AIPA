@@ -8569,3 +8569,63 @@ Status: SUCCESS (0 TypeScript errors, 202 pre-existing ESLint warnings)
 - [x] Preferences load successfully on first call
 - [x] sidebarWidth still correctly initialized from persisted prefs
 - [x] npm run check passes with 0 errors
+
+## Iteration 656 — outputStyle Setting UI
+_Date: 2026-04-16 | Sprint Features_
+
+### Summary
+Added CLI-level `outputStyle` setting UI to the AI Engine settings tab. This reads/writes the `outputStyle` field in `~/.claude/settings.json` (distinct from the existing persona-level outputStyle in electron-store which controls UI display modes). Dropdown provides auto/text/json options with i18n keys named `cliOutputStyle*` to avoid collision with the existing `outputStyle.*` i18n namespace.
+
+### Files Changed
+- `electron-ui/src/renderer/components/settings/SettingsAIEngine.tsx` — added `cliOutputStyle` state, read it from CLI settings in existing `useEffect`, added select dropdown field after aiReplyLanguage
+- `electron-ui/src/renderer/i18n/locales/en.json` — new cliOutputStyle* keys (label, hint, auto/text/json options)
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` — same keys in Chinese
+
+### Build
+Status: SUCCESS (0 errors, pre-existing warnings only)
+
+### Acceptance Criteria
+- [x] outputStyle dropdown added in AI Engine tab
+- [x] auto/text/json options available
+- [x] Value reads from and writes to ~/.claude/settings.json via configReadCLISettings/configWriteCLISettings
+- [x] i18n keys added for both locales (en + zh-CN)
+- [x] npm run check passes with 0 errors
+
+## Iteration 657 — Clawd Status Indicator in Settings
+_Date: 2026-04-16 | Sprint Features_
+
+### Summary
+Enhanced the clawd desktop pet toggle in SettingsGeneral with a live status indicator. Shows green/gray dot based on clawdIsRunning() poll (every 5s when enabled). Pulsing orange during check. Status text shows running/not running state. Launch feedback on toggle enable — checks after 2s and shows error if launch failed.
+
+### Files Changed
+- `electron-ui/src/renderer/components/settings/SettingsGeneral.tsx` — added `clawdStatus`/`clawdError` state, polling `useEffect` (5s interval when enabled), status dot (green/gray/orange-pulsing), status text below description, launch feedback with 2s delayed check
+
+### Build
+Status: SUCCESS (0 errors, 202 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] Status dot shown next to clawd toggle label
+- [x] Green = running, gray = not running, orange pulse = checking
+- [x] Polls every 5s when clawdEnabled is true
+- [x] Status text shows "桌宠运行中" (green) or "桌宠未启动 — 请手动运行 clawd-on-desk" (gray)
+- [x] Launch feedback on enable — pulsing dot while waiting, error message if failed
+- [x] npm run check passes with 0 errors
+
+## Iteration 658 — UI Polish: Session Search Hint & Missing i18n Keys
+_Date: 2026-04-16 | Sprint Polish_
+
+### Summary
+Investigated 4 polish items from the task spec. Items 1 (ChatHeader tool badge reset), 2 (Department cancel), and 4 (Session empty state) were already working correctly and needed no changes. Item 3 (session search keyboard hint) required work: added `session.search` i18n key with `(/)` hint (the `/` key focuses session search), plus 17 other missing session.* i18n keys that SessionListHeader uses (session.clearSearch, session.refresh, session.sort, session.sortOldest, session.sortMessages, session.sortNew, session.sortOld, session.deleteAll, session.hideArchived, session.showArchived, session.statsTitle, session.compactViewTooltip, session.noResults, session.globalSearchHint, session.untitledSession). These were previously falling back to their key strings verbatim.
+
+### Files Changed
+- `electron-ui/src/renderer/i18n/locales/en.json` — added 18 missing session.* i18n keys including search placeholder with (/) hint
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` — same additions in Chinese
+
+### Build
+Status: SUCCESS (0 errors, 202 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] Session search placeholder shows "搜索会话... (/)" in zh-CN and "Search sessions... (/)" in en
+- [x] All missing session.* i18n keys now have proper translations (no more raw key strings)
+- [x] Items 1, 2, 4 verified as already working correctly — skipped
+- [x] npm run check passes with 0 errors
