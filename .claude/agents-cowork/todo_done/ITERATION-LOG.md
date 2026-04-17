@@ -8484,3 +8484,23 @@ Status: N/A (docs-only)
 - [x] New FileEdit priority bullet added
 - [x] Section 十七 with Iter 643-646 appended
 - [x] Committed and pushed
+
+## Iteration 650 — Tool Use Count Badge in ChatHeader
+_Date: 2026-04-16 | Sprint UX_
+
+### Summary
+Added a live tool-use count badge to ChatHeader. Derives count from useChatStore messages by summing `toolUses.length` across all assistant messages. Shows a Wrench icon + numeric count chip when at least one tool has been called this session. Tooltip shows full Chinese description "本次会话已执行 N 个工具调用". Badge uses `var(--bg-input)` background and `var(--text-muted)` text for a subtle, consistent look.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/ChatHeader.tsx` — added `Wrench` import, `StandardChatMessage` type import, `toolUseCount` derived state, and the conditional badge JSX after the title/persona column
+
+### Build
+Status: SUCCESS (0 errors, 206 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] Tool use count correctly derived from chat messages (sum of toolUses arrays across assistant messages)
+- [x] Badge only shown when toolUseCount > 0
+- [x] Wrench icon + count in subtle chip style using CSS variables
+- [x] Tooltip with full Chinese description
+- [x] npm run check passes with 0 errors
+- [x] Committed and pushed to origin
