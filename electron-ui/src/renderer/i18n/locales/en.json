@@ -829,7 +829,21 @@
     "ruleRemoved": "Rule removed: {{rule}}",
     "loadError": "Failed to load permission rules",
     "saveFailed": "Failed to save permission rules",
-    "conflictHint": "This rule also appears in the opposite list"
+    "conflictHint": "This rule also appears in the opposite list",
+    "askRules": "Always Ask Rules",
+    "defaultMode": "Default Permission Mode",
+    "modeDefault": "Default",
+    "modeAcceptEdits": "Auto-accept Edits",
+    "modeAutoEdit": "Auto Edit",
+    "modePlan": "Plan Mode",
+    "modeSaved": "Permission mode saved",
+    "additionalDirs": "Additional Working Directories",
+    "additionalDirsDesc": "Extra directories Claude is allowed to access beyond the current working directory",
+    "addDirectory": "Add Directory",
+    "noAdditionalDirs": "No additional directories",
+    "dirAdded": "Directory added",
+    "dirRemoved": "Directory removed",
+    "dirExists": "This directory is already in the list"
   },
   "taskQueue": {
     "title": "Task Queue",

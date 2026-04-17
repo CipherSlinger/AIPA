@@ -833,7 +833,21 @@
     "ruleRemoved": "规则已移除: {{rule}}",
     "loadError": "加载权限规则失败",
     "saveFailed": "保存权限规则失败",
-    "conflictHint": "此规则同时出现在对立列表中"
+    "conflictHint": "此规则同时出现在对立列表中",
+    "askRules": "总是询问规则",
+    "defaultMode": "默认权限模式",
+    "modeDefault": "默认模式",
+    "modeAcceptEdits": "自动接受编辑",
+    "modeAutoEdit": "自动编辑",
+    "modePlan": "计划模式",
+    "modeSaved": "权限模式已保存",
+    "additionalDirs": "附加工作目录",
+    "additionalDirsDesc": "授权 Claude 访问的额外目录（除当前工作目录外）",
+    "addDirectory": "添加目录",
+    "noAdditionalDirs": "暂无附加目录",
+    "dirAdded": "目录已添加",
+    "dirRemoved": "目录已移除",
+    "dirExists": "该目录已在列表中"
   },
   "taskQueue": {
     "title": "任务队列",
