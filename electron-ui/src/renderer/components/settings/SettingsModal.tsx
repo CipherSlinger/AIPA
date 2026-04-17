@@ -58,7 +58,7 @@ export default function SettingsModal() {
           maxWidth: 720,
           height: '85%',
           maxHeight: 700,
-          background: 'rgba(14,14,24,0.97)',
+          background: 'var(--glass-bg-deep)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
           border: '1px solid var(--glass-border-md)',

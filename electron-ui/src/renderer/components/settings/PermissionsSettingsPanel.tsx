@@ -128,7 +128,7 @@ export default function PermissionsSettingsPanel() {
         <div style={{
           position: 'fixed', bottom: 24, left: '50%',
           transform: 'translateX(-50%)',
-          background: 'rgba(12,12,22,0.96)',
+          background: 'var(--glass-bg-deep)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
           border: '1px solid var(--glass-border-md)',

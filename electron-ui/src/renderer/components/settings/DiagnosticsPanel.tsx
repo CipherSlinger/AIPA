@@ -206,7 +206,7 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
                         fontSize: 11,
                         fontFamily: 'monospace',
                         color: 'rgba(165,180,252,0.8)',
-                        background: 'rgba(12,12,22,0.6)',
+                        background: 'var(--code-bg)',
                         borderRadius: 6,
                         padding: '2px 6px',
                         marginTop: 4,

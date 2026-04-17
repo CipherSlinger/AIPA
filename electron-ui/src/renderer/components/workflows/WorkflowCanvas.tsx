@@ -826,7 +826,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(8,8,16,1)',
+        background: 'var(--bg-primary)',
         color: 'var(--text-muted)',
         gap: 10,
       }}>
@@ -914,7 +914,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         position: 'relative',
         overflow: 'hidden',
         cursor,
-        background: 'rgba(8,8,16,1)',
+        background: 'var(--bg-primary)',
       }}
       onMouseDown={handleCanvasMouseDown}
       onWheel={layout.handleWheel}

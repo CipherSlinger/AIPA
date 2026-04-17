@@ -318,7 +318,7 @@ export default function WorkflowDetailPage() {
 
   if (!workflow) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'rgba(8,8,16,1)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-primary)' }}>
         <div style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--border)', background: 'var(--popup-bg)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
           <button onClick={() => useUiStore.getState().setMainView('chat')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
             <ArrowLeft size={18} />
@@ -332,7 +332,7 @@ export default function WorkflowDetailPage() {
   const canSave = editName.trim() && editSteps.some(s => s.prompt.trim())
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'rgba(8,8,16,1)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-primary)' }}>
       <style>{`@keyframes wdp-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
 
       <WorkflowDetailHeader

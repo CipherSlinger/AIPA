@@ -154,7 +154,7 @@ function InlineEditor({ editState, onEditChange, onSave, onCancel }: InlineEdito
     <div style={{
       marginTop: 8,
       padding: '12px 14px',
-      background: 'rgba(10,10,22,0.85)',
+      background: 'var(--glass-bg-low)',
       border: '1px solid rgba(99,102,241,0.20)',
       borderRadius: 10,
       display: 'flex',

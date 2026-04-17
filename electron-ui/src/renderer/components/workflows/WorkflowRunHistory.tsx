@@ -97,7 +97,7 @@ function RunSummaryCard({ run }: { run: WorkflowRun }) {
 
   return (
     <div style={{
-      background: 'rgba(8,8,16,0.80)',
+      background: 'var(--glass-bg-low)',
       borderBottom: '1px solid var(--border)',
       padding: '8px 12px',
     }}>
