@@ -8896,3 +8896,127 @@ Status: SUCCESS (0 errors, 203 warnings)
 - [x] When clawd IS built, fallback still works correctly (passes entry file path)
 - [x] npm run check passes (0 errors)
 - [x] Committed and pushed (3b058a8)
+
+## Iteration 675 — FEATURE_GAP.md update for Iterations 669-674
+_Date: 2026-04-17 | Sprint Docs_
+
+### Summary
+Updated FEATURE_GAP.md: date line → Iteration 674; fixed 11 stale entries (SleepTool/BriefTool in tool table; attribution/includeCoAuthoredBy/includeGitInstructions/worktree.symlinkDirectories/worktree.sparsePaths in config table; memory decay/scope bullets in Section 七; hook history bullet in Section 八.1; system.init IPC row in mapping table). Appended Section 二十二 recording Iterations 669-674.
+
+### Files Changed
+- `FEATURE_GAP.md` — date, 11 entries fixed ❌→✅, Section 二十二 appended
+
+### Build
+Status: N/A (docs-only)
+
+### Acceptance Criteria
+- [x] Date updated to Iteration 674
+- [x] 11 ❌ entries fixed across tool/config tables and narrative sections
+- [x] system.init IPC mapping table row corrected
+- [x] Section 二十二 appended
+- [x] Committed and pushed (f3cb197)
+
+## Iteration 676 — statusLine custom command UI
+_Date: 2026-04-17 | Sprint Features_
+
+### Summary
+Added "自定义状态栏 / Status Line" section to SettingsGeneral.tsx. Single text input for the shell command; loads both string and object form from CLI settings on mount; saves as { command: string } on blur; clears to undefined when empty. 4 i18n keys added.
+
+### Files Changed
+- `electron-ui/src/renderer/components/settings/SettingsGeneral.tsx` — added statusLineCmd state, load/save logic, new SettingsGroup
+- `electron-ui/src/renderer/i18n/locales/en.json` — 4 statusLine* keys
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` — 4 Chinese keys
+
+### Build
+Status: SUCCESS (0 errors, 204 warnings)
+
+### Acceptance Criteria
+- [x] Handles both string and object form of statusLine in settings.json
+- [x] Saves on blur; clears to undefined when empty
+- [x] npm run check passes (0 errors)
+- [x] Committed and pushed (fcc1f2d)
+
+## Iteration 677 — apiKeyHelper + fileSuggestion settings UI
+_Date: 2026-04-17 | Sprint Features_
+
+### Summary
+Added two sections to SettingsAdvanced.tsx: apiKeyHelper (text input, script path, saves on blur) and fileSuggestion (text input, shell command, saves as { command: string } on blur). Both handle string/object duality from CLI settings. Extends existing useEffect. 6 i18n keys added.
+
+### Files Changed
+- `electron-ui/src/renderer/components/settings/SettingsAdvanced.tsx` — apiKeyHelper + fileSuggestionCmd state, load/save handlers, 2 new sections
+- `electron-ui/src/renderer/i18n/locales/en.json` — 6 new keys
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` — 6 Chinese keys
+
+### Build
+Status: SUCCESS (0 errors, 203 warnings)
+
+### Acceptance Criteria
+- [x] apiKeyHelper saves script path on blur
+- [x] fileSuggestion saves as { command } object on blur
+- [x] Defensive write (spreads existing settings to avoid overwriting)
+- [x] npm run check passes (0 errors)
+- [x] Committed and pushed (d94a0c0)
+
+## Iteration 678 — sandbox.ignoreViolations UI
+_Date: 2026-04-17 | Sprint Features_
+
+### Summary
+Added IgnoreViolationsSection component to SettingsSandbox.tsx. Key-value editor: tool name as indigo monospace badge, violation types as amber chip-tags with individual remove buttons, "Add exemption" form with two inputs (tool name + comma-separated types). Ban icon for section header. Uses same persist() pattern as rest of file. 8 i18n keys added.
+
+### Files Changed
+- `electron-ui/src/renderer/components/settings/SettingsSandbox.tsx` — IgnoreViolationsSection component, 3 handlers, type extension
+- `electron-ui/src/renderer/i18n/locales/en.json` — 8 sandbox.* keys
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` — 8 Chinese keys
+
+### Build
+Status: SUCCESS (0 errors)
+
+### Acceptance Criteria
+- [x] Add/remove tool entries and individual violation types
+- [x] Saves atomically on every change
+- [x] Empty state shown when no exemptions configured
+- [x] npm run check passes (0 errors)
+- [x] Committed and pushed (2043a20)
+
+## Iteration 679 — stream-bridge error handling + result field consumption
+_Date: 2026-04-17 | Sprint Backend_
+
+### Summary
+Three improvements to stream event handling: (1) error_max_structured_output_retries — added case in stream-bridge.ts result handler, forwarded subtype, shows 8s error toast in useStreamJson.ts; (2) result.uuid — extracted and console.debug logged; (3) result.fast_mode_state — extracted and console.debug logged (enterprise feature, no UI exposure needed). i18n key error.structuredOutputRetries added to both locales.
+
+### Files Changed
+- `electron-ui/src/main/pty/stream-bridge.ts` — added resultSubtype, uuid, fastModeState forwarding in result emit
+- `electron-ui/src/renderer/hooks/useStreamJson.ts` — added error_max_structured_output_retries branch + uuid/fastModeState debug logging
+- `electron-ui/src/renderer/i18n/locales/en.json` — error.structuredOutputRetries key
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` — Chinese translation
+
+### Build
+Status: SUCCESS (0 errors, 203 warnings)
+
+### Acceptance Criteria
+- [x] error_max_structured_output_retries shows error toast and stops streaming
+- [x] result.uuid and result.fast_mode_state are consumed (logged, not silently dropped)
+- [x] npm run check passes (0 errors)
+- [x] Committed and pushed (7c00b13)
+
+## Iteration 680 — ToolSearchTool card + README update
+_Date: 2026-04-17 | Sprint Features_
+
+### Summary
+Created ToolSearchToolCard.tsx (slate/gray theme, Search icon) for the ToolSearchTool. Supports 3 result formats: string[], { name, description }[] objects, raw text fallback. Shows up to 12 tool badges with "+N more" expand. Three states: pulsing "Searching...", green "N tools found" badge + list, "No tools matched" empty state. Routed in ToolUseBlock. README updated with 6 new feature bullet points covering Iters 665-674.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/tool-cards/ToolSearchToolCard.tsx` — NEW
+- `electron-ui/src/renderer/components/chat/ToolUseBlock.tsx` — ToolSearchTool routing
+- `README.md` — 6 new feature points for Iters 665-674
+
+### Build
+Status: SUCCESS (0 errors)
+
+### Acceptance Criteria
+- [x] ToolSearchTool renders slate card with query and result badges
+- [x] Handles JSON array and raw text result formats
+- [x] Routed in ToolUseBlock before TaskCreate
+- [x] README updated with recent features
+- [x] npm run check passes (0 errors)
+- [x] Committed and pushed (fcceb0a)
