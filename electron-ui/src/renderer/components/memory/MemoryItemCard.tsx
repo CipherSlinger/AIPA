@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   Pin,
   PinOff,
@@ -6,6 +6,7 @@ import {
   Edit3,
   Check,
   X,
+  Copy,
 } from 'lucide-react'
 import { MemoryItem, MemoryCategory, MemoryType } from '../../types/app.types'
 import { CATEGORY_CONFIG, CATEGORIES, MAX_CONTENT_LENGTH, MEMORY_TYPE_CONFIG, MEMORY_TYPES } from './memoryConstants'
@@ -38,6 +39,16 @@ export default function MemoryItemCard({
   onStartEdit, onSaveEdit, onCancelEdit,
   onTogglePin, onDelete,
 }: MemoryItemCardProps) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(mem.content)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch { /* ignore */ }
+  }
+
   // Defensive guard: if category is not in CATEGORY_CONFIG (corrupted data),
   // fall back to 'fact' to prevent crash (Iteration 309 -- MemoryPanel crash fix)
   const cfg = CATEGORY_CONFIG[mem.category] || CATEGORY_CONFIG.fact
@@ -376,6 +387,34 @@ export default function MemoryItemCard({
               }}
             >
               <Edit3 size={12} />
+            </button>
+            <button
+              onClick={handleCopy}
+              title={copied ? '已复制' : '复制内容'}
+              style={{
+                background: 'none',
+                border: 'none',
+                borderRadius: 4,
+                padding: 3,
+                cursor: 'pointer',
+                color: copied ? '#4ade80' : 'var(--text-muted)',
+                display: 'flex',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={e => {
+                if (!copied) {
+                  e.currentTarget.style.background = 'rgba(74,222,128,0.12)'
+                  e.currentTarget.style.color = '#4ade80'
+                }
+              }}
+              onMouseLeave={e => {
+                if (!copied) {
+                  e.currentTarget.style.background = 'none'
+                  e.currentTarget.style.color = 'var(--text-muted)'
+                }
+              }}
+            >
+              {copied ? <Check size={12} /> : <Copy size={12} />}
             </button>
             <button
               onClick={onDelete}

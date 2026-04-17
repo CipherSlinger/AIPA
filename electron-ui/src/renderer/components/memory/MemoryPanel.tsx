@@ -1473,9 +1473,17 @@ export default function MemoryPanel() {
                   fontSize: 11,
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 3,
                 }}
               >
                 全部
+                {crud.memoryTypeCounts.all > 0 && (
+                  <span style={{ fontSize: 9, opacity: 0.7, fontVariantNumeric: 'tabular-nums', marginLeft: 3 }}>
+                    {crud.memoryTypeCounts.all}
+                  </span>
+                )}
               </button>
               {/* Type chips */}
               {MEMORY_TYPES.map(type => {
