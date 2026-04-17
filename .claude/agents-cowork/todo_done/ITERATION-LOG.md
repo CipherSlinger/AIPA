@@ -8689,3 +8689,63 @@ Status: SUCCESS (0 errors, 202 pre-existing warnings)
 - [x] i18n keys present in both en.json and zh-CN.json
 - [x] npm run check passes with 0 errors
 - [x] npm run check passes with 0 errors
+
+## Iteration 659 — FEATURE_GAP.md update for Iterations 654-658
+_Date: 2026-04-16 | Sprint Docs_
+
+### Summary
+Updated FEATURE_GAP.md: date → Iteration 658; outputStyle marked ✅; Section 十九 appended with Iterations 654-658 entries.
+
+### Files Changed
+- `FEATURE_GAP.md` — date updated; outputStyle row ✅; Section 十九 appended
+
+### Build
+Status: N/A (docs-only)
+
+### Acceptance Criteria
+- [x] Date line updated to Iteration 658
+- [x] outputStyle row marked ✅
+- [x] Section 十九 appended
+- [x] Committed and pushed
+
+## Iteration 662 — Workflow Run Stats Summary Bar
+_Date: 2026-04-16 | Sprint Features_
+
+### Summary
+Added a compact `RunStatsBar` component in `WorkflowDetailPage.tsx` that displays aggregate run history stats above the canvas: total run count, success rate (color-coded green/amber/red), and last run timestamp with OK/ERR badge. The bar is hidden when a workflow has no runs yet. Items already implemented and verified: Delete key on canvas (Iter ~597-618), workflow list search (WorkflowPanel), empty state UI (WorkflowPanel).
+
+### Files Changed
+- `electron-ui/src/renderer/components/workflows/WorkflowDetailPage.tsx` — added `formatRelative()` helper, `RunStatsBarProps` interface, `RunStatsBar` component, and `useWorkflowHistory` import; inserted `<RunStatsBar>` between execution progress bar and canvas
+
+### Build
+Status: SUCCESS (0 errors, 202 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] RunStatsBar shows total runs count (e.g. "3 runs")
+- [x] RunStatsBar shows success rate with color coding (>=80% green, >=50% amber, <50% red)
+- [x] RunStatsBar shows last run relative time and OK/ERR badge
+- [x] Bar is hidden when workflow has no runs (returns null)
+- [x] npm run check passes with 0 errors
+
+## Iteration 663 — Fix: clawd Windows launch failure
+_Date: 2026-04-16 | Sprint BugFix_
+
+### Summary
+Fixed "Error launching App / Cannot find module launch.js" on Windows. Root cause: launchClawd() was spawning process.execPath (Electron) with launch.js as argument in Node-script mode, but launch.js internally calls require('electron') which requires clawd-on-desk/node_modules/electron to be installed. On a fresh clone without `npm install` in clawd-on-desk, this fails.
+
+Fix: Rewrote launchClawd() to bypass launch.js entirely:
+1. First checks for clawd-on-desk's own electron binary (node_modules/.bin/electron or node_modules/electron/dist/electron)
+2. If found, runs `electron .` directly in CLAWD_DIR
+3. If not found, falls back to AIPA's own Electron binary (process.execPath) with CLAWD_DIR as the app path argument — ELECTRON_RUN_AS_NODE is deleted from env so Electron starts in GUI mode
+
+### Files Changed
+- `electron-ui/src/main/clawd-bridge.ts` — launchClawd() rewritten to not depend on launch.js
+
+### Build
+Status: SUCCESS (0 errors, 203 warnings)
+
+### Acceptance Criteria
+- [x] clawd launches on Windows without requiring npm install in clawd-on-desk
+- [x] Falls back gracefully through electron detection strategies
+- [x] ELECTRON_RUN_AS_NODE correctly removed from child env
+- [x] npm run check passes with 0 errors
