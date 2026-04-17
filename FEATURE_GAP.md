@@ -1,6 +1,6 @@
 # AIPA x Claude Code CLI — 功能差距文档
 
-> 更新日期：2026-04-16（Iteration 658）
+> 更新日期：2026-04-17（Iteration 663）
 > CLI 版本：claude-code 2.1.81（BUILD_TIME: 2026-03-20T21:25:42Z）
 > 分析目的：指导 AIPA UI 逐步对齐 CLI 全部能力
 
@@ -169,7 +169,7 @@ CLI 定义了 5 种权限模式（`ExternalPermissionMode`）：
 | `availableModels` | array | 企业模型白名单 | ❌ |
 | `worktree.symlinkDirectories` | array | worktree 符号链接目录 | ❌ |
 | `worktree.sparsePaths` | array | sparse checkout 路径 | ❌ |
-| `disableAllHooks` | boolean | 禁用所有 hooks | ❌ |
+| `disableAllHooks` | boolean | 禁用所有 hooks | ✅ — HooksSettingsPanel 顶部红色开关，写入 ~/.claude/settings.json，开启时规则列表置灰并显示橙色警告 banner（Iteration 648） |
 | `defaultShell` | enum | bash/powershell | ✅ — Settings → General，bash/powershell 下拉选择器，读写 ~/.claude/settings.json（Iteration 648） |
 | `outputStyle` | string | 输出样式控制 | ✅ — Settings → AI Engine 标签页，auto/text/json 下拉选择器，读写 ~/.claude/settings.json（Iteration 656） |
 | `statusLine` | object | 自定义状态栏命令 | ❌ |
@@ -909,3 +909,22 @@ AIPA 状态：❌ 无任何 compact 触发 UI
 
 ### Iteration 658 — 会话搜索 i18n 修复与 UI 微调
 修复 SessionListHeader 中17个缺失的 i18n 键（en.json + zh-CN.json）。session.search 占位符新增 "(/) " 键盘快捷键提示（"/" 是聚焦会话搜索的全局快捷键）。其余3个 polish 项（工具计数重置、部门取消、会话空状态）均已正常工作，跳过。
+
+---
+
+## 二十、最新实现记录（2026-04-17，Iterations 659-663）
+
+### Iteration 659 — FEATURE_GAP.md 文档更新（迭代 654-658）
+更新 FEATURE_GAP.md 日期行至 Iteration 658；`outputStyle` 在配置表格中标记为 ✅；追加第十九节（654-658 记录）。
+
+### Iteration 660 — Toast 通知改善（会话标题生成提示）
+在 `useStreamJson.ts` 新增 info toast（2s）：收到 `cli:customTitle` 事件时或 `session.generateTitle` 本地调用成功时触发，提示用户会话标题已自动生成。新增 i18n 键 `session.titleGenerated`（en.json + zh-CN.json）。
+
+### Iteration 661 — MemoryItemCard 复制按钮
+在 `MemoryItemCard.tsx` 悬停操作栏新增 Copy 按钮：点击后将 `mem.content` 写入系统剪贴板，按钮图标切换为绿色 Check 图标并保持 1.5s，之后恢复原 Copy 图标。
+
+### Iteration 662 — WorkflowDetailPage 运行统计汇总栏
+在 `WorkflowDetailPage.tsx` 新增 `RunStatsBar` 子组件：展示总运行次数、成功率（≥80% 绿色 / ≥50% 琥珀色 / <50% 红色）、最后运行时间相对时间戳及 OK/ERR 状态徽标。工作流无运行记录时隐藏该栏。
+
+### Iteration 663 — 修复：clawd Windows 启动失败（launch.js 不存在）
+根因：`launchClawd()` 依赖 `launch.js` 作为 Electron 入口脚本，但该文件在 clawd 包中不存在（不同构建版本路径差异），导致 Windows 下报 "Cannot find module launch.js" 错误。修复：重写 `clawd-bridge.ts` 中的 `launchClawd()` 函数，完全绕过 `launch.js`——优先尝试 clawd 自带 electron 二进制（`node_modules/.bin/electron[.cmd]` 或 `node_modules/electron/dist/electron[.exe]`），回退至 AIPA 自身 `process.execPath` 并以 `CLAWD_DIR` 为 app 参数；同时删除子进程环境中的 `ELECTRON_RUN_AS_NODE` 变量（防止 Electron 以 Node.js 模式运行）。
