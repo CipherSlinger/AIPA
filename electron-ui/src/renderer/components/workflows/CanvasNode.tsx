@@ -204,7 +204,7 @@ function NodeContextMenu({ x, y, collapsed, hasOutput, status, onCollapse, onClo
     left: x,
     top: y,
     zIndex: 1000,
-    background: 'rgba(18,18,30,0.97)',
+    background: 'var(--glass-bg-deep)',
     backdropFilter: 'blur(12px)',
     WebkitBackdropFilter: 'blur(12px)',
     border: '1px solid var(--border)',

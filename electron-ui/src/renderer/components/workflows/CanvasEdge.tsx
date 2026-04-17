@@ -87,7 +87,7 @@ function edgeStyleFromSourceStatus(sourceStatus: string | undefined): SourceEdge
       }
     case 'skipped':
       return {
-        color: 'rgba(150,150,150,0.4)',
+        color: 'var(--text-faint)',
         strokeDasharray: '4 6',
         strokeWidth: 1.5,
         opacity: 0.5,
@@ -97,7 +97,7 @@ function edgeStyleFromSourceStatus(sourceStatus: string | undefined): SourceEdge
     case 'idle':
     default:
       return {
-        color: 'rgba(100,100,100,0.4)',
+        color: 'var(--text-faint)',
         strokeDasharray: '4 6',
         strokeWidth: 1.5,
         opacity: 0.35,

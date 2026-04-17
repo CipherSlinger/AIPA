@@ -228,7 +228,7 @@ export default function WorkflowRunHistory({
             left: 0,
             marginBottom: 6,
             minWidth: 240,
-            background: 'rgba(14,14,24,0.96)',
+            background: 'var(--glass-bg-high)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
             border: '1px solid var(--border)',

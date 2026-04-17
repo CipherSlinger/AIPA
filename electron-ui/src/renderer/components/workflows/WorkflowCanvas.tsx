@@ -125,7 +125,7 @@ function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, conta
         bottom: 40,
         right: 8,
         zIndex: 10,
-        background: 'rgba(12,12,22,0.90)',
+        background: 'var(--glass-bg-mid)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid var(--border)',
@@ -145,8 +145,8 @@ function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, conta
           const st = stepStatuses[id] ?? 'idle'
           const fill = st === 'completed' ? '#22c55e'
             : st === 'running' ? '#6366f1'
-            : st === 'pending' ? 'rgba(120,120,120,0.4)'
-            : 'rgba(100,100,100,0.3)'
+            : st === 'pending' ? 'var(--text-faint)'
+            : 'var(--text-faint)'
           const nodeIdx = stepIds.indexOf(id)
           const rectW = Math.max(2, p.width * scale)
           const rectH = Math.max(2, p.height * scale)
@@ -1079,7 +1079,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             display: 'flex',
             alignItems: 'center',
             gap: 6,
-            background: 'rgba(10,10,20,0.9)',
+            background: 'var(--glass-bg-mid)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
             border: '1px solid var(--border)',
@@ -1468,7 +1468,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           transform: 'translateX(-50%)',
           fontSize: 10,
           color: 'var(--text-muted)',
-          background: 'rgba(20,20,20,0.8)',
+          background: 'var(--glass-bg-low)',
           backdropFilter: 'blur(6px)',
           WebkitBackdropFilter: 'blur(6px)',
           borderRadius: 6,
@@ -1831,7 +1831,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         <span style={{
           fontSize: 10,
           color: 'var(--text-muted)',
-          background: 'rgba(20,20,20,0.7)',
+          background: 'var(--glass-overlay)',
           backdropFilter: 'blur(6px)',
           WebkitBackdropFilter: 'blur(6px)',
           borderRadius: 5,
@@ -2000,7 +2000,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             alignItems: 'stretch',
             gap: 2,
             padding: '3px 8px',
-            background: 'rgba(10,10,15,0.85)',
+            background: 'var(--glass-bg-low)',
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
             borderTop: '1px solid var(--border)',
