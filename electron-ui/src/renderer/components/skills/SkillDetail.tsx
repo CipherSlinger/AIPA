@@ -267,7 +267,7 @@ export default function SkillDetail({
             lineHeight: 1.5,
             margin: 0,
             fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", monospace',
-            background: 'rgba(0,0,0,0.35)',
+            background: 'var(--code-bg)',
             borderRadius: 8,
             padding: '12px 14px',
             border: '1px solid var(--bg-hover)',
