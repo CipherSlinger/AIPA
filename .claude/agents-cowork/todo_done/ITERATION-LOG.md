@@ -8550,3 +8550,22 @@ Status: SUCCESS (0 errors, all pre-existing warnings unchanged)
 - [x] Save button present in AI Engine tab (saves via shared onSave from SettingsPanel)
 - [x] npm run check passes with 0 errors
 - [x] Committed and pushed to origin
+
+## Iteration 653 — Fix: Windows IPC Double-Load Timeout
+_Date: 2026-04-16 | Sprint BugFix_
+
+### Summary
+Fixed a Windows startup regression where `prefsGetAll`, `configGetEnv`, and `fsGetHome` were being called twice on app launch. The first set of calls (from `App.tsx`) succeeded, but a second `prefsGetAll` call from `AppShell.tsx` fired concurrently and timed out after 3000ms. Root cause: `AppShell.tsx` had its own `useEffect` that made a redundant `prefsGetAll()` IPC call just to read `sidebarWidth`, even though the prefs were already loaded into `usePrefsStore` by `App.tsx`. Fix: replaced the IPC call in `AppShell.tsx` with a reactive `useEffect` that reads `sidebarWidth` directly from `usePrefsStore`, triggering once `prefsLoaded` becomes `true`.
+
+### Files Changed
+- `electron-ui/src/renderer/components/layout/AppShell.tsx` — removed redundant `prefsGetAll()` IPC call; added `usePrefsStore` import; read `sidebarWidth` and `loaded` from store and sync to local state when prefs are loaded
+
+### Build
+Status: SUCCESS (0 TypeScript errors, 202 pre-existing ESLint warnings)
+
+### Acceptance Criteria
+- [x] prefsGetAll called only once on startup (from App.tsx)
+- [x] No timeout logs on Windows startup
+- [x] Preferences load successfully on first call
+- [x] sidebarWidth still correctly initialized from persisted prefs
+- [x] npm run check passes with 0 errors
