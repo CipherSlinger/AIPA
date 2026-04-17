@@ -6,4 +6,4 @@ type: project
 
 # aipa-backend Agent Memory
 
-(empty — will be populated after first completed implementation task)
+- [Clawd IPC channels](project_clawd_ipc.md) — clawd:launch, clawd:isRunning IPC channels + clawdEnabled pref (Iteration 615)
