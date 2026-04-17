@@ -28,6 +28,7 @@ import { FileWriteCard } from './tool-cards/FileWriteCard'
 import { FileEditCard } from './tool-cards/FileEditCard'
 import { SleepToolCard } from './tool-cards/SleepToolCard'
 import { BriefToolCard } from './tool-cards/BriefToolCard'
+import { ToolSearchToolCard } from './tool-cards/ToolSearchToolCard'
 
 interface Props {
   tool: ToolUseInfo
@@ -465,6 +466,18 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
       <BriefToolCard
         input={tool.input || {}}
         result={briefResult}
+        isLoading={tool.status === 'running'}
+      />
+    )
+  }
+
+  // ToolSearchTool: slate/gray meta card showing found tool names
+  if (tool.name === 'ToolSearchTool' || tool.name === 'tool_search') {
+    const searchResult = typeof tool.result === 'string' ? tool.result : null
+    return (
+      <ToolSearchToolCard
+        input={tool.input || {}}
+        result={searchResult}
         isLoading={tool.status === 'running'}
       />
     )
