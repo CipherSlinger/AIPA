@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { useChatStore, useUiStore } from '../../store'
+import { useChatStore, useUiStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 import Sidebar from './Sidebar'
 import NavRail from './NavRail'
@@ -60,21 +60,16 @@ export default function AppShell() {
   const [isDragging, setIsDragging] = useState(false)
   const draggingRef = useRef<'sidebar' | null>(null)
 
+  // Read sidebarWidth from the already-loaded prefs store instead of making a
+  // redundant IPC call (which caused a double-load / timeout on Windows).
+  const storedSidebarWidth = usePrefsStore(s => s.prefs.sidebarWidth)
+  const prefsLoaded = usePrefsStore(s => s.loaded)
   useEffect(() => {
-    const loadWidths = async () => {
-      try {
-        // Use timeout to prevent hanging if IPC is not ready
-        const prefs = await Promise.race([
-          window.electronAPI.prefsGetAll(),
-          new Promise<null>(resolve => setTimeout(() => resolve(null), 3000)),
-        ])
-        if (prefs?.sidebarWidth) setSidebarWidth(Math.min(Math.max(prefs.sidebarWidth, MIN_SIDEBAR), MAX_SIDEBAR))
-      } catch {
-        // Ignore -- use default sidebar width
-      }
+    if (!prefsLoaded) return
+    if (storedSidebarWidth) {
+      setSidebarWidth(Math.min(Math.max(storedSidebarWidth, MIN_SIDEBAR), MAX_SIDEBAR))
     }
-    loadWidths()
-  }, [])
+  }, [prefsLoaded, storedSidebarWidth])
 
   // Auto-collapse sidebar (SessionPanel) on narrow windows
   useEffect(() => {
