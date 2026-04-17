@@ -149,10 +149,18 @@ export default function SessionList() {
       e.preventDefault()
       actions.handleGlobalSearch(filter.trim())
     }
-    if (e.key === 'Escape' && actions.showGlobalResults) {
+    if (e.key === 'Escape') {
       e.preventDefault()
-      actions.setShowGlobalResults(false)
+      if (actions.showGlobalResults) {
+        actions.setShowGlobalResults(false)
+      } else if (filter) {
+        // Clear the search text and return focus to the list
+        setFilter('')
+        actions.setShowGlobalResults(false)
+        listRef.current?.focus()
+      }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, actions.handleGlobalSearch, actions.showGlobalResults])
 
   const sessionLoading = useSessionStore(s => s.loading)
@@ -223,7 +231,9 @@ export default function SessionList() {
       <SessionListHeader
         filter={filter}
         onFilterChange={(value) => { setFilter(value); if (!value) actions.setShowGlobalResults(false) }}
+        onClearFilter={() => { setFilter(''); actions.setShowGlobalResults(false); listRef.current?.focus() }}
         filteredCount={filtered.length}
+        totalCount={actions.sessions.length}
         sortBy={sortBy}
         onSortChange={(newSort) => {
           setSortBy(newSort)

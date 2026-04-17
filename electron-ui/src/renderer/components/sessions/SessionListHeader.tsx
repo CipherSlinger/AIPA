@@ -1,6 +1,7 @@
 // Session list header toolbar — extracted from SessionList.tsx (Iteration 442)
+// Iteration 649: added onClearFilter + totalCount props for clear-button and N/M count display
 import React, { useState, useRef, useEffect } from 'react'
-import { RefreshCw, ArrowUpDown, Search, CheckSquare, Trash2, Archive, BarChart3, LayoutList, Plus } from 'lucide-react'
+import { RefreshCw, ArrowUpDown, Search, CheckSquare, Trash2, Archive, BarChart3, LayoutList, X } from 'lucide-react'
 import { useT } from '../../i18n'
 
 type SortOption = 'newest' | 'oldest' | 'alpha' | 'messages'
@@ -8,7 +9,9 @@ type SortOption = 'newest' | 'oldest' | 'alpha' | 'messages'
 interface SessionListHeaderProps {
   filter: string
   onFilterChange: (value: string) => void
+  onClearFilter?: () => void
   filteredCount: number
+  totalCount?: number
   sortBy: SortOption
   onSortChange: (sortBy: SortOption) => void
   selectMode: boolean
@@ -30,7 +33,9 @@ interface SessionListHeaderProps {
 export default function SessionListHeader({
   filter,
   onFilterChange,
+  onClearFilter,
   filteredCount,
+  totalCount,
   sortBy,
   onSortChange,
   selectMode,
@@ -101,6 +106,10 @@ export default function SessionListHeader({
     e.currentTarget.style.color = active ? 'var(--text-primary)' : 'var(--text-muted)'
   }
 
+  // Whether a filter is active that narrows results vs total
+  const isFiltering = !!filter
+  const showNofM = isFiltering && totalCount !== undefined && filteredCount < totalCount
+
   return (
     <div style={{
       padding: '8px 10px',
@@ -117,18 +126,20 @@ export default function SessionListHeader({
       <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', flexShrink: 0 }}>
         Sessions
       </span>
-      {filteredCount > 0 && (
+      {/* Count badge: N/total when filtering (narrowed), else just total count */}
+      {((totalCount !== undefined ? totalCount : filteredCount) > 0 || (isFiltering && filteredCount === 0)) && (
         <span style={{
-          background: 'var(--border)',
+          background: isFiltering && filteredCount === 0 ? 'rgba(248,113,113,0.15)' : 'var(--border)',
           borderRadius: 10,
           padding: '1px 6px',
           fontSize: 10,
           fontWeight: 600,
-          color: 'var(--text-muted)',
+          color: isFiltering && filteredCount === 0 ? '#f87171' : showNofM ? '#818cf8' : 'var(--text-muted)',
           flexShrink: 0,
           fontVariantNumeric: 'tabular-nums',
+          transition: 'all 0.15s ease',
         }}>
-          {filteredCount}
+          {showNofM ? `${filteredCount}/${totalCount}` : (totalCount !== undefined ? totalCount : filteredCount)}
         </span>
       )}
       {/* Search input */}
@@ -146,7 +157,8 @@ export default function SessionListHeader({
             background: 'var(--bg-hover)',
             border: '1px solid var(--border)',
             borderRadius: 6,
-            padding: '4px 10px 4px 26px',
+            // When filter has text, add right padding to make room for clear button
+            padding: filter ? '4px 24px 4px 26px' : '4px 10px 4px 26px',
             color: 'var(--text-primary)',
             fontSize: 12,
             outline: 'none',
@@ -163,18 +175,37 @@ export default function SessionListHeader({
             e.currentTarget.style.boxShadow = 'none'
           }}
         />
+        {/* Clear button — Escape key also clears; title tells users about keyboard shortcut */}
         {filter && (
-          <span style={{
-            position: 'absolute',
-            right: 8,
-            fontSize: 10,
-            color: filteredCount === 0 ? '#f87171' : 'var(--text-muted)',
-            pointerEvents: 'none',
-            whiteSpace: 'nowrap',
-            fontVariantNumeric: 'tabular-nums',
-          }}>
-            {filteredCount === 0 ? t('session.noResults') : t('session.results', { count: filteredCount })}
-          </span>
+          <button
+            onClick={() => { onClearFilter ? onClearFilter() : onFilterChange('') }}
+            title={t('session.clearSearch')}
+            aria-label={t('session.clearSearch')}
+            style={{
+              position: 'absolute',
+              right: 5,
+              background: 'transparent',
+              border: 'none',
+              borderRadius: 4,
+              padding: '2px',
+              color: filteredCount === 0 ? '#f87171' : 'var(--text-muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'color 0.12s ease, background 0.12s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--border)'
+              e.currentTarget.style.color = 'var(--text-primary)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.color = filteredCount === 0 ? '#f87171' : 'var(--text-muted)'
+            }}
+          >
+            <X size={11} />
+          </button>
         )}
       </div>
       {/* Refresh */}
