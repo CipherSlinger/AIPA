@@ -8629,3 +8629,63 @@ Status: SUCCESS (0 errors, 202 pre-existing warnings)
 - [x] All missing session.* i18n keys now have proper translations (no more raw key strings)
 - [x] Items 1, 2, 4 verified as already working correctly — skipped
 - [x] npm run check passes with 0 errors
+
+## Iteration 654 — FEATURE_GAP.md update for Iterations 647-653
+_Date: 2026-04-16 | Sprint Docs_
+
+### Summary
+Updated FEATURE_GAP.md: date → Iteration 653; permission history marked ✅; defaultShell and respectGitignore marked ✅; Section 十八 appended with Iterations 647-653 entries.
+
+### Files Changed
+- `FEATURE_GAP.md` — date updated; permission/settings rows updated; Section 十八 appended
+
+### Build
+Status: N/A (docs-only)
+
+### Acceptance Criteria
+- [x] Date line updated to Iteration 653
+- [x] Permission history marked ✅
+- [x] defaultShell marked ✅
+- [x] respectGitignore marked ✅
+- [x] Section 十八 appended
+- [x] Committed and pushed
+
+## Iteration 661 — Memory Panel UX Improvements
+_Date: 2026-04-16 | Sprint UX_
+
+### Summary
+Implemented two UX improvements to the Memory panel. Added a copy-to-clipboard button to MemoryItemCard — appears in the hover action bar alongside pin/edit/delete, uses a Check icon confirmation for 1.5 s after copying, with green hover styling. Added a count badge to the "全部" (All) memory-type filter chip in MemoryPanel so it is visually consistent with the per-type chips that already showed counts. Items already working correctly: search/filter (Item 1), per-type count chips (Item 2 — partially; only the "全部" chip was missing its count), empty-type state (Item 3).
+
+### Files Changed
+- `electron-ui/src/renderer/components/memory/MemoryItemCard.tsx` — added `Copy` icon import, `useState` for copied state, `handleCopy` async function, and copy button in the action bar
+- `electron-ui/src/renderer/components/memory/MemoryPanel.tsx` — added count display and `display: flex` layout to the "全部" memory-type filter chip
+
+### Build
+Status: SUCCESS (0 errors, 202 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] Copy button appears on hover in each memory card's action bar
+- [x] Clicking copy writes `mem.content` to clipboard; button shows Check icon for 1.5 s with green color
+- [x] "全部" memory-type chip now displays a count badge matching pattern of other type chips
+
+## Iteration 660 — Toast Notification Improvements
+_Date: 2026-04-16 | Sprint UX_
+
+### Summary
+Audited the toast notification system and identified the main gap: when the CLI auto-generates a session title (`cli:customTitle` event) or when the local `sessionGenerateTitle` call succeeds, no user feedback was shown — the title updated silently. Added an `info` toast ("Session title updated" / "会话标题已更新", 2 s) to both title-generation paths in `useStreamJson.ts`. Also added the `session.titleGenerated` i18n key to both locale files. Existing scenarios that were already working: error toasts (red, 8 s), API overload warnings, copy-to-clipboard (inline button state), save-to-notes/memory toasts, task background completion toasts.
+
+### Files Changed
+- `electron-ui/src/renderer/hooks/useStreamJson.ts` — added `addToast('info', ...)` to `cli:customTitle` handler and to local `sessionGenerateTitle` success path
+- `electron-ui/src/renderer/i18n/locales/en.json` — added `session.titleGenerated: "Session title updated"`
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` — added `session.titleGenerated: "会话标题已更新"`
+
+### Build
+Status: SUCCESS (0 errors, 202 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] Toast fires with `info` type and 2 s duration when `cli:customTitle` sets a new title
+- [x] Toast also fires when local `sessionGenerateTitle` generates a title after first message
+- [x] Toast does not fire when CLI sends a title but a manual title already exists (guarded by `!currentSessionTitle`)
+- [x] i18n keys present in both en.json and zh-CN.json
+- [x] npm run check passes with 0 errors
+- [x] npm run check passes with 0 errors
