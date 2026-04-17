@@ -459,6 +459,17 @@ function MemdirTab() {
         ) : filteredFiles.map(f => {
           const typeColor = MEMDIR_TYPE_COLORS[f.type] || MEMDIR_TYPE_COLORS.unknown
           const isOpen = expanded === f.filePath
+          const ageCategory = getAgeCategory(f.mtime)
+          const ageDays = getAgeDays(f.mtime)
+          const ageDotColor = AGE_DOT_COLOR[ageCategory]
+          const ageTooltip = ageCategory === 'recent'
+            ? t('memory.ageRecent')
+            : ageCategory === 'aging'
+              ? t('memory.ageAging').replace('{days}', String(ageDays))
+              : ageCategory === 'old'
+                ? t('memory.ageOld').replace('{days}', String(ageDays))
+                : ''
+          const isPrivate = f.scope === 'global'
           return (
             <div key={f.filePath} style={{
               background: 'var(--bg-primary)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
@@ -486,9 +497,36 @@ function MemdirTab() {
                 <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: typeColor, background: `${typeColor}1e`, borderRadius: 8, padding: '1px 6px', flexShrink: 0 }}>
                   {f.type}
                 </span>
-                <span style={{ fontSize: 9, color: 'var(--text-muted)', background: 'var(--border)', borderRadius: 6, padding: '1px 6px', flexShrink: 0 }}>
-                  {f.scope === 'global' ? t('memory.memdirGlobal') : t('memory.memdirProject')}
+                {/* Scope badge: Lock icon for private/global, Users icon for project-scoped */}
+                <span
+                  title={isPrivate ? t('memory.scopePrivate') : t('memory.scopeProject')}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 3,
+                    fontSize: 9, color: isPrivate ? 'var(--text-muted)' : '#60a5fa',
+                    background: isPrivate ? 'var(--bg-hover)' : 'rgba(96,165,250,0.10)',
+                    border: `1px solid ${isPrivate ? 'var(--border)' : 'rgba(96,165,250,0.30)'}`,
+                    borderRadius: 6, padding: '1px 5px', flexShrink: 0,
+                  }}
+                >
+                  {isPrivate
+                    ? <Lock size={9} style={{ flexShrink: 0 }} />
+                    : <Users size={9} style={{ flexShrink: 0 }} />
+                  }
+                  {isPrivate ? t('memory.scopePrivate') : t('memory.scopeProject')}
                 </span>
+                {/* Age/decay dot: green=recent(<7d), amber=aging(7-30d), red=old(>30d) */}
+                {ageCategory !== 'unknown' && (
+                  <span
+                    title={ageTooltip}
+                    style={{
+                      display: 'inline-block',
+                      width: 7, height: 7, borderRadius: '50%',
+                      background: ageDotColor,
+                      flexShrink: 0,
+                      boxShadow: ageCategory === 'old' ? `0 0 5px ${ageDotColor}90` : undefined,
+                    }}
+                  />
+                )}
                 <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}>{'\u25be'}</span>
               </div>
               {isOpen && (
