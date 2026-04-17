@@ -22,6 +22,8 @@ import {
   RefreshCw,
   Save,
   Settings,
+  Lock,
+  Users,
 } from 'lucide-react'
 import { useT } from '../../i18n'
 import { usePrefsStore } from '../../store'
@@ -277,6 +279,7 @@ interface MemdirFile {
   content: string
   scope: 'global' | 'project'
   projectHash?: string
+  mtime?: number  // epoch ms — for age/decay indicator
 }
 
 const MEMDIR_TYPE_COLORS: Record<string, string> = {
@@ -296,6 +299,30 @@ const MEMDIR_TYPE_LABELS: Record<string, string> = {
 }
 
 type MemdirTypeFilter = 'all' | 'user' | 'feedback' | 'project' | 'reference'
+
+// ─── Age / decay helpers ───────────────────────────────────────────────────
+
+type AgeCategory = 'recent' | 'aging' | 'old' | 'unknown'
+
+function getAgeCategory(mtime?: number): AgeCategory {
+  if (!mtime) return 'unknown'
+  const days = Math.floor((Date.now() - mtime) / (1000 * 60 * 60 * 24))
+  if (days < 7) return 'recent'
+  if (days <= 30) return 'aging'
+  return 'old'
+}
+
+function getAgeDays(mtime?: number): number {
+  if (!mtime) return 0
+  return Math.floor((Date.now() - mtime) / (1000 * 60 * 60 * 24))
+}
+
+const AGE_DOT_COLOR: Record<AgeCategory, string> = {
+  recent:  '#4ade80',    // green
+  aging:   '#fbbf24',    // amber
+  old:     '#f87171',    // red
+  unknown: 'var(--text-muted)',
+}
 
 function MemdirTab() {
   const t = useT()

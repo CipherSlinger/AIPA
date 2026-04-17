@@ -2518,5 +2518,11 @@
     "loadError": "加载沙盒设置失败",
     "itemExists": "已在列表中",
     "warningUnsandboxed": "警告：允许非沙盒命令会降低安全隔离强度"
-  }
+  },
+  "worktreeSettings": "Worktree 设置",
+  "worktreeSymlinkDirs": "符号链接目录",
+  "worktreeSymlinkDirsDesc": "创建 worktree 时自动符号链接的目录列表",
+  "worktreeSparsePaths": "Sparse Checkout 路径",
+  "worktreeSparsePathsDesc": "Worktree sparse checkout 路径模式列表",
+  "worktreeAddPath": "添加路径..."
 }

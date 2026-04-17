@@ -526,9 +526,30 @@ Keep exercises focused and achievable. The goal is active learning through doing
           break
         }
         case 'cli:hookEvent': {
-          const hookData = data as { hookType?: string; message?: string }
+          const hookData = data as { hookType?: string; message?: string; data?: Record<string, unknown> }
           if (hookData.hookType === 'Notification' && hookData.message) {
             useUiStore.getState().addToast('info', hookData.message)
+          }
+          // Record hook event in history (capped at 50 entries)
+          {
+            const innerData = (hookData.data ?? hookData) as Record<string, unknown>
+            const eventType = (innerData.event_type ?? innerData.eventType ?? 'unknown') as string
+            const hookType = (innerData.hook_type ?? innerData.hookType ?? 'unknown') as string
+            const toolName = (innerData.tool_name ?? innerData.toolName ?? '') as string
+            const status = ((innerData.status ?? 'success') as string) as 'running' | 'success' | 'error'
+            const output = toolName || (innerData.message as string | undefined)
+            const existingEvents = useChatStore.getState().hookEvents
+            const newEvent = {
+              id: `he-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              hookEvent: eventType,
+              hookType,
+              status,
+              output,
+              timestamp: Date.now(),
+            }
+            // Keep last 50, newest first
+            const updated = [newEvent, ...existingEvents].slice(0, 50)
+            useChatStore.setState({ hookEvents: updated })
           }
           break
         }

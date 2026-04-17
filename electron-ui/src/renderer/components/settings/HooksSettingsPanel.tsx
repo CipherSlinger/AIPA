@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { Zap, Terminal, MessageSquare, Globe, Trash2, Plus, ChevronDown, ChevronRight, Pencil } from 'lucide-react'
+import { Zap, Terminal, MessageSquare, Globe, Trash2, Plus, ChevronDown, ChevronRight, Pencil, Check, X, Clock } from 'lucide-react'
 import HookAddWizard from './HookAddWizard'
 import { useT } from '../../i18n'
+import { useChatStore } from '../../store'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface HookEntry {
@@ -110,6 +111,129 @@ function HookTypeBadge({ type }: { type: string }) {
     }}>
       {type}
     </span>
+  )
+}
+
+// ── Relative time helper ────────────────────────────────────────────────────
+function relativeTime(ts: number): string {
+  const secs = Math.floor((Date.now() - ts) / 1000)
+  if (secs < 5) return 'just now'
+  if (secs < 60) return `${secs}s ago`
+  const mins = Math.floor(secs / 60)
+  if (mins < 60) return `${mins} min ago`
+  const hrs = Math.floor(mins / 60)
+  return `${hrs}h ago`
+}
+
+// ── Hook history status icon ────────────────────────────────────────────────
+function HistoryStatusIcon({ status }: { status: 'running' | 'success' | 'error' }) {
+  if (status === 'running') {
+    return (
+      <span style={{ display: 'inline-block', width: 10, height: 10, border: '2px solid rgba(129,140,248,0.3)', borderTopColor: '#818cf8', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+    )
+  }
+  if (status === 'success') return <Check size={10} color="#22c55e" />
+  return <X size={10} color="#f87171" />
+}
+
+// ── Hook Event History section ──────────────────────────────────────────────
+function HookEventHistory() {
+  const t = useT()
+  const hookEvents = useChatStore(s => s.hookEvents)
+  // Display newest first, max 20
+  const displayEvents = hookEvents.slice(0, 20)
+
+  return (
+    <div style={{ marginTop: 24 }}>
+      {/* Section header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+        <Clock size={13} color="var(--text-muted)" />
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
+          {t('hooks.eventHistory')}
+        </span>
+        {displayEvents.length > 0 && (
+          <span style={{
+            background: 'rgba(99,102,241,0.18)',
+            border: '1px solid rgba(99,102,241,0.30)',
+            borderRadius: 10,
+            padding: '1px 6px',
+            fontSize: 9,
+            fontWeight: 700,
+            color: 'rgba(165,180,252,0.90)',
+          }}>
+            {displayEvents.length}
+          </span>
+        )}
+        <span style={{ flex: 1 }} />
+        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+          {t('hooks.eventHistoryDesc')}
+        </span>
+      </div>
+
+      {displayEvents.length === 0 ? (
+        <div style={{
+          fontSize: 11,
+          color: 'var(--text-muted)',
+          textAlign: 'center',
+          padding: '16px 12px',
+          border: '1px dashed var(--border)',
+          borderRadius: 10,
+        }}>
+          {t('hooks.noEventHistory')}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {displayEvents.map(ev => (
+            <div
+              key={ev.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 7,
+                padding: '5px 10px',
+                background: 'var(--glass-bg-low)',
+                border: '1px solid var(--border)',
+                borderRadius: 8,
+                minHeight: 32,
+              }}
+            >
+              {/* Status */}
+              <HistoryStatusIcon status={ev.status} />
+              {/* Event type badge */}
+              <EventTypeBadge eventType={ev.hookEvent} />
+              {/* Hook type */}
+              {ev.hookType && ev.hookType !== 'unknown' && (
+                <HookTypeBadge type={ev.hookType} />
+              )}
+              {/* Data snippet */}
+              {ev.output && (
+                <span style={{
+                  flex: 1,
+                  fontSize: 11,
+                  color: 'var(--text-muted)',
+                  fontFamily: 'monospace',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {ev.output.length > 60 ? ev.output.slice(0, 60) + '…' : ev.output}
+                </span>
+              )}
+              {!ev.output && <span style={{ flex: 1 }} />}
+              {/* Relative time */}
+              <span style={{
+                fontSize: 10,
+                color: 'var(--text-muted)',
+                flexShrink: 0,
+                fontVariantNumeric: 'tabular-nums',
+              }}>
+                {relativeTime(ev.timestamp)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -774,6 +898,9 @@ export default function HooksSettingsPanel() {
           })}
         </div>
       )}
+
+      {/* Hook Event History */}
+      <HookEventHistory />
     </div>
   )
 }
