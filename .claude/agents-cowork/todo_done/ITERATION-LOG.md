@@ -7965,6 +7965,30 @@ Status: SUCCESS (0 errors, 204 pre-existing warnings)
 - [x] URLPreviewCard, StatsPanel, TokenUsageBar, BranchBadge, BookmarksPanel, QuickCapture, WelcomeQuickActions, Message — all rgba values correctly identified as exempt (box-shadow, indigo, purple, red, green, amber, or rgba on gradient buttons)
 - [x] npm run check passes with 0 errors
 
+## Iteration 628 — CSS Variable Migration: sidebar + ui + onboarding components
+_Date: 2026-04-16 | Sprint CSS_
+
+### Summary
+Migrated hardcoded dark `rgba(0,0,0,0.75)` text color values and `rgba(0,0,0,0.70/0.80)` modal backdrop values in sidebar, ui, and onboarding components to theme-aware CSS variables. Two `rgba(0,0,0,0.75)` badge text colors replaced with `var(--text-primary)` (theme-aware: `rgba(255,255,255,0.87)` dark / `rgba(0,0,0,0.87)` light). Two modal/wizard backdrop backgrounds replaced with `var(--glass-overlay)`. All box-shadow values, indigo/amber/status colors left untouched.
+
+### Files Changed
+- `electron-ui/src/renderer/components/sidebar/ChangesPanel.tsx` — StatusBadge text color: rgba(0,0,0,0.75) → var(--text-primary)
+- `electron-ui/src/renderer/components/sidebar/TaskItemRow.tsx` — PriorityBadge text color: rgba(0,0,0,0.75) → var(--text-primary)
+- `electron-ui/src/renderer/components/ui/KeyboardShortcutsModal.tsx` — modal backdrop bg: rgba(0,0,0,0.70) → var(--glass-overlay)
+- `electron-ui/src/renderer/components/onboarding/OnboardingWizard.tsx` — Check icon color: rgba(0,0,0,0.75) → var(--text-primary); wizard backdrop bg: rgba(0,0,0,0.80) → var(--glass-overlay)
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] ChangesPanel StatusBadge text color rgba(0,0,0,0.75) → var(--text-primary)
+- [x] TaskItemRow PriorityBadge text color rgba(0,0,0,0.75) → var(--text-primary)
+- [x] KeyboardShortcutsModal backdrop rgba(0,0,0,0.70) → var(--glass-overlay)
+- [x] OnboardingWizard Check icon color rgba(0,0,0,0.75) → var(--text-primary)
+- [x] OnboardingWizard backdrop rgba(0,0,0,0.80) → var(--glass-overlay)
+- [x] All box-shadow, indigo/amber/status rgba values correctly left untouched
+- [x] npm run check passes with 0 errors
+
 ## Iteration 625 — CSS Variable Migration: settings + ui components
 _Date: 2026-04-16 | Sprint CSS_
 
@@ -7990,4 +8014,87 @@ Status: SUCCESS (0 errors, 204 pre-existing warnings)
 - [x] PersonaForm form container bg -> var(--glass-bg-low)
 - [x] CommandPalette backdrop rgba(0,0,0,0.60) -> var(--glass-overlay)
 - [x] PersonaPresets, HookAddWizard, SettingsAbout, SettingsPlugins, Toast, FileBrowser — all remaining rgba values correctly identified as exempt (box-shadow, indigo, purple, red, green, amber, rgba on gradient/colored buttons)
+- [x] npm run check passes with 0 errors
+
+## Iteration 626 — CSS Variable Migration: workflow canvas components
+_Date: 2026-04-16 | Sprint CSS-Migration_
+
+### Summary
+Migrated all remaining hard-coded dark `rgba()` values in the three workflow canvas components to CSS variables, enabling proper light-theme support. Seven occurrences replaced across CanvasEdge, WorkflowCanvas, and CanvasNode; all box-shadow strings were correctly skipped.
+
+### Files Changed
+- `electron-ui/src/renderer/components/workflows/CanvasEdge.tsx` — SVG fill `rgba(15,15,25,0.85)` → `var(--glass-bg-low)`; div bg `rgba(15,15,25,0.88)` → `var(--glass-bg-card)`
+- `electron-ui/src/renderer/components/workflows/WorkflowCanvas.tsx` — 4 replacements: `rgba(15,15,25,0.82)` → `var(--glass-bg-low)`, `rgba(0,0,0,0.6)` → `var(--glass-overlay)`, `rgba(15,15,25,0.85)` → `var(--glass-bg-low)`, `rgba(0,0,0,0.55)` → `var(--glass-overlay)`
+- `electron-ui/src/renderer/components/workflows/CanvasNode.tsx` — progress track bg `rgba(0,0,0,0.2)` → `var(--code-bg)`
+
+### Build
+Status: SUCCESS
+
+### Acceptance Criteria
+- [x] CanvasEdge SVG fill rgba(15,15,25,0.85) -> var(--glass-bg-low)
+- [x] CanvasEdge label bg rgba(15,15,25,0.88) -> var(--glass-bg-card)
+- [x] WorkflowCanvas minimap/pill bg rgba(15,15,25,0.82) -> var(--glass-bg-low)
+- [x] WorkflowCanvas pan hint rgba(0,0,0,0.6) -> var(--glass-overlay)
+- [x] WorkflowCanvas execution panel rgba(15,15,25,0.85) -> var(--glass-bg-low)
+- [x] WorkflowCanvas shortcut hint rgba(0,0,0,0.55) -> var(--glass-overlay)
+- [x] CanvasNode progress track rgba(0,0,0,0.2) -> var(--code-bg)
+- [x] All box-shadow strings skipped
+- [x] npm run check passes with 0 errors
+
+## Iteration 629 — CSS Variable Migration: settings panel backgrounds
+_Date: 2026-04-16 | Sprint CSS_
+
+### Summary
+Migrated hardcoded dark rgba background values in settings components to CSS variables. Replaced `rgba(0,0,0,0.70)` modal backdrop in SettingsProviders with `var(--glass-overlay)`. Replaced seven instances of `rgba(15,15,25,0.85)` panel/card backgrounds across DiagnosticsPanel, HooksSettingsPanel, and SettingsMcp with `var(--glass-bg-low)`. One `rgba(15,15,25,0.70)` badge background in HooksSettingsPanel also migrated to `var(--glass-bg-low)`. All `boxShadow` ternary values in SettingsMcp and WorkflowEditorPage correctly left untouched.
+
+### Files Changed
+- `electron-ui/src/renderer/components/settings/SettingsProviders.tsx` — modal backdrop rgba(0,0,0,0.70) -> var(--glass-overlay)
+- `electron-ui/src/renderer/components/settings/DiagnosticsPanel.tsx` — panel bg (x3): rgba(15,15,25,0.85) -> var(--glass-bg-low)
+- `electron-ui/src/renderer/components/settings/HooksSettingsPanel.tsx` — event card bg rgba(15,15,25,0.85) + badge rgba(15,15,25,0.70) -> var(--glass-bg-low)
+- `electron-ui/src/renderer/components/settings/SettingsMcp.tsx` — card bg (x3): rgba(15,15,25,0.85) -> var(--glass-bg-low)
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] SettingsProviders modal backdrop rgba(0,0,0,0.70) -> var(--glass-overlay)
+- [x] DiagnosticsPanel panel backgrounds (x3) -> var(--glass-bg-low)
+- [x] HooksSettingsPanel event card + badge backgrounds -> var(--glass-bg-low)
+- [x] SettingsMcp card backgrounds (x3) -> var(--glass-bg-low)
+- [x] SettingsMcp/WorkflowEditorPage boxShadow ternary values correctly skipped
+- [x] npm run check passes with 0 errors
+
+## Iteration 627 — CSS Variable Migration: chat dialogs and card content areas
+_Date: 2026-04-16 | Sprint CSS_
+
+### Summary
+Migrated hardcoded dark `rgba()` background values in chat dialog overlays and card content areas to CSS variables. Four modal backdrops (`rgba(0,0,0,0.70)`) replaced with `var(--glass-overlay)`. One glass panel background (`rgba(15,15,25,0.85)`) replaced with `var(--glass-bg-low)`. Six code/content area backgrounds (rgba 0.10–0.35) replaced with `var(--code-bg)`. One subtle background (`rgba(0,0,0,0.10)`) replaced with `var(--action-btn-bg)`. All box-shadow values, indigo/purple accent colors, status colors (red/green/amber), and gradient button colors correctly left untouched.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/ExportDialog.tsx` — backdrop rgba(0,0,0,0.70) -> var(--glass-overlay)
+- `electron-ui/src/renderer/components/chat/SpeculationCard.tsx` — card bg rgba(15,15,25,0.85) -> var(--glass-bg-low); code area rgba(0,0,0,0.30) -> var(--code-bg)
+- `electron-ui/src/renderer/components/chat/MessageBubbleContent.tsx` — pre bg rgba(0,0,0,0.10) -> var(--action-btn-bg)
+- `electron-ui/src/renderer/components/chat/PlanApprovalCard.tsx` — plan text area rgba(0,0,0,0.25) -> var(--code-bg)
+- `electron-ui/src/renderer/components/chat/RunConfirmDialog.tsx` — backdrop rgba(0,0,0,0.70) -> var(--glass-overlay)
+- `electron-ui/src/renderer/components/chat/HookCallbackCard.tsx` — code area rgba(0,0,0,0.30) -> var(--code-bg)
+- `electron-ui/src/renderer/components/chat/PermissionCard.tsx` — code area rgba(0,0,0,0.35) -> var(--code-bg)
+- `electron-ui/src/renderer/components/chat/FileDiffView.tsx` — container bg rgba(0,0,0,0.20) -> var(--code-bg)
+- `electron-ui/src/renderer/components/chat/IdleReturnDialog.tsx` — backdrop rgba(0,0,0,0.70) -> var(--glass-overlay)
+- `electron-ui/src/renderer/components/chat/ForkDialog.tsx` — backdrop rgba(0,0,0,0.70) -> var(--glass-overlay)
+- `electron-ui/src/renderer/components/chat/tool-cards/StructuredOutputCard.tsx` — code areas rgba(0,0,0,0.2) + rgba(0,0,0,0.18) x2 -> var(--code-bg)
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] ExportDialog, RunConfirmDialog, IdleReturnDialog, ForkDialog backdrops -> var(--glass-overlay)
+- [x] SpeculationCard glass bg -> var(--glass-bg-low)
+- [x] SpeculationCard code content area -> var(--code-bg)
+- [x] MessageBubbleContent pre bg -> var(--action-btn-bg)
+- [x] PlanApprovalCard plan text area -> var(--code-bg)
+- [x] HookCallbackCard code area -> var(--code-bg)
+- [x] PermissionCard code area -> var(--code-bg)
+- [x] FileDiffView container bg -> var(--code-bg)
+- [x] StructuredOutputCard code areas (x3) -> var(--code-bg)
+- [x] All box-shadow, indigo/purple/amber/red/green values correctly skipped
 - [x] npm run check passes with 0 errors
