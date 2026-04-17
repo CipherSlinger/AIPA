@@ -1,6 +1,6 @@
 # AIPA x Claude Code CLI — 功能差距文档
 
-> 更新日期：2026-04-16（Iteration 642）
+> 更新日期：2026-04-16（Iteration 646）
 > CLI 版本：claude-code 2.1.81（BUILD_TIME: 2026-03-20T21:25:42Z）
 > 分析目的：指导 AIPA UI 逐步对齐 CLI 全部能力
 
@@ -14,7 +14,7 @@
 |--------|----------|----------------|
 | `Bash` | 执行 shell 命令，支持沙箱、权限检查 | ✅ PTY 终端可执行，但无结构化工具 UI |
 | `FileRead` | 读取文件，支持行范围限制 | ✅ `FileReadCard`：文件路径展示（目录淡色+文件名高亮）、行范围徽标（offset/limit）、代码块预览（前20行可展开）、复制按钮、读取中状态（Iteration 637） |
-| `FileEdit` | 精确字符串替换编辑文件 | ❌ 无差异对比/批准 UI |
+| `FileEdit` | 精确字符串替换编辑文件 | ✅ `FileEditCard`：橙色主题（左边框/图标/徽标）、Before/After 双面板 diff 展示（各前10行可展开）、replace_all 徽标、"Edit applied" 确认徽标，兼容 `old_string`/`old_str` 字段变体（Iteration 643） |
 | `FileWrite` | 创建/覆盖文件 | ✅ `FileWriteCard`：绿色主题、文件路径展示（目录淡色+文件名高亮）、内容预览（前20行可展开）、复制按钮、"File written" 确认徽标（Iteration 639） |
 | `Glob` | 文件模式匹配搜索 | ✅ 结构化展示：文件路径列表，目录部分淡色，文件名加粗，超过10条折叠（Iteration 540） |
 | `Grep` | 正则内容搜索（ripgrep 封装） | ✅ 结构化展示：file:line:content 格式，可折叠展开（Iteration 540） |
@@ -60,6 +60,7 @@
 - ✅ `FileRead` 工具：`FileReadCard.tsx` 新增，渲染文件路径（目录淡色+文件名高亮）、行范围徽标（offset/limit 字段）、代码块预览（前20行，可展开）、复制按钮（Iteration 637）
 - ✅ `Agent` 工具：`AgentToolCard.tsx` 增强，新增 indigo 左边框、subagent_type 徽标、前台/后台 badge、worktree 隔离 badge、prompt 可展开预览、result 可展开预览（Iteration 638）
 - ✅ `FileWrite` 工具：`FileWriteCard.tsx` 新增，绿色主题，内容预览（前20行，可展开），"File written" 确认徽标，复制按钮（Iteration 639）
+- ✅ `FileEdit` 工具：`FileEditCard.tsx` 新增，橙色主题，Before（红色调）/After（绿色调）双面板 diff 展示（各前10行可展开），replace_all 徽标，"Edit applied" 确认徽标，兼容多种字段名（old_string/old_str/new_string/new_str）（Iteration 643）
 
 ---
 
@@ -848,3 +849,19 @@ AIPA 状态：❌ 无任何 compact 触发 UI
 
 ### Iteration 642 — cleanupPeriodDays UI 设置（已实现确认）
 确认 `cleanupPeriodDays` 设置 UI 已在早期迭代（518+）完整实现（IPC `config:readCLISettings` / `config:writeCLISettings`，Settings → General 数字输入框）。本次迭代增强 min/max 验证（1-365范围），更新 i18n 提示文字，将 FEATURE_GAP.md 对应条目标记为 ✅。
+
+---
+
+## 十七、最新实现记录（2026-04-16，Iterations 639-646）
+
+### Iteration 643 — FileEditCard 文件编辑内联卡片
+新增 `FileEditCard.tsx` 组件，渲染 CLI `Edit` 工具调用（字符串替换操作）：橙色主题（左边框/图标/徽标），Before（红色调）/After（绿色调）双面板 diff 展示，各前10行可展开，独立复制按钮，replace_all 徽标，"Edit applied" 确认徽标。兼容 `old_string`/`old_str`/`new_string`/`new_str` 多种字段名变体。`ToolUseBlock` 接入 `'Edit'`、`'str_replace_editor'`、`'str_replace_based_edit_tool'` 三个路由。
+
+### Iteration 644 — FEATURE_GAP.md 文档更新（迭代 639-642）
+更新 FEATURE_GAP.md 日期行至 Iteration 642；将 FileWrite（639）标记为 ✅；新增 FileWrite 优先级 bullet；新增第十六节记录迭代 639-642。
+
+### Iteration 645 — 会话权限历史展示（PermissionsSettingsPanel）
+在 `PermissionsSettingsPanel.tsx` 新增 `SessionPermissionHistory` 子组件，从 `useChatStore.messages` 中筛选 `role === 'permission'` 的 PermissionMessage 条目，展示最近20条权限决策（工具名、decision 状态、时间戳），最新在前，解决 FEATURE_GAP.md 中 `❌ 无权限决策历史展示` 差距。
+
+### Iteration 646 — README 文档更新至 Iteration 642
+更新 `README.md`（中文）和 `README_EN.md`（英文）：扩展 AgentToolCard 条目描述（subagent_type/前台后台/Worktree 徽标）；新增 FileReadCard 和 FileWriteCard 子弹点；Design System 章节重写为语义化 CSS 变量体系说明和 clawd-on-desk 集成描述。
