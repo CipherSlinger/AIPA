@@ -7841,3 +7841,54 @@ Status: SUCCESS (0 errors, 204 pre-existing warnings)
 - [x] Indigo, red, green, purple accent colors correctly left untouched
 - [x] Gray separator rgba(128,128,128,0.1) correctly identified as outside mapping scope
 - [x] `npm run check` passes with 0 errors
+- [x] Committed and pushed as a3b7777
+
+---
+
+## Iteration 619 — CSS Variable Migration: Layout/StatusBar Components
+_Date: 2026-04-16 | Sprint CSS_
+
+### Summary
+Audited all 7 target layout/statusbar components for migratable rgba() values. The vast majority of rgba() occurrences were correctly skipped: box-shadow values (rgba(0,0,0,0.3-0.6) in boxShadow), indigo accent colors (rgba(99,102,241,...)), status/semantic colors (green/red/amber/violet variants), and colored-button backgrounds. The single migratable value was AppShell.tsx's drag overlay background rgba(0,0,0,0.02) → var(--glass-bg-low).
+
+### Files Changed
+- `electron-ui/src/renderer/components/layout/AppShell.tsx` — drag overlay bg: rgba(0,0,0,0.02) → var(--glass-bg-low)
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] All 7 target layout components audited for rgba() values
+- [x] Box-shadow rgba values correctly left untouched (StatusBar, StatusBarTokenPopup, StatusBarPersonaPicker, StatusBarModelPicker, AvatarPicker, NavRail)
+- [x] Indigo accent rgba(99,102,241,...) values correctly left untouched across all files
+- [x] Status/semantic color variants correctly left untouched
+- [x] rgba(0,0,0,0.02) drag overlay background migrated to var(--glass-bg-low)
+- [x] npm run check passes with 0 errors
+- [x] Committed and pushed as bc02b54
+
+## Iteration 621 — CSS Variable Migration: shared + sidebar + workflow components
+_Date: 2026-04-16 | Sprint CSS_
+
+### Summary
+Migrated hardcoded `rgba(0,0,0,...)` and `rgba(15,15,25,...)` overlay/backdrop values in shared modals, sidebar components, and workflow components to CSS variables. Modal backdrop overlays (`rgba(0,0,0,0.70)` and `rgba(0,0,0,0.65)`) replaced with `var(--glass-overlay)`. Panel glass backgrounds (`rgba(15,15,25,0.85)`) replaced with `var(--glass-bg-low)`. All box-shadow values, indigo accent colors, status colors (red/green/amber), and values inside `var(--x, rgba(...))` fallbacks were correctly left untouched.
+
+### Files Changed
+- `electron-ui/src/renderer/components/shared/CommandPalette.tsx` — backdrop bg: rgba(0,0,0,0.70) → var(--glass-overlay)
+- `electron-ui/src/renderer/components/shared/ShortcutCheatsheet.tsx` — backdrop bg: rgba(0,0,0,0.70) → var(--glass-overlay)
+- `electron-ui/src/renderer/components/shared/SessionQuickSwitcher.tsx` — backdrop bg: rgba(0,0,0,0.70) → var(--glass-overlay)
+- `electron-ui/src/renderer/components/shared/ImageLightbox.tsx` — backdrop bg: rgba(0,0,0,0.70) → var(--glass-overlay)
+- `electron-ui/src/renderer/components/shared/ErrorBoundary.tsx` — panel bg: rgba(15,15,25,0.85) → var(--glass-bg-low)
+- `electron-ui/src/renderer/components/workflows/WorkflowDetailPage.tsx` — dialog backdrop rgba(0,0,0,0.65) → var(--glass-overlay); dialog panel rgba(15,15,25,0.85) → var(--glass-bg-low)
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] rgba(0,0,0,0.70) modal backdrops in CommandPalette, ShortcutCheatsheet, SessionQuickSwitcher, ImageLightbox → var(--glass-overlay)
+- [x] rgba(0,0,0,0.65) dialog backdrop in WorkflowDetailPage → var(--glass-overlay)
+- [x] rgba(15,15,25,0.85) panel backgrounds in ErrorBoundary and WorkflowDetailPage → var(--glass-bg-low)
+- [x] Box-shadow rgba values correctly left untouched
+- [x] Indigo, red, green, amber status colors correctly left untouched
+- [x] Values inside var(--x, rgba(...)) fallbacks correctly left untouched
+- [x] ChangesPanel, TaskItemRow, CanvasNodeSidebar, CanvasProgressBar, WorkflowDetailHeader, PersonaSidebarComponents — all rgba values correctly identified as exempt
+- [x] npm run check passes with 0 errors

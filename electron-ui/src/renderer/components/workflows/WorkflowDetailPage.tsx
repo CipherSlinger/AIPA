@@ -447,7 +447,7 @@ export default function WorkflowDetailPage() {
         <div
           style={{
             position: 'fixed', inset: 0, zIndex: 10001,
-            background: 'rgba(0,0,0,0.65)',
+            background: 'var(--glass-overlay)',
             backdropFilter: 'blur(4px)',
             WebkitBackdropFilter: 'blur(4px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -458,7 +458,7 @@ export default function WorkflowDetailPage() {
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              background: 'rgba(15,15,25,0.85)',
+              background: 'var(--glass-bg-low)',
               backdropFilter: 'blur(20px)',
               WebkitBackdropFilter: 'blur(20px)',
               border: '1px solid var(--border)',
