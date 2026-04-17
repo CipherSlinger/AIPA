@@ -8269,3 +8269,23 @@ Status: SUCCESS (0 errors, 204 pre-existing warnings — unchanged)
 - [x] "Reading..." indicator shown in header when isStreaming and no result yet
 - [x] ToolUseBlock routes 'Read' and 'read_file' tool names to FileReadCard
 - [x] npm run check passes with 0 errors
+
+## Iteration 636 — CSS Variable Migration: formatHtml.ts injected styles
+_Date: 2026-04-16 | Sprint CSS_
+
+### Summary
+Migrated hardcoded rgba(255,255,255,...) values in formatHtml.ts CSS template strings to CSS custom properties. All 12 white rgba values in border and background contexts were migrated. Three accent/status colors (blue rgba for user message, red rgba for system message, green rgba for plan message) were correctly preserved. Also moved the completed clawd api-spec doc from todo to todo_done.
+
+### Files Changed
+- `electron-ui/src/renderer/utils/formatHtml.ts` — 12 rgba white values → CSS vars (border×8, glass-bg-low×4)
+- `.claude/agents-cowork/todo_done/api-spec-clawd-2026-04-16.md` — moved from todo/
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] All non-exempt rgba white values in formatHtml.ts migrated
+- [x] Box-shadow values: none present, N/A
+- [x] Status/accent color values (blue, red, green rgba) correctly preserved
+- [x] api-spec todo file moved to done
+- [x] npm run check passes with 0 errors
