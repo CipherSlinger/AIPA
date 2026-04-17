@@ -4,19 +4,26 @@ import { useT } from '../../i18n'
 import { useChatStore } from '../../store/chatStore'
 import { PermissionMessage } from '../../types/app.types'
 
+type PermissionDefaultMode = 'default' | 'acceptEdits' | 'autoEdit' | 'plan'
+
 interface CLIPermissions {
   allow?: string[]
   deny?: string[]
+  ask?: string[]
+  defaultMode?: PermissionDefaultMode
+  additionalDirectories?: string[]
 }
 
 export default function PermissionsSettingsPanel() {
   const t = useT()
-  const [permissions, setPermissions] = useState<CLIPermissions>({ allow: [], deny: [] })
+  const [permissions, setPermissions] = useState<CLIPermissions>({ allow: [], deny: [], ask: [], defaultMode: 'default', additionalDirectories: [] })
   const [loading, setLoading] = useState(true)
   const [addingAllow, setAddingAllow] = useState(false)
   const [addingDeny, setAddingDeny] = useState(false)
+  const [addingAsk, setAddingAsk] = useState(false)
   const [allowInput, setAllowInput] = useState('')
   const [denyInput, setDenyInput] = useState('')
+  const [askInput, setAskInput] = useState('')
   const [toast, setToast] = useState<string | null>(null)
 
   // Mine permission messages from the current chat session
@@ -39,6 +46,9 @@ export default function PermissionsSettingsPanel() {
       setPermissions({
         allow: Array.isArray(perms.allow) ? perms.allow : [],
         deny: Array.isArray(perms.deny) ? perms.deny : [],
+        ask: Array.isArray(perms.ask) ? perms.ask : [],
+        defaultMode: (perms.defaultMode as PermissionDefaultMode) || 'default',
+        additionalDirectories: Array.isArray(perms.additionalDirectories) ? perms.additionalDirectories : [],
       })
     } catch {
       showToast(t('permissions.loadError'))
@@ -58,11 +68,16 @@ export default function PermissionsSettingsPanel() {
     }
   }, [showToast, t])
 
-  const addRule = useCallback(async (type: 'allow' | 'deny', rule: string) => {
+  const addRule = useCallback(async (type: 'allow' | 'deny' | 'ask', rule: string) => {
     const trimmed = rule.trim()
     if (!trimmed) return
 
-    const list = type === 'allow' ? (permissions.allow || []) : (permissions.deny || [])
+    const list = type === 'allow'
+      ? (permissions.allow || [])
+      : type === 'deny'
+        ? (permissions.deny || [])
+        : (permissions.ask || [])
+
     if (list.includes(trimmed)) {
       showToast(t('permissions.ruleExists'))
       return
@@ -79,14 +94,21 @@ export default function PermissionsSettingsPanel() {
     if (type === 'allow') {
       setAllowInput('')
       setAddingAllow(false)
-    } else {
+    } else if (type === 'deny') {
       setDenyInput('')
       setAddingDeny(false)
+    } else {
+      setAskInput('')
+      setAddingAsk(false)
     }
   }, [permissions, savePermissions, showToast, t])
 
-  const removeRule = useCallback(async (type: 'allow' | 'deny', index: number) => {
-    const list = type === 'allow' ? [...(permissions.allow || [])] : [...(permissions.deny || [])]
+  const removeRule = useCallback(async (type: 'allow' | 'deny' | 'ask', index: number) => {
+    const list = type === 'allow'
+      ? [...(permissions.allow || [])]
+      : type === 'deny'
+        ? [...(permissions.deny || [])]
+        : [...(permissions.ask || [])]
     const removed = list.splice(index, 1)[0]
     const updated: CLIPermissions = { ...permissions, [type]: list }
     setPermissions(updated)
@@ -98,6 +120,36 @@ export default function PermissionsSettingsPanel() {
     const otherList = type === 'allow' ? (permissions.deny || []) : (permissions.allow || [])
     return otherList.includes(rule)
   }, [permissions])
+
+  const addDir = useCallback(async (dirPath: string) => {
+    const trimmed = dirPath.trim()
+    if (!trimmed) return
+    const dirs = permissions.additionalDirectories || []
+    if (dirs.includes(trimmed)) {
+      showToast(t('permissions.dirExists'))
+      return
+    }
+    const updated: CLIPermissions = { ...permissions, additionalDirectories: [...dirs, trimmed] }
+    setPermissions(updated)
+    await savePermissions(updated)
+    showToast(t('permissions.dirAdded'))
+  }, [permissions, savePermissions, showToast, t])
+
+  const removeDir = useCallback(async (index: number) => {
+    const dirs = [...(permissions.additionalDirectories || [])]
+    dirs.splice(index, 1)
+    const updated: CLIPermissions = { ...permissions, additionalDirectories: dirs }
+    setPermissions(updated)
+    await savePermissions(updated)
+    showToast(t('permissions.dirRemoved'))
+  }, [permissions, savePermissions, showToast, t])
+
+  const saveDefaultMode = useCallback(async (mode: PermissionDefaultMode) => {
+    const updated: CLIPermissions = { ...permissions, defaultMode: mode }
+    setPermissions(updated)
+    await savePermissions(updated)
+    showToast(t('permissions.modeSaved'))
+  }, [permissions, savePermissions, showToast, t])
 
   if (loading) {
     return (
@@ -120,7 +172,9 @@ export default function PermissionsSettingsPanel() {
 
   const allowList = permissions.allow || []
   const denyList = permissions.deny || []
-  const isEmpty = allowList.length === 0 && denyList.length === 0
+  const askList = permissions.ask || []
+  const dirList = permissions.additionalDirectories || []
+  const isEmpty = allowList.length === 0 && denyList.length === 0 && askList.length === 0
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -143,8 +197,15 @@ export default function PermissionsSettingsPanel() {
         </div>
       )}
 
+      {/* Default Mode Selector */}
+      <DefaultModeSelector
+        value={permissions.defaultMode || 'default'}
+        onChange={saveDefaultMode}
+        t={t}
+      />
+
       {/* Empty state */}
-      {isEmpty && !addingAllow && !addingDeny && (
+      {isEmpty && !addingAllow && !addingDeny && !addingAsk && (
         <div style={{
           textAlign: 'center', padding: '32px 16px',
           background: 'var(--glass-bg-low)',
@@ -201,6 +262,34 @@ export default function PermissionsSettingsPanel() {
         t={t}
       />
 
+      {/* Ask Rules */}
+      <RuleSection
+        title={t('permissions.askRules')}
+        rules={askList}
+        type="ask"
+        color="#fbbf24"
+        bgColor="rgba(251,191,36,0.10)"
+        borderColor="rgba(251,191,36,0.22)"
+        badgeBg="rgba(245,158,11,0.12)"
+        badgeBorder="rgba(245,158,11,0.28)"
+        adding={addingAsk}
+        inputValue={askInput}
+        onInputChange={setAskInput}
+        onToggleAdd={() => setAddingAsk(v => !v)}
+        onAdd={(rule) => addRule('ask', rule)}
+        onRemove={(idx) => removeRule('ask', idx)}
+        hasConflict={() => false}
+        t={t}
+      />
+
+      {/* Additional Directories */}
+      <AdditionalDirectoriesSection
+        dirs={dirList}
+        onAdd={addDir}
+        onRemove={removeDir}
+        t={t}
+      />
+
       {/* Format help */}
       <div style={{
         display: 'flex', alignItems: 'flex-start', gap: 10,
@@ -220,7 +309,81 @@ export default function PermissionsSettingsPanel() {
   )
 }
 
-// ── SessionPermissionHistory sub-component ──────────────────────────
+// -- DefaultModeSelector sub-component --
+
+const DEFAULT_MODES: { value: PermissionDefaultMode; labelKey: string }[] = [
+  { value: 'default', labelKey: 'permissions.modeDefault' },
+  { value: 'acceptEdits', labelKey: 'permissions.modeAcceptEdits' },
+  { value: 'autoEdit', labelKey: 'permissions.modeAutoEdit' },
+  { value: 'plan', labelKey: 'permissions.modePlan' },
+]
+
+interface DefaultModeSelectorProps {
+  value: PermissionDefaultMode
+  onChange: (mode: PermissionDefaultMode) => void
+  t: (key: string, params?: Record<string, string>) => string
+}
+
+function DefaultModeSelector({ value, onChange, t }: DefaultModeSelectorProps) {
+  return (
+    <div style={{
+      background: 'var(--glass-bg-low)',
+      border: '1px solid var(--glass-border)',
+      borderRadius: 12,
+      padding: '14px 16px',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <Shield size={13} color="var(--text-faint)" style={{ flexShrink: 0 }} />
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+          {t('permissions.defaultMode')}
+        </span>
+      </div>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {DEFAULT_MODES.map(({ value: modeValue, labelKey }) => {
+          const isActive = value === modeValue
+          return (
+            <button
+              key={modeValue}
+              onClick={() => onChange(modeValue)}
+              style={{
+                padding: '5px 14px',
+                fontSize: 12,
+                fontWeight: isActive ? 600 : 400,
+                borderRadius: 20,
+                border: isActive
+                  ? '1px solid rgba(99,102,241,0.45)'
+                  : '1px solid var(--glass-border-md)',
+                background: isActive
+                  ? 'linear-gradient(135deg, rgba(99,102,241,0.18), rgba(139,92,246,0.15))'
+                  : 'var(--bg-input)',
+                color: isActive ? 'rgba(139,102,255,0.95)' : 'var(--text-secondary)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={e => {
+                if (!isActive) {
+                  e.currentTarget.style.background = 'var(--glass-border-md)'
+                  e.currentTarget.style.color = 'var(--text-primary)'
+                }
+              }}
+              onMouseLeave={e => {
+                if (!isActive) {
+                  e.currentTarget.style.background = 'var(--bg-input)'
+                  e.currentTarget.style.color = 'var(--text-secondary)'
+                }
+              }}
+            >
+              {t(labelKey)}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// -- SessionPermissionHistory sub-component --
 
 interface SessionPermissionHistoryProps {
   permissionHistory: PermissionMessage[]
@@ -251,7 +414,6 @@ function SessionPermissionHistory({ permissionHistory }: SessionPermissionHistor
       borderRadius: 12,
       padding: '14px 16px',
     }}>
-      {/* Section header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
         <Shield size={13} color="var(--text-faint)" style={{ flexShrink: 0 }} />
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
@@ -271,7 +433,6 @@ function SessionPermissionHistory({ permissionHistory }: SessionPermissionHistor
         )}
       </div>
 
-      {/* Empty state */}
       {permissionHistory.length === 0 ? (
         <div style={{
           fontSize: 11, color: 'var(--text-faint)',
@@ -304,7 +465,6 @@ function SessionPermissionHistory({ permissionHistory }: SessionPermissionHistor
                 }}
               >
                 {decisionIcon(perm.decision)}
-                {/* Tool name */}
                 <span style={{
                   fontSize: 11, fontWeight: 600,
                   fontFamily: 'monospace',
@@ -316,7 +476,6 @@ function SessionPermissionHistory({ permissionHistory }: SessionPermissionHistor
                 }}>
                   {perm.toolName}
                 </span>
-                {/* Decision badge */}
                 <span style={{
                   fontSize: 10, fontWeight: 600,
                   color: badge.color,
@@ -324,7 +483,6 @@ function SessionPermissionHistory({ permissionHistory }: SessionPermissionHistor
                 }}>
                   {badge.text}
                 </span>
-                {/* Timestamp */}
                 <span style={{
                   fontSize: 10, color: 'var(--text-faint)',
                   fontVariantNumeric: 'tabular-nums',
@@ -341,12 +499,12 @@ function SessionPermissionHistory({ permissionHistory }: SessionPermissionHistor
   )
 }
 
-// ── RuleSection sub-component ──────────────────────────
+// -- RuleSection sub-component --
 
 interface RuleSectionProps {
   title: string
   rules: string[]
-  type: 'allow' | 'deny'
+  type: 'allow' | 'deny' | 'ask'
   color: string
   bgColor: string
   borderColor: string
@@ -374,7 +532,6 @@ function RuleSection({
       borderRadius: 12,
       padding: '14px 16px',
     }}>
-      {/* Section header */}
       <div style={{
         display: 'flex', alignItems: 'center',
         justifyContent: 'space-between', marginBottom: 12,
@@ -383,7 +540,6 @@ function RuleSection({
           <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
             {title}
           </span>
-          {/* Count badge */}
           <span style={{
             background: badgeBg,
             border: `1px solid ${badgeBorder}`,
@@ -422,7 +578,6 @@ function RuleSection({
         </button>
       </div>
 
-      {/* Rule tags */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, minHeight: 28 }}>
         {rules.map((rule, idx) => (
           <span
@@ -467,7 +622,6 @@ function RuleSection({
         )}
       </div>
 
-      {/* Inline add input */}
       {adding && (
         <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
           <input
