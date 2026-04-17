@@ -24,6 +24,7 @@ import { ImageThumbnail } from './tool-cards/ImageThumbnail'
 import { ToolCardHeader } from './tool-cards/ToolCardHeader'
 import { StructuredOutputCard } from './tool-cards/StructuredOutputCard'
 import { FileReadCard } from './tool-cards/FileReadCard'
+import { FileWriteCard } from './tool-cards/FileWriteCard'
 
 interface Props {
   tool: ToolUseInfo
@@ -413,6 +414,18 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
       <FileReadCard
         input={tool.input || {}}
         result={fileResult}
+        isStreaming={tool.status === 'running'}
+      />
+    )
+  }
+
+  // Write (FileWrite): structured file write card with green accent
+  if (tool.name === 'Write') {
+    const writeResult = typeof tool.result === 'string' ? tool.result : null
+    return (
+      <FileWriteCard
+        input={tool.input || {}}
+        result={writeResult}
         isStreaming={tool.status === 'running'}
       />
     )
