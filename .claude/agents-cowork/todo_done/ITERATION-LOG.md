@@ -7778,3 +7778,66 @@ Status: SUCCESS (0 errors, 204 pre-existing warnings)
 - [x] Box-shadow values correctly left untouched
 - [x] `npm run check` passes with 0 errors
 - [x] Committed and pushed as d7fa226
+
+---
+
+## Iteration 618 — CSS Variable Migration: skills + memory components
+_Date: 2026-04-16 | Sprint CSS_
+
+### Summary
+Audited all 5 target files (SkillCard.tsx, MarketplaceCard.tsx, SkillDetail.tsx, MemoryItemCard.tsx, MemoryAddForm.tsx) for migratable `rgba(255,255,255,...)` and `rgba(0,0,0,...)` values. The vast majority of rgba values were correctly exempt: box-shadow usages and brand/accent colors (indigo, green, amber, etc.). Only one migratable value was found: `rgba(0,0,0,0.35)` used as a code block background in SkillDetail.tsx, replaced with `var(--code-bg)`.
+
+### Files Changed
+- `electron-ui/src/renderer/components/skills/SkillDetail.tsx` — code block pre background: rgba(0,0,0,0.35) → var(--code-bg)
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] All 5 target files audited for rgba values
+- [x] Migratable `rgba(0,0,0,0.35)` background replaced with `var(--code-bg)`
+- [x] Box-shadow rgba values correctly left untouched
+- [x] Brand/accent color rgba values correctly left untouched
+- [x] `npm run check` passes with 0 errors
+- [x] Committed and pushed as a3b7777
+
+---
+
+## Iteration 619 — CSS Variable Migration: layout/statusbar components
+_Date: 2026-04-16 | Sprint CSS_
+
+### Summary
+CSS variable migration for layout and statusbar components. Migrated one non-exempt rgba value in `AppShell.tsx`.
+
+### Files Changed
+- `electron-ui/src/renderer/components/layout/AppShell.tsx` — 1 rgba value migrated to CSS variable
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] Non-exempt rgba values in layout/statusbar components replaced with CSS variables
+- [x] Box-shadow and accent color rgba values correctly left untouched
+- [x] `npm run check` passes with 0 errors
+- [x] Committed and pushed as bc02b54
+
+---
+
+## Iteration 620 — CSS Variable Migration: notes + sessions components (audit)
+_Date: 2026-04-16 | Sprint CSS_
+
+### Summary
+Audited 11 target files across `notes/` and `sessions/` component directories for `rgba(255,255,255,...)` and `rgba(0,0,0,...)` values requiring migration. After applying all skip rules (box-shadow, indigo accent, red/green/purple status colors, gray separator), zero non-exempt values were found. All white/black rgba occurrences in these files are exclusively in box-shadow properties, which are explicitly exempt from migration.
+
+### Files Changed
+- No files changed — all rgba occurrences in target files are exempt per migration rules
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] All 11 target files audited for rgba(255,255,255,...) and rgba(0,0,0,...) values
+- [x] All white/black rgba values confirmed to be in box-shadow properties (exempt)
+- [x] Indigo, red, green, purple accent colors correctly left untouched
+- [x] Gray separator rgba(128,128,128,0.1) correctly identified as outside mapping scope
+- [x] `npm run check` passes with 0 errors
