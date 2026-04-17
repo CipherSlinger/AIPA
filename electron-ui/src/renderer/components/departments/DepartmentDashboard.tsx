@@ -1320,39 +1320,48 @@ function OrgChart({ onSelectDept, onNewSessionInDept, onOpenSession, loadingSess
                 ))}
               </div>
             ) : sessions.length === 0 ? (
-              <div
-                onClick={() => newSessionInDept(dept)}
-                style={{
-                  padding: '16px 16px',
-                  borderRadius: 8,
-                  border: '1px dashed var(--border)',
-                  color: 'var(--text-muted)',
-                  fontSize: 11,
-                  opacity: 0.65,
-                  letterSpacing: '0.01em',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={e => {
-                  const el = e.currentTarget as HTMLElement
-                  el.style.opacity = '1'
-                  el.style.borderColor = dept.color || '#6366f1'
-                  el.style.color = dept.color || '#6366f1'
-                  el.style.background = 'rgba(99,102,241,0.04)'
-                }}
-                onMouseLeave={e => {
-                  const el = e.currentTarget as HTMLElement
-                  el.style.opacity = '0.65'
-                  el.style.borderColor = 'var(--border)'
-                  el.style.color = 'var(--text-muted)'
-                  el.style.background = 'transparent'
-                }}
-              >
-                <MessageSquarePlus size={14} style={{ flexShrink: 0, opacity: 0.7 }} />
-                <span>{t('dept.noSessions')} — <span style={{ textDecoration: 'underline', textUnderlineOffset: 2 }}>{t('dept.newSession')}</span></span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+                {pendingNewDeptId === dept.id ? (
+                  <PendingSessionCard
+                    onEnter={() => { onNewSessionInDept(dept.id); setPendingNewDeptId(null) }}
+                    onCancel={() => setPendingNewDeptId(null)}
+                  />
+                ) : (
+                  <div
+                    onClick={() => newSessionInDept(dept)}
+                    style={{
+                      padding: '16px 16px',
+                      borderRadius: 8,
+                      border: '1px dashed var(--border)',
+                      color: 'var(--text-muted)',
+                      fontSize: 11,
+                      opacity: 0.65,
+                      letterSpacing: '0.01em',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={e => {
+                      const el = e.currentTarget as HTMLElement
+                      el.style.opacity = '1'
+                      el.style.borderColor = dept.color || '#6366f1'
+                      el.style.color = dept.color || '#6366f1'
+                      el.style.background = 'rgba(99,102,241,0.04)'
+                    }}
+                    onMouseLeave={e => {
+                      const el = e.currentTarget as HTMLElement
+                      el.style.opacity = '0.65'
+                      el.style.borderColor = 'var(--border)'
+                      el.style.color = 'var(--text-muted)'
+                      el.style.background = 'transparent'
+                    }}
+                  >
+                    <MessageSquarePlus size={14} style={{ flexShrink: 0, opacity: 0.7 }} />
+                    <span>{t('dept.noSessions')} — <span style={{ textDecoration: 'underline', textUnderlineOffset: 2 }}>{t('dept.newSession')}</span></span>
+                  </div>
+                )}
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
