@@ -355,7 +355,7 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
               height={14}
               rx={6}
               ry={6}
-              fill="rgba(15,15,25,0.85)"
+              fill="var(--glass-bg-low)"
               stroke={
                 status === 'done' || status === 'completed'
                   ? 'rgba(34,197,94,0.45)'
@@ -396,7 +396,7 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
           style={{ overflow: 'visible', pointerEvents: 'none' }}
         >
           <div style={{
-            background: 'rgba(15,15,25,0.88)',
+            background: 'var(--glass-bg-card)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
             border: '1px solid var(--border)',

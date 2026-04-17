@@ -468,7 +468,7 @@ function ProgressBar({ status }: { status: StepStatus }) {
         height: 3,
         borderRadius: '0 0 12px 12px',
         overflow: 'hidden',
-        background: 'rgba(0,0,0,0.2)',
+        background: 'var(--code-bg)',
       }}>
         <div style={{
           width: '40%',
