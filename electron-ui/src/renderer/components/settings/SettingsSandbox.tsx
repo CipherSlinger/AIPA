@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { Shield, Globe, FolderOpen, Plus, X, AlertTriangle, Info } from 'lucide-react'
+import { Shield, Globe, FolderOpen, Plus, X, AlertTriangle, Info, Ban } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import SettingsGroup from './SettingsGroup'
 import Toggle from '../ui/Toggle'
@@ -24,6 +24,7 @@ interface SandboxConfig {
   filesystem?: SandboxFilesystem
   autoAllowBashIfSandboxed?: boolean
   allowUnsandboxedCommands?: boolean
+  ignoreViolations?: Record<string, string[]>
 }
 
 // ── ChipList ─────────────────────────────────────────────────────────────────
@@ -274,6 +275,238 @@ function PathListSection({ label, description, items, placeholder, color, bgColo
   )
 }
 
+// ── helpers ────────────────────────────────────────────────────────────────
+
+function parseIgnoreViolations(raw: unknown): Record<string, string[]> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+  const result: Record<string, string[]> = {}
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (Array.isArray(v)) {
+      result[k] = v.filter((x): x is string => typeof x === 'string')
+    }
+  }
+  return result
+}
+
+// ── IgnoreViolationsSection ───────────────────────────────────────────────────
+
+interface IgnoreViolationsSectionProps {
+  violations: Record<string, string[]>
+  onAdd: (toolName: string, types: string[]) => void
+  onRemoveEntry: (toolName: string) => void
+  onRemoveType: (toolName: string, typeIdx: number) => void
+  t: (key: string) => string
+}
+
+function IgnoreViolationsSection({
+  violations, onAdd, onRemoveEntry, onRemoveType, t,
+}: IgnoreViolationsSectionProps) {
+  const [adding, setAdding] = useState(false)
+  const [toolInput, setToolInput] = useState('')
+  const [typesInput, setTypesInput] = useState('')
+
+  const handleAdd = () => {
+    const tool = toolInput.trim()
+    if (!tool) return
+    const types = typesInput.split(',').map(s => s.trim()).filter(Boolean)
+    onAdd(tool, types)
+    setToolInput('')
+    setTypesInput('')
+    setAdding(false)
+  }
+
+  const entries = Object.entries(violations)
+
+  return (
+    <div>
+      {entries.length === 0 && !adding && (
+        <div style={{
+          fontSize: 11, color: 'var(--text-faint)',
+          fontStyle: 'italic', padding: '4px 0 8px',
+        }}>
+          {t('sandbox.noViolationExemptions')}
+        </div>
+      )}
+
+      {entries.map(([toolName, types]) => (
+        <div
+          key={toolName}
+          style={{
+            display: 'flex', alignItems: 'flex-start', gap: 8,
+            padding: '6px 0',
+            borderBottom: '1px solid var(--glass-border)',
+          }}
+        >
+          <span style={{
+            display: 'inline-flex', alignItems: 'center',
+            background: 'rgba(99,102,241,0.12)', color: 'rgba(129,140,248,1)',
+            border: '1px solid rgba(99,102,241,0.25)',
+            borderRadius: 5, padding: '3px 8px',
+            fontSize: 11, fontWeight: 600, fontFamily: 'monospace',
+            flexShrink: 0, marginTop: 2,
+          }}>
+            {toolName}
+          </span>
+
+          <div style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: 4, minHeight: 24 }}>
+            {types.map((vt, idx) => (
+              <span
+                key={`${toolName}-vt-${idx}`}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  background: 'rgba(251,191,36,0.10)', color: '#fbbf24',
+                  border: '1px solid rgba(251,191,36,0.22)',
+                  borderRadius: 4, padding: '2px 7px',
+                  fontSize: 10, fontWeight: 500, fontFamily: 'monospace',
+                }}
+              >
+                {vt}
+                <button
+                  onClick={() => onRemoveType(toolName, idx)}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    padding: 0, display: 'inline-flex',
+                    color: 'inherit', opacity: 0.55,
+                  }}
+                  aria-label={`${t('sandbox.removeViolationType')} ${vt}`}
+                >
+                  <X size={9} />
+                </button>
+              </span>
+            ))}
+            {types.length === 0 && (
+              <span style={{ fontSize: 10, color: 'var(--text-faint)', fontStyle: 'italic', paddingTop: 3 }}>
+                (all violations)
+              </span>
+            )}
+          </div>
+
+          <button
+            onClick={() => onRemoveEntry(toolName)}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              padding: '3px 4px', display: 'inline-flex',
+              color: 'var(--text-faint)', opacity: 0.60,
+              flexShrink: 0, marginTop: 1,
+              transition: 'opacity 0.15s ease',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
+            onMouseLeave={e => { e.currentTarget.style.opacity = '0.60' }}
+            aria-label={`${t('sandbox.removeExemption')} ${toolName}`}
+          >
+            <X size={12} />
+          </button>
+        </div>
+      ))}
+
+      {adding ? (
+        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <input
+              autoFocus
+              value={toolInput}
+              onChange={e => setToolInput(e.target.value)}
+              placeholder={t('sandbox.toolName')}
+              style={{
+                width: 140, padding: '6px 10px', fontSize: 12,
+                background: 'var(--bg-hover)',
+                border: '1px solid var(--border)',
+                borderRadius: 6, color: 'var(--text-primary)',
+                fontFamily: 'monospace', outline: 'none',
+              }}
+              onFocus={e => {
+                e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'
+                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)'
+              }}
+              onBlur={e => {
+                e.currentTarget.style.borderColor = 'var(--border)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
+            />
+            <input
+              value={typesInput}
+              onChange={e => setTypesInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleAdd()
+                if (e.key === 'Escape') { setAdding(false); setToolInput(''); setTypesInput('') }
+              }}
+              placeholder={t('sandbox.violationTypes')}
+              style={{
+                flex: 1, padding: '6px 10px', fontSize: 12,
+                background: 'var(--bg-hover)',
+                border: '1px solid var(--border)',
+                borderRadius: 6, color: 'var(--text-primary)',
+                fontFamily: 'monospace', outline: 'none',
+              }}
+              onFocus={e => {
+                e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'
+                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)'
+              }}
+              onBlur={e => {
+                e.currentTarget.style.borderColor = 'var(--border)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button
+              onClick={handleAdd}
+              disabled={!toolInput.trim()}
+              style={{
+                padding: '6px 12px', fontSize: 11, fontWeight: 600,
+                background: toolInput.trim()
+                  ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
+                  : 'var(--bg-input)',
+                border: toolInput.trim() ? 'none' : '1px solid var(--border)',
+                borderRadius: 6,
+                color: toolInput.trim() ? 'var(--text-bright)' : 'var(--text-faint)',
+                cursor: toolInput.trim() ? 'pointer' : 'not-allowed',
+              }}
+            >
+              Add
+            </button>
+            <button
+              onClick={() => { setAdding(false); setToolInput(''); setTypesInput('') }}
+              style={{
+                padding: '6px 10px', fontSize: 11,
+                background: 'var(--bg-hover)',
+                border: '1px solid var(--glass-border)',
+                borderRadius: 6, color: 'var(--text-faint)',
+                cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => setAdding(true)}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            background: 'var(--bg-hover)',
+            border: '1px solid var(--glass-border-md)',
+            borderRadius: 6, padding: '4px 10px',
+            cursor: 'pointer', fontSize: 11, fontWeight: 500,
+            color: 'var(--text-faint)', marginTop: entries.length > 0 ? 8 : 0,
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'var(--border)'
+            e.currentTarget.style.color = 'var(--text-secondary)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'var(--bg-hover)'
+            e.currentTarget.style.color = 'var(--text-faint)'
+          }}
+        >
+          <Plus size={11} /> {t('sandbox.addViolationExemption')}
+        </button>
+      )}
+    </div>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function SettingsSandbox() {
@@ -283,6 +516,7 @@ export default function SettingsSandbox() {
     filesystem: { allowWrite: [], denyWrite: [], allowRead: [], denyRead: [] },
     autoAllowBashIfSandboxed: false,
     allowUnsandboxedCommands: false,
+    ignoreViolations: {},
   })
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState<string | null>(null)
@@ -313,6 +547,7 @@ export default function SettingsSandbox() {
           },
           autoAllowBashIfSandboxed: !!raw.autoAllowBashIfSandboxed,
           allowUnsandboxedCommands: !!raw.allowUnsandboxedCommands,
+          ignoreViolations: parseIgnoreViolations(raw.ignoreViolations),
         })
       } catch {
         showToast(t('sandbox.loadError'))
@@ -397,6 +632,44 @@ export default function SettingsSandbox() {
   const denyWriteH = makeFsHandlers('denyWrite')
   const allowReadH = makeFsHandlers('allowRead')
   const denyReadH = makeFsHandlers('denyRead')
+
+  const handleViolationAdd = useCallback((toolName: string, types: string[]) => {
+    setConfig(prev => {
+      const existing = prev.ignoreViolations ?? {}
+      const current = existing[toolName] ?? []
+      const merged = Array.from(new Set([...current, ...types]))
+      const updated: SandboxConfig = {
+        ...prev,
+        ignoreViolations: { ...existing, [toolName]: merged },
+      }
+      persist(updated)
+      return updated
+    })
+  }, [persist])
+
+  const handleViolationRemoveEntry = useCallback((toolName: string) => {
+    setConfig(prev => {
+      const existing = { ...(prev.ignoreViolations ?? {}) }
+      delete existing[toolName]
+      const updated: SandboxConfig = { ...prev, ignoreViolations: existing }
+      persist(updated)
+      return updated
+    })
+  }, [persist])
+
+  const handleViolationRemoveType = useCallback((toolName: string, typeIdx: number) => {
+    setConfig(prev => {
+      const existing = prev.ignoreViolations ?? {}
+      const types = [...(existing[toolName] ?? [])]
+      types.splice(typeIdx, 1)
+      const updated: SandboxConfig = {
+        ...prev,
+        ignoreViolations: { ...existing, [toolName]: types },
+      }
+      persist(updated)
+      return updated
+    })
+  }, [persist])
 
   if (loading) return (
     <div style={{ color: 'var(--text-faint)', fontSize: 13, padding: '24px 0', textAlign: 'center' }}>
@@ -532,6 +805,20 @@ export default function SettingsSandbox() {
           borderColor="rgba(251,191,36,0.20)"
           onAdd={denyReadH.add}
           onRemove={denyReadH.remove}
+        />
+      </SettingsGroup>
+
+      {/* Section: Ignore Violations */}
+      <SettingsGroup title={t('sandbox.ignoreViolations')} icon={<Ban size={14} />} groupKey="sandbox-ignore-violations">
+        <div style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 10, lineHeight: 1.5 }}>
+          {t('sandbox.ignoreViolationsDesc')}
+        </div>
+        <IgnoreViolationsSection
+          violations={config.ignoreViolations ?? {}}
+          onAdd={handleViolationAdd}
+          onRemoveEntry={handleViolationRemoveEntry}
+          onRemoveType={handleViolationRemoveType}
+          t={t}
         />
       </SettingsGroup>
 
