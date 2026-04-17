@@ -8120,4 +8120,25 @@ Status: SUCCESS (0 errors, 204 pre-existing warnings — unchanged from Iteratio
 - [x] WorkflowStepEditor rgba(139,92,246,...) violet borders correctly identified as semantic — skipped
 - [x] CanvasNode rgba(234,179,8,...) amber note states correctly identified as semantic — skipped
 - [x] rgba(8,8,16,1) canvas backgrounds confirmed as having no matching CSS variable — skipped
+
+## Iteration 633 — Light Theme CSS Variable Completeness Audit
+_Date: 2026-04-16 | Sprint CSS Migration_
+
+### Summary
+Audited all CSS variables in the dark `:root` block against the `[data-theme="light"]` block to verify completeness and semantic correctness. Found the light theme fully covers all functional variables. The only items missing from light were the z-index layering constants (`--z-*`), which are correctly omitted since they are layout values, not theme values. Added `--accent-bg`, `--accent-border`, `--accent-muted`, `--color-error`, `--color-success`, `--color-warning`, `--color-violet` to the dark `:root` for bidirectional parity — these were previously light-theme-only additions with zero consumers. Also confirmed `DepartmentPanel.tsx` hardcoded rgba values are all intentional brand/accent colors or shadows, not theme-background values requiring migration.
+
+### Files Changed
+- `electron-ui/src/renderer/styles/globals.css` — added 9 missing parity variables to dark `:root` (`--accent-bg`, `--accent-border`, `--accent-muted`, `--color-error/success/warning/violet`)
+
+### Build
+Status: SUCCESS (0 errors, 204 warnings — no change)
+
+### Acceptance Criteria
+- [x] Every variable in `:root` verified present in `[data-theme="light"]` (only z-index vars missing — by design)
+- [x] All light theme values semantically appropriate: dark text on light bg, light borders, light panel bg
+- [x] `--bg-chat`, `--text-primary/secondary/muted/faint/bright`, `--bg-hover/input/active`, `--border/border-strong` all verified
+- [x] `--glass-bg-*`, `--glass-overlay`, `--glass-shimmer` all present and appropriate for light mode
+- [x] `--code-bg`, `--section-bg`, `--action-btn-*`, `--popup-bg/shadow/item-hover`, `--card-border` all present
+- [x] Dark `:root` now has parity `--accent-bg/border/muted` and `--color-*` aliases
+- [x] DepartmentPanel.tsx hardcoded rgba values reviewed — all are brand accent colors or shadows, correctly exempt
 - [x] npm run check passes with 0 errors
