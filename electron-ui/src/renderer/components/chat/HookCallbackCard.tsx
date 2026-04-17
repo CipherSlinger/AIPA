@@ -144,7 +144,7 @@ export function HookCallbackCard({ message, onRespond }: Props) {
           margin: 0,
           fontSize: 11,
           color: '#a5b4fc',
-          background: 'rgba(0,0,0,0.30)',
+          background: 'var(--code-bg)',
           border: '1px solid var(--border)',
           borderRadius: 6,
           padding: '6px 10px',

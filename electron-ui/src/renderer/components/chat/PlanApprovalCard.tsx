@@ -183,7 +183,7 @@ export default function PlanApprovalCard({
             fontSize: 11,
             lineHeight: 1.65,
             color: 'var(--text-secondary)',
-            background: 'rgba(0,0,0,0.25)',
+            background: 'var(--code-bg)',
             border: '1px solid var(--border)',
             borderRadius: 7,
             padding: '8px 10px',

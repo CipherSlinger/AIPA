@@ -110,7 +110,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
   return (
     <div style={{
       margin: '4px 16px 8px',
-      background: 'rgba(15,15,25,0.85)',
+      background: 'var(--glass-bg-low)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
       border: '1px solid var(--border)',
@@ -169,7 +169,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
               fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5,
               marginBottom: 8,
               padding: '6px 10px',
-              background: 'rgba(0,0,0,0.30)',
+              background: 'var(--code-bg)',
               border: '1px solid var(--border)',
               borderRadius: 8,
               maxHeight: 120,

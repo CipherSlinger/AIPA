@@ -278,7 +278,7 @@ export default function FileDiffView({ tool, path, oldString, newString, content
 
   return (
     <div style={{
-      background: 'rgba(0,0,0,0.20)',
+      background: 'var(--code-bg)',
       borderRadius: 8,
       border: '1px solid var(--glass-border)',
       overflow: 'hidden',

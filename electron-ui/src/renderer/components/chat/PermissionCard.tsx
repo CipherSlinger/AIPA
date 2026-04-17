@@ -419,7 +419,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
           style={{
             fontSize: 11,
             color: 'rgba(165,180,252,0.9)',
-            background: 'rgba(0,0,0,0.35)',
+            background: 'var(--code-bg)',
             border: '1px solid var(--border)',
             borderRadius: 8,
             padding: '6px 10px',

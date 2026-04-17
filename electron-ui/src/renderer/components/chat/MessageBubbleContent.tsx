@@ -224,7 +224,7 @@ export default function MessageBubbleContent({
                   whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                   fontSize: 12, lineHeight: 1.6,
                   color: 'var(--text-primary)',
-                  background: 'rgba(0,0,0,0.1)',
+                  background: 'var(--action-btn-bg)',
                   border: '1px solid var(--border)',
                   borderRadius: 4, padding: '8px 12px', margin: 0,
                   fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
