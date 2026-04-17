@@ -42,6 +42,11 @@ export default function SettingsGeneral({
   // respectGitignore — reads/writes `respectGitignore` field in ~/.claude/settings.json via IPC
   const [respectGitignore, setRespectGitignore] = useState<boolean>(true)
 
+  // clawd status polling
+  type ClawdStatus = 'checking' | 'running' | 'stopped'
+  const [clawdStatus, setClawdStatus] = useState<ClawdStatus>('stopped')
+  const [clawdError, setClawdError] = useState<string | null>(null)
+
   useEffect(() => {
     window.electronAPI.configReadCLISettings().then((cliSettings: Record<string, unknown>) => {
       const raw = typeof cliSettings.cleanupPeriodDays === 'number' ? cliSettings.cleanupPeriodDays : 30
@@ -56,6 +61,38 @@ export default function SettingsGeneral({
       setRespectGitignore(gitignore)
     }).catch(() => {})
   }, [])
+
+  // Clawd status polling — poll every 5s when clawdEnabled is true
+  useEffect(() => {
+    if (!local.clawdEnabled) {
+      setClawdStatus('stopped')
+      setClawdError(null)
+      return
+    }
+
+    let cancelled = false
+
+    const checkStatus = async () => {
+      try {
+        const result = await window.electronAPI.clawdIsRunning?.()
+        if (!cancelled) {
+          setClawdStatus(result?.running ? 'running' : 'stopped')
+        }
+      } catch {
+        if (!cancelled) setClawdStatus('stopped')
+      }
+    }
+
+    // Initial check
+    setClawdStatus('checking')
+    checkStatus()
+
+    const intervalId = setInterval(checkStatus, 5000)
+    return () => {
+      cancelled = true
+      clearInterval(intervalId)
+    }
+  }, [local.clawdEnabled])
 
   const groupKeywords = useMemo(() => ({
     prompts: [t('settings.promptTemplate'), t('settings.systemPrompt'), t('settings.groups.prompts')].join(' ').toLowerCase(),
@@ -447,19 +484,130 @@ export default function SettingsGeneral({
           t('effort.preventSleepHint')
         )}
 
-        {row(
-          '桌宠 / Desktop Pet (Clawd)',
-          <Toggle
-            value={local.clawdEnabled === true}
-            onChange={(v) => {
-              updateLocal({ clawdEnabled: v })
-              if (v) {
-                window.electronAPI.clawdLaunch?.().catch(() => {})
-              }
-            }}
-          />,
-          'Show Clawd desktop pet that reacts to AI session state'
-        )}
+        {/* Clawd desktop pet row with status indicator */}
+        {(() => {
+          const statusDot = (() => {
+            if (!local.clawdEnabled) return null
+            if (clawdStatus === 'checking') {
+              return (
+                <span
+                  title="正在检查..."
+                  style={{
+                    display: 'inline-block',
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: '#f97316',
+                    marginLeft: 6,
+                    flexShrink: 0,
+                    animation: 'pulse 1.2s ease-in-out infinite',
+                  }}
+                />
+              )
+            }
+            if (clawdStatus === 'running') {
+              return (
+                <span
+                  title="桌宠运行中"
+                  style={{
+                    display: 'inline-block',
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: '#22c55e',
+                    marginLeft: 6,
+                    flexShrink: 0,
+                  }}
+                />
+              )
+            }
+            return (
+              <span
+                title="桌宠未启动"
+                style={{
+                  display: 'inline-block',
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background: 'var(--text-muted)',
+                  marginLeft: 6,
+                  flexShrink: 0,
+                }}
+              />
+            )
+          })()
+
+          const statusText = (() => {
+            if (!local.clawdEnabled) return null
+            if (clawdStatus === 'running') {
+              return (
+                <div style={{ fontSize: 11, color: '#22c55e', marginTop: 3, lineHeight: 1.5 }}>
+                  桌宠运行中
+                </div>
+              )
+            }
+            if (clawdStatus === 'stopped') {
+              return (
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.5 }}>
+                  桌宠未启动 — 请手动运行 clawd-on-desk
+                </div>
+              )
+            }
+            return null
+          })()
+
+          return (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', display: 'flex', alignItems: 'center' }}>
+                    桌宠 / Desktop Pet (Clawd)
+                    {statusDot}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.5 }}>
+                    Show Clawd desktop pet that reacts to AI session state
+                  </div>
+                  {statusText}
+                  {clawdError && (
+                    <div style={{ fontSize: 11, color: '#ef4444', marginTop: 3, lineHeight: 1.5 }}>
+                      {clawdError}
+                    </div>
+                  )}
+                </div>
+                <Toggle
+                  value={local.clawdEnabled === true}
+                  onChange={async (v) => {
+                    updateLocal({ clawdEnabled: v })
+                    setClawdError(null)
+                    if (v) {
+                      setClawdStatus('checking')
+                      try {
+                        await window.electronAPI.clawdLaunch?.()
+                      } catch {
+                        // launch errors are non-fatal
+                      }
+                      // After 2s, check if it actually started
+                      setTimeout(async () => {
+                        try {
+                          const result = await window.electronAPI.clawdIsRunning?.()
+                          if (result?.running) {
+                            setClawdStatus('running')
+                          } else {
+                            setClawdStatus('stopped')
+                            setClawdError('无法启动桌宠进程')
+                          }
+                        } catch {
+                          setClawdStatus('stopped')
+                          setClawdError('无法启动桌宠进程')
+                        }
+                      }, 2000)
+                    }
+                  }}
+                />
+              </div>
+            </div>
+          )
+        })()}
 
         {field(
           t('settings.defaultShell'),
