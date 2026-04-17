@@ -558,6 +558,15 @@
     "defaultShellHint": "CLI 会话中运行命令时使用的 Shell。",
     "respectGitignore": "遵守 .gitignore / Respect .gitignore",
     "respectGitignoreHint": "文件选择器是否遵守 .gitignore 规则。",
+    "gitAttribution": "Git 署名设置",
+    "gitAttributionCommit": "Commit 署名模板",
+    "gitAttributionCommitDesc": "提交时自动追加的 Co-authored-by 行模板",
+    "gitAttributionPr": "PR 署名模板",
+    "gitAttributionPrDesc": "PR 描述中追加的署名文本",
+    "includeCoAuthoredBy": "自动添加 Co-authored-by",
+    "includeCoAuthoredByDesc": "提交时自动添加 Co-authored-by 行",
+    "includeGitInstructions": "包含 Git 工作流指令",
+    "includeGitInstructionsDesc": "向 AI 系统提示注入 Git 工作流指导内容",
     "sessionEnvVars": "会话环境变量",
     "sessionEnvVarsHint": "这些键值对将作为环境变量在 CLI 会话中可用。",
     "sessionEnvVarsEmpty": "暂无已配置的环境变量。",
@@ -2365,7 +2374,10 @@
       "errPromptRequired": "提示词不能为空。",
       "errUrlRequired": "URL 不能为空。",
       "errUrlInvalid": "URL 格式无效。"
-    }
+    },
+    "eventHistory": "Hook 触发历史",
+    "noEventHistory": "暂无 Hook 触发记录",
+    "eventHistoryDesc": "当前会话的最近 Hook 事件记录"
   },
   "dept": {
     "panelTitle": "部门",
