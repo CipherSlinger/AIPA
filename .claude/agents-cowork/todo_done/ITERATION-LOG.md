@@ -8142,3 +8142,130 @@ Status: SUCCESS (0 errors, 204 warnings — no change)
 - [x] Dark `:root` now has parity `--accent-bg/border/muted` and `--color-*` aliases
 - [x] DepartmentPanel.tsx hardcoded rgba values reviewed — all are brand accent colors or shadows, correctly exempt
 - [x] npm run check passes with 0 errors
+
+## Iteration 634 — CSS Variable Migration: workflow editing + settings components
+_Date: 2026-04-16 | Sprint CSS-Migration_
+
+### Summary
+Migrated remaining hard-coded dark `rgba()` background values in workflow editing and settings components to CSS variables, enabling proper light-theme support. Seven files updated: opaque canvas backgrounds replaced with `var(--bg-primary)`, glass panel backgrounds replaced with `var(--glass-bg-low/deep)`, and one code-tag background replaced with `var(--code-bg)`. All amber/purple/red semantic accent colors correctly left untouched.
+
+### Files Changed
+- `electron-ui/src/renderer/components/workflows/WorkflowDetailPage.tsx` — page container bg `rgba(8,8,16,1)` x2 → `var(--bg-primary)`
+- `electron-ui/src/renderer/components/workflows/WorkflowCanvas.tsx` — canvas bg `rgba(8,8,16,1)` x2 → `var(--bg-primary)`
+- `electron-ui/src/renderer/components/workflows/WorkflowRunHistory.tsx` — run summary panel bg `rgba(8,8,16,0.80)` → `var(--glass-bg-low)`
+- `electron-ui/src/renderer/components/settings/SettingsModal.tsx` — modal bg `rgba(14,14,24,0.97)` → `var(--glass-bg-deep)`
+- `electron-ui/src/renderer/components/settings/PermissionsSettingsPanel.tsx` — toast bg `rgba(12,12,22,0.96)` → `var(--glass-bg-deep)`
+- `electron-ui/src/renderer/components/settings/HooksSettingsPanel.tsx` — hook panel section bg `rgba(10,10,22,0.85)` → `var(--glass-bg-low)`
+- `electron-ui/src/renderer/components/settings/DiagnosticsPanel.tsx` — monospace code tag bg `rgba(12,12,22,0.6)` → `var(--code-bg)`
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] WorkflowDetailPage and WorkflowCanvas opaque page/canvas bgs → `var(--bg-primary)`
+- [x] WorkflowRunHistory semi-transparent panel bg → `var(--glass-bg-low)`
+- [x] SettingsModal modal glass bg → `var(--glass-bg-deep)`
+- [x] PermissionsSettingsPanel toast glass bg → `var(--glass-bg-deep)`
+- [x] HooksSettingsPanel section panel bg → `var(--glass-bg-low)`
+- [x] DiagnosticsPanel code tag bg → `var(--code-bg)`
+- [x] Amber, purple, red, green semantic accent colors correctly skipped
+- [x] All box-shadow rgba values correctly skipped
+- [x] npm run check passes with 0 errors
+
+## Iteration 630 — CSS Variable Migration: WorkflowCanvas near-black rgba backgrounds
+_Date: 2026-04-16 | Sprint CSS_
+
+### Summary
+Migrated hardcoded near-black `rgba()` background and SVG fill values in workflow canvas components to CSS variables. Nine values migrated across four files: WorkflowCanvas.tsx, WorkflowRunHistory.tsx, CanvasEdge.tsx, and CanvasNode.tsx. SVG stroke/fill colors for muted/disabled edge and node states replaced with `var(--text-faint)`. Panel and popup backgrounds replaced with appropriate glass-tier variables. All box-shadow values, status colors (indigo/green/red/amber), and gradient/button colors left untouched.
+
+### Files Changed
+- `electron-ui/src/renderer/components/workflows/WorkflowCanvas.tsx` — minimap bg rgba(12,12,22,0.90) -> var(--glass-bg-mid); SVG fills rgba(120,120,120,0.4) + rgba(100,100,100,0.3) -> var(--text-faint); toolbar popup rgba(10,10,20,0.9) -> var(--glass-bg-mid); label bg rgba(20,20,20,0.8) -> var(--glass-bg-low); label bg rgba(20,20,20,0.7) -> var(--glass-overlay); bottom bar rgba(10,10,15,0.85) -> var(--glass-bg-low)
+- `electron-ui/src/renderer/components/workflows/WorkflowRunHistory.tsx` — dropdown panel bg rgba(14,14,24,0.96) -> var(--glass-bg-high)
+- `electron-ui/src/renderer/components/workflows/CanvasEdge.tsx` — skipped edge stroke rgba(150,150,150,0.4) -> var(--text-faint); idle edge stroke rgba(100,100,100,0.4) -> var(--text-faint)
+- `electron-ui/src/renderer/components/workflows/CanvasNode.tsx` — context menu panel bg rgba(18,18,30,0.97) -> var(--glass-bg-deep)
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] WorkflowCanvas.tsx minimap bg rgba(12,12,22,0.90) -> var(--glass-bg-mid)
+- [x] WorkflowCanvas.tsx minimap SVG fills (pending/idle) -> var(--text-faint)
+- [x] WorkflowCanvas.tsx toolbar popup rgba(10,10,20,0.9) -> var(--glass-bg-mid)
+- [x] WorkflowCanvas.tsx label bg rgba(20,20,20,0.8) -> var(--glass-bg-low)
+- [x] WorkflowCanvas.tsx label bg rgba(20,20,20,0.7) -> var(--glass-overlay)
+- [x] WorkflowCanvas.tsx bottom bar rgba(10,10,15,0.85) -> var(--glass-bg-low)
+- [x] WorkflowRunHistory.tsx dropdown rgba(14,14,24,0.96) -> var(--glass-bg-high)
+- [x] CanvasEdge.tsx skipped/idle stroke colors -> var(--text-faint)
+- [x] CanvasNode.tsx context menu bg rgba(18,18,30,0.97) -> var(--glass-bg-deep)
+- [x] All box-shadow, status colors, gradient values correctly skipped
+- [x] npm run check passes with 0 errors
+
+## Iteration 635 — Update FEATURE_GAP.md through Iteration 634
+_Date: 2026-04-16 | Sprint Docs_
+
+### Summary
+Updated FEATURE_GAP.md to cover Iterations 568-634: CSS variable migration Phase 1 (white rgba values across 30+ renderer components), Phase 2 (dark rgba + near-black variants), clawd-on-desk desktop pet integration (Iteration 615), globals.css dark theme variable completeness audit (Iteration 633), and final migration audit (Iteration 634). Updated top date line from Iteration 567 to Iteration 634. No code changes — docs only.
+
+### Files Changed
+- `FEATURE_GAP.md` — Added section 十四 with iteration log entries 568-634; updated date line to Iteration 634
+
+### Build
+Status: N/A (docs-only change; npm run check passes with 0 errors, 204 warnings)
+
+### Acceptance Criteria
+- [x] FEATURE_GAP.md top date updated to Iteration 634
+- [x] CSS migration Phase 1 (568-596) documented with full mapping rules and exemptions
+- [x] CSS migration Phase 2 (616-634) documented with dark rgba mapping rules
+- [x] globals.css variable additions (Iteration 633) documented
+- [x] Clawd integration (Iteration 615) documented
+- [x] Final audit (Iteration 634) documented
+- [x] Committed and pushed to origin
+
+## Iteration 638 — AgentCard sub-agent tool UI
+_Date: 2026-04-16 | Sprint Features_
+
+### Summary
+Enhanced the existing `AgentToolCard` component to render the CLI's Agent (sub-agent spawning) tool use in a structured inline card with richer visual information. Previously the card showed basic sub-agent info with Chinese labels and purple border. Now it features: indigo left border (4px, `rgba(99,102,241,0.5)`) consistent with SendMessageCard and other indigo-themed cards; `Users` icon; "Sub-agent" label; `subagent_type` muted gray chip; Foreground/Background execution mode badge (green/orange); Worktree isolation badge (blue, with `GitBranch` icon); description in bold; expandable prompt preview (>150 chars with char-count button); expandable agent output in an inset code box (>200 chars); `Loader2` spinner while running; final duration timer after completion; Abort button during streaming. All labels changed to English.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/AgentToolCard.tsx` — full rewrite: indigo border, new badges (Foreground/Background, Worktree), expandable prompt/result, English labels, `Loader2` spinner, `Users` icon
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings — unchanged)
+
+### Acceptance Criteria
+- [x] AgentToolCard renders with indigo left border (4px, rgba(99,102,241,0.5))
+- [x] Users icon (indigo color) in header
+- [x] "Sub-agent" label in header
+- [x] subagent_type badge shown when present (muted gray chip)
+- [x] Foreground/Background chip based on run_in_background (green/orange)
+- [x] Worktree isolation chip when isolation === 'worktree' (blue with GitBranch icon)
+- [x] description shown in bold when expanded
+- [x] prompt preview with expand toggle when >150 chars
+- [x] result (agent output) preview with expand toggle when >200 chars in inset box
+- [x] ToolUseBlock already routes 'Agent' tool to AgentToolCard (no change needed)
+- [x] npm run check passes with 0 errors
+
+## Iteration 637 — FileReadCard inline tool UI
+_Date: 2026-04-16 | Sprint Features_
+
+### Summary
+Implemented FileReadCard component to render the CLI's Read (FileRead) tool use in a structured inline card. Previously Read tool fell back to generic JSON display. Now shows file path with icon, optional line range badge, code preview of first 20 lines with expand toggle, and copy button. The card uses a left border color to indicate status (indigo while running, green when done) consistent with other tool cards.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/tool-cards/FileReadCard.tsx` — new component: File icon, split path display (dir muted / basename bold), line range badge for offset/limit, code preview with 20-line fold, "show more/less" toggle, copy button
+- `electron-ui/src/renderer/components/chat/ToolUseBlock.tsx` — added import for FileReadCard; added routing case for 'Read' and 'read_file' tool names before the generic fallback
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings — unchanged)
+
+### Acceptance Criteria
+- [x] FileReadCard renders file path with File icon (lucide-react)
+- [x] Directory portion shown muted, basename shown bold
+- [x] Optional line range badge when offset/limit present in input
+- [x] First 20 lines of content shown in monospace code block (var(--code-bg))
+- [x] "show more" / "show less" toggle for content exceeding 20 lines
+- [x] Copy button copies full content to clipboard with visual feedback
+- [x] "Reading..." indicator shown in header when isStreaming and no result yet
+- [x] ToolUseBlock routes 'Read' and 'read_file' tool names to FileReadCard
+- [x] npm run check passes with 0 errors
