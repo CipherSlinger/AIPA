@@ -87,7 +87,7 @@ function LSPResultBody({ text }: { text: string }) {
         overflowX: 'auto',
         maxHeight: 300,
         overflowY: 'auto',
-        background: 'rgba(12,12,22,0.9)',
+        background: 'var(--glass-bg-mid)',
         border: '1px solid var(--border)',
         borderRadius: 7,
         color: '#a5b4fc',

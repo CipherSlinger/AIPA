@@ -109,7 +109,7 @@ export default function CompareView({ sessionA, sessionB, titleA, titleB, forkMe
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.65)',
+        background: 'var(--glass-overlay)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         zIndex: 200,
@@ -119,7 +119,7 @@ export default function CompareView({ sessionA, sessionB, titleA, titleB, forkMe
       }}
     >
       <div style={{
-        background: 'rgba(13,13,20,0.95)',
+        background: 'var(--glass-bg-popup)',
         borderTop: '1px solid var(--border)',
         flex: 1,
         display: 'flex',

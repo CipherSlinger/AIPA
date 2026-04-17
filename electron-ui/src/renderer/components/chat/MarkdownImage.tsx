@@ -20,7 +20,7 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
         position: 'fixed',
         inset: 0,
         zIndex: 300,
-        background: 'rgba(0,0,0,0.85)',
+        background: 'var(--glass-overlay)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
