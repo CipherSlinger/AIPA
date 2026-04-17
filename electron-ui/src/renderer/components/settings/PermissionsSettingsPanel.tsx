@@ -1,19 +1,12 @@
-import React, { useCallback, useEffect, useState } from 'react'
-import { Shield, Plus, X, AlertTriangle, Info } from 'lucide-react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { Shield, Plus, X, AlertTriangle, Info, CheckCircle2, XCircle, Clock } from 'lucide-react'
 import { useT } from '../../i18n'
+import { useChatStore } from '../../store/chatStore'
+import { PermissionMessage } from '../../types/app.types'
 
 interface CLIPermissions {
   allow?: string[]
   deny?: string[]
-}
-
-const sectionLabelStyle: React.CSSProperties = {
-  fontSize: 10,
-  fontWeight: 700,
-  letterSpacing: '0.07em',
-  textTransform: 'uppercase',
-  color: 'var(--text-faint)',
-  marginBottom: 12,
 }
 
 export default function PermissionsSettingsPanel() {
@@ -25,6 +18,14 @@ export default function PermissionsSettingsPanel() {
   const [allowInput, setAllowInput] = useState('')
   const [denyInput, setDenyInput] = useState('')
   const [toast, setToast] = useState<string | null>(null)
+
+  // Mine permission messages from the current chat session
+  const messages = useChatStore(s => s.messages)
+  const permissionHistory = useMemo<PermissionMessage[]>(() => {
+    const perms = messages.filter((m): m is PermissionMessage => m.role === 'permission')
+    // Return up to 20 most recent, newest first
+    return perms.slice(-20).reverse()
+  }, [messages])
 
   const showToast = useCallback((msg: string) => {
     setToast(msg)
@@ -212,6 +213,130 @@ export default function PermissionsSettingsPanel() {
           {t('permissions.formatHelp')}
         </div>
       </div>
+
+      {/* Session Permission History */}
+      <SessionPermissionHistory permissionHistory={permissionHistory} />
+    </div>
+  )
+}
+
+// ── SessionPermissionHistory sub-component ──────────────────────────
+
+interface SessionPermissionHistoryProps {
+  permissionHistory: PermissionMessage[]
+}
+
+function SessionPermissionHistory({ permissionHistory }: SessionPermissionHistoryProps) {
+  const formatTime = (ts: number) => {
+    const d = new Date(ts)
+    return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  }
+
+  const decisionIcon = (decision: PermissionMessage['decision']) => {
+    if (decision === 'allowed') return <CheckCircle2 size={12} color="#4ade80" style={{ flexShrink: 0 }} />
+    if (decision === 'denied') return <XCircle size={12} color="#f87171" style={{ flexShrink: 0 }} />
+    return <Clock size={12} color="var(--text-faint)" style={{ flexShrink: 0 }} />
+  }
+
+  const decisionBadge = (decision: PermissionMessage['decision']): { text: string; color: string } => {
+    if (decision === 'allowed') return { text: '已允许', color: '#4ade80' }
+    if (decision === 'denied') return { text: '已拒绝', color: '#f87171' }
+    return { text: '待决定', color: 'var(--text-faint)' }
+  }
+
+  return (
+    <div style={{
+      background: 'var(--glass-bg-low)',
+      border: '1px solid var(--border)',
+      borderRadius: 12,
+      padding: '14px 16px',
+    }}>
+      {/* Section header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <Shield size={13} color="var(--text-faint)" style={{ flexShrink: 0 }} />
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+          会话权限历史
+        </span>
+        {permissionHistory.length > 0 && (
+          <span style={{
+            background: 'rgba(99,102,241,0.12)',
+            border: '1px solid rgba(99,102,241,0.25)',
+            color: 'rgba(99,102,241,0.9)',
+            borderRadius: 20, padding: '1px 8px',
+            fontSize: 10, fontWeight: 700,
+            fontVariantNumeric: 'tabular-nums',
+          }}>
+            {permissionHistory.length}
+          </span>
+        )}
+      </div>
+
+      {/* Empty state */}
+      {permissionHistory.length === 0 ? (
+        <div style={{
+          fontSize: 11, color: 'var(--text-faint)',
+          fontStyle: 'italic', padding: '4px 0',
+          textAlign: 'center',
+        }}>
+          当前会话暂无工具权限请求记录
+        </div>
+      ) : (
+        <div style={{
+          maxHeight: 200,
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4,
+        }}>
+          {permissionHistory.map((perm) => {
+            const badge = decisionBadge(perm.decision)
+            return (
+              <div
+                key={perm.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '5px 8px',
+                  background: 'var(--glass-bg-deep)',
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: 7,
+                }}
+              >
+                {decisionIcon(perm.decision)}
+                {/* Tool name */}
+                <span style={{
+                  fontSize: 11, fontWeight: 600,
+                  fontFamily: 'monospace',
+                  color: 'var(--text-primary)',
+                  flex: 1,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {perm.toolName}
+                </span>
+                {/* Decision badge */}
+                <span style={{
+                  fontSize: 10, fontWeight: 600,
+                  color: badge.color,
+                  flexShrink: 0,
+                }}>
+                  {badge.text}
+                </span>
+                {/* Timestamp */}
+                <span style={{
+                  fontSize: 10, color: 'var(--text-faint)',
+                  fontVariantNumeric: 'tabular-nums',
+                  flexShrink: 0,
+                }}>
+                  {formatTime(perm.timestamp)}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
