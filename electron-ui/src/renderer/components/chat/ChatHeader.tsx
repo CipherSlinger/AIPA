@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Search, Download, ClipboardCopy, Maximize2, Minimize2, FolderOpen, FileText, FilePlus2, RefreshCw, MessageSquarePlus, X, GitBranch, Building2 } from 'lucide-react'
+import { Search, Download, ClipboardCopy, Maximize2, Minimize2, FolderOpen, FileText, FilePlus2, RefreshCw, MessageSquarePlus, X, GitBranch, Building2, Wrench } from 'lucide-react'
 import { useChatStore, useSessionStore, usePrefsStore, useUiStore } from '../../store'
+import type { StandardChatMessage } from '../../types/app.types'
 import { useT } from '../../i18n'
 import ModelPicker from './ModelPicker'
 import PersonaPicker from './PersonaPicker'
@@ -115,6 +116,12 @@ export default function ChatHeader({
   // activeModel removed (was used for the model pill, which has been removed)
   const mcpServers = useChatStore(s => s.mcpServers)
   const setSystemInit = useChatStore(s => s.setSystemInit)
+  // Derive total tool call count from messages (each assistant message may have toolUses[])
+  const messages = useChatStore(s => s.messages)
+  const toolUseCount = messages.reduce((acc, m) => {
+    const std = m as StandardChatMessage
+    return acc + (std.toolUses?.length ?? 0)
+  }, 0)
   const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
   const personas = usePrefsStore(s => s.prefs.personas ?? EMPTY_PERSONAS)
   const sessionPersona = personas.find(p => p.id === sessionPersonaId)
@@ -361,6 +368,31 @@ export default function ChatHeader({
         </span>
       ) : null}
       </div>
+
+      {/* Tool use count badge — shown only when tools have been called this session */}
+      {toolUseCount > 0 && (
+        <span
+          title={`本次会话已执行 ${toolUseCount} 个工具调用`}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            fontSize: 11,
+            fontWeight: 600,
+            color: 'var(--text-muted)',
+            background: 'var(--bg-input)',
+            border: '1px solid var(--border)',
+            borderRadius: 10,
+            padding: '2px 8px',
+            whiteSpace: 'nowrap',
+            userSelect: 'none',
+            flexShrink: 0,
+          }}
+        >
+          <Wrench size={11} />
+          {toolUseCount}
+        </span>
+      )}
 
       {/* Model quick-switcher (extracted) */}
       <ModelPicker model={model} />
