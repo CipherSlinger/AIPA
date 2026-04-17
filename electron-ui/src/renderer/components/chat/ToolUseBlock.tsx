@@ -25,6 +25,7 @@ import { ToolCardHeader } from './tool-cards/ToolCardHeader'
 import { StructuredOutputCard } from './tool-cards/StructuredOutputCard'
 import { FileReadCard } from './tool-cards/FileReadCard'
 import { FileWriteCard } from './tool-cards/FileWriteCard'
+import { FileEditCard } from './tool-cards/FileEditCard'
 
 interface Props {
   tool: ToolUseInfo
@@ -426,6 +427,18 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
       <FileWriteCard
         input={tool.input || {}}
         result={writeResult}
+        isStreaming={tool.status === 'running'}
+      />
+    )
+  }
+
+  // Edit / str_replace_editor / str_replace_based_edit_tool: inline diff card with orange accent
+  if (tool.name === 'Edit' || tool.name === 'str_replace_editor' || tool.name === 'str_replace_based_edit_tool') {
+    const editResult = typeof tool.result === 'string' ? tool.result : null
+    return (
+      <FileEditCard
+        input={tool.input || {}}
+        result={editResult}
         isStreaming={tool.status === 'running'}
       />
     )
