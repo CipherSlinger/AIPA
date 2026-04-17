@@ -31,7 +31,7 @@ export default function PersonaCard({ persona, isActive, isDefault, isDeleting, 
         alignItems: 'center',
         gap: 10,
         padding: '8px 10px',
-        background: 'rgba(15,15,25,0.85)',
+        background: 'var(--glass-bg-low)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         border: hovered

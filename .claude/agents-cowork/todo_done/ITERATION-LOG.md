@@ -7866,6 +7866,29 @@ Status: SUCCESS (0 errors, 204 pre-existing warnings)
 - [x] npm run check passes with 0 errors
 - [x] Committed and pushed as bc02b54
 
+## Iteration 622 — CSS Variable Migration: chat components batch (CompareView, LSPResultCard, MarkdownImage)
+_Date: 2026-04-16 | Sprint CSS_
+
+### Summary
+Migrated hardcoded `rgba(0,0,0,...)` and `rgba(12-13,12-13,20-22,...)` dark background values in three chat components to CSS variables. Scanned all 12 target chat files; 9 files had only exempt values (indigo accents, box-shadows, status colors) and were correctly left untouched. Applied 4 substitutions across 3 files: CompareView overlay → `var(--glass-overlay)`, CompareView panel bg → `var(--glass-bg-popup)`, LSPResultCard code block bg → `var(--glass-bg-mid)`, MarkdownImage lightbox backdrop → `var(--glass-overlay)`.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/CompareView.tsx` — overlay rgba(0,0,0,0.65) → var(--glass-overlay); panel bg rgba(13,13,20,0.95) → var(--glass-bg-popup)
+- `electron-ui/src/renderer/components/chat/LSPResultCard.tsx` — code block bg rgba(12,12,22,0.9) → var(--glass-bg-mid)
+- `electron-ui/src/renderer/components/chat/MarkdownImage.tsx` — lightbox backdrop rgba(0,0,0,0.85) → var(--glass-overlay)
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] CompareView full-screen overlay rgba(0,0,0,0.65) → var(--glass-overlay)
+- [x] CompareView panel bg rgba(13,13,20,0.95) → var(--glass-bg-popup)
+- [x] LSPResultCard code bg rgba(12,12,22,0.9) → var(--glass-bg-mid)
+- [x] MarkdownImage lightbox backdrop rgba(0,0,0,0.85) → var(--glass-overlay)
+- [x] 9 other target files correctly left untouched (indigo/purple/status colors, box-shadows only)
+- [x] npm run check passes with 0 errors
+- [x] Committed and pushed as be471de
+
 ## Iteration 621 — CSS Variable Migration: shared + sidebar + workflow components
 _Date: 2026-04-16 | Sprint CSS_
 
@@ -7891,4 +7914,80 @@ Status: SUCCESS (0 errors, 204 pre-existing warnings)
 - [x] Indigo, red, green, amber status colors correctly left untouched
 - [x] Values inside var(--x, rgba(...)) fallbacks correctly left untouched
 - [x] ChangesPanel, TaskItemRow, CanvasNodeSidebar, CanvasProgressBar, WorkflowDetailHeader, PersonaSidebarComponents — all rgba values correctly identified as exempt
+- [x] npm run check passes with 0 errors
+
+## Iteration 623 — CSS Variable Migration: chat dialog and code backgrounds
+_Date: 2026-04-16 | Sprint CSS_
+
+### Summary
+Migrated hardcoded `rgba(0,0,0,...)` backdrop overlays and `rgba(8,8,16,...)` code block backgrounds in chat dialog components to CSS variables. WorktreeDialog and SaveTemplateDialog modal backdrops replaced with `var(--glass-overlay)`. AgentToolCard prompt/result `<pre>` block backgrounds replaced with `var(--code-bg)`. All other rgba values across the 12 target files were correctly identified as exempt: box-shadow values, indigo/purple accent colors, status colors (red/green/amber), and gradient button backgrounds.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/WorktreeDialog.tsx` — backdrop rgba(0,0,0,0.70) → var(--glass-overlay)
+- `electron-ui/src/renderer/components/chat/SaveTemplateDialog.tsx` — backdrop rgba(0,0,0,0.65) → var(--glass-overlay)
+- `electron-ui/src/renderer/components/chat/AgentToolCard.tsx` — code block bg rgba(8,8,16,0.80) × 2 → var(--code-bg)
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] rgba(0,0,0,0.70) backdrop in WorktreeDialog → var(--glass-overlay)
+- [x] rgba(0,0,0,0.65) backdrop in SaveTemplateDialog → var(--glass-overlay)
+- [x] rgba(8,8,16,0.80) pre block backgrounds in AgentToolCard (×2) → var(--code-bg)
+- [x] Box-shadow rgba values in all 12 target files correctly left untouched
+- [x] Indigo, purple, red, amber, green accent colors correctly left untouched
+- [x] Gradient button rgba values correctly left untouched
+- [x] ContextIndicator, MessageContextMenu, SnippetPopup, InputToolbarTextTransform, WelcomeHero, AtMentionPopup, TypingStatus, RegenerateButton, NotePopup — all rgba values correctly identified as exempt
+- [x] npm run check passes with 0 errors
+- [x] Committed (0a668f6) and pushed to origin/master
+
+## Iteration 624 — CSS Variable Migration: chat components batch 3
+_Date: 2026-04-16 | Sprint CSS_
+
+### Summary
+Migrated hardcoded `rgba(0,0,0,...)` and `rgba(15,12,28,...)` background values in four chat components to CSS variables. Modal/lightbox backdrop overlays (`rgba(0,0,0,0.70)`) replaced with `var(--glass-overlay)`. Card glass background (`rgba(15,12,28,0.88)`) replaced with `var(--glass-bg-card)`. Code/pre block backgrounds (`rgba(0,0,0,0.25)` and `rgba(0,0,0,0.30)`) replaced with `var(--code-bg)`. All box-shadow values, indigo/purple/violet accent colors, red/green/amber status colors, and indigo-200 text accent colors across all 12 target files were correctly identified and left untouched.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/RewindDialog.tsx` — backdrop bg: rgba(0,0,0,0.70) → var(--glass-overlay)
+- `electron-ui/src/renderer/components/chat/ToolUseBlock.tsx` — lightbox backdrop bg: rgba(0,0,0,0.70) → var(--glass-overlay)
+- `electron-ui/src/renderer/components/chat/DreamTaskCard.tsx` — card bg: rgba(15,12,28,0.88) → var(--glass-bg-card); history pre bg: rgba(0,0,0,0.25) → var(--code-bg)
+- `electron-ui/src/renderer/components/chat/HookProgressCard.tsx` — output pre bg: rgba(0,0,0,0.30) → var(--code-bg)
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] RewindDialog backdrop rgba(0,0,0,0.70) → var(--glass-overlay)
+- [x] ToolUseBlock lightbox backdrop rgba(0,0,0,0.70) → var(--glass-overlay)
+- [x] DreamTaskCard card bg rgba(15,12,28,0.88) → var(--glass-bg-card)
+- [x] DreamTaskCard history pre bg rgba(0,0,0,0.25) → var(--code-bg)
+- [x] HookProgressCard output pre bg rgba(0,0,0,0.30) → var(--code-bg)
+- [x] URLPreviewCard, StatsPanel, TokenUsageBar, BranchBadge, BookmarksPanel, QuickCapture, WelcomeQuickActions, Message — all rgba values correctly identified as exempt (box-shadow, indigo, purple, red, green, amber, or rgba on gradient buttons)
+- [x] npm run check passes with 0 errors
+
+## Iteration 625 — CSS Variable Migration: settings + ui components
+_Date: 2026-04-16 | Sprint CSS_
+
+### Summary
+Migrated hardcoded `rgba(15,15,25,0.85)` glass background values and `rgba(0,0,0,0.45/0.60)` overlay/backdrop values in settings and ui components to CSS variables. Seven `rgba(15,15,25,0.85)` panel/card backgrounds replaced with `var(--glass-bg-low)`. One `rgba(0,0,0,0.45)` avatar hover overlay replaced with `var(--code-bg)`. One `rgba(0,0,0,0.60)` modal backdrop in CommandPalette replaced with `var(--glass-overlay)`. All box-shadow values, indigo/purple accent colors, status colors (red/green/amber), and `rgba(255,255,255,0.95)` on colored buttons correctly left untouched.
+
+### Files Changed
+- `electron-ui/src/renderer/components/settings/SettingsTemplates.tsx` — form panel bg (x2): rgba(15,15,25,0.85) -> var(--glass-bg-low)
+- `electron-ui/src/renderer/components/settings/PersonaEditorPage.tsx` — SECTION_CARD bg: rgba(15,15,25,0.85) -> var(--glass-bg-low); avatar hover overlay: rgba(0,0,0,0.45) -> var(--code-bg)
+- `electron-ui/src/renderer/components/settings/WorkflowEditorPage.tsx` — SECTION_CARD bg + step card bg (x2): rgba(15,15,25,0.85) -> var(--glass-bg-low)
+- `electron-ui/src/renderer/components/settings/PersonaCard.tsx` — card bg: rgba(15,15,25,0.85) -> var(--glass-bg-low)
+- `electron-ui/src/renderer/components/settings/PersonaForm.tsx` — form container bg: rgba(15,15,25,0.85) -> var(--glass-bg-low)
+- `electron-ui/src/renderer/components/ui/CommandPalette.tsx` — backdrop bg: rgba(0,0,0,0.60) -> var(--glass-overlay)
+
+### Build
+Status: SUCCESS (0 errors, 204 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] SettingsTemplates form panel backgrounds (x2) -> var(--glass-bg-low)
+- [x] PersonaEditorPage SECTION_CARD bg -> var(--glass-bg-low); avatar hover overlay -> var(--code-bg)
+- [x] WorkflowEditorPage SECTION_CARD + step card bg -> var(--glass-bg-low)
+- [x] PersonaCard card bg -> var(--glass-bg-low)
+- [x] PersonaForm form container bg -> var(--glass-bg-low)
+- [x] CommandPalette backdrop rgba(0,0,0,0.60) -> var(--glass-overlay)
+- [x] PersonaPresets, HookAddWizard, SettingsAbout, SettingsPlugins, Toast, FileBrowser — all remaining rgba values correctly identified as exempt (box-shadow, indigo, purple, red, green, amber, rgba on gradient/colored buttons)
 - [x] npm run check passes with 0 errors

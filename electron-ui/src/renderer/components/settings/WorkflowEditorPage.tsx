@@ -41,7 +41,7 @@ const MICRO_LABEL: React.CSSProperties = {
 
 // Form section card
 const SECTION_CARD: React.CSSProperties = {
-  background: 'rgba(15,15,25,0.85)',
+  background: 'var(--glass-bg-low)',
   backdropFilter: 'blur(12px)',
   WebkitBackdropFilter: 'blur(12px)',
   border: '1px solid var(--border)',
@@ -319,7 +319,7 @@ export default function WorkflowEditorPage() {
               <div
                 key={step.id}
                 style={{
-                  background: 'rgba(15,15,25,0.85)',
+                  background: 'var(--glass-bg-low)',
                   backdropFilter: 'blur(12px)',
                   WebkitBackdropFilter: 'blur(12px)',
                   border: '1px solid var(--border)',

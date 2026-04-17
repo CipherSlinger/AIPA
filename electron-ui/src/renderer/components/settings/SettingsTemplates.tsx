@@ -68,7 +68,7 @@ export function SnippetsSection() {
   const snippetForm = (onSubmit: () => void) => (
     <div style={{
       padding: '12px 14px',
-      background: 'rgba(15,15,25,0.85)',
+      background: 'var(--glass-bg-low)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
       border: '1px solid rgba(99,102,241,0.30)',
@@ -161,7 +161,7 @@ export function SnippetsSection() {
               <div
                 style={{
                   padding: '8px 12px',
-                  background: 'rgba(15,15,25,0.85)',
+                  background: 'var(--glass-bg-low)',
                   backdropFilter: 'blur(12px)',
                   WebkitBackdropFilter: 'blur(12px)',
                   border: '1px solid var(--border)',

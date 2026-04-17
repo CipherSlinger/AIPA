@@ -57,7 +57,7 @@ export default function PersonaForm({
   return (
     <div style={{
       padding: '14px 16px',
-      background: 'rgba(15,15,25,0.85)',
+      background: 'var(--glass-bg-low)',
       backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
       border: '1px solid var(--border)',
