@@ -8270,6 +8270,30 @@ Status: SUCCESS (0 errors, 204 pre-existing warnings — unchanged)
 - [x] ToolUseBlock routes 'Read' and 'read_file' tool names to FileReadCard
 - [x] npm run check passes with 0 errors
 
+## Iteration 639 — FileWriteCard inline tool UI
+_Date: 2026-04-16 | Sprint Features_
+
+### Summary
+Implemented FileWriteCard component to render the CLI's Write (FileWrite) tool use in a structured inline card. Previously fell back to generic JSON display. Now shows file path with green icon, content preview (first 20 lines, expandable), "File written" confirmation badge on result, and copy button.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/tool-cards/FileWriteCard.tsx` — new component: FileText icon in green, "Write" green badge, split path display (dir muted / basename green bold), content preview with 20-line fold, "show more/less" toggle with line count, "File written" badge on result, copy button
+- `electron-ui/src/renderer/components/chat/ToolUseBlock.tsx` — added import for FileWriteCard; added routing case for 'Write' tool name before TaskCreate
+
+### Build
+Status: SUCCESS (0 errors, pre-existing warnings unchanged)
+
+### Acceptance Criteria
+- [x] FileWriteCard renders with green left border (4px solid rgba(74,222,128,0.35))
+- [x] Green badge shows "Write" action
+- [x] file_path shows directory (muted) + basename (bold green)
+- [x] First 20 lines of content in code block (var(--code-bg))
+- [x] Show more/less toggle with total line count
+- [x] Green "File written" badge on result
+- [x] Copy button copies full content
+- [x] ToolUseBlock routes 'Write' tool to FileWriteCard
+- [x] npm run check passes with 0 errors
+
 ## Iteration 636 — CSS Variable Migration: formatHtml.ts injected styles
 _Date: 2026-04-16 | Sprint CSS_
 
