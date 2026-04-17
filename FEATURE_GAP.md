@@ -1,6 +1,6 @@
 # AIPA x Claude Code CLI — 功能差距文档
 
-> 更新日期：2026-04-16（Iteration 638）
+> 更新日期：2026-04-16（Iteration 642）
 > CLI 版本：claude-code 2.1.81（BUILD_TIME: 2026-03-20T21:25:42Z）
 > 分析目的：指导 AIPA UI 逐步对齐 CLI 全部能力
 
@@ -15,7 +15,7 @@
 | `Bash` | 执行 shell 命令，支持沙箱、权限检查 | ✅ PTY 终端可执行，但无结构化工具 UI |
 | `FileRead` | 读取文件，支持行范围限制 | ✅ `FileReadCard`：文件路径展示（目录淡色+文件名高亮）、行范围徽标（offset/limit）、代码块预览（前20行可展开）、复制按钮、读取中状态（Iteration 637） |
 | `FileEdit` | 精确字符串替换编辑文件 | ❌ 无差异对比/批准 UI |
-| `FileWrite` | 创建/覆盖文件 | ❌ 无独立文件写入 UI |
+| `FileWrite` | 创建/覆盖文件 | ✅ `FileWriteCard`：绿色主题、文件路径展示（目录淡色+文件名高亮）、内容预览（前20行可展开）、复制按钮、"File written" 确认徽标（Iteration 639） |
 | `Glob` | 文件模式匹配搜索 | ✅ 结构化展示：文件路径列表，目录部分淡色，文件名加粗，超过10条折叠（Iteration 540） |
 | `Grep` | 正则内容搜索（ripgrep 封装） | ✅ 结构化展示：file:line:content 格式，可折叠展开（Iteration 540） |
 | `WebFetch` | 抓取 URL 内容并 AI 处理 | ✅ URL chip 可点击，内容前200字符预览，可展开全文（Iteration 540） |
@@ -59,6 +59,7 @@
 - ✅ `plan_approval_request/response`：`PlanApprovalCard.tsx` 已存在，`useStreamJson` 订阅 `onPlanApprovalRequest`，`ChatPanel` 渲染并接入 `cliRespondPlanApproval`（Iteration 617）
 - ✅ `FileRead` 工具：`FileReadCard.tsx` 新增，渲染文件路径（目录淡色+文件名高亮）、行范围徽标（offset/limit 字段）、代码块预览（前20行，可展开）、复制按钮（Iteration 637）
 - ✅ `Agent` 工具：`AgentToolCard.tsx` 增强，新增 indigo 左边框、subagent_type 徽标、前台/后台 badge、worktree 隔离 badge、prompt 可展开预览、result 可展开预览（Iteration 638）
+- ✅ `FileWrite` 工具：`FileWriteCard.tsx` 新增，绿色主题，内容预览（前20行，可展开），"File written" 确认徽标，复制按钮（Iteration 639）
 
 ---
 
@@ -831,3 +832,19 @@ AIPA 状态：❌ 无任何 compact 触发 UI
 
 ### Iteration 638 — AgentToolCard 子代理可视化增强
 增强已有 `AgentToolCard.tsx`：新增 indigo 左边框（`rgba(99,102,241,0.5)`）、subagent_type 徽标、前台（绿色）/后台（橙色）chip、Worktree 隔离（蓝色）chip、description 显示、prompt 可展开预览（>150 字符）、result 内嵌框（可展开，>200 字符）。
+
+---
+
+## 十六、最新实现记录（2026-04-16，Iterations 639-642）
+
+### Iteration 639 — FileWriteCard 文件写入内联卡片
+新增 `FileWriteCard.tsx` 组件，渲染 CLI `Write` 工具调用：绿色主题（左边框/图标/徽标），文件路径展示（目录淡色+文件名绿色加粗），内容前20行代码预览（可展开），复制按钮，写入中状态（"Writing..."），"File written" 确认徽标。`ToolUseBlock` 已接入 `'Write'` 路由。
+
+### Iteration 640 — FEATURE_GAP.md 文档更新（迭代 635-638）
+更新 FEATURE_GAP.md 日期行至 Iteration 638；将 `FileRead`（637）和 `Agent`（638）在工具表格中标记为 ✅；在优先级小节追加两条新发现 bullet；新增第十五节记录迭代 635-638 详情。
+
+### Iteration 641 — Light Theme CSS 变量完整性审计
+对 `globals.css` 进行系统性审计：:root 中定义的 80 个变量中，70 个颜色/透明度变量全部在 `[data-theme="light"]` 中有覆盖（core palette 18/18、glass-morphism 15/15、task queue 8/8 等），10 个 z-index 变量正确继承。结论：变量覆盖已完整，无需修改。
+
+### Iteration 642 — cleanupPeriodDays UI 设置（已实现确认）
+确认 `cleanupPeriodDays` 设置 UI 已在早期迭代（518+）完整实现（IPC `config:readCLISettings` / `config:writeCLISettings`，Settings → General 数字输入框）。本次迭代增强 min/max 验证（1-365范围），更新 i18n 提示文字，将 FEATURE_GAP.md 对应条目标记为 ✅。
