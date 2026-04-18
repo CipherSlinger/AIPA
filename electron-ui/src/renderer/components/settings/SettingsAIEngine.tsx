@@ -36,6 +36,8 @@ export default function SettingsAIEngine({
   const [aiReplyLanguage, setAiReplyLanguage] = useState<string>('')
   // cliOutputStyle — reads/writes `outputStyle` field in ~/.claude/settings.json via IPC
   const [cliOutputStyle, setCliOutputStyle] = useState<string>('auto')
+  // apiKeyHelper — reads/writes `apiKeyHelper` field in ~/.claude/settings.json via IPC
+  const [apiKeyHelper, setApiKeyHelper] = useState<string>('')
 
   useEffect(() => {
     window.electronAPI.configReadCLISettings().then((cliSettings: Record<string, unknown>) => {
@@ -43,6 +45,8 @@ export default function SettingsAIEngine({
       setAiReplyLanguage(lang)
       const style = typeof cliSettings.outputStyle === 'string' ? cliSettings.outputStyle : 'auto'
       setCliOutputStyle(style)
+      const helper = typeof cliSettings.apiKeyHelper === 'string' ? cliSettings.apiKeyHelper : ''
+      setApiKeyHelper(helper)
     }).catch(() => {})
   }, [])
 
@@ -86,6 +90,26 @@ export default function SettingsAIEngine({
         )}
 
         <SettingsApiKeyPool field={field} />
+
+        {field(
+          t('settings.apiKeyHelper'),
+          <input
+            type="text"
+            value={apiKeyHelper}
+            onChange={(e) => {
+              const next = e.target.value
+              setApiKeyHelper(next)
+              window.electronAPI.configWriteCLISettings({ apiKeyHelper: next }).catch(() => {})
+            }}
+            placeholder="/usr/local/bin/get-api-key.sh"
+            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
+            style={{ ...INPUT_STYLE }}
+          />,
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            {t('settings.apiKeyHelperDesc')}
+          </span>
+        )}
 
         {field(t('settings.model'), (
           <select value={local.model} onChange={(e) => updateLocal({ model: e.target.value })} style={{ ...INPUT_STYLE }}>

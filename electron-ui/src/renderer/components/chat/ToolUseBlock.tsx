@@ -26,9 +26,8 @@ import { StructuredOutputCard } from './tool-cards/StructuredOutputCard'
 import { FileReadCard } from './tool-cards/FileReadCard'
 import { FileWriteCard } from './tool-cards/FileWriteCard'
 import { FileEditCard } from './tool-cards/FileEditCard'
-import { SleepToolCard } from './tool-cards/SleepToolCard'
-import { BriefToolCard } from './tool-cards/BriefToolCard'
-import { ToolSearchToolCard } from './tool-cards/ToolSearchToolCard'
+import { BriefToolCard } from './BriefToolCard'
+import { SleepToolCard } from './SleepToolCard'
 
 interface Props {
   tool: ToolUseInfo
@@ -447,38 +446,24 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
     )
   }
 
-  // SleepTool: purple pulsing wait card
-  if (tool.name === 'SleepTool' || tool.name === 'sleep') {
-    const sleepResult = typeof tool.result === 'string' ? tool.result : (tool.result != null ? '' : null)
-    return (
-      <SleepToolCard
-        input={tool.input || {}}
-        result={sleepResult}
-        isLoading={tool.status === 'running'}
-      />
-    )
-  }
-
-  // BriefTool: cyan brief content card
-  if (tool.name === 'BriefTool' || tool.name === 'brief' || tool.name === 'read_brief') {
+  // BriefTool: brief file content card with slate theme
+  if (tool.name === 'BriefTool' || tool.name === 'brief') {
     const briefResult = typeof tool.result === 'string' ? tool.result : null
     return (
       <BriefToolCard
         input={tool.input || {}}
         result={briefResult}
-        isLoading={tool.status === 'running'}
       />
     )
   }
 
-  // ToolSearchTool: slate/gray meta card showing found tool names
-  if (tool.name === 'ToolSearchTool' || tool.name === 'tool_search') {
-    const searchResult = typeof tool.result === 'string' ? tool.result : null
+  // SleepTool: sleep status card with purple theme
+  if (tool.name === 'SleepTool' || tool.name === 'sleep') {
+    const sleepResult = typeof tool.result === 'string' ? tool.result : null
     return (
-      <ToolSearchToolCard
+      <SleepToolCard
         input={tool.input || {}}
-        result={searchResult}
-        isLoading={tool.status === 'running'}
+        result={sleepResult}
       />
     )
   }

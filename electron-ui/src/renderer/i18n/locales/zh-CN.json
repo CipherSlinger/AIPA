@@ -475,13 +475,9 @@
     "cliOutputStyleAuto": "auto（默认）",
     "cliOutputStyleText": "text（纯文本）",
     "cliOutputStyleJson": "json（JSON）",
-    "availableModels": "可用模型白名单（企业）",
-    "availableModelsDesc": "企业环境限制可选模型列表。设置后模型选择器仅显示列表中的模型。",
-    "availableModelsEmpty": "未配置（使用所有可用模型）",
-    "availableModelsPlaceholder": "如 claude-opus-4-6",
-    "availableModelsAdd": "添加",
-    "availableModelsCancel": "取消",
     "apiKey": "API 密钥",
+    "apiKeyHelper": "API Key 辅助脚本",
+    "apiKeyHelperDesc": "输出 API Key 的脚本路径",
     "apiKeyPool": "API 密钥池",
     "apiKeyPoolHint": "添加多个密钥，配额耗尽时自动切换",
     "addKey": "添加密钥",
@@ -564,19 +560,6 @@
     "defaultShellHint": "CLI 会话中运行命令时使用的 Shell。",
     "respectGitignore": "遵守 .gitignore / Respect .gitignore",
     "respectGitignoreHint": "文件选择器是否遵守 .gitignore 规则。",
-    "gitAttribution": "Git 署名设置",
-    "gitAttributionCommit": "Commit 署名模板",
-    "gitAttributionCommitDesc": "提交时自动追加的 Co-authored-by 行模板",
-    "gitAttributionPr": "PR 署名模板",
-    "gitAttributionPrDesc": "PR 描述中追加的署名文本",
-    "includeCoAuthoredBy": "自动添加 Co-authored-by",
-    "includeCoAuthoredByDesc": "提交时自动添加 Co-authored-by 行",
-    "includeGitInstructions": "包含 Git 工作流指令",
-    "includeGitInstructionsDesc": "向 AI 系统提示注入 Git 工作流指导内容",
-    "statusLine": "自定义状态栏",
-    "statusLineCommand": "状态栏命令",
-    "statusLineCommandDesc": "输出将显示在状态栏的 shell 命令",
-    "statusLinePlaceholder": "echo \"状态信息\"",
     "sessionEnvVars": "会话环境变量",
     "sessionEnvVarsHint": "这些键值对将作为环境变量在 CLI 会话中可用。",
     "sessionEnvVarsEmpty": "暂无已配置的环境变量。",
@@ -584,12 +567,6 @@
     "sessionEnvVarsAddValue": "值",
     "sessionEnvVarsAdd": "添加",
     "sessionEnvVarsDelete": "删除",
-    "apiKeyHelper": "API Key 获取脚本",
-    "apiKeyHelperDesc": "动态获取 API key 的脚本路径（设置后优先于存储的 API key）",
-    "apiKeyHelperPlaceholder": "/path/to/key-helper.sh",
-    "fileSuggestion": "文件建议命令",
-    "fileSuggestionDesc": "@ 提及时文件建议的 shell 命令",
-    "fileSuggestionPlaceholder": "fd --type f",
     "save": "保存设置",
     "saved": "已保存",
     "unlimited": "无限制",
@@ -609,6 +586,10 @@
     "includeCoAuthoredByDesc": "在 Commit 中添加 Co-authored-by 行",
     "includeGitInstructions": "包含 Git 指令",
     "includeGitInstructionsDesc": "在系统提示中包含 Git 工作流指令",
+    "statusLine": "状态栏命令",
+    "statusLineDesc": "自定义状态栏的 Shell 命令",
+    "fileSuggestion": "文件建议命令",
+    "fileSuggestionDesc": "提供 @ 文件建议的命令",
     "about": {
       "aiPersonalAssistant": "AI 个人助手",
       "links": "链接",
@@ -952,8 +933,7 @@
     "permanentDesc": "此错误由代码问题引起，重试无法修复。",
     "showDetails": "发生了什么？",
     "hideDetails": "隐藏详情",
-    "reportBug": "报告 Bug",
-    "structuredOutputRetries": "结构化输出超出重试次数"
+    "reportBug": "报告 Bug"
   },
   "startup": {
     "prefsLoadFailed": "偏好设置加载失败，已使用默认值。"
@@ -1112,13 +1092,7 @@
     "todoPriorityMedium": "中",
     "todoPriorityLow": "低",
     "todoHeader": "待办列表",
-    "todoCount": "共 {{count}} 项",
-    "sleep.waiting": "暂停中...",
-    "sleep.done": "等待完成",
-    "sleep.duration": "等待 {{duration}}",
-    "brief.title": "读取简报",
-    "brief.global": "全局 Brief",
-    "brief.result": "简报内容"
+    "todoCount": "共 {{count}} 项"
   },
   "diff": {
     "showDiff": "显示差异",
@@ -1550,11 +1524,10 @@
     "instructionLocalDesc": ".claude/CLAUDE.local.md — 本地覆盖指令（不检入 Git）",
     "instructionBadge": "指令文件",
     "instructionHint": "CLAUDE.md 文件包含 Claude Code 在每次会话时自动加载的行为指令。",
-    "scopePrivate": "私有",
-    "scopeProject": "项目",
-    "ageRecent": "最近",
-    "ageAging": "已有 {days} 天，建议回顾",
-    "ageOld": "已有 {days} 天，可能已过时"
+    "fresh": "新鲜",
+    "aging": "老化中",
+    "old": "较旧",
+    "stale": "陈旧"
   },
   "workflow": {
     "title": "工作流",
@@ -2415,10 +2388,7 @@
       "errPromptRequired": "提示词不能为空。",
       "errUrlRequired": "URL 不能为空。",
       "errUrlInvalid": "URL 格式无效。"
-    },
-    "eventHistory": "Hook 触发历史",
-    "noEventHistory": "暂无 Hook 触发记录",
-    "eventHistoryDesc": "当前会话的最近 Hook 事件记录"
+    }
   },
   "dept": {
     "panelTitle": "部门",
@@ -2547,20 +2517,6 @@
     "saveFailed": "保存沙盒设置失败",
     "loadError": "加载沙盒设置失败",
     "itemExists": "已在列表中",
-    "warningUnsandboxed": "警告：允许非沙盒命令会降低安全隔离强度",
-    "ignoreViolations": "违规豁免",
-    "ignoreViolationsDesc": "按工具配置沙箱违规豁免（工具名 → 违规类型列表）",
-    "addViolationExemption": "添加豁免",
-    "toolName": "工具名称",
-    "violationTypes": "违规类型（逗号分隔）",
-    "noViolationExemptions": "暂未配置违规豁免",
-    "removeExemption": "移除豁免",
-    "removeViolationType": "移除违规类型"
-  },
-  "worktreeSettings": "Worktree 设置",
-  "worktreeSymlinkDirs": "符号链接目录",
-  "worktreeSymlinkDirsDesc": "创建 worktree 时自动符号链接的目录列表",
-  "worktreeSparsePaths": "Sparse Checkout 路径",
-  "worktreeSparsePathsDesc": "Worktree sparse checkout 路径模式列表",
-  "worktreeAddPath": "添加路径..."
+    "warningUnsandboxed": "警告：允许非沙盒命令会降低安全隔离强度"
+  }
 }

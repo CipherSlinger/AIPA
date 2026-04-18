@@ -48,6 +48,10 @@ export default function SettingsGeneral({
   const [includeCoAuthoredBy, setIncludeCoAuthoredBy] = useState<boolean>(true)
   const [includeGitInstructions, setIncludeGitInstructions] = useState<boolean>(false)
 
+  // statusLine / fileSuggestion — reads/writes nested objects in ~/.claude/settings.json via IPC
+  const [statusLineCommand, setStatusLineCommand] = useState<string>('')
+  const [fileSuggestionCommand, setFileSuggestionCommand] = useState<string>('')
+
   // clawd status polling
   type ClawdStatus = 'checking' | 'running' | 'stopped'
   const [clawdStatus, setClawdStatus] = useState<ClawdStatus>('stopped')
@@ -72,6 +76,14 @@ export default function SettingsGeneral({
       setAttributionPr(typeof attr.pr === 'string' ? attr.pr : '')
       setIncludeCoAuthoredBy(cliSettings.includeCoAuthoredBy === false ? false : true)
       setIncludeGitInstructions(cliSettings.includeGitInstructions === true ? true : false)
+      const sl = typeof cliSettings.statusLine === 'object' && cliSettings.statusLine !== null
+        ? cliSettings.statusLine as Record<string, unknown>
+        : {}
+      setStatusLineCommand(typeof sl.command === 'string' ? sl.command : '')
+      const fs = typeof cliSettings.fileSuggestion === 'object' && cliSettings.fileSuggestion !== null
+        ? cliSettings.fileSuggestion as Record<string, unknown>
+        : {}
+      setFileSuggestionCommand(typeof fs.command === 'string' ? fs.command : '')
     }).catch(() => {})
   }, [])
 
@@ -111,7 +123,7 @@ export default function SettingsGeneral({
     prompts: [t('settings.promptTemplate'), t('settings.systemPrompt'), t('settings.groups.prompts')].join(' ').toLowerCase(),
     appearance: [t('settings.language'), t('settings.displayName'), t('settings.theme'), t('settings.fontSize'), t('settings.fontFamily'), t('settings.compactMode'), t('settings.groups.appearance')].join(' ').toLowerCase(),
     workspace: [t('settings.workingFolder'), t('tags.sectionTitle'), t('settings.groups.workspace')].join(' ').toLowerCase(),
-    behavior: [t('settings.skipPermissions'), t('settings.verbose'), t('settings.completionSound'), t('settings.desktopNotifications'), t('settings.resumeLastSession'), t('outputStyle.title'), t('thinking.title'), t('settings.systemPresence'), t('compact.autoCompact'), t('autoMemory.enabled'), t('settings.groups.behavior'), t('settings.cleanupPeriodDays'), t('settings.defaultShell'), t('settings.respectGitignore'), 'shell', 'bash', 'powershell', 'gitignore'].join(' ').toLowerCase(),
+    behavior: [t('settings.skipPermissions'), t('settings.verbose'), t('settings.completionSound'), t('settings.desktopNotifications'), t('settings.resumeLastSession'), t('outputStyle.title'), t('thinking.title'), t('settings.systemPresence'), t('compact.autoCompact'), t('autoMemory.enabled'), t('settings.groups.behavior'), t('settings.cleanupPeriodDays'), t('settings.defaultShell'), t('settings.respectGitignore'), 'shell', 'bash', 'powershell', 'gitignore', t('settings.statusLine'), t('settings.fileSuggestion'), 'status', 'suggestion'].join(' ').toLowerCase(),
     gitWorkflow: [t('settings.gitWorkflow'), t('settings.gitAttributionCommit'), t('settings.gitAttributionPr'), t('settings.includeCoAuthoredBy'), t('settings.includeGitInstructions'), 'git', 'attribution', 'commit', 'pr', 'co-author'].join(' ').toLowerCase(),
   }), [t])
 
@@ -704,6 +716,44 @@ export default function SettingsGeneral({
           </div>,
           <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
             {t('settings.cleanupPeriodDaysHint')}
+          </span>
+        )}
+
+        {field(
+          t('settings.statusLine'),
+          <input
+            value={statusLineCommand}
+            onChange={(e) => {
+              const next = e.target.value
+              setStatusLineCommand(next)
+              window.electronAPI.configWriteCLISettings({ statusLine: { command: next } }).catch(() => {})
+            }}
+            placeholder="echo 'custom status'"
+            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
+            style={{ ...INPUT_STYLE }}
+          />,
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            {t('settings.statusLineDesc')}
+          </span>
+        )}
+
+        {field(
+          t('settings.fileSuggestion'),
+          <input
+            value={fileSuggestionCommand}
+            onChange={(e) => {
+              const next = e.target.value
+              setFileSuggestionCommand(next)
+              window.electronAPI.configWriteCLISettings({ fileSuggestion: { command: next } }).catch(() => {})
+            }}
+            placeholder="find . -type f -name '*.ts'"
+            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
+            style={{ ...INPUT_STYLE }}
+          />,
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            {t('settings.fileSuggestionDesc')}
           </span>
         )}
       </SettingsGroup>
