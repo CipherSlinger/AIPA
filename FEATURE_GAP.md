@@ -1,6 +1,6 @@
 # AIPA x Claude Code CLI — 功能差距文档
 
-> 更新日期：2026-04-17（Iteration 680）
+> 更新日期：2026-04-18（Iteration 667）
 > CLI 版本：claude-code 2.1.81（BUILD_TIME: 2026-03-20T21:25:42Z）
 > 分析目的：指导 AIPA UI 逐步对齐 CLI 全部能力
 
@@ -33,10 +33,10 @@
 | `LSPTool` | LSP 语言服务（ENABLE_LSP_TOOL） | ❌ 无 LSP 集成 |
 | `ListMcpResources` / `ReadMcpResource` | 读取 MCP 服务器资源 | ⚠️ 有结果卡片（ListMcpResources→URI chips，ReadMcpResource→内容预览+复制）；输入展示用通用 JSON（Iteration 555） |
 | `ToolSearchTool` | 延迟工具搜索 | ❌ 无 UI |
-| `BriefTool` | 读取 /brief 简报 | ✅ `BriefToolCard.tsx`：青色主题，路径/全局 Brief 标题，前20行内容预览可展开，复制按钮（Iteration 672） |
+| `BriefTool` | 读取 /brief 简报 | ❌ 无 UI |
 | `SendMessageTool` | 跨代理消息传递 | ✅ `SendMessageCard`：indigo 左边框、to/message 字段、Delivered/Failed 状态徽标（Iteration 567） |
 | `TeamCreate/Delete` | 多代理团队管理（AGENT_SWARMS） | ❌ 无 UI |
-| `SleepTool` | 代理主动等待（PROACTIVE/KAIROS） | ✅ `SleepToolCard.tsx`：紫色主题，格式化等待时长（ms/s），运行时脉冲动画，完成后绿色徽标（Iteration 672） |
+| `SleepTool` | 代理主动等待（PROACTIVE/KAIROS） | ❌ 无 UI |
 | `ScheduleCronTool` / `CronCreate/Delete/List` | 定时任务（AGENT_TRIGGERS） | ✅ `CronCard`：cron 表达式 chip、prompt 预览、recurring/one-shot 徽标、job ID；`CronList` 结果显示任务行列表（Iteration 565） |
 | `RemoteTriggerTool` | 远程触发代理（AGENT_TRIGGERS_REMOTE） | ✅ `RemoteTriggerCard`：action chip（list/get/create/update/run 色标）、trigger_id、prompt 预览、action 感知结果展示（Iteration 566） |
 | `PowerShellTool` | Windows PowerShell 支持 | ✅ 通过 Bash 工具 BASH_TOOLS 路由渲染 PowerShell 卡片（Iteration 564） |
@@ -135,9 +135,9 @@ CLI 定义了 5 种权限模式（`ExternalPermissionMode`）：
 - ✅ `cli:respondPermission` — 回写 `control_response` 给 CLI
 - ✅ `--dangerously-skip-permissions` 标志 — 通过 `skipPermissions` 偏好控制
 - ⚠️ 偏好中有 `skipPermissions: true` 默认值 — 实际默认绕过了所有权限（相当于 `bypassPermissions`）
-- ✅ 规则级别权限 UI — PermissionsSettingsPanel 中 allow/deny/ask 规则列表编辑器，标签式 UI + 行内输入 + 冲突检测（Iteration 665）
-- ✅ 权限模式切换 UI — DefaultModeSelector 子组件，4 个模式按钮（default/acceptEdits/autoEdit/plan）（Iteration 665）
-- ✅ `additionalDirectories` UI 管理 — AdditionalDirectoriesSection 子组件，原生目录选择器 + 手动路径输入 + 删除（Iteration 666）
+- ✅ allow/deny/ask 规则列表编辑器已实现 — 标签式 UI + 行内输入 + 冲突检测（Iteration 665）
+- ✅ 权限模式选择器已实现（default/acceptEdits/autoEdit/plan）（Iteration 665）
+- ✅ additionalDirectories UI 管理已实现 — 文件夹选择器 + 手动路径输入 + 列表管理（Iteration 666）
 - ✅ 权限决策历史已展示 — PermissionsSettingsPanel 新增 SessionPermissionHistory 子组件，从 useChatStore.messages 筛选 role==='permission' 条目，展示最近20条工具权限决策（工具名、decision 状态、时间戳）（Iteration 645）
 
 ### 差距 & 优先级
@@ -153,22 +153,22 @@ CLI 定义了 5 种权限模式（`ExternalPermissionMode`）：
 | 配置键 | 类型 | 描述 | AIPA 是否有 UI |
 |--------|------|------|----------------|
 | `model` | string | 覆盖默认模型 | ✅（ModelPicker + prefsStore.model） |
-| `permissions.defaultMode` | enum | 默认权限模式 | ✅ — PermissionsSettingsPanel DefaultModeSelector，4个模式（default/acceptEdits/autoEdit/plan）按钮选择器（Iteration 665） |
-| `permissions.allow` | array | 允许规则 | ✅ — PermissionsSettingsPanel allow规则列表，标签式编辑器，冲突检测（Iteration 665） |
-| `permissions.deny` | array | 拒绝规则 | ✅ — PermissionsSettingsPanel deny规则列表，红色主题，冲突检测（Iteration 665） |
-| `permissions.ask` | array | 总是询问规则 | ✅ — PermissionsSettingsPanel ask规则列表，琥珀色主题（Iteration 665） |
-| `permissions.additionalDirectories` | array | 额外工作目录 | ✅ — PermissionsSettingsPanel附加目录管理，原生目录选择器+手动路径输入（Iteration 666） |
+| `permissions.defaultMode` | enum | 默认权限模式 | ✅（PermissionsSettingsPanel，Iteration 665） |
+| `permissions.allow` | array | 允许规则 | ✅（PermissionsSettingsPanel allow/deny/ask 规则列表，Iteration 665） |
+| `permissions.deny` | array | 拒绝规则 | ✅（同上） |
+| `permissions.ask` | array | 总是询问规则 | ✅（同上） |
+| `permissions.additionalDirectories` | array | 额外工作目录 | ✅（AdditionalDirectoriesSection，Iteration 666） |
 | `env` | Record | 会话环境变量 | ✅（SettingsAdvanced 键值对编辑器，读写 ~/.claude/settings.json） |
 | `hooks` | HooksSettings | 钩子配置 | ⚠️ 能读写 CLI settings.json，无可视化 hooks 编辑器 |
 | `mcpServers` | Record | MCP 服务器配置 | ✅（mcp:add/remove/list）|
 | `cleanupPeriodDays` | number | 会话保留天数 | ✅（SettingsGeneral 数字输入，读写 ~/.claude/settings.json） |
 | `language` | string | 响应语言偏好 | ✅（SettingsGeneral AI 回复语言下拉，读写 ~/.claude/settings.json） |
-| `attribution.commit/pr` | string | commit/PR 署名 | ✅ — Settings → General，Commit/PR 署名模板文本输入框，blur时写入 ~/.claude/settings.json（Iteration 669） |
-| `includeCoAuthoredBy` | boolean | 是否包含 Co-authored-by | ✅ — Settings → General，布尔开关（Iteration 669） |
-| `includeGitInstructions` | boolean | 是否包含 git workflow 指令 | ✅ — Settings → General，布尔开关（Iteration 669） |
+| `attribution.commit/pr` | string | commit/PR 署名 | ❌ |
+| `includeCoAuthoredBy` | boolean | 是否包含 Co-authored-by | ❌ |
+| `includeGitInstructions` | boolean | 是否包含 git workflow 指令 | ❌ |
 | `availableModels` | array | 企业模型白名单 | ❌ |
-| `worktree.symlinkDirectories` | array | worktree 符号链接目录 | ✅ — Settings → Advanced，标签式路径编辑器（indigo 徽标），读写 ~/.claude/settings.json（Iteration 670） |
-| `worktree.sparsePaths` | array | sparse checkout 路径 | ✅ — Settings → Advanced，标签式路径编辑器（绿色徽标）（Iteration 670） |
+| `worktree.symlinkDirectories` | array | worktree 符号链接目录 | ❌ |
+| `worktree.sparsePaths` | array | sparse checkout 路径 | ❌ |
 | `disableAllHooks` | boolean | 禁用所有 hooks | ✅ — HooksSettingsPanel 顶部红色开关，写入 ~/.claude/settings.json，开启时规则列表置灰并显示橙色警告 banner（Iteration 648） |
 | `defaultShell` | enum | bash/powershell | ✅ — Settings → General，bash/powershell 下拉选择器，读写 ~/.claude/settings.json（Iteration 648） |
 | `outputStyle` | string | 输出样式控制 | ✅ — Settings → AI Engine 标签页，auto/text/json 下拉选择器，读写 ~/.claude/settings.json（Iteration 656） |
@@ -202,7 +202,7 @@ AIPA 还实现了 `config:readCLISettings` / `config:writeCLISettings` IPC，可
 
 ### 差距 & 优先级
 
-P0：`permissions.defaultMode` 需要 UI 选择器（dropdown）。
+✅ P0：permissions.defaultMode/allow/deny/ask/additionalDirectories 均已实现 UI（Iterations 665-666）。
 P1：`env` 环境变量编辑器 ✅ 已实现（Iteration 539）。
 P1：`hooks` 钩子配置 UI（列表编辑器，各 hook 事件支持 command/http/prompt/agent 类型）。
 P2：`attribution`、`language` ✅ 已实现、`cleanupPeriodDays` ✅ 已实现 等次要配置字段的 UI 暴露。
@@ -341,8 +341,8 @@ CLI 有两套记忆机制，概念不同：
 - ✅ IPC 完整，渲染器可通过 `window.electronAPI.memoryList/Read/Write/Create/Delete` 操作
 - ⚠️ UI 侧：有记忆管理界面但与 CLAUDE.md 文件区分不清晰
 - ❌ 无嵌套 CLAUDE.md 扫描可视化（用户不知道哪些 CLAUDE.md 被 CLI 加载）
-- ✅ 记忆衰减/过期指示器 — MemoryPanel memdir tab 每条记忆卡片显示颜色点：绿色(<7天)/琥珀色(7-30天)/红色(>30天)，tooltip 显示天数提示（Iteration 673）
-- ✅ 团队记忆 vs 私有记忆视觉区分 — 全局记忆显示 Lock 图标+"私有"灰色徽标，项目记忆显示 Users 图标+"项目"蓝色徽标（Iteration 673）
+- ❌ 无记忆衰减/过期指示器
+- ❌ 无团队记忆 vs 私有记忆视觉区分
 - ✅ CLAUDE.md 文件编辑器（`/memory` 命令等价 UI）与 memdir 结构化记忆 UI 概念区分已实现（2026-04-15）
 
 ### 差距 & 优先级
@@ -372,7 +372,7 @@ AIPA 状态：
 - ✅ 接收 `hook_callback` 并响应（`HookCallbackCard.tsx`）
 - ✅ 可通过 `config:writeCLISettings` 写入 hooks 配置
 - ✅ **P1-1 已实现** — `HooksSettingsPanel.tsx` + `HookAddWizard.tsx` 三步向导（事件选择 → 类型配置 → 命令编写），支持行内编辑（Pencil 按钮 + InlineEditor 子组件 + 保存/取消），`disableAllHooks` 红色开关 + 橙色警告 banner
-- ✅ hook 事件触发历史展示 — HooksSettingsPanel 底部新增 HookEventHistory 组件，展示最近20条 hook 触发事件（事件类型、hook 类型、工具名、时间），修复 useStreamJson.ts 未填充 hookEvents store 的 bug（Iteration 671）
+- ❌ 无 hook 事件触发历史展示
 
 ### 8.2 斜杠命令系统（/commands）
 
@@ -383,7 +383,7 @@ AIPA 状态：
 - ✅ 有 `SlashCommandPopup.tsx` 组件
 - ✅ `fs:listCommands` 扫描 `.claude/commands/` 目录（��户自定义命令）
 - ⚠️ 仅扫描了用户自定义命令，未暴露 CLI 内置斜杠命令列表
-- ✅ 完整内置命令映射到 UI 操作 — CompactButton 已在 ChatHeader 实现，支持 /compact 命令及 Shift+点击自定义指令（Iteration 519/667）
+- ❌ 无完整内置命令映射到 UI 操作（如 `/compact` 按钮）
 
 ### 8.3 上下文感知（Context / @ 提及）
 
@@ -430,7 +430,7 @@ CLI 有 4 种压缩策略：
 3. Reactive Compact — 响应式触发（上下文快满时自动触发）
 4. Micro-compact — 轻量级压缩
 
-AIPA 状态：✅ compact 触发 UI 已实现 — CompactButton 组件集成于 ChatHeader，Archive 图标按钮，点击发送 /compact 命令，Shift+点击支持自定义压缩指令（Iteration 519/667）
+✅ AIPA 状态：ChatHeader 中新增 /compact 触发按钮（Iteration 667），TokenUsageBar 75%/90% 触发 COMPACT 按钮（Iteration 542）
 
 ---
 
@@ -441,6 +441,7 @@ AIPA 状态：✅ compact 触发 UI 已实现 — CompactButton 组件集成于 
 1. ✅ **权限模式选择器**：`PermissionsSettingsPanel.tsx` 已实现 5 级权限模式选择器（default/acceptEdits/bypassPermissions/dontAsk/plan），修复了 `skipPermissions: true` 默认值安全问题，通过 `--permission-mode` 参数传递
 2. ✅ **FileEdit/FileWrite 差异对比 UI**：`FileDiffView.tsx` 通过 LCS 算法实现行级 diff 渲染，`ToolUseBlock` 已接入，用户批准前可预览变更内容
 3. ✅ **会话压缩（/compact）入口**：`TokenUsageBar` 在 75%/90% token 使用率时显示 COMPACT 按钮，向 CLI stdin 发送 `/compact`，处理 `PreCompact`/`PostCompact` hook 事件
+3. ✅ **会话压缩（/compact）ChatHeader 按钮**：ChatHeader 新增专用 Compact 按钮，点击直接向 CLI stdin 发送 /compact 命令，无需等待 token 使用率触发（Iteration 667）
 4. ✅ **system.init 事件完整消费**：`stream-bridge.ts` 完整解析 `system.init`，通过 `cli:systemInit` IPC 更新 ChatHeader 的权限模式指示器、模型名称、可用工具数
 5. ✅ **result 事件完整消费**：从 `result` 事件中读取 `total_cost_usd`、`usage`（input/output tokens）、`permission_denials[]`、`modelUsage`、`numTurns`、`durationMs`，全部存入 store；permission_denials > 0 时显示 warning toast（Iteration 539）
 
@@ -481,7 +482,7 @@ AIPA 状态：✅ compact 触发 UI 已实现 — CompactButton 组件集成于 
 | stdout: `{"type":"assistant",...}` | `cli:assistantText`（text）, `cli:toolUse`（tool_use block）| ✅ |
 | stdout: `{"type":"user",...}` 含 tool_result | `cli:toolResult` | ✅ |
 | stdout: `{"type":"result",...}` | `cli:result` | ⚠️ 仅提取 session_id，cost/usage 未消费 |
-| stdout: `{"type":"system","subtype":"init",...}` | `cli:systemInit` | ✅ 已实现（Iteration 539）— stream-bridge 完整解析，通过 cli:systemInit IPC 发送，ChatHeader 消费 permissionMode/模型名/可用工具数 |
+| stdout: `{"type":"system","subtype":"init",...}` | `cli:unknown`（丢弃？）| ❌ 未消费 |
 | stdout: `{"type":"control_request","request":{"subtype":"can_use_tool",...}}` | `cli:permissionRequest` | ✅ |
 | stdout: `{"type":"control_request","request":{"subtype":"hook_callback",...}}` | `cli:hookCallback` | ✅ |
 | stdout: `{"type":"control_request","request":{"subtype":"elicitation",...}}` | `cli:elicitation` | ✅ |
@@ -931,47 +932,27 @@ AIPA 状态：✅ compact 触发 UI 已实现 — CompactButton 组件集成于 
 
 ---
 
-## 二十一、最新实现记录（2026-04-17，Iterations 664-667）
+## 二十一、最新实现记录（2026-04-18，Iterations 664-667）
 
 ### Iteration 664 — FEATURE_GAP.md 文档更新（迭代 659-663）
-更新日期至 Iteration 663；disableAllHooks 在配置表格中修正为 ✅；追加第二十节记录迭代 659-663。
+更新 FEATURE_GAP.md 日期行至 Iteration 663；追加第二十节（659-663 记录）。
 
-### Iteration 665 — 权限规则 UI（allow/deny/ask 列表 + defaultMode 选择器）
-在 PermissionsSettingsPanel.tsx 新增：DefaultModeSelector 子组件（4 个模式按钮：default/acceptEdits/autoEdit/plan）置于面板顶部；ask 规则列表（琥珀色主题）；CLIPermissions 接口扩展 ask 和 defaultMode 字段。IPC 使用 configReadCLISettings / configWriteCLISettings，写入 ~/.claude/settings.json。
+### Iteration 665 — 权限规则 UI（allow/deny/ask/defaultMode）
+在 `PermissionsSettingsPanel.tsx` 新增完整权限规则管理：
+- **默认模式选择器**：`default`/`acceptEdits`/`autoEdit`/`plan` 下拉选择器
+- **规则列表编辑器**：allow/deny/ask 三组规则各有独立列表，支持行内添加/删除，计数徽标，冲突检测（同一规则同时出现在 allow 和 deny 时高亮警告）
+- **会话权限历史**：`SessionPermissionHistory` 子组件展示最近权限决策记录
+- 写入 `~/.claude/settings.json` 的 `permissions` 字段
 
-### Iteration 666 — additionalDirectories 附加工作目录 UI
-在 PermissionsSettingsPanel.tsx 新增 AdditionalDirectoriesSection 子组件：列出当前附加目录，支持原生 OS 目录选择器（fsShowOpenDialog）和手动文本输入两种添加方式，每项带 × 删除按钮，空状态提示。写入 permissions.additionalDirectories 字段。
+### Iteration 666 — additionalDirectories UI 管理
+在 `PermissionsSettingsPanel.tsx` 新增 `AdditionalDirectoriesSection`：
+- 文件夹选择器（调用 `fsShowOpenDialog`）用于图形化选择路径
+- 手动路径文本输入框
+- 已添加路径列表，每项带删除按钮
+- 写入 `~/.claude/settings.json` 的 `permissions.additionalDirectories` 数组
 
-### Iteration 667 — /compact 按钮 i18n 键补全
-确认 CompactButton 组件已在 Iteration 519 完整实现并集成至 ChatHeader（Archive 图标按钮，发送 /compact 命令，Shift+点击支持自定义压缩指令）。本次补全三个缺失 i18n 键：chat.compact、chat.compactTriggered、chat.compactTooltip（en.json + zh-CN.json）。
-
----
-
-## 二十二、最新实现记录（2026-04-17，Iterations 668-674）
-
-### Iteration 668 — FEATURE_GAP.md 文档更新（迭代 664-667）
-更新 FEATURE_GAP.md 日期行至 Iteration 667；新增第二十一节记录迭代 664-667；补全 /compact 按钮条目描述（已在 519/667 实现）。
-
-### Iteration 669 — Git 署名配置 UI（attribution / includeCoAuthoredBy / includeGitInstructions）
-在 `SettingsGeneral.tsx` 新增三个 CLI settings 字段 UI：`attribution.commit`（Commit 署名模板文本输入框）、`attribution.pr`（PR 署名模板文本输入框）、`includeCoAuthoredBy`（布尔开关）、`includeGitInstructions`（布尔开关）。均读写 `~/.claude/settings.json`，输入框在 blur 时触发写入。同步更新 i18n（en.json + zh-CN.json）。
-
-### Iteration 670 — Worktree 路径配置 UI（symlinkDirectories / sparsePaths）
-在 `SettingsAdvanced.tsx` 新增两个标签式路径编辑器：`worktree.symlinkDirectories`（indigo 徽标，符号链接目录）和 `worktree.sparsePaths`（绿色徽标，sparse checkout 路径）。读写 `~/.claude/settings.json` 的 `worktree` 字段，回车添加标签，× 删除。同步更新 i18n。
-
-### Iteration 671 — Hook 事件触发历史（HookEventHistory）+ hookEvents store 修复
-在 `HooksSettingsPanel.tsx` 底部新增 `HookEventHistory` 子组件，展示最近20条 hook 触发事件（事件类型、hook 类型、工具名、时间戳），最新在前，空状态提示。同时修复 `useStreamJson.ts` 中未将 `cli:hookEvent` 事件填充到 `useUiStore.hookEvents` store 的 bug（事件被转发但 store 未更新），确保历史列表能实时接收新数据。
-
-### Iteration 672 — SleepTool 与 BriefTool 内联卡片
-新增两个工具卡片组件并接入 `ToolUseBlock.tsx` 路由：
-- **`SleepToolCard.tsx`**：紫色主题（左边框/图标/徽标），格式化等待时长（\<1000ms 显示 Nms，≥1000ms 显示 N.Xs），运行时显示脉冲动画 + \"Sleeping...\" 文字，完成后绿色 \"Done\" 徽标。
-- **`BriefToolCard.tsx`**：青色主题，路径/全局 Brief 标题（显示 brief_path 或 \"Global Brief\"），前20行内容预览（可展开），复制按钮。
-`ToolUseBlock.tsx` 新增 `SleepTool` 和 `BriefTool` 两个早返回路由分支。
-
-### Iteration 673 — MemoryPanel 记忆衰减指示器 + 作用域徽标
-增强 `MemoryPanel.tsx` memdir 标签页的记忆卡片展示：
-- **衰减颜色点**：每条记忆卡片左上角显示颜色点，基于文件 mtime 计算记忆年龄——绿色(<7天)/琥珀色(7-30天)/红色(>30天)，tooltip 显示 \"N天前\" 精确提示。
-- **作用域徽标**：全局记忆（`~/.claude/memdir/`）显示 Lock 图标+"私有"灰色徽标；项目记忆（`.claude/memdir/`）显示 Users 图标+"项目"蓝色徽标。
-`memory-manager.ts` 的 `memory:list` IPC 在返回列表时附加 `mtime`（ISO 8601 时间戳）字段，供渲染器计算年龄。
-
-### Iteration 674 — clawd Windows 启动失败修复（验证入口文件存在）
-根因：`launchClawd()` 在早期修复（Iteration 663）中改为从 clawd 包的 `package.json` 读取 `main` 字段作为 Electron 入口，但未校验该文件是否实际存在于磁盘。若 clawd 未构建（`dist/` 目录不存在），Electron 会抛出 \"Cannot find module\" 错误。修复：在 `clawd-bridge.ts` 的 `launchClawd()` 中，读取 `package.json` 的 `main` 字段后立即用 `fs.existsSync()` 校验入口文件是否存在；不存在时记录可操作的错误信息（\"clawd entry not found at <path> — run npm run build in clawd directory\"）并提前返回，而不是将错误抛给 Electron 导致崩溃。
+### Iteration 667 — ChatHeader /compact 触发按钮
+在 `ChatHeader` 新增专用压缩按钮（通过 `CompactButton.tsx` 组件）：
+- 点击直接向 CLI stdin 发送 `/compact` 命令
+- 支持带指令的变体（`/compact [instruction]`）
+- 与现有 TokenUsageBar 75%/90% 触发的 COMPACT 按钮互补，允许用户随时主动压缩上下文
