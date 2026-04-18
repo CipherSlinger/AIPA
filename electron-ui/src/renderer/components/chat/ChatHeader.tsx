@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Search, Download, ClipboardCopy, Maximize2, Minimize2, FolderOpen, FileText, FilePlus2, RefreshCw, MessageSquarePlus, X, GitBranch, Building2, Wrench } from 'lucide-react'
+import { Search, Download, ClipboardCopy, Maximize2, Minimize2, FolderOpen, FileText, FilePlus2, RefreshCw, MessageSquarePlus, X, GitBranch, Building2, Wrench, Zap } from 'lucide-react'
 import { useChatStore, useSessionStore, usePrefsStore, useUiStore } from '../../store'
 import type { StandardChatMessage } from '../../types/app.types'
 import { useT } from '../../i18n'
@@ -125,6 +125,7 @@ export default function ChatHeader({
   const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
   const personas = usePrefsStore(s => s.prefs.personas ?? EMPTY_PERSONAS)
   const sessionPersona = personas.find(p => p.id === sessionPersonaId)
+  const fastModeState = useChatStore(s => s.fastModeState)
 
   // Subscribe to system.init events from the CLI
   useEffect(() => {
@@ -367,6 +368,30 @@ export default function ChatHeader({
           {sessionPersona.emoji} {sessionPersona.name}
         </span>
       ) : null}
+
+      {fastModeState === 'on' && (
+        <span
+          title="Fast mode active"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 3,
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: '0.05em',
+            color: 'rgba(234,179,8,0.9)',
+            background: 'rgba(234,179,8,0.10)',
+            border: '1px solid rgba(234,179,8,0.25)',
+            borderRadius: 10,
+            padding: '2px 7px',
+            whiteSpace: 'nowrap',
+            userSelect: 'none',
+            flexShrink: 0,
+          }}
+        >
+          <Zap size={9} />Fast
+        </span>
+      )}
       </div>
 
       {/* Tool use count badge — shown only when tools have been called this session */}

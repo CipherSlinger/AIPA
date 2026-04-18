@@ -30,6 +30,8 @@ export function useStreamJson() {
   const setLastCost = useChatStore(s => s.setLastCost)
   const setLastContextUsage = useChatStore(s => s.setLastContextUsage)
   const setSessionTitle = useChatStore(s => s.setSessionTitle)
+  const setLastResultUuid = useChatStore(s => s.setLastResultUuid)
+  const setFastModeState = useChatStore(s => s.setFastModeState)
   const prefs = usePrefsStore(s => s.prefs)
   const activeTabId = useChatStore(s => s.activeTabId)
   const tabs = useChatStore(s => s.tabs)
@@ -591,6 +593,8 @@ Keep exercises focused and achievable. The goal is active learning through doing
               )
             }
           }
+          setLastResultUuid((data.uuid as string | undefined) ?? null)
+          setFastModeState((data.fastModeState as string | undefined) ?? null)
           const ev = data.event as Record<string, unknown>
           // Compact diff toast: when result metadata indicates compaction happened
           const metadata = ev?.metadata as Record<string, unknown> | undefined

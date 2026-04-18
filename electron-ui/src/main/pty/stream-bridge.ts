@@ -282,6 +282,8 @@ export class StreamBridge extends EventEmitter {
           permissionDenials: (re.permission_denials as Array<{ tool_name: string; reason?: string }> | undefined) ?? [],
           numTurns: re.num_turns,
           durationMs: re.duration_ms,
+          uuid: re.uuid,
+          fastModeState: re.fast_mode_state,
           event,
         })
         break

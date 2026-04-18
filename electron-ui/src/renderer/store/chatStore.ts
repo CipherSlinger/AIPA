@@ -232,7 +232,11 @@ interface ChatState {
   permissionDenials: Array<{ tool_name: string; reason?: string }>
   lastNumTurns: number | null
   lastDurationMs: number | null
+  lastResultUuid: string | null
+  fastModeState: string | null
   setResultStats: (denials: Array<{ tool_name: string; reason?: string }>, numTurns: number | null, durationMs: number | null) => void
+  setLastResultUuid: (uuid: string | null) => void
+  setFastModeState: (state: string | null) => void
   clearResultStats: () => void
 
   // Active worktree state (P4-6): updated when CLI emits worktree-state event
@@ -289,6 +293,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   permissionDenials: [],
   lastNumTurns: null,
   lastDurationMs: null,
+  lastResultUuid: null,
+  fastModeState: null,
   activeWorktree: null,
   availableTools: [],
   mcpServers: [],
@@ -379,7 +385,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     streamingBuffer.sessionId = null
     streamingBuffer.messageId = null
     streamingBuffer.dirty = false
-    set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false, totalSessionCost: 0, lastCost: null, lastUsage: null, lastContextUsage: null, modelUsage: {}, sessionPersonaId: undefined, isPlanMode: false, changedFiles: [], tempSystemPrompt: null, hookEvents: [], dreamEvents: [], permissionDenials: [], lastNumTurns: null, lastDurationMs: null })
+    set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false, totalSessionCost: 0, lastCost: null, lastUsage: null, lastContextUsage: null, modelUsage: {}, sessionPersonaId: undefined, isPlanMode: false, changedFiles: [], tempSystemPrompt: null, hookEvents: [], dreamEvents: [], permissionDenials: [], lastNumTurns: null, lastDurationMs: null, lastResultUuid: null, fastModeState: null })
   },
   loadHistory: (messages) => set({ messages, isStreaming: false }),
 
@@ -673,7 +679,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   // Result stats setters (P0-5)
   setResultStats: (denials, numTurns, durationMs) => set({ permissionDenials: denials, lastNumTurns: numTurns, lastDurationMs: durationMs }),
-  clearResultStats: () => set({ permissionDenials: [], lastNumTurns: null, lastDurationMs: null }),
+  setLastResultUuid: (uuid) => set({ lastResultUuid: uuid }),
+  setFastModeState: (state) => set({ fastModeState: state }),
+  clearResultStats: () => set({ permissionDenials: [], lastNumTurns: null, lastDurationMs: null, lastResultUuid: null, fastModeState: null }),
 
   // Active worktree setter (P4-6)
   setActiveWorktree: (wt) => set({ activeWorktree: wt }),
