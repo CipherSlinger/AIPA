@@ -7,6 +7,10 @@ import {
   Check,
   X,
   Copy,
+  User,
+  MessageSquare,
+  Briefcase,
+  Link,
 } from 'lucide-react'
 import { MemoryItem, MemoryCategory, MemoryType } from '../../types/app.types'
 import { CATEGORY_CONFIG, CATEGORIES, MAX_CONTENT_LENGTH, MEMORY_TYPE_CONFIG, MEMORY_TYPES } from './memoryConstants'
@@ -49,12 +53,9 @@ export default function MemoryItemCard({
     } catch { /* ignore */ }
   }
 
-  // Defensive guard: if category is not in CATEGORY_CONFIG (corrupted data),
-  // fall back to 'fact' to prevent crash (Iteration 309 -- MemoryPanel crash fix)
   const cfg = CATEGORY_CONFIG[mem.category] || CATEGORY_CONFIG.fact
   const typeCfg = mem.memoryType ? MEMORY_TYPE_CONFIG[mem.memoryType] : null
 
-  // Chinese labels and badge colors for memory type
   const typeDisplayMap: Record<string, { label: string; dot: string; bg: string; border: string }> = {
     user:      { label: '用户',   dot: 'rgba(251,191,36,0.82)',  bg: 'rgba(251,191,36,0.15)',  border: 'rgba(251,191,36,0.60)' },
     feedback:  { label: '反馈',   dot: 'rgba(134,239,172,0.82)', bg: 'rgba(134,239,172,0.10)', border: 'rgba(134,239,172,0.45)' },
@@ -62,6 +63,33 @@ export default function MemoryItemCard({
     reference: { label: '参考',   dot: 'rgba(192,132,252,0.82)', bg: 'rgba(192,132,252,0.12)', border: 'rgba(192,132,252,0.45)' },
   }
   const typeDisplay = mem.memoryType ? typeDisplayMap[mem.memoryType] : null
+
+  const scopeBorderMap: Record<string, string> = {
+    user:      'rgba(99,102,241,0.70)',
+    feedback:  'rgba(251,191,36,0.70)',
+    project:   'rgba(74,222,128,0.70)',
+    reference: 'rgba(96,165,250,0.70)',
+  }
+  const scopeBorderColor = mem.memoryType ? (scopeBorderMap[mem.memoryType] ?? 'var(--border)') : 'var(--border)'
+
+  const scopeIconMap: Record<string, React.ReactNode> = {
+    user:      <User size={9} />,
+    feedback:  <MessageSquare size={9} />,
+    project:   <Briefcase size={9} />,
+    reference: <Link size={9} />,
+  }
+  const scopeIcon = mem.memoryType ? scopeIconMap[mem.memoryType] : null
+
+  const ageMs = Date.now() - mem.updatedAt
+  const ageDays = ageMs / 86400000
+  const decayInfo: { labelKey: string; dot: string } =
+    ageDays < 7   ? { labelKey: 'memory.fresh', dot: '#4ade80' } :
+    ageDays < 30  ? { labelKey: 'memory.aging', dot: '#fbbf24' } :
+    ageDays < 90  ? { labelKey: 'memory.old',   dot: '#fb923c' } :
+                    { labelKey: 'memory.stale',  dot: '#f87171' }
+
+  const ageDaysRounded = Math.floor(ageDays)
+  const ageLabel = ageDaysRounded < 1 ? t('memory.justNow') : `${ageDaysRounded}d ago`
 
   return (
     <div
@@ -75,7 +103,7 @@ export default function MemoryItemCard({
           : '1px solid var(--border)',
         borderLeft: mem.pinned
           ? '3px solid rgba(251,191,36,0.55)'
-          : '1px solid var(--border)',
+          : `3px solid ${scopeBorderColor}`,
         borderRadius: 10,
         marginBottom: 6,
         boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
@@ -291,7 +319,7 @@ export default function MemoryItemCard({
                 }}>
                   {t(cfg.labelKey)}
                 </span>
-                {/* Memory type badge */}
+                {/* Memory type badge with scope icon */}
                 {typeDisplay && typeCfg && (
                   <span style={{
                     display: 'flex',
@@ -308,19 +336,38 @@ export default function MemoryItemCard({
                   }}
                   title={typeCfg.description}
                   >
-                    <span style={{
-                      display: 'inline-block',
-                      width: 5,
-                      height: 5,
-                      borderRadius: '50%',
-                      background: typeDisplay.dot,
-                      flexShrink: 0,
-                    }} />
+                    {scopeIcon && <span style={{ display: 'flex', alignItems: 'center', color: scopeBorderColor }}>{scopeIcon}</span>}
                     {typeDisplay.label}
                   </span>
                 )}
-                <span style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
-                  {formatRelativeTime(mem.updatedAt, t)}
+                {/* Decay badge */}
+                <span style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  fontSize: 9,
+                  fontWeight: 600,
+                  color: decayInfo.dot,
+                  background: `${decayInfo.dot}18`,
+                  border: `1px solid ${decayInfo.dot}44`,
+                  borderRadius: 8,
+                  padding: '1px 5px',
+                  letterSpacing: '0.04em',
+                }}
+                title={ageLabel}
+                >
+                  <span style={{
+                    display: 'inline-block',
+                    width: 5,
+                    height: 5,
+                    borderRadius: '50%',
+                    background: decayInfo.dot,
+                    flexShrink: 0,
+                  }} />
+                  {t(decayInfo.labelKey)}
+                </span>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+                  {ageLabel}
                 </span>
                 {mem.pinned && (
                   <Pin size={9} style={{ color: '#fbbf24' }} />
