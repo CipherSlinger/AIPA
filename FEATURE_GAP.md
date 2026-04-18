@@ -1,6 +1,6 @@
 # AIPA x Claude Code CLI — 功能差距文档
 
-> 更新日期：2026-04-18（Iteration 667）
+> 更新日期：2026-04-18（Iteration 677）
 > CLI 版本：claude-code 2.1.81（BUILD_TIME: 2026-03-20T21:25:42Z）
 > 分析目的：指导 AIPA UI 逐步对齐 CLI 全部能力
 
@@ -33,10 +33,10 @@
 | `LSPTool` | LSP 语言服务（ENABLE_LSP_TOOL） | ❌ 无 LSP 集成 |
 | `ListMcpResources` / `ReadMcpResource` | 读取 MCP 服务器资源 | ⚠️ 有结果卡片（ListMcpResources→URI chips，ReadMcpResource→内容预览+复制）；输入展示用通用 JSON（Iteration 555） |
 | `ToolSearchTool` | 延迟工具搜索 | ❌ 无 UI |
-| `BriefTool` | 读取 /brief 简报 | ❌ 无 UI |
+| `BriefTool` | 读取 /brief 简报 | ✅ `BriefToolCard`：slate 主题、路径展示、结果前300字符预览（可展开）、复制按钮、"Brief loaded" 确认徽标（Iteration 672） |
 | `SendMessageTool` | 跨代理消息传递 | ✅ `SendMessageCard`：indigo 左边框、to/message 字段、Delivered/Failed 状态徽标（Iteration 567） |
 | `TeamCreate/Delete` | 多代理团队管理（AGENT_SWARMS） | ❌ 无 UI |
-| `SleepTool` | 代理主动等待（PROACTIVE/KAIROS） | ❌ 无 UI |
+| `SleepTool` | 代理主动等待（PROACTIVE/KAIROS） | ✅ `SleepToolCard`：紫色主题、Moon 图标、duration 格式化、reason 字段、"Woke up"/"Sleeping..." 状态徽标（Iteration 673） |
 | `ScheduleCronTool` / `CronCreate/Delete/List` | 定时任务（AGENT_TRIGGERS） | ✅ `CronCard`：cron 表达式 chip、prompt 预览、recurring/one-shot 徽标、job ID；`CronList` 结果显示任务行列表（Iteration 565） |
 | `RemoteTriggerTool` | 远程触发代理（AGENT_TRIGGERS_REMOTE） | ✅ `RemoteTriggerCard`：action chip（list/get/create/update/run 色标）、trigger_id、prompt 预览、action 感知结果展示（Iteration 566） |
 | `PowerShellTool` | Windows PowerShell 支持 | ✅ 通过 Bash 工具 BASH_TOOLS 路由渲染 PowerShell 卡片（Iteration 564） |
@@ -163,19 +163,19 @@ CLI 定义了 5 种权限模式（`ExternalPermissionMode`）：
 | `mcpServers` | Record | MCP 服务器配置 | ✅（mcp:add/remove/list）|
 | `cleanupPeriodDays` | number | 会话保留天数 | ✅（SettingsGeneral 数字输入，读写 ~/.claude/settings.json） |
 | `language` | string | 响应语言偏好 | ✅（SettingsGeneral AI 回复语言下拉，读写 ~/.claude/settings.json） |
-| `attribution.commit/pr` | string | commit/PR 署名 | ❌ |
-| `includeCoAuthoredBy` | boolean | 是否包含 Co-authored-by | ❌ |
-| `includeGitInstructions` | boolean | 是否包含 git workflow 指令 | ❌ |
+| `attribution.commit/pr` | string | commit/PR 署名 | ✅（SettingsGeneral Git Workflow 区块，文本输入，Iteration 669） |
+| `includeCoAuthoredBy` | boolean | 是否包含 Co-authored-by | ✅（同上，布尔开关，Iteration 669） |
+| `includeGitInstructions` | boolean | 是否包含 git workflow 指令 | ✅（同上，布尔开关，Iteration 669） |
 | `availableModels` | array | 企业模型白名单 | ❌ |
 | `worktree.symlinkDirectories` | array | worktree 符号链接目录 | ❌ |
 | `worktree.sparsePaths` | array | sparse checkout 路径 | ❌ |
 | `disableAllHooks` | boolean | 禁用所有 hooks | ✅ — HooksSettingsPanel 顶部红色开关，写入 ~/.claude/settings.json，开启时规则列表置灰并显示橙色警告 banner（Iteration 648） |
 | `defaultShell` | enum | bash/powershell | ✅ — Settings → General，bash/powershell 下拉选择器，读写 ~/.claude/settings.json（Iteration 648） |
 | `outputStyle` | string | 输出样式控制 | ✅ — Settings → AI Engine 标签页，auto/text/json 下拉选择器，读写 ~/.claude/settings.json（Iteration 656） |
-| `statusLine` | object | 自定义状态栏命令 | ❌ |
+| `statusLine` | object | 自定义状态栏命令 | ✅ — Settings → General，statusLine.command 文本输入，读写 ~/.claude/settings.json（Iteration 675） |
 | `enabledPlugins` | Record | 启用插件列表 | ⚠️ 有 plugin:list/setEnabled IPC |
-| `apiKeyHelper` | string | 自定义 API key 脚本 | ❌ |
-| `fileSuggestion` | object | @ 提及文件建议命令 | ❌ |
+| `apiKeyHelper` | string | 自定义 API key 脚本 | ✅ — Settings → AI Engine，脚本路径文本输入，读写 ~/.claude/settings.json（Iteration 674） |
+| `fileSuggestion` | object | @ 提及文件建议命令 | ✅ — Settings → General，fileSuggestion.command 文本输入，读写 ~/.claude/settings.json（Iteration 675） |
 | `respectGitignore` | boolean | 文件选择器是否遵守 .gitignore | ✅ — Settings → General，布尔开关（默认 true），读写 ~/.claude/settings.json（Iteration 648） |
 
 ### AIPA 当前自有偏好（electron-store，非 CLI settings.json）
@@ -253,8 +253,8 @@ CLI 2.1.81 中发现以下事件类型 AIPA 未处理：
 | `worktree-state` | worktree 状态变更通知 | ✅ **P4-6 已实现** — preload 已订阅 `cli:worktreeState`，渲染器更新 `chatStore.activeWorktree`（Iteration 539） |
 | `task_completed` | 后台任务完成通知 | ✅ **P4-6 已实现** — preload 已订阅 `cli:taskCompleted`，渲染器显示完成 toast（Iteration 539） |
 | `result.modelUsage` | 每个模型的 token/cost 分项用量 | ✅ **P0-5 已实现** — stream-bridge 转发 `modelUsage` 字段，存入 chatStore.modelUsage（Iteration 539） |
-| `result.uuid` | 结果 UUID 字段 | ❌ 未消费 |
-| `result.fast_mode_state` | API fast mode 状态（企业功能） | ❌ 未消费 |
+| `result.uuid` | 结果 UUID 字段 | ✅ 已消费 — stream-bridge 提取并存入 chatStore.lastResultUuid（Iteration 676） |
+| `result.fast_mode_state` | API fast mode 状态（企业功能） | ✅ 已消费 — 存入 chatStore.fastModeState，ChatHeader 在 fast_mode_state='on' 时显示 Zap 黄色 "Fast" 徽标（Iteration 676） |
 | `result` subtype: `error_max_structured_output_retries` | 结构化输出超出重试次数 | ❌ 未处理（只处理了 error_max_turns/budget） |
 
 **新发现的 CLI 设置字段（settings.json）**：
@@ -341,8 +341,8 @@ CLI 有两套记忆机制，概念不同：
 - ✅ IPC 完整，渲染器可通过 `window.electronAPI.memoryList/Read/Write/Create/Delete` 操作
 - ⚠️ UI 侧：有记忆管理界面但与 CLAUDE.md 文件区分不清晰
 - ❌ 无嵌套 CLAUDE.md 扫描可视化（用户不知道哪些 CLAUDE.md 被 CLI 加载）
-- ❌ 无记忆衰减/过期指示器
-- ❌ 无团队记忆 vs 私有记忆视觉区分
+- ✅ 记忆衰减/过期指示器 — MemoryItemCard 显示 Fresh/Aging/Old/Stale 色点徽标及相对时间（Iteration 677）
+- ✅ 记忆类型视觉区分 — 按 user/feedback/project/reference 类型设置 indigo/amber/green/blue 左边框 + 对应图标（Iteration 677）
 - ✅ CLAUDE.md 文件编辑器（`/memory` 命令等价 UI）与 memdir 结构化记忆 UI 概念区分已实现（2026-04-15）
 
 ### 差距 & 优先级
@@ -372,7 +372,7 @@ AIPA 状态：
 - ✅ 接收 `hook_callback` 并响应（`HookCallbackCard.tsx`）
 - ✅ 可通过 `config:writeCLISettings` 写入 hooks 配置
 - ✅ **P1-1 已实现** — `HooksSettingsPanel.tsx` + `HookAddWizard.tsx` 三步向导（事件选择 → 类型配置 → 命令编写），支持行内编辑（Pencil 按钮 + InlineEditor 子组件 + 保存/取消），`disableAllHooks` 红色开关 + 橙色警告 banner
-- ❌ 无 hook 事件触发历史展示
+- ✅ hook 事件触发历史 — `HookEventHistory` 折叠面板实时记录本次会话 Hook 触发（事件类型 badge、时间戳，最多50条，Iteration 671）
 
 ### 8.2 斜杠命令系统（/commands）
 
@@ -956,3 +956,57 @@ CLI 有 4 种压缩策略：
 - 点击直接向 CLI stdin 发送 `/compact` 命令
 - 支持带指令的变体（`/compact [instruction]`）
 - 与现有 TokenUsageBar 75%/90% 触发的 COMPACT 按钮互补，允许用户随时主动压缩上下文
+
+---
+
+## 二十二、最新实现记录（2026-04-18，Iterations 668-677）
+
+### Iteration 668 — FEATURE_GAP.md 文档更新（迭代 664-667）
+更新日期行至 Iteration 667；权限规则 UI、additionalDirectories、/compact ChatHeader 按钮在对应表格中标记为 ✅；新增第二十一节。
+
+### Iteration 669 — Git Workflow 设置 UI（attribution/coAuthor/gitInstructions）
+在 `SettingsGeneral.tsx` 新增 Git Workflow 区块（Settings2 图标）：
+- `attribution.commit` / `attribution.pr` 文本输入（嵌套对象，整体写入 settings.json）
+- `includeCoAuthoredBy` 布尔开关（默认 true）
+- `includeGitInstructions` 布尔开关（默认 false）
+- 9 个 i18n 键（en.json + zh-CN.json）
+
+### Iteration 670 — 权限模式完整性修复（dontAsk/bypassPermissions）
+在 `PermissionsSettingsPanel.tsx` 补全缺失的两个权限模式：
+- `dontAsk` — 正常样式
+- `bypassPermissions` — 红色⚠危险样式（激活时红色边框 + 背景 + 文字，含 ⚠ 前缀）
+- 扩展 `PermissionDefaultMode` 联合类型；i18n 双语键补充
+
+### Iteration 671 — Hook 触发历史 UI（HooksSettingsPanel）
+在 `HooksSettingsPanel.tsx` 底部新增 `HookEventHistory` 折叠子组件：
+- 订阅 `window.electronAPI.onHookEvent`，本地累积最多 50 条
+- 展示事件类型 badge、"fired" 状态、格式化时间戳
+- 空状态文案："No hook events in this session"
+- i18n：`hooks.hookHistory` / `hooks.hookHistoryEmpty`
+
+### Iteration 672 — BriefToolCard 简报工具内联卡片
+新增 `BriefToolCard.tsx`：slate/灰色主题（`rgba(100,116,139,0.5)` 左边框）、FileText 图标、路径展示（目录淡色+文件名高亮）、结果前 300 字符预览（可展开）、复制按钮、"Brief loaded" 确认徽标。`ToolUseBlock` 接入 `'BriefTool'`/`'brief'` 路由。
+
+### Iteration 673 — SleepToolCard 等待工具内联卡片
+新增 `SleepToolCard.tsx`：紫色主题（`rgba(139,92,246,0.5)` 左边框）、Moon 图标、duration_ms/seconds 格式化展示、可选 reason 字段、"Woke up"（绿色 Check）/"Sleeping..."（紫色脉冲）双态徽标。`ToolUseBlock` 接入 `'SleepTool'`/`'sleep'` 路由。
+
+### Iteration 674 — apiKeyHelper 设置 UI
+在 `SettingsAIEngine.tsx` API Key 区块后新增 `apiKeyHelper` 文本输入（脚本路径），读写 `~/.claude/settings.json`。i18n 双语键。
+
+### Iteration 675 — statusLine + fileSuggestion 设置 UI
+在 `SettingsGeneral.tsx` 新增两个 CLI 配置字段：
+- `statusLine.command` — 自定义状态栏 Shell 命令
+- `fileSuggestion.command` — @ 文件建议命令
+均写入 `~/.claude/settings.json` 嵌套对象。
+
+### Iteration 676 — result.uuid + fast_mode_state 消费
+- `stream-bridge.ts` 提取 `uuid` 和 `fast_mode_state` 并随 result 事件转发
+- `chatStore` 新增 `lastResultUuid` 和 `fastModeState` 字段
+- `useStreamJson.ts` 在 result 事件时写入两者
+- `ChatHeader.tsx` 在 `fastModeState === 'on'` 时显示 Zap 图标 + 黄色 "Fast" chip
+
+### Iteration 677 — 记忆衰减指示器 + 作用域视觉区分
+- `memory-manager.ts` 在 `MemoryFile` 中新增 `mtime: number`（fs.statSync 获取）
+- `MemoryItemCard.tsx` 按 `updatedAt` 计算衰减状态（Fresh <7d 绿/Aging <30d 黄/Old <90d 橙/Stale >90d 红），显示色点徽标 + 相对时间
+- 按 `memoryType`（user/feedback/project/reference）设置 indigo/amber/green/blue 左边框 + 对应 lucide 图标
+- i18n：`memory.fresh/aging/old/stale`（en + zh-CN）
