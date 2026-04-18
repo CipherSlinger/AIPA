@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { Zap, Terminal, MessageSquare, Globe, Trash2, Plus, ChevronDown, ChevronRight, Pencil, Check, X, Clock } from 'lucide-react'
+import { Zap, Terminal, MessageSquare, Globe, Trash2, Plus, ChevronDown, ChevronRight, Pencil, Check, X, Clock, History } from 'lucide-react'
 import HookAddWizard from './HookAddWizard'
 import { useT } from '../../i18n'
 import { useChatStore } from '../../store'
@@ -904,3 +904,4 @@ export default function HooksSettingsPanel() {
     </div>
   )
 }
+

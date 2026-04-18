@@ -600,6 +600,15 @@
     "toolAccessCustom": "自定义",
     "toolAccessAllDisabled": "所有工具已禁用。Claude 只能进行文字对话，无法执行操作。",
     "toolAccessDisabled": "已禁用",
+    "gitWorkflow": "Git 工作流",
+    "gitAttributionCommit": "Commit 署名",
+    "gitAttributionCommitDesc": "Commit 署名模板",
+    "gitAttributionPr": "PR 署名",
+    "gitAttributionPrDesc": "Pull Request 署名模板",
+    "includeCoAuthoredBy": "包含 Co-authored-by",
+    "includeCoAuthoredByDesc": "在 Commit 中添加 Co-authored-by 行",
+    "includeGitInstructions": "包含 Git 指令",
+    "includeGitInstructionsDesc": "在系统提示中包含 Git 工作流指令",
     "about": {
       "aiPersonalAssistant": "AI 个人助手",
       "links": "链接",
@@ -865,6 +874,8 @@
     "modeAcceptEdits": "自动接受编辑",
     "modeAutoEdit": "自动编辑",
     "modePlan": "计划模式",
+    "modeDontAsk": "不再询问",
+    "modeBypassPermissions": "绕过所有权限",
     "modeSaved": "权限模式已保存",
     "additionalDirs": "附加工作目录",
     "additionalDirsDesc": "授权 Claude 访问的额外目录（除当前工作目录外）",
@@ -2325,6 +2336,8 @@
     "showApiKey": "显示 API 密钥"
   },
   "hooks": {
+    "hookHistory": "Hook 触发历史",
+    "hookHistoryEmpty": "本次会话暂无 Hook 触发记录",
     "title": "钩子配置",
     "subtitle": "钩子可在 CLI 事件触发时执行 Shell 命令、AI 提示词或 HTTP 请求。",
     "addHook": "添加钩子",

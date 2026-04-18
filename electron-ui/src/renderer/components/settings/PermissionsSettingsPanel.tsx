@@ -4,7 +4,7 @@ import { useT } from '../../i18n'
 import { useChatStore } from '../../store/chatStore'
 import { PermissionMessage } from '../../types/app.types'
 
-type PermissionDefaultMode = 'default' | 'acceptEdits' | 'autoEdit' | 'plan'
+type PermissionDefaultMode = 'default' | 'acceptEdits' | 'autoEdit' | 'plan' | 'dontAsk' | 'bypassPermissions'
 
 interface CLIPermissions {
   allow?: string[]
@@ -311,11 +311,13 @@ export default function PermissionsSettingsPanel() {
 
 // -- DefaultModeSelector sub-component --
 
-const DEFAULT_MODES: { value: PermissionDefaultMode; labelKey: string }[] = [
+const DEFAULT_MODES: { value: PermissionDefaultMode; labelKey: string; dangerous?: boolean }[] = [
   { value: 'default', labelKey: 'permissions.modeDefault' },
   { value: 'acceptEdits', labelKey: 'permissions.modeAcceptEdits' },
   { value: 'autoEdit', labelKey: 'permissions.modeAutoEdit' },
   { value: 'plan', labelKey: 'permissions.modePlan' },
+  { value: 'dontAsk', labelKey: 'permissions.modeDontAsk' },
+  { value: 'bypassPermissions', labelKey: 'permissions.modeBypassPermissions', dangerous: true },
 ]
 
 interface DefaultModeSelectorProps {
@@ -340,7 +342,7 @@ function DefaultModeSelector({ value, onChange, t }: DefaultModeSelectorProps) {
       </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-        {DEFAULT_MODES.map(({ value: modeValue, labelKey }) => {
+        {DEFAULT_MODES.map(({ value: modeValue, labelKey, dangerous }) => {
           const isActive = value === modeValue
           return (
             <button
@@ -352,14 +354,25 @@ function DefaultModeSelector({ value, onChange, t }: DefaultModeSelectorProps) {
                 fontWeight: isActive ? 600 : 400,
                 borderRadius: 20,
                 border: isActive
-                  ? '1px solid rgba(99,102,241,0.45)'
+                  ? dangerous
+                    ? '1px solid rgba(239,68,68,0.55)'
+                    : '1px solid rgba(99,102,241,0.45)'
                   : '1px solid var(--glass-border-md)',
                 background: isActive
-                  ? 'linear-gradient(135deg, rgba(99,102,241,0.18), rgba(139,92,246,0.15))'
+                  ? dangerous
+                    ? 'linear-gradient(135deg, rgba(239,68,68,0.18), rgba(220,38,38,0.15))'
+                    : 'linear-gradient(135deg, rgba(99,102,241,0.18), rgba(139,92,246,0.15))'
                   : 'var(--bg-input)',
-                color: isActive ? 'rgba(139,102,255,0.95)' : 'var(--text-secondary)',
+                color: isActive
+                  ? dangerous
+                    ? 'rgba(252,165,165,0.95)'
+                    : 'rgba(139,102,255,0.95)'
+                  : 'var(--text-secondary)',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
               }}
               onMouseEnter={e => {
                 if (!isActive) {
@@ -374,6 +387,9 @@ function DefaultModeSelector({ value, onChange, t }: DefaultModeSelectorProps) {
                 }
               }}
             >
+              {dangerous && (
+                <span style={{ fontSize: 11, lineHeight: 1 }}>⚠</span>
+              )}
               {t(labelKey)}
             </button>
           )
