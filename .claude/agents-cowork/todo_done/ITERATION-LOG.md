@@ -9020,3 +9020,77 @@ Status: SUCCESS (0 errors)
 - [x] README updated with recent features
 - [x] npm run check passes (0 errors)
 - [x] Committed and pushed (fcceb0a)
+
+---
+
+## Iteration 681 — TaskStopBadge + TeamCreateCard + SkillToolCard + ToolSearchToolCard routing
+_Date: 2026-04-19 | Sprint Features_
+
+### Summary
+Added `TaskStopBadge` component to `TaskBadgeCard.tsx` (was referenced by `TASK_STOP_TOOLS` export but not implemented). Wired all four new tool cards into `ToolUseBlock.tsx`: `TaskStopBadge`, `TeamCreateCard`, `SkillToolCard`, `ToolSearchToolCard`. Also fixed a pre-existing JSON syntax error in `zh-CN.json` (double `},` at line 939) that was blocking `tsc --noEmit`.
+
+### Files Changed
+- `electron-ui/src/renderer/components/chat/tool-cards/TaskBadgeCard.tsx` — added `TaskStopBadge` component implementation
+- `electron-ui/src/renderer/components/chat/ToolUseBlock.tsx` — added imports for `TaskStopBadge`, `TASK_STOP_TOOLS`, `TeamCreateCard`, `SkillToolCard`, `ToolSearchToolCard`; added 4 early-return routing blocks
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` — fixed duplicate `},` syntax error at line 939
+
+### Build
+Status: SUCCESS (0 errors, 208 pre-existing warnings)
+
+### Acceptance Criteria
+- [x] `TaskStopBadge` renders red inline badge with Check/Loader2/X icon based on status
+- [x] `TaskStop`/`task_stop` tool calls routed to `TaskStopBadge` in ToolUseBlock
+- [x] `TeamCreate`/`team_create`/`TeamDelete`/`team_delete` routed to `TeamCreateCard`
+- [x] `Skill`/`skill` routed to `SkillToolCard`
+- [x] `ToolSearchTool`/`tool_search` routed to `ToolSearchToolCard`
+- [x] `npm run check` passes (0 TypeScript errors)
+
+## Iteration 682 — plugins i18n keys, memdir type filter i18n, TaskOutputCard
+_Date: 2026-04-19 | Sprint Frontend_
+
+### Summary
+Three-part feature iteration: (1) Added `settings.plugins`/`settings.pluginsEmpty` and `memory.filterAll/filterUser/filterFeedback/filterProject/filterReference` i18n keys to both en.json and zh-CN.json — SettingsPlugins already had full functionality and these keys round out i18n coverage. (2) Replaced hardcoded Chinese type labels in `MemdirTab` (MemoryPanel) with an i18n-driven `MEMDIR_TYPE_I18N_KEYS` map so the filter chips are properly translated. (3) Created `TaskOutputCard` for `TaskOutput`/`task_output` tool routing in `ToolUseBlock` — renders task JSON via `TaskDashboardCard` when parseable, otherwise shows plain text with 300-char preview and expand toggle.
+
+### Files Changed
+- `electron-ui/src/renderer/i18n/locales/en.json` — add memory.filter* and settings.plugins/pluginsEmpty keys
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` — same in Chinese
+- `electron-ui/src/renderer/components/memory/MemoryPanel.tsx` — replace hardcoded Chinese labels with MEMDIR_TYPE_I18N_KEYS + t()
+- `electron-ui/src/renderer/components/chat/tool-cards/TaskOutputCard.tsx` — new card component (indigo theme, JSON→TaskDashboardCard or text fallback)
+- `electron-ui/src/renderer/components/chat/ToolUseBlock.tsx` — import TaskOutputCard, add routing + icon entries
+
+### Build
+Status: SUCCESS (tsc main+preload: 0 errors; vite build: ✓ built in 20.78s; npm run check: 0 errors)
+
+### Acceptance Criteria
+- [x] `settings.plugins` = "Plugins" / "插件" and `settings.pluginsEmpty` = "No plugins installed" / "未安装插件" in both locales
+- [x] `memory.filterAll/User/Feedback/Project/Reference` keys present and translated in both locales
+- [x] MemdirTab filter chips use i18n keys (no hardcoded Chinese)
+- [x] `TaskOutput`/`task_output` tool calls routed to `TaskOutputCard` in ToolUseBlock
+- [x] `TaskOutputCard` renders JSON task data via `TaskDashboardCard` when parseable
+- [x] `TaskOutputCard` renders text fallback with 300-char preview + expand toggle
+- [x] `npm run check` passes (0 TypeScript errors)
+
+## Iteration 682 — Settings UI: appendSystemPrompt + availableModels + worktree + sandbox i18n
+_Date: 2026-04-19 | Sprint Settings_
+
+### Summary
+Added 4 new Settings UI features: (1) `appendSystemPrompt` textarea in SettingsAIEngine (reads/writes prefsStore, maps to `--append-system-prompt`), (2) `availableModels` enterprise whitelist tag editor in SettingsAIEngine (reads/writes `~/.claude/settings.json`), (3) Worktree configuration group in SettingsGeneral with `symlinkDirectories` and `sparsePaths` tag list editors (reads/writes `~/.claude/settings.json` `worktree` key), (4) i18n completions for `sandbox.ignoreViolations` section (9 missing keys added to both en.json and zh-CN.json — the UI code in SettingsSandbox.tsx already existed but keys were missing).
+
+### Files Changed
+- `electron-ui/src/renderer/components/settings/SettingsAIEngine.tsx` — add `appendSystemPrompt` textarea (after maxTurns) + `availableModels` tag editor (after cliOutputStyle); state loaded from configReadCLISettings for availableModels
+- `electron-ui/src/renderer/components/settings/SettingsGeneral.tsx` — add GitBranch+Plus imports; worktree state vars (`symlinkDirectories`, `sparsePaths`, add-mode flags); load worktree from configReadCLISettings in existing useEffect; `worktree` groupKeywords entry; full Worktree SettingsGroup with two tag-list editors
+- `electron-ui/src/renderer/i18n/locales/en.json` — add `settings.appendSystemPrompt/Hint`, `settings.availableModels/Hint`, `settings.worktree*` (5 keys); add `sandbox.ignoreViolations*` (9 keys)
+- `electron-ui/src/renderer/i18n/locales/zh-CN.json` — same keys in Chinese
+
+### Build
+Status: SUCCESS (tsc --noEmit: 0 errors; vite build: ✓ built in 13.48s; npm run check: 0 errors, 206 warnings pre-existing)
+
+### Notes
+SettingsGeneral.tsx is now 1055 lines (was 850) — above the 800-line threshold due to worktree UI addition. Flagged for future decomposition.
+
+### Acceptance Criteria
+- [x] `appendSystemPrompt` textarea appears in AI Engine settings, reads/writes prefsStore (saved via Save button)
+- [x] `availableModels` tag editor appears in AI Engine settings, reads/writes `~/.claude/settings.json.availableModels`
+- [x] Worktree group appears in General settings after Git Workflow, with symlinkDirectories + sparsePaths tag editors
+- [x] sandbox.ignoreViolations i18n keys present in both en.json and zh-CN.json (fixing runtime key-missing)
+- [x] `npm run check` passes (0 TypeScript errors)

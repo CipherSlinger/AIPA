@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react'
-import { Save, MessageSquare, Palette, FolderOpen, Settings2, Search, X } from 'lucide-react'
+import { Save, MessageSquare, Palette, FolderOpen, Settings2, Search, X, GitBranch, Plus } from 'lucide-react'
 import { usePrefsStore } from '../../store'
 import { useI18n } from '../../i18n'
 import { PROMPT_TEMPLATES } from '../../utils/promptTemplates'
@@ -52,6 +52,14 @@ export default function SettingsGeneral({
   const [statusLineCommand, setStatusLineCommand] = useState<string>('')
   const [fileSuggestionCommand, setFileSuggestionCommand] = useState<string>('')
 
+  // worktree — reads/writes `worktree` object in ~/.claude/settings.json via IPC
+  const [worktreeSymlinkDirs, setWorktreeSymlinkDirs] = useState<string[]>([])
+  const [worktreeSparsePaths, setWorktreeSparsePaths] = useState<string[]>([])
+  const [newSymlinkInput, setNewSymlinkInput] = useState<string>('')
+  const [newSparseInput, setNewSparseInput] = useState<string>('')
+  const [addingSymlink, setAddingSymlink] = useState(false)
+  const [addingSparse, setAddingSparse] = useState(false)
+
   // clawd status polling
   type ClawdStatus = 'checking' | 'running' | 'stopped'
   const [clawdStatus, setClawdStatus] = useState<ClawdStatus>('stopped')
@@ -84,6 +92,17 @@ export default function SettingsGeneral({
         ? cliSettings.fileSuggestion as Record<string, unknown>
         : {}
       setFileSuggestionCommand(typeof fs.command === 'string' ? fs.command : '')
+      const wt = typeof cliSettings.worktree === 'object' && cliSettings.worktree !== null
+        ? cliSettings.worktree as Record<string, unknown>
+        : {}
+      const symlinkDirs = Array.isArray(wt.symlinkDirectories)
+        ? (wt.symlinkDirectories as unknown[]).filter((d): d is string => typeof d === 'string')
+        : []
+      setWorktreeSymlinkDirs(symlinkDirs)
+      const sparsePaths = Array.isArray(wt.sparsePaths)
+        ? (wt.sparsePaths as unknown[]).filter((p): p is string => typeof p === 'string')
+        : []
+      setWorktreeSparsePaths(sparsePaths)
     }).catch(() => {})
   }, [])
 
@@ -125,6 +144,7 @@ export default function SettingsGeneral({
     workspace: [t('settings.workingFolder'), t('tags.sectionTitle'), t('settings.groups.workspace')].join(' ').toLowerCase(),
     behavior: [t('settings.skipPermissions'), t('settings.verbose'), t('settings.completionSound'), t('settings.desktopNotifications'), t('settings.resumeLastSession'), t('outputStyle.title'), t('thinking.title'), t('settings.systemPresence'), t('compact.autoCompact'), t('autoMemory.enabled'), t('settings.groups.behavior'), t('settings.cleanupPeriodDays'), t('settings.defaultShell'), t('settings.respectGitignore'), 'shell', 'bash', 'powershell', 'gitignore', t('settings.statusLine'), t('settings.fileSuggestion'), 'status', 'suggestion'].join(' ').toLowerCase(),
     gitWorkflow: [t('settings.gitWorkflow'), t('settings.gitAttributionCommit'), t('settings.gitAttributionPr'), t('settings.includeCoAuthoredBy'), t('settings.includeGitInstructions'), 'git', 'attribution', 'commit', 'pr', 'co-author'].join(' ').toLowerCase(),
+    worktree: [t('settings.worktree'), t('settings.worktreeSymlinkDirs'), t('settings.worktreeSparsePaths'), 'worktree', 'symlink', 'sparse', 'checkout'].join(' ').toLowerCase(),
   }), [t])
 
   const isGroupVisible = (groupKey: string): boolean => {
@@ -821,6 +841,191 @@ export default function SettingsGeneral({
             }}
           />,
           t('settings.includeGitInstructionsDesc')
+        )}
+      </SettingsGroup>
+      )}
+
+      {/* Worktree configuration */}
+      {isGroupVisible('worktree') && (
+      <SettingsGroup title={t('settings.worktree')} icon={<GitBranch size={14} />} groupKey="worktree">
+        {/* symlinkDirectories */}
+        {field(
+          t('settings.worktreeSymlinkDirs'),
+          <div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, minHeight: 24, marginBottom: 6 }}>
+              {worktreeSymlinkDirs.map((dir, idx) => (
+                <span
+                  key={`wt-symlink-${idx}`}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    background: 'rgba(99,102,241,0.12)', color: 'rgba(129,140,248,1)',
+                    border: '1px solid rgba(99,102,241,0.25)',
+                    borderRadius: 5, padding: '3px 8px',
+                    fontSize: 11, fontWeight: 500, fontFamily: 'monospace',
+                  }}
+                >
+                  {dir.length > 40 ? dir.slice(0, 40) + '…' : dir}
+                  <button
+                    onClick={() => {
+                      const next = worktreeSymlinkDirs.filter((_, i) => i !== idx)
+                      setWorktreeSymlinkDirs(next)
+                      window.electronAPI.configWriteCLISettings({ worktree: { symlinkDirectories: next, sparsePaths: worktreeSparsePaths } }).catch(() => {})
+                    }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', color: 'inherit', opacity: 0.55, transition: 'opacity 0.15s ease' }}
+                    onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
+                    onMouseLeave={e => { e.currentTarget.style.opacity = '0.55' }}
+                    aria-label={`Remove ${dir}`}
+                  >
+                    <X size={10} />
+                  </button>
+                </span>
+              ))}
+              {worktreeSymlinkDirs.length === 0 && !addingSymlink && (
+                <span style={{ fontSize: 11, color: 'var(--text-faint)', fontStyle: 'italic', padding: '3px 0' }}>None configured</span>
+              )}
+            </div>
+            {addingSymlink ? (
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input
+                  autoFocus
+                  value={newSymlinkInput}
+                  onChange={e => setNewSymlinkInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      const trimmed = newSymlinkInput.trim()
+                      if (trimmed && !worktreeSymlinkDirs.includes(trimmed)) {
+                        const next = [...worktreeSymlinkDirs, trimmed]
+                        setWorktreeSymlinkDirs(next)
+                        window.electronAPI.configWriteCLISettings({ worktree: { symlinkDirectories: next, sparsePaths: worktreeSparsePaths } }).catch(() => {})
+                      }
+                      setNewSymlinkInput('')
+                      setAddingSymlink(false)
+                    }
+                    if (e.key === 'Escape') { setAddingSymlink(false); setNewSymlinkInput('') }
+                  }}
+                  placeholder="/path/to/dir"
+                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
+                  style={{ flex: 1, padding: '6px 10px', fontSize: 12, background: 'var(--bg-hover)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-primary)', fontFamily: 'monospace', outline: 'none', transition: 'border-color 0.15s ease, box-shadow 0.15s ease' }}
+                />
+                <button
+                  onClick={() => {
+                    const trimmed = newSymlinkInput.trim()
+                    if (trimmed && !worktreeSymlinkDirs.includes(trimmed)) {
+                      const next = [...worktreeSymlinkDirs, trimmed]
+                      setWorktreeSymlinkDirs(next)
+                      window.electronAPI.configWriteCLISettings({ worktree: { symlinkDirectories: next, sparsePaths: worktreeSparsePaths } }).catch(() => {})
+                    }
+                    setNewSymlinkInput('')
+                    setAddingSymlink(false)
+                  }}
+                  style={{ padding: '6px 12px', fontSize: 11, fontWeight: 600, background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))', border: 'none', borderRadius: 6, color: 'var(--text-bright)', cursor: 'pointer', transition: 'all 0.15s ease' }}
+                >Add</button>
+                <button
+                  onClick={() => { setAddingSymlink(false); setNewSymlinkInput('') }}
+                  style={{ padding: '6px 10px', fontSize: 11, background: 'var(--bg-hover)', border: '1px solid var(--glass-border)', borderRadius: 6, color: 'var(--text-faint)', cursor: 'pointer' }}
+                >Cancel</button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setAddingSymlink(true)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--bg-hover)', border: '1px solid var(--glass-border-md)', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 11, fontWeight: 500, color: 'var(--text-faint)', transition: 'all 0.15s ease' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-faint)' }}
+              ><Plus size={11} /> Add</button>
+            )}
+          </div>,
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>{t('settings.worktreeSymlinkDirsHint')}</span>
+        )}
+
+        {/* sparsePaths */}
+        {field(
+          t('settings.worktreeSparsePaths'),
+          <div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, minHeight: 24, marginBottom: 6 }}>
+              {worktreeSparsePaths.map((p, idx) => (
+                <span
+                  key={`wt-sparse-${idx}`}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    background: 'rgba(74,222,128,0.10)', color: '#4ade80',
+                    border: '1px solid rgba(74,222,128,0.20)',
+                    borderRadius: 5, padding: '3px 8px',
+                    fontSize: 11, fontWeight: 500, fontFamily: 'monospace',
+                  }}
+                >
+                  {p.length > 40 ? p.slice(0, 40) + '…' : p}
+                  <button
+                    onClick={() => {
+                      const next = worktreeSparsePaths.filter((_, i) => i !== idx)
+                      setWorktreeSparsePaths(next)
+                      window.electronAPI.configWriteCLISettings({ worktree: { symlinkDirectories: worktreeSymlinkDirs, sparsePaths: next } }).catch(() => {})
+                    }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', color: 'inherit', opacity: 0.55, transition: 'opacity 0.15s ease' }}
+                    onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
+                    onMouseLeave={e => { e.currentTarget.style.opacity = '0.55' }}
+                    aria-label={`Remove ${p}`}
+                  >
+                    <X size={10} />
+                  </button>
+                </span>
+              ))}
+              {worktreeSparsePaths.length === 0 && !addingSparse && (
+                <span style={{ fontSize: 11, color: 'var(--text-faint)', fontStyle: 'italic', padding: '3px 0' }}>None configured</span>
+              )}
+            </div>
+            {addingSparse ? (
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input
+                  autoFocus
+                  value={newSparseInput}
+                  onChange={e => setNewSparseInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      const trimmed = newSparseInput.trim()
+                      if (trimmed && !worktreeSparsePaths.includes(trimmed)) {
+                        const next = [...worktreeSparsePaths, trimmed]
+                        setWorktreeSparsePaths(next)
+                        window.electronAPI.configWriteCLISettings({ worktree: { symlinkDirectories: worktreeSymlinkDirs, sparsePaths: next } }).catch(() => {})
+                      }
+                      setNewSparseInput('')
+                      setAddingSparse(false)
+                    }
+                    if (e.key === 'Escape') { setAddingSparse(false); setNewSparseInput('') }
+                  }}
+                  placeholder="src/components/**"
+                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
+                  style={{ flex: 1, padding: '6px 10px', fontSize: 12, background: 'var(--bg-hover)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-primary)', fontFamily: 'monospace', outline: 'none', transition: 'border-color 0.15s ease, box-shadow 0.15s ease' }}
+                />
+                <button
+                  onClick={() => {
+                    const trimmed = newSparseInput.trim()
+                    if (trimmed && !worktreeSparsePaths.includes(trimmed)) {
+                      const next = [...worktreeSparsePaths, trimmed]
+                      setWorktreeSparsePaths(next)
+                      window.electronAPI.configWriteCLISettings({ worktree: { symlinkDirectories: worktreeSymlinkDirs, sparsePaths: next } }).catch(() => {})
+                    }
+                    setNewSparseInput('')
+                    setAddingSparse(false)
+                  }}
+                  style={{ padding: '6px 12px', fontSize: 11, fontWeight: 600, background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))', border: 'none', borderRadius: 6, color: 'var(--text-bright)', cursor: 'pointer', transition: 'all 0.15s ease' }}
+                >Add</button>
+                <button
+                  onClick={() => { setAddingSparse(false); setNewSparseInput('') }}
+                  style={{ padding: '6px 10px', fontSize: 11, background: 'var(--bg-hover)', border: '1px solid var(--glass-border)', borderRadius: 6, color: 'var(--text-faint)', cursor: 'pointer' }}
+                >Cancel</button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setAddingSparse(true)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--bg-hover)', border: '1px solid var(--glass-border-md)', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 11, fontWeight: 500, color: 'var(--text-faint)', transition: 'all 0.15s ease' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-faint)' }}
+              ><Plus size={11} /> Add</button>
+            )}
+          </div>,
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>{t('settings.worktreeSparsePathsHint')}</span>
         )}
       </SettingsGroup>
       )}
