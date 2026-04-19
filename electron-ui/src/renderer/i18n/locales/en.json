@@ -476,6 +476,8 @@
     "cliOutputStyleText": "text (纯文本 / Plain text)",
     "cliOutputStyleJson": "json (JSON)",
     "apiKey": "API Key",
+    "apiKeyHelper": "API Key Helper Script",
+    "apiKeyHelperDesc": "Path to a script that outputs the API key",
     "apiKeyPool": "API Key Pool",
     "apiKeyPoolHint": "Add multiple keys for auto-failover when quota is exhausted",
     "addKey": "Add Key",
@@ -558,15 +560,6 @@
     "defaultShellHint": "Shell used when running commands in CLI sessions.",
     "respectGitignore": "Respect .gitignore",
     "respectGitignoreHint": "File picker follows .gitignore rules when listing files.",
-    "gitAttribution": "Git Attribution",
-    "gitAttributionCommit": "Commit attribution template",
-    "gitAttributionCommitDesc": "Template for Co-authored-by line in commits",
-    "gitAttributionPr": "PR attribution template",
-    "gitAttributionPrDesc": "Template added to PR descriptions",
-    "includeCoAuthoredBy": "Include Co-authored-by",
-    "includeCoAuthoredByDesc": "Automatically add Co-authored-by line to commits",
-    "includeGitInstructions": "Include Git workflow instructions",
-    "includeGitInstructionsDesc": "Inject git workflow guidance into system prompt",
     "sessionEnvVars": "Session Environment Variables",
     "sessionEnvVarsHint": "These key-value pairs will be available as environment variables in CLI sessions.",
     "sessionEnvVarsEmpty": "No environment variables configured.",
@@ -584,6 +577,19 @@
     "toolAccessCustom": "Custom",
     "toolAccessAllDisabled": "All tools disabled. Claude can only chat without taking actions.",
     "toolAccessDisabled": "disabled",
+    "gitWorkflow": "Git Workflow",
+    "gitAttributionCommit": "Commit Attribution",
+    "gitAttributionCommitDesc": "Attribution template for commits",
+    "gitAttributionPr": "PR Attribution",
+    "gitAttributionPrDesc": "Attribution template for pull requests",
+    "includeCoAuthoredBy": "Include Co-authored-by",
+    "includeCoAuthoredByDesc": "Add Co-authored-by line to commits",
+    "includeGitInstructions": "Include Git Instructions",
+    "includeGitInstructionsDesc": "Include git workflow instructions in system prompt",
+    "statusLine": "Status Line Command",
+    "statusLineDesc": "Shell command for custom status line",
+    "fileSuggestion": "File Suggestion Command",
+    "fileSuggestionDesc": "Command to provide @ file suggestions",
     "about": {
       "aiPersonalAssistant": "AI Personal Assistant",
       "links": "Links",
@@ -845,6 +851,8 @@
     "modeAcceptEdits": "Auto-accept Edits",
     "modeAutoEdit": "Auto Edit",
     "modePlan": "Plan Mode",
+    "modeDontAsk": "Don't Ask",
+    "modeBypassPermissions": "Bypass Permissions",
     "modeSaved": "Permission mode saved",
     "additionalDirs": "Additional Working Directories",
     "additionalDirsDesc": "Extra directories Claude is allowed to access beyond the current working directory",
@@ -1067,13 +1075,7 @@
     "todoPriorityMedium": "Medium",
     "todoPriorityLow": "Low",
     "todoHeader": "Todo List",
-    "todoCount": "{{count}} items",
-    "sleep.waiting": "Pausing...",
-    "sleep.done": "Wait complete",
-    "sleep.duration": "Waiting {{duration}}",
-    "brief.title": "Reading Brief",
-    "brief.global": "Global Brief",
-    "brief.result": "Brief Content"
+    "todoCount": "{{count}} items"
   },
   "diff": {
     "showDiff": "Show diff",
@@ -1504,11 +1506,10 @@
     "instructionLocalDesc": ".claude/CLAUDE.local.md — local overrides (not git-tracked)",
     "instructionBadge": "Instruction File",
     "instructionHint": "CLAUDE.md files contain behavioral instructions loaded by Claude Code automatically on every session.",
-    "scopePrivate": "Private",
-    "scopeProject": "Project",
-    "ageRecent": "Recent",
-    "ageAging": "Aging ({days}d)",
-    "ageOld": "Old ({days}d) — may be outdated"
+    "fresh": "Fresh",
+    "aging": "Aging",
+    "old": "Old",
+    "stale": "Stale"
   },
   "workflow": {
     "title": "Workflows",
@@ -2290,6 +2291,8 @@
     "showApiKey": "Show API key"
   },
   "hooks": {
+    "hookHistory": "Hook Event History",
+    "hookHistoryEmpty": "No hook events in this session",
     "title": "Hooks Configuration",
     "subtitle": "Hooks run shell commands, AI prompts, or HTTP calls in response to CLI events.",
     "addHook": "Add Hook",
@@ -2367,10 +2370,7 @@
       "errPromptRequired": "Prompt is required.",
       "errUrlRequired": "URL is required.",
       "errUrlInvalid": "URL format is invalid."
-    },
-    "eventHistory": "Hook Event History",
-    "noEventHistory": "No hook events triggered yet",
-    "eventHistoryDesc": "Recent hook events from the current session"
+    }
   },
   "dept": {
     "panelTitle": "Departments",
@@ -2500,11 +2500,5 @@
     "loadError": "Failed to load sandbox settings",
     "itemExists": "Already in list",
     "warningUnsandboxed": "Warning: allowing unsandboxed commands weakens security isolation"
-  },
-  "worktreeSettings": "Worktree Settings",
-  "worktreeSymlinkDirs": "Symlink Directories",
-  "worktreeSymlinkDirsDesc": "Directories to symlink automatically when creating a worktree",
-  "worktreeSparsePaths": "Sparse Checkout Paths",
-  "worktreeSparsePathsDesc": "Path patterns for sparse checkout in worktrees",
-  "worktreeAddPath": "Add path..."
+  }
 }

@@ -22,8 +22,6 @@ import {
   RefreshCw,
   Save,
   Settings,
-  Lock,
-  Users,
 } from 'lucide-react'
 import { useT } from '../../i18n'
 import { usePrefsStore } from '../../store'
@@ -279,7 +277,7 @@ interface MemdirFile {
   content: string
   scope: 'global' | 'project'
   projectHash?: string
-  mtime?: number  // epoch ms — for age/decay indicator
+  mtime: number
 }
 
 const MEMDIR_TYPE_COLORS: Record<string, string> = {
@@ -299,30 +297,6 @@ const MEMDIR_TYPE_LABELS: Record<string, string> = {
 }
 
 type MemdirTypeFilter = 'all' | 'user' | 'feedback' | 'project' | 'reference'
-
-// ─── Age / decay helpers ───────────────────────────────────────────────────
-
-type AgeCategory = 'recent' | 'aging' | 'old' | 'unknown'
-
-function getAgeCategory(mtime?: number): AgeCategory {
-  if (!mtime) return 'unknown'
-  const days = Math.floor((Date.now() - mtime) / (1000 * 60 * 60 * 24))
-  if (days < 7) return 'recent'
-  if (days <= 30) return 'aging'
-  return 'old'
-}
-
-function getAgeDays(mtime?: number): number {
-  if (!mtime) return 0
-  return Math.floor((Date.now() - mtime) / (1000 * 60 * 60 * 24))
-}
-
-const AGE_DOT_COLOR: Record<AgeCategory, string> = {
-  recent:  '#4ade80',    // green
-  aging:   '#fbbf24',    // amber
-  old:     '#f87171',    // red
-  unknown: 'var(--text-muted)',
-}
 
 function MemdirTab() {
   const t = useT()
@@ -459,21 +433,23 @@ function MemdirTab() {
         ) : filteredFiles.map(f => {
           const typeColor = MEMDIR_TYPE_COLORS[f.type] || MEMDIR_TYPE_COLORS.unknown
           const isOpen = expanded === f.filePath
-          const ageCategory = getAgeCategory(f.mtime)
-          const ageDays = getAgeDays(f.mtime)
-          const ageDotColor = AGE_DOT_COLOR[ageCategory]
-          const ageTooltip = ageCategory === 'recent'
-            ? t('memory.ageRecent')
-            : ageCategory === 'aging'
-              ? t('memory.ageAging').replace('{days}', String(ageDays))
-              : ageCategory === 'old'
-                ? t('memory.ageOld').replace('{days}', String(ageDays))
-                : ''
-          const isPrivate = f.scope === 'global'
+          const ageDays = f.mtime > 0 ? (Date.now() - f.mtime) / 86400000 : 0
+          const decayDot =
+            ageDays < 7  ? '#4ade80' :
+            ageDays < 30 ? '#fbbf24' :
+            ageDays < 90 ? '#fb923c' : '#f87171'
+          const decayLabelKey =
+            ageDays < 7  ? 'memory.fresh' :
+            ageDays < 30 ? 'memory.aging' :
+            ageDays < 90 ? 'memory.old'  : 'memory.stale'
+          const ageDaysRounded = Math.floor(ageDays)
+          const ageLabel = f.mtime > 0
+            ? (ageDaysRounded < 1 ? t('memory.justNow') : `${ageDaysRounded}d ago`)
+            : ''
           return (
             <div key={f.filePath} style={{
               background: 'var(--bg-primary)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-              border: '1px solid var(--border)', borderRadius: 10, marginBottom: 6,
+              border: '1px solid var(--border)', borderLeft: `3px solid ${typeColor}`, borderRadius: 10, marginBottom: 6,
               overflow: 'hidden', transition: 'all 0.15s ease',
             }}>
               {/* File header row */}
@@ -497,35 +473,23 @@ function MemdirTab() {
                 <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: typeColor, background: `${typeColor}1e`, borderRadius: 8, padding: '1px 6px', flexShrink: 0 }}>
                   {f.type}
                 </span>
-                {/* Scope badge: Lock icon for private/global, Users icon for project-scoped */}
-                <span
-                  title={isPrivate ? t('memory.scopePrivate') : t('memory.scopeProject')}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 3,
-                    fontSize: 9, color: isPrivate ? 'var(--text-muted)' : '#60a5fa',
-                    background: isPrivate ? 'var(--bg-hover)' : 'rgba(96,165,250,0.10)',
-                    border: `1px solid ${isPrivate ? 'var(--border)' : 'rgba(96,165,250,0.30)'}`,
-                    borderRadius: 6, padding: '1px 5px', flexShrink: 0,
-                  }}
-                >
-                  {isPrivate
-                    ? <Lock size={9} style={{ flexShrink: 0 }} />
-                    : <Users size={9} style={{ flexShrink: 0 }} />
-                  }
-                  {isPrivate ? t('memory.scopePrivate') : t('memory.scopeProject')}
+                <span style={{ fontSize: 9, color: 'var(--text-muted)', background: 'var(--border)', borderRadius: 6, padding: '1px 6px', flexShrink: 0 }}>
+                  {f.scope === 'global' ? t('memory.memdirGlobal') : t('memory.memdirProject')}
                 </span>
-                {/* Age/decay dot: green=recent(<7d), amber=aging(7-30d), red=old(>30d) */}
-                {ageCategory !== 'unknown' && (
-                  <span
-                    title={ageTooltip}
-                    style={{
-                      display: 'inline-block',
-                      width: 7, height: 7, borderRadius: '50%',
-                      background: ageDotColor,
-                      flexShrink: 0,
-                      boxShadow: ageCategory === 'old' ? `0 0 5px ${ageDotColor}90` : undefined,
-                    }}
-                  />
+                {f.mtime > 0 && (
+                  <span style={{
+                    display: 'flex', alignItems: 'center', gap: 3,
+                    fontSize: 9, fontWeight: 600,
+                    color: decayDot,
+                    background: `${decayDot}18`,
+                    border: `1px solid ${decayDot}44`,
+                    borderRadius: 8, padding: '1px 5px', flexShrink: 0,
+                  }}
+                  title={ageLabel}
+                  >
+                    <span style={{ display: 'inline-block', width: 5, height: 5, borderRadius: '50%', background: decayDot, flexShrink: 0 }} />
+                    {t(decayLabelKey)}
+                  </span>
                 )}
                 <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}>{'\u25be'}</span>
               </div>

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react'
-import { Save, MessageSquare, Palette, FolderOpen, Settings2, Search, X, GitCommit } from 'lucide-react'
+import { Save, MessageSquare, Palette, FolderOpen, Settings2, Search, X } from 'lucide-react'
 import { usePrefsStore } from '../../store'
 import { useI18n } from '../../i18n'
 import { PROMPT_TEMPLATES } from '../../utils/promptTemplates'
@@ -42,13 +42,15 @@ export default function SettingsGeneral({
   // respectGitignore — reads/writes `respectGitignore` field in ~/.claude/settings.json via IPC
   const [respectGitignore, setRespectGitignore] = useState<boolean>(true)
 
-  // git attribution settings — reads/writes ~/.claude/settings.json via IPC
-  const [attribCommit, setAttribCommit] = useState<string>('')
-  const [attribPr, setAttribPr] = useState<string>('')
-  const [includeCoAuthored, setIncludeCoAuthored] = useState<boolean>(true)
-  const [includeGitInstructions, setIncludeGitInstructions] = useState<boolean>(true)
-  // cache the full settings object so we can merge on save
-  const cliSettingsCache = useRef<Record<string, unknown>>({})
+  // git workflow — reads/writes attribution and co-author fields in ~/.claude/settings.json via IPC
+  const [attributionCommit, setAttributionCommit] = useState<string>('')
+  const [attributionPr, setAttributionPr] = useState<string>('')
+  const [includeCoAuthoredBy, setIncludeCoAuthoredBy] = useState<boolean>(true)
+  const [includeGitInstructions, setIncludeGitInstructions] = useState<boolean>(false)
+
+  // statusLine / fileSuggestion — reads/writes nested objects in ~/.claude/settings.json via IPC
+  const [statusLineCommand, setStatusLineCommand] = useState<string>('')
+  const [fileSuggestionCommand, setFileSuggestionCommand] = useState<string>('')
 
   // clawd status polling
   type ClawdStatus = 'checking' | 'running' | 'stopped'
@@ -57,7 +59,6 @@ export default function SettingsGeneral({
 
   useEffect(() => {
     window.electronAPI.configReadCLISettings().then((cliSettings: Record<string, unknown>) => {
-      cliSettingsCache.current = cliSettings
       const raw = typeof cliSettings.cleanupPeriodDays === 'number' ? cliSettings.cleanupPeriodDays : 30
       const val = Math.min(365, Math.max(1, raw))
       setCleanupDays(val)
@@ -68,14 +69,21 @@ export default function SettingsGeneral({
       // respectGitignore defaults to true if not explicitly set to false
       const gitignore = cliSettings.respectGitignore === false ? false : true
       setRespectGitignore(gitignore)
-      // git attribution settings
-      const attribution = (cliSettings.attribution && typeof cliSettings.attribution === 'object')
+      const attr = typeof cliSettings.attribution === 'object' && cliSettings.attribution !== null
         ? cliSettings.attribution as Record<string, unknown>
         : {}
-      setAttribCommit(typeof attribution.commit === 'string' ? attribution.commit : '')
-      setAttribPr(typeof attribution.pr === 'string' ? attribution.pr : '')
-      setIncludeCoAuthored(cliSettings.includeCoAuthoredBy === false ? false : true)
-      setIncludeGitInstructions(cliSettings.includeGitInstructions === false ? false : true)
+      setAttributionCommit(typeof attr.commit === 'string' ? attr.commit : '')
+      setAttributionPr(typeof attr.pr === 'string' ? attr.pr : '')
+      setIncludeCoAuthoredBy(cliSettings.includeCoAuthoredBy === false ? false : true)
+      setIncludeGitInstructions(cliSettings.includeGitInstructions === true ? true : false)
+      const sl = typeof cliSettings.statusLine === 'object' && cliSettings.statusLine !== null
+        ? cliSettings.statusLine as Record<string, unknown>
+        : {}
+      setStatusLineCommand(typeof sl.command === 'string' ? sl.command : '')
+      const fs = typeof cliSettings.fileSuggestion === 'object' && cliSettings.fileSuggestion !== null
+        ? cliSettings.fileSuggestion as Record<string, unknown>
+        : {}
+      setFileSuggestionCommand(typeof fs.command === 'string' ? fs.command : '')
     }).catch(() => {})
   }, [])
 
@@ -115,8 +123,8 @@ export default function SettingsGeneral({
     prompts: [t('settings.promptTemplate'), t('settings.systemPrompt'), t('settings.groups.prompts')].join(' ').toLowerCase(),
     appearance: [t('settings.language'), t('settings.displayName'), t('settings.theme'), t('settings.fontSize'), t('settings.fontFamily'), t('settings.compactMode'), t('settings.groups.appearance')].join(' ').toLowerCase(),
     workspace: [t('settings.workingFolder'), t('tags.sectionTitle'), t('settings.groups.workspace')].join(' ').toLowerCase(),
-    behavior: [t('settings.skipPermissions'), t('settings.verbose'), t('settings.completionSound'), t('settings.desktopNotifications'), t('settings.resumeLastSession'), t('outputStyle.title'), t('thinking.title'), t('settings.systemPresence'), t('compact.autoCompact'), t('autoMemory.enabled'), t('settings.groups.behavior'), t('settings.cleanupPeriodDays'), t('settings.defaultShell'), t('settings.respectGitignore'), 'shell', 'bash', 'powershell', 'gitignore'].join(' ').toLowerCase(),
-    git: [t('settings.gitAttribution'), t('settings.gitAttributionCommit'), t('settings.gitAttributionPr'), t('settings.includeCoAuthoredBy'), t('settings.includeGitInstructions'), 'git', 'attribution', 'co-authored-by', 'commit', 'pr'].join(' ').toLowerCase(),
+    behavior: [t('settings.skipPermissions'), t('settings.verbose'), t('settings.completionSound'), t('settings.desktopNotifications'), t('settings.resumeLastSession'), t('outputStyle.title'), t('thinking.title'), t('settings.systemPresence'), t('compact.autoCompact'), t('autoMemory.enabled'), t('settings.groups.behavior'), t('settings.cleanupPeriodDays'), t('settings.defaultShell'), t('settings.respectGitignore'), 'shell', 'bash', 'powershell', 'gitignore', t('settings.statusLine'), t('settings.fileSuggestion'), 'status', 'suggestion'].join(' ').toLowerCase(),
+    gitWorkflow: [t('settings.gitWorkflow'), t('settings.gitAttributionCommit'), t('settings.gitAttributionPr'), t('settings.includeCoAuthoredBy'), t('settings.includeGitInstructions'), 'git', 'attribution', 'commit', 'pr', 'co-author'].join(' ').toLowerCase(),
   }), [t])
 
   const isGroupVisible = (groupKey: string): boolean => {
@@ -710,59 +718,94 @@ export default function SettingsGeneral({
             {t('settings.cleanupPeriodDaysHint')}
           </span>
         )}
+
+        {field(
+          t('settings.statusLine'),
+          <input
+            value={statusLineCommand}
+            onChange={(e) => {
+              const next = e.target.value
+              setStatusLineCommand(next)
+              window.electronAPI.configWriteCLISettings({ statusLine: { command: next } }).catch(() => {})
+            }}
+            placeholder="echo 'custom status'"
+            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
+            style={{ ...INPUT_STYLE }}
+          />,
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            {t('settings.statusLineDesc')}
+          </span>
+        )}
+
+        {field(
+          t('settings.fileSuggestion'),
+          <input
+            value={fileSuggestionCommand}
+            onChange={(e) => {
+              const next = e.target.value
+              setFileSuggestionCommand(next)
+              window.electronAPI.configWriteCLISettings({ fileSuggestion: { command: next } }).catch(() => {})
+            }}
+            placeholder="find . -type f -name '*.ts'"
+            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
+            style={{ ...INPUT_STYLE }}
+          />,
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            {t('settings.fileSuggestionDesc')}
+          </span>
+        )}
       </SettingsGroup>
       )}
 
-      {/* Group 6: Git Attribution */}
-      {isGroupVisible('git') && (
-      <SettingsGroup title={t('settings.gitAttribution')} icon={<GitCommit size={14} />} groupKey="git">
+      {isGroupVisible('gitWorkflow') && (
+      <SettingsGroup title={t('settings.gitWorkflow')} icon={<Settings2 size={14} />} groupKey="gitWorkflow">
         {field(
           t('settings.gitAttributionCommit'),
           <input
-            value={attribCommit}
-            onChange={(e) => setAttribCommit(e.target.value)}
-            placeholder="Co-authored-by: Name <email@example.com>"
-            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor = 'var(--border)'
-              e.currentTarget.style.boxShadow = 'none'
-              window.electronAPI.configWriteCLISettings({
-                ...cliSettingsCache.current,
-                attribution: { ...(typeof cliSettingsCache.current.attribution === 'object' && cliSettingsCache.current.attribution !== null ? cliSettingsCache.current.attribution as Record<string, unknown> : {}), commit: attribCommit, pr: attribPr },
-              }).catch(() => {})
+            value={attributionCommit}
+            onChange={(e) => {
+              const next = e.target.value
+              setAttributionCommit(next)
+              window.electronAPI.configWriteCLISettings({ attribution: { commit: next, pr: attributionPr } }).catch(() => {})
             }}
+            placeholder={t('settings.gitAttributionCommitDesc')}
+            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
             style={{ ...INPUT_STYLE }}
           />,
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>{t('settings.gitAttributionCommitDesc')}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            {t('settings.gitAttributionCommitDesc')}
+          </span>
         )}
 
         {field(
           t('settings.gitAttributionPr'),
           <input
-            value={attribPr}
-            onChange={(e) => setAttribPr(e.target.value)}
-            placeholder="Generated with Claude Code"
-            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor = 'var(--border)'
-              e.currentTarget.style.boxShadow = 'none'
-              window.electronAPI.configWriteCLISettings({
-                ...cliSettingsCache.current,
-                attribution: { ...(typeof cliSettingsCache.current.attribution === 'object' && cliSettingsCache.current.attribution !== null ? cliSettingsCache.current.attribution as Record<string, unknown> : {}), commit: attribCommit, pr: attribPr },
-              }).catch(() => {})
+            value={attributionPr}
+            onChange={(e) => {
+              const next = e.target.value
+              setAttributionPr(next)
+              window.electronAPI.configWriteCLISettings({ attribution: { commit: attributionCommit, pr: next } }).catch(() => {})
             }}
+            placeholder={t('settings.gitAttributionPrDesc')}
+            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
             style={{ ...INPUT_STYLE }}
           />,
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>{t('settings.gitAttributionPrDesc')}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            {t('settings.gitAttributionPrDesc')}
+          </span>
         )}
 
         {row(
           t('settings.includeCoAuthoredBy'),
           <Toggle
-            value={includeCoAuthored}
+            value={includeCoAuthoredBy}
             onChange={(v) => {
-              setIncludeCoAuthored(v)
-              window.electronAPI.configWriteCLISettings({ ...cliSettingsCache.current, includeCoAuthoredBy: v }).catch(() => {})
+              setIncludeCoAuthoredBy(v)
+              window.electronAPI.configWriteCLISettings({ includeCoAuthoredBy: v }).catch(() => {})
             }}
           />,
           t('settings.includeCoAuthoredByDesc')
@@ -774,7 +817,7 @@ export default function SettingsGeneral({
             value={includeGitInstructions}
             onChange={(v) => {
               setIncludeGitInstructions(v)
-              window.electronAPI.configWriteCLISettings({ ...cliSettingsCache.current, includeGitInstructions: v }).catch(() => {})
+              window.electronAPI.configWriteCLISettings({ includeGitInstructions: v }).catch(() => {})
             }}
           />,
           t('settings.includeGitInstructionsDesc')

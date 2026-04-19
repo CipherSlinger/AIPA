@@ -148,6 +148,10 @@ export default function SettingsAdvanced() {
   const [addingSymlink, setAddingSymlink] = useState(false)
   const [addingSparse, setAddingSparse] = useState(false)
 
+  // ── API Key Helper + File Suggestion state ─────────────────────────────────
+  const [apiKeyHelper, setApiKeyHelper] = useState('')
+  const [fileSuggestionCmd, setFileSuggestionCmd] = useState('')
+
   useEffect(() => {
     window.electronAPI.configReadCLISettings().then((s: Record<string, unknown>) => {
       if (s.env && typeof s.env === 'object' && !Array.isArray(s.env)) {
@@ -156,6 +160,14 @@ export default function SettingsAdvanced() {
       const wt = (s.worktree ?? {}) as Record<string, unknown>
       setSymlinkDirs(Array.isArray(wt.symlinkDirectories) ? (wt.symlinkDirectories as string[]) : [])
       setSparsePaths(Array.isArray(wt.sparsePaths) ? (wt.sparsePaths as string[]) : [])
+      setApiKeyHelper(typeof s.apiKeyHelper === 'string' ? s.apiKeyHelper : '')
+      setFileSuggestionCmd(
+        typeof s.fileSuggestion === 'string'
+          ? s.fileSuggestion
+          : typeof s.fileSuggestion === 'object' && s.fileSuggestion !== null && 'command' in (s.fileSuggestion as object)
+            ? String((s.fileSuggestion as Record<string, unknown>).command ?? '')
+            : ''
+      )
     }).catch(() => {})
   }, [])
 
@@ -231,6 +243,25 @@ export default function SettingsAdvanced() {
     await window.electronAPI.prefsSet('permissionMode', mode)
     await window.electronAPI.prefsSet('skipPermissions', mode === 'bypassPermissions')
   }, [setPermissionMode])
+
+  // ── API Key Helper + File Suggestion handlers ──────────────────────────────
+  const handleApiKeyHelperBlur = useCallback(async () => {
+    const current = await window.electronAPI.configReadCLISettings().catch(() => ({} as Record<string, unknown>))
+    const value = apiKeyHelper.trim()
+    await window.electronAPI.configWriteCLISettings({
+      ...current,
+      apiKeyHelper: value || undefined,
+    }).catch(() => {})
+  }, [apiKeyHelper])
+
+  const handleFileSuggestionBlur = useCallback(async () => {
+    const current = await window.electronAPI.configReadCLISettings().catch(() => ({} as Record<string, unknown>))
+    const value = fileSuggestionCmd.trim()
+    await window.electronAPI.configWriteCLISettings({
+      ...current,
+      fileSuggestion: value ? { command: value } : undefined,
+    }).catch(() => {})
+  }, [fileSuggestionCmd])
 
   // ── System prompt handlers ─────────────────────────────────────────────
   const savePrompt = useCallback(async () => {
@@ -891,6 +922,54 @@ export default function SettingsAdvanced() {
             </button>
           )}
         </div>
+      </div>
+
+      {/* ── Section 5: API Key Helper ─────────────────────────────────── */}
+      <div style={sectionCardStyle}>
+        <div style={sectionTitleStyle}>{t('settings.apiKeyHelper')}</div>
+        <div style={descStyle}>{t('settings.apiKeyHelperDesc')}</div>
+        <input
+          type="text"
+          value={apiKeyHelper}
+          onChange={(e) => setApiKeyHelper(e.target.value)}
+          placeholder={t('settings.apiKeyHelperPlaceholder')}
+          style={{
+            width: '100%',
+            background: 'var(--bg-hover)',
+            border: '1px solid var(--glass-border)',
+            borderRadius: 7, padding: '7px 10px',
+            color: 'var(--text-primary)',
+            fontSize: 12, fontFamily: 'monospace', outline: 'none',
+            boxSizing: 'border-box',
+            transition: 'all 0.15s ease',
+          }}
+          onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
+          onBlur={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.boxShadow = 'none'; handleApiKeyHelperBlur() }}
+        />
+      </div>
+
+      {/* ── Section 6: File Suggestion Command ───────────────────────── */}
+      <div style={sectionCardStyle}>
+        <div style={sectionTitleStyle}>{t('settings.fileSuggestion')}</div>
+        <div style={descStyle}>{t('settings.fileSuggestionDesc')}</div>
+        <input
+          type="text"
+          value={fileSuggestionCmd}
+          onChange={(e) => setFileSuggestionCmd(e.target.value)}
+          placeholder={t('settings.fileSuggestionPlaceholder')}
+          style={{
+            width: '100%',
+            background: 'var(--bg-hover)',
+            border: '1px solid var(--glass-border)',
+            borderRadius: 7, padding: '7px 10px',
+            color: 'var(--text-primary)',
+            fontSize: 12, fontFamily: 'monospace', outline: 'none',
+            boxSizing: 'border-box',
+            transition: 'all 0.15s ease',
+          }}
+          onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
+          onBlur={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.boxShadow = 'none'; handleFileSuggestionBlur() }}
+        />
       </div>
 
     </div>

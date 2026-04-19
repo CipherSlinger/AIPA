@@ -282,7 +282,7 @@ const electronAPI = {
   memoryList: (scope?: 'global' | 'project' | 'all') =>
     ipcRenderer.invoke('memory:list', { scope }) as Promise<{
       filePath: string; name: string; description: string;
-      type: string; content: string; scope: string; projectHash?: string
+      type: string; content: string; scope: string; projectHash?: string; mtime: number
     }[]>,
   memoryRead: (filePath: string) =>
     ipcRenderer.invoke('memory:read', { filePath }) as Promise<string>,

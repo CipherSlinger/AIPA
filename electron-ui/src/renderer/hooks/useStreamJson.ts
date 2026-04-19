@@ -30,6 +30,8 @@ export function useStreamJson() {
   const setLastCost = useChatStore(s => s.setLastCost)
   const setLastContextUsage = useChatStore(s => s.setLastContextUsage)
   const setSessionTitle = useChatStore(s => s.setSessionTitle)
+  const setLastResultUuid = useChatStore(s => s.setLastResultUuid)
+  const setFastModeState = useChatStore(s => s.setFastModeState)
   const prefs = usePrefsStore(s => s.prefs)
   const activeTabId = useChatStore(s => s.activeTabId)
   const tabs = useChatStore(s => s.tabs)
@@ -554,6 +556,20 @@ Keep exercises focused and achievable. The goal is active learning through doing
           break
         }
         case 'cli:result': {
+          // Handle error subtypes before normal result processing
+          const resultSubtype = (data.subtype as string | undefined) ?? 'success'
+          if (resultSubtype === 'error_max_structured_output_retries') {
+            useUiStore.getState().addToast('error', t('error.structuredOutputRetries'), 8000)
+            stopStreamingAndReleaseSleep()
+            break
+          }
+          // Log enterprise / diagnostic fields — no UI exposure needed
+          if (data.uuid) {
+            console.debug('[cli:result] session result UUID:', data.uuid)
+          }
+          if (data.fastModeState !== undefined) {
+            console.debug('[cli:result] fast_mode_state:', data.fastModeState)
+          }
           const msgCountBefore = useChatStore.getState().messages.length
           const claudeSessionId = data.claudeSessionId as string | undefined
           if (claudeSessionId) {
@@ -577,6 +593,8 @@ Keep exercises focused and achievable. The goal is active learning through doing
               )
             }
           }
+          setLastResultUuid((data.uuid as string | undefined) ?? null)
+          setFastModeState((data.fastModeState as string | undefined) ?? null)
           const ev = data.event as Record<string, unknown>
           // Compact diff toast: when result metadata indicates compaction happened
           const metadata = ev?.metadata as Record<string, unknown> | undefined

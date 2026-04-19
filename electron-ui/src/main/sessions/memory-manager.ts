@@ -28,7 +28,7 @@ export interface MemoryFile {
   content: string
   scope: 'global' | 'project'
   projectHash?: string
-  mtime?: number  // file modification time as epoch ms (for age/decay indicator)
+  mtime: number
 }
 
 function getClaudeDir(): string {
@@ -65,10 +65,8 @@ function parseMemoryFile(filePath: string, scope: 'global' | 'project', projectH
       }
     }
 
-    // Capture mtime for decay/age indicator
-    let mtime: number | undefined
+    let mtime = 0
     try { mtime = fs.statSync(filePath).mtimeMs } catch { /* ignore */ }
-
     return { filePath, name, description, type, content, scope, projectHash, mtime }
   } catch {
     return null
