@@ -521,7 +521,16 @@
     "thinkingAdaptive": "Adaptive (Extended Thinking)",
     "thinkingHint": "In adaptive mode, Claude automatically engages deep thinking when needed",
     "maxTurns": "Max Turns",
-    "maxTurnsHint": "Limit how many tool-use turns Claude can execute (--max-turns). Leave empty for unlimited.",
+    "maxTurnsHint": "Limit conversation turns (--max-turns)",
+    "appendSystemPrompt": "Append System Prompt",
+    "appendSystemPromptHint": "Appended to the system prompt (--append-system-prompt)",
+    "availableModels": "Available Models (Enterprise)",
+    "availableModelsHint": "Restrict which models can be selected (leave empty for all)",
+    "worktree": "Worktree",
+    "worktreeSymlinkDirs": "Symlink Directories",
+    "worktreeSymlinkDirsHint": "Directories to symlink into each worktree",
+    "worktreeSparsePaths": "Sparse Checkout Paths",
+    "worktreeSparsePathsHint": "Paths for sparse checkout in worktrees",
     "budgetLimit": "Budget Limit (USD)",
     "budgetHint": "Stop execution when cost exceeds this amount (--max-budget-usd). Leave empty for unlimited.",
     "workingFolder": "Working Folder",
@@ -627,7 +636,9 @@
       "emptyState": "No custom templates yet. Create one to build your personal workflow library.",
       "limitReached": "Maximum 20 custom templates reached.",
       "customSuffix": "(Custom)"
-    }
+    },
+    "plugins": "Plugins",
+    "pluginsEmpty": "No plugins installed"
   },
   "outputStyle": {
     "title": "Output Style",
@@ -1510,7 +1521,12 @@
     "fresh": "Fresh",
     "aging": "Aging",
     "old": "Old",
-    "stale": "Stale"
+    "stale": "Stale",
+    "filterAll": "All",
+    "filterUser": "User",
+    "filterFeedback": "Feedback",
+    "filterProject": "Project",
+    "filterReference": "Reference"
   },
   "workflow": {
     "title": "Workflows",
@@ -2500,6 +2516,14 @@
     "saveFailed": "Failed to save sandbox settings",
     "loadError": "Failed to load sandbox settings",
     "itemExists": "Already in list",
-    "warningUnsandboxed": "Warning: allowing unsandboxed commands weakens security isolation"
+    "warningUnsandboxed": "Warning: allowing unsandboxed commands weakens security isolation",
+    "ignoreViolations": "Ignore Violations",
+    "ignoreViolationsDesc": "Tools that bypass sandbox violation checks",
+    "noViolationExemptions": "No violation exemptions configured",
+    "removeViolationType": "Remove violation type",
+    "removeExemption": "Remove exemption for",
+    "toolName": "Tool name...",
+    "violationTypes": "Violation types (comma-separated, leave empty for all)...",
+    "addViolationExemption": "Add Exemption"
   }
 }

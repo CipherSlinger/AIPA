@@ -521,7 +521,16 @@
     "thinkingAdaptive": "自适应（深度思考）",
     "thinkingHint": "在自适应模式下，Claude 会在需要时自动进行深度思考",
     "maxTurns": "最大轮次",
-    "maxTurnsHint": "限制 Claude 执行工具调用的最大轮次（--max-turns）。留空为无限制。",
+    "maxTurnsHint": "限制对话轮次（--max-turns）",
+    "appendSystemPrompt": "附加系统提示",
+    "appendSystemPromptHint": "追加到系统提示（--append-system-prompt）",
+    "availableModels": "可用模型白名单（企业）",
+    "availableModelsHint": "限制可选模型（留空表示不限制）",
+    "worktree": "Worktree 配置",
+    "worktreeSymlinkDirs": "符号链接目录",
+    "worktreeSymlinkDirsHint": "复制符号链接到每个 worktree 的目录",
+    "worktreeSparsePaths": "Sparse Checkout 路径",
+    "worktreeSparsePathsHint": "Worktree 中的 sparse checkout 路径",
     "budgetLimit": "预算限制（美元）",
     "budgetHint": "当费用超过此金额时停止执行（--max-budget-usd）。留空为无限制。",
     "workingFolder": "工作目录",
@@ -628,7 +637,9 @@
       "emptyState": "暂无自定义模板。创建一个来构建您的个人工作流库。",
       "limitReached": "已达到 20 个自定义模板上限。",
       "customSuffix": "（自定义）"
-    }
+    },
+    "plugins": "插件",
+    "pluginsEmpty": "未安装插件"
   },
   "outputStyle": {
     "title": "输出风格",
@@ -1528,7 +1539,12 @@
     "fresh": "新鲜",
     "aging": "老化中",
     "old": "较旧",
-    "stale": "陈旧"
+    "stale": "陈旧",
+    "filterAll": "全部",
+    "filterUser": "用户画像",
+    "filterFeedback": "行为反馈",
+    "filterProject": "项目上下文",
+    "filterReference": "外部资源"
   },
   "workflow": {
     "title": "工作流",
@@ -2518,6 +2534,14 @@
     "saveFailed": "保存沙盒设置失败",
     "loadError": "加载沙盒设置失败",
     "itemExists": "已在列表中",
-    "warningUnsandboxed": "警告：允许非沙盒命令会降低安全隔离强度"
+    "warningUnsandboxed": "警告：允许非沙盒命令会降低安全隔离强度",
+    "ignoreViolations": "违规豁免工具",
+    "ignoreViolationsDesc": "绕过沙箱违规检查的工具",
+    "noViolationExemptions": "未配置任何违规豁免",
+    "removeViolationType": "移除违规类型",
+    "removeExemption": "移除豁免",
+    "toolName": "工具名称...",
+    "violationTypes": "违规类型（逗号分隔，留空表示全部）...",
+    "addViolationExemption": "添加豁免"
   }
 }

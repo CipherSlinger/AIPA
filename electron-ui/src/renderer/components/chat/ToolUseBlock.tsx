@@ -31,6 +31,7 @@ import { FileWriteCard } from './tool-cards/FileWriteCard'
 import { FileEditCard } from './tool-cards/FileEditCard'
 import { BriefToolCard } from './BriefToolCard'
 import { SleepToolCard } from './SleepToolCard'
+import { TaskOutputCard } from './tool-cards/TaskOutputCard'
 
 interface Props {
   tool: ToolUseInfo
@@ -73,6 +74,8 @@ const TOOL_ICONS: Record<string, React.ElementType> = {
   TaskList: FileText,
   TaskUpdate: FileText,
   TaskStop: StopCircle,
+  TaskOutput: ClipboardList,
+  task_output: ClipboardList,
   // Notebooks
   NotebookEdit: BookOpen,
   // User interaction
@@ -467,6 +470,18 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
       <SleepToolCard
         input={tool.input || {}}
         result={sleepResult}
+      />
+    )
+  }
+
+  // TaskOutput: structured task output card with indigo theme
+  if (tool.name === 'TaskOutput' || tool.name === 'task_output') {
+    const taskOutputResult = typeof tool.result === 'string' ? tool.result : null
+    return (
+      <TaskOutputCard
+        input={tool.input || {}}
+        result={taskOutputResult}
+        isLoading={tool.status === 'running'}
       />
     )
   }
