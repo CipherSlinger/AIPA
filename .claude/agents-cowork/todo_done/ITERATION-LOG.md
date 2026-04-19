@@ -9094,3 +9094,24 @@ SettingsGeneral.tsx is now 1055 lines (was 850) — above the 800-line threshold
 - [x] Worktree group appears in General settings after Git Workflow, with symlinkDirectories + sparsePaths tag editors
 - [x] sandbox.ignoreViolations i18n keys present in both en.json and zh-CN.json (fixing runtime key-missing)
 - [x] `npm run check` passes (0 TypeScript errors)
+
+## Iteration 683 — Feature Gap Fix: skipPermissions Default + @Mention Format + Plan Mode Permission (Backend)
+_Date: 2026-04-19 | Sprint Backend_
+
+### Summary
+核查并报告三个 FEATURE_GAP.md 标记的 ⚠️ 差距，修复其中真正存在的一处断联。skipPermissions 默认值已正确为 false（不需要修复）。@ 提及格式已正确（文本中直接包含 @filepath 字符串，由 CLI 自己解析，stream-bridge 的 prompt 以 [ 开头时才 parse 为 content array）。Plan Mode 工具栏开关（isPlanMode）与 CLI permissionMode 之间确实存在断联，现已修复：sendMessage 中当 isPlanMode 为 true 时自动将 permissionMode 覆盖为 'plan'，例外情况（bypassPermissions）不覆盖。
+
+### Files Changed
+- `electron-ui/src/renderer/hooks/useStreamJson.ts` — 修复 Plan Mode 断联：当 isPlanMode 为 true 且 permissionMode !== 'bypassPermissions' 时，覆盖 permissionMode 为 'plan' 传给 CLI
+
+### API Changes
+无新增 IPC channel
+
+### Build
+Status: SUCCESS (0 errors, 206 warnings)
+
+### Acceptance Criteria
+- [x] 构建检查通过（0 TypeScript errors）
+- [x] 任务1：skipPermissions 默认值已是 false，无需修复
+- [x] 任务2：@mention 格式验证正确，CLI 自行解析文本中的 @filepath，无需前端转换
+- [x] 任务3：Plan Mode 工具栏开关现在正确地将 permissionMode 传递为 'plan' 给 CLI

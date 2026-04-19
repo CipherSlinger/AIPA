@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Search, Download, ClipboardCopy, Maximize2, Minimize2, FolderOpen, FileText, FilePlus2, RefreshCw, MessageSquarePlus, X, GitBranch, Building2, Wrench, Zap } from 'lucide-react'
+import { Search, Download, ClipboardCopy, Maximize2, Minimize2, FolderOpen, FileText, FilePlus2, RefreshCw, MessageSquarePlus, X, GitBranch, Building2, Wrench, Zap, Layers } from 'lucide-react'
 import { useChatStore, useSessionStore, usePrefsStore, useUiStore } from '../../store'
 import type { StandardChatMessage } from '../../types/app.types'
 import { useT } from '../../i18n'
@@ -115,6 +115,7 @@ export default function ChatHeader({
   const setTempSystemPrompt = useChatStore(s => s.setTempSystemPrompt)
   // activeModel removed (was used for the model pill, which has been removed)
   const mcpServers = useChatStore(s => s.mcpServers)
+  const availableSkills = useChatStore(s => s.availableSkills)
   const setSystemInit = useChatStore(s => s.setSystemInit)
   // Derive total tool call count from messages (each assistant message may have toolUses[])
   const messages = useChatStore(s => s.messages)
@@ -390,6 +391,31 @@ export default function ChatHeader({
           }}
         >
           <Zap size={9} />Fast
+        </span>
+      )}
+
+      {/* Skills chip — shown when skills[] are active in the current CLI session */}
+      {availableSkills.length > 0 && (
+        <span
+          title={availableSkills.join('\n')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 3,
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: '0.05em',
+            color: 'rgba(99,102,241,0.90)',
+            background: 'rgba(99,102,241,0.10)',
+            border: '1px solid rgba(99,102,241,0.25)',
+            borderRadius: 10,
+            padding: '2px 7px',
+            whiteSpace: 'nowrap',
+            userSelect: 'none',
+            flexShrink: 0,
+          }}
+        >
+          <Layers size={9} />{availableSkills.length}
         </span>
       )}
       </div>

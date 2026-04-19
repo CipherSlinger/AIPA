@@ -9,6 +9,8 @@ export interface SystemInitData {
   model: string
   permissionMode: string
   cwd: string
+  skills: string[]
+  plugins: string[]
 }
 
 const electronAPI = {

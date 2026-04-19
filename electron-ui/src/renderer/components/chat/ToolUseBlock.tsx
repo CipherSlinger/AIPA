@@ -32,6 +32,7 @@ import { FileEditCard } from './tool-cards/FileEditCard'
 import { BriefToolCard } from './BriefToolCard'
 import { SleepToolCard } from './SleepToolCard'
 import { TaskOutputCard } from './tool-cards/TaskOutputCard'
+import { WorktreeToolCard } from './tool-cards/WorktreeToolCard'
 
 interface Props {
   tool: ToolUseInfo
@@ -529,6 +530,27 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
       <TeamCreateCard
         input={tool.input || {}}
         result={teamResult}
+        isLoading={tool.status === 'running'}
+      />
+    )
+  }
+
+  // EnterWorktree / ExitWorktree: worktree lifecycle card
+  if (tool.name === 'EnterWorktree' || tool.name === 'enter_worktree') {
+    return (
+      <WorktreeToolCard
+        action="enter"
+        input={tool.input || {}}
+        isLoading={tool.status === 'running'}
+      />
+    )
+  }
+
+  if (tool.name === 'ExitWorktree' || tool.name === 'exit_worktree') {
+    return (
+      <WorktreeToolCard
+        action="exit"
+        input={tool.input || {}}
         isLoading={tool.status === 'running'}
       />
     )

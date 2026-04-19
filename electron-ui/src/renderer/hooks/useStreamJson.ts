@@ -326,7 +326,12 @@ Keep exercises focused and achievable. The goal is active learning through doing
         ...(getActiveApiKey() ? { ANTHROPIC_API_KEY: getActiveApiKey() } : {}),
       },
       flags,
-      permissionMode: prefs.permissionMode || 'default',
+      // When Plan Mode is active via the toolbar toggle, override permissionMode to 'plan'
+      // so the CLI starts with --permission-mode plan (planning only, no execution).
+      // Exception: if the user has explicitly chosen bypassPermissions, respect that override.
+      permissionMode: (useChatStore.getState().isPlanMode && prefs.permissionMode !== 'bypassPermissions')
+        ? 'plan'
+        : (prefs.permissionMode || 'default'),
     })
 
     if (result?.success && result.sessionId) {

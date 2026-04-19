@@ -159,7 +159,7 @@ CLI 定义了 5 种权限模式（`ExternalPermissionMode`）：
 | `permissions.ask` | array | 总是询问规则 | ✅（同上） |
 | `permissions.additionalDirectories` | array | 额外工作目录 | ✅（AdditionalDirectoriesSection，Iteration 666） |
 | `env` | Record | 会话环境变量 | ✅（SettingsAdvanced 键值对编辑器，读写 ~/.claude/settings.json） |
-| `hooks` | HooksSettings | 钩子配置 | ⚠️ 能读写 CLI settings.json，无可视化 hooks 编辑器 |
+| `hooks` | HooksSettings | 钩子配置 | ✅ HooksSettingsPanel + HookAddWizard 三步向导（事件选择→类型→命令），行内编辑，disableAllHooks 开关（Iteration 648） |
 | `mcpServers` | Record | MCP 服务器配置 | ✅（mcp:add/remove/list）|
 | `cleanupPeriodDays` | number | 会话保留天数 | ✅（SettingsGeneral 数字输入，读写 ~/.claude/settings.json） |
 | `language` | string | 响应语言偏好 | ✅（SettingsGeneral AI 回复语言下拉，读写 ~/.claude/settings.json） |

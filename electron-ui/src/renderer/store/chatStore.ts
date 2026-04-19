@@ -245,10 +245,12 @@ interface ChatState {
 
   // system.init data — updated at the start of each CLI session
   availableTools: string[]
+  availableSkills: string[]
+  activePlugins: string[]
   mcpServers: Array<{ name: string; status: string }>
   activeModel: string
   permissionMode: string
-  setSystemInit: (data: { sessionId: string; tools: string[]; mcpServers: Array<{ name: string; status: string }>; model: string; permissionMode: string; cwd: string }) => void
+  setSystemInit: (data: { sessionId: string; tools: string[]; mcpServers: Array<{ name: string; status: string }>; model: string; permissionMode: string; cwd: string; skills?: string[]; plugins?: string[] }) => void
 
   // ── Tabs (Iteration 515) ──────────────────────────
   tabs: TabInfo[]
@@ -297,6 +299,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   fastModeState: null,
   activeWorktree: null,
   availableTools: [],
+  availableSkills: [],
+  activePlugins: [],
   mcpServers: [],
   activeModel: '',
   permissionMode: 'default',
@@ -689,6 +693,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   // system.init handler
   setSystemInit: (data) => set({
     availableTools: data.tools,
+    availableSkills: data.skills ?? [],
+    activePlugins: data.plugins ?? [],
     mcpServers: data.mcpServers ?? [],
     activeModel: data.model,
     permissionMode: data.permissionMode,

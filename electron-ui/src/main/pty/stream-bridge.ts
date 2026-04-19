@@ -253,6 +253,9 @@ export class StreamBridge extends EventEmitter {
             ...srv,
             tools: serverToolMap[srv.name] ?? [],
           }))
+          // Extract skills[] and plugins[] from system.init payload
+          const skills = (parsed.skills as string[] | undefined) ?? []
+          const plugins = (parsed.plugins as string[] | undefined) ?? []
           this.emit('systemInit', {
             sessionId: sid,
             tools: allTools,
@@ -260,6 +263,8 @@ export class StreamBridge extends EventEmitter {
             model: (parsed.model as string | undefined) ?? '',
             permissionMode: (parsed.permissionMode as string | undefined) ?? 'default',
             cwd: (parsed.cwd as string | undefined) ?? '',
+            skills,
+            plugins,
           })
         } else {
           this.emit('system', { sessionId: sid, event })
