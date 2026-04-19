@@ -917,7 +917,8 @@
     "permanentDesc": "This error is caused by a code issue and cannot be fixed by retrying.",
     "showDetails": "What happened?",
     "hideDetails": "Hide details",
-    "reportBug": "Report Bug"
+    "reportBug": "Report Bug",
+    "structuredOutputRetries": "Structured output retries exceeded. The model could not produce a valid structured response after multiple attempts."
   },
   "startup": {
     "prefsLoadFailed": "Preferences could not be loaded. Using defaults."

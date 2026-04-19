@@ -1,6 +1,6 @@
 # AIPA x Claude Code CLI — 功能差距文档
 
-> 更新日期：2026-04-18（Iteration 677）
+> 更新日期：2026-04-19（Iteration 678）
 > CLI 版本：claude-code 2.1.81（BUILD_TIME: 2026-03-20T21:25:42Z）
 > 分析目的：指导 AIPA UI 逐步对齐 CLI 全部能力
 
@@ -24,18 +24,18 @@
 | `TodoWrite` | 写待办列表（结构化任务管理） | ✅ `TodoListView.tsx` 组件已实现，pending/in_progress/completed 状态，high/medium/low 优先级色标 |
 | `Agent` (子代理) | 产生并行/串行子代理 | ✅ `AgentToolCard`：indigo 左边框、subagent_type 徽标、前台/后台徽标（Foreground/Background chip）、Worktree 隔离徽标、description 展示、prompt 预览（可展开）、result 预览（可展开）（Iteration 638） |
 | `TaskOutputTool` | 读取后台任务输出 | ⚠️ 有 TaskDashboard 组件但连接不完整 |
-| `TaskStopTool` | 停止后台任务 | ⚠️ 部分实现 |
+| `TaskStopTool` | 停止后台任务 | ✅ `TaskStopBadge`：red/inline 徽标，接入 ToolUseBlock（Iteration 678） |
 | `TaskCreate/Get/Update/List` | 异步任务 CRUD（isTodoV2Enabled） | ✅ TaskCreate/TaskUpdate 渲染内联 badge；TaskList/TaskGet 结果渲染 TaskDashboardCard（Kanban/列表视图，含状态徽章、owner、blocked-by，Iteration 546） |
 | `EnterPlanMode` / `ExitPlanMode` | 进入/退出计划模式 | ✅ 有 PlanModeBanner（含批准/拒绝按钮，Iteration 541）；PlanCard 深度控制已实现 |
 | `EnterWorktree` / `ExitWorktree` | Git worktree 沙箱隔离 | ⚠️ 有 WorktreeDialog 但为独立 CRUD，未与会话绑定 |
-| `SkillTool` | 加载和调用 skills 片段 | ⚠️ 有 skillsList/Read/Install IPC，无 Skill 调用追踪 UI |
+| `SkillTool` | 加载和调用 skills 片段 | ✅ `SkillToolCard`：green 主题、Zap 图标、skill name/args 展示、Skill executed 徽标、输出预览（Iteration 678） |
 | `AskUserQuestion` | 代理主动询问用户 | ✅ 有专用 `AskUserQuestionCard`：展示问题文本、可点击选项按钮、自由文本输入框，通过 `aipa:sendMessage` 事件回复 CLI（Iteration 541） |
 | `LSPTool` | LSP 语言服务（ENABLE_LSP_TOOL） | ❌ 无 LSP 集成 |
 | `ListMcpResources` / `ReadMcpResource` | 读取 MCP 服务器资源 | ⚠️ 有结果卡片（ListMcpResources→URI chips，ReadMcpResource→内容预览+复制）；输入展示用通用 JSON（Iteration 555） |
-| `ToolSearchTool` | 延迟工具搜索 | ❌ 无 UI |
+| `ToolSearchTool` | 延迟工具搜索 | ✅ `ToolSearchToolCard`：cyan 主题、查询文本、工具 chip 网格（超12个折叠）、N tools found 徽标（Iteration 678） |
 | `BriefTool` | 读取 /brief 简报 | ✅ `BriefToolCard`：slate 主题、路径展示、结果前300字符预览（可展开）、复制按钮、"Brief loaded" 确认徽标（Iteration 672） |
 | `SendMessageTool` | 跨代理消息传递 | ✅ `SendMessageCard`：indigo 左边框、to/message 字段、Delivered/Failed 状态徽标（Iteration 567） |
-| `TeamCreate/Delete` | 多代理团队管理（AGENT_SWARMS） | ❌ 无 UI |
+| `TeamCreate/Delete` | 多代理团队管理（AGENT_SWARMS） | ✅ `TeamCreateCard`：rose 主题、team name、members chip 列表、team_id、Team created 徽标、结果可折叠预览（Iteration 678） |
 | `SleepTool` | 代理主动等待（PROACTIVE/KAIROS） | ✅ `SleepToolCard`：紫色主题、Moon 图标、duration 格式化、reason 字段、"Woke up"/"Sleeping..." 状态徽标（Iteration 673） |
 | `ScheduleCronTool` / `CronCreate/Delete/List` | 定时任务（AGENT_TRIGGERS） | ✅ `CronCard`：cron 表达式 chip、prompt 预览、recurring/one-shot 徽标、job ID；`CronList` 结果显示任务行列表（Iteration 565） |
 | `RemoteTriggerTool` | 远程触发代理（AGENT_TRIGGERS_REMOTE） | ✅ `RemoteTriggerCard`：action chip（list/get/create/update/run 色标）、trigger_id、prompt 预览、action 感知结果展示（Iteration 566） |
@@ -1010,3 +1010,40 @@ CLI 有 4 种压缩策略：
 - `MemoryItemCard.tsx` 按 `updatedAt` 计算衰减状态（Fresh <7d 绿/Aging <30d 黄/Old <90d 橙/Stale >90d 红），显示色点徽标 + 相对时间
 - 按 `memoryType`（user/feedback/project/reference）设置 indigo/amber/green/blue 左边框 + 对应 lucide 图标
 - i18n：`memory.fresh/aging/old/stale`（en + zh-CN）
+
+---
+
+## 二十三、最新实现记录（2026-04-19，Iteration 678）
+
+### Iteration 678 — ToolSearchTool / TeamCreate / SkillTool / TaskStop 内联卡片
+
+**ToolSearchTool 工具搜索卡片**（原 ❌）：
+- 新增 `ToolSearchToolCard.tsx`：cyan/青色主题（`rgba(6,182,212,...)` 左边框）、Search 图标
+- 查询文本展示 + limit 字段
+- 结果解析：工具列表以 chip 网格展示（Wrench 图标 + 工具名，超12个折叠展开）
+- "N tools found" / "No tools found" 徽标
+- 原始文本回退（非 JSON 数组结果）：前200字符预览 + 展开
+- `ToolUseBlock` 接入 `'ToolSearchTool'`/`'tool_search'` 路由
+
+**TeamCreate/TeamDelete 团队管理卡片**（原 ❌）：
+- 新增 `TeamCreateCard.tsx`：rose/pink 主题（`rgba(244,63,94,0.5)` 左边框）、Users 图标
+- team name 展示（兼容 `name`/`team_name`/`teamName` 字段）
+- members/agents 成员 chip 列表
+- description 字段（斜体）
+- 完成后提取 `team_id`/`id` 展示
+- "Team created" 绿色确认徽标
+- 结果可折叠 JSON 预览（Copy 按钮）
+- `ToolUseBlock` 接入 `'TeamCreate'`/`'team_create'`/`'TeamDelete'`/`'team_delete'` 路由
+
+**SkillTool 调用追踪卡片**（原 ⚠️）：
+- 新增 `SkillToolCard.tsx`：green 主题（`rgba(34,197,94,...)` 左边框）、Zap 图标
+- skill name（兼容 `skill`/`skill_name` 字段）展示
+- args 参数预览（code 块）
+- "Skill executed" 绿色确认徽标
+- 输出预览（前200字符折叠，可展开）+ Copy 按钮
+- `ToolUseBlock` 接入 `'Skill'`/`'skill'` 路由
+
+**TaskStop Badge**（原 ⚠️）：
+- `TaskBadgeCard.tsx` 新增 `TaskStopBadge` 组件（red 主题，red 左边框）
+- 展示 task_id 短前缀 + running/done 状态
+- `ToolUseBlock` 接入 `TASK_STOP_TOOLS`（`'TaskStop'`/`'task_stop'`）路由

@@ -933,7 +933,8 @@
     "permanentDesc": "此错误由代码问题引起，重试无法修复。",
     "showDetails": "发生了什么？",
     "hideDetails": "隐藏详情",
-    "reportBug": "报告 Bug"
+    "reportBug": "报告 Bug",
+    "structuredOutputRetries": "结构化输出重试次数已达上限，模型在多次尝试后仍无法生成有效的结构化响应。"
   },
   "startup": {
     "prefsLoadFailed": "偏好设置加载失败，已使用默认值。"

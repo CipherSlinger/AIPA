@@ -3,15 +3,16 @@
  * Renders the TeamCreate tool inline card.
  *
  * Input fields:
- *   teamName?: string   — team name (also checked as input.name)
- *   name?: string       — alternative team name field
- *   members?: string[]  — list of member names/IDs shown as badges
+ *   name?: string       — team name (also checked as input.team_name)
+ *   team_name?: string  — alternative team name field
  *   description?: string — optional team description
+ *   members?: string[]  — list of member names shown as chips
+ *   agents?: string[]   — alternative member list field
  *
  * While loading: shows pulsing "Creating team..." indicator.
- * After result: shows "Team created" success badge + collapsible JSON preview.
+ * After result: shows "Team created" green badge + collapsible JSON preview.
  *
- * Theme: Emerald/teal — rgba(16,185,129,0.35) left border, #10b981 icon color.
+ * Theme: Rose/pink — rgba(244,63,94,0.5) left border, rose icon color.
  */
 
 import React, { useState, useCallback } from 'react'
@@ -52,7 +53,7 @@ function CopyBtn({ text }: CopyBtnProps) {
         transition: 'color 0.15s ease',
         flexShrink: 0,
       }}
-      onMouseEnter={(e) => { if (!copied) e.currentTarget.style.color = '#10b981' }}
+      onMouseEnter={(e) => { if (!copied) e.currentTarget.style.color = '#fb7185' }}
       onMouseLeave={(e) => { if (!copied) e.currentTarget.style.color = 'var(--text-muted)' }}
     >
       {copied ? <Check size={11} /> : <Clipboard size={11} />}
@@ -73,14 +74,18 @@ export function TeamCreateCard({ input, result, isLoading }: TeamCreateCardProps
   const [resultExpanded, setResultExpanded] = useState(false)
 
   const teamName: string =
-    typeof input.teamName === 'string' && input.teamName
-      ? input.teamName
-      : typeof input.name === 'string' && input.name
+    typeof input.name === 'string' && input.name
       ? input.name
+      : typeof input.team_name === 'string' && input.team_name
+      ? input.team_name
+      : typeof input.teamName === 'string' && input.teamName
+      ? input.teamName
       : '(unnamed team)'
 
   const members: string[] = Array.isArray(input.members)
     ? (input.members as unknown[]).map((m) => String(m))
+    : Array.isArray(input.agents)
+    ? (input.agents as unknown[]).map((a) => String(a))
     : []
 
   const description: string | null =
@@ -88,14 +93,26 @@ export function TeamCreateCard({ input, result, isLoading }: TeamCreateCardProps
       ? input.description.trim()
       : null
 
+  // Extract team_id from result if available
+  let teamId: string | null = null
+  if (typeof result === 'string' && result.length > 0) {
+    try {
+      const parsed = JSON.parse(result) as Record<string, unknown>
+      if (typeof parsed.team_id === 'string') teamId = parsed.team_id
+      else if (typeof parsed.id === 'string') teamId = parsed.id
+    } catch {
+      // not JSON, ignore
+    }
+  }
+
   const hasResult = typeof result === 'string' && result.length > 0
   const isDone = !isLoading && hasResult
 
   const borderColor = isLoading
-    ? 'rgba(16,185,129,0.65)'
+    ? 'rgba(244,63,94,0.70)'
     : isDone
     ? 'rgba(34,197,94,0.50)'
-    : 'rgba(16,185,129,0.35)'
+    : 'rgba(244,63,94,0.50)'
 
   return (
     <div style={{
@@ -120,7 +137,7 @@ export function TeamCreateCard({ input, result, isLoading }: TeamCreateCardProps
       }}>
         <Users
           size={13}
-          style={{ color: 'rgba(16,185,129,0.85)', flexShrink: 0 }}
+          style={{ color: 'rgba(244,63,94,0.85)', flexShrink: 0 }}
         />
 
         {/* Badge */}
@@ -129,9 +146,9 @@ export function TeamCreateCard({ input, result, isLoading }: TeamCreateCardProps
           alignItems: 'center',
           padding: '1px 6px',
           borderRadius: 5,
-          background: 'rgba(16,185,129,0.15)',
-          border: '1px solid rgba(16,185,129,0.30)',
-          color: '#6ee7b7',
+          background: 'rgba(244,63,94,0.15)',
+          border: '1px solid rgba(244,63,94,0.30)',
+          color: '#fda4af',
           fontSize: 10,
           fontWeight: 700,
           letterSpacing: '0.05em',
@@ -145,7 +162,7 @@ export function TeamCreateCard({ input, result, isLoading }: TeamCreateCardProps
           flex: 1,
           fontSize: 12,
           fontFamily: 'monospace',
-          color: 'rgba(110,231,183,0.90)',
+          color: 'rgba(253,164,175,0.90)',
           fontWeight: 600,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -158,7 +175,7 @@ export function TeamCreateCard({ input, result, isLoading }: TeamCreateCardProps
         {isLoading && !hasResult && (
           <span style={{
             fontSize: 10,
-            color: 'rgba(16,185,129,0.75)',
+            color: 'rgba(244,63,94,0.75)',
             fontStyle: 'italic',
             animation: 'pulse 1.5s ease-in-out infinite',
             flexShrink: 0,
@@ -188,15 +205,15 @@ export function TeamCreateCard({ input, result, isLoading }: TeamCreateCardProps
         )}
       </div>
 
-      {/* Input details: description + members */}
-      {(description || members.length > 0) && (
+      {/* Input details: description + members + team_id */}
+      {(description || members.length > 0 || (isDone && teamId)) && (
         <div style={{ borderTop: '1px solid var(--bg-hover)' }}>
           <div style={{ padding: '6px 10px', background: 'var(--section-bg)' }}>
             {description && (
               <div style={{
                 fontSize: 11,
                 color: 'var(--text-secondary)',
-                marginBottom: members.length > 0 ? 6 : 0,
+                marginBottom: members.length > 0 || teamId ? 6 : 0,
                 lineHeight: 1.45,
                 fontStyle: 'italic',
               }}>
@@ -204,7 +221,7 @@ export function TeamCreateCard({ input, result, isLoading }: TeamCreateCardProps
               </div>
             )}
             {members.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: teamId ? 6 : 0 }}>
                 {members.map((member, i) => (
                   <span
                     key={i}
@@ -213,9 +230,9 @@ export function TeamCreateCard({ input, result, isLoading }: TeamCreateCardProps
                       alignItems: 'center',
                       padding: '2px 7px',
                       borderRadius: 5,
-                      background: 'rgba(16,185,129,0.10)',
-                      border: '1px solid rgba(16,185,129,0.25)',
-                      color: 'rgba(110,231,183,0.85)',
+                      background: 'rgba(244,63,94,0.10)',
+                      border: '1px solid rgba(244,63,94,0.25)',
+                      color: 'rgba(253,164,175,0.85)',
                       fontSize: 11,
                       fontFamily: 'monospace',
                       fontWeight: 500,
@@ -225,6 +242,26 @@ export function TeamCreateCard({ input, result, isLoading }: TeamCreateCardProps
                     {member}
                   </span>
                 ))}
+              </div>
+            )}
+            {isDone && teamId && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
+                <span style={{
+                  fontSize: 10,
+                  color: 'var(--text-muted)',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                }}>
+                  team_id
+                </span>
+                <span style={{
+                  fontSize: 11,
+                  fontFamily: 'monospace',
+                  color: 'rgba(253,164,175,0.85)',
+                }}>
+                  {teamId}
+                </span>
               </div>
             )}
           </div>
@@ -266,7 +303,7 @@ export function TeamCreateCard({ input, result, isLoading }: TeamCreateCardProps
                     borderRadius: 4,
                     transition: 'color 0.15s ease',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = '#10b981' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = '#fb7185' }}
                   onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)' }}
                 >
                   {resultExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
