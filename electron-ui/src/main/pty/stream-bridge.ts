@@ -203,6 +203,9 @@ export class StreamBridge extends EventEmitter {
         this.emit('messageStart', { sessionId: sid, event })
         break
       case 'content_block_start':
+        // Intentionally ignored: tool_use name/id/input arrive complete in the
+        // 'assistant' message block, not incrementally via content_block_start.
+        // No data is lost by skipping this raw streaming event.
         break
       case 'content_block_delta': {
         const delta = event.delta as Record<string, unknown>
@@ -267,8 +270,13 @@ export class StreamBridge extends EventEmitter {
         // result event contains session_id and rich stats for the completed turn
         const re = event as Record<string, unknown>
         const resultSubtype = (re.subtype as string | undefined) ?? 'success'
-        if (resultSubtype === 'error_max_structured_output_retries') {
-          log.warn('[result] Structured output retries exceeded for session:', sid)
+        // Error subtypes are forwarded as-is via the 'result' emit below.
+        // The renderer handles each subtype in its cli:result handler:
+        //   - 'error_max_turns'                    → stop streaming
+        //   - 'error_max_budget_usd'               → stop streaming
+        //   - 'error_max_structured_output_retries'→ toast + stop streaming
+        if (resultSubtype !== 'success') {
+          log.warn('[result] Non-success result subtype:', resultSubtype, 'session:', sid)
         }
         this.emit('result', {
           sessionId: sid,
@@ -282,8 +290,6 @@ export class StreamBridge extends EventEmitter {
           permissionDenials: (re.permission_denials as Array<{ tool_name: string; reason?: string }> | undefined) ?? [],
           numTurns: re.num_turns,
           durationMs: re.duration_ms,
-          uuid: re.uuid,
-          fastModeState: re.fast_mode_state,
           event,
         })
         break
