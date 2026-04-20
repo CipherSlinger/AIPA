@@ -202,7 +202,8 @@ export class StreamBridge extends EventEmitter {
             } else if (block.type === 'advisor_tool_result') {
               // Advisor tool result (Iteration 684)
               const toolUseId = block.tool_use_id as string
-              this.emit('toolResult', { sessionId: sid, event: { tool_use_id: toolUseId, content: block.content, is_error: block.content?.type === 'advisor_tool_result_error' } })
+              const advisorContent = block.content as Record<string, unknown> | undefined
+              this.emit('toolResult', { sessionId: sid, event: { tool_use_id: toolUseId, content: block.content, is_error: advisorContent?.type === 'advisor_tool_result_error' } })
             }
           }
         }
