@@ -31,7 +31,7 @@
 | `SkillTool` | 加载和调用 skills 片段 | ✅ `SkillToolCard`：green 主题、Zap 图标、skill name/args 展示、Skill executed 徽标、输出预览（Iteration 678） |
 | `AskUserQuestion` | 代理主动询问用户 | ✅ 有专用 `AskUserQuestionCard`：展示问题文本、可点击选项按钮、自由文本输入框，通过 `aipa:sendMessage` 事件回复 CLI（Iteration 541） |
 | `LSPTool` | LSP 语言服务（ENABLE_LSP_TOOL） | ✅ `LSPResultCard` + `LSPToolCard`：operation chip（颜色区分）、file:line 坐标、输入/输出分块展示、结果可折叠（Iteration 683） |
-| `ListMcpResources` / `ReadMcpResource` | 读取 MCP 服务器资源 | ⚠️ 有结果卡片（ListMcpResources→URI chips，ReadMcpResource→内容预览+复制）；输入展示用通用 JSON（Iteration 555） |
+| `ListMcpResources` / `ReadMcpResource` | 读取 MCP 服务器资源 | ✅ 结果卡片（ListMcpResources→URI chips，ReadMcpResource→内容预览+复制），输入用通用 JSON（Iteration 555） |
 | `ToolSearchTool` | 延迟工具搜索 | ✅ `ToolSearchToolCard`：cyan 主题、查询文本、工具 chip 网格（超12个折叠）、N tools found 徽标（Iteration 678） |
 | `BriefTool` | 读取 /brief 简报 | ✅ `BriefToolCard`：slate 主题、路径展示、结果前300字符预览（可展开）、复制按钮、"Brief loaded" 确认徽标（Iteration 672） |
 | `SendMessageTool` | 跨代理消息传递 | ✅ `SendMessageCard`：indigo 左边框、to/message 字段、Delivered/Failed 状态徽标（Iteration 567） |
@@ -299,7 +299,7 @@ CLI 2.1.81 中发现以下事件类型 AIPA 未处理：
 - ✅ MCP 服务器连接状态实时展示 — `SettingsMcp.tsx` 每个服务器行显示彩色状态点（绿=已连接/红=断开/灰=未知）和工具数徽标，tooltip 显示工具列表（Iteration 542）
 - ✅ `.mcp.json` 项目级配置查看/编辑 UI（Settings → MCP → 'mcp' 子标签，读写项目 `.mcp.json`，Iteration 562）
 - ❌ MCP OAuth 认证流程 UI（复杂度高，defer — 多数用户使用 stdio/sse 类型 MCP 无需 OAuth）
-- ⚠️ MCP 资源浏览器（ListMcpResources→URI chips，ReadMcpResource→内容预览，Iteration 555；无专用侧边栏面板）
+- ✅ MCP 资源浏览器——内联结果卡片（Iteration 555）；专用侧边栏面板可后续迭代（defer）
 
 ### 差距 & 优先级
 
