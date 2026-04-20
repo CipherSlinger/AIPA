@@ -1,17 +1,15 @@
 /**
- * clawd-bridge.ts — Fire-and-forget HTTP bridge to the Clawd desktop pet.
+ * clawd-bridge.ts — Compatibility layer for the Clawd desktop pet.
  *
- * Clawd runs its own HTTP server on a port in [23333, 23337] and writes the
- * active port to ~/.clawd/runtime.json.  AIPA notifies Clawd of session state
- * changes so the pet can react to AI activity.
+ * In embedded mode (default), state notifications go directly to the
+ * in-process clawd instance via clawd-integration.ts.  The old HTTP
+ * and spawn-based launch code is kept as a fallback for external
+ * clawd-on-desk installations.
  *
  * Design principles:
  *   - All errors are silently swallowed.  If Clawd is not running, every call
  *     is a no-op.  AIPA must never fail because the pet is offline.
- *   - The actual HTTP request is fire-and-forget: we do not await or inspect
- *     the response.
- *   - A 500 ms debounce is applied to notifyClawdState() so that rapid
- *     textDelta bursts do not flood the Clawd HTTP server.
+ *   - Embedded mode bypasses HTTP entirely; external mode uses fire-and-forget.
  */
 
 import * as http from 'http'
@@ -20,6 +18,11 @@ import * as os from 'os'
 import * as path from 'path'
 import { spawn } from 'child_process'
 import { createLogger } from './utils/logger'
+import {
+  notifyClawdState as notifyEmbeddedState,
+  isClawdRunning as isEmbeddedRunning,
+  launchClawd as launchEmbedded,
+} from './clawd-integration'
 
 const log = createLogger('clawd-bridge')
 
@@ -27,7 +30,6 @@ const log = createLogger('clawd-bridge')
 const RUNTIME_CONFIG_PATH = path.join(os.homedir(), '.clawd', 'runtime.json')
 const DEFAULT_PORT = 23333
 const CLAWD_DIR = path.join(__dirname, '..', '..', '..', 'clawd-on-desk')
-const CLAWD_LAUNCH_PATH = path.join(CLAWD_DIR, 'launch.js')
 
 // Valid port range used by Clawd (23333–23337)
 const PORT_MIN = 23333
@@ -88,21 +90,26 @@ function postState(port: number, body: string): void {
  * Resolves true if the server responds 2xx, false otherwise.
  */
 export function isClawdRunning(): Promise<boolean> {
-  const port = readRuntimePort()
-  return new Promise((resolve) => {
-    try {
-      const req = http.get(
-        { hostname: '127.0.0.1', port, path: '/health', timeout: 500 },
-        (res) => {
-          res.resume()
-          resolve(res.statusCode !== undefined && res.statusCode < 400)
-        }
-      )
-      req.on('error', () => resolve(false))
-      req.on('timeout', () => { req.destroy(); resolve(false) })
-    } catch {
-      resolve(false)
-    }
+  // Try embedded path first
+  return isEmbeddedRunning().then((embedded) => {
+    if (embedded) return true
+    // Fall back to HTTP health check for external clawd-on-desk
+    const port = readRuntimePort()
+    return new Promise<boolean>((resolve) => {
+      try {
+        const req = http.get(
+          { hostname: '127.0.0.1', port, path: '/health', timeout: 500 },
+          (res) => {
+            res.resume()
+            resolve(res.statusCode !== undefined && res.statusCode < 400)
+          }
+        )
+        req.on('error', () => resolve(false))
+        req.on('timeout', () => { req.destroy(); resolve(false) })
+      } catch {
+        resolve(false)
+      }
+    })
   })
 }
 
@@ -133,14 +140,24 @@ function debouncedPost(key: string, port: number, body: string, delayMs: number)
 /**
  * Notify Clawd of an AIPA session state change.
  *
- * The call is debounced at 500 ms to handle rapid textDelta bursts.
- * If Clawd is not running the HTTP request will simply fail silently.
+ * Primary path: direct call to the embedded clawd instance (no HTTP).
+ * Fallback: fire-and-forget HTTP POST to external clawd-on-desk.
+ * Debounce is handled by the embedded instance's state machine.
  */
 export function notifyClawdState(state: string, sessionId: string): void {
-  const port = readRuntimePort()
-  const body = JSON.stringify({ state, session_id: sessionId, event: 'aipa' })
-  // Use sessionId+state as debounce key so different state types are not merged
-  debouncedPost(`${sessionId}:${state}`, port, body, 500)
+  // Try embedded path first
+  try {
+    notifyEmbeddedState(state, sessionId)
+  } catch {
+    // Fall back to HTTP for external clawd-on-desk
+    try {
+      const port = readRuntimePort()
+      const body = JSON.stringify({ state, session_id: sessionId, event: 'aipa' })
+      debouncedPost(`${sessionId}:${state}`, port, body, 500)
+    } catch {
+      // Both paths failed — silent no-op
+    }
+  }
 }
 
 /**
@@ -150,6 +167,15 @@ export function notifyClawdState(state: string, sessionId: string): void {
  * if they want to avoid duplicate launches.
  */
 export function launchClawd(): void {
+  // Try embedded path first
+  try {
+    launchEmbedded()
+    return
+  } catch {
+    // Fall through to external launch
+  }
+
+  // External clawd-on-desk launch (legacy fallback)
   try {
     if (!fs.existsSync(CLAWD_DIR)) {
       log.warn('clawd-on-desk directory not found at:', CLAWD_DIR)

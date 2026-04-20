@@ -1,6 +1,6 @@
 # AIPA x Claude Code CLI — 功能差距文档
 
-> 更新日期：2026-04-19（Iteration 684）
+> 更新日期：2026-04-20（Iteration 685）
 > CLI 版本：claude-code 2.1.81（BUILD_TIME: 2026-03-20T21:25:42Z）
 > 分析目的：指导 AIPA UI 逐步对齐 CLI 全部能力
 
@@ -1071,7 +1071,38 @@ CLI 有 4 种压缩策略：
 
 ---
 
-## 二十六、最新实现记录（2026-04-19，Iteration 684）
+## 二十六、最新实现记录（2026-04-20，Iteration 685）
+
+### Iteration 685 — clawd-on-desk 嵌入式集成
+
+将 clawd-on-desk 从独立 Electron 应用嵌入 AIPA 主进程，消除独立 `npm install`、HTTP 桥接和 `spawn()` 启动失败问题。
+
+**架构变更：**
+- 旧方案：AIPA 通过 `spawn()` 启动独立的 clawd-on-desk Electron 进程，通过 HTTP POST 127.0.0.1:23333/state 通信
+- 新方案：clawd 作为子模块运行在 AIPA 的主进程内，通过直接函数调用通信
+
+**新增文件：**
+- `src/main/clawd/` — 全部 clawd-on-desk 源码（33 JS + 5 HTML + 1 CSS）
+- `src/main/clawd/agents/` — 11 个 Agent 配置模块（claude-code, codex, gemini-cli 等）
+- `src/main/clawd/hooks/` — 19 个 Hook 脚本
+- `src/main/clawd/extensions/vscode/` — VS Code terminal-focus 扩展
+- `src/main/clawd/assets/svg/` — 39 个 SVG 动画文件
+- `src/main/clawd/assets/sounds/` — 2 个音效文件
+- `src/main/clawd/src/clawd-factory.js` — 将 standalone main.js 包装为可嵌入的工厂函数，导出 `{ notifyState, isRunning, getState, getSessions, getWindows }` API
+- `src/main/clawd-integration.ts` — TypeScript 适配层，提供 `initClawdIntegration(mainWindow)` / `notifyClawdState` / `isClawdRunning` / `launchClawd` / `shutdownClawdIntegration`
+
+**修改文件：**
+- `package.json`：新增 `htmlparser2`（SVG DOM 解析）和 `koffi`（Windows FFI）依赖
+- `src/main/index.ts`：在 `createWindow()` 中调用 `initClawdIntegration(mainWindow)`；`before-quit` 调用 `shutdownClawdIntegration`；通过 `globalThis.__aipaIsQuitting` 暴露退出状态
+- `src/main/clawd-bridge.ts`：`notifyClawdState` 优先调用嵌入式实例，回退到 HTTP；`isClawdRunning` 先检查嵌入式实例，再回退到 `/health` 检查；`launchClawd` 同理
+
+**跳过项（嵌入式不需要）：**
+- `updater.js` — AIPA 自行处理更新
+- Tray 菜单 — AIPA 已有托盘
+- Settings 窗口 — AIPA 的 Settings → General 已有 clawd 开关
+- opencode 插件 — 不相关
+
+## 二十七、最新实现记录（2026-04-19，Iteration 684）
 
 ### Iteration 684 — Advisor Model UI 修正 + Output Styles 扩展
 

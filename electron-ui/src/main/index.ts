@@ -1,5 +1,6 @@
 import { app, BrowserWindow, Menu, Tray, globalShortcut, nativeImage, shell, session, clipboard, Notification, screen } from 'electron'
 import path from 'path'
+import { initClawdIntegration, shutdownClawdIntegration } from './clawd-integration'
 import { registerAllHandlers } from './ipc/index'
 import { ptyManager } from './pty/pty-manager'
 import { listSessions } from './sessions/session-reader'
@@ -12,6 +13,12 @@ const isDev = process.env.NODE_ENV === 'development'
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
 let isQuitting = false
+
+// Expose quit state for embedded clawd (avoids passing closures through factory)
+Object.defineProperty(global, '__aipaIsQuitting', {
+  get: () => isQuitting,
+  configurable: true,
+})
 
 function createWindow(): void {
   // Restore saved window bounds, or use defaults
@@ -100,6 +107,11 @@ function createWindow(): void {
   // ipcRenderer.invoke() to hang indefinitely if the renderer loaded from cache
   // faster than the main process could register handlers.
   registerAllHandlers(mainWindow)
+
+  // Initialize embedded clawd desktop pet (if enabled in preferences)
+  try { initClawdIntegration(mainWindow) } catch (err) {
+    log.warn('initClawdIntegration failed (non-fatal):', String(err))
+  }
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173')
@@ -501,6 +513,8 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   isQuitting = true
+  // Run clawd cleanup hooks (registered during initClawdIntegration)
+  try { shutdownClawdIntegration() } catch { /* best-effort */ }
   ptyManager.destroyAll()
   globalShortcut.unregisterAll()
 })
