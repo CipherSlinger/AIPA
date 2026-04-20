@@ -116,6 +116,7 @@ export default function ChatHeader({
   // activeModel removed (was used for the model pill, which has been removed)
   const mcpServers = useChatStore(s => s.mcpServers)
   const availableSkills = useChatStore(s => s.availableSkills)
+  const availableTools = useChatStore(s => s.availableTools)
   const setSystemInit = useChatStore(s => s.setSystemInit)
   // Derive total tool call count from messages (each assistant message may have toolUses[])
   const messages = useChatStore(s => s.messages)
@@ -442,6 +443,31 @@ export default function ChatHeader({
         >
           <Wrench size={11} />
           {toolUseCount}
+        </span>
+      )}
+
+      {/* Available tools count — from system.init */}
+      {availableTools.length > 0 && (
+        <span
+          title={`${availableTools.length} tools available this session`}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            fontSize: 11,
+            fontWeight: 600,
+            color: 'rgba(147,197,253,0.85)',
+            background: 'rgba(59,130,246,0.08)',
+            border: '1px solid rgba(59,130,246,0.20)',
+            borderRadius: 10,
+            padding: '2px 8px',
+            whiteSpace: 'nowrap',
+            userSelect: 'none',
+            flexShrink: 0,
+          }}
+        >
+          <Layers size={11} />
+          {availableTools.length}
         </span>
       )}
 
