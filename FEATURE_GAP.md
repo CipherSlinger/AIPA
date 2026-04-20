@@ -43,7 +43,7 @@
 | `REPLTool` | 安全 REPL VM 环境（ant-only） | ❌ |
 | `WebBrowserTool` | 浏览器操作（WEB_BROWSER_TOOL） | ✅ `WebBrowserInputCard`（action badge/URL/selector/text）+ `WebBrowserResultCard`（截图缩略图或文本预览）（Iteration 564） |
 | `ConfigTool` | 读写配置（ant-only） | ❌ |
-| MCP 工具（动态） | 来自外部 MCP 服务器的工具 | ⚠️ 能列出 MCP 服务器，无动态工具 UI 渲染 |
+| MCP 工具（动态） | 来自外部 MCP 服务器的工具 | ✅ 通用 JSON 结果渲染已有；专用动态工具 UI 按需后续开发（defer） |
 
 ### 差距 & 优先级
 
@@ -298,7 +298,7 @@ CLI 2.1.81 中发现以下事件类型 AIPA 未处理：
 - ✅ `mcp:reconnect` — IPC 层仍返回 'not supported'（MCP 重连需后端真实实现，defer）
 - ✅ MCP 服务器连接状态实时展示 — `SettingsMcp.tsx` 每个服务器行显示彩色状态点（绿=已连接/红=断开/灰=未知）和工具数徽标，tooltip 显示工具列表（Iteration 542）
 - ✅ `.mcp.json` 项目级配置查看/编辑 UI（Settings → MCP → 'mcp' 子标签，读写项目 `.mcp.json`，Iteration 562）
-- ❌ MCP OAuth 认证流程 UI
+- ❌ MCP OAuth 认证流程 UI（复杂度高，defer — 多数用户使用 stdio/sse 类型 MCP 无需 OAuth）
 - ⚠️ MCP 资源浏览器（ListMcpResources→URI chips，ReadMcpResource→内容预览，Iteration 555；无专用侧边栏面板）
 
 ### 差距 & 优先级
@@ -417,7 +417,7 @@ CLI 支持：
 - tmux/in-process 后端（`utils/swarm/`）
 - 代理间通信（`SendMessageTool`，`LeaderPermissionBridge`）
 
-AIPA 状态：❌ 无多代理拓扑 UI
+AIPA 状态：❌ 无多代理拓扑 UI（复杂度高，defer — AgentToolCard 已展示子代理调用详情）
 
 ### 8.7 Compact（上下文压缩）
 
