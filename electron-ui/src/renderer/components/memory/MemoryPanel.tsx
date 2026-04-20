@@ -288,12 +288,12 @@ const MEMDIR_TYPE_COLORS: Record<string, string> = {
   unknown: 'var(--text-muted)',
 }
 
-const MEMDIR_TYPE_LABELS: Record<string, string> = {
-  user: '用户',
-  feedback: '反馈',
-  project: '项目',
-  reference: '参考',
-  unknown: '其他',
+const MEMDIR_TYPE_I18N_KEYS: Record<string, string> = {
+  user: 'memory.filterUser',
+  feedback: 'memory.filterFeedback',
+  project: 'memory.filterProject',
+  reference: 'memory.filterReference',
+  unknown: 'memory.memdirTypeUnknown',
 }
 
 type MemdirTypeFilter = 'all' | 'user' | 'feedback' | 'project' | 'reference'
@@ -392,7 +392,7 @@ function MemdirTab() {
             fontWeight: typeFilter === 'all' ? 600 : 400, transition: 'all 0.15s ease',
           }}
         >
-          全部 {typeCounts.all || 0}
+          {t('memory.filterAll')} {typeCounts.all || 0}
         </button>
         {(['user', 'feedback', 'project', 'reference'] as const).map(type => {
           const color = MEMDIR_TYPE_COLORS[type]
@@ -414,7 +414,7 @@ function MemdirTab() {
                 display: 'inline-block', width: 5, height: 5, borderRadius: '50%',
                 background: color, flexShrink: 0,
               }} />
-              {MEMDIR_TYPE_LABELS[type]}
+              {t(MEMDIR_TYPE_I18N_KEYS[type] || 'memory.filterAll')}
               <span style={{ fontSize: 9, opacity: 0.7, fontVariantNumeric: 'tabular-nums' }}>
                 {typeCounts[type] || 0}
               </span>
@@ -428,7 +428,7 @@ function MemdirTab() {
         {filteredFiles.length === 0 && files.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60%', color: 'var(--text-muted)', gap: 8, textAlign: 'center' }}>
             <Brain size={24} style={{ opacity: 0.3 }} />
-            <span style={{ fontSize: 12 }}>没有 {MEMDIR_TYPE_LABELS[typeFilter] || typeFilter} 类型的记忆</span>
+            <span style={{ fontSize: 12 }}>{t('memory.filterAll')} · {t(MEMDIR_TYPE_I18N_KEYS[typeFilter] || 'memory.filterAll')}</span>
           </div>
         ) : filteredFiles.map(f => {
           const typeColor = MEMDIR_TYPE_COLORS[f.type] || MEMDIR_TYPE_COLORS.unknown

@@ -471,10 +471,12 @@
     "aiReplyLanguageDe": "Deutsch (de)",
     "aiReplyLanguageEs": "Español (es)",
     "cliOutputStyle": "输出样式 / Output Style",
-    "cliOutputStyleHint": "Controls how Claude formats raw output. auto = auto-detect based on context, text = plain text, json = structured JSON",
+    "cliOutputStyleHint": "Controls Claude's output style. auto/text/json = standard formats, Explanatory = adds educational insights, Learning = interactive coding practice with human collaboration",
     "cliOutputStyleAuto": "auto (默认 / Default)",
     "cliOutputStyleText": "text (纯文本 / Plain text)",
     "cliOutputStyleJson": "json (JSON)",
+    "cliOutputStyleExplanatory": "Explanatory (educational insights)",
+    "cliOutputStyleLearning": "Learning (interactive practice)",
     "apiKey": "API Key",
     "apiKeyHelper": "API Key Helper Script",
     "apiKeyHelperDesc": "Path to a script that outputs the API key",
@@ -491,8 +493,8 @@
     "keyExhausted": "Exhausted",
     "model": "Model",
     "advisorModel": "Advisor Model",
-    "advisorModelSame": "Same as main model",
-    "advisorModelHint": "Lighter model used for background tasks: auto-compaction, memory extraction, away summaries. Defaults to main model.",
+    "advisorModelSame": "Not configured",
+    "advisorModelHint": "Secondary reviewer model that checks your work before tasks are complete. Supports opus-4-6 and sonnet-4-6.",
     "models": {
       "opus46": "Claude Opus (Most Powerful)",
       "sonnet46": "Claude Sonnet (Recommended)",
@@ -521,7 +523,16 @@
     "thinkingAdaptive": "Adaptive (Extended Thinking)",
     "thinkingHint": "In adaptive mode, Claude automatically engages deep thinking when needed",
     "maxTurns": "Max Turns",
-    "maxTurnsHint": "Limit how many tool-use turns Claude can execute (--max-turns). Leave empty for unlimited.",
+    "maxTurnsHint": "Limit conversation turns (--max-turns)",
+    "appendSystemPrompt": "Append System Prompt",
+    "appendSystemPromptHint": "Appended to the system prompt (--append-system-prompt)",
+    "availableModels": "Available Models (Enterprise)",
+    "availableModelsHint": "Restrict which models can be selected (leave empty for all)",
+    "worktree": "Worktree",
+    "worktreeSymlinkDirs": "Symlink Directories",
+    "worktreeSymlinkDirsHint": "Directories to symlink into each worktree",
+    "worktreeSparsePaths": "Sparse Checkout Paths",
+    "worktreeSparsePathsHint": "Paths for sparse checkout in worktrees",
     "budgetLimit": "Budget Limit (USD)",
     "budgetHint": "Stop execution when cost exceeds this amount (--max-budget-usd). Leave empty for unlimited.",
     "workingFolder": "Working Folder",
@@ -627,7 +638,9 @@
       "emptyState": "No custom templates yet. Create one to build your personal workflow library.",
       "limitReached": "Maximum 20 custom templates reached.",
       "customSuffix": "(Custom)"
-    }
+    },
+    "plugins": "Plugins",
+    "pluginsEmpty": "No plugins installed"
   },
   "outputStyle": {
     "title": "Output Style",
@@ -917,7 +930,8 @@
     "permanentDesc": "This error is caused by a code issue and cannot be fixed by retrying.",
     "showDetails": "What happened?",
     "hideDetails": "Hide details",
-    "reportBug": "Report Bug"
+    "reportBug": "Report Bug",
+    "structuredOutputRetries": "Structured output retries exceeded. The model could not produce a valid structured response after multiple attempts."
   },
   "startup": {
     "prefsLoadFailed": "Preferences could not be loaded. Using defaults."
@@ -1509,7 +1523,12 @@
     "fresh": "Fresh",
     "aging": "Aging",
     "old": "Old",
-    "stale": "Stale"
+    "stale": "Stale",
+    "filterAll": "All",
+    "filterUser": "User",
+    "filterFeedback": "Feedback",
+    "filterProject": "Project",
+    "filterReference": "Reference"
   },
   "workflow": {
     "title": "Workflows",
@@ -2499,6 +2518,14 @@
     "saveFailed": "Failed to save sandbox settings",
     "loadError": "Failed to load sandbox settings",
     "itemExists": "Already in list",
-    "warningUnsandboxed": "Warning: allowing unsandboxed commands weakens security isolation"
+    "warningUnsandboxed": "Warning: allowing unsandboxed commands weakens security isolation",
+    "ignoreViolations": "Ignore Violations",
+    "ignoreViolationsDesc": "Tools that bypass sandbox violation checks",
+    "noViolationExemptions": "No violation exemptions configured",
+    "removeViolationType": "Remove violation type",
+    "removeExemption": "Remove exemption for",
+    "toolName": "Tool name...",
+    "violationTypes": "Violation types (comma-separated, leave empty for all)...",
+    "addViolationExemption": "Add Exemption"
   }
 }

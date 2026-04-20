@@ -1,5 +1,5 @@
 import React from 'react'
-import { Trash2, Archive, HelpCircle, Terminal, Zap, FileText, LayoutList, RotateCcw, Download, Compass, Shield, Webhook, Server, Brain, Cpu, DollarSign, BookOpen, FolderOpen, GitBranch, GitCommit, GitPullRequest, GitFork, Code, Settings, LogOut, LogIn, Keyboard, Rewind, History, Mic, Info, Layers, Flag } from 'lucide-react'
+import { Trash2, Archive, HelpCircle, Terminal, Zap, FileText, LayoutList, RotateCcw, Download, Compass, Shield, Webhook, Server, Brain, Cpu, DollarSign, BookOpen, FolderOpen, GitBranch, GitCommit, GitPullRequest, GitFork, Code, Settings, LogOut, LogIn, Keyboard, Rewind, History, Mic, Info, Layers, Flag, Eye, Stethoscope, LineChart, Palette, ClipboardList, Files } from 'lucide-react'
 import { useT } from '../../i18n'
 
 export interface SlashCommand {
@@ -41,6 +41,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { name: '/memory', description: 'Open memory panel', icon: Brain, clientOnly: true, category: 'Settings' },
   { name: '/config', description: 'View/edit configuration', icon: Settings, category: 'Settings' },
   { name: '/effort', description: 'Set effort level', icon: Flag, category: 'Settings' },
+  { name: '/advisor', description: 'Configure advisor model for review', icon: Eye, clientOnly: true, category: 'Settings' },
   { name: '/keybindings', description: 'View keyboard shortcuts', icon: Keyboard, clientOnly: true, category: 'Settings' },
   { name: '/login', description: 'Log in', icon: LogIn, category: 'Settings' },
   { name: '/logout', description: 'Log out', icon: LogOut, category: 'Settings' },
@@ -49,6 +50,8 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { name: '/status', description: 'View current session status', icon: Info, category: 'Stats' },
   { name: '/context', description: 'View current context', icon: Layers, category: 'Stats' },
   { name: '/skills', description: 'Open skills panel', icon: BookOpen, clientOnly: true, category: 'Stats' },
+  { name: '/doctor', description: 'Diagnose CLI environment and config', icon: Stethoscope, category: 'Stats' },
+  { name: '/usage', description: 'Show detailed usage statistics', icon: LineChart, category: 'Stats' },
   // Git
   { name: '/commit', description: 'Create a git commit', icon: GitCommit, category: 'Git' },
   { name: '/pr', description: 'Create a Pull Request', icon: GitPullRequest, category: 'Git' },
@@ -56,6 +59,11 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { name: '/diff', description: 'View file diff', icon: GitBranch, category: 'Git' },
   { name: '/worktree', description: 'Manage git worktrees', icon: GitFork, category: 'Git' },
   { name: '/branch', description: 'Manage session branches', icon: Layers, category: 'Git' },
+  // Additional
+  { name: '/theme', description: 'Switch UI theme (light/dark)', icon: Palette, clientOnly: true, category: 'General' },
+  { name: '/summary', description: 'Generate session summary', icon: ClipboardList, category: 'General' },
+  { name: '/files', description: 'List project files', icon: Files, category: 'General' },
+  { name: '/session', description: 'Session information and management', icon: Info, category: 'Session' },
 ]
 
 interface Props {

@@ -3,6 +3,7 @@
 // budget limit, AI reply language — moved from SettingsGeneral.
 // Also wraps SettingsProviders for provider/API-key config.
 // Iteration 683: added availableModels enterprise whitelist section.
+// Iteration 688: added appendSystemPrompt textarea + availableModels tag editor.
 
 import React, { useState, useEffect, useRef, Suspense } from 'react'
 import { Brain, Eye, EyeOff, Save, Cpu, X, Plus } from 'lucide-react'
@@ -38,6 +39,11 @@ export default function SettingsAIEngine({
   const [cliOutputStyle, setCliOutputStyle] = useState<string>('auto')
   // apiKeyHelper — reads/writes `apiKeyHelper` field in ~/.claude/settings.json via IPC
   const [apiKeyHelper, setApiKeyHelper] = useState<string>('')
+  // appendSystemPrompt — reads/writes `appendSystemPrompt` in prefsStore (CLI --append-system-prompt)
+  // availableModels — reads/writes `availableModels` array in ~/.claude/settings.json via IPC
+  const [availableModels, setAvailableModels] = useState<string[]>([])
+  const [newModelInput, setNewModelInput] = useState<string>('')
+  const [addingModel, setAddingModel] = useState(false)
 
   useEffect(() => {
     window.electronAPI.configReadCLISettings().then((cliSettings: Record<string, unknown>) => {
@@ -47,6 +53,10 @@ export default function SettingsAIEngine({
       setCliOutputStyle(style)
       const helper = typeof cliSettings.apiKeyHelper === 'string' ? cliSettings.apiKeyHelper : ''
       setApiKeyHelper(helper)
+      const models = Array.isArray(cliSettings.availableModels)
+        ? (cliSettings.availableModels as unknown[]).filter((m): m is string => typeof m === 'string')
+        : []
+      setAvailableModels(models)
     }).catch(() => {})
   }, [])
 
@@ -124,7 +134,8 @@ export default function SettingsAIEngine({
             style={{ ...INPUT_STYLE }}
           >
             <option value="">{t('settings.advisorModelSame')}</option>
-            {MODEL_OPTIONS.map((m) => <option key={m.id} value={m.id}>{t(m.labelKey)}</option>)}
+            <option value="opus-4-6">Claude Opus 4.6</option>
+            <option value="sonnet-4-6">Claude Sonnet 4.6</option>
           </select>
         ),
           <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>{t('settings.advisorModelHint')}</span>
@@ -158,6 +169,28 @@ export default function SettingsAIEngine({
           />,
           <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
             {t('settings.maxTurnsHint')}
+          </span>
+        )}
+
+        {field(
+          t('settings.appendSystemPrompt'),
+          <textarea
+            value={local.appendSystemPrompt ?? ''}
+            onChange={(e) => updateLocal({ appendSystemPrompt: e.target.value })}
+            placeholder={t('settings.appendSystemPromptHint')}
+            rows={4}
+            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
+            style={{
+              ...INPUT_STYLE,
+              resize: 'vertical',
+              fontFamily: 'inherit',
+              lineHeight: 1.5,
+              minHeight: 80,
+            }}
+          />,
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            {t('settings.appendSystemPromptHint')}
           </span>
         )}
 
@@ -249,9 +282,114 @@ export default function SettingsAIEngine({
             <option value="auto">{t('settings.cliOutputStyleAuto')}</option>
             <option value="text">{t('settings.cliOutputStyleText')}</option>
             <option value="json">{t('settings.cliOutputStyleJson')}</option>
+            <option value="Explanatory">{t('settings.cliOutputStyleExplanatory')}</option>
+            <option value="Learning">{t('settings.cliOutputStyleLearning')}</option>
           </select>,
           <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
             {t('settings.cliOutputStyleHint')}
+          </span>
+        )}
+
+        {/* availableModels — enterprise model whitelist */}
+        {field(
+          t('settings.availableModels'),
+          <div>
+            {/* Tag list */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, minHeight: 24, marginBottom: 6 }}>
+              {availableModels.map((model, idx) => (
+                <span
+                  key={`model-tag-${idx}`}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    background: 'rgba(99,102,241,0.12)', color: 'rgba(129,140,248,1)',
+                    border: '1px solid rgba(99,102,241,0.25)',
+                    borderRadius: 5, padding: '3px 8px',
+                    fontSize: 11, fontWeight: 500, fontFamily: 'monospace',
+                  }}
+                >
+                  {model.length > 45 ? model.slice(0, 45) + '…' : model}
+                  <button
+                    onClick={() => {
+                      const next = availableModels.filter((_, i) => i !== idx)
+                      setAvailableModels(next)
+                      window.electronAPI.configWriteCLISettings({ availableModels: next }).catch(() => {})
+                    }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', color: 'inherit', opacity: 0.55, transition: 'opacity 0.15s ease' }}
+                    onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
+                    onMouseLeave={e => { e.currentTarget.style.opacity = '0.55' }}
+                    aria-label={`Remove ${model}`}
+                  >
+                    <X size={10} />
+                  </button>
+                </span>
+              ))}
+              {availableModels.length === 0 && !addingModel && (
+                <span style={{ fontSize: 11, color: 'var(--text-faint)', fontStyle: 'italic', padding: '3px 0' }}>
+                  None configured (all models allowed)
+                </span>
+              )}
+            </div>
+            {/* Add input */}
+            {addingModel ? (
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input
+                  autoFocus
+                  value={newModelInput}
+                  onChange={e => setNewModelInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      const trimmed = newModelInput.trim()
+                      if (trimmed && !availableModels.includes(trimmed)) {
+                        const next = [...availableModels, trimmed]
+                        setAvailableModels(next)
+                        window.electronAPI.configWriteCLISettings({ availableModels: next }).catch(() => {})
+                      }
+                      setNewModelInput('')
+                      setAddingModel(false)
+                    }
+                    if (e.key === 'Escape') { setAddingModel(false); setNewModelInput('') }
+                  }}
+                  placeholder="claude-opus-4-5"
+                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
+                  style={{ flex: 1, padding: '6px 10px', fontSize: 12, background: 'var(--bg-hover)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-primary)', fontFamily: 'monospace', outline: 'none', transition: 'border-color 0.15s ease, box-shadow 0.15s ease' }}
+                />
+                <button
+                  onClick={() => {
+                    const trimmed = newModelInput.trim()
+                    if (trimmed && !availableModels.includes(trimmed)) {
+                      const next = [...availableModels, trimmed]
+                      setAvailableModels(next)
+                      window.electronAPI.configWriteCLISettings({ availableModels: next }).catch(() => {})
+                    }
+                    setNewModelInput('')
+                    setAddingModel(false)
+                  }}
+                  disabled={!newModelInput.trim()}
+                  style={{ padding: '6px 12px', fontSize: 11, fontWeight: 600, background: newModelInput.trim() ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))' : 'var(--bg-input)', border: newModelInput.trim() ? 'none' : '1px solid var(--border)', borderRadius: 6, color: newModelInput.trim() ? 'var(--text-bright)' : 'var(--text-faint)', cursor: newModelInput.trim() ? 'pointer' : 'not-allowed', transition: 'all 0.15s ease' }}
+                >
+                  Add
+                </button>
+                <button
+                  onClick={() => { setAddingModel(false); setNewModelInput('') }}
+                  style={{ padding: '6px 10px', fontSize: 11, background: 'var(--bg-hover)', border: '1px solid var(--glass-border)', borderRadius: 6, color: 'var(--text-faint)', cursor: 'pointer', transition: 'all 0.15s ease' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setAddingModel(true)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--bg-hover)', border: '1px solid var(--glass-border-md)', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 11, fontWeight: 500, color: 'var(--text-faint)', transition: 'all 0.15s ease' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-faint)' }}
+              >
+                <Plus size={11} /> Add Model
+              </button>
+            )}
+          </div>,
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            {t('settings.availableModelsHint')}
           </span>
         )}
       </SettingsGroup>

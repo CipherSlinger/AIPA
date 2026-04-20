@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import ReactDOM from 'react-dom'
 import { ToolUseInfo } from '../../types/app.types'
-import { Terminal, FileEdit, Search, Globe, Check, X, ClipboardCopy, FileCode, FileText, Image, Palette, GitBranch, GitMerge, Clock, StopCircle, BookOpen, Network, Code2, CheckSquare, ClipboardList, Settings2, Send, Users, Compass, CheckCircle2, Layers, Database, FileInput, HelpCircle } from 'lucide-react'
+import { Terminal, FileEdit, Search, Globe, Check, X, ClipboardCopy, FileCode, FileText, Image, Palette, GitBranch, GitMerge, Clock, StopCircle, BookOpen, Network, Code2, CheckSquare, ClipboardList, Settings2, Send, Users, Compass, CheckCircle2, Layers, Database, FileInput, HelpCircle, Eye } from 'lucide-react'
 import { useT } from '../../i18n'
 import DiffView from './DiffView'
 import FileDiffView from './FileDiffView'
@@ -19,7 +19,10 @@ import { BashCommandBlock, BashOutputBlock, BashStatusDot, BASH_TOOLS } from './
 import { SearchResultSummary, WebResultBlock } from './tool-cards/SearchResultCard'
 import { NotebookEditCard } from './tool-cards/NotebookEditCard'
 import { AskUserQuestionCard } from './tool-cards/AskUserQuestionCard'
-import { TaskCreateBadge, TaskUpdateBadge, TASK_CREATE_TOOLS, TASK_UPDATE_TOOLS } from './tool-cards/TaskBadgeCard'
+import { TaskCreateBadge, TaskUpdateBadge, TaskStopBadge, TASK_CREATE_TOOLS, TASK_UPDATE_TOOLS, TASK_STOP_TOOLS } from './tool-cards/TaskBadgeCard'
+import { TeamCreateCard } from './tool-cards/TeamCreateCard'
+import { SkillToolCard } from './tool-cards/SkillToolCard'
+import { ToolSearchToolCard } from './tool-cards/ToolSearchToolCard'
 import { ImageThumbnail } from './tool-cards/ImageThumbnail'
 import { ToolCardHeader } from './tool-cards/ToolCardHeader'
 import { StructuredOutputCard } from './tool-cards/StructuredOutputCard'
@@ -28,6 +31,9 @@ import { FileWriteCard } from './tool-cards/FileWriteCard'
 import { FileEditCard } from './tool-cards/FileEditCard'
 import { BriefToolCard } from './BriefToolCard'
 import { SleepToolCard } from './SleepToolCard'
+import { TaskOutputCard } from './tool-cards/TaskOutputCard'
+import { WorktreeToolCard } from './tool-cards/WorktreeToolCard'
+import { AdvisorToolCard } from './tool-cards/AdvisorToolCard'
 
 interface Props {
   tool: ToolUseInfo
@@ -70,6 +76,8 @@ const TOOL_ICONS: Record<string, React.ElementType> = {
   TaskList: FileText,
   TaskUpdate: FileText,
   TaskStop: StopCircle,
+  TaskOutput: ClipboardList,
+  task_output: ClipboardList,
   // Notebooks
   NotebookEdit: BookOpen,
   // User interaction
@@ -105,6 +113,8 @@ const TOOL_ICONS: Record<string, React.ElementType> = {
   MultiEdit: Layers,
   // Remote trigger
   RemoteTrigger: Send,
+  // Advisor tool
+  advisor: Eye,
 }
 
 // File extension to icon mapping for more specific file type icons (Iteration 462)
@@ -468,6 +478,18 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
     )
   }
 
+  // TaskOutput: structured task output card with indigo theme
+  if (tool.name === 'TaskOutput' || tool.name === 'task_output') {
+    const taskOutputResult = typeof tool.result === 'string' ? tool.result : null
+    return (
+      <TaskOutputCard
+        input={tool.input || {}}
+        result={taskOutputResult}
+        isLoading={tool.status === 'running'}
+      />
+    )
+  }
+
   // TaskCreate: compact inline "created" badge
   if (TASK_CREATE_TOOLS.has(tool.name)) {
     const subject = typeof tool.input?.subject === 'string' ? tool.input.subject : '(unnamed task)'
@@ -488,6 +510,87 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
         taskId={taskId}
         status={tool.status as 'running' | 'done' | 'error'}
         updateStatus={updateStatus}
+      />
+    )
+  }
+
+  // TaskStop: compact inline "stopped" badge
+  if (TASK_STOP_TOOLS.has(tool.name)) {
+    const taskId = typeof tool.input?.task_id === 'string' ? tool.input.task_id
+      : typeof tool.input?.taskId === 'string' ? tool.input.taskId : ''
+    return (
+      <TaskStopBadge
+        taskId={taskId}
+        status={tool.status as 'running' | 'done' | 'error'}
+      />
+    )
+  }
+
+  // TeamCreate / TeamDelete: team management card
+  if (tool.name === 'TeamCreate' || tool.name === 'team_create' || tool.name === 'TeamDelete' || tool.name === 'team_delete') {
+    const teamResult = typeof tool.result === 'string' ? tool.result : null
+    return (
+      <TeamCreateCard
+        input={tool.input || {}}
+        result={teamResult}
+        isLoading={tool.status === 'running'}
+      />
+    )
+  }
+
+  // EnterWorktree / ExitWorktree: worktree lifecycle card
+  if (tool.name === 'EnterWorktree' || tool.name === 'enter_worktree') {
+    return (
+      <WorktreeToolCard
+        action="enter"
+        input={tool.input || {}}
+        isLoading={tool.status === 'running'}
+      />
+    )
+  }
+
+  if (tool.name === 'ExitWorktree' || tool.name === 'exit_worktree') {
+    return (
+      <WorktreeToolCard
+        action="exit"
+        input={tool.input || {}}
+        isLoading={tool.status === 'running'}
+      />
+    )
+  }
+
+  // Skill: skill invocation card
+  if (tool.name === 'Skill' || tool.name === 'skill') {
+    const skillResult = typeof tool.result === 'string' ? tool.result : null
+    return (
+      <SkillToolCard
+        input={tool.input || {}}
+        result={skillResult}
+        isLoading={tool.status === 'running'}
+      />
+    )
+  }
+
+  // ToolSearchTool: tool search result card
+  if (tool.name === 'ToolSearchTool' || tool.name === 'tool_search') {
+    const searchResult = typeof tool.result === 'string' ? tool.result : null
+    return (
+      <ToolSearchToolCard
+        input={tool.input || {}}
+        result={searchResult}
+        isLoading={tool.status === 'running'}
+      />
+    )
+  }
+
+  // Advisor: secondary reviewer model (Iteration 684)
+  if (tool.name === 'advisor') {
+    return (
+      <AdvisorToolCard
+        input={tool.input || {}}
+        result={tool.result}
+        isLoading={tool.status === 'running'}
+        error={tool.status === 'error'}
       />
     )
   }
