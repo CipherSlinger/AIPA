@@ -177,6 +177,11 @@ export class StreamBridge extends EventEmitter {
               const toolName = block.name as string
               const toolInput = (block.input ?? {}) as Record<string, unknown>
               this.emit('toolUse', { sessionId: sid, event: { id: toolId, name: toolName, input: toolInput } })
+            } else if (block.type === 'server_tool_use' && block.name === 'advisor') {
+              // Advisor tool — secondary reviewer model (Iteration 684)
+              const toolId = (block.id as string) || `advisor-${Date.now()}`
+              const toolInput = (block.input ?? {}) as Record<string, unknown>
+              this.emit('toolUse', { sessionId: sid, event: { id: toolId, name: 'advisor', input: toolInput } })
             }
           }
         }
@@ -194,6 +199,10 @@ export class StreamBridge extends EventEmitter {
               const isError = Boolean(block.is_error)
               const blockContent = block.content
               this.emit('toolResult', { sessionId: sid, event: { tool_use_id: toolUseId, content: blockContent, is_error: isError } })
+            } else if (block.type === 'advisor_tool_result') {
+              // Advisor tool result (Iteration 684)
+              const toolUseId = block.tool_use_id as string
+              this.emit('toolResult', { sessionId: sid, event: { tool_use_id: toolUseId, content: block.content, is_error: block.content?.type === 'advisor_tool_result_error' } })
             }
           }
         }

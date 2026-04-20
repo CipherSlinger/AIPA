@@ -134,7 +134,8 @@ export default function SettingsAIEngine({
             style={{ ...INPUT_STYLE }}
           >
             <option value="">{t('settings.advisorModelSame')}</option>
-            {MODEL_OPTIONS.map((m) => <option key={m.id} value={m.id}>{t(m.labelKey)}</option>)}
+            <option value="opus-4-6">Claude Opus 4.6</option>
+            <option value="sonnet-4-6">Claude Sonnet 4.6</option>
           </select>
         ),
           <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>{t('settings.advisorModelHint')}</span>
@@ -281,6 +282,8 @@ export default function SettingsAIEngine({
             <option value="auto">{t('settings.cliOutputStyleAuto')}</option>
             <option value="text">{t('settings.cliOutputStyleText')}</option>
             <option value="json">{t('settings.cliOutputStyleJson')}</option>
+            <option value="Explanatory">{t('settings.cliOutputStyleExplanatory')}</option>
+            <option value="Learning">{t('settings.cliOutputStyleLearning')}</option>
           </select>,
           <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
             {t('settings.cliOutputStyleHint')}

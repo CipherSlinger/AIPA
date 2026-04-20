@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import ReactDOM from 'react-dom'
 import { ToolUseInfo } from '../../types/app.types'
-import { Terminal, FileEdit, Search, Globe, Check, X, ClipboardCopy, FileCode, FileText, Image, Palette, GitBranch, GitMerge, Clock, StopCircle, BookOpen, Network, Code2, CheckSquare, ClipboardList, Settings2, Send, Users, Compass, CheckCircle2, Layers, Database, FileInput, HelpCircle } from 'lucide-react'
+import { Terminal, FileEdit, Search, Globe, Check, X, ClipboardCopy, FileCode, FileText, Image, Palette, GitBranch, GitMerge, Clock, StopCircle, BookOpen, Network, Code2, CheckSquare, ClipboardList, Settings2, Send, Users, Compass, CheckCircle2, Layers, Database, FileInput, HelpCircle, Eye } from 'lucide-react'
 import { useT } from '../../i18n'
 import DiffView from './DiffView'
 import FileDiffView from './FileDiffView'
@@ -33,6 +33,7 @@ import { BriefToolCard } from './BriefToolCard'
 import { SleepToolCard } from './SleepToolCard'
 import { TaskOutputCard } from './tool-cards/TaskOutputCard'
 import { WorktreeToolCard } from './tool-cards/WorktreeToolCard'
+import { AdvisorToolCard } from './tool-cards/AdvisorToolCard'
 
 interface Props {
   tool: ToolUseInfo
@@ -112,6 +113,8 @@ const TOOL_ICONS: Record<string, React.ElementType> = {
   MultiEdit: Layers,
   // Remote trigger
   RemoteTrigger: Send,
+  // Advisor tool
+  advisor: Eye,
 }
 
 // File extension to icon mapping for more specific file type icons (Iteration 462)
@@ -576,6 +579,18 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
         input={tool.input || {}}
         result={searchResult}
         isLoading={tool.status === 'running'}
+      />
+    )
+  }
+
+  // Advisor: secondary reviewer model (Iteration 684)
+  if (tool.name === 'advisor') {
+    return (
+      <AdvisorToolCard
+        input={tool.input || {}}
+        result={tool.result}
+        isLoading={tool.status === 'running'}
+        error={tool.status === 'error'}
       />
     )
   }

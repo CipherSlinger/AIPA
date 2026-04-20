@@ -1,6 +1,6 @@
 # AIPA x Claude Code CLI — 功能差距文档
 
-> 更新日期：2026-04-19（Iteration 683）
+> 更新日期：2026-04-19（Iteration 684）
 > CLI 版本：claude-code 2.1.81（BUILD_TIME: 2026-03-20T21:25:42Z）
 > 分析目的：指导 AIPA UI 逐步对齐 CLI 全部能力
 
@@ -171,12 +171,13 @@ CLI 定义了 5 种权限模式（`ExternalPermissionMode`）：
 | `worktree.sparsePaths` | array | sparse checkout 路径 | ✅ — 同上（Iteration 682） |
 | `disableAllHooks` | boolean | 禁用所有 hooks | ✅ — HooksSettingsPanel 顶部红色开关，写入 ~/.claude/settings.json，开启时规则列表置灰并显示橙色警告 banner（Iteration 648） |
 | `defaultShell` | enum | bash/powershell | ✅ — Settings → General，bash/powershell 下拉选择器，读写 ~/.claude/settings.json（Iteration 648） |
-| `outputStyle` | string | 输出样式控制 | ✅ — Settings → AI Engine 标签页，auto/text/json 下拉选择器，读写 ~/.claude/settings.json（Iteration 656） |
+| `outputStyle` | string | 输出样式控制 | ✅ — Settings → AI Engine 标签页，auto/text/json/Explanatory/Learning 下拉选择器，读写 ~/.claude/settings.json（Iteration 656，684 扩展） |
 | `statusLine` | object | 自定义状态栏命令 | ✅ — Settings → General，statusLine.command 文本输入，读写 ~/.claude/settings.json（Iteration 675） |
 | `enabledPlugins` | Record | 启用插件列表 | ✅ — SettingsPlugins.tsx 插件列表 UI（toggle 开关），i18n 键已补全（Iteration 682） |
 | `apiKeyHelper` | string | 自定义 API key 脚本 | ✅ — Settings → AI Engine，脚本路径文本输入，读写 ~/.claude/settings.json（Iteration 674） |
 | `fileSuggestion` | object | @ 提及文件建议命令 | ✅ — Settings → General，fileSuggestion.command 文本输入，读写 ~/.claude/settings.json（Iteration 675） |
 | `respectGitignore` | boolean | 文件选择器是否遵守 .gitignore | ✅ — Settings → General，布尔开关（默认 true），读写 ~/.claude/settings.json（Iteration 648） |
+| `advisorModel` | string | 辅助审查模型 | ✅ — Settings → AI Engine，opus-4-6/sonnet-4-6 下拉选择器，读写 ~/.claude/settings.json（Iteration 684） |
 
 ### AIPA 当前自有偏好（electron-store，非 CLI settings.json）
 
@@ -1067,6 +1068,25 @@ CLI 有 4 种压缩策略：
 - MCP OAuth 认证流程 UI — 复杂度高，defer
 - 多代理拓扑 UI — 复杂度高，defer
 - MCP 动态工具 UI — 已有通用 JSON 渲染，专用动态 UI defer
+
+---
+
+## 二十六、最新实现记录（2026-04-19，Iteration 684）
+
+### Iteration 684 — Advisor Model UI 修正 + Output Styles 扩展
+
+**Advisor Model 描述修正**：
+- `SettingsAIEngine.tsx` 已有 advisorModel 下拉选择器，但描述文字错误（之前写的是"用于后台任务的轻量模型"）
+- 修正为正确的描述：次要审查模型，在任务完成前评审工作
+- 下拉选项限定为 CLI 支持的两个模型：opus-4-6 和 sonnet-4-6（而非所有 MODEL_OPTIONS）
+- i18n：en.json + zh-CN.json 同步更新 `advisorModel*` 三个键
+
+**Output Styles 扩展**：
+- CLI 支持 5 种输出样式：auto/text/json/Explanatory/Learning
+- `SettingsAIEngine.tsx` 下拉新增 Explanatory（教育性讲解）和 Learning（互动编程练习）两个选项
+- Explanatory：Claude 在完成任务的同时提供代码库模式和教育性洞察
+- Learning：Claude 暂停并要求用户编写少量代码进行动手练习，包含 TODO(human) 标记
+- i18n：en.json + zh-CN.json 新增 `cliOutputStyleExplanatory` / `cliOutputStyleLearning` 键
 
 
 ## 二十四、最新实现记录（2026-04-19，Iterations 679-682）

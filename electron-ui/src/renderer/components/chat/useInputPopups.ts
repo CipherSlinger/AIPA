@@ -239,6 +239,16 @@ export function useInputPopups({
           useUiStore.getState().openSettingsAt('stats')
         } else if (cmd.name === '/skills') {
           useUiStore.getState().setActiveNavItem('skills')
+        } else if (cmd.name === '/advisor') {
+          useUiStore.getState().openSettingsAt('ai-engine')
+          useUiStore.getState().addToast('info', 'Advisor model → AI Engine tab')
+        } else if (cmd.name === '/theme') {
+          const current = usePrefsStore.getState().prefs.theme || 'vscode'
+          const next = current === 'vscode' ? 'light' : 'vscode' as 'vscode' | 'light'
+          usePrefsStore.getState().setPrefs({ theme: next })
+          window.electronAPI?.prefsSet('theme', next)
+          document.documentElement.setAttribute('data-theme', next === 'light' ? 'light' : 'dark')
+          useUiStore.getState().addToast('success', `Theme: ${next === 'light' ? 'Light' : 'Dark'}`)
         }
         return
       }
