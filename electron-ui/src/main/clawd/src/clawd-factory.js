@@ -27,50 +27,33 @@ const isWin = process.platform === "win32";
 const LINUX_WINDOW_TYPE = "toolbar";
 
 
-// ── Windows: FFI for taskbar/window style manipulation ──
-let _winStyleFixers = null;
+// ── Windows: AllowSetForegroundWindow via FFI ──
+let _allowSetForeground = null;
 if (isWin) {
   try {
     const koffi = require("koffi");
     const user32 = koffi.load("user32.dll");
-    _allowSetForeground = user32.func("bool __stdcall AllowSetForegroundWindow(int dwProcessId)");
-    _winStyleFixers = {
-      getWindowLongPtrW: user32.func("int __stdcall GetWindowLongPtrW(pointer hWnd, int nIndex)"),
-      setWindowLongPtrW: user32.func("int __stdcall SetWindowLongPtrW(pointer hWnd, int nIndex, int dwNewLong)"),
-      setWindowPos: user32.func("bool __stdcall SetWindowPos(pointer hWnd, pointer hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags)"),
-    };
+    _allowSetForeground = user32.func("bool __stdcall AllowSetForegroundWindow(dword dwProcessId)");
   } catch (err) {
-    console.warn("Clawd: koffi FFI not available:", err.message);
+    console.warn("Clawd: koffi/AllowSetForegroundWindow not available:", err.message);
   }
 }
 
-// On Windows, transparent/frameless windows get WS_EX_APPWINDOW even when
-// skipTaskbar is set. This helper strips APPWINDOW and adds TOOLWINDOW.
-const GWL_EXSTYLE = -20;
-const WS_EX_APPWINDOW = 0x00040000;
-const WS_EX_TOOLWINDOW = 0x00000080;
-const HWND_TOP = 0;
-const SWP_NOMOVE = 0x0002;
-const SWP_NOSIZE = 0x0001;
-const SWP_FRAMECHANGED = 0x0020;
-const SWP_NOACTIVATE = 0x0010;
-
-function fixWinTaskbar(browserWin) {
-  if (!isWin || !_winStyleFixers) return;
-  try {
-    const hwnd = browserWin.getNativeWindowHandle ? browserWin.getNativeWindowHandle() : null;
-    if (!hwnd) return;
-    const exStyle = _winStyleFixers.getWindowLongPtrW(hwnd, GWL_EXSTYLE);
-    const newExStyle = (exStyle & ~WS_EX_APPWINDOW) | WS_EX_TOOLWINDOW;
-    if (newExStyle === exStyle) return; // already correct
-    _winStyleFixers.setWindowLongPtrW(hwnd, GWL_EXSTYLE, newExStyle);
-    // Force the WM to re-read the extended style
-    _winStyleFixers.setWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0,
-      SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED | SWP_NOACTIVATE);
-    console.log("Clawd: fixed taskbar style for", browserWin.getTitle ? browserWin.getTitle() : "pet window");
-  } catch (err) {
-    console.warn("Clawd: failed to fix taskbar style:", err.message);
-  }
+// On Windows, transparent BrowserWindows get WS_EX_APPWINDOW style which
+// forces a taskbar button. We create a hidden "owner" window with
+// WS_EX_TOOLWINDOW style and set it as the parent of the pet windows.
+// This causes Windows to treat the pet windows as tool windows (no taskbar
+// button) while still keeping them on top of the desktop.
+let _hiddenOwnerWin = null;
+function createHiddenOwnerWindow(parentWin) {
+  if (!isWin) return null;
+  _hiddenOwnerWin = new BrowserWindow({
+    width: 1, height: 1, x: -10000, y: -10000,
+    show: false, frame: false, skipTaskbar: true,
+    type: "toolbar", resizable: false,
+    parent: parentWin,
+  });
+  return _hiddenOwnerWin;
 }
 
 
@@ -1268,12 +1251,16 @@ function createWindow() {
     startY = workArea.y + workArea.height - size.height - 20;
   }
 
+  // On Windows, create a hidden owner window with TOOLWINDOW style.
+  // Pet windows use this as parent to avoid getting taskbar buttons.
+  if (isWin) createHiddenOwnerWin(_aipaMainWindow);
+
   win = new BrowserWindow({
     width: size.width, height: size.height, x: startX, y: startY,
     frame: false, transparent: true, resizable: false,
     skipTaskbar: true, hasShadow: false, fullscreenable: false,
     enableLargerThanScreen: true,
-    parent: _aipaMainWindow,
+    ...(isWin ? { parent: _hiddenOwnerWin } : { parent: _aipaMainWindow }),
     ...(isLinux ? { type: LINUX_WINDOW_TYPE } : {}),
     ...(isMac ? { type: "panel", roundedCorners: false } : {}),
     webPreferences: {
@@ -1308,12 +1295,17 @@ function createWindow() {
   win.loadFile(path.join(__dirname, "index.html"));
   win.showInactive();
 
-  // On Windows, use FFI to strip WS_EX_APPWINDOW and add WS_EX_TOOLWINDOW
-  // so the transparent pet window doesn't get its own taskbar button.
-  if (isWin) fixWinTaskbar(win);
-
-  // Also set skipTaskbar as a belt-and-suspenders measure
-  if (isWin) win.setSkipTaskbar(true);
+  // On Windows, setSkipTaskbar must be called AFTER showInactive() to
+  // counter the WS_EX_APPWINDOW style that transparent windows receive.
+  // Use a short delay to ensure the taskbar has processed the window.
+  if (isWin) {
+    setTimeout(() => {
+      if (win && !win.isDestroyed()) {
+        win.setSkipTaskbar(true);
+        console.log("Clawd: win.setSkipTaskbar(true) called after showInactive");
+      }
+    }, 100);
+  }
 
   reapplyMacVisibility();
 
@@ -1341,7 +1333,7 @@ function createWindow() {
       frame: false, transparent: true, resizable: false,
       skipTaskbar: true, hasShadow: false, fullscreenable: false,
       enableLargerThanScreen: true,
-      parent: _aipaMainWindow,
+      ...(isWin ? { parent: _hiddenOwnerWin } : { parent: _aipaMainWindow }),
       ...(isLinux ? { type: LINUX_WINDOW_TYPE } : {}),
       ...(isMac ? { type: "panel", roundedCorners: false } : {}),
       focusable: !isLinux,
@@ -1367,9 +1359,15 @@ function createWindow() {
     hitWin.loadFile(path.join(__dirname, "hit.html"));
     hitWin.showInactive();
 
-    // On Windows, use FFI to strip WS_EX_APPWINDOW and add WS_EX_TOOLWINDOW.
-    if (isWin) fixWinTaskbar(hitWin);
-    if (isWin) hitWin.setSkipTaskbar(true);
+    // On Windows, delayed setSkipTaskbar to counter WS_EX_APPWINDOW.
+    if (isWin) {
+      setTimeout(() => {
+        if (hitWin && !hitWin.isDestroyed()) {
+          hitWin.setSkipTaskbar(true);
+          console.log("Clawd: hitWin.setSkipTaskbar(true) called after showInactive");
+        }
+      }, 100);
+    }
 
     if (isWin) guardAlwaysOnTop(hitWin);
 
