@@ -7,6 +7,7 @@
  */
 
 import { BrowserWindow, app } from 'electron'
+import * as path from 'path'
 import { getPref } from './config/config-manager'
 import { createLogger } from './utils/logger'
 
@@ -45,6 +46,14 @@ export function initClawdIntegration(mainWindow: BrowserWindow): void {
 
   try {
     log.info('Attempting to load clawd factory...')
+
+    // Patch module resolution so clawd can find htmlparser2/koffi from
+    // the root node_modules/ (dist/main/ has no node_modules of its own).
+    const rootModules = path.resolve(__dirname, '..', 'node_modules')
+    if (!module.paths.includes(rootModules)) {
+      module.paths.unshift(rootModules)
+    }
+
     const factoryPath = require.resolve('./clawd/src/clawd-factory')
     log.info('Factory resolved to:', factoryPath)
 
