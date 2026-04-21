@@ -6,7 +6,7 @@
  * AIPA's preference system and the clawd factory's public API.
  */
 
-import { BrowserWindow } from 'electron'
+import { BrowserWindow, app } from 'electron'
 import { getPref } from './config/config-manager'
 import { createLogger } from './utils/logger'
 
@@ -28,6 +28,7 @@ interface ClawdInstance {
 const log = createLogger('clawd-integration')
 
 let clawdInstance: ClawdInstance | null = null
+let clawdInitError: string | null = null
 
 /**
  * Initialize the embedded clawd desktop pet.
@@ -36,14 +37,19 @@ let clawdInstance: ClawdInstance | null = null
  */
 export function initClawdIntegration(mainWindow: BrowserWindow): void {
   const clawdEnabled = getPref('clawdEnabled' as any) as boolean | undefined
+  log.info('initClawdIntegration called, clawdEnabled =', clawdEnabled)
   if (!clawdEnabled) {
     log.debug('clawd is disabled in preferences, skipping initialization')
     return
   }
 
   try {
-    // Import the factory — this is CommonJS, so require() is needed
+    log.info('Attempting to load clawd factory...')
+    const factoryPath = require.resolve('./clawd/src/clawd-factory')
+    log.info('Factory resolved to:', factoryPath)
+
     const createClawd = require('./clawd/src/clawd-factory')
+    log.info('Factory loaded, calling createClawd...')
 
     clawdInstance = createClawd({
       mainWindow,
@@ -55,8 +61,11 @@ export function initClawdIntegration(mainWindow: BrowserWindow): void {
     })
 
     log.info('clawd desktop pet initialized (embedded mode)')
-  } catch (err) {
-    log.error('Failed to initialize clawd integration:', String(err))
+    clawdInitError = null
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.stack || err.message : String(err)
+    clawdInitError = errMsg
+    log.error('Failed to initialize clawd integration:', errMsg)
   }
 }
 
@@ -80,7 +89,10 @@ export function notifyClawdState(state: string, sessionId: string): void {
  * Replaces the old GET /health HTTP check.
  */
 export function isClawdRunning(): Promise<boolean> {
-  if (!clawdInstance) return Promise.resolve(false)
+  if (!clawdInstance) {
+    log.debug('isClawdRunning: no instance, initError =', clawdInitError ? 'YES' : 'none')
+    return Promise.resolve(false)
+  }
   try {
     return Promise.resolve(clawdInstance.isRunning())
   } catch {
@@ -95,7 +107,10 @@ export function isClawdRunning(): Promise<boolean> {
  */
 export function launchClawd(): void {
   if (!clawdInstance) {
-    log.warn('launchClawd called but clawd is not initialized')
+    log.warn('launchClawd called but clawd is not initialized, initError =', clawdInitError ? 'YES' : 'none')
+    if (clawdInitError) {
+      log.warn('  Init error was:', clawdInitError.slice(0, 500))
+    }
     return
   }
   try {
@@ -129,4 +144,11 @@ export function shutdownClawdIntegration(): void {
   } catch (err) {
     log.warn('shutdownClawdIntegration failed:', String(err))
   }
+}
+
+/**
+ * Get the last initialization error (for debugging).
+ */
+export function getClawdInitError(): string | null {
+  return clawdInitError
 }

@@ -120,7 +120,19 @@ export default function SettingsGeneral({
       try {
         const result = await window.electronAPI.clawdIsRunning?.()
         if (!cancelled) {
-          setClawdStatus(result?.running ? 'running' : 'stopped')
+          if (result?.running) {
+            setClawdStatus('running')
+            setClawdError(null)
+          } else {
+            setClawdStatus('stopped')
+            // Fetch actual init error for display
+            try {
+              const errResult = await window.electronAPI.clawdGetInitError?.()
+              if (errResult?.error) {
+                setClawdError(errResult.error.slice(0, 300))
+              }
+            } catch { /* ignore */ }
+          }
         }
       } catch {
         if (!cancelled) setClawdStatus('stopped')
@@ -593,9 +605,9 @@ export default function SettingsGeneral({
               )
             }
             if (clawdStatus === 'stopped') {
-              return (
+              return clawdError ? null : (
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.5 }}>
-                  桌宠未启动 — 请手动运行 clawd-on-desk
+                  桌宠未启动
                 </div>
               )
             }
@@ -640,7 +652,16 @@ export default function SettingsGeneral({
                             setClawdStatus('running')
                           } else {
                             setClawdStatus('stopped')
-                            setClawdError('无法启动桌宠进程')
+                            try {
+                              const errResult = await window.electronAPI.clawdGetInitError?.()
+                              if (errResult?.error) {
+                                setClawdError(errResult.error.slice(0, 300))
+                              } else {
+                                setClawdError('无法启动桌宠进程')
+                              }
+                            } catch {
+                              setClawdError('无法启动桌宠进程')
+                            }
                           }
                         } catch {
                           setClawdStatus('stopped')

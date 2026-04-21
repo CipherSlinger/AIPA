@@ -23,6 +23,7 @@ import { registerDiagnosticsHandlers } from './diagnostics-handlers'
 import { registerBackupHandlers } from './backup-handlers'
 import { createLogger } from '../utils/logger'
 import { notifyClawdState, isClawdRunning, launchClawd } from '../clawd-bridge'
+import { getClawdInitError } from '../clawd-integration'
 
 const log = createLogger('ipc')
 
@@ -724,5 +725,9 @@ function registerClawdHandlers(): void {
     } catch {
       return { running: false }
     }
+  })
+
+  safeHandle('clawd:getInitError', async () => {
+    return { error: getClawdInitError() }
   })
 }
