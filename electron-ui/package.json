@@ -6,8 +6,9 @@
   "private": true,
   "scripts": {
     "dev": "vite-plugin-electron dev",
-    "build": "npm run clear-prefs && npm run build:main && npm run build:preload && npm run build:renderer",
+    "build": "npm run clear-prefs && npm run build:main && npm run build:clawd && npm run build:preload && npm run build:renderer",
     "build:main": "tsc -p tsconfig.main.json",
+    "build:clawd": "node -e \"const fs=require('fs'),path=require('path');const src=path.join(__dirname,'src/main/clawd'),dst=path.join(__dirname,'dist/main/clawd');function cp(s,d){fs.mkdirSync(d,{recursive:true});for(const f of fs.readdirSync(s)){const sp=path.join(s,f),dp=path.join(d,f),st=fs.statSync(sp);if(st.isDirectory())cp(sp,dp);else fs.copyFileSync(sp,dp)}}cp(src,dst);console.log('copied clawd to dist/main/clawd')\"",
     "build:preload": "tsc -p tsconfig.preload.json",
     "build:renderer": "vite build",
     "typecheck": "tsc --noEmit",

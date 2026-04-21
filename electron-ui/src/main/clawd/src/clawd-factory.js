@@ -21,9 +21,6 @@ const animationCycle = require("./animation-cycle");
 const { findNearestWorkArea, computeLooseClamp, SYNTHETIC_WORK_AREA } = require("./work-area");
 const { getLaunchSizingWorkArea, getProportionalPixelSize } = require("./size-utils");
 
-// ── Autoplay policy: allow sound playback without user gesture ──
-app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
-
 const isMac = process.platform === "darwin";
 const isLinux = process.platform === "linux";
 const isWin = process.platform === "win32";
