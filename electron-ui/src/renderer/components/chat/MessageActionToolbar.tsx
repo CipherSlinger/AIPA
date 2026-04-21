@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { StandardChatMessage } from '../../types/app.types'
-import { Copy, Check, Bookmark, Code2, Pencil, MessageSquareQuote, NotebookPen, Volume2, VolumeX, Brain, Share2, Pin, Languages, StickyNote, ThumbsUp, ThumbsDown, Undo2, ChevronDown, FileText, Braces, GitBranch } from 'lucide-react'
+import { Copy, Check, Bookmark, Code2, Pencil, MessageSquareQuote, NotebookPen, Volume2, VolumeX, Brain, Pin, Languages, StickyNote, ThumbsUp, ThumbsDown, Undo2, ChevronDown, FileText, Braces, GitBranch } from 'lucide-react'
 import { useT } from '../../i18n'
 
 // ---------- ActionButton ----------
@@ -107,7 +107,6 @@ interface MessageActionToolbarProps {
   onQuote: () => void
   onSaveAsNote: () => void
   onRememberThis: () => void
-  onShare: () => void
   onPin: () => void
   onTranslate: () => void
   onReadAloud?: () => void
@@ -129,7 +128,7 @@ interface MessageActionToolbarProps {
 export default function MessageActionToolbar({
   isUser, isAssistant, isPermission, isPlan, message,
   copied, showRawMarkdown, globalIsStreaming,
-  onToggleRawMarkdown, onStartEdit, onCopy, onBookmark, onQuote, onSaveAsNote, onRememberThis, onShare, onPin, onTranslate, onReadAloud, isSpeaking,
+  onToggleRawMarkdown, onStartEdit, onCopy, onBookmark, onQuote, onSaveAsNote, onRememberThis, onPin, onTranslate, onReadAloud, isSpeaking,
   hasOnEdit,
   onAnnotate, hasAnnotation,
   onRate,
@@ -375,16 +374,6 @@ export default function MessageActionToolbar({
           title={t('message.translateMessage')}
         >
           <Languages size={13} />
-        </ActionButton>
-      )}
-
-      {/* Share */}
-      {!isPermission && !isPlan && message.content && (
-        <ActionButton
-          onClick={(e) => { e.stopPropagation(); onShare() }}
-          title={t('message.shareMessage')}
-        >
-          <Share2 size={13} />
         </ActionButton>
       )}
 

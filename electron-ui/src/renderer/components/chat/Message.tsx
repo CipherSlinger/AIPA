@@ -82,7 +82,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   // Extracted actions hook
   const {
     copied, handleCopy, handleQuote, handleBookmarkAction,
-    handleCopyMarkdown, handleCopyRichText, handleSaveAsNote, handleRememberThis, handleShare, handlePin, handleDoubleClick, handleTranslate, handleCopyCodeBlocks,
+    handleCopyMarkdown, handleCopyRichText, handleSaveAsNote, handleRememberThis, handlePin, handleDoubleClick, handleTranslate, handleCopyCodeBlocks,
   } = useMessageActions({ message, isPermission, isPlan })
 
   // Copy flash effect: briefly highlight bubble border after copy (Iteration 453)
@@ -377,7 +377,6 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             onCopy={handleCopy}
             onBookmark={() => handleBookmarkAction(onBookmark)}
             onQuote={handleQuote}
-            onShare={handleShare}
             onPin={handlePin}
             onTranslate={handleTranslate}
             onSaveAsNote={handleSaveAsNote}

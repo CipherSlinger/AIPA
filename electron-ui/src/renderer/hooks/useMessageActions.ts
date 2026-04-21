@@ -145,17 +145,6 @@ export function useMessageActions({ message, isPermission, isPlan }: UseMessageA
     addToast('success', t('message.savedToMemory'))
   }, [message, addToast, t])
 
-  const handleShare = useCallback(() => {
-    const text = (message as StandardChatMessage).content
-    if (!text) return
-    const date = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
-    const role = message.role === 'user' ? 'User' : 'AIPA'
-    const shareText = `${role} — ${date}:\n\n${text}`
-    navigator.clipboard.writeText(shareText).then(() => {
-      addToast('success', t('message.messageCopiedAsShare'))
-    })
-  }, [message, addToast, t])
-
   const handlePin = useCallback(() => {
     const togglePin = useChatStore.getState().togglePin
     togglePin(message.id)
@@ -210,7 +199,6 @@ export function useMessageActions({ message, isPermission, isPlan }: UseMessageA
     handleCopyRichText,
     handleSaveAsNote,
     handleRememberThis,
-    handleShare,
     handlePin,
     handleDoubleClick,
     handleTranslate,
