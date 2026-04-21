@@ -103,16 +103,12 @@ function createWindow(): void {
   mainWindow.on('unmaximize', saveBounds)
 
   // Register IPC handlers BEFORE loading the renderer to eliminate race conditions.
-  // Previously, handlers were registered AFTER loadFile(), which could cause
-  // ipcRenderer.invoke() to hang indefinitely if the renderer loaded from cache
-  // faster than the main process could register handlers.
   registerAllHandlers(mainWindow)
 
-  // Initialize embedded clawd desktop pet (if enabled in preferences)
-  try { initClawdIntegration(mainWindow) } catch (err) {
-    log.warn('initClawdIntegration failed (non-fatal):', String(err))
-  }
-
+  // Load renderer first — defer heavy clawd init until after renderer is ready.
+  // Calling initClawdIntegration synchronously here would block the event loop
+  // for seconds (window creation, theme loading, HTTP server, tick loop, etc.),
+  // preventing loadFile/loadURL from rendering and causing a black screen.
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173')
     mainWindow.webContents.openDevTools()
@@ -127,6 +123,15 @@ function createWindow(): void {
     })
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
   }
+
+  // Initialize embedded clawd desktop pet AFTER renderer has started loading.
+  // setImmediate yields to the event loop so loadFile can begin rendering.
+  setImmediate(() => {
+    if (!mainWindow) return
+    try { initClawdIntegration(mainWindow) } catch (err) {
+      log.warn('initClawdIntegration failed (non-fatal):', String(err))
+    }
+  })
 
   // Detect renderer load failure and attempt recovery
   let loadResolved = false

@@ -216,6 +216,7 @@ function getObjRect(bounds) {
 
 let win;
 let hitWin;
+let _aipaMainWindow = null;  // AIPA main window, used as parent for taskbar merge
 let tray = null;
 let contextMenuOwner = null;
 let currentSize = _settingsController.get("size");
@@ -1238,6 +1239,7 @@ function createWindow() {
     frame: false, transparent: true, alwaysOnTop: true, resizable: false,
     skipTaskbar: true, hasShadow: false, fullscreenable: false,
     enableLargerThanScreen: true,
+    parent: _aipaMainWindow,
     ...(isLinux ? { type: LINUX_WINDOW_TYPE } : {}),
     ...(isMac ? { type: "panel", roundedCorners: false } : {}),
     webPreferences: {
@@ -1295,6 +1297,7 @@ function createWindow() {
       frame: false, transparent: true, alwaysOnTop: true, resizable: false,
       skipTaskbar: true, hasShadow: false, fullscreenable: false,
       enableLargerThanScreen: true,
+      parent: _aipaMainWindow,
       ...(isLinux ? { type: LINUX_WINDOW_TYPE } : {}),
       ...(isMac ? { type: "panel", roundedCorners: false } : {}),
       focusable: !isLinux,
@@ -1632,13 +1635,16 @@ function installTerminalFocusExtension() {
 // ── Factory export ──
 module.exports = function createClawdIntegration(aipaContext) {
   // aipaContext: { mainWindow, isQuitting: () => boolean, onQuit: (fn) => void }
-  const { isQuitting: isAipaQuitting, onQuit } = aipaContext;
+  const { mainWindow, isQuitting: isAipaQuitting, onQuit } = aipaContext
 
   // Wire AIPA's quit state into clawd's isQuitting
   Object.defineProperty(global, '__clawdIsQuitting', {
     get: () => isAipaQuitting(),
     configurable: true,
   });
+
+  // Store AIPA main window for parent-child relationship (taskbar merge)
+  _aipaMainWindow = mainWindow;
 
   // Register cleanup
   onQuit(() => {
