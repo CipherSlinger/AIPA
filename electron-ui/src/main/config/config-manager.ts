@@ -23,6 +23,8 @@ interface StoreSchema {
   activeProviderId: string
   // Window state persistence (Iteration 325)
   windowBounds: { x: number; y: number; width: number; height: number; isMaximized: boolean } | null
+  // Clawd desktop pet (Iteration 685)
+  clawdEnabled: boolean
 }
 
 const store = new Store<StoreSchema>({
@@ -44,6 +46,7 @@ const store = new Store<StoreSchema>({
     modelProviders: [],
     activeProviderId: 'claude-cli',
     windowBounds: null,
+    clawdEnabled: true,
   },
   // Removed hardcoded encryptionKey — API key is now encrypted via safeStorage
 })
