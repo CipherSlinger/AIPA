@@ -27,15 +27,49 @@ const isWin = process.platform === "win32";
 const LINUX_WINDOW_TYPE = "toolbar";
 
 
-// ── Windows: AllowSetForegroundWindow via FFI ──
-let _allowSetForeground = null;
+// ── Windows: FFI for taskbar/window style manipulation ──
+let _winStyleFixers = null;
 if (isWin) {
   try {
     const koffi = require("koffi");
     const user32 = koffi.load("user32.dll");
     _allowSetForeground = user32.func("bool __stdcall AllowSetForegroundWindow(int dwProcessId)");
+    _winStyleFixers = {
+      getWindowLongPtrW: user32.func("int __stdcall GetWindowLongPtrW(pointer hWnd, int nIndex)"),
+      setWindowLongPtrW: user32.func("int __stdcall SetWindowLongPtrW(pointer hWnd, int nIndex, int dwNewLong)"),
+      setWindowPos: user32.func("bool __stdcall SetWindowPos(pointer hWnd, pointer hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags)"),
+    };
   } catch (err) {
-    console.warn("Clawd: koffi/AllowSetForegroundWindow not available:", err.message);
+    console.warn("Clawd: koffi FFI not available:", err.message);
+  }
+}
+
+// On Windows, transparent/frameless windows get WS_EX_APPWINDOW even when
+// skipTaskbar is set. This helper strips APPWINDOW and adds TOOLWINDOW.
+const GWL_EXSTYLE = -20;
+const WS_EX_APPWINDOW = 0x00040000;
+const WS_EX_TOOLWINDOW = 0x00000080;
+const HWND_TOP = 0;
+const SWP_NOMOVE = 0x0002;
+const SWP_NOSIZE = 0x0001;
+const SWP_FRAMECHANGED = 0x0020;
+const SWP_NOACTIVATE = 0x0010;
+
+function fixWinTaskbar(browserWin) {
+  if (!isWin || !_winStyleFixers) return;
+  try {
+    const hwnd = browserWin.getNativeWindowHandle ? browserWin.getNativeWindowHandle() : null;
+    if (!hwnd) return;
+    const exStyle = _winStyleFixers.getWindowLongPtrW(hwnd, GWL_EXSTYLE);
+    const newExStyle = (exStyle & ~WS_EX_APPWINDOW) | WS_EX_TOOLWINDOW;
+    if (newExStyle === exStyle) return; // already correct
+    _winStyleFixers.setWindowLongPtrW(hwnd, GWL_EXSTYLE, newExStyle);
+    // Force the WM to re-read the extended style
+    _winStyleFixers.setWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0,
+      SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED | SWP_NOACTIVATE);
+    console.log("Clawd: fixed taskbar style for", browserWin.getTitle ? browserWin.getTitle() : "pet window");
+  } catch (err) {
+    console.warn("Clawd: failed to fix taskbar style:", err.message);
   }
 }
 
@@ -1266,9 +1300,6 @@ function createWindow() {
 
   if (isWin) {
     win.setAlwaysOnTop(true, WIN_TOPMOST_LEVEL);
-    // On Windows, setSkipTaskbar must be called AFTER setAlwaysOnTop
-    // and AFTER showInactive() to prevent the taskbar from re-adding it.
-    win.setSkipTaskbar(true);
   }
 
   // On Linux, setSkipTaskbar must be called BEFORE showInactive().
@@ -1277,9 +1308,13 @@ function createWindow() {
   win.loadFile(path.join(__dirname, "index.html"));
   win.showInactive();
 
-  // On Windows, call setSkipTaskbar again AFTER showInactive() to ensure
-  // the WM respects the hint after the window becomes visible.
+  // On Windows, use FFI to strip WS_EX_APPWINDOW and add WS_EX_TOOLWINDOW
+  // so the transparent pet window doesn't get its own taskbar button.
+  if (isWin) fixWinTaskbar(win);
+
+  // Also set skipTaskbar as a belt-and-suspenders measure
   if (isWin) win.setSkipTaskbar(true);
+
   reapplyMacVisibility();
 
   if (isMac) {
@@ -1325,14 +1360,15 @@ function createWindow() {
       hitWin.setAlwaysOnTop(true, WIN_TOPMOST_LEVEL);
     }
 
-    // CRITICAL: setSkipTaskbar must be called BEFORE showInactive() on Linux.
-    hitWin.setSkipTaskbar(true);
+    // On Linux, setSkipTaskbar must be called BEFORE showInactive().
+    if (isLinux) hitWin.setSkipTaskbar(true);
 
     reapplyMacVisibility();
     hitWin.loadFile(path.join(__dirname, "hit.html"));
     hitWin.showInactive();
 
-    // On Windows, call setSkipTaskbar again AFTER showInactive().
+    // On Windows, use FFI to strip WS_EX_APPWINDOW and add WS_EX_TOOLWINDOW.
+    if (isWin) fixWinTaskbar(hitWin);
     if (isWin) hitWin.setSkipTaskbar(true);
 
     if (isWin) guardAlwaysOnTop(hitWin);

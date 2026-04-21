@@ -482,9 +482,10 @@ function registerGlobalHotkey(): void {
 
 app.whenReady().then(() => {
   // Ensure Windows groups all windows from this process under one taskbar button.
-  // Must be called before any BrowserWindow is created.
+  // Must match the appId used in electron-builder.yml and be set before any
+  // BrowserWindow is created.
   if (process.platform === 'win32') {
-    app.setAppUserModelId('AIPA')
+    app.setAppUserModelId('com.anthropic.claude-code-ui')
   }
 
   try {
