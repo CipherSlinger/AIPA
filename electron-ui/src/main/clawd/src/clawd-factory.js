@@ -1266,11 +1266,14 @@ function createWindow() {
 
   if (isWin) {
     win.setAlwaysOnTop(true, WIN_TOPMOST_LEVEL);
-    win.setSkipTaskbar(true);
   }
+
+  // CRITICAL: setSkipTaskbar must be called BEFORE showInactive() on Linux,
+  // otherwise the WM has already added the window to the taskbar.
+  win.setSkipTaskbar(true);
+
   win.loadFile(path.join(__dirname, "index.html"));
   win.showInactive();
-  if (isLinux) win.setSkipTaskbar(true);
   reapplyMacVisibility();
 
   if (isMac) {
@@ -1312,14 +1315,16 @@ function createWindow() {
     hitWin.setShape([{ x: 0, y: 0, width: hw, height: hh }]);
     hitWin.setIgnoreMouseEvents(false);
     if (isMac) hitWin.setFocusable(false);
-    hitWin.showInactive();
-    if (isLinux) hitWin.setSkipTaskbar(true);
     if (isWin) {
       hitWin.setAlwaysOnTop(true, WIN_TOPMOST_LEVEL);
-      hitWin.setSkipTaskbar(true);
     }
+
+    // CRITICAL: setSkipTaskbar must be called BEFORE showInactive() on Linux.
+    hitWin.setSkipTaskbar(true);
+
     reapplyMacVisibility();
     hitWin.loadFile(path.join(__dirname, "hit.html"));
+    hitWin.showInactive();
     if (isWin) guardAlwaysOnTop(hitWin);
 
     const syncFloatingWindows = () => { syncHitWin(); if (bubbleFollowPet) repositionFloatingBubbles(); else repositionUpdateBubble(); };
