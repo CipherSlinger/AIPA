@@ -481,6 +481,12 @@ function registerGlobalHotkey(): void {
 }
 
 app.whenReady().then(() => {
+  // Ensure Windows groups all windows from this process under one taskbar button.
+  // Must be called before any BrowserWindow is created.
+  if (process.platform === 'win32') {
+    app.setAppUserModelId('AIPA')
+  }
+
   try {
     setupCSP()
   } catch (err) {

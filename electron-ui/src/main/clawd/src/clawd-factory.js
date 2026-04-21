@@ -1236,7 +1236,7 @@ function createWindow() {
 
   win = new BrowserWindow({
     width: size.width, height: size.height, x: startX, y: startY,
-    frame: false, transparent: true, alwaysOnTop: true, resizable: false,
+    frame: false, transparent: true, resizable: false,
     skipTaskbar: true, hasShadow: false, fullscreenable: false,
     enableLargerThanScreen: true,
     parent: _aipaMainWindow,
@@ -1266,14 +1266,20 @@ function createWindow() {
 
   if (isWin) {
     win.setAlwaysOnTop(true, WIN_TOPMOST_LEVEL);
+    // On Windows, setSkipTaskbar must be called AFTER setAlwaysOnTop
+    // and AFTER showInactive() to prevent the taskbar from re-adding it.
+    win.setSkipTaskbar(true);
   }
 
-  // CRITICAL: setSkipTaskbar must be called BEFORE showInactive() on Linux,
-  // otherwise the WM has already added the window to the taskbar.
-  win.setSkipTaskbar(true);
+  // On Linux, setSkipTaskbar must be called BEFORE showInactive().
+  if (isLinux) win.setSkipTaskbar(true);
 
   win.loadFile(path.join(__dirname, "index.html"));
   win.showInactive();
+
+  // On Windows, call setSkipTaskbar again AFTER showInactive() to ensure
+  // the WM respects the hint after the window becomes visible.
+  if (isWin) win.setSkipTaskbar(true);
   reapplyMacVisibility();
 
   if (isMac) {
@@ -1297,7 +1303,7 @@ function createWindow() {
 
     hitWin = new BrowserWindow({
       width: hw, height: hh, x: hx, y: hy,
-      frame: false, transparent: true, alwaysOnTop: true, resizable: false,
+      frame: false, transparent: true, resizable: false,
       skipTaskbar: true, hasShadow: false, fullscreenable: false,
       enableLargerThanScreen: true,
       parent: _aipaMainWindow,
@@ -1325,6 +1331,10 @@ function createWindow() {
     reapplyMacVisibility();
     hitWin.loadFile(path.join(__dirname, "hit.html"));
     hitWin.showInactive();
+
+    // On Windows, call setSkipTaskbar again AFTER showInactive().
+    if (isWin) hitWin.setSkipTaskbar(true);
+
     if (isWin) guardAlwaysOnTop(hitWin);
 
     const syncFloatingWindows = () => { syncHitWin(); if (bubbleFollowPet) repositionFloatingBubbles(); else repositionUpdateBubble(); };
