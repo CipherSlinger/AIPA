@@ -337,6 +337,10 @@ const electronAPI = {
     ipcRenderer.invoke('clawd:isRunning') as Promise<{ running: boolean }>,
   clawdGetInitError: () =>
     ipcRenderer.invoke('clawd:getInitError') as Promise<{ error: string | null }>,
+  clawdGetPrefs: () =>
+    ipcRenderer.invoke('clawd:getPrefs') as Promise<{ prefs: Record<string, unknown> }>,
+  clawdSetPrefs: (key: string, value: unknown) =>
+    ipcRenderer.invoke('clawd:setPrefs', key, value) as Promise<{ success: boolean; error?: string }>,
 }
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI)

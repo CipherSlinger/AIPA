@@ -730,4 +730,38 @@ function registerClawdHandlers(): void {
   safeHandle('clawd:getInitError', async () => {
     return { error: getClawdInitError() }
   })
+
+  // Read/write clawd prefs from the embedded pet's prefs file
+  safeHandle('clawd:getPrefs', async () => {
+    try {
+      const prefsPath = path.join(app.getPath('userData'), 'clawd-prefs.json')
+      const raw = JSON.parse(fs.readFileSync(prefsPath, 'utf8'))
+      return { prefs: raw }
+    } catch {
+      return { prefs: {} }
+    }
+  })
+
+  safeHandle('clawd:setPrefs', async (_e, key: string, value: unknown) => {
+    try {
+      const prefsPath = path.join(app.getPath('userData'), 'clawd-prefs.json')
+      let prefs: Record<string, unknown> = {}
+      try { prefs = JSON.parse(fs.readFileSync(prefsPath, 'utf8')) } catch {}
+      prefs[key] = value
+      fs.writeFileSync(prefsPath, JSON.stringify(prefs, null, 2))
+
+      // Notify the running clawd instance to apply the change immediately
+      // via its settings controller IPC handler
+      try {
+        const mainWindow = BrowserWindow.getAllWindows()[0]
+        if (mainWindow) {
+          mainWindow.webContents.send('clawd:prefsChanged', key, value)
+        }
+      } catch { /* best-effort */ }
+
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: String(err) }
+    }
+  })
 }

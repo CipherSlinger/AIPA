@@ -64,6 +64,22 @@ export default function SettingsGeneral({
   type ClawdStatus = 'checking' | 'running' | 'stopped'
   const [clawdStatus, setClawdStatus] = useState<ClawdStatus>('stopped')
   const [clawdError, setClawdError] = useState<string | null>(null)
+  // clawd pet settings
+  const [petPrefs, setPetPrefs] = useState<Record<string, unknown>>({})
+
+  // Load clawd pet prefs when clawd is enabled
+  useEffect(() => {
+    if (!local.clawdEnabled) return
+    window.electronAPI.clawdGetPrefs?.().then(r => {
+      if (r?.prefs) setPetPrefs(r.prefs)
+    }).catch(() => {})
+  }, [local.clawdEnabled])
+
+  // Helper to update a clawd pet pref
+  const updatePetPref = (key: string, value: unknown) => {
+    setPetPrefs(prev => ({ ...prev, [key]: value }))
+    window.electronAPI.clawdSetPrefs?.(key, value).catch(() => {})
+  }
 
   useEffect(() => {
     window.electronAPI.configReadCLISettings().then((cliSettings: Record<string, unknown>) => {
@@ -542,90 +558,34 @@ export default function SettingsGeneral({
           t('effort.preventSleepHint')
         )}
 
-        {/* Clawd desktop pet row with status indicator */}
+        {/* Clawd desktop pet — toggle + settings */}
         {(() => {
-          const statusDot = (() => {
-            if (!local.clawdEnabled) return null
-            if (clawdStatus === 'checking') {
-              return (
-                <span
-                  title="正在检查..."
-                  style={{
-                    display: 'inline-block',
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    background: '#f97316',
-                    marginLeft: 6,
-                    flexShrink: 0,
-                    animation: 'pulse 1.2s ease-in-out infinite',
-                  }}
-                />
-              )
-            }
-            if (clawdStatus === 'running') {
-              return (
-                <span
-                  title="桌宠运行中"
-                  style={{
-                    display: 'inline-block',
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    background: '#22c55e',
-                    marginLeft: 6,
-                    flexShrink: 0,
-                  }}
-                />
-              )
-            }
-            return (
-              <span
-                title="桌宠未启动"
-                style={{
-                  display: 'inline-block',
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  background: 'var(--text-muted)',
-                  marginLeft: 6,
-                  flexShrink: 0,
-                }}
-              />
-            )
-          })()
-
-          const statusText = (() => {
-            if (!local.clawdEnabled) return null
-            if (clawdStatus === 'running') {
-              return (
-                <div style={{ fontSize: 11, color: '#22c55e', marginTop: 3, lineHeight: 1.5 }}>
-                  桌宠运行中
-                </div>
-              )
-            }
-            if (clawdStatus === 'stopped') {
-              return clawdError ? null : (
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.5 }}>
-                  桌宠未启动
-                </div>
-              )
-            }
-            return null
-          })()
+          // Resolve pet size: "P:8"=S, "P:10"=M, "P:15"=L (or legacy S/M/L)
+          const rawSize = (petPrefs.size as string) || 'P:10'
+          const sizeValue = rawSize.startsWith('P:') ? Number(rawSize.slice(2)) : rawSize === 'S' ? 8 : rawSize === 'L' ? 15 : 10
+          const sizeLabel = sizeValue <= 8 ? 'S' : sizeValue <= 10 ? 'M' : 'L'
+          const petLang = (petPrefs.lang as string) || 'en'
 
           return (
             <div style={{ marginBottom: 14 }}>
+              {/* Toggle row */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', display: 'flex', alignItems: 'center' }}>
-                    桌宠 / Desktop Pet (Clawd)
-                    {statusDot}
+                  <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>
+                    桌宠 / Desktop Pet
+                    {clawdStatus === 'running' && (
+                      <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#22c55e', marginLeft: 6, flexShrink: 0 }} />
+                    )}
+                    {clawdStatus === 'checking' && (
+                      <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#f97316', marginLeft: 6, flexShrink: 0, animation: 'pulse 1.2s ease-in-out infinite' }} />
+                    )}
+                    {clawdStatus === 'stopped' && (
+                      <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--text-muted)', marginLeft: 6, flexShrink: 0 }} />
+                    )}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.5 }}>
                     Show Clawd desktop pet that reacts to AI session state
                   </div>
-                  {statusText}
                   {clawdError && (
                     <div style={{ fontSize: 11, color: '#ef4444', marginTop: 3, lineHeight: 1.5 }}>
                       {clawdError}
@@ -641,10 +601,7 @@ export default function SettingsGeneral({
                       setClawdStatus('checking')
                       try {
                         await window.electronAPI.clawdLaunch?.()
-                      } catch {
-                        // launch errors are non-fatal
-                      }
-                      // After 2s, check if it actually started
+                      } catch { /* non-fatal */ }
                       setTimeout(async () => {
                         try {
                           const result = await window.electronAPI.clawdIsRunning?.()
@@ -654,24 +611,112 @@ export default function SettingsGeneral({
                             setClawdStatus('stopped')
                             try {
                               const errResult = await window.electronAPI.clawdGetInitError?.()
-                              if (errResult?.error) {
-                                setClawdError(errResult.error.slice(0, 300))
-                              } else {
-                                setClawdError('无法启动桌宠进程')
-                              }
-                            } catch {
-                              setClawdError('无法启动桌宠进程')
-                            }
+                              if (errResult?.error) setClawdError(errResult.error.slice(0, 300))
+                              else setClawdError('无法启动桌宠进程')
+                            } catch { setClawdError('无法启动桌宠进程') }
                           }
-                        } catch {
-                          setClawdStatus('stopped')
-                          setClawdError('无法启动桌宠进程')
-                        }
+                        } catch { setClawdStatus('stopped'); setClawdError('无法启动桌宠进程') }
                       }, 2000)
                     }
                   }}
                 />
               </div>
+
+              {/* Pet settings panel — shown when enabled */}
+              {local.clawdEnabled && (
+                <div style={{ marginTop: 12, padding: 12, borderRadius: 8, background: 'var(--glass-bg-low, rgba(255,255,255,0.03))', border: '1px solid var(--border, rgba(255,255,255,0.08))' }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>
+                    {t('settings.petSettings')}
+                  </div>
+
+                  {/* Pet Size */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: 'var(--text-primary)' }}>{t('settings.petSize')}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('settings.petSizeHint')}</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      {(['S', 'M', 'L'] as const).map(s => (
+                        <button
+                          key={s}
+                          onClick={() => updatePetPref('size', s === 'S' ? 'P:8' : s === 'M' ? 'P:10' : 'P:15')}
+                          style={{
+                            padding: '2px 10px', fontSize: 11, borderRadius: 4, border: '1px solid',
+                            borderColor: sizeLabel === s ? 'var(--accent, #6366f1)' : 'var(--border)',
+                            background: sizeLabel === s ? 'var(--accent, #6366f1)' : 'transparent',
+                            color: sizeLabel === s ? '#fff' : 'var(--text-primary)',
+                            cursor: 'pointer', fontWeight: sizeLabel === s ? 600 : 400,
+                          }}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Language */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: 'var(--text-primary)' }}>{t('settings.petLanguage')}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('settings.petLanguageHint')}</div>
+                    </div>
+                    <select
+                      value={petLang}
+                      onChange={e => updatePetPref('lang', e.target.value)}
+                      style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                    >
+                      <option value="en">English</option>
+                      <option value="zh">中文</option>
+                      <option value="ko">한국어</option>
+                    </select>
+                  </div>
+
+                  {/* Sound Muted */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: 'var(--text-primary)' }}>{t('settings.petSoundMuted')}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('settings.petSoundMutedHint')}</div>
+                    </div>
+                    <Toggle value={petPrefs.soundMuted === true} onChange={v => updatePetPref('soundMuted', v)} />
+                  </div>
+
+                  {/* Do Not Disturb */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: 'var(--text-primary)' }}>{t('settings.petDoNotDisturb')}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('settings.petDoNotDisturbHint')}</div>
+                    </div>
+                    <Toggle value={petPrefs.doNotDisturb === true} onChange={v => updatePetPref('doNotDisturb', v)} />
+                  </div>
+
+                  {/* Hide Bubbles */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: 'var(--text-primary)' }}>{t('settings.petHideBubbles')}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('settings.petHideBubblesHint')}</div>
+                    </div>
+                    <Toggle value={petPrefs.hideBubbles === true} onChange={v => updatePetPref('hideBubbles', v)} />
+                  </div>
+
+                  {/* Bubbles Follow Pet */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: 'var(--text-primary)' }}>气泡跟随桌宠</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>权限气泡跟随桌宠移动</div>
+                    </div>
+                    <Toggle value={petPrefs.bubbleFollowPet === true} onChange={v => updatePetPref('bubbleFollowPet', v)} />
+                  </div>
+
+                  {/* Show Tray */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: 'var(--text-primary)' }}>{t('settings.petShowTray')}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('settings.petShowTrayHint')}</div>
+                    </div>
+                    <Toggle value={petPrefs.showTray !== false} onChange={v => updatePetPref('showTray', v)} />
+                  </div>
+                </div>
+              )}
             </div>
           )
         })()}

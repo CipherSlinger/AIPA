@@ -1262,7 +1262,10 @@ function createWindow() {
     });
   }
 
-  if (isWin) { win.setAlwaysOnTop(true, WIN_TOPMOST_LEVEL); }
+  if (isWin) {
+    win.setAlwaysOnTop(true, WIN_TOPMOST_LEVEL);
+    win.setSkipTaskbar(true);
+  }
   win.loadFile(path.join(__dirname, "index.html"));
   win.showInactive();
   if (isLinux) win.setSkipTaskbar(true);
@@ -1308,7 +1311,10 @@ function createWindow() {
     if (isMac) hitWin.setFocusable(false);
     hitWin.showInactive();
     if (isLinux) hitWin.setSkipTaskbar(true);
-    if (isWin) { hitWin.setAlwaysOnTop(true, WIN_TOPMOST_LEVEL); }
+    if (isWin) {
+      hitWin.setAlwaysOnTop(true, WIN_TOPMOST_LEVEL);
+      hitWin.setSkipTaskbar(true);
+    }
     reapplyMacVisibility();
     hitWin.loadFile(path.join(__dirname, "hit.html"));
     if (isWin) guardAlwaysOnTop(hitWin);
