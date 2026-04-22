@@ -1253,7 +1253,7 @@ function createWindow() {
 
   // On Windows, create a hidden owner window with TOOLWINDOW style.
   // Pet windows use this as parent to avoid getting taskbar buttons.
-  if (isWin) createHiddenOwnerWin(_aipaMainWindow);
+  if (isWin) createHiddenOwnerWindow(_aipaMainWindow);
 
   win = new BrowserWindow({
     width: size.width, height: size.height, x: startX, y: startY,
