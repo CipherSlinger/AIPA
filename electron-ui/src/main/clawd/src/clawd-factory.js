@@ -27,34 +27,59 @@ const isWin = process.platform === "win32";
 const LINUX_WINDOW_TYPE = "toolbar";
 
 
-// ── Windows: AllowSetForegroundWindow via FFI ──
-let _allowSetForeground = null;
+// ── Windows: FFI for taskbar hiding ──
+// On Windows, transparent BrowserWindows get WS_EX_APPWINDOW style which
+// forces a taskbar button. setSkipTaskbar(true) is unreliable. We directly
+// strip WS_EX_APPWINDOW and add WS_EX_TOOLWINDOW via SetWindowLongPtrW.
+const GWL_EXSTYLE = -20;
+const WS_EX_APPWINDOW = 0x00040000;
+const WS_EX_TOOLWINDOW = 0x00000080;
+
+let _win32ffi = null;
 if (isWin) {
   try {
     const koffi = require("koffi");
     const user32 = koffi.load("user32.dll");
-    _allowSetForeground = user32.func("bool __stdcall AllowSetForegroundWindow(dword dwProcessId)");
+    _win32ffi = {
+      GetWindowLongPtrW: user32.func("long_ptr __stdcall GetWindowLongPtrW(pointer hWnd, int nIndex)"),
+      SetWindowLongPtrW: user32.func("long_ptr __stdcall SetWindowLongPtrW(pointer hWnd, int nIndex, long_ptr dwNewLong)"),
+      ShowWindow: user32.func("bool __stdcall ShowWindow(pointer hWnd, int nCmdShow)"),
+      AllowSetForegroundWindow: user32.func("bool __stdcall AllowSetForegroundWindow(dword dwProcessId)"),
+      // For getting native HWND from BrowserWindow
+      GetAncestor: user32.func("pointer __stdcall GetAncestor(pointer hWnd, uint gaFlags)"),
+    };
+    // Get root window flag — needed to get the real HWND from Electron's BrowserWindow
+    _win32ffi.GA_ROOT = 2;
   } catch (err) {
-    console.warn("Clawd: koffi/AllowSetForegroundWindow not available:", err.message);
+    console.warn("Clawd: koffi FFI not available:", err.message);
   }
 }
 
-// On Windows, transparent BrowserWindows get WS_EX_APPWINDOW style which
-// forces a taskbar button. We create a hidden "owner" window with
-// WS_EX_TOOLWINDOW style and set it as the parent of the pet windows.
-// This causes Windows to treat the pet windows as tool windows (no taskbar
-// button) while still keeping them on top of the desktop.
-let _hiddenOwnerWin = null;
-function createHiddenOwnerWindow(parentWin) {
-  if (!isWin) return null;
-  _hiddenOwnerWin = new BrowserWindow({
-    width: 1, height: 1, x: -10000, y: -10000,
-    show: false, frame: false, skipTaskbar: true,
-    type: "toolbar", resizable: false,
-    parent: parentWin,
-  });
-  return _hiddenOwnerWin;
+/**
+ * Strip WS_EX_APPWINDOW and add WS_EX_TOOLWINDOW to hide a window from
+ * the Windows taskbar. Must be called AFTER the window is shown.
+ */
+function forceHideFromTaskbarWin(browserWin) {
+  if (!isWin || !_win32ffi) return;
+  try {
+    // Electron's getNativeWindowHandle() returns a 4-byte (or 8-byte) buffer
+    const buf = browserWin.getNativeWindowHandle();
+    const hwnd = buf.readUInt32LE(0);
+    const exStyle = _win32ffi.GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+    const newExStyle = (exStyle & ~WS_EX_APPWINDOW) | WS_EX_TOOLWINDOW;
+    if (newExStyle !== exStyle) {
+      _win32ffi.SetWindowLongPtrW(hwnd, GWL_EXSTYLE, newExStyle);
+      console.log("Clawd: forceHideFromTaskbar — changed exStyle from",
+        "0x" + exStyle.toString(16), "→", "0x" + newExStyle.toString(16));
+      // Force the change to take effect by briefly hiding and showing
+      _win32ffi.ShowWindow(hwnd, 0); // SW_HIDE
+      _win32ffi.ShowWindow(hwnd, 5); // SW_SHOW
+    }
+  } catch (err) {
+    console.warn("Clawd: forceHideFromTaskbar failed:", err.message);
+  }
 }
+
 
 
 // ── Window size presets ──
@@ -610,6 +635,7 @@ const _tick = require("./tick")(_tickCtx);
 const { startMainTick, resetIdleTimer } = _tick;
 
 // ── Terminal focus ──
+const _allowSetForeground = _win32ffi ? _win32ffi.AllowSetForegroundWindow : null;
 const _focus = require("./focus")({ _allowSetForeground });
 const { initFocusHelper, killFocusHelper, focusTerminalWindow, clearMacFocusCooldownTimer } = _focus;
 
@@ -1251,16 +1277,12 @@ function createWindow() {
     startY = workArea.y + workArea.height - size.height - 20;
   }
 
-  // On Windows, create a hidden owner window with TOOLWINDOW style.
-  // Pet windows use this as parent to avoid getting taskbar buttons.
-  if (isWin) createHiddenOwnerWindow(_aipaMainWindow);
-
   win = new BrowserWindow({
     width: size.width, height: size.height, x: startX, y: startY,
     frame: false, transparent: true, resizable: false,
     skipTaskbar: true, hasShadow: false, fullscreenable: false,
     enableLargerThanScreen: true,
-    ...(isWin ? { parent: _hiddenOwnerWin } : { parent: _aipaMainWindow }),
+    parent: _aipaMainWindow,
     ...(isLinux ? { type: LINUX_WINDOW_TYPE } : {}),
     ...(isMac ? { type: "panel", roundedCorners: false } : {}),
     webPreferences: {
@@ -1295,16 +1317,17 @@ function createWindow() {
   win.loadFile(path.join(__dirname, "index.html"));
   win.showInactive();
 
-  // On Windows, setSkipTaskbar must be called AFTER showInactive() to
-  // counter the WS_EX_APPWINDOW style that transparent windows receive.
-  // Use a short delay to ensure the taskbar has processed the window.
+  // On Windows, directly modify the window's extended style to strip
+  // WS_EX_APPWINDOW (which forces a taskbar button on transparent windows)
+  // and add WS_EX_TOOLWINDOW (which hides it from the taskbar).
   if (isWin) {
     setTimeout(() => {
       if (win && !win.isDestroyed()) {
         win.setSkipTaskbar(true);
-        console.log("Clawd: win.setSkipTaskbar(true) called after showInactive");
+        forceHideFromTaskbarWin(win);
+        console.log("Clawd: win taskbar hidden (FFI + setSkipTaskbar)");
       }
-    }, 100);
+    }, 200);
   }
 
   reapplyMacVisibility();
@@ -1333,7 +1356,7 @@ function createWindow() {
       frame: false, transparent: true, resizable: false,
       skipTaskbar: true, hasShadow: false, fullscreenable: false,
       enableLargerThanScreen: true,
-      ...(isWin ? { parent: _hiddenOwnerWin } : { parent: _aipaMainWindow }),
+      parent: _aipaMainWindow,
       ...(isLinux ? { type: LINUX_WINDOW_TYPE } : {}),
       ...(isMac ? { type: "panel", roundedCorners: false } : {}),
       focusable: !isLinux,
@@ -1359,14 +1382,15 @@ function createWindow() {
     hitWin.loadFile(path.join(__dirname, "hit.html"));
     hitWin.showInactive();
 
-    // On Windows, delayed setSkipTaskbar to counter WS_EX_APPWINDOW.
+    // On Windows, directly modify the hit window's extended style.
     if (isWin) {
       setTimeout(() => {
         if (hitWin && !hitWin.isDestroyed()) {
           hitWin.setSkipTaskbar(true);
-          console.log("Clawd: hitWin.setSkipTaskbar(true) called after showInactive");
+          forceHideFromTaskbarWin(hitWin);
+          console.log("Clawd: hitWin taskbar hidden (FFI + setSkipTaskbar)");
         }
-      }, 100);
+      }, 300);
     }
 
     if (isWin) guardAlwaysOnTop(hitWin);
