@@ -41,10 +41,10 @@ if (isWin) {
     const koffi = require("koffi");
     const user32 = koffi.load("user32.dll");
     _win32ffi = {
-      GetWindowLongPtrW: user32.func("long_ptr __stdcall GetWindowLongPtrW(pointer hWnd, int nIndex)"),
-      SetWindowLongPtrW: user32.func("long_ptr __stdcall SetWindowLongPtrW(pointer hWnd, int nIndex, long_ptr dwNewLong)"),
+      GetWindowLongPtrW: user32.func("intptr __stdcall GetWindowLongPtrW(pointer hWnd, int nIndex)"),
+      SetWindowLongPtrW: user32.func("intptr __stdcall SetWindowLongPtrW(pointer hWnd, int nIndex, intptr dwNewLong)"),
       ShowWindow: user32.func("bool __stdcall ShowWindow(pointer hWnd, int nCmdShow)"),
-      AllowSetForegroundWindow: user32.func("bool __stdcall AllowSetForegroundWindow(dword dwProcessId)"),
+      AllowSetForegroundWindow: user32.func("bool __stdcall AllowSetForegroundWindow(unsigned int dwProcessId)"),
       // For getting native HWND from BrowserWindow
       GetAncestor: user32.func("pointer __stdcall GetAncestor(pointer hWnd, uint gaFlags)"),
     };
@@ -62,18 +62,23 @@ if (isWin) {
 function forceHideFromTaskbarWin(browserWin) {
   if (!isWin || !_win32ffi) return;
   try {
-    // Electron's getNativeWindowHandle() returns a 4-byte (or 8-byte) buffer
+    // Electron's getNativeWindowHandle() returns a Buffer with the HWND.
+    // On x64 it's 8 bytes; on x32 it's 4 bytes. Use the full pointer size.
     const buf = browserWin.getNativeWindowHandle();
-    const hwnd = buf.readUInt32LE(0);
+    let hwnd = buf.length >= 8 ? buf.readBigUInt64LE(0) : buf.readUInt32LE(0);
+    // Get the real root window (Electron may return a child HWND)
+    hwnd = _win32ffi.GetAncestor(hwnd, _win32ffi.GA_ROOT);
+    if (!hwnd) return;
     const exStyle = _win32ffi.GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
     const newExStyle = (exStyle & ~WS_EX_APPWINDOW) | WS_EX_TOOLWINDOW;
     if (newExStyle !== exStyle) {
       _win32ffi.SetWindowLongPtrW(hwnd, GWL_EXSTYLE, newExStyle);
       console.log("Clawd: forceHideFromTaskbar — changed exStyle from",
-        "0x" + exStyle.toString(16), "→", "0x" + newExStyle.toString(16));
-      // Force the change to take effect by briefly hiding and showing
+        "0x" + exStyle.toString(16), "to", "0x" + newExStyle.toString(16));
+      // Briefly hide/show to force Windows to re-evaluate taskbar presence
       _win32ffi.ShowWindow(hwnd, 0); // SW_HIDE
       _win32ffi.ShowWindow(hwnd, 5); // SW_SHOW
+      console.log("Clawd: forceHideFromTaskbar — done (hwnd:", hwnd + ")");
     }
   } catch (err) {
     console.warn("Clawd: forceHideFromTaskbar failed:", err.message);
