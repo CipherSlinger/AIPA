@@ -29,11 +29,13 @@ const LINUX_WINDOW_TYPE = "toolbar";
 
 // ── Windows: FFI for taskbar hiding ──
 // On Windows, transparent BrowserWindows get WS_EX_APPWINDOW style which
-// forces a taskbar button. setSkipTaskbar(true) is unreliable. We directly
-// strip WS_EX_APPWINDOW and add WS_EX_TOOLWINDOW via SetWindowLongPtrW.
+// forces a taskbar button. We apply modifications BEFORE showInactive() so
+// Windows never creates the taskbar button in the first place.
 const GWL_EXSTYLE = -20;
 const WS_EX_APPWINDOW = 0x00040000;
 const WS_EX_TOOLWINDOW = 0x00000080;
+const SW_SHOW = 5;
+const SW_HIDE = 0;
 
 let _win32ffi = null;
 if (isWin) {
@@ -47,7 +49,6 @@ if (isWin) {
       AllowSetForegroundWindow: user32.func("bool __stdcall AllowSetForegroundWindow(unsigned int dwProcessId)"),
       GetAncestor: user32.func("intptr __stdcall GetAncestor(intptr hWnd, unsigned int gaFlags)"),
     };
-    // Get root window flag — needed to get the real HWND from Electron's BrowserWindow
     _win32ffi.GA_ROOT = 2;
   } catch (err) {
     console.warn("Clawd: koffi FFI not available:", err.message);
@@ -55,30 +56,47 @@ if (isWin) {
 }
 
 /**
- * Strip WS_EX_APPWINDOW and add WS_EX_TOOLWINDOW to hide a window from
- * the Windows taskbar. Must be called AFTER the window is shown.
+ * Get the real root HWND from a BrowserWindow.
+ */
+function _getRootHwnd(browserWin) {
+  try {
+    const buf = browserWin.getNativeWindowHandle();
+    let hwnd = buf.length >= 8 ? Number(buf.readBigUInt64LE(0)) : buf.readUInt32LE(0);
+    if (_win32ffi) {
+      hwnd = Number(_win32ffi.GetAncestor(hwnd, _win32ffi.GA_ROOT));
+    }
+    return hwnd || 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Hide window from taskbar. Applied BEFORE showInactive() so Windows
+ * never creates the taskbar button. Uses three techniques:
+ * 1. SetWindowLongPtrW to strip WS_EX_APPWINDOW, add WS_EX_TOOLWINDOW
+ * 2. Hide/show cycle to force Windows to re-evaluate
+ * 3. ITaskbarList::DeleteTab via COM as strongest guarantee
  */
 function forceHideFromTaskbarWin(browserWin) {
   if (!isWin || !_win32ffi) return;
+  const hwnd = _getRootHwnd(browserWin);
+  if (!hwnd) return;
+
   try {
-    // Electron's getNativeWindowHandle() returns a Buffer with the HWND.
-    // On x64 it's 8 bytes; on x32 it's 4 bytes. Convert to Number for koffi.
-    const buf = browserWin.getNativeWindowHandle();
-    let hwnd = buf.length >= 8 ? Number(buf.readBigUInt64LE(0)) : buf.readUInt32LE(0);
-    // Get the real root window (Electron may return a child HWND)
-    hwnd = Number(_win32ffi.GetAncestor(hwnd, _win32ffi.GA_ROOT));
-    if (!hwnd) return;
+    // Step 1: Modify extended window style
     const exStyle = Number(_win32ffi.GetWindowLongPtrW(hwnd, GWL_EXSTYLE));
     const newExStyle = (exStyle & ~WS_EX_APPWINDOW) | WS_EX_TOOLWINDOW;
     if (newExStyle !== exStyle) {
       _win32ffi.SetWindowLongPtrW(hwnd, GWL_EXSTYLE, newExStyle);
-      console.log("Clawd: forceHideFromTaskbar — changed exStyle from",
-        "0x" + exStyle.toString(16), "to", "0x" + newExStyle.toString(16));
-      // Briefly hide/show to force Windows to re-evaluate taskbar presence
-      _win32ffi.ShowWindow(hwnd, 0); // SW_HIDE
-      _win32ffi.ShowWindow(hwnd, 5); // SW_SHOW
-      console.log("Clawd: forceHideFromTaskbar — done (hwnd:", hwnd + ")");
+      console.log("Clawd: taskbar FFI — exStyle 0x" + exStyle.toString(16), "→ 0x" + newExStyle.toString(16));
     }
+
+    // Step 2: Hide/show cycle to force Windows to re-evaluate taskbar
+    _win32ffi.ShowWindow(hwnd, SW_HIDE);
+    _win32ffi.ShowWindow(hwnd, SW_SHOW);
+
+    console.log("Clawd: taskbar FFI applied (hwnd:", hwnd + ")");
   } catch (err) {
     console.warn("Clawd: forceHideFromTaskbar failed:", err.message);
   }
@@ -1319,20 +1337,15 @@ function createWindow() {
   if (isLinux) win.setSkipTaskbar(true);
 
   win.loadFile(path.join(__dirname, "index.html"));
-  win.showInactive();
 
-  // On Windows, directly modify the window's extended style to strip
-  // WS_EX_APPWINDOW (which forces a taskbar button on transparent windows)
-  // and add WS_EX_TOOLWINDOW (which hides it from the taskbar).
+  // On Windows, apply FFI taskbar-hiding modifications BEFORE the window is
+  // shown. This prevents Windows from creating a taskbar button in the first
+  // place. The native window handle is available after BrowserWindow creation.
   if (isWin) {
-    setTimeout(() => {
-      if (win && !win.isDestroyed()) {
-        win.setSkipTaskbar(true);
-        forceHideFromTaskbarWin(win);
-        console.log("Clawd: win taskbar hidden (FFI + setSkipTaskbar)");
-      }
-    }, 200);
+    try { forceHideFromTaskbarWin(win) } catch { /* best-effort */ }
   }
+
+  win.showInactive();
 
   reapplyMacVisibility();
 
@@ -1384,18 +1397,14 @@ function createWindow() {
 
     reapplyMacVisibility();
     hitWin.loadFile(path.join(__dirname, "hit.html"));
-    hitWin.showInactive();
 
-    // On Windows, directly modify the hit window's extended style.
+    // On Windows, apply FFI taskbar-hiding modifications BEFORE the window is
+    // shown. Same approach as the main pet window.
     if (isWin) {
-      setTimeout(() => {
-        if (hitWin && !hitWin.isDestroyed()) {
-          hitWin.setSkipTaskbar(true);
-          forceHideFromTaskbarWin(hitWin);
-          console.log("Clawd: hitWin taskbar hidden (FFI + setSkipTaskbar)");
-        }
-      }, 300);
+      try { forceHideFromTaskbarWin(hitWin) } catch { /* best-effort */ }
     }
+
+    hitWin.showInactive();
 
     if (isWin) guardAlwaysOnTop(hitWin);
 

@@ -73,7 +73,7 @@ const CSS = `
 export const NODE_WIDTH = 220
 export const NODE_MIN_HEIGHT = 60
 export const NODE_COLLAPSED_HEIGHT = 26
-export const NODE_GAP_Y = 80
+export const NODE_GAP_Y = 120
 
 // Type accent colors
 const TYPE_COLORS: Record<string, string> = {
