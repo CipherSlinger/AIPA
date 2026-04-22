@@ -203,7 +203,7 @@ export default function CanvasNode({
           background: status === 'running' ? 'var(--bg-hover)' : 'var(--bg-secondary)',
           border, borderLeft, borderRadius: 6,
           padding: collapsed ? '0 8px' : '5px 0',
-          cursor: 'grab', boxShadow,
+          cursor: 'grab', boxShadow: shadow,
           outline: focused && !selected ? '1.5px dashed rgba(99,102,241,.4)' : 'none',
           outlineOffset: 1,
           transition: 'box-shadow .15s ease, transform .12s ease',
