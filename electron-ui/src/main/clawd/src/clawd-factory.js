@@ -47,44 +47,30 @@ if (isWin) {
       SetWindowLongPtrW: user32.func("intptr __stdcall SetWindowLongPtrW(intptr hWnd, int nIndex, intptr dwNewLong)"),
       ShowWindow: user32.func("bool __stdcall ShowWindow(intptr hWnd, int nCmdShow)"),
       AllowSetForegroundWindow: user32.func("bool __stdcall AllowSetForegroundWindow(unsigned int dwProcessId)"),
-      GetAncestor: user32.func("intptr __stdcall GetAncestor(intptr hWnd, unsigned int gaFlags)"),
     };
-    _win32ffi.GA_ROOT = 2;
   } catch (err) {
     console.warn("Clawd: koffi FFI not available:", err.message);
   }
 }
 
 /**
- * Get the real root HWND from a BrowserWindow.
- */
-function _getRootHwnd(browserWin) {
-  try {
-    const buf = browserWin.getNativeWindowHandle();
-    let hwnd = buf.length >= 8 ? Number(buf.readBigUInt64LE(0)) : buf.readUInt32LE(0);
-    if (_win32ffi) {
-      hwnd = Number(_win32ffi.GetAncestor(hwnd, _win32ffi.GA_ROOT));
-    }
-    return hwnd || 0;
-  } catch {
-    return 0;
-  }
-}
-
-/**
  * Hide window from taskbar. Applied BEFORE showInactive() so Windows
- * never creates the taskbar button. Uses three techniques:
- * 1. SetWindowLongPtrW to strip WS_EX_APPWINDOW, add WS_EX_TOOLWINDOW
- * 2. Hide/show cycle to force Windows to re-evaluate
- * 3. ITaskbarList::DeleteTab via COM as strongest guarantee
+ * never creates the taskbar button.
+ *
+ * IMPORTANT: we use the HWND from getNativeWindowHandle() directly — NOT
+ * GetAncestor(hwnd, GA_ROOT) — because the pet window has `parent` set to
+ * AIPA's main window, so GetAncestor returns the parent HWND, not the pet's.
  */
 function forceHideFromTaskbarWin(browserWin) {
   if (!isWin || !_win32ffi) return;
-  const hwnd = _getRootHwnd(browserWin);
-  if (!hwnd) return;
-
   try {
-    // Step 1: Modify extended window style
+    const buf = browserWin.getNativeWindowHandle();
+    let hwnd = buf.length >= 8 ? Number(buf.readBigUInt64LE(0)) : buf.readUInt32LE(0);
+    if (!hwnd) return;
+
+    console.log("Clawd: taskbar FFI — hwnd 0x" + hwnd.toString(16));
+
+    // Step 1: Modify extended window style — strip WS_EX_APPWINDOW, add WS_EX_TOOLWINDOW
     const exStyle = Number(_win32ffi.GetWindowLongPtrW(hwnd, GWL_EXSTYLE));
     const newExStyle = (exStyle & ~WS_EX_APPWINDOW) | WS_EX_TOOLWINDOW;
     if (newExStyle !== exStyle) {
@@ -92,11 +78,9 @@ function forceHideFromTaskbarWin(browserWin) {
       console.log("Clawd: taskbar FFI — exStyle 0x" + exStyle.toString(16), "→ 0x" + newExStyle.toString(16));
     }
 
-    // Step 2: Hide/show cycle to force Windows to re-evaluate taskbar
+    // Step 2: Brief hide/show to force Windows to re-evaluate taskbar presence
     _win32ffi.ShowWindow(hwnd, SW_HIDE);
     _win32ffi.ShowWindow(hwnd, SW_SHOW);
-
-    console.log("Clawd: taskbar FFI applied (hwnd:", hwnd + ")");
   } catch (err) {
     console.warn("Clawd: forceHideFromTaskbar failed:", err.message);
   }
