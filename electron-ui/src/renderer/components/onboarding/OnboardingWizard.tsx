@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Sparkles, Key, ChevronLeft, ArrowRight, Check } from 'lucide-react'
+import { Sparkles, Key, ChevronLeft, ArrowRight, Check, Loader2 } from 'lucide-react'
 import { useT } from '../../i18n'
 
 interface OnboardingWizardProps {
@@ -14,6 +14,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
   const [token, setToken] = useState('')
   const [baseUrl, setBaseUrl] = useState('')
   const [inputFocused, setInputFocused] = useState<string | null>(null)
+  const [loadingModels, setLoadingModels] = useState(false)
   const t = useT()
 
   const handleComplete = async () => {
@@ -42,6 +43,26 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
         enabled: true,
       }
       await window.electronAPI.providerUpsert(updated)
+
+      // Auto-fetch models from the API and set the first one as default
+      if (updated.scenario === 'gateway' && baseUrl.trim()) {
+        setLoadingModels(true)
+        try {
+          const result = await (window.electronAPI as any).providerFetchRemoteModels({
+            baseUrl: baseUrl.trim(),
+            apiKey: apiKey.trim() || undefined,
+            authToken: token.trim() || undefined,
+          })
+          if (result.success && result.models && result.models.length > 0) {
+            // Set the first model as default
+            await window.electronAPI.prefsSet('model', result.models[0])
+          }
+        } catch {
+          // Silently ignore — model fetch failure should not block onboarding
+        }
+        setLoadingModels(false)
+      }
+
       // Notify mounted SettingsProviders to re-fetch (it may be already mounted in the channel panel)
       window.dispatchEvent(new CustomEvent('aipa:providerUpdated'))
     }
@@ -283,9 +304,9 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                   cursor: step2Valid ? 'pointer' : 'not-allowed',
                 }}
                 onClick={() => step2Valid && handleComplete()}
-                disabled={!step2Valid}
+                disabled={!step2Valid || loadingModels}
                 onMouseEnter={e => {
-                  if (step2Valid) {
+                  if (step2Valid && !loadingModels) {
                     e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'
                     e.currentTarget.style.transform = 'translateY(-1px)'
                     e.currentTarget.style.filter = 'brightness(1.08)'
@@ -297,7 +318,10 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                   e.currentTarget.style.filter = 'none'
                 }}
               >
-                {t('onboarding.startChatting')} <ArrowRight size={16} style={{ marginLeft: 6, verticalAlign: 'middle' }} />
+                {loadingModels
+                  ? <><Loader2 size={16} style={{ marginRight: 6, verticalAlign: 'middle', animation: 'spin 1s linear infinite' }} /> {t('onboarding.loadingModels')}</>
+                  : <>{t('onboarding.startChatting')} <ArrowRight size={16} style={{ marginLeft: 6, verticalAlign: 'middle' }} /></>
+                }
               </button>
             </div>
             <button

@@ -317,7 +317,37 @@ export function useCanvasLayout(
     } catch { }
   }, [layoutDirection, workflow?.id])
 
-  // Fit to view
+  // Center viewport at 100% zoom — used on first render so nodes are visible
+  const centerViewAt100 = useCallback(() => {
+    if (!workflow || workflow.steps.length === 0 || !containerRef.current) return
+    const container = containerRef.current
+    const cw = container.clientWidth
+    const ch = container.clientHeight
+    const zoom = 1 // always 100%
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    for (const pos of Object.values(nodePositionsRef.current)) {
+      minX = Math.min(minX, pos.x)
+      minY = Math.min(minY, pos.y)
+      maxX = Math.max(maxX, pos.x + pos.width)
+      maxY = Math.max(maxY, pos.y + pos.height)
+    }
+
+    const contentW = maxX - minX
+    const contentH = maxY - minY
+    const padX = 40
+    const padY = 40
+
+    // Pan so the content block is centered in the viewport
+    const panX = (cw - contentW * zoom) / 2 - minX * zoom + padX
+    const panY = (ch - contentH * zoom) / 2 - minY * zoom + padY
+
+    setZoom(zoom)
+    setPanX(panX)
+    setPanY(panY)
+  }, [workflow, containerRef])
+
+  // Fit to view (manual trigger via keyboard shortcut)
   const fitToView = useCallback(() => {
     if (!workflow || workflow.steps.length === 0 || !containerRef.current) return
     const container = containerRef.current
@@ -348,21 +378,21 @@ export function useCanvasLayout(
     setTimeout(() => setSmoothTransition(false), 350)
   }, [workflow, containerRef])
 
-  // Auto-fit on first render or workflow change (only if viewport was NOT restored from localStorage)
+  // Center at 100% zoom on first render (only if viewport was NOT restored)
   useEffect(() => {
     if (workflow && workflow.steps.length > 0 && !viewportRestoredRef.current) {
-      const timer = setTimeout(fitToView, 50)
+      const timer = setTimeout(centerViewAt100, 50)
       return () => clearTimeout(timer)
     }
-  }, [workflow?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [workflow?.id, centerViewAt100]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Direction E: toggle layout direction, clear custom positions, re-fit
   const toggleLayoutDirection = useCallback(() => {
     setCustomPositions({})
     onPositionsChange?.({})
     setLayoutDirection(prev => prev === 'vertical' ? 'horizontal' : 'vertical')
-    setTimeout(fitToView, 80)
-  }, [fitToView, onPositionsChange])
+    setTimeout(centerViewAt100, 80)
+  }, [centerViewAt100, onPositionsChange])
 
   // --- Auto-pan to active node during execution ---
   const autoPanToNode = useCallback((stepId: string) => {

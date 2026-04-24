@@ -133,6 +133,24 @@ export default function SettingsProviders() {
       return next
     })
     useUiStore.getState().addToast('success', t('provider.saved'))
+
+    // Auto-fetch models when baseUrl is configured and set first as default
+    const baseUrl = (updated.baseUrl || '').trim()
+    if (updated.enabled && baseUrl) {
+      const apiKey = (updated.apiKey || '').trim()
+      const authToken = (updated.authToken || '').trim()
+      try {
+        const result = await (window.electronAPI as any).providerFetchRemoteModels({ baseUrl, apiKey, authToken })
+        if (result.success && result.models && result.models.length > 0) {
+          // Set the first model as default
+          await window.electronAPI.prefsSet('model', result.models[0])
+          useUiStore.getState().addToast('success', t('provider.modelsLoaded', { count: result.models.length }))
+        }
+      } catch {
+        // Silently ignore — model fetch failure should not block saving
+      }
+    }
+
     if (updated.enabled && hasCredential) {
       handleTestConnection(providerId)
     }
