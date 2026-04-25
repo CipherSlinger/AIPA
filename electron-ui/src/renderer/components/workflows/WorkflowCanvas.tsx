@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react'
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { Workflow as WorkflowIcon, Maximize2, ChevronsUpDown, Download, Minimize2, LayoutGrid } from 'lucide-react'
 import { Workflow, WorkflowStep } from '../../types/app.types'
 import { useT } from '../../i18n'
@@ -825,6 +825,47 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     }
   })()
 
+  // P2.4: snap alignment guides during node drag
+  const snapGuides = useMemo(() => {
+    if (!layout.draggingNode || !workflow) return []
+    const dragged = layout.nodePositions[layout.draggingNode]
+    if (!dragged) return []
+    const guides: Array<{ x1: number; y1: number; x2: number; y2: number; axis: 'x' | 'y'; pos: number }> = []
+    const THRESHOLD = 5
+    workflow.steps.forEach(step => {
+      if (step.id === layout.draggingNode) return
+      const other = layout.nodePositions[step.id]
+      if (!other) return
+      // Check left/right edge alignment
+      const edges: [number, number][] = [
+        [dragged.x, other.x],               // left-left
+        [dragged.x, other.x + other.width], // left-right
+        [dragged.x + dragged.width, other.x], // right-left
+        [dragged.x + dragged.width, other.x + other.width], // right-right
+      ]
+      for (const [a, b] of edges) {
+        if (Math.abs(a - b) <= THRESHOLD) {
+          guides.push({ x1: a, y1: Math.min(dragged.y, other.y) - 10, x2: a, y2: Math.max(dragged.y + dragged.height, other.y + other.height) + 10, axis: 'x', pos: a })
+          break
+        }
+      }
+      // Check top/bottom edge alignment
+      const vEdges: [number, number][] = [
+        [dragged.y, other.y],                   // top-top
+        [dragged.y, other.y + other.height],    // top-bottom
+        [dragged.y + dragged.height, other.y],   // bottom-top
+        [dragged.y + dragged.height, other.y + other.height], // bottom-bottom
+      ]
+      for (const [a, b] of vEdges) {
+        if (Math.abs(a - b) <= THRESHOLD) {
+          guides.push({ x1: Math.min(dragged.x, other.x) - 10, y1: a, x2: Math.max(dragged.x + dragged.width, other.x + other.width) + 10, y2: a, axis: 'y', pos: a })
+          break
+        }
+      }
+    })
+    return guides
+  }, [layout.draggingNode, layout.nodePositions, workflow])
+
   return (
     <div
       ref={containerRef}
@@ -1431,6 +1472,17 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
       >
         <g style={{ transform: `translate(${layout.panX}px, ${layout.panY}px) scale(${layout.zoom})`, transformOrigin: '0 0', transition: layout.smoothTransition ? 'all 0.15s ease' : 'none' }}>
           <CanvasEdgeDefs />
+          {/* P2.4: snap alignment guides during node drag */}
+          {snapGuides.map((g, i) => (
+            <line
+              key={`snap-${i}`}
+              x1={g.x1} y1={g.y1} x2={g.x2} y2={g.y2}
+              stroke="rgba(251,191,36,0.7)"
+              strokeWidth={1}
+              strokeDasharray="4 3"
+              style={{ pointerEvents: 'none' }}
+            />
+          ))}
           {workflow.steps.map((step, idx) => {
             if (idx === 0) return null
             const prevStep = workflow.steps[idx - 1]

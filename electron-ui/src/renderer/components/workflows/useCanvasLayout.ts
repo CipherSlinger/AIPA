@@ -769,6 +769,7 @@ export function useCanvasLayout(
     selectedNodes,
     marqueeRect,
     nodeHeights,
+    draggingNode,
 
     // Actions
     fitToView,
