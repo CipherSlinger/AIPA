@@ -653,6 +653,30 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     undoRedo.insertStep(index, step)
   }, [undoRedo])
 
+  // P2.3: double-click canvas to create new step at nearest position
+  const handleCanvasDoubleClick = useCallback((e: React.MouseEvent) => {
+    if (!workflow || !containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const canvasY = (e.clientY - rect.top - layout.panY) / layout.zoom
+    // Find the nearest step index based on Y position
+    let insertAt = workflow.steps.length
+    for (let i = 0; i < workflow.steps.length; i++) {
+      const pos = layout.nodePositions[workflow.steps[i].id]
+      if (!pos) continue
+      if (canvasY < pos.y + pos.height / 2) {
+        insertAt = i
+        break
+      }
+    }
+    const newStep: WorkflowStep = {
+      id: `step-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      title: 'New Step',
+      prompt: '',
+      nodeType: 'prompt',
+    }
+    handleInsertStepAt(insertAt, newStep)
+  }, [workflow, containerRef, layout.panY, layout.zoom, layout.nodePositions, handleInsertStepAt])
+
   // Direction 13: compute effective highlight IDs (search takes priority over external prop)
   const effectiveHighlightStepIds: Set<string> | null | undefined = (() => {
     if (searchQuery && workflow) {
@@ -777,6 +801,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
       }}
       onMouseDown={handleCanvasMouseDown}
       onWheel={layout.handleWheel}
+      onDoubleClick={handleCanvasDoubleClick}
       onMouseEnter={() => layout.setIsHovered(true)}
       onMouseLeave={() => layout.setIsHovered(false)}
       onContextMenu={(e) => {
