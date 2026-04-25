@@ -1538,14 +1538,10 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         {workflow.steps.map((step, idx) => {
           const pos = layout.nodePositions[step.id]
           if (!pos) return null
-          // Direction 8: render lightweight placeholder for off-screen nodes
-          if (!isInViewport(pos, viewLeft, viewTop, viewRight, viewBottom)) {
-            return (
-              <div
-                key={step.id}
-                style={{ position: 'absolute', left: pos.x, top: pos.y, width: pos.width, height: pos.height }}
-              />
-            )
+          // P3.1: true virtual scrolling — render null for off-screen nodes
+          // Nodes are absolutely positioned so removing them doesn't affect layout
+          if (!isInViewport(pos, viewLeft, viewTop, viewRight, viewBottom, 200)) {
+            return null
           }
           const stepStatus = execution.stepStatuses[step.id] ?? 'idle'
           return (
