@@ -12,6 +12,7 @@ import { useWorkflowExecution } from './useWorkflowExecution'
 import { useCanvasLayout } from './useCanvasLayout'
 import { useWorkflowHistory } from './useWorkflowHistory'
 import WorkflowRunHistory from './WorkflowRunHistory'
+import { useUndoRedo } from './useUndoRedo'
 
 interface WorkflowCanvasProps {
   workflow: Workflow | null
@@ -114,25 +115,14 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   // Direction 13: search query state
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Enhancement 3: undo history for step deletions (Ctrl+Z)
-  const [deletedStepHistory, setDeletedStepHistory] = useState<{ step: WorkflowStep; idx: number }[]>([])
+  // P2.1: full undo/redo system
+  const undoRedo = useUndoRedo(workflow, onWorkflowUpdate)
 
   // Direction 5: delete nodes callback (passed to useCanvasLayout as 4th param)
   const handleDeleteNodes = useCallback((ids: string[]) => {
-    if (workflow) {
-      const deletedEntries = ids
-        .map(id => {
-          const idx = workflow.steps.findIndex(s => s.id === id)
-          const step = workflow.steps[idx]
-          return idx >= 0 && step ? { step, idx } : null
-        })
-        .filter((e): e is { step: WorkflowStep; idx: number } => e !== null)
-      if (deletedEntries.length > 0) {
-        setDeletedStepHistory(prev => [...prev.slice(-5), ...deletedEntries])
-      }
-    }
+    undoRedo.deleteSteps(ids)
     onDeleteSteps?.(ids)
-  }, [onDeleteSteps, workflow])
+  }, [undoRedo, onDeleteSteps])
 
   // Layout hook (pan, zoom, node positions, drag, collapse, minimap, Space key)
   const layout = useCanvasLayout(workflow, containerRef, undefined, handleDeleteNodes)
@@ -410,7 +400,6 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     setReorderDrag(null)
     setHoveredEdgeKey(null)
     setSearchQuery('')
-    setDeletedStepHistory([])
   }, [workflow?.id])
 
   // --- Auto-pan to active node during execution ---
@@ -492,28 +481,35 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [onRun, execution.isRunning])
 
-  // Ctrl+Z: undo last step deletion
+  // P2.1: Ctrl+Z undo, Ctrl+Shift+Z / Ctrl+Y redo
   useEffect(() => {
-    if (!onWorkflowUpdate) return
+    if (!onWorkflowUpdate || !workflow) return
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.key !== 'z' && e.key !== 'Z') || (!e.ctrlKey && !e.metaKey) || e.shiftKey) return
-      // Don't fire when user is typing in an input/textarea
       const target = e.target as HTMLElement
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
-      if (!workflow) return
-      setDeletedStepHistory(prev => {
-        if (prev.length === 0) return prev
-        const last = prev[prev.length - 1]
-        const newSteps = [...workflow.steps]
-        newSteps.splice(last.idx, 0, last.step)
-        onWorkflowUpdate({ ...workflow, steps: newSteps, updatedAt: Date.now() })
+
+      const isMod = e.ctrlKey || e.metaKey
+
+      // Ctrl+Y: redo (Windows convention)
+      if (isMod && (e.key === 'y' || e.key === 'Y') && !e.shiftKey) {
         e.preventDefault()
-        return prev.slice(0, -1)
-      })
+        undoRedo.redo()
+        return
+      }
+
+      // Ctrl+Z: undo / Ctrl+Shift+Z: redo
+      if (isMod && (e.key === 'z' || e.key === 'Z')) {
+        e.preventDefault()
+        if (e.shiftKey) {
+          undoRedo.redo()
+        } else {
+          undoRedo.undo()
+        }
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onWorkflowUpdate, workflow, deletedStepHistory])
+  }, [onWorkflowUpdate, workflow, undoRedo])
 
   // Ctrl+C: copy workflow as JSON when no node is selected
   useEffect(() => {
@@ -651,6 +647,11 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     if (!afterStep || !beforeStep) return
     onInsertBetween(afterStep.id, beforeStep.id)
   }, [workflow, onInsertBetween])
+
+  // P2.1: insert a new step directly (for double-click create)
+  const handleInsertStepAt = useCallback((index: number, step: WorkflowStep) => {
+    undoRedo.insertStep(index, step)
+  }, [undoRedo])
 
   // Direction 13: compute effective highlight IDs (search takes priority over external prop)
   const effectiveHighlightStepIds: Set<string> | null | undefined = (() => {
