@@ -511,22 +511,59 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [onWorkflowUpdate, workflow, undoRedo])
 
-  // Ctrl+C: copy workflow as JSON when no node is selected
+  // P2.2: Ctrl+C copy selected node(s) / Ctrl+V paste
+  const [clipboard, setClipboard] = useState<WorkflowStep[] | null>(null)
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
-      if ((e.key === 'c' || e.key === 'C') && (e.ctrlKey || e.metaKey) && !selectedNode && workflow) {
-        e.preventDefault()
-        const json = JSON.stringify(workflow, null, 2)
-        navigator.clipboard.writeText(json).then(() => {
+      const isMod = e.ctrlKey || e.metaKey
+
+      // Ctrl+C: copy selected node(s)
+      if ((e.key === 'c' || e.key === 'C') && isMod && !e.shiftKey) {
+        const selectedSet = layout.selectedNodes
+        const nodesToCopy = selectedSet.size > 0
+          ? workflow?.steps.filter(s => selectedSet.has(s.id))
+          : selectedNode
+            ? workflow?.steps.filter(s => s.id === selectedNode)
+            : null
+        if (nodesToCopy && nodesToCopy.length > 0) {
+          e.preventDefault()
+          setClipboard(nodesToCopy)
           setCopyToast(true)
           setTimeout(() => setCopyToast(false), 2000)
-        }).catch(() => {})
+          return
+        }
+        // Fallback: no node selected, copy whole workflow as before
+        if (workflow) {
+          e.preventDefault()
+          const json = JSON.stringify(workflow, null, 2)
+          navigator.clipboard.writeText(json).then(() => {
+            setCopyToast(true)
+            setTimeout(() => setCopyToast(false), 2000)
+          }).catch(() => {})
+        }
+      }
+
+      // Ctrl+V: paste copied node(s)
+      if ((e.key === 'v' || e.key === 'V') && isMod && !e.shiftKey && clipboard && workflow) {
+        e.preventDefault()
+        const lastStep = workflow.steps[workflow.steps.length - 1]
+        const insertAt = workflow.steps.length
+        const pasted = clipboard.map((s, i) => ({
+          ...s,
+          id: `step-${Date.now()}-${Math.random().toString(36).slice(2, 7 + i)}`,
+          title: s.title + ' (copy)',
+          canvasPos: s.canvasPos
+            ? { x: s.canvasPos.x + 40 * (i + 1), y: s.canvasPos.y + 40 * (i + 1) }
+            : undefined,
+        }))
+        undoRedo.replaceSteps([...workflow.steps, ...pasted])
       }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [selectedNode, workflow])
+  }, [selectedNode, workflow, clipboard, layout.selectedNodes, undoRedo])
 
   // Ctrl+F: find node overlay
   useEffect(() => {
