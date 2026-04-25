@@ -47,28 +47,6 @@ interface CanvasNodeProps {
   onRetryStep?: () => void
 }
 
-const CSS = `
-@keyframes ndot {
-  0%,80%,100%{transform:translateY(0);opacity:.3}
-  40%{transform:translateY(-3px);opacity:1}
-}
-@keyframes nfadein {
-  from{opacity:0;transform:translateY(3px)}
-  to{opacity:1;transform:translateY(0)}
-}
-@keyframes nglow {
-  0%,100%{box-shadow:0 0 0 1px rgba(99,102,241,.2)}
-  50%{box-shadow:0 0 0 2px rgba(99,102,241,.35)}
-}
-@keyframes nspin {
-  from{transform:rotate(0deg)}
-  to{transform:rotate(360deg)}
-}
-@keyframes nbar {
-  0%{transform:translateX(-100%)}
-  100%{transform:translateX(400%)}
-}
-`
 
 export const NODE_WIDTH = 220
 export const NODE_MIN_HEIGHT = 60
@@ -180,7 +158,6 @@ export default function CanvasNode({
 
   return (
     <>
-      <style>{CSS}</style>
       <div
         ref={nodeRef}
         role="button" tabIndex={0}
@@ -210,7 +187,7 @@ export default function CanvasNode({
           transform: hovered && !dimmed && !active ? 'translateY(-1px)' : undefined,
           userSelect: 'none', boxSizing: 'border-box',
           opacity: dimmed ? .2 : status === 'pending' ? .45 : 1,
-          animation: `nfadein .12s ease-out${status === 'running' ? ',nglow 2s ease-in-out infinite' : ''}`,
+          animation: `canvas-node-fadein .12s ease-out${status === 'running' ? ',canvas-node-glow 2s ease-in-out infinite' : ''}`,
           overflow: 'hidden', display: 'flex', flexDirection: 'column',
           alignItems: collapsed ? 'center' : 'stretch',
           justifyContent: collapsed ? 'center' : 'flex-start',
@@ -219,7 +196,7 @@ export default function CanvasNode({
         {/* Running indicator bar */}
         {status === 'running' && (
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, overflow: 'hidden' }}>
-            <div style={{ width: '30%', height: '100%', background: 'linear-gradient(90deg,transparent,rgba(99,102,241,.6),transparent)', animation: 'nbar 1.2s linear infinite' }} />
+            <div style={{ width: '30%', height: '100%', background: 'linear-gradient(90deg,transparent,rgba(99,102,241,.6),transparent)', animation: 'canvas-node-bar 1.2s linear infinite' }} />
           </div>
         )}
 
@@ -229,7 +206,7 @@ export default function CanvasNode({
             <div style={{
               width: 5, height: 5, borderRadius: '50%', flexShrink: 0,
               background: statColor,
-              ...(status === 'running' ? { animation: 'nspin 1s linear infinite', width: 6, height: 6, borderRadius: 2 } : {}),
+              ...(status === 'running' ? { animation: 'spin 1s linear infinite', width: 6, height: 6, borderRadius: 2 } : {}),
             }} />
             <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
               {step.title || `Step ${(stepIndex ?? 0) + 1}`}
@@ -245,7 +222,7 @@ export default function CanvasNode({
               <div style={{
                 width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
                 background: statColor,
-                ...(status === 'running' ? { animation: 'nspin 1s linear infinite', borderRadius: 1.5 } : {}),
+                ...(status === 'running' ? { animation: 'spin 1s linear infinite', borderRadius: 1.5 } : {}),
               }} />
               {/* Type badge */}
               {typeIcon && (
@@ -325,7 +302,7 @@ export default function CanvasNode({
                 <div ref={streamRef} style={{ fontSize: 9, color: 'rgba(99,102,241,.7)', lineHeight: 1.4, overflowY: 'auto', maxHeight: 120, fontStyle: 'italic' }}>
                   {streamingText}
                   <div style={{ display: 'flex', gap: 3, marginTop: 2 }}>
-                    {[0,1,2].map(i => <div key={i} style={{ width: 3.5, height: 3.5, borderRadius: '50%', background: 'rgba(99,102,241,.5)', animation: `ndot 1.2s ease-in-out ${i*.2}s infinite` }} />)}
+                    {[0,1,2].map(i => <div key={i} style={{ width: 3.5, height: 3.5, borderRadius: '50%', background: 'rgba(99,102,241,.5)', animation: `canvas-node-dots 1.2s ease-in-out ${i*.2}s infinite` }} />)}
                   </div>
                 </div>
               ) : nodeType === 'condition' ? (
@@ -366,7 +343,7 @@ export default function CanvasNode({
               {/* Typing dots */}
               {status === 'running' && !streamingText && (
                 <div style={{ display: 'flex', gap: 3, marginTop: 2 }}>
-                  {[0,1,2].map(i => <div key={i} style={{ width: 3.5, height: 3.5, borderRadius: '50%', background: 'rgba(99,102,241,.5)', animation: `ndot 1.2s ease-in-out ${i*.2}s infinite` }} />)}
+                  {[0,1,2].map(i => <div key={i} style={{ width: 3.5, height: 3.5, borderRadius: '50%', background: 'rgba(99,102,241,.5)', animation: `canvas-node-dots 1.2s ease-in-out ${i*.2}s infinite` }} />)}
                 </div>
               )}
 
@@ -429,9 +406,9 @@ export default function CanvasNode({
         <div style={{ position: 'absolute', right: -3, top: '50%', transform: 'translateY(-50%)', width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', border: '1.5px solid var(--bg-primary)', opacity: hovered && !selected ? .6 : 0, transition: 'opacity .12s', pointerEvents: 'none' }} />
       </div>
 
-      {ctxMenu && <CtxMenu x={ctxMenu.x} y={ctxMenu.y} collapsed={collapsed} hasOutput={!!outputText} displayPrompt={prompt} status={status}
+      {ctxMenu && <CtxMenu x={ctxMenu.x} y={ctxMenu.y} collapsed={collapsed} hasOutput={!!outputText} status={status}
         onCollapse={() => onToggleCollapse?.(step.id)} onClose={() => setCtxMenu(null)}
-        onCopyPrompt={() => navigator.clipboard?.writeText(displayPrompt)} onCopyOutput={() => outputText && navigator.clipboard?.writeText(outputText)}
+        onCopyPrompt={() => navigator.clipboard?.writeText(prompt)} onCopyOutput={() => outputText && navigator.clipboard?.writeText(outputText)}
         onDeleteNode={onDeleteNode ? () => onDeleteNode(step.id) : undefined} onInsertBefore={onInsertBefore ? () => onInsertBefore(step.id) : undefined}
         onInsertAfter={onInsertAfter ? () => onInsertAfter(step.id) : undefined} onRetry={onRetry ? () => onRetry(step.id) : undefined}
         onRunFromStep={onRunFromStep} />}
@@ -451,7 +428,7 @@ function Btn({ children, onClick, style: s, onMouseDown }: { children: React.Rea
 
 // Context menu
 function CtxMenu({ x, y, collapsed, hasOutput, status, onCollapse, onClose, onCopyPrompt, onCopyOutput, onDeleteNode, onInsertBefore, onInsertAfter, onRetry, onRunFromStep }: {
-  x: number; y: number; collapsed: boolean; hasOutput: boolean; displayPrompt: string; status: StepStatus
+  x: number; y: number; collapsed: boolean; hasOutput: boolean; status: StepStatus
   onCollapse: () => void; onClose: () => void; onCopyPrompt: () => void; onCopyOutput: () => void
   onDeleteNode?: () => void; onInsertBefore?: () => void; onInsertAfter?: () => void; onRetry?: () => void; onRunFromStep?: () => void
 }) {

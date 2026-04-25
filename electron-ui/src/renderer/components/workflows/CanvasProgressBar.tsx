@@ -41,22 +41,6 @@ export default function CanvasProgressBar({ completedCount, totalSteps, isRunnin
   }
 
   return (
-    <>
-      <style>{`
-        @keyframes progressShimmer {
-          0%   { opacity: 0.8; }
-          50%  { opacity: 1; }
-          100% { opacity: 0.8; }
-        }
-        @keyframes canvas-bar-shimmer {
-          0%   { transform: translateX(-100%); }
-          100% { transform: translateX(400%); }
-        }
-        @keyframes canvas-progress-pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50%       { opacity: 0.5; transform: scale(0.75); }
-        }
-      `}</style>
     <div style={{
       position: 'absolute',
       top: 0,
@@ -138,12 +122,11 @@ export default function CanvasProgressBar({ completedCount, totalSteps, isRunnin
               position: 'absolute',
               inset: 0,
               background: 'linear-gradient(90deg, transparent 0%, var(--text-muted) 50%, transparent 100%)',
-              animation: 'canvas-bar-shimmer 1.5s ease-in-out infinite, progressShimmer 1.5s ease-in-out infinite',
+              animation: 'canvas-bar-shimmer 1.5s ease-in-out infinite, canvas-progress-shimmer-opacity 1.5s ease-in-out infinite',
             }} />
           )}
         </div>
       </div>
     </div>
-    </>
   )
 }

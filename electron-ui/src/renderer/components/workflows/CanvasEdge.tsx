@@ -63,7 +63,7 @@ function edgeStyleFromSourceStatus(sourceStatus: string | undefined): SourceEdge
         strokeWidth: 2,
         opacity: 0.9,
         animated: true,
-        animationName: 'dashFlow',
+        animationName: 'canvas-edge-dash-flow',
         filter: 'drop-shadow(0 0 6px rgba(99,102,241,0.6))',
       }
     case 'completed':
@@ -170,15 +170,6 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
       onMouseLeave={handleMouseLeave}
       style={{ pointerEvents: (onHoverChange || onAddBetween || onDelete) ? 'stroke' : 'none' }}
     >
-      <style>{`
-        @keyframes dashFlow {
-          to { stroke-dashoffset: -20; }
-        }
-        @keyframes edge-dash-flow {
-          from { stroke-dashoffset: 20; }
-          to   { stroke-dashoffset: 0; }
-        }
-      `}</style>
       {/* D8: invisible wide hit area for easier hover detection — wider when highlighted */}
       {(onHoverChange || onAddBetween || onDelete) && (
         <path
@@ -203,7 +194,7 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
         style={{
           pointerEvents: 'none',
           ...(!highlighted && srcStyle.animated
-            ? { animation: `${srcStyle.animationName ?? 'dashFlow'} 1.2s linear infinite` }
+            ? { animation: `${srcStyle.animationName ?? 'canvas-edge-dash-flow'} 1.2s linear infinite` }
             : {}),
           ...(highlighted
             ? { filter: 'drop-shadow(0 0 4px rgba(99,102,241,0.5))' }

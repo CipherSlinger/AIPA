@@ -145,7 +145,6 @@ export default function CanvasToolbar({
 
   return (
     <>
-      <style>{`@keyframes slideUp { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
       {/* B4.1 — Independent floating search box — top left corner */}
       {onSearchChange && (
         <div style={{

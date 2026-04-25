@@ -7,9 +7,9 @@ import CanvasNode, { NODE_WIDTH, NODE_MIN_HEIGHT } from './CanvasNode'
 import CanvasEdge, { CanvasEdgeDefs } from './CanvasEdge'
 import CanvasProgressBar from './CanvasProgressBar'
 import CanvasToolbar from './CanvasToolbar'
+import Minimap from './Minimap'
 import { useWorkflowExecution } from './useWorkflowExecution'
 import { useCanvasLayout } from './useCanvasLayout'
-import type { NodePosition } from './useCanvasLayout'
 import { useWorkflowHistory } from './useWorkflowHistory'
 import WorkflowRunHistory from './WorkflowRunHistory'
 
@@ -49,148 +49,6 @@ function isInViewport(
     pos.x < viewRight + cullMargin &&
     pos.y + pos.height > viewTop - cullMargin &&
     pos.y < viewBottom + cullMargin
-  )
-}
-
-// --- Minimap ---
-const MINIMAP_W = 120
-const MINIMAP_H = 80
-
-interface MinimapProps {
-  nodePositions: Record<string, NodePosition>
-  stepIds: string[]
-  stepStatuses: Record<string, string>
-  panX: number
-  panY: number
-  zoom: number
-  containerW: number
-  containerH: number
-  // Direction C: click to jump
-  onClickNode?: (stepId: string) => void
-  onViewportDrag?: (newPanX: number, newPanY: number) => void
-}
-
-function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, containerW, containerH, onClickNode, onViewportDrag }: MinimapProps) {
-  const vpDragRef = React.useRef<{ mouseX: number; mouseY: number; startPanX: number; startPanY: number } | null>(null)
-
-  if (stepIds.length === 0) return null
-
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
-  for (const id of stepIds) {
-    const p = nodePositions[id]
-    if (!p) continue
-    minX = Math.min(minX, p.x); minY = Math.min(minY, p.y)
-    maxX = Math.max(maxX, p.x + p.width); maxY = Math.max(maxY, p.y + p.height)
-  }
-  if (!isFinite(minX)) return null
-
-  const pad = 10
-  const contentW = maxX - minX + pad * 2
-  const contentH = maxY - minY + pad * 2
-  const scaleX = MINIMAP_W / contentW
-  const scaleY = MINIMAP_H / contentH
-  const scale = Math.min(scaleX, scaleY)
-
-  const vpX = (-panX / zoom - minX + pad) * scale
-  const vpY = (-panY / zoom - minY + pad) * scale
-  const vpW = (containerW / zoom) * scale
-  const vpH = (containerH / zoom) * scale
-
-  const handleVpMouseDown = onViewportDrag ? (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    vpDragRef.current = { mouseX: e.clientX, mouseY: e.clientY, startPanX: panX, startPanY: panY }
-    const handleMove = (me: MouseEvent) => {
-      if (!vpDragRef.current) return
-      const dx = me.clientX - vpDragRef.current.mouseX
-      const dy = me.clientY - vpDragRef.current.mouseY
-      // minimap delta → canvas pan delta（反向，除以 scale，乘以 zoom）
-      const newPanX = vpDragRef.current.startPanX - (dx / scale) * zoom
-      const newPanY = vpDragRef.current.startPanY - (dy / scale) * zoom
-      onViewportDrag(newPanX, newPanY)
-    }
-    const handleUp = () => {
-      vpDragRef.current = null
-      window.removeEventListener('mousemove', handleMove)
-      window.removeEventListener('mouseup', handleUp)
-    }
-    window.addEventListener('mousemove', handleMove)
-    window.addEventListener('mouseup', handleUp)
-  } : undefined
-
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        bottom: 40,
-        right: 8,
-        zIndex: 10,
-        background: 'var(--glass-bg-mid)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid var(--border)',
-        borderRadius: 8,
-        overflow: 'hidden',
-        width: MINIMAP_W,
-        height: MINIMAP_H,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
-      }}
-      onMouseDown={e => e.stopPropagation()}
-      onClick={e => e.stopPropagation()}
-    >
-      <svg width={MINIMAP_W} height={MINIMAP_H} style={{ display: 'block' }}>
-        {stepIds.map(id => {
-          const p = nodePositions[id]
-          if (!p) return null
-          const st = stepStatuses[id] ?? 'idle'
-          const fill = st === 'completed' ? '#22c55e'
-            : st === 'running' ? '#6366f1'
-            : st === 'pending' ? 'var(--text-faint)'
-            : 'var(--text-faint)'
-          const nodeIdx = stepIds.indexOf(id)
-          const rectW = Math.max(2, p.width * scale)
-          const rectH = Math.max(2, p.height * scale)
-          const rx = (p.x - minX + pad) * scale
-          const ry = (p.y - minY + pad) * scale
-          return (
-            <g key={id}>
-              <rect
-                x={rx} y={ry}
-                width={rectW} height={rectH}
-                rx={2}
-                fill={fill}
-                fillOpacity={0.9}
-                style={{ cursor: onClickNode ? 'pointer' : 'default' }}
-                onClick={onClickNode ? (e) => { e.stopPropagation(); onClickNode(id) } : undefined}
-              />
-              {rectW > 10 && rectH > 6 && (
-                <text
-                  x={rx + rectW / 2}
-                  y={ry + rectH / 2 + 3}
-                  textAnchor="middle"
-                  fontSize={Math.max(4, Math.min(7, rectW * 0.35))}
-                  fill="var(--text-secondary)"
-                  fontWeight="800"
-                  style={{ pointerEvents: 'none', userSelect: 'none' }}
-                >
-                  {nodeIdx + 1}
-                </text>
-              )}
-            </g>
-          )
-        })}
-        <rect
-          x={vpX} y={vpY}
-          width={Math.max(4, vpW)} height={Math.max(4, vpH)}
-          fill="var(--bg-hover)"
-          stroke="var(--text-faint)"
-          strokeWidth={0.8}
-          rx={1}
-          style={{ pointerEvents: onViewportDrag ? 'all' : 'none', cursor: onViewportDrag ? 'grab' : 'default' }}
-          onMouseDown={handleVpMouseDown}
-        />
-      </svg>
-    </div>
   )
 }
 
@@ -1320,6 +1178,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                 stroke="rgba(99,102,241,0.4)"
                 strokeWidth={1.5}
                 strokeDasharray="6 4"
+                style={{ animation: 'canvas-empty-dash-spin 20s linear infinite', transformOrigin: '30px 30px' }}
               />
               <text
                 x={30}
@@ -2081,73 +1940,6 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         {zoomPercent}%
       </div>
 
-      {/* CSS animations for execution states */}
-      <style>{`
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(4px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes canvas-node-pulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.5), 0 4px 20px rgba(0,0,0,0.3); }
-          50% { box-shadow: 0 0 0 8px rgba(99,102,241,0), 0 4px 20px rgba(0,0,0,0.3); }
-        }
-        @keyframes canvas-spinner {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @keyframes canvas-sidebar-in {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes canvas-edge-flow {
-          from { stroke-dashoffset: 18; }
-          to { stroke-dashoffset: 0; }
-        }
-        @keyframes canvas-shimmer {
-          0%, 100% { left: -60%; width: 40%; }
-          50% { left: 120%; width: 40%; }
-        }
-        @keyframes canvas-bar-shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(300%); }
-        }
-        @keyframes canvas-progress-pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.5; transform: scale(0.7); }
-        }
-        @keyframes canvas-blink {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0; }
-        }
-        @keyframes canvas-node-fadein {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
-        }
-        @keyframes canvas-empty-pulse {
-          0%, 100% { opacity: 0.35; }
-          50% { opacity: 0.5; }
-        }
-        @keyframes sc-spin {
-          to { transform: rotate(360deg); }
-        }
-        @keyframes canvas-node-complete {
-          0%   { box-shadow: 0 0 0 0 rgba(34,197,94,0.7), 0 4px 16px rgba(0,0,0,0.25); }
-          60%  { box-shadow: 0 0 0 10px rgba(34,197,94,0), 0 4px 16px rgba(0,0,0,0.25); }
-          100% { box-shadow: 0 0 0 2px rgba(34,197,94,0.15), 0 4px 16px rgba(0,0,0,0.25); }
-        }
-        @keyframes canvas-progress-shimmer {
-          0% { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
-        @keyframes workflow-done-in {
-          from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
-          to { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
-        @keyframes canvas-toast-in {
-          from { opacity: 0; transform: translateX(-50%) translateY(4px); }
-          to { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
-      `}</style>
     </div>
   )
 }
