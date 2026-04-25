@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import type { NodePosition } from './useCanvasLayout'
 
 const MINIMAP_W = 120
@@ -19,6 +19,7 @@ interface MinimapProps {
 
 export default function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, containerW, containerH, onClickNode, onViewportDrag }: MinimapProps) {
   const vpDragRef = React.useRef<{ mouseX: number; mouseY: number; startPanX: number; startPanY: number } | null>(null)
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null)
 
   if (stepIds.length === 0) return null
 
@@ -98,17 +99,48 @@ export default function Minimap({ nodePositions, stepIds, stepStatuses, panX, pa
           const rectH = Math.max(2, p.height * scale)
           const rx = (p.x - minX + pad) * scale
           const ry = (p.y - minY + pad) * scale
+          const isHovered = hoveredNode === id
           return (
-            <g key={id}>
+            <g key={id}
+              onMouseEnter={() => setHoveredNode(id)}
+              onMouseLeave={() => setHoveredNode(null)}
+            >
               <rect
                 x={rx} y={ry}
                 width={rectW} height={rectH}
                 rx={2}
                 fill={fill}
-                fillOpacity={0.9}
-                style={{ cursor: onClickNode ? 'pointer' : 'default' }}
+                fillOpacity={isHovered ? 1 : 0.9}
+                stroke={isHovered ? 'rgba(255,255,255,0.5)' : 'none'}
+                strokeWidth={0.5}
+                style={{ cursor: onClickNode ? 'pointer' : 'default', transition: 'fill-opacity 0.15s ease' }}
                 onClick={onClickNode ? (e) => { e.stopPropagation(); onClickNode(id) } : undefined}
               />
+              {isHovered && rectW > 6 && rectH > 4 && (
+                <foreignObject
+                  x={rx - 30}
+                  y={ry - 18}
+                  width={Math.max(60, rectW + 60)}
+                  height={16}
+                  style={{ overflow: 'visible', pointerEvents: 'none' }}
+                >
+                  <div style={{
+                    background: 'var(--glass-bg-card)',
+                    backdropFilter: 'blur(8px)',
+                    WebkitBackdropFilter: 'blur(8px)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 4,
+                    padding: '1px 6px',
+                    fontSize: 9,
+                    color: 'var(--text-secondary)',
+                    textAlign: 'center',
+                    whiteSpace: 'nowrap',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                  }}>
+                    Step {nodeIdx + 1} · {st}
+                  </div>
+                </foreignObject>
+              )}
               {rectW > 10 && rectH > 6 && (
                 <text
                   x={rx + rectW / 2}

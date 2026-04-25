@@ -1451,6 +1451,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               x={0}
               y={0}
               width={pos.width}
+              staggerDelay={idx * 30}
               selected={selectedNode === step.id}
               multiSelected={layout.selectedNodes.has(step.id)}
               status={stepStatus}

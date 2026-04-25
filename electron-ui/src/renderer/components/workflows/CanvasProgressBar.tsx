@@ -121,8 +121,9 @@ export default function CanvasProgressBar({ completedCount, totalSteps, isRunnin
             <div style={{
               position: 'absolute',
               inset: 0,
-              background: 'linear-gradient(90deg, transparent 0%, var(--text-muted) 50%, transparent 100%)',
-              animation: 'canvas-bar-shimmer 1.5s ease-in-out infinite, canvas-progress-shimmer-opacity 1.5s ease-in-out infinite',
+              background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%)',
+              backgroundSize: '200% 100%',
+              animation: 'canvas-progress-shimmer 1.5s ease-in-out infinite',
             }} />
           )}
         </div>

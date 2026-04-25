@@ -121,7 +121,9 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
     endY = to.y + to.height / 2
     midX = (startX + endX) / 2
     midY = (startY + endY) / 2
-    d = `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`
+    const cpX1 = startX + (endX - startX) * 0.4
+    const cpX2 = endX - (endX - startX) * 0.4
+    d = `M ${startX} ${startY} C ${cpX1} ${startY}, ${cpX2} ${endY}, ${endX} ${endY}`
   } else {
     startX = from.x + from.width / 2
     startY = from.y + from.height
@@ -129,7 +131,9 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
     endY = to.y
     midX = (startX + endX) / 2
     midY = (startY + endY) / 2
-    d = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`
+    const cpY1 = startY + (endY - startY) * 0.4
+    const cpY2 = endY - (endY - startY) * 0.4
+    d = `M ${startX} ${startY} C ${startX} ${cpY1}, ${endX} ${cpY2}, ${endX} ${endY}`
   }
   const markerId = `canvas-arrowhead-${status}`
 
@@ -228,6 +232,17 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
           style={{ animation: 'canvas-edge-flow 0.7s linear infinite', pointerEvents: 'none' }}
         />
       )}
+
+      {/* P1.4: particle dot flowing along active/running edges */}
+      {(status === 'active' || sourceStatus === 'running') && (
+        <circle r={2.5} fill="#818cf8" opacity={0.95} style={{ pointerEvents: 'none', filter: 'drop-shadow(0 0 4px rgba(129,140,248,0.8))' }}>
+          <animateMotion dur="1.8s" repeatCount="indefinite" path={d} />
+        </circle>
+      )}
+
+      {/* P1.4: connection endpoint dots — always visible at start and end */}
+      <circle cx={startX} cy={startY} r={3} fill={srcStyle.color} opacity={0.5} style={{ pointerEvents: 'none' }} />
+      <circle cx={endX} cy={endY} r={3} fill={srcStyle.color} opacity={0.5} style={{ pointerEvents: 'none' }} />
 
       {/* B3.4 + Iter 563: Done/success glow — also triggered by sourceStatus */}
       {((status === 'done' || status === 'completed') || (sourceStatus === 'completed' || sourceStatus === 'success' || sourceStatus === 'done')) && !highlighted && (

@@ -73,12 +73,12 @@ export default function CanvasNode({
   step, index, x, y, width, selected, status = 'idle', presetKey,
   collapsed = false, outputText, dimmed = false, durationMs, stepDuration,
   multiSelected = false, focused = false, streamingText, liveElapsedMs,
-  stepIndex, highlighted = false, activeSubAgentCount = 0,
+  stepIndex, highlighted = false, activeSubAgentCount = 0, staggerDelay = 0,
   onSelect, onDragStart, onToggleCollapse, onTitleChange, onMultiSelect,
   onReorderDragStart, onDeleteNode, onInsertBefore, onInsertAfter,
   onRetry, onRunFromStep, onPromptChange, onHeightChange, onDuplicate,
   onMoveUp, onMoveDown, onRetryStep,
-}: CanvasNodeProps) {
+}: CanvasNodeProps & { staggerDelay?: number }) {
   const t = useT()
   const [ctxMenu, setCtxMenu] = useState<{x:number;y:number}|null>(null)
   const [outputExpanded, setOutputExpanded] = useState(false)
@@ -144,11 +144,11 @@ export default function CanvasNode({
   // Border: subtle colored left accent + light overall border
   const border = `1px solid ${selected ? 'rgba(99,102,241,.45)' : status === 'completed' ? 'rgba(34,197,94,.2)' : status === 'error' ? 'rgba(239,68,68,.2)' : 'var(--border)'}`
   const borderLeft = `3px solid ${typeColor}`
-  const shadow = justDone ? '0 0 0 2px rgba(34,197,94,.4)'
-    : highlighted ? '0 0 0 1.5px rgba(99,102,241,.35)'
-    : selected ? '0 0 0 1.5px rgba(99,102,241,.3)'
-    : status === 'running' ? '0 0 0 1px rgba(99,102,241,.2)'
-    : '0 1px 2px rgba(0,0,0,.06)'
+  const shadow = justDone ? '0 0 0 2px rgba(34,197,94,.4), 0 4px 16px rgba(34,197,94,.12)'
+    : highlighted ? '0 0 0 1.5px rgba(99,102,241,.35), 0 2px 8px rgba(99,102,241,.08)'
+    : selected ? '0 0 0 1.5px rgba(99,102,241,.3), 0 4px 16px rgba(99,102,241,.08)'
+    : status === 'running' ? '0 0 0 1px rgba(99,102,241,.2), 0 4px 12px rgba(99,102,241,.1)'
+    : '0 2px 4px rgba(0,0,0,.12), 0 1px 1px rgba(0,0,0,.04)'
 
   const h = collapsed ? NODE_COLLAPSED_HEIGHT : undefined
   const mh = collapsed ? undefined : NODE_MIN_HEIGHT
@@ -187,6 +187,7 @@ export default function CanvasNode({
           transform: hovered && !dimmed && !active ? 'translateY(-1px)' : undefined,
           userSelect: 'none', boxSizing: 'border-box',
           opacity: dimmed ? .2 : status === 'pending' ? .45 : 1,
+          animationDelay: staggerDelay > 0 ? `${staggerDelay}ms` : undefined,
           animation: `canvas-node-fadein .12s ease-out${status === 'running' ? ',canvas-node-glow 2s ease-in-out infinite' : ''}`,
           overflow: 'hidden', display: 'flex', flexDirection: 'column',
           alignItems: collapsed ? 'center' : 'stretch',
@@ -401,9 +402,10 @@ export default function CanvasNode({
           </>
         )}
 
-        {/* Connection dots */}
-        <div style={{ position: 'absolute', left: -3, top: '50%', transform: 'translateY(-50%)', width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', border: '1.5px solid var(--bg-primary)', opacity: hovered && !selected ? .6 : 0, transition: 'opacity .12s', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', right: -3, top: '50%', transform: 'translateY(-50%)', width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', border: '1.5px solid var(--bg-primary)', opacity: hovered && !selected ? .6 : 0, transition: 'opacity .12s', pointerEvents: 'none' }} />
+        {/* Connection port dots */}
+        <div style={{ position: 'absolute', left: -4, top: '50%', transform: 'translateY(-50%)', width: 7, height: 7, borderRadius: '50%', background: 'var(--bg-primary)', border: `1.5px solid ${typeColor}60`, opacity: hovered && !selected ? .8 : .35, transition: 'all .15s ease', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', left: '50%', bottom: -4, transform: 'translateX(-50%)', width: 7, height: 7, borderRadius: '50%', background: 'var(--bg-primary)', border: `1.5px solid ${typeColor}60`, opacity: hovered && !selected ? .8 : .35, transition: 'all .15s ease', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', right: -4, top: '50%', transform: 'translateY(-50%)', width: 7, height: 7, borderRadius: '50%', background: 'var(--bg-primary)', border: `1.5px solid ${typeColor}60`, opacity: hovered && !selected ? .8 : .35, transition: 'all .15s ease', pointerEvents: 'none' }} />
       </div>
 
       {ctxMenu && <CtxMenu x={ctxMenu.x} y={ctxMenu.y} collapsed={collapsed} hasOutput={!!outputText} status={status}
