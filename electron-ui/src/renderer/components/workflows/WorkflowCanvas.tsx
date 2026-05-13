@@ -629,6 +629,40 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     return () => window.removeEventListener('keydown', handleKey)
   }, [])
 
+  // P4.1: G key — group/ungroup multi-selected nodes
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key !== 'g' && e.key !== 'G') return
+      if (e.ctrlKey || e.metaKey) return
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+      if (!workflow) return
+      const selected = selectedNodesRef.current
+      if (selected.size < 2) return
+      e.preventDefault()
+      const selectedSteps = workflow.steps.filter(s => selected.has(s.id))
+      const existingGroup = selectedSteps[0]?.groupId
+      const allSameGroup = !!existingGroup && selectedSteps.every(s => s.groupId === existingGroup)
+      if (allSameGroup) {
+        // Ungroup: strip groupId/groupLabel from all selected
+        undoRedo.replaceSteps(workflow.steps.map(s => {
+          if (!selected.has(s.id)) return s
+          const { groupId: _gid, groupLabel: _gl, ...rest } = s
+          return rest as typeof s
+        }))
+      } else {
+        // Group: assign a shared groupId to all selected
+        const gid = `grp-${Date.now()}`
+        undoRedo.replaceSteps(workflow.steps.map(s => {
+          if (!selected.has(s.id)) return s
+          return { ...s, groupId: gid, groupLabel: s.id === selectedSteps[0].id ? 'Group' : undefined }
+        }))
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [workflow, undoRedo])
+
   // D6: keyboard focus → node selection sync
   useEffect(() => {
     if (layout.focusedNodeId && workflow) {
@@ -1585,6 +1619,61 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           transition: layout.smoothTransition ? 'all 0.15s ease' : 'none',
         }}
       >
+        {/* P4.1: Group brackets — behind nodes, in same canvas coordinate space */}
+        {workflow && (() => {
+          const groups: Record<string, { steps: typeof workflow.steps; label?: string }> = {}
+          workflow.steps.forEach(s => {
+            if (!s.groupId) return
+            if (!groups[s.groupId]) groups[s.groupId] = { steps: [], label: s.groupLabel }
+            groups[s.groupId].steps.push(s)
+          })
+          return Object.entries(groups).map(([gid, { steps: gSteps, label }]) => {
+            const positions = gSteps.map(s => layout.nodePositions[s.id]).filter(Boolean)
+            if (positions.length < 2) return null
+            const PAD = 14
+            const minX = Math.min(...positions.map(p => p.x)) - PAD
+            const minY = Math.min(...positions.map(p => p.y)) - PAD - 16
+            const maxX = Math.max(...positions.map(p => p.x + p.width)) + PAD
+            const maxY = Math.max(...positions.map(p => p.y + p.height)) + PAD
+            return (
+              <div
+                key={gid}
+                style={{
+                  position: 'absolute',
+                  left: minX,
+                  top: minY,
+                  width: maxX - minX,
+                  height: maxY - minY,
+                  zIndex: 1,
+                  pointerEvents: 'none',
+                }}
+              >
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  borderRadius: 12,
+                  background: 'rgba(99,102,241,0.06)',
+                  border: '1.5px dashed rgba(99,102,241,0.3)',
+                }} />
+                {label && (
+                  <span style={{
+                    position: 'absolute',
+                    top: 4,
+                    left: 10,
+                    fontSize: 9,
+                    fontWeight: 700,
+                    color: 'var(--accent)',
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    pointerEvents: 'none',
+                  }}>
+                    {label}
+                  </span>
+                )}
+              </div>
+            )
+          })
+        })()}
         {workflow.steps.map((step, idx) => {
           const pos = layout.nodePositions[step.id]
           if (!pos) return null
