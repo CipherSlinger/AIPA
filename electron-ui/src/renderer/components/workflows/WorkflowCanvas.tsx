@@ -13,6 +13,8 @@ import { useCanvasLayout } from './useCanvasLayout'
 import { useWorkflowHistory } from './useWorkflowHistory'
 import WorkflowRunHistory from './WorkflowRunHistory'
 import { useUndoRedo } from './useUndoRedo'
+import CanvasShortcutsPanel from './CanvasShortcutsPanel'
+import CanvasTimeline from './CanvasTimeline'
 
 interface WorkflowCanvasProps {
   workflow: Workflow | null
@@ -203,6 +205,14 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   const [findOpen, setFindOpen] = useState(false)
   const [findQuery, setFindQuery] = useState('')
   const findInputRef = React.useRef<HTMLInputElement>(null)
+
+  // P4.2: shortcuts panel
+  const [showShortcuts, setShowShortcuts] = useState(false)
+  const showShortcutsRef = useRef(false)
+  useEffect(() => { showShortcutsRef.current = showShortcuts }, [showShortcuts])
+
+  // P4.3: timeline panel
+  const [showTimeline, setShowTimeline] = useState(false)
 
   // D5: live step timer — track start times per step
   const [liveElapsedMs, setLiveElapsedMs] = useState<Record<string, number>>({})
@@ -584,6 +594,41 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     return () => window.removeEventListener('keydown', handleKey)
   }, [findOpen])
 
+  // P4.2: ? key — toggle shortcuts panel
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      // Close shortcuts on Escape (handled by the panel itself, but also handle here)
+      if (e.key === 'Escape' && showShortcutsRef.current) {
+        setShowShortcuts(false)
+        return
+      }
+      // Toggle shortcuts on ?
+      if (e.key === '?' && !e.ctrlKey && !e.metaKey) {
+        const target = e.target as HTMLElement
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+        e.preventDefault()
+        setShowShortcuts(v => !v)
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [])
+
+  // P4.3: T key — toggle timeline panel
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 't' || e.key === 'T') {
+        if (e.ctrlKey || e.metaKey) return
+        const target = e.target as HTMLElement
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+        e.preventDefault()
+        setShowTimeline(v => !v)
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [])
+
   // D6: keyboard focus → node selection sync
   useEffect(() => {
     if (layout.focusedNodeId && workflow) {
@@ -737,6 +782,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     if (firstMatchId) layout.autoPanToNode(firstMatchId)
   }, [effectiveHighlightStepIds])
 
+  // P2.4: snap alignment guides during node drag (moved before early return to satisfy Hooks rules)
   // --- Empty state ---
   if (!workflow) {
     return (
@@ -867,6 +913,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   }, [layout.draggingNode, layout.nodePositions, workflow])
 
   return (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', overflow: 'hidden' }}>
     <div
       ref={containerRef}
       style={{
@@ -1385,6 +1432,9 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         stepCount={workflow?.steps.length ?? 0}
         isFullscreen={isFullscreen}
         onToggleFullscreen={handleToggleFullscreen}
+        onShowShortcuts={() => setShowShortcuts(v => !v)}
+        onToggleTimeline={() => setShowTimeline(v => !v)}
+        showTimeline={showTimeline}
       />
 
       {searchMatchCount !== null && (
@@ -2052,6 +2102,23 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         {zoomPercent}%
       </div>
 
+      {/* P4.2: Keyboard shortcuts panel */}
+      {showShortcuts && (
+        <CanvasShortcutsPanel onClose={() => setShowShortcuts(false)} />
+      )}
+
+    </div>
+
+    {/* P4.3: Execution timeline panel */}
+    {showTimeline && (
+      <CanvasTimeline
+        steps={workflow?.steps ?? []}
+        stepDurations={execution.stepDurations}
+        stepStatuses={execution.stepStatuses}
+        stepOutputs={execution.stepOutputs}
+        onClose={() => setShowTimeline(false)}
+      />
+    )}
     </div>
   )
 }

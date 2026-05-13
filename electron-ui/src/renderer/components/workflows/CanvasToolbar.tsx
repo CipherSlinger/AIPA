@@ -8,7 +8,7 @@
 // Iteration 530: B4 — toolbar UI refinement (search float, shadows, transitions, separators, icons)
 
 import React, { useRef, useState, useEffect } from 'react'
-import { Maximize2, Minimize2, ChevronsDownUp, ChevronsUpDown, Map, Download, ArrowDownUp, ArrowLeftRight, Upload, Terminal, Search, X, Square, Play, HelpCircle } from 'lucide-react'
+import { Maximize2, Minimize2, ChevronsDownUp, ChevronsUpDown, Map, Download, ArrowDownUp, ArrowLeftRight, Upload, Terminal, Search, X, Square, Play, HelpCircle, BarChart2 } from 'lucide-react'
 import { useT } from '../../i18n'
 
 const toolbarBtnStyle: React.CSSProperties = {
@@ -92,6 +92,11 @@ interface CanvasToolbarProps {
   // Fullscreen toggle
   isFullscreen?: boolean
   onToggleFullscreen?: () => void
+  // Shortcuts panel
+  onShowShortcuts?: () => void
+  // Timeline panel toggle
+  onToggleTimeline?: () => void
+  showTimeline?: boolean
 }
 
 export default function CanvasToolbar({
@@ -116,6 +121,9 @@ export default function CanvasToolbar({
   stepCount,
   isFullscreen = false,
   onToggleFullscreen,
+  onShowShortcuts,
+  onToggleTimeline,
+  showTimeline,
 }: CanvasToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [showShortcuts, setShowShortcuts] = useState(false)
@@ -584,8 +592,8 @@ export default function CanvasToolbar({
         )}
         <div style={{ position: 'relative' }} onMouseDown={e => e.stopPropagation()}>
           <button
-            onClick={() => setShowShortcuts(prev => !prev)}
-            title="Keyboard shortcuts"
+            onClick={() => onShowShortcuts ? onShowShortcuts() : setShowShortcuts(prev => !prev)}
+            title="Keyboard shortcuts (?)"
             style={{
               background: showShortcuts ? 'rgba(99,102,241,0.15)' : 'transparent',
               border: showShortcuts ? '1px solid rgba(99,102,241,0.4)' : '1px solid var(--border)',
@@ -644,6 +652,22 @@ export default function CanvasToolbar({
           )}
         </div>
       </div>
+      {onToggleTimeline && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggleTimeline() }}
+          title="Execution timeline (T)"
+          style={{
+            ...toolbarBtnStyle,
+            background: showTimeline ? 'rgba(99,102,241,0.15)' : 'transparent',
+            color: showTimeline ? '#818cf8' : 'var(--text-muted)',
+            boxShadow: showTimeline ? 'inset 0 0 0 1px rgba(99,102,241,0.4)' : 'none',
+          }}
+          onMouseEnter={hoverIn}
+          onMouseLeave={e => { e.currentTarget.style.background = showTimeline ? 'rgba(99,102,241,0.15)' : 'transparent'; e.currentTarget.style.color = showTimeline ? '#818cf8' : 'var(--text-muted)' }}
+        >
+          <BarChart2 size={13} />
+        </button>
+      )}
     </>
   )
 }

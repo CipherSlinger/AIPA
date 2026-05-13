@@ -279,6 +279,8 @@ export interface WorkflowStep {
   branches?: { label: string; prompt: string }[]  // for condition: [{label:'Yes', prompt:'...'}, {label:'No', prompt:'...'}]
   parallelPrompts?: string[]   // for parallel nodes: list of prompts to run simultaneously
   canvasPos?: { x: number; y: number }   // user-dragged position override
+  groupId?: string        // P4.1: group membership — steps sharing a groupId are visually grouped
+  groupLabel?: string     // P4.1: display label for the group (only meaningful on first step of group)
 }
 
 export interface Workflow {
